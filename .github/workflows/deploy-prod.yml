@@ -1,0 +1,400 @@
+name: Deploy to Production
+
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY_BACKEND: chamba-backend
+  ECR_REPOSITORY_FRONTEND: chamba-frontend
+  ECS_CLUSTER: chamba-production
+  ECS_SERVICE_BACKEND: chamba-backend-prod
+  ECS_SERVICE_FRONTEND: chamba-frontend-prod
+  PRODUCTION_URL: https://chamba.work
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate tag format
+        run: |
+          TAG=${{ github.event.release.tag_name }}
+          if [[ ! $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag format: $TAG"
+            echo "Expected format: vX.Y.Z (e.g., v1.0.0)"
+            exit 1
+          fi
+          echo "Tag format valid: $TAG"
+
+      - name: Check release notes
+        run: |
+          BODY="${{ github.event.release.body }}"
+          if [ -z "$BODY" ]; then
+            echo "Release notes are empty"
+            exit 1
+          fi
+          echo "Release notes present"
+
+  build-and-push:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    needs: validate
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      backend-image: ${{ steps.output.outputs.backend-image }}
+      frontend-image: ${{ steps.output.outputs.frontend-image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PRODUCTION }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=${{ github.event.release.tag_name }}
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_BACKEND }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_BACKEND }}:${{ steps.version.outputs.version }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_BACKEND }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ github.event.release.created_at }}
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:${{ steps.version.outputs.version }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_API_URL=${{ secrets.PRODUCTION_API_URL }}
+            VITE_BUILD_VERSION=${{ steps.version.outputs.version }}
+
+      - name: Output image URIs
+        id: output
+        run: |
+          echo "backend-image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_BACKEND }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "frontend-image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+  approval:
+    name: Deployment Approval
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+    steps:
+      - name: Approval checkpoint
+        run: echo "Deployment approved"
+
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    needs: [build-and-push, approval]
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PRODUCTION }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get current task definitions for rollback
+        id: current-state
+        run: |
+          aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE_BACKEND }} ${{ env.ECS_SERVICE_FRONTEND }} \
+            --query 'services[*].{name:serviceName,taskDef:taskDefinition}' \
+            > current-state.json
+          cat current-state.json
+          echo "saved=true" >> $GITHUB_OUTPUT
+
+      - name: Download task definition (backend)
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_SERVICE_BACKEND }} \
+            --query taskDefinition > backend-task-def.json
+
+      - name: Update backend task definition
+        id: task-def-backend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: backend-task-def.json
+          container-name: chamba-backend
+          image: ${{ needs.build-and-push.outputs.backend-image }}
+
+      - name: Deploy backend to ECS
+        id: deploy-backend
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def-backend.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_BACKEND }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          wait-for-minutes: 15
+
+      - name: Download task definition (frontend)
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_SERVICE_FRONTEND }} \
+            --query taskDefinition > frontend-task-def.json
+
+      - name: Update frontend task definition
+        id: task-def-frontend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: frontend-task-def.json
+          container-name: chamba-frontend
+          image: ${{ needs.build-and-push.outputs.frontend-image }}
+
+      - name: Deploy frontend to ECS
+        id: deploy-frontend
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def-frontend.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_FRONTEND }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          wait-for-minutes: 15
+
+      - name: Save rollback info
+        if: always()
+        run: |
+          echo '${{ toJSON(steps.current-state.outputs) }}' > rollback-info.json
+
+      - name: Upload rollback info
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollback-info
+          path: |
+            current-state.json
+            rollback-info.json
+          retention-days: 30
+
+  health-check:
+    name: Health Checks
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Wait for propagation
+        run: sleep 60
+
+      - name: Health check - API
+        id: api-health
+        run: |
+          for i in {1..10}; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.PRODUCTION_URL }}/api/health)
+            if [ "$response" == "200" ]; then
+              echo "API health check passed"
+              exit 0
+            fi
+            echo "Attempt $i: API returned $response, retrying..."
+            sleep 10
+          done
+          echo "API health check failed after 10 attempts"
+          exit 1
+
+      - name: Health check - Frontend
+        id: frontend-health
+        run: |
+          for i in {1..10}; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.PRODUCTION_URL }})
+            if [ "$response" == "200" ]; then
+              echo "Frontend health check passed"
+              exit 0
+            fi
+            echo "Attempt $i: Frontend returned $response, retrying..."
+            sleep 10
+          done
+          echo "Frontend health check failed after 10 attempts"
+          exit 1
+
+      - name: Verify API responses
+        run: |
+          # Check auth providers
+          curl -sf "${{ env.PRODUCTION_URL }}/api/auth/providers" > /dev/null
+          echo "Auth providers endpoint verified"
+
+          # Check version endpoint
+          VERSION=$(curl -sf "${{ env.PRODUCTION_URL }}/api/version" | jq -r '.version')
+          EXPECTED="${{ github.event.release.tag_name }}"
+          EXPECTED="${EXPECTED#v}"
+          if [ "$VERSION" != "$EXPECTED" ]; then
+            echo "Version mismatch: got $VERSION, expected $EXPECTED"
+            exit 1
+          fi
+          echo "Version verified: $VERSION"
+
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy, health-check]
+    if: failure() && needs.deploy.result == 'success'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PRODUCTION }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download rollback info
+        uses: actions/download-artifact@v4
+        with:
+          name: rollback-info
+
+      - name: Rollback services
+        run: |
+          echo "Initiating rollback..."
+
+          # Parse previous task definitions
+          BACKEND_TASK=$(cat current-state.json | jq -r '.[] | select(.name=="${{ env.ECS_SERVICE_BACKEND }}") | .taskDef')
+          FRONTEND_TASK=$(cat current-state.json | jq -r '.[] | select(.name=="${{ env.ECS_SERVICE_FRONTEND }}") | .taskDef')
+
+          echo "Rolling back backend to: $BACKEND_TASK"
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE_BACKEND }} \
+            --task-definition $BACKEND_TASK \
+            --force-new-deployment
+
+          echo "Rolling back frontend to: $FRONTEND_TASK"
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE_FRONTEND }} \
+            --task-definition $FRONTEND_TASK \
+            --force-new-deployment
+
+          echo "Waiting for rollback stability..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE_BACKEND }} ${{ env.ECS_SERVICE_FRONTEND }}
+
+          echo "Rollback complete"
+
+      - name: Notify rollback
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Production rollback executed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Chamba Production Rollback* :warning:\n\nRelease `${{ github.event.release.tag_name }}` deployment failed.\nServices have been rolled back to previous version.\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [deploy, health-check]
+    if: always()
+    steps:
+      - name: Notify Slack - Success
+        if: needs.health-check.result == 'success'
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Production deployment successful",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Chamba Production Deployed* :rocket:\n\nVersion: `${{ github.event.release.tag_name }}`\nURL: ${{ env.PRODUCTION_URL }}\n\n${{ github.event.release.html_url }}"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Released by: ${{ github.actor }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack - Failure
+        if: needs.health-check.result == 'failure' || needs.deploy.result == 'failure'
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Production deployment failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Chamba Production Deployment Failed* :x:\n\nVersion: `${{ github.event.release.tag_name }}`\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Released by: ${{ github.actor }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

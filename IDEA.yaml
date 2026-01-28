@@ -1,0 +1,115 @@
+name: "chamba"
+title: "Chamba: Gente para Agentes"
+status: "incubating"
+priority: "high"
+readiness: 98  # Percent ready for graduation (MCP Server + Auth UI complete)
+
+created: "2026-01-10"
+updated: "2026-01-17"
+
+author: "lxhxr"
+contributors: []
+
+summary: "Human Execution Layer registrado como agente ERC-8004. Otros agentes lo descubren en el registry, se conectan via A2A protocol, y publican bounties para tareas fisicas que humanos ejecutan y cobran via x402 micropagos."
+
+# Synergy scores with ecosystem projects (0-10)
+synergies:
+  # Communication Layer
+  telemesh: 4          # Notificaciones de tasks a comunidades
+  meshrelay: 8         # A2A protocol para comunicacion agent-to-chamba (UPGRADED)
+  colmena: 8           # Agentes forager publican bounties, pheromone bus
+  chainwitness: 8      # Notarizacion de evidencia de tareas completadas
+  # Payments Layer
+  x402-rs: 10          # Core del sistema de micropagos
+  uvd-x402-sdk-python: 10   # Backend de pagos
+  uvd-x402-sdk-typescript: 9  # Frontend de pagos
+  # Agents Layer
+  council: 7           # Orquestacion de agentes que necesitan humanos
+  enclaveops: 7        # Ejecucion segura de agentes, A2A protocol
+  faro: 4              # Monitoreo de uptime del marketplace
+  # Intelligence Layer
+  karma-hello: 3       # Modelo de reputation transferible
+  abracadabra: 2       # Poco relacionado
+  ultratrack: 6        # Tracking de reputacion de ejecutores humanos
+  # Other
+  402milly: 5          # Modelo de marketplace con x402
+
+patterns:
+  - sub-agent-delegation      # Agentes delegando a humanos
+  - mcp-data-layer           # API de tasks como MCP server
+  - structured-output        # Schema estandar de tareas
+  - non-coding-workflow      # Tareas fisicas, no codigo
+  - verification-loop        # Verificacion de entregas
+  - permission-hooks         # Control de seguridad en tasks
+  - agentic-identity         # ERC-8004 agent registration (NEW)
+  - escrow-payments          # On-chain escrow for bounties (NEW)
+  - multi-network-deployment # Testnet + mainnet ready (NEW)
+
+tools:
+  - claude-agent-sdk         # Para agentes que publican tasks
+  - uvd-x402-sdk            # Para micropagos
+  - chainwitness            # Para notarizacion
+  - erc-8004-registry       # Agent identity registration (NEW)
+  - solidity                # ChambaEscrow.sol (NEW)
+  - foundry                 # Contract deployment (NEW)
+  - supabase                # Database + Auth + Storage (NEW)
+  - react-vite              # Dashboard frontend (NEW)
+  - tailwindcss             # UI styling (NEW)
+  - fastmcp                 # MCP server framework (NEW)
+  - pydantic-v2             # Input validation (NEW)
+
+graduation_criteria:
+  completed:
+    - "SPEC.md completo con todos los tipos de tasks"
+    - "PLAN.md con arquitectura de API"
+    - "Integracion x402 definida"
+    - "Al menos 5 tipos de chambas documentados"
+    - "ERC-8004 identity registration designed"
+    - "ChambaEscrow.sol smart contract designed"
+    - "Multi-network configuration (testnet + mainnet)"
+    - "A2A protocol messages defined"
+    - "MCP server implementation documented"
+    - "Supabase project configured with credentials"
+    - "Database schema with RLS policies (SQL migrations)"
+    - "React dashboard built (Vite + TypeScript + Tailwind)"
+    - "TypeScript types matching database schema"
+    - "Evidence upload component with file preview"
+    - "Auth UI (login/signup modal, auto-create executor)"
+    - "MCP Server implemented (6 tools: publish, get_tasks, get_task, check_submission, approve_submission, cancel_task)"
+    - "Pydantic models for all MCP tool inputs"
+    - "Supabase client with async operations"
+  pending:
+    - "Apply migrations to Supabase"
+    - "Deploy ChambaEscrow to Base Sepolia"
+    - "Register in ERC-8004 testnet"
+
+tags:
+  - marketplace
+  - human-in-the-loop
+  - micropayments
+  - x402
+  - agents
+  - physical-tasks
+  - bounties
+  - erc-8004
+  - agentic-identity
+  - escrow
+  - multi-network
+
+phases:
+  foundation: "complete"        # SPEC, PLAN, SYNERGIES
+  core_features: "complete"     # MCP server, escrow, ERC-8004
+  implementation: "complete"    # Database schema, React dashboard
+  integration: "pending"        # Deploy contracts, register agent
+  polish: "pending"             # MVP vertical, testing
+
+graduated_to: null
+
+# Networks ready for deployment
+networks:
+  testnet:
+    - base_sepolia
+    - sepolia
+  mainnet:
+    - base        # When ERC-8004 v1 launches
+    - ethereum    # When ERC-8004 v1 launches

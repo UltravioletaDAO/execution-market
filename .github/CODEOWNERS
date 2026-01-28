@@ -1,0 +1,54 @@
+# CODEOWNERS - Chamba Project
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @ultravioletadao/chamba-maintainers
+
+# Backend (Python/FastAPI)
+/backend/ @ultravioletadao/backend-team
+/backend/src/api/ @ultravioletadao/backend-team
+/backend/src/models/ @ultravioletadao/backend-team
+/backend/src/services/ @ultravioletadao/backend-team
+
+# Frontend (React/TypeScript)
+/frontend/ @ultravioletadao/frontend-team
+/frontend/src/components/ @ultravioletadao/frontend-team
+/frontend/src/pages/ @ultravioletadao/frontend-team
+/frontend/src/hooks/ @ultravioletadao/frontend-team
+
+# Smart Contracts
+/contracts/ @ultravioletadao/blockchain-team
+*.sol @ultravioletadao/blockchain-team
+
+# Infrastructure
+/terraform/ @ultravioletadao/devops-team
+/docker-compose*.yml @ultravioletadao/devops-team
+Dockerfile @ultravioletadao/devops-team
+
+# CI/CD
+/.github/ @ultravioletadao/devops-team
+/.github/workflows/ @ultravioletadao/devops-team
+
+# Security-sensitive files
+/.github/dependabot.yml @ultravioletadao/security-team @ultravioletadao/devops-team
+/.github/workflows/security.yml @ultravioletadao/security-team
+/backend/src/auth/ @ultravioletadao/security-team @ultravioletadao/backend-team
+/backend/src/crypto/ @ultravioletadao/security-team @ultravioletadao/blockchain-team
+
+# Documentation
+/docs/ @ultravioletadao/chamba-maintainers
+*.md @ultravioletadao/chamba-maintainers
+README.md @ultravioletadao/chamba-maintainers
+
+# Configuration files
+pyproject.toml @ultravioletadao/backend-team
+package.json @ultravioletadao/frontend-team
+tsconfig.json @ultravioletadao/frontend-team
+
+# Database migrations
+/backend/alembic/ @ultravioletadao/backend-team @ultravioletadao/devops-team
+
+# Tests
+/backend/tests/ @ultravioletadao/backend-team
+/frontend/tests/ @ultravioletadao/frontend-team
+/frontend/e2e/ @ultravioletadao/frontend-team @ultravioletadao/qa-team

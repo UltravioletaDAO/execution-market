@@ -1,0 +1,433 @@
+# Chamba Docker Compose - Full Stack Development
+# Complete local development environment with all services
+#
+# Services:
+#   - dashboard (React): port 5173
+#   - mcp-server (FastAPI): port 8000
+#   - supabase-kong (API Gateway): port 54321
+#   - supabase-studio (Admin UI): port 54322
+#   - supabase-inbucket (Email testing): port 54323
+#   - supabase-db (PostgreSQL): port 54320
+#   - anvil (Local blockchain): port 8545
+#   - redis (Caching): port 6379
+#
+# Usage:
+#   make up              # Start all services
+#   make dev             # Start with dev overrides
+#   make down            # Stop all services
+#   make logs            # View all logs
+#   make reset           # Reset all data and restart
+#
+# Or with docker compose directly:
+#   docker compose up -d
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+version: "3.8"
+
+services:
+  # ===================
+  # MCP Server (Python + FastAPI)
+  # ===================
+  mcp-server:
+    container_name: chamba-mcp-server
+    build:
+      context: ./mcp_server
+      dockerfile: ../Dockerfile.mcp
+      target: development
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      # Database (via Kong gateway)
+      - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
+      - SUPABASE_URL=http://supabase-kong:8000
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      # Blockchain
+      - X402_PRIVATE_KEY=${X402_PRIVATE_KEY}
+      - X402_RPC_URL=${X402_RPC_URL:-http://anvil:8545}
+      - X402_FACILITATOR_URL=${X402_FACILITATOR_URL:-https://facilitator.ultravioleta.xyz}
+      - CHAIN_ID=${CHAIN_ID:-31337}
+      # AI Verification
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Storage
+      - PINATA_JWT=${PINATA_JWT}
+      - STORAGE_URL=http://supabase-storage:5000
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      # Webhooks
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      # Feature Flags
+      - ENABLE_AI_VERIFICATION=${ENABLE_AI_VERIFICATION:-true}
+      - ENABLE_ERC8004_INTEGRATION=${ENABLE_ERC8004_INTEGRATION:-true}
+    volumes:
+      - ./mcp_server:/app
+      - mcp-server-cache:/app/.cache
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Dashboard (React + Vite)
+  # ===================
+  dashboard:
+    container_name: chamba-dashboard
+    build:
+      context: ./dashboard
+      dockerfile: ../Dockerfile.dashboard
+      target: development
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-http://localhost:54321}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - VITE_WALLET_CONNECT_PROJECT_ID=${VITE_WALLET_CONNECT_PROJECT_ID}
+      - VITE_CHAIN_ID=${VITE_CHAIN_ID:-31337}
+      - VITE_ANVIL_RPC_URL=${VITE_ANVIL_RPC_URL:-http://localhost:8545}
+    volumes:
+      - ./dashboard:/app
+      - /app/node_modules
+    depends_on:
+      - mcp-server
+      - supabase-kong
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Supabase Database (PostgreSQL + PostGIS)
+  # ===================
+  supabase-db:
+    container_name: chamba-supabase-db
+    image: supabase/postgres:15.1.1.41
+    ports:
+      - "54320:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      JWT_EXP: 3600
+    volumes:
+      - supabase-db-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Supabase Auth (GoTrue)
+  # ===================
+  supabase-auth:
+    container_name: chamba-supabase-auth
+    image: supabase/gotrue:v2.132.3
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://localhost:54321
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
+      GOTRUE_SITE_URL: http://localhost:5173
+      GOTRUE_URI_ALLOW_LIST: "*"
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_SMTP_HOST: supabase-inbucket
+      GOTRUE_SMTP_PORT: 2500
+      GOTRUE_SMTP_ADMIN_EMAIL: admin@localhost
+      GOTRUE_SMTP_MAX_FREQUENCY: 1s
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "true"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Supabase REST API (PostgREST)
+  # ===================
+  supabase-rest:
+    container_name: chamba-supabase-rest
+    image: postgrest/postgrest:v12.0.2
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage,graphql_public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_DB_EXTRA_SEARCH_PATH: public
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Supabase Realtime
+  # ===================
+  supabase-realtime:
+    container_name: chamba-supabase-realtime
+    image: supabase/realtime:v2.25.50
+    environment:
+      PORT: 4000
+      DB_HOST: supabase-db
+      DB_PORT: 5432
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_NAME: postgres
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      DB_ENC_KEY: supabaserealtime
+      API_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      FLY_ALLOC_ID: fly123
+      FLY_APP_NAME: realtime
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      ENABLE_TAILSCALE: "false"
+      DNS_NODES: "''"
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Supabase Storage
+  # ===================
+  supabase-storage:
+    container_name: chamba-supabase-storage
+    image: supabase/storage-api:v0.46.4
+    environment:
+      ANON_KEY: ${SUPABASE_ANON_KEY}
+      SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      POSTGREST_URL: http://supabase-rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: local
+      GLOBAL_S3_BUCKET: stub
+      IS_MULTITENANT: "false"
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMGPROXY_URL: http://imgproxy:8080
+    volumes:
+      - supabase-storage-data:/var/lib/storage
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      supabase-rest:
+        condition: service_started
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Supabase Kong (API Gateway)
+  # ===================
+  supabase-kong:
+    container_name: chamba-supabase-kong
+    image: kong:2.8.1
+    ports:
+      - "54321:8000"
+      - "54329:8001"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+    volumes:
+      - ./supabase/kong.yml:/var/lib/kong/kong.yml:ro
+    depends_on:
+      - supabase-auth
+      - supabase-rest
+      - supabase-realtime
+      - supabase-storage
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Supabase Studio (Admin UI)
+  # ===================
+  supabase-studio:
+    container_name: chamba-supabase-studio
+    image: supabase/studio:20240101-ce42139
+    ports:
+      - "54322:3000"
+    environment:
+      STUDIO_PG_META_URL: http://supabase-meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DEFAULT_ORGANIZATION_NAME: Chamba Local
+      DEFAULT_PROJECT_NAME: Chamba Development
+      SUPABASE_URL: http://supabase-kong:8000
+      SUPABASE_PUBLIC_URL: http://localhost:54321
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+    depends_on:
+      - supabase-kong
+      - supabase-meta
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Supabase Meta (pg_meta for Studio)
+  # ===================
+  supabase-meta:
+    container_name: chamba-supabase-meta
+    image: supabase/postgres-meta:v0.75.0
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: supabase-db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Supabase Inbucket (Email Testing)
+  # ===================
+  supabase-inbucket:
+    container_name: chamba-supabase-inbucket
+    image: inbucket/inbucket:3.0.3
+    ports:
+      - "54323:9000"   # Web UI
+      - "54331:2500"   # SMTP
+      - "54332:1100"   # POP3
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Image Proxy (for Supabase Storage)
+  # ===================
+  imgproxy:
+    container_name: chamba-imgproxy
+    image: darthsim/imgproxy:v3.21
+    environment:
+      IMGPROXY_BIND: ":8080"
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /var/lib/storage
+      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+    volumes:
+      - supabase-storage-data:/var/lib/storage:ro
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Redis (Caching & Rate Limiting)
+  # ===================
+  redis:
+    container_name: chamba-redis
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+  # ===================
+  # Anvil (Local Ethereum Node)
+  # ===================
+  anvil:
+    container_name: chamba-anvil
+    image: ghcr.io/foundry-rs/foundry:latest
+    entrypoint: ["anvil"]
+    command:
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8545"
+      - "--chain-id"
+      - "31337"
+      - "--block-time"
+      - "2"
+      - "--accounts"
+      - "10"
+      - "--balance"
+      - "10000"
+      - "--gas-limit"
+      - "30000000"
+      - "--code-size-limit"
+      - "30000"
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - chamba-network
+    restart: unless-stopped
+
+networks:
+  chamba-network:
+    driver: bridge
+    name: chamba-network
+
+volumes:
+  supabase-db-data:
+    name: chamba-supabase-db-data
+  supabase-storage-data:
+    name: chamba-supabase-storage-data
+  redis-data:
+    name: chamba-redis-data
+  mcp-server-cache:
+    name: chamba-mcp-server-cache

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es" class="">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Chamba - Human Execution Layer for AI Agents. Complete tasks, earn crypto. The bridge between AI capabilities and human action." />
+    <meta name="keywords" content="chamba, AI tasks, crypto earnings, human execution, web3, blockchain, gig economy" />
+    <meta name="author" content="Ultravioleta DAO" />
+
+    <!-- Open Graph / Social -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Chamba - Human Execution Layer" />
+    <meta property="og:description" content="Complete tasks for AI agents, earn crypto. The bridge between AI capabilities and human action." />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://chamba.ultravioleta.xyz" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Chamba - Human Execution Layer" />
+    <meta name="twitter:description" content="Complete tasks for AI agents, earn crypto." />
+    <meta name="twitter:image" content="/og-image.png" />
+
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#0ea5e9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Chamba" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
+
+    <!-- Camera/GPS permissions hint for iOS -->
+    <meta name="apple-mobile-web-app-orientations" content="portrait" />
+
+    <!-- Preconnect to external resources -->
+    <link rel="preconnect" href="https://rsms.me" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://supabase.co" />
+    <link rel="dns-prefetch" href="https://supabase.co" />
+
+    <!-- Font Loading: Inter (UI) and JetBrains Mono (Code) -->
+    <link rel="preload" href="https://rsms.me/inter/inter.css" as="style" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- Prevent phone number detection on iOS -->
+    <meta name="format-detection" content="telephone=no" />
+
+    <title>Chamba - Human Execution Layer</title>
+
+    <!-- Inline critical CSS -->
+    <style>
+      /* Prevent flash of unstyled content */
+      html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+
+      /* Inter font feature settings */
+      :root {
+        font-family: 'Inter var', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+      }
+
+      /* Prevent pull-to-refresh during camera capture */
+      html, body {
+        overscroll-behavior-y: contain;
+      }
+
+      /* Safe area insets for notched devices */
+      :root {
+        --sat: env(safe-area-inset-top, 0px);
+        --sab: env(safe-area-inset-bottom, 0px);
+        --sal: env(safe-area-inset-left, 0px);
+        --sar: env(safe-area-inset-right, 0px);
+      }
+
+      /* Dark mode detection for initial load */
+      :root {
+        color-scheme: light dark;
+      }
+
+      /* Loading state */
+      #root:empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        min-height: 100dvh;
+        background: #f8fafc;
+      }
+
+      .dark #root:empty,
+      @media (prefers-color-scheme: dark) {
+        #root:empty {
+          background: #0f172a;
+        }
+      }
+
+      #root:empty::after {
+        content: '';
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e2e8f0;
+        border-top-color: #0ea5e9;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      .dark #root:empty::after,
+      @media (prefers-color-scheme: dark) {
+        #root:empty::after {
+          border-color: #334155;
+          border-top-color: #0ea5e9;
+        }
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* Shimmer animation for skeleton loading */
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+
+      .animate-shimmer {
+        animation: shimmer 1.5s infinite;
+      }
+    </style>
+
+    <!-- Theme detection script (runs before body to prevent flash) -->
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('chamba-theme');
+          var theme = stored;
+
+          if (!theme || theme === 'system') {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+
+          document.documentElement.style.colorScheme = theme;
+
+          // Update theme-color meta tag
+          var metaThemeColor = document.querySelector('meta[name="theme-color"]');
+          if (metaThemeColor) {
+            metaThemeColor.setAttribute('content', theme === 'dark' ? '#0f172a' : '#0ea5e9');
+          }
+        } catch (e) {
+          console.error('Theme detection error:', e);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- Noscript fallback -->
+    <noscript>
+      <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; text-align: center; font-family: system-ui, sans-serif;">
+        <div>
+          <h1 style="font-size: 1.5rem; margin-bottom: 1rem;">JavaScript Required</h1>
+          <p style="color: #64748b;">Chamba requires JavaScript to run. Please enable JavaScript in your browser settings.</p>
+        </div>
+      </div>
+    </noscript>
+
+    <!-- React Root -->
+    <div id="root"></div>
+
+    <!-- Main Application Script -->
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(reg) {
+              console.log('[SW] Registered:', reg.scope);
+
+              // Check for updates
+              reg.addEventListener('updatefound', function() {
+                var newWorker = reg.installing;
+                newWorker.addEventListener('statechange', function() {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New content available, notify user
+                    console.log('[SW] New content available');
+                    window.dispatchEvent(new CustomEvent('sw-update-available'));
+                  }
+                });
+              });
+            })
+            .catch(function(err) {
+              console.error('[SW] Registration failed:', err);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>

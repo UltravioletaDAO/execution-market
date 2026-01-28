@@ -1,0 +1,50 @@
+{
+  "family": "chamba-mcp-server",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "chamba-mcp-server",
+      "image": "YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/chamba-mcp-server@sha256:31bbd7393eb67bfcffdadbcb38eb7ef9c78c5494141a076338cd1524b932f3d9",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "PORT", "value": "8000"},
+        {"name": "ENVIRONMENT", "value": "production"},
+        {"name": "CHAMBA_BASE_URL", "value": "https://chamba.ultravioletadao.xyz"}
+      ],
+      "secrets": [
+        {
+          "name": "SUPABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:chamba/supabase-0aOUyc:SUPABASE_URL::"
+        },
+        {
+          "name": "SUPABASE_ANON_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:chamba/supabase-0aOUyc:SUPABASE_ANON_KEY::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/chamba-mcp-server",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "chamba-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Chamba - Human Execution Layer",
+  "private": true,
+  "scripts": {
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui",
+    "test:headed": "npx playwright test --headed",
+    "test:worker": "npx playwright test worker-flow.spec.ts",
+    "test:agent": "npx playwright test agent-flow.spec.ts",
+    "test:dispute": "npx playwright test dispute-flow.spec.ts",
+    "test:a11y": "npx playwright test accessibility-performance.spec.ts",
+    "test:mobile": "npx playwright test --project='mobile-chrome'",
+    "test:debug": "npx playwright test --debug",
+    "report": "npx playwright show-report test-results/html-report",
+    "codegen": "npx playwright codegen http://localhost:3000"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0"
+  }
+}

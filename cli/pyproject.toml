@@ -1,0 +1,106 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chamba-cli"
+version = "0.1.0"
+description = "Command-line interface for Chamba - Human task execution layer for AI agents"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Ultravioleta DAO", email = "dev@ultravioleta.xyz"}
+]
+maintainers = [
+    {name = "Ultravioleta DAO", email = "dev@ultravioleta.xyz"}
+]
+keywords = [
+    "chamba",
+    "cli",
+    "ai-agents",
+    "human-tasks",
+    "micropayments",
+    "x402",
+    "ultravioleta"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Distributed Computing",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.0.0",
+    "httpx>=0.24.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "respx>=0.20.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+chamba = "chamba_cli.chamba:main"
+
+[project.urls]
+Homepage = "https://chamba.ultravioleta.xyz"
+Documentation = "https://docs.chamba.ultravioleta.xyz"
+Repository = "https://github.com/ultravioleta-dao/chamba"
+Changelog = "https://github.com/ultravioleta-dao/chamba/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+# The cli/ directory IS the package (renamed to chamba_cli on install)
+py-modules = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["chamba_cli*"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["chamba_cli"]

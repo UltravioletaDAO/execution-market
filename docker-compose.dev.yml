@@ -1,0 +1,181 @@
+# Chamba Docker Compose - Development Overrides
+# Extends docker-compose.yml with development-specific configuration
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#   make dev  # (shortcut)
+#
+# Features enabled:
+#   - Hot reload for Python and React
+#   - Debug logging
+#   - Source code mounts
+#   - Test database seeding
+#   - Additional debugging tools
+
+version: "3.8"
+
+services:
+  # ===================
+  # MCP Server (Development Mode)
+  # ===================
+  mcp-server:
+    build:
+      target: development
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      # Enable test mode for easier development
+      - TEST_MODE=true
+      # Hot reload
+      - WATCHFILES_FORCE_POLLING=true
+    volumes:
+      - ./mcp_server:/app
+      - mcp-server-cache:/app/.cache
+      # Exclude these from sync for performance
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/.mypy_cache
+    # Override command to enable hot reload
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app"]
+
+  # ===================
+  # Dashboard (Development Mode)
+  # ===================
+  dashboard:
+    build:
+      target: development
+    environment:
+      - NODE_ENV=development
+      - VITE_DEBUG=true
+      # Enable HMR (Hot Module Replacement)
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./dashboard:/app
+      - /app/node_modules
+      - /app/.vite
+    # Vite dev server with HMR
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    stdin_open: true
+    tty: true
+
+  # ===================
+  # Supabase Database (Development)
+  # ===================
+  supabase-db:
+    environment:
+      # More verbose logging for development
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    # Mount seed file for development data
+    volumes:
+      - supabase-db-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+      - ./supabase/seed.sql:/docker-entrypoint-initdb.d/99_seed.sql:ro
+    ports:
+      - "54320:5432"
+
+  # ===================
+  # Supabase Auth (Development)
+  # ===================
+  supabase-auth:
+    environment:
+      # Auto-confirm emails in development
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      # Shorter token expiry for testing
+      GOTRUE_JWT_EXP: 3600
+      # Enable all external auth providers for testing
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "true"
+
+  # ===================
+  # Supabase Studio (Always enabled in dev)
+  # ===================
+  supabase-studio:
+    profiles: []  # No profile restriction - always enabled
+
+  # ===================
+  # Anvil (Extended Configuration)
+  # ===================
+  anvil:
+    command:
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8545"
+      - "--chain-id"
+      - "31337"
+      - "--block-time"
+      - "2"
+      - "--accounts"
+      - "10"
+      - "--balance"
+      - "10000"
+      - "--gas-limit"
+      - "30000000"
+      - "--code-size-limit"
+      - "30000"
+      # Additional dev flags
+      - "--steps-tracing"
+      - "--auto-impersonate"
+
+  # ===================
+  # Redis (Development)
+  # ===================
+  redis:
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --loglevel debug
+
+  # ===================
+  # Mailhog (Alternative to Inbucket)
+  # ===================
+  # mailhog:
+  #   container_name: chamba-mailhog
+  #   image: mailhog/mailhog:latest
+  #   ports:
+  #     - "54333:8025"  # Web UI
+  #     - "54334:1025"  # SMTP
+  #   networks:
+  #     - chamba-network
+
+  # ===================
+  # PGAdmin (Optional Database UI)
+  # ===================
+  # pgadmin:
+  #   container_name: chamba-pgadmin
+  #   image: dpage/pgadmin4:latest
+  #   ports:
+  #     - "54340:80"
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@chamba.local
+  #     PGADMIN_DEFAULT_PASSWORD: admin
+  #     PGADMIN_CONFIG_SERVER_MODE: "False"
+  #   volumes:
+  #     - pgadmin-data:/var/lib/pgadmin
+  #   depends_on:
+  #     supabase-db:
+  #       condition: service_healthy
+  #   networks:
+  #     - chamba-network
+
+  # ===================
+  # Redis Commander (Optional Redis UI)
+  # ===================
+  # redis-commander:
+  #   container_name: chamba-redis-commander
+  #   image: rediscommander/redis-commander:latest
+  #   ports:
+  #     - "54341:8081"
+  #   environment:
+  #     REDIS_HOSTS: local:redis:6379
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - chamba-network
+
+# volumes:
+#   pgadmin-data:
+#     name: chamba-pgadmin-data
