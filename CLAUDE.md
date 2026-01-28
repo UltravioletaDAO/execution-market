@@ -23,21 +23,26 @@ Chamba is a **Human Execution Layer for AI Agents** - a marketplace where AI age
 ```
 chamba/
 ├── mcp_server/          # MCP Server for AI agents
-│   ├── server.py        # FastMCP server with 6 tools
-│   ├── models.py        # Pydantic validation models
-│   └── supabase_client.py
 ├── dashboard/           # React web portal for human workers
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── pages/       # Route pages
-│   │   ├── hooks/       # Custom React hooks
-│   │   ├── services/    # API services
-│   │   └── types/       # TypeScript types
-│   └── e2e/             # Playwright E2E tests
+├── contracts/           # Smart contracts (Solidity)
 ├── scripts/             # Blockchain registration scripts
-│   ├── register_erc8004.ts  # ERC-8004 agent registration
-│   └── upload_metadata.ts   # IPFS metadata upload
-└── agent-card.json      # Agent metadata for ERC-8004
+├── sdk/                 # Client SDKs
+├── cli/                 # CLI tools
+├── supabase/            # Database migrations and seeds
+├── infrastructure/      # Terraform, deployment configs
+├── docs/                # All documentation
+│   ├── articles/        # Blog posts, competition articles
+│   ├── planning/        # TODOs, progress, roadmaps
+│   └── internal/        # Internal notes, messages
+├── videos/              # Video assets (Remotion projects)
+│   ├── v1/              # Original video
+│   ├── v18/             # Version 18
+│   └── v34/             # Version 34
+├── landing/             # Landing page
+├── admin-dashboard/     # Admin panel
+├── tests/               # Integration tests
+├── e2e/                 # End-to-end tests
+└── agent-card.json      # ERC-8004 agent metadata
 ```
 
 ## Common Commands
@@ -160,5 +165,34 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 - `SPEC.md` - Product specification with task categories and edge cases
 - `PLAN.md` - Technical architecture and implementation details
-- `SYNERGIES.md` - Integration points with ecosystem projects
+- `docs/SYNERGIES.md` - Integration points with ecosystem projects
 - `agent-card.json` - ERC-8004 agent metadata (editable)
+
+## File Organization Rules
+
+**Keep the root clean.** Only these files belong in root:
+- `README.md`, `CLAUDE.md` - Project documentation
+- `SPEC.md`, `PLAN.md` - Core specification docs
+- `agent-card.json`, `IDEA.yaml` - Agent metadata
+- `Dockerfile*`, `docker-compose*.yml`, `Makefile` - Build configs
+- `.env*`, `.gitignore`, `.dockerignore` - Environment configs
+
+**Everything else goes to its folder:**
+
+| Content Type | Location |
+|--------------|----------|
+| Articles, blog posts | `docs/articles/` |
+| TODOs, progress, roadmaps | `docs/planning/` |
+| Internal notes, messages | `docs/internal/` |
+| API docs, architecture | `docs/` |
+| Video projects (Remotion) | `videos/v{version}/` |
+| Scripts for blockchain | `scripts/` |
+| Database migrations | `supabase/migrations/` |
+
+**When creating new files:**
+1. Articles/posts → `docs/articles/ARTICLE_NAME.md`
+2. TODOs/planning → `docs/planning/TODO_TOPIC.md`
+3. New video version → `videos/v{N}/`
+4. Analysis/notes → `docs/internal/`
+
+**Never leave files dangling in root.** If unsure, put in `docs/`.
