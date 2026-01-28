@@ -1,0 +1,37 @@
+# Chamba Infrastructure - Example Variables
+# Copy this to terraform.tfvars and fill in values
+
+# AWS Configuration
+aws_region  = "us-east-1"
+environment = "production"
+
+# Domain Configuration
+domain        = "chamba.ultravioleta.xyz"
+api_subdomain = "api"
+app_subdomain = "app"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+
+# ECS Configuration - MCP Server
+mcp_server_cpu           = 256
+mcp_server_memory        = 512
+mcp_server_desired_count = 2
+mcp_server_port          = 8000
+mcp_server_image_tag     = "latest"
+
+# ECS Configuration - Dashboard
+dashboard_cpu           = 256
+dashboard_memory        = 512
+dashboard_desired_count = 2
+dashboard_port          = 80
+dashboard_image_tag     = "latest"
+
+# Secrets (will be stored in Secrets Manager)
+# These can be left empty and updated via AWS Console or CLI
+# supabase_url         = ""
+# supabase_anon_key    = ""
+# supabase_service_key = ""
+# anthropic_api_key    = ""
+# x402_facilitator_key = ""
+# base_rpc_url         = ""

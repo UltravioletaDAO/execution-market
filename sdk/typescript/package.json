@@ -1,0 +1,80 @@
+{
+  "name": "@chamba/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Chamba - Human Execution Layer for AI Agents",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:types && npm run build:cjs:package",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:cjs:package": "echo {\"type\":\"commonjs\"} > dist/cjs/package.json",
+    "dev": "tsc -p tsconfig.esm.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "chamba",
+    "ai",
+    "agents",
+    "human-in-the-loop",
+    "tasks",
+    "gig-economy",
+    "web3",
+    "usdc",
+    "ultravioleta",
+    "x402"
+  ],
+  "author": "Ultravioleta DAO",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ultravioleta/chamba.git",
+    "directory": "sdk/typescript"
+  },
+  "homepage": "https://chamba.ultravioleta.xyz",
+  "bugs": {
+    "url": "https://github.com/ultravioleta/chamba/issues"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "ethers": "^6.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.56.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

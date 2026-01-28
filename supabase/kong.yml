@@ -1,0 +1,189 @@
+# Kong API Gateway Configuration for Supabase
+# This file configures routing and authentication for all Supabase services
+#
+# Routes:
+#   /auth/v1/*    -> GoTrue (Authentication)
+#   /rest/v1/*    -> PostgREST (REST API)
+#   /realtime/v1/* -> Realtime (WebSocket)
+#   /storage/v1/* -> Storage API
+#   /pg/*         -> pg_meta (Database metadata)
+
+_format_version: "2.1"
+_transform: true
+
+###
+### Consumers / API keys
+###
+
+consumers:
+  - username: ANON
+    keyauth_credentials:
+      - key: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
+  - username: SERVICE_ROLE
+    keyauth_credentials:
+      - key: ${SUPABASE_SERVICE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
+
+###
+### ACL Plugin Groups
+###
+
+acls:
+  - consumer: ANON
+    group: anon
+  - consumer: SERVICE_ROLE
+    group: admin
+
+###
+### Services and Routes
+###
+
+services:
+  ## Auth / GoTrue
+  - name: auth-v1
+    url: http://supabase-auth:9999/
+    routes:
+      - name: auth-v1-all
+        strip_path: true
+        paths:
+          - /auth/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: true
+          key_names:
+            - apikey
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - anon
+            - admin
+
+  ## REST / PostgREST
+  - name: rest-v1
+    url: http://supabase-rest:3000/
+    routes:
+      - name: rest-v1-all
+        strip_path: true
+        paths:
+          - /rest/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: true
+          key_names:
+            - apikey
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - anon
+            - admin
+
+  ## Realtime
+  - name: realtime-v1
+    url: http://supabase-realtime:4000/socket/
+    routes:
+      - name: realtime-v1-all
+        strip_path: true
+        paths:
+          - /realtime/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: true
+          key_names:
+            - apikey
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - anon
+            - admin
+
+  ## Storage
+  - name: storage-v1
+    url: http://supabase-storage:5000/
+    routes:
+      - name: storage-v1-all
+        strip_path: true
+        paths:
+          - /storage/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: true
+          key_names:
+            - apikey
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - anon
+            - admin
+
+  ## pg_meta
+  - name: meta
+    url: http://supabase-meta:8080/
+    routes:
+      - name: meta-all
+        strip_path: true
+        paths:
+          - /pg/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: true
+          key_names:
+            - apikey
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+
+###
+### Plugins (Global)
+###
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+        - HEAD
+      headers:
+        - Accept
+        - Accept-Language
+        - Authorization
+        - Content-Type
+        - apikey
+        - x-client-info
+        - range
+        - prefer
+      exposed_headers:
+        - Content-Range
+        - X-Total-Count
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+
+  - name: request-transformer
+    config:
+      remove:
+        headers:
+          - X-Kong-Proxy-Latency
+          - X-Kong-Upstream-Latency
+          - X-Kong-Request-Id

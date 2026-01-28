@@ -1,0 +1,112 @@
+# Chamba Dashboard Dockerfile
+# Multi-stage build: Node 20 + Vite + React -> nginx
+#
+# Build:
+#   docker build -f Dockerfile.dashboard -t chamba-dashboard:latest ./dashboard
+#
+# Run:
+#   docker run -p 3000:80 chamba-dashboard:latest
+
+# ===================
+# Dependencies Stage
+# ===================
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+# Install dependencies only (for better caching)
+COPY package.json package-lock.json* ./
+RUN npm ci --legacy-peer-deps
+
+# ===================
+# Development Stage
+# ===================
+FROM node:20-alpine AS development
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Environment variables for development
+ENV NODE_ENV=development \
+    HOST=0.0.0.0 \
+    PORT=5173
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+# Health check for dev server
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD wget -q --spider http://localhost:5173 || exit 1
+
+# Run Vite dev server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+
+# ===================
+# Builder Stage
+# ===================
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Build arguments for environment variables
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_API_URL
+ARG VITE_WALLET_CONNECT_PROJECT_ID
+ARG VITE_CHAIN_ID=8453
+
+# Set environment variables for build
+ENV VITE_SUPABASE_URL=${VITE_SUPABASE_URL} \
+    VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY} \
+    VITE_API_URL=${VITE_API_URL} \
+    VITE_WALLET_CONNECT_PROJECT_ID=${VITE_WALLET_CONNECT_PROJECT_ID} \
+    VITE_CHAIN_ID=${VITE_CHAIN_ID} \
+    NODE_ENV=production
+
+# Build the application
+RUN npm run build
+
+# ===================
+# Production Stage
+# ===================
+FROM nginx:alpine AS production
+
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy production nginx config for better security/performance
+COPY nginx-prod.conf /etc/nginx/nginx-prod.conf
+
+# Copy built assets from builder
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Create cache directory for nginx
+RUN mkdir -p /var/cache/nginx && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /usr/share/nginx/html
+
+# Security: Remove server version
+RUN sed -i 's/# server_tokens off;/server_tokens off;/' /etc/nginx/nginx.conf
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -q --spider http://localhost:80/health || exit 1
+
+# Expose port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

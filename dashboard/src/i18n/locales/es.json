@@ -1,0 +1,759 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Exito",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "saved": "Guardado",
+    "saving": "Guardando...",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "submit": "Enviar",
+    "submitting": "Enviando...",
+    "optional": "opcional",
+    "required": "requerido",
+    "retry": "Reintentar",
+    "add": "Agregar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "skip": "Saltar",
+    "continue": "Continuar",
+    "done": "Listo",
+    "all": "Todos",
+    "none": "Ninguno",
+    "yes": "Si",
+    "no": "No",
+    "ok": "OK",
+    "notNow": "Ahora no",
+    "maybeLater": "Quiza mas tarde",
+    "export": "Exportar",
+    "loadMore": "Cargar mas",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "clear": "Limpiar",
+    "apply": "Aplicar",
+    "reset": "Restablecer"
+  },
+  "nav": {
+    "home": "Inicio",
+    "tasks": "Trabajos",
+    "myTasks": "Mis Trabajos",
+    "profile": "Perfil",
+    "settings": "Configuracion",
+    "notifications": "Alertas",
+    "help": "Ayuda",
+    "disputes": "Disputas",
+    "dashboard": "Panel"
+  },
+  "landing": {
+    "subtitle": "Conecta agentes de IA con trabajadores humanos para completar tareas que requieren presencia fisica, autoridad humana o conocimiento local.",
+    "iAmWorker": "Soy Trabajador",
+    "iAmAgent": "Soy Agente",
+    "earnMoney": "Gana dinero completando tareas",
+    "delegateTasks": "Delega tareas a humanos",
+    "feature1Title": "Tareas por Ubicacion",
+    "feature1Desc": "Encuentra tareas cerca de ti que requieren presencia fisica o conocimiento local.",
+    "feature2Title": "Pagos Instantaneos",
+    "feature2Desc": "Recibe pagos en USDC al instante cuando tu trabajo es aprobado. Sin esperar dias por transferencias bancarias.",
+    "feature3Title": "Verificado y Seguro",
+    "feature3Desc": "Todas las tareas usan ChainWitness para evidencia a prueba de manipulacion. Las disputas se resuelven de forma justa."
+  },
+  "auth": {
+    "login": "Iniciar Sesion",
+    "signup": "Crear Cuenta",
+    "logout": "Cerrar Sesion",
+    "connectWallet": "Conectar Wallet",
+    "disconnectWallet": "Desconectar Wallet",
+    "walletConnected": "Wallet Conectada",
+    "connecting": "Conectando...",
+    "connected": "Conectado",
+    "disconnect": "Desconectar",
+    "email": "Email",
+    "password": "Contrasena",
+    "name": "Nombre",
+    "walletAddress": "Wallet Address",
+    "walletAddressHint": "Tu wallet de Ethereum/Base para recibir pagos",
+    "noAccount": "No tienes cuenta?",
+    "hasAccount": "Ya tienes cuenta?",
+    "registerNow": "Registrate",
+    "loginNow": "Inicia sesion",
+    "processing": "Procesando...",
+    "orContinueWith": "o continua con",
+    "emailOptional": "Email (opcional, para notificaciones)",
+    "nameOptional": "Nombre (opcional)",
+    "walletConnectTitle": "Conecta tu wallet",
+    "walletConnectSubtitle": "Si ya tienes cuenta, entra. Si eres nuevo, se crea automaticamente.",
+    "nameForNewUsers": "Nombre (solo usuarios nuevos)",
+    "namePlaceholder": "Como quieres que te llamen",
+    "nameHint": "Se ignora si tu wallet ya esta registrada",
+    "enterWallet": "Ingresa tu direccion de billetera",
+    "invalidAddress": "Direccion invalida",
+    "signMessage": "Firma este mensaje para verificar tu billetera",
+    "signIn": "Iniciar sesion",
+    "signOut": "Cerrar sesion",
+    "welcome": "Bienvenido",
+    "manualEntry": "Ingresar manualmente",
+    "orConnect": "o conecta con",
+    "enterManually": "O ingresa tu wallet manualmente",
+    "backToWalletConnect": "Volver a opciones de wallet",
+    "manualWallet": "Ingresar Wallet",
+    "manualWalletDesc": "Ingresa tu direccion de wallet para continuar",
+    "emailPassword": "Email y Contrasena",
+    "connect": "Conectar",
+    "errors": {
+      "invalidWallet": "Wallet address invalida. Debe ser formato 0x...",
+      "walletInUse": "Esta wallet ya esta registrada",
+      "loginFailed": "Error al iniciar sesion",
+      "signupFailed": "Error al registrarse",
+      "walletConnectionFailed": "Error al conectar wallet",
+      "notAuthenticated": "No autenticado",
+      "signatureRejected": "Firma rechazada. Por favor firma el mensaje para continuar."
+    }
+  },
+  "wallet": {
+    "connectTitle": "Conecta tu wallet",
+    "connectSubtitle": "Elige como quieres conectar",
+    "emailWallet": "Wallet por Email",
+    "emailWalletDesc": "Inicia sesion con email - sin extension",
+    "metamaskDesc": "Extension del navegador",
+    "walletConnectDesc": "Escanea codigo QR",
+    "email": "Email",
+    "emailRequired": "El email es requerido",
+    "invalidEmail": "Por favor ingresa un email valido",
+    "emailHint": "Crearemos una wallet vinculada a tu email",
+    "displayName": "Nombre visible",
+    "displayNamePlaceholder": "Tu nombre",
+    "displayNameForNew": "Nombre (solo usuarios nuevos)",
+    "displayNameHint": "Se ignora si tu wallet ya esta registrada",
+    "connecting": "Conectando...",
+    "continue": "Continuar",
+    "emailNotAvailable": "Wallet por email no disponible. Por favor usa MetaMask o WalletConnect.",
+    "securityNote": "Tu wallet se usa para identidad y pagos. Nunca almacenamos tus llaves privadas."
+  },
+  "tasks": {
+    "title": "Trabajos Disponibles",
+    "available": "Tareas disponibles",
+    "my": "Mis tareas",
+    "noTasks": "No hay trabajos disponibles",
+    "search": "Buscar tareas...",
+    "found": "tareas encontradas",
+    "within": "Dentro de",
+    "empty": "No hay tareas disponibles",
+    "emptyHint": "Intenta cambiar los filtros o revisa mas tarde",
+    "error": "Error al cargar tareas",
+    "match": "compatible",
+    "apply": "Aplicar",
+    "applied": "Aplicado",
+    "assigned": "Asignada",
+    "inProgress": "En progreso",
+    "completed": "Completada",
+    "rejected": "Rechazada",
+    "expired": "Expirada",
+    "bounty": "Recompensa",
+    "deadline": "Fecha limite",
+    "category": "Categoria",
+    "status": "Estado",
+    "evidence": "Evidencia",
+    "instructions": "Instrucciones",
+    "requirements": "Requisitos",
+    "minReputation": "Reputacion minima",
+    "location": "Ubicacion",
+    "acceptTask": "Aceptar Trabajo",
+    "submitEvidence": "Enviar Evidencia",
+    "viewDetails": "Ver Detalles",
+    "details": "Detalles",
+    "payment": "Pago",
+    "skills": "Habilidades requeridas",
+    "submitting": "Enviando...",
+    "requiresReputation": "Requiere {{score}}+ de reputacion",
+    "activeTasks": "Mis Tareas Activas",
+    "availableTasks": "Tareas Disponibles",
+    "noActiveTasks": "No hay tareas en progreso",
+    "noAvailableInArea": "No hay tareas disponibles en tu area",
+    "viewAll": "Ver todas ({{count}})",
+    "categories": {
+      "physical_presence": "Presencia Fisica",
+      "knowledge_access": "Acceso a Conocimiento",
+      "human_authority": "Autoridad Humana",
+      "simple_action": "Accion Simple",
+      "digital_physical": "Digital-Fisico"
+    },
+    "statuses": {
+      "published": "Publicado",
+      "accepted": "Aceptado",
+      "in_progress": "En Progreso",
+      "submitted": "Enviado",
+      "verifying": "Verificando",
+      "completed": "Completado",
+      "disputed": "Disputado",
+      "expired": "Expirado",
+      "cancelled": "Cancelado"
+    },
+    "evidenceTypes": {
+      "photo": "Foto",
+      "photo_geo": "Foto con GPS",
+      "video": "Video",
+      "document": "Documento",
+      "receipt": "Recibo",
+      "signature": "Firma",
+      "notarized": "Notarizado",
+      "timestamp_proof": "Prueba de tiempo",
+      "text_response": "Respuesta de texto",
+      "measurement": "Medicion",
+      "screenshot": "Captura de pantalla"
+    }
+  },
+  "categories": {
+    "all": "Todas",
+    "verification": "Verificacion",
+    "data_collection": "Recoleccion",
+    "delivery": "Entregas",
+    "survey": "Encuestas",
+    "photo": "Fotos",
+    "mystery_shop": "Mystery Shop",
+    "translation": "Traduccion",
+    "transcription": "Transcripcion"
+  },
+  "submission": {
+    "title": "Enviar Evidencia",
+    "uploadFile": "Subir Archivo",
+    "addNote": "Agregar Nota",
+    "noteOptional": "Nota adicional (opcional)",
+    "requiredEvidence": "Evidencia Requerida",
+    "optionalEvidence": "Evidencia Opcional",
+    "dragAndDrop": "Arrastra archivos aqui o haz clic para seleccionar",
+    "maxFileSize": "Tamano maximo: 10MB",
+    "supportedFormats": "Formatos soportados: JPG, PNG, PDF, MP4"
+  },
+  "profile": {
+    "title": "Mi Perfil",
+    "reputation": "Reputacion",
+    "tasksCompleted": "Trabajos Completados",
+    "tasksDisputed": "Disputas",
+    "memberSince": "Miembro desde",
+    "editProfile": "Editar Perfil",
+    "wallet": "Wallet",
+    "name": "Nombre",
+    "skills": "Habilidades",
+    "location": "Ubicacion",
+    "notifications": "Notificaciones",
+    "earnings": "Ganancias",
+    "taskHistory": "Historial de tareas",
+    "availableBalance": "Balance Disponible",
+    "pending": "pendiente",
+    "totalEarned": "Total Ganado",
+    "thisMonth": "Este Mes",
+    "withdraw": "Retirar Fondos",
+    "totalTasks": "Total",
+    "approved": "Aprobadas",
+    "rejected": "Rechazadas",
+    "approvalRate": "Tasa de Aprobacion",
+    "disputedTasks": "tarea(s) disputada(s)",
+    "disputeWarning": "Las disputas pueden afectar tu puntuacion de reputacion"
+  },
+  "header": {
+    "searchPlaceholder": "Buscar trabajos...",
+    "notifications": "Notificaciones"
+  },
+  "footer": {
+    "poweredBy": "Impulsado por x402",
+    "about": "Acerca de",
+    "terms": "Terminos",
+    "privacy": "Privacidad"
+  },
+  "filters": {
+    "all": "Todos",
+    "category": "Categoria",
+    "status": "Estado",
+    "bountyRange": "Rango de Recompensa",
+    "nearMe": "Cerca de mi",
+    "title": "Filtros",
+    "reset": "Limpiar filtros",
+    "payRange": "Rango de pago",
+    "sortBy": "Ordenar por"
+  },
+  "sortOptions": {
+    "newest": "Mas recientes",
+    "highest_pay": "Mayor pago",
+    "nearest": "Mas cercanos",
+    "deadline": "Por vencer"
+  },
+  "payRanges": {
+    "any": "Cualquier pago",
+    "micro": "$0.10 - $1",
+    "small": "$1 - $5",
+    "medium": "$5 - $20",
+    "large": "$20+"
+  },
+  "location": {
+    "filter": "Filtrar por distancia",
+    "detect": "Detectar mi ubicacion",
+    "detected": "Ubicacion detectada",
+    "unavailable": "Ubicacion no disponible",
+    "error": "Error al obtener ubicacion",
+    "custom": "Personalizar",
+    "info": "Mostrando tareas dentro de {{distance}} km de tu ubicacion"
+  },
+  "payments": {
+    "history": "Historial de pagos",
+    "taskPayment": "Pago de tarea",
+    "withdrawal": "Retiro",
+    "bonus": "Bonificacion",
+    "refund": "Reembolso",
+    "totalEarned": "Ganado",
+    "totalWithdrawn": "Retirado",
+    "pending": "Pendiente",
+    "released": "Liberado",
+    "withdraw": "Retirar",
+    "escrow": "En Deposito",
+    "noPayments": "No hay pagos aun",
+    "details": "Detalles del pago",
+    "type": "Tipo",
+    "status": "Estado",
+    "date": "Fecha",
+    "network": "Red",
+    "task": "Tarea",
+    "transaction": "Transaccion"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todas como leidas",
+    "empty": "No hay notificaciones",
+    "viewAll": "Ver todas las notificaciones",
+    "newTask": "Nueva tarea cerca",
+    "taskApproved": "Tarea aprobada",
+    "paymentReceived": "Pago recibido",
+    "disputeOpened": "Disputa abierta",
+    "taskAssigned": "Tarea asignada",
+    "taskExpired": "Tarea expirada",
+    "new": "nueva",
+    "newPlural": "nuevas",
+    "willNotify": "Te avisaremos cuando haya algo nuevo"
+  },
+  "disputes": {
+    "title": "Mis Disputas",
+    "open": "Abrir disputa",
+    "noDisputes": "No hay disputas",
+    "details": "Detalles de la disputa",
+    "yourEvidence": "Tu evidencia",
+    "agentEvidence": "Evidencia del agente",
+    "addEvidence": "Agregar evidencia",
+    "submitEvidence": "Enviar evidencia",
+    "evidencePlaceholder": "Describe tu evidencia y por que la tarea deberia ser aprobada...",
+    "unknownTask": "Tarea Desconocida",
+    "notFound": "Disputa no encontrada",
+    "taskInfo": "Informacion de la Tarea",
+    "reason": "Razon de la Disputa",
+    "timeline": "Linea de Tiempo",
+    "opened": "Disputa Abierta",
+    "resolved": "Resuelta",
+    "originalSubmission": "Envio Original",
+    "submittedOn": "Enviado el",
+    "empty": "Sin Disputas",
+    "emptyDescription": "No tienes disputas activas",
+    "status": {
+      "open": "Abierta",
+      "under_review": "En revision",
+      "resolved": "Resuelta",
+      "escalated": "Escalada"
+    }
+  },
+  "evidence": {
+    "upload": "Subir evidencia",
+    "capture": "Capturar foto",
+    "gallery": "Galeria",
+    "requirements": "Requisitos de evidencia",
+    "gpsRequired": "GPS requerido",
+    "timestampRequired": "Timestamp requerido",
+    "photoRequired": "Foto requerida"
+  },
+  "onboarding": {
+    "welcomeTitle": "Bienvenido a Chamba!",
+    "welcomeSubtitle": "Completa tareas, gana crypto. Empecemos a configurar tu perfil.",
+    "selectLanguage": "Selecciona tu idioma",
+    "getStarted": "Comenzar",
+    "walletTitle": "Conecta tu billetera",
+    "walletSubtitle": "Necesitas una billetera para recibir pagos. Si no tienes una, te ayudamos a crearla.",
+    "metamaskDesc": "Conecta tu billetera existente",
+    "walletConnectDesc": "Escanea con tu billetera movil",
+    "createWallet": "Crear con email",
+    "createWalletDesc": "Nuevo en crypto? Te creamos una billetera",
+    "profileTitle": "Tu perfil",
+    "profileSubtitle": "Como quieres que te llamen?",
+    "displayName": "Nombre o apodo",
+    "namePlaceholder": "ej. Maria, El Rapido, JuanDev",
+    "nameInfo": "Esto es como los agentes veran tu perfil",
+    "skillsTitle": "Tus habilidades",
+    "skillsSubtitle": "Selecciona las habilidades que tienes. Esto nos ayuda a mostrarte tareas relevantes.",
+    "locationTitle": "Tu ubicacion",
+    "locationSubtitle": "Algunas tareas requieren estar en un lugar especifico. Habilita la ubicacion para ver tareas cerca de ti.",
+    "notificationsTitle": "Notificaciones",
+    "notificationsSubtitle": "Recibe alertas cuando haya tareas nuevas que te interesen o cuando tus envios sean revisados.",
+    "notificationsEnabled": "Notificaciones habilitadas",
+    "notificationsDenied": "Notificaciones bloqueadas en este navegador",
+    "enableNotifications": "Habilitar notificaciones",
+    "completeTitle": "Listo!",
+    "completeSubtitle": "Tu perfil esta configurado. Ahora puedes empezar a explorar tareas y ganar crypto.",
+    "summary": "Resumen",
+    "locationEnabled": "Habilitada",
+    "locationDisabled": "No configurada",
+    "startExploring": "Explorar tareas"
+  },
+  "skills": {
+    "search": "Buscar habilidades...",
+    "selected": "habilidades seleccionadas",
+    "maxReached": "Maximo alcanzado",
+    "addCustom": "Agregar habilidad personalizada",
+    "customPlaceholder": "Escribe tu habilidad...",
+    "verificationInfo": "Las habilidades verificadas aumentan tu visibilidad y confianza. Puedes verificar habilidades completando tareas relacionadas."
+  },
+  "skillCategories": {
+    "verification": "Verificacion",
+    "data_collection": "Recoleccion de Datos",
+    "content": "Contenido",
+    "language": "Idiomas",
+    "physical": "Tareas Fisicas",
+    "digital": "Digital",
+    "specialized": "Especializadas"
+  },
+  "settings": {
+    "title": "Configuracion",
+    "profile": "Perfil",
+    "displayName": "Nombre visible",
+    "namePlaceholder": "Tu nombre o apodo",
+    "wallet": "Billetera",
+    "language": "Idioma",
+    "notifications": "Notificaciones",
+    "enableNotifications": "Habilitar",
+    "notif": {
+      "newTasks": "Nuevas tareas disponibles",
+      "taskAssigned": "Tarea asignada",
+      "submissionReviewed": "Envio revisado",
+      "paymentReceived": "Pago recibido",
+      "disputes": "Actualizaciones de disputas",
+      "marketing": "Novedades y promociones"
+    },
+    "privacy": {
+      "title": "Privacidad",
+      "showEarnings": "Mostrar ganancias en perfil",
+      "showLocation": "Mostrar ubicacion aproximada",
+      "showActivity": "Mostrar actividad reciente"
+    },
+    "app": "Aplicacion",
+    "installApp": "Instalar app",
+    "installAppDesc": "Accede mas rapido desde tu pantalla de inicio",
+    "version": "Version",
+    "account": "Cuenta",
+    "logout": "Cerrar sesion",
+    "deleteAccount": "Eliminar cuenta",
+    "deleteConfirmTitle": "Eliminar cuenta?",
+    "deleteConfirmMessage": "Esta accion es permanente y no se puede deshacer. Se perderan todos tus datos y ganancias pendientes.",
+    "deleteConfirm": "Si, eliminar"
+  },
+  "pwa": {
+    "offline": "Sin conexion - Los cambios se sincronizaran cuando vuelvas a estar en linea",
+    "updateAvailable": "Actualizacion disponible",
+    "updateMessage": "Una nueva version de Chamba esta lista",
+    "updateNow": "Actualizar ahora",
+    "installTitle": "Instalar Chamba",
+    "installSubtitle": "Accede mas rapido desde tu pantalla de inicio",
+    "addToHome": "Agregar a pantalla de inicio",
+    "install": "Instalar",
+    "iosStep1": "Toca el boton de compartir",
+    "iosStep2": "Selecciona \"Agregar a pantalla de inicio\"",
+    "iosStep3": "Toca \"Agregar\""
+  },
+  "help": {
+    "title": "Ayuda",
+    "contactEmail": "Email",
+    "contactTelegram": "Telegram",
+    "contactSupport": "Contactar soporte",
+    "quickGuide": {
+      "title": "Guia rapida",
+      "subtitle": "Completa tu primera tarea en 5 minutos",
+      "step1": {
+        "title": "Configura tu perfil",
+        "desc": "Agrega tu nombre y habilidades"
+      },
+      "step2": {
+        "title": "Busca tareas",
+        "desc": "Filtra por ubicacion y categoria"
+      },
+      "step3": {
+        "title": "Aplica a una tarea",
+        "desc": "Lee las instrucciones y presiona Aplicar"
+      },
+      "step4": {
+        "title": "Completa el trabajo",
+        "desc": "Sigue las instrucciones y toma fotos"
+      },
+      "step5": {
+        "title": "Recibe tu pago",
+        "desc": "El pago llega automaticamente a tu billetera"
+      }
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "whatIsChamba": {
+        "q": "Que es Chamba?",
+        "a": "Chamba es una plataforma donde puedes ganar dinero completando tareas del mundo real para agentes de IA. Verificas cosas, recolectas datos, tomas fotos, y mas - todo desde tu celular."
+      },
+      "howToStart": {
+        "q": "Como empiezo?",
+        "a": "1. Conecta tu billetera crypto (o crea una nueva con tu email). 2. Configura tu perfil y habilidades. 3. Navega las tareas disponibles. 4. Aplica a las que te interesen. 5. Completa el trabajo y envia tu evidencia. 6. Recibe tu pago en USDC!"
+      },
+      "needCrypto": {
+        "q": "Necesito saber de crypto?",
+        "a": "No! Si no tienes experiencia con crypto, te ayudamos a crear una billetera con solo tu email. Recibes tus pagos en USDC (una moneda estable que siempre vale $1 USD) y puedes retirar a tu banco local."
+      },
+      "requirements": {
+        "q": "Que necesito para usar Chamba?",
+        "a": "Solo necesitas un smartphone con acceso a internet, camara, y GPS. Algunas tareas pueden requerir habilidades especificas (como hablar ingles o tener vehiculo), pero hay tareas para todos los perfiles."
+      },
+      "howPaid": {
+        "q": "Como me pagan?",
+        "a": "Cuando tu trabajo es aprobado, el pago se deposita automaticamente en tu billetera. Usamos USDC en la red Base para pagos instantaneos y baratos. Puedes ver tu saldo en tu perfil."
+      },
+      "whenPaid": {
+        "q": "Cuanto tarda el pago?",
+        "a": "Una vez aprobado tu trabajo, el pago es instantaneo (segundos, no dias). La revision del agente puede tardar entre minutos y 24 horas dependiendo de la tarea."
+      },
+      "withdraw": {
+        "q": "Como retiro mi dinero?",
+        "a": "Puedes retirar tus USDC a cualquier otra billetera, exchange, o usar servicios que convierten crypto a tu moneda local. El retiro minimo es $5 USDC."
+      },
+      "fees": {
+        "q": "Hay comisiones?",
+        "a": "Chamba cobra una pequena comision por cada tarea completada (ya incluida en el precio que ves). Los retiros tienen un costo de red muy bajo (~$0.01 en Base)."
+      },
+      "taskTypes": {
+        "q": "Que tipos de tareas hay?",
+        "a": "Hay muchos tipos: verificar que un negocio existe, tomar fotos de productos, completar encuestas, mystery shopping, recolectar datos de precios, entregas, traducciones, y mas. Cada tarea tiene instrucciones claras."
+      },
+      "howApply": {
+        "q": "Como aplico a una tarea?",
+        "a": "Busca tareas en tu area o que coincidan con tus habilidades. Haz clic en una tarea para ver los detalles. Si te interesa, presiona 'Aplicar'. El agente revisara tu perfil y te asignara si eres un buen match."
+      },
+      "evidenceRequired": {
+        "q": "Que evidencia necesito enviar?",
+        "a": "Depende de la tarea. Generalmente necesitas fotos tomadas en el momento (con GPS y timestamp), respuestas a preguntas especificas, y a veces archivos adicionales. Las instrucciones de cada tarea son muy claras."
+      },
+      "taskRejected": {
+        "q": "Que pasa si rechazan mi trabajo?",
+        "a": "Si no estas de acuerdo con un rechazo, puedes abrir una disputa. Un mediador humano revisara la evidencia de ambas partes y tomara una decision final."
+      },
+      "whatDispute": {
+        "q": "Que es una disputa?",
+        "a": "Una disputa es cuando no estas de acuerdo con el rechazo de tu trabajo. Puedes presentar evidencia adicional y un mediador neutral revisara el caso."
+      },
+      "howDispute": {
+        "q": "Como abro una disputa?",
+        "a": "Ve a 'Mis Tareas' > encuentra la tarea rechazada > presiona 'Disputar'. Describe tu posicion y sube cualquier evidencia que apoye tu caso. Tienes 48 horas despues del rechazo para abrir una disputa."
+      },
+      "disputeTime": {
+        "q": "Cuanto tarda resolver una disputa?",
+        "a": "Las disputas se resuelven tipicamente en 24-72 horas. Recibiras una notificacion cuando haya una decision."
+      },
+      "disputeWin": {
+        "q": "Que pasa si gano la disputa?",
+        "a": "Si el mediador decide a tu favor, recibes el pago completo de la tarea. Tu reputacion no se ve afectada por el rechazo inicial."
+      }
+    },
+    "categories": {
+      "gettingStarted": "Primeros pasos",
+      "payments": "Pagos",
+      "tasks": "Tareas",
+      "disputes": "Disputas"
+    },
+    "stillNeedHelp": {
+      "title": "Todavia tienes dudas?",
+      "subtitle": "Nuestro equipo de soporte esta listo para ayudarte"
+    }
+  },
+  "time": {
+    "hoursLeft": "{{count}} hora restante",
+    "hoursLeft_plural": "{{count}} horas restantes",
+    "daysLeft": "{{count}} dia restante",
+    "daysLeft_plural": "{{count}} dias restantes",
+    "expired": "Expirado",
+    "lessThanOneHour": "Menos de 1 hora",
+    "rightNow": "Ahora mismo",
+    "ago": "hace",
+    "yesterday": "Ayer"
+  },
+  "errors": {
+    "generic": "Ocurrio un error",
+    "networkError": "Error de red. Por favor verifica tu conexion.",
+    "sessionExpired": "Sesion expirada. Por favor inicia sesion de nuevo.",
+    "permissionDenied": "Permiso denegado",
+    "notFound": "No encontrado",
+    "serverError": "Error del servidor. Por favor intenta mas tarde."
+  },
+  "reputation": {
+    "tiers": {
+      "expert": "Experto",
+      "trusted": "Confiable",
+      "reliable": "Fiable",
+      "standard": "Estandar",
+      "new": "Nuevo"
+    }
+  },
+  "dashboard": {
+    "welcome": "Hola, {{name}}!",
+    "welcomeDefault": "Hola, Trabajador!",
+    "activeTasks": "Tienes {{count}} tarea activa",
+    "activeTasksPlural": "Tienes {{count}} tareas activas",
+    "readyToWork": "Listo para trabajar?",
+    "myEarnings": "Mis Ganancias",
+    "pendingAmount": "+{{amount}} pendiente",
+    "thisWeek": "Esta semana",
+    "tasksCompletedWeek": "Tareas completadas",
+    "viewDetails": "Ver Detalles",
+    "withdraw": "Retirar",
+    "incomeForecast": "Pronostico de Ingresos",
+    "projectedMonthly": "Proyeccion mensual",
+    "basedOnPace": "Basado en tu ritmo actual",
+    "avgTaskValue": "Valor promedio",
+    "tasksPerWeek": "Tareas/semana",
+    "completionRate": "Tasa de completacion",
+    "improvementTip": "Consejo: Mejorar tu tasa de completacion aumentara tus ingresos proyectados y tu reputacion.",
+    "quickActions": {
+      "browseTasks": "Buscar Tareas",
+      "earnings": "Ganancias",
+      "settings": "Configuracion"
+    },
+    "newWorkerTips": {
+      "title": "Consejos para nuevos trabajadores",
+      "tip1": "Completa tu perfil para acceder a mas tareas",
+      "tip2": "Comienza con tareas simples para construir tu reputacion",
+      "tip3": "Envia evidencias claras y completas",
+      "tip4": "Responde rapido a las tareas urgentes"
+    }
+  },
+  "validator": {
+    "title": "Panel de Validador",
+    "pendingDisputes": "{{count}} disputa pendiente",
+    "pendingDisputes_plural": "{{count}} disputas pendientes",
+    "stats": {
+      "title": "Mis Estadisticas de Validador",
+      "accuracy": "Precision",
+      "correctVotes": "{{correct}}/{{total}} correctos",
+      "totalEarnings": "Ganancias Totales",
+      "pendingEarnings": "+{{amount}} pendiente",
+      "disputes": "Disputas",
+      "responseTime": "Tiempo Resp.",
+      "myStake": "Mi Stake",
+      "streak": "{{count}} racha"
+    },
+    "stake": {
+      "title": "Gestion de Stake",
+      "current": "Stake Actual",
+      "available": "Balance Disponible",
+      "minRequired": "Stake minimo por voto: {{amount}}",
+      "rewardInfo": "Si votas correctamente, ganas el {{percent}}% del stake perdedor.",
+      "deposit": "Depositar",
+      "withdraw": "Retirar",
+      "amount": "Cantidad (USD)",
+      "depositTitle": "Depositar Stake",
+      "withdrawTitle": "Retirar Stake"
+    },
+    "queue": {
+      "all": "Todas",
+      "pending": "Sin votar",
+      "voted": "Votadas",
+      "noDisputes": "Sin Disputas",
+      "votedAll": "Has votado en todas las disputas disponibles",
+      "notVotedYet": "Aun no has votado en ninguna disputa",
+      "noPending": "No hay disputas pendientes de validacion"
+    },
+    "dispute": {
+      "review": "Revisar Disputa",
+      "bounty": "Bounty",
+      "votes": "Votos",
+      "timeLeft": "Tiempo",
+      "evidence": "Evidencia",
+      "claims": "Argumentos",
+      "voteCount": "Votos ({{count}})",
+      "workerEvidence": "Evidencia del Worker ({{name}})",
+      "agentEvidence": "Evidencia del Agente ({{name}})",
+      "agentClaim": "Argumento del Agente",
+      "workerClaim": "Respuesta del Worker",
+      "noEvidence": "Sin evidencia",
+      "noVotesYet": "Aun no hay votos. Se el primero en votar."
+    },
+    "vote": {
+      "title": "Tu Voto",
+      "stakeRequired": "Stake requerido: {{amount}}",
+      "worker": "Worker",
+      "agent": "Agente",
+      "split": "Dividir",
+      "reason": "Razon del voto",
+      "reasonHint": "(recomendado)",
+      "reasonPlaceholder": "Explica brevemente por que votas asi...",
+      "confirm": "Confirmar Voto + Stake {{amount}}",
+      "selectOption": "Selecciona una opcion",
+      "processing": "Procesando voto...",
+      "warning": "Al votar, depositas {{amount}} USDC. Si tu voto coincide con la resolucion final, recuperas tu stake + ganancias.",
+      "alreadyVoted": "Ya has votado en esta disputa",
+      "yourVote": "Tu voto:",
+      "voteFor": {
+        "worker": "A favor del Worker",
+        "agent": "A favor del Agente",
+        "split": "Dividir"
+      }
+    },
+    "tips": {
+      "title": "Consejos para Validadores",
+      "tip1": "Revisa toda la evidencia antes de votar",
+      "tip2": "Verifica las coordenadas GPS cuando esten disponibles",
+      "tip3": "Lee los argumentos de ambas partes cuidadosamente",
+      "tip4": "Tu precision afecta tus ganancias futuras",
+      "tip5": "Mantener alta precision desbloquea disputas de mayor valor"
+    }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Metricas de la plataforma",
+    "keyMetrics": "Metricas Clave",
+    "secondaryMetrics": "Metricas Secundarias",
+    "totalGMV": "GMV Total",
+    "completionRate": "Tasa de Completacion",
+    "feeRevenue": "Revenue (Fees)",
+    "avgTime": "Tiempo Promedio",
+    "perCompletedTask": "por tarea completada",
+    "platformFee": "5% comision de plataforma",
+    "tasks": "tareas",
+    "vsPreviousPeriod": "vs periodo anterior",
+    "gmvOverTime": "GMV a lo largo del tiempo",
+    "gmvSubtitle": "Valor bruto de mercado y numero de tareas",
+    "regionalStats": "Estadisticas por Region",
+    "regionalSubtitle": "Distribucion geografica de tareas",
+    "tasksByCategory": "Tareas por Categoria",
+    "categorySubtitle": "Distribucion por tipo de tarea",
+    "workerRetention": "Retencion de Trabajadores",
+    "retentionSubtitle": "Trabajadores activos, nuevos y perdidos por mes",
+    "retained": "Retenidos",
+    "newWorkers": "Nuevos",
+    "churned": "Perdidos",
+    "activeWorkers": "Trabajadores Activos",
+    "activeAgents": "Agentes Activos",
+    "avgTaskValue": "Valor Promedio",
+    "retention": "Retencion",
+    "lastMonth": "ultimo mes",
+    "publishingTasks": "publicando tareas",
+    "perTask": "por tarea",
+    "exportReport": "Exportar Reporte",
+    "timeRanges": {
+      "7d": "7 dias",
+      "30d": "30 dias",
+      "90d": "90 dias",
+      "1y": "1 ano"
+    }
+  }
+}

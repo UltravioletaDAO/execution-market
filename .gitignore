@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build outputs
+dist/
+build/
+out/
+*.egg-info/
+.eggs/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+!*.tfvars.example
+
+# Video project artifacts
+video-v*/node_modules/
+video-v*/out/
+video/node_modules/
+video/out/
+
+# Admin dashboard
+admin-dashboard/node_modules/
+
+# Misc
+.unused/
+.internal/

@@ -1,0 +1,294 @@
+# Chamba Docker Compose - Production Configuration
+# Extends docker-compose.yml with production optimizations
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+#   make prod  # (shortcut)
+#
+# Production features:
+#   - Multi-worker processes
+#   - Resource limits
+#   - Optimized PostgreSQL settings
+#   - No development tools (Studio disabled)
+#   - External secrets management
+#   - Enhanced health checks
+
+version: "3.8"
+
+services:
+  # ===================
+  # MCP Server (Production)
+  # ===================
+  mcp-server:
+    build:
+      context: ./mcp_server
+      dockerfile: ../Dockerfile.mcp
+      target: production
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - WORKERS=4
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    volumes: []  # Remove dev volume mounts
+    secrets:
+      - supabase_service_key
+      - x402_private_key
+      - anthropic_api_key
+      - webhook_secret
+    healthcheck:
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ===================
+  # Dashboard (Production)
+  # ===================
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: ../Dockerfile.dashboard
+      target: production
+      args:
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+        - VITE_API_URL=${VITE_API_URL}
+        - VITE_WALLET_CONNECT_PROJECT_ID=${VITE_WALLET_CONNECT_PROJECT_ID}
+        - VITE_CHAIN_ID=${VITE_CHAIN_ID:-8453}
+    ports:
+      - "80:80"  # Production uses nginx on port 80
+    environment:
+      - NODE_ENV=production
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    volumes: []  # Remove dev volume mounts
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===================
+  # Supabase Studio - DISABLED in production
+  # ===================
+  supabase-studio:
+    deploy:
+      replicas: 0
+
+  # ===================
+  # Supabase Inbucket - DISABLED in production
+  # ===================
+  supabase-inbucket:
+    deploy:
+      replicas: 0
+
+  # ===================
+  # Supabase Database (Production)
+  # ===================
+  supabase-db:
+    image: supabase/postgres:15.1.1.41
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+        reservations:
+          cpus: "1"
+          memory: 2G
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=3GB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - wal_buffers=64MB
+      - -c
+      - default_statistics_target=100
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - work_mem=13107kB
+      - -c
+      - min_wal_size=1GB
+      - -c
+      - max_wal_size=4GB
+      - -c
+      - max_worker_processes=4
+      - -c
+      - max_parallel_workers_per_gather=2
+      - -c
+      - max_parallel_workers=4
+      - -c
+      - log_statement=ddl
+      - -c
+      - log_min_duration_statement=1000
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+  # ===================
+  # Supabase REST API (Production)
+  # ===================
+  supabase-rest:
+    image: postgrest/postgrest:v12.0.2
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    environment:
+      PGRST_DB_POOL: 20
+      PGRST_DB_POOL_TIMEOUT: 30
+      PGRST_SERVER_TIMING_ENABLED: "false"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # ===================
+  # Supabase Storage (Production)
+  # ===================
+  supabase-storage:
+    image: supabase/storage-api:v0.46.4
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # ===================
+  # Redis (Production)
+  # ===================
+  redis:
+    image: redis:7.2-alpine
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru --tcp-keepalive 60 --timeout 0
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1.5G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===================
+  # Image Proxy (Production)
+  # ===================
+  imgproxy:
+    image: darthsim/imgproxy:v3.21
+    environment:
+      IMGPROXY_CONCURRENCY: 4
+      IMGPROXY_MAX_SRC_RESOLUTION: 50
+      IMGPROXY_TTL: 3600
+      IMGPROXY_CACHE_CONTROL_PASSTHROUGH: "false"
+      IMGPROXY_SET_CANONICAL_HEADER: "true"
+      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_JPEG_PROGRESSIVE: "true"
+      IMGPROXY_PNG_INTERLACED: "true"
+      IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+      IMGPROXY_ENFORCE_WEBP: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===================
+  # Anvil - DISABLED in production
+  # ===================
+  anvil:
+    deploy:
+      replicas: 0
+
+# ===================
+# Docker Secrets
+# ===================
+secrets:
+  supabase_service_key:
+    external: true
+  x402_private_key:
+    external: true
+  anthropic_api_key:
+    external: true
+  webhook_secret:
+    external: true
+
+# ===================
+# Network Configuration
+# ===================
+networks:
+  chamba-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"

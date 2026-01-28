@@ -1,0 +1,762 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "saved": "Saved",
+    "saving": "Saving...",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "optional": "optional",
+    "required": "required",
+    "retry": "Retry",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "skip": "Skip",
+    "continue": "Continue",
+    "done": "Done",
+    "all": "All",
+    "none": "None",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "notNow": "Not now",
+    "maybeLater": "Maybe later",
+    "export": "Export",
+    "loadMore": "Load more",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "clear": "Clear",
+    "apply": "Apply",
+    "reset": "Reset"
+  },
+  "nav": {
+    "home": "Home",
+    "tasks": "Tasks",
+    "myTasks": "My Tasks",
+    "profile": "Profile",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "help": "Help",
+    "disputes": "Disputes",
+    "dashboard": "Dashboard"
+  },
+  "landing": {
+    "subtitle": "Connect AI agents with human workers to complete tasks requiring physical presence, human authority, or local knowledge.",
+    "iAmWorker": "I'm a Worker",
+    "iAmAgent": "I'm an Agent",
+    "earnMoney": "Earn money completing tasks",
+    "delegateTasks": "Delegate tasks to humans",
+    "feature1Title": "Location-Based Tasks",
+    "feature1Desc": "Find tasks near you that require physical presence or local knowledge.",
+    "feature2Title": "Instant Payments",
+    "feature2Desc": "Get paid in USDC instantly when your work is approved. No waiting days for bank transfers.",
+    "feature3Title": "Verified & Secure",
+    "feature3Desc": "All tasks use ChainWitness for tamper-proof evidence. Disputes are resolved fairly."
+  },
+  "auth": {
+    "login": "Log In",
+    "signup": "Sign Up",
+    "logout": "Log Out",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "connectWallet": "Connect Wallet",
+    "disconnectWallet": "Disconnect Wallet",
+    "walletConnected": "Wallet Connected",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "disconnect": "Disconnect",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "walletAddress": "Wallet Address",
+    "walletAddressHint": "Your Ethereum/Base wallet to receive payments",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "registerNow": "Sign up",
+    "loginNow": "Log in",
+    "processing": "Processing...",
+    "orContinueWith": "or continue with",
+    "emailOptional": "Email (optional, for notifications)",
+    "nameOptional": "Name (optional)",
+    "walletConnectTitle": "Connect your wallet",
+    "walletConnectSubtitle": "If you have an account, you'll log in. If you're new, one is created automatically.",
+    "nameForNewUsers": "Name (new users only)",
+    "namePlaceholder": "What should we call you",
+    "nameHint": "Ignored if your wallet is already registered",
+    "enterWallet": "Enter your wallet address",
+    "invalidAddress": "Invalid address",
+    "signMessage": "Sign this message to verify your wallet",
+    "welcome": "Welcome",
+    "manualEntry": "Enter manually",
+    "manualWallet": "Enter Wallet",
+    "orConnect": "or connect with",
+    "browserExtension": "Browser extension",
+    "scanQR": "Scan QR code",
+    "connectWith": "Connect with",
+    "enterManually": "Or enter your wallet manually",
+    "connect": "Connect",
+    "backToWalletConnect": "Back to wallet options",
+    "errors": {
+      "invalidWallet": "Invalid wallet address. Must be 0x format...",
+      "walletInUse": "This wallet is already registered",
+      "loginFailed": "Login failed",
+      "signupFailed": "Sign up failed",
+      "walletConnectionFailed": "Wallet connection failed",
+      "notAuthenticated": "Not authenticated",
+      "signatureRejected": "Signature rejected. Please sign the message to continue."
+    },
+    "manualWalletDesc": "Enter your wallet address to continue",
+    "emailPassword": "Email & Password"
+  },
+  "tasks": {
+    "title": "Available Tasks",
+    "available": "Available Tasks",
+    "my": "My Tasks",
+    "noTasks": "No tasks available",
+    "search": "Search tasks...",
+    "found": "tasks found",
+    "within": "Within",
+    "empty": "No tasks available",
+    "emptyHint": "Try changing filters or check back later",
+    "error": "Error loading tasks",
+    "match": "match",
+    "apply": "Apply",
+    "applied": "Applied",
+    "assigned": "Assigned",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "rejected": "Rejected",
+    "expired": "Expired",
+    "bounty": "Bounty",
+    "deadline": "Deadline",
+    "category": "Category",
+    "status": "Status",
+    "evidence": "Evidence",
+    "instructions": "Instructions",
+    "requirements": "Requirements",
+    "minReputation": "Minimum reputation",
+    "location": "Location",
+    "acceptTask": "Accept Task",
+    "submitEvidence": "Submit Evidence",
+    "viewDetails": "View Details",
+    "details": "Details",
+    "payment": "Payment",
+    "skills": "Required Skills",
+    "submitting": "Submitting...",
+    "requiresReputation": "Requires {{score}}+ reputation",
+    "activeTasks": "My Active Tasks",
+    "availableTasks": "Available Tasks",
+    "noActiveTasks": "No tasks in progress",
+    "noAvailableInArea": "No tasks available in your area",
+    "viewAll": "View all ({{count}})",
+    "categories": {
+      "physical_presence": "Physical Presence",
+      "knowledge_access": "Knowledge Access",
+      "human_authority": "Human Authority",
+      "simple_action": "Simple Action",
+      "digital_physical": "Digital-Physical"
+    },
+    "statuses": {
+      "published": "Published",
+      "accepted": "Accepted",
+      "in_progress": "In Progress",
+      "submitted": "Submitted",
+      "verifying": "Verifying",
+      "completed": "Completed",
+      "disputed": "Disputed",
+      "expired": "Expired",
+      "cancelled": "Cancelled"
+    },
+    "evidenceTypes": {
+      "photo": "Photo",
+      "photo_geo": "Geotagged Photo",
+      "video": "Video",
+      "document": "Document",
+      "receipt": "Receipt",
+      "signature": "Signature",
+      "notarized": "Notarized",
+      "timestamp_proof": "Timestamp Proof",
+      "text_response": "Text Response",
+      "measurement": "Measurement",
+      "screenshot": "Screenshot"
+    }
+  },
+  "categories": {
+    "all": "All",
+    "verification": "Verification",
+    "data_collection": "Data Collection",
+    "delivery": "Delivery",
+    "survey": "Surveys",
+    "photo": "Photos",
+    "mystery_shop": "Mystery Shop",
+    "translation": "Translation",
+    "transcription": "Transcription"
+  },
+  "submission": {
+    "title": "Submit Evidence",
+    "uploadFile": "Upload File",
+    "addNote": "Add Note",
+    "noteOptional": "Additional note (optional)",
+    "requiredEvidence": "Required Evidence",
+    "optionalEvidence": "Optional Evidence",
+    "dragAndDrop": "Drag files here or click to select",
+    "maxFileSize": "Maximum size: 10MB",
+    "supportedFormats": "Supported formats: JPG, PNG, PDF, MP4"
+  },
+  "profile": {
+    "title": "My Profile",
+    "reputation": "Reputation",
+    "tasksCompleted": "Tasks Completed",
+    "tasksDisputed": "Disputes",
+    "memberSince": "Member since",
+    "editProfile": "Edit Profile",
+    "wallet": "Wallet",
+    "name": "Name",
+    "skills": "Skills",
+    "location": "Location",
+    "notifications": "Notifications",
+    "earnings": "Earnings",
+    "taskHistory": "Task History",
+    "availableBalance": "Available Balance",
+    "pending": "pending",
+    "totalEarned": "Total Earned",
+    "thisMonth": "This Month",
+    "withdraw": "Withdraw Funds",
+    "totalTasks": "Total",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "approvalRate": "Approval Rate",
+    "disputedTasks": "disputed task(s)",
+    "disputeWarning": "Disputes may affect your reputation score"
+  },
+  "reputation": {
+    "tiers": {
+      "expert": "Expert",
+      "trusted": "Trusted",
+      "reliable": "Reliable",
+      "standard": "Standard",
+      "new": "New"
+    }
+  },
+  "filters": {
+    "all": "All",
+    "category": "Category",
+    "status": "Status",
+    "bountyRange": "Bounty Range",
+    "nearMe": "Near me",
+    "title": "Filters",
+    "reset": "Clear filters",
+    "payRange": "Pay Range",
+    "sortBy": "Sort by"
+  },
+  "sortOptions": {
+    "newest": "Newest",
+    "highest_pay": "Highest Pay",
+    "nearest": "Nearest",
+    "deadline": "Deadline"
+  },
+  "payRanges": {
+    "any": "Any amount",
+    "micro": "$0.10 - $1",
+    "small": "$1 - $5",
+    "medium": "$5 - $20",
+    "large": "$20+"
+  },
+  "location": {
+    "filter": "Filter by distance",
+    "detect": "Detect my location",
+    "detected": "Location detected",
+    "unavailable": "Location unavailable",
+    "error": "Error getting location",
+    "custom": "Customize",
+    "info": "Showing tasks within {{distance}} km of your location"
+  },
+  "payments": {
+    "history": "Payment History",
+    "taskPayment": "Task Payment",
+    "withdrawal": "Withdrawal",
+    "bonus": "Bonus",
+    "refund": "Refund",
+    "totalEarned": "Earned",
+    "totalWithdrawn": "Withdrawn",
+    "pending": "Pending",
+    "released": "Released",
+    "withdraw": "Withdraw",
+    "escrow": "In Escrow",
+    "noPayments": "No payments yet",
+    "details": "Payment Details",
+    "type": "Type",
+    "status": "Status",
+    "date": "Date",
+    "network": "Network",
+    "task": "Task",
+    "transaction": "Transaction"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications",
+    "viewAll": "View all notifications",
+    "newTask": "New task nearby",
+    "taskApproved": "Task approved",
+    "paymentReceived": "Payment received",
+    "disputeOpened": "Dispute opened",
+    "taskAssigned": "Task assigned",
+    "taskExpired": "Task expired",
+    "new": "new",
+    "newPlural": "new",
+    "willNotify": "We'll notify you when there's something new"
+  },
+  "disputes": {
+    "title": "My Disputes",
+    "open": "Open dispute",
+    "noDisputes": "No disputes",
+    "details": "Dispute Details",
+    "yourEvidence": "Your Evidence",
+    "agentEvidence": "Agent Evidence",
+    "addEvidence": "Add Evidence",
+    "submitEvidence": "Submit Evidence",
+    "evidencePlaceholder": "Describe your evidence and why the task should be approved...",
+    "unknownTask": "Unknown Task",
+    "notFound": "Dispute not found",
+    "taskInfo": "Task Information",
+    "reason": "Dispute Reason",
+    "timeline": "Timeline",
+    "opened": "Dispute Opened",
+    "resolved": "Resolved",
+    "originalSubmission": "Original Submission",
+    "submittedOn": "Submitted on",
+    "empty": "No Disputes",
+    "emptyDescription": "You don't have any active disputes",
+    "status": {
+      "open": "Open",
+      "under_review": "Under Review",
+      "resolved": "Resolved",
+      "escalated": "Escalated"
+    }
+  },
+  "evidence": {
+    "upload": "Upload evidence",
+    "capture": "Capture photo",
+    "gallery": "Gallery",
+    "requirements": "Evidence requirements",
+    "gpsRequired": "GPS required",
+    "timestampRequired": "Timestamp required",
+    "photoRequired": "Photo required"
+  },
+  "onboarding": {
+    "welcomeTitle": "Welcome to Chamba!",
+    "welcomeSubtitle": "Complete tasks, earn crypto. Let's set up your profile.",
+    "selectLanguage": "Select your language",
+    "getStarted": "Get Started",
+    "walletTitle": "Connect your wallet",
+    "walletSubtitle": "You need a wallet to receive payments. If you don't have one, we'll help you create it.",
+    "metamaskDesc": "Connect your existing wallet",
+    "walletConnectDesc": "Scan with your mobile wallet",
+    "createWallet": "Create with email",
+    "createWalletDesc": "New to crypto? We'll create a wallet for you",
+    "profileTitle": "Your profile",
+    "profileSubtitle": "What should we call you?",
+    "displayName": "Name or nickname",
+    "namePlaceholder": "e.g. Maria, FastRunner, JuanDev",
+    "nameInfo": "This is how agents will see your profile",
+    "skillsTitle": "Your skills",
+    "skillsSubtitle": "Select your skills. This helps us show you relevant tasks.",
+    "locationTitle": "Your location",
+    "locationSubtitle": "Some tasks require being at a specific place. Enable location to see tasks near you.",
+    "notificationsTitle": "Notifications",
+    "notificationsSubtitle": "Get alerts when there are new tasks you'd like or when your submissions are reviewed.",
+    "notificationsEnabled": "Notifications enabled",
+    "notificationsDenied": "Notifications blocked in this browser",
+    "enableNotifications": "Enable notifications",
+    "completeTitle": "All set!",
+    "completeSubtitle": "Your profile is ready. Now you can start exploring tasks and earning crypto.",
+    "summary": "Summary",
+    "locationEnabled": "Enabled",
+    "locationDisabled": "Not configured",
+    "startExploring": "Explore tasks"
+  },
+  "skills": {
+    "search": "Search skills...",
+    "selected": "skills selected",
+    "maxReached": "Maximum reached",
+    "addCustom": "Add custom skill",
+    "customPlaceholder": "Type your skill...",
+    "verificationInfo": "Verified skills increase your visibility and trust. You can verify skills by completing related tasks."
+  },
+  "skillCategories": {
+    "verification": "Verification",
+    "data_collection": "Data Collection",
+    "content": "Content",
+    "language": "Languages",
+    "physical": "Physical Tasks",
+    "digital": "Digital",
+    "specialized": "Specialized"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "displayName": "Display Name",
+    "namePlaceholder": "Your name or nickname",
+    "wallet": "Wallet",
+    "language": "Language",
+    "notifications": "Notifications",
+    "enableNotifications": "Enable",
+    "notif": {
+      "newTasks": "New tasks available",
+      "taskAssigned": "Task assigned",
+      "submissionReviewed": "Submission reviewed",
+      "paymentReceived": "Payment received",
+      "disputes": "Dispute updates",
+      "marketing": "News and promotions"
+    },
+    "privacy": {
+      "title": "Privacy",
+      "showEarnings": "Show earnings on profile",
+      "showLocation": "Show approximate location",
+      "showActivity": "Show recent activity"
+    },
+    "app": "App",
+    "installApp": "Install app",
+    "installAppDesc": "Get faster access from your home screen",
+    "version": "Version",
+    "account": "Account",
+    "logout": "Log out",
+    "deleteAccount": "Delete account",
+    "deleteConfirmTitle": "Delete account?",
+    "deleteConfirmMessage": "This action is permanent and cannot be undone. All your data and pending earnings will be lost.",
+    "deleteConfirm": "Yes, delete"
+  },
+  "pwa": {
+    "offline": "Offline - Changes will sync when you're back online",
+    "updateAvailable": "Update available",
+    "updateMessage": "A new version of Chamba is ready",
+    "updateNow": "Update now",
+    "installTitle": "Install Chamba",
+    "installSubtitle": "Get faster access from your home screen",
+    "addToHome": "Add to home screen",
+    "install": "Install",
+    "iosStep1": "Tap the share button",
+    "iosStep2": "Select \"Add to Home Screen\"",
+    "iosStep3": "Tap \"Add\""
+  },
+  "help": {
+    "title": "Help",
+    "contactEmail": "Email",
+    "contactTelegram": "Telegram",
+    "contactSupport": "Contact support",
+    "quickGuide": {
+      "title": "Quick guide",
+      "subtitle": "Complete your first task in 5 minutes",
+      "step1": {
+        "title": "Set up your profile",
+        "desc": "Add your name and skills"
+      },
+      "step2": {
+        "title": "Find tasks",
+        "desc": "Filter by location and category"
+      },
+      "step3": {
+        "title": "Apply to a task",
+        "desc": "Read the instructions and tap Apply"
+      },
+      "step4": {
+        "title": "Complete the work",
+        "desc": "Follow instructions and take photos"
+      },
+      "step5": {
+        "title": "Get paid",
+        "desc": "Payment arrives automatically to your wallet"
+      }
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "whatIsChamba": {
+        "q": "What is Chamba?",
+        "a": "Chamba is a platform where you can earn money completing real-world tasks for AI agents. You verify things, collect data, take photos, and more - all from your phone."
+      },
+      "howToStart": {
+        "q": "How do I start?",
+        "a": "1. Connect your crypto wallet (or create one with your email). 2. Set up your profile and skills. 3. Browse available tasks. 4. Apply to ones you like. 5. Complete the work and submit evidence. 6. Get paid in USDC!"
+      },
+      "needCrypto": {
+        "q": "Do I need to know about crypto?",
+        "a": "No! If you don't have crypto experience, we'll help you create a wallet with just your email. You receive payments in USDC (a stablecoin always worth $1 USD) and can withdraw to your local bank."
+      },
+      "requirements": {
+        "q": "What do I need to use Chamba?",
+        "a": "Just a smartphone with internet, camera, and GPS. Some tasks may require specific skills (like speaking English or having a vehicle), but there are tasks for all profiles."
+      },
+      "howPaid": {
+        "q": "How do I get paid?",
+        "a": "When your work is approved, payment is automatically deposited to your wallet. We use USDC on the Base network for instant and cheap payments. You can see your balance in your profile."
+      },
+      "whenPaid": {
+        "q": "How long until I get paid?",
+        "a": "Once your work is approved, payment is instant (seconds, not days). Agent review can take from minutes to 24 hours depending on the task."
+      },
+      "withdraw": {
+        "q": "How do I withdraw my money?",
+        "a": "You can withdraw your USDC to any other wallet, exchange, or use services that convert crypto to your local currency. Minimum withdrawal is $5 USDC."
+      },
+      "fees": {
+        "q": "Are there fees?",
+        "a": "Chamba charges a small commission per completed task (already included in the price you see). Withdrawals have a very low network fee (~$0.01 on Base)."
+      },
+      "taskTypes": {
+        "q": "What types of tasks are there?",
+        "a": "Many types: verify a business exists, take product photos, complete surveys, mystery shopping, collect price data, deliveries, translations, and more. Each task has clear instructions."
+      },
+      "howApply": {
+        "q": "How do I apply to a task?",
+        "a": "Browse tasks in your area or matching your skills. Click a task to see details. If interested, tap 'Apply'. The agent will review your profile and assign you if you're a good match."
+      },
+      "evidenceRequired": {
+        "q": "What evidence do I need to submit?",
+        "a": "Depends on the task. Usually you need photos taken at the moment (with GPS and timestamp), answers to specific questions, and sometimes additional files. Each task's instructions are very clear."
+      },
+      "taskRejected": {
+        "q": "What if my work is rejected?",
+        "a": "If you disagree with a rejection, you can open a dispute. A human mediator will review evidence from both parties and make a final decision."
+      },
+      "whatDispute": {
+        "q": "What is a dispute?",
+        "a": "A dispute is when you disagree with your work being rejected. You can submit additional evidence and a neutral mediator will review the case."
+      },
+      "howDispute": {
+        "q": "How do I open a dispute?",
+        "a": "Go to 'My Tasks' > find the rejected task > tap 'Dispute'. Describe your position and upload any evidence supporting your case. You have 48 hours after rejection to open a dispute."
+      },
+      "disputeTime": {
+        "q": "How long to resolve a dispute?",
+        "a": "Disputes are typically resolved in 24-72 hours. You'll receive a notification when there's a decision."
+      },
+      "disputeWin": {
+        "q": "What if I win the dispute?",
+        "a": "If the mediator decides in your favor, you receive full payment for the task. Your reputation is not affected by the initial rejection."
+      }
+    },
+    "categories": {
+      "gettingStarted": "Getting Started",
+      "payments": "Payments",
+      "tasks": "Tasks",
+      "disputes": "Disputes"
+    },
+    "stillNeedHelp": {
+      "title": "Still have questions?",
+      "subtitle": "Our support team is ready to help"
+    }
+  },
+  "dashboard": {
+    "welcome": "Hi, {{name}}!",
+    "welcomeDefault": "Hi, Worker!",
+    "activeTasks": "You have {{count}} active task",
+    "activeTasksPlural": "You have {{count}} active tasks",
+    "readyToWork": "Ready to work?",
+    "myEarnings": "My Earnings",
+    "pendingAmount": "+{{amount}} pending",
+    "thisWeek": "This week",
+    "tasksCompletedWeek": "Tasks completed",
+    "viewDetails": "View Details",
+    "withdraw": "Withdraw",
+    "incomeForecast": "Income Forecast",
+    "projectedMonthly": "Monthly projection",
+    "basedOnPace": "Based on your current pace",
+    "avgTaskValue": "Avg. value",
+    "tasksPerWeek": "Tasks/week",
+    "completionRate": "Completion rate",
+    "improvementTip": "Tip: Improving your completion rate will increase your projected income and reputation.",
+    "quickActions": {
+      "browseTasks": "Browse Tasks",
+      "earnings": "Earnings",
+      "settings": "Settings"
+    },
+    "newWorkerTips": {
+      "title": "Tips for new workers",
+      "tip1": "Complete your profile to access more tasks",
+      "tip2": "Start with simple tasks to build your reputation",
+      "tip3": "Submit clear and complete evidence",
+      "tip4": "Respond quickly to urgent tasks"
+    }
+  },
+  "time": {
+    "hoursLeft": "{{count}} hour left",
+    "hoursLeft_plural": "{{count}} hours left",
+    "daysLeft": "{{count}} day left",
+    "daysLeft_plural": "{{count}} days left",
+    "expired": "Expired",
+    "lessThanOneHour": "Less than 1 hour",
+    "rightNow": "Right now",
+    "ago": "ago",
+    "yesterday": "Yesterday"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "networkError": "Network error. Please check your connection.",
+    "sessionExpired": "Session expired. Please log in again.",
+    "permissionDenied": "Permission denied",
+    "notFound": "Not found",
+    "serverError": "Server error. Please try again later."
+  },
+  "wallet": {
+    "connectTitle": "Connect your wallet",
+    "connectSubtitle": "Choose how you want to connect",
+    "emailWallet": "Email Wallet",
+    "emailWalletDesc": "Sign in with email - no extension needed",
+    "metamaskDesc": "Browser extension",
+    "walletConnectDesc": "Scan QR code",
+    "email": "Email",
+    "emailRequired": "Email is required",
+    "invalidEmail": "Please enter a valid email address",
+    "emailHint": "We'll create a wallet linked to your email",
+    "displayName": "Display name",
+    "displayNamePlaceholder": "Your name",
+    "displayNameForNew": "Display name (for new users)",
+    "displayNameHint": "Ignored if your wallet is already registered",
+    "connecting": "Connecting...",
+    "continue": "Continue",
+    "emailNotAvailable": "Email wallet is not available. Please use MetaMask or WalletConnect.",
+    "securityNote": "Your wallet is used for identity and payments. We never store your private keys."
+  },
+  "header": {
+    "searchPlaceholder": "Search tasks...",
+    "notifications": "Notifications"
+  },
+  "footer": {
+    "poweredBy": "Powered by x402",
+    "about": "About",
+    "terms": "Terms",
+    "privacy": "Privacy"
+  },
+  "validator": {
+    "title": "Validator Panel",
+    "pendingDisputes": "{{count}} pending dispute",
+    "pendingDisputes_plural": "{{count}} pending disputes",
+    "stats": {
+      "title": "My Validator Stats",
+      "accuracy": "Accuracy",
+      "correctVotes": "{{correct}}/{{total}} correct",
+      "totalEarnings": "Total Earnings",
+      "pendingEarnings": "+{{amount}} pending",
+      "disputes": "Disputes",
+      "responseTime": "Response Time",
+      "myStake": "My Stake",
+      "streak": "{{count}} streak"
+    },
+    "stake": {
+      "title": "Stake Management",
+      "current": "Current Stake",
+      "available": "Available Balance",
+      "minRequired": "Minimum stake per vote: {{amount}}",
+      "rewardInfo": "If you vote correctly, you earn {{percent}}% of the losing side's stake.",
+      "deposit": "Deposit",
+      "withdraw": "Withdraw",
+      "amount": "Amount (USD)",
+      "depositTitle": "Deposit Stake",
+      "withdrawTitle": "Withdraw Stake"
+    },
+    "queue": {
+      "all": "All",
+      "pending": "Not voted",
+      "voted": "Voted",
+      "noDisputes": "No Disputes",
+      "votedAll": "You've voted on all available disputes",
+      "notVotedYet": "You haven't voted on any dispute yet",
+      "noPending": "No disputes pending validation"
+    },
+    "dispute": {
+      "review": "Review Dispute",
+      "bounty": "Bounty",
+      "votes": "Votes",
+      "timeLeft": "Time Left",
+      "evidence": "Evidence",
+      "claims": "Arguments",
+      "voteCount": "Votes ({{count}})",
+      "workerEvidence": "Worker Evidence ({{name}})",
+      "agentEvidence": "Agent Evidence ({{name}})",
+      "agentClaim": "Agent's Argument",
+      "workerClaim": "Worker's Response",
+      "noEvidence": "No evidence",
+      "noVotesYet": "No votes yet. Be the first to vote."
+    },
+    "vote": {
+      "title": "Your Vote",
+      "stakeRequired": "Stake required: {{amount}}",
+      "worker": "Worker",
+      "agent": "Agent",
+      "split": "Split",
+      "reason": "Reason for your vote",
+      "reasonHint": "(recommended)",
+      "reasonPlaceholder": "Briefly explain why you're voting this way...",
+      "confirm": "Confirm Vote + Stake {{amount}}",
+      "selectOption": "Select an option",
+      "processing": "Processing vote...",
+      "warning": "By voting, you deposit {{amount}} USDC. If your vote matches the final resolution, you recover your stake + earnings.",
+      "alreadyVoted": "You've already voted on this dispute",
+      "yourVote": "Your vote:",
+      "voteFor": {
+        "worker": "In favor of Worker",
+        "agent": "In favor of Agent",
+        "split": "Split"
+      }
+    },
+    "tips": {
+      "title": "Tips for Validators",
+      "tip1": "Review all evidence before voting",
+      "tip2": "Verify GPS coordinates when available",
+      "tip3": "Read both parties' arguments carefully",
+      "tip4": "Your accuracy affects your future earnings",
+      "tip5": "Maintaining high accuracy unlocks higher-value disputes"
+    }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Platform metrics",
+    "keyMetrics": "Key Metrics",
+    "secondaryMetrics": "Secondary Metrics",
+    "totalGMV": "Total GMV",
+    "completionRate": "Completion Rate",
+    "feeRevenue": "Revenue (Fees)",
+    "avgTime": "Average Time",
+    "perCompletedTask": "per completed task",
+    "platformFee": "5% platform fee",
+    "tasks": "tasks",
+    "vsPreviousPeriod": "vs previous period",
+    "gmvOverTime": "GMV Over Time",
+    "gmvSubtitle": "Gross merchandise value and task count",
+    "regionalStats": "Regional Statistics",
+    "regionalSubtitle": "Geographic distribution of tasks",
+    "tasksByCategory": "Tasks by Category",
+    "categorySubtitle": "Distribution by task type",
+    "workerRetention": "Worker Retention",
+    "retentionSubtitle": "Active, new, and churned workers by month",
+    "retained": "Retained",
+    "newWorkers": "New",
+    "churned": "Lost",
+    "activeWorkers": "Active Workers",
+    "activeAgents": "Active Agents",
+    "avgTaskValue": "Average Value",
+    "retention": "Retention",
+    "lastMonth": "last month",
+    "publishingTasks": "publishing tasks",
+    "perTask": "per task",
+    "exportReport": "Export Report",
+    "timeRanges": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "1y": "1 year"
+    }
+  }
+}

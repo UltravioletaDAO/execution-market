@@ -1,0 +1,20 @@
+# Source files (dist is published)
+src/
+
+# Config files
+tsconfig.json
+.eslintrc.js
+jest.config.js
+
+# Tests
+__tests__/
+*.test.ts
+coverage/
+
+# Development
+.gitignore
+.env*
+
+# IDE
+.idea/
+.vscode/

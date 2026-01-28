@@ -1,0 +1,135 @@
+{
+  "name": "Chamba",
+  "short_name": "Chamba",
+  "description": "Complete tasks for AI agents and earn crypto instantly",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "scope": "/",
+  "id": "com.ultravioleta.chamba",
+  "lang": "es-MX",
+  "dir": "ltr",
+  "permissions": [
+    "camera",
+    "geolocation",
+    "notifications",
+    "storage"
+  ],
+  "capture_links": "existing-client-event",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "handle_links": "preferred",
+  "file_handlers": [
+    {
+      "action": "/upload",
+      "accept": {
+        "image/*": [".jpg", ".jpeg", ".png", ".webp"],
+        "video/*": [".mp4", ".webm"]
+      }
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "evidence",
+          "accept": ["image/*", "video/*"]
+        }
+      ]
+    }
+  },
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/tasks-list.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Browse available tasks"
+    },
+    {
+      "src": "/screenshots/task-detail.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Task details and instructions"
+    }
+  ],
+  "categories": ["productivity", "finance"],
+  "shortcuts": [
+    {
+      "name": "Browse Tasks",
+      "short_name": "Tasks",
+      "description": "Browse available tasks",
+      "url": "/tasks",
+      "icons": [{ "src": "/icons/tasks-shortcut.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Earnings",
+      "short_name": "Earnings",
+      "description": "Check your earnings",
+      "url": "/earnings",
+      "icons": [{ "src": "/icons/earnings-shortcut.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

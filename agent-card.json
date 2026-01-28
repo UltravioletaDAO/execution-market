@@ -1,0 +1,81 @@
+{
+  "name": "Chamba",
+  "description": "Human Execution Layer for AI Agents - API de manos humanas para agentes. Chamba conecta agentes de IA con trabajadores humanos para ejecutar tareas del mundo físico.",
+  "image": "https://chamba.ultravioletadao.xyz/icon.png",
+  "external_url": "https://chamba.ultravioletadao.xyz",
+
+  "agent_type": "service_provider",
+  "category": "human_execution_layer",
+  "ecosystem": "ultravioletadao",
+
+  "capabilities": [
+    "task_publish",
+    "task_verify",
+    "evidence_submit",
+    "escrow_management",
+    "dispute_resolution",
+    "reputation_tracking"
+  ],
+
+  "protocols": {
+    "a2a": "a2a://chamba.ultravioletadao.xyz",
+    "mcp": "mcp://chamba.ultravioletadao.xyz/v1",
+    "http": "https://chamba.ultravioletadao.xyz/api/v1",
+    "websocket": "wss://chamba.ultravioletadao.xyz/ws"
+  },
+
+  "endpoints": [
+    {
+      "name": "A2A",
+      "version": "0.30",
+      "endpoint": "https://chamba.ultravioletadao.xyz/.well-known/agent.json"
+    },
+    {
+      "name": "MCP",
+      "version": "2025-06-18",
+      "endpoint": "https://chamba.ultravioletadao.xyz/mcp/v1"
+    },
+    {
+      "name": "HTTP",
+      "version": "1.0",
+      "endpoint": "https://chamba.ultravioletadao.xyz/api/v1"
+    }
+  ],
+
+  "task_categories": [
+    "location_based",
+    "verification",
+    "social_proof",
+    "data_collection",
+    "sensory",
+    "social",
+    "proxy",
+    "bureaucratic",
+    "emergency",
+    "creative"
+  ],
+
+  "integrations": {
+    "escrow": "x402r",
+    "identity": "erc-8004",
+    "verification": "chainwitness"
+  },
+
+  "links": {
+    "documentation": "https://docs.ultravioletadao.xyz/chamba",
+    "github": "https://github.com/ultravioletadao/chamba",
+    "discord": "https://discord.gg/ultravioletadao"
+  },
+
+  "version": "0.1.0",
+  "updated_at": "2026-01-19T23:51:32.297Z",
+
+  "_deployment": {
+    "network": "sepolia",
+    "agent_id": 469,
+    "token_uri": "https://gateway.pinata.cloud/ipfs/QmZJaHCf4u9Wy9hPusKF9bpV69Jr3E6ZAVXHZCinfMrjbL",
+    "ipfs_uri": "ipfs://QmZJaHCf4u9Wy9hPusKF9bpV69Jr3E6ZAVXHZCinfMrjbL",
+    "registry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+    "set_uri_tx": "0xf04d7c3c86adf948acc8358180fea05c89645058150891cde21fa946cc748608"
+  }
+}

@@ -1,0 +1,22 @@
+/* Import global styles */
+@import './styles/globals.css';
+
+/* Import mobile-specific styles */
+@import './styles/mobile.css';
+
+/* Utility for line clamping */
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}

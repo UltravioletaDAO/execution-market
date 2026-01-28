@@ -1,0 +1,19 @@
+{
+  "name": "chamba-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "register:erc8004": "tsx register_erc8004.ts",
+    "register:x402r": "tsx register_x402r.ts",
+    "upload:metadata": "tsx upload_metadata.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "viem": "^2.44.4"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.5"
+  }
+}
