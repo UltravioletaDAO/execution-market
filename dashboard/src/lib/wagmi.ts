@@ -1,0 +1,34 @@
+import { http, createConfig } from 'wagmi'
+import { base, baseSepolia, mainnet, sepolia } from 'wagmi/chains'
+import { injected, walletConnect } from 'wagmi/connectors'
+
+// WalletConnect project ID - get one at https://cloud.walletconnect.com
+const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'demo'
+
+export const wagmiConfig = createConfig({
+  chains: [base, baseSepolia, mainnet, sepolia],
+  connectors: [
+    injected(),
+    walletConnect({
+      projectId,
+      metadata: {
+        name: 'Chamba',
+        description: 'Human Execution Layer for AI Agents',
+        url: 'https://chamba.ultravioletadao.xyz',
+        icons: ['https://chamba.ultravioletadao.xyz/icon.png'],
+      },
+    }),
+  ],
+  transports: {
+    [base.id]: http(),
+    [baseSepolia.id]: http(),
+    [mainnet.id]: http(),
+    [sepolia.id]: http(),
+  },
+})
+
+declare module 'wagmi' {
+  interface Register {
+    config: typeof wagmiConfig
+  }
+}

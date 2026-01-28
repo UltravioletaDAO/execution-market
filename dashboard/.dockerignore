@@ -1,0 +1,49 @@
+# Dashboard Docker Ignore
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm/
+
+# Build (we rebuild in Docker)
+dist/
+build/
+.vite/
+
+# Tests
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+coverage/
+.vitest/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary
+*.log
+*.tmp
+
+# TypeScript
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db

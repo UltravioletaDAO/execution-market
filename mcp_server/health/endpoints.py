@@ -1,0 +1,428 @@
+"""
+Health Check Endpoints for Chamba
+
+Provides HTTP endpoints for health probes:
+- GET /health - Basic health check (comprehensive)
+- GET /health/ready - Readiness probe (can accept traffic?)
+- GET /health/live - Liveness probe (is process alive?)
+- GET /health/detailed - Detailed status with all dependencies
+
+Compatible with:
+- Kubernetes health probes
+- AWS ECS/ELB health checks
+- Generic load balancer checks
+- Status page integrations
+"""
+
+import json
+import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, Query, Response, status
+
+from .checks import HealthChecker, HealthStatus, SystemHealth
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/health", tags=["Health"])
+
+
+# =============================================================================
+# Global Health Checker Instance
+# =============================================================================
+
+
+_health_checker: Optional[HealthChecker] = None
+
+
+def get_health_checker() -> HealthChecker:
+    """Get or create the global health checker instance."""
+    global _health_checker
+    if _health_checker is None:
+        _health_checker = HealthChecker()
+    return _health_checker
+
+
+def set_health_checker(checker: HealthChecker) -> None:
+    """Set a custom health checker instance (for testing)."""
+    global _health_checker
+    _health_checker = checker
+
+
+# =============================================================================
+# Basic Health Endpoint
+# =============================================================================
+
+
+@router.get("")
+@router.get("/")
+async def health_check(
+    force: bool = Query(False, description="Force fresh health check, bypass cache"),
+    response: Response = None,
+) -> Dict[str, Any]:
+    """
+    Comprehensive health check endpoint.
+
+    Returns detailed status of all system components including database,
+    Redis, blockchain, storage, and x402 payment service.
+
+    Response Codes:
+    - 200: System is healthy or degraded (can still serve traffic)
+    - 503: System is unhealthy (should not receive traffic)
+
+    Args:
+        force: If True, bypasses cache and runs fresh checks
+
+    Returns:
+        JSON object with overall status and component details
+    """
+    checker = get_health_checker()
+    health = await checker.check_all(force_refresh=force)
+
+    # Set appropriate status code
+    if health.status == HealthStatus.UNHEALTHY:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    return health.to_dict()
+
+
+# =============================================================================
+# Kubernetes-Style Probes
+# =============================================================================
+
+
+@router.get("/ready")
+async def readiness_probe(response: Response) -> Dict[str, Any]:
+    """
+    Kubernetes readiness probe.
+
+    Returns 200 if the service can accept traffic.
+    Used by load balancers to determine if traffic should be routed to this instance.
+
+    A service is considered "ready" if it can connect to its critical dependencies
+    (database and blockchain). Non-critical components can be degraded.
+
+    Response Codes:
+    - 200: Ready to accept traffic
+    - 503: Not ready (don't route traffic here)
+    """
+    checker = get_health_checker()
+    health = await checker.check_all()
+
+    # Consider DEGRADED as ready (can still serve, just not optimally)
+    ready = health.status in [HealthStatus.HEALTHY, HealthStatus.DEGRADED]
+
+    # Build critical component summary
+    critical_status = {}
+    for name in checker.CRITICAL_COMPONENTS:
+        if name in health.components:
+            critical_status[name] = health.components[name].status.value
+
+    result = {
+        "status": "ready" if ready else "not_ready",
+        "overall": health.status.value,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "critical_components": critical_status,
+    }
+
+    if not ready:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        # Add reason for not being ready
+        unhealthy = [
+            name for name, comp in health.components.items()
+            if comp.status == HealthStatus.UNHEALTHY and name in checker.CRITICAL_COMPONENTS
+        ]
+        result["reason"] = f"Critical components unhealthy: {', '.join(unhealthy)}"
+
+    return result
+
+
+@router.get("/live")
+async def liveness_probe() -> Dict[str, Any]:
+    """
+    Kubernetes liveness probe.
+
+    Returns 200 if the process is alive.
+    Used by Kubernetes to determine if the pod should be restarted.
+
+    This endpoint is intentionally lightweight and does NOT check dependencies.
+    It only verifies that the Python process is running and can handle requests.
+
+    Response Codes:
+    - 200: Process is alive (always, unless crashed)
+    """
+    checker = get_health_checker()
+    return {
+        "status": "alive",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "uptime_seconds": round(checker.uptime_seconds, 2)
+    }
+
+
+@router.get("/startup")
+async def startup_probe(response: Response) -> Dict[str, Any]:
+    """
+    Kubernetes startup probe.
+
+    Used during initial container startup to allow slow-starting containers.
+    More lenient than liveness probe - allows time for database connections
+    and other initializations.
+
+    Response Codes:
+    - 200: Startup complete
+    - 503: Still starting up
+    """
+    checker = get_health_checker()
+
+    # During startup, just check if core services are reachable
+    try:
+        db_health = await checker.check_component("database")
+        blockchain_health = await checker.check_component("blockchain")
+
+        # Consider started if both critical components are at least reachable
+        started = (
+            db_health.status != HealthStatus.UNHEALTHY and
+            blockchain_health.status != HealthStatus.UNHEALTHY
+        )
+
+        result = {
+            "status": "started" if started else "starting",
+            "database": db_health.status.value,
+            "blockchain": blockchain_health.status.value,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+
+        if not started:
+            response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            reasons = []
+            if db_health.status == HealthStatus.UNHEALTHY:
+                reasons.append(f"database: {db_health.message}")
+            if blockchain_health.status == HealthStatus.UNHEALTHY:
+                reasons.append(f"blockchain: {blockchain_health.message}")
+            result["reason"] = "; ".join(reasons)
+
+        return result
+
+    except Exception as e:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {
+            "status": "starting",
+            "message": str(e)[:100],
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+
+
+# =============================================================================
+# Detailed Health Endpoint
+# =============================================================================
+
+
+@router.get("/detailed")
+async def detailed_health(
+    force: bool = Query(False, description="Force fresh health check"),
+    include_history: bool = Query(False, description="Include recent health history"),
+    response: Response = None,
+) -> Dict[str, Any]:
+    """
+    Detailed health check with extended information.
+
+    Returns comprehensive status including:
+    - All component statuses with latency measurements
+    - Configuration details (without secrets)
+    - Recent health check history (optional)
+    - Version and environment information
+
+    Args:
+        force: If True, bypasses cache
+        include_history: If True, includes recent health check history
+
+    Returns:
+        Extended health information
+    """
+    checker = get_health_checker()
+    health = await checker.check_all(force_refresh=force)
+
+    if health.status == HealthStatus.UNHEALTHY:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    result = {
+        "status": health.status.value,
+        "version": health.version,
+        "environment": checker.environment,
+        "uptime_seconds": round(health.uptime_seconds, 2),
+        "timestamp": health.timestamp.isoformat(),
+        "components": {
+            name: comp.to_dict()
+            for name, comp in health.components.items()
+        },
+        "summary": {
+            "total_components": len(health.components),
+            "healthy": sum(1 for c in health.components.values() if c.status == HealthStatus.HEALTHY),
+            "degraded": sum(1 for c in health.components.values() if c.status == HealthStatus.DEGRADED),
+            "unhealthy": sum(1 for c in health.components.values() if c.status == HealthStatus.UNHEALTHY),
+        },
+        "critical_components": list(checker.CRITICAL_COMPONENTS),
+    }
+
+    if include_history:
+        result["history"] = checker.get_history(limit=10)
+
+    return result
+
+
+# =============================================================================
+# Component-Specific Endpoints
+# =============================================================================
+
+
+@router.get("/component/{component_name}")
+async def check_component(
+    component_name: str,
+    response: Response,
+) -> Dict[str, Any]:
+    """
+    Check a specific component's health.
+
+    Args:
+        component_name: Name of component (database, redis, x402, storage, blockchain)
+
+    Returns:
+        Component health status
+    """
+    checker = get_health_checker()
+
+    valid_components = ["database", "redis", "x402", "storage", "blockchain"]
+    valid_components.extend(checker._custom_checks.keys())
+
+    if component_name not in valid_components:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {
+            "error": f"Unknown component: {component_name}",
+            "valid_components": valid_components
+        }
+
+    health = await checker.check_component(component_name)
+
+    if health.status == HealthStatus.UNHEALTHY:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    return {
+        "component": component_name,
+        **health.to_dict()
+    }
+
+
+# =============================================================================
+# Administrative Endpoints
+# =============================================================================
+
+
+@router.get("/history")
+async def health_history(
+    limit: int = Query(10, ge=1, le=100, description="Number of history entries")
+) -> Dict[str, Any]:
+    """
+    Get recent health check history.
+
+    Useful for trend analysis and debugging intermittent issues.
+
+    Args:
+        limit: Maximum number of history entries to return
+    """
+    checker = get_health_checker()
+    history = checker.get_history(limit=limit)
+
+    return {
+        "history": history,
+        "count": len(history),
+        "max_stored": checker._history_max_size,
+    }
+
+
+@router.post("/invalidate-cache")
+async def invalidate_cache() -> Dict[str, Any]:
+    """
+    Invalidate health check cache.
+
+    Forces next health check to run fresh checks for all components.
+    Useful after configuration changes or incident recovery.
+    """
+    checker = get_health_checker()
+    checker.invalidate_cache()
+    return {
+        "status": "cache_invalidated",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+
+@router.get("/version")
+async def version_info() -> Dict[str, Any]:
+    """
+    Get API version and build information.
+
+    Returns version, environment, and build metadata.
+    """
+    import os
+    checker = get_health_checker()
+
+    return {
+        "name": "Chamba MCP Server",
+        "version": checker.version,
+        "environment": checker.environment,
+        "build_date": os.getenv("BUILD_DATE", "unknown"),
+        "git_commit": os.getenv("GIT_COMMIT", "unknown")[:8] if os.getenv("GIT_COMMIT") else "unknown",
+        "uptime_seconds": round(checker.uptime_seconds, 2)
+    }
+
+
+# =============================================================================
+# Prometheus Metrics Endpoint
+# =============================================================================
+
+
+@router.get("/metrics")
+async def prometheus_metrics(
+    refresh: bool = Query(False, description="Refresh expensive metrics before scraping")
+) -> Response:
+    """
+    Prometheus metrics endpoint.
+
+    Returns metrics in Prometheus text exposition format.
+    Compatible with Prometheus, Grafana, and other monitoring tools.
+
+    Metrics include:
+    - chamba_requests_total: Request count by endpoint and status
+    - chamba_request_duration_seconds: Request latency histogram
+    - chamba_active_tasks: Active tasks by status and category
+    - chamba_escrow_balance_usd: Escrow balance by token
+    - chamba_component_health: Component health status
+
+    Args:
+        refresh: If True, refreshes expensive metrics from database
+    """
+    from .metrics import get_metrics_collector, COMPONENT_HEALTH
+    from .checks import HealthStatus
+
+    collector = get_metrics_collector()
+
+    # Optionally refresh expensive metrics
+    if refresh:
+        await collector.refresh_expensive_metrics()
+
+    # Update component health metrics from last health check
+    checker = get_health_checker()
+    if checker._cache:
+        for name, comp in checker._cache.items():
+            health_value = {
+                HealthStatus.HEALTHY: 1.0,
+                HealthStatus.DEGRADED: 0.5,
+                HealthStatus.UNHEALTHY: 0.0
+            }.get(comp.status, 0.0)
+            COMPONENT_HEALTH.set(health_value, labels={"component": name})
+
+    # Export in Prometheus format
+    return Response(
+        content=collector.export_prometheus(),
+        media_type="text/plain; charset=utf-8"
+    )

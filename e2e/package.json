@@ -1,0 +1,27 @@
+{
+  "name": "chamba-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:auth": "playwright test tests/auth.spec.ts",
+    "test:tasks": "playwright test tests/tasks.spec.ts",
+    "test:agent": "playwright test tests/agent.spec.ts",
+    "test:evidence": "playwright test tests/evidence.spec.ts",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen http://localhost:3000",
+    "install-browsers": "playwright install"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.4.5"
+  }
+}

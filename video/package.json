@@ -1,0 +1,19 @@
+{
+  "name": "chamba-video",
+  "version": "1.0.0",
+  "description": "Video promocional de Chamba - Agentes contratando humanos",
+  "scripts": {
+    "start": "npx remotion studio",
+    "build": "npx remotion render src/index.tsx ChambaVideo out/chamba.mp4",
+    "preview": "npx remotion preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.0",
+    "@remotion/cli": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

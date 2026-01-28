@@ -1,0 +1,98 @@
+# =============================================================================
+# Chamba Docker Ignore
+# =============================================================================
+# Files and directories to exclude from Docker build context
+# This improves build performance and prevents sensitive files from being
+# accidentally included in images.
+# =============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Tests (exclude from production builds)
+**/tests/
+**/__tests__/
+**/test_*.py
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+.pytest_cache/
+.coverage
+htmlcov/
+coverage/
+
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+**/node_modules/
+npm-debug.log
+yarn-error.log
+.npm/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.pid
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+Makefile
+
+# Development files
+*.local
+.envrc
+
+# Secrets (should never be in build context)
+*.pem
+*.key
+*.crt
+secrets/
+credentials/

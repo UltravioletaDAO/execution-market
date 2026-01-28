@@ -1,0 +1,136 @@
+# Chamba MCP Server Dockerfile
+# Multi-stage build: Python 3.11 + FastAPI + uvicorn
+#
+# Build:
+#   docker build -f Dockerfile.mcp -t chamba-mcp:latest ./mcp_server
+#
+# Run:
+#   docker run -p 8000:8000 --env-file .env chamba-mcp:latest
+
+# ===================
+# Builder Stage
+# ===================
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt pyproject.toml ./
+RUN pip install --upgrade pip && \
+    pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+
+# ===================
+# Development Stage
+# ===================
+FROM python:3.11-slim AS development
+
+WORKDIR /app
+
+# Create non-root user
+RUN groupadd -r chamba && useradd -r -g chamba -d /app chamba
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy wheels from builder
+COPY --from=builder /app/wheels /wheels
+COPY --from=builder /app/requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
+
+# Copy application code
+COPY . .
+
+# Set ownership
+RUN chown -R chamba:chamba /app
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PORT=8000 \
+    ENVIRONMENT=development
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Expose port
+EXPOSE ${PORT}
+
+# Switch to non-root user
+USER chamba
+
+# Run with uvicorn (development mode with reload)
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# ===================
+# Production Stage
+# ===================
+FROM python:3.11-slim AS production
+
+WORKDIR /app
+
+# Create non-root user
+RUN groupadd -r chamba && useradd -r -g chamba -d /app chamba
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    dumb-init \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy wheels from builder
+COPY --from=builder /app/wheels /wheels
+COPY --from=builder /app/requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
+
+# Copy application code
+COPY . .
+
+# Remove development files
+RUN rm -rf tests/ *.md .git* __pycache__ .pytest_cache .mypy_cache
+
+# Set ownership
+RUN chown -R chamba:chamba /app
+
+# Create cache directory
+RUN mkdir -p /app/.cache && chown chamba:chamba /app/.cache
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PORT=8000 \
+    ENVIRONMENT=production \
+    WORKERS=4
+
+# Health check
+HEALTHCHECK --interval=15s --timeout=10s --start-period=30s --retries=5 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Expose port
+EXPOSE ${PORT}
+
+# Switch to non-root user
+USER chamba
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
+# Run with uvicorn (production mode with multiple workers)
+CMD ["sh", "-c", "uvicorn api:app --host 0.0.0.0 --port ${PORT} --workers ${WORKERS} --loop uvloop --http httptools --no-access-log"]

@@ -1,0 +1,41 @@
+# MCP Server Docker Ignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Tests (development only)
+tests/
+conftest.py
+pytest.ini
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Environment
+.env
+.env.*
+
+# Temporary
+*.log
+*.tmp

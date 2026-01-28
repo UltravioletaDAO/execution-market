@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chamba Landing - Version Selector</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 16px 24px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+
+        .header h1 span {
+            color: #8B4DC3;
+            font-weight: 700;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .view-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .view-btn:hover {
+            color: #94a3b8;
+        }
+
+        .view-btn.active {
+            background: #8B4DC3;
+            color: white;
+        }
+
+        .version-toggle {
+            display: flex;
+            gap: 8px;
+        }
+
+        .version-btn {
+            padding: 8px 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .version-btn:hover {
+            border-color: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .version-btn.active {
+            border-color: #8B4DC3;
+            background: rgba(139,77,195,0.1);
+            color: #8B4DC3;
+        }
+
+        .version-btn.cyberpunk.active {
+            border-color: #00ff88;
+            background: rgba(0,255,136,0.1);
+            color: #00ff88;
+        }
+
+        .version-btn.enterprise.active {
+            border-color: #2563eb;
+            background: rgba(37,99,235,0.1);
+            color: #3b82f6;
+        }
+
+        /* Main content */
+        .main {
+            padding-top: 72px;
+            height: 100vh;
+        }
+
+        /* Split View */
+        .split-view {
+            display: none;
+            height: calc(100vh - 72px);
+        }
+
+        .split-view.active {
+            display: flex;
+        }
+
+        .split-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .split-pane:last-child {
+            border-right: none;
+        }
+
+        .pane-header {
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pane-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .pane-dot.cyberpunk {
+            background: #00ff88;
+            box-shadow: 0 0 10px rgba(0,255,136,0.5);
+        }
+
+        .pane-dot.enterprise {
+            background: #2563eb;
+            box-shadow: 0 0 10px rgba(37,99,235,0.5);
+        }
+
+        .pane-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .pane-subtitle {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-left: auto;
+        }
+
+        .split-pane iframe {
+            flex: 1;
+            border: none;
+            width: 100%;
+        }
+
+        /* Single View */
+        .single-view {
+            display: none;
+            height: calc(100vh - 72px);
+        }
+
+        .single-view.active {
+            display: block;
+        }
+
+        .single-view iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                padding: 12px 16px;
+            }
+
+            .controls {
+                width: 100%;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .main {
+                padding-top: 120px;
+            }
+
+            .split-view.active {
+                flex-direction: column;
+            }
+
+            .split-pane {
+                border-right: none;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                height: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1><span>Chamba</span> Landing Versions</h1>
+        <div class="controls">
+            <div class="view-toggle">
+                <button class="view-btn active" data-view="split">Split View</button>
+                <button class="view-btn" data-view="single">Single View</button>
+            </div>
+            <div class="version-toggle" id="versionToggle" style="display: none;">
+                <button class="version-btn cyberpunk active" data-version="cyberpunk">Cyberpunk</button>
+                <button class="version-btn enterprise" data-version="enterprise">Enterprise</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Split View -->
+        <div class="split-view active" id="splitView">
+            <div class="split-pane">
+                <div class="pane-header">
+                    <div class="pane-dot cyberpunk"></div>
+                    <span class="pane-title">Cyberpunk / Community</span>
+                    <span class="pane-subtitle">index.html</span>
+                </div>
+                <iframe src="index.html"></iframe>
+            </div>
+            <div class="split-pane">
+                <div class="pane-header">
+                    <div class="pane-dot enterprise"></div>
+                    <span class="pane-title">Enterprise / Business</span>
+                    <span class="pane-subtitle">enterprise.html</span>
+                </div>
+                <iframe src="enterprise.html"></iframe>
+            </div>
+        </div>
+
+        <!-- Single View -->
+        <div class="single-view" id="singleView">
+            <iframe id="singleFrame" src="index.html"></iframe>
+        </div>
+    </main>
+
+    <script>
+        // View toggle (split/single)
+        const viewBtns = document.querySelectorAll('.view-btn');
+        const splitView = document.getElementById('splitView');
+        const singleView = document.getElementById('singleView');
+        const versionToggle = document.getElementById('versionToggle');
+
+        viewBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                viewBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                if (btn.dataset.view === 'split') {
+                    splitView.classList.add('active');
+                    singleView.classList.remove('active');
+                    versionToggle.style.display = 'none';
+                } else {
+                    splitView.classList.remove('active');
+                    singleView.classList.add('active');
+                    versionToggle.style.display = 'flex';
+                }
+            });
+        });
+
+        // Version toggle (cyberpunk/enterprise)
+        const versionBtns = document.querySelectorAll('.version-btn');
+        const singleFrame = document.getElementById('singleFrame');
+
+        versionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                versionBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                if (btn.dataset.version === 'cyberpunk') {
+                    singleFrame.src = 'index.html';
+                } else {
+                    singleFrame.src = 'enterprise.html';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

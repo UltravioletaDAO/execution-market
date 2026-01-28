@@ -1,0 +1,13 @@
+{
+  "name": "chamba-v34",
+  "scripts": {
+    "start": "npx remotion studio",
+    "build": "npx remotion render src/index.tsx ChambaV34 out/chamba-v34.mp4"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.0",
+    "@remotion/cli": "^4.0.0"
+  }
+}

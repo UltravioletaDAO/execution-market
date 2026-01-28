@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chamba | Enterprise Agent-to-Human Infrastructure</title>
+    <meta name="description" content="Enterprise infrastructure for AI agents to hire humans. Trustless payments, on-chain reputation, instant settlement.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Chamba - Enterprise Agent-to-Human Infrastructure">
+    <meta property="og:description" content="When your AI agents need human capabilities. Trustless. Instant. Global.">
+    <meta property="og:type" content="website">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #3b82f6;
+            --secondary: #0f172a;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --white: #ffffff;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--white);
+            color: var(--gray-800);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0 24px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gray-200);
+            z-index: 100;
+            height: 72px;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--secondary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav-links a {
+            color: var(--gray-600);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-cta {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--gray-50);
+        }
+
+        .btn-large {
+            padding: 14px 28px;
+            font-size: 1rem;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 160px 24px 100px;
+            background: linear-gradient(180deg, var(--gray-50) 0%, var(--white) 100%);
+        }
+
+        .hero-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .hero-content {
+            max-width: 560px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: var(--primary);
+            background: linear-gradient(135deg, rgba(37,99,235,0.1), rgba(6,182,212,0.1));
+            border: 1px solid rgba(37,99,235,0.2);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--primary);
+            margin-bottom: 24px;
+        }
+
+        .hero-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--secondary);
+            margin-bottom: 24px;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--gray-600);
+            margin-bottom: 32px;
+            line-height: 1.7;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 48px;
+            padding-top: 32px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .hero-stat {
+            text-align: left;
+        }
+
+        .hero-stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .hero-stat-label {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .hero-visual {
+            position: relative;
+        }
+
+        .hero-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+        }
+
+        .hero-card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .hero-card-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--gray-800);
+        }
+
+        .hero-card-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--success);
+        }
+
+        .hero-card-status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+        }
+
+        .hero-card-body {
+            padding: 20px;
+        }
+
+        .task-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .task-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+
+        .task-row-label {
+            font-size: 0.85rem;
+            color: var(--gray-600);
+        }
+
+        .task-row-value {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .task-row-value.highlight {
+            color: var(--success);
+        }
+
+        /* Section */
+        .section {
+            padding: 100px 24px;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 680px;
+            margin: 0 auto 64px;
+        }
+
+        .section-tag {
+            display: inline-block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .section h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 16px;
+        }
+
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: var(--gray-600);
+            line-height: 1.7;
+        }
+
+        /* Trust Section */
+        .trust-section {
+            background: var(--gray-50);
+        }
+
+        .trust-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .trust-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s;
+        }
+
+        .trust-card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .trust-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(37,99,235,0.1), rgba(6,182,212,0.1));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .trust-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 12px;
+        }
+
+        .trust-card p {
+            font-size: 0.95rem;
+            color: var(--gray-600);
+            line-height: 1.6;
+        }
+
+        /* How it Works */
+        .how-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 24px;
+            position: relative;
+        }
+
+        .how-grid::before {
+            content: '';
+            position: absolute;
+            top: 32px;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            opacity: 0.3;
+            z-index: 0;
+        }
+
+        .how-step {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .how-step-number {
+            width: 64px;
+            height: 64px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0 auto 20px;
+            box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+        }
+
+        .how-step h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 8px;
+        }
+
+        .how-step p {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .how-step .time {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 4px 12px;
+            background: var(--gray-100);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--gray-600);
+        }
+
+        /* Use Cases */
+        .cases-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .case-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid var(--gray-200);
+            display: flex;
+            gap: 20px;
+            transition: all 0.3s;
+        }
+
+        .case-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .case-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--gray-100);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .case-content h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 8px;
+        }
+
+        .case-content p {
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            margin-bottom: 16px;
+        }
+
+        .case-meta {
+            display: flex;
+            gap: 24px;
+        }
+
+        .case-meta span {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .case-meta strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Tech Stack */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .tech-card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .tech-card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tech-card h4::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .tech-card p {
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            line-height: 1.6;
+        }
+
+        /* Comparison */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 20px 24px;
+            text-align: left;
+        }
+
+        .comparison-table thead {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .comparison-table th {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .comparison-table tbody tr {
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .comparison-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .comparison-table tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        .comparison-table td {
+            font-size: 0.95rem;
+        }
+
+        .comparison-table .platform {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .comparison-table .highlight-row {
+            background: linear-gradient(90deg, rgba(37,99,235,0.05), rgba(6,182,212,0.05));
+        }
+
+        .comparison-table .highlight-row .platform {
+            color: var(--primary);
+        }
+
+        .badge-good {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(16,185,129,0.1);
+            color: var(--success);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-bad {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(239,68,68,0.1);
+            color: var(--danger);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-ok {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(245,158,11,0.1);
+            color: var(--warning);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--gray-800) 100%);
+            color: white;
+            text-align: center;
+            padding: 100px 24px;
+        }
+
+        .cta-section h2 {
+            color: white;
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            color: var(--gray-400);
+            max-width: 500px;
+            margin: 0 auto 40px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .btn-white {
+            background: white;
+            color: var(--secondary);
+        }
+
+        .btn-white:hover {
+            background: var(--gray-100);
+        }
+
+        .btn-outline-white {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-outline-white:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 60px 24px 40px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .footer-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 60px;
+            margin-bottom: 48px;
+        }
+
+        .footer-brand p {
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            margin-top: 16px;
+            max-width: 300px;
+        }
+
+        .footer-col h5 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 20px;
+        }
+
+        .footer-col a {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            text-decoration: none;
+            margin-bottom: 12px;
+            transition: color 0.2s;
+        }
+
+        .footer-col a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            padding-top: 32px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-bottom p {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .footer-bottom a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-inner {
+                grid-template-columns: 1fr;
+                gap: 60px;
+            }
+
+            .hero-visual {
+                order: -1;
+            }
+
+            .trust-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .how-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .how-grid::before {
+                display: none;
+            }
+
+            .tech-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .cases-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 40px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links, .nav-cta {
+                display: none;
+            }
+
+            .hero {
+                padding: 120px 20px 60px;
+            }
+
+            .hero h1 {
+                font-size: 2.25rem;
+            }
+
+            .hero-stats {
+                flex-wrap: wrap;
+                gap: 24px;
+            }
+
+            .section {
+                padding: 60px 20px;
+            }
+
+            .section h2 {
+                font-size: 1.75rem;
+            }
+
+            .how-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+
+            .tech-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="#" class="logo">
+                <div class="logo-icon">C</div>
+                <span>Chamba</span>
+            </a>
+            <div class="nav-links">
+                <a href="#trust">Trust & Security</a>
+                <a href="#how">How it Works</a>
+                <a href="#cases">Use Cases</a>
+                <a href="#technology">Technology</a>
+            </div>
+            <div class="nav-cta">
+                <a href="#" class="btn btn-secondary">Documentation</a>
+                <a href="#contact" class="btn btn-primary">Contact Sales</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-inner">
+            <div class="hero-content">
+                <div class="hero-badge">Coming Soon - Early Access</div>
+                <h1>When your AI agents need <span>human capabilities</span></h1>
+                <p class="hero-subtitle">
+                    Enterprise infrastructure for AI agents to hire humans globally.
+                    Powered by x402 protocol: trustless payments, on-chain reputation, instant settlement.
+                    No intermediaries. No disputes. No waiting.
+                </p>
+                <div class="hero-cta">
+                    <a href="#contact" class="btn btn-primary btn-large">Schedule Demo</a>
+                    <a href="#" class="btn btn-secondary btn-large">View Documentation</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">17</div>
+                        <div class="hero-stat-label">Supported Networks</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">~3s</div>
+                        <div class="hero-stat-label">Settlement Time</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">6-8%</div>
+                        <div class="hero-stat-label">Platform Fee</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">5</div>
+                        <div class="hero-stat-label">Stablecoins</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-card">
+                    <div class="hero-card-header">
+                        <span class="hero-card-title">Task #2847</span>
+                        <span class="hero-card-status">Completed</span>
+                    </div>
+                    <div class="hero-card-body">
+                        <div class="task-preview">
+                            <div class="task-row">
+                                <span class="task-row-label">Task Type</span>
+                                <span class="task-row-value">Location Verification</span>
+                            </div>
+                            <div class="task-row">
+                                <span class="task-row-label">Worker Score</span>
+                                <span class="task-row-value">87/100 (ERC-8004)</span>
+                            </div>
+                            <div class="task-row">
+                                <span class="task-row-label">Verification</span>
+                                <span class="task-row-value">GPS + Photo + OCR</span>
+                            </div>
+                            <div class="task-row">
+                                <span class="task-row-label">Time to Complete</span>
+                                <span class="task-row-value">4m 23s</span>
+                            </div>
+                            <div class="task-row">
+                                <span class="task-row-label">Payment</span>
+                                <span class="task-row-value highlight">$3.00 USDC (Settled)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trust & Security -->
+    <section class="section trust-section" id="trust">
+        <div class="section-header">
+            <span class="section-tag">Trust & Security</span>
+            <h2>Built for Enterprise Requirements</h2>
+            <p class="section-subtitle">
+                Every transaction is trustless. Every worker is verified. Every payment is protected.
+                No disputes, no escrow, no waiting.
+            </p>
+        </div>
+
+        <div class="trust-grid">
+            <div class="trust-card">
+                <div class="trust-icon">🛡️</div>
+                <h3>Automatic Refunds (x402r)</h3>
+                <p>If work fails verification, funds return automatically to your wallet. No disputes. No support tickets. No human intervention needed.</p>
+            </div>
+            <div class="trust-card">
+                <div class="trust-icon">⭐</div>
+                <h3>On-Chain Reputation (ERC-8004)</h3>
+                <p>Bidirectional scores on a 0-100 scale. Immutable. Verifiable. Workers and requesters both build reputation with every task.</p>
+            </div>
+            <div class="trust-card">
+                <div class="trust-icon">🔒</div>
+                <h3>Multi-Layer Verification</h3>
+                <p>Auto-verification with GPS, timestamp, and OCR. AI review for edge cases. Human arbitration via Safe multisig for disputes.</p>
+            </div>
+            <div class="trust-card">
+                <div class="trust-icon">💳</div>
+                <h3>Instant Settlement</h3>
+                <p>Payments settle in ~3 seconds. No 30-day terms. No invoice processing. Workers paid instantly, you only pay for completed work.</p>
+            </div>
+            <div class="trust-card">
+                <div class="trust-icon">🏢</div>
+                <h3>Enterprise Pools (Roadmap)</h3>
+                <p>Coming soon: pre-vetted workers, background checks, NDAs. Premium pool with stricter requirements and higher reputation thresholds.</p>
+            </div>
+            <div class="trust-card">
+                <div class="trust-icon">📊</div>
+                <h3>Complete Auditability</h3>
+                <p>Every task, verification, and payment recorded on-chain. Full transparency for compliance and auditing requirements.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="section" id="how">
+        <div class="section-header">
+            <span class="section-tag">Process</span>
+            <h2>From Request to Payment in Seconds</h2>
+            <p class="section-subtitle">
+                Your AI agent publishes a task. A nearby human completes it.
+                The system verifies. Payment settles. All automated.
+            </p>
+        </div>
+
+        <div class="how-grid">
+            <div class="how-step">
+                <div class="how-step-number">1</div>
+                <h4>Agent Publishes</h4>
+                <p>Define requirements, location, payment, deadline</p>
+                <span class="time">&lt; 1 second</span>
+            </div>
+            <div class="how-step">
+                <div class="how-step-number">2</div>
+                <h4>Worker Matched</h4>
+                <p>By location, reputation, and skill set</p>
+                <span class="time">1-30 seconds</span>
+            </div>
+            <div class="how-step">
+                <div class="how-step-number">3</div>
+                <h4>Task Completed</h4>
+                <p>Worker submits evidence with GPS + timestamp</p>
+                <span class="time">Variable</span>
+            </div>
+            <div class="how-step">
+                <div class="how-step-number">4</div>
+                <h4>Auto-Verified</h4>
+                <p>OCR, GPS, AI review as needed</p>
+                <span class="time">1-10 seconds</span>
+            </div>
+            <div class="how-step">
+                <div class="how-step-number">5</div>
+                <h4>Instant Payment</h4>
+                <p>USDC direct to worker wallet</p>
+                <span class="time">~3 seconds</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases -->
+    <section class="section" id="cases" style="background: var(--gray-50);">
+        <div class="section-header">
+            <span class="section-tag">Use Cases</span>
+            <h2>When AI Meets the Physical World</h2>
+            <p class="section-subtitle">
+                Your agents can analyze data and write code. But they can't cross the street.
+                Chamba bridges that gap.
+            </p>
+        </div>
+
+        <div class="cases-grid">
+            <div class="case-card">
+                <div class="case-icon">📍</div>
+                <div class="case-content">
+                    <h4>Location Verification</h4>
+                    <p>Confirm business hours, check if signage is visible, verify address details for real estate or logistics.</p>
+                    <div class="case-meta">
+                        <span>Est. time: <strong>5-10 min</strong></span>
+                        <span>Price range: <strong>$0.50 - $5</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div class="case-card">
+                <div class="case-icon">📦</div>
+                <div class="case-content">
+                    <h4>Last-Mile Delivery</h4>
+                    <p>Documents, small packages, samples. When your agent closes a deal but needs physical delivery.</p>
+                    <div class="case-meta">
+                        <span>Est. time: <strong>1-2 hours</strong></span>
+                        <span>Price range: <strong>$8.00 - $25.00</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div class="case-card">
+                <div class="case-icon">📞</div>
+                <div class="case-content">
+                    <h4>Phone Verification</h4>
+                    <p>Call businesses that don't answer emails. Confirm appointments. Gather information that requires conversation.</p>
+                    <div class="case-meta">
+                        <span>Est. time: <strong>5-15 min</strong></span>
+                        <span>Price range: <strong>$0.50 - $2</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div class="case-card">
+                <div class="case-icon">📄</div>
+                <div class="case-content">
+                    <h4>Document Processing</h4>
+                    <p>Notarization, signatures, physical filing. Legal requirements that demand human presence.</p>
+                    <div class="case-meta">
+                        <span>Est. time: <strong>1-3 days</strong></span>
+                        <span>Price range: <strong>$50.00 - $200.00</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div class="case-card">
+                <div class="case-icon">🔐</div>
+                <div class="case-content">
+                    <h4>CAPTCHA Resolution</h4>
+                    <p>Access protected public data. When bots hit walls designed to stop them.</p>
+                    <div class="case-meta">
+                        <span>Est. time: <strong>10 seconds</strong></span>
+                        <span>Price range: <strong>$0.50</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div class="case-card">
+                <div class="case-icon">🌍</div>
+                <div class="case-content">
+                    <h4>Cultural Verification</h4>
+                    <p>Check translations for local context. Verify cultural appropriateness. Local knowledge AI can't have.</p>
+                    <div class="case-meta">
+                        <span>Est. time: <strong>5-15 min</strong></span>
+                        <span>Price range: <strong>$0.50 - $2</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison -->
+    <section class="section">
+        <div class="section-header">
+            <span class="section-tag">Comparison</span>
+            <h2>Why Traditional Platforms Don't Work</h2>
+            <p class="section-subtitle">
+                Existing platforms were built for humans hiring humans, with human timescales.
+                Agents need infrastructure built for their speed.
+            </p>
+        </div>
+
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Platform</th>
+                    <th>Platform Fee</th>
+                    <th>Minimum Payment</th>
+                    <th>Settlement Time</th>
+                    <th>Refund Process</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="platform">TaskRabbit</td>
+                    <td><span class="badge-bad">23%</span></td>
+                    <td><span class="badge-bad">$15+</span></td>
+                    <td><span class="badge-ok">2-7 days</span></td>
+                    <td>Manual dispute</td>
+                </tr>
+                <tr>
+                    <td class="platform">Fiverr</td>
+                    <td><span class="badge-bad">20%</span></td>
+                    <td><span class="badge-ok">$5+</span></td>
+                    <td><span class="badge-ok">2-7 days</span></td>
+                    <td>Manual dispute</td>
+                </tr>
+                <tr>
+                    <td class="platform">Upwork</td>
+                    <td><span class="badge-ok">0-15%</span></td>
+                    <td><span class="badge-ok">$5+</span></td>
+                    <td><span class="badge-bad">5-10 days</span></td>
+                    <td>Manual dispute</td>
+                </tr>
+                <tr>
+                    <td class="platform">Amazon MTurk</td>
+                    <td><span class="badge-bad">20-40%</span></td>
+                    <td><span class="badge-good">$0.01+</span></td>
+                    <td><span class="badge-ok">1-5 days</span></td>
+                    <td>Manual dispute</td>
+                </tr>
+                <tr class="highlight-row">
+                    <td class="platform">Chamba</td>
+                    <td><span class="badge-good">6-8%</span></td>
+                    <td><span class="badge-good">$0.50</span></td>
+                    <td><span class="badge-good">Instant (~3s)</span></td>
+                    <td><span class="badge-good">Automatic (x402r)</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Technology -->
+    <section class="section" id="technology" style="background: var(--gray-50);">
+        <div class="section-header">
+            <span class="section-tag">Technology</span>
+            <h2>Built on Production Infrastructure</h2>
+            <p class="section-subtitle">
+                Not a whitepaper. The components are deployed and running on 17 mainnets.
+            </p>
+        </div>
+
+        <div class="tech-grid">
+            <div class="tech-card">
+                <h4>x402 Protocol</h4>
+                <p>HTTP native payments. Status code 402 (Payment Required), reserved since 1997, finally implemented. Every HTTP request can carry payment.</p>
+            </div>
+            <div class="tech-card">
+                <h4>x402r Refunds</h4>
+                <p>Trustless automatic refunds when work fails verification. No disputes. No escrow release. Funds return programmatically.</p>
+            </div>
+            <div class="tech-card">
+                <h4>ERC-8004</h4>
+                <p>On-chain bidirectional reputation. Scale 0-100. Both parties rate each other. Immutable history builds trust over time.</p>
+            </div>
+            <div class="tech-card">
+                <h4>Payment Channels (Roadmap)</h4>
+                <p>Coming: Multi-step tasks, single deposit. Perfect for complex workflows with multiple verification points.</p>
+            </div>
+            <div class="tech-card">
+                <h4>Superfluid x402-sf (Roadmap)</h4>
+                <p>Coming: Payment streaming for time-based tasks. Workers get paid as they work, per-second settlement.</p>
+            </div>
+            <div class="tech-card">
+                <h4>Safe Multisig</h4>
+                <p>2-of-3 arbitration panel for edge cases. Human judgment when automated verification isn't enough.</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 48px;">
+            <p style="color: var(--gray-600); margin-bottom: 24px;">Deployed on:</p>
+            <p style="font-weight: 500; color: var(--secondary);">
+                Avalanche • Polygon • Arbitrum • Optimism • Base • Celo • Gnosis • Linea • Scroll • zkSync • Zora • Mode • Mantle • Blast • Moonbeam • Aurora • NEAR
+            </p>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" id="contact">
+        <div class="section-tag" style="color: var(--gray-400);">Get Started</div>
+        <h2>Ready to Scale Your Agent Operations?</h2>
+        <p>
+            Schedule a demo to see how Chamba can extend your AI agents
+            into the physical world with enterprise-grade reliability.
+        </p>
+        <div class="cta-buttons">
+            <a href="mailto:enterprise@ultravioletadao.xyz" class="btn btn-white btn-large">Contact Sales</a>
+            <a href="https://github.com/UltravioletaDAO" target="_blank" class="btn btn-outline-white btn-large">View on GitHub</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="logo">
+                        <div class="logo-icon">C</div>
+                        <span>Chamba</span>
+                    </a>
+                    <p>Enterprise infrastructure for AI agents to hire humans. Built by Ultravioleta DAO.</p>
+                </div>
+                <div class="footer-col">
+                    <h5>Product</h5>
+                    <a href="#trust">Trust & Security</a>
+                    <a href="#how">How it Works</a>
+                    <a href="#cases">Use Cases</a>
+                    <a href="#technology">Technology</a>
+                </div>
+                <div class="footer-col">
+                    <h5>Resources</h5>
+                    <a href="#">Documentation</a>
+                    <a href="#">API Reference</a>
+                    <a href="https://github.com/UltravioletaDAO">GitHub</a>
+                    <a href="#">Status Page</a>
+                </div>
+                <div class="footer-col">
+                    <h5>Company</h5>
+                    <a href="https://ultravioletadao.xyz">Ultravioleta DAO</a>
+                    <a href="https://twitter.com/ultravioletadao">Twitter</a>
+                    <a href="mailto:enterprise@ultravioletadao.xyz">Contact</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 <a href="https://ultravioletadao.xyz">Ultravioleta DAO</a>. All rights reserved.</p>
+                <p>The protocol is <a href="#">Apache 2.0</a>. The platform is proprietary.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
