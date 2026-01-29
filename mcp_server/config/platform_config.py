@@ -99,7 +99,7 @@ class PlatformConfig:
         # Payments
         "x402.supported_networks": ["base", "ethereum", "polygon", "optimism", "arbitrum"],
         "x402.supported_tokens": ["USDC", "USDT", "DAI"],
-        "x402.preferred_network": "base",
+        "x402.preferred_network": "ethereum",
         "x402.facilitator_url": "https://facilitator.ultravioletadao.xyz",
         # Treasury
         "treasury.wallet_address": "0x0000000000000000000000000000000000000000",

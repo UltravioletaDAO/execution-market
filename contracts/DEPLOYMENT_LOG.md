@@ -6,6 +6,39 @@ This document tracks all ChambaEscrow smart contract deployments across supporte
 
 ---
 
+## Ethereum Mainnet Deployment
+
+**Date**: 2026-01-29
+**Deployer**: `0xD577D66e9398433AB278CceD3b5987a061E132A0`
+
+### Contract Addresses
+
+| Contract | Address | Verified |
+|----------|---------|----------|
+| ChambaEscrow | `0x6c320efaC433690899725B3a7C84635430Acf722` | Pending |
+| USDC | `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` | N/A (Circle) |
+
+### Transaction Details
+
+| Field | Value |
+|-------|-------|
+| TX Hash | `0x31e7d1f2342ca001cea3c2823f8531c18ed41cda108e989f3153b4ef464d9c10` |
+| Block | 24341410 |
+| Gas Used | 1,702,018 |
+
+### Links
+
+- Etherscan: https://etherscan.io/address/0x6c320efaC433690899725B3a7C84635430Acf722
+- Transaction: https://etherscan.io/tx/0x31e7d1f2342ca001cea3c2823f8531c18ed41cda108e989f3153b4ef464d9c10
+
+### Verification Command
+
+```bash
+forge verify-contract 0x6c320efaC433690899725B3a7C84635430Acf722 contracts/ChambaEscrow.sol:ChambaEscrow --chain-id 1 --watch
+```
+
+---
+
 ## Avalanche Mainnet Deployment (v2)
 
 **Date**: 2026-01-28
@@ -111,7 +144,7 @@ npx hardhat verify --network <network> <contract-address>
 
 | Network | Chain ID | Status | Priority |
 |---------|----------|--------|----------|
-| Ethereum | 1 | ⏳ Pending | High |
+| Ethereum | 1 | ✅ Deployed | High |
 | Base | 8453 | ⏳ Pending | High |
 | Polygon | 137 | ⏳ Pending | Medium |
 | Optimism | 10 | ⏳ Pending | Medium |
@@ -120,6 +153,13 @@ npx hardhat verify --network <network> <contract-address>
 ---
 
 ## Changelog
+
+### 2026-01-29
+- Deployed to Ethereum mainnet
+- Contract: `0x6c320efaC433690899725B3a7C84635430Acf722`
+- TX: `0x31e7d1f2342ca001cea3c2823f8531c18ed41cda108e989f3153b4ef464d9c10`
+- Updated platform config to use Ethereum as preferred network
+- Updated scripts to use Ethereum mainnet addresses
 
 ### 2026-01-28
 - Redeployed to Avalanche mainnet (v2)

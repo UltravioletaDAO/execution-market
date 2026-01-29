@@ -20,7 +20,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createWalletClient, createPublicClient, http, parseUnits, formatUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { avalanche } from 'viem/chains';
+import { mainnet } from 'viem/chains';
 import { config } from 'dotenv';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -39,9 +39,9 @@ const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVI
 const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY as `0x${string}`;
 const MOCK_MODE = process.argv.includes('--mock');
 
-// Contract addresses (Avalanche)
-const USDC_ADDRESS = '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E';
-const ESCROW_ADDRESS = '0xedA98AF95B76293a17399Af41A499C193A8DB51A';
+// Contract addresses (Ethereum Mainnet)
+const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const ESCROW_ADDRESS = '0x6c320efaC433690899725B3a7C84635430Acf722';
 
 // USDC ABI (minimal)
 const USDC_ABI = [
@@ -140,14 +140,14 @@ class ChambaAgentSimulator {
       this.agentId = this.account.address;
 
       this.publicClient = createPublicClient({
-        chain: avalanche,
-        transport: http('https://api.avax.network/ext/bc/C/rpc'),
+        chain: mainnet,
+        transport: http('https://1rpc.io/eth'),
       });
 
       this.walletClient = createWalletClient({
         account: this.account,
-        chain: avalanche,
-        transport: http('https://api.avax.network/ext/bc/C/rpc'),
+        chain: mainnet,
+        transport: http('https://1rpc.io/eth'),
       });
 
       console.log('[Wallet] Agent address:', this.agentId);
@@ -157,12 +157,12 @@ class ChambaAgentSimulator {
     }
   }
 
-  async checkBalance(): Promise<{ avax: string; usdc: string }> {
+  async checkBalance(): Promise<{ eth: string; usdc: string }> {
     if (MOCK_MODE || !this.publicClient || !this.account) {
-      return { avax: '10.00', usdc: '100.00' };
+      return { eth: '10.00', usdc: '100.00' };
     }
 
-    const avaxBalance = await this.publicClient.getBalance({
+    const ethBalance = await this.publicClient.getBalance({
       address: this.account.address,
     });
 
@@ -174,7 +174,7 @@ class ChambaAgentSimulator {
     });
 
     return {
-      avax: formatUnits(avaxBalance, 18),
+      eth: formatUnits(ethBalance, 18),
       usdc: formatUnits(usdcBalance, 6),
     };
   }
@@ -256,7 +256,7 @@ class ChambaAgentSimulator {
       return mockEscrowId;
     }
 
-    console.log('[Blockchain] Creating escrow on Avalanche...');
+    console.log('[Blockchain] Creating escrow on Ethereum mainnet...');
 
     // Convert USD to USDC (6 decimals)
     const amountUsdc = parseUnits(amountUsd.toString(), 6);
@@ -429,7 +429,7 @@ async function main() {
   // Step 1: Check balance
   console.log('\n--- Step 1: Check Wallet Balance ---');
   const balance = await agent.checkBalance();
-  console.log('AVAX:', balance.avax);
+  console.log('ETH:', balance.eth);
   console.log('USDC:', balance.usdc);
 
   if (!MOCK_MODE && parseFloat(balance.usdc) < 5) {
