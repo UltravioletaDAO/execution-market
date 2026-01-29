@@ -52,8 +52,8 @@ API_BASE = os.environ.get(
 SECRETS_NAME = os.environ.get("CHAMBA_SECRETS_NAME", "chamba/test-agent")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 
-# Minimum bounty (configurable)
-MIN_BOUNTY = Decimal("0.25")
+# Minimum bounty (configurable) - lowered for micropayment testing
+MIN_BOUNTY = Decimal("0.01")
 PLATFORM_FEE_PCT = Decimal("0.08")
 
 
