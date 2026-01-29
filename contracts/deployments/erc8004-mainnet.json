@@ -1,0 +1,23 @@
+{
+  "network": "ethereum",
+  "chainId": 1,
+  "timestamp": "2026-01-29T15:32:00Z",
+  "contracts": {
+    "IdentityRegistry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+    "ReputationRegistry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
+  },
+  "chamba_agent": {
+    "id": 7048,
+    "id_hex": "0x1b88",
+    "owner": "0xD577D66e9398433AB278CceD3b5987a061E132A0",
+    "uri": "https://chamba.ultravioletadao.xyz/.well-known/agent.json",
+    "registration_tx": "0xbf15c245ee4a801ffb11ba2112d5b9bd5f3bc2ae8dc9dcd506b80c62427aa4ff",
+    "block": 24341442
+  },
+  "links": {
+    "agent_nft": "https://etherscan.io/nft/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432/7048",
+    "registration_tx": "https://etherscan.io/tx/0xbf15c245ee4a801ffb11ba2112d5b9bd5f3bc2ae8dc9dcd506b80c62427aa4ff",
+    "identity_registry": "https://etherscan.io/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+    "reputation_registry": "https://etherscan.io/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
+  }
+}

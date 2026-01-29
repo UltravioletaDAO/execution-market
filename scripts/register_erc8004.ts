@@ -13,7 +13,7 @@
 
 import { createWalletClient, createPublicClient, http, parseEther } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { sepolia } from 'viem/chains';
+import { mainnet } from 'viem/chains';
 import { config } from 'dotenv';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -25,8 +25,9 @@ const __dirname = dirname(__filename);
 // Load .env.local
 config({ path: resolve(__dirname, '../.env.local') });
 
-// Contract addresses
-const ERC8004_IDENTITY_REGISTRY = '0x8004A818BFB912233c491871b3d84c89A494BD9e';
+// Contract addresses (Ethereum Mainnet)
+const ERC8004_IDENTITY_REGISTRY = '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432';
+const ERC8004_REPUTATION_REGISTRY = '0x8004BAa17C55a88189AE136b182e5fdA19dE9b63';
 
 // ABI for registration (simplified - just URI version)
 const IDENTITY_REGISTRY_ABI = [
@@ -64,12 +65,13 @@ async function main() {
     throw new Error('WALLET_PRIVATE_KEY not found in .env.local');
   }
 
-  const rpcUrl = process.env.SEPOLIA_RPC_URL || 'https://sepolia.drpc.org';
+  const rpcUrl = process.env.ETHEREUM_RPC_URL || 'https://1rpc.io/eth';
 
-  console.log('🚀 Chamba ERC-8004 Registration');
+  console.log('Chamba ERC-8004 Registration');
   console.log('================================');
-  console.log(`Network: Sepolia (${sepolia.id})`);
-  console.log(`Registry: ${ERC8004_IDENTITY_REGISTRY}`);
+  console.log(`Network: Ethereum Mainnet (${mainnet.id})`);
+  console.log(`Identity Registry: ${ERC8004_IDENTITY_REGISTRY}`);
+  console.log(`Reputation Registry: ${ERC8004_REPUTATION_REGISTRY}`);
   console.log(`RPC: ${rpcUrl}`);
   console.log('');
 
@@ -78,13 +80,13 @@ async function main() {
   console.log(`Wallet: ${account.address}`);
 
   const publicClient = createPublicClient({
-    chain: sepolia,
+    chain: mainnet,
     transport: http(rpcUrl),
   });
 
   const walletClient = createWalletClient({
     account,
-    chain: sepolia,
+    chain: mainnet,
     transport: http(rpcUrl),
   });
 
@@ -124,7 +126,7 @@ async function main() {
   });
 
   console.log(`\n⏳ Transaction submitted: ${hash}`);
-  console.log(`Explorer: https://sepolia.etherscan.io/tx/${hash}`);
+  console.log(`Explorer: https://etherscan.io/tx/${hash}`);
 
   // Wait for confirmation
   console.log('\nWaiting for confirmation...');
@@ -148,7 +150,7 @@ async function main() {
       console.log(`CHAMBA_AGENT_ID=${agentId}`);
     } else {
       console.log('\nCheck the transaction on Etherscan to get your Agent ID:');
-      console.log(`https://sepolia.etherscan.io/tx/${hash}`);
+      console.log(`https://etherscan.io/tx/${hash}`);
     }
   } else {
     console.log('\n❌ Transaction failed');
