@@ -1,0 +1,615 @@
+8 Bugs in the ChambaEscrow Smart Contract
+After reviewing the provided interface (IChambaEscrow.sol) and implementation (ChambaEscrow.sol), I've identified 8 bugs. These include logical errors, security issues, documentation inconsistencies, and design flaws that could lead to unintended behavior, vulnerabilities, or usability problems. I'll describe each bug, explain why it's a problem, reference relevant code sections, and suggest potential fixes where applicable. The bugs are prioritized roughly by severity (security/logic first, then docs/design).
+Bug 1: Inconsistent Handling of 'timeout' (Duration vs. Timestamp)
+
+Description: The createEscrow function takes timeout as a duration in seconds (per comments in both interface and impl), but the Escrow struct stores it as an absolute timestamp (block.timestamp + duration). The event EscrowCreated emits the computed timestamp, but the interface comments imply it's the duration. This mismatch can confuse off-chain clients or tools expecting the duration.
+Impact: Breaks interface expectations; could lead to incorrect timeout calculations in integrations (e.g., a client assuming duration but receiving timestamp).
+References: Interface function comment: "Duration in seconds"; Struct comment: "Timestamp after which refund is allowed"; Impl: uint256 timeoutTimestamp = block.timestamp + timeout; and emit uses timeoutTimestamp.
+Fix: Update interface comments to clarify param as duration and struct/event as timestamp, or change storage/event to use duration and compute timestamp on-the-fly in views.
+
+Bug 2: _taskToEscrow Mapping Not Cleared on Cancellation/Refund/Completion
+
+Description: When an escrow is cancelled, refunded, or completed, the _taskToEscrow[taskId] mapping entry is not deleted or reset. This prevents creating a new escrow for the same taskId, even if the previous one is no longer active.
+Impact: Limits usability; if a task needs to be restarted (e.g., after cancellation), a new unique taskId must be generated externally, complicating systems that reuse IDs.
+References: Set in createEscrow; not unset in cancelEscrow, refundEscrow, or releaseEscrow (on completion).
+Fix: Add delete _taskToEscrow[escrow.taskId]; in cancelEscrow and refundEscrow (and optionally in releaseEscrow if fully completed, though completion might warrant keeping for history).
+
+Bug 3: Operators Can Effectively Cancel Escrows by Refunding When released == 0
+
+Description: Operators (or depositors) can call refundEscrow when released == 0 without timeout checks, refunding the full amount and setting status to Refunded. This bypasses the restriction in cancelEscrow, which only allows depositors to cancel (setting status to Cancelled).
+Impact: Security risk; compromised or malicious operators can unilaterally "cancel" new escrows by refunding them fully, undermining the depositor-only cancel intent.
+References: In refundEscrow: if (escrow.released > 0) { require timeout } skips check if released == 0; caller check allows operators.
+Fix: Add require(escrow.released > 0 || msg.sender == escrow.depositor, "Use cancel for full refund"); to refundEscrow, or merge cancel/refund logic with clearer permissions.
+
+Bug 4: Releases Can Be Made to Arbitrary Recipients, Ignoring Beneficiary
+
+Description: releaseEscrow allows releasing funds to any recipient, not restricting to the beneficiary (described as the "primary intended recipient/worker"). Operators or depositors can release to themselves or others.
+Impact: Security vulnerability; if an operator is compromised, they can steal funds by releasing to unauthorized addresses. Contradicts the "primary beneficiary" intent.
+References: Interface/struct highlight beneficiary; Impl releaseEscrow only requires recipient != address(0).
+Fix: Add optional param or config for multi-recipient, but default restrict to beneficiary unless explicitly allowed (e.g., via a flag in Escrow struct). Or require recipient == beneficiary unless caller is owner.
+
+Bug 5: No Mechanism to Extend or Update Timeout
+
+Description: Once set, the timeout (timestamp) cannot be extended, even if both parties agree the task needs more time.
+Impact: Usability issue; if a task delays legitimately, the depositor/operator can refund after timeout, leaving the worker unpaid despite ongoing work. Could lead to disputes.
+References: Set in createEscrow; used in refundEscrow and isTimedOut; no update function.
+Fix: Add extendTimeout(uint256 escrowId, uint256 additionalDuration) callable by depositor or operator, with checks (e.g., active status, before current timeout).
+
+Bug 6: No Length Limit on 'reason' String in Releases
+
+Description: The reason in releaseEscrow is an unbounded string calldata, stored in _releases. Very long strings could be pushed, inflating storage and gas costs.
+Impact: Potential DoS or high gas attack; a malicious operator/depositor could push extremely long reasons in loops (though limited by partial releases), making getReleases expensive or failing txs.
+References: string calldata reason in releaseEscrow; pushed to Release[].
+Fix: Add a max length check, e.g., require(bytes(reason).length <= 256, "Reason too long"); or use bytes32 for fixed-size reasons.
+
+Bug 7: Missing Events for Pause and Unpause Actions
+
+Description: The contract uses Pausable, but doesn't emit custom events on pause() or unpause(). OpenZeppelin's Pausable doesn't include events by default.
+Impact: Auditing/transparency issue; off-chain monitors can't easily track when the contract was paused/unpaused, which affects critical actions like creates/releases.
+References: pause() and unpause() call _pause()/_unpause() without emits.
+Fix: Override and add emit Paused(msg.sender); and emit Unpaused(msg.sender); (define the events in the contract).
+
+Bug 8: No Way to Update Escrow Details (e.g., Beneficiary)
+
+Description: Escrow fields like beneficiary or token can't be updated after creation, even by the depositor or owner.
+Impact: Usability limitation; if the worker changes (e.g., task reassigned) or details need correction, the escrow must be cancelled/refunded and recreated, wasting gas and losing history.
+References: Set in createEscrow; no setter functions.
+Fix: Add admin functions like updateBeneficiary(uint256 escrowId, address newBeneficiary) restricted to depositor or owner, with status checks (e.g., active and released == 0).
+
+-----------------------
+
+
+1) timeout amarrado a createdAt, no a acceptedAt (alto)
+
+Qué pasa: timeoutTimestamp = block.timestamp + timeout se calcula en createEscrow. Si el beneficiario acepta tarde, el escrow puede quedar “vencido” desde el minuto cero de aceptación.
+
+Impacto: el depositor puede terminar con un flujo injusto para el worker. En la práctica, el worker acepta y el depositor puede quedar habilitado para salir casi de inmediato.
+
+Ejemplo concreto:
+
+depositor crea escrow con timeout = 1 hour
+
+pasan 3 días
+
+el beneficiario acepta hoy
+
+el depositor ya está pasado de timeout + disputeWindow, así que puede refund casi inmediatamente
+
+Fix recomendado: anclar timeout a la aceptación:
+
+guardar timeoutDuration en el struct
+
+al aceptar: escrow.timeout = block.timestamp + timeoutDuration
+
+2) la ventana de disputa puede expirar antes de que exista aceptación (crítico)
+
+Qué pasa: fileDispute requiere:
+
+acceptedAt != 0
+
+block.timestamp >= escrow.timeout
+
+block.timestamp <= escrow.timeout + DISPUTE_WINDOW
+
+Si el beneficiario acepta después de timeout + DISPUTE_WINDOW, no puede disputar jamás.
+
+Impacto: deja al beneficiario sin mecanismo de arbitraje, justo cuando más lo necesita (aceptación tardía, backend lento, offchain work iniciado tarde).
+
+Fix recomendado: abrir la ventana en función de acceptedAt:
+
+disputeOpenAt = max(escrow.timeout, escrow.acceptedAt + X)
+
+o directamente: timeout se define al aceptar (ver bug 1)
+
+3) MIN_LOCK_PERIOD amarrado a createdAt permite cancel rápido después de aceptar (alto)
+
+Qué pasa: cancelEscrow y refundEscrow chequean:
+block.timestamp >= escrow.createdAt + MIN_LOCK_PERIOD
+
+Si el escrow se creó hace 23h y el beneficiario acepta ahora, en 1h ya pasó el lock. Para el worker, el lock real después de aceptar fue de 1h.
+
+Impacto: protección débil para el beneficiario cuando la aceptación ocurre cerca del final del lock.
+
+Fix recomendado: aplicar lock relativo a aceptación cuando existe aceptación:
+
+require(block.timestamp >= max(createdAt, acceptedAt) + MIN_LOCK_PERIOD)
+
+4) “escape hatch” inconsistente durante pause: cancelEscrow puede quedar inutilizable (medio)
+
+Qué pasa: tu política dice que cancelEscrow es usable en pausa. En la práctica, si el escrow fue aceptado, cancelEscrow requiere consent, y consentToCancellation tiene whenNotPaused.
+
+Impacto: en pausa, el depositor no puede cancelar un escrow aceptado aunque el beneficiario quiera cooperar. Queda obligado a esperar refund por tiempo, o a arbitraje si hubo disputa.
+
+Fix recomendado: permitir consentToCancellation aun en pausa (quitar whenNotPaused ahí), o permitir un camino de cancel en pausa si ya hay consentimiento offchain verificable (firma EIP-712) y lo presentas onchain.
+
+5) taskId global sin namespace por depositor permite squatting si el id se filtra (medio)
+
+Qué pasa: _taskToEscrow[taskId] es global. Si alguien ve o adivina un taskId (logs, mempool, backend leak), puede crear el escrow antes y bloquear al depositor legítimo.
+
+Tú dices que es UUID desde backend. Eso reduce probabilidad. No elimina el riesgo si el UUID aparece antes en un canal observable.
+
+Fix recomendado: key con namespace:
+
+bytes32 key = keccak256(abi.encode(msg.sender, taskId));
+
+mapear con esa key en vez de taskId puro
+
+6) getReleases() sigue siendo un punto de DoS de integración (bajo a medio)
+
+Tienes MAX_RELEASES_PER_ESCROW = 100 y MAX_STRING_LENGTH = 200. Eso ayuda. Igual, getReleases() devuelve un array de structs con strings. Para llamadas onchain desde otro contrato, esto puede reventar por memoria o gas y romper integraciones.
+
+Fix recomendado: mantener getReleasesSlice como primario y marcar getReleases como deprecated, o que getReleases devuelva solo hashes/ids y el texto se lea offchain.
+
+7) getReleasesSlice(offset, limit) revierte por overflow en offset + limit (bajo)
+
+En Solidity 0.8.x, si alguien pasa limit enorme, offset + limit puede overflow y revertir antes de tu clamp.
+
+Impacto: no roba fondos. Rompe frontends y bots si no sanitizan inputs.
+
+Fix recomendado: calcular así:
+
+si limit > arr.length - offset, setear limit = arr.length - offset
+
+y evitar el offset + limit directo
+
+8) invariantes rotos en resolveDispute: Completed sin released == amount (bajo a medio)
+
+Cuando forBeneficiary = true, transfieres remaining al beneficiario y marcas status = Completed, pero no actualizas escrow.released para que quede en escrow.amount.
+
+Impacto: analytics, indexers, lógica futura, y cualquier función nueva que asuma Completed => released == amount va a tener datos inconsistentes.
+
+Fix recomendado: si forBeneficiary:
+
+escrow.released = escrow.amount;
+
+
+----------------------------
+
+¡Acepto el reto! He analizado el contrato ChambaEscrow.sol y he encontrado 8 bugs que van desde vulnerabilidades críticas de seguridad hasta fallos de lógica y diseño que podrían dejar fondos atrapados o permitir robos.
+
+Aquí tienes el desglose de los 8 errores encontrados:
+
+1. El "Falso Beneficiario" (Vulnerabilidad Crítica)
+El contrato define una variable beneficiary en el struct Escrow y la solicita al crear el escrow, pero nunca la utiliza para restringir los pagos.
+
+El Bug: En la función releaseEscrow , hay un parámetro address recipient. El código transfiere los fondos a este recipient sin verificar que recipient == escrow.beneficiary.
+
+La Consecuencia: Un depositante malicioso (o un operador comprometido) puede crear un escrow para contratar a un trabajador, esperar a que el trabajo se haga, y luego llamar a releaseEscrow enviándose los fondos a sí mismo (o a otra wallet), robando efectivamente al trabajador. La variable beneficiary es puramente cosmética y engañosa .
+
+2. Operadores Globales con "Llave Maestra" (Control de Acceso)
+El sistema de operadores está diseñado como una lista blanca global (_operators), no asignada por escrow específico.
+
+El Bug: La función releaseEscrow y refundEscrow permite actuar si _operators[msg.sender] es verdadero . No hay validación de que este operador específico esté asignado a este escrow.
+
+La Consecuencia: Cualquier dirección que sea hecha "Operador" tiene control total sobre todos los fondos (TVL) del contrato. Si la clave privada de un solo operador es comprometida, el atacante puede drenar todos los escrows activos del sistema enviando los fondos a donde quiera (gracias al Bug #1).
+
+3. Insolvencia con Tokens Deflacionarios (Fee-on-Transfer)
+El contrato asume que la cantidad transferida es igual a la cantidad recibida, lo cual es falso para tokens con impuestos (ej. PAXG, o tokens meme).
+
+El Bug: En createEscrow, se incrementa _totalLocked por el valor de amount , pero luego se llama a safeTransferFrom por ese mismo amount . Si el token cobra un 1% de fee, el contrato recibe 99 pero anota que tiene 100 bloqueados.
+
+La Consecuencia: El contrato se vuelve insolvente. _totalLocked será mayor que el balance real. Cuando el último usuario intente retirar sus fondos legítimos, la transacción fallará por falta de balance, dejando sus fondos atrapados permanentemente.
+
+4. Denegación de Servicio en emergencyWithdraw
+Debido al problema de contabilidad anterior, la función de emergencia queda inutilizada para el token afectado.
+
+El Bug: La función calcula surplus = balance > locked ? balance - locked : 0 . Si locked se desincroniza y es mayor que el balance real (por el Bug #3), el surplus será 0.
+
+La Consecuencia: Incluso si hay un excedente legítimo de tokens (por ejemplo, alguien envió tokens por error directamente al contrato), el owner no puede rescatarlos porque la variable _totalLocked está "sucia", bloqueando la función de rescate para ese token.
+
+5. Tareas "Zombies" (Bloqueo de ID de Tarea)
+El contrato impide reutilizar un taskId incluso si el escrow original fue cancelado o reembolsado.
+
+El Bug: Al crear un escrow, se requiere que _taskToEscrow[taskId] == 0 . Sin embargo, cancelEscrow y refundEscrow cambian el estado del escrow pero no borran la entrada en el mapping _taskToEscrow.
+
+La Consecuencia: Si un usuario crea un escrow para la "Tarea-A" y se equivoca en el monto, y luego lo cancela para corregirlo, nunca más podrá usar el ID "Tarea-A". Ese ID queda quemado para siempre, rompiendo la integración con sistemas externos que usen IDs fijos.
+
+6. Bypass de Cancelación por el Operador
+Existe una inconsistencia lógica que permite al Operador cancelar un trabajo arbitrariamente, algo reservado para el Depositante.
+
+El Bug: cancelEscrow está restringida a onlyDepositor . Sin embargo, refundEscrow (accesible por Operadores) permite el reembolso si escrow.released > 0 (con timeout) O implícitamente si escrow.released == 0 (sin esperar timeout) .
+
+La Consecuencia: Un operador puede llamar a refundEscrow inmediatamente después de la creación. Como released es 0, el timeout se ignora y se devuelven los fondos. Esto permite al operador anular unilateralmente un contrato válido sin esperar el tiempo de disputa, usurpando el rol del depositante.
+
+7. Front-Running de IDs (Griefing)
+El contrato permite a cualquiera reclamar un taskId antes que el usuario legítimo.
+
+El Bug: Como taskId es un parámetro público en createEscrow , un atacante puede ver una transacción pendiente en la mempool, copiar el taskId y enviar su propia transacción con más gas (y un monto mínimo de 1 wei).
+
+La Consecuencia: La transacción legítima fallará porque el taskId ya estará ocupado. Esto permite ataques de denegación de servicio (DoS) contra la plataforma o extorsión para liberar IDs de tareas.
+
+8. Bloqueo de Fondos (Gas DoS) en getReleases
+La función de lectura getReleases no tiene paginación.
+
+El Bug: La función devuelve Release[] memory copiando todo el array del almacenamiento a la memoria .
+
+La Consecuencia: Si un escrow tiene un historial muy largo de micro-pagos (miles de liberaciones parciales), la función consumirá más gas del límite del bloque y revertirá siempre. Esto hace imposible auditar los pagos de ese escrow a través del contrato ("Brick" de la función de lectura).
+
+¿Te gustaría que genere el código corregido (ChambaEscrowFixed.sol) solucionando estos 8 puntos?
+
+Aquí tienes la versión corregida del contrato, titulada ChambaEscrowFixed.sol.
+
+He reescrito las secciones críticas para mitigar los 8 vectores de ataque identificados, manteniendo la estructura general para que sea compatible con la interfaz original IChambaEscrow lo máximo posible (aunque he tenido que modificar la firma de getReleases para solucionar el problema de Gas).
+
+Principales Correcciones Implementadas:
+Seguridad de Fondos: Ahora se valida el balance real recibido (para tokens con fee) y se restringe el pago estrictamente al beneficiary.
+
+Lógica de Estado: Se limpian los mappings al cancelar/reembolsar para evitar "Zombie Tasks" y se eliminó la restricción de taskId único para evitar Front-Running.
+
+Control de Acceso: Los operadores ya no pueden redirigir fondos a sí mismos ni forzar reembolsos prematuros.
+
+ChambaEscrowFixed.sol
+Solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {IChambaEscrow} from "./interfaces/IChambaEscrow.sol";
+
+/**
+ * @title ChambaEscrowFixed
+ * @notice Versión corregida y endurecida de ChambaEscrow.
+ * @dev Soluciona vulnerabilidades de tokens deflacionarios, control de acceso y DoS.
+ */
+contract ChambaEscrowFixed is IChambaEscrow, ReentrancyGuard, Ownable, Pausable {
+    using SafeERC20 for IERC20;
+
+    // ============ Constants ============
+
+    string public constant VERSION = "1.1.0-FIXED";
+    uint256 private _nextEscrowId;
+    uint256 public constant MIN_TIMEOUT = 1 hours;
+    uint256 public constant MAX_TIMEOUT = 365 days;
+
+    // ============ State Variables ============
+
+    mapping(uint256 => Escrow) private _escrows;
+    mapping(uint256 => Release[]) private _releases;
+    
+    // [FIX #5 & #7]: Se eliminó _taskToEscrow para evitar ataques de Griefing/Front-running
+    // y permitir la reutilización de IDs de tareas si el escrow anterior fue cancelado.
+    
+    mapping(address => bool) private _operators;
+    mapping(address => uint256) private _totalLocked;
+
+    // ============ Constructor ============
+
+    constructor() Ownable(msg.sender) {
+        _nextEscrowId = 1;
+    }
+
+    // ============ Modifiers ============
+
+    modifier onlyDepositorOrOperator(uint256 escrowId) {
+        Escrow storage escrow = _escrows[escrowId];
+        require(
+            msg.sender == escrow.depositor || _operators[msg.sender],
+            "ChambaEscrow: not authorized"
+        );
+        _;
+    }
+
+    modifier escrowExists(uint256 escrowId) {
+        require(_escrows[escrowId].createdAt != 0, "ChambaEscrow: escrow does not exist");
+        _;
+    }
+
+    modifier escrowActive(uint256 escrowId) {
+        require(
+            _escrows[escrowId].status == EscrowStatus.Active,
+            "ChambaEscrow: escrow not active"
+        );
+        _;
+    }
+
+    // ============ External Functions ============
+
+    function createEscrow(
+        bytes32 taskId,
+        address beneficiary,
+        address token,
+        uint256 amount,
+        uint256 timeout
+    ) external nonReentrant whenNotPaused returns (uint256 escrowId) {
+        require(taskId != bytes32(0), "ChambaEscrow: invalid task ID");
+        require(beneficiary != address(0), "ChambaEscrow: invalid beneficiary");
+        require(token != address(0), "ChambaEscrow: invalid token");
+        require(amount > 0, "ChambaEscrow: amount must be positive");
+        require(
+            timeout >= MIN_TIMEOUT && timeout <= MAX_TIMEOUT,
+            "ChambaEscrow: invalid timeout"
+        );
+        // [FIX #7]: Eliminado require(_taskToEscrow[taskId] == 0) para prevenir Front-Running/DoS.
+
+        escrowId = _nextEscrowId++;
+        uint256 timeoutTimestamp = block.timestamp + timeout;
+
+        // [FIX #3]: Soporte para Fee-on-Transfer (Tokens Deflacionarios)
+        uint256 balanceBefore = IERC20(token).balanceOf(address(this));
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        uint256 balanceAfter = IERC20(token).balanceOf(address(this));
+        uint256 actualAmount = balanceAfter - balanceBefore;
+
+        require(actualAmount > 0, "ChambaEscrow: zero amount transferred");
+
+        _escrows[escrowId] = Escrow({
+            taskId: taskId,
+            depositor: msg.sender,
+            beneficiary: beneficiary,
+            token: token,
+            amount: actualAmount, // Usamos el monto real recibido
+            released: 0,
+            createdAt: block.timestamp,
+            timeout: timeoutTimestamp,
+            status: EscrowStatus.Active
+        });
+
+        _totalLocked[token] += actualAmount;
+
+        emit EscrowCreated(
+            escrowId,
+            taskId,
+            msg.sender,
+            beneficiary,
+            token,
+            actualAmount,
+            timeoutTimestamp
+        );
+    }
+
+    function releaseEscrow(
+        uint256 escrowId,
+        address recipient, // Mantenemos la firma de la interfaz, pero validamos abajo
+        uint256 amount,
+        string calldata reason
+    )
+        external
+        nonReentrant
+        whenNotPaused
+        escrowExists(escrowId)
+        escrowActive(escrowId)
+        onlyDepositorOrOperator(escrowId)
+    {
+        Escrow storage escrow = _escrows[escrowId];
+        
+        // [FIX #1 & #2]: "Falso Beneficiario" y "Operador Dios"
+        // Forzamos que el destinatario sea el beneficiario original.
+        // El operador puede aprobar el pago, pero NO puede redirigir los fondos.
+        require(recipient == escrow.beneficiary, "ChambaEscrow: recipient must be beneficiary");
+        require(amount > 0, "ChambaEscrow: amount must be positive");
+
+        uint256 remaining = escrow.amount - escrow.released;
+        require(amount <= remaining, "ChambaEscrow: insufficient balance");
+
+        escrow.released += amount;
+        _totalLocked[escrow.token] -= amount;
+
+        _releases[escrowId].push(Release({
+            recipient: recipient,
+            amount: amount,
+            timestamp: block.timestamp,
+            reason: reason
+        }));
+
+        if (escrow.released == escrow.amount) {
+            escrow.status = EscrowStatus.Completed;
+        }
+
+        IERC20(escrow.token).safeTransfer(recipient, amount);
+
+        emit EscrowReleased(
+            escrowId,
+            recipient,
+            amount,
+            escrow.released,
+            reason
+        );
+    }
+
+    function refundEscrow(uint256 escrowId)
+        external
+        nonReentrant
+        escrowExists(escrowId)
+        escrowActive(escrowId)
+    {
+        Escrow storage escrow = _escrows[escrowId];
+        
+        // [FIX #6]: Bypass de Cancelación por Operador
+        // Si es el depositante, puede cancelar si no hay releases (ver lógica abajo).
+        // Si es el operador, SIEMPRE debe respetar el timeout, incluso si releases == 0.
+        bool isOperator = _operators[msg.sender];
+        require(
+            msg.sender == escrow.depositor || isOperator,
+            "ChambaEscrow: not authorized"
+        );
+
+        // Si hay trabajo iniciado (released > 0) O es un operador forzando reembolso:
+        // Debe haberse cumplido el timeout.
+        if (escrow.released > 0 || isOperator) {
+            require(
+                block.timestamp >= escrow.timeout,
+                "ChambaEscrow: timeout not reached"
+            );
+        }
+
+        uint256 remaining = escrow.amount - escrow.released;
+        require(remaining > 0, "ChambaEscrow: nothing to refund");
+
+        escrow.status = EscrowStatus.Refunded;
+        _totalLocked[escrow.token] -= remaining;
+
+        // [FIX #5]: Zombie Tasks - Liberar la tarea no es necesario ya que eliminamos el mapping,
+        // pero el estado "Refunded" permite a la UI saber que terminó.
+
+        IERC20(escrow.token).safeTransfer(escrow.depositor, remaining);
+        emit EscrowRefunded(escrowId, escrow.depositor, remaining);
+    }
+
+    function cancelEscrow(uint256 escrowId)
+        external
+        nonReentrant
+        escrowExists(escrowId)
+        escrowActive(escrowId)
+    {
+        Escrow storage escrow = _escrows[escrowId];
+
+        require(
+            msg.sender == escrow.depositor,
+            "ChambaEscrow: only depositor can cancel"
+        );
+
+        require(
+            escrow.released == 0,
+            "ChambaEscrow: cannot cancel after release"
+        );
+
+        escrow.status = EscrowStatus.Cancelled;
+        _totalLocked[escrow.token] -= escrow.amount;
+
+        IERC20(escrow.token).safeTransfer(escrow.depositor, escrow.amount);
+
+        emit EscrowCancelled(escrowId, escrow.depositor, escrow.amount);
+    }
+
+    // ============ View Functions ============
+
+    function getEscrow(uint256 escrowId)
+        external
+        view
+        escrowExists(escrowId)
+        returns (Escrow memory)
+    {
+        return _escrows[escrowId];
+    }
+
+    // [FIX #8]: Gas DoS - Paginación añadida
+    /**
+     * @notice Get releases with pagination to prevent Gas DoS
+     */
+    function getReleases(uint256 escrowId, uint256 cursor, uint256 length)
+        external
+        view
+        escrowExists(escrowId)
+        returns (Release[] memory, uint256 newCursor)
+    {
+        uint256 totalReleases = _releases[escrowId].length;
+        if (cursor >= totalReleases) {
+            return (new Release[](0), totalReleases);
+        }
+
+        uint256 remaining = totalReleases - cursor;
+        uint256 size = length < remaining ? length : remaining;
+        
+        Release[] memory result = new Release[](size);
+        for (uint256 i = 0; i < size; i++) {
+            result[i] = _releases[escrowId][cursor + i];
+        }
+
+        return (result, cursor + size);
+    }
+
+    function getRemaining(uint256 escrowId)
+        external
+        view
+        escrowExists(escrowId)
+        returns (uint256)
+    {
+        Escrow storage escrow = _escrows[escrowId];
+        if (escrow.status != EscrowStatus.Active) {
+            return 0;
+        }
+        return escrow.amount - escrow.released;
+    }
+
+    function isOperator(address operator) external view returns (bool) {
+        return _operators[operator];
+    }
+    
+    // Eliminado getEscrowByTask para desincentivar la dependencia on-chain de IDs externos.
+
+    function nextEscrowId() external view returns (uint256) {
+        return _nextEscrowId;
+    }
+
+    function isTimedOut(uint256 escrowId)
+        external
+        view
+        escrowExists(escrowId)
+        returns (bool)
+    {
+        return block.timestamp >= _escrows[escrowId].timeout;
+    }
+
+    function getTotalLocked(address token) external view returns (uint256) {
+        return _totalLocked[token];
+    }
+
+    // ============ Admin Functions ============
+
+    function setOperator(address operator, bool authorized) external onlyOwner {
+        require(operator != address(0), "ChambaEscrow: invalid operator");
+        _operators[operator] = authorized;
+        emit OperatorUpdated(operator, authorized);
+    }
+
+    function setOperatorsBatch(
+        address[] calldata operators,
+        bool authorized
+    ) external onlyOwner {
+        for (uint256 i = 0; i < operators.length; i++) {
+            require(operators[i] != address(0), "ChambaEscrow: invalid operator");
+            _operators[operators[i]] = authorized;
+            emit OperatorUpdated(operators[i], authorized);
+        }
+    }
+
+    // ============ Emergency Functions ============
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /**
+     * @notice Emergency withdrawal fixed for fee-on-transfer tokens
+     */
+    function emergencyWithdraw(
+        address token,
+        address to,
+        uint256 amount
+    ) external onlyOwner {
+        require(to != address(0), "ChambaEscrow: invalid recipient");
+        
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        uint256 locked = _totalLocked[token];
+        
+        // [FIX #4]: Insolvencia en Emergency Withdraw
+        // Ahora que _totalLocked es preciso (gracias al Fix #3), este cálculo es seguro.
+        // Si por alguna razón el balance < locked (bug externo), evitamos underflow.
+        uint256 surplus = balance > locked ? balance - locked : 0;
+        
+        require(amount <= surplus, "ChambaEscrow: cannot withdraw escrowed funds");
+
+        IERC20(token).safeTransfer(to, amount);
+    }
+}
+Resumen de los cambios (Guía de auditoría)
+En createEscrow: Se calcula actualAmount = balanceAfter - balanceBefore. Esto asegura que _totalLocked siempre refleje lo que el contrato realmente tiene, permitiendo que emergencyWithdraw funcione correctamente y evitando insolvencias [Fix #3 y #4].
+
+En createEscrow: Se eliminó la validación de unicidad de taskId. Esto previene ataques donde un bot ve tu transacción y envía la misma ID con más gas para bloquearte (Front-running/Griefing) [Fix #7].
+
+En releaseEscrow: Se agregó require(recipient == escrow.beneficiary). Esto corrige el "Bug #1" (Falso Beneficiario) y el "Bug #2" (Operador Dios), ya que incluso si un operador es malicioso, solo puede liberar el dinero a la persona contratada legítimamente, no a su propia billetera.
+
+En refundEscrow: Se añadió lógica para distinguir si quien llama es Operador o Depositante. El Operador ahora siempre debe esperar al timeout [Fix #6], evitando que cancelen trabajos arbitrariamente apenas se crean.
+
+En getReleases: Se añadieron argumentos cursor y length para paginar los resultados. Esto evita que el contrato se vuelva inutilizable (Gas DoS) si un escrow acumula demasiados pagos parciales [Fix #8].
+
+Limpieza de Estado: Al eliminar el mapping _taskToEscrow, solucionamos automáticamente el problema de las "Zombie Tasks" [Fix #5], ya que las IDs no quedan quemadas permanentemente en el almacenamiento.
+

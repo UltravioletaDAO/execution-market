@@ -1,0 +1,326 @@
+=============================================================================
+                    CHAMBA ESCROW - INITIAL SECURITY AUDIT
+=============================================================================
+Contract: 0x6c320efaC433690899725B3a7C84635430Acf722
+Network: Ethereum Mainnet
+Auditor: Claude (Ultravioleta DAO)
+Date: 2026-01-29
+Status: 13 VULNERABILITIES IDENTIFIED
+=============================================================================
+
+EXECUTIVE SUMMARY
+-----------------
+The ChambaEscrow contract contains critical security vulnerabilities that
+could result in loss of funds for beneficiaries. The two most severe issues
+allow depositors to steal funds intended for workers.
+
+SEVERITY CLASSIFICATION
+-----------------------
+CRITICAL (2): Immediate risk of fund loss
+HIGH (3): Significant security risk
+MEDIUM (7): Notable security concerns
+LOW (1): Minor issues
+
+=============================================================================
+                         DETAILED FINDINGS
+=============================================================================
+
+-----------------------------------------------------------------------------
+BUG #1: IMMEDIATE REFUND WITHOUT TIMEOUT PROTECTION
+-----------------------------------------------------------------------------
+Severity: CRITICAL
+Location: refundEscrow() - Line ~212
+CVSS Score: 9.1
+
+VULNERABLE CODE:
+```solidity
+if (escrow.released > 0) {
+    require(block.timestamp >= escrow.timeout, "...");
+}
+```
+
+DESCRIPTION:
+When released == 0, the depositor can refund IMMEDIATELY without waiting
+for timeout. A worker who accepts a task can lose their payment because
+the depositor withdraws funds before work submission.
+
+ATTACK SCENARIO:
+1. Alice (depositor) creates escrow for Bob (beneficiary) - 1000 USDC
+2. Bob starts working on the task (3 hours of work)
+3. Before Bob submits, Alice calls refundEscrow()
+4. Alice gets back 1000 USDC, Bob gets nothing for his work
+
+IMPACT: Direct theft of worker compensation
+LIKELIHOOD: High - trivial to execute
+
+RECOMMENDATION:
+```solidity
+// Always require minimum lock period, regardless of released amount
+uint256 public constant MIN_LOCK_PERIOD = 24 hours;
+
+function refundEscrow(uint256 escrowId) external {
+    // ...
+    require(
+        block.timestamp >= escrow.createdAt + MIN_LOCK_PERIOD,
+        "ChambaEscrow: minimum lock period not reached"
+    );
+    if (escrow.released > 0) {
+        require(block.timestamp >= escrow.timeout, "...");
+    }
+    // ...
+}
+```
+
+-----------------------------------------------------------------------------
+BUG #2: RELEASE TO ARBITRARY ADDRESS (BENEFICIARY IGNORED)
+-----------------------------------------------------------------------------
+Severity: CRITICAL
+Location: releaseEscrow() - Line ~158
+CVSS Score: 9.3
+
+VULNERABLE CODE:
+```solidity
+function releaseEscrow(
+    uint256 escrowId,
+    address recipient,  // Can be ANY address
+    uint256 amount,
+    string calldata reason
+)
+```
+
+DESCRIPTION:
+The beneficiary field is stored but NEVER validated during release.
+Depositor/operator can send funds to any address, not the designated
+beneficiary.
+
+ATTACK SCENARIO:
+1. Depositor creates escrow with Bob as beneficiary
+2. Bob completes the work
+3. Depositor calls releaseEscrow with their own address as recipient
+4. Depositor gets the funds back, Bob gets nothing
+
+IMPACT: Complete bypass of payment protection
+LIKELIHOOD: High - no technical barrier
+
+RECOMMENDATION:
+```solidity
+function releaseEscrow(
+    uint256 escrowId,
+    uint256 amount,
+    string calldata reason
+) external {
+    Escrow storage escrow = _escrows[escrowId];
+    // Always release to beneficiary
+    IERC20(escrow.token).safeTransfer(escrow.beneficiary, amount);
+}
+```
+
+Or if flexibility needed:
+```solidity
+require(
+    recipient == escrow.beneficiary,
+    "ChambaEscrow: can only release to beneficiary"
+);
+```
+
+-----------------------------------------------------------------------------
+BUG #3: FRONT-RUNNING VULNERABILITY
+-----------------------------------------------------------------------------
+Severity: HIGH
+Location: cancelEscrow() vs releaseEscrow()
+CVSS Score: 7.5
+
+DESCRIPTION:
+A malicious depositor can monitor the mempool and front-run a legitimate
+release with cancelEscrow() to recover funds before beneficiary receives
+payment.
+
+ATTACK SCENARIO:
+1. Operator submits releaseEscrow() to pay Bob
+2. Alice (depositor) sees pending tx in mempool
+3. Alice submits cancelEscrow() with higher gas price
+4. Cancel executes first, Alice gets funds back
+5. Release fails because escrow is no longer active
+
+IMPACT: Theft of funds through MEV exploitation
+LIKELIHOOD: Medium - requires mempool monitoring
+
+RECOMMENDATION:
+- Add minimum lock period before cancellation
+- Require beneficiary consent for cancellation
+- Use Flashbots or private mempool for releases
+
+-----------------------------------------------------------------------------
+BUG #4: TASK ID NEVER CLEARED - REUSE BLOCKED
+-----------------------------------------------------------------------------
+Severity: MEDIUM
+Location: createEscrow() / refundEscrow() / cancelEscrow()
+CVSS Score: 5.3
+
+VULNERABLE CODE:
+```solidity
+_taskToEscrow[taskId] = escrowId;
+// NEVER: delete _taskToEscrow[taskId];
+```
+
+DESCRIPTION:
+After an escrow is completed/cancelled/refunded, the _taskToEscrow mapping
+persists. A new escrow cannot be created for the same taskId EVER.
+
+RECOMMENDATION:
+```solidity
+// In cancelEscrow, refundEscrow, and when status becomes Completed:
+delete _taskToEscrow[escrow.taskId];
+```
+
+-----------------------------------------------------------------------------
+BUG #5: DENIAL OF SERVICE VIA RELEASE SPAM
+-----------------------------------------------------------------------------
+Severity: MEDIUM
+Location: releaseEscrow() / getReleases()
+CVSS Score: 5.9
+
+VULNERABLE CODE:
+```solidity
+_releases[escrowId].push(Release({...}));
+// No limit on array size
+```
+
+DESCRIPTION:
+No limit on how many releases can be made. An attacker can make thousands
+of micro-releases, filling the array. getReleases() will then exceed gas.
+
+RECOMMENDATION:
+```solidity
+uint256 public constant MAX_RELEASES_PER_ESCROW = 100;
+require(_releases[escrowId].length < MAX_RELEASES_PER_ESCROW, "too many releases");
+```
+
+-----------------------------------------------------------------------------
+BUG #6: FEE-ON-TRANSFER TOKEN ACCOUNTING ERROR
+-----------------------------------------------------------------------------
+Severity: HIGH
+Location: createEscrow() - Line ~142
+CVSS Score: 7.8
+
+VULNERABLE CODE:
+```solidity
+IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+_totalLocked[token] += amount;  // Assumes 100% arrived
+```
+
+DESCRIPTION:
+With fee-on-transfer tokens, the contract receives fewer tokens than
+recorded. _totalLocked will be greater than actual balance.
+
+RECOMMENDATION:
+```solidity
+uint256 balanceBefore = IERC20(token).balanceOf(address(this));
+IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+uint256 actualReceived = IERC20(token).balanceOf(address(this)) - balanceBefore;
+_totalLocked[token] += actualReceived;
+escrow.amount = actualReceived;
+```
+
+-----------------------------------------------------------------------------
+BUG #7: NO CONTRACT VALIDATION FOR TOKEN ADDRESS
+-----------------------------------------------------------------------------
+Severity: MEDIUM
+Location: createEscrow() - Line ~105
+CVSS Score: 4.6
+
+RECOMMENDATION:
+```solidity
+require(token.code.length > 0, "ChambaEscrow: token must be contract");
+```
+
+-----------------------------------------------------------------------------
+BUG #8: UNRESTRICTED OPERATOR PRIVILEGES
+-----------------------------------------------------------------------------
+Severity: HIGH
+Location: onlyDepositorOrOperator modifier
+CVSS Score: 8.2
+
+DESCRIPTION:
+An operator has IDENTICAL power to a depositor for ALL escrows.
+A compromised operator can drain ALL active escrows.
+
+RECOMMENDATION:
+- Per-escrow operator approval
+- Multi-sig for large releases
+- Rate limiting
+- Timelock for operator changes
+
+-----------------------------------------------------------------------------
+BUG #9: NO DISPUTE MECHANISM FOR BENEFICIARY
+-----------------------------------------------------------------------------
+Severity: MEDIUM
+Location: Contract architecture
+CVSS Score: 5.5
+
+DESCRIPTION:
+No mechanism for beneficiaries to dispute unfair refunds or cancellations.
+
+RECOMMENDATION:
+- Add dispute period before refund finalizes
+- Implement arbitration mechanism
+- Require beneficiary consent for early cancellation
+
+-----------------------------------------------------------------------------
+BUG #10: NO TIMELOCK FOR CRITICAL FUNCTIONS
+-----------------------------------------------------------------------------
+Severity: MEDIUM
+Location: setOperator(), emergencyWithdraw()
+CVSS Score: 6.1
+
+RECOMMENDATION:
+Implement 48-hour timelock for operator changes.
+
+-----------------------------------------------------------------------------
+BUG #11: EMERGENCY WITHDRAW WORKS WHILE PAUSED
+-----------------------------------------------------------------------------
+Severity: MEDIUM
+Location: emergencyWithdraw()
+CVSS Score: 5.8
+
+RECOMMENDATION:
+Add whenNotPaused or require multi-sig.
+
+-----------------------------------------------------------------------------
+BUG #12: UNBOUNDED LOOP IN setOperatorsBatch
+-----------------------------------------------------------------------------
+Severity: LOW
+Location: setOperatorsBatch()
+CVSS Score: 3.1
+
+RECOMMENDATION:
+```solidity
+require(operators.length <= 100, "batch too large");
+```
+
+-----------------------------------------------------------------------------
+BUG #13: REBASING TOKEN INSOLVENCY
+-----------------------------------------------------------------------------
+Severity: MEDIUM
+Location: Contract accounting
+CVSS Score: 6.4
+
+DESCRIPTION:
+Rebasing tokens change balance automatically, causing accounting errors.
+
+RECOMMENDATION:
+- Whitelist supported tokens only
+- Or implement share-based accounting
+
+=============================================================================
+                         NEXT STEPS
+=============================================================================
+
+1. Deploy ChambaEscrowV2 with all fixes
+2. Conduct external audit before mainnet
+3. Implement bug bounty program
+4. Add monitoring for suspicious transactions
+
+=============================================================================
+End of Initial Audit
+=============================================================================
