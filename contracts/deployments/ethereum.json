@@ -1,0 +1,25 @@
+{
+  "network": "ethereum",
+  "chainId": 1,
+  "deployer": "0xD577D66e9398433AB278CceD3b5987a061E132A0",
+  "timestamp": "2026-01-29T15:28:00Z",
+  "contracts": {
+    "ChambaEscrow": "0x6c320efaC433690899725B3a7C84635430Acf722",
+    "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+  },
+  "transactions": {
+    "ChambaEscrow": {
+      "hash": "0x31e7d1f2342ca001cea3c2823f8531c18ed41cda108e989f3153b4ef464d9c10",
+      "blockNumber": 24341410,
+      "gasUsed": 1702018
+    }
+  },
+  "verification": {
+    "etherscan": "pending",
+    "command": "forge verify-contract 0x6c320efaC433690899725B3a7C84635430Acf722 contracts/ChambaEscrow.sol:ChambaEscrow --chain-id 1 --watch"
+  },
+  "links": {
+    "contract": "https://etherscan.io/address/0x6c320efaC433690899725B3a7C84635430Acf722",
+    "transaction": "https://etherscan.io/tx/0x31e7d1f2342ca001cea3c2823f8531c18ed41cda108e989f3153b4ef464d9c10"
+  }
+}
