@@ -6,9 +6,13 @@
   "scripts": {
     "register:erc8004": "tsx register_erc8004.ts",
     "register:x402r": "tsx register_x402r.ts",
-    "upload:metadata": "tsx upload_metadata.ts"
+    "upload:metadata": "tsx upload_metadata.ts",
+    "test:task": "tsx test_create_task.ts",
+    "simulate:agent": "tsx simulate_agent_mcp.ts",
+    "simulate:agent:mock": "tsx simulate_agent_mcp.ts --mock"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
     "dotenv": "^16.4.5",
     "viem": "^2.44.4"
   },
