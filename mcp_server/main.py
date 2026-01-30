@@ -1,23 +1,34 @@
 """
-Chamba MCP Server - FastAPI Wrapper
+Chamba MCP Server - FastAPI Wrapper with Streamable HTTP Transport
 
 Provides HTTP endpoints for health checks and MCP server initialization.
-The MCP server itself runs via the standard MCP protocol.
-WebSocket support for real-time MCP communication.
+MCP server exposed via Streamable HTTP transport at /mcp endpoint.
+WebSocket support for real-time communication.
 A2A Protocol support for agent discovery and interoperability.
 REST API for programmatic access.
+
+MCP Transport: Streamable HTTP (2025-03-26 spec)
+- Single endpoint at /mcp for all MCP operations
+- Supports SSE streaming for long-running operations
+- Session management via Mcp-Session-Id header
+- Compatible with remote MCP clients
 """
 
 import os
 import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.routing import Mount
 from pydantic import BaseModel
 
 import supabase_client as db
+
+# Import MCP server for Streamable HTTP mounting
+from server import mcp as mcp_server
 from websocket import ws_router, ws_manager
 from a2a import a2a_router
 from api import api_router, add_api_middleware, health_router as api_health_router
@@ -41,6 +52,54 @@ except ImportError:
     FACILITATOR_URL = None
 
 logger = logging.getLogger(__name__)
+
+# Get Streamable HTTP configuration from environment
+MCP_STATELESS_HTTP = os.environ.get("MCP_STATELESS_HTTP", "false").lower() == "true"
+MCP_JSON_RESPONSE = os.environ.get("MCP_JSON_RESPONSE", "true").lower() == "true"
+
+# Create MCP Streamable HTTP app
+# The app will be mounted at /mcp, exposing the MCP endpoint there
+try:
+    mcp_http_app = mcp_server.streamable_http_app()
+    MCP_HTTP_AVAILABLE = True
+    logger.info("MCP Streamable HTTP app created successfully")
+except Exception as e:
+    logger.warning(f"Failed to create MCP HTTP app: {e}")
+    mcp_http_app = None
+    MCP_HTTP_AVAILABLE = False
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan handler.
+
+    Manages MCP session manager and other async resources.
+    Required for Streamable HTTP transport to work correctly.
+    """
+    logger.info("Starting Chamba MCP Server with Streamable HTTP transport")
+
+    # Initialize MCP session manager
+    # The session manager must be running for Streamable HTTP to work
+    if MCP_HTTP_AVAILABLE:
+        try:
+            # Get the session manager after app is created
+            session_manager = mcp_server.session_manager
+            logger.info("Initializing MCP session manager...")
+
+            # Run the session manager as async context manager
+            async with session_manager.run():
+                logger.info("MCP session manager started successfully")
+                yield
+                logger.info("Shutting down MCP session manager...")
+        except Exception as e:
+            logger.error(f"Failed to start MCP session manager: {e}")
+            yield
+    else:
+        yield
+
+    logger.info("Shutting down Chamba MCP Server")
+
 
 # OpenAPI Tags for documentation organization (NOW-206)
 tags_metadata = [
@@ -79,8 +138,10 @@ tags_metadata = [
 ]
 
 # Initialize FastAPI app with enhanced metadata (NOW-206)
+# Include lifespan for MCP Streamable HTTP session management
 app = FastAPI(
     title="Chamba API",
+    lifespan=lifespan,
     description="""
 ## Human Execution Layer for AI Agents
 
@@ -162,20 +223,44 @@ app.include_router(health_router)
 # Provides /api/v1/admin/config, /api/v1/admin/stats
 app.include_router(admin_router)
 
-# CORS configuration
+# CORS configuration with MCP headers support
+# MCP Streamable HTTP requires specific headers for session management
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:5174",  # MCP Inspector
+        "http://localhost:6274",  # Claude Desktop MCP Inspector
         "https://chamba.ultravioletadao.xyz",
         "https://app.chamba.ultravioletadao.xyz",
         "https://admin.chamba.ultravioletadao.xyz",
+        "https://inspector.modelcontextprotocol.io",  # Official MCP Inspector
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "*",
+        "mcp-protocol-version",  # MCP protocol version header
+        "mcp-session-id",  # MCP session management
+        "Authorization",
+        "Content-Type",
+        "X-API-Key",
+    ],
+    expose_headers=[
+        "mcp-session-id",  # CRITICAL: Required for MCP session management
+        "mcp-protocol-version",
+    ],
 )
+
+# Mount MCP Streamable HTTP app at /mcp
+# Note: Due to Starlette routing, the canonical URL is /mcp/ (with trailing slash)
+# Requests to /mcp will redirect to /mcp/
+if MCP_HTTP_AVAILABLE and mcp_http_app:
+    app.mount("/mcp", mcp_http_app)
+    logger.info("MCP Streamable HTTP mounted at /mcp/")
+else:
+    logger.warning("MCP Streamable HTTP not available - stdio transport only")
 
 
 # Models
@@ -233,6 +318,9 @@ async def health_check():
     elif X402_SDK_AVAILABLE:
         x402_status = "not_configured"
 
+    # MCP Streamable HTTP status
+    mcp_status = "healthy" if MCP_HTTP_AVAILABLE else "disabled"
+
     return HealthResponse(
         status="healthy" if supabase_status == "healthy" else "degraded",
         version="0.1.0",
@@ -240,7 +328,7 @@ async def health_check():
         environment=os.environ.get("ENVIRONMENT", "development"),
         services={
             "supabase": supabase_status,
-            "mcp": "healthy",
+            "mcp_http": mcp_status,  # Streamable HTTP transport
             "websocket": ws_status,
             "x402": x402_status,
         }
@@ -531,14 +619,41 @@ async def x402_networks():
 @app.get("/")
 async def root():
     """Root endpoint with MCP server info."""
+    base_url = os.environ.get("MCP_BASE_URL", "https://api.chamba.ultravioletadao.xyz")
+
     return {
         "name": "Chamba MCP Server",
         "version": "0.1.0",
         "description": "Human Execution Layer for AI Agents",
+        "mcp": {
+            "transport": "streamable-http",
+            "endpoint": f"{base_url}/mcp/",
+            "protocol_version": "2025-03-26",
+            "status": "enabled" if MCP_HTTP_AVAILABLE else "disabled",
+            "stateless_mode": MCP_STATELESS_HTTP,
+            "features": [
+                "tool_invocation",
+                "sse_streaming",
+                "session_management",
+                "batch_requests",
+            ],
+            "tools": [
+                "chamba_publish_task",
+                "chamba_get_tasks",
+                "chamba_get_task",
+                "chamba_check_submission",
+                "chamba_approve_submission",
+                "chamba_cancel_task",
+                "chamba_apply_to_task",
+                "chamba_submit_work",
+                "chamba_get_my_tasks",
+                "chamba_withdraw_earnings",
+            ],
+        },
         "endpoints": {
             "health": "/health",
             "docs": "/docs",
-            "mcp": "Use MCP protocol for agent tools",
+            "mcp_streamable_http": "/mcp",  # Streamable HTTP endpoint
             "websocket": "/ws",
             "websocket_stats": "/ws/stats",
             "a2a_agent_card": "/.well-known/agent.json",
@@ -551,15 +666,16 @@ async def root():
             },
         },
         "protocols": {
-            "http": "https://api.chamba.ultravioletadao.xyz/api/v1",
-            "websocket": "wss://api.chamba.ultravioletadao.xyz/ws",
-            "mcp": "mcp://api.chamba.ultravioletadao.xyz/v1",
-            "a2a": "https://api.chamba.ultravioletadao.xyz/a2a/v1",
+            "mcp_http": f"{base_url}/mcp",  # Primary MCP endpoint
+            "http": f"{base_url}/api/v1",
+            "websocket": f"wss://{base_url.replace('https://', '').replace('http://', '')}/ws",
+            "a2a": f"{base_url}/a2a/v1",
         },
         "links": {
             "dashboard": "https://app.chamba.ultravioletadao.xyz",
             "docs": "https://docs.chamba.ultravioletadao.xyz",
             "github": "https://github.com/ultravioleta-dao/chamba",
+            "mcp_spec": "https://modelcontextprotocol.io/specification/2025-03-26",
             "a2a_spec": "https://a2a-protocol.org/latest/specification/",
         },
         "payments": {
