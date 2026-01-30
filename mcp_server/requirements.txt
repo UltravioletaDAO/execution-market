@@ -2,11 +2,11 @@
 # Python 3.11+
 
 # ===================
-# MCP Server
+# MCP Server (Streamable HTTP Transport)
 # ===================
-fastmcp>=0.1.0
-mcp>=1.0.0
+mcp>=1.20.0  # Required for streamable HTTP transport
 pydantic>=2.5.0
+starlette>=0.35.0  # Required for ASGI mounting
 
 # ===================
 # Web Framework
