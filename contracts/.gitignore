@@ -31,3 +31,4 @@ deployments/localhost/
 
 # TypeScript
 *.tsbuildinfo
+contracts/lib/
