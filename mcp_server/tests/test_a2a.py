@@ -63,6 +63,7 @@ class TestEnums:
         assert TransportType.GRPC.value == "GRPC"
         assert TransportType.HTTP_JSON.value == "HTTP+JSON"
         assert TransportType.WEBSOCKET.value == "WEBSOCKET"
+        assert TransportType.STREAMABLE_HTTP.value == "STREAMABLE_HTTP"
 
     def test_security_types(self):
         """SecurityType enum should have expected values."""
@@ -494,7 +495,7 @@ class TestGetAgentCard:
 
         transports = {i.transport for i in card.additional_interfaces}
         assert TransportType.JSONRPC in transports
-        assert TransportType.WEBSOCKET in transports
+        assert TransportType.STREAMABLE_HTTP in transports  # MCP uses Streamable HTTP transport
         assert TransportType.HTTP_JSON in transports
 
     def test_card_has_security_schemes(self):
@@ -800,7 +801,7 @@ class TestA2ACompliance:
         card = get_agent_card()
         data = card.to_dict()
 
-        valid_transports = {"JSONRPC", "GRPC", "HTTP+JSON", "WEBSOCKET"}
+        valid_transports = {"JSONRPC", "GRPC", "HTTP+JSON", "WEBSOCKET", "STREAMABLE_HTTP"}
 
         for interface in data.get("additionalInterfaces", []):
             assert interface["transport"] in valid_transports, \
@@ -854,7 +855,7 @@ class TestA2ACompliance:
         card = get_agent_card()
         data = card.to_dict()
 
-        valid_transports = {"JSONRPC", "GRPC", "HTTP+JSON", "WEBSOCKET"}
+        valid_transports = {"JSONRPC", "GRPC", "HTTP+JSON", "WEBSOCKET", "STREAMABLE_HTTP"}
         assert data["preferredTransport"] in valid_transports
 
     def test_default_modes_are_lists(self):

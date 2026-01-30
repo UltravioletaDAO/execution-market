@@ -249,7 +249,12 @@ TOOL_TAGS = {
 }
 
 # Initialize the MCP server with metadata
-mcp = FastMCP(SERVER_INFO["name"])
+# streamable_http_path="/" makes endpoint at mount root
+# When mounted at /mcp, the full URL is /mcp/ (trailing slash required by Starlette)
+mcp = FastMCP(
+    SERVER_INFO["name"],
+    streamable_http_path="/",
+)
 
 
 # Configure worker tools (NOW-011 to NOW-014)

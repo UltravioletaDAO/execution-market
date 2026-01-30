@@ -27,6 +27,31 @@ Or with pip directly:
 pip install mcp pydantic supabase httpx
 ```
 
+## Transport Modes
+
+The Chamba MCP Server supports two transport modes:
+
+### Streamable HTTP (Remote)
+
+For remote access, the server exposes MCP via Streamable HTTP transport at `/mcp/`:
+
+```bash
+# Start the server
+cd mcp_server
+uvicorn main:app --host 0.0.0.0 --port 8000
+
+# MCP endpoint: http://localhost:8000/mcp/
+```
+
+### stdio (Local)
+
+For local use with Claude Desktop or Claude Code CLI, use stdio transport:
+
+```bash
+cd mcp_server
+python server.py
+```
+
 ## Configuration
 
 ### Environment Variables
@@ -36,7 +61,22 @@ export SUPABASE_URL="https://your-project.supabase.co"
 export SUPABASE_SERVICE_KEY="your-service-key"  # or SUPABASE_ANON_KEY
 ```
 
-### Claude Code Configuration
+### Remote MCP Configuration
+
+For connecting to a remote Chamba MCP server via Streamable HTTP:
+
+```json
+{
+  "mcpServers": {
+    "chamba": {
+      "type": "http",
+      "url": "https://api.chamba.ultravioletadao.xyz/mcp/"
+    }
+  }
+}
+```
+
+### Claude Code Configuration (Local stdio)
 
 Add to your `~/.claude/settings.local.json`:
 

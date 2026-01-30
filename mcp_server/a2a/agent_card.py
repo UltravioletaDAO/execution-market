@@ -42,6 +42,7 @@ class TransportType(str, Enum):
     GRPC = "GRPC"
     HTTP_JSON = "HTTP+JSON"
     WEBSOCKET = "WEBSOCKET"
+    STREAMABLE_HTTP = "STREAMABLE_HTTP"
 
 
 class SecurityType(str, Enum):
@@ -479,7 +480,7 @@ def get_agent_card(base_url: Optional[str] = None) -> AgentCard:
             ),
             AgentInterface(
                 url=f"{url}/mcp",
-                transport=TransportType.WEBSOCKET,
+                transport=TransportType.STREAMABLE_HTTP,
             ),
             AgentInterface(
                 url=f"{url}/api/v1",
