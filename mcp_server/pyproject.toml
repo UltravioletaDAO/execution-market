@@ -19,10 +19,11 @@ classifiers = [
 ]
 
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=1.20.0",  # Requires 1.20+ for streamable HTTP transport
     "pydantic>=2.0.0",
     "supabase>=2.0.0",
     "httpx>=0.25.0",
+    "starlette>=0.35.0",  # For ASGI mounting
 ]
 
 [project.optional-dependencies]
