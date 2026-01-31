@@ -32,6 +32,7 @@ from server import mcp as mcp_server
 from websocket import ws_router, ws_manager
 from a2a import a2a_router
 from api import api_router, add_api_middleware, health_router as api_health_router
+from api import reputation_router, escrow_router
 from api.admin import router as admin_router
 from health import router as health_router, setup_logging, get_metrics_collector
 
@@ -50,6 +51,32 @@ except ImportError:
     ChambaX402SDK = None
     setup_x402_for_app = None
     FACILITATOR_URL = None
+
+# x402r Escrow Integration (NOW-220 - Production)
+try:
+    from integrations.x402 import (
+        get_x402r_escrow,
+        X402R_CONTRACTS,
+    )
+    X402R_AVAILABLE = True
+except ImportError:
+    X402R_AVAILABLE = False
+
+# ERC-8004 Integration (Ethereum Mainnet)
+try:
+    from integrations.erc8004 import (
+        get_facilitator_client,
+        get_chamba_reputation,
+        CHAMBA_AGENT_ID,
+        ERC8004_NETWORK,
+        FACILITATOR_URL as ERC8004_FACILITATOR_URL,
+    )
+    ERC8004_AVAILABLE = True
+except ImportError:
+    ERC8004_AVAILABLE = False
+    CHAMBA_AGENT_ID = 469
+    ERC8004_NETWORK = "ethereum"
+    ERC8004_FACILITATOR_URL = "https://facilitator.ultravioletadao.xyz"
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +149,14 @@ tags_metadata = [
     {
         "name": "Payments",
         "description": "x402 payment operations and configuration",
+    },
+    {
+        "name": "Escrow",
+        "description": "x402r escrow management on Base Mainnet. Release payments to workers, refund agents.",
+    },
+    {
+        "name": "Reputation",
+        "description": "ERC-8004 reputation and identity on Ethereum Mainnet. Bidirectional feedback between agents and workers.",
     },
     {
         "name": "A2A",
@@ -223,6 +258,14 @@ app.include_router(health_router)
 # Provides /api/v1/admin/config, /api/v1/admin/stats
 app.include_router(admin_router)
 
+# Include ERC-8004 Reputation router (Ethereum Mainnet)
+# Provides /api/v1/reputation/* for on-chain identity and feedback
+app.include_router(reputation_router)
+
+# Include x402r Escrow router (Base Mainnet)
+# Provides /api/v1/escrow/* for payment management
+app.include_router(escrow_router)
+
 # CORS configuration with MCP headers support
 # MCP Streamable HTTP requires specific headers for session management
 app.add_middleware(
@@ -321,6 +364,26 @@ async def health_check():
     # MCP Streamable HTTP status
     mcp_status = "healthy" if MCP_HTTP_AVAILABLE else "disabled"
 
+    # x402r Escrow status (Base Mainnet)
+    x402r_status = "disabled"
+    if X402R_AVAILABLE:
+        try:
+            escrow = get_x402r_escrow()
+            config = escrow.get_config()
+            x402r_status = "healthy" if config.get("account") else "read_only"
+        except Exception:
+            x402r_status = "error"
+
+    # ERC-8004 status (Ethereum Mainnet)
+    erc8004_status = "disabled"
+    if ERC8004_AVAILABLE:
+        try:
+            # Just check if client can be created
+            client = get_facilitator_client()
+            erc8004_status = "healthy"
+        except Exception:
+            erc8004_status = "error"
+
     return HealthResponse(
         status="healthy" if supabase_status == "healthy" else "degraded",
         version="0.1.0",
@@ -331,6 +394,8 @@ async def health_check():
             "mcp_http": mcp_status,  # Streamable HTTP transport
             "websocket": ws_status,
             "x402": x402_status,
+            "x402r_escrow": x402r_status,  # Base Mainnet escrow
+            "erc8004": erc8004_status,  # Ethereum Mainnet reputation
         }
     )
 
@@ -663,6 +728,8 @@ async def root():
                 "tasks": "/api/v1/tasks",
                 "analytics": "/api/v1/analytics",
                 "available_tasks": "/api/v1/tasks/available",
+                "reputation": "/api/v1/reputation",
+                "escrow": "/api/v1/escrow",
             },
         },
         "protocols": {
@@ -680,10 +747,22 @@ async def root():
         },
         "payments": {
             "x402_sdk": "enabled" if x402_sdk else "disabled",
+            "x402r_escrow": "enabled" if X402R_AVAILABLE else "disabled",
             "facilitator": FACILITATOR_URL or "https://facilitator.ultravioletadao.xyz",
+            "escrow_network": "base",
             "supported_tokens": ["USDC", "EURC", "DAI", "USDT"],
             "supported_networks": ["base", "polygon", "optimism", "arbitrum", "ethereum", "avalanche"],
-        }
+        },
+        "reputation": {
+            "erc8004": "enabled" if ERC8004_AVAILABLE else "disabled",
+            "network": ERC8004_NETWORK,
+            "chamba_agent_id": CHAMBA_AGENT_ID,
+            "facilitator": ERC8004_FACILITATOR_URL if ERC8004_AVAILABLE else "https://facilitator.ultravioletadao.xyz",
+            "contracts": {
+                "identity_registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+                "reputation_registry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
+            },
+        },
     }
 
 
