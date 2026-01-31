@@ -102,6 +102,25 @@ from .sdk_client import (
     get_sdk_info,
 )
 
+# x402r Escrow Integration (PRODUCTION) - direct contract interaction
+# This is the production-ready implementation using the proven x402r system
+from .x402r_escrow import (
+    # Main client
+    X402rEscrow,
+    # Types
+    DepositState,
+    DepositInfo,
+    ReleaseResult,
+    RefundResult,
+    # Convenience functions
+    get_x402r_escrow,
+    release_payment,
+    refund_payment,
+    get_deposit_info,
+    # Contract addresses
+    CONTRACTS as X402R_CONTRACTS,
+)
+
 __all__ = [
     # Main client
     "X402Client",
@@ -168,4 +187,15 @@ __all__ = [
     "verify_x402_payment",
     "check_sdk_available",
     "get_sdk_info",
+    # x402r Escrow (PRODUCTION)
+    "X402rEscrow",
+    "DepositState",
+    "DepositInfo",
+    "ReleaseResult",
+    "RefundResult",
+    "get_x402r_escrow",
+    "release_payment",
+    "refund_payment",
+    "get_deposit_info",
+    "X402R_CONTRACTS",
 ]
