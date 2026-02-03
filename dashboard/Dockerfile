@@ -15,20 +15,19 @@ RUN npm install --legacy-peer-deps
 # Copy source
 COPY . .
 
-# Vite reads .env.production automatically during build
-# Build arguments can override if provided (e.g. in CI)
+# Vite reads .env.production automatically during build.
+# Build args override .env.production only when provided (non-empty).
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 ARG VITE_API_URL
 ARG VITE_WALLET_CONNECT_PROJECT_ID
 
-ENV VITE_SUPABASE_URL=${VITE_SUPABASE_URL} \
-    VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY} \
-    VITE_API_URL=${VITE_API_URL} \
-    VITE_WALLET_CONNECT_PROJECT_ID=${VITE_WALLET_CONNECT_PROJECT_ID}
-
-# Build the application
-RUN npm run build
+# Only set ENV if ARG is non-empty, otherwise let Vite read .env.production
+RUN if [ -n "$VITE_SUPABASE_URL" ]; then export VITE_SUPABASE_URL="$VITE_SUPABASE_URL"; fi && \
+    if [ -n "$VITE_SUPABASE_ANON_KEY" ]; then export VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY"; fi && \
+    if [ -n "$VITE_API_URL" ]; then export VITE_API_URL="$VITE_API_URL"; fi && \
+    if [ -n "$VITE_WALLET_CONNECT_PROJECT_ID" ]; then export VITE_WALLET_CONNECT_PROJECT_ID="$VITE_WALLET_CONNECT_PROJECT_ID"; fi && \
+    npm run build
 
 # Production stage with nginx
 FROM nginx:alpine
