@@ -16,7 +16,15 @@ When you publish a task with a bounty, the USDC is locked in a smart contract
 The worker can see that funds are locked, which gives them confidence to start
 working. You retain control over the funds until you explicitly release them.
 
-## The 5 Escrow Flows
+## Contract Deposit Limit
+
+The PaymentOperator contract currently enforces a **$100 USDC** maximum per
+deposit. Any authorize or charge above this amount will fail on-chain.
+
+If you need higher bounties, split into multiple escrows or contact the
+protocol team to raise the limit.
+
+## The 4 Production Flows
 
 ### Flow 1: AUTHORIZE -> RELEASE (Standard)
 
@@ -32,7 +40,7 @@ Agent                    PaymentOperator          Worker
   |    [escrow complete]       |                     |
 ```
 
-**When to use**: Default for most tasks ($5-$200). Worker does the job, you
+**When to use**: Default for most tasks ($5-$100). Worker does the job, you
 approve, they get paid.
 
 **MCP calls**:
@@ -98,30 +106,43 @@ task. Reward the attempt (default 15%) and recover the rest.
 1. `chamba_escrow_authorize` (task_id, receiver, amount, strategy="partial_payment")
 2. `chamba_escrow_partial_release` (task_id, release_percent=15)
 
-### Flow 5: AUTHORIZE -> RELEASE -> DISPUTE (Post-Release Refund)
+### Dispute Resolution (Arbiter Escrow)
+
+For high-value or quality-sensitive tasks, use the `dispute_resolution` strategy.
+This keeps funds in escrow while an arbiter reviews the work quality:
 
 ```
-Agent                    PaymentOperator          Worker
+Agent                    PaymentOperator          Arbiter
   |                            |                     |
-  |-- authorize($200 USDC) -->|                     |
-  |-- release() ------------->|--- $200 USDC ------>|
+  |-- authorize($100 USDC) -->|                     |
+  |    [funds locked]          |                     |
   |                            |                     |
-  |   ... quality issues discovered ...
+  |   ... worker submits, arbiter reviews ...        |
   |                            |                     |
-  |-- dispute($200) --------->| [requires arbitration]
+  |   IF quality OK:           |                     |
+  |-- release() ------------->|--- $100 to Worker    |
   |                            |                     |
+  |   IF quality fails:        |                     |
+  |-- refund() -------------->|--- $100 back to Agent|
+  |    [funds guaranteed]      |                     |
 ```
 
-**When to use**: High-value tasks ($50+) where quality issues may be
-discovered after delivery. Requires arbitration system approval.
-
-**Important**: Post-release refunds require a RefundRequest contract approved
-by the arbitration system. You cannot unilaterally claw back released funds.
+**Key point**: Do NOT release funds until quality is verified. Funds stay in
+escrow under arbiter control, which guarantees they are available for refund
+if quality fails.
 
 **MCP calls**:
 1. `chamba_escrow_authorize` (task_id, receiver, amount, strategy="dispute_resolution")
-2. `chamba_escrow_release` (task_id)
-3. `chamba_escrow_dispute` (task_id) -- only if quality issues found
+2. Wait for arbiter review
+3. `chamba_escrow_release` (if approved) OR `chamba_escrow_refund` (if rejected)
+
+### Post-Release Refund (NOT AVAILABLE)
+
+The `chamba_escrow_dispute` tool exists but is **not functional in production**.
+The protocol team has not yet implemented the required `tokenCollector` contract.
+
+The recommended approach for disputes is to keep funds in escrow (see above).
+Post-release refunds rely on merchant goodwill and are not guaranteed.
 
 ## Strategy Decision Tree
 
@@ -129,6 +150,10 @@ Use `chamba_escrow_recommend_strategy` to get an automated recommendation,
 or follow this logic:
 
 ```
+Is the amount > $100?
+  YES -> Reduce amount (contract limit) or split into multiple escrows
+  NO  -> continue
+
 Is the worker trusted (>90% reputation) AND amount < $5?
   YES -> instant_payment (CHARGE)
   NO  -> continue
@@ -138,11 +163,11 @@ Does the task depend on external factors?
   NO  -> continue
 
 Is quality review needed AND amount >= $50?
-  YES -> dispute_resolution (full lifecycle)
+  YES -> dispute_resolution (arbiter escrow: AUTHORIZE -> review -> RELEASE or REFUND)
   NO  -> continue
 
 Is worker reputation < 50% AND amount >= $50?
-  YES -> dispute_resolution (protect against low-trust workers)
+  YES -> dispute_resolution (keep in escrow until quality verified)
   NO  -> escrow_capture (standard flow)
 ```
 
@@ -152,8 +177,10 @@ Is worker reputation < 50% AND amount >= $50?
 |------------|-------------|----------------|----------------|
 | micro      | $0 - $5     | 24 hours       | 48 hours       |
 | standard   | $5 - $50    | 72 hours       | 7 days         |
-| premium    | $50 - $200  | 7 days         | 14 days        |
-| enterprise | $200+       | 30 days        | 30 days        |
+| premium    | $50 - $100  | 7 days         | 14 days        |
+
+Note: The `enterprise` tier ($200+) is defined but not usable with the current
+$100 contract deposit limit.
 
 Tiers are auto-detected from the bounty amount. You can override with the
 `tier` parameter.
@@ -171,12 +198,12 @@ Tiers are auto-detected from the bounty amount. You can override with the
 
 | Tool | Description | Gas Required |
 |------|-------------|-------------|
-| `chamba_escrow_authorize` | Lock funds in escrow | Yes |
+| `chamba_escrow_authorize` | Lock funds in escrow (max $100) | Yes |
 | `chamba_escrow_release` | Pay worker from escrow | Yes |
 | `chamba_escrow_refund` | Return funds to agent | Yes |
-| `chamba_escrow_charge` | Instant payment (no escrow) | Yes |
+| `chamba_escrow_charge` | Instant payment (max $100) | Yes |
 | `chamba_escrow_partial_release` | Split payment + refund | Yes (2 txs) |
-| `chamba_escrow_dispute` | Post-release refund | Yes (requires arbitration) |
+| `chamba_escrow_dispute` | Post-release refund | NOT FUNCTIONAL |
 
 ## Example: Complete Task Lifecycle
 
@@ -205,6 +232,30 @@ Tiers are auto-detected from the bounty amount. You can override with the
    -> Result: status=RELEASED, released=$25.00
 ```
 
+## Example: Dispute Resolution (Arbiter Escrow)
+
+```
+1. High-value task with quality review needed
+
+2. Check strategy:
+   -> chamba_escrow_recommend_strategy(amount_usdc=75.0, requires_quality_review=true)
+   -> Result: "dispute_resolution"
+
+3. Authorize (funds locked, NOT released):
+   -> chamba_escrow_authorize(
+        task_id="xyz-789",
+        receiver="0xWorker...",
+        amount_usdc=75.0,
+        strategy="dispute_resolution"
+      )
+
+4a. Arbiter approves quality:
+    -> chamba_escrow_release(task_id="xyz-789")
+
+4b. Arbiter rejects quality (funds still in escrow, guaranteed refund):
+    -> chamba_escrow_refund(task_id="xyz-789")
+```
+
 ## FAQ
 
 **Q: What happens if I authorize but never release or refund?**
@@ -224,9 +275,13 @@ A: Yes, use `chamba_escrow_partial_release` to split the payment. Release a
 percentage to the worker and refund the rest.
 
 **Q: Why does dispute always fail?**
-A: Post-release refunds (disputes) require approval from the arbitration
-system via a RefundRequest contract. This prevents agents from unilaterally
-clawing back payments. Contact Chamba support for dispute resolution.
+A: The `refundPostEscrow` function requires a `tokenCollector` contract that
+the protocol team has not implemented yet. Use in-escrow refund instead:
+keep funds locked and call `chamba_escrow_refund` if quality fails.
+
+**Q: What is the maximum I can escrow?**
+A: $100 USDC per deposit (contract-enforced limit). The protocol team can
+raise this if needed.
 
 **Q: Which blockchain network is used?**
 A: Base Mainnet (Chain ID 8453) by default. USDC on Base via the
@@ -235,12 +290,18 @@ PaymentOperator contract.
 **Q: Do I need ETH for gas?**
 A: The facilitator covers gas costs. Your wallet only needs USDC.
 
+**Q: What's the difference between EscrowPeriod and refundExpiry?**
+A: `EscrowPeriod` controls how long funds stay in escrow (for in-escrow refunds).
+`refundExpiry` is only for commerce-payments post-escrow refunds. Chamba uses
+`EscrowPeriod` for all escrow flows.
+
 ## Limits and Restrictions
 
-- Maximum single escrow: $10,000 USDC
+- Maximum single deposit: **$100 USDC** (contract-enforced)
 - Minimum escrow: $0.01 USDC (but recommend $1+ for gas efficiency)
 - Platform fee: 8% (deducted from bounty)
-- Dispute requires arbitration approval (no automatic refunds after release)
+- Post-release refund (`refundPostEscrow`): NOT AVAILABLE (tokenCollector not implemented)
+- Dispute resolution uses in-escrow refund (funds guaranteed available)
 - Escrow state is tracked in-memory per server session; if the server restarts,
   use the on-chain state as source of truth
 - All transactions are on Base Mainnet (USDC, ERC-20)

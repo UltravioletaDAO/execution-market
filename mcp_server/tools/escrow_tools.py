@@ -37,11 +37,13 @@ try:
         TaskPayment,
         get_advanced_escrow,
         ADVANCED_ESCROW_AVAILABLE as _SDK_AVAILABLE,
+        DEPOSIT_LIMIT_USDC,
     )
     ADVANCED_ESCROW_AVAILABLE = _SDK_AVAILABLE
 except ImportError:
     logger.warning("Advanced escrow integration not available")
     PaymentStrategy = None
+    DEPOSIT_LIMIT_USDC = Decimal("100")
 
 
 # ============== INPUT MODELS ==============
@@ -103,7 +105,7 @@ class EscrowAuthorizeInput(BaseModel):
     )
     amount_usdc: float = Field(
         ...,
-        description="Bounty amount in USDC",
+        description="Bounty amount in USDC. Current contract limit: $100.",
         gt=0,
         le=10000,
     )
@@ -255,7 +257,7 @@ STRATEGY_DESCRIPTIONS = {
     "escrow_cancel": "Cancellable escrow: lock funds, refund if task depends on external factors",
     "instant_payment": "Direct payment: no escrow, instant transfer to trusted workers",
     "partial_payment": "Partial escrow: release partial payment for proof-of-attempt, refund remainder",
-    "dispute_resolution": "Full lifecycle: escrow -> release -> dispute refund if quality issues",
+    "dispute_resolution": "Arbiter escrow: keep funds locked, arbiter decides release or refund in-escrow",
 }
 
 TIER_INFO = {
@@ -401,6 +403,28 @@ def register_escrow_tools(mcp):
                 marker = " **(recommended)**" if name == strategy.value else ""
                 lines.append(f"- `{name}`: {desc}{marker}")
 
+            # Deposit limit warning
+            if params.amount_usdc > float(DEPOSIT_LIMIT_USDC):
+                lines.extend([
+                    "",
+                    f"## Deposit Limit Warning",
+                    f"Amount ${params.amount_usdc:.2f} exceeds the current contract limit of ${DEPOSIT_LIMIT_USDC}.",
+                    "The transaction will fail on-chain. Reduce the bounty or contact the protocol team.",
+                ])
+
+            # Note about dispute_resolution strategy
+            if strategy.value == "dispute_resolution":
+                lines.extend([
+                    "",
+                    "## Dispute Resolution Note",
+                    "This strategy keeps funds **in escrow** until an arbiter decides.",
+                    "Do NOT release funds until quality is verified.",
+                    "- If quality OK: `chamba_escrow_release`",
+                    "- If quality fails: `chamba_escrow_refund` (funds guaranteed in escrow)",
+                    "",
+                    "Post-release refund (`chamba_escrow_dispute`) is not available in production.",
+                ])
+
             lines.extend([
                 "",
                 "## Next Step",
@@ -444,6 +468,22 @@ def register_escrow_tools(mcp):
             Authorization result with transaction hash and payment info.
         """
         try:
+            # Check deposit limit
+            if params.amount_usdc > float(DEPOSIT_LIMIT_USDC):
+                return f"""# Amount Exceeds Contract Deposit Limit
+
+**Task ID**: `{params.task_id}`
+**Requested**: ${params.amount_usdc:.2f} USDC
+**Contract Limit**: ${DEPOSIT_LIMIT_USDC} USDC
+
+The PaymentOperator contract currently enforces a ${DEPOSIT_LIMIT_USDC} deposit limit.
+This transaction will fail on-chain.
+
+Options:
+1. Reduce the bounty to ${DEPOSIT_LIMIT_USDC} or less
+2. Split into multiple smaller escrows
+3. Contact the protocol team to raise the limit"""
+
             escrow = _get_escrow()
             strategy = PaymentStrategy(params.strategy)
 
@@ -468,7 +508,8 @@ def register_escrow_tools(mcp):
 Check that:
 1. Wallet has sufficient USDC balance
 2. USDC spending is approved for the PaymentOperator contract
-3. RPC endpoint is responsive"""
+3. Amount is within contract deposit limit (${DEPOSIT_LIMIT_USDC})
+4. RPC endpoint is responsive"""
 
             lines = [
                 "# Escrow Authorized",
@@ -487,8 +528,9 @@ Check that:
             elif strategy == PaymentStrategy.PARTIAL_PAYMENT:
                 lines.append("- For proof-of-attempt: call `chamba_escrow_partial_release`")
             elif strategy == PaymentStrategy.DISPUTE_RESOLUTION:
-                lines.append("- When approved: call `chamba_escrow_release`")
-                lines.append("- If quality issues after release: call `chamba_escrow_dispute`")
+                lines.append("- Arbiter reviews work quality")
+                lines.append("- If approved: call `chamba_escrow_release`")
+                lines.append("- If rejected: call `chamba_escrow_refund` (funds still in escrow)")
 
             return "\n".join(lines)
 
@@ -665,6 +707,17 @@ The bounty has been returned to the agent's wallet."""
             Transaction result with hash and confirmation.
         """
         try:
+            # Check deposit limit
+            if params.amount_usdc > float(DEPOSIT_LIMIT_USDC):
+                return f"""# Amount Exceeds Contract Deposit Limit
+
+**Task ID**: `{params.task_id}`
+**Requested**: ${params.amount_usdc:.2f} USDC
+**Contract Limit**: ${DEPOSIT_LIMIT_USDC} USDC
+
+The PaymentOperator contract currently enforces a ${DEPOSIT_LIMIT_USDC} deposit limit.
+Reduce the amount or contact the protocol team to raise the limit."""
+
             escrow = _get_escrow()
 
             payment = escrow.charge_instant(
@@ -684,7 +737,8 @@ The bounty has been returned to the agent's wallet."""
 Check that:
 1. Wallet has sufficient USDC balance
 2. USDC spending is approved for the PaymentOperator contract
-3. Receiver address is valid"""
+3. Amount is within contract deposit limit (${DEPOSIT_LIMIT_USDC})
+4. Receiver address is valid"""
 
             return f"""# Instant Payment Sent
 
@@ -796,62 +850,47 @@ Check that the task was authorized and escrow is still active."""
     )
     async def chamba_escrow_dispute(params: EscrowDisputeInput) -> str:
         """
-        Initiate a dispute to refund funds after they were released to a worker.
+        Initiate a post-release dispute refund.
 
-        IMPORTANT: This requires a RefundRequest contract to be approved by
-        the arbitration system. Without arbitration approval, this call will
-        fail. This is by design to prevent unauthorized refunds.
+        WARNING: NOT FUNCTIONAL IN PRODUCTION. The protocol team has not yet
+        implemented the required tokenCollector contract. This tool will fail.
 
-        Use this only for the dispute_resolution strategy when quality issues
-        are discovered after the worker received payment.
+        For dispute resolution, the recommended approach is to keep funds in
+        escrow and use chamba_escrow_refund (refund-in-escrow) instead. This
+        guarantees funds are available and under arbiter control.
+
+        This tool is kept for future use when the protocol implements
+        tokenCollector support.
 
         Args:
             params: task_id, optional amount to dispute
 
         Returns:
-            Dispute result (expected to fail without RefundRequest approval).
+            Dispute result (will fail - tokenCollector not implemented).
         """
-        try:
-            escrow = _get_escrow()
-            amount = Decimal(str(params.amount_usdc)) if params.amount_usdc else None
-
-            result = escrow.initiate_dispute(
-                task_id=params.task_id,
-                amount_usdc=amount,
-            )
-
-            if not result.success:
-                return f"""# Dispute Initiation Failed
+        # Return clear guidance instead of attempting a doomed transaction
+        return f"""# Dispute (Post-Release Refund) - Not Available
 
 **Task ID**: `{params.task_id}`
-**Error**: {result.error}
 
-This is expected behavior if no RefundRequest has been approved
-by the arbitration system. Post-release refunds require:
+Post-release refunds (`refundPostEscrow`) are NOT functional in production.
+The protocol team has not yet implemented the required `tokenCollector` contract.
 
-1. A RefundRequest contract deployed and approved
-2. Arbitration ruling in favor of the agent
-3. The dispute window for the task tier has not expired
+## Recommended Alternative
 
-Contact Chamba support for dispute arbitration."""
+Use **in-escrow dispute resolution** instead:
 
-            payment = escrow.get_task_payment(params.task_id)
-            disputed = params.amount_usdc or (float(payment.amount_usdc) if payment else 0)
+1. **Keep funds in escrow** (do NOT release until quality is verified)
+2. If quality is acceptable: `chamba_escrow_release`
+3. If quality is unacceptable: `chamba_escrow_refund` (funds guaranteed available)
 
-            return f"""# Dispute Initiated
+This is safer because funds remain under arbiter control while in escrow,
+vs post-escrow which relies on merchant goodwill.
 
-**Task ID**: `{params.task_id}`
-**Amount Disputed**: ${disputed:.2f} USDC
-**Transaction**: `{result.transaction_hash}`
-**Gas Used**: {result.gas_used}
+## When Will This Work?
 
-The dispute refund has been processed. Funds returned to agent."""
-
-        except ValueError as e:
-            return f"Error: {e}"
-        except Exception as e:
-            logger.error("Error initiating dispute for task %s: %s", params.task_id, e)
-            return f"Error: Failed to initiate dispute - {e}"
+The protocol team will implement `tokenCollector` in a future release.
+Once available, this tool will allow refunds after funds have been released."""
 
     # ------------------------------------------------------------------
     # Tool 8: Status (read-only)
@@ -926,8 +965,8 @@ No escrow payment found for this task. Either:
             elif payment.status == "released":
                 lines.extend([
                     "",
-                    "## Available Actions",
-                    "- `chamba_escrow_dispute` - Initiate dispute (requires arbitration)",
+                    "Payment has been released to the worker.",
+                    "Post-release dispute is not available in production (tokenCollector not implemented).",
                 ])
             elif payment.status in ("refunded", "charged", "partial_released"):
                 lines.extend(["", "Payment is complete. No further actions available."])

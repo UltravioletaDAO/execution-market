@@ -67,6 +67,25 @@ except ImportError:
     ADVANCED_ESCROW_AVAILABLE = False
     logger.warning("uvd-x402-sdk advanced_escrow not available. Install: pip install uvd-x402-sdk>=0.6.0")
 
+    # Fallback stubs so the module can still be parsed
+    class TaskTier(str, Enum):
+        MICRO = "micro"
+        STANDARD = "standard"
+        PREMIUM = "premium"
+        ENTERPRISE = "enterprise"
+
+    class PaymentInfo:
+        pass
+
+    class AuthorizationResult:
+        pass
+
+    class TransactionResult:
+        pass
+
+    TIER_TIMINGS = {}
+    BASE_MAINNET_CONTRACTS = {}
+
 
 # =============================================================================
 # Configuration
@@ -74,6 +93,11 @@ except ImportError:
 
 PLATFORM_FEE_BPS = int(os.environ.get("CHAMBA_PLATFORM_FEE_BPS", "800"))  # 8%
 USDC_DECIMALS = 6
+
+# Contract deposit limit (set by PaymentOperator condition).
+# As of 2026-02-03, the commerce-payments contracts enforce a $100 max deposit.
+# Ask the protocol team to raise this if Chamba needs higher bounties.
+DEPOSIT_LIMIT_USDC = Decimal(os.environ.get("ESCROW_DEPOSIT_LIMIT_USDC", "100"))
 
 
 def _get_facilitator_url() -> str:
@@ -115,7 +139,9 @@ class PaymentStrategy(str, Enum):
     """Partial: AUTHORIZE -> partial RELEASE + REFUND remainder. For proof-of-attempt."""
 
     DISPUTE_RESOLUTION = "dispute_resolution"
-    """Full lifecycle: AUTHORIZE -> RELEASE -> REFUND POST ESCROW. For high-value tasks."""
+    """Arbiter escrow: AUTHORIZE -> arbiter reviews -> RELEASE or REFUND IN ESCROW.
+    Keeps funds in escrow under arbiter control until dispute is resolved.
+    Preferred over post-escrow refund per protocol team recommendation."""
 
 
 @dataclass
@@ -233,9 +259,12 @@ class ChambaAdvancedEscrow:
             return PaymentStrategy.ESCROW_CANCEL
 
         if requires_quality_review and amount_usdc >= 50:
+            # Use escrow-based dispute: keep funds locked until arbiter decides.
+            # Per protocol team: in-escrow refund is safer than post-escrow
+            # because funds are guaranteed available and under arbiter control.
             return PaymentStrategy.DISPUTE_RESOLUTION
 
-        # For low-reputation workers with high-value tasks, prefer dispute resolution
+        # For low-reputation workers with high-value tasks, keep funds in escrow
         if effective_reputation < 0.50 and amount_usdc >= 50:
             return PaymentStrategy.DISPUTE_RESOLUTION
 
@@ -265,6 +294,13 @@ class ChambaAdvancedEscrow:
             strategy: Payment strategy to use
             tier: Override tier (auto-determined from amount if not set)
         """
+        if amount_usdc > DEPOSIT_LIMIT_USDC:
+            logger.warning(
+                "Task %s amount %s exceeds contract deposit limit %s USDC. "
+                "Transaction will likely fail on-chain.",
+                task_id, amount_usdc, DEPOSIT_LIMIT_USDC,
+            )
+
         amount_atomic = self._amount_to_atomic(amount_usdc)
         task_tier = TaskTier(tier) if tier else self._get_tier(amount_usdc)
 
@@ -410,6 +446,12 @@ class ChambaAdvancedEscrow:
             max_fee_bps=PLATFORM_FEE_BPS,
         )
 
+        if amount_usdc > DEPOSIT_LIMIT_USDC:
+            logger.warning(
+                "Task %s charge amount %s exceeds contract deposit limit %s USDC.",
+                task_id, amount_usdc, DEPOSIT_LIMIT_USDC,
+            )
+
         logger.info(
             "Charging instant payment for task %s: %s USDC to %s...",
             task_id, amount_usdc, receiver[:10],
@@ -502,8 +544,23 @@ class ChambaAdvancedEscrow:
         }
 
     # =========================================================================
-    # Flow 6: Dispute (REFUND POST ESCROW)
+    # Flow 6: Dispute (REFUND POST ESCROW) - DISABLED for production
     # =========================================================================
+    #
+    # NOTE (2026-02-03): Per protocol team (Ali), refundPostEscrow requires a
+    # special tokenCollector that has NOT been implemented yet. Additionally,
+    # the team recommends using refund-in-escrow for dispute resolution because
+    # funds are guaranteed available and under arbiter control, vs post-escrow
+    # which relies on merchant goodwill.
+    #
+    # The dispute_resolution strategy now uses:
+    #   AUTHORIZE -> arbiter reviews -> RELEASE or REFUND IN ESCROW
+    # instead of:
+    #   AUTHORIZE -> RELEASE -> REFUND POST ESCROW
+    #
+    # This method is kept for future use when tokenCollector is implemented.
+    # Do NOT call from production flows.
+    #
 
     def initiate_dispute(
         self,
@@ -513,7 +570,11 @@ class ChambaAdvancedEscrow:
         """
         Initiate a dispute refund after funds were released.
 
-        NOTE: Requires RefundRequest contract approval in production.
+        WARNING: NOT FUNCTIONAL IN PRODUCTION. Requires a tokenCollector
+        contract that has not been implemented by the protocol team yet.
+        Use refund_to_agent() while funds are still in escrow instead.
+
+        Kept for future use when the protocol team implements tokenCollector.
 
         Args:
             task_id: Task identifier
@@ -534,7 +595,7 @@ class ChambaAdvancedEscrow:
             payment.tx_hashes.append(result.transaction_hash)
             logger.info("Task %s dispute initiated: tx=%s", task_id, result.transaction_hash[:20])
         else:
-            logger.warning("Task %s dispute failed (expected without RefundRequest): %s", task_id, result.error)
+            logger.warning("Task %s dispute failed (expected - tokenCollector not implemented): %s", task_id, result.error)
 
         return result
 
