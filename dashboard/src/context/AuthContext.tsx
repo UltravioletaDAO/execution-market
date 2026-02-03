@@ -88,41 +88,55 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-      try {
-        console.log('[AuthContext] fetchExecutorDirect starting for user:', userId)
-        const headers: Record<string, string> = {
-          apikey: supabaseKey,
-          'Content-Type': 'application/json',
-        }
+      const headers: Record<string, string> = {
+        apikey: supabaseKey,
+        'Content-Type': 'application/json',
+      }
 
-        if (accessToken) {
-          headers['Authorization'] = `Bearer ${accessToken}`
-        }
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`
+      }
 
-        const response = await fetch(
-          `${supabaseUrl}/rest/v1/executors?user_id=eq.${userId}&select=*`,
-          { headers }
-        )
+      // Retry up to 3 times with short delays to handle race conditions
+      // after RPC calls (e.g. get_or_create_executor) that just created the row
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          console.log('[AuthContext] fetchExecutorDirect attempt', attempt + 1, 'for user:', userId)
 
-        console.log('[AuthContext] fetchExecutorDirect response status:', response.status)
-
-        if (!response.ok) {
-          console.error(
-            '[AuthContext] fetchExecutorDirect error:',
-            response.status,
-            response.statusText
+          const response = await fetch(
+            `${supabaseUrl}/rest/v1/executors?user_id=eq.${userId}&select=*`,
+            { headers }
           )
+
+          console.log('[AuthContext] fetchExecutorDirect response status:', response.status)
+
+          if (!response.ok) {
+            console.error(
+              '[AuthContext] fetchExecutorDirect error:',
+              response.status,
+              response.statusText
+            )
+            return null
+          }
+
+          const data = await response.json()
+          console.log('[AuthContext] fetchExecutorDirect got data:', data)
+
+          if (data.length > 0) {
+            return data[0]
+          }
+
+          // Row not found yet — wait before retrying
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 500))
+          }
+        } catch (err) {
+          console.error('[AuthContext] fetchExecutorDirect failed:', err)
           return null
         }
-
-        const data = await response.json()
-        console.log('[AuthContext] fetchExecutorDirect got data:', data)
-
-        return data.length > 0 ? data[0] : null
-      } catch (err) {
-        console.error('[AuthContext] fetchExecutorDirect failed:', err)
-        return null
       }
+
+      return null
     },
     []
   )
