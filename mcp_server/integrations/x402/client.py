@@ -89,7 +89,7 @@ CHAIN_IDS = {
 }
 
 # Default facilitator URL
-DEFAULT_FACILITATOR_URL = "https://x402.ultravioleta.xyz"
+DEFAULT_FACILITATOR_URL = "https://facilitator.ultravioletadao.xyz"
 
 
 # =============================================================================

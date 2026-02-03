@@ -206,6 +206,9 @@ async def test_public_config(http_client, check_enabled):
 @pytest.mark.asyncio
 async def test_402_payment_required(http_client, aws_secrets, check_enabled):
     """Verify task creation requires payment."""
+    if DRY_RUN:
+        pytest.skip("Dry run mode - requires real API key for 402 test")
+
     response = await http_client.post(
         f"{API_BASE}/api/v1/tasks",
         headers={

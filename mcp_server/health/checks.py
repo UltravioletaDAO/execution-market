@@ -246,7 +246,7 @@ async def check_x402(timeout: float = 5.0) -> ComponentHealth:
     Returns:
         ComponentHealth with x402 status
     """
-    x402_url = os.getenv("X402_URL", "https://x402.ultravioleta.xyz")
+    x402_url = os.getenv("X402_FACILITATOR_URL", os.getenv("X402_URL", "https://facilitator.ultravioletadao.xyz"))
     x402_key = os.getenv("X402_PRIVATE_KEY")
 
     start = time.time()
