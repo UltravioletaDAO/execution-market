@@ -114,7 +114,10 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: linkError } = await (supabase.rpc as any)(
           'link_wallet_to_session',
-          { p_wallet_address: normalizedWallet }
+          {
+            p_user_id: authData.user.id,
+            p_wallet_address: normalizedWallet,
+          }
         )
         if (linkError) throw new Error('Failed to link wallet to session')
       } else {

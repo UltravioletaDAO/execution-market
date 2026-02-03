@@ -2,7 +2,7 @@
 # Node 20 + Vite + React
 
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -15,13 +15,13 @@ RUN npm install --legacy-peer-deps
 # Copy source
 COPY . .
 
-# Build arguments for environment variables
+# Vite reads .env.production automatically during build
+# Build arguments can override if provided (e.g. in CI)
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 ARG VITE_API_URL
 ARG VITE_WALLET_CONNECT_PROJECT_ID
 
-# Set environment variables for build
 ENV VITE_SUPABASE_URL=${VITE_SUPABASE_URL} \
     VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY} \
     VITE_API_URL=${VITE_API_URL} \
