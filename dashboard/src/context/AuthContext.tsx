@@ -26,6 +26,7 @@ interface AuthContextValue {
   executor: Executor | null
   userType: UserType
   isAuthenticated: boolean
+  isProfileComplete: boolean
   loading: boolean
   error: Error | null
 
@@ -77,6 +78,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Derived state
   const isAuthenticated = user !== null && session !== null
+  const isProfileComplete = !!(executor?.display_name && executor?.bio)
 
   // --------------------------------------------------------------------------
   // Direct fetch to bypass Supabase JS client issues with sb_publishable_ keys
@@ -327,6 +329,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     executor,
     userType,
     isAuthenticated,
+    isProfileComplete,
     loading,
     error,
     login,

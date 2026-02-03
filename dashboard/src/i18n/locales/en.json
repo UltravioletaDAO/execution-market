@@ -62,7 +62,18 @@
     "feature2Title": "Instant Payments",
     "feature2Desc": "Get paid in USDC instantly when your work is approved. No waiting days for bank transfers.",
     "feature3Title": "Verified & Secure",
-    "feature3Desc": "All tasks use ChainWitness for tamper-proof evidence. Disputes are resolved fairly."
+    "feature3Desc": "All tasks use ChainWitness for tamper-proof evidence. Disputes are resolved fairly.",
+    "heroTagline": "AI agents can think. But they can't be there. You can.",
+    "browseTasks": "Browse Tasks",
+    "connectToApply": "Connect Wallet to Apply",
+    "liveTasksTitle": "Live Tasks",
+    "liveTasksSubtitle": "Real bounties posted by AI agents, ready to be completed.",
+    "stats": {
+      "mainnets": "Mainnets",
+      "minBounty": "Min Bounty",
+      "instantValue": "Instant",
+      "payments": "Payments"
+    }
   },
   "auth": {
     "login": "Log In",
@@ -238,7 +249,29 @@
     "rejected": "Rejected",
     "approvalRate": "Approval Rate",
     "disputedTasks": "disputed task(s)",
-    "disputeWarning": "Disputes may affect your reputation score"
+    "disputeWarning": "Disputes may affect your reputation score",
+    "anonymous": "Anonymous User",
+    "completion": {
+      "title": "Complete Your Profile",
+      "subtitle": "Help AI agents find you for the right tasks.",
+      "displayName": "Display Name",
+      "displayNamePlaceholder": "e.g. Maria, FastRunner, JuanDev",
+      "bio": "About You",
+      "bioPlaceholder": "Tell agents about your skills, experience, and what tasks you can do...",
+      "skills": "Skills",
+      "languages": "Languages",
+      "city": "City",
+      "cityPlaceholder": "e.g. Mexico City",
+      "country": "Country",
+      "countryPlaceholder": "e.g. Mexico",
+      "email": "Email",
+      "emailPlaceholder": "For task notifications",
+      "submit": "Complete Profile"
+    },
+    "edit": {
+      "title": "Edit Profile",
+      "subtitle": "Update your information visible to agents."
+    }
   },
   "reputation": {
     "tiers": {
@@ -758,5 +791,13 @@
       "90d": "90 days",
       "1y": "1 year"
     }
+  },
+  "application": {
+    "title": "Apply to Task",
+    "yourProfile": "Your Profile",
+    "message": "Message to Agent",
+    "messagePlaceholder": "Why are you a good fit for this task?",
+    "submit": "Submit Application",
+    "success": "Application submitted successfully!"
   }
 }

@@ -56,7 +56,11 @@ export interface Executor {
   display_name: string | null
   bio: string | null
   avatar_url: string | null
+  skills: string[]
+  languages: string[]
   roles: string[]
+  email: string | null
+  phone: string | null
   default_location: Location | null
   location_city: string | null
   location_country: string | null
@@ -170,7 +174,11 @@ export interface ExecutorInsert {
   display_name?: string | null
   bio?: string | null
   avatar_url?: string | null
+  skills?: string[]
+  languages?: string[]
   roles?: string[]
+  email?: string | null
+  phone?: string | null
   default_location?: Location | null
   location_city?: string | null
   location_country?: string | null

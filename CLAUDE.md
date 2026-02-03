@@ -168,6 +168,20 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - `docs/SYNERGIES.md` - Integration points with ecosystem projects
 - `agent-card.json` - ERC-8004 agent metadata (editable)
 
+## Infrastructure & Deployment
+
+All infrastructure is deployed on **AWS** using Terraform (state in S3 `ultravioleta-terraform-state`). Use Terraform for infrastructure changes.
+
+| Resource | Details |
+|----------|---------|
+| Compute | ECS Fargate (`chamba-cluster`) |
+| Container Registry | ECR (`chamba-dashboard`, `chamba-mcp-server`) |
+| Load Balancer | ALB with HTTPS (ACM wildcard cert) |
+| DNS | Route53 `chamba.ultravioletadao.xyz` (dashboard), `mcp.chamba.ultravioletadao.xyz` (MCP) |
+| CI/CD | GitHub Actions `deploy.yml` (auto-deploy on push to `main`) |
+
+Dashboard Docker build: `docker build -f Dockerfile.dashboard -t chamba-dashboard ./dashboard`
+
 ## File Organization Rules
 
 **Keep the root clean.** Only these files belong in root:
