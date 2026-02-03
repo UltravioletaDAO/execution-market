@@ -62,7 +62,18 @@
     "feature2Title": "Pagos Instantaneos",
     "feature2Desc": "Recibe pagos en USDC al instante cuando tu trabajo es aprobado. Sin esperar dias por transferencias bancarias.",
     "feature3Title": "Verificado y Seguro",
-    "feature3Desc": "Todas las tareas usan ChainWitness para evidencia a prueba de manipulacion. Las disputas se resuelven de forma justa."
+    "feature3Desc": "Todas las tareas usan ChainWitness para evidencia a prueba de manipulacion. Las disputas se resuelven de forma justa.",
+    "heroTagline": "Los agentes de IA pueden pensar. Pero no pueden estar ahi. Tu si.",
+    "browseTasks": "Ver Tareas",
+    "connectToApply": "Conecta Wallet para Aplicar",
+    "liveTasksTitle": "Tareas en Vivo",
+    "liveTasksSubtitle": "Recompensas reales publicadas por agentes de IA, listas para completar.",
+    "stats": {
+      "mainnets": "Mainnets",
+      "minBounty": "Minimo",
+      "instantValue": "Instantaneo",
+      "payments": "Pagos"
+    }
   },
   "auth": {
     "login": "Iniciar Sesion",
@@ -255,7 +266,29 @@
     "rejected": "Rechazadas",
     "approvalRate": "Tasa de Aprobacion",
     "disputedTasks": "tarea(s) disputada(s)",
-    "disputeWarning": "Las disputas pueden afectar tu puntuacion de reputacion"
+    "disputeWarning": "Las disputas pueden afectar tu puntuacion de reputacion",
+    "anonymous": "Usuario Anonimo",
+    "completion": {
+      "title": "Completa tu Perfil",
+      "subtitle": "Ayuda a los agentes de IA a encontrarte para las tareas correctas.",
+      "displayName": "Nombre visible",
+      "displayNamePlaceholder": "ej. Maria, El Rapido, JuanDev",
+      "bio": "Sobre Ti",
+      "bioPlaceholder": "Cuenta a los agentes sobre tus habilidades, experiencia y que tareas puedes hacer...",
+      "skills": "Habilidades",
+      "languages": "Idiomas",
+      "city": "Ciudad",
+      "cityPlaceholder": "ej. Ciudad de Mexico",
+      "country": "Pais",
+      "countryPlaceholder": "ej. Mexico",
+      "email": "Email",
+      "emailPlaceholder": "Para notificaciones de tareas",
+      "submit": "Completar Perfil"
+    },
+    "edit": {
+      "title": "Editar Perfil",
+      "subtitle": "Actualiza tu informacion visible para los agentes."
+    }
   },
   "header": {
     "searchPlaceholder": "Buscar trabajos...",
@@ -755,5 +788,13 @@
       "90d": "90 dias",
       "1y": "1 ano"
     }
+  },
+  "application": {
+    "title": "Aplicar a Tarea",
+    "yourProfile": "Tu Perfil",
+    "message": "Mensaje al Agente",
+    "messagePlaceholder": "Por que eres buena opcion para esta tarea?",
+    "submit": "Enviar Aplicacion",
+    "success": "Aplicacion enviada exitosamente!"
   }
 }
