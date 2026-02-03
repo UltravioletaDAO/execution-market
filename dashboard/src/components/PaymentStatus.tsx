@@ -21,10 +21,12 @@ export type PaymentStatusType =
   | 'partial_released'  // Pago parcial liberado
   | 'completed'         // Pago completo liberado
   | 'refunded'          // Reembolsado al agente
+  | 'disputed'          // Disputa abierta, fondos retenidos
+  | 'charged'           // Pago instantaneo (CHARGE, sin escrow)
 
 export interface PaymentEvent {
   id: string
-  type: 'escrow_created' | 'escrow_funded' | 'partial_release' | 'final_release' | 'refund' | 'dispute_hold'
+  type: 'escrow_created' | 'escrow_funded' | 'partial_release' | 'final_release' | 'refund' | 'dispute_hold' | 'instant_charge' | 'dispute_resolved'
   amount?: number
   tx_hash?: string
   network: string
@@ -128,6 +130,8 @@ function StatusBadge({ status }: { status: PaymentStatusType }) {
     partial_released: 'bg-purple-100 text-purple-800 border-purple-200',
     completed: 'bg-green-100 text-green-800 border-green-200',
     refunded: 'bg-gray-100 text-gray-800 border-gray-200',
+    disputed: 'bg-red-100 text-red-800 border-red-200',
+    charged: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   }
 
   const labels: Record<PaymentStatusType, string> = {
@@ -136,6 +140,8 @@ function StatusBadge({ status }: { status: PaymentStatusType }) {
     partial_released: 'Pago Parcial',
     completed: 'Completado',
     refunded: 'Reembolsado',
+    disputed: 'En Disputa',
+    charged: 'Pago Directo',
   }
 
   const icons: Record<PaymentStatusType, JSX.Element> = {
@@ -162,6 +168,16 @@ function StatusBadge({ status }: { status: PaymentStatusType }) {
     refunded: (
       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+      </svg>
+    ),
+    disputed: (
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    ),
+    charged: (
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     ),
   }
@@ -214,7 +230,6 @@ function PaymentProgress({
 
 // Timeline event component
 function TimelineEvent({ event, network }: { event: PaymentEvent; network: string }) {
-  const { t } = useTranslation()
 
   const eventLabels: Record<PaymentEvent['type'], string> = {
     escrow_created: 'Escrow creado',
@@ -223,6 +238,8 @@ function TimelineEvent({ event, network }: { event: PaymentEvent; network: strin
     final_release: 'Pago final',
     refund: 'Reembolso',
     dispute_hold: 'Retenido por disputa',
+    instant_charge: 'Pago instantaneo',
+    dispute_resolved: 'Disputa resuelta',
   }
 
   const eventIcons: Record<PaymentEvent['type'], { bg: string; icon: JSX.Element }> = {
@@ -271,6 +288,22 @@ function TimelineEvent({ event, network }: { event: PaymentEvent; network: strin
       icon: (
         <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      ),
+    },
+    instant_charge: {
+      bg: 'bg-emerald-100',
+      icon: (
+        <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+    },
+    dispute_resolved: {
+      bg: 'bg-indigo-100',
+      icon: (
+        <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
         </svg>
       ),
     },
@@ -557,6 +590,42 @@ export function PaymentStatus({
           </div>
         </div>
       )}
+
+      {payment.status === 'disputed' && (
+        <div className="p-4 bg-red-50 border-t border-red-100">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-red-800">
+                {t('payment.disputed', 'Disputa abierta')}
+              </p>
+              <p className="text-xs text-red-700 mt-0.5">
+                {t('payment.disputedDesc', 'Los fondos estan retenidos mientras el panel de arbitraje revisa la evidencia.')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {payment.status === 'charged' && (
+        <div className="p-4 bg-emerald-50 border-t border-emerald-100">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.381z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-emerald-800">
+                {t('payment.charged', 'Pago instantaneo completado')}
+              </p>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                {t('payment.chargedDesc', 'Pago directo (CHARGE) sin escrow. Fondos enviados directamente.')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -564,5 +633,4 @@ export function PaymentStatus({
 // Export sub-components for flexibility
 export { PaymentTimeline, StatusBadge as PaymentStatusBadge, PaymentProgress }
 
-export type { PaymentEvent, PaymentData }
 export default PaymentStatus

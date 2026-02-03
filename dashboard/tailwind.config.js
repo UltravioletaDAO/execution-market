@@ -123,6 +123,7 @@ export default {
         'shake': 'shake 0.5s ease-in-out',
         'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
         'glow-pulse': 'glowPulse 2s ease-in-out infinite',
+        'blink': 'blink 1s step-end infinite',
       },
       keyframes: {
         fadeIn: {
@@ -165,6 +166,10 @@ export default {
         glowPulse: {
           '0%, 100%': { boxShadow: '0 0 20px rgba(14, 165, 233, 0.3)' },
           '50%': { boxShadow: '0 0 40px rgba(14, 165, 233, 0.6)' },
+        },
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
         },
       },
       boxShadow: {

@@ -48,6 +48,29 @@ const statusColors: Record<string, string> = {
   completed: 'bg-green-500',
   expired: 'bg-gray-500',
   cancelled: 'bg-red-500',
+  disputed: 'bg-red-600',
+}
+
+const strategyLabels: Record<string, string> = {
+  escrow_capture: 'Full Payment (AUTHORIZE -> RELEASE)',
+  escrow_cancel: 'Cancellation (AUTHORIZE -> REFUND)',
+  instant_payment: 'Instant Payment (CHARGE)',
+  partial_payment: 'Partial (AUTHORIZE -> partial RELEASE + REFUND)',
+  dispute_resolution: 'Dispute (AUTHORIZE -> RELEASE -> REFUND POST ESCROW)',
+}
+
+const tierInfo: Record<string, { label: string; preApproval: string; workDeadline: string; disputeWindow: string }> = {
+  micro: { label: 'Micro (<$5)', preApproval: '1 hour', workDeadline: '2 hours', disputeWindow: '24 hours' },
+  standard: { label: 'Standard ($5-$50)', preApproval: '2 hours', workDeadline: '24 hours', disputeWindow: '7 days' },
+  premium: { label: 'Premium ($50-$200)', preApproval: '4 hours', workDeadline: '48 hours', disputeWindow: '14 days' },
+  enterprise: { label: 'Enterprise ($200+)', preApproval: '24 hours', workDeadline: '7 days', disputeWindow: '30 days' },
+}
+
+function getTierFromAmount(amount: number): string {
+  if (amount < 5) return 'micro'
+  if (amount < 50) return 'standard'
+  if (amount < 200) return 'premium'
+  return 'enterprise'
 }
 
 export default function TaskDetailModal({ taskId, adminKey, onClose }: TaskDetailModalProps) {
@@ -243,6 +266,46 @@ export default function TaskDetailModal({ taskId, adminKey, onClose }: TaskDetai
                   </div>
                 )}
               </div>
+
+              {/* Payment Strategy & Tier Info */}
+              {task.bounty_usd && (
+                <div className="bg-gray-700/30 rounded-lg p-4 space-y-3">
+                  <h3 className="text-gray-300 text-sm font-semibold">Payment Info</h3>
+                  <div className="flex justify-between py-1">
+                    <span className="text-gray-400 text-sm">Strategy</span>
+                    <span className="text-white text-sm">
+                      {task.payment_strategy
+                        ? strategyLabels[task.payment_strategy] || task.payment_strategy
+                        : strategyLabels[getTierFromAmount(task.bounty_usd) === 'enterprise' ? 'dispute_resolution' : 'escrow_capture'] + ' (auto)'}
+                    </span>
+                  </div>
+                  {(() => {
+                    const tier = task.payment_tier || getTierFromAmount(task.bounty_usd)
+                    const info = tierInfo[tier]
+                    if (!info) return null
+                    return (
+                      <>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-400 text-sm">Tier</span>
+                          <span className="text-white text-sm">{info.label}</span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-400 text-sm">Pre-Approval</span>
+                          <span className="text-white text-sm">{info.preApproval}</span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-400 text-sm">Work Deadline</span>
+                          <span className="text-white text-sm">{info.workDeadline}</span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-400 text-sm">Dispute Window</span>
+                          <span className="text-white text-sm">{info.disputeWindow}</span>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              )}
 
               {task.evidence_urls?.length > 0 && (
                 <div>

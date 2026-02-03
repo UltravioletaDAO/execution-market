@@ -121,6 +121,28 @@ from .x402r_escrow import (
     CONTRACTS as X402R_CONTRACTS,
 )
 
+# Advanced Escrow Integration (PaymentOperator via uvd-x402-sdk)
+# Uses the SDK as abstraction layer: Chamba -> SDK -> Facilitator -> On-chain
+try:
+    from .advanced_escrow_integration import (
+        # Main client
+        ChambaAdvancedEscrow,
+        # Types
+        PaymentStrategy,
+        TaskPayment,
+        # Convenience functions
+        get_advanced_escrow,
+        authorize_task_bounty,
+        release_to_worker as advanced_release_to_worker,
+        refund_to_agent as advanced_refund_to_agent,
+        charge_trusted_worker,
+        partial_release,
+        # Constants
+        ADVANCED_ESCROW_AVAILABLE,
+    )
+except ImportError:
+    ADVANCED_ESCROW_AVAILABLE = False
+
 __all__ = [
     # Main client
     "X402Client",
@@ -198,4 +220,20 @@ __all__ = [
     "refund_payment",
     "get_deposit_info",
     "X402R_CONTRACTS",
+    # Advanced Escrow (PaymentOperator via SDK) - always available
+    "ADVANCED_ESCROW_AVAILABLE",
 ]
+
+# Conditionally add Advanced Escrow names only if SDK is available
+if ADVANCED_ESCROW_AVAILABLE:
+    __all__ += [
+        "ChambaAdvancedEscrow",
+        "PaymentStrategy",
+        "TaskPayment",
+        "get_advanced_escrow",
+        "authorize_task_bounty",
+        "advanced_release_to_worker",
+        "advanced_refund_to_agent",
+        "charge_trusted_worker",
+        "partial_release",
+    ]

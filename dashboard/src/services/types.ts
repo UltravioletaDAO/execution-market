@@ -208,16 +208,70 @@ export interface EarningsSummary {
 }
 
 /**
+ * Payment strategy (matches PaymentOperator 5 modes)
+ */
+export type PaymentStrategy =
+  | 'escrow_capture'       // Scenario 1: AUTHORIZE → RELEASE
+  | 'escrow_cancel'        // Scenario 2: AUTHORIZE → REFUND IN ESCROW
+  | 'instant_payment'      // Scenario 3: CHARGE (direct, no escrow)
+  | 'partial_payment'      // Scenario 4: AUTHORIZE → partial RELEASE + REFUND
+  | 'dispute_resolution'   // Scenario 5: AUTHORIZE → RELEASE → REFUND POST ESCROW
+
+/**
+ * Task payment tier
+ */
+export type PaymentTier = 'micro' | 'standard' | 'premium' | 'enterprise'
+
+/**
+ * Tier timing constraints (set at AUTHORIZE, enforced by contract)
+ */
+export interface TierTiming {
+  tier: PaymentTier
+  preApprovalHours: number
+  authorizationHours: number
+  disputeWindowHours: number
+}
+
+/**
+ * Tier timing lookup
+ */
+export const TIER_TIMINGS: Record<PaymentTier, TierTiming> = {
+  micro:      { tier: 'micro',      preApprovalHours: 1,  authorizationHours: 2,    disputeWindowHours: 24 },
+  standard:   { tier: 'standard',   preApprovalHours: 2,  authorizationHours: 24,   disputeWindowHours: 168 },
+  premium:    { tier: 'premium',    preApprovalHours: 4,  authorizationHours: 48,   disputeWindowHours: 336 },
+  enterprise: { tier: 'enterprise', preApprovalHours: 24, authorizationHours: 168,  disputeWindowHours: 720 },
+}
+
+/**
+ * Get tier from bounty amount
+ */
+export function getTierFromAmount(amountUsdc: number): PaymentTier {
+  if (amountUsdc < 5) return 'micro'
+  if (amountUsdc < 50) return 'standard'
+  if (amountUsdc < 200) return 'premium'
+  return 'enterprise'
+}
+
+/**
  * Escrow status
  */
 export interface EscrowStatus {
   escrowId: string
   taskId: string
-  status: 'created' | 'funded' | 'released' | 'refunded' | 'disputed'
+  status: 'created' | 'funded' | 'partial_released' | 'released' | 'refunded' | 'disputed' | 'charged'
+  strategy?: PaymentStrategy
+  tier?: PaymentTier
   amountUsdc: number
+  releasedUsdc?: number
+  refundedUsdc?: number
   depositTx?: string
   releaseTx?: string
   refundTx?: string
+  timing?: {
+    preApprovalExpiry?: string
+    authorizationExpiry?: string
+    refundExpiry?: string
+  }
   createdAt: string
   updatedAt?: string
 }

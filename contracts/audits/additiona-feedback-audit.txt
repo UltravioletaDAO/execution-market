@@ -613,3 +613,11 @@ En getReleases: Se añadieron argumentos cursor y length para paginar los result
 
 Limpieza de Estado: Al eliminar el mapping _taskToEscrow, solucionamos automáticamente el problema de las "Zombie Tasks" [Fix #5], ya que las IDs no quedan quemadas permanentemente en el almacenamiento.
 
+
+
+
+Listo. Entonces, parece que ya tenemos todo una nueva parte de integración con 5 modos de pago se ha agregado X402. Eso debe estar a crosshold de documentations. Necesito que actualices el swagger, actualices la documentación. Sabes que crea docs.chamba.ultravioletadao.xyz es uno en el subdominio de docs y sube ahí todos los documentOS.
+
+Te voy a pasar, por ejemplo, un Chamba scroll testing scenario para que cree documentos desde allí. Además, aprovecha para self reflect en toda la documentación y todo lo que tenemos, y documentes todo el facilitador que usamos, las redes que soportamos, eRC 8004, que estamos registrados. De hecho, todos los datos de Chamba los puedes tener en los docs.
+
+Te voy a pasar unos documentos o te va a pasar un documento que fue generado desde el último trabajo en el facilitador, que te puede ayudar a ti a ver cómo fue que se integró la parte del facilitador con Chamba.

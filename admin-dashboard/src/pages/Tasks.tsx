@@ -31,6 +31,8 @@ const statusColors: Record<string, string> = {
   completed: 'bg-green-500',
   expired: 'bg-gray-500',
   cancelled: 'bg-red-500',
+  disputed: 'bg-red-600',
+  partial: 'bg-teal-500',
 }
 
 export default function Tasks({ adminKey }: TasksProps) {
@@ -106,6 +108,7 @@ export default function Tasks({ adminKey }: TasksProps) {
           <option value="completed">Completed</option>
           <option value="expired">Expired</option>
           <option value="cancelled">Cancelled</option>
+          <option value="disputed">Disputed</option>
         </select>
 
         <form onSubmit={handleSearch} className="flex gap-2">
@@ -144,6 +147,7 @@ export default function Tasks({ adminKey }: TasksProps) {
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Agent</th>
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Worker</th>
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Bounty</th>
+              <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Tier</th>
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Status</th>
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Created</th>
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Actions</th>
@@ -174,6 +178,9 @@ export default function Tasks({ adminKey }: TasksProps) {
                 <td className="px-6 py-4 text-white font-mono">
                   ${task.bounty_usd?.toFixed(2)}
                 </td>
+                <td className="px-6 py-4 text-gray-400 text-xs">
+                  {task.bounty_usd < 5 ? 'Micro' : task.bounty_usd < 50 ? 'Standard' : task.bounty_usd < 200 ? 'Premium' : 'Enterprise'}
+                </td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded text-xs text-white ${statusColors[task.status] || 'bg-gray-500'}`}>
                     {task.status}
@@ -194,7 +201,7 @@ export default function Tasks({ adminKey }: TasksProps) {
             ))}
             {tasks.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-6 py-8 text-center text-gray-400">
+                <td colSpan={9} className="px-6 py-8 text-center text-gray-400">
                   No tasks found
                 </td>
               </tr>

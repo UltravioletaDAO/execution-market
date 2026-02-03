@@ -235,6 +235,50 @@ export default function Settings({ adminKey }: SettingsProps) {
         />
       </ConfigSection>
 
+      <ConfigSection title="Tier-Based Fees" icon="📊">
+        <div className="py-3 border-b border-gray-700">
+          <div className="text-gray-300 mb-3">Fee Structure by Tier</div>
+          <div className="bg-gray-700/50 rounded p-3">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-400">
+                  <th className="text-left py-1">Tier</th>
+                  <th className="text-left py-1">Range</th>
+                  <th className="text-left py-1">Fee</th>
+                  <th className="text-left py-1">Work Deadline</th>
+                  <th className="text-left py-1">Dispute Window</th>
+                </tr>
+              </thead>
+              <tbody className="text-white">
+                <tr><td className="py-1">Micro</td><td>&lt;$5</td><td>Flat $0.25</td><td>2 hours</td><td>24 hours</td></tr>
+                <tr><td className="py-1">Standard</td><td>$5-$50</td><td>8%</td><td>24 hours</td><td>7 days</td></tr>
+                <tr><td className="py-1">Premium</td><td>$50-$200</td><td>6%</td><td>48 hours</td><td>14 days</td></tr>
+                <tr><td className="py-1">Enterprise</td><td>$200+</td><td>4%</td><td>7 days</td><td>30 days</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-gray-500 text-xs mt-2">
+            Tier boundaries and timing are enforced on-chain at AUTHORIZE time.
+          </p>
+        </div>
+        <ConfigInput
+          label="Instant Payment Threshold"
+          configKey="fees.instant_payment_max_usd"
+          value={fees.instant_payment_max_usd || 5}
+          suffix="USD"
+          adminKey={adminKey}
+          onSuccess={handleSuccess}
+        />
+        <ConfigInput
+          label="Instant Payment Min Reputation"
+          configKey="fees.instant_payment_min_reputation"
+          value={fees.instant_payment_min_reputation || 90}
+          suffix="%"
+          adminKey={adminKey}
+          onSuccess={handleSuccess}
+        />
+      </ConfigSection>
+
       <ConfigSection title="Timeouts" icon="⏱️">
         <ConfigInput
           label="Approval Timeout"
