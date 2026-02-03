@@ -7,6 +7,7 @@ import { AppHeader } from '../components/layout/AppHeader'
 import { AppFooter } from '../components/layout/AppFooter'
 import { HeroSection } from '../components/landing/HeroSection'
 import { PublicTaskBrowser } from '../components/landing/PublicTaskBrowser'
+import { HowItWorks } from '../components/landing/HowItWorks'
 
 export function Home() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ export function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showProfileCompletion, setShowProfileCompletion] = useState(false)
   const taskSectionRef = useRef<HTMLElement>(null)
+  const howItWorksRef = useRef<HTMLElement>(null)
 
   const handleConnectWallet = useCallback(() => {
     setShowAuthModal(true)
@@ -27,12 +29,13 @@ export function Home() {
     taskSectionRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
+  const handleScrollToHowItWorks = useCallback(() => {
+    howItWorksRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
   const handleAuthSuccess = useCallback(() => {
     setShowAuthModal(false)
     setUserType('worker')
-    // Check if profile needs completion
-    // isProfileComplete may not be updated yet since executor was just fetched,
-    // so we show the modal and let it close if already complete
     setShowProfileCompletion(true)
   }, [setUserType])
 
@@ -46,16 +49,17 @@ export function Home() {
     navigate('/tasks')
   }, [navigate])
 
-  // If user is already authenticated and profile incomplete, show modal
-  // (handles returning to / with incomplete profile)
   const shouldShowProfileCompletion =
     showProfileCompletion && isAuthenticated && !isProfileComplete
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      <AppHeader onConnectWallet={handleConnectWallet} />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <AppHeader
+        onConnectWallet={handleConnectWallet}
+        onScrollToHowItWorks={handleScrollToHowItWorks}
+      />
 
-      <main className="max-w-6xl mx-auto px-4">
+      <main className="flex-1 max-w-6xl mx-auto px-4 w-full">
         <HeroSection
           onConnectWallet={handleConnectWallet}
           onGoToDashboard={handleGoToDashboard}
@@ -65,6 +69,11 @@ export function Home() {
         <PublicTaskBrowser
           ref={taskSectionRef}
           onAuthRequired={handleConnectWallet}
+        />
+
+        <HowItWorks
+          ref={howItWorksRef}
+          onConnectWallet={handleConnectWallet}
         />
       </main>
 
