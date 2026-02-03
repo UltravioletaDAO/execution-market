@@ -46,9 +46,20 @@ class EvidenceType(str, Enum):
     SCREENSHOT = "screenshot"
 
 
+class PaymentStrategy(str, Enum):
+    """Payment strategy for task escrow (matches PaymentOperator 5 modes)."""
+    ESCROW_CAPTURE = "escrow_capture"          # Scenario 1: AUTHORIZE → RELEASE
+    ESCROW_CANCEL = "escrow_cancel"            # Scenario 2: AUTHORIZE → REFUND IN ESCROW
+    INSTANT_PAYMENT = "instant_payment"        # Scenario 3: CHARGE (direct, no escrow)
+    PARTIAL_PAYMENT = "partial_payment"        # Scenario 4: AUTHORIZE → partial RELEASE + REFUND
+    DISPUTE_RESOLUTION = "dispute_resolution"  # Scenario 5: AUTHORIZE → RELEASE → REFUND POST ESCROW
+
+
 class SubmissionVerdict(str, Enum):
     """Agent's verdict on a submission."""
     ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    PARTIAL = "partial"
     DISPUTED = "disputed"
     MORE_INFO = "more_info_requested"
 
@@ -129,6 +140,15 @@ class PublishTaskInput(BaseModel):
         default="USDC",
         description="Payment token symbol",
         max_length=10
+    )
+    payment_strategy: Optional[PaymentStrategy] = Field(
+        default=None,
+        description=(
+            "Payment strategy. Auto-selected if not specified. "
+            "Options: escrow_capture (default $5-$200), escrow_cancel (cancellable), "
+            "instant_payment (micro <$5, rep >90%), partial_payment (proof-of-attempt), "
+            "dispute_resolution (high-value $50+)"
+        )
     )
 
     @field_validator('evidence_required')
@@ -245,12 +265,21 @@ class ApproveSubmissionInput(BaseModel):
     )
     verdict: SubmissionVerdict = Field(
         ...,
-        description="Agent's verdict: accepted, disputed, or more_info_requested"
+        description=(
+            "Agent's verdict: accepted (full release), rejected (no additional release), "
+            "partial (proof-of-attempt release + refund), disputed, or more_info_requested"
+        )
     )
     notes: Optional[str] = Field(
         default=None,
         description="Notes explaining the verdict",
         max_length=1000
+    )
+    release_percent: Optional[int] = Field(
+        default=15,
+        description="For 'partial' verdict: percentage to release to worker (default 15%)",
+        ge=5,
+        le=50
     )
 
 

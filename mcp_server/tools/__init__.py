@@ -6,6 +6,7 @@ Modular tool implementations for the Chamba MCP server.
 Tools are organized by role:
 - agent_tools: Enhanced tools for AI agents managing tasks at scale
 - worker_tools: Tools for human workers executing tasks (NOW-011 to NOW-014)
+- escrow_tools: Advanced Escrow payment tools (authorize, release, refund, charge, dispute)
 """
 
 from .agent_tools import (
@@ -33,6 +34,22 @@ from .agent_tools import (
     check_worker_eligibility,
     calculate_batch_escrow,
     format_analytics_markdown,
+)
+
+from .escrow_tools import (
+    # Registration function
+    register_escrow_tools,
+    # Availability flag
+    ADVANCED_ESCROW_AVAILABLE,
+    # Input models
+    EscrowRecommendInput,
+    EscrowAuthorizeInput,
+    EscrowReleaseInput,
+    EscrowRefundInput,
+    EscrowChargeInput,
+    EscrowPartialReleaseInput,
+    EscrowDisputeInput,
+    EscrowStatusInput,
 )
 
 from .worker_tools import (
@@ -70,6 +87,17 @@ __all__ = [
     "check_worker_eligibility",
     "calculate_batch_escrow",
     "format_analytics_markdown",
+    # Escrow Tools (Advanced Escrow via SDK)
+    "register_escrow_tools",
+    "ADVANCED_ESCROW_AVAILABLE",
+    "EscrowRecommendInput",
+    "EscrowAuthorizeInput",
+    "EscrowReleaseInput",
+    "EscrowRefundInput",
+    "EscrowChargeInput",
+    "EscrowPartialReleaseInput",
+    "EscrowDisputeInput",
+    "EscrowStatusInput",
     # Worker Tools (NOW-011 to NOW-014)
     "register_worker_tools",
     "WorkerToolsConfig",

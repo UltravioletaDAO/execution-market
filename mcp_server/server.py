@@ -54,6 +54,16 @@ Worker Tools (for Human Workers):
     - chamba_get_my_tasks: Get assigned tasks and earnings
     - chamba_withdraw_earnings: Withdraw available balance
 
+Advanced Escrow Tools (PaymentOperator via SDK):
+    - chamba_escrow_recommend_strategy: Get AI-recommended payment strategy
+    - chamba_escrow_authorize: Lock bounty in escrow on-chain
+    - chamba_escrow_release: Release escrowed funds to worker
+    - chamba_escrow_refund: Refund escrowed funds to agent
+    - chamba_escrow_charge: Instant payment without escrow
+    - chamba_escrow_partial_release: Partial release + refund (proof of attempt)
+    - chamba_escrow_dispute: Post-release refund (requires arbitration)
+    - chamba_escrow_status: Query escrow payment state
+
 Utility Tools:
     - chamba_get_fee_structure: Get platform fee rates by category
     - chamba_calculate_fee: Calculate fees for a potential task
@@ -123,6 +133,7 @@ import supabase_client as db
 # Modular tools
 from tools.worker_tools import register_worker_tools, WorkerToolsConfig
 from tools.agent_tools import register_agent_tools, AgentToolsConfig
+from tools.escrow_tools import register_escrow_tools, ADVANCED_ESCROW_AVAILABLE
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -274,6 +285,9 @@ agent_config = AgentToolsConfig(
     enable_notifications=True,
 )
 register_agent_tools(mcp, db)
+
+# Register Advanced Escrow tools (PaymentOperator via SDK)
+register_escrow_tools(mcp)
 
 
 # ============== CONSTANTS ==============
@@ -1251,6 +1265,7 @@ async def chamba_server_status() -> str:
             "## Integrations",
             f"- **x402 Client**: {'Enabled' if x402_client else 'Disabled (simulated payments)'}",
             f"- **Escrow Manager**: {'Enabled' if escrow_manager else 'Disabled'}",
+            f"- **Advanced Escrow**: {'Enabled' if ADVANCED_ESCROW_AVAILABLE else 'Disabled (uvd-x402-sdk not installed)'}",
             f"- **Fee Manager**: {'Enabled' if fee_manager else 'Disabled'}",
             f"- **Webhook Registry**: {'Enabled' if webhook_registry else 'Disabled'}",
             "",

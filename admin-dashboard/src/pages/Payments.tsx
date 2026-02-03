@@ -42,6 +42,24 @@ const typeColors: Record<string, string> = {
   fee: 'bg-purple-500',
   refund: 'bg-orange-500',
   withdrawal: 'bg-yellow-500',
+  charge: 'bg-emerald-500',
+  dispute: 'bg-red-500',
+}
+
+const strategyLabels: Record<string, string> = {
+  escrow_capture: 'Full Payment',
+  escrow_cancel: 'Cancellation',
+  instant_payment: 'Instant',
+  partial_payment: 'Partial',
+  dispute_resolution: 'Dispute',
+}
+
+const strategyColors: Record<string, string> = {
+  escrow_capture: 'bg-green-600',
+  escrow_cancel: 'bg-orange-600',
+  instant_payment: 'bg-emerald-600',
+  partial_payment: 'bg-teal-600',
+  dispute_resolution: 'bg-red-600',
 }
 
 const statusColors: Record<string, string> = {
@@ -153,6 +171,7 @@ export default function Payments({ adminKey }: PaymentsProps) {
             <tr>
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Time</th>
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Type</th>
+              <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Strategy</th>
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Amount</th>
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">Task</th>
               <th className="text-left px-6 py-3 text-gray-300 text-sm font-medium">From/To</th>
@@ -170,6 +189,15 @@ export default function Payments({ adminKey }: PaymentsProps) {
                   <span className={`px-2 py-1 rounded text-xs text-white ${typeColors[tx.type] || 'bg-gray-500'}`}>
                     {tx.type?.replace('_', ' ')}
                   </span>
+                </td>
+                <td className="px-6 py-4">
+                  {tx.payment_strategy ? (
+                    <span className={`px-2 py-1 rounded text-xs text-white ${strategyColors[tx.payment_strategy] || 'bg-gray-500'}`}>
+                      {strategyLabels[tx.payment_strategy] || tx.payment_strategy}
+                    </span>
+                  ) : (
+                    <span className="text-gray-600">-</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 text-white font-mono">
                   ${tx.amount_usd?.toFixed(2)}
@@ -201,7 +229,7 @@ export default function Payments({ adminKey }: PaymentsProps) {
             ))}
             {transactions.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
+                <td colSpan={8} className="px-6 py-8 text-center text-gray-400">
                   No transactions found
                 </td>
               </tr>
