@@ -15,6 +15,7 @@ MCP Transport: Streamable HTTP (2025-03-26 spec)
 """
 
 import os
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -26,6 +27,7 @@ from starlette.routing import Mount
 from pydantic import BaseModel
 
 import supabase_client as db
+from jobs.task_expiration import run_task_expiration_loop
 
 # Import MCP server for Streamable HTTP mounting
 from server import mcp as mcp_server
@@ -101,10 +103,14 @@ async def lifespan(app: FastAPI):
     """
     Application lifespan handler.
 
-    Manages MCP session manager and other async resources.
+    Manages MCP session manager, background jobs, and other async resources.
     Required for Streamable HTTP transport to work correctly.
     """
     logger.info("Starting Chamba MCP Server with Streamable HTTP transport")
+
+    # Start background jobs
+    expiration_task = asyncio.create_task(run_task_expiration_loop())
+    logger.info("Task expiration background job scheduled")
 
     # Initialize MCP session manager
     # The session manager must be running for Streamable HTTP to work
@@ -124,6 +130,14 @@ async def lifespan(app: FastAPI):
             yield
     else:
         yield
+
+    # Cancel background jobs on shutdown
+    expiration_task.cancel()
+    try:
+        await expiration_task
+    except asyncio.CancelledError:
+        pass
+    logger.info("Task expiration background job stopped")
 
     logger.info("Shutting down Chamba MCP Server")
 
@@ -283,12 +297,16 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=[
-        "*",
-        "mcp-protocol-version",  # MCP protocol version header
-        "mcp-session-id",  # MCP session management
         "Authorization",
         "Content-Type",
         "X-API-Key",
+        "X-Device-ID",
+        "X-Request-ID",
+        "X-Payment",
+        "Accept",
+        "Origin",
+        "mcp-protocol-version",
+        "mcp-session-id",
     ],
     expose_headers=[
         "mcp-session-id",  # CRITICAL: Required for MCP session management
@@ -434,7 +452,7 @@ async def register_executor(data: ExecutorRegistration):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/v1/tasks/apply", tags=["Tasks"])
@@ -498,7 +516,7 @@ async def apply_to_task(data: TaskApplication):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/v1/submissions", tags=["Submissions"])
@@ -559,7 +577,7 @@ async def submit_work(data: WorkSubmission):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/v1/executors/{executor_id}/tasks", tags=["Workers"])
@@ -583,7 +601,7 @@ async def get_my_tasks(executor_id: str, status: str | None = None):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/v1/executors/{executor_id}/stats", tags=["Workers"])
@@ -597,7 +615,7 @@ async def get_executor_stats(executor_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/v1/tasks/available", tags=["Tasks"])
@@ -630,7 +648,7 @@ async def get_available_tasks(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # x402 SDK info endpoint (NOW-202)

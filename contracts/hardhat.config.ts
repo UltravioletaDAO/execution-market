@@ -5,7 +5,19 @@ import "@nomicfoundation/hardhat-toolbox";
 import * as dotenv from "dotenv";
 dotenv.config();
 
-const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY || "0x0000000000000000000000000000000000000000000000000000000000000001";
+const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
+if (!PRIVATE_KEY) {
+  // Allow hardhat/localhost without key, but fail fast for real networks
+  console.warn("WARNING: No DEPLOYER_PRIVATE_KEY or PRIVATE_KEY set. Only hardhat/localhost networks will work.");
+}
+
+// Safe accessor for networks that require a real key
+const getAccountsConfig = () => {
+  if (!PRIVATE_KEY) {
+    throw new Error("DEPLOYER_PRIVATE_KEY environment variable is required for non-local networks");
+  }
+  return [PRIVATE_KEY];
+};
 
 // Block explorer API keys
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
@@ -43,13 +55,13 @@ const config: HardhatUserConfig = {
     ethereum: {
       url: process.env.ETHEREUM_RPC_URL || "https://eth.llamarpc.com",
       chainId: 1,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
     ethereumSepolia: {
       url: process.env.ETHEREUM_SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
       chainId: 11155111,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
 
@@ -57,13 +69,13 @@ const config: HardhatUserConfig = {
     base: {
       url: process.env.BASE_RPC_URL || "https://mainnet.base.org",
       chainId: 8453,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
     baseSepolia: {
       url: process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org",
       chainId: 84532,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
 
@@ -71,13 +83,13 @@ const config: HardhatUserConfig = {
     avalanche: {
       url: process.env.AVALANCHE_RPC_URL || "https://api.avax.network/ext/bc/C/rpc",
       chainId: 43114,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
     avalancheFuji: {
       url: process.env.AVALANCHE_FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc",
       chainId: 43113,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
 
@@ -85,13 +97,13 @@ const config: HardhatUserConfig = {
     polygon: {
       url: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com",
       chainId: 137,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
     polygonAmoy: {
       url: process.env.POLYGON_AMOY_RPC_URL || "https://rpc-amoy.polygon.technology",
       chainId: 80002,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
 
@@ -99,13 +111,13 @@ const config: HardhatUserConfig = {
     optimism: {
       url: process.env.OPTIMISM_RPC_URL || "https://mainnet.optimism.io",
       chainId: 10,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
     optimismSepolia: {
       url: process.env.OPTIMISM_SEPOLIA_RPC_URL || "https://sepolia.optimism.io",
       chainId: 11155420,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
 
@@ -113,13 +125,13 @@ const config: HardhatUserConfig = {
     arbitrum: {
       url: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc",
       chainId: 42161,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
     arbitrumSepolia: {
       url: process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
       chainId: 421614,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
 
@@ -127,13 +139,13 @@ const config: HardhatUserConfig = {
     celo: {
       url: process.env.CELO_RPC_URL || "https://forno.celo.org",
       chainId: 42220,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
     celoAlfajores: {
       url: process.env.CELO_ALFAJORES_RPC_URL || "https://alfajores-forno.celo-testnet.org",
       chainId: 44787,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
 
@@ -141,13 +153,13 @@ const config: HardhatUserConfig = {
     bsc: {
       url: process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org",
       chainId: 56,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
     bscTestnet: {
       url: process.env.BSC_TESTNET_RPC_URL || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
 
@@ -155,13 +167,13 @@ const config: HardhatUserConfig = {
     scroll: {
       url: process.env.SCROLL_RPC_URL || "https://rpc.scroll.io",
       chainId: 534352,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
     scrollSepolia: {
       url: process.env.SCROLL_SEPOLIA_RPC_URL || "https://sepolia-rpc.scroll.io",
       chainId: 534351,
-      accounts: [PRIVATE_KEY],
+      accounts: getAccountsConfig(),
       gasPrice: "auto",
     },
   },

@@ -25,10 +25,12 @@ from .auth import (
     verify_agent_owns_submission
 )
 
-# x402 payment verification
+# x402 SDK payment verification and settlement
 try:
     from integrations.x402.sdk_client import (
         verify_x402_payment,
+        get_sdk,
+        check_sdk_available,
         SDK_AVAILABLE as X402_AVAILABLE,
     )
 except ImportError:
@@ -75,6 +77,9 @@ async def get_max_bounty() -> Decimal:
     return Decimal("10000.00")
 
 logger = logging.getLogger(__name__)
+
+# UUID validation pattern for path parameters
+UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
 router = APIRouter(prefix="/api/v1", tags=["Chamba API"])
 
@@ -253,8 +258,7 @@ class WorkerApplicationRequest(BaseModel):
     executor_id: str = Field(
         ...,
         description="Worker's executor ID",
-        min_length=36,
-        max_length=36
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
     )
     message: Optional[str] = Field(
         default=None,
@@ -268,8 +272,7 @@ class WorkerSubmissionRequest(BaseModel):
     executor_id: str = Field(
         ...,
         description="Worker's executor ID",
-        min_length=36,
-        max_length=36
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
     )
     evidence: Dict[str, Any] = Field(
         ...,
@@ -420,6 +423,7 @@ async def create_task(
         total_required = total_required.quantize(Decimal("0.01"))
 
         # Verify x402 payment
+        payment_result = None
         if X402_AVAILABLE:
             payment_result = await verify_x402_payment(http_request, total_required)
 
@@ -473,6 +477,44 @@ async def create_task(
             payment_token=request.payment_token,
         )
 
+        # Store escrow data if payment was verified via x402 SDK / facilitator
+        if payment_result and payment_result.success and payment_result.tx_hash:
+            try:
+                deposit_id = payment_result.tx_hash  # SDK uses tx_hash as deposit ref
+
+                # Update task with escrow info
+                escrow_updates = {
+                    "escrow_id": deposit_id,
+                    "escrow_tx": payment_result.tx_hash,
+                    "escrow_amount_usdc": float(total_required),
+                    "escrow_created_at": datetime.now(timezone.utc).isoformat(),
+                }
+                await db.update_task(task["id"], escrow_updates)
+                task.update(escrow_updates)
+
+                # Create escrow record
+                client = db.get_client()
+                client.table("escrows").insert({
+                    "task_id": task["id"],
+                    "agent_id": api_key.agent_id,
+                    "escrow_id": deposit_id,
+                    "funding_tx": payment_result.tx_hash,
+                    "status": "deposited",
+                    "total_amount_usdc": float(total_required),
+                    "platform_fee_usdc": float(total_required - bounty),
+                    "beneficiary_address": payment_result.payer_address,
+                    "network": payment_result.network,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }).execute()
+
+                logger.info(
+                    "Escrow recorded via SDK: task=%s, tx=%s, amount=%.2f",
+                    task["id"], deposit_id[:16] + "...", float(total_required)
+                )
+            except Exception as e:
+                # Non-fatal: task was created, escrow recording failed
+                logger.error("Failed to record escrow for task %s: %s", task["id"], e)
+
         logger.info(
             "Task created: id=%s, agent=%s, bounty=%.2f, paid_via_x402=%s",
             task["id"], api_key.agent_id, request.bounty_usd, X402_AVAILABLE
@@ -494,8 +536,8 @@ async def create_task(
         )
 
     except Exception as e:
-        logger.error("Failed to create task: %s", str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to create task: {str(e)}")
+        logger.error("Failed to create task: %s", str(e), exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal error while creating task")
 
 
 @router.get(
@@ -509,7 +551,7 @@ async def create_task(
     }
 )
 async def get_task(
-    task_id: str = Path(..., description="UUID of the task", min_length=36, max_length=36),
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     api_key: APIKeyData = Depends(verify_api_key)
 ) -> TaskResponse:
     """
@@ -605,7 +647,7 @@ async def list_tasks(
     }
 )
 async def get_submissions(
-    task_id: str = Path(..., description="UUID of the task", min_length=36, max_length=36),
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     api_key: APIKeyData = Depends(verify_api_key)
 ) -> SubmissionListResponse:
     """
@@ -663,7 +705,7 @@ async def get_submissions(
     }
 )
 async def approve_submission(
-    submission_id: str = Path(..., description="UUID of the submission", min_length=36, max_length=36),
+    submission_id: str = Path(..., description="UUID of the submission", pattern=UUID_PATTERN),
     request: ApprovalRequest = None,
     api_key: APIKeyData = Depends(verify_api_key)
 ) -> SuccessResponse:
@@ -701,9 +743,86 @@ async def approve_submission(
         submission_id, api_key.agent_id
     )
 
+    # Release payment to worker via x402 SDK / facilitator
+    release_tx = None
+    release_error = None
+    try:
+        task = submission.get("task", {})
+        executor = submission.get("executor", {})
+
+        escrow_id = task.get("escrow_id")
+        escrow_tx = task.get("escrow_tx")
+        worker_address = executor.get("wallet_address")
+        bounty = Decimal(str(task.get("bounty_usd", 0)))
+        platform_fee_pct = await get_platform_fee_percent()
+        fee = (bounty * platform_fee_pct).quantize(Decimal("0.01"))
+        worker_payout = bounty - fee
+
+        if escrow_tx and worker_address and worker_payout > 0 and X402_AVAILABLE:
+            # Use x402 SDK to settle payment via facilitator (gasless)
+            sdk = get_sdk()
+            result = await sdk.settle_task_payment(
+                task_id=task.get("id", ""),
+                payment_header=escrow_tx,  # Original payment reference
+                worker_address=worker_address,
+                bounty_amount=bounty,
+            )
+
+            if result.get("success"):
+                release_tx = result.get("tx_hash")
+
+                # Record payment
+                client = db.get_client()
+                client.table("payments").insert({
+                    "task_id": task["id"],
+                    "executor_id": executor.get("id"),
+                    "submission_id": submission_id,
+                    "type": "release",
+                    "status": "confirmed",
+                    "tx_hash": release_tx,
+                    "amount_usdc": float(worker_payout),
+                    "fee_usdc": float(fee),
+                    "escrow_id": escrow_id,
+                    "to_address": worker_address,
+                    "note": "Payment settled via x402 SDK facilitator",
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }).execute()
+
+                # Update escrow status
+                client.table("escrows").update({
+                    "status": "released",
+                    "released_at": datetime.now(timezone.utc).isoformat(),
+                }).eq("task_id", task["id"]).execute()
+
+                logger.info(
+                    "Payment settled via SDK: task=%s, worker=%s, net=%.2f, tx=%s",
+                    task["id"], worker_address[:10], float(worker_payout), release_tx
+                )
+            else:
+                release_error = result.get("error", "SDK settlement failed")
+                logger.error(
+                    "SDK settlement failed for task %s: %s",
+                    task["id"], release_error
+                )
+        elif not escrow_tx:
+            logger.warning("No escrow_tx for task %s, skipping payment release", task.get("id"))
+        elif not worker_address:
+            logger.warning("No wallet_address for executor, skipping payment for task %s", task.get("id"))
+        elif not X402_AVAILABLE:
+            logger.warning("x402 SDK not available, skipping payment for task %s", task.get("id"))
+    except Exception as e:
+        release_error = str(e)
+        logger.error("Failed to settle payment for submission %s: %s", submission_id, e)
+
+    response_data = {"submission_id": submission_id, "verdict": "accepted"}
+    if release_tx:
+        response_data["payment_tx"] = release_tx
+    if release_error:
+        response_data["payment_error"] = release_error
+
     return SuccessResponse(
-        message="Submission approved. Payment will be released to worker.",
-        data={"submission_id": submission_id, "verdict": "accepted"}
+        message="Submission approved. Payment released to worker." if release_tx else "Submission approved. Payment will be released to worker.",
+        data=response_data
     )
 
 
@@ -719,7 +838,7 @@ async def approve_submission(
     }
 )
 async def reject_submission(
-    submission_id: str = Path(..., description="UUID of the submission", min_length=36, max_length=36),
+    submission_id: str = Path(..., description="UUID of the submission", pattern=UUID_PATTERN),
     request: RejectionRequest = ...,
     api_key: APIKeyData = Depends(verify_api_key)
 ) -> SuccessResponse:
@@ -774,7 +893,7 @@ async def reject_submission(
     }
 )
 async def cancel_task(
-    task_id: str = Path(..., description="UUID of the task", min_length=36, max_length=36),
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: CancelRequest = None,
     api_key: APIKeyData = Depends(verify_api_key)
 ) -> SuccessResponse:
@@ -805,7 +924,8 @@ async def cancel_task(
             raise HTTPException(status_code=403, detail=error_msg)
         elif "cannot cancel" in error_msg.lower() or "status" in error_msg.lower():
             raise HTTPException(status_code=409, detail=error_msg)
-        raise HTTPException(status_code=500, detail=error_msg)
+        logger.error("Unexpected error cancelling task %s: %s", task_id, error_msg)
+        raise HTTPException(status_code=500, detail="Internal error while cancelling task")
 
 
 @router.get(
@@ -923,7 +1043,7 @@ async def get_available_tasks(
     }
 )
 async def apply_to_task(
-    task_id: str = Path(..., description="UUID of the task", min_length=36, max_length=36),
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: WorkerApplicationRequest = ...,
 ) -> SuccessResponse:
     """
@@ -964,7 +1084,8 @@ async def apply_to_task(
             raise HTTPException(status_code=403, detail=error_msg)
         elif "already applied" in error_msg.lower():
             raise HTTPException(status_code=409, detail="Already applied to this task")
-        raise HTTPException(status_code=500, detail=error_msg)
+        logger.error("Unexpected error applying to task %s: %s", task_id, error_msg)
+        raise HTTPException(status_code=500, detail="Internal error while applying to task")
 
 
 @router.post(
@@ -979,7 +1100,7 @@ async def apply_to_task(
     }
 )
 async def submit_work(
-    task_id: str = Path(..., description="UUID of the task", min_length=36, max_length=36),
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: WorkerSubmissionRequest = ...,
 ) -> SuccessResponse:
     """
@@ -1020,7 +1141,8 @@ async def submit_work(
             raise HTTPException(status_code=409, detail=error_msg)
         elif "missing required evidence" in error_msg.lower():
             raise HTTPException(status_code=400, detail=error_msg)
-        raise HTTPException(status_code=500, detail=error_msg)
+        logger.error("Unexpected error submitting work for task %s: %s", task_id, error_msg)
+        raise HTTPException(status_code=500, detail="Internal error while submitting work")
 
 
 # =============================================================================

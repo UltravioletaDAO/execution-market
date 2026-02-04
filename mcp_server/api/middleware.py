@@ -257,7 +257,14 @@ def _extract_api_key(request: Request) -> Optional[str]:
 
 
 def _get_tier_from_key(api_key: str) -> RateLimitTier:
-    """Determine rate limit tier from API key prefix."""
+    """
+    Estimate rate limit tier from API key prefix.
+
+    NOTE: This is a pre-auth heuristic for rate limiting only.
+    A fake key with "enterprise" prefix gets higher rate limits but
+    will still fail authentication in the endpoint handler (auth.py).
+    The actual tier is validated against the DB during auth.
+    """
     if api_key.startswith("chamba_enterprise_"):
         return RateLimitTier.ENTERPRISE
     elif api_key.startswith("chamba_growth_"):

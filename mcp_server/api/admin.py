@@ -39,23 +39,20 @@ router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
 async def verify_admin_key(api_key: str = Query(..., alias="admin_key")):
     """
-    Verify admin API key.
-
-    TODO: Replace with proper admin authentication:
-    - Supabase Auth with admin role
-    - JWT with admin claims
-    - Separate admin API keys table
+    Verify admin API key using constant-time comparison.
     """
     import os
+    import secrets as _secrets
+
     expected_key = os.environ.get("CHAMBA_ADMIN_KEY", "")
 
     if not expected_key:
         raise HTTPException(
             status_code=503,
-            detail="Admin access not configured. Set CHAMBA_ADMIN_KEY environment variable."
+            detail="Admin access not configured"
         )
 
-    if api_key != expected_key:
+    if not _secrets.compare_digest(api_key.encode(), expected_key.encode()):
         raise HTTPException(
             status_code=403,
             detail="Invalid admin key"
@@ -175,7 +172,7 @@ async def get_all_config(
         return AllConfigResponse(**result)
     except Exception as e:
         logger.error(f"Error loading config: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get(
@@ -237,7 +234,7 @@ async def get_config_value(
         raise
     except Exception as e:
         logger.error(f"Error getting config {key}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put(
@@ -303,7 +300,7 @@ async def update_config_value(
         raise
     except Exception as e:
         logger.error(f"Error updating config {key}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get(
@@ -360,7 +357,7 @@ async def get_config_audit_log(
         )
     except Exception as e:
         logger.error(f"Error getting audit log: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # =============================================================================
@@ -459,7 +456,7 @@ async def get_platform_stats(
             "payments": {"total_volume_usd": 0, "total_fees_usd": 0},
             "users": {"active_workers": 0, "active_agents": 0},
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "error": str(e),
+            "error": "internal_error",
         }
 
 
@@ -524,7 +521,7 @@ async def list_tasks(
         }
     except Exception as e:
         logger.error(f"Error listing tasks: {e}")
-        return {"tasks": [], "count": 0, "offset": offset, "stats": {}, "error": str(e)}
+        return {"tasks": [], "count": 0, "offset": offset, "stats": {}, "error": "internal_error"}
 
 
 @router.get("/tasks/{task_id}")
@@ -548,7 +545,7 @@ async def get_task_detail(
         raise
     except Exception as e:
         logger.error(f"Error getting task {task_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/tasks/{task_id}")
@@ -580,7 +577,7 @@ async def update_task(
         raise
     except Exception as e:
         logger.error(f"Error updating task {task_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/tasks/{task_id}/cancel")
@@ -627,7 +624,7 @@ async def cancel_task(
         raise
     except Exception as e:
         logger.error(f"Error cancelling task {task_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # =============================================================================
@@ -668,7 +665,7 @@ async def list_payments(
         }
     except Exception as e:
         logger.error(f"Error listing payments: {e}")
-        return {"transactions": [], "count": 0, "offset": offset, "error": str(e)}
+        return {"transactions": [], "count": 0, "offset": offset, "error": "internal_error"}
 
 
 @router.get("/payments/stats")
@@ -715,7 +712,7 @@ async def get_payment_stats(
             "total_fees_usd": 0,
             "active_escrow_usd": 0,
             "transaction_count": 0,
-            "error": str(e),
+            "error": "internal_error",
         }
 
 
@@ -775,7 +772,7 @@ async def list_agents(
         }
     except Exception as e:
         logger.error(f"Error listing agents: {e}")
-        return {"users": [], "count": 0, "offset": offset, "stats": {}, "error": str(e)}
+        return {"users": [], "count": 0, "offset": offset, "stats": {}, "error": "internal_error"}
 
 
 @router.get("/users/workers")
@@ -829,7 +826,7 @@ async def list_workers(
         }
     except Exception as e:
         logger.error(f"Error listing workers: {e}")
-        return {"users": [], "count": 0, "offset": offset, "stats": {}, "error": str(e)}
+        return {"users": [], "count": 0, "offset": offset, "stats": {}, "error": "internal_error"}
 
 
 @router.put("/users/{user_id}/status")
@@ -870,7 +867,7 @@ async def update_user_status(
         raise
     except Exception as e:
         logger.error(f"Error updating user status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # =============================================================================
@@ -993,5 +990,5 @@ async def get_analytics(
             "top_agents": [],
             "top_workers": [],
             "trends": {},
-            "error": str(e),
+            "error": "internal_error",
         }
