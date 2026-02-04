@@ -9,12 +9,12 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY_BACKEND: chamba-backend
-  ECR_REPOSITORY_FRONTEND: chamba-frontend
-  ECS_CLUSTER: chamba-production
-  ECS_SERVICE_BACKEND: chamba-backend-prod
-  ECS_SERVICE_FRONTEND: chamba-frontend-prod
+  AWS_REGION: us-east-2
+  ECR_REPOSITORY_BACKEND: em-production-mcp-server
+  ECR_REPOSITORY_FRONTEND: em-production-dashboard
+  ECS_CLUSTER: em-production-cluster
+  ECS_SERVICE_BACKEND: em-production-mcp-server
+  ECS_SERVICE_FRONTEND: em-production-dashboard
   PRODUCTION_URL: https://execution.market
 
 jobs:
@@ -158,7 +158,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: backend-task-def.json
-          container-name: chamba-backend
+          container-name: mcp-server
           image: ${{ needs.build-and-push.outputs.backend-image }}
 
       - name: Deploy backend to ECS
@@ -182,7 +182,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: frontend-task-def.json
-          container-name: chamba-frontend
+          container-name: dashboard
           image: ${{ needs.build-and-push.outputs.frontend-image }}
 
       - name: Deploy frontend to ECS

@@ -13,7 +13,7 @@ terraform {
 
   backend "s3" {
     bucket  = "ultravioleta-terraform-state"
-    key     = "chamba/terraform.tfstate" # Kept as "chamba" to preserve existing state
+    key     = "em/terraform.tfstate"
     region  = "us-east-2"
     encrypt = true
   }
@@ -37,8 +37,7 @@ data "aws_region" "current" {}
 
 # Local values
 locals {
-  # NOTE: name_prefix kept as "chamba" to avoid recreating existing AWS resources
-  name_prefix = "chamba-${var.environment}"
+  name_prefix = "em-${var.environment}"
   account_id  = data.aws_caller_identity.current.account_id
   region      = data.aws_region.current.name
 }

@@ -63,8 +63,7 @@ resource "aws_iam_role_policy" "ecs_secrets" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
-          # NOTE: Secret path kept as "chamba/*" to match existing AWS Secrets Manager entries
-          "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:chamba/*"
+          "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/*"
         ]
       }
     ]
@@ -164,19 +163,19 @@ resource "aws_ecs_task_definition" "mcp_server" {
       secrets = [
         {
           name      = "SUPABASE_URL"
-          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:chamba/supabase:SUPABASE_URL::"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/supabase:SUPABASE_URL::"
         },
         {
           name      = "SUPABASE_ANON_KEY"
-          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:chamba/supabase:SUPABASE_ANON_KEY::"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/supabase:SUPABASE_ANON_KEY::"
         },
         {
           name      = "SUPABASE_SERVICE_KEY"
-          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:chamba/supabase:SUPABASE_SERVICE_ROLE_KEY::"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/supabase:SUPABASE_SERVICE_ROLE_KEY::"
         },
         {
           name      = "EM_ADMIN_KEY"
-          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:chamba/admin-key" # Secret path kept for backward compatibility
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/admin-key"
         },
       ]
 

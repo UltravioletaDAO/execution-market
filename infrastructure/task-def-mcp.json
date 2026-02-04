@@ -1,5 +1,5 @@
 {
-  "family": "chamba-mcp-server",
+  "family": "em-production-mcp-server",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
@@ -7,8 +7,8 @@
   "executionRoleArn": "arn:aws:iam::518898403364:role/ecsTaskExecutionRole",
   "containerDefinitions": [
     {
-      "name": "chamba-mcp-server",
-      "image": "518898403364.dkr.ecr.us-east-2.amazonaws.com/chamba-mcp-server@sha256:31bbd7393eb67bfcffdadbcb38eb7ef9c78c5494141a076338cd1524b932f3d9",
+      "name": "mcp-server",
+      "image": "518898403364.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest",
       "portMappings": [
         {
           "containerPort": 8000,
@@ -23,17 +23,17 @@
       "secrets": [
         {
           "name": "SUPABASE_URL",
-          "valueFrom": "arn:aws:secretsmanager:us-east-2:518898403364:secret:chamba/supabase-0aOUyc:SUPABASE_URL::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/supabase:SUPABASE_URL::"
         },
         {
           "name": "SUPABASE_ANON_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-east-2:518898403364:secret:chamba/supabase-0aOUyc:SUPABASE_ANON_KEY::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-2:518898403364:secret:em/supabase:SUPABASE_ANON_KEY::"
         }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/chamba-mcp-server",
+          "awslogs-group": "/ecs/em-production/mcp-server",
           "awslogs-region": "us-east-2",
           "awslogs-stream-prefix": "ecs"
         }

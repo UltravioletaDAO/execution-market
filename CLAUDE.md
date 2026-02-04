@@ -176,13 +176,13 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 |----------|---------|
 | AWS Account | `518898403364` (default profile) |
 | Region | `us-east-2` (Ohio) |
-| Compute | ECS Fargate (`chamba-production-cluster`) *(legacy name, kept for backward compat)* |
-| Container Registry | ECR `us-east-2`: `execution-market-dashboard`, `execution-market-mcp-server` *(legacy: `chamba-dashboard`, `chamba-mcp-server`)* |
+| Compute | ECS Fargate (`em-production-cluster`) |
+| Container Registry | ECR `us-east-2`: `em-production-dashboard`, `em-production-mcp-server` |
 | Load Balancer | ALB with HTTPS (ACM wildcard cert) |
 | DNS | Route53 `execution.market` (dashboard), `mcp.execution.market` (MCP) |
 | CI/CD | GitHub Actions `deploy.yml` (auto-deploy on push to `main`) |
 
-Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t execution-market-dashboard ./dashboard`
+Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t em-dashboard ./dashboard`
 
 ## File Organization Rules
 
@@ -213,27 +213,33 @@ Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t exec
 
 **Never leave files dangling in root.** If unsure, put in `docs/`.
 
-## Operational State (as of 2026-02-03)
+## Operational State (as of 2026-02-04)
 
 ### Deployment Details
 
-| Service | URL | ECR Repo | ECS Cluster *(legacy names, kept for backward compat)* |
+| Service | URL | ECR Repo | ECS Service |
 |---------|-----|----------|-------------|
-| Dashboard | `execution.market` | `execution-market-dashboard:latest` | `chamba-production-cluster` / `chamba-production-dashboard` |
-| MCP Server | `mcp.execution.market` | `execution-market-mcp-server:latest` | `chamba-production-cluster` / `chamba-production-mcp-server` |
+| Dashboard | `execution.market` | `em-production-dashboard:latest` | `em-production-cluster` / `em-production-dashboard` |
+| MCP Server | `mcp.execution.market` | `em-production-mcp-server:latest` | `em-production-cluster` / `em-production-mcp-server` |
 
-**IMPORTANT**: The dashboard ECS task definition uses `execution-market-dashboard`. Always push to the correct ECR repo in **us-east-2**:
+Always push to the correct ECR repo in **us-east-2**:
 ```bash
 # Login to ECR (default account, us-east-2)
 aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 518898403364.dkr.ecr.us-east-2.amazonaws.com
 
 # Build + push dashboard
-docker build --no-cache -f dashboard/Dockerfile -t execution-market-dashboard ./dashboard
-docker tag execution-market-dashboard:latest 518898403364.dkr.ecr.us-east-2.amazonaws.com/execution-market-dashboard:latest
-docker push 518898403364.dkr.ecr.us-east-2.amazonaws.com/execution-market-dashboard:latest
+docker build --no-cache -f dashboard/Dockerfile -t em-dashboard ./dashboard
+docker tag em-dashboard:latest 518898403364.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
+docker push 518898403364.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
 
-# Force new deployment (ECS service names are legacy, kept for backward compat)
-aws ecs update-service --cluster chamba-production-cluster --service chamba-production-dashboard --force-new-deployment --region us-east-2
+# Build + push MCP server
+docker build --no-cache -f mcp_server/Dockerfile -t em-mcp ./mcp_server
+docker tag em-mcp:latest 518898403364.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest
+docker push 518898403364.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest
+
+# Force new deployment
+aws ecs update-service --cluster em-production-cluster --service em-production-dashboard --force-new-deployment --region us-east-2
+aws ecs update-service --cluster em-production-cluster --service em-production-mcp-server --force-new-deployment --region us-east-2
 ```
 
 ### Secrets & Credentials
