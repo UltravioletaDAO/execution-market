@@ -20,7 +20,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Create non-root user
-RUN groupadd -r chamba && useradd -r -g chamba chamba
+RUN groupadd -r em && useradd -r -g em em
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -39,10 +39,10 @@ RUN pip install --no-cache /wheels/*
 COPY . .
 
 # Set ownership
-RUN chown -R chamba:chamba /app
+RUN chown -R em:em /app
 
 # Switch to non-root user
-USER chamba
+USER em
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1 \

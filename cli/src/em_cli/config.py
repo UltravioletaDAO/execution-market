@@ -155,7 +155,7 @@ class ConfigManager:
         Get API key with environment variable override.
 
         Priority:
-        1. EM_API_KEY environment variable (fallback: CHAMBA_API_KEY)
+        1. EM_API_KEY environment variable
         2. Profile-specific environment variable (EM_API_KEY_<PROFILE>)
         3. Config file
 
@@ -165,14 +165,14 @@ class ConfigManager:
         Returns:
             API key or None
         """
-        # Check global env var first (new name, then legacy fallback)
-        env_key = os.environ.get("EM_API_KEY") or os.environ.get("CHAMBA_API_KEY")
+        # Check global env var first
+        env_key = os.environ.get("EM_API_KEY")
         if env_key:
             return env_key
 
         # Check profile-specific env var
         name = profile_name or self.config.active_profile
-        env_key = os.environ.get(f"EM_API_KEY_{name.upper()}") or os.environ.get(f"CHAMBA_API_KEY_{name.upper()}")
+        env_key = os.environ.get(f"EM_API_KEY_{name.upper()}")
         if env_key:
             return env_key
 
@@ -190,8 +190,7 @@ class ConfigManager:
         Returns:
             API URL
         """
-        # Check env var first (new name, then legacy fallback)
-        env_url = os.environ.get("EM_API_URL") or os.environ.get("CHAMBA_API_URL")
+        env_url = os.environ.get("EM_API_URL")
         if env_url:
             return env_url
 
@@ -210,8 +209,7 @@ class ConfigManager:
         Returns:
             Executor ID or None
         """
-        # Check env var first (new name, then legacy fallback)
-        env_id = os.environ.get("EM_EXECUTOR_ID") or os.environ.get("CHAMBA_EXECUTOR_ID")
+        env_id = os.environ.get("EM_EXECUTOR_ID")
         if env_id:
             return env_id
 

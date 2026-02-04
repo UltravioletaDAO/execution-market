@@ -265,10 +265,10 @@ def _get_tier_from_key(api_key: str) -> RateLimitTier:
     will still fail authentication in the endpoint handler (auth.py).
     The actual tier is validated against the DB during auth.
     """
-    if api_key.startswith("em_enterprise_") or api_key.startswith("chamba_enterprise_"):
+    if api_key.startswith("em_enterprise_"):
         return RateLimitTier.ENTERPRISE
-    elif api_key.startswith("em_growth_") or api_key.startswith("chamba_growth_"):
+    elif api_key.startswith("em_growth_"):
         return RateLimitTier.GROWTH
-    elif api_key.startswith("em_starter_") or api_key.startswith("chamba_starter_"):
+    elif api_key.startswith("em_starter_"):
         return RateLimitTier.STARTER
     return RateLimitTier.FREE

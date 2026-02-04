@@ -230,16 +230,14 @@ class AgentBondManager:
 
         # Treasury address for slashed bonds
         self.treasury_address = os.environ.get(
-            "EM_TREASURY_ADDRESS", os.environ.get(
-            "CHAMBA_TREASURY_ADDRESS",
-            "0x0000000000000000000000000000000000000000")
+            "EM_TREASURY_ADDRESS",
+            "0x0000000000000000000000000000000000000000"
         )
 
         # Worker Protection Fund address (receives slashed bonds)
         self.protection_fund_address = os.environ.get(
-            "EM_PROTECTION_FUND_ADDRESS", os.environ.get(
-            "CHAMBA_PROTECTION_FUND_ADDRESS",
-            "0x0000000000000000000000000000000000000000")
+            "EM_PROTECTION_FUND_ADDRESS",
+            "0x0000000000000000000000000000000000000000"
         )
 
     # -------------------------------------------------------------------------

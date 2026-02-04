@@ -672,5 +672,3 @@ def reset_client() -> None:
     _client = None
 
 
-# Backward compatibility alias
-ChambaAPIClient = EMAPIClient

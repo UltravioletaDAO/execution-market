@@ -586,7 +586,7 @@ export class ExecutionMarket {
    * @throws {AuthenticationError} If API key is not provided
    */
   constructor(config: ExecutionMarketConfig) {
-    const apiKey = config.apiKey || process.env.EM_API_KEY || process.env.CHAMBA_API_KEY;
+    const apiKey = config.apiKey || process.env.EM_API_KEY;
 
     if (!apiKey) {
       throw new AuthenticationError(
@@ -594,7 +594,7 @@ export class ExecutionMarket {
       );
     }
 
-    const baseURL = config.baseUrl || process.env.EM_API_URL || process.env.CHAMBA_API_URL || DEFAULT_BASE_URL;
+    const baseURL = config.baseUrl || process.env.EM_API_URL || DEFAULT_BASE_URL;
     const timeout = config.timeout || DEFAULT_TIMEOUT;
 
     this.client = axios.create({
@@ -678,7 +678,7 @@ export class ExecutionMarket {
  * @returns Execution Market client
  */
 export function createClient(config: Partial<ExecutionMarketConfig> = {}): ExecutionMarket {
-  const apiKey = config.apiKey || process.env.EM_API_KEY || process.env.CHAMBA_API_KEY;
+  const apiKey = config.apiKey || process.env.EM_API_KEY;
 
   if (!apiKey) {
     throw new AuthenticationError(

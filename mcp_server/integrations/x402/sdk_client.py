@@ -74,7 +74,7 @@ EM_TREASURY = os.environ.get(
 DEFAULT_NETWORK = os.environ.get("X402_NETWORK", "base")
 
 # Platform fee percentage
-PLATFORM_FEE_PERCENT = Decimal(os.environ.get("EM_PLATFORM_FEE", os.environ.get("CHAMBA_PLATFORM_FEE", "0.08")))
+PLATFORM_FEE_PERCENT = Decimal(os.environ.get("EM_PLATFORM_FEE", "0.08"))
 
 
 # =============================================================================

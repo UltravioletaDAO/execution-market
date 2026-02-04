@@ -119,11 +119,11 @@ class ExecutionMarketClient:
             base_url: API base URL
             timeout: Request timeout in seconds
         """
-        self.api_key = api_key or os.getenv("EM_API_KEY") or os.getenv("CHAMBA_API_KEY")
+        self.api_key = api_key or os.getenv("EM_API_KEY")
         if not self.api_key:
             raise ValueError("API key required. Set EM_API_KEY or pass api_key.")
 
-        self.base_url = base_url or os.getenv("EM_API_URL") or os.getenv("CHAMBA_API_URL", self.DEFAULT_BASE_URL)
+        self.base_url = base_url or os.getenv("EM_API_URL", self.DEFAULT_BASE_URL)
         self.timeout = timeout
         self._client = httpx.Client(
             base_url=self.base_url,

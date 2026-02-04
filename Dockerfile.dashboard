@@ -1,11 +1,11 @@
-# Chamba Dashboard Dockerfile
+# Execution Market Dashboard Dockerfile
 # Multi-stage build: Node 20 + Vite + React -> nginx
 #
 # Build:
-#   docker build -f Dockerfile.dashboard -t chamba-dashboard:latest ./dashboard
+#   docker build -f Dockerfile.dashboard -t em-dashboard:latest ./dashboard
 #
 # Run:
-#   docker run -p 3000:80 chamba-dashboard:latest
+#   docker run -p 3000:80 em-dashboard:latest
 
 # ===================
 # Dependencies Stage

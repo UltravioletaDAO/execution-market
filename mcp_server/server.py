@@ -162,7 +162,7 @@ fee_manager: Optional[Any] = None
 try:
     from payments.fees import FeeManager, calculate_platform_fee
     fee_manager = FeeManager(
-        treasury_wallet=os.environ.get("EM_TREASURY_ADDRESS", os.environ.get("CHAMBA_TREASURY_ADDRESS")),
+        treasury_wallet=os.environ.get("EM_TREASURY_ADDRESS"),
     )
     logger.info("Fee manager initialized")
 except ImportError:

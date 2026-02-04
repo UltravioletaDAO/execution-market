@@ -247,7 +247,7 @@ add_api_middleware(app)
 x402_sdk: Optional[EMX402SDK] = None
 if X402_SDK_AVAILABLE and setup_x402_for_app:
     try:
-        treasury_address = os.environ.get("EM_TREASURY_ADDRESS", os.environ.get("CHAMBA_TREASURY_ADDRESS"))
+        treasury_address = os.environ.get("EM_TREASURY_ADDRESS")
         network = os.environ.get("X402_NETWORK", "base")
         x402_sdk = setup_x402_for_app(
             app,
