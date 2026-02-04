@@ -51,12 +51,12 @@ from decimal import Decimal
 
 # These would be your actual imports
 from ..server import (
-    chamba_publish_task,
-    chamba_get_tasks,
-    chamba_apply_to_task,
-    chamba_assign_task,
-    chamba_submit_work,
-    chamba_approve_submission,
+    em_publish_task,
+    em_get_tasks,
+    em_apply_to_task,
+    em_assign_task,
+    em_submit_work,
+    em_approve_submission,
 )
 from ..integrations.x402.escrow import EscrowManager
 
@@ -66,7 +66,7 @@ def test_agent():
     """Test agent credentials."""
     return {
         "agent_id": "test-agent-e2e",
-        "api_key": "chamba_enterprise_test1234567890abcdef1234567890ab",
+        "api_key": "em_enterprise_test1234567890abcdef1234567890ab",
         "wallet": "0xAgentWallet...",
     }
 
@@ -89,7 +89,7 @@ class TestTaskLifecycleE2E:
         Test: publish → apply → assign → submit → approve → pay
         """
         # ========== STEP 1: Agent publishes task ==========
-        task_result = await chamba_publish_task(
+        task_result = await em_publish_task(
             title="E2E Test Task",
             description="Take a photo of the storefront",
             bounty_usdc=10.00,
@@ -109,7 +109,7 @@ class TestTaskLifecycleE2E:
         assert escrow.status == "deposited"
 
         # ========== STEP 2: Worker sees task ==========
-        tasks = await chamba_get_tasks(
+        tasks = await em_get_tasks(
             location={"lat": 19.4326, "lng": -99.1332},
             radius_km=10,
             status="pending",
@@ -119,7 +119,7 @@ class TestTaskLifecycleE2E:
         assert len(matching_tasks) == 1
 
         # ========== STEP 3: Worker applies ==========
-        application = await chamba_apply_to_task(
+        application = await em_apply_to_task(
             task_id=task_id,
             executor_id=test_worker["executor_id"],
             message="I can complete this task",
@@ -128,7 +128,7 @@ class TestTaskLifecycleE2E:
         assert application["status"] == "applied"
 
         # ========== STEP 4: Agent assigns worker ==========
-        assignment = await chamba_assign_task(
+        assignment = await em_assign_task(
             task_id=task_id,
             executor_id=test_worker["executor_id"],
             agent_id=test_agent["agent_id"],
@@ -137,11 +137,11 @@ class TestTaskLifecycleE2E:
         assert assignment["status"] == "assigned"
 
         # ========== STEP 5: Worker submits work ==========
-        submission = await chamba_submit_work(
+        submission = await em_submit_work(
             task_id=task_id,
             executor_id=test_worker["executor_id"],
             evidence={
-                "photo_url": "https://storage.chamba.xyz/evidence/test.jpg",
+                "photo_url": "https://storage.execution.market/evidence/test.jpg",
                 "gps": {"lat": 19.4326, "lng": -99.1332},
                 "timestamp": datetime.now(UTC).isoformat(),
             },
@@ -155,7 +155,7 @@ class TestTaskLifecycleE2E:
         assert escrow.partial_released == Decimal("3.00")  # 30% of 10
 
         # ========== STEP 6: Agent approves ==========
-        approval = await chamba_approve_submission(
+        approval = await em_approve_submission(
             submission_id=submission_id,
             agent_id=test_agent["agent_id"],
             rating=90,  # Good work

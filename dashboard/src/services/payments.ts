@@ -1,5 +1,5 @@
 /**
- * Chamba Payment API Service
+ * Execution Market Payment API Service
  *
  * API service for payment operations including earnings,
  * payment history, escrow status, and withdrawals.
@@ -353,7 +353,7 @@ export async function getAgentPaymentStats(agentId: string): Promise<{
  */
 export async function getFeeStructure(): Promise<FeeStructure> {
   // Fee structure is typically configured in environment or backend
-  // This returns the standard Chamba fee structure
+  // This returns the standard Execution Market fee structure
   return {
     ratesByCategory: {
       physical_presence: {

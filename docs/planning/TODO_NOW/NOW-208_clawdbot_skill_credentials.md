@@ -3,11 +3,11 @@
 ## Metadata
 - **Prioridad**: P2 (Después del MVP)
 - **Fase**: Integration
-- **Dependencias**: Chamba funcionando (NOW-202, NOW-203, NOW-204)
+- **Dependencias**: Execution Market funcionando (NOW-202, NOW-203, NOW-204)
 - **Tiempo estimado**: 1 hora (después de recibir credenciales)
 
 ## Descripción
-El usuario necesita proporcionar credenciales de Cloud para crear un skill que integre CLAWDBOT con Chamba.
+El usuario necesita proporcionar credenciales de Cloud para crear un skill que integre CLAWDBOT con Execution Market.
 
 ## BLOQUEADO: Requiere Credenciales del Usuario
 
@@ -20,10 +20,10 @@ ACCIÓN REQUERIDA DEL USUARIO:
 
 ## Posible Flujo del Skill
 
-### Concepto: CLAWDBOT + Chamba
+### Concepto: CLAWDBOT + Execution Market
 ```
 1. CLAWDBOT (Claude en Mac Mini) recibe tarea que requiere acción física
-2. CLAWDBOT publica tarea en Chamba via MCP
+2. CLAWDBOT publica tarea en Execution Market via MCP
 3. Worker humano completa la tarea
 4. CLAWDBOT recibe notificación de completado
 5. CLAWDBOT continúa con su flujo
@@ -31,17 +31,17 @@ ACCIÓN REQUERIDA DEL USUARIO:
 
 ### Skill Tentativo
 ```python
-# .claude/skills/clawdbot-chamba/skill.md
+# .claude/skills/clawdbot-em/skill.md
 """
-Skill: CLAWDBOT Chamba Integration
+Skill: CLAWDBOT Execution Market Integration
 
-Permite a CLAWDBOT publicar tareas en Chamba y recibir resultados.
+Permite a CLAWDBOT publicar tareas en Execution Market y recibir resultados.
 
 Uso:
 /clawdbot-task "Take a photo of the nearest coffee shop menu"
 
 El skill:
-1. Crea la tarea en Chamba
+1. Crea la tarea en Execution Market
 2. Espera a que un worker la complete
 3. Retorna la evidencia (foto, etc.)
 """
@@ -68,13 +68,13 @@ El skill:
 
 ```bash
 # Crear estructura del skill
-mkdir -p .claude/skills/clawdbot-chamba
-touch .claude/skills/clawdbot-chamba/skill.md
-touch .claude/skills/clawdbot-chamba/scripts/publish_task.py
-touch .claude/skills/clawdbot-chamba/scripts/wait_for_result.py
+mkdir -p .claude/skills/clawdbot-em
+touch .claude/skills/clawdbot-em/skill.md
+touch .claude/skills/clawdbot-em/scripts/publish_task.py
+touch .claude/skills/clawdbot-em/scripts/wait_for_result.py
 ```
 
 ## Notas
 - Este TODO queda pendiente hasta que el usuario proporcione credenciales
-- La integración depende de que Chamba esté funcionando primero
+- La integración depende de que Execution Market esté funcionando primero
 - El timing con el hype de CLAWDBOT es bueno si logramos tenerlo para el jueves

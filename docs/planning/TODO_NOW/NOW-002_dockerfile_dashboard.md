@@ -8,7 +8,7 @@
 - **Tiempo estimado**: 15-30 min
 
 ## Descripción
-Crear un Dockerfile multi-stage para el Dashboard de Chamba (React/Vite) optimizado para producción.
+Crear un Dockerfile multi-stage para el Dashboard de Execution Market (React/Vite) optimizado para producción.
 
 ## Contexto Técnico
 - **Runtime**: Node 18 (build) + Nginx (serve)

@@ -1,5 +1,5 @@
 /**
- * i18n Configuration for Chamba Dashboard
+ * i18n Configuration for Execution Market Dashboard
  *
  * Supports:
  * - English (en)
@@ -61,7 +61,7 @@ export const LANGUAGE_CONFIG: Record<
 }
 
 // Storage key for persisted language
-const STORAGE_KEY = 'chamba-lang'
+const STORAGE_KEY = 'em-lang'
 
 /**
  * Detect browser language and return a supported language code

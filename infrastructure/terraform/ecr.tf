@@ -1,4 +1,4 @@
-# Chamba Infrastructure - ECR Repositories
+# Execution Market Infrastructure - ECR Repositories
 
 # MCP Server Repository
 resource "aws_ecr_repository" "mcp_server" {

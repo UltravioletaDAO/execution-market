@@ -1,5 +1,5 @@
 """
-Bayesian Reputation Calculator for Chamba
+Bayesian Reputation Calculator for Execution Market
 
 Implements a Beta-Binomial reputation system that:
 1. Uses Beta(2, 2) prior for new users (neutral starting point)

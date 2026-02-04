@@ -1,6 +1,6 @@
-# Chamba Supabase Functions
+# Execution Market Supabase Functions
 
-This directory contains Supabase Edge Functions and SQL RPC functions for Chamba.
+This directory contains Supabase Edge Functions and SQL RPC functions for Execution Market.
 
 ## SQL RPC Functions (NOW-009)
 
@@ -138,7 +138,7 @@ Individual ratings for Bayesian reputation calculation.
 
 ## Reputation System
 
-Chamba uses **Bayesian Average** with task-value weighting and time decay:
+Execution Market uses **Bayesian Average** with task-value weighting and time decay:
 
 ```
 Score = (C * m + sum(ratings * weight)) / (C + sum(weights))

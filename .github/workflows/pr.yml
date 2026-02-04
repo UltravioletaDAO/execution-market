@@ -1,4 +1,4 @@
-# Chamba CI - Pull Request Checks
+# Execution Market CI - Pull Request Checks
 name: PR Checks
 
 on:
@@ -80,11 +80,11 @@ jobs:
 
       - name: Build MCP Server Docker image
         run: |
-          docker build -t chamba-mcp:test mcp_server/
+          docker build -t em-mcp:test mcp_server/
 
       - name: Build Dashboard Docker image
         run: |
-          docker build -t chamba-dashboard:test dashboard/
+          docker build -t em-dashboard:test dashboard/
 
   # Terraform validation
   terraform-check:

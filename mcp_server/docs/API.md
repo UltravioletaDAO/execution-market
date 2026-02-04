@@ -1,4 +1,4 @@
-# Chamba MCP Server API Documentation
+# Execution Market MCP Server API Documentation
 
 > Human Execution Layer for AI Agents - Complete API Reference
 >
@@ -23,7 +23,7 @@
 
 ## Overview
 
-Chamba is a Human Execution Layer that enables AI agents to delegate real-world tasks to human workers. The platform provides:
+Execution Market is a Human Execution Layer that enables AI agents to delegate real-world tasks to human workers. The platform provides:
 
 - **Task Publishing**: Create tasks with bounties, deadlines, and evidence requirements
 - **Worker Management**: Assign tasks, verify eligibility, track reputation
@@ -35,8 +35,8 @@ Chamba is a Human Execution Layer that enables AI agents to delegate real-world 
 
 | Environment | URL |
 |-------------|-----|
-| Production | `https://api.chamba.ultravioletadao.xyz` |
-| Staging | `https://staging.api.chamba.ultravioletadao.xyz` |
+| Production | `https://api.execution.market` |
+| Staging | `https://staging.api.execution.market` |
 | Local | `http://localhost:8080` |
 
 ### Communication Protocols
@@ -52,14 +52,14 @@ Chamba is a Human Execution Layer that enables AI agents to delegate real-world 
 
 ## Authentication
 
-Chamba supports multiple authentication methods:
+Execution Market supports multiple authentication methods:
 
 ### 1. API Key Authentication
 
 Include your API key in the `X-API-Key` header:
 
 ```http
-X-API-Key: chamba_sk_live_xxxxxxxxxxxxx
+X-API-Key: em_sk_live_xxxxxxxxxxxxx
 ```
 
 ### 2. Bearer Token (JWT)
@@ -88,7 +88,7 @@ Authorization: Bearer erc8004:0x1234...5678:signature
 
 ### Getting API Keys
 
-1. Register at `https://chamba.ultravioletadao.xyz/register`
+1. Register at `https://execution.market/register`
 2. Navigate to Settings > API Keys
 3. Generate a new key with desired permissions
 
@@ -140,7 +140,7 @@ Tools for AI agents to publish and manage tasks.
 
 ---
 
-#### `chamba_publish_task`
+#### `em_publish_task`
 
 Publish a new task for human execution.
 
@@ -208,7 +208,7 @@ The task is now visible to human executors.
 
 ---
 
-#### `chamba_get_tasks`
+#### `em_get_tasks`
 
 Retrieve tasks with optional filters.
 
@@ -263,7 +263,7 @@ Retrieve tasks with optional filters.
 
 ---
 
-#### `chamba_get_task`
+#### `em_get_task`
 
 Get detailed information about a specific task.
 
@@ -304,7 +304,7 @@ Visit the store at 123 Main St, Downtown LA...
 
 ---
 
-#### `chamba_check_submission`
+#### `em_check_submission`
 
 Check submissions for a task you published.
 
@@ -339,7 +339,7 @@ Check submissions for a task you published.
 
 ---
 
-#### `chamba_approve_submission`
+#### `em_approve_submission`
 
 Approve or reject a submission from a human executor.
 
@@ -373,7 +373,7 @@ Approve or reject a submission from a human executor.
 
 ---
 
-#### `chamba_cancel_task`
+#### `em_cancel_task`
 
 Cancel a published task (only if not yet accepted).
 
@@ -405,7 +405,7 @@ Cancel a published task (only if not yet accepted).
 
 ---
 
-#### `chamba_assign_task`
+#### `em_assign_task`
 
 Manually assign a task to a specific worker.
 
@@ -428,7 +428,7 @@ Manually assign a task to a specific worker.
 
 ---
 
-#### `chamba_batch_create_tasks`
+#### `em_batch_create_tasks`
 
 Create multiple tasks in a single operation.
 
@@ -478,7 +478,7 @@ Create multiple tasks in a single operation.
 
 ---
 
-#### `chamba_get_task_analytics`
+#### `em_get_task_analytics`
 
 Get comprehensive analytics and metrics for your tasks.
 
@@ -540,7 +540,7 @@ Tools for human workers to interact with the platform.
 
 ---
 
-#### `chamba_apply_to_task`
+#### `em_apply_to_task`
 
 Apply to work on a published task.
 
@@ -560,7 +560,7 @@ Apply to work on a published task.
 
 ---
 
-#### `chamba_submit_work`
+#### `em_submit_work`
 
 Submit completed work with evidence.
 
@@ -591,7 +591,7 @@ Submit completed work with evidence.
 
 // Document task
 {
-  "document": "https://storage.chamba.xyz/docs/abc123.pdf",
+  "document": "https://storage.execution.market/docs/abc123.pdf",
   "timestamp_proof": "2026-01-25T10:30:00Z"
 }
 
@@ -607,7 +607,7 @@ Submit completed work with evidence.
 
 ---
 
-#### `chamba_get_my_tasks`
+#### `em_get_my_tasks`
 
 Get your assigned tasks, applications, and submissions.
 
@@ -623,7 +623,7 @@ Get your assigned tasks, applications, and submissions.
 
 ---
 
-#### `chamba_withdraw_earnings`
+#### `em_withdraw_earnings`
 
 Withdraw available earnings to your wallet.
 
@@ -650,14 +650,14 @@ Withdraw available earnings to your wallet.
 
 ---
 
-#### `chamba_get_fee_structure`
+#### `em_get_fee_structure`
 
 Get the current platform fee structure.
 
 **Example Response:**
 
 ```markdown
-# Chamba Platform Fee Structure
+# Execution Market Platform Fee Structure
 
 ## Fee Rates by Category
 - **Physical Presence**: 8.0% (Tasks requiring physical presence)
@@ -679,7 +679,7 @@ Get the current platform fee structure.
 
 ---
 
-#### `chamba_calculate_fee`
+#### `em_calculate_fee`
 
 Calculate fee breakdown for a potential task.
 
@@ -692,14 +692,14 @@ Calculate fee breakdown for a potential task.
 
 ---
 
-#### `chamba_server_status`
+#### `em_server_status`
 
 Get server and integration status.
 
 **Example Response:**
 
 ```markdown
-# Chamba MCP Server Status
+# Execution Market MCP Server Status
 
 **Timestamp**: 2026-01-25T10:30:00Z
 

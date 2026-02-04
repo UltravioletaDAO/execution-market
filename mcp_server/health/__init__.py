@@ -1,5 +1,5 @@
 """
-Chamba Health Check and Monitoring Module
+Execution Market Health Check and Monitoring Module
 
 Provides comprehensive health checking, metrics, and monitoring utilities for
 production deployments.

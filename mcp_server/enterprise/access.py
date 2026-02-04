@@ -336,7 +336,7 @@ class AccessControl:
 
         # Generate key
         key_bytes = secrets.token_bytes(32)
-        key_string = f"chamba_{key_bytes.hex()}"
+        key_string = f"em_{key_bytes.hex()}"
         key_hash = hashlib.sha256(key_string.encode()).hexdigest()
 
         key = APIKey(

@@ -140,7 +140,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               // Error state
               hasError
                 ? 'border-red-500 dark:border-red-500 focus:ring-red-500'
-                : 'border-slate-300 dark:border-slate-600 focus:ring-chamba-500',
+                : 'border-slate-300 dark:border-slate-600 focus:ring-em-500',
               // Disabled state
               disabled && 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60',
               className
@@ -263,7 +263,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             // Error state
             hasError
               ? 'border-red-500 dark:border-red-500 focus:ring-red-500'
-              : 'border-slate-300 dark:border-slate-600 focus:ring-chamba-500',
+              : 'border-slate-300 dark:border-slate-600 focus:ring-em-500',
             // Disabled state
             disabled && 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60',
             className
@@ -373,7 +373,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               // Error state
               hasError
                 ? 'border-red-500 dark:border-red-500 focus:ring-red-500'
-                : 'border-slate-300 dark:border-slate-600 focus:ring-chamba-500',
+                : 'border-slate-300 dark:border-slate-600 focus:ring-em-500',
               // Disabled state
               disabled && 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60',
               className
@@ -486,8 +486,8 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             'rounded',
             'border-slate-300 dark:border-slate-600',
             'bg-white dark:bg-slate-800',
-            'text-chamba-500',
-            'focus:ring-chamba-500 focus:ring-offset-0',
+            'text-em-500',
+            'focus:ring-em-500 focus:ring-offset-0',
             'transition-colors',
             'cursor-pointer',
             error && 'border-red-500',
@@ -569,8 +569,8 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
             'rounded-full',
             'border-slate-300 dark:border-slate-600',
             'bg-white dark:bg-slate-800',
-            'text-chamba-500',
-            'focus:ring-chamba-500 focus:ring-offset-0',
+            'text-em-500',
+            'focus:ring-em-500 focus:ring-offset-0',
             'transition-colors',
             'cursor-pointer',
             error && 'border-red-500',

@@ -1,5 +1,5 @@
 /**
- * Chamba SDK for TypeScript
+ * Execution Market SDK for TypeScript
  *
  * Build AI agents that hire humans for physical tasks.
  *
@@ -7,12 +7,12 @@
  *
  * @example
  * ```typescript
- * import { Chamba } from '@chamba/sdk';
+ * import { ExecutionMarket } from '@execution-market/sdk';
  *
- * const chamba = new Chamba({ apiKey: 'your_api_key' });
+ * const em = new ExecutionMarket({ apiKey: 'your_api_key' });
  *
  * // Create a task
- * const task = await chamba.tasks.create({
+ * const task = await em.tasks.create({
  *   title: 'Check if Walmart is open',
  *   instructions: 'Take a photo of the store entrance',
  *   category: 'physical_presence',
@@ -23,14 +23,14 @@
  * });
  *
  * // Wait for completion
- * const result = await chamba.tasks.waitForCompletion(task.id);
+ * const result = await em.tasks.waitForCompletion(task.id);
  * console.log(`Result: ${result.answer}`);
  * ```
  */
 
 // Main client (uses axios)
-export { Chamba, createClient } from './client';
-export type { ChambaConfig, TasksAPI, SubmissionsAPI, AnalyticsAPI, WebhooksAPI } from './client';
+export { ExecutionMarket, createClient } from './client';
+export type { ExecutionMarketConfig, TasksAPI, SubmissionsAPI, AnalyticsAPI, WebhooksAPI } from './client';
 
 // Alternative HTTP client (uses native fetch, no dependencies)
 export { HttpClient } from './http';
@@ -73,13 +73,13 @@ export type {
   WebhookEventData,
   WebhookEndpoint,
   // Error types
-  ChambaError,
+  ExecutionMarketError,
   ValidationError,
 } from './types';
 
 // Errors
 export {
-  ChambaSDKError,
+  ExecutionMarketSDKError,
   AuthenticationError,
   AuthorizationError,
   NotFoundError,

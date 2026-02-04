@@ -2,7 +2,7 @@
 """
 Example: Agent Publishing a Task
 
-This example demonstrates how an AI agent can use the Chamba MCP server
+This example demonstrates how an AI agent can use the Execution Market MCP server
 to publish a task for human execution, monitor its progress, and approve
 the submission.
 
@@ -25,7 +25,7 @@ from typing import Optional
 class MockMCPClient:
     """Mock MCP client for demonstration purposes."""
 
-    def __init__(self, base_url: str = "https://api.chamba.ultravioletadao.xyz"):
+    def __init__(self, base_url: str = "https://api.execution.market"):
         self.base_url = base_url
         self.connected = False
 
@@ -41,7 +41,7 @@ class MockMCPClient:
         print(f"Parameters: {json.dumps(params, indent=2)}")
 
         # Simulated responses for demonstration
-        if tool_name == "chamba_publish_task":
+        if tool_name == "em_publish_task":
             return {
                 "success": True,
                 "task_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -51,7 +51,7 @@ class MockMCPClient:
                 "deadline": "2026-01-26T10:30:00Z",
                 "escrow_id": "esc_7f3c1d2e4a",
             }
-        elif tool_name == "chamba_get_task":
+        elif tool_name == "em_get_task":
             return {
                 "id": params["task_id"],
                 "title": "Verify coffee shop hours",
@@ -59,7 +59,7 @@ class MockMCPClient:
                 "bounty_usd": 10.00,
                 "deadline": "2026-01-26T10:30:00Z",
             }
-        elif tool_name == "chamba_check_submission":
+        elif tool_name == "em_check_submission":
             return {
                 "submissions": [
                     {
@@ -85,7 +85,7 @@ class MockMCPClient:
                     }
                 ]
             }
-        elif tool_name == "chamba_approve_submission":
+        elif tool_name == "em_approve_submission":
             return {
                 "success": True,
                 "verdict": params["verdict"],
@@ -109,7 +109,7 @@ async def publish_task(client: MockMCPClient, agent_id: str) -> dict:
         Task creation result
     """
     result = await client.call_tool(
-        "chamba_publish_task",
+        "em_publish_task",
         {
             "agent_id": agent_id,
             "title": "Verify coffee shop hours",
@@ -152,14 +152,14 @@ async def check_task_status(
     """
     # Get task status
     task = await client.call_tool(
-        "chamba_get_task",
+        "em_get_task",
         {"task_id": task_id, "response_format": "json"},
     )
 
     # If submitted, check submissions
     if task.get("status") in ["submitted", "verifying"]:
         submissions = await client.call_tool(
-            "chamba_check_submission",
+            "em_check_submission",
             {
                 "task_id": task_id,
                 "agent_id": agent_id,
@@ -243,7 +243,7 @@ async def review_submission(
 
     if is_valid:
         result = await client.call_tool(
-            "chamba_approve_submission",
+            "em_approve_submission",
             {
                 "submission_id": submission_id,
                 "agent_id": agent_id,
@@ -253,7 +253,7 @@ async def review_submission(
         )
     else:
         result = await client.call_tool(
-            "chamba_approve_submission",
+            "em_approve_submission",
             {
                 "submission_id": submission_id,
                 "agent_id": agent_id,
@@ -279,7 +279,7 @@ async def main():
 
     # Initialize client
     client = MockMCPClient()
-    await client.connect("https://api.chamba.ultravioletadao.xyz/mcp")
+    await client.connect("https://api.execution.market/mcp")
 
     # Step 1: Publish a task
     print("\n" + "=" * 60)
@@ -340,7 +340,7 @@ async def main():
         print("No submissions yet. Waiting for a worker to complete the task...")
         print("\nIn a real implementation, you would:")
         print("  1. Set up webhooks to receive submission notifications")
-        print("  2. Or poll periodically with chamba_get_task")
+        print("  2. Or poll periodically with em_get_task")
 
     print("\n" + "=" * 60)
     print("Workflow complete!")

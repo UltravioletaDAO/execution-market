@@ -18,7 +18,7 @@ import type {
 import { TimeoutError } from '../errors';
 
 /**
- * Tasks API for creating and managing Chamba tasks.
+ * Tasks API for creating and managing Execution Market tasks.
  */
 export class TasksAPI {
   constructor(private readonly http: HttpClient) {}

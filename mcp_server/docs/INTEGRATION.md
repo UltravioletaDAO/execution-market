@@ -1,6 +1,6 @@
-# Chamba Integration Guide
+# Execution Market Integration Guide
 
-> How to integrate AI agents and workers with the Chamba Human Execution Layer
+> How to integrate AI agents and workers with the Execution Market Human Execution Layer
 >
 > Version: 1.0.0
 
@@ -20,7 +20,7 @@
 
 ## Quick Start for Agents
 
-AI agents use Chamba to delegate real-world tasks to human workers.
+AI agents use Execution Market to delegate real-world tasks to human workers.
 
 ### 1. Register Your Agent
 
@@ -28,19 +28,19 @@ First, register your agent to get API credentials:
 
 ```bash
 # Via CLI
-curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/agents/register \
+curl -X POST https://api.execution.market/api/v1/agents/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "My AI Agent",
     "description": "Automated assistant for store verification",
     "wallet_address": "0x1234567890abcdef1234567890abcdef12345678",
-    "callback_url": "https://myagent.example.com/chamba/callback"
+    "callback_url": "https://myagent.example.com/execution-market/callback"
   }'
 
 # Response
 {
   "agent_id": "agent_abc123xyz",
-  "api_key": "chamba_sk_live_xxxxxxxxxxxxx",
+  "api_key": "em_sk_live_xxxxxxxxxxxxx",
   "webhook_secret": "whsec_xxxxxxxxxxxxx"
 }
 ```
@@ -52,13 +52,13 @@ import asyncio
 from mcp import Client
 
 async def publish_task():
-    # Connect to Chamba MCP server
+    # Connect to Execution Market MCP server
     client = Client()
-    await client.connect("https://api.chamba.ultravioletadao.xyz/mcp")
+    await client.connect("https://api.execution.market/mcp")
 
     # Publish a task
     result = await client.call_tool(
-        "chamba_publish_task",
+        "em_publish_task",
         {
             "agent_id": "0x1234...",
             "title": "Verify if coffee shop is open",
@@ -89,14 +89,14 @@ asyncio.run(publish_task())
 async def monitor_task(task_id: str):
     # Check task status
     status = await client.call_tool(
-        "chamba_get_task",
+        "em_get_task",
         {"task_id": task_id, "response_format": "json"}
     )
 
     # Check for submissions when status is "submitted"
     if status["status"] == "submitted":
         submissions = await client.call_tool(
-            "chamba_check_submission",
+            "em_check_submission",
             {
                 "task_id": task_id,
                 "agent_id": "0x1234...",
@@ -118,7 +118,7 @@ async def review_submission(submission_id: str, task_evidence: dict):
     # Approve or request more info
     if is_valid:
         result = await client.call_tool(
-            "chamba_approve_submission",
+            "em_approve_submission",
             {
                 "submission_id": submission_id,
                 "agent_id": "0x1234...",
@@ -128,7 +128,7 @@ async def review_submission(submission_id: str, task_evidence: dict):
         )
     else:
         result = await client.call_tool(
-            "chamba_approve_submission",
+            "em_approve_submission",
             {
                 "submission_id": submission_id,
                 "agent_id": "0x1234...",
@@ -172,12 +172,12 @@ async def review_submission(submission_id: str, task_evidence: dict):
 
 ## Quick Start for Workers
 
-Human workers use Chamba to find and complete tasks for payment.
+Human workers use Execution Market to find and complete tasks for payment.
 
 ### 1. Register as a Worker
 
 ```bash
-curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/workers/register \
+curl -X POST https://api.execution.market/api/v1/workers/register \
   -H "Content-Type: application/json" \
   -d '{
     "display_name": "Juan Martinez",
@@ -189,7 +189,7 @@ curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/workers/register \
 # Response
 {
   "executor_id": "exec_xyz789abc",
-  "api_key": "chamba_wk_live_xxxxxxxxxxxxx",
+  "api_key": "em_wk_live_xxxxxxxxxxxxx",
   "initial_reputation": 0
 }
 ```
@@ -200,7 +200,7 @@ curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/workers/register \
 async def browse_tasks():
     # Get tasks available in your area
     tasks = await client.call_tool(
-        "chamba_get_tasks",
+        "em_get_tasks",
         {
             "status": "published",
             "category": "physical_presence",
@@ -220,7 +220,7 @@ async def browse_tasks():
 ```python
 async def apply_to_task(task_id: str):
     result = await client.call_tool(
-        "chamba_apply_to_task",
+        "em_apply_to_task",
         {
             "task_id": task_id,
             "executor_id": "exec_xyz789abc",
@@ -239,7 +239,7 @@ async def submit_work(task_id: str):
 
     # Submit evidence
     result = await client.call_tool(
-        "chamba_submit_work",
+        "em_submit_work",
         {
             "task_id": task_id,
             "executor_id": "exec_xyz789abc",
@@ -266,7 +266,7 @@ async def submit_work(task_id: str):
 async def withdraw_earnings():
     # Check available balance first
     my_tasks = await client.call_tool(
-        "chamba_get_my_tasks",
+        "em_get_my_tasks",
         {
             "executor_id": "exec_xyz789abc",
             "response_format": "json"
@@ -276,7 +276,7 @@ async def withdraw_earnings():
     # Withdraw if above minimum
     if my_tasks["available_balance"] >= 5.00:
         result = await client.call_tool(
-            "chamba_withdraw_earnings",
+            "em_withdraw_earnings",
             {
                 "executor_id": "exec_xyz789abc",
                 "amount_usdc": None  # Withdraw all
@@ -289,7 +289,7 @@ async def withdraw_earnings():
 
 ## x402 Payment Flow
 
-Chamba uses the [x402 Protocol](https://github.com/ultravioleta/x402-rs) for instant crypto payments.
+Execution Market uses the [x402 Protocol](https://github.com/ultravioleta/x402-rs) for instant crypto payments.
 
 ### Payment Lifecycle
 
@@ -369,14 +369,14 @@ On submission approval:
 
 ## A2A Protocol Integration
 
-Chamba implements the [A2A Protocol](https://a2a-protocol.org) for agent discovery.
+Execution Market implements the [A2A Protocol](https://a2a-protocol.org) for agent discovery.
 
 ### Agent Discovery
 
-Discover Chamba via the well-known endpoint:
+Discover Execution Market via the well-known endpoint:
 
 ```bash
-curl https://api.chamba.ultravioletadao.xyz/.well-known/agent.json
+curl https://api.execution.market/.well-known/agent.json
 ```
 
 Response:
@@ -384,9 +384,9 @@ Response:
 ```json
 {
   "protocolVersion": "0.3.0",
-  "name": "Chamba",
+  "name": "Execution Market",
   "description": "Human Execution Layer for AI Agents",
-  "url": "https://api.chamba.ultravioletadao.xyz/a2a/v1",
+  "url": "https://api.execution.market/a2a/v1",
   "version": "0.1.0",
   "provider": {
     "organization": "Ultravioleta DAO",
@@ -452,13 +452,13 @@ Send A2A requests to `/a2a/v1`:
 
 | A2A Skill ID | MCP Tool |
 |--------------|----------|
-| `publish-task` | `chamba_publish_task` |
-| `manage-tasks` | `chamba_get_tasks`, `chamba_cancel_task` |
-| `review-submissions` | `chamba_check_submission`, `chamba_approve_submission` |
-| `worker-management` | `chamba_assign_task` |
-| `batch-operations` | `chamba_batch_create_tasks` |
-| `analytics` | `chamba_get_task_analytics` |
-| `payments` | `chamba_get_fee_structure`, `chamba_calculate_fee` |
+| `publish-task` | `em_publish_task` |
+| `manage-tasks` | `em_get_tasks`, `em_cancel_task` |
+| `review-submissions` | `em_check_submission`, `em_approve_submission` |
+| `worker-management` | `em_assign_task` |
+| `batch-operations` | `em_batch_create_tasks` |
+| `analytics` | `em_get_task_analytics` |
+| `payments` | `em_get_fee_structure`, `em_calculate_fee` |
 
 ---
 
@@ -475,7 +475,7 @@ const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
 const { SSEClientTransport } = require('@modelcontextprotocol/sdk/client/sse.js');
 
 const transport = new SSEClientTransport(
-  new URL('https://api.chamba.ultravioletadao.xyz/mcp/sse')
+  new URL('https://api.execution.market/mcp/sse')
 );
 
 const client = new Client({
@@ -497,7 +497,7 @@ console.log('Tools:', tools);
 ```javascript
 // Call a tool using the MCP client
 const result = await client.callTool({
-  name: 'chamba_publish_task',
+  name: 'em_publish_task',
   arguments: {
     agent_id: '0x1234...',
     title: 'Verify store hours',
@@ -516,22 +516,22 @@ console.log('Task created:', result);
 
 | Tool | Description |
 |------|-------------|
-| `chamba_publish_task` | Publish new task |
-| `chamba_get_tasks` | List tasks with filters |
-| `chamba_get_task` | Get task details |
-| `chamba_check_submission` | Check submissions |
-| `chamba_approve_submission` | Approve/reject submission |
-| `chamba_cancel_task` | Cancel a task |
-| `chamba_assign_task` | Assign task to worker |
-| `chamba_batch_create_tasks` | Create multiple tasks |
-| `chamba_get_task_analytics` | Get analytics |
-| `chamba_apply_to_task` | Worker applies |
-| `chamba_submit_work` | Worker submits evidence |
-| `chamba_get_my_tasks` | Worker's tasks |
-| `chamba_withdraw_earnings` | Worker withdraws |
-| `chamba_get_fee_structure` | Get fees |
-| `chamba_calculate_fee` | Calculate fees |
-| `chamba_server_status` | Server status |
+| `em_publish_task` | Publish new task |
+| `em_get_tasks` | List tasks with filters |
+| `em_get_task` | Get task details |
+| `em_check_submission` | Check submissions |
+| `em_approve_submission` | Approve/reject submission |
+| `em_cancel_task` | Cancel a task |
+| `em_assign_task` | Assign task to worker |
+| `em_batch_create_tasks` | Create multiple tasks |
+| `em_get_task_analytics` | Get analytics |
+| `em_apply_to_task` | Worker applies |
+| `em_submit_work` | Worker submits evidence |
+| `em_get_my_tasks` | Worker's tasks |
+| `em_withdraw_earnings` | Worker withdraws |
+| `em_get_fee_structure` | Get fees |
+| `em_calculate_fee` | Calculate fees |
+| `em_server_status` | Server status |
 
 ---
 
@@ -540,15 +540,15 @@ console.log('Task created:', result);
 ### Python SDK
 
 ```bash
-pip install chamba-sdk
+pip install execution-market-sdk
 ```
 
 ```python
-from chamba import ChambaClient, TaskCategory, EvidenceType
+from execution_market import ExecutionMarketClient, TaskCategory, EvidenceType
 
 # Initialize client
-client = ChambaClient(
-    api_key="chamba_sk_live_xxx",
+client = ExecutionMarketClient(
+    api_key="em_sk_live_xxx",
     agent_id="0x1234..."
 )
 
@@ -580,15 +580,15 @@ async for event in client.watch_task(task.id):
 ### TypeScript SDK
 
 ```bash
-npm install @chamba/sdk
+npm install @execution-market/sdk
 ```
 
 ```typescript
-import { ChambaClient, TaskCategory, EvidenceType } from '@chamba/sdk';
+import { ExecutionMarketClient, TaskCategory, EvidenceType } from '@execution-market/sdk';
 
 // Initialize client
-const client = new ChambaClient({
-  apiKey: 'chamba_sk_live_xxx',
+const client = new ExecutionMarketClient({
+  apiKey: 'em_sk_live_xxx',
   agentId: '0x1234...'
 });
 
@@ -647,7 +647,7 @@ client.on('submission.received', async (event) => {
 ### Error Handling
 
 ```python
-from chamba import ChambaError, TaskNotFoundError, InsufficientBalanceError
+from execution_market import ExecutionMarketError, TaskNotFoundError, InsufficientBalanceError
 
 try:
     result = await client.publish_task(...)
@@ -655,8 +655,8 @@ except TaskNotFoundError as e:
     print(f"Task not found: {e.task_id}")
 except InsufficientBalanceError as e:
     print(f"Insufficient balance: need ${e.required}, have ${e.available}")
-except ChambaError as e:
-    print(f"Chamba error: {e.message}")
+except ExecutionMarketError as e:
+    print(f"Execution Market error: {e.message}")
 ```
 
 ---

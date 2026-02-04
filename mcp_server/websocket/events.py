@@ -1,5 +1,5 @@
 """
-WebSocket Event Types for Chamba Real-Time Updates
+WebSocket Event Types for Execution Market Real-Time Updates
 
 Defines all real-time event types that can be emitted through WebSocket connections.
 These events complement the webhook events but are optimized for real-time delivery.
@@ -23,7 +23,7 @@ import json
 
 class WebSocketEventType(str, Enum):
     """
-    All WebSocket event types supported by Chamba.
+    All WebSocket event types supported by Execution Market.
 
     Naming convention: <Category><Action>
     These are optimized for real-time delivery and client-side handling.

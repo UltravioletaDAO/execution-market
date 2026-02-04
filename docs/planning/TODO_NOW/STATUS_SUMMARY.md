@@ -4,7 +4,7 @@
 
 ## 🚀 PRODUCCIÓN EN VIVO
 
-**API URL**: https://api.chamba.ultravioletadao.xyz
+**API URL**: https://api.execution.market
 
 | Endpoint | Estado | Notas |
 |----------|--------|-------|
@@ -25,7 +25,7 @@
 |------|-------------|--------|------------------|
 | NOW-202 | x402 SDK Integration | ✅ COMPLETADO | Ninguna |
 | NOW-203 | Supabase Real Setup | ✅ CONECTADO | Bucket storage pendiente |
-| NOW-204 | Deploy a api.chamba.ultravioletadao.xyz | ✅ COMPLETADO | Ninguna |
+| NOW-204 | Deploy a api.execution.market | ✅ COMPLETADO | Ninguna |
 | NOW-205 | Ethereum Mainnet Contracts | ⏸️ BLOQUEADO | Usuario: wallet fondeada |
 | NOW-206 | Swagger UI | ✅ COMPLETADO | Ninguna |
 | NOW-207 | Integration Tests | ⏸️ PARCIAL | Unit tests pasan |
@@ -55,13 +55,13 @@
 - ✅ ECS Fargate corriendo
 - ✅ ECR con imagen `sha256:48a40929...`
 - ✅ ALB con SSL
-- ✅ DNS: `api.chamba.ultravioletadao.xyz`
+- ✅ DNS: `api.execution.market`
 - ✅ Health checks pasando
 
 ### NOW-206: Swagger UI ✅
 - FastAPI metadata completa (título, descripción, contacto, licencia)
 - 7 tags definidos para organización
-- Accesible en https://api.chamba.ultravioletadao.xyz/docs
+- Accesible en https://api.execution.market/docs
 
 ### NOW-209: Guía Tests MCP ✅
 - Documentación completa de 20 archivos de test
@@ -144,13 +144,13 @@ O agregar la key en el dashboard de Secrets Manager.
 ### En Producción
 ```bash
 # Health check
-curl https://api.chamba.ultravioletadao.xyz/health
+curl https://api.execution.market/health
 
 # Swagger UI (abrir en browser)
-https://api.chamba.ultravioletadao.xyz/docs
+https://api.execution.market/docs
 
 # A2A Agent Card
-curl https://api.chamba.ultravioletadao.xyz/.well-known/agent.json
+curl https://api.execution.market/.well-known/agent.json
 ```
 
 ### Local

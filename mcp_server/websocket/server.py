@@ -1,5 +1,5 @@
 """
-WebSocket Server for Chamba Real-Time Updates
+WebSocket Server for Execution Market Real-Time Updates
 
 Provides a FastAPI WebSocket endpoint with:
 - Connection management for multiple clients
@@ -132,7 +132,7 @@ class ServerMessage:
 
 class WebSocketManager:
     """
-    Manages WebSocket connections for the Chamba MCP server.
+    Manages WebSocket connections for the Execution Market MCP server.
 
     Features:
     - Connection lifecycle management

@@ -1,4 +1,4 @@
-// Chamba: Profile Page (NOW-029)
+// Execution Market: Profile Page (NOW-029)
 // Comprehensive worker profile with reputation, earnings, task history, and settings
 // Uses Bayesian score display, task history filters, earnings summary, and skill selector
 
@@ -1141,10 +1141,10 @@ export function Profile({ executor, onBack, onLogout }: ProfilePageProps) {
 
   // Load settings from localStorage on mount
   useEffect(() => {
-    const savedToken = localStorage.getItem('chamba_preferred_token')
+    const savedToken = localStorage.getItem('em_preferred_token')
     if (savedToken) setPreferredToken(savedToken)
 
-    const savedNotifications = localStorage.getItem('chamba_notifications')
+    const savedNotifications = localStorage.getItem('em_notifications')
     if (savedNotifications) {
       try {
         setNotifications(JSON.parse(savedNotifications))
@@ -1153,7 +1153,7 @@ export function Profile({ executor, onBack, onLogout }: ProfilePageProps) {
       }
     }
 
-    const savedSkills = localStorage.getItem('chamba_skills')
+    const savedSkills = localStorage.getItem('em_skills')
     if (savedSkills) {
       try {
         setSelectedSkills(JSON.parse(savedSkills))
@@ -1170,9 +1170,9 @@ export function Profile({ executor, onBack, onLogout }: ProfilePageProps) {
 
     try {
       // Save to localStorage
-      localStorage.setItem('chamba_preferred_token', preferredToken)
-      localStorage.setItem('chamba_notifications', JSON.stringify(notifications))
-      localStorage.setItem('chamba_skills', JSON.stringify(selectedSkills))
+      localStorage.setItem('em_preferred_token', preferredToken)
+      localStorage.setItem('em_notifications', JSON.stringify(notifications))
+      localStorage.setItem('em_skills', JSON.stringify(selectedSkills))
 
       // In production, also save to API
       // await updateExecutorSettings(executor.id, { displayName, preferredToken, notifications, skills: selectedSkills })

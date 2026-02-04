@@ -1,5 +1,5 @@
 /**
- * Chamba: Task Card Component
+ * Execution Market: Task Card Component
  * Displays a task summary with category, status, bounty, and deadline
  * Fully internationalized using i18n translations
  */

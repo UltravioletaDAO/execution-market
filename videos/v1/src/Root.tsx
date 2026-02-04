@@ -1,12 +1,12 @@
 import { Composition } from "remotion";
-import { ChambaVideo } from "./ChambaVideo";
+import { EMVideo } from "./EMVideo";
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
       <Composition
-        id="ChambaVideo"
-        component={ChambaVideo}
+        id="EMVideo"
+        component={EMVideo}
         durationInFrames={80 * 30} // 80 seconds at 30fps
         fps={30}
         width={1920}

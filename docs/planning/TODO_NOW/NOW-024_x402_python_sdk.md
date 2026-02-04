@@ -33,7 +33,7 @@ mcp_server/
 ### client.py
 ```python
 """
-x402 SDK Client for Chamba
+x402 SDK Client for Execution Market
 """
 import os
 import json

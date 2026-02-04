@@ -86,7 +86,7 @@ El agente genera $500 en valor y luego se sienta a esperar porque necesita que a
 
 ## Eso es lo que estamos construyendo
 
-Se llama **Chamba**.
+Se llama **Execution Market**.
 
 No es otra app de gig economy. No es "Uber para tareas". No es un marketplace más donde humanos contratan humanos.
 
@@ -174,7 +174,7 @@ Hoy esas tareas de $0.25 son **imposibles**. TaskRabbit cobra 23% de comisión. 
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
 | Upwork | 0-15% | $5+ | 5-10 días |
-| **Chamba** | **6-8%** | **$0.25** | **Instantáneo** |
+| **Execution Market** | **6-8%** | **$0.25** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para que alguien complete un CAPTCHA.
 
@@ -202,7 +202,7 @@ Aquí está lo crucial: x402 versión 2 fue diseñado para permitir extensiones.
 
 Si el trabajo no se verifica, el dinero vuelve solo. Sin disputas. Sin esperar. Sin intermediarios.
 
-**Sin este sistema de refunds, nada de Chamba sería posible.** Un agente no puede arriesgar su dinero sin garantía de que recupera su pago si el trabajo falla. x402r resuelve esto de forma trustless.
+**Sin este sistema de refunds, nada de Execution Market sería posible.** Un agente no puede arriesgar su dinero sin garantía de que recupera su pago si el trabajo falla. x402r resuelve esto de forma trustless.
 
 Durante el [x402 Hackathon](https://x402hackathon.com), trabajamos directamente con el equipo de x402r para integrar su sistema de reembolsos en nuestro facilitador. No es que simplemente exista el producto — **ya está live e integrado** en facilitator.ultravioletadao.xyz.
 
@@ -275,7 +275,7 @@ Una empresa tiene un agente manejando atención al cliente. El agente cierra una
 
 Horas. A veces días.
 
-**Con Chamba:**
+**Con Execution Market:**
 1. Agente publica: "Enviar paquete, $8"
 2. Humano cercano la toma
 3. Va, envía, sube foto de recibo con tracking
@@ -291,7 +291,7 @@ Todo en minutos. Sin fricción. Sin intermediarios humanos.
 
 ## Plataforma y protocolo
 
-Algo importante: Chamba es **ambos**.
+Algo importante: Execution Market es **ambos**.
 
 Estamos construyendo la **plataforma** — el marketplace donde agentes publican tareas y humanos las toman. Está en desarrollo activo y es nuestra prioridad. Cada día estamos más cerca de tenerla lista.
 
@@ -299,13 +299,13 @@ Y estamos definiendo el **protocolo** — el estándar abierto para que cualquie
 
 HTTP es un protocolo. Chrome es una app que usa HTTP. Firefox también. Miles de apps usan HTTP.
 
-Chamba Protocol define:
+Execution Market Protocol define:
 - Cómo se publican tareas (MCP tools para agentes)
 - Cómo se asignan workers (matching por ubicación, reputación, skills)
 - Cómo se verifica el trabajo
 - Cómo se liquidan los pagos
 
-La plataforma de Chamba será la primera implementación. Pero el protocolo permite que otros construyan sus propias versiones, apps especializadas, o integraciones enterprise.
+La plataforma de Execution Market será la primera implementación. Pero el protocolo permite que otros construyan sus propias versiones, apps especializadas, o integraciones enterprise.
 
 **El ecosistema crece porque el protocolo es abierto.**
 
@@ -317,7 +317,7 @@ Además del marketplace público, hay otro mercado enorme.
 
 Empresas con agentes de IA internos. Necesitan tareas físicas. Necesitan verificaciones. Pero no quieren exponer operaciones internas en un marketplace público. No quieren usar crypto. No quieren perder control.
 
-**Chamba Enterprise:**
+**Execution Market Enterprise:**
 - Su propia instancia del protocolo
 - Sistema de puntos interno en vez de crypto
 - Workers limitados a empleados o contractors aprobados
@@ -327,11 +327,11 @@ El mismo protocolo. Diferente implementación.
 
 Una empresa de logística con agentes que publican tareas de verificación, y empleados que las toman como parte de su trabajo.
 
-**Y aquí está lo revolucionario:** Con Chamba Enterprise, el reconocimiento es automático y transparente. El empleado que más tareas completa sube en el ranking sin depender de políticas de oficina o favoritismo. Mérito puro. Medible. Auditable.
+**Y aquí está lo revolucionario:** Con Execution Market Enterprise, el reconocimiento es automático y transparente. El empleado que más tareas completa sube en el ranking sin depender de políticas de oficina o favoritismo. Mérito puro. Medible. Auditable.
 
 Streaks de 7 días = 1.5x puntos. Leaderboard mensual. El que más contribuye, más visible es.
 
-En muchas empresas, el trabajo duro se pierde en el ruido y la gente escala por otras razones. Con Chamba Enterprise, el sistema no puede ignorar a quien más aporta.
+En muchas empresas, el trabajo duro se pierde en el ruido y la gente escala por otras razones. Con Execution Market Enterprise, el sistema no puede ignorar a quien más aporta.
 
 O pueden conectar al pool público cuando necesiten overflow.
 
@@ -415,7 +415,7 @@ Nuestro **facilitador x402** está live en producción, soportando **17 redes ma
 
 Con **ERC-8004** llevamos meses experimentando en testnet. Reputación bidireccional. Escala 0-100. Cuando el estándar llegue a mainnet, estaremos listos para atar los cabos finales.
 
-**Chamba no es una idea.** Es la siguiente pieza de un ecosistema que ya está tomando forma.
+**Execution Market no es una idea.** Es la siguiente pieza de un ecosistema que ya está tomando forma.
 
 Este artículo es una invitación. A ver lo que nosotros vemos. A prepararse para lo que viene.
 
@@ -444,7 +444,7 @@ Este artículo es una invitación. A ver lo que nosotros vemos. A prepararse par
 
 ---
 
-*Chamba es un proyecto de @ultravioletadao. Los rieles existen. Ahora construimos el puente.*
+*Execution Market es un proyecto de @ultravioletadao. Los rieles existen. Ahora construimos el puente.*
 
 *Síguenos. Esto apenas comienza.*
 

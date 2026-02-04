@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Test Fixtures
+ * Execution Market E2E Test Fixtures
  *
  * Shared test data and utilities for all E2E tests.
  */
@@ -11,13 +11,13 @@ import { test as base, expect, Page } from '@playwright/test';
 
 export const TEST_USERS = {
   worker: {
-    email: 'worker.test@chamba.lat',
+    email: 'worker.test@execution.market',
     walletAddress: '0x1234567890123456789012345678901234567890',
     displayName: 'Test Worker',
     reputation: 75,
   },
   workerLowRep: {
-    email: 'worker.lowrep@chamba.lat',
+    email: 'worker.lowrep@execution.market',
     walletAddress: '0x2234567890123456789012345678901234567890',
     displayName: 'Low Rep Worker',
     reputation: 25,
@@ -28,7 +28,7 @@ export const TEST_USERS = {
     displayName: 'Test Agent Bot',
   },
   validator: {
-    email: 'validator@chamba.lat',
+    email: 'validator@execution.market',
     walletAddress: '0x3234567890123456789012345678901234567890',
     displayName: 'Test Validator',
     stake: 100,
@@ -103,19 +103,19 @@ export const TASK_TEMPLATES = {
 // Custom Fixtures
 // ============================================================================
 
-type ChambaFixtures = {
+type EMFixtures = {
   workerPage: Page;
   agentPage: Page;
   validatorPage: Page;
   authenticatedWorker: Page;
 };
 
-export const test = base.extend<ChambaFixtures>({
+export const test = base.extend<EMFixtures>({
   // Worker page with basic setup
   workerPage: async ({ page }, use) => {
     // Set worker-specific settings
     await page.addInitScript(() => {
-      window.localStorage.setItem('chamba_language', 'es');
+      window.localStorage.setItem('em_language', 'es');
     });
     await use(page);
   },
@@ -124,7 +124,7 @@ export const test = base.extend<ChambaFixtures>({
   agentPage: async ({ page }, use) => {
     await page.addInitScript(
       (apiKey) => {
-        window.localStorage.setItem('chamba_agent_api_key', apiKey);
+        window.localStorage.setItem('em_agent_api_key', apiKey);
       },
       TEST_USERS.agent.apiKey
     );
@@ -135,8 +135,8 @@ export const test = base.extend<ChambaFixtures>({
   validatorPage: async ({ page }, use) => {
     await page.addInitScript(
       (validator) => {
-        window.localStorage.setItem('chamba_is_validator', 'true');
-        window.localStorage.setItem('chamba_validator_stake', String(validator.stake));
+        window.localStorage.setItem('em_is_validator', 'true');
+        window.localStorage.setItem('em_validator_stake', String(validator.stake));
       },
       TEST_USERS.validator
     );
@@ -148,9 +148,9 @@ export const test = base.extend<ChambaFixtures>({
     // Mock authentication state
     await page.addInitScript(
       (worker) => {
-        window.localStorage.setItem('chamba_language', 'es');
-        window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
-        window.localStorage.setItem('chamba_display_name', worker.displayName);
+        window.localStorage.setItem('em_language', 'es');
+        window.localStorage.setItem('em_wallet_address', worker.walletAddress);
+        window.localStorage.setItem('em_display_name', worker.displayName);
         // Mock session token
         window.localStorage.setItem('supabase.auth.token', JSON.stringify({
           access_token: 'mock_access_token',

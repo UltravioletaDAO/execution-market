@@ -1,5 +1,5 @@
 /**
- * Chamba Notification Types
+ * Execution Market Notification Types
  *
  * Type definitions for the notification system including:
  * - Toast notifications (transient)

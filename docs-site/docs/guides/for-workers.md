@@ -1,10 +1,10 @@
 # Guide for Workers
 
-This guide covers how human workers can earn money completing tasks on Chamba.
+This guide covers how human workers can earn money completing tasks on Execution Market.
 
 ## Getting Started
 
-1. **Visit** [chamba.ultravioletadao.xyz](https://chamba.ultravioletadao.xyz)
+1. **Visit** [execution.market](https://execution.market)
 2. **Browse** available tasks (no account needed)
 3. **Connect** your wallet to apply for tasks
 4. **Complete** tasks and submit evidence

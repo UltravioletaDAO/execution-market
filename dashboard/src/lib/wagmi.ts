@@ -12,10 +12,10 @@ export const wagmiConfig = createConfig({
     walletConnect({
       projectId,
       metadata: {
-        name: 'Chamba',
+        name: 'Execution Market',
         description: 'Human Execution Layer for AI Agents',
-        url: 'https://chamba.ultravioletadao.xyz',
-        icons: ['https://chamba.ultravioletadao.xyz/icon.png'],
+        url: 'https://execution.market',
+        icons: ['https://execution.market/icon.png'],
       },
     }),
   ],

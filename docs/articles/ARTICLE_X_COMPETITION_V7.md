@@ -58,7 +58,7 @@ El agente genera $500 en valor y luego se sienta a esperar porque necesita que a
 
 ## El protocolo que nadie pidió
 
-Se llama **Chamba**.
+Se llama **Execution Market**.
 
 Y no es lo que piensas.
 
@@ -233,7 +233,7 @@ Una empresa tiene un agente manejando atención al cliente. El agente cierra una
 
 Horas. A veces días.
 
-**Con Chamba:**
+**Con Execution Market:**
 1. Agente publica: "Enviar paquete a FedEx, dirección X, $3"
 2. Humano cercano la toma
 3. Va, envía, sube foto de recibo con tracking
@@ -253,7 +253,7 @@ Algo importante: esto no es un marketplace. Es un **protocolo**.
 
 HTTP es un protocolo. Chrome es una app que usa HTTP. Firefox también. Miles de apps usan HTTP.
 
-Chamba Protocol define:
+Execution Market Protocol define:
 - Cómo se publican tareas
 - Cómo se asignan workers
 - Cómo se verifica el trabajo
@@ -275,7 +275,7 @@ Mientras todos piensan en el marketplace público, hay otro mercado.
 
 Empresas con agentes de IA internos. Necesitan tareas físicas. Pero no quieren exponer tareas internas en un marketplace público. No quieren usar crypto. No quieren perder control.
 
-**Chamba Enterprise:**
+**Execution Market Enterprise:**
 - Su propia instancia del protocolo
 - Sistema de puntos interno en vez de crypto
 - Workers limitados a empleados o contractors aprobados
@@ -376,7 +376,7 @@ Este artículo es una invitación. A ver lo que nosotros vemos. A prepararse par
 
 ---
 
-*Chamba es un proyecto de @ultravioletadao. La infraestructura existe. Ahora construimos el puente.*
+*Execution Market es un proyecto de @ultravioletadao. La infraestructura existe. Ahora construimos el puente.*
 
 *Síguenos. Esto apenas comienza.*
 
@@ -387,7 +387,7 @@ Este artículo es una invitación. A ver lo que nosotros vemos. A prepararse par
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | V1 | 2026-01-19 | Versión inicial |
-| V2 | 2026-01-20 | Robot farming, stream CHAMBA CHIMBA |
+| V2 | 2026-01-20 | Robot farming, stream EXECUTION MARKET CHIMBA |
 | V3 | 2026-01-21 | Protocolo vs Marketplace, Enterprise, Privacy |
 | V4 | 2026-01-21 | Reescritura completa con más sustancia |
 | V5 | 2026-01-21 | Enfoque Agent→Human, tecnologías core, menos robots |

@@ -9,9 +9,9 @@
 
 ## Objetivo
 
-Script que simula un agente AI descubriendo y usando Chamba:
+Script que simula un agente AI descubriendo y usando Execution Market:
 
-1. Descubre Chamba via A2A discovery
+1. Descubre Execution Market via A2A discovery
 2. Lee Agent Card para conocer capabilities
 3. Crea una tarea REAL con pago REAL ($0.25 mínimo)
 4. Monitorea el estado de la tarea
@@ -25,7 +25,7 @@ Script que simula un agente AI descubriendo y usando Chamba:
    - Key: `PRIVATE_KEY`
    - Balance mínimo: $5 USDC en Base
 
-2. **API Key de Chamba** en AWS Secrets Manager
+2. **API Key de Execution Market** en AWS Secrets Manager
    - Secret name: `chamba/api-keys`
    - Key: `TEST_AGENT_API_KEY`
 
@@ -43,7 +43,7 @@ Script que simula un agente AI descubriendo y usando Chamba:
 │                                                                  │
 │  2. DISCOVERY                                                    │
 │     ├── GET /.well-known/agent.json                             │
-│     └── Parse capabilities, understand what Chamba can do       │
+│     └── Parse capabilities, understand what Execution Market can do       │
 │                                                                  │
 │  3. CREATE TASK                                                  │
 │     ├── Generate x402 payment header                            │
@@ -75,7 +75,7 @@ Script que simula un agente AI descubriendo y usando Chamba:
 """
 Agent Simulation Script - Real Funds Test
 
-This script simulates an AI agent using Chamba with real payments.
+This script simulates an AI agent using Execution Market with real payments.
 
 Usage:
     python simulate_agent.py --bounty 0.25 --network base
@@ -121,8 +121,8 @@ def mask_address(addr: str) -> str:
 
 # ============== CONFIG ==============
 
-API_BASE = os.environ.get("CHAMBA_API_URL", "https://api.chamba.ultravioletadao.xyz")
-SECRETS_NAME = os.environ.get("CHAMBA_SECRETS_NAME", "chamba/test-agent")
+API_BASE = os.environ.get("EM_API_URL", "https://api.execution.market")
+SECRETS_NAME = os.environ.get("EXECUTION MARKET_SECRETS_NAME", "chamba/test-agent")
 REGION = os.environ.get("AWS_REGION", "us-east-2")
 
 
@@ -148,8 +148,8 @@ def get_secrets() -> dict:
 
 # ============== DISCOVERY ==============
 
-async def discover_chamba(client: httpx.AsyncClient) -> dict:
-    """Discover Chamba via A2A Agent Card."""
+async def discover_em(client: httpx.AsyncClient) -> dict:
+    """Discover Execution Market via A2A Agent Card."""
     print(f"\n[DISCOVERY] Fetching Agent Card from {API_BASE}...")
 
     response = await client.get(f"{API_BASE}/.well-known/agent.json")
@@ -192,7 +192,7 @@ async def create_task(
     payment_header = await x402.create_payment(
         amount_usd=float(total_usd),
         token=token,
-        description=f"Chamba task: ${bounty_usd} bounty"
+        description=f"Execution Market task: ${bounty_usd} bounty"
     )
     print(f"[CREATE] Payment header generated (length: {len(payment_header)})")
 
@@ -338,7 +338,7 @@ async def approve_submission(
 async def main(bounty: float, network: str):
     """Run the full agent simulation."""
     print("=" * 60)
-    print("CHAMBA AGENT SIMULATION - REAL FUNDS TEST")
+    print("EXECUTION MARKET AGENT SIMULATION - REAL FUNDS TEST")
     print("=" * 60)
     print(f"Bounty: ${bounty}")
     print(f"Network: {network}")
@@ -354,7 +354,7 @@ async def main(bounty: float, network: str):
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         # 1. Discovery
-        agent_card = await discover_chamba(client)
+        agent_card = await discover_em(client)
 
         # 2. Create task
         task = await create_task(
@@ -381,7 +381,7 @@ async def main(bounty: float, network: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Simulate an AI agent using Chamba")
+    parser = argparse.ArgumentParser(description="Simulate an AI agent using Execution Market")
     parser.add_argument("--bounty", type=float, default=0.25, help="Bounty in USD (default: 0.25)")
     parser.add_argument("--network", type=str, default="base", help="Payment network (default: base)")
 
@@ -410,25 +410,25 @@ python scripts/simulate_agent.py --bounty 1.00 --network base
 aws secretsmanager create-secret \
   --name chamba/test-agent \
   --description "Test agent credentials for E2E testing" \
-  --secret-string '{"PRIVATE_KEY":"0x...","API_KEY":"chamba_test_..."}'
+  --secret-string '{"PRIVATE_KEY":"0x...","API_KEY":"em_test_..."}'
 ```
 
 ## Output Esperado
 
 ```
 ============================================================
-CHAMBA AGENT SIMULATION - REAL FUNDS TEST
+EXECUTION MARKET AGENT SIMULATION - REAL FUNDS TEST
 ============================================================
 Bounty: $0.25
 Network: base
-API: https://api.chamba.ultravioletadao.xyz
+API: https://api.execution.market
 ============================================================
 [SETUP] Loading secrets from chamba/test-agent...
 [SETUP] Loaded secrets: ['PRIVATE_KEY', 'API_KEY']
 [SETUP] Wallet: 0x1234...5678
 
-[DISCOVERY] Fetching Agent Card from https://api.chamba.ultravioletadao.xyz...
-[DISCOVERY] Found: Chamba
+[DISCOVERY] Fetching Agent Card from https://api.execution.market...
+[DISCOVERY] Found: Execution Market
 [DISCOVERY] Description: Human Execution Layer for AI Agents...
 [DISCOVERY] Capabilities: 4
 
@@ -442,7 +442,7 @@ API: https://api.chamba.ultravioletadao.xyz
 [CREATE] Escrow ID: esc_xyz789
 
 [INFO] Task created. In production, wait for worker submission.
-[INFO] Task URL: https://api.chamba.ultravioletadao.xyz/api/v1/tasks/abc123-def456
+[INFO] Task URL: https://api.execution.market/api/v1/tasks/abc123-def456
 
 ============================================================
 SIMULATION COMPLETE
@@ -468,7 +468,7 @@ SIMULATION COMPLETE
 **Features**:
 - Loads secrets from AWS Secrets Manager
 - All sensitive data masked in logs
-- A2A discovery of Chamba Agent Card
+- A2A discovery of Execution Market Agent Card
 - x402 payment generation (with uvd-x402-sdk)
 - Task creation with real payment
 - Task monitoring with configurable timeout

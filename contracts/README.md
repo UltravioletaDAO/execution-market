@@ -1,6 +1,6 @@
-# Chamba Escrow Contracts
+# Execution Market Escrow Contracts
 
-Smart contracts for Chamba's escrow system - enabling secure payments for human-executed tasks with partial release support.
+Smart contracts for Execution Market's escrow system - enabling secure payments for human-executed tasks with partial release support.
 
 ## Overview
 

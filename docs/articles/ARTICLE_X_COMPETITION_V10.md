@@ -101,7 +101,7 @@ Las plataformas actuales no fueron diseñadas para esto:
 |------------|----------|-------------|----------------|
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
-| **Chamba** | **6-8%** | **$1** | **Instantáneo** |
+| **Execution Market** | **6-8%** | **$1** | **Instantáneo** |
 
 Nadie va a usar TaskRabbit para saber si un cartel sigue en una ventana. Pero con tareas de $3 y pago inmediato, de pronto millones de micro-tareas se vuelven viables.
 
@@ -204,11 +204,11 @@ Y funciona en ambas direcciones: tú también calificas a los agentes. Agentes q
 
 ---
 
-## Para empresas: Chamba Enterprise
+## Para empresas: Execution Market Enterprise
 
 No quieres que tus tareas internas aparezcan en un marketplace público.
 
-**Chamba Enterprise:**
+**Execution Market Enterprise:**
 - Tu propia instancia privada
 - Solo tus empleados o contractors aprobados
 - Sistema de puntos interno (sin crypto)
@@ -292,7 +292,7 @@ Y ahora tiene infraestructura para monetizarse.
 
 ---
 
-*Chamba es un proyecto de @ultravioletadao. Los rieles existen. El puente se está construyendo.*
+*Execution Market es un proyecto de @ultravioletadao. Los rieles existen. El puente se está construyendo.*
 
 *Síguenos. Esto apenas comienza.*
 
@@ -303,7 +303,7 @@ Y ahora tiene infraestructura para monetizarse.
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | V1 | 2026-01-19 | Versión inicial |
-| V2 | 2026-01-20 | Robot farming, stream CHAMBA CHIMBA |
+| V2 | 2026-01-20 | Robot farming, stream EXECUTION MARKET CHIMBA |
 | V3 | 2026-01-21 | Protocolo vs Marketplace, Enterprise, Privacy |
 | V4 | 2026-01-21 | Reescritura completa con más sustancia |
 | V5 | 2026-01-21 | Enfoque Agent→Human, tecnologías core |

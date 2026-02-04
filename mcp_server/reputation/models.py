@@ -1,5 +1,5 @@
 """
-Chamba Reputation System - Data Models
+Execution Market Reputation System - Data Models
 
 Core data structures for the reputation system.
 """

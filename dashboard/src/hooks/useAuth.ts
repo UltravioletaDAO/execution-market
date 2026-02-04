@@ -1,4 +1,4 @@
-// Chamba: Auth and Executor Hooks
+// Execution Market: Auth and Executor Hooks
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Executor } from '../types/database'

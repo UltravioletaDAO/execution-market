@@ -135,7 +135,7 @@ export function ThemeToggle({
         'text-slate-600 dark:text-slate-400',
         'hover:bg-slate-100 dark:hover:bg-slate-800',
         'hover:text-slate-900 dark:hover:text-slate-100',
-        'focus:outline-none focus:ring-2 focus:ring-chamba-500 focus:ring-offset-2',
+        'focus:outline-none focus:ring-2 focus:ring-em-500 focus:ring-offset-2',
         'focus:ring-offset-white dark:focus:ring-offset-slate-900',
         'transition-colors duration-200',
         sizeClasses[size],
@@ -181,9 +181,9 @@ export function ThemeSwitch({ size = 'md', className }: ThemeSwitchProps) {
         'relative inline-flex flex-shrink-0 cursor-pointer rounded-full',
         'border-2 border-transparent',
         'transition-colors duration-200 ease-in-out',
-        'focus:outline-none focus:ring-2 focus:ring-chamba-500 focus:ring-offset-2',
+        'focus:outline-none focus:ring-2 focus:ring-em-500 focus:ring-offset-2',
         'focus:ring-offset-white dark:focus:ring-offset-slate-900',
-        isDark ? 'bg-chamba-600' : 'bg-slate-200',
+        isDark ? 'bg-em-600' : 'bg-slate-200',
         track,
         className
       )}
@@ -200,7 +200,7 @@ export function ThemeSwitch({ size = 'md', className }: ThemeSwitchProps) {
         )}
       >
         {isDark ? (
-          <MoonIcon className="w-3 h-3 text-chamba-600" />
+          <MoonIcon className="w-3 h-3 text-em-600" />
         ) : (
           <SunIcon className="w-3 h-3 text-amber-500" />
         )}
@@ -266,7 +266,7 @@ export function ThemeButtonGroup({
             className={cn(
               'inline-flex items-center justify-center gap-1.5 rounded-md',
               'transition-all duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-chamba-500',
+              'focus:outline-none focus:ring-2 focus:ring-em-500',
               buttonSizeClasses[size],
               isActive
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'

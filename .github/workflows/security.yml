@@ -142,12 +142,12 @@ jobs:
 
       - name: Build image
         run: |
-          docker build -t chamba-${{ matrix.context }}:scan ./${{ matrix.context }}
+          docker build -t em-${{ matrix.context }}:scan ./${{ matrix.context }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'chamba-${{ matrix.context }}:scan'
+          image-ref: 'em-${{ matrix.context }}:scan'
           format: 'sarif'
           output: 'trivy-${{ matrix.context }}.sarif'
           severity: 'CRITICAL,HIGH'
@@ -162,7 +162,7 @@ jobs:
       - name: Run Trivy (table output)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'chamba-${{ matrix.context }}:scan'
+          image-ref: 'em-${{ matrix.context }}:scan'
           format: 'table'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true

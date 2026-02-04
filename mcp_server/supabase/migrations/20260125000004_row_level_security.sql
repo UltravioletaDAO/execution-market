@@ -1,4 +1,4 @@
--- Chamba MCP Server: Row Level Security Policies
+-- Execution Market MCP Server: Row Level Security Policies
 -- Migration: 20260125000004_row_level_security.sql
 -- Description: RLS policies for secure data access
 

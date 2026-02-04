@@ -173,7 +173,7 @@ dashboard/
 
 ## 2026-01-17 - ERC-8004 Agentic Identity Integration (Ralph Loop Session 2)
 
-**Action**: Transform Chamba into a first-class agent in the agentic economy
+**Action**: Transform Execution Market into a first-class agent in the agentic economy
 **Agent**: Claude (via Ralph Loop)
 **Status Change**: incubating → incubating (near graduation)
 
@@ -182,17 +182,17 @@ dashboard/
 ### SPEC.md - Agentic Identity Section (Section 9)
 Added comprehensive ERC-8004 integration:
 
-1. **Chamba Agentic Architecture** - ASCII diagram showing ERC-8004 registry, Chamba agent, and external agent interactions
+1. **Execution Market Agentic Architecture** - ASCII diagram showing ERC-8004 registry, Execution Market agent, and external agent interactions
 
-2. **ERC-8004 Identity Registration** - Complete JSON schema for registering Chamba in agent identity registries:
-   - Agent ID: `chamba.ultravioleta.eth`
+2. **ERC-8004 Identity Registration** - Complete JSON schema for registering Execution Market in agent identity registries:
+   - Agent ID: `execution-market.ultravioleta.eth`
    - Type: `service_provider`
    - Category: `human_execution_layer`
    - 7 capabilities defined
    - 4 protocols supported (A2A, MCP, HTTP, WebSocket)
 
 3. **Agent Discovery Flow** - Python code showing how external agents (like Colmena foragers) can:
-   - Discover Chamba in ERC-8004 registry
+   - Discover Execution Market in ERC-8004 registry
    - Connect via A2A protocol
    - Publish tasks programmatically
 
@@ -231,16 +231,16 @@ Added comprehensive ERC-8004 integration:
      - Base mainnet config (ready for ERC-8004 v1)
 
 2. **Section 11: ERC-8004 Agent Registry Integration**
-   - **Architecture Diagram** - ERC-8004 ↔ Chamba ↔ External Agents
+   - **Architecture Diagram** - ERC-8004 ↔ Execution Market ↔ External Agents
 
-   - **ChambaAgentIdentity class** - Python dataclass for identity management
+   - **Execution MarketAgentIdentity class** - Python dataclass for identity management
 
    - **ERC8004Registry client** (~150 lines):
-     - `register_chamba()` - Register in registry
+     - `register_em()` - Register in registry
      - `find_agent()` - Discover agents by capability
      - `is_mainnet_ready()` - Check network status
 
-   - **discover_chamba() helper** - For external agents to find Chamba
+   - **discover_em() helper** - For external agents to find Execution Market
 
    - **A2A Protocol Messages** (YAML schemas):
      - Task publish/response
@@ -287,8 +287,8 @@ Added comprehensive ERC-8004 integration:
 
 **Next Steps (prioritized)**:
 1. Deploy ChambaEscrow.sol to Base Sepolia
-2. Register Chamba in ERC-8004 testnet registry
-3. Setup chamba repository with FastAPI structure
+2. Register Execution Market in ERC-8004 testnet registry
+3. Setup execution-market repository with FastAPI structure
 4. Wire up MCP server to escrow contract
 5. When ERC-8004 v1 launches: Deploy to mainnet
 
@@ -330,11 +330,11 @@ Added comprehensive ERC-8004 integration:
 ### PLAN.md Enhancements
 1. **Added complete MCP Server Implementation** (~500 lines):
    - Full FastMCP setup with all tools
-   - `chamba_publish_task` - Publish bounties
-   - `chamba_check_task` - Check status
-   - `chamba_verify_submission` - Accept/dispute
-   - `chamba_list_tasks` - List with filters
-   - `chamba_cancel_task` - Cancel + refund
+   - `em_publish_task` - Publish bounties
+   - `em_check_task` - Check status
+   - `em_verify_submission` - Accept/dispute
+   - `em_list_tasks` - List with filters
+   - `em_cancel_task` - Cancel + refund
 
 2. **Added usage examples**:
    - Colmena forager integration example
@@ -362,10 +362,10 @@ Added comprehensive ERC-8004 integration:
 **Readiness Estimate**: 75% → 85%
 
 **Next Steps (prioritized)**:
-1. Setup chamba repository with FastAPI structure
+1. Setup execution-market repository with FastAPI structure
 2. Implement Task CRUD from the schemas defined
 3. Wire up x402 integration with real SDK
-4. Create Colmena forager that uses Chamba MCP
+4. Create Colmena forager that uses Execution Market MCP
 5. Build minimal web portal for executors
 
 ---
@@ -400,19 +400,19 @@ Added comprehensive ERC-8004 integration:
 
 **Key Decisions**:
 1. **Human Execution Layer** - Positioning como "API de manos humanas para agentes"
-2. **x402 Core** - Sin x402 no hay Chamba, es el sistema nervioso
+2. **x402 Core** - Sin x402 no hay Execution Market, es el sistema nervioso
 3. **MCP-first** - API expuesta como MCP server para integracion con agentes
 4. **Evidence Chain** - ChainWitness para confianza descentralizada
 5. **4 Task Categories** - Physical presence, Knowledge access, Human authority, Simple actions
 
 **Synergies Identified**:
-- **x402 + Chamba** = Micropagos instantaneos (escrow, release, disputes)
-- **Colmena + Chamba** = Foragers publican bounties para tareas fisicas
-- **ChainWitness + Chamba** = Notarizacion de evidencia on-chain
-- **Council + Chamba** = Orquestacion de tareas complejas multi-step
+- **x402 + Execution Market** = Micropagos instantaneos (escrow, release, disputes)
+- **Colmena + Execution Market** = Foragers publican bounties para tareas fisicas
+- **ChainWitness + Execution Market** = Notarizacion de evidencia on-chain
+- **Council + Execution Market** = Orquestacion de tareas complejas multi-step
 
 **Source Material**:
-- Original brainstorm in `ideas/dump/chamba.txt`
+- Original brainstorm in `ideas/dump/execution-market.txt`
 - Extensive conversation covering use cases, pricing, verification
 
 **Graduation Criteria Status**:
@@ -427,7 +427,7 @@ Added comprehensive ERC-8004 integration:
 1. Setup repositorio con estructura FastAPI
 2. Implementar Task schema y CRUD basico
 3. Integrar x402 para pagos de prueba
-4. Crear primer Colmena forager que use Chamba
+4. Crear primer Colmena forager que use Execution Market
 5. Web portal MVP para ejecutores humanos
 
 ---
@@ -464,8 +464,8 @@ Dispute → RefundRequest flow
 ```
 
 ### Files Updated
-- `ideas/chamba/.env.local` - Added x402r contract addresses
-- `ideas/chamba/TODO.md` - Replaced ChambaEscrow with x402r integration
+- `ideas/execution-market/.env.local` - Added x402r contract addresses
+- `ideas/execution-market/TODO.md` - Replaced ChambaEscrow with x402r integration
 
 ### ERC-8004 Configuration
 Contracts on Sepolia:
@@ -475,7 +475,7 @@ Contracts on Sepolia:
 
 **Graduation Criteria Update**:
 - [x] ChambaEscrow.sol diseñado → REPLACED with x402r integration
-- [ ] Register Chamba as merchant in x402r
+- [ ] Register Execution Market as merchant in x402r
 - [x] Register in ERC-8004 testnet (Sepolia) - **Agent ID: 469** (tx: 0x549c48bb...)
 
 ---
@@ -495,7 +495,7 @@ Contracts on Sepolia:
 
 **Remaining for graduation**:
 - Apply migrations to Supabase (manual step)
-- Register Chamba as merchant in x402r escrow (Base Mainnet)
+- Register Execution Market as merchant in x402r escrow (Base Mainnet)
 - End-to-end test with real agent + human
 
 **Estimated effort**: Low (mostly deployment and testing)

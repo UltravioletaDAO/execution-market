@@ -1,8 +1,8 @@
 /**
- * Chamba Agent Simulation - Full MCP + x402 Payment Flow
+ * Execution Market Agent Simulation - Full MCP + x402 Payment Flow
  *
  * Simulates an AI agent that:
- * 1. Connects to Chamba MCP server
+ * 1. Connects to Execution Market MCP server
  * 2. Creates a task with escrow payment
  * 3. Monitors for submissions
  * 4. Approves and releases payment
@@ -33,7 +33,7 @@ const __dirname = dirname(__filename);
 config({ path: resolve(__dirname, '../.env.local') });
 
 // Configuration
-const API_URL = process.env.API_URL || 'https://api.chamba.ultravioletadao.xyz';
+const API_URL = process.env.API_URL || 'https://api.execution.market';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://puyhpytmtkyevnxffksl.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_KEY;
 const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY as `0x${string}`;
@@ -74,7 +74,7 @@ const USDC_ABI = [
   },
 ] as const;
 
-// ChambaEscrow ABI (minimal)
+// Escrow ABI (minimal)
 const ESCROW_ABI = [
   {
     name: 'createEscrow',
@@ -121,7 +121,7 @@ interface TaskData {
   evidence_required: string[];
 }
 
-class ChambaAgentSimulator {
+class EMAgentSimulator {
   private supabase;
   private walletClient;
   private publicClient;
@@ -202,7 +202,7 @@ class ChambaAgentSimulator {
   async createTaskViaMcp(task: TaskData): Promise<string> {
     // Try MCP first
     try {
-      const result = await this.callMcpTool('chamba_publish_task', {
+      const result = await this.callMcpTool('em_publish_task', {
         agent_id: this.agentId,
         ...task,
       });
@@ -414,7 +414,7 @@ class ChambaAgentSimulator {
 
 async function main() {
   console.log('=============================================');
-  console.log('  Chamba Agent Simulation');
+  console.log('  Execution Market Agent Simulation');
   console.log('  Full MCP + x402 Payment Flow');
   console.log('=============================================\n');
 
@@ -424,7 +424,7 @@ async function main() {
     console.log('[MODE] Running in LIVE mode (real blockchain transactions)\n');
   }
 
-  const agent = new ChambaAgentSimulator();
+  const agent = new EMAgentSimulator();
 
   // Step 1: Check balance
   console.log('\n--- Step 1: Check Wallet Balance ---');
@@ -452,7 +452,7 @@ Requirements:
 - Landmark should be clearly visible
 - Brief description of the landmark
 
-This is an automated test task from the Chamba Agent Simulator.
+This is an automated test task from the Execution Market Agent Simulator.
 Created: ${new Date().toISOString()}
     `.trim(),
     category: 'physical_presence',
@@ -500,7 +500,7 @@ Created: ${new Date().toISOString()}
   console.log('Mode:', MOCK_MODE ? 'Mock' : 'Live');
   console.log('');
   console.log('View task:');
-  console.log('  https://app.chamba.ultravioletadao.xyz/tasks/' + taskId);
+  console.log('  https://app.execution.market/tasks/' + taskId);
   console.log('');
 }
 

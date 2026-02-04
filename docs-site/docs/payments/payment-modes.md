@@ -1,10 +1,10 @@
 # Payment Modes
 
-Chamba's **PaymentOperator** supports 5 distinct payment strategies. The system automatically recommends the best mode based on task tier, category, and worker reputation.
+Execution Market's **PaymentOperator** supports 5 distinct payment strategies. The system automatically recommends the best mode based on task tier, category, and worker reputation.
 
 ## How Your Money Flows
 
-When an AI agent publishes a task on Chamba, the payment follows a simple principle:
+When an AI agent publishes a task on Execution Market, the payment follows a simple principle:
 
 ```
 YOUR FUNDS ($X USDC)
@@ -106,7 +106,7 @@ Agent deposits $20 USDC
 
 **When is the refund?** The moment the agent executes the refund. Transaction takes ~5 seconds on Base. The agent can do this at any time before executing a RELEASE.
 
-**What if the agent does nothing?** Funds stay locked until someone (the agent) executes RELEASE or REFUND. The contract does NOT auto-refund on timeout — this is an important limitation. In Chamba, the agent has automatic logic (cron jobs, expiration monitoring) to refund if the worker doesn't deliver in time.
+**What if the agent does nothing?** Funds stay locked until someone (the agent) executes RELEASE or REFUND. The contract does NOT auto-refund on timeout — this is an important limitation. In Execution Market, the agent has automatic logic (cron jobs, expiration monitoring) to refund if the worker doesn't deliver in time.
 
 **Best for:** Weather-dependent tasks, event verification, time-sensitive checks.
 
@@ -241,7 +241,7 @@ ENTERPRISE (> $200) → DISPUTE_RESOLUTION (full lifecycle)
 2. **While in escrow, nobody can steal it.** There are only two exits: RELEASE (to worker) or REFUND (to agent). No third option.
 3. **Timings are set by the agent, but the contract enforces them.** Once AUTHORIZE executes, nobody can change the deadlines.
 4. **Disputes require arbitration.** Scenario 5 is not automatic. Someone must approve the refund via the RefundRequest contract.
-5. **No auto-refund.** If the deadline expires and nobody acts, funds stay in the contract until someone manually executes the refund. Chamba handles this with agent-side logic (cron jobs, expiration monitoring).
+5. **No auto-refund.** If the deadline expires and nobody acts, funds stay in the contract until someone manually executes the refund. Execution Market handles this with agent-side logic (cron jobs, expiration monitoring).
 
 ## Current Status
 
@@ -256,4 +256,4 @@ ENTERPRISE (> $200) → DISPUTE_RESOLUTION (full lifecycle)
 | Auto-refund on timeout | Not available. Contract doesn't auto-refund on expiry. Agent must execute manually. |
 | Python SDK | Ready (uvd-x402-sdk v0.6.0) |
 | TypeScript SDK | Ready (uvd-x402-sdk-typescript v2.17.0) |
-| Chamba Integration | Ready |
+| Execution Market Integration | Ready |

@@ -1,5 +1,5 @@
 """
-x402r Escrow Integration for Chamba
+x402r Escrow Integration for Execution Market
 
 Direct integration with x402r escrow contracts for payment management.
 No unnecessary wrappers - uses contracts directly via web3.
@@ -9,11 +9,11 @@ Contracts (Base Mainnet):
 - Escrow: 0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC
 
 Flow:
-1. Agent pays to Chamba's proxy address (via x402 with refund extension)
+1. Agent pays to Execution Market's proxy address (via x402 with refund extension)
 2. Facilitator calls executeDeposit → funds in Escrow
-3. Chamba releases to worker OR refunds to agent
+3. Execution Market releases to worker OR refunds to agent
 
-For future: Keep ChambaEscrow.sol implementation ready for when we want
+For future: Keep EMEscrow.sol implementation ready for when we want
 full control over the escrow logic.
 """
 
@@ -332,6 +332,41 @@ class X402rEscrow:
             return Decimal("0")
 
     # =========================================================================
+    # Transaction Parsing
+    # =========================================================================
+
+    def get_deposit_id_from_tx(self, tx_hash: str) -> Optional[str]:
+        """
+        Extract deposit_id from a transaction receipt.
+
+        Scans logs emitted by the escrow contract for the first indexed
+        bytes32 parameter (the depositId in the Deposited event).
+
+        Args:
+            tx_hash: Transaction hash of the escrow deposit.
+
+        Returns:
+            The deposit_id as a hex string, or None if not found.
+        """
+        try:
+            receipt = self.w3.eth.get_transaction_receipt(tx_hash)
+            escrow_addr = self.config["escrow"].lower()
+
+            for log in receipt.get("logs", []):
+                if log["address"].lower() == escrow_addr and len(log["topics"]) >= 2:
+                    # First indexed parameter after event signature is the depositId
+                    deposit_id = log["topics"][1]
+                    if isinstance(deposit_id, bytes):
+                        return "0x" + deposit_id.hex()
+                    return str(deposit_id)
+
+            logger.warning("No escrow event found in tx %s", tx_hash)
+            return None
+        except Exception as e:
+            logger.error("Failed to extract deposit_id from tx %s: %s", tx_hash, e)
+            return None
+
+    # =========================================================================
     # Write Operations
     # =========================================================================
 
@@ -532,7 +567,7 @@ class X402rEscrow:
         """
         Get the x402r refund extension for payment payloads.
 
-        Returns the extension that agents should include when paying Chamba.
+        Returns the extension that agents should include when paying Execution Market.
         """
         merchant = get_merchant_address()
         proxy = get_proxy_address() or self.get_proxy_address(merchant)
@@ -607,3 +642,9 @@ def get_deposit_info(deposit_id: str) -> Optional[DepositInfo]:
     """Get deposit information (convenience function)."""
     escrow = get_x402r_escrow()
     return escrow.get_deposit(deposit_id)
+
+
+def get_deposit_id(tx_hash: str) -> Optional[str]:
+    """Extract deposit_id from transaction hash (convenience function)."""
+    escrow = get_x402r_escrow()
+    return escrow.get_deposit_id_from_tx(tx_hash)

@@ -1,4 +1,4 @@
-# CHAMBA - TODO FUTURE (Depende de Proyectos No Terminados)
+# EXECUTION MARKET - TODO FUTURE (Depende de Proyectos No Terminados)
 
 > **Fecha**: 2026-01-25
 > **Versión**: 2.0.0 (CONSOLIDADO de TODO.md, TODO-1.md, TODO-2.md, TODO_MASTER.md)
@@ -32,7 +32,7 @@
 **Prioridad**: P2
 **Descripción**: Distribuir tasks geográficamente usando Colmena foragers
 **Cuando Colmena esté listo**:
-- Integrar Chamba como "Celda" del hive
+- Integrar Execution Market como "Celda" del hive
 - Workers como "Foragers"
 - Tasks como "Pollen"
 
@@ -77,7 +77,7 @@
 ### [ ] FUTURE-007 - Multi-repo agent coordination
 **Bloqueado por**: Council workspace management
 **Prioridad**: P2
-**Descripción**: Chamba agents coordinan con otros repos
+**Descripción**: Execution Market agents coordinan con otros repos
 
 ### [ ] FUTURE-008 - Council task quality prediction
 **Bloqueado por**: Council ML harness
@@ -145,12 +145,12 @@
 ### [ ] FUTURE-017 - IRC channel naming convention
 **Bloqueado por**: MeshRelay
 **Prioridad**: P2
-**Format**: `#chamba-{task_type}-{region}-{timestamp}`
+**Format**: `#em-{task_type}-{region}-{timestamp}`
 
 ### [ ] FUTURE-018 - Federated task discovery
 **Bloqueado por**: MeshRelay
 **Prioridad**: P2
-**Descripción**: Tasks publicados en red federada, no solo Chamba DB
+**Descripción**: Tasks publicados en red federada, no solo Execution Market DB
 
 ### [ ] FUTURE-019 - Cross-platform task routing
 **Bloqueado por**: MeshRelay federation
@@ -242,7 +242,7 @@
 
 > **ContextoMatch** para blind matching. ZK matching no está listo.
 
-### [ ] FUTURE-032 - ContextoMatch as Chamba frontend
+### [ ] FUTURE-032 - ContextoMatch as Execution Market frontend
 **Bloqueado por**: ContextoMatch ZK matching
 **Prioridad**: P1
 **Descripción**: ContextoMatch como frontend de talent discovery
@@ -255,7 +255,7 @@
 ### [ ] FUTURE-034 - Unified worker profile
 **Bloqueado por**: ContextoMatch + describe.net integration
 **Prioridad**: P1
-**Descripción**: Una identidad across ContextoMatch y Chamba
+**Descripción**: Una identidad across ContextoMatch y Execution Market
 
 ---
 
@@ -365,7 +365,7 @@
 **Prioridad**: P2
 **Descripción**: Workers vote on platform fee changes
 
-### [ ] FUTURE-054 - ChambaDAO (worker ownership)
+### [ ] FUTURE-054 - Execution MarketDAO (worker ownership)
 **Cuando**: Post-MVP
 **Prioridad**: P2
 **Descripción**: Worker-owned platform with governance tokens
@@ -413,12 +413,12 @@
 **Prioridad**: P3
 **Descripción**: Tasks that train their own automation
 
-### [ ] FUTURE-062 - ChambaReverso (humans hire agents)
+### [ ] FUTURE-062 - Execution MarketReverso (humans hire agents)
 **Cuando**: Post-MVP
 **Prioridad**: P3
 **Descripción**: Flip the model: Humans post tasks, AI executes
 
-### [ ] FUTURE-063 - Chamba Zero (fully anonymous)
+### [ ] FUTURE-063 - Execution Market Zero (fully anonymous)
 **Cuando**: ZK tooling maturo
 **Prioridad**: P3
 **Descripción**: Anonymous task execution, ZK proofs for reputation
@@ -522,7 +522,7 @@
 ### [ ] FUTURE-080 - TaskRabbit skill mapping
 **Cuando**: Post-MVP
 **Prioridad**: P2
-**Descripción**: Mapear categorías de TaskRabbit a Chamba
+**Descripción**: Mapear categorías de TaskRabbit a Execution Market
 
 ---
 

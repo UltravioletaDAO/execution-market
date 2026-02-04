@@ -3,7 +3,7 @@
  *
  * Enables users to create custodial wallets using just their email address.
  * This removes the barrier of requiring users to install MetaMask or other
- * wallet extensions, making Chamba accessible to non-crypto-native users.
+ * wallet extensions, making Execution Market accessible to non-crypto-native users.
  *
  * @see https://docs.crossmint.com/wallets/quickstarts/client-side-wallets
  */
@@ -90,7 +90,7 @@ const CHAIN_IDS: Record<SupportedChain, number> = {
 };
 
 /**
- * Default chain for Chamba (Base for low fees)
+ * Default chain for Execution Market (Base for low fees)
  */
 const DEFAULT_CHAIN: SupportedChain = 'base';
 

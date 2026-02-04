@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        'chamba': {
+        'em': {
           50: '#fdf4ff',
           100: '#fae8ff',
           200: '#f5d0fe',

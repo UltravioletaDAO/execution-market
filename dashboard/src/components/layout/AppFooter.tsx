@@ -19,10 +19,10 @@ export function AppFooter() {
           {/* Logo + tagline */}
           <div className="flex items-center gap-3">
             <span className="w-7 h-7 rounded-md bg-emerald-500 flex items-center justify-center text-white font-black text-xs">
-              CH
+              EM
             </span>
             <span className="text-sm">
-              <span className="text-white font-semibold">Chamba</span>
+              <span className="text-white font-semibold">Execution Market</span>
               {' '}&mdash; {t('landing.footerTagline', 'Real tasks. Real pay. No banks.')}
             </span>
           </div>

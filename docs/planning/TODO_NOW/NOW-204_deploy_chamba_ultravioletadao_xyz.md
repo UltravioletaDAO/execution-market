@@ -1,4 +1,4 @@
-# NOW-204: Deploy a chamba.ultravioletadao.xyz
+# NOW-204: Deploy a execution.market
 
 ## Metadata
 - **Prioridad**: P0 (CRÍTICO)
@@ -7,7 +7,7 @@
 - **Tiempo estimado**: 3-4 horas
 
 ## Descripción
-Desplegar Chamba en producción en el dominio chamba.ultravioletadao.xyz.
+Desplegar Execution Market en producción en el dominio execution.market.
 
 ## Opciones de Deployment
 
@@ -59,7 +59,7 @@ docker compose up -d
 
 # 4. Configurar Cloudflare Tunnel para exponer
 cloudflared tunnel create chamba
-cloudflared tunnel route dns chamba chamba.ultravioletadao.xyz
+cloudflared tunnel route dns chamba execution.market
 cloudflared tunnel run chamba
 ```
 
@@ -75,8 +75,8 @@ cloudflared tunnel run chamba
 ## DNS Configuration
 ```
 # En Cloudflare (ultravioletadao.xyz)
-chamba.ultravioletadao.xyz -> [IP o Tunnel]
-api.chamba.ultravioletadao.xyz -> [IP o Tunnel] (opcional)
+execution.market -> [IP o Tunnel]
+api.execution.market -> [IP o Tunnel] (opcional)
 ```
 
 ## SSL/TLS
@@ -91,31 +91,31 @@ SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_KEY=eyJ...
 
 # x402
-CHAMBA_ESCROW_WALLET=0x...
-CHAMBA_PRIVATE_KEY=...  # Para pagos a workers
+EXECUTION MARKET_ESCROW_WALLET=0x...
+EXECUTION MARKET_PRIVATE_KEY=...  # Para pagos a workers
 
 # API
-API_BASE_URL=https://chamba.ultravioletadao.xyz
-CORS_ORIGINS=https://chamba.ultravioletadao.xyz
+API_BASE_URL=https://execution.market
+CORS_ORIGINS=https://execution.market
 
 # Frontend
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJ...
-VITE_API_URL=https://chamba.ultravioletadao.xyz
+VITE_API_URL=https://execution.market
 ```
 
 ## Health Check
 ```bash
 # Verificar deployment
-curl https://chamba.ultravioletadao.xyz/health
+curl https://execution.market/health
 # Debe retornar: {"status": "healthy", ...}
 
-curl https://chamba.ultravioletadao.xyz/docs
+curl https://execution.market/docs
 # Debe mostrar Swagger UI
 ```
 
 ## Criterios de Éxito
-- [ ] https://chamba.ultravioletadao.xyz responde
+- [ ] https://execution.market responde
 - [ ] /health retorna status healthy
 - [ ] /docs muestra Swagger UI
 - [ ] Dashboard carga correctamente
@@ -182,7 +182,7 @@ El workflow ya tiene:
    - SUPABASE_SERVICE_KEY
 
 4. x402 credentials:
-   - CHAMBA_TREASURY_ADDRESS
+   - EXECUTION MARKET_TREASURY_ADDRESS
    - X402_NETWORK=base
 ```
 
@@ -195,7 +195,7 @@ cp .env.example .env
 # Editar .env con credenciales reales
 docker compose -f docker-compose.prod.yml up -d
 cloudflared tunnel create chamba
-cloudflared tunnel route dns chamba chamba.ultravioletadao.xyz
+cloudflared tunnel route dns chamba execution.market
 cloudflared tunnel run chamba
 ```
 
@@ -212,6 +212,6 @@ cloudflared tunnel run chamba
 - [x] Terraform configs listas
 - [ ] AWS credentials configuradas (ACCIÓN REQUERIDA)
 - [ ] DNS configurado (ACCIÓN REQUERIDA)
-- [ ] https://chamba.ultravioletadao.xyz responde
+- [ ] https://execution.market responde
 - [ ] /health retorna healthy
 - [ ] /docs muestra Swagger UI

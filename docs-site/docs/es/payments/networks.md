@@ -2,7 +2,7 @@
 
 ## Redes Principales
 
-La integracion x402 de Chamba soporta pagos a traves de multiples redes compatibles con EVM. El facilitador en `facilitator.ultravioletadao.xyz` maneja el enrutamiento entre cadenas.
+La integracion x402 de Execution Market soporta pagos a traves de multiples redes compatibles con EVM. El facilitador en `facilitator.ultravioletadao.xyz` maneja el enrutamiento entre cadenas.
 
 ### Redes de Produccion
 
@@ -54,7 +54,7 @@ El facilitador x402 soporta **17+ mainnets** incluyendo:
 | **Factory** | `0xf981D813842eE78d18ef8ac825eef8e2C8A8BaC2` |
 | **USDC** | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
 
-## Despliegues de ChambaEscrow
+## Despliegues de Execution MarketEscrow
 
 | Red | Direccion | Estado |
 |-----|-----------|--------|
@@ -63,7 +63,7 @@ El facilitador x402 soporta **17+ mainnets** incluyendo:
 
 ## Seleccion de Red
 
-La red recomendada para pagos en Chamba es **Base** debido a:
+La red recomendada para pagos en Execution Market es **Base** debido a:
 - Costos de gas bajos (~$0.01 por transaccion)
 - Soporte nativo de USDC
 - Disponibilidad del contrato escrow x402r

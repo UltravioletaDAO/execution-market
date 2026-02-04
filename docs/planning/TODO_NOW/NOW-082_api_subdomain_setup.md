@@ -5,7 +5,7 @@
 
 ## Objetivo
 
-Configurar `api.chamba.ultravioletadao.xyz` para el MCP Server API.
+Configurar `api.execution.market` para el MCP Server API.
 
 ## Opción A: Con ECS + ALB (recomendado para producción)
 
@@ -33,7 +33,7 @@ aws route53 change-resource-record-sets \
     "Changes": [{
       "Action": "CREATE",
       "ResourceRecordSet": {
-        "Name": "api.chamba.ultravioletadao.xyz",
+        "Name": "api.execution.market",
         "Type": "A",
         "AliasTarget": {
           "HostedZoneId": "<ALB_HOSTED_ZONE_ID>",
@@ -60,12 +60,12 @@ ngrok http 8000
 
 ## SSL Certificate
 
-El ALB debe tener un certificado SSL para `api.chamba.ultravioletadao.xyz`.
+El ALB debe tener un certificado SSL para `api.execution.market`.
 
 ```bash
 # Solicitar certificado (puede ser wildcard)
 aws acm request-certificate \
-  --domain-name "*.chamba.ultravioletadao.xyz" \
+  --domain-name "*.execution.market" \
   --validation-method DNS \
   --region us-east-2
 ```
@@ -74,7 +74,7 @@ aws acm request-certificate \
 
 ```bash
 # Health check
-curl https://api.chamba.ultravioletadao.xyz/health
+curl https://api.execution.market/health
 
 # Debe retornar:
 # {"status": "healthy", "version": "0.1.0"}
@@ -91,7 +91,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://chamba.ultravioletadao.xyz",
+        "https://execution.market",
         "http://localhost:3000"  # desarrollo
     ],
     allow_methods=["*"],

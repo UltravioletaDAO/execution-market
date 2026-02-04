@@ -8,7 +8,7 @@
 - **Tiempo estimado**: 15-30 min
 
 ## Descripción
-Crear un Dockerfile para el MCP Server de Chamba que permita deployar el servicio en AWS ECS.
+Crear un Dockerfile para el MCP Server de Execution Market que permita deployar el servicio en AWS ECS.
 
 ## Contexto Técnico
 - **Runtime**: Python 3.11
@@ -74,10 +74,10 @@ X402_PRIVATE_KEY=
 ## Comandos de Verificación
 ```bash
 # Build
-docker build -t chamba-mcp:latest mcp_server/
+docker build -t execution-market-mcp:latest mcp_server/
 
 # Run locally
-docker run -p 8000:8000 --env-file .env chamba-mcp:latest
+docker run -p 8000:8000 --env-file .env execution-market-mcp:latest
 
 # Test health
 curl http://localhost:8000/health

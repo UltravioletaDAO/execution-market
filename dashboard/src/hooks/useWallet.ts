@@ -37,6 +37,7 @@ export interface WalletState {
   isConnected: boolean
   isConnecting: boolean
   isAuthenticated: boolean
+  signing: boolean
   status: ConnectionStatus
   walletType: WalletType | null
 
@@ -95,7 +96,7 @@ class CrossmintProvider {
         },
         body: JSON.stringify({
           email,
-          chain: 'base', // Default to Base for Chamba
+          chain: 'base', // Default to Base for Execution Market
         }),
       })
 
@@ -262,6 +263,7 @@ export function useWallet(): WalletState {
   const [email, setEmail] = useState<string | undefined>()
   const [error, setError] = useState<WalletError | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [signing, setSigning] = useState(false)
 
   // Prevent duplicate auth calls
   const authInProgress = useRef(false)
@@ -290,7 +292,8 @@ export function useWallet(): WalletState {
 
   const authenticateWithSupabase = useCallback(async (
     walletAddress: string,
-    displayName?: string
+    displayName?: string,
+    authWalletType?: WalletType
   ): Promise<void> => {
     // Prevent duplicate auth calls
     if (authInProgress.current || lastAuthAddress.current === walletAddress) {
@@ -302,6 +305,26 @@ export function useWallet(): WalletState {
 
     try {
       setStatus('authenticating')
+
+      // Require signature to prove wallet ownership for browser wallets
+      const requiresSignature = authWalletType === 'metamask' || authWalletType === 'walletconnect'
+      let signature: string | undefined
+      let verificationMessage: string | undefined
+
+      if (requiresSignature) {
+        setSigning(true)
+        const timestamp = Date.now()
+        const nonce = Math.random().toString(36).substring(2, 10)
+        verificationMessage = `Sign this message to verify you own this wallet and log in to Execution Market.\n\nWallet: ${normalizedWallet}\nTimestamp: ${timestamp}\nNonce: ${nonce}`
+
+        try {
+          signature = await signMessageAsync({ message: verificationMessage })
+        } catch (signError) {
+          setSigning(false)
+          throw new Error('Wallet signature required to continue. Please sign the message in your wallet.')
+        }
+        setSigning(false)
+      }
 
       // Check if wallet already exists
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -324,7 +347,13 @@ export function useWallet(): WalletState {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: linkError } = await (supabase.rpc as any)(
           'link_wallet_to_session',
-          { p_wallet_address: normalizedWallet }
+          {
+            p_wallet_address: normalizedWallet,
+            ...(signature && verificationMessage ? {
+              p_signature: signature,
+              p_message: verificationMessage,
+            } : {}),
+          }
         )
         if (linkError) throw new Error('Failed to link wallet to session')
       } else {
@@ -335,6 +364,10 @@ export function useWallet(): WalletState {
           {
             p_wallet_address: normalizedWallet,
             p_display_name: displayName || null,
+            ...(signature && verificationMessage ? {
+              p_signature: signature,
+              p_message: verificationMessage,
+            } : {}),
           }
         )
         if (rpcError) throw rpcError
@@ -351,7 +384,7 @@ export function useWallet(): WalletState {
     } finally {
       authInProgress.current = false
     }
-  }, [])
+  }, [signMessageAsync])
 
   // ==========================================================================
   // Connect function
@@ -404,8 +437,8 @@ export function useWallet(): WalletState {
           setEmail(wallet.email)
           setStatus('connected')
 
-          // Authenticate with Supabase
-          await authenticateWithSupabase(wallet.address, displayName || userEmail.split('@')[0])
+          // Authenticate with Supabase (no signature needed for email wallets)
+          await authenticateWithSupabase(wallet.address, displayName || userEmail.split('@')[0], 'crossmint')
           break
         }
 
@@ -423,8 +456,8 @@ export function useWallet(): WalletState {
           setEmail(user.email)
           setStatus('connected')
 
-          // Authenticate with Supabase
-          await authenticateWithSupabase(user.address, displayName || userEmail.split('@')[0])
+          // Authenticate with Supabase (no signature needed for email wallets)
+          await authenticateWithSupabase(user.address, displayName || userEmail.split('@')[0], 'magic')
           break
         }
 
@@ -454,7 +487,7 @@ export function useWallet(): WalletState {
       ['metamask', 'walletconnect'].includes(walletType)
     ) {
       localStorage.removeItem('pendingAuthDisplayName')
-      authenticateWithSupabase(wagmiAddress, pendingDisplayName || undefined)
+      authenticateWithSupabase(wagmiAddress, pendingDisplayName || undefined, walletType)
         .catch((err) => {
           console.error('Auth failed:', err)
         })
@@ -531,6 +564,7 @@ export function useWallet(): WalletState {
     isConnected,
     isConnecting: isConnecting || wagmiPending,
     isAuthenticated,
+    signing,
     status,
     walletType,
 

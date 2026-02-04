@@ -1,7 +1,7 @@
 # La gente va a farmear robots
 
 > Artículo para la competencia de X Articles ($1M prize)
-> V2 - Actualizado con insights del stream CHAMBA CHIMBA (2026-01-20)
+> V2 - Actualizado con insights del stream EXECUTION MARKET CHIMBA (2026-01-20)
 > Autor: Ultravioleta DAO
 
 ---
@@ -16,7 +16,7 @@ Esa fue la grieta. Por ahí entró todo lo demás.
 
 Y ayer, mientras lo discutía con mi socio Felipe en una llamada, se me salió algo que me dejó helado:
 
-**"La gente va a farmear Chamba con robots, weón."**
+**"La gente va a farmear Execution Market con robots, weón."**
 
 Déjame explicarte qué significa eso.
 
@@ -52,7 +52,7 @@ Estoy hablando de una matriz completa:
 
 TaskRabbit hace human→human. OpenAI hace human→agent. Pero nadie está construyendo el protocolo donde **todos** trabajan para **todos**.
 
-Eso es lo que estamos construyendo. Se llama **Chamba**.
+Eso es lo que estamos construyendo. Se llama **Execution Market**.
 
 ---
 
@@ -64,11 +64,11 @@ Y piensa en esto: ¿qué pasa cuando alguien que no puede salir de su casa por u
 
 Estamos cerquita de que en unos años la gente tenga humanoides, robot perros, drones, todo tipo de robots en su casa. Se va a volver algo común.
 
-Y si podemos poner a trabajar estos robots en tareas físicas a través de Chamba, **le van a hacer plata a la gente solo por tener el robot**.
+Y si podemos poner a trabajar estos robots en tareas físicas a través de Execution Market, **le van a hacer plata a la gente solo por tener el robot**.
 
 Entre mejor robot tengas y mejor modelo de IA, más tareas vas a poder tomar.
 
-> "Hay gente que va a comprar farmas de robots para trabajar en Chamba, weón. Para que les hagan pura plata."
+> "Hay gente que va a comprar farmas de robots para trabajar en Execution Market, weón. Para que les hagan pura plata."
 
 El que más tenga robots, más plata va a hacer. Drones para inspeccionar techos. Perros robots para verificar direcciones. Humanoides para tareas complejas.
 
@@ -84,7 +84,7 @@ Esto no es un whitepaper soñando. Llevamos meses construyendo:
 
 Usamos x402 con extensión de refunds - y somos los **únicos** que lo tienen implementado. Participamos en una hackathon y fuimos los únicos en lograrlo.
 
-¿Por qué importa? Porque para algo como Chamba es **totalmente indispensable** tener refunds. Los agentes van a querer probar, y si falla, tienen que poder recuperar su plata. Sin eso, no hay confianza.
+¿Por qué importa? Porque para algo como Execution Market es **totalmente indispensable** tener refunds. Los agentes van a querer probar, y si falla, tienen que poder recuperar su plata. Sin eso, no hay confianza.
 
 ### Identidad on-chain (ERC-8004)
 
@@ -128,7 +128,7 @@ Piensa en las capacidades:
 
 **Perros robot** que van a direcciones, verifican que alguien vive ahí, toman fotos.
 
-**Exoesqueletos** que amplifican capacidad humana. ¿Vieron esas piernas que la gente se pone y las piernas corren por ellos? Ahora imagina a alguien haciendo trabajo pesado con un exoesqueleto, monetizando a través de Chamba.
+**Exoesqueletos** que amplifican capacidad humana. ¿Vieron esas piernas que la gente se pone y las piernas corren por ellos? Ahora imagina a alguien haciendo trabajo pesado con un exoesqueleto, monetizando a través de Execution Market.
 
 **Robots con sensores avanzados.** Visión térmica. Radares para medir distancias con precisión de milímetros. Cosas que son imposibles para un humano.
 
@@ -185,7 +185,7 @@ Este artículo es nuestra manera de decirle al mundo: **esto es lo que vemos ven
 
 Los agentes de IA están creciendo exponencialmente. Cada día son más capaces. Y cada día chocan más fuerte contra el muro del mundo físico.
 
-**Chamba es el puente.**
+**Execution Market es el puente.**
 
 Y la gente que entienda esto primero - los que compren sus robots ahora, los que empiecen a construir reputación en el sistema - van a ser los que capturen la mayor parte del valor.
 
@@ -202,6 +202,6 @@ Porque cuando los agentes necesiten trabajo físico, van a buscar a quien tenga 
 - x402-rs (con refunds): github.com/UltravioletaDAO/x402-rs
 - ERC-8004 Identity: github.com/UltravioletaDAO/erc8004
 
-*Chamba es un proyecto de Ultravioleta DAO. La infraestructura de pagos ya funciona. Ahora estamos construyendo el marketplace donde humanos, agentes y robots trabajarán juntos.*
+*Execution Market es un proyecto de Ultravioleta DAO. La infraestructura de pagos ya funciona. Ahora estamos construyendo el marketplace donde humanos, agentes y robots trabajarán juntos.*
 
 *¿Quieres ser parte? Síguenos. Esto apenas comienza.*

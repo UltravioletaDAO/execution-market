@@ -96,13 +96,13 @@ npm install magic-sdk@21.0.0
 # Desde dashboard/
 docker build --no-cache --platform linux/amd64 \
   -t chamba-dashboard:latest \
-  --build-arg VITE_API_URL=https://api.chamba.ultravioletadao.xyz .
+  --build-arg VITE_API_URL=https://api.execution.market .
 ```
 
 ## Dockerfile Final Corregido
 
 ```dockerfile
-# Chamba Dashboard Dockerfile
+# Execution Market Dashboard Dockerfile
 # Node 20 + Vite + React
 
 # Build stage

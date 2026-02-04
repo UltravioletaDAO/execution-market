@@ -1,4 +1,4 @@
-// Chamba: Worker Guard Component
+// Execution Market: Worker Guard Component
 // Allows only workers to access the route, redirects agents to their dashboard
 
 import { type ReactNode } from 'react'

@@ -1,4 +1,4 @@
-# Chamba Infrastructure - ECS Configuration
+# Execution Market Infrastructure - ECS Configuration
 
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
@@ -63,6 +63,7 @@ resource "aws_iam_role_policy" "ecs_secrets" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
+          # NOTE: Secret path kept as "chamba/*" to match existing AWS Secrets Manager entries
           "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:chamba/*"
         ]
       }
@@ -174,8 +175,8 @@ resource "aws_ecs_task_definition" "mcp_server" {
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:chamba/supabase:SUPABASE_SERVICE_ROLE_KEY::"
         },
         {
-          name      = "CHAMBA_ADMIN_KEY"
-          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:chamba/admin-key"
+          name      = "EM_ADMIN_KEY"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:chamba/admin-key" # Secret path kept for backward compatibility
         },
       ]
 

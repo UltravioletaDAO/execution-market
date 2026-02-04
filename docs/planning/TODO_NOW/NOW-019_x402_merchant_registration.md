@@ -1,4 +1,4 @@
-# NOW-019: Registrar Chamba como merchant en x402r
+# NOW-019: Registrar Execution Market como merchant en x402r
 
 ## Metadata
 - **Prioridad**: P0
@@ -8,7 +8,7 @@
 - **Tiempo estimado**: 1-2 horas
 
 ## Descripción
-Registrar Chamba como merchant en el protocolo x402r para poder recibir y procesar pagos.
+Registrar Execution Market como merchant en el protocolo x402r para poder recibir y procesar pagos.
 
 ## Contexto Técnico
 - **Protocolo**: x402r (x402 con refunds)
@@ -20,7 +20,7 @@ Registrar Chamba como merchant en el protocolo x402r para poder recibir y proces
 
 ### 1. Crear Merchant Wallet
 ```bash
-# Generar nueva wallet para Chamba merchant operations
+# Generar nueva wallet para Execution Market merchant operations
 # IMPORTANTE: Guardar private key en AWS Secrets Manager
 
 # Usando cast (foundry)
@@ -60,10 +60,10 @@ async function registerMerchant() {
     abi,
     functionName: 'registerMerchant',
     args: [
-      'Chamba',
+      'Execution Market',
       JSON.stringify({
         description: 'Human execution layer for AI agents',
-        website: 'https://chamba.ultravioleta.xyz',
+        website: 'https://execution.market',
         support: 'support@ultravioleta.xyz'
       })
     ]

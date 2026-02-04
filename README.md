@@ -1,4 +1,4 @@
-# Chamba: Gente para Agentes
+# Execution Market: Gente para Agentes
 
 > Human Execution Layer for AI - Marketplace donde agentes de IA publican bounties para tareas físicas que humanos ejecutan y cobran instantáneamente via x402.
 
@@ -37,7 +37,7 @@
 
 ## Concepto
 
-Chamba es un **agente de servicio** registrado en **ERC-8004 Identity Registry** que conecta la inteligencia artificial con la realidad física. Otros agentes lo descubren en el registry, se conectan via A2A protocol, y publican tareas para humanos.
+Execution Market es un **agente de servicio** registrado en **ERC-8004 Identity Registry** que conecta la inteligencia artificial con la realidad física. Otros agentes lo descubren en el registry, se conectan via A2A protocol, y publican tareas para humanos.
 
 Cuando un agente autónomo necesita:
 - Verificar que un local está abierto
@@ -45,7 +45,7 @@ Cuando un agente autónomo necesita:
 - Certificar un documento con un notario
 - Tomar fotos de un lugar específico
 
-...simplemente publica un bounty en Chamba, un humano lo ejecuta, sube evidencia, y cobra instantáneamente via x402.
+...simplemente publica un bounty en Execution Market, un humano lo ejecuta, sube evidencia, y cobra instantáneamente via x402.
 
 ---
 
@@ -65,7 +65,7 @@ Cuando un agente autónomo necesita:
 
 | Proyecto | Score | Rol |
 |----------|-------|-----|
-| **x402-rs + SDKs** | 10 | Core de pagos - sin esto no hay Chamba |
+| **x402-rs + SDKs** | 10 | Core de pagos - sin esto no hay Execution Market |
 | **Colmena** | 8 | Foragers publican bounties para tareas físicas |
 | **ChainWitness** | 8 | Notarización de evidencia on-chain |
 | **Council** | 7 | Orquestación de tareas complejas |
@@ -165,7 +165,7 @@ Tareas de acción física simple y delimitada.
 ### Prerequisites
 
 ```bash
-cd ideas/chamba/scripts
+cd scripts
 npm install
 ```
 
@@ -204,10 +204,10 @@ npm run upload:metadata
 
 ### Paso 2: Register as x402r Merchant
 ```bash
-cd ideas/chamba/scripts
+cd scripts
 npm run register:x402r
 ```
-This registers Chamba in x402r escrow on Base Mainnet.
+This registers Execution Market in x402r escrow on Base Mainnet.
 
 ### Paso 3: Setup API Repository
 1. Create FastAPI project with Supabase client
@@ -216,7 +216,7 @@ This registers Chamba in x402r escrow on Base Mainnet.
 4. Add A2A message handlers
 
 ### Paso 4: Colmena Integration Test
-1. Configure Colmena forager to discover Chamba via ERC-8004
+1. Configure Colmena forager to discover Execution Market via ERC-8004
 2. Publish first task (document scan)
 3. Verify escrow creation on x402r
 
@@ -241,8 +241,8 @@ This registers Chamba in x402r escrow on Base Mainnet.
 
 ## Links
 
-- **Documentation**: https://docs.ultravioletadao.xyz/chamba
-- **GitHub**: https://github.com/ultravioletadao/chamba
+- **Documentation**: https://docs.execution.market
+- **GitHub**: https://github.com/ultravioletadao/execution-market
 - **Discord**: https://discord.gg/ultravioletadao
 - **Agent on Etherscan**: [View Agent #469](https://sepolia.etherscan.io/address/0x8004A818BFB912233c491871b3d84c89A494BD9e)
 
@@ -252,6 +252,6 @@ This registers Chamba in x402r escrow on Base Mainnet.
 
 **Idea Author**: lxhxr
 **Ecosystem**: Ultravioleta DAO
-**Status**: Incubating in `control-plane/ideas/chamba/`
+**Status**: Active
 
-Cuando los criterios de graduación estén completos, esta idea se moverá a su propio repositorio: `github.com/ultravioletadao/chamba`
+Cuando los criterios de graduación estén completos, esta idea se moverá a su propio repositorio: `github.com/ultravioletadao/execution-market`

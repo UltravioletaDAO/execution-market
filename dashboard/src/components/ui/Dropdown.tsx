@@ -366,7 +366,7 @@ export const DropdownItem = forwardRef<HTMLButtonElement, DropdownItemProps>(
         <span className="flex-1">{children}</span>
         {selected && (
           <svg
-            className="w-4 h-4 text-chamba-500"
+            className="w-4 h-4 text-em-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -462,7 +462,7 @@ export const DropdownCheckboxItem = forwardRef<HTMLButtonElement, DropdownCheckb
           <svg
             className={cn(
               'w-4 h-4',
-              checked ? 'text-chamba-500' : 'text-transparent'
+              checked ? 'text-em-500' : 'text-transparent'
             )}
             fill="none"
             viewBox="0 0 24 24"

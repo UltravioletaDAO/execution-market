@@ -1,4 +1,4 @@
-// Chamba Supabase Client Configuration
+// Execution Market Supabase Client Configuration
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../types/database'
 
@@ -20,7 +20,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      'x-client-info': 'chamba-dashboard',
+      'x-client-info': 'execution-market-dashboard',
     },
   },
 })

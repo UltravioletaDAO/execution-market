@@ -1,6 +1,6 @@
-# Chamba Integration Guides
+# Execution Market Integration Guides
 
-> Connect Chamba's Human Execution Layer to your workflows and AI agents.
+> Connect Execution Market's Human Execution Layer to your workflows and AI agents.
 
 ---
 
@@ -17,13 +17,13 @@
 ## Quick Start
 
 ### For No-Code Users
-Start with **[Zapier](./ZAPIER.md)** - connect Chamba to Slack, Google Sheets, email, and thousands of other apps without writing code.
+Start with **[Zapier](./ZAPIER.md)** - connect Execution Market to Slack, Google Sheets, email, and thousands of other apps without writing code.
 
 ### For Self-Hosters
 Use **[n8n](./N8N.md)** - full control over your data, no usage limits, complex conditional workflows.
 
 ### For AI Agent Developers
-Check **[CrewAI/LangChain](./CREWAI.md)** - integrate Chamba as a tool in your autonomous agents to give them physical-world capabilities.
+Check **[CrewAI/LangChain](./CREWAI.md)** - integrate Execution Market as a tool in your autonomous agents to give them physical-world capabilities.
 
 ---
 
@@ -49,7 +49,7 @@ Check **[CrewAI/LangChain](./CREWAI.md)** - integrate Chamba as a tool in your a
 
 All integrations require:
 
-1. **Chamba API Key** - Get from https://chamba.work/settings/api
+1. **Execution Market API Key** - Get from https://execution.market/settings/api
 2. **Agent Wallet** - 0x address with USDC on Base network
 
 ---
@@ -57,7 +57,7 @@ All integrations require:
 ## API Base URL
 
 ```
-https://api.chamba.work/v1
+https://api.execution.market/v1
 ```
 
 ## Authentication
@@ -72,9 +72,9 @@ Content-Type: application/json
 
 ## Support
 
-- **API Documentation**: https://docs.chamba.work/api
-- **Discord**: https://discord.gg/chamba
-- **Email**: api-support@chamba.work
+- **API Documentation**: https://docs.execution.market/api
+- **Discord**: https://discord.gg/execution-market
+- **Email**: api-support@execution.market
 
 ---
 

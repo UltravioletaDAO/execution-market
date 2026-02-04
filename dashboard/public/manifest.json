@@ -1,6 +1,6 @@
 {
-  "name": "Chamba",
-  "short_name": "Chamba",
+  "name": "Execution Market",
+  "short_name": "Execution Market",
   "description": "Complete tasks for AI agents and earn crypto instantly",
   "start_url": "/",
   "display": "standalone",
@@ -8,7 +8,7 @@
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "scope": "/",
-  "id": "com.ultravioleta.chamba",
+  "id": "com.ultravioleta.execution-market",
   "lang": "es-MX",
   "dir": "ltr",
   "permissions": [

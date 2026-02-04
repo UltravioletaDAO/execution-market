@@ -33,7 +33,7 @@ from uvd_x402_sdk.integrations import FastAPIX402
 
 app = FastAPI()
 
-# Configurar con wallet de Chamba
+# Configurar con wallet de Execution Market
 x402 = FastAPIX402(
     app,
     recipient_address="0xChambaEscrowWallet...",  # Wallet que recibe pagos
@@ -68,26 +68,26 @@ mcp_server/integrations/x402/
 ├── __init__.py          # Re-exportar desde uvd-x402-sdk
 ├── escrow.py            # ELIMINAR código mock, usar SDK
 ├── client.py            # ELIMINAR código mock, usar SDK
-└── chamba_x402.py       # NUEVO: Wrapper específico para Chamba
+└── em_x402.py       # NUEVO: Wrapper específico para Execution Market
 ```
 
-### chamba_x402.py (NUEVO)
+### em_x402.py (NUEVO)
 ```python
 """
-Chamba x402 Integration
-Wrapper sobre uvd-x402-sdk con lógica específica de Chamba
+Execution Market x402 Integration
+Wrapper sobre uvd-x402-sdk con lógica específica de Execution Market
 """
 import os
 from decimal import Decimal
 from uvd_x402_sdk import X402Client, X402Config
 from uvd_x402_sdk.integrations import FastAPIX402
 
-# Configuración Chamba
-CHAMBA_ESCROW_WALLET = os.environ.get("CHAMBA_ESCROW_WALLET")
-CHAMBA_FEE_PERCENTAGE = Decimal("0.08")  # 8% platform fee
+# Configuración Execution Market
+EXECUTION MARKET_ESCROW_WALLET = os.environ.get("EXECUTION MARKET_ESCROW_WALLET")
+EXECUTION MARKET_FEE_PERCENTAGE = Decimal("0.08")  # 8% platform fee
 
 config = X402Config(
-    recipient_evm=CHAMBA_ESCROW_WALLET,
+    recipient_evm=EXECUTION MARKET_ESCROW_WALLET,
     supported_networks=["ethereum", "avalanche", "base"],
 )
 
@@ -98,7 +98,7 @@ async def receive_task_funding(x_payment_header: str, bounty_usd: Decimal) -> di
     Recibir fondos de un agente para una tarea.
     El agente paga bounty + platform fee.
     """
-    total = bounty_usd * (1 + CHAMBA_FEE_PERCENTAGE)
+    total = bounty_usd * (1 + EXECUTION MARKET_FEE_PERCENTAGE)
     result = client.process_payment(x_payment_header, total)
 
     return {
@@ -107,13 +107,13 @@ async def receive_task_funding(x_payment_header: str, bounty_usd: Decimal) -> di
         "tx_hash": result.transaction_hash,
         "amount_received": str(total),
         "bounty": str(bounty_usd),
-        "platform_fee": str(bounty_usd * CHAMBA_FEE_PERCENTAGE),
+        "platform_fee": str(bounty_usd * EXECUTION MARKET_FEE_PERCENTAGE),
     }
 
 async def release_to_worker(worker_address: str, amount_usd: Decimal) -> dict:
     """
     Liberar fondos al worker después de aprobación.
-    Requiere que Chamba tenga fondos y private key para enviar.
+    Requiere que Execution Market tenga fondos y private key para enviar.
     """
     # Para MVP: Transfer directo desde escrow wallet
     # Para producción: Usar contrato ChambaEscrow.sol
@@ -123,10 +123,10 @@ async def release_to_worker(worker_address: str, amount_usd: Decimal) -> dict:
 ## Variables de Entorno Requeridas
 ```bash
 # Wallet que recibe pagos de agentes
-CHAMBA_ESCROW_WALLET=0x...
+EXECUTION MARKET_ESCROW_WALLET=0x...
 
 # Para enviar pagos a workers (opcional, puede ser manual inicialmente)
-CHAMBA_PRIVATE_KEY=...
+EXECUTION MARKET_PRIVATE_KEY=...
 
 # RPC URLs
 RPC_URL_ETHEREUM=https://eth-mainnet.g.alchemy.com/v2/...
@@ -140,7 +140,7 @@ RPC_URL_AVALANCHE=https://api.avax.network/ext/bc/C/rpc
 - [x] Health check incluye status del SDK x402
 - [x] Endpoints de diagnóstico: `/api/v1/x402/info`, `/api/v1/x402/networks`
 - [x] Endpoint raíz incluye información de pagos
-- [ ] Pagos llegan a wallet de escrow (requiere CHAMBA_TREASURY_ADDRESS)
+- [ ] Pagos llegan a wallet de escrow (requiere EXECUTION MARKET_TREASURY_ADDRESS)
 - [ ] Tests pasan con facilitador real (testnet primero)
 
 ## COMPLETADO: 2026-01-25
@@ -152,7 +152,7 @@ mcp_server/
 ├── api.py                               # + x402 SDK initialization + endpoints
 └── integrations/x402/
     ├── __init__.py                      # + exports for SDK wrapper
-    └── sdk_client.py                    # NUEVO: ChambaX402SDK wrapper
+    └── sdk_client.py                    # NUEVO: Execution MarketX402SDK wrapper
 ```
 
 ### Endpoints Agregados
@@ -162,7 +162,7 @@ mcp_server/
 ### Variables de Entorno
 ```bash
 # Requeridas para producción
-CHAMBA_TREASURY_ADDRESS=0x...  # Wallet que recibe pagos
+EXECUTION MARKET_TREASURY_ADDRESS=0x...  # Wallet que recibe pagos
 X402_NETWORK=base              # Red por defecto (o avalanche para tests)
 ```
 

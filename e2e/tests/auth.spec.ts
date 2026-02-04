@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Tests - Authentication
+ * Execution Market E2E Tests - Authentication
  *
  * Tests for user authentication flows:
  * - Landing page
@@ -32,7 +32,7 @@ test.describe('Authentication', () => {
       await page.goto('/')
 
       // Check page title
-      await expect(page).toHaveTitle(/Chamba/)
+      await expect(page).toHaveTitle(/Execution Market/)
 
       // Check main heading is visible
       const heading = page.locator('h1')

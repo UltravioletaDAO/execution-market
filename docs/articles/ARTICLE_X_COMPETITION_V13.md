@@ -71,7 +71,7 @@ El problema es que hoy no hay infraestructura para conectarlos. Un agente de IA 
 
 Fricción. Delay. Ineficiencia.
 
-**Chamba es el puente.**
+**Execution Market es el puente.**
 
 ---
 
@@ -99,7 +99,7 @@ Si la IA automatiza todos los trabajos, nadie tiene dinero. Si nadie tiene diner
 
 El ciclo económico tradicional requiere que la gente tenga ingresos.
 
-Chamba crea una nueva fuente: micro-tareas pagadas instantáneamente. No necesitas un empleo tradicional. No necesitas un jefe. Solo necesitas estar dispuesto a caminar dos cuadras, tomar una foto, o completar un CAPTCHA.
+Execution Market crea una nueva fuente: micro-tareas pagadas instantáneamente. No necesitas un empleo tradicional. No necesitas un jefe. Solo necesitas estar dispuesto a caminar dos cuadras, tomar una foto, o completar un CAPTCHA.
 
 **$0.25 aquí. $3 allá. $75 por algo más complejo.**
 
@@ -143,7 +143,7 @@ Hoy esas tareas de $0.25 son **imposibles**.
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
 | Upwork | 5-20% | $5+ | 5-10 días |
-| **Chamba** | **6-8%** | **$0.25** | **Instantáneo** |
+| **Execution Market** | **6-8%** | **$0.25** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para que alguien complete un CAPTCHA.
 
@@ -153,7 +153,7 @@ Pero un agente que puede pagar $0.25 instantáneamente va a hacer **miles** de v
 
 ---
 
-## Chamba
+## Execution Market
 
 No es otra app de gig economy. No es "Uber para tareas". No es un marketplace más donde humanos contratan humanos.
 
@@ -198,7 +198,7 @@ Escribir código: swap test falla. La IA lo hace igual o mejor.
 Analizar datos: swap test falla. La IA lo hace más rápido.
 Estar físicamente en un lugar específico: **swap test pasa**. No puedes intercambiar al humano que está ahí.
 
-Las tareas de Chamba pasan el swap test por definición. Requieren presencia física, firma humana, o juicio contextual que solo un humano en ese lugar y momento puede proveer.
+Las tareas de Execution Market pasan el swap test por definición. Requieren presencia física, firma humana, o juicio contextual que solo un humano en ese lugar y momento puede proveer.
 
 ---
 
@@ -210,7 +210,7 @@ Las tareas de Chamba pasan el swap test por definición. Requieren presencia fí
 **Curiosity** — Variedad, no repetición infinita.
 **Status** — Reconocimiento por tu contribución.
 
-Las tareas de Chamba tienen los tres:
+Las tareas de Execution Market tienen los tres:
 
 - Hay deadlines y verificación. Puedes fallar. **(Struggle)**
 - Hay miles de tipos de tareas diferentes. **(Curiosity)**
@@ -224,7 +224,7 @@ No es el trabajo de fábrica del siglo XX. Es micro-emprendimiento con agency: t
 
 HTTP es un protocolo. Chrome es una app que usa HTTP.
 
-Chamba Protocol define:
+Execution Market Protocol define:
 - Cómo se publican tareas (MCP tools para agentes)
 - Cómo se asignan workers (matching por ubicación, reputación, skills)
 - Cómo se verifica el trabajo (4 niveles)
@@ -240,7 +240,7 @@ Las aplicaciones deciden la experiencia. Un marketplace público. Una versión e
 
 Empresas con agentes de IA internos que no quieren exponer operaciones en un marketplace público.
 
-**Chamba Enterprise:**
+**Execution Market Enterprise:**
 - Su propia instancia del protocolo
 - Sistema de puntos interno en vez de crypto
 - Workers limitados a empleados aprobados
@@ -339,7 +339,7 @@ Este artículo es una invitación. A ver lo que nosotros vemos.
 
 ---
 
-*Chamba es un proyecto de @ultravioletadao. Los rieles existen. Ahora construimos el puente.*
+*Execution Market es un proyecto de @ultravioletadao. Los rieles existen. Ahora construimos el puente.*
 
 ---
 

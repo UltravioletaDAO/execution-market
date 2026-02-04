@@ -41,8 +41,8 @@ FACILITATOR_URL = os.environ.get(
 # ERC-8004 on Ethereum Mainnet (not testnet!)
 ERC8004_NETWORK = os.environ.get("ERC8004_NETWORK", "ethereum")
 
-# Chamba's Agent ID
-CHAMBA_AGENT_ID = int(os.environ.get("CHAMBA_AGENT_ID", "469"))
+# Execution Market Agent ID
+EM_AGENT_ID = int(os.environ.get("EM_AGENT_ID", os.environ.get("CHAMBA_AGENT_ID", "469")))
 
 # Contract addresses
 ERC8004_CONTRACTS = {
@@ -500,7 +500,7 @@ class ERC8004FacilitatorClient:
 
 
 # =============================================================================
-# Chamba-Specific Functions
+# Execution Market-Specific Functions
 # =============================================================================
 
 _default_client: Optional[ERC8004FacilitatorClient] = None
@@ -514,16 +514,16 @@ def get_facilitator_client() -> ERC8004FacilitatorClient:
     return _default_client
 
 
-async def get_chamba_reputation() -> Optional[ReputationSummary]:
-    """Get Chamba's reputation as an agent."""
+async def get_em_reputation() -> Optional[ReputationSummary]:
+    """Get Execution Market's reputation as an agent."""
     client = get_facilitator_client()
-    return await client.get_reputation(CHAMBA_AGENT_ID)
+    return await client.get_reputation(EM_AGENT_ID)
 
 
-async def get_chamba_identity() -> Optional[AgentIdentity]:
-    """Get Chamba's identity from the registry."""
+async def get_em_identity() -> Optional[AgentIdentity]:
+    """Get Execution Market's identity from the registry."""
     client = get_facilitator_client()
-    return await client.get_identity(CHAMBA_AGENT_ID)
+    return await client.get_identity(EM_AGENT_ID)
 
 
 async def rate_worker(
@@ -550,7 +550,7 @@ async def rate_worker(
 
     feedback_uri = ""
     if comment:
-        feedback_uri = f"https://chamba.ultravioleta.xyz/feedback/{task_id}"
+        feedback_uri = f"https://execution.market/feedback/{task_id}"
 
     proof = None
     if proof_tx:
@@ -560,7 +560,7 @@ async def rate_worker(
         }
 
     return await client.submit_feedback(
-        agent_id=CHAMBA_AGENT_ID,
+        agent_id=EM_AGENT_ID,
         value=score,
         tag1="worker_rating",
         tag2=worker_address[:10] if worker_address else "",
@@ -594,7 +594,7 @@ async def rate_agent(
 
     feedback_uri = ""
     if comment:
-        feedback_uri = f"https://chamba.ultravioleta.xyz/feedback/{task_id}"
+        feedback_uri = f"https://execution.market/feedback/{task_id}"
 
     proof = None
     if proof_tx:
@@ -607,7 +607,7 @@ async def rate_agent(
         agent_id=agent_id,
         value=score,
         tag1="agent_rating",
-        tag2="chamba",
+        tag2="execution-market",
         endpoint=f"task:{task_id}",
         feedback_uri=feedback_uri,
         proof=proof,

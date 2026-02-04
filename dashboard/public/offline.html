@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Offline - Chamba</title>
+  <title>Offline - Execution Market</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -64,7 +64,7 @@
   <script>
     // Check for pending uploads
     if ('indexedDB' in window) {
-      const request = indexedDB.open('chamba-offline', 1);
+      const request = indexedDB.open('em-offline', 1);
       request.onsuccess = () => {
         const db = request.result;
         if (db.objectStoreNames.contains('pending-uploads')) {

@@ -1,5 +1,5 @@
 """
-Chamba MCP Server - Pydantic Models
+Execution Market MCP Server - Pydantic Models
 
 Input validation models for all MCP tools.
 """
@@ -19,7 +19,7 @@ class TaskCategory(str, Enum):
 
 
 class TaskStatus(str, Enum):
-    """Status of a task in the Chamba system."""
+    """Status of a task in the Execution Market system."""
     PUBLISHED = "published"
     ACCEPTED = "accepted"
     IN_PROGRESS = "in_progress"

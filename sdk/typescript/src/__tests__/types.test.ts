@@ -24,7 +24,7 @@ import type {
   WebhookEventType,
   WebhookEvent,
   WebhookEndpoint,
-  ChambaError,
+  ExecutionMarketError,
   ValidationError,
 } from '../types';
 
@@ -239,8 +239,8 @@ describe('Type Exports', () => {
     expect(endpoint.active).toBe(true);
   });
 
-  it('should allow creating ChambaError objects', () => {
-    const error: ChambaError = {
+  it('should allow creating ExecutionMarketError objects', () => {
+    const error: ExecutionMarketError = {
       code: 'VALIDATION_ERROR',
       message: 'Invalid input',
       statusCode: 400,

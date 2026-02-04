@@ -1,5 +1,5 @@
 """
-x402 Protocol Client for Chamba (NOW-024)
+x402 Protocol Client for Execution Market (NOW-024)
 
 Handles escrow deposits, releases, and refunds via x402-rs facilitator.
 Supports both direct contract calls and facilitator-mediated operations.
@@ -1106,14 +1106,14 @@ class X402Client:
 # Convenience Functions
 # =============================================================================
 
-async def create_chamba_escrow(
+async def create_em_escrow(
     task_id: str,
     bounty_amount: Decimal,
     token: PaymentToken = PaymentToken.USDC,
     timeout_hours: int = 48,
 ) -> EscrowDeposit:
     """
-    Convenience function to create an escrow for a Chamba task.
+    Convenience function to create an escrow for an Execution Market task.
 
     Uses environment variables for configuration:
     - X402_PRIVATE_KEY: Signing key

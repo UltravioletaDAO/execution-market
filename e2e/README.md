@@ -1,11 +1,11 @@
-# Chamba E2E Tests
+# Execution Market E2E Tests
 
-End-to-end tests for the Chamba application using Playwright.
+End-to-end tests for the Execution Market application using Playwright.
 
 ## Setup
 
 ```bash
-cd ideas/chamba/e2e
+cd e2e
 npm install
 npm run install-browsers
 ```
@@ -215,7 +215,7 @@ Example GitHub Actions:
 ```yaml
 - name: Run E2E tests
   run: |
-    cd ideas/chamba/e2e
+    cd e2e
     npm ci
     npm run install-browsers
     npm test

@@ -1,5 +1,5 @@
 -- ============================================================================
--- CHAMBA: Human Execution Layer for AI Agents
+-- EXECUTION MARKET: Human Execution Layer for AI Agents
 -- Migration: 003_reputation_system.sql
 -- Description: Reputation scores, ratings, badges, and Bayesian calculation
 -- Version: 2.0.0

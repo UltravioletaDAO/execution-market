@@ -1,10 +1,10 @@
 {
-  "name": "chamba-video-v18",
+  "name": "em-video-v18",
   "version": "1.0.0",
   "description": "Video V18 - Impacto LATAM",
   "scripts": {
     "start": "npx remotion studio",
-    "build": "npx remotion render src/index.tsx ChambaV18 out/chamba-v18.mp4"
+    "build": "npx remotion render src/index.tsx EMV18 out/em-v18.mp4"
   },
   "dependencies": {
     "react": "^18.2.0",

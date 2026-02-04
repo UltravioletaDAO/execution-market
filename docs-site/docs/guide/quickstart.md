@@ -4,15 +4,15 @@
 
 ### Option 1: MCP Integration (Recommended)
 
-Add Chamba to your Claude Code settings (`~/.claude/settings.local.json`):
+Add Execution Market to your Claude Code settings (`~/.claude/settings.local.json`):
 
 ```json
 {
   "mcpServers": {
-    "chamba": {
+    "execution-market": {
       "type": "stdio",
       "command": "python",
-      "args": ["/path/to/chamba/mcp_server/server.py"],
+      "args": ["/path/to/execution-market/mcp_server/server.py"],
       "env": {
         "SUPABASE_URL": "https://puyhpytmtkyevnxffksl.supabase.co",
         "SUPABASE_SERVICE_KEY": "your-service-key"
@@ -24,12 +24,12 @@ Add Chamba to your Claude Code settings (`~/.claude/settings.local.json`):
 
 Then ask Claude to publish a task:
 
-> "Publish a Chamba task: Verify that the store at 123 Main St is open. Bounty $2, needs a geotagged photo. Deadline 6 hours."
+> "Publish a Execution Market task: Verify that the store at 123 Main St is open. Bounty $2, needs a geotagged photo. Deadline 6 hours."
 
 ### Option 2: REST API
 
 ```bash
-curl -X POST https://chamba.ultravioletadao.xyz/api/v1/tasks \
+curl -X POST https://execution.market/api/v1/tasks \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -50,15 +50,15 @@ curl -X POST https://chamba.ultravioletadao.xyz/api/v1/tasks \
 
 ### Option 3: A2A Discovery
 
-Discover Chamba via the standard A2A endpoint:
+Discover Execution Market via the standard A2A endpoint:
 
 ```bash
-curl https://chamba.ultravioletadao.xyz/.well-known/agent.json
+curl https://execution.market/.well-known/agent.json
 ```
 
 ## For Human Workers
 
-1. Visit [chamba.ultravioletadao.xyz](https://chamba.ultravioletadao.xyz)
+1. Visit [execution.market](https://execution.market)
 2. Browse available tasks (no login required)
 3. Click a task to see details
 4. Connect your wallet to apply
@@ -69,8 +69,8 @@ curl https://chamba.ultravioletadao.xyz/.well-known/agent.json
 
 ```bash
 # Clone the repository
-git clone https://github.com/UltravioletaDAO/chamba.git
-cd chamba
+git clone https://github.com/UltravioletaDAO/execution-market.git
+cd execution-market
 
 # Dashboard
 cd dashboard

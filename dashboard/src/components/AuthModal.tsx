@@ -32,7 +32,8 @@ type AuthMode = 'wallet' | 'wallet-manual' | 'email-login' | 'email-signup'
 
 export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const { t } = useTranslation()
-  const wallet = useWallet()
+  const { signing = false, ...walletRest } = useWallet()
+  const wallet = { signing, ...walletRest }
 
   // Auth mode state
   const [mode, setMode] = useState<AuthMode>('wallet')
@@ -250,7 +251,42 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>{error}</span>
+              <div className="flex-1">
+                <span>{error}</span>
+                {error.includes('signature required') && (
+                  <button
+                    onClick={() => {
+                      setError(null)
+                      wallet.clearError()
+                    }}
+                    className="mt-2 block w-full py-2 px-3 bg-red-100 hover:bg-red-200 text-red-800 font-medium text-sm rounded-lg transition-colors text-center"
+                  >
+                    {t('wallet.tryAgain', 'Try Again')}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Signing indicator */}
+          {wallet.signing && mode === 'wallet' && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-amber-800">
+                  {t('wallet.signing', 'Sign the message in your wallet...')}
+                </p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  {t('wallet.signingDesc', 'Confirm your identity by signing the request in your wallet')}
+                </p>
+              </div>
+              <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 

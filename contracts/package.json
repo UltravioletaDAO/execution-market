@@ -1,7 +1,7 @@
 {
-  "name": "chamba-escrow",
+  "name": "execution-market-escrow",
   "version": "1.0.0",
-  "description": "Chamba Escrow Smart Contracts - ERC20 escrow with partial releases",
+  "description": "Execution Market Escrow Smart Contracts - ERC20 escrow with partial releases",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",

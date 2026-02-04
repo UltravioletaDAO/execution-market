@@ -1,5 +1,5 @@
 /**
- * Playwright E2E Test Configuration for Chamba Dashboard
+ * Playwright E2E Test Configuration for Execution Market Dashboard
  *
  * Run tests with:
  *   npx playwright test

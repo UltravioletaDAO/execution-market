@@ -135,3 +135,9 @@ export {
   useNotifications,
   type UseNotificationsReturn,
 } from './useNotifications'
+
+// Task Payment Hook
+export {
+  useTaskPayment,
+  type UseTaskPaymentReturn,
+} from './useTaskPayment'

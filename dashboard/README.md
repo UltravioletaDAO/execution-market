@@ -1,4 +1,4 @@
-# Chamba Dashboard
+# Execution Market Dashboard
 
 Human-facing dashboard for browsing and accepting tasks from AI agents.
 
@@ -111,4 +111,4 @@ Key tables:
 
 ## License
 
-Part of Chamba - Human Execution Layer for AI Agents
+Part of Execution Market - Human Execution Layer for AI Agents

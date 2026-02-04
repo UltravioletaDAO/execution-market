@@ -80,12 +80,12 @@
 
   /* Selection styling */
   ::selection {
-    @apply bg-chamba-500/30 text-chamba-900 dark:text-chamba-100;
+    @apply bg-em-500/30 text-em-900 dark:text-em-100;
   }
 
   /* Focus styles */
   *:focus-visible {
-    @apply outline-none ring-2 ring-chamba-500 ring-offset-2;
+    @apply outline-none ring-2 ring-em-500 ring-offset-2;
     @apply ring-offset-white dark:ring-offset-slate-900;
   }
 
@@ -133,9 +133,9 @@
   }
 
   .btn-primary {
-    @apply btn bg-chamba-500 text-white;
-    @apply hover:bg-chamba-600;
-    @apply focus:ring-chamba-500;
+    @apply btn bg-em-500 text-white;
+    @apply hover:bg-em-600;
+    @apply focus:ring-em-500;
     @apply shadow-sm hover:shadow-md;
   }
 
@@ -243,7 +243,7 @@
     @apply border border-slate-300 dark:border-slate-600;
     @apply text-slate-900 dark:text-slate-100;
     @apply placeholder:text-slate-400 dark:placeholder:text-slate-500;
-    @apply focus:outline-none focus:ring-2 focus:ring-chamba-500 focus:border-transparent;
+    @apply focus:outline-none focus:ring-2 focus:ring-em-500 focus:border-transparent;
     @apply transition-colors duration-200;
     @apply disabled:bg-slate-100 dark:disabled:bg-slate-700 disabled:cursor-not-allowed;
   }
@@ -293,8 +293,8 @@
     @apply w-4 h-4 rounded;
     @apply border-slate-300 dark:border-slate-600;
     @apply bg-white dark:bg-slate-800;
-    @apply text-chamba-500;
-    @apply focus:ring-chamba-500 focus:ring-offset-0;
+    @apply text-em-500;
+    @apply focus:ring-em-500 focus:ring-offset-0;
     @apply transition-colors;
   }
 
@@ -484,8 +484,8 @@
   }
 
   .nav-link-active {
-    @apply text-chamba-600 dark:text-chamba-400;
-    @apply bg-chamba-50 dark:bg-chamba-900/20;
+    @apply text-em-600 dark:text-em-400;
+    @apply bg-em-50 dark:bg-em-900/20;
     @apply font-medium;
   }
 
@@ -495,7 +495,7 @@
   .spinner {
     @apply w-5 h-5 border-2 rounded-full animate-spin;
     @apply border-slate-300 dark:border-slate-600;
-    @apply border-t-chamba-500;
+    @apply border-t-em-500;
   }
 
   .spinner-sm {
@@ -633,7 +633,7 @@
   }
 
   .progress-bar {
-    @apply h-full bg-chamba-500 rounded-full transition-all duration-300;
+    @apply h-full bg-em-500 rounded-full transition-all duration-300;
   }
 
   /* --------------------------------------------------------------------------
@@ -704,7 +704,7 @@
   /* Text gradient */
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    @apply bg-gradient-to-r from-chamba-500 to-violet-500;
+    @apply bg-gradient-to-r from-em-500 to-violet-500;
   }
 
   .text-gradient-warm {

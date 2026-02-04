@@ -1,4 +1,4 @@
-# NOW-012: Implementar chamba_submit_work
+# NOW-012: Implementar em_submit_work
 
 ## Metadata
 - **Prioridad**: P0
@@ -51,7 +51,7 @@ Implementar el tool MCP que permite a un worker enviar evidencia de trabajo comp
 
 ```python
 Tool(
-    name="chamba_submit_work",
+    name="em_submit_work",
     description="Submit completed work with evidence for a task",
     inputSchema={
         "type": "object",

@@ -1,4 +1,4 @@
-# Chamba Webhooks Documentation
+# Execution Market Webhooks Documentation
 
 > Real-time event notifications for task lifecycle and payments
 >
@@ -20,7 +20,7 @@
 
 ## Overview
 
-Chamba webhooks notify your application when events happen in your account. This eliminates the need for polling and enables real-time integrations.
+Execution Market webhooks notify your application when events happen in your account. This eliminates the need for polling and enables real-time integrations.
 
 ### Key Features
 
@@ -38,7 +38,7 @@ Every webhook request includes:
 POST /your-webhook-endpoint HTTP/1.1
 Host: your-server.com
 Content-Type: application/json
-User-Agent: Chamba-Webhook/1.0
+User-Agent: ExecutionMarket-Webhook/1.0
 X-Webhook-Id: wh_abc123xyz
 X-Webhook-Event: task.created
 X-Webhook-Signature: t=1706180000,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd
@@ -363,7 +363,7 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 WEBHOOK_SECRET = "whsec_xxxxxxxxxxxxx"
 
-@app.route("/webhooks/chamba", methods=["POST"])
+@app.route("/webhooks/execution-market", methods=["POST"])
 def handle_webhook():
     payload = request.get_data(as_text=True)
     signature = request.headers.get("X-Webhook-Signature")
@@ -432,7 +432,7 @@ const app = express();
 
 const WEBHOOK_SECRET = 'whsec_xxxxxxxxxxxxx';
 
-app.post('/webhooks/chamba', express.raw({ type: 'application/json' }), (req, res) => {
+app.post('/webhooks/execution-market', express.raw({ type: 'application/json' }), (req, res) => {
     const payload = req.body.toString();
     const signature = req.headers['x-webhook-signature'];
 
@@ -462,7 +462,7 @@ app.post('/webhooks/chamba', express.raw({ type: 'application/json' }), (req, re
 
 ## Retry Policy
 
-Chamba uses exponential backoff for failed webhook deliveries.
+Execution Market uses exponential backoff for failed webhook deliveries.
 
 ### Retry Schedule
 
@@ -490,7 +490,7 @@ Failed deliveries are retried automatically. After 10 consecutive failures, the 
 To re-enable a failed webhook:
 
 ```bash
-curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id}/resume \
+curl -X POST https://api.execution.market/api/v1/webhooks/{webhook_id}/resume \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -500,11 +500,11 @@ Events that fail all retry attempts are stored in the dead letter queue for 7 da
 
 ```bash
 # List dead letter events
-curl https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id}/dead-letter \
+curl https://api.execution.market/api/v1/webhooks/{webhook_id}/dead-letter \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Replay a dead letter event
-curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/dead-letter/{event_id}/replay \
+curl -X POST https://api.execution.market/api/v1/webhooks/dead-letter/{event_id}/replay \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -515,11 +515,11 @@ curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/dead-letter/
 ### Register a Webhook
 
 ```bash
-curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks \
+curl -X POST https://api.execution.market/api/v1/webhooks \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "url": "https://your-server.com/webhooks/chamba",
+    "url": "https://your-server.com/webhooks/execution-market",
     "events": [
       "task.created",
       "task.completed",
@@ -532,7 +532,7 @@ curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks \
 # Response
 {
   "webhook_id": "wh_abc123xyz",
-  "url": "https://your-server.com/webhooks/chamba",
+  "url": "https://your-server.com/webhooks/execution-market",
   "events": ["task.created", "task.completed", "submission.received", "payment.released"],
   "status": "active",
   "secret": "whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -545,18 +545,18 @@ curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks \
 ### List Webhooks
 
 ```bash
-curl https://api.chamba.ultravioletadao.xyz/api/v1/webhooks \
+curl https://api.execution.market/api/v1/webhooks \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ### Update Webhook
 
 ```bash
-curl -X PATCH https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id} \
+curl -X PATCH https://api.execution.market/api/v1/webhooks/{webhook_id} \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "url": "https://new-server.com/webhooks/chamba",
+    "url": "https://new-server.com/webhooks/execution-market",
     "events": ["task.created", "task.completed"]
   }'
 ```
@@ -564,7 +564,7 @@ curl -X PATCH https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id
 ### Delete Webhook
 
 ```bash
-curl -X DELETE https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id} \
+curl -X DELETE https://api.execution.market/api/v1/webhooks/{webhook_id} \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -572,18 +572,18 @@ curl -X DELETE https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_i
 
 ```bash
 # Pause
-curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id}/pause \
+curl -X POST https://api.execution.market/api/v1/webhooks/{webhook_id}/pause \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Resume
-curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id}/resume \
+curl -X POST https://api.execution.market/api/v1/webhooks/{webhook_id}/resume \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ### Rotate Secret
 
 ```bash
-curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id}/rotate-secret \
+curl -X POST https://api.execution.market/api/v1/webhooks/{webhook_id}/rotate-secret \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Response
@@ -596,7 +596,7 @@ curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id}
 ### Get Webhook Stats
 
 ```bash
-curl https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id}/stats \
+curl https://api.execution.market/api/v1/webhooks/{webhook_id}/stats \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Response
@@ -619,7 +619,7 @@ curl https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id}/stats \
 ### Send Test Event
 
 ```bash
-curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id}/test \
+curl -X POST https://api.execution.market/api/v1/webhooks/{webhook_id}/test \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Response
@@ -640,10 +640,10 @@ Use a tunnel service for local testing:
 ngrok http 3000
 
 # Register webhook with ngrok URL
-curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks \
+curl -X POST https://api.execution.market/api/v1/webhooks \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
-    "url": "https://abc123.ngrok.io/webhooks/chamba",
+    "url": "https://abc123.ngrok.io/webhooks/execution-market",
     "events": ["task.created", "task.completed"]
   }'
 ```
@@ -653,7 +653,7 @@ curl -X POST https://api.chamba.ultravioletadao.xyz/api/v1/webhooks \
 View recent webhook deliveries:
 
 ```bash
-curl https://api.chamba.ultravioletadao.xyz/api/v1/webhooks/{webhook_id}/logs \
+curl https://api.execution.market/api/v1/webhooks/{webhook_id}/logs \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Response

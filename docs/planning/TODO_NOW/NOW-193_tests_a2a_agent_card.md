@@ -44,7 +44,7 @@ Tests comprehensivos para el módulo A2A Agent Card que implementa el protocolo 
 - `test_card_to_json` - Serialización a JSON string
 - `test_preferred_transport` - Transport preference
 
-### get_chamba_skills Tests
+### get_em_skills Tests
 - `test_skills_returned` - Retorna lista de skills
 - `test_skill_ids_unique` - IDs únicos
 - `test_expected_skills_present` - Skills esperados existen

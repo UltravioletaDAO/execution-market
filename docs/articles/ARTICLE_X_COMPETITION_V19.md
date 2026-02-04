@@ -84,7 +84,7 @@ Dan Koe propone algo que llama "The Swap Test":
 
 Si puedes intercambiar al creador y la creación sigue siendo igual de valiosa, entonces la IA puede reemplazarla. Si la creación solo funciona porque **tú** la hiciste, eso es tu ventaja.
 
-Apliquemos esto a Chamba:
+Apliquemos esto a Execution Market:
 
 - ¿Un agente puede analizar datos? Sí. Cualquier modelo lo hace igual.
 - ¿Un agente puede generar código? Sí. Es intercambiable.
@@ -92,7 +92,7 @@ Apliquemos esto a Chamba:
 - ¿Un agente puede entregar un paquete a la paquetería de la esquina? **No.**
 - ¿Un agente puede llamar por teléfono y convencer a alguien? **No.**
 
-El humano en la tarea de Chamba no es intercambiable. No porque sea especial, sino porque **está ahí**. Tiene un cuerpo. Tiene presencia física. Tiene contexto local que ningún modelo puede simular.
+El humano en la tarea de Execution Market no es intercambiable. No porque sea especial, sino porque **está ahí**. Tiene un cuerpo. Tiene presencia física. Tiene contexto local que ningún modelo puede simular.
 
 ### Los trabajos que persisten
 
@@ -104,7 +104,7 @@ Según el análisis de David Shapiro que Dan Koe cita, hay trabajos que persisti
 - **Meaning makers** — quienes ayudan a otros a navegar la experiencia humana
 - **Relationship/trust jobs** — ventas, diplomacia, negociación
 
-Chamba encaja perfectamente en las primeras tres categorías:
+Execution Market encaja perfectamente en las primeras tres categorías:
 
 Las tareas físicas son **high-liability** — si algo sale mal, alguien tiene que responder. Los agentes no pueden firmar documentos legales, eso requiere **statutory positions**. Y muchas tareas de verificación son parte de la **experience economy** — el valor está en que un humano real lo hizo.
 
@@ -120,9 +120,9 @@ Ahora que las máquinas pueden producir mejor que nosotros, ¿de dónde viene el
 
 De **crear algo propio**. De **ejercer agencia**. De **contribuir** a algo más grande que uno mismo.
 
-Chamba no es solo una forma de ganar dinero. Es una forma de **ejercer agencia** en un mundo donde cada vez más decisiones las toman algoritmos.
+Execution Market no es solo una forma de ganar dinero. Es una forma de **ejercer agencia** en un mundo donde cada vez más decisiones las toman algoritmos.
 
-El humano que toma una tarea en Chamba está eligiendo. Está actuando. Está contribuyendo a algo — aunque ese "algo" sea un agente de IA que nunca conocerá.
+El humano que toma una tarea en Execution Market está eligiendo. Está actuando. Está contribuyendo a algo — aunque ese "algo" sea un agente de IA que nunca conocerá.
 
 **Y eso, paradójicamente, puede ser más significativo que muchos trabajos tradicionales.**
 
@@ -154,7 +154,7 @@ El agente genera $500 en valor y luego se sienta a esperar porque necesita que a
 
 ## Eso es lo que estamos construyendo
 
-Se llama **Chamba**.
+Se llama **Execution Market**.
 
 No es otra app de gig economy. No es "Uber para tareas". No es un marketplace más donde humanos contratan humanos.
 
@@ -242,7 +242,7 @@ Hoy esas tareas de $0.25 son **imposibles**. TaskRabbit cobra 23% de comisión. 
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
 | Upwork | 0-15% | $5+ | 5-10 días |
-| **Chamba** | **6-8%** | **$0.25** | **Instantáneo** |
+| **Execution Market** | **6-8%** | **$0.25** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para que alguien complete un CAPTCHA.
 
@@ -282,7 +282,7 @@ Aquí está lo crucial: x402 versión 2 fue diseñado para permitir extensiones.
 
 Si el trabajo no se verifica, el dinero vuelve solo. Sin disputas. Sin esperar. Sin intermediarios.
 
-**Sin este sistema de refunds, nada de Chamba sería posible.** Un agente no puede arriesgar su dinero sin garantía de que recupera su pago si el trabajo falla. x402r resuelve esto de forma trustless.
+**Sin este sistema de refunds, nada de Execution Market sería posible.** Un agente no puede arriesgar su dinero sin garantía de que recupera su pago si el trabajo falla. x402r resuelve esto de forma trustless.
 
 Trabajamos directamente con el equipo de x402r para integrar su sistema de reembolsos en nuestro facilitador. No es que simplemente exista el producto — **ya está live e integrado**.
 
@@ -357,7 +357,7 @@ Una empresa tiene un agente manejando atención al cliente. El agente cierra una
 
 Horas. A veces días.
 
-**Con Chamba:**
+**Con Execution Market:**
 1. Agente publica: "Enviar paquete, $8"
 2. Humano cercano la toma
 3. Va, envía, sube foto de recibo con tracking
@@ -373,7 +373,7 @@ Todo en minutos. Sin fricción. Sin intermediarios humanos.
 
 ## Plataforma y protocolo
 
-Algo importante: Chamba es **ambos**.
+Algo importante: Execution Market es **ambos**.
 
 Estamos construyendo la **plataforma** — el marketplace donde agentes publican tareas y humanos las toman. Los rieles de pago ya están funcionando en producción. La interfaz de matching está en desarrollo activo.
 
@@ -381,13 +381,13 @@ Y estamos definiendo el **protocolo** — el estándar abierto para que cualquie
 
 HTTP es un protocolo. Chrome es una app que usa HTTP. Firefox también. Miles de apps usan HTTP.
 
-Chamba Protocol define:
+Execution Market Protocol define:
 - Cómo se publican tareas (MCP tools para agentes)
 - Cómo se asignan workers (matching por ubicación, reputación, skills)
 - Cómo se verifica el trabajo
 - Cómo se liquidan los pagos
 
-La plataforma de Chamba será la primera implementación. Pero el protocolo permite que otros construyan sus propias versiones, apps especializadas, o integraciones enterprise.
+La plataforma de Execution Market será la primera implementación. Pero el protocolo permite que otros construyan sus propias versiones, apps especializadas, o integraciones enterprise.
 
 **El ecosistema crece porque el protocolo es abierto.**
 
@@ -399,7 +399,7 @@ Además del marketplace público, hay otro mercado enorme.
 
 Empresas con agentes de IA internos. Necesitan tareas físicas. Necesitan verificaciones. Pero no quieren exponer operaciones internas en un marketplace público. No quieren usar crypto. No quieren perder control.
 
-**Chamba Enterprise:**
+**Execution Market Enterprise:**
 - Su propia instancia del protocolo
 - Sistema de puntos interno en vez de crypto
 - Workers limitados a empleados o contractors aprobados
@@ -409,11 +409,11 @@ El mismo protocolo. Diferente implementación.
 
 Una empresa de logística con agentes que publican tareas de verificación, y empleados que las toman como parte de su trabajo.
 
-**Y aquí está lo revolucionario:** Con Chamba Enterprise, el reconocimiento es automático y transparente. El empleado que más tareas completa sube en el ranking sin depender de políticas de oficina o favoritismo. Mérito puro. Medible. Auditable.
+**Y aquí está lo revolucionario:** Con Execution Market Enterprise, el reconocimiento es automático y transparente. El empleado que más tareas completa sube en el ranking sin depender de políticas de oficina o favoritismo. Mérito puro. Medible. Auditable.
 
 Streaks de 7 días = 1.5x puntos. Leaderboard mensual. El que más contribuye, más visible es.
 
-En muchas empresas, el trabajo duro se pierde en el ruido y la gente escala por otras razones. Con Chamba Enterprise, el sistema no puede ignorar a quien más aporta.
+En muchas empresas, el trabajo duro se pierde en el ruido y la gente escala por otras razones. Con Execution Market Enterprise, el sistema no puede ignorar a quien más aporta.
 
 O pueden conectar al pool público cuando necesiten overflow.
 
@@ -451,7 +451,7 @@ Gente con robots domésticos. Registrándolos en el protocolo. Los robots tomand
 
 **Es como mining, pero de trabajo físico.**
 
-Según ABI Research, el "inflection point" para robots humanoides está entre 2026-2027. 1X NEO ya acepta preórdenes con entrega en 2026. Tesla proyecta 50,000-100,000 unidades Optimus para 2026. La infraestructura de Chamba funcionará igual para humanos o robots — el protocolo no discrimina.
+Según ABI Research, el "inflection point" para robots humanoides está entre 2026-2027. 1X NEO ya acepta preórdenes con entrega en 2026. Tesla proyecta 50,000-100,000 unidades Optimus para 2026. La infraestructura de Execution Market funcionará igual para humanos o robots — el protocolo no discrimina.
 
 ---
 
@@ -499,7 +499,7 @@ Ya tenemos un playground funcionando — un pixel marketplace donde cada transac
 
 Con **ERC-8004** llevamos meses experimentando en testnet. Reputación bidireccional. Escala 0-100. Cuando el estándar llegue a mainnet, estaremos listos para atar los cabos finales.
 
-**Chamba no es una idea.** Es la siguiente pieza de un ecosistema que ya está tomando forma.
+**Execution Market no es una idea.** Es la siguiente pieza de un ecosistema que ya está tomando forma.
 
 Este artículo es una invitación. A ver lo que nosotros vemos. A prepararse para lo que viene.
 
@@ -520,7 +520,7 @@ Este artículo es una invitación. A ver lo que nosotros vemos. A prepararse par
 
 ---
 
-*Chamba es un proyecto de Ultravioleta DAO. Los rieles existen. Ahora construimos el puente.*
+*Execution Market es un proyecto de Ultravioleta DAO. Los rieles existen. Ahora construimos el puente.*
 
 ---
 

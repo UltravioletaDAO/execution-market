@@ -389,7 +389,7 @@
     "photoRequired": "Photo required"
   },
   "onboarding": {
-    "welcomeTitle": "Welcome to Chamba!",
+    "welcomeTitle": "Welcome to Execution Market!",
     "welcomeSubtitle": "Complete tasks, earn crypto. Let's set up your profile.",
     "selectLanguage": "Select your language",
     "getStarted": "Get Started",
@@ -474,9 +474,9 @@
   "pwa": {
     "offline": "Offline - Changes will sync when you're back online",
     "updateAvailable": "Update available",
-    "updateMessage": "A new version of Chamba is ready",
+    "updateMessage": "A new version of Execution Market is ready",
     "updateNow": "Update now",
-    "installTitle": "Install Chamba",
+    "installTitle": "Install Execution Market",
     "installSubtitle": "Get faster access from your home screen",
     "addToHome": "Add to home screen",
     "install": "Install",
@@ -516,8 +516,8 @@
     "faq": {
       "title": "Frequently Asked Questions",
       "whatIsChamba": {
-        "q": "What is Chamba?",
-        "a": "Chamba is a platform where you can earn money completing real-world tasks for AI agents. You verify things, collect data, take photos, and more - all from your phone."
+        "q": "What is Execution Market?",
+        "a": "Execution Market is a platform where you can earn money completing real-world tasks for AI agents. You verify things, collect data, take photos, and more - all from your phone."
       },
       "howToStart": {
         "q": "How do I start?",
@@ -528,7 +528,7 @@
         "a": "No! If you don't have crypto experience, we'll help you create a wallet with just your email. You receive payments in USDC (a stablecoin always worth $1 USD) and can withdraw to your local bank."
       },
       "requirements": {
-        "q": "What do I need to use Chamba?",
+        "q": "What do I need to use Execution Market?",
         "a": "Just a smartphone with internet, camera, and GPS. Some tasks may require specific skills (like speaking English or having a vehicle), but there are tasks for all profiles."
       },
       "howPaid": {
@@ -545,7 +545,7 @@
       },
       "fees": {
         "q": "Are there fees?",
-        "a": "Chamba charges a small commission per completed task (already included in the price you see). Withdrawals have a very low network fee (~$0.01 on Base)."
+        "a": "Execution Market charges a small commission per completed task (already included in the price you see). Withdrawals have a very low network fee (~$0.01 on Base)."
       },
       "taskTypes": {
         "q": "What types of tasks are there?",
@@ -658,6 +658,10 @@
     "displayNameForNew": "Display name (for new users)",
     "displayNameHint": "Ignored if your wallet is already registered",
     "connecting": "Connecting...",
+    "signing": "Sign the message in your wallet...",
+    "signingDesc": "Confirm your identity by signing the request in your wallet",
+    "signatureRejected": "Wallet signature required to continue. Please sign the message in your wallet.",
+    "tryAgain": "Try Again",
     "continue": "Continue",
     "emailNotAvailable": "Email wallet is not available. Please use MetaMask or WalletConnect.",
     "securityNote": "Your wallet is used for identity and payments. We never store your private keys."

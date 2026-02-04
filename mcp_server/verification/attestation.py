@@ -261,8 +261,8 @@ class AttestationVerifier:
 
     Usage:
         verifier = AttestationVerifier(
-            apple_app_id="com.example.chamba",
-            android_package_name="com.example.chamba",
+            apple_app_id="com.example.executionmarket",
+            android_package_name="com.example.executionmarket",
             google_api_key="YOUR_API_KEY"
         )
 
@@ -287,7 +287,7 @@ class AttestationVerifier:
         Initialize attestation verifier.
 
         Args:
-            apple_app_id: iOS Bundle ID (e.g., "com.example.chamba")
+            apple_app_id: iOS Bundle ID (e.g., "com.example.executionmarket")
             apple_team_id: Apple Team ID (e.g., "ABC123XYZ")
             android_package_name: Android package name
             google_api_key: Google Cloud API key for Play Integrity

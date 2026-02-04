@@ -29,7 +29,7 @@ Implementar autenticación basada en wallet signature que crea una sesión JWT.
 
 ```
 1. Worker conecta wallet (MetaMask, WalletConnect, Crossmint)
-2. Frontend solicita firma de mensaje: "Sign in to Chamba: {nonce}"
+2. Frontend solicita firma de mensaje: "Sign in to Execution Market: {nonce}"
 3. Backend verifica firma → crea/obtiene executor en Supabase
 4. Backend genera JWT con executor_id
 5. Frontend guarda JWT en localStorage
@@ -59,7 +59,7 @@ export function WorkerAuth({ onSuccess }: { onSuccess: () => void }) {
       const { nonce } = await nonceRes.json();
 
       // 2. Sign message
-      const message = `Sign in to Chamba: ${nonce}`;
+      const message = `Sign in to Execution Market: ${nonce}`;
       const signature = await signMessageAsync({ message });
 
       // 3. Verify signature and get JWT
@@ -72,8 +72,8 @@ export function WorkerAuth({ onSuccess }: { onSuccess: () => void }) {
       const { token, executor } = await loginRes.json();
 
       // 4. Store session
-      localStorage.setItem('chamba_token', token);
-      localStorage.setItem('chamba_executor', JSON.stringify(executor));
+      localStorage.setItem('em_token', token);
+      localStorage.setItem('em_executor', JSON.stringify(executor));
 
       onSuccess();
     } catch (error) {
@@ -173,5 +173,5 @@ async def login(address: str, signature: str, message: str):
 curl -X GET "http://localhost:8000/api/auth/nonce?address=0x123..."
 curl -X POST "http://localhost:8000/api/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"address": "0x...", "signature": "0x...", "message": "Sign in to Chamba: abc123"}'
+  -d '{"address": "0x...", "signature": "0x...", "message": "Sign in to Execution Market: abc123"}'
 ```

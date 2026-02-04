@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Chamba CLI - Setup script for backwards compatibility.
+Execution Market CLI - Setup script for backwards compatibility.
 
 For modern installations, use pyproject.toml with pip:
     pip install .
@@ -15,7 +15,7 @@ import os
 import re
 
 def get_version():
-    init_path = os.path.join(os.path.dirname(__file__), "src", "chamba_cli", "__init__.py")
+    init_path = os.path.join(os.path.dirname(__file__), "src", "em_cli", "__init__.py")
     with open(init_path, "r") as f:
         content = f.read()
     match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
@@ -32,14 +32,14 @@ def get_long_description():
     return ""
 
 setup(
-    name="chamba-cli",
+    name="execution-market-cli",
     version=get_version(),
-    description="Command-line interface for Chamba - Human task execution layer for AI agents",
+    description="Command-line interface for Execution Market - Human task execution layer for AI agents",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="Ultravioleta DAO",
     author_email="dev@ultravioleta.xyz",
-    url="https://github.com/ultravioleta-dao/chamba",
+    url="https://github.com/ultravioleta-dao/execution-market",
     license="MIT",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
@@ -61,7 +61,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "chamba = chamba_cli.chamba:main",
+            "em = em_cli.em:main",
         ],
     },
     classifiers=[
@@ -77,5 +77,5 @@ setup(
         "Programming Language :: Python :: 3.12",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    keywords="chamba cli ai-agents human-tasks micropayments x402 ultravioleta",
+    keywords="execution-market cli ai-agents human-tasks micropayments x402 ultravioleta",
 )

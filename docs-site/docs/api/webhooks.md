@@ -1,6 +1,6 @@
 # Webhooks
 
-Chamba can send real-time notifications to your server when events occur.
+Execution Market can send real-time notifications to your server when events occur.
 
 ## Events
 
@@ -42,7 +42,7 @@ Chamba can send real-time notifications to your server when events occur.
 All webhook payloads include an HMAC signature for verification:
 
 ```
-X-Chamba-Signature: sha256=abc123...
+X-EM-Signature: sha256=abc123...
 ```
 
 Verify in your server:
@@ -66,7 +66,7 @@ POST /api/v1/webhooks
 
 ```json
 {
-  "url": "https://your-server.com/chamba-webhook",
+  "url": "https://your-server.com/em-webhook",
   "events": ["task.completed", "task.disputed"],
   "secret": "your-webhook-secret"
 }

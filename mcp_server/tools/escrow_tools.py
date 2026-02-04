@@ -1,5 +1,5 @@
 """
-Advanced Escrow MCP Tools for Chamba
+Advanced Escrow MCP Tools for Execution Market
 
 Exposes the 5 Advanced Escrow flows to AI agents via MCP tools:
 1. AUTHORIZE  - Lock bounty in escrow
@@ -13,7 +13,7 @@ Plus helper tools:
 - partial_release    - Proof-of-attempt flow
 - status             - Query payment state
 
-These tools wrap ChambaAdvancedEscrow from the integration layer,
+These tools wrap EMAdvancedEscrow (from the integration layer),
 which in turn calls the uvd-x402-sdk AdvancedEscrowClient.
 """
 
@@ -32,7 +32,7 @@ _escrow_instance = None
 
 try:
     from integrations.x402.advanced_escrow_integration import (
-        ChambaAdvancedEscrow,
+        EMAdvancedEscrow,
         PaymentStrategy,
         TaskPayment,
         get_advanced_escrow,
@@ -314,7 +314,7 @@ def register_escrow_tools(mcp):
     # ------------------------------------------------------------------
 
     @mcp.tool(
-        name="chamba_escrow_recommend_strategy",
+        name="em_escrow_recommend_strategy",
         annotations={
             "title": "Recommend Escrow Payment Strategy",
             "readOnlyHint": True,
@@ -323,11 +323,11 @@ def register_escrow_tools(mcp):
             "openWorldHint": False,
         },
     )
-    async def chamba_escrow_recommend_strategy(params: EscrowRecommendInput) -> str:
+    async def em_escrow_recommend_strategy(params: EscrowRecommendInput) -> str:
         """
         Recommend the best payment strategy for a task based on its parameters.
 
-        Uses the Chamba Agent Decision Tree to select the optimal payment flow.
+        Uses the Execution Market Agent Decision Tree to select the optimal payment flow.
         When ERC-8004 on-chain reputation is available, it takes precedence.
 
         Decision logic:
@@ -419,16 +419,16 @@ def register_escrow_tools(mcp):
                     "## Dispute Resolution Note",
                     "This strategy keeps funds **in escrow** until an arbiter decides.",
                     "Do NOT release funds until quality is verified.",
-                    "- If quality OK: `chamba_escrow_release`",
-                    "- If quality fails: `chamba_escrow_refund` (funds guaranteed in escrow)",
+                    "- If quality OK: `em_escrow_release`",
+                    "- If quality fails: `em_escrow_refund` (funds guaranteed in escrow)",
                     "",
-                    "Post-release refund (`chamba_escrow_dispute`) is not available in production.",
+                    "Post-release refund (`em_escrow_dispute`) is not available in production.",
                 ])
 
             lines.extend([
                 "",
                 "## Next Step",
-                f"Call `chamba_escrow_authorize` with strategy=`{strategy.value}` to lock the bounty.",
+                f"Call `em_escrow_authorize` with strategy=`{strategy.value}` to lock the bounty.",
             ])
 
             return "\n".join(lines)
@@ -442,7 +442,7 @@ def register_escrow_tools(mcp):
     # ------------------------------------------------------------------
 
     @mcp.tool(
-        name="chamba_escrow_authorize",
+        name="em_escrow_authorize",
         annotations={
             "title": "Lock Bounty in Escrow",
             "readOnlyHint": False,
@@ -451,7 +451,7 @@ def register_escrow_tools(mcp):
             "openWorldHint": True,
         },
     )
-    async def chamba_escrow_authorize(params: EscrowAuthorizeInput) -> str:
+    async def em_escrow_authorize(params: EscrowAuthorizeInput) -> str:
         """
         Lock a task bounty in escrow via the PaymentOperator contract.
 
@@ -520,17 +520,17 @@ Check that:
             ]
 
             if strategy == PaymentStrategy.ESCROW_CAPTURE:
-                lines.append("- When task is approved: call `chamba_escrow_release`")
-                lines.append("- If task is cancelled: call `chamba_escrow_refund`")
+                lines.append("- When task is approved: call `em_escrow_release`")
+                lines.append("- If task is cancelled: call `em_escrow_refund`")
             elif strategy == PaymentStrategy.ESCROW_CANCEL:
-                lines.append("- If conditions are met: call `chamba_escrow_release`")
-                lines.append("- If conditions fail: call `chamba_escrow_refund`")
+                lines.append("- If conditions are met: call `em_escrow_release`")
+                lines.append("- If conditions fail: call `em_escrow_refund`")
             elif strategy == PaymentStrategy.PARTIAL_PAYMENT:
-                lines.append("- For proof-of-attempt: call `chamba_escrow_partial_release`")
+                lines.append("- For proof-of-attempt: call `em_escrow_partial_release`")
             elif strategy == PaymentStrategy.DISPUTE_RESOLUTION:
                 lines.append("- Arbiter reviews work quality")
-                lines.append("- If approved: call `chamba_escrow_release`")
-                lines.append("- If rejected: call `chamba_escrow_refund` (funds still in escrow)")
+                lines.append("- If approved: call `em_escrow_release`")
+                lines.append("- If rejected: call `em_escrow_refund` (funds still in escrow)")
 
             return "\n".join(lines)
 
@@ -543,7 +543,7 @@ Check that:
     # ------------------------------------------------------------------
 
     @mcp.tool(
-        name="chamba_escrow_release",
+        name="em_escrow_release",
         annotations={
             "title": "Release Escrow to Worker",
             "readOnlyHint": False,
@@ -552,7 +552,7 @@ Check that:
             "openWorldHint": True,
         },
     )
-    async def chamba_escrow_release(params: EscrowReleaseInput) -> str:
+    async def em_escrow_release(params: EscrowReleaseInput) -> str:
         """
         Release escrowed funds to the worker after task approval.
 
@@ -560,7 +560,7 @@ Check that:
 
         This is an irreversible operation. Once released, funds go directly
         to the worker's wallet. For dispute resolution after release,
-        use chamba_escrow_dispute.
+        use em_escrow_dispute.
 
         Args:
             params: task_id, optional amount (defaults to full bounty)
@@ -584,7 +584,7 @@ Check that:
 **Error**: {result.error}
 
 Check that:
-1. Task was previously authorized (call `chamba_escrow_status` to verify)
+1. Task was previously authorized (call `em_escrow_status` to verify)
 2. Escrow has not already been released or refunded
 3. Facilitator wallet has gas funds"""
 
@@ -611,7 +611,7 @@ The worker has received the payment. Task payment is complete."""
     # ------------------------------------------------------------------
 
     @mcp.tool(
-        name="chamba_escrow_refund",
+        name="em_escrow_refund",
         annotations={
             "title": "Refund Escrow to Agent",
             "readOnlyHint": False,
@@ -620,7 +620,7 @@ The worker has received the payment. Task payment is complete."""
             "openWorldHint": True,
         },
     )
-    async def chamba_escrow_refund(params: EscrowRefundInput) -> str:
+    async def em_escrow_refund(params: EscrowRefundInput) -> str:
         """
         Refund escrowed funds back to the agent (cancel task).
 
@@ -651,7 +651,7 @@ The worker has received the payment. Task payment is complete."""
 **Error**: {result.error}
 
 Check that:
-1. Task was previously authorized (call `chamba_escrow_status` to verify)
+1. Task was previously authorized (call `em_escrow_status` to verify)
 2. Escrow has not already been released
 3. Escrow timeout has not expired"""
 
@@ -678,7 +678,7 @@ The bounty has been returned to the agent's wallet."""
     # ------------------------------------------------------------------
 
     @mcp.tool(
-        name="chamba_escrow_charge",
+        name="em_escrow_charge",
         annotations={
             "title": "Instant Payment to Worker",
             "readOnlyHint": False,
@@ -687,7 +687,7 @@ The bounty has been returned to the agent's wallet."""
             "openWorldHint": True,
         },
     )
-    async def chamba_escrow_charge(params: EscrowChargeInput) -> str:
+    async def em_escrow_charge(params: EscrowChargeInput) -> str:
         """
         Make an instant payment to a worker without escrow.
 
@@ -756,7 +756,7 @@ This transaction is final and cannot be reversed through the escrow system."""
     # ------------------------------------------------------------------
 
     @mcp.tool(
-        name="chamba_escrow_partial_release",
+        name="em_escrow_partial_release",
         annotations={
             "title": "Partial Release + Refund (Proof of Attempt)",
             "readOnlyHint": False,
@@ -765,7 +765,7 @@ This transaction is final and cannot be reversed through the escrow system."""
             "openWorldHint": True,
         },
     )
-    async def chamba_escrow_partial_release(params: EscrowPartialReleaseInput) -> str:
+    async def em_escrow_partial_release(params: EscrowPartialReleaseInput) -> str:
         """
         Release a partial payment for proof-of-attempt and refund the remainder.
 
@@ -839,7 +839,7 @@ Check that the task was authorized and escrow is still active."""
     # ------------------------------------------------------------------
 
     @mcp.tool(
-        name="chamba_escrow_dispute",
+        name="em_escrow_dispute",
         annotations={
             "title": "Initiate Dispute (Post-Release Refund)",
             "readOnlyHint": False,
@@ -848,7 +848,7 @@ Check that the task was authorized and escrow is still active."""
             "openWorldHint": True,
         },
     )
-    async def chamba_escrow_dispute(params: EscrowDisputeInput) -> str:
+    async def em_escrow_dispute(params: EscrowDisputeInput) -> str:
         """
         Initiate a post-release dispute refund.
 
@@ -856,7 +856,7 @@ Check that the task was authorized and escrow is still active."""
         implemented the required tokenCollector contract. This tool will fail.
 
         For dispute resolution, the recommended approach is to keep funds in
-        escrow and use chamba_escrow_refund (refund-in-escrow) instead. This
+        escrow and use em_escrow_refund (refund-in-escrow) instead. This
         guarantees funds are available and under arbiter control.
 
         This tool is kept for future use when the protocol implements
@@ -881,8 +881,8 @@ The protocol team has not yet implemented the required `tokenCollector` contract
 Use **in-escrow dispute resolution** instead:
 
 1. **Keep funds in escrow** (do NOT release until quality is verified)
-2. If quality is acceptable: `chamba_escrow_release`
-3. If quality is unacceptable: `chamba_escrow_refund` (funds guaranteed available)
+2. If quality is acceptable: `em_escrow_release`
+3. If quality is unacceptable: `em_escrow_refund` (funds guaranteed available)
 
 This is safer because funds remain under arbiter control while in escrow,
 vs post-escrow which relies on merchant goodwill.
@@ -897,7 +897,7 @@ Once available, this tool will allow refunds after funds have been released."""
     # ------------------------------------------------------------------
 
     @mcp.tool(
-        name="chamba_escrow_status",
+        name="em_escrow_status",
         annotations={
             "title": "Get Escrow Payment Status",
             "readOnlyHint": True,
@@ -906,7 +906,7 @@ Once available, this tool will allow refunds after funds have been released."""
             "openWorldHint": False,
         },
     )
-    async def chamba_escrow_status(params: EscrowStatusInput) -> str:
+    async def em_escrow_status(params: EscrowStatusInput) -> str:
         """
         Get the current escrow payment status for a task.
 
@@ -938,7 +938,7 @@ Once available, this tool will allow refunds after funds have been released."""
 **Task ID**: `{params.task_id}`
 
 No escrow payment found for this task. Either:
-1. The task has not been authorized yet (call `chamba_escrow_authorize`)
+1. The task has not been authorized yet (call `em_escrow_authorize`)
 2. The escrow was created in a different server session
 3. The task uses a different payment method"""
 
@@ -958,9 +958,9 @@ No escrow payment found for this task. Either:
                 lines.extend([
                     "",
                     "## Available Actions",
-                    "- `chamba_escrow_release` - Pay the worker",
-                    "- `chamba_escrow_refund` - Cancel and refund",
-                    "- `chamba_escrow_partial_release` - Partial payment",
+                    "- `em_escrow_release` - Pay the worker",
+                    "- `em_escrow_refund` - Cancel and refund",
+                    "- `em_escrow_partial_release` - Partial payment",
                 ])
             elif payment.status == "released":
                 lines.extend([
@@ -979,9 +979,9 @@ No escrow payment found for this task. Either:
 
     logger.info(
         "Advanced Escrow tools registered: "
-        "chamba_escrow_recommend_strategy, chamba_escrow_authorize, "
-        "chamba_escrow_release, chamba_escrow_refund, chamba_escrow_charge, "
-        "chamba_escrow_partial_release, chamba_escrow_dispute, chamba_escrow_status"
+        "em_escrow_recommend_strategy, em_escrow_authorize, "
+        "em_escrow_release, em_escrow_refund, em_escrow_charge, "
+        "em_escrow_partial_release, em_escrow_dispute, em_escrow_status"
     )
 
 

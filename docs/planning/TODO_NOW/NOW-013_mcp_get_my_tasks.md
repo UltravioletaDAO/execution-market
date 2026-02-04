@@ -1,4 +1,4 @@
-# NOW-013: Implementar chamba_get_my_tasks
+# NOW-013: Implementar em_get_my_tasks
 
 ## Metadata
 - **Prioridad**: P0
@@ -55,7 +55,7 @@ Implementar el tool MCP que permite a un worker ver sus tareas (aplicadas, asign
 
 ```python
 Tool(
-    name="chamba_get_my_tasks",
+    name="em_get_my_tasks",
     description="Get tasks for a worker (applied, assigned, completed)",
     inputSchema={
         "type": "object",

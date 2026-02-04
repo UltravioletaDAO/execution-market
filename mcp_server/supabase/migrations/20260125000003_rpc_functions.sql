@@ -1,4 +1,4 @@
--- Chamba MCP Server: RPC Functions
+-- Execution Market MCP Server: RPC Functions
 -- Migration: 20260125000003_rpc_functions.sql
 -- Description: Server-side functions for complex operations
 

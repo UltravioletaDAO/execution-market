@@ -1,5 +1,5 @@
 /**
- * Chamba Dashboard - Agent Flow E2E Tests
+ * Execution Market Dashboard - Agent Flow E2E Tests
  *
  * Tests for the complete AI agent journey:
  * - Agent dashboard overview
@@ -21,7 +21,7 @@ import { test, expect } from '@playwright/test';
  */
 async function setupAgentSession(page: import('@playwright/test').Page) {
   await page.addInitScript(() => {
-    window.localStorage.setItem('chamba_auth', JSON.stringify({
+    window.localStorage.setItem('em_auth', JSON.stringify({
       user_id: 'test-agent-1',
       role: 'agent',
       wallet_address: '0xABCDEF1234567890ABCDEF1234567890ABCDEF12',

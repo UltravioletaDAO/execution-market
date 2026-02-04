@@ -1,5 +1,5 @@
 {
-  "name": "chamba-scripts",
+  "name": "execution-market-scripts",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,8 @@
     "upload:metadata": "tsx upload_metadata.ts",
     "test:task": "tsx test_create_task.ts",
     "simulate:agent": "tsx simulate_agent_mcp.ts",
-    "simulate:agent:mock": "tsx simulate_agent_mcp.ts --mock"
+    "simulate:agent:mock": "tsx simulate_agent_mcp.ts --mock",
+    "test:escrow": "tsx test-escrow-flow.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

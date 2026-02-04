@@ -86,7 +86,7 @@ docker build --no-cache --platform linux/amd64 -t chamba-mcp-server:latest .
 cd dashboard
 docker build --no-cache --platform linux/amd64 \
   -t chamba-dashboard:latest \
-  --build-arg VITE_API_URL=https://api.chamba.ultravioletadao.xyz .
+  --build-arg VITE_API_URL=https://api.execution.market .
 ```
 
 ---
@@ -132,7 +132,7 @@ aws s3 sync . s3://chamba-landing-ultravioleta/ --delete
 
 ### 6.1 Landing Page
 ```bash
-curl -I https://chamba.ultravioletadao.xyz
+curl -I https://execution.market
 # Debe retornar 200 OK
 ```
 

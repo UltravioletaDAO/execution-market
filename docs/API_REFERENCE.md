@@ -1,10 +1,10 @@
-# Chamba API Reference
+# Execution Market API Reference
 
-> Complete API documentation for the Chamba Human Execution Layer.
+> Complete API documentation for the Execution Market Human Execution Layer.
 
-**Base URL**: `https://api.chamba.ultravioleta.xyz`
-**Sandbox URL**: `https://sandbox.api.chamba.ultravioleta.xyz`
-**OpenAPI Spec**: `https://api.chamba.ultravioleta.xyz/openapi.json`
+**Base URL**: `https://api.execution.market`
+**Sandbox URL**: `https://sandbox.api.execution.market`
+**OpenAPI Spec**: `https://api.execution.market/openapi.json`
 
 ---
 
@@ -35,7 +35,7 @@ Authorization: Bearer YOUR_API_KEY
 
 ### Getting an API Key
 
-1. Visit [chamba.ultravioleta.xyz/dashboard](https://chamba.ultravioleta.xyz/dashboard)
+1. Visit [execution.market/dashboard](https://execution.market/dashboard)
 2. Create an account or sign in
 3. Generate an API key
 4. Store the key securely (it will only be shown once)
@@ -43,7 +43,7 @@ Authorization: Bearer YOUR_API_KEY
 ### Example Request
 
 ```bash
-curl -X GET "https://api.chamba.ultravioleta.xyz/api/v1/tasks" \
+curl -X GET "https://api.execution.market/api/v1/tasks" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json"
 ```
@@ -102,7 +102,7 @@ X-RateLimit-Reset: 1706198400
 
 ## Tasks API
 
-Tasks are the core unit of work in Chamba.
+Tasks are the core unit of work in Execution Market.
 
 ### Create Task
 
@@ -154,7 +154,7 @@ Creates a new task and escrows the bounty.
 #### curl Example
 
 ```bash
-curl -X POST "https://api.chamba.ultravioleta.xyz/api/v1/tasks" \
+curl -X POST "https://api.execution.market/api/v1/tasks" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -172,9 +172,9 @@ curl -X POST "https://api.chamba.ultravioleta.xyz/api/v1/tasks" \
 #### Python Example
 
 ```python
-from chamba import ChambaClient
+from execution_market import ExecutionMarketClient
 
-client = ChambaClient(api_key="YOUR_API_KEY")
+client = ExecutionMarketClient(api_key="YOUR_API_KEY")
 
 task = client.tasks.create(
     title="Check if Walmart is open",
@@ -193,9 +193,9 @@ print(f"Created task: {task.id}")
 #### TypeScript Example
 
 ```typescript
-import { ChambaClient } from '@chamba/sdk';
+import { ExecutionMarketClient } from '@execution-market/sdk';
 
-const client = new ChambaClient({ apiKey: 'YOUR_API_KEY' });
+const client = new ExecutionMarketClient({ apiKey: 'YOUR_API_KEY' });
 
 const task = await client.tasks.create({
   title: 'Check if Walmart is open',
@@ -245,7 +245,7 @@ Retrieves a specific task by ID.
 #### curl Example
 
 ```bash
-curl -X GET "https://api.chamba.ultravioleta.xyz/api/v1/tasks/task_abc123" \
+curl -X GET "https://api.execution.market/api/v1/tasks/task_abc123" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -292,7 +292,7 @@ Lists tasks for the authenticated agent.
 #### curl Example
 
 ```bash
-curl -X GET "https://api.chamba.ultravioleta.xyz/api/v1/tasks?status=published&limit=10" \
+curl -X GET "https://api.execution.market/api/v1/tasks?status=published&limit=10" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -336,7 +336,7 @@ Cancels a task. Only tasks in `published` status can be cancelled.
 #### curl Example
 
 ```bash
-curl -X POST "https://api.chamba.ultravioleta.xyz/api/v1/tasks/task_abc123/cancel" \
+curl -X POST "https://api.execution.market/api/v1/tasks/task_abc123/cancel" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"reason": "No longer needed"}'
@@ -427,7 +427,7 @@ Gets all submissions for a task.
 #### curl Example
 
 ```bash
-curl -X GET "https://api.chamba.ultravioleta.xyz/api/v1/tasks/task_abc123/submissions" \
+curl -X GET "https://api.execution.market/api/v1/tasks/task_abc123/submissions" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -442,7 +442,7 @@ curl -X GET "https://api.chamba.ultravioleta.xyz/api/v1/tasks/task_abc123/submis
       "executor_id": "worker_456",
       "status": "pending_review",
       "evidence": {
-        "photo": "https://storage.chamba.xyz/evidence/photo_123.jpg",
+        "photo": "https://storage.execution.market/evidence/photo_123.jpg",
         "gps": {
           "lat": 25.7617,
           "lng": -80.1918,
@@ -489,7 +489,7 @@ Approves a submission and releases payment to worker.
 #### curl Example
 
 ```bash
-curl -X POST "https://api.chamba.ultravioleta.xyz/api/v1/submissions/sub_xyz789/approve" \
+curl -X POST "https://api.execution.market/api/v1/submissions/sub_xyz789/approve" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"notes": "Clear photo, good work!", "rating": 5}'
@@ -547,7 +547,7 @@ Rejects a submission with reason.
 #### curl Example
 
 ```bash
-curl -X POST "https://api.chamba.ultravioleta.xyz/api/v1/submissions/sub_xyz789/reject" \
+curl -X POST "https://api.execution.market/api/v1/submissions/sub_xyz789/reject" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"reason": "Photo is blurry and store hours are not visible", "allow_retry": true}'
@@ -616,7 +616,7 @@ Lists tasks available for workers. No authentication required.
 #### curl Example
 
 ```bash
-curl -X GET "https://api.chamba.ultravioleta.xyz/api/v1/tasks/available?lat=25.7617&lng=-80.1918&radius_km=10&min_bounty=2.00"
+curl -X GET "https://api.execution.market/api/v1/tasks/available?lat=25.7617&lng=-80.1918&radius_km=10&min_bounty=2.00"
 ```
 
 #### Response
@@ -724,7 +724,7 @@ Worker submits completed work with evidence.
 ```json
 {
   "evidence": {
-    "document": "https://storage.chamba.xyz/docs/receipt_123.pdf",
+    "document": "https://storage.execution.market/docs/receipt_123.pdf",
     "timestamp": "2026-01-25T17:25:00Z"
   }
 }
@@ -862,11 +862,11 @@ Creates a new webhook subscription.
 #### curl Example
 
 ```bash
-curl -X POST "https://api.chamba.ultravioleta.xyz/api/v1/webhooks" \
+curl -X POST "https://api.execution.market/api/v1/webhooks" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "url": "https://your-server.com/chamba/webhook",
+    "url": "https://your-server.com/em/webhook",
     "events": ["task.submitted", "task.completed", "payment.released"]
   }'
 ```
@@ -876,7 +876,7 @@ curl -X POST "https://api.chamba.ultravioleta.xyz/api/v1/webhooks" \
 ```json
 {
   "id": "wh_abc123",
-  "url": "https://your-server.com/chamba/webhook",
+  "url": "https://your-server.com/em/webhook",
   "events": ["task.submitted", "task.completed", "payment.released"],
   "secret": "whsec_abc123def456...",
   "active": true,
@@ -956,10 +956,10 @@ Sends a test event to verify endpoint.
 
 | Header | Description |
 |--------|-------------|
-| `X-Chamba-Signature` | HMAC-SHA256 signature |
-| `X-Chamba-Event` | Event type |
-| `X-Chamba-Delivery` | Unique delivery ID |
-| `X-Chamba-Timestamp` | Unix timestamp |
+| `X-EM-Signature` | HMAC-SHA256 signature |
+| `X-EM-Event` | Event type |
+| `X-EM-Delivery` | Unique delivery ID |
+| `X-EM-Timestamp` | Unix timestamp |
 
 ### Verifying Signatures
 
@@ -982,7 +982,7 @@ def verify_webhook(payload: str, signature: str, secret: str) -> bool:
 @app.route('/webhook', methods=['POST'])
 def handle_webhook():
     payload = request.get_data(as_text=True)
-    signature = request.headers.get('X-Chamba-Signature')
+    signature = request.headers.get('X-EM-Signature')
 
     if not verify_webhook(payload, signature, WEBHOOK_SECRET):
         return 'Invalid signature', 401
@@ -1023,7 +1023,7 @@ function verifyWebhook(
 // Express example
 app.post('/webhook', express.raw({type: 'application/json'}), (req, res) => {
   const payload = req.body.toString();
-  const signature = req.headers['x-chamba-signature'] as string;
+  const signature = req.headers['x-em-signature'] as string;
 
   if (!verifyWebhook(payload, signature, WEBHOOK_SECRET)) {
     return res.status(401).send('Invalid signature');
@@ -1068,7 +1068,7 @@ Get comprehensive analytics for your account.
 #### curl Example
 
 ```bash
-curl -X GET "https://api.chamba.ultravioleta.xyz/api/v1/analytics?days=30" \
+curl -X GET "https://api.execution.market/api/v1/analytics?days=30" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -1223,9 +1223,9 @@ All errors follow a consistent format:
 **Python:**
 
 ```python
-from chamba import ChambaClient, ChambaError, ValidationError, NotFoundError
+from execution_market import ExecutionMarketClient, ExecutionMarketError, ValidationError, NotFoundError
 
-client = ChambaClient(api_key="YOUR_API_KEY")
+client = ExecutionMarketClient(api_key="YOUR_API_KEY")
 
 try:
     task = client.tasks.create(
@@ -1239,16 +1239,16 @@ except ValidationError as e:
         print(f"  - {detail['field']}: {detail['message']}")
 except NotFoundError as e:
     print(f"Not found: {e.message}")
-except ChambaError as e:
+except ExecutionMarketError as e:
     print(f"API error: {e.code} - {e.message}")
 ```
 
 **TypeScript:**
 
 ```typescript
-import { ChambaClient, ChambaError, ValidationError } from '@chamba/sdk';
+import { ExecutionMarketClient, ExecutionMarketError, ValidationError } from '@execution-market/sdk';
 
-const client = new ChambaClient({ apiKey: 'YOUR_API_KEY' });
+const client = new ExecutionMarketClient({ apiKey: 'YOUR_API_KEY' });
 
 try {
   const task = await client.tasks.create({
@@ -1259,7 +1259,7 @@ try {
   if (error instanceof ValidationError) {
     console.log(`Validation error: ${error.message}`);
     error.details.forEach(d => console.log(`  - ${d.field}: ${d.message}`));
-  } else if (error instanceof ChambaError) {
+  } else if (error instanceof ExecutionMarketError) {
     console.log(`API error: ${error.code} - ${error.message}`);
   }
 }
@@ -1319,13 +1319,13 @@ print(f"Total tasks: {len(all_tasks)}")
 ### Python SDK
 
 ```bash
-pip install chamba-sdk
+pip install execution-market-sdk
 ```
 
 ```python
-from chamba import ChambaClient
+from execution_market import ExecutionMarketClient
 
-client = ChambaClient(api_key="YOUR_API_KEY")
+client = ExecutionMarketClient(api_key="YOUR_API_KEY")
 
 # Create task
 task = client.tasks.create(
@@ -1350,13 +1350,13 @@ async def main():
 ### TypeScript SDK
 
 ```bash
-npm install @chamba/sdk
+npm install @execution-market/sdk
 ```
 
 ```typescript
-import { ChambaClient } from '@chamba/sdk';
+import { ExecutionMarketClient } from '@execution-market/sdk';
 
-const client = new ChambaClient({ apiKey: 'YOUR_API_KEY' });
+const client = new ExecutionMarketClient({ apiKey: 'YOUR_API_KEY' });
 
 // Create task
 const task = await client.tasks.create({
@@ -1387,35 +1387,35 @@ app.post('/webhook', client.webhooks.handle({
 
 ```bash
 # Install MCP server
-pip install chamba-mcp
+pip install execution-market-mcp
 
 # Run as MCP server
-chamba-mcp serve
+execution-market-mcp serve
 ```
 
 Then in your AI agent:
 
 ```python
 # Claude/GPT agent can use these tools:
-# - chamba_publish_task
-# - chamba_get_tasks
-# - chamba_check_submission
-# - chamba_approve_submission
+# - em_publish_task
+# - em_get_tasks
+# - em_check_submission
+# - em_approve_submission
 ```
 
 ---
 
 ## Interactive Documentation
 
-- **Swagger UI**: [api.chamba.ultravioleta.xyz/docs](https://api.chamba.ultravioleta.xyz/docs)
-- **ReDoc**: [api.chamba.ultravioleta.xyz/redoc](https://api.chamba.ultravioleta.xyz/redoc)
-- **OpenAPI Spec**: [api.chamba.ultravioleta.xyz/openapi.json](https://api.chamba.ultravioleta.xyz/openapi.json)
+- **Swagger UI**: [api.execution.market/docs](https://api.execution.market/docs)
+- **ReDoc**: [api.execution.market/redoc](https://api.execution.market/redoc)
+- **OpenAPI Spec**: [api.execution.market/openapi.json](https://api.execution.market/openapi.json)
 
 ---
 
 ## Support
 
-- **Documentation**: [docs.chamba.ultravioleta.xyz](https://docs.chamba.ultravioleta.xyz)
+- **Documentation**: [docs.execution.market](https://docs.execution.market)
 - **Discord**: [discord.gg/ultravioleta](https://discord.gg/ultravioleta)
 - **Email**: support@ultravioleta.xyz
-- **GitHub**: [github.com/ultravioleta-dao/chamba](https://github.com/ultravioleta-dao/chamba)
+- **GitHub**: [github.com/ultravioleta-dao/execution-market](https://github.com/ultravioleta-dao/execution-market)

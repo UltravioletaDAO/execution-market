@@ -1,4 +1,4 @@
-# NOW-006: Configurar dominio chamba.ultravioleta.xyz
+# NOW-006: Configurar dominio execution.market
 
 ## Metadata
 - **Prioridad**: P0
@@ -8,22 +8,22 @@
 - **Tiempo estimado**: 30-60 min
 
 ## Descripción
-Configurar DNS para el dominio chamba.ultravioleta.xyz con subdomains para API y App.
+Configurar DNS para el dominio execution.market con subdomains para API y App.
 
 ## Contexto Técnico
-- **Domain**: chamba.ultravioleta.xyz
+- **Domain**: execution.market
 - **Subdomains**:
-  - `api.chamba.ultravioleta.xyz` → MCP Server (ALB)
-  - `app.chamba.ultravioleta.xyz` → Dashboard (ALB)
+  - `api.execution.market` → MCP Server (ALB)
+  - `app.execution.market` → Dashboard (ALB)
 - **SSL**: ACM Certificate (auto-renewal)
 - **Provider**: Route53
 
 ## Estructura DNS
 
 ```
-chamba.ultravioleta.xyz
-├── api.chamba.ultravioleta.xyz  → ALB (MCP Server)
-├── app.chamba.ultravioleta.xyz  → ALB (Dashboard)
+execution.market
+├── api.execution.market  → ALB (MCP Server)
+├── app.execution.market  → ALB (Dashboard)
 └── (root)                       → Redirect to app.
 ```
 
@@ -38,9 +38,9 @@ data "aws_route53_zone" "ultravioleta" {
 
 # ACM Certificate
 resource "aws_acm_certificate" "chamba" {
-  domain_name               = "chamba.ultravioleta.xyz"
+  domain_name               = "execution.market"
   subject_alternative_names = [
-    "*.chamba.ultravioleta.xyz"
+    "*.execution.market"
   ]
   validation_method = "DNS"
 
@@ -75,7 +75,7 @@ resource "aws_acm_certificate_validation" "chamba" {
 # API subdomain
 resource "aws_route53_record" "api" {
   zone_id = data.aws_route53_zone.ultravioleta.zone_id
-  name    = "api.chamba.ultravioleta.xyz"
+  name    = "api.execution.market"
   type    = "A"
 
   alias {
@@ -88,7 +88,7 @@ resource "aws_route53_record" "api" {
 # App subdomain
 resource "aws_route53_record" "app" {
   zone_id = data.aws_route53_zone.ultravioleta.zone_id
-  name    = "app.chamba.ultravioleta.xyz"
+  name    = "app.execution.market"
   type    = "A"
 
   alias {
@@ -101,7 +101,7 @@ resource "aws_route53_record" "app" {
 # Root domain redirect (optional)
 resource "aws_route53_record" "root" {
   zone_id = data.aws_route53_zone.ultravioleta.zone_id
-  name    = "chamba.ultravioleta.xyz"
+  name    = "execution.market"
   type    = "A"
 
   alias {
@@ -143,7 +143,7 @@ resource "aws_lb_listener_rule" "api" {
 
   condition {
     host_header {
-      values = ["api.chamba.ultravioleta.xyz"]
+      values = ["api.execution.market"]
     }
   }
 }
@@ -160,7 +160,7 @@ resource "aws_lb_listener_rule" "app" {
 
   condition {
     host_header {
-      values = ["app.chamba.ultravioleta.xyz"]
+      values = ["app.execution.market"]
     }
   }
 }
@@ -169,21 +169,21 @@ resource "aws_lb_listener_rule" "app" {
 ## Criterios de Éxito
 - [ ] Certificate emitido y validado
 - [ ] DNS records creados
-- [ ] `api.chamba.ultravioleta.xyz` resuelve al ALB
-- [ ] `app.chamba.ultravioleta.xyz` resuelve al ALB
+- [ ] `api.execution.market` resuelve al ALB
+- [ ] `app.execution.market` resuelve al ALB
 - [ ] HTTPS funciona sin warnings
 - [ ] HTTP redirects a HTTPS
 
 ## Comandos de Verificación
 ```bash
 # DNS resolution
-dig api.chamba.ultravioleta.xyz
-dig app.chamba.ultravioleta.xyz
+dig api.execution.market
+dig app.execution.market
 
 # SSL check
-curl -vI https://api.chamba.ultravioleta.xyz/health
-curl -vI https://app.chamba.ultravioleta.xyz/
+curl -vI https://api.execution.market/health
+curl -vI https://app.execution.market/
 
 # Certificate info
-echo | openssl s_client -servername api.chamba.ultravioleta.xyz -connect api.chamba.ultravioleta.xyz:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -servername api.execution.market -connect api.execution.market:443 2>/dev/null | openssl x509 -noout -dates
 ```

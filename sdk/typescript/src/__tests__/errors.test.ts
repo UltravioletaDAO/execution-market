@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  ChambaSDKError,
+  ExecutionMarketSDKError,
   AuthenticationError,
   AuthorizationError,
   NotFoundError,
@@ -18,16 +18,16 @@ import {
 } from '../errors';
 
 describe('Error Classes', () => {
-  describe('ChambaSDKError', () => {
+  describe('ExecutionMarketSDKError', () => {
     it('should create error with correct properties', () => {
-      const error = new ChambaSDKError({
+      const error = new ExecutionMarketSDKError({
         code: 'TEST_ERROR',
         message: 'Test message',
         statusCode: 500,
         details: { key: 'value' },
       });
 
-      expect(error.name).toBe('ChambaSDKError');
+      expect(error.name).toBe('ExecutionMarketSDKError');
       expect(error.code).toBe('TEST_ERROR');
       expect(error.message).toBe('Test message');
       expect(error.statusCode).toBe(500);
@@ -35,14 +35,14 @@ describe('Error Classes', () => {
     });
 
     it('should be instanceof Error', () => {
-      const error = new ChambaSDKError({
+      const error = new ExecutionMarketSDKError({
         code: 'TEST',
         message: 'Test',
         statusCode: 500,
       });
 
       expect(error).toBeInstanceOf(Error);
-      expect(error).toBeInstanceOf(ChambaSDKError);
+      expect(error).toBeInstanceOf(ExecutionMarketSDKError);
     });
   });
 
@@ -232,13 +232,13 @@ describe('Error Classes', () => {
       expect(error).toBeInstanceOf(RateLimitError);
     });
 
-    it('should create generic ChambaSDKError for unknown status', () => {
+    it('should create generic ExecutionMarketSDKError for unknown status', () => {
       const error = createErrorFromResponse(500, {
         code: 'INTERNAL_ERROR',
         message: 'Server error',
       });
 
-      expect(error).toBeInstanceOf(ChambaSDKError);
+      expect(error).toBeInstanceOf(ExecutionMarketSDKError);
       expect(error.statusCode).toBe(500);
     });
   });

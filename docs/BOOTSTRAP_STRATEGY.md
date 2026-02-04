@@ -1,10 +1,10 @@
-# Chamba Bootstrap Strategy
+# Execution Market Bootstrap Strategy
 
 > NOW-142 to NOW-149: Worker and agent adoption plan
 
 ## Overview
 
-Chamba faces a classic marketplace cold-start problem. We solve it through:
+Execution Market faces a classic marketplace cold-start problem. We solve it through:
 1. **Supply-side seeding** - DAO-funded tasks to attract workers
 2. **Community targeting** - POAP/crypto communities as initial users
 3. **Geographic focus** - Miami, Medellin, Lagos hubs
@@ -66,7 +66,7 @@ Chamba faces a classic marketplace cold-start problem. We solve it through:
 **Outreach**:
 1. Partner with 5+ POAP event organizers
 2. Offer "First Task" bounty bonus ($5)
-3. Create Chamba Worker POAP for first 1000 workers
+3. Create Execution Market Worker POAP for first 1000 workers
 4. Cross-promote at ETH events
 
 #### Crypto Meetups
@@ -220,8 +220,8 @@ sdk/agent-starter-kit/
 - Webhook handlers
 
 **Distribution**:
-- npm: `@chamba/agent-sdk`
-- pip: `chamba-agent-sdk`
+- npm: `@execution-market/agent-sdk`
+- pip: `execution-market-agent-sdk`
 - GitHub: open source with examples
 
 ### Integration Guides
@@ -268,11 +268,11 @@ Future:    Robots execute, humans supervise
 ```
 
 **Message**:
-"Chamba is not about replacing humans - it is about building a bridge. We are creating the protocols and trust systems that will enable humans and machines to work together. Every task completed helps train better verification systems. Every worker earns while building the infrastructure of tomorrow."
+"Execution Market is not about replacing humans - it is about building a bridge. We are creating the protocols and trust systems that will enable humans and machines to work together. Every task completed helps train better verification systems. Every worker earns while building the infrastructure of tomorrow."
 
 ### Comparison Positioning (NOW-150)
 
-| Feature | Chamba | TaskRabbit | Mechanical Turk |
+| Feature | Execution Market | TaskRabbit | Mechanical Turk |
 |---------|--------|------------|-----------------|
 | Minimum task | $0.50 | $15 | $0.01 |
 | Payment speed | Instant | 3-5 days | 7+ days |
@@ -447,7 +447,7 @@ First Task Completed
 
 ### Product-Market Fit Signals
 - Workers returning without incentives
-- Agents using Chamba in production
+- Agents using Execution Market in production
 - Enterprise requesting features
 - Organic word-of-mouth growth
 - Media/press interest

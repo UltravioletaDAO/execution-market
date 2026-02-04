@@ -1,10 +1,10 @@
 {
-  "name": "chamba-video",
+  "name": "em-video",
   "version": "1.0.0",
-  "description": "Video promocional de Chamba - Agentes contratando humanos",
+  "description": "Video promocional de Execution Market - Agentes contratando humanos",
   "scripts": {
     "start": "npx remotion studio",
-    "build": "npx remotion render src/index.tsx ChambaVideo out/chamba.mp4",
+    "build": "npx remotion render src/index.tsx EMVideo out/em.mp4",
     "preview": "npx remotion preview"
   },
   "dependencies": {

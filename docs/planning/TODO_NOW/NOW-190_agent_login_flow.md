@@ -28,7 +28,7 @@ Crear flujo de login con API key que valida contra el backend existente.
 
 ```
 1. Agent ingresa API key en formulario
-2. Frontend valida formato (chamba_<tier>_<32chars>)
+2. Frontend valida formato (em_<tier>_<32chars>)
 3. Frontend hace request de test a /api/agent/me
 4. Si válido, guarda API key en localStorage
 5. Requests incluyen API key en header Authorization: Bearer <key>
@@ -50,11 +50,11 @@ export function AgentAuth() {
 
   const validateKeyFormat = (key: string) => {
     const validPrefixes = [
-      'chamba_free_',
-      'chamba_starter_',
-      'chamba_growth_',
-      'chamba_enterprise_',
-      'sk_chamba_',
+      'em_free_',
+      'em_starter_',
+      'em_growth_',
+      'em_enterprise_',
+      'sk_em_',
     ];
     return validPrefixes.some(p => key.startsWith(p) && key.length >= p.length + 32);
   };
@@ -84,8 +84,8 @@ export function AgentAuth() {
       const agent = await res.json();
 
       // Store session
-      localStorage.setItem('chamba_api_key', apiKey);
-      localStorage.setItem('chamba_agent', JSON.stringify(agent));
+      localStorage.setItem('em_api_key', apiKey);
+      localStorage.setItem('em_agent', JSON.stringify(agent));
 
       navigate('/agent/dashboard');
     } catch (err) {
@@ -102,7 +102,7 @@ export function AgentAuth() {
 
       <input
         type="password"
-        placeholder="chamba_enterprise_xxxxxxxx..."
+        placeholder="em_enterprise_xxxxxxxx..."
         value={apiKey}
         onChange={(e) => setApiKey(e.target.value)}
         className="input-api-key"
@@ -172,7 +172,7 @@ async def get_agent_info(
 ```bash
 # Valid key test
 curl -X GET "http://localhost:8000/api/agent/me" \
-  -H "Authorization: Bearer chamba_enterprise_test1234567890abcdef1234567890abcdef"
+  -H "Authorization: Bearer em_enterprise_test1234567890abcdef1234567890abcdef"
 
 # Invalid key test
 curl -X GET "http://localhost:8000/api/agent/me" \

@@ -1,5 +1,5 @@
 /**
- * Chamba Task API Service
+ * Execution Market Task API Service
  *
  * API service for task operations including listing, creating,
  * applying, cancelling, and managing tasks.

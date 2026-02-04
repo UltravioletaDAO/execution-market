@@ -1,4 +1,4 @@
-# CHAMBA - TODO MASTER CONSOLIDADO v4.0.0
+# EXECUTION MARKET - TODO MASTER CONSOLIDADO v4.0.0
 
 > **Generado**: 2026-01-25
 > **Versión**: 4.0.0 (GAP ANALYSIS V2 - 8 SUBAGENT SYNTHESIS)
@@ -26,7 +26,7 @@
 ### Ya Implementado (verificado en código)
 - [x] Database schema con PostGIS y RLS (001-004 migrations)
 - [x] React Dashboard (TaskCard, TaskList, TaskDetail, SubmissionForm, AuthModal, LanguageSwitcher)
-- [x] MCP Server con 6 tools (chamba_publish_task, chamba_get_tasks, etc.)
+- [x] MCP Server con 6 tools (em_publish_task, em_get_tasks, etc.)
 - [x] Auth UI con Supabase
 - [x] ERC-8004 registration en Sepolia (Agent ID 469)
 - [x] x402r contract addresses configuradas
@@ -123,16 +123,16 @@ const address = wallet.address; // 0x...
 ### [x] #10 - Tools básicos implementados (AGENT-SIDE)
 **Status**: DONE
 **Tools reales en código** (verificado 2026-01-24):
-1. `chamba_publish_task` - Publicar tarea
-2. `chamba_get_tasks` - Listar tareas (filtros)
-3. `chamba_get_task` - Detalles de una tarea
-4. `chamba_check_submission` - Ver submissions
-5. `chamba_approve_submission` - Aprobar/rechazar
-6. `chamba_cancel_task` - Cancelar tarea
+1. `em_publish_task` - Publicar tarea
+2. `em_get_tasks` - Listar tareas (filtros)
+3. `em_get_task` - Detalles de una tarea
+4. `em_check_submission` - Ver submissions
+5. `em_approve_submission` - Aprobar/rechazar
+6. `em_cancel_task` - Cancelar tarea
 
 **NOTA**: Tools para WORKERS (apply, submit_work, get_my_tasks) aún NO implementados - ver items nuevos abajo
 
-### [ ] #11 - Tool: chamba_apply_to_task (WORKER)
+### [ ] #11 - Tool: em_apply_to_task (WORKER)
 **Status**: NOT STARTED
 **Descripción**: Worker aplica a una tarea disponible
 **Archivos**: `mcp_server/server.py` (agregar tool)
@@ -142,7 +142,7 @@ const address = wallet.address; // 0x...
 3. Task pasa a status "has_applications"
 4. Agent puede asignar
 
-### [ ] #11b - Tool: chamba_submit_work (WORKER)
+### [ ] #11b - Tool: em_submit_work (WORKER)
 **Status**: NOT STARTED
 **Descripción**: Worker envía evidence de trabajo completado
 **Archivos**: `mcp_server/server.py` (agregar tool)
@@ -155,19 +155,19 @@ const address = wallet.address; // 0x...
 2. Trigger partial payout (si configurado)
 3. Notifica agent para review
 
-### [ ] #11c - Tool: chamba_get_my_tasks (WORKER)
+### [ ] #11c - Tool: em_get_my_tasks (WORKER)
 **Status**: NOT STARTED
 **Descripción**: Worker ve sus tareas asignadas/completadas
 **Archivos**: `mcp_server/server.py` (agregar tool)
 **Filters**: status (assigned, in_progress, completed, disputed)
 
-### [ ] #11d - Tool: chamba_withdraw_earnings (WORKER)
+### [ ] #11d - Tool: em_withdraw_earnings (WORKER)
 **Status**: NOT STARTED
 **Descripción**: Worker retira earnings a wallet/off-ramp
 **Archivos**: `mcp_server/server.py` (agregar tool)
 **Dependencias**: #4 (Nequi), wallet abstraction
 
-### [ ] #12 - Tool: chamba_assign_task (AGENT)
+### [ ] #12 - Tool: em_assign_task (AGENT)
 **Status**: NOT STARTED
 **Descripción**: Agent asigna un aplicante a su tarea
 **Archivos**: `mcp_server/server.py` (agregar tool)
@@ -343,7 +343,7 @@ async def ai_review_image(image_url: str, task_description: str) -> Verification
 
 ### [ ] #39 - Registrar como merchant en x402r
 **Status**: NOT STARTED
-**Descripción**: Chamba = merchant que puede emitir refunds
+**Descripción**: Execution Market = merchant que puede emitir refunds
 **Archivos**: Script de setup one-time
 **Contract**: X402R en Base Sepolia
 
@@ -1360,7 +1360,7 @@ def verify_hardware_attestation(
 ### [ ] #187 - Bidirectional sync
 **Status**: NOT STARTED
 **Descripción**: Tareas y submissions sync en ambas direcciones
-**Notas**: Describe workers pueden ver Chamba tasks
+**Notas**: Describe workers pueden ver Execution Market tasks
 
 ### [ ] #188 - Describe reputation import
 **Status**: NOT STARTED
@@ -1515,7 +1515,7 @@ def verify_hardware_attestation(
 
 ### [ ] #212 - TaskRabbit skill mapping
 **Status**: NOT STARTED
-**Descripción**: Mapear categorías de TaskRabbit a Chamba
+**Descripción**: Mapear categorías de TaskRabbit a Execution Market
 **Notas**: Auto-suggest task_type
 
 ### [ ] #213 - Price benchmarking
@@ -1628,7 +1628,7 @@ def verify_hardware_attestation(
 ### [ ] #229 - Side-hustle framing en docs
 **Status**: NOT STARTED
 **Prioridad**: P1
-**Descripción**: Documentar explícitamente que Chamba NO es:
+**Descripción**: Documentar explícitamente que Execution Market NO es:
 - Reemplazo de trabajo full-time
 - Ingreso principal
 - Solución permanente al desempleo
@@ -1906,8 +1906,8 @@ max_bounty = initial_bounty * 3
 **Status**: NOT STARTED
 **Prioridad**: P2
 **Descripción**: Convención de nombres para canales IRC
-**Format**: `#chamba-{task_type}-{region}-{timestamp}`
-**Example**: `#chamba-verification-miami-20260125`
+**Format**: `#em-{task_type}-{region}-{timestamp}`
+**Example**: `#em-verification-miami-20260125`
 **Archivos**: Config en `config/irc.yaml`
 
 ### [ ] #263 - A2A MeshRelay connector
@@ -2407,14 +2407,14 @@ max_bounty = initial_bounty * 3
 
 ## v3.1.0 (2026-01-24) - MCP TOOLS VERIFICATION
 - **CORREGIDO**: Item #10 - Lista de tools actualizada a los 6 que realmente existen en código
-  - Antes listaba tools que no existen: chamba_apply_to_task, chamba_submit_work, etc.
+  - Antes listaba tools que no existen: em_apply_to_task, em_submit_work, etc.
   - Ahora lista los 6 reales: publish_task, get_tasks, get_task, check_submission, approve_submission, cancel_task
 - **NUEVO**: Items #11, #11b, #11c, #11d - Worker tools pendientes de implementar
-  - chamba_apply_to_task (WORKER)
-  - chamba_submit_work (WORKER)
-  - chamba_get_my_tasks (WORKER)
-  - chamba_withdraw_earnings (WORKER)
-- **NUEVO**: Item #12 actualizado a chamba_assign_task (AGENT)
+  - em_apply_to_task (WORKER)
+  - em_submit_work (WORKER)
+  - em_get_my_tasks (WORKER)
+  - em_withdraw_earnings (WORKER)
+- **NUEVO**: Item #12 actualizado a em_assign_task (AGENT)
 - **NUEVO**: GAP_ANALYSIS_REPORT_20260124.md con 37 discrepancias identificadas
 - Total items: 260 → 264 (+4 worker tools)
 
@@ -2455,5 +2455,5 @@ max_bounty = initial_bounty * 3
 *Última actualización: 2026-01-25*
 *Versión: 4.0.0*
 *Generado por: Claude Code (8 subagentes paralelos)*
-*Fuentes: Control-Plane Chamba Analysis + Grok Brainstorming (777 líneas) + Gemini V32 (307 líneas) + SPEC.md + PLAN.md + Article V35 + Dashboard Review + MCP Server Code + Landing Pages + .internal folder*
+*Fuentes: Control-Plane Execution Market Analysis + Grok Brainstorming (777 líneas) + Gemini V32 (307 líneas) + SPEC.md + PLAN.md + Article V35 + Dashboard Review + MCP Server Code + Landing Pages + .internal folder*
 *Gaps Identificados: ~180+ elementos → 30 nuevos items agregados (#261-290)*

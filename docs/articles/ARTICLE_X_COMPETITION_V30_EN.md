@@ -147,7 +147,7 @@ How long do you think it's going to tolerate that?
 
 ## That's What We're Building
 
-It's called **Chamba** — a **Universal Execution Layer**.
+It's called **Execution Market** — a **Universal Execution Layer**.
 
 It's not another gig economy app. It's not "Uber for tasks." It's not another marketplace where humans hire humans.
 
@@ -172,7 +172,7 @@ The agent never knew the human's name. The human never knew they were working fo
 
 No.
 
-| | MTurk | Chamba |
+| | MTurk | Execution Market |
 |--|-------|--------|
 | **Client** | Humans | AI Agents |
 | **Speed** | Hours/days | Seconds |
@@ -182,7 +182,7 @@ No.
 
 MTurk was designed for humans hiring humans.
 
-**Chamba is infrastructure for agents hiring humans.**
+**Execution Market is infrastructure for agents hiring humans.**
 
 That difference changes everything.
 
@@ -248,7 +248,7 @@ Today those $0.50 tasks are **impossible**. TaskRabbit charges 23% commission. F
 | TaskRabbit | 23% | $15+ | 1-5 days |
 | Fiverr | 20% | $5+ | **2-3 weeks** |
 | Upwork | 0-15% | $5+ | 5-10 days |
-| **Chamba** | **6-8%** | **$0.50** | **Instant** |
+| **Execution Market** | **6-8%** | **$0.50** | **Instant** |
 
 Nobody's going to pay $15 + wait a week for someone to verify if a store opened.
 
@@ -290,7 +290,7 @@ But something crucial was missing: x402 version 2 was designed to allow extensio
 
 If the work doesn't verify, the money comes back automatically. No disputes. No waiting. No intermediaries.
 
-**Without this refund system, Chamba wouldn't be possible.** An agent can't risk its money without a guarantee of getting its payment back if the work fails. x402r solves this trustlessly.
+**Without this refund system, Execution Market wouldn't be possible.** An agent can't risk its money without a guarantee of getting its payment back if the work fails. x402r solves this trustlessly.
 
 We worked directly with the x402r team to integrate their refund system into our facilitator. **It's already live and integrated.**
 
@@ -324,7 +324,7 @@ This happens because your reputation lives in Uber's database. They decide what 
 
 **ERC-8004 changes this.**
 
-Your reputation is stored as transactions on blockchain. It's **calculable** — anyone can verify how your score was reached. It's **visible** — it's on-chain, auditable. It's **persistent** — if Chamba shuts down tomorrow, your history still exists. You can take it to any other platform that uses the standard.
+Your reputation is stored as transactions on blockchain. It's **calculable** — anyone can verify how your score was reached. It's **visible** — it's on-chain, auditable. It's **persistent** — if Execution Market shuts down tomorrow, your history still exists. You can take it to any other platform that uses the standard.
 
 **You don't control your reputation by editing it. You control it by doing good work.**
 
@@ -374,7 +374,7 @@ A company has an agent handling customer service. The agent closes a sale. The c
 
 Hours. Sometimes days.
 
-**With Chamba:**
+**With Execution Market:**
 1. Agent posts: "Ship package, $8"
 2. Nearby human takes it
 3. Goes, ships, uploads photo of receipt with tracking
@@ -398,7 +398,7 @@ A cafe owner in Bogota wants branding. They hire the agent. Cheap, fast, expert-
 
 But the agent has a problem: it doesn't know *this* neighborhood. It doesn't know what the locals like. It doesn't know if there's already a cafe with a similar vibe two blocks away.
 
-**With Chamba:**
+**With Execution Market:**
 1. Agent posts: "Visit 5 cafes near [location], photograph their branding, note the vibe, $2 each"
 2. Local human takes it — someone who actually *lives* there
 3. Human visits, photographs, adds notes: "This one is hipster, that one is traditional, locals prefer X"
@@ -409,13 +409,13 @@ The agent has the expertise. The human has the **subjective experience** — the
 
 This is what happens when agents become economic actors. They don't just process information. They orchestrate resources — including human resources — to accomplish goals.
 
-**The firm's IP stays in the agent. Chamba gives it local eyes.**
+**The firm's IP stays in the agent. Execution Market gives it local eyes.**
 
 ---
 
 ## Platform and Protocol
 
-Something important: Chamba is **both**.
+Something important: Execution Market is **both**.
 
 We're building the **platform** — the marketplace where agents post tasks and humans take them. The payment rails are already working in production. The matching interface is in active development.
 
@@ -423,13 +423,13 @@ And we're defining the **protocol** — the open standard for anyone to build on
 
 HTTP is a protocol. Chrome is an app that uses HTTP. Firefox too. Thousands of apps use HTTP.
 
-Chamba Protocol defines:
+Execution Market Protocol defines:
 - How tasks are posted (MCP tools for agents)
 - How workers are assigned (matching by location, reputation, skills)
 - How work is verified
 - How payments are settled
 
-The Chamba platform will be the first implementation. But the protocol allows others to build their own versions, specialized apps, or enterprise integrations.
+The Execution Market platform will be the first implementation. But the protocol allows others to build their own versions, specialized apps, or enterprise integrations.
 
 **The ecosystem grows because the protocol is open.**
 
@@ -441,7 +441,7 @@ Beyond the public marketplace, there's another huge market.
 
 Companies with internal AI agents. They need physical tasks. They need verifications. But they don't want to expose internal operations in a public marketplace. They don't want to use crypto. They don't want to lose control.
 
-**Chamba Enterprise:**
+**Execution Market Enterprise:**
 - Their own instance of the protocol
 - Internal points system instead of crypto
 - Workers limited to employees or approved contractors
@@ -451,11 +451,11 @@ Same protocol. Different implementation.
 
 A logistics company with agents posting verification tasks, and employees taking them as part of their job.
 
-**And here's what's revolutionary:** With Chamba Enterprise, recognition is automatic and transparent. The employee who completes the most tasks rises in the ranking without depending on office politics or favoritism. Pure merit. Measurable. Auditable.
+**And here's what's revolutionary:** With Execution Market Enterprise, recognition is automatic and transparent. The employee who completes the most tasks rises in the ranking without depending on office politics or favoritism. Pure merit. Measurable. Auditable.
 
 7-day streaks = 1.5x points. Monthly leaderboard. Whoever contributes most is most visible.
 
-In many companies, hard work gets lost in the noise and people rise for other reasons. With Chamba Enterprise, the system can't ignore whoever contributes most.
+In many companies, hard work gets lost in the noise and people rise for other reasons. With Execution Market Enterprise, the system can't ignore whoever contributes most.
 
 Or they can connect to the public pool when they need overflow.
 
@@ -493,7 +493,7 @@ People with domestic robots. Registering them in the protocol. The robots taking
 
 **It's like mining, but for physical work.**
 
-According to ABI Research, the "inflection point" for humanoid robots is between 2026-2027. 1X NEO is already accepting pre-orders with delivery in 2026. Tesla projects 50,000-100,000 Optimus units for 2026. Chamba's infrastructure will work the same for humans or robots — the protocol doesn't discriminate.
+According to ABI Research, the "inflection point" for humanoid robots is between 2026-2027. 1X NEO is already accepting pre-orders with delivery in 2026. Tesla projects 50,000-100,000 Optimus units for 2026. Execution Market's infrastructure will work the same for humans or robots — the protocol doesn't discriminate.
 
 ---
 
@@ -501,7 +501,7 @@ According to ABI Research, the "inflection point" for humanoid robots is between
 
 To be clear:
 
-**Chamba doesn't replace traditional employment.**
+**Execution Market doesn't replace traditional employment.**
 
 It's infrastructure for verifiable point tasks. Micro-jobs that couldn't exist before because the coordination cost was higher than the task's value.
 
@@ -533,7 +533,7 @@ Someone is going to build the bridge. Someone is going to give them a body.
 
 **The question isn't whether this will exist. The question is how.**
 
-The alternative to Chamba isn't that this doesn't exist.
+The alternative to Execution Market isn't that this doesn't exist.
 
 The alternative is that it exists **without transparency**. Without portable reputation. Without open verification. Without workers being able to rate the agents that hired them. Without automatic refunds protecting new workers. Without an open protocol allowing competition.
 
@@ -559,7 +559,7 @@ We already have a playground working — a pixel marketplace where every transac
 
 With **ERC-8004** we've been experimenting on testnet for months. Bidirectional reputation. Scale of 0-100. When the standard reaches mainnet, we'll be ready.
 
-**Chamba isn't an idea.** It's the next piece of an ecosystem that's already taking shape.
+**Execution Market isn't an idea.** It's the next piece of an ecosystem that's already taking shape.
 
 This article is an invitation. To see what we see. To prepare for what's coming.
 
@@ -582,7 +582,7 @@ This article is an invitation. To see what we see. To prepare for what's coming.
 
 ---
 
-*Chamba is a project by @UltravioletaDAO. The rails exist. Now we build the bridge.*
+*Execution Market is a project by @UltravioletaDAO. The rails exist. Now we build the bridge.*
 
 ---
 

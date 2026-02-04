@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test Supabase connection for Chamba
+Test Supabase connection for Execution Market
 Run: python scripts/test_supabase.py
 """
 import os

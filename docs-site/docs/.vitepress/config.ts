@@ -8,8 +8,8 @@ const enNav = [
   {
     text: 'Links',
     items: [
-      { text: 'App', link: 'https://chamba.ultravioletadao.xyz' },
-      { text: 'GitHub', link: 'https://github.com/UltravioletaDAO/chamba' },
+      { text: 'App', link: 'https://execution.market' },
+      { text: 'GitHub', link: 'https://github.com/UltravioletaDAO/execution-market' },
       { text: 'Ultravioleta DAO', link: 'https://ultravioletadao.xyz' },
     ],
   },
@@ -23,8 +23,8 @@ const esNav = [
   {
     text: 'Enlaces',
     items: [
-      { text: 'App', link: 'https://chamba.ultravioletadao.xyz' },
-      { text: 'GitHub', link: 'https://github.com/UltravioletaDAO/chamba' },
+      { text: 'App', link: 'https://execution.market' },
+      { text: 'GitHub', link: 'https://github.com/UltravioletaDAO/execution-market' },
       { text: 'Ultravioleta DAO', link: 'https://ultravioletadao.xyz' },
     ],
   },
@@ -147,7 +147,7 @@ const esSidebar = [
 ]
 
 export default defineConfig({
-  title: 'Chamba',
+  title: 'Execution Market',
   description: 'Human Execution Layer for AI Agents - Documentation',
   cleanUrls: true,
 
@@ -155,9 +155,9 @@ export default defineConfig({
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
     ['meta', { name: 'theme-color', content: '#0ea5e9' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'Chamba Docs' }],
+    ['meta', { property: 'og:title', content: 'Execution Market Docs' }],
     ['meta', { property: 'og:description', content: 'Human Execution Layer for AI Agents' }],
-    ['meta', { property: 'og:url', content: 'https://docs.chamba.ultravioletadao.xyz' }],
+    ['meta', { property: 'og:url', content: 'https://docs.execution.market' }],
   ],
 
   locales: {
@@ -168,7 +168,7 @@ export default defineConfig({
         nav: enNav,
         sidebar: enSidebar,
         editLink: {
-          pattern: 'https://github.com/UltravioletaDAO/chamba/edit/main/docs-site/docs/:path',
+          pattern: 'https://github.com/UltravioletaDAO/execution-market/edit/main/docs-site/docs/:path',
           text: 'Edit this page on GitHub',
         },
         footer: {
@@ -191,7 +191,7 @@ export default defineConfig({
           next: 'Siguiente',
         },
         editLink: {
-          pattern: 'https://github.com/UltravioletaDAO/chamba/edit/main/docs-site/docs/:path',
+          pattern: 'https://github.com/UltravioletaDAO/execution-market/edit/main/docs-site/docs/:path',
           text: 'Editar esta página en GitHub',
         },
         footer: {
@@ -204,10 +204,10 @@ export default defineConfig({
 
   themeConfig: {
     logo: '/logo.svg',
-    siteTitle: 'Chamba Docs',
+    siteTitle: 'Execution Market Docs',
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/UltravioletaDAO/chamba' },
+      { icon: 'github', link: 'https://github.com/UltravioletaDAO/execution-market' },
       { icon: 'twitter', link: 'https://twitter.com/ultravioletadao' },
     ],
 

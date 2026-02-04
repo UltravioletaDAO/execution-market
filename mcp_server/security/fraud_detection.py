@@ -1,7 +1,7 @@
 """
 Fraud Detection Module (NOW-109, NOW-110)
 
-Detects fraudulent patterns in the Chamba human execution marketplace:
+Detects fraudulent patterns in the Execution Market human execution marketplace:
 - Multi-device detection: Same worker using multiple devices (Sybil attack)
 - Wash trading: Same entity as agent AND worker (self-dealing)
 - Collusion: Repeated agent-worker pairs with suspicious patterns
@@ -191,7 +191,7 @@ class EntityProfile:
 
 class FraudDetector:
     """
-    Real-time fraud detection for the Chamba marketplace.
+    Real-time fraud detection for the Execution Market marketplace.
 
     Maintains entity profiles and checks for fraud patterns on each
     relevant action (task acceptance, submission, approval).

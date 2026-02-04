@@ -66,8 +66,8 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       });
 
       // Store in local state/context
-      localStorage.setItem('chamba_executor_id', executorId);
-      localStorage.setItem('chamba_wallet', walletAddress);
+      localStorage.setItem('em_executor_id', executorId);
+      localStorage.setItem('em_wallet', walletAddress);
 
       onClose();
     } catch (err) {
@@ -147,7 +147,7 @@ export function useAuth() {
   const [executorId, setExecutorId] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('chamba_executor_id');
+    const stored = localStorage.getItem('em_executor_id');
     if (stored) setExecutorId(stored);
   }, []);
 

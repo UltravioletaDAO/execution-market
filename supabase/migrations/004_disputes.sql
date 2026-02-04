@@ -1,5 +1,5 @@
 -- ============================================================================
--- CHAMBA: Human Execution Layer for AI Agents
+-- EXECUTION MARKET: Human Execution Layer for AI Agents
 -- Migration: 004_disputes.sql
 -- Description: Dispute resolution system with arbitration
 -- Version: 2.0.0

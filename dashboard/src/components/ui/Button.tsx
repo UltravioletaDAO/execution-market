@@ -27,11 +27,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses = {
   primary: [
-    'bg-chamba-500 text-white',
-    'hover:bg-chamba-600',
-    'focus:ring-chamba-500',
+    'bg-em-500 text-white',
+    'hover:bg-em-600',
+    'focus:ring-em-500',
     'shadow-sm hover:shadow-md',
-    'active:bg-chamba-700',
+    'active:bg-em-700',
   ].join(' '),
   secondary: [
     'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-100',
@@ -75,8 +75,8 @@ const variantClasses = {
   ].join(' '),
   link: [
     'bg-transparent',
-    'text-chamba-600 dark:text-chamba-400',
-    'hover:text-chamba-700 dark:hover:text-chamba-300',
+    'text-em-600 dark:text-em-400',
+    'hover:text-em-700 dark:hover:text-em-300',
     'hover:underline',
     'p-0',
   ].join(' '),

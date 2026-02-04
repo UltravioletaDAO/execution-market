@@ -1,5 +1,5 @@
 """
-Chamba Gamified Progression System (NOW-135)
+Execution Market Gamified Progression System (NOW-135)
 
 Implements a gamified worker progression system:
 - Levels: Novice -> Apprentice -> Journeyman -> Expert -> Master

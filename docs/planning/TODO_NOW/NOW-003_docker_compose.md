@@ -8,7 +8,7 @@
 - **Tiempo estimado**: 20-30 min
 
 ## Descripción
-Crear docker-compose.yml que levante todo el stack de Chamba localmente para desarrollo.
+Crear docker-compose.yml que levante todo el stack de Execution Market localmente para desarrollo.
 
 ## Contexto Técnico
 - **Servicios**: mcp-server, dashboard, supabase (opcional)

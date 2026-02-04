@@ -1,4 +1,4 @@
-// Chamba Dashboard Pages
+// Execution Market Dashboard Pages
 // Re-export all page components for easy imports
 
 export { Analytics } from './Analytics'

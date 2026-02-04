@@ -1,14 +1,14 @@
 [project]
-name = "chamba-mcp"
+name = "execution-market"
 version = "0.1.0"
-description = "Chamba MCP Server - Human Execution Layer for AI Agents"
+description = "Execution Market MCP Server - Human Execution Layer for AI Agents"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
     { name = "Ultravioleta DAO", email = "dev@ultravioleta.xyz" }
 ]
-keywords = ["mcp", "ai-agents", "human-execution", "chamba"]
+keywords = ["mcp", "ai-agents", "human-execution", "execution-market"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -33,7 +33,7 @@ dev = [
 ]
 
 [project.scripts]
-chamba-mcp = "server:mcp.run"
+execution-market = "server:mcp.run"
 
 [build-system]
 requires = ["hatchling"]

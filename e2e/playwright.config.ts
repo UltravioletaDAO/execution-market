@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * Chamba E2E Test Configuration
+ * Execution Market E2E Test Configuration
  *
  * Run tests with:
  *   npm test              - Run all tests headless

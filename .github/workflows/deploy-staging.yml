@@ -15,7 +15,7 @@ env:
   ECS_CLUSTER: chamba-staging
   ECS_SERVICE_BACKEND: chamba-backend-staging
   ECS_SERVICE_FRONTEND: chamba-frontend-staging
-  STAGING_URL: https://staging.chamba.work
+  STAGING_URL: https://staging.execution.market
 
 jobs:
   build-and-push:
@@ -200,7 +200,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Chamba Staging Deployed* :rocket:\n\nCommit: `${{ github.sha }}`\nBranch: `${{ github.ref_name }}`\nURL: ${{ env.STAGING_URL }}"
+                    "text": "*Execution Market Staging Deployed* :rocket:\n\nCommit: `${{ github.sha }}`\nBranch: `${{ github.ref_name }}`\nURL: ${{ env.STAGING_URL }}"
                   }
                 },
                 {
@@ -230,7 +230,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Chamba Staging Deployment Failed* :x:\n\nCommit: `${{ github.sha }}`\nBranch: `${{ github.ref_name }}`\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
+                    "text": "*Execution Market Staging Deployment Failed* :x:\n\nCommit: `${{ github.sha }}`\nBranch: `${{ github.ref_name }}`\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
                   }
                 },
                 {

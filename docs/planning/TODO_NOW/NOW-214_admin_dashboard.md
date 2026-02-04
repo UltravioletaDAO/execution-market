@@ -22,7 +22,7 @@ Dashboard administrativo que permita:
 ### Frontend (admin-dashboard/)
 - `package.json` - Dependencies including Recharts
 - `vite.config.ts` - Vite configuration
-- `tailwind.config.js` - Tailwind with chamba colors
+- `tailwind.config.js` - Tailwind with platform colors
 - `postcss.config.js` - PostCSS config
 - `index.html` - Entry HTML
 - `tsconfig.json` - TypeScript config
@@ -101,7 +101,7 @@ npm run dev
 # Open http://localhost:5174
 
 # Set admin key on backend
-export CHAMBA_ADMIN_KEY=your-secure-key
+export EXECUTION MARKET_ADMIN_KEY=your-secure-key
 ```
 
 ## Next Steps (Future)
@@ -109,4 +109,4 @@ export CHAMBA_ADMIN_KEY=your-secure-key
 - [ ] Full Supabase authentication with roles (viewer, editor, superadmin)
 - [ ] Real-time updates via WebSocket
 - [ ] Export data to CSV
-- [ ] Deploy to admin.chamba.ultravioletadao.xyz
+- [ ] Deploy to admin.execution.market

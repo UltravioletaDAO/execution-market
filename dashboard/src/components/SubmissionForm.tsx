@@ -1,7 +1,10 @@
-// Chamba: Evidence Submission Form
+// Execution Market: Evidence Submission Form
 import { useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Task, EvidenceType, Executor } from '../types/database'
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 interface SubmissionFormProps {
   task: Task
@@ -181,23 +184,50 @@ export function SubmissionForm({
         }
       }
 
-      // Create submission
-      const { error: submissionError } = await supabase.from('submissions').insert({
-        task_id: task.id,
-        executor_id: executor.id,
-        evidence: evidenceData,
-        evidence_files: uploadedPaths,
-      } as never)
+      // Get fresh session to avoid stale token / RLS mismatch
+      const { data: { session: currentSession } } = await supabase.auth.getSession()
 
-      if (submissionError) throw submissionError
+      const headers: Record<string, string> = {
+        apikey: SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      }
 
-      // Update task status
-      const { error: taskError } = await supabase
-        .from('tasks')
-        .update({ status: 'submitted' as const } as never)
-        .eq('id', task.id)
+      if (currentSession?.access_token) {
+        headers['Authorization'] = `Bearer ${currentSession.access_token}`
+      }
 
-      if (taskError) throw taskError
+      // Create submission via REST API (bypasses Supabase JS silent RLS failures)
+      const submitResponse = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          task_id: task.id,
+          executor_id: executor.id,
+          evidence: evidenceData,
+          evidence_files: uploadedPaths,
+          submitted_at: new Date().toISOString(),
+        }),
+      })
+
+      if (!submitResponse.ok) {
+        const text = await submitResponse.text()
+        throw new Error(text || `Submission failed: ${submitResponse.status}`)
+      }
+
+      // Update task status to submitted
+      const statusResponse = await fetch(
+        `${SUPABASE_URL}/rest/v1/tasks?id=eq.${task.id}`,
+        {
+          method: 'PATCH',
+          headers: { ...headers, Prefer: 'return=minimal' },
+          body: JSON.stringify({ status: 'submitted' }),
+        }
+      )
+
+      if (!statusResponse.ok) {
+        console.warn('Could not update task status:', statusResponse.status)
+      }
 
       onSubmit?.()
     } catch (err) {

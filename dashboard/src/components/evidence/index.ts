@@ -1,7 +1,7 @@
 /**
  * Evidence Components
  *
- * Complete evidence upload system for Chamba task verification.
+ * Complete evidence upload system for Execution Market task verification.
  * Includes camera capture, GPS verification, and upload management.
  */
 

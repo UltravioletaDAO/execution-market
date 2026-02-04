@@ -1,5 +1,5 @@
 """
-Requester Seal Management for Chamba (NOW-167, NOW-170)
+Requester Seal Management for Execution Market (NOW-167, NOW-170)
 
 Manages requester (agent) seals: FAIR_EVALUATOR, CLEAR_INSTRUCTIONS, FAST_PAYMENT
 

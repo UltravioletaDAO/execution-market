@@ -129,7 +129,7 @@ curl http://localhost:8000/docs
 ### Servicio Desplegado
 
 **URL del ALB**: `https://facilitator-production-1938217939.us-east-2.elb.amazonaws.com`
-**Host Header**: `chamba.ultravioletadao.xyz`
+**Host Header**: `execution.market`
 
 **Health Check**:
 ```json
@@ -147,6 +147,6 @@ curl http://localhost:8000/docs
 **Swagger UI**: Funcionando en `/docs`
 
 ### Pendiente
-- Configurar DNS para `api.chamba.ultravioletadao.xyz` → ALB
+- Configurar DNS para `api.execution.market` → ALB
 - Crear bucket `evidence` en Supabase Storage
 - Configurar `X402_PRIVATE_KEY` en Secrets Manager

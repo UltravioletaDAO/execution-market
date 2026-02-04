@@ -1,5 +1,5 @@
 """
-Chamba A2A Protocol Integration
+Execution Market A2A Protocol Integration
 
 Agent-to-Agent communication following the A2A Protocol specification.
 https://a2a-protocol.org/

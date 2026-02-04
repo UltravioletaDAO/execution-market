@@ -1,5 +1,5 @@
 """
-Chamba Worker Experience Module
+Execution Market Worker Experience Module
 
 Manages the complete worker lifecycle including:
 - Probation tier for new workers (NOW-174)

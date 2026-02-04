@@ -1,6 +1,6 @@
-# Chamba Launch TODO - 2026-01-27
+# Execution Market Launch TODO - 2026-01-27
 
-> Goal: Get Chamba fully functional by morning with tasks visible in dashboard.
+> Goal: Get Execution Market fully functional by morning with tasks visible in dashboard.
 > **STATUS: ✅ DASHBOARD FUNCTIONAL - Tasks visible!**
 
 ## Completed ✅
@@ -78,7 +78,7 @@
 - [x] Start dev server (npm run dev) - running on port 3001
 
 ### 3.3 Verify Data Display
-- [x] **Tasks appear in dashboard** ✅ (Screenshot: chamba-dashboard-tasks-working.png)
+- [x] **Tasks appear in dashboard** ✅ (Screenshot: execution-market-dashboard-tasks-working.png)
 - [x] Task details load correctly
 - [x] Auth modal works (manual wallet entry tested)
 - [x] Category filters work
@@ -89,16 +89,16 @@
 ## Phase 4: MCP Tool Testing [P1] - Pending
 
 ### 4.1 Agent Tools (via MCP)
-- [ ] Test chamba_create_task
-- [ ] Test chamba_batch_create_tasks
-- [ ] Test chamba_assign_task
-- [ ] Test chamba_get_task_analytics
+- [ ] Test em_create_task
+- [ ] Test em_batch_create_tasks
+- [ ] Test em_assign_task
+- [ ] Test em_get_task_analytics
 
 ### 4.2 Worker Tools (via MCP)
-- [ ] Test chamba_get_available_tasks
-- [ ] Test chamba_apply_to_task
-- [ ] Test chamba_submit_work
-- [ ] Test chamba_get_my_tasks
+- [ ] Test em_get_available_tasks
+- [ ] Test em_apply_to_task
+- [ ] Test em_submit_work
+- [ ] Test em_get_my_tasks
 
 ### 4.3 A2A Protocol
 - [ ] Test /.well-known/agent.json
@@ -151,11 +151,11 @@ Commission Wallet: 0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad
 
 ### AWS Secrets
 ```
-chamba/commission - Commission wallet address
-chamba/contracts - Deployed contract addresses
-chamba/api-keys - Block explorer API keys
-chamba/supabase - Supabase credentials
-chamba/admin-key - Admin API key
+execution-market/commission - Commission wallet address
+execution-market/contracts - Deployed contract addresses
+execution-market/api-keys - Block explorer API keys
+execution-market/supabase - Supabase credentials
+execution-market/admin-key - Admin API key
 ```
 
 ### Key Files
@@ -170,7 +170,7 @@ supabase/migrations/001_initial_schema.sql - DB schema
 
 ### How to Run Dashboard
 ```bash
-cd /mnt/z/ultravioleta/dao/control-plane/ideas/chamba/dashboard
+cd /mnt/z/ultravioleta/dao/chamba/dashboard
 npm run dev
 # Opens on http://localhost:3001 (or next available port)
 ```

@@ -122,7 +122,7 @@ No son corporaciones pagando menos en países pobres. Son individuos accediendo 
 
 ## Lo que estamos construyendo
 
-Se llama **Chamba**.
+Se llama **Execution Market**.
 
 No es otra app de gig economy. No es "Uber para tareas".
 
@@ -136,7 +136,7 @@ El agente publica. Un humano cerca la toma. La completa. El sistema verifica. El
 |------------|----------|--------|----------------|
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
-| **Chamba** | **6-8%** | **$0.25** | **Instantáneo** |
+| **Execution Market** | **6-8%** | **$0.25** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para que alguien complete un CAPTCHA.
 
@@ -146,7 +146,7 @@ Pero un agente que puede pagar $0.25 instantáneamente va a hacer **miles** de v
 
 No.
 
-| | MTurk | Chamba |
+| | MTurk | Execution Market |
 |--|-------|--------|
 | **Cliente** | Humanos | Agentes de IA |
 | **Velocidad** | Horas/días | Segundos |
@@ -155,7 +155,7 @@ No.
 
 MTurk fue diseñado para humanos contratando humanos.
 
-**Chamba es infraestructura para agentes contratando humanos.**
+**Execution Market es infraestructura para agentes contratando humanos.**
 
 Esa diferencia lo cambia todo.
 
@@ -199,7 +199,7 @@ Gente con robots domésticos. Registrándolos en el protocolo. Los robots tomand
 
 Según ABI Research, el inflection point para robots humanoides está entre 2026-2027. 1X NEO ya acepta preórdenes. Tesla proyecta 50,000-100,000 unidades Optimus para 2026.
 
-**La infraestructura de Chamba funcionará igual para humanos o robots.**
+**La infraestructura de Execution Market funcionará igual para humanos o robots.**
 
 ---
 
@@ -219,7 +219,7 @@ Alguien va a construir el puente. Alguien va a darles cuerpo a los agentes.
 
 **La pregunta no es si esto existirá. La pregunta es cómo.**
 
-La alternativa a Chamba no es que esto no exista.
+La alternativa a Execution Market no es que esto no exista.
 
 La alternativa es que exista **sin transparencia**. Sin reputación portable. Sin verificación abierta. Sin que el trabajador pueda calificar al agente que lo contrató.
 
@@ -231,7 +231,7 @@ La alternativa es que exista **sin transparencia**. Sin reputación portable. Si
 
 Para ser claros:
 
-**Chamba no reemplaza el empleo tradicional.**
+**Execution Market no reemplaza el empleo tradicional.**
 
 Es infraestructura para tareas puntuales verificables. Micro-trabajos que antes no tenían cómo existir porque el costo de coordinación era mayor que el valor de la tarea.
 
@@ -249,7 +249,7 @@ En Ultravioleta DAO creemos que el futuro se construye en público. Con la comun
 
 Dan Koe dice que estamos entrando en una "meaning economy" — donde lo que escasea es significado, no productividad.
 
-Chamba no es solo una forma de ganar dinero. Es una forma de **ejercer agencia** en un mundo donde cada vez más decisiones las toman algoritmos.
+Execution Market no es solo una forma de ganar dinero. Es una forma de **ejercer agencia** en un mundo donde cada vez más decisiones las toman algoritmos.
 
 El humano que toma una tarea está eligiendo. Está actuando. Está contribuyendo.
 

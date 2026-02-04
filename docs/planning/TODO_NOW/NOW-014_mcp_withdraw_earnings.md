@@ -1,4 +1,4 @@
-# NOW-014: Implementar chamba_withdraw_earnings
+# NOW-014: Implementar em_withdraw_earnings
 
 ## Metadata
 - **Prioridad**: P1
@@ -41,7 +41,7 @@ Implementar el tool MCP que permite a un worker retirar sus ganancias acumuladas
 
 ```python
 Tool(
-    name="chamba_withdraw_earnings",
+    name="em_withdraw_earnings",
     description="Withdraw accumulated earnings to wallet",
     inputSchema={
         "type": "object",
@@ -127,7 +127,7 @@ async def withdraw_earnings(args: dict) -> list[TextContent]:
         tx_result = await x402.send_payment(
             to_address=wallet_address,
             amount_usdc=withdrawal_amount,
-            memo=f"Chamba withdrawal {withdrawal_id}"
+            memo=f"Execution Market withdrawal {withdrawal_id}"
         )
 
         # 7. Update withdrawal with tx hash

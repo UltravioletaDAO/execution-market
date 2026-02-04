@@ -1,5 +1,5 @@
 /**
- * Chamba Landing Page - Shared Styles
+ * Execution Market Landing Page - Shared Styles
  * Human Execution Layer for AI Agents
  *
  * This file contains shared styles between both landing versions:
@@ -13,12 +13,12 @@
 
 :root {
     /* Brand Colors */
-    --chamba-purple: #8B5CF6;
-    --chamba-purple-dark: #7C3AED;
-    --chamba-purple-light: #A78BFA;
-    --chamba-cyan: #06B6D4;
-    --chamba-amber: #F59E0B;
-    --chamba-green: #10B981;
+    --em-purple: #8B5CF6;
+    --em-purple-dark: #7C3AED;
+    --em-purple-light: #A78BFA;
+    --em-cyan: #06B6D4;
+    --em-amber: #F59E0B;
+    --em-green: #10B981;
 
     /* Enterprise Colors */
     --enterprise-blue: #2563eb;

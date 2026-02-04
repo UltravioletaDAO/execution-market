@@ -1,7 +1,7 @@
 /**
- * Register Chamba as merchant in x402r DepositRelayFactory
+ * Register Execution Market as merchant in x402r DepositRelayFactory
  *
- * This creates a deterministic proxy address for Chamba that receives
+ * This creates a deterministic proxy address for Execution Market that receives
  * x402r payments with refund capability.
  *
  * Contracts (Base Mainnet):
@@ -175,7 +175,7 @@ function printConfig(
   factory: string,
   escrow: string
 ) {
-  console.log('\n=== Configuration for Chamba ===');
+  console.log('\n=== Configuration for Execution Market ===');
   console.log(`
 Add to .env.local:
 
@@ -189,7 +189,7 @@ X402R_ESCROW_ADDRESS=${escrow}
 
   console.log('=== Payment Payload Extension ===');
   console.log(`
-When agents pay Chamba, include this extension in x402 v2 payloads:
+When agents pay Execution Market, include this extension in x402 v2 payloads:
 
 {
   "extensions": {

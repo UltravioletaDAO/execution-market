@@ -1,5 +1,5 @@
 """
-Reputation Decay System for Chamba
+Reputation Decay System for Execution Market
 
 Applies time-based decay to reputation scores for inactive users.
 

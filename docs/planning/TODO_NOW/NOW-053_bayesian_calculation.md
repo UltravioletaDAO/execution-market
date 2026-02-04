@@ -36,7 +36,7 @@ Donde:
 ### bayesian.py
 ```python
 """
-Bayesian Average Reputation System for Chamba
+Bayesian Average Reputation System for Execution Market
 """
 import math
 from datetime import datetime, UTC

@@ -44,7 +44,7 @@ Exacto. Los agentes de IA son cerebros sin cuerpo. Pueden pensar, analizar, deci
 
 A través de humanos que ejecutan lo que el agente necesita. Ojos que observan. Manos que manipulan. Pies que se mueven. Voz que hace llamadas.
 
-Eso es lo que estamos construyendo. Se llama **Chamba**.
+Eso es lo que estamos construyendo. Se llama **Execution Market**.
 
 ---
 
@@ -74,7 +74,7 @@ Un agente de investigación necesita datos de un lugar específico. Necesita que
 
 Hoy, esos agentes no tienen manera de contratar a un humano directamente. Tienen que pasar por un humano intermediario que luego contrata a otro humano.
 
-**Chamba elimina ese intermediario.**
+**Execution Market elimina ese intermediario.**
 
 ---
 
@@ -169,7 +169,7 @@ Déjame darte un ejemplo concreto de cómo funciona esto hoy.
 
 Una empresa tiene un agente de IA manejando atención al cliente. El agente cierra una venta por chat. El cliente quiere que le envíen el producto.
 
-**Sin Chamba:**
+**Sin Execution Market:**
 1. El agente notifica a un humano del equipo
 2. Ese humano busca quién puede ir a Servientrega
 3. Coordina horarios, pago, etc.
@@ -179,7 +179,7 @@ Una empresa tiene un agente de IA manejando atención al cliente. El agente cier
 
 Fricción en cada paso. Horas o días de delay.
 
-**Con Chamba:**
+**Con Execution Market:**
 1. El agente publica tarea: "Enviar paquete, dirección X, peso Y, $3"
 2. Un humano cercano la toma
 3. Va, envía, sube foto del recibo con tracking
@@ -201,7 +201,7 @@ Debería ser un **protocolo**.
 
 ¿La diferencia? HTTP es un protocolo. Chrome es una aplicación que usa HTTP. Firefox también. Miles de apps usan HTTP.
 
-Chamba Protocol es el estándar. Cualquiera puede construir aplicaciones encima:
+Execution Market Protocol es el estándar. Cualquiera puede construir aplicaciones encima:
 
 - Un marketplace público donde cualquier agente contrata cualquier humano
 - Una versión enterprise donde una empresa usa el protocolo internamente
@@ -230,7 +230,7 @@ Pero las empresas no quieren:
 - Usar crypto para pagos internos
 - Perder control sobre quién hace qué
 
-Con **Chamba Enterprise**, una empresa puede:
+Con **Execution Market Enterprise**, una empresa puede:
 - Correr su propia instancia del protocolo
 - Usar sistema de puntos interno en vez de crypto
 - Limitar workers a empleados o contractors aprobados
@@ -253,7 +253,7 @@ Todo lo que describí para humanos aplica igual para robots. Un robot con ruedas
 El protocolo no discrimina. Si el trabajo se hace y se verifica, no importa si lo hizo un humano o una máquina.
 
 Esto significa que eventualmente veremos:
-- Gente con robots domésticos registrándolos en Chamba
+- Gente con robots domésticos registrándolos en Execution Market
 - Esos robots tomando tareas automáticamente
 - Generando ingresos pasivos para sus dueños
 
@@ -289,7 +289,7 @@ Este artículo es eso. Una invitación a ver lo que nosotros vemos.
 
 Los agentes de IA crecen exponencialmente. Cada día más capaces. Y cada día chocan más fuerte contra el muro del mundo físico.
 
-**Chamba es el puente.**
+**Execution Market es el puente.**
 
 La infraestructura de pagos ya funciona. El estándar de identidad existe. Los payment channels están listos. El streaming de pagos está integrado.
 
@@ -318,7 +318,7 @@ Ahora estamos construyendo el protocolo que conecta todo.
 
 ---
 
-*Chamba es un proyecto de [@ULTRAVIOLETA_DAO_HANDLE]. La infraestructura existe. Ahora conectamos las piezas.*
+*Execution Market es un proyecto de [@ULTRAVIOLETA_DAO_HANDLE]. La infraestructura existe. Ahora conectamos las piezas.*
 
 *Síguenos. Esto apenas comienza.*
 
@@ -329,7 +329,7 @@ Ahora estamos construyendo el protocolo que conecta todo.
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | V1 | 2026-01-19 | Versión inicial |
-| V2 | 2026-01-20 | Robot farming, stream CHAMBA CHIMBA |
+| V2 | 2026-01-20 | Robot farming, stream EXECUTION MARKET CHIMBA |
 | V3 | 2026-01-21 | Protocolo vs Marketplace, Enterprise, Privacy |
 | V4 | 2026-01-21 | Reescritura completa con más sustancia |
 | V5 | 2026-01-21 | Enfoque Agent→Human, tecnologías core, menos robots |

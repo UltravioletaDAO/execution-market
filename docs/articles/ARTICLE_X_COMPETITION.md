@@ -40,7 +40,7 @@ Estoy hablando de una matriz completa:
 
 TaskRabbit hace human→human. Las APIs de OpenAI hacen human→agent. Pero nadie está construyendo el protocolo donde *todos* trabajan para *todos*.
 
-Eso es lo que estamos construyendo en Ultravioleta DAO. Se llama Chamba.
+Eso es lo que estamos construyendo en Ultravioleta DAO. Se llama Execution Market.
 
 ---
 
@@ -58,7 +58,7 @@ Pero eso es solo humanos contratando humanos.
 
 Estamos hablando de una economía de **trillones de dólares** en la próxima década. Y no existe infraestructura para ella.
 
-Chamba es esa infraestructura.
+Execution Market es esa infraestructura.
 
 ---
 
@@ -106,7 +106,7 @@ Este artículo es nuestra manera de decirle al mundo: esto es lo que vemos venir
 
 Los agentes de IA están creciendo exponencialmente. Cada día son más capaces. Y cada día chocan más fuerte contra el muro del mundo físico.
 
-**Chamba es el puente. Y lo estamos construyendo para todos.**
+**Execution Market es el puente. Y lo estamos construyendo para todos.**
 
 ---
 
@@ -118,4 +118,4 @@ Los agentes de IA están creciendo exponencialmente. Cada día son más capaces.
 - x402 Channels: github.com/CPC-Development/x402-hackathon
 - Superfluid x402: github.com/superfluid-org/x402-sf
 
-*Chamba es un proyecto de Ultravioleta DAO. La infraestructura de pagos ya funciona. Ahora estamos construyendo el marketplace - y todos están invitados a contribuir.*
+*Execution Market es un proyecto de Ultravioleta DAO. La infraestructura de pagos ya funciona. Ahora estamos construyendo el marketplace - y todos están invitados a contribuir.*

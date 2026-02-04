@@ -1,5 +1,5 @@
 """
-Chamba Verification System
+Execution Market Verification System
 
 Multi-tier verification for task evidence:
 1. Auto-verification (GPS, timestamp, schema)

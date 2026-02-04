@@ -1,4 +1,4 @@
-// Chamba: Authentication Context
+// Execution Market: Authentication Context
 // Provides authentication state and user type management across the application
 
 import {
@@ -43,7 +43,7 @@ interface AuthContextValue {
 // Constants
 // --------------------------------------------------------------------------
 
-const USER_TYPE_STORAGE_KEY = 'chamba_user_type'
+const USER_TYPE_STORAGE_KEY = 'em_user_type'
 
 // --------------------------------------------------------------------------
 // Context
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Derived state
   const isAuthenticated = user !== null && session !== null
-  const isProfileComplete = !!(executor?.display_name && executor?.bio)
+  const isProfileComplete = !!executor?.display_name
 
   // --------------------------------------------------------------------------
   // Direct fetch to bypass Supabase JS client issues with sb_publishable_ keys
@@ -134,6 +134,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.error('[AuthContext] fetchExecutorDirect failed:', err)
           return null
         }
+      }
+
+      // Fallback: try by wallet_address from user metadata
+      // This handles returning users whose executor has a stale user_id
+      // (e.g. from a previous anonymous session that expired)
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        const walletAddress = currentUser?.user_metadata?.wallet_address
+        if (walletAddress) {
+          console.log('[AuthContext] Fallback: trying by wallet_address:', walletAddress)
+          const response = await fetch(
+            `${supabaseUrl}/rest/v1/executors?wallet_address=eq.${walletAddress}&select=*`,
+            { headers }
+          )
+          if (response.ok) {
+            const data = await response.json()
+            if (data.length > 0) {
+              console.log('[AuthContext] Found executor by wallet_address fallback:', data[0].id)
+              return data[0]
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[AuthContext] Wallet fallback failed:', err)
       }
 
       return null

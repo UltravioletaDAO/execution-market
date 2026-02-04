@@ -1,6 +1,6 @@
 # Facilitador x402
 
-El **Facilitador x402** es la infraestructura de enrutamiento de pagos que permite pagos con criptomonedas sin gas y entre cadenas para Chamba.
+El **Facilitador x402** es la infraestructura de enrutamiento de pagos que permite pagos con criptomonedas sin gas y entre cadenas para Execution Market.
 
 ## Que es el Facilitador?
 
@@ -38,9 +38,9 @@ Agente IA                  Facilitador                   Blockchain
    │ ◄───────────────────────── │                            │
 ```
 
-## Integracion con Chamba
+## Integracion con Execution Market
 
-Chamba usa el facilitador en dos niveles:
+Execution Market usa el facilitador en dos niveles:
 
 ### Cliente SDK (Recomendado)
 
@@ -64,7 +64,7 @@ result = await client.authorize(
 ### Cliente HTTP Raw
 
 ```python
-from chamba.integrations.x402 import X402Client
+from execution_market.integrations.x402 import X402Client
 
 client = X402Client(
     rpc_url="https://mainnet.base.org",
@@ -96,7 +96,7 @@ Esto significa:
 
 ## Registro de Comerciante
 
-Chamba se registra como comerciante en el MerchantRouter de x402 para recibir pagos:
+Execution Market se registra como comerciante en el MerchantRouter de x402 para recibir pagos:
 
 ```typescript
 // Desde scripts/register_x402r_merchant.ts
@@ -107,7 +107,7 @@ const depositFactory = "0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814"
 const proxy = await factory.deployProxy(USDC_ADDRESS)
 
 // Registrar en el router de comerciante
-await router.registerMerchant(chambaAddress, [proxy])
+await router.registerMerchant(emAddress, [proxy])
 ```
 
 ## Soportado por el Facilitador

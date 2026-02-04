@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3001,
     proxy: {
       '/api': {
-        target: process.env.CHAMBA_API_URL || 'https://api.chamba.ultravioletadao.xyz',
+        target: process.env.EM_API_URL || 'https://api.execution.market',
         changeOrigin: true,
       },
     },

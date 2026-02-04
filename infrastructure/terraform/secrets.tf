@@ -1,6 +1,7 @@
-# Chamba Infrastructure - Secrets Reference
+# Execution Market Infrastructure - Secrets Reference
 #
-# Existing secrets are managed manually in AWS Secrets Manager:
+# Existing secrets are managed manually in AWS Secrets Manager.
+# NOTE: Secret paths kept as "chamba/*" to match existing AWS resources:
 #   - chamba/supabase (url, anon_key, service_key)
 #   - chamba/contracts (avalanche, etc.)
 #   - chamba/commission (address)
@@ -25,7 +26,7 @@ data "aws_secretsmanager_secret" "commission" {
 # IAM Policy for reading secrets
 resource "aws_iam_policy" "secrets_read" {
   name        = "${local.name_prefix}-secrets-read"
-  description = "Allow reading Chamba secrets"
+  description = "Allow reading Execution Market secrets"
 
   policy = jsonencode({
     Version = "2012-10-17"

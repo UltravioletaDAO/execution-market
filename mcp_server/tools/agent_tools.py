@@ -1,10 +1,10 @@
 """
-Enhanced Agent MCP Tools for Chamba (NOW-015 to NOW-018)
+Enhanced Agent MCP Tools for Execution Market (NOW-015 to NOW-018)
 
 Advanced tools for AI agents to manage tasks at scale:
-- chamba_assign_task: Manually assign task to specific worker
-- chamba_batch_create_tasks: Create multiple tasks atomically
-- chamba_get_task_analytics: Get comprehensive metrics
+- em_assign_task: Manually assign task to specific worker
+- em_batch_create_tasks: Create multiple tasks atomically
+- em_get_task_analytics: Get comprehensive metrics
 
 These tools extend the basic MCP server with enterprise-grade
 capabilities for high-volume task management.
@@ -488,7 +488,7 @@ def register_agent_tools(mcp, db):
     """
 
     @mcp.tool(
-        name="chamba_assign_task",
+        name="em_assign_task",
         annotations={
             "title": "Assign Task to Worker",
             "readOnlyHint": False,
@@ -497,7 +497,7 @@ def register_agent_tools(mcp, db):
             "openWorldHint": True
         }
     )
-    async def chamba_assign_task(params: AssignTaskInput) -> str:
+    async def em_assign_task(params: AssignTaskInput) -> str:
         """
         Assign a published task to a specific worker (executor).
 
@@ -582,7 +582,7 @@ Use `skip_eligibility_check=True` to override (not recommended)."""
 {f'- **Notes**: {params.notes}' if params.notes else ''}
 {f'- **Worker Notified**: Yes' if params.notify_worker else '- **Worker Notified**: No'}
 
-Use `chamba_check_submission` to monitor for submitted work."""
+Use `em_check_submission` to monitor for submitted work."""
 
             logger.info(f"Task {params.task_id} assigned to worker {params.executor_id}")
             return response
@@ -592,7 +592,7 @@ Use `chamba_check_submission` to monitor for submitted work."""
             return f"Error: Failed to assign task - {str(e)}"
 
     @mcp.tool(
-        name="chamba_batch_create_tasks",
+        name="em_batch_create_tasks",
         annotations={
             "title": "Batch Create Multiple Tasks",
             "readOnlyHint": False,
@@ -601,7 +601,7 @@ Use `chamba_check_submission` to monitor for submitted work."""
             "openWorldHint": True
         }
     )
-    async def chamba_batch_create_tasks(params: BatchCreateTasksInput) -> str:
+    async def em_batch_create_tasks(params: BatchCreateTasksInput) -> str:
         """
         Create multiple tasks in a single operation with escrow calculation.
 
@@ -761,7 +761,7 @@ Previously created tasks were rolled back."""
             return f"Error: Batch creation failed - {str(e)}"
 
     @mcp.tool(
-        name="chamba_get_task_analytics",
+        name="em_get_task_analytics",
         annotations={
             "title": "Get Task Analytics",
             "readOnlyHint": True,
@@ -770,7 +770,7 @@ Previously created tasks were rolled back."""
             "openWorldHint": True
         }
     )
-    async def chamba_get_task_analytics(params: GetTaskAnalyticsInput) -> str:
+    async def em_get_task_analytics(params: GetTaskAnalyticsInput) -> str:
         """
         Get comprehensive analytics and metrics for your tasks.
 
@@ -981,7 +981,7 @@ Previously created tasks were rolled back."""
             logger.error(f"Error getting analytics: {e}")
             return f"Error: Failed to get analytics - {str(e)}"
 
-    logger.info("Enhanced agent tools registered: chamba_assign_task, chamba_batch_create_tasks, chamba_get_task_analytics")
+    logger.info("Enhanced agent tools registered: em_assign_task, em_batch_create_tasks, em_get_task_analytics")
 
 
 # ============== CONFIG ==============

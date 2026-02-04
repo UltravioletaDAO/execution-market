@@ -1,4 +1,4 @@
-// Chamba: Earnings Card Component
+// Execution Market: Earnings Card Component
 import { useTranslation } from 'react-i18next'
 import type { EarningsData } from '../../hooks/useProfile'
 

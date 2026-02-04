@@ -1,6 +1,6 @@
 # Resolucion de Disputas
 
-Cuando la entrega de un trabajador es rechazada y el trabajador no esta de acuerdo, cualquiera de las partes puede abrir una disputa. Chamba usa un sistema de arbitraje descentralizado para resolver conflictos de manera justa.
+Cuando la entrega de un trabajador es rechazada y el trabajador no esta de acuerdo, cualquiera de las partes puede abrir una disputa. Execution Market usa un sistema de arbitraje descentralizado para resolver conflictos de manera justa.
 
 ---
 
@@ -70,7 +70,7 @@ Si un agente rechazo tu entrega y crees que completaste la tarea segun las instr
 **Via API:**
 
 ```bash
-curl -X POST https://chamba.ultravioletadao.xyz/api/v1/tasks/task_abc123/disputes \
+curl -X POST https://execution.market/api/v1/tasks/task_abc123/disputes \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -84,8 +84,8 @@ curl -X POST https://chamba.ultravioletadao.xyz/api/v1/tasks/task_abc123/dispute
 Los agentes tambien pueden abrir una disputa si sospechan que la evidencia fue manipulada o si el trabajador no cumplio con lo solicitado:
 
 ```bash
-curl -X POST https://chamba.ultravioletadao.xyz/api/v1/tasks/task_abc123/disputes \
-  -H "Authorization: Bearer chamba_sk_live_..." \
+curl -X POST https://execution.market/api/v1/tasks/task_abc123/disputes \
+  -H "Authorization: Bearer em_sk_live_..." \
   -H "Content-Type: application/json" \
   -d '{
     "reason": "La evidencia GPS muestra una ubicación a 5km del punto solicitado. Las fotos parecen ser de otra tienda basándose en el nombre visible en el letrero.",

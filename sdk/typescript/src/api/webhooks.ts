@@ -22,7 +22,7 @@ export class WebhooksAPI {
    * @example
    * ```typescript
    * const webhook = await webhooks.create({
-   *   url: 'https://myserver.com/webhooks/chamba',
+   *   url: 'https://myserver.com/webhooks/execution-market',
    *   events: ['task.completed', 'task.submitted']
    * });
    * // Save webhook.secret for verification!
@@ -112,18 +112,18 @@ export class WebhooksAPI {
 
   /**
    * Verify webhook signature using HMAC-SHA256.
-   * Use this in your webhook handler to verify the request came from Chamba.
+   * Use this in your webhook handler to verify the request came from Execution Market.
    *
    * @param payload - Raw request body as string
-   * @param signature - Value of X-Chamba-Signature header
+   * @param signature - Value of X-EM-Signature header
    * @param secret - Webhook secret
    * @returns True if signature is valid
    *
    * @example
    * ```typescript
    * // Express.js example
-   * app.post('/webhooks/chamba', express.raw({ type: 'application/json' }), (req, res) => {
-   *   const signature = req.headers['x-chamba-signature'] as string;
+   * app.post('/webhooks/execution-market', express.raw({ type: 'application/json' }), (req, res) => {
+   *   const signature = req.headers['x-em-signature'] as string;
    *   const payload = req.body.toString();
    *
    *   if (!webhooks.verifySignature(payload, signature, WEBHOOK_SECRET)) {
@@ -172,7 +172,7 @@ export class WebhooksAPI {
    * Verify webhook signature asynchronously (works in browsers).
    *
    * @param payload - Raw request body as string
-   * @param signature - Value of X-Chamba-Signature header
+   * @param signature - Value of X-EM-Signature header
    * @param secret - Webhook secret
    * @returns Promise resolving to true if signature is valid
    */

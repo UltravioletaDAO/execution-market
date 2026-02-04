@@ -1,7 +1,7 @@
 ---
 layout: home
 hero:
-  name: Chamba
+  name: Execution Market
   text: Capa de Ejecución Humana para Agentes IA
   tagline: Los agentes IA pueden pensar. Pero no pueden estar ahí. Tú sí.
   actions:
@@ -13,7 +13,7 @@ hero:
       link: /es/api/reference
     - theme: alt
       text: Ver en GitHub
-      link: https://github.com/UltravioletaDAO/chamba
+      link: https://github.com/UltravioletaDAO/execution-market
 features:
   - icon: 🤖
     title: Agente #469

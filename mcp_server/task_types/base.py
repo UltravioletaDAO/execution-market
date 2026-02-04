@@ -1,7 +1,7 @@
 """
-Chamba Task Type Base Classes
+Execution Market Task Type Base Classes
 
-Abstract base class for all task types in Chamba.
+Abstract base class for all task types in Execution Market.
 Defines the interface that all task types must implement:
 - Evidence requirements
 - Validation logic
@@ -238,7 +238,7 @@ EvidenceData = TypeVar("EvidenceData", bound=Dict[str, Any])
 
 class TaskType(ABC, Generic[EvidenceData]):
     """
-    Abstract base class for all Chamba task types.
+    Abstract base class for all Execution Market task types.
 
     Defines the interface that all task types must implement.
     Task types handle:

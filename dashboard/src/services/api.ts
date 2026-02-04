@@ -1,5 +1,5 @@
 /**
- * Chamba API Client
+ * Execution Market API Client
  *
  * Base API client using native fetch with authentication
  * and error handling middleware.
@@ -33,21 +33,21 @@ function getAuthToken(): string | null {
   }
 
   // Check for custom JWT token
-  return localStorage.getItem('chamba_auth_token')
+  return localStorage.getItem('em_auth_token')
 }
 
 /**
  * Set authentication token
  */
 export function setAuthToken(token: string): void {
-  localStorage.setItem('chamba_auth_token', token)
+  localStorage.setItem('em_auth_token', token)
 }
 
 /**
  * Clear authentication token
  */
 export function clearAuthToken(): void {
-  localStorage.removeItem('chamba_auth_token')
+  localStorage.removeItem('em_auth_token')
 }
 
 // ============== REQUEST HELPERS ==============
@@ -89,7 +89,7 @@ export function buildUrl(path: string, params?: Record<string, unknown>): string
 function getHeaders(): HeadersInit {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-Client-Info': 'chamba-dashboard',
+    'X-Client-Info': 'execution-market-dashboard',
     'X-Request-ID': generateRequestId(),
   }
 

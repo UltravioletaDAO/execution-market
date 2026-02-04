@@ -1,4 +1,4 @@
-# ChambaEscrow Security Audit Summary
+# Execution Market Escrow Security Audit Summary
 
 **Date:** 2026-01-29
 **Version:** 1.4.0
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-The original ChambaEscrow contract contained **13 critical and high-severity vulnerabilities** that would allow:
+The original Escrow contract contained **13 critical and high-severity vulnerabilities** that would allow:
 1. Depositors to steal funds from workers
 2. Operators to drain all escrowed funds
 3. Front-running attacks

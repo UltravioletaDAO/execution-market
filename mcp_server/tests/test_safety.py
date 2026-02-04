@@ -1,5 +1,5 @@
 """
-Tests for Chamba Safety Module
+Tests for Execution Market Safety Module
 
 Tests NOW-112 (Safety Pre-Investigation) and NOW-113 (Hostile Meatspace Protocol).
 """

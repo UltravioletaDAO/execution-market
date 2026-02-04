@@ -60,7 +60,7 @@ El agente genera $500 en valor y luego se sienta a esperar porque necesita que a
 
 ## El protocolo que nadie pidió
 
-Se llama **Chamba**.
+Se llama **Execution Market**.
 
 Y no es lo que piensas.
 
@@ -172,7 +172,7 @@ Y aquí está la diferencia clave:
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
 | Upwork | 5-20% | $5+ | 5-10 días |
-| **Chamba** | **6-8%** | **$0.25** | **Instantáneo** |
+| **Execution Market** | **6-8%** | **$0.25** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para saber si un cartel sigue en una ventana.
 
@@ -260,7 +260,7 @@ Una empresa tiene un agente manejando atención al cliente. El agente cierra una
 
 Horas. A veces días.
 
-**Con Chamba:**
+**Con Execution Market:**
 1. Agente publica: "Enviar paquete a FedEx, dirección X, peso Y, $8"
 2. Humano cercano la toma
 3. Va, envía, sube foto de recibo con tracking
@@ -280,7 +280,7 @@ Algo importante: esto no es un marketplace. Es un **protocolo**.
 
 HTTP es un protocolo. Chrome es una app que usa HTTP. Firefox también. Miles de apps usan HTTP.
 
-Chamba Protocol define:
+Execution Market Protocol define:
 - Cómo se publican tareas (MCP tools para agentes)
 - Cómo se asignan workers (matching por ubicación, reputación, skills)
 - Cómo se verifica el trabajo (4 niveles)
@@ -305,7 +305,7 @@ Empresas con agentes de IA internos. Necesitan tareas físicas. Pero no quieren:
 - Usar crypto para pagos internos
 - Perder control sobre quién hace qué
 
-**Chamba Enterprise:**
+**Execution Market Enterprise:**
 - Su propia instancia del protocolo
 - Sistema de puntos interno en vez de crypto (convertible o no)
 - Workers limitados a empleados o contractors aprobados
@@ -414,7 +414,7 @@ Este artículo es una invitación. A ver lo que nosotros vemos. A prepararse par
 
 ---
 
-*Chamba es un proyecto de @ultravioletadao. La infraestructura existe. Ahora construimos el puente.*
+*Execution Market es un proyecto de @ultravioletadao. La infraestructura existe. Ahora construimos el puente.*
 
 *Síguenos. Esto apenas comienza.*
 
@@ -425,7 +425,7 @@ Este artículo es una invitación. A ver lo que nosotros vemos. A prepararse par
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | V1 | 2026-01-19 | Versión inicial |
-| V2 | 2026-01-20 | Robot farming, stream CHAMBA CHIMBA |
+| V2 | 2026-01-20 | Robot farming, stream EXECUTION MARKET CHIMBA |
 | V3 | 2026-01-21 | Protocolo vs Marketplace, Enterprise, Privacy |
 | V4 | 2026-01-21 | Reescritura completa con más sustancia |
 | V5 | 2026-01-21 | Enfoque Agent→Human, tecnologías core, menos robots |

@@ -57,10 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Restore session on mount
   useEffect(() => {
-    const workerToken = localStorage.getItem('chamba_token');
-    const workerData = localStorage.getItem('chamba_executor');
-    const apiKey = localStorage.getItem('chamba_api_key');
-    const agentData = localStorage.getItem('chamba_agent');
+    const workerToken = localStorage.getItem('em_token');
+    const workerData = localStorage.getItem('em_executor');
+    const apiKey = localStorage.getItem('em_api_key');
+    const agentData = localStorage.getItem('em_agent');
 
     if (workerToken && workerData) {
       setState({
@@ -80,8 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginAsWorker = (token: string, executor: any) => {
-    localStorage.setItem('chamba_token', token);
-    localStorage.setItem('chamba_executor', JSON.stringify(executor));
+    localStorage.setItem('em_token', token);
+    localStorage.setItem('em_executor', JSON.stringify(executor));
     setState({
       isAuthenticated: true,
       userType: 'worker',
@@ -91,8 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginAsAgent = (apiKey: string, agent: any) => {
-    localStorage.setItem('chamba_api_key', apiKey);
-    localStorage.setItem('chamba_agent', JSON.stringify(agent));
+    localStorage.setItem('em_api_key', apiKey);
+    localStorage.setItem('em_agent', JSON.stringify(agent));
     setState({
       isAuthenticated: true,
       userType: 'agent',
@@ -102,10 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('chamba_token');
-    localStorage.removeItem('chamba_executor');
-    localStorage.removeItem('chamba_api_key');
-    localStorage.removeItem('chamba_agent');
+    localStorage.removeItem('em_token');
+    localStorage.removeItem('em_executor');
+    localStorage.removeItem('em_api_key');
+    localStorage.removeItem('em_agent');
     setState({
       isAuthenticated: false,
       userType: null,
@@ -160,8 +160,8 @@ export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('chamba_token') ||
-                localStorage.getItem('chamba_api_key');
+  const token = localStorage.getItem('em_token') ||
+                localStorage.getItem('em_api_key');
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -179,8 +179,8 @@ export async function apiRequest<T>(
 
   if (response.status === 401) {
     // Token expired or invalid
-    localStorage.removeItem('chamba_token');
-    localStorage.removeItem('chamba_api_key');
+    localStorage.removeItem('em_token');
+    localStorage.removeItem('em_api_key');
     window.location.href = '/';
     throw new Error('Unauthorized');
   }

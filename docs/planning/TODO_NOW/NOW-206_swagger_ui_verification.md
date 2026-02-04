@@ -35,11 +35,11 @@ curl http://localhost:8000/openapi.json
 from fastapi import FastAPI
 
 app = FastAPI(
-    title="Chamba API",
+    title="Execution Market API",
     description="""
     ## Human Execution Layer for AI Agents
 
-    Chamba connects AI agents with human workers for physical-world tasks.
+    Execution Market connects AI agents with human workers for physical-world tasks.
 
     ### Features
     - **x402 Payments**: Gasless stablecoin payments via facilitator
@@ -121,5 +121,5 @@ async def create_task(task: TaskCreate):
 
 ## URL Final
 ```
-https://chamba.ultravioletadao.xyz/docs
+https://execution.market/docs
 ```

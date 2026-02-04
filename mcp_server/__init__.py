@@ -1,5 +1,5 @@
 """
-Chamba MCP Server
+Execution Market MCP Server
 
 Human Execution Layer for AI Agents - MCP Server component.
 """

@@ -1,4 +1,4 @@
-# NOW-015: Implementar chamba_assign_task
+# NOW-015: Implementar em_assign_task
 
 ## Metadata
 - **Prioridad**: P0
@@ -39,7 +39,7 @@ Implementar el tool MCP que permite a un agent asignar una tarea a un worker esp
 
 ```python
 Tool(
-    name="chamba_assign_task",
+    name="em_assign_task",
     description="Assign a task to a specific worker",
     inputSchema={
         "type": "object",

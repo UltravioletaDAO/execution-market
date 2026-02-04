@@ -1,4 +1,4 @@
--- Chamba MCP Server: Triggers for Automated Operations
+-- Execution Market MCP Server: Triggers for Automated Operations
 -- Migration: 20260125000005_triggers.sql
 -- Description: Triggers for status updates, reputation, and notifications
 

@@ -1,7 +1,7 @@
 """
-Chamba WebSocket Module for Real-Time Updates
+Execution Market WebSocket Module for Real-Time Updates
 
-This module provides WebSocket-based real-time communication for the Chamba
+This module provides WebSocket-based real-time communication for the Execution Market
 human execution layer. It enables AI agents and workers to receive instant
 notifications about task lifecycle events, submissions, and payments.
 
@@ -90,7 +90,7 @@ from .integration import (
 # Client (optional, for testing)
 try:
     from .client import (
-        ChambaWebSocketClient,
+        EMWebSocketClient,
         ClientConfig,
         ReceivedMessage,
         connect_and_subscribe,
@@ -98,7 +98,7 @@ try:
     CLIENT_AVAILABLE = True
 except ImportError:
     CLIENT_AVAILABLE = False
-    ChambaWebSocketClient = None
+    EMWebSocketClient = None
     ClientConfig = None
     ReceivedMessage = None
     connect_and_subscribe = None
@@ -144,7 +144,7 @@ __all__ = [
     "emit_event",
     "is_websocket_available",
     # Client (conditional)
-    "ChambaWebSocketClient",
+    "EMWebSocketClient",
     "ClientConfig",
     "ReceivedMessage",
     "connect_and_subscribe",

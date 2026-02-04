@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Test Mocks
+ * Execution Market E2E Test Mocks
  *
  * API mocks and test data for E2E testing.
  * Uses Playwright's route interception for API mocking.
@@ -101,7 +101,7 @@ export const mockExecutor: Executor = {
   user_id: 'user-001',
   wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
   display_name: 'Test Executor',
-  bio: 'Experienced executor for Chamba tasks',
+  bio: 'Experienced executor for Execution Market tasks',
   avatar_url: null,
   roles: ['general', 'photography'],
   reputation_score: 85,
@@ -226,7 +226,7 @@ export const mockTasks: Task[] = [
     category: 'digital_physical',
     title: 'Escanear codigo QR en evento',
     instructions:
-      'Asistir al evento Tech Summit, encontrar el stand de Chamba y escanear el codigo QR. Subir screenshot del resultado.',
+      'Asistir al evento Tech Summit, encontrar el stand de Execution Market y escanear el codigo QR. Subir screenshot del resultado.',
     location: { lat: -12.1191, lng: -77.0313 },
     location_radius_km: 0.2,
     location_hint: 'Centro de Convenciones, Lima',
@@ -284,7 +284,7 @@ export interface MockOptions {
 }
 
 /**
- * Set up all API mocks for the Chamba application
+ * Set up all API mocks for the Execution Market application
  */
 export async function setupMocks(
   page: Page,
@@ -481,7 +481,7 @@ export async function setupMocks(
           refresh_token: 'mock-refresh-token',
           user: {
             id: 'user-001',
-            email: 'test@chamba.work',
+            email: 'test@execution.market',
             role: 'authenticated',
           },
         }),
@@ -492,7 +492,7 @@ export async function setupMocks(
         contentType: 'application/json',
         body: JSON.stringify({
           id: 'user-001',
-          email: 'test@chamba.work',
+          email: 'test@execution.market',
           role: 'authenticated',
         }),
       })

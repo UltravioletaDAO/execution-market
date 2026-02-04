@@ -1,4 +1,4 @@
-// Chamba Database Types
+// Execution Market Database Types
 // Compatible with @supabase/supabase-js
 
 export type TaskCategory =

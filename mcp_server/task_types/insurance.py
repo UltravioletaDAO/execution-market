@@ -1,5 +1,5 @@
 """
-Chamba Task Insurance (NOW-139, NOW-140)
+Execution Market Task Insurance (NOW-139, NOW-140)
 
 Implements tiered task insurance:
 - Basic: 5% fee, covers up to $50

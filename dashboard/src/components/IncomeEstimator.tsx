@@ -180,7 +180,7 @@ export function IncomeEstimator({ className = '', onEstimateChange }: IncomeEsti
           Calculadora de Ingresos
         </h3>
         <p className="text-sm text-gray-500 mt-1">
-          Estima cuanto podrias ganar con Chamba
+          Estima cuanto podrias ganar con Execution Market
         </p>
       </div>
 

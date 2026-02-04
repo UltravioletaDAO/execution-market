@@ -1,7 +1,7 @@
 """
-Chamba MCP Server Examples
+Execution Market MCP Server Examples
 
-Example scripts demonstrating how to use the Chamba Human Execution Layer.
+Example scripts demonstrating how to use the Execution Market Human Execution Layer.
 
 Available Examples:
     - agent_publish_task.py: Example agent publishing a task
@@ -19,12 +19,12 @@ Usage:
     python -m examples.mcp_client
 
     # Run MCP client example (real server)
-    USE_MOCK=false CHAMBA_MCP_URL=http://localhost:8000/mcp python -m examples.mcp_client
+    USE_MOCK=false EM_MCP_URL=http://localhost:8000/mcp python -m examples.mcp_client
 
 Environment Variables:
     AGENT_ID: Your agent identifier (wallet address or ERC-8004 ID)
     EXECUTOR_ID: Your executor/worker ID
-    CHAMBA_API_KEY: Your API key
-    CHAMBA_MCP_URL: MCP server Streamable HTTP URL (e.g., http://localhost:8000/mcp)
+    EM_API_KEY: Your API key
+    EM_MCP_URL: MCP server Streamable HTTP URL (e.g., http://localhost:8000/mcp)
     USE_MOCK: Set to 'false' to connect to real server
 """

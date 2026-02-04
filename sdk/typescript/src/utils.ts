@@ -1,5 +1,5 @@
 /**
- * Chamba SDK Utility Functions
+ * Execution Market SDK Utility Functions
  *
  * Helper functions for working with bounties, locations, and evidence.
  */

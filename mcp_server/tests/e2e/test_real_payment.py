@@ -3,7 +3,7 @@ E2E Tests with Real Payments (NOW-212)
 
 These tests use REAL FUNDS and make actual payments through the x402 protocol.
 They are disabled by default and only run when:
-1. CHAMBA_E2E_REAL_PAYMENTS=true environment variable is set
+1. EM_E2E_REAL_PAYMENTS=true environment variable is set
 2. AWS credentials are configured
 3. Secrets exist in AWS Secrets Manager
 
@@ -14,10 +14,10 @@ SECURITY WARNING:
 
 Usage:
     # Run with real payments (requires AWS credentials)
-    CHAMBA_E2E_REAL_PAYMENTS=true pytest tests/e2e/test_real_payment.py -v
+    EM_E2E_REAL_PAYMENTS=true pytest tests/e2e/test_real_payment.py -v
 
     # Dry run (no real payments, just validates setup)
-    CHAMBA_E2E_DRY_RUN=true pytest tests/e2e/test_real_payment.py -v
+    EM_E2E_DRY_RUN=true pytest tests/e2e/test_real_payment.py -v
 
 Cost Estimation:
     Each test costs approximately $0.27 ($0.25 bounty + $0.02 fee)
@@ -41,15 +41,15 @@ logger = logging.getLogger(__name__)
 
 
 # Skip all tests if not enabled
-REAL_PAYMENTS_ENABLED = os.environ.get("CHAMBA_E2E_REAL_PAYMENTS", "").lower() == "true"
-DRY_RUN = os.environ.get("CHAMBA_E2E_DRY_RUN", "").lower() == "true"
+REAL_PAYMENTS_ENABLED = os.environ.get("EM_E2E_REAL_PAYMENTS", "").lower() == "true"
+DRY_RUN = os.environ.get("EM_E2E_DRY_RUN", "").lower() == "true"
 
 # API configuration
 API_BASE = os.environ.get(
-    "CHAMBA_API_URL",
-    "https://api.chamba.ultravioletadao.xyz"
+    "EM_API_URL",
+    "https://api.execution.market"
 )
-SECRETS_NAME = os.environ.get("CHAMBA_SECRETS_NAME", "chamba/test-agent")
+SECRETS_NAME = os.environ.get("EM_SECRETS_NAME", "em/test-agent")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 
 # Minimum bounty (configurable) - lowered for micropayment testing
@@ -85,8 +85,8 @@ def check_enabled():
     if not REAL_PAYMENTS_ENABLED and not DRY_RUN:
         pytest.skip(
             "Real payment tests disabled. "
-            "Set CHAMBA_E2E_REAL_PAYMENTS=true to enable, "
-            "or CHAMBA_E2E_DRY_RUN=true for dry run."
+            "Set EM_E2E_REAL_PAYMENTS=true to enable, "
+            "or EM_E2E_DRY_RUN=true for dry run."
         )
 
 
@@ -96,7 +96,7 @@ def aws_secrets(check_enabled) -> Dict[str, str]:
     if DRY_RUN:
         return {
             "PRIVATE_KEY": "0x" + "0" * 64,  # Dummy key for dry run
-            "API_KEY": "chamba_test_dry_run"
+            "API_KEY": "em_test_dry_run"
         }
 
     try:
@@ -175,7 +175,7 @@ async def test_a2a_agent_card(http_client, check_enabled):
     agent_card = response.json()
     assert "name" in agent_card
     assert "description" in agent_card
-    assert agent_card["name"] == "Chamba"
+    assert agent_card["name"] == "Execution Market"
 
     logger.info(f"Agent Card found: {agent_card['name']}")
     logger.info(f"Capabilities: {len(agent_card.get('capabilities', []))}")

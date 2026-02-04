@@ -1,5 +1,5 @@
 """
-Chamba Configuration System
+Execution Market Configuration System
 
 Centralized, dynamic configuration with caching and audit support.
 

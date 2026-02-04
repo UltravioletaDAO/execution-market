@@ -1,7 +1,7 @@
 """
 Referral System (NOW-144)
 
-Manages worker referrals and bonus payouts for Chamba.
+Manages worker referrals and bonus payouts for Execution Market.
 
 Features:
 - Referral code generation with customizable formats
@@ -73,7 +73,7 @@ class ReferralConfig:
     bonus_amount_default: float = 2.00
     expiry_days: int = 30
     code_length: int = 8
-    code_prefix: str = "CHAMBA"
+    code_prefix: str = "EM"
     max_referrals_per_code: Optional[int] = None
     min_referrer_tasks: int = 1
     cooldown_hours: int = 0
@@ -232,10 +232,10 @@ class ReferralManager:
 
         >>> # Worker generates a referral code
         >>> code = await manager.generate_code("worker_123")
-        >>> print(f"Your code: {code.code}")  # e.g., "CHAMBA-ABC123"
+        >>> print(f"Your code: {code.code}")  # e.g., "EM-ABC123"
 
         >>> # New user signs up with the code
-        >>> referral = await manager.apply_code("CHAMBA-ABC123", "new_user_456")
+        >>> referral = await manager.apply_code("EM-ABC123", "new_user_456")
 
         >>> # After each task completion, manager checks progress
         >>> for task in completed_tasks:
@@ -272,7 +272,7 @@ class ReferralManager:
         """
         Generate a unique, human-readable referral code.
 
-        Format: PREFIX-XXXXXX (e.g., CHAMBA-A3B7C9)
+        Format: PREFIX-XXXXXX (e.g., EM-A3B7C9)
         Uses only uppercase letters and digits, avoiding ambiguous chars (0, O, I, L, 1).
         """
         # Exclude ambiguous characters

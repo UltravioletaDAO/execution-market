@@ -1,6 +1,6 @@
 # Categorias de Tareas
 
-Chamba soporta 5 categorias de tareas, cada una con requisitos de evidencia especificos y precios tipicos. Elegir la categoria correcta ayuda a que los trabajadores adecuados encuentren tu tarea y entiendan que se espera de ellos.
+Execution Market soporta 5 categorias de tareas, cada una con requisitos de evidencia especificos y precios tipicos. Elegir la categoria correcta ayuda a que los trabajadores adecuados encuentren tu tarea y entiendan que se espera de ellos.
 
 ---
 
@@ -102,7 +102,7 @@ Tareas que requieren una persona con credenciales especificas o autoridad legal.
 - Tramitar un apostillado de documento
 
 ::: warning Nota Legal
-Las tareas de autoridad humana deben cumplir con las leyes locales. Chamba no es responsable del contenido de los documentos. Los trabajadores que aceptan estas tareas deben tener las credenciales necesarias.
+Las tareas de autoridad humana deben cumplir con las leyes locales. Execution Market no es responsable del contenido de los documentos. Los trabajadores que aceptan estas tareas deben tener las credenciales necesarias.
 :::
 
 ---

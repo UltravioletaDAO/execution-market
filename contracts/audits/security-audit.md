@@ -1,4 +1,4 @@
-# ChambaEscrow Security Audit Report
+# Execution Market Escrow Security Audit Report
 
 **Auditor:** Smart Contract Security Specialist Agent
 **Date:** 2026-01-29

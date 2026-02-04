@@ -133,8 +133,8 @@ jobs:
       - name: Health check
         run: |
           sleep 30
-          curl -f https://api.chamba.ultravioleta.xyz/health || exit 1
-          curl -f https://app.chamba.ultravioleta.xyz/ || exit 1
+          curl -f https://api.execution.market/health || exit 1
+          curl -f https://app.execution.market/ || exit 1
 ```
 
 ## GitHub Secrets Requeridos

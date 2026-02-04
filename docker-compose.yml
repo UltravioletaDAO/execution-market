@@ -1,4 +1,4 @@
-# Chamba Docker Compose - Full Stack Development
+# Execution Market Docker Compose - Full Stack Development
 # Complete local development environment with all services
 #
 # Services:
@@ -29,7 +29,7 @@ services:
   # MCP Server (Python + FastAPI)
   # ===================
   mcp-server:
-    container_name: chamba-mcp-server
+    container_name: execution-market-mcp-server
     build:
       context: ./mcp_server
       dockerfile: ../Dockerfile.mcp
@@ -78,14 +78,14 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Dashboard (React + Vite)
   # ===================
   dashboard:
-    container_name: chamba-dashboard
+    container_name: execution-market-dashboard
     build:
       context: ./dashboard
       dockerfile: ../Dockerfile.dashboard
@@ -107,14 +107,14 @@ services:
       - mcp-server
       - supabase-kong
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Supabase Database (PostgreSQL + PostGIS)
   # ===================
   supabase-db:
-    container_name: chamba-supabase-db
+    container_name: execution-market-supabase-db
     image: supabase/postgres:15.1.1.41
     ports:
       - "54320:5432"
@@ -133,14 +133,14 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Supabase Auth (GoTrue)
   # ===================
   supabase-auth:
-    container_name: chamba-supabase-auth
+    container_name: execution-market-supabase-auth
     image: supabase/gotrue:v2.132.3
     environment:
       GOTRUE_API_HOST: 0.0.0.0
@@ -171,14 +171,14 @@ services:
       supabase-db:
         condition: service_healthy
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Supabase REST API (PostgREST)
   # ===================
   supabase-rest:
-    container_name: chamba-supabase-rest
+    container_name: execution-market-supabase-rest
     image: postgrest/postgrest:v12.0.2
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD:-postgres}@supabase-db:5432/postgres
@@ -193,14 +193,14 @@ services:
       supabase-db:
         condition: service_healthy
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Supabase Realtime
   # ===================
   supabase-realtime:
-    container_name: chamba-supabase-realtime
+    container_name: execution-market-supabase-realtime
     image: supabase/realtime:v2.25.50
     environment:
       PORT: 4000
@@ -222,14 +222,14 @@ services:
       supabase-db:
         condition: service_healthy
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Supabase Storage
   # ===================
   supabase-storage:
-    container_name: chamba-supabase-storage
+    container_name: execution-market-supabase-storage
     image: supabase/storage-api:v0.46.4
     environment:
       ANON_KEY: ${SUPABASE_ANON_KEY}
@@ -254,14 +254,14 @@ services:
       supabase-rest:
         condition: service_started
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Supabase Kong (API Gateway)
   # ===================
   supabase-kong:
-    container_name: chamba-supabase-kong
+    container_name: execution-market-supabase-kong
     image: kong:2.8.1
     ports:
       - "54321:8000"
@@ -283,22 +283,22 @@ services:
       - supabase-realtime
       - supabase-storage
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Supabase Studio (Admin UI)
   # ===================
   supabase-studio:
-    container_name: chamba-supabase-studio
+    container_name: execution-market-supabase-studio
     image: supabase/studio:20240101-ce42139
     ports:
       - "54322:3000"
     environment:
       STUDIO_PG_META_URL: http://supabase-meta:8080
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      DEFAULT_ORGANIZATION_NAME: Chamba Local
-      DEFAULT_PROJECT_NAME: Chamba Development
+      DEFAULT_ORGANIZATION_NAME: Execution Market Local
+      DEFAULT_PROJECT_NAME: Execution Market Development
       SUPABASE_URL: http://supabase-kong:8000
       SUPABASE_PUBLIC_URL: http://localhost:54321
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
@@ -307,14 +307,14 @@ services:
       - supabase-kong
       - supabase-meta
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Supabase Meta (pg_meta for Studio)
   # ===================
   supabase-meta:
-    container_name: chamba-supabase-meta
+    container_name: execution-market-supabase-meta
     image: supabase/postgres-meta:v0.75.0
     environment:
       PG_META_PORT: 8080
@@ -327,28 +327,28 @@ services:
       supabase-db:
         condition: service_healthy
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Supabase Inbucket (Email Testing)
   # ===================
   supabase-inbucket:
-    container_name: chamba-supabase-inbucket
+    container_name: execution-market-supabase-inbucket
     image: inbucket/inbucket:3.0.3
     ports:
       - "54323:9000"   # Web UI
       - "54331:2500"   # SMTP
       - "54332:1100"   # POP3
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Image Proxy (for Supabase Storage)
   # ===================
   imgproxy:
-    container_name: chamba-imgproxy
+    container_name: execution-market-imgproxy
     image: darthsim/imgproxy:v3.21
     environment:
       IMGPROXY_BIND: ":8080"
@@ -358,14 +358,14 @@ services:
     volumes:
       - supabase-storage-data:/var/lib/storage:ro
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Redis (Caching & Rate Limiting)
   # ===================
   redis:
-    container_name: chamba-redis
+    container_name: execution-market-redis
     image: redis:7.2-alpine
     ports:
       - "6379:6379"
@@ -378,14 +378,14 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
   # ===================
   # Anvil (Local Ethereum Node)
   # ===================
   anvil:
-    container_name: chamba-anvil
+    container_name: execution-market-anvil
     image: ghcr.io/foundry-rs/foundry:latest
     entrypoint: ["anvil"]
     command:
@@ -414,20 +414,20 @@ services:
       retries: 5
       start_period: 5s
     networks:
-      - chamba-network
+      - execution-market-network
     restart: unless-stopped
 
 networks:
-  chamba-network:
+  execution-market-network:
     driver: bridge
-    name: chamba-network
+    name: execution-market-network
 
 volumes:
   supabase-db-data:
-    name: chamba-supabase-db-data
+    name: execution-market-supabase-db-data
   supabase-storage-data:
-    name: chamba-supabase-storage-data
+    name: execution-market-supabase-storage-data
   redis-data:
-    name: chamba-redis-data
+    name: execution-market-redis-data
   mcp-server-cache:
-    name: chamba-mcp-server-cache
+    name: execution-market-mcp-server-cache

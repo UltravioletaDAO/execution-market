@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "chamba-cli"
+name = "execution-market-cli"
 version = "0.1.0"
-description = "Command-line interface for Chamba - Human task execution layer for AI agents"
+description = "Command-line interface for Execution Market - Human task execution layer for AI agents"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -15,7 +15,7 @@ maintainers = [
     {name = "Ultravioleta DAO", email = "dev@ultravioleta.xyz"}
 ]
 keywords = [
-    "chamba",
+    "execution-market",
     "cli",
     "ai-agents",
     "human-tasks",
@@ -55,21 +55,22 @@ dev = [
 ]
 
 [project.scripts]
-chamba = "chamba_cli.chamba:main"
+em = "em_cli.em:main"
+execution-market = "em_cli.em:main"
 
 [project.urls]
-Homepage = "https://chamba.ultravioleta.xyz"
-Documentation = "https://docs.chamba.ultravioleta.xyz"
-Repository = "https://github.com/ultravioleta-dao/chamba"
-Changelog = "https://github.com/ultravioleta-dao/chamba/blob/main/CHANGELOG.md"
+Homepage = "https://execution.market"
+Documentation = "https://docs.execution.market"
+Repository = "https://github.com/ultravioleta-dao/execution-market"
+Changelog = "https://github.com/ultravioleta-dao/execution-market/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
-# The cli/ directory IS the package (renamed to chamba_cli on install)
+# The cli/ directory IS the package (renamed to em_cli on install)
 py-modules = []
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["chamba_cli*"]
+include = ["em_cli*"]
 
 [tool.setuptools.package-data]
 "*" = ["py.typed"]
@@ -103,4 +104,4 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["chamba_cli"]
+known-first-party = ["em_cli"]

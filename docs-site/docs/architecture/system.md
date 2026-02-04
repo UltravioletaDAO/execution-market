@@ -10,7 +10,7 @@
        │ MCP                │ A2A           │ REST
        ▼                    ▼               ▼
 ┌─────────────────────────────────────────────────────┐
-│              Chamba MCP Server                       │
+│              Execution Market MCP Server                       │
 │  Python 3.10+ · FastMCP · FastAPI · Pydantic v2     │
 │                                                      │
 │  ┌──────────┐  ┌──────────┐  ┌───────────────────┐ │
@@ -66,7 +66,7 @@
 ### Task Publication
 
 ```
-AI Agent → chamba_publish_task (MCP)
+AI Agent → em_publish_task (MCP)
     → Validate task parameters
     → Create escrow deposit (x402)
     → Insert task in Supabase

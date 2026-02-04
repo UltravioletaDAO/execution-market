@@ -1,9 +1,9 @@
 """
-Advanced Escrow Integration for Chamba via uvd-x402-sdk.
+Advanced Escrow Integration for Execution Market via uvd-x402-sdk.
 
 Uses the AdvancedEscrowClient from uvd_x402_sdk to interact with the
 PaymentOperator Advanced Escrow system. This replaces direct contract calls
-with SDK calls, proving the full stack: Chamba -> SDK -> Facilitator -> On-chain.
+with SDK calls, proving the full stack: EM -> SDK -> Facilitator -> On-chain.
 
 The 5 Advanced Escrow flows available to AI agents:
 1. AUTHORIZE          - Lock bounty in escrow when agent publishes task
@@ -91,12 +91,12 @@ except ImportError:
 # Configuration
 # =============================================================================
 
-PLATFORM_FEE_BPS = int(os.environ.get("CHAMBA_PLATFORM_FEE_BPS", "800"))  # 8%
+PLATFORM_FEE_BPS = int(os.environ.get("EM_PLATFORM_FEE_BPS", os.environ.get("CHAMBA_PLATFORM_FEE_BPS", "800")))  # 8%
 USDC_DECIMALS = 6
 
 # Contract deposit limit (set by PaymentOperator condition).
 # As of 2026-02-03, the commerce-payments contracts enforce a $100 max deposit.
-# Ask the protocol team to raise this if Chamba needs higher bounties.
+# Ask the protocol team to raise this if Execution Market needs higher bounties.
 DEPOSIT_LIMIT_USDC = Decimal(os.environ.get("ESCROW_DEPOSIT_LIMIT_USDC", "100"))
 
 
@@ -120,11 +120,11 @@ def _get_chain_id() -> int:
 
 
 # =============================================================================
-# Chamba Payment Strategy
+# Execution Market Payment Strategy
 # =============================================================================
 
 class PaymentStrategy(str, Enum):
-    """Payment strategy that an AI agent can choose for a Chamba task."""
+    """Payment strategy that an AI agent can choose for an Execution Market task."""
 
     ESCROW_CAPTURE = "escrow_capture"
     """Standard: AUTHORIZE -> RELEASE. Best for $5-$200 tasks."""
@@ -146,7 +146,7 @@ class PaymentStrategy(str, Enum):
 
 @dataclass
 class TaskPayment:
-    """Represents a Chamba task payment state."""
+    """Represents an Execution Market task payment state."""
 
     task_id: str
     strategy: PaymentStrategy
@@ -160,14 +160,14 @@ class TaskPayment:
 
 
 # =============================================================================
-# Chamba Advanced Escrow Wrapper
+# Execution Market Advanced Escrow Wrapper
 # =============================================================================
 
-class ChambaAdvancedEscrow:
+class EMAdvancedEscrow:
     """
-    Chamba wrapper around uvd-x402-sdk AdvancedEscrowClient.
+    Execution Market wrapper around uvd-x402-sdk AdvancedEscrowClient.
 
-    Provides Chamba-specific logic on top of the SDK:
+    Provides EM-specific logic on top of the SDK:
     - Task tier mapping
     - Fee calculations
     - Payment strategy selection
@@ -201,7 +201,7 @@ class ChambaAdvancedEscrow:
         self._task_payments: Dict[str, TaskPayment] = {}
 
         logger.info(
-            "ChambaAdvancedEscrow initialized: payer=%s..., facilitator=%s",
+            "EMAdvancedEscrow initialized: payer=%s..., facilitator=%s",
             self.payer[:10],
             self.client.facilitator_url,
         )
@@ -236,7 +236,7 @@ class ChambaAdvancedEscrow:
         """
         Recommend a payment strategy based on task parameters.
 
-        This implements the Chamba Agent Decision Tree.
+        This implements the Execution Market Agent Decision Tree.
         When ERC-8004 reputation data is available, it takes precedence
         over the generic worker_reputation parameter.
 
@@ -623,14 +623,14 @@ class ChambaAdvancedEscrow:
 # Module-Level Instance
 # =============================================================================
 
-_default_instance: Optional[ChambaAdvancedEscrow] = None
+_default_instance: Optional[EMAdvancedEscrow] = None
 
 
-def get_advanced_escrow() -> ChambaAdvancedEscrow:
-    """Get or create the default ChambaAdvancedEscrow instance."""
+def get_advanced_escrow() -> EMAdvancedEscrow:
+    """Get or create the default EMAdvancedEscrow instance."""
     global _default_instance
     if _default_instance is None:
-        _default_instance = ChambaAdvancedEscrow()
+        _default_instance = EMAdvancedEscrow()
     return _default_instance
 
 

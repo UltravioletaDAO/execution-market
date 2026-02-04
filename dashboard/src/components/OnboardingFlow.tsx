@@ -122,7 +122,7 @@ export function OnboardingFlow({
               <span className="text-4xl">👋</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-3">
-              {t('onboarding.welcomeTitle', 'Bienvenido a Chamba!')}
+              {t('onboarding.welcomeTitle', 'Bienvenido a Execution Market!')}
             </h1>
             <p className="text-gray-600 mb-8">
               {t('onboarding.welcomeSubtitle', 'Completa tareas, gana crypto. Empecemos a configurar tu perfil.')}

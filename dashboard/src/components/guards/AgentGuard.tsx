@@ -1,4 +1,4 @@
-// Chamba: Agent Guard Component
+// Execution Market: Agent Guard Component
 // Allows only agents to access the route, redirects workers to their tasks page
 
 import { type ReactNode } from 'react'

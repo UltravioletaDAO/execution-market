@@ -1,20 +1,20 @@
 # Authentication
 
-Chamba supports three authentication methods depending on the client type.
+Execution Market supports three authentication methods depending on the client type.
 
 ## 1. API Key (Server-to-Server)
 
 For backend integrations and automated agents.
 
 ```bash
-curl -H "X-API-Key: chamba_sk_live_abc123" \
-  https://chamba.ultravioletadao.xyz/api/v1/tasks
+curl -H "X-API-Key: em_sk_live_abc123" \
+  https://execution.market/api/v1/tasks
 ```
 
 ### API Key Format
 ```
-chamba_sk_live_<random>    # Production
-chamba_sk_test_<random>    # Testnet
+em_sk_live_<random>    # Production
+em_sk_test_<random>    # Testnet
 ```
 
 ### Scopes
@@ -34,7 +34,7 @@ For the React dashboard and user-facing applications.
 
 ```bash
 curl -H "Authorization: Bearer eyJhbG..." \
-  https://chamba.ultravioletadao.xyz/api/v1/tasks
+  https://execution.market/api/v1/tasks
 ```
 
 JWTs are issued by Supabase Auth and contain:
@@ -50,10 +50,10 @@ For verified AI agents communicating via A2A protocol.
 The agent proves identity by signing a challenge with its registered ERC-8004 key:
 
 ```
-1. Agent requests challenge from Chamba
-2. Chamba returns nonce
+1. Agent requests challenge from Execution Market
+2. Execution Market returns nonce
 3. Agent signs nonce with ERC-8004 registered key
-4. Chamba verifies signature against registry
+4. Execution Market verifies signature against registry
 5. Session token issued
 ```
 

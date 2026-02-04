@@ -1,5 +1,5 @@
 """
-describe.net API Client for Chamba (NOW-166 to NOW-170)
+describe.net API Client for Execution Market (NOW-166 to NOW-170)
 
 Handles all communication with the describe.net API for seal management.
 
@@ -54,7 +54,7 @@ class DescribeNetConfig:
     api_secret: Optional[str] = None
     timeout_seconds: int = 30
     max_retries: int = 3
-    chamba_org_id: str = "chamba"  # Organization ID on describe.net
+    em_org_id: str = "execution-market"  # Organization ID on describe.net
 
     @classmethod
     def from_env(cls) -> "DescribeNetConfig":
@@ -64,7 +64,7 @@ class DescribeNetConfig:
             api_key=os.environ.get("DESCRIBENET_API_KEY"),
             api_secret=os.environ.get("DESCRIBENET_API_SECRET"),
             timeout_seconds=int(os.environ.get("DESCRIBENET_TIMEOUT", "30")),
-            chamba_org_id=os.environ.get("DESCRIBENET_ORG_ID", "chamba"),
+            em_org_id=os.environ.get("DESCRIBENET_ORG_ID", "execution-market"),
         )
 
 
@@ -73,7 +73,7 @@ class DescribeNetClient:
     Client for interacting with describe.net seal API.
 
     Handles seal creation, verification, and synchronization
-    between Chamba and describe.net.
+    between Execution Market and describe.net.
 
     Usage:
         client = DescribeNetClient.from_env()
@@ -114,8 +114,8 @@ class DescribeNetClient:
         """Build request headers with authentication."""
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "Chamba/1.0 (describe.net integration)",
-            "X-Org-ID": self.config.chamba_org_id,
+            "User-Agent": "ExecutionMarket/1.0 (describe.net integration)",
+            "X-Org-ID": self.config.em_org_id,
         }
         if self.config.api_key:
             headers["Authorization"] = f"Bearer {self.config.api_key}"
@@ -236,7 +236,7 @@ class DescribeNetClient:
 
         Args:
             seal_type: Type of seal to create
-            user_id: Chamba user ID
+            user_id: Execution Market user ID
             user_type: "worker" or "requester"
             criteria_snapshot: Metrics at time of earning
 
@@ -250,7 +250,7 @@ class DescribeNetClient:
             "seal_type": seal_type.value,
             "user_id": user_id,
             "user_type": user_type,
-            "org_id": self.config.chamba_org_id,
+            "org_id": self.config.em_org_id,
             "criteria_snapshot": criteria_snapshot or {},
             "earned_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -279,7 +279,7 @@ class DescribeNetClient:
         Get all seals for a user.
 
         Args:
-            user_id: Chamba user ID
+            user_id: Execution Market user ID
             user_type: Filter by "worker" or "requester"
             active_only: Only return active seals
 
@@ -287,7 +287,7 @@ class DescribeNetClient:
             List of Seal objects
         """
         params = {
-            "org_id": self.config.chamba_org_id,
+            "org_id": self.config.em_org_id,
             "active_only": str(active_only).lower(),
         }
         if user_type:
@@ -347,7 +347,7 @@ class DescribeNetClient:
         data = {
             "seal_id": seal_id,
             "user_id": user_id,
-            "org_id": self.config.chamba_org_id,
+            "org_id": self.config.em_org_id,
         }
 
         response = await self._request("POST", "/verify", data=data)
@@ -373,7 +373,7 @@ class DescribeNetClient:
 
         Args:
             badge_type: Type of badge to create
-            user_id: Chamba user ID
+            user_id: Execution Market user ID
             user_type: "worker" or "requester"
             level: Badge level (1=Bronze, 2=Silver, 3=Gold)
             criteria_snapshot: Metrics at time of earning
@@ -386,7 +386,7 @@ class DescribeNetClient:
             "user_id": user_id,
             "user_type": user_type,
             "level": level,
-            "org_id": self.config.chamba_org_id,
+            "org_id": self.config.em_org_id,
             "criteria_snapshot": criteria_snapshot or {},
             "earned_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -415,14 +415,14 @@ class DescribeNetClient:
         Get all badges for a user.
 
         Args:
-            user_id: Chamba user ID
+            user_id: Execution Market user ID
             active_only: Only return active badges
 
         Returns:
             List of Badge objects
         """
         params = {
-            "org_id": self.config.chamba_org_id,
+            "org_id": self.config.em_org_id,
             "active_only": str(active_only).lower(),
         }
 
@@ -449,7 +449,7 @@ class DescribeNetClient:
         all seals and badges based on current metrics.
 
         Args:
-            user_id: Chamba user ID
+            user_id: Execution Market user ID
             user_type: "worker" or "requester"
             metrics: Current reputation metrics
 
@@ -459,7 +459,7 @@ class DescribeNetClient:
         data = {
             "user_id": user_id,
             "user_type": user_type,
-            "org_id": self.config.chamba_org_id,
+            "org_id": self.config.em_org_id,
             "metrics": metrics,
             "sync_timestamp": datetime.now(timezone.utc).isoformat(),
         }
@@ -481,7 +481,7 @@ class DescribeNetClient:
         Get full reputation summary from describe.net.
 
         Args:
-            user_id: Chamba user ID
+            user_id: Execution Market user ID
 
         Returns:
             Full reputation summary including all seals and badges
@@ -489,7 +489,7 @@ class DescribeNetClient:
         response = await self._request(
             "GET",
             f"/reputation/{user_id}",
-            params={"org_id": self.config.chamba_org_id}
+            params={"org_id": self.config.em_org_id}
         )
 
         return {

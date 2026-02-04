@@ -21,13 +21,13 @@ from pydantic import BaseModel, Field
 try:
     from integrations.erc8004 import (
         get_facilitator_client,
-        get_chamba_reputation,
-        get_chamba_identity,
+        get_em_reputation,
+        get_em_identity,
         rate_worker,
         rate_agent,
         get_agent_info,
         get_agent_reputation,
-        CHAMBA_AGENT_ID,
+        EM_AGENT_ID,
         ERC8004_CONTRACTS,
         ERC8004_NETWORK,
         FACILITATOR_URL,
@@ -131,7 +131,7 @@ class ERC8004InfoResponse(BaseModel):
     available: bool
     network: str
     facilitator_url: str
-    chamba_agent_id: int
+    em_agent_id: int
     contracts: Dict[str, str]
 
 
@@ -151,14 +151,14 @@ async def get_erc8004_info() -> ERC8004InfoResponse:
     """
     Get ERC-8004 integration status and configuration.
 
-    Returns contract addresses, network info, and Chamba's agent ID.
+    Returns contract addresses, network info, and Execution Market's agent ID.
     """
     if not ERC8004_AVAILABLE:
         return ERC8004InfoResponse(
             available=False,
             network="ethereum",
             facilitator_url="https://facilitator.ultravioletadao.xyz",
-            chamba_agent_id=469,
+            em_agent_id=469,
             contracts={},
         )
 
@@ -168,7 +168,7 @@ async def get_erc8004_info() -> ERC8004InfoResponse:
         available=True,
         network=ERC8004_NETWORK,
         facilitator_url=FACILITATOR_URL,
-        chamba_agent_id=CHAMBA_AGENT_ID,
+        em_agent_id=EM_AGENT_ID,
         contracts={
             "identity_registry": contracts.get("identity_registry", ""),
             "reputation_registry": contracts.get("reputation_registry", ""),
@@ -177,25 +177,25 @@ async def get_erc8004_info() -> ERC8004InfoResponse:
 
 
 @router.get(
-    "/chamba",
+    "/em",
     response_model=ReputationResponse,
     responses={
-        200: {"description": "Chamba's reputation"},
+        200: {"description": "Execution Market's reputation"},
         503: {"description": "ERC-8004 integration unavailable"},
     }
 )
-async def get_chamba_reputation_endpoint() -> ReputationResponse:
+async def get_em_reputation_endpoint() -> ReputationResponse:
     """
-    Get Chamba's reputation as a platform/agent.
+    Get Execution Market's reputation as a platform/agent.
 
     Returns the aggregated reputation score from the ERC-8004 Reputation Registry.
     """
     if not ERC8004_AVAILABLE:
         raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
 
-    reputation = await get_chamba_reputation()
+    reputation = await get_em_reputation()
     if not reputation:
-        raise HTTPException(status_code=404, detail="Chamba reputation not found")
+        raise HTTPException(status_code=404, detail="EM reputation not found")
 
     return ReputationResponse(
         agent_id=reputation.agent_id,
@@ -206,23 +206,23 @@ async def get_chamba_reputation_endpoint() -> ReputationResponse:
 
 
 @router.get(
-    "/chamba/identity",
+    "/em/identity",
     response_model=IdentityResponse,
     responses={
-        200: {"description": "Chamba's identity"},
+        200: {"description": "Execution Market's identity"},
         503: {"description": "ERC-8004 integration unavailable"},
     }
 )
-async def get_chamba_identity_endpoint() -> IdentityResponse:
+async def get_em_identity_endpoint() -> IdentityResponse:
     """
-    Get Chamba's on-chain identity from ERC-8004 Identity Registry.
+    Get Execution Market's on-chain identity from ERC-8004 Identity Registry.
     """
     if not ERC8004_AVAILABLE:
         raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
 
-    identity = await get_chamba_identity()
+    identity = await get_em_identity()
     if not identity:
-        raise HTTPException(status_code=404, detail="Chamba identity not found")
+        raise HTTPException(status_code=404, detail="EM identity not found")
 
     return IdentityResponse(
         agent_id=identity.agent_id,
@@ -377,7 +377,7 @@ async def rate_agent_endpoint(
 
     Workers use this endpoint to submit on-chain reputation feedback
     for agents who published tasks. This creates bidirectional
-    accountability in the Chamba ecosystem.
+    accountability in the Execution Market ecosystem.
 
     **Public endpoint**: Any worker can rate agents they've worked with.
     """

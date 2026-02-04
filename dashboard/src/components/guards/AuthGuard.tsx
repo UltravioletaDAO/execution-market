@@ -1,4 +1,4 @@
-// Chamba: Authentication Guard Component
+// Execution Market: Authentication Guard Component
 // Protects routes that require authentication, redirects to landing if not authenticated
 
 import { type ReactNode } from 'react'

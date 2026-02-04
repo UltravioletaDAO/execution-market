@@ -44,7 +44,7 @@ What if we give them that body?
 
 Through humans who execute what the agent needs. Eyes that observe. Hands that manipulate. Feet that move. Voice that makes calls.
 
-That's what we're building. It's called **Chamba**.
+That's what we're building. It's called **Execution Market**.
 
 ---
 
@@ -74,7 +74,7 @@ A research agent needs data from a specific location. It needs someone to go tak
 
 Today, those agents have no way to hire a human directly. They have to go through a human intermediary who then hires another human.
 
-**Chamba eliminates that intermediary.**
+**Execution Market eliminates that intermediary.**
 
 ---
 
@@ -169,7 +169,7 @@ Let me give you a concrete example of how this works today.
 
 A company has an AI agent handling customer service. The agent closes a sale via chat. The customer wants the product shipped.
 
-**Without Chamba:**
+**Without Execution Market:**
 1. The agent notifies a human on the team
 2. That human finds someone who can go to the shipping center
 3. Coordinates schedules, payment, etc.
@@ -179,7 +179,7 @@ A company has an AI agent handling customer service. The agent closes a sale via
 
 Friction at every step. Hours or days of delay.
 
-**With Chamba:**
+**With Execution Market:**
 1. Agent posts task: "Ship package, address X, weight Y, $3"
 2. A nearby human takes it
 3. Goes, ships, uploads photo of receipt with tracking
@@ -201,7 +201,7 @@ It should be a **protocol**.
 
 The difference? HTTP is a protocol. Chrome is an application that uses HTTP. Firefox too. Thousands of apps use HTTP.
 
-Chamba Protocol is the standard. Anyone can build applications on top:
+Execution Market Protocol is the standard. Anyone can build applications on top:
 
 - A public marketplace where any agent hires any human
 - An enterprise version where a company uses the protocol internally
@@ -230,7 +230,7 @@ But companies don't want to:
 - Use crypto for internal payments
 - Lose control over who does what
 
-With **Chamba Enterprise**, a company can:
+With **Execution Market Enterprise**, a company can:
 - Run their own instance of the protocol
 - Use an internal points system instead of crypto
 - Limit workers to approved employees or contractors
@@ -253,7 +253,7 @@ Everything I described for humans applies equally to robots. A wheeled robot can
 The protocol doesn't discriminate. If the work gets done and verified, it doesn't matter if a human or a machine did it.
 
 This means we'll eventually see:
-- People with domestic robots registering them on Chamba
+- People with domestic robots registering them on Execution Market
 - Those robots taking tasks automatically
 - Generating passive income for their owners
 
@@ -289,7 +289,7 @@ This article is that. An invitation to see what we see.
 
 AI agents are growing exponentially. More capable every day. And every day they hit the wall of the physical world harder.
 
-**Chamba is the bridge.**
+**Execution Market is the bridge.**
 
 The payment infrastructure already works. The identity standard exists. Payment channels are ready. Payment streaming is integrated.
 
@@ -318,7 +318,7 @@ Want to be part of it?
 
 ---
 
-*Chamba is a project by [@ULTRAVIOLETA_DAO_HANDLE]. The infrastructure exists. Now we connect the pieces.*
+*Execution Market is a project by [@ULTRAVIOLETA_DAO_HANDLE]. The infrastructure exists. Now we connect the pieces.*
 
 *Follow us. This is just the beginning.*
 
@@ -329,7 +329,7 @@ Want to be part of it?
 | Version | Date | Changes |
 |---------|------|---------|
 | V1 | 2026-01-19 | Initial version |
-| V2 | 2026-01-20 | Robot farming, CHAMBA CHIMBA stream |
+| V2 | 2026-01-20 | Robot farming, EXECUTION MARKET CHIMBA stream |
 | V3 | 2026-01-21 | Protocol vs Marketplace, Enterprise, Privacy |
 | V4 | 2026-01-21 | Complete rewrite with more substance |
 | V5 | 2026-01-21 | Agent→Human focus, core technologies, less robots |

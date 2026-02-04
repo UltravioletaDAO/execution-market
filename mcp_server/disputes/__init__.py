@@ -1,7 +1,7 @@
 """
-Chamba Disputes Module
+Execution Market Disputes Module
 
-Complete dispute resolution system for the Chamba platform.
+Complete dispute resolution system for the Execution Market platform.
 
 Components:
 - models: Data structures (Dispute, DisputeStatus, DisputeReason, etc.)
@@ -12,7 +12,7 @@ Components:
 - router: Dispute routing to appropriate resolution mechanisms
 
 Example:
-    >>> from chamba.mcp_server.disputes import (
+    >>> from mcp_server.disputes import (
     ...     DisputeManager,
     ...     DisputeReason,
     ...     DisputeParty,

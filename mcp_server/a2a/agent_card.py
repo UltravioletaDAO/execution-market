@@ -1,5 +1,5 @@
 """
-A2A Agent Card for Chamba (NOW-083, NOW-084, NOW-085)
+A2A Agent Card for Execution Market (NOW-083, NOW-084, NOW-085)
 
 Implements the Agent2Agent Protocol specification for agent discovery.
 https://a2a-protocol.org/latest/specification/
@@ -8,7 +8,7 @@ This module provides:
 - AgentCard dataclass with all A2A fields
 - Function to generate the card JSON
 - FastAPI router for serving the card at /.well-known/agent.json
-- Agent capabilities declaration for Chamba
+- Agent capabilities declaration for Execution Market
 """
 
 import os
@@ -26,11 +26,11 @@ from fastapi.responses import JSONResponse
 # Protocol version - A2A 0.3 is the current version
 A2A_PROTOCOL_VERSION = "0.3.0"
 
-# Chamba version
-CHAMBA_VERSION = "0.1.0"
+# Execution Market version
+EM_VERSION = "0.1.0"
 
 # Base URL - configurable via environment
-DEFAULT_BASE_URL = "https://api.chamba.ultravioletadao.xyz"
+DEFAULT_BASE_URL = "https://api.execution.market"
 
 
 # ============== ENUMS ==============
@@ -247,7 +247,7 @@ class AgentCard:
     name: str
     description: str
     url: str
-    version: str = CHAMBA_VERSION
+    version: str = EM_VERSION
     protocol_version: str = A2A_PROTOCOL_VERSION
     provider: Optional[AgentProvider] = None
     capabilities: AgentCapabilities = field(default_factory=AgentCapabilities)
@@ -303,12 +303,12 @@ class AgentCard:
         return json.dumps(self.to_dict(), indent=2)
 
 
-# ============== CHAMBA SKILLS DEFINITION ==============
+# ============== EXECUTION MARKET SKILLS DEFINITION ==============
 
 
-def get_chamba_skills() -> List[AgentSkill]:
+def get_em_skills() -> List[AgentSkill]:
     """
-    Define Chamba's available skills for A2A discovery.
+    Define Execution Market's available skills for A2A discovery.
 
     These map to the MCP tools implemented in server.py.
     """
@@ -441,25 +441,25 @@ def get_chamba_skills() -> List[AgentSkill]:
 
 def get_agent_card(base_url: Optional[str] = None) -> AgentCard:
     """
-    Generate the complete Chamba Agent Card.
+    Generate the complete Execution Market Agent Card.
 
     Args:
         base_url: Override the default base URL (useful for testing)
 
     Returns:
-        AgentCard configured for Chamba
+        AgentCard configured for Execution Market
     """
-    url = base_url or os.environ.get("CHAMBA_BASE_URL", DEFAULT_BASE_URL)
+    url = base_url or os.environ.get("EM_BASE_URL", os.environ.get("EM_BASE_URL", DEFAULT_BASE_URL))
 
     return AgentCard(
-        name="Chamba",
+        name="Execution Market",
         description=(
-            "Human Execution Layer for AI Agents. Chamba enables AI agents to delegate "
+            "Human Execution Layer for AI Agents. Execution Market enables AI agents to delegate "
             "real-world tasks to human workers, with verified evidence submission, "
             "reputation scoring, and instant crypto payments via x402 protocol."
         ),
         url=f"{url}/a2a/v1",
-        version=CHAMBA_VERSION,
+        version=EM_VERSION,
         protocol_version=A2A_PROTOCOL_VERSION,
         provider=AgentProvider(
             organization="Ultravioleta DAO",
@@ -472,7 +472,7 @@ def get_agent_card(base_url: Optional[str] = None) -> AgentCard:
             state_transition_history=True,  # Full task state history
             supports_authenticated_extended_card=True,  # Extended info after auth
         ),
-        skills=get_chamba_skills(),
+        skills=get_em_skills(),
         additional_interfaces=[
             AgentInterface(
                 url=f"{url}/a2a/v1",
@@ -493,7 +493,7 @@ def get_agent_card(base_url: Optional[str] = None) -> AgentCard:
                 type=SecurityType.HTTP,
                 scheme="bearer",
                 bearer_format="JWT",
-                description="JWT token issued by Chamba auth service",
+                description="JWT token issued by Execution Market auth service",
             ),
             "apiKey": SecurityScheme(
                 name="apiKey",
@@ -530,7 +530,7 @@ router = APIRouter(tags=["A2A Discovery"])
     "/.well-known/agent.json",
     response_class=JSONResponse,
     summary="A2A Agent Card",
-    description="Discover Chamba's capabilities via the A2A Agent Card",
+    description="Discover Execution Market's capabilities via the A2A Agent Card",
     responses={
         200: {
             "description": "Agent Card JSON",
@@ -538,9 +538,9 @@ router = APIRouter(tags=["A2A Discovery"])
                 "application/json": {
                     "example": {
                         "protocolVersion": "0.3.0",
-                        "name": "Chamba",
+                        "name": "Execution Market",
                         "description": "Human Execution Layer for AI Agents",
-                        "url": "https://api.chamba.ultravioletadao.xyz/a2a/v1",
+                        "url": "https://api.execution.market/a2a/v1",
                     }
                 }
             }
@@ -551,14 +551,14 @@ async def get_agent_card_endpoint(request: Request) -> JSONResponse:
     """
     Serve the A2A Agent Card at the well-known discovery URL.
 
-    This endpoint allows other agents to discover Chamba's capabilities,
+    This endpoint allows other agents to discover Execution Market's capabilities,
     available skills, authentication requirements, and how to communicate.
 
     Returns:
         JSONResponse with the complete Agent Card
     """
     # Build base URL from request if not configured
-    base_url = os.environ.get("CHAMBA_BASE_URL")
+    base_url = os.environ.get("EM_BASE_URL", os.environ.get("EM_BASE_URL"))
     if not base_url:
         base_url = f"{request.url.scheme}://{request.url.netloc}"
 
@@ -598,13 +598,13 @@ async def discover_agents(request: Request) -> JSONResponse:
     """
     Agent discovery endpoint (NOW-084).
 
-    Returns a list of discoverable agents. Currently returns only Chamba,
+    Returns a list of discoverable agents. Currently returns only Execution Market,
     but could be extended to return other ecosystem agents.
 
     Returns:
         JSONResponse with list of discoverable agent cards
     """
-    base_url = os.environ.get("CHAMBA_BASE_URL")
+    base_url = os.environ.get("EM_BASE_URL", os.environ.get("EM_BASE_URL"))
     if not base_url:
         base_url = f"{request.url.scheme}://{request.url.netloc}"
 
@@ -628,5 +628,5 @@ async def discover_agents(request: Request) -> JSONResponse:
 if __name__ == "__main__":
     import json
 
-    card = get_agent_card("https://api.chamba.ultravioletadao.xyz")
+    card = get_agent_card("https://api.execution.market")
     print(json.dumps(card.to_dict(), indent=2))

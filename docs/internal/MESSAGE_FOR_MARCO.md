@@ -9,7 +9,7 @@
 ```
 Hey Marco!
 
-Quick question - we're building Chamba (a "Universal Execution Layer" where AI agents hire humans for physical tasks) and we're planning to use ERC-8004 for human worker reputation.
+Quick question - we're building Execution Market (a "Universal Execution Layer" where AI agents hire humans for physical tasks) and we're planning to use ERC-8004 for human worker reputation.
 
 I know ERC-8004 was designed for trustless agents, but we think it solves a real problem for gig workers: *portable reputation they actually own*.
 
@@ -33,7 +33,7 @@ Hey Marco,
 
 Hope you're doing well. Quick thing I wanted to run by you.
 
-We're building Chamba - basically infrastructure for AI agents to hire humans (and eventually robots) for physical tasks they can't do. Think: agent closes a sale, needs someone to drop a package at the post office. $8. Done in minutes.
+We're building Execution Market - basically infrastructure for AI agents to hire humans (and eventually robots) for physical tasks they can't do. Think: agent closes a sale, needs someone to drop a package at the post office. $8. Done in minutes.
 
 For reputation, we're planning to use ERC-8004. I know it was designed for agent-to-agent trust, but we think the properties (portable, immutable, bidirectional) solve a real pain point for human workers too.
 
@@ -62,7 +62,7 @@ Marco!
 
 Pregunta rápida antes de publicar algo.
 
-Estamos usando ERC-8004 para reputación de workers humanos en Chamba (el proyecto de "agentes contratando humanos" que te mencioné).
+Estamos usando ERC-8004 para reputación de workers humanos en Execution Market (el proyecto de "agentes contratando humanos" que te mencioné).
 
 Sé que ERC-8004 fue diseñado para agentes trustless, pero pensamos que resuelve algo real para gig workers: por primera vez, su reputación es SUYA - portable, on-chain, no locked en Uber o Fiverr.
 

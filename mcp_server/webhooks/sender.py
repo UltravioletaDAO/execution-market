@@ -248,7 +248,7 @@ class WebhookSender:
         """Build HTTP headers for webhook request."""
         return {
             "Content-Type": "application/json",
-            "User-Agent": "Chamba-Webhook/1.0",
+            "User-Agent": "ExecutionMarket-Webhook/1.0",
             "X-Webhook-Id": webhook_id,
             "X-Webhook-Event": event.event_type.value,
             "X-Webhook-Signature": signature,

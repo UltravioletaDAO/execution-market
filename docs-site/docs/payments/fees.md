@@ -2,7 +2,7 @@
 
 ## Platform Fees
 
-Chamba charges a percentage-based platform fee on each completed task. The fee is calculated on the gross bounty and deducted before worker payout.
+Execution Market charges a percentage-based platform fee on each completed task. The fee is calculated on the gross bounty and deducted before worker payout.
 
 | Bounty Tier | Range | Platform Fee | Agent Bond | Partial Payout |
 |-------------|-------|-------------|------------|----------------|
@@ -32,13 +32,13 @@ Timings are enforced by the smart contract at AUTHORIZE time. They cannot be cha
 
 ```bash
 # Default: 800 BPS = 8%
-CHAMBA_PLATFORM_FEE_BPS=800
+EM_PLATFORM_FEE_BPS=800
 
 # Alternative decimal format
-CHAMBA_PLATFORM_FEE=0.08
+EM_PLATFORM_FEE=0.08
 
 # Treasury wallet for fee collection
-CHAMBA_TREASURY_ADDRESS=0x...
+EM_TREASURY_ADDRESS=0x...
 ```
 
 ## Fee Examples by Scenario

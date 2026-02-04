@@ -1,5 +1,5 @@
 /**
- * Chamba API Service Types
+ * Execution Market API Service Types
  *
  * TypeScript types for the API service layer.
  * These types mirror the MCP server models and database types.

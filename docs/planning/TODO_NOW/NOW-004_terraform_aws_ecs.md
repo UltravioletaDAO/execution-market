@@ -8,7 +8,7 @@
 - **Tiempo estimado**: 2-4 horas
 
 ## Descripción
-Crear configuración Terraform completa para deployar Chamba en AWS ECS Fargate.
+Crear configuración Terraform completa para deployar Execution Market en AWS ECS Fargate.
 
 ## Contexto Técnico
 - **Provider**: AWS
@@ -79,7 +79,7 @@ variable "environment" {
 }
 
 variable "domain" {
-  default = "chamba.ultravioleta.xyz"
+  default = "execution.market"
 }
 
 variable "mcp_server_cpu" {
@@ -147,7 +147,7 @@ resource "aws_ecs_service" "mcp_server" {
 - 2 ECR repositories (mcp-server, dashboard)
 - 2 ECS Services (mcp-server, dashboard)
 - ALB + Target Groups
-- Route53 records (api.chamba.*, app.chamba.*)
+- Route53 records (api.execution.market, app.execution.market)
 - ACM Certificate (SSL)
 - Secrets Manager secrets
 

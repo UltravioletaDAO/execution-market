@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { AuthModal } from '../components/AuthModal'
@@ -11,7 +11,7 @@ import { HowItWorks } from '../components/landing/HowItWorks'
 
 export function Home() {
   const navigate = useNavigate()
-  const { userType, setUserType, isAuthenticated, isProfileComplete } = useAuth()
+  const { userType, setUserType, isAuthenticated, isProfileComplete, reloadSession } = useAuth()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showProfileCompletion, setShowProfileCompletion] = useState(false)
   const taskSectionRef = useRef<HTMLElement>(null)
@@ -33,11 +33,14 @@ export function Home() {
     howItWorksRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  const handleAuthSuccess = useCallback(() => {
+  const handleAuthSuccess = useCallback(async () => {
     setShowAuthModal(false)
     setUserType('worker')
+    // Reload session + executor from Supabase before showing profile modal
+    // This ensures the anonymous session and executor are available
+    await reloadSession()
     setShowProfileCompletion(true)
-  }, [setUserType])
+  }, [setUserType, reloadSession])
 
   const handleProfileComplete = useCallback(() => {
     setShowProfileCompletion(false)
@@ -51,6 +54,14 @@ export function Home() {
 
   const shouldShowProfileCompletion =
     showProfileCompletion && isAuthenticated && !isProfileComplete
+
+  // Returning users with a complete profile: skip modal, go straight to tasks
+  useEffect(() => {
+    if (showProfileCompletion && isAuthenticated && isProfileComplete) {
+      setShowProfileCompletion(false)
+      navigate('/tasks')
+    }
+  }, [showProfileCompletion, isAuthenticated, isProfileComplete, navigate])
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

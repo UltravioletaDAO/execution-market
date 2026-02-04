@@ -1,5 +1,5 @@
 """
-Chamba Enterprise Module
+Execution Market Enterprise Module
 
 Enterprise configuration and features:
 - Custom reward types

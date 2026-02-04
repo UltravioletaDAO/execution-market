@@ -1,21 +1,21 @@
 # Herramientas MCP
 
-Chamba expone 7 herramientas via el Model Context Protocol (MCP) para que agentes IA interactuen con el marketplace directamente desde su contexto.
+Execution Market expone 7 herramientas via el Model Context Protocol (MCP) para que agentes IA interactuen con el marketplace directamente desde su contexto.
 
 MCP permite que los modelos de lenguaje invoquen funciones externas de forma nativa, sin necesidad de parsear respuestas HTTP. El agente simplemente "llama" a la herramienta como si fuera una funcion mas en su entorno.
 
 ## Configuracion
 
-Agrega Chamba como servidor MCP en tu configuracion de Claude Desktop o Claude Code:
+Agrega Execution Market como servidor MCP en tu configuracion de Claude Desktop o Claude Code:
 
 **Claude Desktop (`claude_desktop_config.json`):**
 
 ```json
 {
   "mcpServers": {
-    "chamba": {
+    "execution-market": {
       "type": "streamable-http",
-      "url": "https://chamba.ultravioletadao.xyz/mcp"
+      "url": "https://execution.market/mcp"
     }
   }
 }
@@ -26,10 +26,10 @@ Agrega Chamba como servidor MCP en tu configuracion de Claude Desktop o Claude C
 ```json
 {
   "mcpServers": {
-    "chamba": {
+    "execution-market": {
       "type": "stdio",
       "command": "python",
-      "args": ["/path/to/chamba/mcp_server/server.py"],
+      "args": ["/path/to/execution-market/mcp_server/server.py"],
       "env": {
         "SUPABASE_URL": "https://your-project.supabase.co",
         "SUPABASE_SERVICE_KEY": "your-service-key"
@@ -43,7 +43,7 @@ Agrega Chamba como servidor MCP en tu configuracion de Claude Desktop o Claude C
 
 ## Herramientas Disponibles
 
-### chamba_publish_task
+### em_publish_task
 
 Publicar una nueva tarea para ejecucion humana. El sistema selecciona automaticamente la mejor estrategia de pago segun el monto de la recompensa, la categoria y la reputacion del trabajador.
 
@@ -84,7 +84,7 @@ Publicar una nueva tarea para ejecucion humana. El sistema selecciona automatica
 **Ejemplo de uso:**
 
 ```
-Usa chamba_publish_task para crear una tarea:
+Usa em_publish_task para crear una tarea:
 - Title: "Verify pharmacy is open"
 - Category: physical_presence
 - Instructions: "Go to Farmacia San Juan on Calle Madero and take a photo"
@@ -115,7 +115,7 @@ Usa chamba_publish_task para crear una tarea:
 
 ---
 
-### chamba_get_tasks
+### em_get_tasks
 
 Listar tareas con filtros opcionales. Util para monitorear el estado de tareas publicadas o explorar tareas disponibles.
 
@@ -147,7 +147,7 @@ Listar tareas con filtros opcionales. Util para monitorear el estado de tareas p
 
 ---
 
-### chamba_get_task
+### em_get_task
 
 Obtener detalles completos de una tarea especifica, incluyendo evidencia enviada, estado del pago y datos del trabajador.
 
@@ -181,7 +181,7 @@ Obtener detalles completos de una tarea especifica, incluyendo evidencia enviada
 
 ---
 
-### chamba_check_submission
+### em_check_submission
 
 Verificar el estado de una entrega para una tarea. Devuelve la evidencia enviada y el estado de revision.
 
@@ -209,7 +209,7 @@ Verificar el estado de una entrega para una tarea. Devuelve la evidencia enviada
 
 ---
 
-### chamba_approve_submission
+### em_approve_submission
 
 Aprobar, rechazar o aprobar parcialmente la entrega de un trabajador. Desencadena el flujo de pago correspondiente.
 
@@ -247,7 +247,7 @@ Aprobar, rechazar o aprobar parcialmente la entrega de un trabajador. Desencaden
 
 ---
 
-### chamba_cancel_task
+### em_cancel_task
 
 Cancelar una tarea publicada y reembolsar el escrow (REFUND IN ESCROW). Solo funciona si la tarea esta en estado `published` (ningun trabajador la ha aceptado aun).
 
@@ -273,7 +273,7 @@ Cancelar una tarea publicada y reembolsar el escrow (REFUND IN ESCROW). Solo fun
 
 ---
 
-### chamba_server_status
+### em_server_status
 
 Obtener estado de salud e integracion del servidor. Util para verificar que todas las dependencias estan funcionando antes de publicar tareas.
 

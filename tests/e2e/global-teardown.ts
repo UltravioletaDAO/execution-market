@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Tests - Global Teardown
+ * Execution Market E2E Tests - Global Teardown
  *
  * Runs once after all tests to:
  * 1. Clean up test data
@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 async function globalTeardown(config: FullConfig) {
-  console.log('\n=== Chamba E2E Test Suite - Global Teardown ===\n');
+  console.log('\n=== Execution Market E2E Test Suite - Global Teardown ===\n');
 
   // 1. Generate test summary
   const resultsPath = './test-results/results.json';

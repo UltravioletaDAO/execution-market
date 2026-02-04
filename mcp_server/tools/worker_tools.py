@@ -1,11 +1,11 @@
 """
-Worker MCP Tools for Chamba (NOW-011 to NOW-014)
+Worker MCP Tools for Execution Market (NOW-011 to NOW-014)
 
-Tools that workers use to interact with the Chamba platform:
-- chamba_apply_to_task: Worker applies to a task (NOW-011)
-- chamba_submit_work: Worker submits evidence (NOW-012)
-- chamba_get_my_tasks: Worker gets their assigned tasks (NOW-013)
-- chamba_withdraw_earnings: Worker withdraws available balance (NOW-014)
+Tools that workers use to interact with the Execution Market platform:
+- em_apply_to_task: Worker applies to a task (NOW-011)
+- em_submit_work: Worker submits evidence (NOW-012)
+- em_get_my_tasks: Worker gets their assigned tasks (NOW-013)
+- em_withdraw_earnings: Worker withdraws available balance (NOW-014)
 
 These tools include:
 1. Input validation via Pydantic models
@@ -282,7 +282,7 @@ def register_worker_tools(
     )
 
     @mcp.tool(
-        name="chamba_apply_to_task",
+        name="em_apply_to_task",
         annotations={
             "title": "Apply to Work on a Task",
             "readOnlyHint": False,
@@ -291,7 +291,7 @@ def register_worker_tools(
             "openWorldHint": True
         }
     )
-    async def chamba_apply_to_task(params: ApplyToTaskInput) -> str:
+    async def em_apply_to_task(params: ApplyToTaskInput) -> str:
         """
         Apply to work on a published task.
 
@@ -354,14 +354,14 @@ and assign the task to a worker.
 ## Next Steps
 1. Wait for the agent to review your application
 2. If assigned, you'll be notified
-3. Use `chamba_get_my_tasks` to check your application status"""
+3. Use `em_get_my_tasks` to check your application status"""
 
         except Exception as e:
             logger.error(f"Failed to apply to task: {e}")
             return f"Error: Failed to apply - {str(e)}"
 
     @mcp.tool(
-        name="chamba_submit_work",
+        name="em_submit_work",
         annotations={
             "title": "Submit Completed Work",
             "readOnlyHint": False,
@@ -370,7 +370,7 @@ and assign the task to a worker.
             "openWorldHint": True
         }
     )
-    async def chamba_submit_work(params: SubmitWorkInput) -> str:
+    async def em_submit_work(params: SubmitWorkInput) -> str:
         """
         Submit completed work with evidence for an assigned task.
 
@@ -472,14 +472,14 @@ Your evidence has been submitted. The agent will review and either:
 ## What Happens Next
 1. Agent reviews your submission
 2. If approved, payment is released to your available balance
-3. Use `chamba_withdraw_earnings` to withdraw to your wallet"""
+3. Use `em_withdraw_earnings` to withdraw to your wallet"""
 
         except Exception as e:
             logger.error(f"Failed to submit work: {e}")
             return f"Error: Failed to submit work - {str(e)}"
 
     @mcp.tool(
-        name="chamba_get_my_tasks",
+        name="em_get_my_tasks",
         annotations={
             "title": "Get My Tasks and Applications",
             "readOnlyHint": True,
@@ -488,7 +488,7 @@ Your evidence has been submitted. The agent will review and either:
             "openWorldHint": True
         }
     )
-    async def chamba_get_my_tasks(params: GetMyTasksInput) -> str:
+    async def em_get_my_tasks(params: GetMyTasksInput) -> str:
         """
         Get your assigned tasks, pending applications, and recent submissions.
 
@@ -523,7 +523,7 @@ Your evidence has been submitted. The agent will review and either:
             # Markdown format
             totals = result["totals"]
             lines = [
-                "# My Chamba Tasks",
+                "# My Tasks",
                 "",
                 "## Summary",
                 f"- **Assigned Tasks**: {totals['assigned']}",
@@ -596,7 +596,7 @@ Your evidence has been submitted. The agent will review and either:
                     "*No tasks or applications found.*",
                     "",
                     "To get started:",
-                    "1. Browse available tasks with `chamba_get_tasks`",
+                    "1. Browse available tasks with `em_get_tasks`",
                     "2. Apply to tasks that match your skills",
                     "3. Complete assigned tasks and submit evidence",
                     "",
@@ -609,7 +609,7 @@ Your evidence has been submitted. The agent will review and either:
             return f"Error: Failed to get tasks - {str(e)}"
 
     @mcp.tool(
-        name="chamba_withdraw_earnings",
+        name="em_withdraw_earnings",
         annotations={
             "title": "Withdraw Earnings",
             "readOnlyHint": False,
@@ -618,7 +618,7 @@ Your evidence has been submitted. The agent will review and either:
             "openWorldHint": True
         }
     )
-    async def chamba_withdraw_earnings(params: WithdrawEarningsInput) -> str:
+    async def em_withdraw_earnings(params: WithdrawEarningsInput) -> str:
         """
         Withdraw your available earnings to your wallet.
 
@@ -722,7 +722,7 @@ Withdrawal amount must cover gas fees. Try withdrawing more."""
                     payment_result = await x402_client.send_payment(
                         to_address=destination,
                         amount_usdc=net_amount,
-                        memo=f"Chamba withdrawal for executor {params.executor_id[:8]}",
+                        memo=f"Execution Market withdrawal for executor {params.executor_id[:8]}",
                     )
 
                     if payment_result.success:
@@ -805,6 +805,6 @@ def create_worker_tools_standalone(
     Returns:
         FastMCP server instance with worker tools registered
     """
-    mcp = FastMCP("chamba_worker_tools")
+    mcp = FastMCP("em_worker_tools")
     register_worker_tools(mcp, db_module, x402_client, config)
     return mcp

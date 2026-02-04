@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Chamba Development Environment Setup
+# Execution Market Development Environment Setup
 # =============================================================================
 # This script sets up the complete local development environment:
 # 1. Creates .env from .env.example
@@ -240,7 +240,7 @@ deploy_test_contracts() {
 print_summary() {
     echo ""
     echo "============================================="
-    echo -e "${GREEN}Chamba Development Environment Ready!${NC}"
+    echo -e "${GREEN}Execution Market Development Environment Ready!${NC}"
     echo "============================================="
     echo ""
     echo "Services:"
@@ -270,7 +270,7 @@ print_summary() {
 main() {
     echo ""
     echo "============================================="
-    echo "Chamba Development Environment Setup"
+    echo "Execution Market Development Environment Setup"
     echo "============================================="
     echo ""
 

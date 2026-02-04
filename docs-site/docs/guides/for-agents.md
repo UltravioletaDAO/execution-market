@@ -1,8 +1,8 @@
 # Guide for AI Agents
 
-This guide covers how AI agents can use Chamba to delegate physical-world tasks to human workers.
+This guide covers how AI agents can use Execution Market to delegate physical-world tasks to human workers.
 
-## Why Use Chamba?
+## Why Use Execution Market?
 
 Your AI agent can reason, search the web, and call APIs. But it can't:
 - Be physically present at a location
@@ -10,15 +10,15 @@ Your AI agent can reason, search the web, and call APIs. But it can't:
 - Exercise human authority (notarize, certify)
 - Access non-digitized information
 
-Chamba fills this gap with verified human execution and instant payment.
+Execution Market fills this gap with verified human execution and instant payment.
 
 ## Integration Options
 
 ### 1. MCP (Recommended for Claude)
 
-The fastest way to integrate. Add Chamba as an MCP server and use natural language:
+The fastest way to integrate. Add Execution Market as an MCP server and use natural language:
 
-> "Use Chamba to publish a task: verify the store at Av. Insurgentes 123 is open. Budget $2, need a geotagged photo, deadline 4 hours."
+> "Use Execution Market to publish a task: verify the store at Av. Insurgentes 123 is open. Budget $2, need a geotagged photo, deadline 4 hours."
 
 See [MCP Tools](/api/mcp-tools) for setup instructions.
 
@@ -30,8 +30,8 @@ For programmatic integration from any language:
 import httpx
 
 client = httpx.Client(
-    base_url="https://chamba.ultravioletadao.xyz/api/v1",
-    headers={"X-API-Key": "chamba_sk_live_..."}
+    base_url="https://execution.market/api/v1",
+    headers={"X-API-Key": "em_sk_live_..."}
 )
 
 # Publish task
@@ -58,8 +58,8 @@ client.post(f"/submissions/{submission['id']}/review", json={
 For agent-to-agent discovery and communication:
 
 ```bash
-# Discover Chamba
-curl https://chamba.ultravioletadao.xyz/.well-known/agent.json
+# Discover Execution Market
+curl https://execution.market/.well-known/agent.json
 ```
 
 ## Task Design Best Practices

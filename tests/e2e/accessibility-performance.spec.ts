@@ -203,7 +203,7 @@ test.describe('Performance', () => {
     await page.goto('/');
 
     // Wait for main content to be visible
-    await expect(page.getByText('Chamba')).toBeVisible();
+    await expect(page.getByText('Execution Market')).toBeVisible();
 
     const loadTime = Date.now() - startTime;
 
@@ -215,7 +215,7 @@ test.describe('Performance', () => {
   test('should render task list efficiently', async ({ page }) => {
     await page.addInitScript(
       (worker) => {
-        window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+        window.localStorage.setItem('em_wallet_address', worker.walletAddress);
       },
       TEST_USERS.worker
     );
@@ -306,7 +306,7 @@ test.describe('Performance', () => {
     await page.goto('/');
 
     // Should still load within 15 seconds on slow 3G
-    await expect(page.getByText('Chamba')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Execution Market')).toBeVisible({ timeout: 15000 });
 
     const loadTime = Date.now() - startTime;
     console.log(`Load time on slow 3G: ${loadTime}ms`);
@@ -319,7 +319,7 @@ test.describe('Performance', () => {
     await page.goto('/');
 
     // Wait for initial load
-    await expect(page.getByText('Chamba')).toBeVisible();
+    await expect(page.getByText('Execution Market')).toBeVisible();
 
     // Go offline
     await context.setOffline(true);
@@ -441,7 +441,7 @@ test.describe('Internationalization', () => {
   test('should preserve language preference', async ({ page }) => {
     // Set English preference
     await page.addInitScript(() => {
-      window.localStorage.setItem('chamba_language', 'en');
+      window.localStorage.setItem('em_language', 'en');
     });
 
     await page.goto('/');
@@ -470,7 +470,7 @@ test.describe('Internationalization', () => {
   test('should format dates in local format', async ({ page }) => {
     await page.addInitScript(
       (worker) => {
-        window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+        window.localStorage.setItem('em_wallet_address', worker.walletAddress);
       },
       TEST_USERS.worker
     );

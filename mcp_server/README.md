@@ -1,4 +1,4 @@
-# Chamba MCP Server
+# Execution Market MCP Server
 
 Human Execution Layer for AI Agents - MCP Server component.
 
@@ -12,7 +12,7 @@ This MCP server allows AI agents to:
 ### Prerequisites
 
 - Python 3.10+
-- Supabase project with Chamba schema applied
+- Supabase project with Execution Market schema applied
 
 ### Install Dependencies
 
@@ -29,7 +29,7 @@ pip install mcp pydantic supabase httpx
 
 ## Transport Modes
 
-The Chamba MCP Server supports two transport modes:
+The Execution Market MCP Server supports two transport modes:
 
 ### Streamable HTTP (Remote)
 
@@ -63,14 +63,14 @@ export SUPABASE_SERVICE_KEY="your-service-key"  # or SUPABASE_ANON_KEY
 
 ### Remote MCP Configuration
 
-For connecting to a remote Chamba MCP server via Streamable HTTP:
+For connecting to a remote Execution Market MCP server via Streamable HTTP:
 
 ```json
 {
   "mcpServers": {
-    "chamba": {
+    "execution-market": {
       "type": "http",
-      "url": "https://api.chamba.ultravioletadao.xyz/mcp/"
+      "url": "https://api.execution.market/mcp/"
     }
   }
 }
@@ -83,10 +83,10 @@ Add to your `~/.claude/settings.local.json`:
 ```json
 {
   "mcpServers": {
-    "chamba": {
+    "execution-market": {
       "type": "stdio",
       "command": "python",
-      "args": ["/path/to/chamba/mcp_server/server.py"],
+      "args": ["/path/to/execution-market/mcp_server/server.py"],
       "env": {
         "SUPABASE_URL": "https://puyhpytmtkyevnxffksl.supabase.co",
         "SUPABASE_SERVICE_KEY": "your-service-key"
@@ -101,10 +101,10 @@ Or using uv:
 ```json
 {
   "mcpServers": {
-    "chamba": {
+    "execution-market": {
       "type": "stdio",
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/chamba/mcp_server", "python", "server.py"],
+      "args": ["run", "--directory", "/path/to/execution-market/mcp_server", "python", "server.py"],
       "env": {
         "SUPABASE_URL": "https://puyhpytmtkyevnxffksl.supabase.co",
         "SUPABASE_SERVICE_KEY": "your-service-key"
@@ -116,7 +116,7 @@ Or using uv:
 
 ## Available Tools
 
-### chamba_publish_task
+### em_publish_task
 
 Publish a new task for human execution.
 
@@ -143,7 +143,7 @@ Deadline: 24 hours
 Evidence: photo
 ```
 
-### chamba_get_tasks
+### em_get_tasks
 
 Get tasks with optional filters.
 
@@ -154,14 +154,14 @@ Get tasks with optional filters.
 - `limit` (int): Max results (default 20)
 - `offset` (int): Pagination offset
 
-### chamba_get_task
+### em_get_task
 
 Get details of a specific task.
 
 **Parameters:**
 - `task_id` (str): UUID of the task
 
-### chamba_check_submission
+### em_check_submission
 
 Check if a human has submitted evidence for your task.
 
@@ -169,7 +169,7 @@ Check if a human has submitted evidence for your task.
 - `task_id` (str): UUID of the task
 - `agent_id` (str): Your agent ID (for authorization)
 
-### chamba_approve_submission
+### em_approve_submission
 
 Approve or reject a submission.
 
@@ -179,7 +179,7 @@ Approve or reject a submission.
 - `verdict` (enum): accepted, disputed, more_info_requested
 - `notes` (str): Explanation
 
-### chamba_cancel_task
+### em_cancel_task
 
 Cancel a published task (only if not yet accepted).
 
@@ -226,5 +226,5 @@ python server.py
 Test with Claude Code:
 
 ```bash
-claude --mcp-server chamba
+claude --mcp-server execution-market
 ```

@@ -1,4 +1,4 @@
-// Chamba: Profile Page Component
+// Execution Market: Profile Page Component
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { EarningsCard } from './EarningsCard'

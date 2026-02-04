@@ -1,5 +1,5 @@
 """
-Chamba Task Types Module
+Execution Market Task Types Module
 
 Defines different task types and their requirements:
 - Base: Abstract task type base class
@@ -85,7 +85,7 @@ from .lastmile import (
     estimate_delivery_price,
 )
 
-# Chamba Prime (NOW-134)
+# Execution Market Prime (NOW-134)
 from .prime import (
     PrimeStatus,
     BackgroundCheckStatus,

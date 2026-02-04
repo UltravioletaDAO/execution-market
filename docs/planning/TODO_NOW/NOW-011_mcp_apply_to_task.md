@@ -1,4 +1,4 @@
-# NOW-011: Implementar chamba_apply_to_task
+# NOW-011: Implementar em_apply_to_task
 
 ## Metadata
 - **Prioridad**: P0
@@ -47,7 +47,7 @@ import os
 
 # En server.py, agregar al list_tools:
 Tool(
-    name="chamba_apply_to_task",
+    name="em_apply_to_task",
     description="Apply to an available task as a worker",
     inputSchema={
         "type": "object",
@@ -72,7 +72,7 @@ Tool(
 # Handler implementation
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: dict):
-    if name == "chamba_apply_to_task":
+    if name == "em_apply_to_task":
         return await apply_to_task(arguments)
 
 async def apply_to_task(args: dict) -> list[TextContent]:

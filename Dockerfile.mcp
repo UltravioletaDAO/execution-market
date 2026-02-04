@@ -1,11 +1,11 @@
-# Chamba MCP Server Dockerfile
+# Execution Market MCP Server Dockerfile
 # Multi-stage build: Python 3.11 + FastAPI + uvicorn
 #
 # Build:
-#   docker build -f Dockerfile.mcp -t chamba-mcp:latest ./mcp_server
+#   docker build -f Dockerfile.mcp -t execution-market-mcp:latest ./mcp_server
 #
 # Run:
-#   docker run -p 8000:8000 --env-file .env chamba-mcp:latest
+#   docker run -p 8000:8000 --env-file .env execution-market-mcp:latest
 
 # ===================
 # Builder Stage
@@ -73,7 +73,7 @@ EXPOSE ${PORT}
 USER chamba
 
 # Run with uvicorn (development mode with reload)
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 # ===================
 # Production Stage
@@ -117,7 +117,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     PORT=8000 \
     ENVIRONMENT=production \
-    WORKERS=4
+    WORKERS=2
 
 # Health check
 HEALTHCHECK --interval=15s --timeout=10s --start-period=30s --retries=5 \
@@ -133,4 +133,4 @@ USER chamba
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Run with uvicorn (production mode with multiple workers)
-CMD ["sh", "-c", "uvicorn api:app --host 0.0.0.0 --port ${PORT} --workers ${WORKERS} --loop uvloop --http httptools --no-access-log"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT} --workers ${WORKERS} --loop uvloop --http httptools --no-access-log"]

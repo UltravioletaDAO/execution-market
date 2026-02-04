@@ -7,7 +7,7 @@
 
 ## Resumen
 
-Implementación de dos sistemas críticos para Chamba en producción:
+Implementación de dos sistemas críticos para Execution Market en producción:
 
 1. **x402r (Pagos)**: x402 con refunds trustless en Base Mainnet
 2. **ERC-8004 (Reputación)**: Identidad y feedback bidireccional en Ethereum Mainnet
@@ -31,7 +31,7 @@ Ambos sistemas usan el **Facilitator de Ultravioleta DAO** directamente (sin wra
 
 | Aspecto | Directo On-Chain | Via Facilitator |
 |---------|-----------------|-----------------|
-| Gas fees | Chamba paga | Facilitator paga |
+| Gas fees | Execution Market paga | Facilitator paga |
 | Complejidad | Alta (web3 + keys) | Baja (HTTP API) |
 | Transacciones | Manejar nonces, retry | Automático |
 | Producción | Requiere infraestructura | Inmediato |
@@ -43,7 +43,7 @@ Ambos sistemas usan el **Facilitator de Ultravioleta DAO** directamente (sin wra
 ## Arquitectura General
 
 ```
-                           CHAMBA ARCHITECTURE (2026-01-30)
+                           EXECUTION MARKET ARCHITECTURE (2026-01-30)
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              AI AGENT                                       │
@@ -51,7 +51,7 @@ Ambos sistemas usan el **Facilitator de Ultravioleta DAO** directamente (sin wra
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         CHAMBA MCP SERVER                                   │
+│                         EXECUTION MARKET MCP SERVER                                   │
 │  ┌─────────────┐  ┌──────────────┐  ┌─────────────┐  ┌────────────────┐    │
 │  │   Tasks     │  │  Submissions │  │  Reputation │  │    Escrow      │    │
 │  │  /api/v1/   │  │   /api/v1/   │  │  /api/v1/   │  │   /api/v1/     │    │
@@ -76,7 +76,7 @@ Ambos sistemas usan el **Facilitator de Ultravioleta DAO** directamente (sin wra
 │  │ Escrow Contract         │ │  │  │ Identity Registry                  │  │
 │  │ 0xC409e6da89E54253...   │ │  │  │ 0x8004A169FB4a3325...              │  │
 │  │                         │ │  │  │                                    │  │
-│  │  • deposits             │ │  │  │  • Agent #469 (Chamba)             │  │
+│  │  • deposits             │ │  │  │  • Agent #469 (Execution Market)             │  │
 │  │  • release()            │ │  │  │  • agentURI → IPFS                 │  │
 │  │  • refundInEscrow()     │ │  │  │  • services metadata               │  │
 │  └─────────────────────────┘ │  │  └────────────────────────────────────┘  │
@@ -85,7 +85,7 @@ Ambos sistemas usan el **Facilitator de Ultravioleta DAO** directamente (sin wra
 │  │ DepositRelayFactory     │ │  │  │ Reputation Registry                │  │
 │  │ 0x41Cc4D337FEC5E91...   │ │  │  │ 0x8004BAa17C55a88189...            │  │
 │  │                         │ │  │  │                                    │  │
-│  │  • proxy for Chamba     │ │  │  │  • Agent ← Worker feedback         │  │
+│  │  • proxy for Execution Market     │ │  │  │  • Agent ← Worker feedback         │  │
 │  │  • deterministic addr   │ │  │  │  • Worker ← Agent feedback         │  │
 │  └─────────────────────────┘ │  │  │  • Bidirectional reputation        │  │
 │                              │  │  └────────────────────────────────────┘  │
@@ -107,7 +107,7 @@ Ambos sistemas usan el **Facilitator de Ultravioleta DAO** directamente (sin wra
 ### Setup (Una sola vez)
 
 ```bash
-# 1. Registrar Chamba como Merchant
+# 1. Registrar Execution Market como Merchant
 cd scripts
 npx tsx register_x402r_merchant.ts --network=base
 
@@ -189,7 +189,7 @@ Los agentes deben incluir esta extension cuando pagan:
 |----------|---------|
 | Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
-| Chamba Agent ID | `469` |
+| Execution Market Agent ID | `469` |
 
 ### Feedback Bidireccional
 
@@ -213,8 +213,8 @@ Los agentes deben incluir esta extension cuando pagan:
 | Endpoint | Method | Auth | Descripción |
 |----------|--------|------|-------------|
 | `/api/v1/reputation/info` | GET | No | Config de ERC-8004 |
-| `/api/v1/reputation/chamba` | GET | No | Reputación de Chamba |
-| `/api/v1/reputation/chamba/identity` | GET | No | Identidad de Chamba |
+| `/api/v1/reputation/em` | GET | No | Reputación de Execution Market |
+| `/api/v1/reputation/em/identity` | GET | No | Identidad de Execution Market |
 | `/api/v1/reputation/agents/{id}` | GET | No | Reputación de un agente |
 | `/api/v1/reputation/agents/{id}/identity` | GET | No | Identidad de un agente |
 | `/api/v1/reputation/workers/rate` | POST | Sí | Agente califica worker |
@@ -226,7 +226,7 @@ Los agentes deben incluir esta extension cuando pagan:
 from integrations.erc8004 import (
     rate_worker,
     rate_agent,
-    get_chamba_reputation,
+    get_em_reputation,
     get_agent_reputation,
     get_agent_info,
 )
@@ -244,15 +244,15 @@ if result.success:
 
 # Worker califica agente
 result = await rate_agent(
-    agent_id=469,  # Chamba's agent ID
+    agent_id=469,  # Execution Market's agent ID
     task_id="uuid-del-task",
     score=90,
     comment="Clear instructions, fast payment",
 )
 
 # Consultar reputación
-reputation = await get_chamba_reputation()
-print(f"Chamba score: {reputation.score}/100 ({reputation.count} ratings)")
+reputation = await get_em_reputation()
+print(f"Execution Market score: {reputation.score}/100 ({reputation.count} ratings)")
 
 # Consultar identidad de un agente
 identity = await get_agent_info(469)
@@ -304,7 +304,7 @@ WALLET_PRIVATE_KEY=0x...              # Para firmar release/refund
 
 # ERC-8004 (Ethereum Mainnet)
 ERC8004_NETWORK=ethereum              # ethereum | ethereum-sepolia
-CHAMBA_AGENT_ID=469                   # Chamba's registered agent ID
+EM_AGENT_ID=469                   # Execution Market's registered agent ID
 X402_FACILITATOR_URL=https://facilitator.ultravioletadao.xyz
 ```
 
@@ -353,7 +353,7 @@ El endpoint `/health` ahora incluye:
 Cuando queramos control total:
 
 1. Auditar y deployar ChambaEscrow.sol
-2. Registrar Chamba como merchant en nuestro contrato
+2. Registrar Execution Market como merchant en nuestro contrato
 3. Cambiar `X402R_ESCROW_ADDRESS` al nuevo contrato
 4. Migrar gradualmente los pagos
 

@@ -1,7 +1,7 @@
 """
 Webhook Event Types and Payloads (NOW-087)
 
-Defines all webhook events that Chamba can emit to registered endpoints.
+Defines all webhook events that Execution Market can emit to registered endpoints.
 Each event has a strongly-typed payload schema for validation.
 """
 
@@ -15,7 +15,7 @@ import json
 
 class WebhookEventType(str, Enum):
     """
-    All webhook event types supported by Chamba.
+    All webhook event types supported by Execution Market.
 
     Naming convention: <resource>.<action>
     """

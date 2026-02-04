@@ -38,15 +38,15 @@ Hasta ahora.
 
 Los agentes de IA son poderosos pero están atrapados en el mundo digital. Pueden analizar, planear, decidir - pero no pueden **actuar** físicamente.
 
-**Chamba es el puente.**
+**Execution Market es el puente.**
 
-A través de Chamba, los agentes obtienen:
+A través de Execution Market, los agentes obtienen:
 - **Ojos** (observadores humanos, cámaras de robots)
 - **Manos** (trabajadores humanos, manipuladores robóticos)
 - **Pies** (mensajeros humanos, robots de delivery)
 - **Voz** (personas que hacen llamadas, agentes telefónicos)
 
-*Physical embodiment for AI. Eso es Chamba.*
+*Physical embodiment for AI. Eso es Execution Market.*
 
 ---
 
@@ -56,7 +56,7 @@ Aquí está el insight que cambió nuestra arquitectura completa.
 
 [@PSILOCIBIN3_HANDLE], que tiene clientes enterprise, lo dijo claro:
 
-*"Chamba podría estar planteado a un nivel de abstracción más alto. Pensarlo como un estándar usado por agentes para montar tareas en general."*
+*"Execution Market podría estar planteado a un nivel de abstracción más alto. Pensarlo como un estándar usado por agentes para montar tareas en general."*
 
 Y dio un ejemplo concreto:
 
@@ -70,7 +70,7 @@ Piénsalo así:
 |----------|-----------|---------|
 | Web | HTTP | Chrome, Firefox |
 | Email | SMTP | Gmail, Outlook |
-| **Trabajo** | **Chamba Protocol** | **Marketplace público, Enterprise privado** |
+| **Trabajo** | **Execution Market Protocol** | **Marketplace público, Enterprise privado** |
 
 Cualquier empresa puede implementar el protocolo internamente. O usar el marketplace público. O ambos.
 
@@ -102,14 +102,14 @@ Y piensa en esto: ¿qué pasa cuando alguien que no puede salir de su casa por u
 
 Entre mejor robot tengas y mejor modelo de IA, más tareas vas a poder tomar.
 
-> "Hay gente que va a comprar farmas de robots para trabajar en Chamba, weón. Para que les hagan pura plata." — [@FELIPE_HANDLE]
+> "Hay gente que va a comprar farmas de robots para trabajar en Execution Market, weón. Para que les hagan pura plata." — [@FELIPE_HANDLE]
 
 El que más tenga robots, más plata va a hacer. Drones para inspeccionar techos. Perros robots para verificar direcciones. Humanoides para tareas complejas.
 
 **Es crypto mining, pero con trabajo físico en vez de hashes.**
 
 ```
-Persona compra robot(s) → Registra en Chamba → Robot auto-acepta tareas
+Persona compra robot(s) → Registra en Execution Market → Robot auto-acepta tareas
         ↓
 Robot completa verificaciones 24/7
         ↓
@@ -124,11 +124,11 @@ ROI en robot de $5K en 1-3 meses
 
 Mientras todos piensan en el marketplace público, nosotros vemos algo más grande.
 
-**Chamba Enterprise.**
+**Execution Market Enterprise.**
 
 Imagina una empresa con 500 empleados. Tienen agentes de IA manejando soporte, ventas, operaciones. Pero esos agentes necesitan que humanos hagan cosas físicas.
 
-Con Chamba Enterprise:
+Con Execution Market Enterprise:
 - Tareas privadas dentro de la empresa
 - Sistema de puntos en vez de crypto (si prefieren)
 - Workers internos o conexión al pool público
@@ -137,13 +137,13 @@ Con Chamba Enterprise:
 
 Ya tenemos el primer design partner. Un desarrollador de mi comunidad que dijo:
 
-*"Yo tengo muchos clientes que usarían el Chamba Enterprise."*
+*"Yo tengo muchos clientes que usarían el Execution Market Enterprise."*
 
 Y agregó:
 
 *"Que salga rápido que en 12 meses Claude nos reemplaza."* — [@PSILOCIBIN3_HANDLE]
 
-**La ventana de oportunidad es corta.** Mientras los humanos sigan siendo necesarios para tareas físicas, Chamba captura el valor. Después, evoluciona a robots.
+**La ventana de oportunidad es corta.** Mientras los humanos sigan siendo necesarios para tareas físicas, Execution Market captura el valor. Después, evoluciona a robots.
 
 ---
 
@@ -175,7 +175,7 @@ Esto no es un whitepaper soñando. Llevamos meses construyendo:
 
 Usamos el protocolo x402 de [@COINBASE_HANDLE] ([@X402_HANDLE]) con nuestra extensión de refunds - y somos los **únicos** que lo tienen implementado. Participamos en una hackathon y fuimos los únicos en lograrlo.
 
-¿Por qué importa? Porque para algo como Chamba es **totalmente indispensable** tener refunds. Los agentes van a querer probar, y si falla, tienen que poder recuperar su plata. Sin eso, no hay confianza.
+¿Por qué importa? Porque para algo como Execution Market es **totalmente indispensable** tener refunds. Los agentes van a querer probar, y si falla, tienen que poder recuperar su plata. Sin eso, no hay confianza.
 
 ### Identidad on-chain (ERC-8004)
 
@@ -249,7 +249,7 @@ Este artículo es nuestra manera de decirle al mundo: **esto es lo que vemos ven
 
 Los agentes de IA están creciendo exponencialmente. Cada día son más capaces. Y cada día chocan más fuerte contra el muro del mundo físico.
 
-**Chamba es el puente.**
+**Execution Market es el puente.**
 
 Y la gente que entienda esto primero - los que compren sus robots ahora, los que empiecen a construir reputación en el sistema, las empresas que implementen el protocolo - van a ser los que capturen la mayor parte del valor.
 
@@ -262,7 +262,7 @@ Porque cuando los agentes necesiten trabajo físico, van a buscar a quien tenga 
 ## TL;DR
 
 1. **El problema**: Los agentes de IA no pueden actuar en el mundo físico
-2. **La solución**: Chamba Protocol - el estándar para que agentes contraten humanos y robots
+2. **La solución**: Execution Market Protocol - el estándar para que agentes contraten humanos y robots
 3. **El twist**: No es solo un marketplace, es un protocolo que cualquiera puede implementar
 4. **Enterprise**: Versión B2B con puntos en vez de crypto
 5. **Robot farming**: Gente comprando flotas de robots para monetizar 24/7
@@ -297,7 +297,7 @@ Porque cuando los agentes necesiten trabajo físico, van a buscar a quien tenga 
 
 ---
 
-*Chamba es un proyecto de [@ULTRAVIOLETA_DAO_HANDLE]. La infraestructura de pagos ya funciona. Ahora estamos construyendo el protocolo donde humanos, agentes y robots trabajarán juntos.*
+*Execution Market es un proyecto de [@ULTRAVIOLETA_DAO_HANDLE]. La infraestructura de pagos ya funciona. Ahora estamos construyendo el protocolo donde humanos, agentes y robots trabajarán juntos.*
 
 *¿Quieres ser parte? Síguenos en [@ULTRAVIOLETA_DAO_HANDLE]. Esto apenas comienza.*
 
@@ -308,5 +308,5 @@ Porque cuando los agentes necesiten trabajo físico, van a buscar a quien tenga 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | V1 | 2026-01-19 | Versión inicial |
-| V2 | 2026-01-20 | Robot farming, stream CHAMBA CHIMBA |
+| V2 | 2026-01-20 | Robot farming, stream EXECUTION MARKET CHIMBA |
 | V3 | 2026-01-21 | Protocolo vs Marketplace, Enterprise, Privacy, Design Partner |

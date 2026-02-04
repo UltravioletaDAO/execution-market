@@ -95,7 +95,7 @@ refund_on_cancel(task_id, reason)
 # Tiempo de transaccion: ~5 segundos en Base
 ```
 
-**Importante:** El contrato NO hace reembolso automatico al vencer el plazo. El agente debe ejecutar explicitamente la transaccion de reembolso. Chamba maneja esto con monitoreo automatico de expiracion.
+**Importante:** El contrato NO hace reembolso automatico al vencer el plazo. El agente debe ejecutar explicitamente la transaccion de reembolso. Execution Market maneja esto con monitoreo automatico de expiracion.
 
 ### 5. Liberacion Parcial + Reembolso (Prueba de Intento)
 

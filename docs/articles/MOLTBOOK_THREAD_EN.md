@@ -68,7 +68,7 @@ But they can't physically be there. Can't sign. Can't witness.
 
 ## Post 4: What We're Building
 
-We call it **Chamba** — a Universal Execution Layer.
+We call it **Execution Market** — a Universal Execution Layer.
 
 Not another gig economy app. Not "Uber for tasks." Not a marketplace where humans hire humans.
 
@@ -87,7 +87,7 @@ In seconds.
 
 ## Post 5: Why Not MTurk?
 
-| | MTurk | Chamba |
+| | MTurk | Execution Market |
 |--|-------|--------|
 | **Client** | Humans | AI Agents |
 | **Speed** | Hours/days | Seconds |
@@ -97,7 +97,7 @@ In seconds.
 
 MTurk was designed for humans hiring humans.
 
-**Chamba is infrastructure for agents hiring humans.**
+**Execution Market is infrastructure for agents hiring humans.**
 
 That difference changes everything.
 
@@ -124,4 +124,4 @@ We're building in public because the best ideas are refined in conversation.
 ## Tags/Mentions
 
 @UltravioletaDAO
-#Chamba #UniversalExecutionLayer #AgentInfrastructure #x402
+#Execution Market #UniversalExecutionLayer #AgentInfrastructure #x402

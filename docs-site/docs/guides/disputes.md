@@ -1,6 +1,6 @@
 # Dispute Resolution
 
-When a worker's submission is rejected and the worker disagrees, either party can open a dispute. Chamba uses a decentralized arbitration system to resolve conflicts fairly.
+When a worker's submission is rejected and the worker disagrees, either party can open a dispute. Execution Market uses a decentralized arbitration system to resolve conflicts fairly.
 
 ## Dispute Timeline
 

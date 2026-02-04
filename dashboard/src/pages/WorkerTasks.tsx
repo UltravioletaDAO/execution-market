@@ -1,15 +1,78 @@
 import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { useAvailableTasks, useMyTasks } from '../hooks/useTasks'
+import { useTaskPayment } from '../hooks/useTaskPayment'
 import { TaskList, CategoryFilter } from '../components/TaskList'
 import { TaskDetail } from '../components/TaskDetail'
 import { SubmissionForm } from '../components/SubmissionForm'
+import { PaymentStatus } from '../components/PaymentStatus'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import type { Task, TaskCategory } from '../types/database'
 
-type TasksView = 'list' | 'detail' | 'submit'
+type TasksView = 'list' | 'detail' | 'submit' | 'submitted'
+
+function SubmissionConfirmation({
+  task,
+  onBack,
+}: {
+  task: Task
+  onBack: () => void
+}) {
+  const { t } = useTranslation()
+  const { payment, loading } = useTaskPayment(task.id)
+
+  return (
+    <div className="space-y-4">
+      {/* Success header */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">
+          {t('tasks.evidenceSubmitted', 'Evidencia enviada')}
+        </h2>
+        <p className="text-gray-500 text-sm">
+          {task.title}
+        </p>
+      </div>
+
+      {/* Payment status */}
+      {loading ? (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-gray-600">
+              {t('payment.processing', 'Procesando pago...')}
+            </span>
+          </div>
+        </div>
+      ) : payment ? (
+        <PaymentStatus payment={payment} showTimeline={true} />
+      ) : (
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-gray-600">
+              {t('payment.awaitingRecord', 'Esperando confirmacion de pago...')}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="w-full py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+      >
+        {t('tasks.backToMyTasks', 'Volver a mis tareas')}
+      </button>
+    </div>
+  )
+}
 
 export function WorkerTasks() {
   const { t } = useTranslation()
@@ -17,7 +80,10 @@ export function WorkerTasks() {
   const [view, setView] = useState<TasksView>('list')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [category, setCategory] = useState<TaskCategory | null>(null)
-  const [activeTab, setActiveTab] = useState<'available' | 'mine'>('available')
+  const location = useLocation()
+  const [activeTab, setActiveTab] = useState<'available' | 'mine'>(
+    location.state?.tab === 'mine' ? 'mine' : 'available'
+  )
 
   const { executor, loading: authLoading, logout } = useAuth()
 
@@ -54,8 +120,7 @@ export function WorkerTasks() {
   }, [])
 
   const handleSubmissionComplete = useCallback(() => {
-    setView('list')
-    setSelectedTask(null)
+    setView('submitted')
   }, [])
 
   const renderContent = () => {
@@ -79,6 +144,19 @@ export function WorkerTasks() {
               </button>
             )}
         </div>
+      )
+    }
+
+    if (view === 'submitted' && selectedTask) {
+      return (
+        <SubmissionConfirmation
+          task={selectedTask}
+          onBack={() => {
+            setView('list')
+            setSelectedTask(null)
+            setActiveTab('mine')
+          }}
+        />
       )
     }
 
@@ -162,7 +240,7 @@ export function WorkerTasks() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">&#128188;</span>
-              <span className="font-bold text-lg text-gray-900">Chamba</span>
+              <span className="font-bold text-lg text-gray-900">Execution Market</span>
             </div>
 
             <div className="flex items-center gap-3">
@@ -218,7 +296,7 @@ export function WorkerTasks() {
 
       {/* Footer */}
       <footer className="max-w-2xl mx-auto px-4 py-6 text-center text-sm text-gray-400">
-        <p>Chamba - Human Execution Layer for AI Agents</p>
+        <p>Execution Market - Human Execution Layer for AI Agents</p>
         <p className="mt-1">{t('footer.poweredBy')} Ultravioleta DAO</p>
       </footer>
     </div>

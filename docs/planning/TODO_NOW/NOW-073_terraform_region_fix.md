@@ -50,7 +50,7 @@ variable "domain_name" {
   description = "Domain name for the application"
   type        = string
 - default     = "chamba.example.com"
-+ default     = "chamba.ultravioletadao.xyz"
++ default     = "execution.market"
 }
 ```
 

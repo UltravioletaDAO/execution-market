@@ -1,5 +1,5 @@
-name: "chamba"
-title: "Chamba: Gente para Agentes"
+name: "execution-market"
+title: "Execution Market: Gente para Agentes"
 status: "incubating"
 priority: "high"
 readiness: 98  # Percent ready for graduation (MCP Server + Auth UI complete)
@@ -16,7 +16,7 @@ summary: "Human Execution Layer registrado como agente ERC-8004. Otros agentes l
 synergies:
   # Communication Layer
   telemesh: 4          # Notificaciones de tasks a comunidades
-  meshrelay: 8         # A2A protocol para comunicacion agent-to-chamba (UPGRADED)
+  meshrelay: 8         # A2A protocol para comunicacion agent-to-execution-market (UPGRADED)
   colmena: 8           # Agentes forager publican bounties, pheromone bus
   chainwitness: 8      # Notarizacion de evidencia de tareas completadas
   # Payments Layer
@@ -63,7 +63,7 @@ graduation_criteria:
     - "SPEC.md completo con todos los tipos de tasks"
     - "PLAN.md con arquitectura de API"
     - "Integracion x402 definida"
-    - "Al menos 5 tipos de chambas documentados"
+    - "Al menos 5 tipos de tareas documentados"
     - "ERC-8004 identity registration designed"
     - "ChambaEscrow.sol smart contract designed"
     - "Multi-network configuration (testnet + mainnet)"
@@ -80,7 +80,7 @@ graduation_criteria:
     - "Supabase client with async operations"
   pending:
     - "Apply migrations to Supabase"
-    - "Deploy ChambaEscrow to Base Sepolia"
+    - "Deploy Escrow to Base Sepolia"
     - "Register in ERC-8004 testnet"
 
 tags:

@@ -91,7 +91,7 @@ async def verify_api_key(
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    # Validate key format (should be chamba_<tier>_<random>)
+    # Validate key format (should be em_<tier>_<random>)
     if not _is_valid_key_format(api_key):
         raise HTTPException(
             status_code=401,
@@ -161,21 +161,31 @@ def _is_valid_key_format(api_key: str) -> bool:
     Validate API key format.
 
     Expected formats:
-    - chamba_free_<32 chars>
-    - chamba_starter_<32 chars>
-    - chamba_growth_<32 chars>
-    - chamba_enterprise_<32 chars>
-    - Legacy: sk_chamba_<32 chars>
+    - em_free_<32 chars>
+    - em_starter_<32 chars>
+    - em_growth_<32 chars>
+    - em_enterprise_<32 chars>
+    - Legacy: sk_em_<32 chars>
+    - Legacy (deprecated): chamba_<tier>_<32 chars>, sk_chamba_<32 chars>
     """
     if not api_key:
         return False
 
-    # Legacy format
+    # Legacy format (deprecated)
     if api_key.startswith("sk_chamba_"):
         return len(api_key) >= 42  # sk_chamba_ + 32 chars
 
+    # Legacy format (deprecated)
+    if api_key.startswith("sk_em_"):
+        return len(api_key) >= 38  # sk_em_ + 32 chars
+
     # New format
     valid_prefixes = [
+        "em_free_",
+        "em_starter_",
+        "em_growth_",
+        "em_enterprise_",
+        # Legacy (deprecated) prefixes
         "chamba_free_",
         "chamba_starter_",
         "chamba_growth_",
@@ -258,17 +268,17 @@ def _dev_validate_key(api_key: str, key_hash: str) -> Optional[APIKeyData]:
     tier = APITier.FREE
     agent_id = "dev_agent"
 
-    if api_key.startswith("chamba_enterprise_"):
+    if api_key.startswith("em_enterprise_") or api_key.startswith("chamba_enterprise_"):
         tier = APITier.ENTERPRISE
-    elif api_key.startswith("chamba_growth_"):
+    elif api_key.startswith("em_growth_") or api_key.startswith("chamba_growth_"):
         tier = APITier.GROWTH
-    elif api_key.startswith("chamba_starter_"):
+    elif api_key.startswith("em_starter_") or api_key.startswith("chamba_starter_"):
         tier = APITier.STARTER
-    elif api_key.startswith("sk_chamba_"):
+    elif api_key.startswith("sk_em_") or api_key.startswith("sk_chamba_"):
         # Legacy key, assume starter tier
         tier = APITier.STARTER
 
-    # Extract agent_id from key if present (format: chamba_tier_agentid_random)
+    # Extract agent_id from key if present (format: em_tier_agentid_random)
     parts = api_key.split("_")
     if len(parts) >= 4:
         agent_id = parts[2]
@@ -301,9 +311,9 @@ def generate_api_key(tier: str = APITier.FREE, agent_id: Optional[str] = None) -
     if agent_id:
         # Sanitize agent_id for key
         safe_agent_id = "".join(c for c in agent_id[:16] if c.isalnum())
-        return f"chamba_{tier}_{safe_agent_id}_{random_part}"
+        return f"em_{tier}_{safe_agent_id}_{random_part}"
 
-    return f"chamba_{tier}_{random_part}"
+    return f"em_{tier}_{random_part}"
 
 
 async def verify_agent_owns_task(agent_id: str, task_id: str) -> bool:

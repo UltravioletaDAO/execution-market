@@ -1,7 +1,7 @@
 """
-WebSocket Client for Chamba
+WebSocket Client for Execution Market
 
-A Python client for connecting to and testing the Chamba WebSocket server.
+A Python client for connecting to and testing the Execution Market WebSocket server.
 
 Features:
 - Connect and authenticate
@@ -11,12 +11,12 @@ Features:
 - Event callbacks
 
 Usage:
-    from websocket.client import ChambaWebSocketClient
+    from websocket.client import EMWebSocketClient
 
     async def on_task_created(event):
         print(f"New task: {event['payload']['title']}")
 
-    client = ChambaWebSocketClient(
+    client = EMWebSocketClient(
         url="ws://localhost:8000/ws",
         user_id="agent_123",
         user_type="agent",
@@ -100,12 +100,12 @@ class ReceivedMessage:
         )
 
 
-class ChambaWebSocketClient:
+class EMWebSocketClient:
     """
-    WebSocket client for the Chamba real-time server.
+    WebSocket client for the Execution Market real-time server.
 
     Provides an async interface for connecting to and interacting
-    with the Chamba WebSocket server.
+    with the Execution Market WebSocket server.
     """
 
     def __init__(
@@ -576,7 +576,7 @@ class ChambaWebSocketClient:
 
     # ============== CONTEXT MANAGER ==============
 
-    async def __aenter__(self) -> "ChambaWebSocketClient":
+    async def __aenter__(self) -> "EMWebSocketClient":
         """Async context manager entry."""
         await self.connect()
         return self
@@ -595,7 +595,7 @@ async def connect_and_subscribe(
     rooms: List[str],
     user_type: str = "agent",
     api_key: Optional[str] = None,
-) -> ChambaWebSocketClient:
+) -> EMWebSocketClient:
     """
     Convenience function to connect and subscribe to rooms.
 
@@ -609,7 +609,7 @@ async def connect_and_subscribe(
     Returns:
         Connected and subscribed client
     """
-    client = ChambaWebSocketClient(
+    client = EMWebSocketClient(
         url=url,
         user_id=user_id,
         user_type=user_type,
@@ -632,7 +632,7 @@ async def _main():
     """Simple CLI for testing the WebSocket client."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Chamba WebSocket Client")
+    parser = argparse.ArgumentParser(description="Execution Market WebSocket Client")
     parser.add_argument("--url", default="ws://localhost:8000/ws", help="WebSocket URL")
     parser.add_argument("--user-id", required=True, help="User ID")
     parser.add_argument("--user-type", default="agent", choices=["agent", "worker"])
@@ -650,7 +650,7 @@ async def _main():
         print(f"\n[EVENT] {event.get('event', 'unknown')}")
         print(json.dumps(event.get("payload", {}), indent=2))
 
-    client = ChambaWebSocketClient(
+    client = EMWebSocketClient(
         url=args.url,
         user_id=args.user_id,
         user_type=args.user_type,
@@ -702,7 +702,7 @@ if __name__ == "__main__":
 
 
 __all__ = [
-    "ChambaWebSocketClient",
+    "EMWebSocketClient",
     "ClientConfig",
     "ConnectionState",
     "ReceivedMessage",

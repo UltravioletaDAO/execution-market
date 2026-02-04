@@ -1,10 +1,10 @@
-# Chamba Tech Stack Recommendation
+# Execution Market Tech Stack Recommendation
 
-> NOW-155: Recommended technology stack for Chamba deployment
+> NOW-155: Recommended technology stack for Execution Market deployment
 
 ## Overview
 
-Chamba uses a modern, scalable architecture designed for:
+Execution Market uses a modern, scalable architecture designed for:
 - Real-time task coordination
 - Secure payment processing
 - Evidence verification
@@ -259,8 +259,8 @@ Workflow:
 ### Local Development
 ```bash
 # Clone
-git clone https://github.com/ultravioleta/chamba
-cd chamba
+git clone https://github.com/ultravioleta/execution-market
+cd execution-market
 
 # Backend
 cd mcp_server

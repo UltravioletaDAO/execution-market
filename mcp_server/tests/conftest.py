@@ -1,5 +1,5 @@
 """
-Pytest configuration and fixtures for Chamba MCP Server tests.
+Pytest configuration and fixtures for Execution Market MCP Server tests.
 """
 
 import pytest

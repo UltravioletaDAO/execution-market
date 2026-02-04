@@ -298,9 +298,9 @@ test.describe('Agent Flow', () => {
       // Setup agent session
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_agent_api_key', agent.apiKey);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_agent_api_key', agent.apiKey);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -316,8 +316,8 @@ test.describe('Agent Flow', () => {
     test('should display task list with status filters', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -337,8 +337,8 @@ test.describe('Agent Flow', () => {
     test('should view task details from dashboard', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -359,8 +359,8 @@ test.describe('Agent Flow', () => {
     test('should cancel a published task', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -402,8 +402,8 @@ test.describe('Agent Flow', () => {
     test('should display pending submissions', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -419,8 +419,8 @@ test.describe('Agent Flow', () => {
     test('should view submission details', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -442,8 +442,8 @@ test.describe('Agent Flow', () => {
     test('should view submitted evidence files', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -468,8 +468,8 @@ test.describe('Agent Flow', () => {
     test('should verify auto-check results are displayed', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -504,8 +504,8 @@ test.describe('Agent Flow', () => {
     test('should approve submission with notes', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -546,8 +546,8 @@ test.describe('Agent Flow', () => {
     test('should reject submission with reason', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -583,8 +583,8 @@ test.describe('Agent Flow', () => {
     test('should require rejection reason', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -622,8 +622,8 @@ test.describe('Agent Flow', () => {
     test('should trigger payment after approval', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -653,8 +653,8 @@ test.describe('Agent Flow', () => {
     test('should display escrow balance', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -678,8 +678,8 @@ test.describe('Agent Flow', () => {
     test('should display task analytics', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -699,8 +699,8 @@ test.describe('Agent Flow', () => {
     test('should display completion rate', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -716,8 +716,8 @@ test.describe('Agent Flow', () => {
     test('should display spending summary', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );
@@ -733,8 +733,8 @@ test.describe('Agent Flow', () => {
     test('should display activity feed', async ({ page }) => {
       await page.addInitScript(
         (agent) => {
-          window.localStorage.setItem('chamba_agent_id', agent.agentId);
-          window.localStorage.setItem('chamba_user_role', 'agent');
+          window.localStorage.setItem('em_agent_id', agent.agentId);
+          window.localStorage.setItem('em_user_role', 'agent');
         },
         TEST_USERS.agent
       );

@@ -1,5 +1,5 @@
 """
-Alert Rules and Notification System for Chamba.
+Alert Rules and Notification System for Execution Market.
 
 Production-ready alerting with:
 - Configurable alert rules with thresholds
@@ -291,7 +291,7 @@ class SlackChannel(NotificationChannel):
                     {"title": "Rule", "value": alert.rule_name, "short": True},
                     {"title": "State", "value": alert.state.value, "short": True},
                 ],
-                "footer": "Chamba Alerts",
+                "footer": "Execution Market Alerts",
                 "ts": int(alert.started_at.timestamp())
             }]
         }
@@ -326,7 +326,7 @@ class SlackChannel(NotificationChannel):
                     {"title": "Rule", "value": alert.rule_name, "short": True},
                     {"title": "Duration", "value": duration_str, "short": True},
                 ],
-                "footer": "Chamba Alerts",
+                "footer": "Execution Market Alerts",
                 "ts": int(datetime.now(timezone.utc).timestamp())
             }]
         }
@@ -373,7 +373,7 @@ class PagerDutyChannel(NotificationChannel):
             "payload": {
                 "summary": alert.summary,
                 "severity": self.SEVERITY_MAP.get(alert.severity, "warning"),
-                "source": "chamba",
+                "source": "em",
                 "component": alert.labels.get("component", "api"),
                 "custom_details": {
                     "rule_name": alert.rule_name,
@@ -412,7 +412,7 @@ class PagerDutyChannel(NotificationChannel):
 class LogChannel(NotificationChannel):
     """Log alerts (useful for development and debugging)."""
 
-    def __init__(self, logger_name: str = "chamba.alerts"):
+    def __init__(self, logger_name: str = "em.alerts"):
         self._logger = logging.getLogger(logger_name)
 
     async def send(self, alert: Alert) -> bool:
@@ -726,7 +726,7 @@ class AlertManager:
 
 def create_default_rules() -> List[AlertRule]:
     """
-    Create default alert rules for Chamba.
+    Create default alert rules for Execution Market.
 
     Returns list of AlertRule objects to register with AlertManager.
     """

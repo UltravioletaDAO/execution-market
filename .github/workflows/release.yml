@@ -279,7 +279,7 @@ ${{ needs.prepare-release.outputs.changelog }}" CHANGELOG.md
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Chamba Release Prepared* :package:\n\nVersion: `v${{ needs.prepare-release.outputs.new_version }}`\nType: `${{ inputs.version_type }}`\n\nA draft release has been created. Review and publish when ready."
+                    "text": "*Execution Market Release Prepared* :package:\n\nVersion: `v${{ needs.prepare-release.outputs.new_version }}`\nType: `${{ inputs.version_type }}`\n\nA draft release has been created. Review and publish when ready."
                   }
                 }
               ]

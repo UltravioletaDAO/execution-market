@@ -1,5 +1,5 @@
 -- ============================================================================
--- CHAMBA: Platform Configuration System
+-- EXECUTION MARKET: Platform Configuration System
 -- Migration: 007_platform_config.sql
 -- Description: Dynamic configuration with caching and audit logging
 -- Version: 1.0.0

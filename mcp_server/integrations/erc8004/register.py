@@ -1,7 +1,7 @@
 """
 ERC-8004 Worker Registration
 
-Handles on-chain identity registration for Chamba workers.
+Handles on-chain identity registration for Execution Market workers.
 """
 
 import os
@@ -101,7 +101,7 @@ class ERC8004Registry:
     ERC-8004 Registry client for worker identity management.
 
     Handles registration, lookup, and metadata management for
-    Chamba workers using the ERC-8004 Agent Registry standard.
+    Execution Market workers using the ERC-8004 Agent Registry standard.
     """
 
     # Contract addresses by network
@@ -274,7 +274,7 @@ class ERC8004Registry:
 
         Args:
             token_id: Worker's token ID
-            key: Metadata key (e.g., "chamba_reputation")
+            key: Metadata key (e.g., "em_reputation")
             value: Metadata value as bytes
             gas_limit: Gas limit
 
@@ -386,12 +386,12 @@ def create_worker_metadata(
     """
     return {
         "name": name,
-        "description": bio or f"Chamba worker: {name}",
+        "description": bio or f"Execution Market worker: {name}",
         "image": "",  # Profile image IPFS URI
         "attributes": [
             {"trait_type": "skills", "value": ",".join(skills)},
             {"trait_type": "location", "value": location_hint or "Global"},
-            {"trait_type": "platform", "value": "Chamba"}
+            {"trait_type": "platform", "value": "Execution Market"}
         ],
-        "external_url": f"https://chamba.ultravioletadao.xyz/worker/{name}"
+        "external_url": f"https://execution.market/worker/{name}"
     }

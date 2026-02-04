@@ -1,7 +1,7 @@
 """
-Chamba Task Type Registry
+Execution Market Task Type Registry
 
-Central registry for all task types in the Chamba system.
+Central registry for all task types in the Execution Market system.
 Provides:
 - Registration of task types
 - Lookup by type name

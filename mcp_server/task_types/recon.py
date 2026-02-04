@@ -1,5 +1,5 @@
 """
-Chamba Recon - Observation Tasks
+Execution Market Recon - Observation Tasks
 
 Implements task types for observation/reconnaissance tasks:
 - Store checks ("Is Walmart open right now?")
@@ -11,7 +11,7 @@ Implements task types for observation/reconnaissance tasks:
 These are low-cost, high-volume tasks ($0.25 - $5) perfect for bootstrap phase.
 
 NOW-131: Task type tiers (Tier 1 $1-5, Tier 2 $10-30, Tier 3 $50-500)
-NOW-132: Chamba Recon observation tasks
+NOW-132: Execution Market Recon observation tasks
 """
 
 from dataclasses import dataclass, field

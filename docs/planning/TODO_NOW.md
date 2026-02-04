@@ -1,4 +1,4 @@
-# CHAMBA - TODO NOW (Implementable Técnicamente HOY)
+# EXECUTION MARKET - TODO NOW (Implementable Técnicamente HOY)
 
 > **Fecha**: 2026-01-25
 > **Versión**: 2.0.0 (CONSOLIDADO de TODO.md, TODO-1.md, TODO-2.md, TODO_MASTER.md, ARTICLE_V35)
@@ -10,7 +10,7 @@
 
 ## ⚠️ ARCHIVO PRINCIPAL DE DESARROLLO
 
-**ESTE ES EL ÚNICO TODO ACTIVO PARA CHAMBA.**
+**ESTE ES EL ÚNICO TODO ACTIVO PARA EXECUTION MARKET.**
 
 Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 - `_archive/TODO.md` - Archivo original (archivado)
@@ -23,13 +23,13 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 1. Todo nuevo desarrollo se trackea aquí con items `NOW-XXX`
 2. Tests nuevos también tienen items `NOW-XXX` (ej: NOW-193 para tests de A2A)
 3. Al completar un item, marcar `[x]` y agregar `**Status**: DONE - <descripción>`
-4. Este archivo vive en `ideas/chamba/TODO_NOW.md`
+4. Este archivo vive en `ideas/execution-market/TODO_NOW.md`
 
 ---
 
 ## TECNOLOGÍAS DISPONIBLES CONFIRMADAS
 
-| Tecnología | Status | Uso en Chamba |
+| Tecnología | Status | Uso en Execution Market |
 |------------|--------|---------------|
 | **x402-rs** | ✅ LIVE (19 mainnets) | Pagos, escrow, refunds |
 | **ERC-8004** | ✅ Sepolia (Agent ID 469) | Identity, reputation |
@@ -77,7 +77,7 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 **Archivos**: `.github/workflows/deploy.yml` (crear)
 **Steps**: Test → Build → Push ECR → Deploy ECS
 
-### [ ] NOW-006 - Configurar dominio chamba.ultravioleta.xyz
+### [ ] NOW-006 - Configurar dominio execution.market
 **Prioridad**: P0
 **Tech**: Route53, ACM (SSL)
 **Subdomains**: api., app.
@@ -116,8 +116,8 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 - Puerto 443 (HTTPS) → Default al Dashboard
 
 **Routing Rules:**
-- `api.chamba.ultravioleta.xyz` → MCP Server (puerto 8000)
-- `chamba.ultravioleta.xyz` (default) → Dashboard (puerto 80)
+- `api.execution.market` → MCP Server (puerto 8000)
+- `execution.market` (default) → Dashboard (puerto 80)
 
 **ECS Tasks (internos, solo desde ALB):**
 - MCP Server: puerto 8000 (`/health` endpoint)
@@ -138,40 +138,40 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 
 ## 1.1 Worker Tools (Faltan) [NOW-011 a NOW-014]
 
-### [ ] NOW-011 - Implementar chamba_apply_to_task
+### [ ] NOW-011 - Implementar em_apply_to_task
 **Prioridad**: P0
 **Archivo**: `mcp_server/server.py`
 **Params**: task_id, executor_id, message
 
-### [ ] NOW-012 - Implementar chamba_submit_work
+### [ ] NOW-012 - Implementar em_submit_work
 **Prioridad**: P0
 **Archivo**: `mcp_server/server.py`
 **Params**: task_id, executor_id, evidence (JSON)
 
-### [ ] NOW-013 - Implementar chamba_get_my_tasks
+### [ ] NOW-013 - Implementar em_get_my_tasks
 **Prioridad**: P0
 **Archivo**: `mcp_server/server.py`
 **Params**: executor_id, status_filter
 
-### [ ] NOW-014 - Implementar chamba_withdraw_earnings
+### [ ] NOW-014 - Implementar em_withdraw_earnings
 **Prioridad**: P1
 **Dependencias**: x402 integration
 
 ## 1.2 Agent Tools (Mejoras) [NOW-015 a NOW-018]
 
-### [ ] NOW-015 - Implementar chamba_assign_task
+### [ ] NOW-015 - Implementar em_assign_task
 **Prioridad**: P0
 **Archivo**: `mcp_server/server.py`
 
-### [ ] NOW-016 - Mejorar chamba_publish_task con escrow
+### [ ] NOW-016 - Mejorar em_publish_task con escrow
 **Prioridad**: P1
 **Dependencias**: x402-rs SDK
 
-### [ ] NOW-017 - Implementar chamba_batch_create_tasks
+### [ ] NOW-017 - Implementar em_batch_create_tasks
 **Prioridad**: P2
 **Descripción**: Crear múltiples tareas en una llamada
 
-### [ ] NOW-018 - Implementar chamba_get_task_analytics
+### [ ] NOW-018 - Implementar em_get_task_analytics
 **Prioridad**: P2
 **Descripción**: Métricas de tasks por agent
 
@@ -181,7 +181,7 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 
 ## 2.1 Escrow & Payments [NOW-019 a NOW-028]
 
-### [ ] NOW-019 - Registrar Chamba como merchant en x402r
+### [ ] NOW-019 - Registrar Execution Market como merchant en x402r
 **Prioridad**: P0
 **Contract**: MerchantRouter `0xa48E8AdcA504D2f48e5AF6be49039354e922913F`
 **Network**: Base Mainnet
@@ -508,7 +508,7 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 
 ### [x] NOW-083 - Publicar Agent Card actualizado
 **Prioridad**: P1
-**URL**: `https://api.chamba.ultravioleta.xyz/.well-known/agent.json`
+**URL**: `https://api.execution.market/.well-known/agent.json`
 **Status**: DONE - Full A2A Agent Card implementation in `mcp_server/a2a/agent_card.py`:
 - AgentCard dataclass with A2A Protocol 0.3.0 compliance
 - 7 skills defined: publish-task, manage-tasks, review-submissions, worker-management, batch-operations, analytics, payments
@@ -522,9 +522,9 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 **Endpoint**: GET /discovery/agents
 **Status**: DONE - Implemented in `mcp_server/a2a/agent_card.py`
 
-### [ ] NOW-085 - Chamba as Agent Cloud Member
+### [ ] NOW-085 - Execution Market as Agent Cloud Member
 **Prioridad**: P1
-**Descripción**: Deploy Chamba como agent que otros agents llaman
+**Descripción**: Deploy Execution Market como agent que otros agents llaman
 
 ## 6.2 MCP & Webhooks [NOW-086 a NOW-090]
 
@@ -771,12 +771,12 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 **Prioridad**: P0
 **Tiers**: Tier 1 $1-5, Tier 2 $10-30, Tier 3 $50-500
 
-### [ ] NOW-132 - Chamba Recon (observation tasks)
+### [ ] NOW-132 - Execution Market Recon (observation tasks)
 **Prioridad**: P1
 **Archivo**: `mcp_server/task_types/recon.py`
 **Examples**: "Is store open?", "How many in line?"
 
-### [ ] NOW-133 - Chamba Trials (experience testing)
+### [ ] NOW-133 - Execution Market Trials (experience testing)
 **Prioridad**: P2
 **Descripción**: Visit restaurant, test product, report
 
@@ -784,7 +784,7 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 **Prioridad**: P2
 **Descripción**: Agents coordinate last-mile delivery
 
-### [ ] NOW-135 - Chamba Prime (premium tier)
+### [ ] NOW-135 - Execution Market Prime (premium tier)
 **Prioridad**: P2
 **Features**: Background checked, insured, SLA
 
@@ -857,7 +857,7 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 
 ### [ ] NOW-151 - Landing page funcional
 **Prioridad**: P1
-**URL**: chamba.ultravioleta.xyz
+**URL**: execution.market
 
 ### [ ] NOW-152 - Unificar pricing a $0.50 min
 **Prioridad**: P1
@@ -934,7 +934,7 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 
 ### [ ] NOW-170 - Bidirectional value flow
 **Prioridad**: P1
-**Flow**: Chamba completions → describe.net seals → Chamba matching
+**Flow**: Execution Market completions → describe.net seals → Execution Market matching
 
 ---
 
@@ -1035,7 +1035,7 @@ Los siguientes archivos están ARCHIVADOS y NO deben usarse:
 - Enum tests (TransportType, SecurityType, InputOutputMode)
 - Data class serialization (AgentProvider, AgentCapabilities, AgentSkill, AgentInterface, SecurityScheme)
 - AgentCard generation and JSON round-trips
-- get_chamba_skills() validation
+- get_em_skills() validation
 - get_agent_card() with custom/env URLs
 - FastAPI router endpoints (/.well-known/agent.json, /v1/card, /discovery/agents)
 - A2A Protocol compliance checks

@@ -1,10 +1,10 @@
 /**
- * Chamba Service Worker
+ * Execution Market Service Worker
  *
  * Handles offline caching, push notifications, and background sync.
  */
 
-const CACHE_NAME = 'chamba-v1';
+const CACHE_NAME = 'em-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -12,8 +12,8 @@ const STATIC_ASSETS = [
   '/offline.html',
 ];
 
-const API_CACHE = 'chamba-api-v1';
-const IMAGE_CACHE = 'chamba-images-v1';
+const API_CACHE = 'em-api-v1';
+const IMAGE_CACHE = 'em-images-v1';
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
@@ -128,7 +128,7 @@ self.addEventListener('push', (event) => {
       { action: 'view', title: 'View Task' },
       { action: 'dismiss', title: 'Dismiss' },
     ],
-    tag: data.tag || 'chamba-notification',
+    tag: data.tag || 'em-notification',
     renotify: true,
   };
 
@@ -214,7 +214,7 @@ async function syncPendingSubmissions() {
 // Simple IndexedDB wrapper
 function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('chamba-offline', 1);
+    const request = indexedDB.open('em-offline', 1);
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {

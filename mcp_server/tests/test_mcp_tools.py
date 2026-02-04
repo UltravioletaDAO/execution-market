@@ -1,12 +1,12 @@
 """
-Tests for Chamba MCP Server Tools
+Tests for Execution Market MCP Server Tools
 
 Tests covering the main MCP tool implementations:
-- chamba_publish_task: Publishing tasks for human execution
-- chamba_get_tasks: Retrieving and filtering tasks
-- chamba_approve_submission: Approving/rejecting worker submissions
-- chamba_apply_to_task: Workers applying to tasks
-- chamba_submit_work: Workers submitting evidence
+- em_publish_task: Publishing tasks for human execution
+- em_get_tasks: Retrieving and filtering tasks
+- em_approve_submission: Approving/rejecting worker submissions
+- em_apply_to_task: Workers applying to tasks
+- em_submit_work: Workers submitting evidence
 
 Uses pytest-asyncio and mocks for Supabase client.
 """
@@ -156,7 +156,7 @@ def sample_submission(sample_submission_id, sample_task_id, sample_executor_id, 
 
 
 class TestPublishTask:
-    """Tests for chamba_publish_task tool."""
+    """Tests for em_publish_task tool."""
 
     @pytest.mark.asyncio
     async def test_publish_creates_task(self, mock_db, sample_task):
@@ -164,7 +164,7 @@ class TestPublishTask:
         mock_db.create_task.return_value = sample_task
 
         # Import and call the tool implementation directly
-        from server import chamba_publish_task
+        from server import em_publish_task
 
         params = PublishTaskInput(
             agent_id="0x1234567890abcdef1234567890abcdef12345678",
@@ -179,7 +179,7 @@ class TestPublishTask:
         )
 
         with patch("server.db", mock_db):
-            result = await chamba_publish_task(params)
+            result = await em_publish_task(params)
 
         # Verify task was created
         mock_db.create_task.assert_called_once()
@@ -250,7 +250,7 @@ class TestPublishTask:
         """Publishing should return the created task ID."""
         mock_db.create_task.return_value = sample_task
 
-        from server import chamba_publish_task
+        from server import em_publish_task
 
         params = PublishTaskInput(
             agent_id="0x1234567890abcdef1234567890abcdef12345678",
@@ -263,7 +263,7 @@ class TestPublishTask:
         )
 
         with patch("server.db", mock_db):
-            result = await chamba_publish_task(params)
+            result = await em_publish_task(params)
 
         # Should contain the task ID
         assert sample_task["id"] in result
@@ -312,7 +312,7 @@ class TestPublishTask:
 
 
 class TestGetTasks:
-    """Tests for chamba_get_tasks tool."""
+    """Tests for em_get_tasks tool."""
 
     @pytest.mark.asyncio
     async def test_get_tasks_returns_list(self, mock_db, sample_task):
@@ -325,12 +325,12 @@ class TestGetTasks:
             "has_more": False,
         }
 
-        from server import chamba_get_tasks
+        from server import em_get_tasks
 
         params = GetTasksInput(limit=20)
 
         with patch("server.db", mock_db):
-            result = await chamba_get_tasks(params)
+            result = await em_get_tasks(params)
 
         mock_db.get_tasks.assert_called_once()
         # Should contain task info
@@ -347,7 +347,7 @@ class TestGetTasks:
             "has_more": False,
         }
 
-        from server import chamba_get_tasks
+        from server import em_get_tasks
 
         params = GetTasksInput(
             status=TaskStatus.PUBLISHED,
@@ -355,7 +355,7 @@ class TestGetTasks:
         )
 
         with patch("server.db", mock_db):
-            await chamba_get_tasks(params)
+            await em_get_tasks(params)
 
         # Verify status filter was passed
         call_kwargs = mock_db.get_tasks.call_args
@@ -372,7 +372,7 @@ class TestGetTasks:
             "has_more": False,
         }
 
-        from server import chamba_get_tasks
+        from server import em_get_tasks
 
         params = GetTasksInput(
             category=TaskCategory.PHYSICAL_PRESENCE,
@@ -380,7 +380,7 @@ class TestGetTasks:
         )
 
         with patch("server.db", mock_db):
-            await chamba_get_tasks(params)
+            await em_get_tasks(params)
 
         call_kwargs = mock_db.get_tasks.call_args
         assert call_kwargs.kwargs.get("category") == "physical_presence"
@@ -396,7 +396,7 @@ class TestGetTasks:
             "has_more": True,
         }
 
-        from server import chamba_get_tasks
+        from server import em_get_tasks
 
         params = GetTasksInput(
             limit=10,
@@ -404,7 +404,7 @@ class TestGetTasks:
         )
 
         with patch("server.db", mock_db):
-            result = await chamba_get_tasks(params)
+            result = await em_get_tasks(params)
 
         call_kwargs = mock_db.get_tasks.call_args
         assert call_kwargs.kwargs.get("limit") == 10
@@ -421,12 +421,12 @@ class TestGetTasks:
             "has_more": False,
         }
 
-        from server import chamba_get_tasks
+        from server import em_get_tasks
 
         params = GetTasksInput(limit=20)
 
         with patch("server.db", mock_db):
-            result = await chamba_get_tasks(params)
+            result = await em_get_tasks(params)
 
         assert "No tasks found" in result
 
@@ -441,7 +441,7 @@ class TestGetTasks:
             "has_more": False,
         }
 
-        from server import chamba_get_tasks
+        from server import em_get_tasks
 
         params = GetTasksInput(
             limit=20,
@@ -449,7 +449,7 @@ class TestGetTasks:
         )
 
         with patch("server.db", mock_db):
-            result = await chamba_get_tasks(params)
+            result = await em_get_tasks(params)
 
         # Should be valid JSON
         parsed = json.loads(result)
@@ -461,7 +461,7 @@ class TestGetTasks:
 
 
 class TestApproveSubmission:
-    """Tests for chamba_approve_submission tool."""
+    """Tests for em_approve_submission tool."""
 
     @pytest.mark.asyncio
     async def test_approve_updates_status(
@@ -475,7 +475,7 @@ class TestApproveSubmission:
         }
         mock_db.get_task.return_value = sample_task
 
-        from server import chamba_approve_submission
+        from server import em_approve_submission
 
         params = ApproveSubmissionInput(
             submission_id=sample_submission["id"],
@@ -485,7 +485,7 @@ class TestApproveSubmission:
         )
 
         with patch("server.db", mock_db):
-            result = await chamba_approve_submission(params)
+            result = await em_approve_submission(params)
 
         mock_db.update_submission.assert_called_once()
         call_kwargs = mock_db.update_submission.call_args
@@ -502,7 +502,7 @@ class TestApproveSubmission:
             "Not authorized to update this submission"
         )
 
-        from server import chamba_approve_submission
+        from server import em_approve_submission
 
         params = ApproveSubmissionInput(
             submission_id=sample_submission["id"],
@@ -511,7 +511,7 @@ class TestApproveSubmission:
         )
 
         with patch("server.db", mock_db):
-            result = await chamba_approve_submission(params)
+            result = await em_approve_submission(params)
 
         assert "Error" in result
 
@@ -527,7 +527,7 @@ class TestApproveSubmission:
         }
         mock_db.get_task.return_value = sample_task
 
-        from server import chamba_approve_submission
+        from server import em_approve_submission
 
         params = ApproveSubmissionInput(
             submission_id=sample_submission["id"],
@@ -537,7 +537,7 @@ class TestApproveSubmission:
         )
 
         with patch("server.db", mock_db):
-            result = await chamba_approve_submission(params)
+            result = await em_approve_submission(params)
 
         call_kwargs = mock_db.update_submission.call_args
         assert call_kwargs.kwargs.get("verdict") == "disputed"
@@ -555,7 +555,7 @@ class TestApproveSubmission:
         }
         mock_db.get_task.return_value = sample_task
 
-        from server import chamba_approve_submission
+        from server import em_approve_submission
 
         params = ApproveSubmissionInput(
             submission_id=sample_submission["id"],
@@ -565,7 +565,7 @@ class TestApproveSubmission:
         )
 
         with patch("server.db", mock_db):
-            result = await chamba_approve_submission(params)
+            result = await em_approve_submission(params)
 
         call_kwargs = mock_db.update_submission.call_args
         assert call_kwargs.kwargs.get("verdict") == "more_info_requested"
@@ -576,7 +576,7 @@ class TestApproveSubmission:
 
 
 class TestApplyToTask:
-    """Tests for chamba_apply_to_task tool."""
+    """Tests for em_apply_to_task tool."""
 
     @pytest.mark.asyncio
     async def test_apply_creates_application(
@@ -610,7 +610,7 @@ class TestApplyToTask:
         # Get the registered tool and call it
         tool_func = None
         for tool in mcp._tools.values():
-            if tool.name == "chamba_apply_to_task":
+            if tool.name == "em_apply_to_task":
                 tool_func = tool.fn
                 break
 
@@ -641,7 +641,7 @@ class TestApplyToTask:
 
         tool_func = None
         for tool in mcp._tools.values():
-            if tool.name == "chamba_apply_to_task":
+            if tool.name == "em_apply_to_task":
                 tool_func = tool.fn
                 break
 
@@ -671,7 +671,7 @@ class TestApplyToTask:
 
         tool_func = None
         for tool in mcp._tools.values():
-            if tool.name == "chamba_apply_to_task":
+            if tool.name == "em_apply_to_task":
                 tool_func = tool.fn
                 break
 
@@ -701,7 +701,7 @@ class TestApplyToTask:
 
         tool_func = None
         for tool in mcp._tools.values():
-            if tool.name == "chamba_apply_to_task":
+            if tool.name == "em_apply_to_task":
                 tool_func = tool.fn
                 break
 
@@ -715,7 +715,7 @@ class TestApplyToTask:
 
 
 class TestSubmitWork:
-    """Tests for chamba_submit_work tool."""
+    """Tests for em_submit_work tool."""
 
     @pytest.mark.asyncio
     async def test_submit_requires_assignment(self, mock_db, sample_task_id, sample_executor_id):
@@ -746,7 +746,7 @@ class TestSubmitWork:
 
         tool_func = None
         for tool in mcp._tools.values():
-            if tool.name == "chamba_submit_work":
+            if tool.name == "em_submit_work":
                 tool_func = tool.fn
                 break
 
@@ -782,7 +782,7 @@ class TestSubmitWork:
 
         tool_func = None
         for tool in mcp._tools.values():
-            if tool.name == "chamba_submit_work":
+            if tool.name == "em_submit_work":
                 tool_func = tool.fn
                 break
 
@@ -818,7 +818,7 @@ class TestSubmitWork:
 
         tool_func = None
         for tool in mcp._tools.values():
-            if tool.name == "chamba_submit_work":
+            if tool.name == "em_submit_work":
                 tool_func = tool.fn
                 break
 
@@ -871,7 +871,7 @@ class TestSubmitWork:
 
         tool_func = None
         for tool in mcp._tools.values():
-            if tool.name == "chamba_submit_work":
+            if tool.name == "em_submit_work":
                 tool_func = tool.fn
                 break
 
@@ -908,7 +908,7 @@ class TestSubmitWork:
 
         tool_func = None
         for tool in mcp._tools.values():
-            if tool.name == "chamba_submit_work":
+            if tool.name == "em_submit_work":
                 tool_func = tool.fn
                 break
 

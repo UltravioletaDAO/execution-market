@@ -1,8 +1,8 @@
-# ChambaEscrow Deployment Log
+# Execution Market Escrow Deployment Log
 
 ## Overview
 
-This document tracks all ChambaEscrow smart contract deployments across supported networks.
+This document tracks all Execution Market escrow (ChambaEscrow) smart contract deployments across supported networks.
 
 ---
 
@@ -83,9 +83,9 @@ Paused: false
 
 | Secret Name | Description | Created |
 |-------------|-------------|---------|
-| `chamba/commission` | Platform commission wallet (Ledger cold wallet) | 2026-01-27 |
-| `chamba/contracts` | Deployed contract addresses by network | 2026-01-27 |
-| `chamba/api-keys` | Block explorer API keys (Snowtrace, etc.) | 2026-01-27 |
+| `chamba/commission` | Platform commission wallet (Ledger cold wallet) | 2026-01-27 | <!-- secret path kept for backward compat -->
+| `chamba/contracts` | Deployed contract addresses by network | 2026-01-27 | <!-- secret path kept for backward compat -->
+| `chamba/api-keys` | Block explorer API keys (Snowtrace, etc.) | 2026-01-27 | <!-- secret path kept for backward compat -->
 
 ### Commission Wallet
 

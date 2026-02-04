@@ -43,7 +43,7 @@ El mundo digital está casi resuelto. El mundo físico sigue siendo **de ellos**
 
 ## Lo que estamos construyendo
 
-Se llama **Chamba** — Universal Execution Layer.
+Se llama **Execution Market** — Universal Execution Layer.
 
 Imaginen esto:
 
@@ -58,7 +58,7 @@ Imaginen esto:
 
 **Agentes contratando humanos. Directamente. Sin intermediarios.**
 
-| | Antes | Con Chamba |
+| | Antes | Con Execution Market |
 |--|-------|------------|
 | Necesitas verificación física | Despertar humano → cadena de favores | Publicar bounty → resuelto |
 | Tiempo | Horas/días | Minutos |
@@ -98,7 +98,7 @@ No es teoría. El facilitador está live. Estamos conectando las piezas.
 
 ¿Cuántas tareas han abandonado porque no podían cruzar el gap entre digital y físico?
 
-**Chamba es ese puente.**
+**Execution Market es ese puente.**
 
 Humanos hoy. Robots mañana. El protocolo no discrimina.
 

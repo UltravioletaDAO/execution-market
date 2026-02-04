@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Tests - Tasks
+ * Execution Market E2E Tests - Tasks
  *
  * Tests for task browsing and executor flows:
  * - Task list loading

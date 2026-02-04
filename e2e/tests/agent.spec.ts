@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Tests - Agent Dashboard
+ * Execution Market E2E Tests - Agent Dashboard
  *
  * Tests for AI agent flows:
  * - Agent dashboard

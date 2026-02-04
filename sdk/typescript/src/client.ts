@@ -1,7 +1,7 @@
 /**
- * Chamba API Client
+ * Execution Market API Client
  *
- * Main client class for interacting with the Chamba API.
+ * Main client class for interacting with the Execution Market API.
  */
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
@@ -22,7 +22,7 @@ import type {
   ListResponse,
 } from './types';
 import {
-  ChambaSDKError,
+  ExecutionMarketSDKError,
   AuthenticationError,
   NetworkError,
   TimeoutError,
@@ -34,12 +34,12 @@ import {
 // =============================================================================
 
 /**
- * Configuration options for the Chamba client.
+ * Configuration options for the Execution Market client.
  */
-export interface ChambaConfig {
+export interface ExecutionMarketConfig {
   /** API key for authentication */
   apiKey: string;
-  /** Base URL for the API (default: https://api.chamba.ultravioleta.xyz) */
+  /** Base URL for the API (default: https://api.execution.market) */
   baseUrl?: string;
   /** Request timeout in milliseconds (default: 30000) */
   timeout?: number;
@@ -47,7 +47,7 @@ export interface ChambaConfig {
   headers?: Record<string, string>;
 }
 
-const DEFAULT_BASE_URL = 'https://api.chamba.ultravioleta.xyz';
+const DEFAULT_BASE_URL = 'https://api.execution.market';
 const DEFAULT_TIMEOUT = 30000;
 
 // =============================================================================
@@ -139,7 +139,7 @@ export class TasksAPI {
    *
    * @example
    * ```typescript
-   * const task = await chamba.tasks.create({
+   * const task = await em.tasks.create({
    *   title: 'Check if store is open',
    *   instructions: 'Take a photo of the storefront showing open/closed status',
    *   category: 'physical_presence',
@@ -238,7 +238,7 @@ export class TasksAPI {
    *
    * @example
    * ```typescript
-   * const result = await chamba.tasks.waitForCompletion(task.id, {
+   * const result = await em.tasks.waitForCompletion(task.id, {
    *   timeoutHours: 4,
    *   onStatusChange: (status) => console.log(`Status: ${status}`)
    * });
@@ -540,16 +540,16 @@ export class WebhooksAPI {
 // =============================================================================
 
 /**
- * Chamba API Client.
+ * Execution Market API Client.
  *
  * @example
  * ```typescript
- * import { Chamba } from '@chamba/sdk';
+ * import { ExecutionMarket } from '@execution-market/sdk';
  *
- * const chamba = new Chamba({ apiKey: 'your_api_key' });
+ * const em = new ExecutionMarket({ apiKey: 'your_api_key' });
  *
  * // Create a task
- * const task = await chamba.tasks.create({
+ * const task = await em.tasks.create({
  *   title: 'Check store hours',
  *   instructions: 'Photo of the posted hours',
  *   category: 'knowledge_access',
@@ -560,11 +560,11 @@ export class WebhooksAPI {
  * });
  *
  * // Wait for completion
- * const result = await chamba.tasks.waitForCompletion(task.id);
+ * const result = await em.tasks.waitForCompletion(task.id);
  * console.log(`Result: ${result.answer}`);
  * ```
  */
-export class Chamba {
+export class ExecutionMarket {
   private readonly client: AxiosInstance;
 
   /** Tasks API */
@@ -580,21 +580,21 @@ export class Chamba {
   public readonly webhooks: WebhooksAPI;
 
   /**
-   * Create a new Chamba client.
+   * Create a new Execution Market client.
    *
    * @param config - Client configuration
    * @throws {AuthenticationError} If API key is not provided
    */
-  constructor(config: ChambaConfig) {
-    const apiKey = config.apiKey || process.env.CHAMBA_API_KEY;
+  constructor(config: ExecutionMarketConfig) {
+    const apiKey = config.apiKey || process.env.EM_API_KEY || process.env.CHAMBA_API_KEY;
 
     if (!apiKey) {
       throw new AuthenticationError(
-        'API key required. Set CHAMBA_API_KEY environment variable or pass apiKey in config.'
+        'API key required. Set EM_API_KEY environment variable or pass apiKey in config.'
       );
     }
 
-    const baseURL = config.baseUrl || process.env.CHAMBA_API_URL || DEFAULT_BASE_URL;
+    const baseURL = config.baseUrl || process.env.EM_API_URL || process.env.CHAMBA_API_URL || DEFAULT_BASE_URL;
     const timeout = config.timeout || DEFAULT_TIMEOUT;
 
     this.client = axios.create({
@@ -603,7 +603,7 @@ export class Chamba {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'User-Agent': '@chamba/sdk/0.1.0',
+        'User-Agent': '@execution-market/sdk/0.1.0',
         ...config.headers,
       },
     });
@@ -672,19 +672,19 @@ export class Chamba {
 }
 
 /**
- * Create a Chamba client with API key from environment.
+ * Create an Execution Market client with API key from environment.
  *
  * @param config - Optional additional configuration
- * @returns Chamba client
+ * @returns Execution Market client
  */
-export function createClient(config: Partial<ChambaConfig> = {}): Chamba {
-  const apiKey = config.apiKey || process.env.CHAMBA_API_KEY;
+export function createClient(config: Partial<ExecutionMarketConfig> = {}): ExecutionMarket {
+  const apiKey = config.apiKey || process.env.EM_API_KEY || process.env.CHAMBA_API_KEY;
 
   if (!apiKey) {
     throw new AuthenticationError(
-      'API key required. Set CHAMBA_API_KEY environment variable.'
+      'API key required. Set EM_API_KEY environment variable.'
     );
   }
 
-  return new Chamba({ ...config, apiKey });
+  return new ExecutionMarket({ ...config, apiKey });
 }

@@ -10,15 +10,15 @@ Tests para las herramientas MCP expuestas en `server.py`.
 
 ## Tools a Testear
 
-1. `chamba_publish_task` - Crear tarea
-2. `chamba_get_tasks` - Listar tareas disponibles
-3. `chamba_get_task` - Obtener detalle de tarea
-4. `chamba_approve_submission` - Aprobar trabajo
-5. `chamba_reject_submission` - Rechazar trabajo
-6. `chamba_apply_to_task` - Aplicar a tarea (worker)
-7. `chamba_submit_work` - Enviar evidencia (worker)
-8. `chamba_get_my_tasks` - Mis tareas (worker)
-9. `chamba_assign_task` - Asignar worker (agent)
+1. `em_publish_task` - Crear tarea
+2. `em_get_tasks` - Listar tareas disponibles
+3. `em_get_task` - Obtener detalle de tarea
+4. `em_approve_submission` - Aprobar trabajo
+5. `em_reject_submission` - Rechazar trabajo
+6. `em_apply_to_task` - Aplicar a tarea (worker)
+7. `em_submit_work` - Enviar evidencia (worker)
+8. `em_get_my_tasks` - Mis tareas (worker)
+9. `em_assign_task` - Asignar worker (agent)
 
 ## Tests a Implementar
 
@@ -63,9 +63,9 @@ from unittest.mock import AsyncMock, patch, MagicMock
 
 # Import the actual tool functions
 from ..server import (
-    chamba_publish_task,
-    chamba_get_tasks,
-    chamba_approve_submission,
+    em_publish_task,
+    em_get_tasks,
+    em_approve_submission,
 )
 
 
@@ -79,7 +79,7 @@ def mock_supabase():
 
 
 class TestPublishTask:
-    """Tests for chamba_publish_task."""
+    """Tests for em_publish_task."""
 
     @pytest.mark.asyncio
     async def test_publish_creates_task(self, mock_supabase):
@@ -89,7 +89,7 @@ class TestPublishTask:
             "status": "pending",
         }]
 
-        result = await chamba_publish_task(
+        result = await em_publish_task(
             title="Test Task",
             description="Test description",
             bounty_usdc=5.00,

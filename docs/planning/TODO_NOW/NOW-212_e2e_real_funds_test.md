@@ -8,9 +8,9 @@
 - **Razón**: Validar flujo completo antes de lanzar a usuarios reales
 
 ## Objetivo
-Crear un script que simule el flujo completo de un agente usando Chamba con pagos reales:
+Crear un script que simule el flujo completo de un agente usando Execution Market con pagos reales:
 
-1. Agente descubre Chamba via A2A Agent Card
+1. Agente descubre Execution Market via A2A Agent Card
 2. Agente crea tarea con pago real ($0.25 mínimo para test)
 3. Worker (simulado) aplica a la tarea
 4. Agent asigna worker
@@ -97,7 +97,7 @@ from uvd_x402_sdk import create_payment_header
 
 # NUNCA loggear esto completo
 PRIVATE_KEY = os.environ.get("TEST_AGENT_PRIVATE_KEY")
-API_BASE = "https://api.chamba.ultravioletadao.xyz"
+API_BASE = "https://api.execution.market"
 
 async def test_full_lifecycle_with_real_payment():
     """
@@ -162,8 +162,8 @@ async def test_full_lifecycle_with_real_payment():
 - `mcp_server/tests/e2e/test_real_payment.py` - E2E test suite with real payments
 
 **Features**:
-- Disabled by default (set CHAMBA_E2E_REAL_PAYMENTS=true to enable)
-- Dry run mode (CHAMBA_E2E_DRY_RUN=true)
+- Disabled by default (set EXECUTION MARKET_E2E_REAL_PAYMENTS=true to enable)
+- Dry run mode (EXECUTION MARKET_E2E_DRY_RUN=true)
 - Tests: API health, A2A discovery, public config, 402 payment required
 - Fee calculation verification
 - Partial release calculation verification

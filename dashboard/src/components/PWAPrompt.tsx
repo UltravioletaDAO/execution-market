@@ -45,7 +45,7 @@ export function PWAPrompt({ onInstall, onDismiss }: PWAPromptProps) {
         setShowInstallBanner(true)
       } else if (isIOSSafari) {
         // Check if already dismissed this session
-        const iosDismissed = sessionStorage.getItem('chamba-ios-prompt-dismissed')
+        const iosDismissed = sessionStorage.getItem('em-ios-prompt-dismissed')
         if (!iosDismissed) {
           setShowIOSPrompt(true)
         }
@@ -69,7 +69,7 @@ export function PWAPrompt({ onInstall, onDismiss }: PWAPromptProps) {
     setShowInstallBanner(false)
     setShowIOSPrompt(false)
     setDismissed(true)
-    sessionStorage.setItem('chamba-ios-prompt-dismissed', 'true')
+    sessionStorage.setItem('em-ios-prompt-dismissed', 'true')
     onDismiss?.()
   }
 
@@ -108,7 +108,7 @@ export function PWAPrompt({ onInstall, onDismiss }: PWAPromptProps) {
                 {t('pwa.updateAvailable', 'Actualizacion disponible')}
               </p>
               <p className="text-sm text-blue-100 mt-1">
-                {t('pwa.updateMessage', 'Una nueva version de Chamba esta lista')}
+                {t('pwa.updateMessage', 'Una nueva version de Execution Market esta lista')}
               </p>
               <button
                 onClick={handleUpdate}
@@ -134,11 +134,11 @@ export function PWAPrompt({ onInstall, onDismiss }: PWAPromptProps) {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-50 safe-area-bottom">
           <div className="max-w-lg mx-auto flex items-center gap-4">
             <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xl font-bold">C</span>
+              <span className="text-white text-xl font-bold">EM</span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-gray-900">
-                {t('pwa.installTitle', 'Instalar Chamba')}
+                {t('pwa.installTitle', 'Instalar Execution Market')}
               </p>
               <p className="text-sm text-gray-500 truncate">
                 {t('pwa.installSubtitle', 'Accede mas rapido desde tu pantalla de inicio')}
@@ -169,11 +169,11 @@ export function PWAPrompt({ onInstall, onDismiss }: PWAPromptProps) {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white text-xl font-bold">C</span>
+                  <span className="text-white text-xl font-bold">EM</span>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">
-                    {t('pwa.installTitle', 'Instalar Chamba')}
+                    {t('pwa.installTitle', 'Instalar Execution Market')}
                   </p>
                   <p className="text-sm text-gray-500">
                     {t('pwa.addToHome', 'Agregar a pantalla de inicio')}

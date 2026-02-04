@@ -5,7 +5,7 @@ interface SettingsProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chamba.ultravioletadao.xyz'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 async function fetchConfig(adminKey: string) {
   const response = await fetch(`${API_BASE}/api/v1/admin/config?admin_key=${adminKey}`)
@@ -72,7 +72,7 @@ function ConfigInput({
           </span>
           <button
             onClick={() => setEditing(true)}
-            className="text-chamba-400 hover:text-chamba-300 text-sm"
+            className="text-em-400 hover:text-em-300 text-sm"
           >
             Edit
           </button>
@@ -115,7 +115,7 @@ function ConfigInput({
         <button
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending}
-          className="bg-chamba-600 hover:bg-chamba-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+          className="bg-em-600 hover:bg-em-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
         >
           {mutation.isPending ? '...' : 'Save'}
         </button>

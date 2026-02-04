@@ -95,7 +95,7 @@ async function geocodeAddress(
       )}&limit=1`,
       {
         headers: {
-          'User-Agent': 'Chamba Dashboard',
+          'User-Agent': 'Execution Market Dashboard',
         },
       }
     );
@@ -125,7 +125,7 @@ async function reverseGeocode(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
       {
         headers: {
-          'User-Agent': 'Chamba Dashboard',
+          'User-Agent': 'Execution Market Dashboard',
         },
       }
     );

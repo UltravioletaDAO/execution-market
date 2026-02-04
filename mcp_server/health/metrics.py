@@ -1,5 +1,5 @@
 """
-Prometheus Metrics for Chamba
+Prometheus Metrics for Execution Market
 
 Provides metrics collection and exposition for monitoring:
 - Request count by endpoint and status
@@ -237,13 +237,13 @@ class Histogram:
 
 # Request metrics
 REQUEST_COUNT = Counter(
-    name="chamba_requests_total",
+    name="em_requests_total",
     description="Total number of requests by endpoint and status",
     labels=("endpoint", "method", "status"),
 )
 
 REQUEST_LATENCY = Histogram(
-    name="chamba_request_duration_seconds",
+    name="em_request_duration_seconds",
     description="Request duration in seconds",
     labels=("endpoint", "method"),
     buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
@@ -251,64 +251,64 @@ REQUEST_LATENCY = Histogram(
 
 # Task metrics
 ACTIVE_TASKS = Gauge(
-    name="chamba_active_tasks",
+    name="em_active_tasks",
     description="Number of active tasks by status",
     labels=("status", "category"),
 )
 
 TASKS_CREATED = Counter(
-    name="chamba_tasks_created_total",
+    name="em_tasks_created_total",
     description="Total tasks created",
     labels=("category",),
 )
 
 TASKS_COMPLETED = Counter(
-    name="chamba_tasks_completed_total",
+    name="em_tasks_completed_total",
     description="Total tasks completed",
     labels=("category",),
 )
 
 # Payment metrics
 ESCROW_BALANCE = Gauge(
-    name="chamba_escrow_balance_usd",
+    name="em_escrow_balance_usd",
     description="Total USD value locked in escrow",
     labels=("token",),
 )
 
 PAYMENTS_RELEASED = Counter(
-    name="chamba_payments_released_total",
+    name="em_payments_released_total",
     description="Total payments released",
     labels=("token",),
 )
 
 PAYMENTS_RELEASED_USD = Counter(
-    name="chamba_payments_released_usd_total",
+    name="em_payments_released_usd_total",
     description="Total USD value of released payments",
     labels=("token",),
 )
 
 # Worker metrics
 ACTIVE_WORKERS = Gauge(
-    name="chamba_active_workers",
+    name="em_active_workers",
     description="Number of active workers",
     labels=(),
 )
 
 SUBMISSIONS_TOTAL = Counter(
-    name="chamba_submissions_total",
+    name="em_submissions_total",
     description="Total submissions by verdict",
     labels=("verdict",),
 )
 
 # System metrics
 HEALTH_CHECK_DURATION = Histogram(
-    name="chamba_health_check_duration_seconds",
+    name="em_health_check_duration_seconds",
     description="Health check duration by component",
     labels=("component",),
 )
 
 COMPONENT_HEALTH = Gauge(
-    name="chamba_component_health",
+    name="em_component_health",
     description="Component health status (1=healthy, 0.5=degraded, 0=unhealthy)",
     labels=("component",),
 )
@@ -332,18 +332,18 @@ class MetricsCollector:
 
     def __init__(self):
         self._metrics: Dict[str, Any] = {
-            "chamba_requests_total": REQUEST_COUNT,
-            "chamba_request_duration_seconds": REQUEST_LATENCY,
-            "chamba_active_tasks": ACTIVE_TASKS,
-            "chamba_tasks_created_total": TASKS_CREATED,
-            "chamba_tasks_completed_total": TASKS_COMPLETED,
-            "chamba_escrow_balance_usd": ESCROW_BALANCE,
-            "chamba_payments_released_total": PAYMENTS_RELEASED,
-            "chamba_payments_released_usd_total": PAYMENTS_RELEASED_USD,
-            "chamba_active_workers": ACTIVE_WORKERS,
-            "chamba_submissions_total": SUBMISSIONS_TOTAL,
-            "chamba_health_check_duration_seconds": HEALTH_CHECK_DURATION,
-            "chamba_component_health": COMPONENT_HEALTH,
+            "em_requests_total": REQUEST_COUNT,
+            "em_request_duration_seconds": REQUEST_LATENCY,
+            "em_active_tasks": ACTIVE_TASKS,
+            "em_tasks_created_total": TASKS_CREATED,
+            "em_tasks_completed_total": TASKS_COMPLETED,
+            "em_escrow_balance_usd": ESCROW_BALANCE,
+            "em_payments_released_total": PAYMENTS_RELEASED,
+            "em_payments_released_usd_total": PAYMENTS_RELEASED_USD,
+            "em_active_workers": ACTIVE_WORKERS,
+            "em_submissions_total": SUBMISSIONS_TOTAL,
+            "em_health_check_duration_seconds": HEALTH_CHECK_DURATION,
+            "em_component_health": COMPONENT_HEALTH,
         }
         self._last_refresh: Optional[datetime] = None
         self._refresh_interval = 60  # seconds
@@ -422,21 +422,19 @@ class MetricsCollector:
     async def _refresh_escrow_metrics(self) -> None:
         """Refresh escrow balance metrics."""
         try:
-            # Try to get from escrow manager
-            from integrations.x402.escrow import get_manager
-            manager = get_manager()
-
-            total_by_token: Dict[str, float] = defaultdict(float)
-            for escrow in manager._escrows.values():
-                if escrow.is_active:
-                    total_by_token[escrow.token.value] += float(escrow.remaining_amount)
-
-            for token, amount in total_by_token.items():
-                ESCROW_BALANCE.set(amount, labels={"token": token})
-
-            # Set zero for tokens with no balance
-            for token in ["USDC", "EURC", "DAI", "USDT"]:
-                if token not in total_by_token:
+            # Try to get escrow status via SDK health check
+            from integrations.x402.sdk_client import get_sdk, check_sdk_available
+            if check_sdk_available():
+                sdk = get_sdk()
+                health = await sdk.health_check()
+                # SDK doesn't track per-token balances locally;
+                # set a marker metric to indicate SDK is healthy
+                if health.get("facilitator_healthy"):
+                    ESCROW_BALANCE.set(1, labels={"token": "USDC"})
+                else:
+                    ESCROW_BALANCE.set(0, labels={"token": "USDC"})
+            else:
+                for token in ["USDC", "EURC", "DAI", "USDT"]:
                     ESCROW_BALANCE.set(0, labels={"token": token})
 
         except Exception as e:
@@ -479,9 +477,9 @@ class MetricsCollector:
         if hasattr(self, "_start_time"):
             uptime = (datetime.now(timezone.utc) - self._start_time).total_seconds()
             lines.extend([
-                "# HELP chamba_uptime_seconds Service uptime in seconds",
-                "# TYPE chamba_uptime_seconds counter",
-                f"chamba_uptime_seconds {uptime:.2f}",
+                "# HELP em_uptime_seconds Service uptime in seconds",
+                "# TYPE em_uptime_seconds counter",
+                f"em_uptime_seconds {uptime:.2f}",
                 ""
             ])
 

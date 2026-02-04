@@ -1,7 +1,7 @@
 /**
  * Analytics Page (NOW-036)
  *
- * Platform-wide analytics and metrics dashboard for Chamba.
+ * Platform-wide analytics and metrics dashboard for Execution Market.
  * Displays:
  * - GMV (Gross Merchandise Value) over time
  * - Task completion rates

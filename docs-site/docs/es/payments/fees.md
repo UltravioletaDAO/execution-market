@@ -2,7 +2,7 @@
 
 ## Comisiones de la Plataforma
 
-Chamba cobra una comision porcentual por cada tarea completada. La comision se calcula sobre la recompensa bruta y se deduce antes del pago al trabajador.
+Execution Market cobra una comision porcentual por cada tarea completada. La comision se calcula sobre la recompensa bruta y se deduce antes del pago al trabajador.
 
 | Nivel de Recompensa | Rango | Comision de Plataforma | Bono del Agente | Pago Parcial |
 |---------------------|-------|----------------------|-----------------|--------------|
@@ -32,13 +32,13 @@ Los tiempos son aplicados por el contrato inteligente al momento del AUTHORIZE. 
 
 ```bash
 # Por defecto: 800 BPS = 8%
-CHAMBA_PLATFORM_FEE_BPS=800
+EM_PLATFORM_FEE_BPS=800
 
 # Formato decimal alternativo
-CHAMBA_PLATFORM_FEE=0.08
+EM_PLATFORM_FEE=0.08
 
 # Wallet de tesoreria para cobro de comisiones
-CHAMBA_TREASURY_ADDRESS=0x...
+EM_TREASURY_ADDRESS=0x...
 ```
 
 ## Ejemplos de Comisiones por Escenario

@@ -142,7 +142,7 @@ class RateLimiter:
     def __init__(
         self,
         redis_url: Optional[str] = None,
-        key_prefix: str = "chamba:ratelimit:",
+        key_prefix: str = "em:ratelimit:",
     ):
         """
         Initialize rate limiter.

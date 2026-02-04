@@ -2,9 +2,9 @@
 """
 Agent Simulation Script - Real Funds Test (NOW-215)
 
-This script simulates an AI agent using Chamba with real payments.
+This script simulates an AI agent using Execution Market with real payments.
 It demonstrates the full lifecycle:
-1. Discover Chamba via A2A Agent Card
+1. Discover Execution Market via A2A Agent Card
 2. Create a task with real x402 payment
 3. Monitor task status
 4. Approve submission when worker completes
@@ -88,12 +88,12 @@ class Config:
 
     # API endpoint (production by default)
     API_BASE = os.environ.get(
-        "CHAMBA_API_URL",
-        "https://api.chamba.ultravioletadao.xyz"
+        "EM_API_URL",
+        "https://api.execution.market"
     )
 
     # AWS Secrets Manager
-    SECRETS_NAME = os.environ.get("CHAMBA_SECRETS_NAME", "chamba/test-agent")
+    SECRETS_NAME = os.environ.get("EM_SECRETS_NAME", "em/test-agent")
     AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 
     # x402 facilitator
@@ -177,11 +177,11 @@ def get_wallet_address(private_key: str) -> str:
 # ============== A2A DISCOVERY ==============
 
 
-async def discover_chamba(client) -> Dict[str, Any]:
+async def discover_em(client) -> Dict[str, Any]:
     """
-    Discover Chamba via A2A Agent Card.
+    Discover Execution Market via A2A Agent Card.
 
-    This simulates how an AI agent would discover Chamba's
+    This simulates how an AI agent would discover Execution Market's
     capabilities before using the service.
     """
     logger.info(f"\n[DISCOVERY] Fetching Agent Card from {Config.API_BASE}...")
@@ -254,7 +254,7 @@ async def generate_payment_header(
         payment_header = await x402.create_payment(
             amount_usd=float(amount_usd),
             token=token,
-            description=f"Chamba task payment: ${amount_usd}"
+            description=f"Execution Market task payment: ${amount_usd}"
         )
 
         logger.info(f"[PAYMENT] Header generated (length: {len(payment_header)})")
@@ -486,7 +486,7 @@ async def run_simulation(
         dry_run: If True, skip real payments
     """
     print("=" * 60)
-    print("CHAMBA AGENT SIMULATION - " + ("DRY RUN" if dry_run else "REAL FUNDS"))
+    print("EM AGENT SIMULATION - " + ("DRY RUN" if dry_run else "REAL FUNDS"))
     print("=" * 60)
     print(f"Bounty: ${bounty}")
     print(f"Network: {network}")
@@ -512,7 +512,7 @@ async def run_simulation(
     async with httpx.AsyncClient(timeout=30.0) as client:
         # 1. Discovery
         try:
-            agent_card = await discover_chamba(client)
+            agent_card = await discover_em(client)
         except Exception as e:
             logger.error(f"Discovery failed: {e}")
             return
@@ -595,7 +595,7 @@ async def run_simulation(
 def main():
     """Parse arguments and run simulation."""
     parser = argparse.ArgumentParser(
-        description="Simulate an AI agent using Chamba with real payments",
+        description="Simulate an AI agent using Execution Market with real payments",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -609,8 +609,8 @@ Examples:
     python simulate_agent.py --dry-run
 
 Environment Variables:
-    CHAMBA_API_URL          API endpoint (default: production)
-    CHAMBA_SECRETS_NAME     AWS Secrets Manager secret name
+    EM_API_URL          API endpoint (default: production)
+    EM_SECRETS_NAME     AWS Secrets Manager secret name
     AWS_REGION              AWS region for Secrets Manager
     X402_FACILITATOR_URL    x402 facilitator URL
 

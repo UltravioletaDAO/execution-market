@@ -1,13 +1,13 @@
-# Chamba Open Source Strategy
+# Execution Market Open Source Strategy
 
-> Documento de estrategia para la liberacion open source del proyecto Chamba.
+> Documento de estrategia para la liberacion open source del proyecto Execution Market.
 > Fecha: 2026-01-24
 
 ---
 
 ## Resumen Ejecutivo
 
-Chamba adoptara un **modelo hibrido** de licenciamiento:
+Execution Market adoptara un **modelo hibrido** de licenciamiento:
 - **Protocol**: MIT License (maximo alcance, adopcion libre)
 - **Platform**: AGPL-3.0 o propietario (proteccion del negocio)
 
@@ -19,7 +19,7 @@ Este enfoque permite que el protocolo se convierta en un estandar abierto mientr
 
 ```
 github.com/UltravioletaDAO/
-├── chamba-protocol/          ← MIT License
+├── execution-market-protocol/          ← MIT License
 │   ├── specs/                # Especificaciones del protocolo
 │   │   ├── task-schema.json  # Formato de tareas
 │   │   ├── verification.md   # Estandar de verificacion
@@ -31,13 +31,13 @@ github.com/UltravioletaDAO/
 │   │   └── verifier/         # Verificador basico
 │   └── examples/             # Ejemplos de integracion
 │
-├── chamba-platform/          ← AGPL-3.0 o Propietario
+├── execution-market-platform/          ← AGPL-3.0 o Propietario
 │   ├── api/                  # Backend de matching
 │   ├── web/                  # Frontend (si aplica)
 │   ├── verification/         # Sistema de verificacion avanzado
 │   └── analytics/            # Metricas y dashboards
 │
-└── chamba-enterprise/        ← Propietario (licencia comercial)
+└── execution-market-enterprise/        ← Propietario (licencia comercial)
     ├── private-pools/        # Pools privados de workers
     ├── points-system/        # Sistema de puntos interno
     └── integrations/         # Integraciones enterprise
@@ -65,7 +65,7 @@ github.com/UltravioletaDAO/
 
 ### Por que AGPL para la Platform
 
-1. **Proteccion anti-cloud**: Si AWS/Azure quieren correr Chamba, deben liberar su codigo
+1. **Proteccion anti-cloud**: Si AWS/Azure quieren correr Execution Market, deben liberar su codigo
 2. **Contribuciones forzadas**: Mejoras de terceros vuelven al proyecto
 3. **Valor diferencial**: La implementacion de Ultravioleta tiene ventaja
 
@@ -87,7 +87,7 @@ BSL 1.1 con conversion a MIT en 3 anios
 ### Fase 1: Especificaciones (Inmediato)
 
 ```yaml
-release: chamba-protocol v0.1
+release: execution-market-protocol v0.1
 license: MIT
 contenido:
   - Task Schema (JSON Schema)
@@ -101,7 +101,7 @@ contenido:
 ### Fase 2: SDKs y Reference Implementation (2-4 semanas)
 
 ```yaml
-release: chamba-protocol v0.2
+release: execution-market-protocol v0.2
 license: MIT
 contenido:
   - MCP Tools (para que agentes publiquen tareas)
@@ -115,7 +115,7 @@ contenido:
 ### Fase 3: Platform Basica (1-2 meses)
 
 ```yaml
-release: chamba-platform v0.1
+release: execution-market-platform v0.1
 license: AGPL-3.0
 contenido:
   - API de matching basica
@@ -172,7 +172,7 @@ Ultravioleta DAO opera el facilitator principal, capturando el 70%.
 
 ### Ingresos Enterprise
 
-- Licencias comerciales para chamba-enterprise
+- Licencias comerciales para execution-market-enterprise
 - Soporte y SLA
 - Custom integrations
 
@@ -203,17 +203,17 @@ Considerar:
 
 Agregar al articulo (seccion "Lo que queremos"):
 
-> **El protocolo sera open source.** Las especificaciones, los schemas, los SDKs — todo estara disponible bajo licencia MIT para que cualquiera pueda construir encima. Queremos que Chamba Protocol se convierta en un estandar, no en un jardin cerrado.
+> **El protocolo sera open source.** Las especificaciones, los schemas, los SDKs — todo estara disponible bajo licencia MIT para que cualquiera pueda construir encima. Queremos que Execution Market Protocol se convierta en un estandar, no en un jardin cerrado.
 >
 > La plataforma que operamos (el marketplace, el matching, la verificacion avanzada) es nuestro negocio. Pero el protocolo es de todos.
 >
-> Si quieres contribuir al diseno del protocolo, estamos en github.com/UltravioletaDAO/chamba-protocol. Los specs todavia se estan definiendo. Tu input importa.
+> Si quieres contribuir al diseno del protocolo, estamos en github.com/UltravioletaDAO/execution-market-protocol. Los specs todavia se estan definiendo. Tu input importa.
 
 ---
 
 ## Proximos Pasos
 
-1. [ ] Crear repo `chamba-protocol` en GitHub
+1. [ ] Crear repo `execution-market-protocol` en GitHub
 2. [ ] Escribir specs iniciales (task schema, verification)
 3. [ ] Definir CLA
 4. [ ] Publicar en articulo la invitacion a contribuir

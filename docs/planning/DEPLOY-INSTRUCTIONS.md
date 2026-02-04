@@ -1,10 +1,10 @@
 # Deploy Instructions
 
-Three deployment targets for Chamba infrastructure.
+Three deployment targets for Execution Market infrastructure.
 
 ---
 
-## 1. Docs Site → docs.chamba.ultravioletadao.xyz
+## 1. Docs Site → docs.execution.market
 
 The documentation site is built with VitePress and deployed as static files to S3 + CloudFront.
 
@@ -21,42 +21,42 @@ npm run build
 
 ```bash
 # Create S3 bucket for docs
-aws s3 mb s3://chamba-docs-site --region us-east-2
+aws s3 mb s3://execution-market-docs-site --region us-east-2
 
 # Enable static website hosting
-aws s3 website s3://chamba-docs-site \
+aws s3 website s3://execution-market-docs-site \
   --index-document index.html \
   --error-document 404.html
 
 # Set bucket policy for public read
-aws s3api put-bucket-policy --bucket chamba-docs-site --policy '{
+aws s3api put-bucket-policy --bucket execution-market-docs-site --policy '{
   "Version": "2012-10-17",
   "Statement": [{
     "Sid": "PublicRead",
     "Effect": "Allow",
     "Principal": "*",
     "Action": "s3:GetObject",
-    "Resource": "arn:aws:s3:::chamba-docs-site/*"
+    "Resource": "arn:aws:s3:::execution-market-docs-site/*"
   }]
 }'
 
 # Request ACM certificate (us-east-1 required for CloudFront)
 aws acm request-certificate \
-  --domain-name docs.chamba.ultravioletadao.xyz \
+  --domain-name docs.execution.market \
   --validation-method DNS \
   --region us-east-1
 
 # Create CloudFront distribution
 aws cloudfront create-distribution \
   --distribution-config '{
-    "CallerReference": "chamba-docs-2026",
-    "Comment": "Chamba Documentation Site",
+    "CallerReference": "execution-market-docs-2026",
+    "Comment": "Execution Market Documentation Site",
     "DefaultRootObject": "index.html",
     "Origins": {
       "Quantity": 1,
       "Items": [{
-        "Id": "S3-chamba-docs-site",
-        "DomainName": "chamba-docs-site.s3-website.us-east-2.amazonaws.com",
+        "Id": "S3-execution-market-docs-site",
+        "DomainName": "execution-market-docs-site.s3-website.us-east-2.amazonaws.com",
         "CustomOriginConfig": {
           "HTTPPort": 80,
           "OriginProtocolPolicy": "http-only"
@@ -64,7 +64,7 @@ aws cloudfront create-distribution \
       }]
     },
     "DefaultCacheBehavior": {
-      "TargetOriginId": "S3-chamba-docs-site",
+      "TargetOriginId": "S3-execution-market-docs-site",
       "ViewerProtocolPolicy": "redirect-to-https",
       "AllowedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
       "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
@@ -83,7 +83,7 @@ aws cloudfront create-distribution \
         "ErrorCachingMinTTL": 300
       }]
     },
-    "Aliases": {"Quantity": 1, "Items": ["docs.chamba.ultravioletadao.xyz"]},
+    "Aliases": {"Quantity": 1, "Items": ["docs.execution.market"]},
     "ViewerCertificate": {
       "ACMCertificateArn": "arn:aws:acm:us-east-1:ACCOUNT:certificate/CERT_ID",
       "SSLSupportMethod": "sni-only",
@@ -93,12 +93,12 @@ aws cloudfront create-distribution \
   }'
 
 # Add Route53 record
-# A record: docs.chamba.ultravioletadao.xyz → CloudFront distribution
+# A record: docs.execution.market → CloudFront distribution
 aws route53 change-resource-record-sets --hosted-zone-id ZONE_ID --change-batch '{
   "Changes": [{
     "Action": "UPSERT",
     "ResourceRecordSet": {
-      "Name": "docs.chamba.ultravioletadao.xyz",
+      "Name": "docs.execution.market",
       "Type": "A",
       "AliasTarget": {
         "HostedZoneId": "Z2FDTNDATAQYW2",
@@ -118,12 +118,12 @@ cd docs-site
 npm run build
 
 # Upload to S3
-aws s3 sync docs/.vitepress/dist/ s3://chamba-docs-site/ \
+aws s3 sync docs/.vitepress/dist/ s3://execution-market-docs-site/ \
   --delete \
   --cache-control "public, max-age=86400"
 
 # Set immutable cache for assets
-aws s3 sync docs/.vitepress/dist/assets/ s3://chamba-docs-site/assets/ \
+aws s3 sync docs/.vitepress/dist/assets/ s3://execution-market-docs-site/assets/ \
   --cache-control "public, max-age=31536000, immutable"
 
 # Invalidate CloudFront cache
@@ -160,13 +160,13 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
           aws-region: us-east-2
       - run: |
-          aws s3 sync docs-site/docs/.vitepress/dist/ s3://chamba-docs-site/ --delete
+          aws s3 sync docs-site/docs/.vitepress/dist/ s3://execution-market-docs-site/ --delete
           aws cloudfront create-invalidation --distribution-id ${{ secrets.DOCS_CF_DIST_ID }} --paths "/*"
 ```
 
 ---
 
-## 2. React Dashboard → S3 + CloudFront (chamba.ultravioletadao.xyz)
+## 2. React Dashboard → S3 + CloudFront (execution.market)
 
 Replace the current static landing page with the React dashboard build.
 
@@ -181,12 +181,12 @@ npm run build
 
 ### AWS Infrastructure (One-Time)
 
-The domain `chamba.ultravioletadao.xyz` is already served by CloudFront pointing to an S3 bucket with the old static landing page. To update:
+The domain `execution.market` is already served by CloudFront pointing to an S3 bucket with the old static landing page. To update:
 
 ```bash
 # 1. Identify the existing CloudFront distribution
 aws cloudfront list-distributions --query \
-  "DistributionList.Items[?contains(Aliases.Items, 'chamba.ultravioletadao.xyz')].{Id:Id,Domain:DomainName}" \
+  "DistributionList.Items[?contains(Aliases.Items, 'execution.market')].{Id:Id,Domain:DomainName}" \
   --output table
 
 # 2. Identify the existing S3 bucket (from CloudFront origin config)
@@ -262,7 +262,7 @@ npm run build
 # scripts/deploy-dashboard-s3.sh
 set -euo pipefail
 
-BUCKET="chamba-dashboard-prod"  # or existing bucket name
+BUCKET="execution-market-dashboard-prod"  # or existing bucket name
 CF_DIST_ID="E1XXXXXXXX"
 
 echo "Building dashboard..."
@@ -306,12 +306,12 @@ docker build \
   --build-arg VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
   --build-arg VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
   --target production \
-  -t chamba-dashboard:latest \
+  -t execution-market-dashboard:latest \
   ./dashboard
 
 # Tag and push
-docker tag chamba-dashboard:latest $ECR_REPO/chamba-dashboard:latest
-docker tag chamba-dashboard:latest $ECR_REPO/chamba-dashboard:$(git rev-parse --short HEAD)
+docker tag execution-market-dashboard:latest $ECR_REPO/chamba-dashboard:latest
+docker tag execution-market-dashboard:latest $ECR_REPO/chamba-dashboard:$(git rev-parse --short HEAD)
 docker push $ECR_REPO/chamba-dashboard:latest
 docker push $ECR_REPO/chamba-dashboard:$(git rev-parse --short HEAD)
 ```
@@ -368,7 +368,7 @@ aws ecs describe-services \
   --query "services[0].{Status:status,Running:runningCount,Desired:desiredCount}"
 
 # HTTP health check
-curl -f https://chamba.ultravioletadao.xyz/health
+curl -f https://execution.market/health
 ```
 
 ---
@@ -377,7 +377,7 @@ curl -f https://chamba.ultravioletadao.xyz/health
 
 | Target | Build Command | Deploy Command |
 |--------|--------------|----------------|
-| Docs site | `cd docs-site && npm run build` | `aws s3 sync dist/ s3://chamba-docs-site/ --delete` |
+| Docs site | `cd docs-site && npm run build` | `aws s3 sync dist/ s3://execution-market-docs-site/ --delete` |
 | Dashboard (S3) | `cd dashboard && npm run build` | `aws s3 sync dist/ s3://BUCKET/ --delete` |
 | Dashboard (ECS) | `docker build -f Dockerfile.dashboard` | `aws ecs update-service --force-new-deployment` |
 

@@ -31,7 +31,7 @@ Migrar todos los secrets de variables de entorno hardcodeadas a AWS Secrets Mana
 # Create secrets
 resource "aws_secretsmanager_secret" "supabase" {
   name        = "chamba/${var.environment}/supabase"
-  description = "Supabase credentials for Chamba"
+  description = "Supabase credentials for Execution Market"
 
   tags = {
     Service = "chamba"
@@ -68,7 +68,7 @@ resource "aws_secretsmanager_secret" "anthropic" {
 # IAM policy for ECS to access secrets
 resource "aws_iam_policy" "secrets_access" {
   name        = "chamba-secrets-access"
-  description = "Allow ECS tasks to access Chamba secrets"
+  description = "Allow ECS tasks to access Execution Market secrets"
 
   policy = jsonencode({
     Version = "2012-10-17"

@@ -60,7 +60,7 @@ npx hardhat verify --network mainnet <CONTRACT_ADDRESS> <CONSTRUCTOR_ARGS>
 ### 5. Guardar direcciones
 ```bash
 # Agregar a .env.deployed
-CHAMBA_ESCROW_MAINNET=0x...
+EXECUTION MARKET_ESCROW_MAINNET=0x...
 ```
 
 ## Estimación de Gas

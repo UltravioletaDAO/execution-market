@@ -51,7 +51,7 @@ aws s3 sync . s3://chamba-landing-ultravioleta/ --delete
 ```bash
 # Solicitar certificado
 aws acm request-certificate \
-  --domain-name chamba.ultravioletadao.xyz \
+  --domain-name execution.market \
   --validation-method DNS \
   --region us-east-1
 
@@ -79,7 +79,7 @@ aws cloudfront create-distribution \
 ```bash
 # Obtener CloudFront domain
 CLOUDFRONT_DOMAIN=$(aws cloudfront list-distributions \
-  --query "DistributionList.Items[?Aliases.Items[0]=='chamba.ultravioletadao.xyz'].DomainName" \
+  --query "DistributionList.Items[?Aliases.Items[0]=='execution.market'].DomainName" \
   --output text)
 
 # Crear/actualizar A record como alias a CloudFront
@@ -89,7 +89,7 @@ aws route53 change-resource-record-sets \
     "Changes": [{
       "Action": "UPSERT",
       "ResourceRecordSet": {
-        "Name": "chamba.ultravioletadao.xyz",
+        "Name": "execution.market",
         "Type": "A",
         "AliasTarget": {
           "HostedZoneId": "Z2FDTNDATAQYW2",
@@ -105,7 +105,7 @@ aws route53 change-resource-record-sets \
 
 ```bash
 # Debe retornar 200 OK
-curl -I https://chamba.ultravioletadao.xyz
+curl -I https://execution.market
 
 # Headers esperados
 # X-Cache: Hit from cloudfront

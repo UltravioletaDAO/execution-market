@@ -1,5 +1,5 @@
 """
-OpenAPI Documentation Generator for Chamba API.
+OpenAPI Documentation Generator for Execution Market API.
 
 Provides comprehensive OpenAPI/Swagger documentation with:
 - Complete request/response models
@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class TaskStatus(str, Enum):
-    """Status of a task in the Chamba system."""
+    """Status of a task in the Execution Market system."""
     PUBLISHED = "published"
     ACCEPTED = "accepted"
     IN_PROGRESS = "in_progress"
@@ -236,7 +236,7 @@ class WebhookCreateRequest(BaseModel):
     """Request body for creating a webhook subscription."""
     model_config = ConfigDict(json_schema_extra={
         "example": {
-            "url": "https://your-server.com/chamba/webhook",
+            "url": "https://your-server.com/em/webhook",
             "events": ["task.submitted", "task.completed", "payment.released"],
             "secret": None
         }
@@ -245,7 +245,7 @@ class WebhookCreateRequest(BaseModel):
     url: str = Field(
         ...,
         description="HTTPS URL to receive webhook events. Must be publicly accessible.",
-        examples=["https://your-server.com/chamba/webhook"]
+        examples=["https://your-server.com/em/webhook"]
     )
     events: List[WebhookEventType] = Field(
         ...,
@@ -387,7 +387,7 @@ class SubmissionResponse(BaseModel):
             "executor_id": "worker_456",
             "status": "pending_review",
             "evidence": {
-                "photo": "https://storage.chamba.xyz/evidence/photo_123.jpg",
+                "photo": "https://storage.execution.market/evidence/photo_123.jpg",
                 "gps": {"lat": 25.7617, "lng": -80.1918, "accuracy_meters": 10}
             },
             "pre_check_score": 0.92,
@@ -629,25 +629,25 @@ class DetailedHealthResponse(BaseModel):
 
 def custom_openapi(app: FastAPI) -> Dict[str, Any]:
     """
-    Generate custom OpenAPI schema for Chamba.
+    Generate custom OpenAPI schema for Execution Market.
     """
     if app.openapi_schema:
         return app.openapi_schema
 
     openapi_schema = get_openapi(
-        title="Chamba API",
+        title="Execution Market API",
         version="1.0.0",
         description="""
-# Chamba - Human Execution Layer for AI Agents
+# Execution Market - Human Execution Layer for AI Agents
 
-Chamba enables AI agents to delegate physical-world tasks to human workers
+Execution Market enables AI agents to delegate physical-world tasks to human workers
 through a secure, verifiable marketplace with instant USDC payments.
 
 ## Overview
 
-Chamba bridges the gap between AI capabilities and physical world actions.
+Execution Market bridges the gap between AI capabilities and physical world actions.
 When an AI agent needs something done in the real world (verify a location,
-check product availability, make a phone call), Chamba connects it with
+check product availability, make a phone call), Execution Market connects it with
 human workers who can complete these tasks and provide verified evidence.
 
 ## Authentication
@@ -658,7 +658,7 @@ All API requests require Bearer token authentication:
 Authorization: Bearer YOUR_API_KEY
 ```
 
-Get your API key at [chamba.ultravioletadao.xyz/dashboard](https://chamba.ultravioletadao.xyz/dashboard).
+Get your API key at [execution.market/dashboard](https://execution.market/dashboard).
 
 ## Rate Limits
 
@@ -707,7 +707,7 @@ PUBLISHED --> ACCEPTED --> IN_PROGRESS --> SUBMITTED --> COMPLETED
 
 ## Evidence Verification
 
-Chamba performs automated verification checks on submitted evidence:
+Execution Market performs automated verification checks on submitted evidence:
 
 - **Photo Source**: Verifies photo came from device camera, not gallery
 - **GPS Validation**: Confirms location matches task requirements
@@ -721,24 +721,24 @@ Pre-check scores (0-1) are provided to help agents make approval decisions.
 
 Official SDKs are available:
 
-- **Python**: `pip install chamba-sdk`
-- **TypeScript/Node**: `npm install @chamba/sdk`
+- **Python**: `pip install em-sdk`
+- **TypeScript/Node**: `npm install @execution-market/sdk`
 - **MCP Server**: For Claude and other AI agents
 
 ## Base URL
 
-- **Production**: `https://api.chamba.ultravioletadao.xyz`
-- **Sandbox**: `https://sandbox.api.chamba.ultravioletadao.xyz`
+- **Production**: `https://api.execution.market`
+- **Sandbox**: `https://sandbox.api.execution.market`
 - **Local Dev**: `http://localhost:8000`
         """,
         routes=app.routes,
         tags=[
             {
                 "name": "Tasks",
-                "description": "Create and manage human execution tasks. Tasks are the core unit of work in Chamba - each represents a specific action or verification that needs human completion.",
+                "description": "Create and manage human execution tasks. Tasks are the core unit of work in Execution Market - each represents a specific action or verification that needs human completion.",
                 "externalDocs": {
                     "description": "Task Creation Guide",
-                    "url": "https://docs.chamba.ultravioletadao.xyz/guides/creating-tasks"
+                    "url": "https://docs.execution.market/guides/creating-tasks"
                 }
             },
             {
@@ -790,11 +790,11 @@ Official SDKs are available:
     # Add servers
     openapi_schema["servers"] = [
         {
-            "url": "https://api.chamba.ultravioletadao.xyz",
+            "url": "https://api.execution.market",
             "description": "Production server"
         },
         {
-            "url": "https://sandbox.api.chamba.ultravioletadao.xyz",
+            "url": "https://sandbox.api.execution.market",
             "description": "Sandbox server (test mode)"
         },
         {
@@ -806,19 +806,19 @@ Official SDKs are available:
     # Add external documentation
     openapi_schema["externalDocs"] = {
         "description": "Full Documentation",
-        "url": "https://docs.chamba.ultravioletadao.xyz"
+        "url": "https://docs.execution.market"
     }
 
     # Add logo for ReDoc
     openapi_schema["info"]["x-logo"] = {
-        "url": "https://chamba.ultravioletadao.xyz/logo.png",
-        "altText": "Chamba Logo"
+        "url": "https://execution.market/logo.png",
+        "altText": "Execution Market Logo"
     }
 
     # Add contact info
     openapi_schema["info"]["contact"] = {
-        "name": "Chamba Support",
-        "url": "https://chamba.ultravioletadao.xyz/support",
+        "name": "Execution Market Support",
+        "url": "https://execution.market/support",
         "email": "ultravioletadao@gmail.com"
     }
 
@@ -880,7 +880,7 @@ Official SDKs are available:
                 "executor_id": "worker_456",
                 "status": "pending_review",
                 "evidence": {
-                    "photo": "https://storage.chamba.xyz/evidence/photo_123.jpg",
+                    "photo": "https://storage.execution.market/evidence/photo_123.jpg",
                     "gps": {
                         "lat": 25.7617,
                         "lng": -80.1918,
@@ -1004,7 +1004,7 @@ SUBMISSION_EXAMPLE = {
     "worker_id": "worker_def456",
     "status": "pending_review",
     "evidence": {
-        "photo": "https://storage.chamba.xyz/evidence/photo_abc.jpg",
+        "photo": "https://storage.execution.market/evidence/photo_abc.jpg",
         "text_response": "Store is open. Hours posted on door: 9am-9pm daily."
     },
     "location": {

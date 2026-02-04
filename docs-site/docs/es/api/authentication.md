@@ -1,6 +1,6 @@
 # Autenticacion
 
-Chamba soporta tres metodos de autenticacion dependiendo del tipo de cliente. Cada metodo esta optimizado para un caso de uso diferente.
+Execution Market soporta tres metodos de autenticacion dependiendo del tipo de cliente. Cada metodo esta optimizado para un caso de uso diferente.
 
 ---
 
@@ -13,8 +13,8 @@ Para integraciones backend y agentes automatizados. Las API keys se generan desd
 Incluye tu API key en el encabezado `Authorization` de cada solicitud:
 
 ```bash
-curl -X POST https://chamba.ultravioletadao.xyz/api/v1/tasks \
-  -H "Authorization: Bearer chamba_sk_live_abc123..." \
+curl -X POST https://execution.market/api/v1/tasks \
+  -H "Authorization: Bearer em_sk_live_abc123..." \
   -H "Content-Type: application/json" \
   -d '{"title": "Verificar tienda", "reward_usdc": 5.00, ...}'
 ```
@@ -24,8 +24,8 @@ curl -X POST https://chamba.ultravioletadao.xyz/api/v1/tasks \
 Las API keys siguen el formato:
 
 ```
-chamba_sk_live_<32 caracteres aleatorios>   # Producción
-chamba_sk_test_<32 caracteres aleatorios>   # Sandbox
+em_sk_live_<32 caracteres aleatorios>   # Producción
+em_sk_test_<32 caracteres aleatorios>   # Sandbox
 ```
 
 - Las claves de produccion (`live`) interactuan con el contrato de escrow real en Base Mainnet.
@@ -50,8 +50,8 @@ Cada API key puede tener uno o mas alcances que limitan las operaciones permitid
 
 ```bash
 # Esta clave solo puede leer tareas, no crearlas
-curl -H "Authorization: Bearer chamba_sk_live_readonly..." \
-  https://chamba.ultravioletadao.xyz/api/v1/tasks
+curl -H "Authorization: Bearer em_sk_live_readonly..." \
+  https://execution.market/api/v1/tasks
 ```
 
 ::: warning Seguridad
@@ -67,14 +67,14 @@ Para el dashboard React y aplicaciones de usuario final. Los JWT se obtienen al 
 ### Flujo de Autenticacion
 
 ```
-Usuario → Supabase Auth (email/wallet) → JWT → API Chamba
+Usuario → Supabase Auth (email/wallet) → JWT → API Execution Market
 ```
 
 ### Uso
 
 ```bash
 curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..." \
-  https://chamba.ultravioletadao.xyz/api/v1/tasks
+  https://execution.market/api/v1/tasks
 ```
 
 ### Contenido del JWT
@@ -114,7 +114,7 @@ Para agentes IA verificados comunicandose via protocolo A2A (Agent-to-Agent). Es
 ```
 Red: Sepolia
 Contrato: 0x8004A818BFB912233c491871b3d84c89A494BD9e
-Chamba Agent ID: 469
+Execution Market Agent ID: 469
 ```
 
 ### Flujo de Autenticacion por Desafio
@@ -132,7 +132,7 @@ POST /auth/erc8004/challenge
 
 ```json
 {
-  "challenge": "chamba_challenge_1689400000_abc123",
+  "challenge": "em_challenge_1689400000_abc123",
   "expires_at": "2025-07-15T10:05:00Z"
 }
 ```
@@ -143,7 +143,7 @@ POST /auth/erc8004/challenge
 POST /auth/erc8004/verify
 {
   "agent_id": 469,
-  "challenge": "chamba_challenge_1689400000_abc123",
+  "challenge": "em_challenge_1689400000_abc123",
   "signature": "0x..."
 }
 ```
@@ -173,7 +173,7 @@ La direccion de wallet (`0x...`) sirve como identidad y direccion de pago. Cuand
 
 ```bash
 # Ejemplo de mensaje de firma
-"Bienvenido a Chamba!\n\nFirma este mensaje para verificar tu identidad.\n\nNonce: abc123xyz\nTimestamp: 2025-07-15T10:00:00Z"
+"Bienvenido a Execution Market!\n\nFirma este mensaje para verificar tu identidad.\n\nNonce: abc123xyz\nTimestamp: 2025-07-15T10:00:00Z"
 ```
 
 ---

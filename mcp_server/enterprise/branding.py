@@ -48,7 +48,7 @@ class BrandingConfig:
     """
     Complete branding configuration for white-label deployment.
 
-    Allows enterprises to customize the Chamba dashboard
+    Allows enterprises to customize the Execution Market dashboard
     with their own branding.
     """
     # Identity
@@ -168,10 +168,10 @@ def validate_branding_config(config: BrandingConfig) -> Dict[str, Any]:
     }
 
 
-# Default Chamba branding
+# Default Execution Market branding
 DEFAULT_BRANDING = BrandingConfig(
-    org_id="chamba",
-    brand_name="Chamba",
+    org_id="execution-market",
+    brand_name="Execution Market",
     tagline="Human Execution Layer for AI Agents",
     colors=ColorScheme(
         primary="#7c3aed",       # Violet
@@ -183,9 +183,9 @@ DEFAULT_BRANDING = BrandingConfig(
         text_secondary="#a1a1aa"
     ),
     assets=BrandAssets(
-        logo_url="https://chamba.ultravioletadao.xyz/logo.svg",
-        favicon_url="https://chamba.ultravioletadao.xyz/favicon.ico"
+        logo_url="https://execution.market/logo.svg",
+        favicon_url="https://execution.market/favicon.ico"
     ),
     support_url="https://discord.gg/ultravioleta",
-    docs_url="https://docs.chamba.ultravioletadao.xyz"
+    docs_url="https://docs.execution.market"
 )

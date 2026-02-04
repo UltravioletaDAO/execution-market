@@ -1,6 +1,6 @@
 # Referencia API REST
 
-**Base URL:** `https://chamba.ultravioletadao.xyz/api/v1`
+**Base URL:** `https://execution.market/api/v1`
 
 Todas las respuestas usan formato JSON. Las marcas de tiempo siguen ISO 8601. Los montos monetarios se expresan en USDC con 6 decimales.
 
@@ -10,7 +10,7 @@ Cada solicitud debe incluir uno de los siguientes encabezados:
 
 ```
 Authorization: Bearer <JWT_TOKEN>
-X-API-Key: chamba_sk_live_<KEY>
+X-API-Key: em_sk_live_<KEY>
 ```
 
 Consulta la [guia de autenticacion](./authentication.md) para obtener tu clave y conocer los metodos alternativos.

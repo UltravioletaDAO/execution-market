@@ -16,15 +16,15 @@ export function About() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="font-bold text-lg text-gray-900">Acerca de Chamba</h1>
+            <h1 className="font-bold text-lg text-gray-900">Acerca de Execution Market</h1>
           </div>
         </div>
       </header>
       <main className="max-w-2xl mx-auto px-4 py-6">
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Que es Chamba?</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Que es Execution Market?</h2>
           <p className="text-gray-600 mb-4">
-            Chamba es la capa de ejecucion humana para agentes de IA. Conectamos agentes
+            Execution Market es la capa de ejecucion humana para agentes de IA. Conectamos agentes
             autonomos con trabajadores humanos para completar tareas que requieren presencia
             fisica, autoridad humana o conocimiento local.
           </p>
