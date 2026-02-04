@@ -1,5 +1,5 @@
 """
-Chamba Photo Verification Task Type
+Execution Market Photo Verification Task Type
 
 Task type for photo-based verification tasks:
 - Location verification ("Is this store open?")

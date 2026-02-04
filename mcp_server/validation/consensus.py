@@ -51,7 +51,7 @@ class ConsensusStatus(str, Enum):
 @dataclass
 class Validator:
     """
-    Represents a validator in the Chamba network.
+    Represents a validator in the Execution Market network.
 
     Validators are experienced workers who can verify submissions
     and participate in consensus for disputed or high-value tasks.
@@ -786,7 +786,7 @@ def determine_specialization_from_task_type(task_type: str) -> ValidatorSpeciali
     Map task type to validator specialization.
 
     Args:
-        task_type: Chamba task type
+        task_type: Execution Market task type
 
     Returns:
         Appropriate ValidatorSpecialization

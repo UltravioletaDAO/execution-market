@@ -1,4 +1,4 @@
--- Chamba MCP Server: Performance Indexes
+-- Execution Market MCP Server: Performance Indexes
 -- Migration: 20260125000002_indexes.sql
 -- Description: Indexes for efficient queries on all tables
 

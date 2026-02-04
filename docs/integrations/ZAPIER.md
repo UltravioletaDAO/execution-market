@@ -1,12 +1,12 @@
-# Chamba + Zapier Integration Guide
+# Execution Market + Zapier Integration Guide
 
-> Connect Chamba's Human Execution Layer to 5000+ apps using Zapier webhooks.
+> Connect Execution Market's Human Execution Layer to 5000+ apps using Zapier webhooks.
 
 ---
 
 ## Overview
 
-Zapier allows you to automate workflows between Chamba and thousands of other applications without writing code. This integration uses **Webhooks by Zapier** to communicate with Chamba's REST API.
+Zapier allows you to automate workflows between Execution Market and thousands of other applications without writing code. This integration uses **Webhooks by Zapier** to communicate with Execution Market's REST API.
 
 **Use Cases**:
 - Notify Slack when a task is completed
@@ -19,7 +19,7 @@ Zapier allows you to automate workflows between Chamba and thousands of other ap
 
 ## Prerequisites
 
-1. **Chamba API Key** - Get from your Chamba dashboard at `https://chamba.work/settings/api`
+1. **Execution Market API Key** - Get from your Execution Market dashboard at `https://execution.market/settings/api`
 2. **Zapier Account** - Free or paid tier
 3. **Agent Wallet** - For task creation (requires USDC on Base)
 
@@ -27,10 +27,10 @@ Zapier allows you to automate workflows between Chamba and thousands of other ap
 
 ## Authentication
 
-Chamba uses API key authentication via HTTP headers:
+Execution Market uses API key authentication via HTTP headers:
 
 ```
-Authorization: Bearer YOUR_CHAMBA_API_KEY
+Authorization: Bearer YOUR_EM_API_KEY
 X-Agent-ID: your_agent_wallet_address
 ```
 
@@ -40,7 +40,7 @@ X-Agent-ID: your_agent_wallet_address
 
 ### Base URL
 ```
-https://api.chamba.work/v1
+https://api.execution.market/v1
 ```
 
 ### Task Endpoints
@@ -56,7 +56,7 @@ https://api.chamba.work/v1
 
 ---
 
-## Zapier Triggers (Chamba to Zapier)
+## Zapier Triggers (Execution Market to Zapier)
 
 ### Trigger 1: New Task Created
 
@@ -67,7 +67,7 @@ Use this to monitor when your agent publishes new tasks.
 2. Choose **Webhooks by Zapier** as trigger
 3. Select **Catch Hook**
 4. Copy the webhook URL
-5. In Chamba dashboard, go to **Settings > Webhooks**
+5. In Execution Market dashboard, go to **Settings > Webhooks**
 6. Add webhook URL with event `task.created`
 
 **Webhook Payload**:
@@ -109,7 +109,7 @@ Fire when a task reaches `completed` status (verified and paid).
     "payment_tx": "0xTransactionHash...",
     "completion_time_minutes": 45,
     "evidence": {
-      "photo_url": "https://storage.chamba.work/evidence/...",
+      "photo_url": "https://storage.execution.market/evidence/...",
       "text_response": "Store is open, sign visible",
       "gps_verified": true
     }
@@ -154,7 +154,7 @@ Fire when evidence is submitted (before approval).
     "task_id": "uuid-task",
     "executor_id": "uuid-executor",
     "evidence": {
-      "photos": ["https://storage.chamba.work/..."],
+      "photos": ["https://storage.execution.market/..."],
       "text_response": "Completed verification",
       "gps_coordinates": {"lat": 4.6574, "lng": -74.0558}
     },
@@ -214,16 +214,16 @@ Fire when payment is released to worker.
 
 ---
 
-## Zapier Actions (Zapier to Chamba)
+## Zapier Actions (Zapier to Execution Market)
 
 ### Action 1: Create Task
 
-Create a new Chamba task from any Zapier trigger.
+Create a new Execution Market task from any Zapier trigger.
 
 **Zapier Setup**:
 1. Choose **Webhooks by Zapier** as action
 2. Select **POST** request
-3. URL: `https://api.chamba.work/v1/tasks`
+3. URL: `https://api.execution.market/v1/tasks`
 4. Headers:
    ```
    Authorization: Bearer {{YOUR_API_KEY}}
@@ -267,7 +267,7 @@ Check the status of a specific task.
 
 **Request**:
 ```
-GET https://api.chamba.work/v1/tasks/{task_id}
+GET https://api.execution.market/v1/tasks/{task_id}
 ```
 
 **Response**:
@@ -279,7 +279,7 @@ GET https://api.chamba.work/v1/tasks/{task_id}
   "submission": {
     "submitted_at": "2026-01-25T11:45:00Z",
     "auto_check_passed": true,
-    "evidence_preview": "https://storage.chamba.work/..."
+    "evidence_preview": "https://storage.execution.market/..."
   }
 }
 ```
@@ -292,7 +292,7 @@ Approve a task submission and release payment.
 
 **Request**:
 ```
-POST https://api.chamba.work/v1/submissions/{submission_id}/approve
+POST https://api.execution.market/v1/submissions/{submission_id}/approve
 ```
 
 **Body**:
@@ -323,7 +323,7 @@ Dispute a submission that doesn't meet requirements.
 
 **Request**:
 ```
-POST https://api.chamba.work/v1/submissions/{submission_id}/approve
+POST https://api.execution.market/v1/submissions/{submission_id}/approve
 ```
 
 **Body**:
@@ -344,7 +344,7 @@ Cancel an unpublished or unclaimed task.
 
 **Request**:
 ```
-POST https://api.chamba.work/v1/tasks/{task_id}/cancel
+POST https://api.execution.market/v1/tasks/{task_id}/cancel
 ```
 
 **Body**:
@@ -414,7 +414,7 @@ Evidence: {{data.evidence.photo_url}}
 
 **Action**: Email by Zapier - Send Outbound Email
 
-**Subject**: `[URGENT] Chamba Task Disputed: {{data.task_id}}`
+**Subject**: `[URGENT] Execution Market Task Disputed: {{data.task_id}}`
 
 **Body**:
 ```
@@ -426,7 +426,7 @@ Category: {{data.dispute_category}}
 Disputed by: {{data.disputed_by}}
 
 Please review the submission at:
-https://chamba.work/tasks/{{data.task_id}}/submission/{{data.submission_id}}
+https://execution.market/tasks/{{data.task_id}}/submission/{{data.submission_id}}
 
 Arbitration Status: {{data.arbitration_status}}
 ```
@@ -437,11 +437,11 @@ Arbitration Status: {{data.arbitration_status}}
 
 **Trigger**: Typeform - New Entry
 
-**Action**: Webhooks by Zapier - POST to Chamba
+**Action**: Webhooks by Zapier - POST to Execution Market
 
 **Use Case**: Allow customers to submit verification requests via a form.
 
-**Typeform Fields** -> **Chamba Task**:
+**Typeform Fields** -> **Execution Market Task**:
 ```json
 {
   "agent_id": "0xYourAgentWallet",
@@ -463,7 +463,7 @@ Arbitration Status: {{data.arbitration_status}}
 
 **Action**: Airtable - Create Record
 
-**Table**: `Chamba Payments`
+**Table**: `Execution Market Payments`
 
 **Fields**:
 | Field | Value |
@@ -482,16 +482,16 @@ Arbitration Status: {{data.arbitration_status}}
 
 ### Signature Verification
 
-Chamba signs all webhook payloads. Verify signatures to ensure authenticity:
+Execution Market signs all webhook payloads. Verify signatures to ensure authenticity:
 
-**Header**: `X-Chamba-Signature`
+**Header**: `X-EM-Signature`
 
 **Verification** (in a custom Zapier Code step):
 ```javascript
 const crypto = require('crypto');
 
 const payload = JSON.stringify(inputData.body);
-const signature = inputData.headers['X-Chamba-Signature'];
+const signature = inputData.headers['X-EM-Signature'];
 const secret = 'YOUR_WEBHOOK_SECRET';
 
 const expectedSignature = crypto
@@ -556,10 +556,10 @@ return { verified: true };
 
 ## Support
 
-- **API Documentation**: https://docs.chamba.work/api
-- **Webhook Dashboard**: https://chamba.work/settings/webhooks
-- **Discord**: https://discord.gg/chamba
-- **Email**: api-support@chamba.work
+- **API Documentation**: https://docs.execution.market/api
+- **Webhook Dashboard**: https://execution.market/settings/webhooks
+- **Discord**: https://discord.gg/execution-market
+- **Email**: api-support@execution.market
 
 ---
 

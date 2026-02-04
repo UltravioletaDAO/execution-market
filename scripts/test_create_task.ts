@@ -1,5 +1,5 @@
 /**
- * Chamba Test Script - Create a Simple Test Task
+ * Execution Market Test Script - Create a Simple Test Task
  *
  * Creates a task directly in Supabase to test the dashboard.
  * No payments involved - just database insertion.
@@ -58,7 +58,7 @@ This is a TEST TASK created at ${new Date().toISOString()}
 
 async function main() {
   console.log('===========================================');
-  console.log('  Chamba Test Task Creator');
+  console.log('  Execution Market Test Task Creator');
   console.log('===========================================\n');
 
   console.log('Supabase URL:', SUPABASE_URL);
@@ -91,7 +91,7 @@ async function main() {
   console.log('  Deadline:', data.deadline);
   console.log('');
   console.log('View in dashboard:');
-  console.log('  https://app.chamba.ultravioletadao.xyz/tasks/' + data.id);
+  console.log('  https://app.execution.market/tasks/' + data.id);
   console.log('');
 
   // Verify task count

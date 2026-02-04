@@ -39,7 +39,7 @@ async function main() {
   const chainId = Number((await ethers.provider.getNetwork()).chainId);
 
   console.log("=".repeat(60));
-  console.log("Chamba Escrow Deployment");
+  console.log("Execution Market Escrow Deployment");
   console.log("=".repeat(60));
   console.log(`Network: ${network.name} (chainId: ${chainId})`);
   console.log(`Deployer: ${deployer.address}`);

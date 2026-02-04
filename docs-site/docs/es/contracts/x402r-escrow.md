@@ -1,6 +1,6 @@
 # Escrow x402r
 
-El sistema de escrow x402r es la infraestructura de pagos en produccion utilizada por Chamba en Base. Es parte del ecosistema mas amplio del protocolo x402 mantenido por Ultravioleta DAO.
+El sistema de escrow x402r es la infraestructura de pagos en produccion utilizada por Execution Market en Base. Es parte del ecosistema mas amplio del protocolo x402 mantenido por Ultravioleta DAO.
 
 ## Arquitectura
 
@@ -25,7 +25,7 @@ MerchantRouter ──► DepositRelayFactory ──► Escrow Contract
 
 ### 1. Registro de Comerciante
 
-Chamba se registra como comerciante en el MerchantRouter:
+Execution Market se registra como comerciante en el MerchantRouter:
 
 ```typescript
 const merchantRouter = new Contract("0xa48E8...", abi, signer)
@@ -35,7 +35,7 @@ const factory = new Contract("0x41Cc4...", abi, signer)
 const proxy = await factory.deployProxy(USDC_ADDRESS)
 
 // Register as merchant
-await merchantRouter.registerMerchant(chambaAddress, [proxy])
+await merchantRouter.registerMerchant(emAddress, [proxy])
 ```
 
 ### 2. Autorizacion de Pago

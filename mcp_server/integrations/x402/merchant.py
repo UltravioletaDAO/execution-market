@@ -1,7 +1,7 @@
 """
-x402 Merchant Registration for Chamba (NOW-019, NOW-020)
+x402 Merchant Registration for Execution Market (NOW-019, NOW-020)
 
-Registers Chamba as merchant and deploys relay proxy.
+Registers Execution Market as merchant and deploys relay proxy.
 """
 
 import logging
@@ -77,7 +77,7 @@ class MerchantConfig:
 
 class X402Merchant:
     """
-    Manages Chamba's x402 merchant registration.
+    Manages Execution Market's x402 merchant registration.
 
     Flow:
     1. Register as merchant on MerchantRouter
@@ -108,7 +108,7 @@ class X402Merchant:
         self._relay_cache: Dict[str, str] = {}
 
     async def is_registered(self) -> bool:
-        """Check if Chamba is registered as merchant."""
+        """Check if Execution Market is registered as merchant."""
         return self.router.functions.isMerchant(
             Web3.to_checksum_address(self.merchant_address)
         ).call()
@@ -118,7 +118,7 @@ class X402Merchant:
         tokens: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
-        Register Chamba as x402 merchant (NOW-019).
+        Register Execution Market as x402 merchant (NOW-019).
 
         Args:
             tokens: List of token addresses to accept
@@ -251,8 +251,8 @@ class X402Merchant:
 
 
 # CLI helper
-async def setup_chamba_merchant():
-    """CLI command to setup Chamba merchant."""
+async def setup_em_merchant():
+    """CLI command to setup Execution Market merchant."""
     import os
 
     rpc_url = os.getenv("BASE_RPC_URL", "https://mainnet.base.org")
@@ -274,4 +274,4 @@ async def setup_chamba_merchant():
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(setup_chamba_merchant())
+    asyncio.run(setup_em_merchant())

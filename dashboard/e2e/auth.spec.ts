@@ -1,5 +1,5 @@
 /**
- * Chamba Dashboard - Authentication E2E Tests
+ * Execution Market Dashboard - Authentication E2E Tests
  *
  * Tests for:
  * - Landing page elements
@@ -19,9 +19,9 @@ test.describe('Landing Page', () => {
     await page.goto('/');
   });
 
-  test('displays Chamba branding', async ({ page }) => {
-    // Check for Chamba logo/name in header
-    await expect(page.locator('header')).toContainText('Chamba');
+  test('displays Execution Market branding', async ({ page }) => {
+    // Check for Execution Market logo/name in header
+    await expect(page.locator('header')).toContainText('Execution Market');
   });
 
   test('shows login button when not authenticated', async ({ page }) => {
@@ -337,7 +337,7 @@ test.describe('Role-based Navigation', () => {
 test.describe('Public Pages', () => {
   test('can access about page', async ({ page }) => {
     await page.goto('/about');
-    await expect(page.getByText(/chamba|ultravioleta/i)).toBeVisible();
+    await expect(page.getByText(/execution market|ultravioleta/i)).toBeVisible();
   });
 
   test('can access FAQ page', async ({ page }) => {

@@ -1,10 +1,10 @@
 # x402 Payment Integration
 
-Chamba uses the **x402 protocol** (HTTP 402 Payment Required) for all payments. x402 enables gasless, instant cryptocurrency payments through a facilitator network.
+Execution Market uses the **x402 protocol** (HTTP 402 Payment Required) for all payments. x402 enables gasless, instant cryptocurrency payments through a facilitator network.
 
 ## Integration Layers
 
-Chamba implements x402 through multiple integration layers, each providing different levels of abstraction:
+Execution Market implements x402 through multiple integration layers, each providing different levels of abstraction:
 
 ### Layer 1: Raw X402 Client (`client.py`)
 Direct web3 interaction with x402 contracts. Handles multi-token, multi-network payment creation and verification.
@@ -67,8 +67,8 @@ X402_RPC_URL=https://mainnet.base.org
 X402_PRIVATE_KEY=0x...
 X402_NETWORK=base
 X402R_NETWORK=base-sepolia
-CHAMBA_PLATFORM_FEE_BPS=800
-CHAMBA_TREASURY_ADDRESS=0x...
+EM_PLATFORM_FEE_BPS=800
+EM_TREASURY_ADDRESS=0x...
 ```
 
 ## Dependencies

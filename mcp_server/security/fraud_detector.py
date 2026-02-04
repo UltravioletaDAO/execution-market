@@ -1,7 +1,7 @@
 """
 Fraud Detector - Main Entry Point
 
-Unified fraud detection for Chamba submissions that combines:
+Unified fraud detection for Execution Market submissions that combines:
 - GPS spoofing detection
 - Image manipulation detection
 - Timing anomaly detection

@@ -1,5 +1,5 @@
 """
-Chamba Prime - Premium Worker Tier (NOW-134)
+Execution Market Prime - Premium Worker Tier (NOW-134)
 
 Implements a premium worker tier with:
 - Background checks

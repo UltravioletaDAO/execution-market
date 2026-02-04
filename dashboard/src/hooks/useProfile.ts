@@ -1,4 +1,4 @@
-// Chamba: Profile Data Hooks
+// Execution Market: Profile Data Hooks
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Submission, ReputationLog } from '../types/database'

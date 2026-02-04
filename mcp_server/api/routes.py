@@ -1,5 +1,5 @@
 """
-REST API Routes for Chamba
+REST API Routes for Execution Market
 
 Provides HTTP endpoints in addition to MCP tools.
 Includes agent endpoints (authenticated) and worker endpoints (public/semi-public).
@@ -81,7 +81,7 @@ logger = logging.getLogger(__name__)
 # UUID validation pattern for path parameters
 UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
-router = APIRouter(prefix="/api/v1", tags=["Chamba API"])
+router = APIRouter(prefix="/api/v1", tags=["Execution Market API"])
 
 
 # =============================================================================

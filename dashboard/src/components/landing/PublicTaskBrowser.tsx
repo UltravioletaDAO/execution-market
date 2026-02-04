@@ -1,4 +1,5 @@
 import { useState, forwardRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAvailableTasks } from '../../hooks/useTasks'
 import { useAuth } from '../../context/AuthContext'
@@ -87,7 +88,8 @@ function JobCard({ task, onClick }: { task: Task; onClick: () => void }) {
 export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>(
   function PublicTaskBrowser({ onAuthRequired }, ref) {
     const { t } = useTranslation()
-    const { isAuthenticated } = useAuth()
+    const navigate = useNavigate()
+    const { isAuthenticated, executor } = useAuth()
     const [category, setCategory] = useState<TaskCategory | null>(null)
     const [selectedTask, setSelectedTask] = useState<Task | null>(null)
     const [applyingTask, setApplyingTask] = useState<Task | null>(null)
@@ -99,7 +101,7 @@ export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>
     }
 
     const handleApply = () => {
-      if (!isAuthenticated) {
+      if (!isAuthenticated || !executor) {
         setSelectedTask(null)
         onAuthRequired()
       } else if (selectedTask) {
@@ -110,6 +112,8 @@ export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>
 
     const handleApplicationSuccess = () => {
       setApplyingTask(null)
+      // Navigate to worker dashboard with "My Tasks" tab active
+      navigate('/tasks', { state: { tab: 'mine' } })
     }
 
     return (

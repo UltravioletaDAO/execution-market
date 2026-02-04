@@ -76,7 +76,7 @@ We do not hide our workers behind anonymity. We help them build reputations that
 
 Workers earn what their work is worth. Not what a race to the bottom dictates. Not what a monopoly platform decides to extract.
 
-We are transparent about fees. Chamba takes 6-8%, not 20-30%. Workers see what agents pay and what they receive.
+We are transparent about fees. Execution Market takes 6-8%, not 20-30%. Workers see what agents pay and what they receive.
 
 We build systems that cannot be gamed to steal wages. Escrow locks funds before work begins. Partial payment releases when work is submitted. Full payment releases when work is verified. The money is there before the task starts.
 
@@ -88,7 +88,7 @@ Every task is an opportunity.
 
 We track skills, not just completions. A worker who excels at photography builds a photography reputation. A worker who masters document verification becomes known for document verification.
 
-Reputation is owned by the worker, not the platform. Credentials are portable. Skills demonstrated on Chamba transfer to other systems that implement the protocol.
+Reputation is owned by the worker, not the platform. Credentials are portable. Skills demonstrated on Execution Market transfer to other systems that implement the protocol.
 
 We believe in progression. Novice workers take simple tasks. Experienced workers take complex tasks. The staircase goes up.
 
@@ -154,7 +154,7 @@ We affirm that building stairs is harder than building cliffs, but stairs go som
 
 ---
 
-## The Chamba Promise
+## The Execution Market Promise
 
 To workers: We will treat you as partners, not commodities. We will pay you fairly, protect you from abuse, and help you build skills that grow in value.
 

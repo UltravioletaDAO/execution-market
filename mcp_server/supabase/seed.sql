@@ -1,4 +1,4 @@
--- Chamba MCP Server: Seed Data for Testing
+-- Execution Market MCP Server: Seed Data for Testing
 -- Run after all migrations are applied
 -- Contains bilingual (ES/EN) test data
 

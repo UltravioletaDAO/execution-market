@@ -1,5 +1,5 @@
 """
-Chamba Cascading Tasks (NOW-138)
+Execution Market Cascading Tasks (NOW-138)
 
 Implements parent-child task chains:
 - Task completion triggers child tasks

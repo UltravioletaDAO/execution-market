@@ -140,7 +140,7 @@ class AIVerifier:
         task_type = task.get("task_type", task.get("category", "general"))
         prompt_template = self._get_prompt_for_task_type(task_type)
 
-        return f"""You are a task verification system for Chamba, a platform where humans complete physical tasks for AI agents.
+        return f"""You are a task verification system for Execution Market, a platform where humans complete physical tasks for AI agents.
 
 ## Task Details
 - **Title**: {task.get('title', 'Unknown')}

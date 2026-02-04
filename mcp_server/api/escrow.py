@@ -197,7 +197,7 @@ async def get_payment_extension() -> PaymentExtensionResponse:
     """
     Get the x402r refund extension for payment payloads.
 
-    Agents should include this extension when making payments to Chamba
+    Agents should include this extension when making payments to Execution Market
     to enable trustless refunds via the escrow contract.
 
     Example usage in x402 payment:
@@ -279,13 +279,13 @@ async def get_deposit(
 async def get_merchant_balance(
     merchant: Optional[str] = Query(
         None,
-        description="Merchant address (defaults to Chamba's address)"
+        description="Merchant address (defaults to Execution Market's address)"
     )
 ) -> BalanceResponse:
     """
     Get the USDC balance held in escrow for a merchant.
 
-    If no merchant address is provided, returns Chamba's balance.
+    If no merchant address is provided, returns Execution Market's balance.
     """
     if not X402R_AVAILABLE:
         raise HTTPException(status_code=503, detail="x402r escrow not available")
@@ -327,7 +327,7 @@ async def release_to_worker(
     """
     Release escrowed funds to a worker.
 
-    **Requires authentication**: Only Chamba backend can release funds.
+    **Requires authentication**: Only the Execution Market backend can release funds.
 
     This is called when:
     1. Agent approves a submission
@@ -383,7 +383,7 @@ async def refund_to_agent(
     """
     Refund escrowed funds to the original payer (agent).
 
-    **Requires authentication**: Only Chamba backend can refund.
+    **Requires authentication**: Only the Execution Market backend can refund.
 
     This is called when:
     1. Task is cancelled

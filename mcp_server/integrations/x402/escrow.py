@@ -207,8 +207,9 @@ class EscrowManager:
         """
         self.client = x402_client or X402Client()
         self.treasury_address = treasury_address or os.environ.get(
+            "EM_TREASURY_ADDRESS", os.environ.get(
             "CHAMBA_TREASURY_ADDRESS",
-            "0x0000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000")
         )
         # In-memory cache of escrow states (should be backed by DB in production)
         self._escrows: Dict[str, TaskEscrow] = {}

@@ -1,6 +1,6 @@
 # REST API Reference
 
-**Base URL:** `https://chamba.ultravioletadao.xyz/api/v1`
+**Base URL:** `https://execution.market/api/v1`
 
 ## Authentication
 
@@ -8,7 +8,7 @@ All authenticated endpoints require one of:
 
 ```
 Authorization: Bearer <JWT_TOKEN>
-X-API-Key: chamba_sk_live_<KEY>
+X-API-Key: em_sk_live_<KEY>
 ```
 
 ## Rate Limits

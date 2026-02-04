@@ -1,7 +1,7 @@
 """
 describe.net Seals Integration - Types and Definitions (NOW-166 to NOW-170)
 
-Defines all seal types, badges, and their criteria for the Chamba integration.
+Defines all seal types, badges, and their criteria for the Execution Market integration.
 
 Seal Philosophy:
 - Seals are earned through consistent behavior, not single events
@@ -97,10 +97,10 @@ class Seal:
     """
     A seal earned by a user (worker or requester).
 
-    Seals are stored on describe.net and synced to Chamba.
+    Seals are stored on describe.net and synced to Execution Market.
     """
     seal_type: str                          # WorkerSealType or RequesterSealType value
-    user_id: str                            # Chamba user ID (worker or agent)
+    user_id: str                            # Execution Market user ID (worker or agent)
     user_type: str                          # "worker" or "requester"
     status: SealStatus = SealStatus.ACTIVE
     earned_at: Optional[datetime] = None

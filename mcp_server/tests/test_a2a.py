@@ -9,7 +9,7 @@ Tests cover:
 5. AgentInterface tests - JSONRPC, WebSocket, HTTP+JSON
 6. SecurityScheme tests - bearer, api_key header, api_key query, oauth2
 7. AgentCard tests - minimal card, full card, JSON serialization
-8. get_chamba_skills tests - skills returned, unique IDs, required fields
+8. get_em_skills tests - skills returned, unique IDs, required fields
 9. get_agent_card tests - default URL, custom URL, env URL, includes all sections
 10. FastAPI router tests - /.well-known/agent.json, /v1/card, /discovery/agents endpoints
 11. A2A Compliance tests - protocol version format, required fields per A2A 0.3.0 spec
@@ -39,11 +39,11 @@ from ..a2a.agent_card import (
     SecurityScheme,
     AgentCard,
     # Functions
-    get_chamba_skills,
+    get_em_skills,
     get_agent_card,
     # Constants
     A2A_PROTOCOL_VERSION,
-    CHAMBA_VERSION,
+    EM_VERSION,
     DEFAULT_BASE_URL,
     # Router
     router,
@@ -317,7 +317,7 @@ class TestAgentCard:
         assert data["description"] == "A test agent"
         assert data["url"] == "https://test.example.com"
         assert data["protocolVersion"] == A2A_PROTOCOL_VERSION
-        assert data["version"] == CHAMBA_VERSION
+        assert data["version"] == EM_VERSION
         assert "capabilities" in data
         assert "defaultInputModes" in data
         assert "defaultOutputModes" in data
@@ -393,29 +393,29 @@ class TestAgentCard:
 
 
 # =============================================================================
-# CHAMBA SKILLS TESTS
+# EM SKILLS TESTS
 # =============================================================================
 
-class TestChambaSkills:
-    """Tests for get_chamba_skills() function."""
+class TestEMSkills:
+    """Tests for get_em_skills() function."""
 
     def test_skills_returned(self):
         """Should return list of skills."""
-        skills = get_chamba_skills()
+        skills = get_em_skills()
 
         assert isinstance(skills, list)
         assert len(skills) >= 7  # At least 7 skills defined
 
     def test_skill_ids_unique(self):
         """All skill IDs should be unique."""
-        skills = get_chamba_skills()
+        skills = get_em_skills()
         ids = [s.id for s in skills]
 
         assert len(ids) == len(set(ids))
 
     def test_expected_skills_present(self):
         """Expected skills should be present."""
-        skills = get_chamba_skills()
+        skills = get_em_skills()
         ids = {s.id for s in skills}
 
         assert "publish-task" in ids
@@ -428,7 +428,7 @@ class TestChambaSkills:
 
     def test_skills_have_required_fields(self):
         """All skills should have required fields populated."""
-        skills = get_chamba_skills()
+        skills = get_em_skills()
 
         for skill in skills:
             assert skill.id, f"Skill missing id"
@@ -459,7 +459,7 @@ class TestGetAgentCard:
 
         assert "https://custom.example.com" in card.url
 
-    @patch.dict("os.environ", {"CHAMBA_BASE_URL": "https://env.example.com"})
+    @patch.dict("os.environ", {"EM_BASE_URL": "https://env.example.com"})
     def test_card_with_env_url(self):
         """Card should use environment URL."""
         card = get_agent_card()
@@ -538,7 +538,7 @@ class TestFastAPIRouter:
         assert "X-A2A-Protocol-Version" in response.headers
 
         data = response.json()
-        assert data["name"] == "Chamba"
+        assert data["name"] == "Execution Market"
         assert data["protocolVersion"] == A2A_PROTOCOL_VERSION
 
     def test_well_known_cache_headers(self, client):
@@ -567,7 +567,7 @@ class TestFastAPIRouter:
         assert "discoveredAt" in data
         assert data["total"] == 1
         assert len(data["agents"]) == 1
-        assert data["agents"][0]["name"] == "Chamba"
+        assert data["agents"][0]["name"] == "Execution Market"
 
 
 # =============================================================================
@@ -598,7 +598,7 @@ class TestFastAPIRouterAsync:
         assert "x-a2a-protocol-version" in response.headers
 
         data = response.json()
-        assert data["name"] == "Chamba"
+        assert data["name"] == "Execution Market"
         assert data["protocolVersion"] == A2A_PROTOCOL_VERSION
 
     async def test_well_known_returns_valid_json(self, async_client):
@@ -623,7 +623,7 @@ class TestFastAPIRouterAsync:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["name"] == "Chamba"
+        assert data["name"] == "Execution Market"
 
     async def test_discovery_endpoint_async(self, async_client):
         """/discovery/agents should return list of agents (async)."""
@@ -897,7 +897,7 @@ class TestSerialization:
         parsed = json.loads(json_str)
 
         # Verify key fields preserved
-        assert parsed["name"] == "Chamba"
+        assert parsed["name"] == "Execution Market"
         assert parsed["protocolVersion"] == A2A_PROTOCOL_VERSION
         assert len(parsed["skills"]) >= 7
         assert "provider" in parsed
@@ -1311,7 +1311,7 @@ class TestIntegration:
         card = get_agent_card("https://integration.test.com")
 
         # Verify it has all expected components
-        assert card.name == "Chamba"
+        assert card.name == "Execution Market"
         assert card.provider is not None
         assert len(card.skills) >= 7
         assert len(card.additional_interfaces) >= 3
@@ -1330,15 +1330,15 @@ class TestIntegration:
 
         # Parse back and verify
         parsed = json.loads(json_str)
-        assert parsed["name"] == "Chamba"
+        assert parsed["name"] == "Execution Market"
         assert parsed["protocolVersion"] == A2A_PROTOCOL_VERSION
 
     def test_skills_match_documentation(self):
-        """Skills should match what's documented for Chamba."""
-        skills = get_chamba_skills()
+        """Skills should match what's documented for Execution Market."""
+        skills = get_em_skills()
         skill_ids = {s.id for s in skills}
 
-        # These are the core Chamba operations
+        # These are the core Execution Market operations
         expected_skills = {
             "publish-task",
             "manage-tasks",
@@ -1374,15 +1374,15 @@ class TestIntegration:
                 assert "name" in skill
 
     def test_card_respects_environment_url(self):
-        """Card should use CHAMBA_BASE_URL environment variable."""
+        """Card should use EM_BASE_URL environment variable."""
         import os
 
         # Save original value
-        original = os.environ.get("CHAMBA_BASE_URL")
+        original = os.environ.get("EM_BASE_URL")
 
         try:
             # Set environment variable
-            os.environ["CHAMBA_BASE_URL"] = "https://env-test.example.com"
+            os.environ["EM_BASE_URL"] = "https://env-test.example.com"
 
             # Generate card without explicit URL
             card = get_agent_card()
@@ -1392,20 +1392,20 @@ class TestIntegration:
         finally:
             # Restore original value
             if original:
-                os.environ["CHAMBA_BASE_URL"] = original
+                os.environ["EM_BASE_URL"] = original
             else:
-                os.environ.pop("CHAMBA_BASE_URL", None)
+                os.environ.pop("EM_BASE_URL", None)
 
     def test_card_explicit_url_overrides_env(self):
         """Explicit URL parameter should override environment variable."""
         import os
 
         # Save original value
-        original = os.environ.get("CHAMBA_BASE_URL")
+        original = os.environ.get("EM_BASE_URL")
 
         try:
             # Set environment variable
-            os.environ["CHAMBA_BASE_URL"] = "https://env-test.example.com"
+            os.environ["EM_BASE_URL"] = "https://env-test.example.com"
 
             # Generate card with explicit URL
             card = get_agent_card("https://explicit.example.com")
@@ -1415,6 +1415,6 @@ class TestIntegration:
         finally:
             # Restore original value
             if original:
-                os.environ["CHAMBA_BASE_URL"] = original
+                os.environ["EM_BASE_URL"] = original
             else:
-                os.environ.pop("CHAMBA_BASE_URL", None)
+                os.environ.pop("EM_BASE_URL", None)

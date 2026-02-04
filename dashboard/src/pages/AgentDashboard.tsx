@@ -1,4 +1,4 @@
-// Chamba: Agent Dashboard Page (NOW-034)
+// Execution Market: Agent Dashboard Page (NOW-034)
 // Dashboard for AI agents managing tasks, reviewing submissions, and viewing analytics
 
 import { useState, useCallback, useEffect } from 'react'

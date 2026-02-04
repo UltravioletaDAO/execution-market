@@ -1,10 +1,10 @@
 """
-x402 Integration for Chamba (NOW-019 to NOW-024)
+x402 Integration for Execution Market (NOW-019 to NOW-024)
 
 Provides payment processing via the x402 protocol with multi-token support.
 
 Merchant Setup (NOW-019, NOW-020):
-1. Register Chamba as merchant on MerchantRouter
+1. Register Execution Market as merchant on MerchantRouter
 2. Deploy relay proxy via DepositRelayFactory
 3. Use relay for escrow deposits
 
@@ -45,7 +45,7 @@ from .client import (
     MERCHANT_ROUTER,
     DEPOSIT_RELAY_FACTORY,
     # Convenience functions (client module)
-    create_chamba_escrow,
+    create_em_escrow,
     release_task_payment,
     refund_task_escrow,
 )
@@ -78,7 +78,7 @@ from .merchant import (
     # Merchant registration (NOW-019, NOW-020)
     X402Merchant,
     MerchantConfig,
-    setup_chamba_merchant,
+    setup_em_merchant,
     # Contract addresses (merchant module)
     MERCHANT_ROUTER as MERCHANT_ROUTER_ADDRESS,
     DEPOSIT_RELAY_FACTORY as RELAY_FACTORY_ADDRESS,
@@ -88,12 +88,12 @@ from .merchant import (
 # SDK Integration (NOW-202) - uses official uvd-x402-sdk
 from .sdk_client import (
     # Main SDK wrapper
-    ChambaX402SDK,
+    EMX402SDK,
     # Configuration
-    ChambaPaymentConfig,
+    EMPaymentConfig,
     TaskPaymentResult,
     FACILITATOR_URL,
-    CHAMBA_TREASURY,
+    EM_TREASURY,
     # Setup functions
     get_sdk,
     setup_x402_for_app,
@@ -122,11 +122,11 @@ from .x402r_escrow import (
 )
 
 # Advanced Escrow Integration (PaymentOperator via uvd-x402-sdk)
-# Uses the SDK as abstraction layer: Chamba -> SDK -> Facilitator -> On-chain
+# Uses the SDK as abstraction layer: EM -> SDK -> Facilitator -> On-chain
 try:
     from .advanced_escrow_integration import (
         # Main client
-        ChambaAdvancedEscrow,
+        EMAdvancedEscrow,
         # Types
         PaymentStrategy,
         TaskPayment,
@@ -172,7 +172,7 @@ __all__ = [
     # Merchant registration (NOW-019, NOW-020)
     "X402Merchant",
     "MerchantConfig",
-    "setup_chamba_merchant",
+    "setup_em_merchant",
     # Constants (client)
     "DEFAULT_FACILITATOR_URL",
     "TOKEN_ADDRESSES",
@@ -189,7 +189,7 @@ __all__ = [
     "MINIMUM_PAYOUT",
     "PARTIAL_RELEASE_PERCENT",
     # Convenience functions (client)
-    "create_chamba_escrow",
+    "create_em_escrow",
     "release_task_payment",
     "refund_task_escrow",
     # Convenience functions (escrow manager)
@@ -199,11 +199,11 @@ __all__ = [
     "release_on_approval",
     "refund_on_cancel",
     # SDK Integration (NOW-202)
-    "ChambaX402SDK",
-    "ChambaPaymentConfig",
+    "EMX402SDK",
+    "EMPaymentConfig",
     "TaskPaymentResult",
     "FACILITATOR_URL",
-    "CHAMBA_TREASURY",
+    "EM_TREASURY",
     "get_sdk",
     "setup_x402_for_app",
     "verify_x402_payment",
@@ -227,7 +227,7 @@ __all__ = [
 # Conditionally add Advanced Escrow names only if SDK is available
 if ADVANCED_ESCROW_AVAILABLE:
     __all__ += [
-        "ChambaAdvancedEscrow",
+        "EMAdvancedEscrow",
         "PaymentStrategy",
         "TaskPayment",
         "get_advanced_escrow",

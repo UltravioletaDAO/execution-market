@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Tests - Evidence Submission
+ * Execution Market E2E Tests - Evidence Submission
  *
  * Tests for evidence capture and submission:
  * - Camera capture (mocked)

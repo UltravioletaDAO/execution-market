@@ -1,5 +1,5 @@
 """
-Validation module for Chamba.
+Validation module for Execution Market.
 
 Provides validator consensus mechanisms for submission verification.
 """

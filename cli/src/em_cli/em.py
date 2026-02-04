@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
 """
-Chamba CLI - Command-line interface for Chamba human task execution layer.
+Execution Market CLI - Command-line interface for the Execution Market human task execution layer.
 
 Usage:
-    chamba login --wallet <address>      # Authenticate with wallet
-    chamba logout                        # Remove credentials
-    chamba status                        # Show auth status
+    em login --wallet <address>          # Authenticate with wallet
+    em logout                            # Remove credentials
+    em status                            # Show auth status
 
     # Worker commands
-    chamba tasks list --location "lat,lng" --radius 10
-    chamba tasks apply <task-id>
-    chamba tasks submit <task-id> --evidence <file>
-    chamba tasks my                      # List your tasks
+    em tasks list --location "lat,lng" --radius 10
+    em tasks apply <task-id>
+    em tasks submit <task-id> --evidence <file>
+    em tasks my                          # List your tasks
 
     # Agent commands
-    chamba agent publish --title "..." --bounty 10 --location "lat,lng"
-    chamba agent review <task-id>
-    chamba agent approve <submission-id>
-    chamba agent list                    # List your published tasks
+    em agent publish --title "..." --bounty 10 --location "lat,lng"
+    em agent review <task-id>
+    em agent approve <submission-id>
+    em agent list                        # List your published tasks
 
     # Wallet commands
-    chamba wallet balance               # Check wallet balance
-    chamba wallet withdraw              # Withdraw earnings
+    em wallet balance                    # Check wallet balance
+    em wallet withdraw                   # Withdraw earnings
 """
 
 import sys
@@ -40,7 +40,7 @@ from .config import (
     DEFAULT_API_URL
 )
 from .api import (
-    ChambaAPIClient,
+    EMAPIClient,
     APIError,
     Task,
     TaskCategory,
@@ -91,7 +91,7 @@ class Context:
         self.profile: Optional[str] = None
 
     @property
-    def client(self) -> ChambaAPIClient:
+    def client(self) -> EMAPIClient:
         """Get API client."""
         return get_client()
 
@@ -104,7 +104,7 @@ pass_context = click.make_pass_decorator(Context, ensure=True)
 # ============================================================================
 
 @click.group()
-@click.version_option(version=__version__, prog_name="chamba")
+@click.version_option(version=__version__, prog_name="em")
 @click.option(
     "--output", "-o",
     type=click.Choice(["table", "json", "minimal"]),
@@ -122,7 +122,7 @@ pass_context = click.make_pass_decorator(Context, ensure=True)
 )
 @pass_context
 def cli(ctx: Context, output: str, profile: Optional[str], verbose: bool):
-    """Chamba CLI - Human task execution layer for AI agents."""
+    """Execution Market CLI - Human task execution layer for AI agents."""
     ctx.output_format = output
     ctx.verbose = verbose
     ctx.profile = profile
@@ -131,7 +131,7 @@ def cli(ctx: Context, output: str, profile: Optional[str], verbose: bool):
     if profile:
         config_mgr = get_config_manager()
         if not config_mgr.config.profiles.get(profile):
-            print_error(f"Profile '{profile}' not found. Use 'chamba config profiles' to list.")
+            print_error(f"Profile '{profile}' not found. Use 'em config profiles' to list.")
             sys.exit(1)
         config_mgr.switch_profile(profile)
 
@@ -143,7 +143,7 @@ def cli(ctx: Context, output: str, profile: Optional[str], verbose: bool):
 @cli.command()
 @click.option(
     "--api-key", "-k",
-    help="API key (or set CHAMBA_API_KEY env var)"
+    help="API key (or set EM_API_KEY env var)"
 )
 @click.option(
     "--api-url", "-u",
@@ -168,7 +168,7 @@ def login(
     profile_name: str,
     worker: bool
 ):
-    """Authenticate with Chamba API."""
+    """Authenticate with Execution Market API."""
     config_mgr = get_config_manager()
 
     # Get API key
@@ -191,7 +191,7 @@ def login(
     with spinner("Validating API key..."):
         try:
             # Create temporary client to validate
-            client = ChambaAPIClient(api_key=api_key, base_url=api_url)
+            client = EMAPIClient(api_key=api_key, base_url=api_url)
             # Try to make a simple request
             client._request_with_retry("GET", "/v1/health")
             client.close()
@@ -256,7 +256,7 @@ def config_profiles(ctx: Context):
     profiles = config_mgr.list_profiles()
 
     if not profiles:
-        print_info("No profiles configured. Run 'chamba login' to create one.")
+        print_info("No profiles configured. Run 'em login' to create one.")
         return
 
     if ctx.output_format == OutputFormat.JSON:
@@ -365,7 +365,7 @@ def tasks_list(
     """List tasks, optionally filtered by location."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     # Parse location if provided
@@ -447,7 +447,7 @@ def tasks_create(
     """Create a new task."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login' first.")
+        print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
     try:
@@ -484,7 +484,7 @@ def tasks_status(ctx: Context, task_id: str):
     """Get task status and details."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login' first.")
+        print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
     try:
@@ -511,7 +511,7 @@ def tasks_apply(ctx: Context, task_id: str, message: Optional[str]):
     """Apply to a task (worker)."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --worker' first.")
+        print_error("Not logged in. Run 'em login --worker' first.")
         sys.exit(1)
 
     try:
@@ -541,7 +541,7 @@ def tasks_submit(ctx: Context, task_id: str, evidence: str, notes: Optional[str]
     """Submit evidence for a task (worker)."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --worker' first.")
+        print_error("Not logged in. Run 'em login --worker' first.")
         sys.exit(1)
 
     # Parse evidence
@@ -580,7 +580,7 @@ def tasks_cancel(ctx: Context, task_id: str, reason: Optional[str]):
     """Cancel a task."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login' first.")
+        print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
     if not confirm(f"Cancel task {task_id}?"):
@@ -608,7 +608,7 @@ def tasks_submissions(ctx: Context, task_id: str):
     """View submissions for a task."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login' first.")
+        print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
     try:
@@ -636,7 +636,7 @@ def tasks_approve(ctx: Context, submission_id: str, notes: Optional[str]):
     """Approve a submission."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login' first.")
+        print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
     try:
@@ -663,7 +663,7 @@ def tasks_reject(ctx: Context, submission_id: str, notes: str):
     """Reject a submission."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login' first.")
+        print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
     try:
@@ -696,7 +696,7 @@ def wallet_balance(ctx: Context):
     """Check wallet balance."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login' first.")
+        print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
     try:
@@ -723,7 +723,7 @@ def wallet_withdraw(ctx: Context, amount: Optional[float], destination: Optional
     """Withdraw earnings."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login' first.")
+        print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
     # Get current balance first
@@ -769,7 +769,7 @@ def wallet_transactions(ctx: Context, limit: int, offset: int):
     """View transaction history."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login' first.")
+        print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
     try:
@@ -797,7 +797,7 @@ def analytics(ctx: Context, days: int):
     """View usage analytics."""
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login' first.")
+        print_error("Not logged in. Run 'em login' first.")
         sys.exit(1)
 
     try:
@@ -831,8 +831,8 @@ cli.add_command(agent_group, name="agent")
 
 # Note: tasks_group provides enhanced functionality but we keep the existing
 # tasks group for backward compatibility. The new commands are available at:
-#   - chamba tasks list --location "lat,lng" --radius 10
-#   - chamba tasks my (list your assigned tasks)
+#   - em tasks list --location "lat,lng" --radius 10
+#   - em tasks my (list your assigned tasks)
 
 
 # ============================================================================

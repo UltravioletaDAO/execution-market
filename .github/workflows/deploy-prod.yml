@@ -15,7 +15,7 @@ env:
   ECS_CLUSTER: chamba-production
   ECS_SERVICE_BACKEND: chamba-backend-prod
   ECS_SERVICE_FRONTEND: chamba-frontend-prod
-  PRODUCTION_URL: https://chamba.work
+  PRODUCTION_URL: https://execution.market
 
 jobs:
   validate:
@@ -324,7 +324,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Chamba Production Rollback* :warning:\n\nRelease `${{ github.event.release.tag_name }}` deployment failed.\nServices have been rolled back to previous version.\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
+                    "text": "*Execution Market Production Rollback* :warning:\n\nRelease `${{ github.event.release.tag_name }}` deployment failed.\nServices have been rolled back to previous version.\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
                   }
                 }
               ]
@@ -351,7 +351,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Chamba Production Deployed* :rocket:\n\nVersion: `${{ github.event.release.tag_name }}`\nURL: ${{ env.PRODUCTION_URL }}\n\n${{ github.event.release.html_url }}"
+                    "text": "*Execution Market Production Deployed* :rocket:\n\nVersion: `${{ github.event.release.tag_name }}`\nURL: ${{ env.PRODUCTION_URL }}\n\n${{ github.event.release.html_url }}"
                   }
                 },
                 {
@@ -381,7 +381,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Chamba Production Deployment Failed* :x:\n\nVersion: `${{ github.event.release.tag_name }}`\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
+                    "text": "*Execution Market Production Deployment Failed* :x:\n\nVersion: `${{ github.event.release.tag_name }}`\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
                   }
                 },
                 {

@@ -1,7 +1,7 @@
 """
 ERC-8004 Reputation Management
 
-On-chain reputation storage and queries for Chamba workers.
+On-chain reputation storage and queries for Execution Market workers.
 Uses ERC-8004 metadata for raw score storage and events emission.
 """
 
@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 # Metadata keys for reputation
-REPUTATION_KEY = "chamba_reputation"
-REPUTATION_HISTORY_KEY = "chamba_rep_history"
-TASK_COUNT_KEY = "chamba_task_count"
+REPUTATION_KEY = "em_reputation"
+REPUTATION_HISTORY_KEY = "em_rep_history"
+TASK_COUNT_KEY = "em_task_count"
 
 
 @dataclass

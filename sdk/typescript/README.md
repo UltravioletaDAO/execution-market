@@ -1,33 +1,33 @@
-# @chamba/sdk
+# @execution-market/sdk
 
-> TypeScript SDK for Chamba - Human Execution Layer for AI Agents
+> TypeScript SDK for Execution Market - Human Execution Layer for AI Agents
 
-[![npm version](https://img.shields.io/npm/v/@chamba/sdk.svg)](https://www.npmjs.com/package/@chamba/sdk)
+[![npm version](https://img.shields.io/npm/v/@execution-market/sdk.svg)](https://www.npmjs.com/package/@execution-market/sdk)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Build AI agents that can hire humans for physical tasks. When your AI needs something done in the real world, Chamba connects it with human workers who get paid instantly via USDC.
+Build AI agents that can hire humans for physical tasks. When your AI needs something done in the real world, Execution Market connects it with human workers who get paid instantly via USDC.
 
 ## Installation
 
 ```bash
-npm install @chamba/sdk
+npm install @execution-market/sdk
 # or
-yarn add @chamba/sdk
+yarn add @execution-market/sdk
 # or
-pnpm add @chamba/sdk
+pnpm add @execution-market/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { Chamba } from '@chamba/sdk';
+import { ExecutionMarket } from '@execution-market/sdk';
 
 // Initialize client
-const chamba = new Chamba({ apiKey: 'your_api_key' });
+const em = new ExecutionMarket({ apiKey: 'your_api_key' });
 
 // Create a task
-const task = await chamba.tasks.create({
+const task = await em.tasks.create({
   title: 'Check if store is open',
   instructions: 'Take a photo of the storefront showing open/closed status',
   category: 'physical_presence',
@@ -40,7 +40,7 @@ const task = await chamba.tasks.create({
 console.log(`Task created: ${task.id}`);
 
 // Wait for completion
-const result = await chamba.tasks.waitForCompletion(task.id, {
+const result = await em.tasks.waitForCompletion(task.id, {
   timeoutHours: 4,
   onStatusChange: (status) => console.log(`Status: ${status}`)
 });
@@ -77,7 +77,7 @@ if (result.status === 'completed') {
 ### Creating Tasks
 
 ```typescript
-const task = await chamba.tasks.create({
+const task = await em.tasks.create({
   title: 'Short description',              // Required, 5-255 chars
   instructions: 'Detailed instructions',   // Required, 20-5000 chars
   category: 'physical_presence',           // Required
@@ -95,7 +95,7 @@ const task = await chamba.tasks.create({
 ### Getting Task Status
 
 ```typescript
-const task = await chamba.tasks.get(taskId);
+const task = await em.tasks.get(taskId);
 console.log(task.status);       // published, accepted, submitted, completed
 console.log(task.executorId);   // Worker who accepted
 ```
@@ -103,7 +103,7 @@ console.log(task.executorId);   // Worker who accepted
 ### Listing Tasks
 
 ```typescript
-const { items, total, hasMore } = await chamba.tasks.list({
+const { items, total, hasMore } = await em.tasks.list({
   status: ['published', 'in_progress'],
   category: 'physical_presence',
   limit: 10,
@@ -116,7 +116,7 @@ const { items, total, hasMore } = await chamba.tasks.list({
 
 ```typescript
 // Get submissions for a task
-const submissions = await chamba.submissions.list(taskId);
+const submissions = await em.submissions.list(taskId);
 
 for (const sub of submissions) {
   console.log(`Evidence: ${JSON.stringify(sub.evidence)}`);
@@ -124,9 +124,9 @@ for (const sub of submissions) {
 
   // Approve or reject
   if (sub.preCheckScore > 0.8) {
-    await chamba.submissions.approve(sub.id, 'Looks good!');
+    await em.submissions.approve(sub.id, 'Looks good!');
   } else {
-    await chamba.submissions.reject(sub.id, 'Photo unclear');
+    await em.submissions.reject(sub.id, 'Photo unclear');
   }
 }
 ```
@@ -134,7 +134,7 @@ for (const sub of submissions) {
 ### Batch Operations
 
 ```typescript
-const { tasks, succeeded, failed } = await chamba.tasks.batchCreate([
+const { tasks, succeeded, failed } = await em.tasks.batchCreate([
   { title: 'Check store A', locationHint: 'Miami', ... },
   { title: 'Check store B', locationHint: 'Medellin', ... },
   { title: 'Check store C', locationHint: 'Lagos', ... },
@@ -145,7 +145,7 @@ const { tasks, succeeded, failed } = await chamba.tasks.batchCreate([
 
 ```typescript
 // Subscribe to task updates (polling-based)
-const unsubscribe = chamba.tasks.onUpdate(task.id, (updatedTask) => {
+const unsubscribe = em.tasks.onUpdate(task.id, (updatedTask) => {
   console.log(`Status changed: ${updatedTask.status}`);
 
   if (updatedTask.status === 'submitted') {
@@ -161,8 +161,8 @@ unsubscribe();
 
 ```typescript
 // Create a webhook endpoint
-const webhook = await chamba.webhooks.create({
-  url: 'https://your-server.com/webhooks/chamba',
+const webhook = await em.webhooks.create({
+  url: 'https://your-server.com/webhooks/execution-market',
   events: ['task.completed', 'task.submitted']
 });
 
@@ -170,36 +170,36 @@ const webhook = await chamba.webhooks.create({
 console.log('Webhook secret:', webhook.secret);
 
 // List webhooks
-const { data: webhooks } = await chamba.webhooks.list();
+const { data: webhooks } = await em.webhooks.list();
 
 // Update webhook
-await chamba.webhooks.update(webhook.id, {
+await em.webhooks.update(webhook.id, {
   events: ['task.completed'],
   active: false
 });
 
 // Delete webhook
-await chamba.webhooks.delete(webhook.id);
+await em.webhooks.delete(webhook.id);
 
 // Rotate secret
-const { secret } = await chamba.webhooks.rotateSecret(webhook.id);
+const { secret } = await em.webhooks.rotateSecret(webhook.id);
 ```
 
 #### Webhook Handler Example
 
 ```typescript
 import express from 'express';
-import type { WebhookEvent } from '@chamba/sdk';
+import type { WebhookEvent } from '@execution-market/sdk';
 
 const app = express();
 
 // Use raw body for signature verification
-app.post('/webhooks/chamba', express.raw({ type: 'application/json' }), (req, res) => {
-  const signature = req.headers['x-chamba-signature'] as string;
+app.post('/webhooks/execution-market', express.raw({ type: 'application/json' }), (req, res) => {
+  const signature = req.headers['x-em-signature'] as string;
   const payload = req.body.toString();
 
   // Verify signature
-  if (!chamba.webhooks.verifySignature(payload, signature, WEBHOOK_SECRET)) {
+  if (!em.webhooks.verifySignature(payload, signature, WEBHOOK_SECRET)) {
     return res.status(401).send('Invalid signature');
   }
 
@@ -233,7 +233,7 @@ app.post('/webhooks/chamba', express.raw({ type: 'application/json' }), (req, re
 ### Analytics
 
 ```typescript
-const analytics = await chamba.analytics.get(30); // Last 30 days
+const analytics = await em.analytics.get(30); // Last 30 days
 
 console.log(`Tasks created: ${analytics.tasksCreated}`);
 console.log(`Completion rate: ${analytics.completionRate}%`);
@@ -247,7 +247,7 @@ The SDK includes helpful utility functions for common operations.
 ### Bounty Formatting
 
 ```typescript
-import { formatBounty, parseBounty, isValidBounty } from '@chamba/sdk';
+import { formatBounty, parseBounty, isValidBounty } from '@execution-market/sdk';
 
 // Format bounty for display
 formatBounty(2.5);           // "$2.50 USDC"
@@ -264,7 +264,7 @@ isValidBounty(0.25);         // false
 ### Distance Calculation
 
 ```typescript
-import { calculateDistance, calculateDistanceMiles, isWithinRadius } from '@chamba/sdk';
+import { calculateDistance, calculateDistanceMiles, isWithinRadius } from '@execution-market/sdk';
 
 const miami = { latitude: 25.7617, longitude: -80.1918 };
 const nyc = { latitude: 40.7128, longitude: -74.0060 };
@@ -284,7 +284,7 @@ isWithinRadius(nyc, miami, 100);            // false
 ### Evidence Validation
 
 ```typescript
-import { validateEvidence } from '@chamba/sdk';
+import { validateEvidence } from '@execution-market/sdk';
 
 const evidence = {
   photo: 'https://example.com/photo.jpg',
@@ -309,7 +309,7 @@ console.log(result);
 ### Time Utilities
 
 ```typescript
-import { calculateDeadline, isExpired, timeRemaining, formatTimeRemaining } from '@chamba/sdk';
+import { calculateDeadline, isExpired, timeRemaining, formatTimeRemaining } from '@execution-market/sdk';
 
 // Calculate deadline from hours
 const deadline = calculateDeadline(24);  // Date 24 hours from now
@@ -328,11 +328,11 @@ formatTimeRemaining(deadline);  // "23h 59m remaining"
 ### Retry with Backoff
 
 ```typescript
-import { retryWithBackoff } from '@chamba/sdk';
+import { retryWithBackoff } from '@execution-market/sdk';
 
 // Retry failed operations with exponential backoff
 const task = await retryWithBackoff(
-  () => chamba.tasks.create(taskData),
+  () => em.tasks.create(taskData),
   {
     maxRetries: 3,
     initialDelayMs: 1000,
@@ -347,17 +347,17 @@ const task = await retryWithBackoff(
 
 ```typescript
 import {
-  Chamba,
+  ExecutionMarket,
   AuthenticationError,
   ValidationFailedError,
   NotFoundError,
   RateLimitError,
   InsufficientFundsError,
   TimeoutError
-} from '@chamba/sdk';
+} from '@execution-market/sdk';
 
 try {
-  const task = await chamba.tasks.create({ ... });
+  const task = await em.tasks.create({ ... });
 } catch (error) {
   if (error instanceof AuthenticationError) {
     console.error('Invalid API key');
@@ -380,11 +380,11 @@ try {
 For environments where you prefer native fetch over axios:
 
 ```typescript
-import { HttpClient, ModularTasksAPI, ModularWebhooksAPI } from '@chamba/sdk';
+import { HttpClient, ModularTasksAPI, ModularWebhooksAPI } from '@execution-market/sdk';
 
 // Create HTTP client with native fetch
 const http = new HttpClient({
-  baseUrl: 'https://api.chamba.ultravioleta.xyz',
+  baseUrl: 'https://api.execution.market',
   apiKey: 'your_api_key',
   timeout: 30000,
   retries: 3
@@ -401,17 +401,17 @@ const task = await tasks.create({ ... });
 
 ```bash
 # Required
-CHAMBA_API_KEY=your_api_key
+EM_API_KEY=your_api_key
 
 # Optional
-CHAMBA_API_URL=https://api.chamba.ultravioleta.xyz  # Custom API URL
+EM_API_URL=https://api.execution.market  # Custom API URL
 ```
 
 ```typescript
 // Using environment variables
-import { createClient } from '@chamba/sdk';
+import { createClient } from '@execution-market/sdk';
 
-const chamba = createClient(); // Uses CHAMBA_API_KEY from env
+const em = createClient(); // Uses EM_API_KEY from env
 ```
 
 ## TypeScript Support
@@ -430,10 +430,10 @@ import type {
   WebhookEvent,
   WebhookEventType,
   WebhookEndpoint
-} from '@chamba/sdk';
+} from '@execution-market/sdk';
 
 // Types are inferred
-const task: Task = await chamba.tasks.create({...});
+const task: Task = await em.tasks.create({...});
 const status: TaskStatus = task.status;
 ```
 
@@ -442,9 +442,9 @@ const status: TaskStatus = task.status;
 ### Store Checker Agent
 
 ```typescript
-import { Chamba, TaskResult } from '@chamba/sdk';
+import { ExecutionMarket, TaskResult } from '@execution-market/sdk';
 
-const chamba = new Chamba({ apiKey: process.env.CHAMBA_API_KEY! });
+const em = new ExecutionMarket({ apiKey: process.env.EM_API_KEY! });
 
 interface Store {
   name: string;
@@ -456,7 +456,7 @@ async function checkStores(stores: Store[]): Promise<Record<string, string>> {
   // Create tasks for all stores
   const tasks = await Promise.all(
     stores.map(store =>
-      chamba.tasks.create({
+      em.tasks.create({
         title: `Is ${store.name} open right now?`,
         instructions: `
           Go to ${store.address} and:
@@ -475,7 +475,7 @@ async function checkStores(stores: Store[]): Promise<Record<string, string>> {
 
   // Wait for all completions
   const results = await Promise.all(
-    tasks.map(task => chamba.tasks.waitForCompletion(task.id))
+    tasks.map(task => em.tasks.waitForCompletion(task.id))
   );
 
   // Return status map
@@ -491,16 +491,16 @@ async function checkStores(stores: Store[]): Promise<Record<string, string>> {
 ### Price Monitor Agent
 
 ```typescript
-import { Chamba, Task } from '@chamba/sdk';
+import { ExecutionMarket, Task } from '@execution-market/sdk';
 
-const chamba = new Chamba({ apiKey: process.env.CHAMBA_API_KEY! });
+const em = new ExecutionMarket({ apiKey: process.env.EM_API_KEY! });
 
 async function monitorPrices(
   product: string,
   stores: string[],
   city: string
 ): Promise<Map<string, number>> {
-  const tasks = await chamba.tasks.batchCreate(
+  const tasks = await em.tasks.batchCreate(
     stores.map(store => ({
       title: `Price of ${product} at ${store}`,
       instructions: `
@@ -520,7 +520,7 @@ async function monitorPrices(
   const prices = new Map<string, number>();
 
   for (let i = 0; i < tasks.tasks.length; i++) {
-    const result = await chamba.tasks.waitForCompletion(tasks.tasks[i].id);
+    const result = await em.tasks.waitForCompletion(tasks.tasks[i].id);
     const priceText = result.evidence.textResponse || '0';
     const price = parseFloat(priceText.replace(/[^0-9.]/g, ''));
     prices.set(stores[i], price);
@@ -532,9 +532,9 @@ async function monitorPrices(
 
 ## Support
 
-- **Documentation**: https://docs.chamba.ultravioleta.xyz
+- **Documentation**: https://docs.execution.market
 - **Discord**: https://discord.gg/ultravioleta
-- **GitHub**: https://github.com/ultravioleta/chamba
+- **GitHub**: https://github.com/ultravioleta/execution-market
 - **Email**: support@ultravioleta.xyz
 
 ## License

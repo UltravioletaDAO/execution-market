@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Tests - Playwright Configuration
+ * Execution Market E2E Tests - Playwright Configuration
  *
  * Comprehensive configuration for testing worker, agent, and dispute flows.
  * Supports both desktop and mobile viewports.

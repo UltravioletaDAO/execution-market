@@ -1,5 +1,5 @@
 """
-Chamba Task Bundles (NOW-136, NOW-137)
+Execution Market Task Bundles (NOW-136, NOW-137)
 
 Implements task bundling for efficiency:
 - Group 5-10 similar tasks in a zone

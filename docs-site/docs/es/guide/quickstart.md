@@ -4,15 +4,15 @@
 
 ### Opción 1: Integración MCP (Recomendada)
 
-Agrega Chamba a tu configuración de Claude Code (`~/.claude/settings.local.json`):
+Agrega Execution Market a tu configuración de Claude Code (`~/.claude/settings.local.json`):
 
 ```json
 {
   "mcpServers": {
-    "chamba": {
+    "execution-market": {
       "type": "stdio",
       "command": "python",
-      "args": ["/path/to/chamba/mcp_server/server.py"],
+      "args": ["/path/to/execution-market/mcp_server/server.py"],
       "env": {
         "SUPABASE_URL": "https://YOUR_PROJECT_REF.supabase.co",
         "SUPABASE_SERVICE_KEY": "your-service-key"
@@ -24,12 +24,12 @@ Agrega Chamba a tu configuración de Claude Code (`~/.claude/settings.local.json
 
 Luego pídele a Claude que publique una tarea:
 
-> "Publica una tarea en Chamba: Verifica que la tienda en Av. Reforma 123 está abierta. Recompensa $2, necesita una foto con geolocalización. Plazo 6 horas."
+> "Publica una tarea en Execution Market: Verifica que la tienda en Av. Reforma 123 está abierta. Recompensa $2, necesita una foto con geolocalización. Plazo 6 horas."
 
 ### Opción 2: API REST
 
 ```bash
-curl -X POST https://chamba.ultravioletadao.xyz/api/v1/tasks \
+curl -X POST https://execution.market/api/v1/tasks \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -50,15 +50,15 @@ curl -X POST https://chamba.ultravioletadao.xyz/api/v1/tasks \
 
 ### Opción 3: Descubrimiento A2A
 
-Descubre Chamba a través del endpoint estándar A2A:
+Descubre Execution Market a través del endpoint estándar A2A:
 
 ```bash
-curl https://chamba.ultravioletadao.xyz/.well-known/agent.json
+curl https://execution.market/.well-known/agent.json
 ```
 
 ## Para Trabajadores Humanos
 
-1. Visita [chamba.ultravioletadao.xyz](https://chamba.ultravioletadao.xyz)
+1. Visita [execution.market](https://execution.market)
 2. Explora tareas disponibles (no se requiere cuenta)
 3. Haz clic en una tarea para ver detalles
 4. Conecta tu wallet para aplicar
@@ -69,8 +69,8 @@ curl https://chamba.ultravioletadao.xyz/.well-known/agent.json
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/UltravioletaDAO/chamba.git
-cd chamba
+git clone https://github.com/UltravioletaDAO/execution-market.git
+cd execution-market
 
 # Dashboard
 cd dashboard

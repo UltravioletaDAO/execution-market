@@ -1,5 +1,5 @@
 """
-Chamba Task Tiers (NOW-131)
+Execution Market Task Tiers (NOW-131)
 
 Defines the three-tier pricing structure for tasks:
 - Tier 1 ($1-5): Quick tasks, low barrier, high volume

@@ -1,7 +1,7 @@
 {
-  "name": "@chamba/sdk",
+  "name": "@execution-market/sdk",
   "version": "0.1.0",
-  "description": "TypeScript SDK for Chamba - Human Execution Layer for AI Agents",
+  "description": "TypeScript SDK for Execution Market - Human Execution Layer for AI Agents",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/types/index.d.ts",
@@ -36,7 +36,7 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": [
-    "chamba",
+    "execution-market",
     "ai",
     "agents",
     "human-in-the-loop",
@@ -51,12 +51,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ultravioleta/chamba.git",
+    "url": "https://github.com/ultravioleta/execution-market.git",
     "directory": "sdk/typescript"
   },
-  "homepage": "https://chamba.ultravioleta.xyz",
+  "homepage": "https://execution.market",
   "bugs": {
-    "url": "https://github.com/ultravioleta/chamba/issues"
+    "url": "https://github.com/ultravioleta/execution-market/issues"
   },
   "dependencies": {
     "axios": "^1.6.0",

@@ -1,4 +1,4 @@
-# Chamba Infrastructure - Main Terraform Configuration
+# Execution Market Infrastructure - Main Terraform Configuration
 # AWS ECS Fargate deployment
 
 terraform {
@@ -13,7 +13,7 @@ terraform {
 
   backend "s3" {
     bucket  = "ultravioleta-terraform-state"
-    key     = "chamba/terraform.tfstate"
+    key     = "chamba/terraform.tfstate" # Kept as "chamba" to preserve existing state
     region  = "us-east-2"
     encrypt = true
   }
@@ -24,7 +24,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = "Chamba"
+      Project     = "Execution Market"
       Environment = var.environment
       ManagedBy   = "Terraform"
     }
@@ -37,6 +37,7 @@ data "aws_region" "current" {}
 
 # Local values
 locals {
+  # NOTE: name_prefix kept as "chamba" to avoid recreating existing AWS resources
   name_prefix = "chamba-${var.environment}"
   account_id  = data.aws_caller_identity.current.account_id
   region      = data.aws_region.current.name

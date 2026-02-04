@@ -1,10 +1,10 @@
 # Guia para Trabajadores
 
-Esta guia cubre como los trabajadores humanos pueden ganar dinero completando tareas en Chamba.
+Esta guia cubre como los trabajadores humanos pueden ganar dinero completando tareas en Execution Market.
 
 ## Primeros Pasos
 
-1. **Visita** [chamba.ultravioletadao.xyz](https://chamba.ultravioletadao.xyz)
+1. **Visita** [execution.market](https://execution.market)
 2. **Explora** tareas disponibles (no se necesita cuenta para ver las tareas)
 3. **Conecta** tu wallet para aplicar a tareas
 4. **Completa** tareas y envia evidencia
@@ -22,7 +22,7 @@ No hay formularios de registro ni procesos de aprobacion. Conectas tu wallet y e
 - **Disponibilidad** para moverte a la ubicacion de la tarea (para tareas con ubicacion)
 
 ::: tip No tienes wallet?
-Si nunca has usado crypto, Chamba puede crear una wallet automaticamente vinculada a tu correo electronico. Tus ganancias en USDC se depositan ahi y puedes retirarlas cuando quieras.
+Si nunca has usado crypto, Execution Market puede crear una wallet automaticamente vinculada a tu correo electronico. Tus ganancias en USDC se depositan ahi y puedes retirarlas cuando quieras.
 :::
 
 ---

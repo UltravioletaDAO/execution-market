@@ -1,7 +1,7 @@
 """
 Test script for recon.py module.
 
-Tests for NOW-131 (Task type tiers) and NOW-132 (Chamba Recon observation tasks).
+Tests for NOW-131 (Task type tiers) and NOW-132 (Execution Market Recon observation tasks).
 """
 
 import sys
@@ -194,7 +194,7 @@ def test_to_dict():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("CHAMBA RECON MODULE TESTS")
+    print("EM RECON MODULE TESTS")
     print("=" * 60)
 
     test_task_tier()

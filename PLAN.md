@@ -1,4 +1,4 @@
-# Chamba: Technical Plan
+# Execution Market: Technical Plan
 
 > Para especificacion de producto, ver [SPEC.md](./SPEC.md)
 > Para sinergias del ecosistema, ver [SYNERGIES.md](./SYNERGIES.md)
@@ -9,12 +9,12 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         CHAMBA ARCHITECTURE                                  │
+│                   EXECUTION MARKET ARCHITECTURE                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐                │
-│  │   AGENTS     │     │   CHAMBA     │     │   HUMANS     │                │
-│  │              │     │   CORE       │     │              │                │
+│  │   AGENTS     │     │   EM CORE    │     │   HUMANS     │                │
+│  │              │     │              │     │              │                │
 │  │ ┌──────────┐ │     │              │     │ ┌──────────┐ │                │
 │  │ │ Colmena  │ │     │ ┌──────────┐ │     │ │  Mobile  │ │                │
 │  │ │ Foragers │─┼────►│ │ Task API │ │◄────┼─│   App    │ │                │
@@ -51,7 +51,7 @@
 | **Database** | **Supabase (PostgreSQL)** | BaaS con auth, realtime, storage integrado |
 | **Cache** | Redis | Task matching, rate limiting |
 | **Payments** | x402-rs + uvd-x402-sdk-python | Core del ecosistema, micropagos |
-| **Escrow** | x402-escrow libraries + ChambaEscrow.sol | On-chain escrow for bounties |
+| **Escrow** | x402-escrow libraries + EMEscrow.sol | On-chain escrow for bounties |
 | **Evidence Storage** | Supabase Storage + ChainWitness | Almacenamiento + notarización |
 | **Mobile App** | React Native | Cross-platform, una codebase |
 | **Web Portal/Dashboard** | **React + TypeScript** | Dashboard para humanos ver trabajos |
@@ -88,11 +88,11 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
 
 ### 2.2 Agent Framework
 
-Chamba agent uses a hybrid approach:
+Execution Market agent uses a hybrid approach:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    CHAMBA AGENT ARCHITECTURE                     │
+│              EXECUTION MARKET AGENT ARCHITECTURE                 │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────────────┐     ┌──────────────────┐                 │
@@ -106,7 +106,7 @@ Chamba agent uses a hybrid approach:
 │                      │                                          │
 │                      ▼                                          │
 │           ┌──────────────────┐                                  │
-│           │  CHAMBA AGENT    │                                  │
+│           │  EM AGENT        │                                  │
 │           │  (MCP Server +   │                                  │
 │           │   A2A Protocol)  │                                  │
 │           └──────────────────┘                                  │
@@ -115,7 +115,7 @@ Chamba agent uses a hybrid approach:
 │        │             │             │                            │
 │        ▼             ▼             ▼                            │
 │   ┌─────────┐   ┌─────────┐   ┌─────────┐                     │
-│   │Supabase │   │ChambaEs │   │External │                     │
+│   │Supabase │   │EMEscrow │   │External │                     │
 │   │  (DB)   │   │crow.sol │   │ Agents  │                     │
 │   └─────────┘   └─────────┘   └─────────┘                     │
 │                                                                  │
@@ -138,11 +138,11 @@ Chamba agent uses a hybrid approach:
 
 ### 3.1 Task API (MCP Server)
 
-El core de Chamba es un MCP server que expone tools para agentes:
+El core de Execution Market es un MCP server que expone tools para agentes:
 
 ```yaml
 mcp_tools:
-  chamba_publish_task:
+  em_publish_task:
     description: "Publish a new task bounty"
     params:
       - category: "physical_presence|knowledge_access|human_authority|simple_action"
@@ -158,7 +158,7 @@ mcp_tools:
       status: "published"
       estimated_completion: string
 
-  chamba_check_task:
+  em_check_task:
     description: "Check status of a published task"
     params:
       - task_id: string
@@ -167,7 +167,7 @@ mcp_tools:
       executor: object | null
       evidence: object | null
 
-  chamba_verify_submission:
+  em_verify_submission:
     description: "Verify or dispute a task submission"
     params:
       - task_id: string
@@ -177,7 +177,7 @@ mcp_tools:
       status: string
       payment_status: string
 
-  chamba_list_tasks:
+  em_list_tasks:
     description: "List tasks by status or filter"
     params:
       - status: string | null
@@ -369,7 +369,7 @@ type TaskStatus =
 - Pagos x402 funcionando
 
 ### Phase 2: MCP Integration
-**Goal**: Agentes pueden usar Chamba como tool
+**Goal**: Agentes pueden usar Execution Market como tool
 
 **Tasks**:
 - [ ] Convertir API a MCP server
@@ -381,7 +381,7 @@ type TaskStatus =
 
 **Deliverables**:
 - MCP server publicado
-- Colmena usando Chamba
+- Colmena usando Execution Market
 - Council orquestando tasks
 
 ### Phase 3: Verification & Evidence
@@ -651,13 +651,13 @@ POST   /api/v1/disputes/{id}/vote # Arbitrator vote
 ### 9.1 FastMCP Setup (Python)
 
 ```python
-# chamba/mcp_server.py
+# em/mcp_server.py
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from datetime import datetime, timedelta
 
-mcp = FastMCP("Chamba - Human Execution Layer")
+mcp = FastMCP("Execution Market - Human Execution Layer")
 
 # ============== SCHEMAS ==============
 
@@ -686,7 +686,7 @@ class TaskResponse(BaseModel):
 # ============== MCP TOOLS ==============
 
 @mcp.tool()
-async def chamba_publish_task(
+async def em_publish_task(
     category: Literal["physical_presence", "knowledge_access", "human_authority", "simple_action", "digital_physical"],
     title: str = Field(..., min_length=5, max_length=200),
     instructions: str = Field(..., min_length=20, max_length=5000),
@@ -707,7 +707,7 @@ async def chamba_publish_task(
 
     The bounty will be held in x402 escrow until task completion.
     """
-    from chamba.services import task_service, x402_service
+    from em.services import task_service, x402_service
 
     # Create escrow first
     escrow = await x402_service.create_escrow(
@@ -737,7 +737,7 @@ async def chamba_publish_task(
 
 
 @mcp.tool()
-async def chamba_check_task(
+async def em_check_task(
     task_id: str = Field(..., description="The task ID to check"),
 ) -> dict:
     """
@@ -749,7 +749,7 @@ async def chamba_check_task(
     - Submitted evidence (if submitted)
     - ChainWitness proof (if verified)
     """
-    from chamba.services import task_service
+    from em.services import task_service
 
     task = await task_service.get(task_id)
     if not task:
@@ -786,7 +786,7 @@ async def chamba_check_task(
 
 
 @mcp.tool()
-async def chamba_verify_submission(
+async def em_verify_submission(
     task_id: str,
     action: Literal["accept", "dispute", "request_more_info"],
     notes: Optional[str] = None,
@@ -803,7 +803,7 @@ async def chamba_verify_submission(
     If accepted, payment is released instantly via x402.
     If disputed, funds remain in escrow until arbitration resolves.
     """
-    from chamba.services import task_service, x402_service, chainwitness_service
+    from em.services import task_service, x402_service, chainwitness_service
 
     task = await task_service.get(task_id)
     if not task or task.status != "submitted":
@@ -855,7 +855,7 @@ async def chamba_verify_submission(
 
 
 @mcp.tool()
-async def chamba_list_tasks(
+async def em_list_tasks(
     status: Optional[str] = None,
     category: Optional[str] = None,
     agent_id: Optional[str] = None,
@@ -867,7 +867,7 @@ async def chamba_list_tasks(
     Useful for checking all your published tasks or finding
     tasks in specific states.
     """
-    from chamba.services import task_service
+    from em.services import task_service
 
     tasks = await task_service.list(
         status=status,
@@ -893,7 +893,7 @@ async def chamba_list_tasks(
 
 
 @mcp.tool()
-async def chamba_cancel_task(
+async def em_cancel_task(
     task_id: str,
     reason: Optional[str] = None,
 ) -> dict:
@@ -903,7 +903,7 @@ async def chamba_cancel_task(
     Escrow funds will be refunded to the agent.
     Cannot cancel tasks that have already been accepted.
     """
-    from chamba.services import task_service, x402_service
+    from em.services import task_service, x402_service
 
     task = await task_service.get(task_id)
     if not task:
@@ -981,15 +981,15 @@ if __name__ == "__main__":
 ### 9.2 Usage Example (Agent Side)
 
 ```python
-# Example: Colmena forager using Chamba to get book pages scanned
+# Example: Colmena forager using Execution Market to get book pages scanned
 
-async def scan_book_pages_via_chamba(book_title: str, pages: list[int], library_location: dict):
+async def scan_book_pages_via_em(book_title: str, pages: list[int], library_location: dict):
     """
-    When forager needs physical book content, publish a Chamba task.
+    When forager needs physical book content, publish an Execution Market task.
     """
 
     # Publish the task
-    task = await mcp.call_tool("chamba_publish_task", {
+    task = await mcp.call_tool("em_publish_task", {
         "category": "knowledge_access",
         "title": f"Scan pages {pages[0]}-{pages[-1]} from '{book_title}'",
         "instructions": f"""
@@ -1027,12 +1027,12 @@ async def poll_task_completion(task_id: str, max_polls: int = 100):
     import asyncio
 
     for _ in range(max_polls):
-        status = await mcp.call_tool("chamba_check_task", {"task_id": task_id})
+        status = await mcp.call_tool("em_check_task", {"task_id": task_id})
 
         if status["status"] == "submitted":
             # Auto-verify if evidence looks good
             # In production, would have more sophisticated verification
-            verification = await mcp.call_tool("chamba_verify_submission", {
+            verification = await mcp.call_tool("em_verify_submission", {
                 "task_id": task_id,
                 "action": "accept",
                 "notes": "Evidence meets requirements"
@@ -1053,7 +1053,7 @@ async def poll_task_completion(task_id: str, max_polls: int = 100):
 ### 9.3 x402 Integration Module
 
 ```python
-# chamba/services/x402_service.py
+# em/services/x402_service.py
 from uvd_x402 import X402Client
 from typing import Optional
 
@@ -1076,7 +1076,7 @@ async def create_escrow(
         timeout_seconds=timeout_hours * 3600,
         recipient=recipient,
         release_condition="manual",  # Agent must approve
-        metadata={"service": "chamba", "type": "task_bounty"}
+        metadata={"service": "execution_market", "type": "task_bounty"}
     )
 
 
@@ -1107,7 +1107,7 @@ async def get_escrow_status(escrow_id: str) -> dict:
 ### 9.4 ChainWitness Integration
 
 ```python
-# chamba/services/chainwitness_service.py
+# em/services/chainwitness_service.py
 from chainwitness import ChainWitnessClient
 import hashlib
 
@@ -1148,7 +1148,7 @@ def hash_evidence(evidence: dict) -> str:
 
 ## 10. Smart Contracts
 
-### 10.1 ChambaEscrow.sol
+### 10.1 EMEscrow.sol
 
 The escrow contract holds task bounties until work is verified and released.
 
@@ -1163,11 +1163,11 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
- * @title ChambaEscrow
- * @notice Escrow contract for human execution tasks (Chamba)
+ * @title EMEscrow
+ * @notice Escrow contract for human execution tasks (Execution Market)
  * @dev Holds bounties until work is verified by publishing agent
  */
-contract ChambaEscrow is ReentrancyGuard, Pausable, Ownable2Step {
+contract EMEscrow is ReentrancyGuard, Pausable, Ownable2Step {
     using SafeERC20 for IERC20;
 
     // ============== ERRORS ==============
@@ -1218,7 +1218,7 @@ contract ChambaEscrow is ReentrancyGuard, Pausable, Ownable2Step {
         address executor;        // The human accepting the task
         address token;           // Payment token (USDC)
         uint256 bounty;          // Total bounty amount
-        uint256 chambaFee;       // Platform fee (calculated)
+        uint256 platformFee;       // Platform fee (calculated)
         uint256 deadline;        // Task deadline timestamp
         TaskStatus status;
         bytes32 evidenceHash;    // Hash of submitted evidence (ChainWitness compatible)
@@ -1227,8 +1227,8 @@ contract ChambaEscrow is ReentrancyGuard, Pausable, Ownable2Step {
     // ============== STATE ==============
     mapping(bytes32 => Task) public tasks;
 
-    // Chamba agent address (registered in ERC-8004)
-    address public chambaAgent;
+    // Execution Market agent address (registered in ERC-8004)
+    address public emAgent;
 
     // Fee configuration (basis points, 100 = 1%)
     uint256 public platformFeeBps = 250;  // 2.5% default
@@ -1242,8 +1242,8 @@ contract ChambaEscrow is ReentrancyGuard, Pausable, Ownable2Step {
     uint256 public totalVolumeProcessed;
 
     // ============== CONSTRUCTOR ==============
-    constructor(address _chambaAgent, address _usdc) Ownable(msg.sender) {
-        chambaAgent = _chambaAgent;
+    constructor(address _emAgent, address _usdc) Ownable(msg.sender) {
+        emAgent = _emAgent;
         acceptedTokens[_usdc] = true;
     }
 
@@ -1291,7 +1291,7 @@ contract ChambaEscrow is ReentrancyGuard, Pausable, Ownable2Step {
             executor: address(0),
             token: token,
             bounty: bounty,
-            chambaFee: fee,
+            platformFee: fee,
             deadline: deadline,
             status: TaskStatus.Published,
             evidenceHash: bytes32(0)
@@ -1349,8 +1349,8 @@ contract ChambaEscrow is ReentrancyGuard, Pausable, Ownable2Step {
         // Transfer bounty to executor
         IERC20(task.token).safeTransfer(task.executor, task.bounty);
 
-        // Transfer fee to Chamba treasury
-        IERC20(task.token).safeTransfer(chambaAgent, task.chambaFee);
+        // Transfer fee to Execution Market treasury
+        IERC20(task.token).safeTransfer(emAgent, task.platformFee);
 
         totalVolumeProcessed += task.bounty;
 
@@ -1381,7 +1381,7 @@ contract ChambaEscrow is ReentrancyGuard, Pausable, Ownable2Step {
         if (task.status != TaskStatus.Disputed) revert TaskNotSubmitted();
         require(winner == task.agent || winner == task.executor, "Invalid winner");
 
-        uint256 totalAmount = task.bounty + task.chambaFee;
+        uint256 totalAmount = task.bounty + task.platformFee;
         task.status = TaskStatus.Completed;
 
         // Transfer to winner
@@ -1408,7 +1408,7 @@ contract ChambaEscrow is ReentrancyGuard, Pausable, Ownable2Step {
         task.status = TaskStatus.Refunded;
 
         // Refund bounty + fee to agent
-        uint256 refundAmount = task.bounty + task.chambaFee;
+        uint256 refundAmount = task.bounty + task.platformFee;
         IERC20(task.token).safeTransfer(task.agent, refundAmount);
 
         emit TaskRefunded(taskId, task.agent, refundAmount);
@@ -1425,7 +1425,7 @@ contract ChambaEscrow is ReentrancyGuard, Pausable, Ownable2Step {
         task.status = TaskStatus.Cancelled;
 
         // Refund bounty + fee
-        uint256 refundAmount = task.bounty + task.chambaFee;
+        uint256 refundAmount = task.bounty + task.platformFee;
         IERC20(task.token).safeTransfer(task.agent, refundAmount);
 
         emit TaskCancelled(taskId);
@@ -1433,8 +1433,8 @@ contract ChambaEscrow is ReentrancyGuard, Pausable, Ownable2Step {
 
     // ============== ADMIN FUNCTIONS ==============
 
-    function setChambaAgent(address _chambaAgent) external onlyOwner {
-        chambaAgent = _chambaAgent;
+    function setEMAgent(address _emAgent) external onlyOwner {
+        emAgent = _emAgent;
     }
 
     function setPlatformFee(uint256 _feeBps) external onlyOwner {
@@ -1466,7 +1466,7 @@ networks:
     chain_id: 11155111
     rpc: "https://rpc.sepolia.org"
     contracts:
-      chamba_escrow: "0x..."  # TBD after deployment
+      em_escrow: "0x..."  # TBD after deployment
       usdc_mock: "0x..."      # Test USDC
     erc8004:
       registry: "0x..."       # ERC-8004 testnet registry
@@ -1476,7 +1476,7 @@ networks:
     chain_id: 84532
     rpc: "https://sepolia.base.org"
     contracts:
-      chamba_escrow: "0x..."  # TBD after deployment
+      em_escrow: "0x..."  # TBD after deployment
       usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"  # Base Sepolia USDC
     erc8004:
       registry: "0x..."       # ERC-8004 Base Sepolia registry
@@ -1487,7 +1487,7 @@ networks:
     chain_id: 1
     rpc: "${ETH_RPC_URL}"
     contracts:
-      chamba_escrow: null     # Deploy when ERC-8004 v1 launches
+      em_escrow: null     # Deploy when ERC-8004 v1 launches
       usdc: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
     erc8004:
       registry: null          # TBD - ERC-8004 v1 mainnet
@@ -1497,7 +1497,7 @@ networks:
     chain_id: 8453
     rpc: "https://mainnet.base.org"
     contracts:
-      chamba_escrow: null     # Deploy when ERC-8004 v1 launches
+      em_escrow: null     # Deploy when ERC-8004 v1 launches
       usdc: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
     erc8004:
       registry: null          # TBD - ERC-8004 v1 Base mainnet
@@ -1512,11 +1512,11 @@ networks:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    CHAMBA ERC-8004 INTEGRATION                               │
+│              EXECUTION MARKET ERC-8004 INTEGRATION                           │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐    │
-│  │   ERC-8004       │     │   CHAMBA         │     │   EXTERNAL       │    │
+│  │   ERC-8004       │     │   EXEC MARKET    │     │   EXTERNAL       │    │
 │  │   REGISTRY       │     │   AGENT          │     │   AGENTS         │    │
 │  │                  │     │                  │     │                  │    │
 │  │  ┌────────────┐  │     │  ┌────────────┐  │     │  ┌────────────┐  │    │
@@ -1527,7 +1527,7 @@ networks:
 │  │        ▼         │     │        ▼         │     │        ▼         │    │
 │  │  ┌────────────┐  │     │  ┌────────────┐  │     │  ┌────────────┐  │    │
 │  │  │ Capability │  │◄────┼──│ Expose     │  │◄────┼──│ Discover   │  │    │
-│  │  │ Discovery  │  │     │  │ Endpoints  │  │     │  │ Chamba     │  │    │
+│  │  │ Discovery  │  │     │  │ Endpoints  │  │     │  │ EM         │  │    │
 │  │  └────────────┘  │     │  └────────────┘  │     │  └────────────┘  │    │
 │  │        │         │     │        │         │     │        │         │    │
 │  │        ▼         │     │        ▼         │     │        ▼         │    │
@@ -1538,7 +1538,7 @@ networks:
 │  │                  │     │        │         │     │                  │    │
 │  └──────────────────┘     │        ▼         │     └──────────────────┘    │
 │                           │  ┌────────────┐  │                              │
-│                           │  │ Chamba     │  │                              │
+│                           │  │ EM         │  │                              │
 │                           │  │ Escrow     │  │                              │
 │                           │  │ (on-chain) │  │                              │
 │                           │  └────────────┘  │                              │
@@ -1547,27 +1547,27 @@ networks:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 11.2 Chamba Agent Identity Registration
+### 11.2 Execution Market Agent Identity Registration
 
 ```python
-# chamba/erc8004/identity.py
+# em/erc8004/identity.py
 from dataclasses import dataclass
 from typing import Literal
 import json
 
 @dataclass
-class ChambaAgentIdentity:
-    """Chamba's ERC-8004 identity configuration"""
+class EMAgentIdentity:
+    """Execution Market's ERC-8004 identity configuration"""
 
     # Identity
-    agent_id: str = "chamba.ultravioleta.eth"
+    agent_id: str = "em.ultravioleta.eth"
     version: str = "1.0.0"
 
     # Type classification
     agent_type: Literal["service_provider"] = "service_provider"
     category: str = "human_execution_layer"
 
-    # Capabilities (what Chamba can do for other agents)
+    # Capabilities (what Execution Market can do for other agents)
     capabilities: list[str] = None
 
     # Supported protocols
@@ -1598,10 +1598,10 @@ class ChambaAgentIdentity:
 
         if self.endpoints is None:
             self.endpoints = {
-                "a2a": "a2a://chamba.ultravioleta.eth",
-                "mcp": "mcp://chamba.ultravioletadao.xyz/v1",
-                "http": "https://chamba.ultravioletadao.xyz/api/v1",
-                "websocket": "wss://chamba.ultravioletadao.xyz/ws"
+                "a2a": "a2a://em.ultravioleta.eth",
+                "mcp": "mcp://mcp.execution.market/v1",
+                "http": "https://api.execution.market/v1",
+                "websocket": "wss://ws.execution.market"
             }
 
     def to_erc8004_json(self, network: str = "base_sepolia") -> dict:
@@ -1615,10 +1615,10 @@ class ChambaAgentIdentity:
             "protocols": self.protocols,
             "endpoints": self.endpoints,
             "metadata": {
-                "name": "Chamba",
+                "name": "Execution Market",
                 "description": "Human execution layer for AI agents. Publish tasks, humans execute, get verified results.",
-                "icon": "https://chamba.ultravioletadao.xyz/icon.png",
-                "documentation": "https://docs.ultravioletadao.xyz/chamba",
+                "icon": "https://execution.market/icon.png",
+                "documentation": "https://docs.execution.market",
                 "pricing": {
                     "model": "per_task",
                     "currency": "USDC",
@@ -1641,7 +1641,7 @@ class ChambaAgentIdentity:
 
 
 def get_escrow_address(network: str) -> str:
-    """Get ChambaEscrow contract address for network"""
+    """Get EMEscrow contract address for network"""
     addresses = {
         "sepolia": "0x...",           # Ethereum Sepolia testnet
         "base_sepolia": "0x...",      # Base Sepolia testnet
@@ -1665,7 +1665,7 @@ def get_reputation_address(network: str) -> str:
 ### 11.3 ERC-8004 Registry Client
 
 ```python
-# chamba/erc8004/registry.py
+# em/erc8004/registry.py
 from web3 import Web3
 from typing import Optional
 import json
@@ -1738,14 +1738,14 @@ class ERC8004Registry:
         }
         return configs.get(network, configs["base_sepolia"])
 
-    async def register_chamba(self, private_key: str) -> dict:
-        """Register Chamba agent in ERC-8004 registry"""
+    async def register_em(self, private_key: str) -> dict:
+        """Register Execution Market agent in ERC-8004 registry"""
         if not self.registry:
             raise ValueError(f"ERC-8004 registry not available on {self.network}")
 
-        from chamba.erc8004.identity import ChambaAgentIdentity
+        from em.erc8004.identity import EMAgentIdentity
 
-        identity = ChambaAgentIdentity()
+        identity = EMAgentIdentity()
         metadata = json.dumps(identity.to_erc8004_json(self.network))
 
         # Convert agent ID to bytes32
@@ -1817,18 +1817,18 @@ class ERC8004Registry:
 
 # ============== DISCOVERY HELPER ==============
 
-async def discover_chamba(network: str = "base_sepolia") -> Optional[dict]:
+async def discover_em(network: str = "base_sepolia") -> Optional[dict]:
     """
-    Helper for external agents to discover Chamba.
+    Helper for external agents to discover Execution Market.
 
     Usage by other agents:
     ```python
-    chamba = await discover_chamba("base_sepolia")
-    if chamba:
+    em = await discover_em("base_sepolia")
+    if em:
         # Connect via A2A
-        connection = await my_agent.connect(chamba["endpoints"]["a2a"])
+        connection = await my_agent.connect(em["endpoints"]["a2a"])
         # Or use MCP
-        mcp_client = MCPClient(chamba["endpoints"]["mcp"])
+        mcp_client = MCPClient(em["endpoints"]["mcp"])
     ```
     """
     registry = ERC8004Registry(network)
@@ -1836,7 +1836,7 @@ async def discover_chamba(network: str = "base_sepolia") -> Optional[dict]:
     agents = await registry.find_agent(capability="human_execution_layer")
 
     for agent in agents:
-        if "chamba" in agent["metadata"].get("name", "").lower():
+        if "execution market" in agent["metadata"].get("name", "").lower():
             return agent["metadata"]
 
     return None
@@ -1845,7 +1845,7 @@ async def discover_chamba(network: str = "base_sepolia") -> Optional[dict]:
 ### 11.4 A2A Protocol Messages
 
 ```yaml
-# chamba/a2a/messages.yaml
+# em/a2a/messages.yaml
 # Message schemas for agent-to-agent communication via MeshRelay
 
 # ============== TASK MESSAGES ==============
@@ -1947,7 +1947,7 @@ capability_response:
 ### 11.5 Multi-Network Support
 
 ```python
-# chamba/config/networks.py
+# em/config/networks.py
 from dataclasses import dataclass
 from typing import Optional
 from enum import Enum
@@ -2033,7 +2033,7 @@ NETWORKS: dict[Network, NetworkConfig] = {
 
 
 def get_active_networks() -> list[Network]:
-    """Get networks where Chamba is deployed and active"""
+    """Get networks where Execution Market is deployed and active"""
     return [n for n, c in NETWORKS.items() if c.is_active]
 
 
@@ -2102,12 +2102,12 @@ def get_default_mainnet() -> Network:
   - `pyproject.toml` - Package configuration
   - `README.md` - Documentation with Claude Code configuration
 - **MCP Tools**:
-  - `chamba_publish_task` - Publish a new task for human execution
-  - `chamba_get_tasks` - Get tasks with filters (agent, status, category)
-  - `chamba_get_task` - Get details of a specific task
-  - `chamba_check_submission` - Check submission status for a task
-  - `chamba_approve_submission` - Approve or reject a submission
-  - `chamba_cancel_task` - Cancel a published task
+  - `em_publish_task` - Publish a new task for human execution
+  - `em_get_tasks` - Get tasks with filters (agent, status, category)
+  - `em_get_task` - Get details of a specific task
+  - `em_check_submission` - Check submission status for a task
+  - `em_approve_submission` - Approve or reject a submission
+  - `em_cancel_task` - Cancel a published task
 - **Features**:
   - Full Pydantic validation with field constraints
   - Markdown and JSON response formats
@@ -2124,7 +2124,7 @@ def get_default_mainnet() -> Network:
 ### To Install MCP Server
 
 ```bash
-cd ideas/chamba/mcp_server
+cd mcp_server
 pip install -e .
 # Or: pip install mcp pydantic supabase httpx
 ```
@@ -2135,10 +2135,10 @@ Add to `~/.claude/settings.local.json`:
 ```json
 {
   "mcpServers": {
-    "chamba": {
+    "execution-market": {
       "type": "stdio",
       "command": "python",
-      "args": ["/path/to/control-plane/ideas/chamba/mcp_server/server.py"],
+      "args": ["/path/to/execution-market/mcp_server/server.py"],
       "env": {
         "SUPABASE_URL": "https://YOUR_PROJECT_REF.supabase.co",
         "SUPABASE_SERVICE_KEY": "your-service-key"
@@ -2158,7 +2158,7 @@ Add to `~/.claude/settings.local.json`:
 ### To Run Dashboard
 
 ```bash
-cd ideas/chamba/dashboard
+cd dashboard
 npm install
 npm run dev
 ```
@@ -2203,12 +2203,12 @@ These questions need user input before implementation:
 2. [x] **Create database schema** - SQL migrations with RLS policies ✓
 3. [x] **Build React dashboard** - Task listing, detail, submission pages ✓
 4. [ ] **Apply migrations to Supabase** - Run SQL in Supabase dashboard
-5. [ ] **Deploy ChambaEscrow.sol** - Base Sepolia first, then Sepolia
+5. [ ] **Deploy EMEscrow.sol** - Base Sepolia first, then Sepolia
 6. [ ] **Register in ERC-8004 testnet** - Both networks
 7. [ ] **Integrar x402 escrow** - Use existing libraries
 
 ### Pre-Mainnet (When ERC-8004 v1 launches)
 8. [ ] **Deploy to mainnet** - Base mainnet first
 9. [ ] **Register in ERC-8004 v1** - Production identity
-10. [ ] **Security audit** - ChambaEscrow.sol
+10. [ ] **Security audit** - EMEscrow.sol
 11. [ ] **Primer agente de prueba** - Colmena forager publicando tasks

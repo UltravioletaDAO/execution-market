@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Test Fixtures - Index
+ * Execution Market E2E Test Fixtures - Index
  *
  * Central export for all test fixtures and helpers.
  */

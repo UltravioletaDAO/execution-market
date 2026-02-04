@@ -1,7 +1,13 @@
-// Chamba: Task Detail Component
+// Execution Market: Task Detail Component
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useTaskPayment } from '../hooks/useTaskPayment'
+import { PaymentStatus } from './PaymentStatus'
 import type { Task, TaskCategory, Executor } from '../types/database'
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 interface TaskDetailProps {
   task: Task
@@ -65,8 +71,12 @@ export function TaskDetail({
   onBack,
   onAccept,
 }: TaskDetailProps) {
+  const navigate = useNavigate()
   const [accepting, setAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const showPayment = task.status === 'completed' || task.status === 'submitted' || task.status === 'expired'
+  const { payment, loading: paymentLoading } = useTaskPayment(showPayment ? task.id : null)
 
   const canAccept =
     task.status === 'published' &&
@@ -80,17 +90,38 @@ export function TaskDetail({
     setError(null)
 
     try {
-      const { error: updateError } = await supabase
-        .from('tasks')
-        .update({
-          status: 'accepted' as const,
-          executor_id: currentExecutor.id,
-          accepted_at: new Date().toISOString(),
-        } as never)
-        .eq('id', task.id)
-        .eq('status', 'published') // Optimistic locking
+      // Get fresh session to avoid stale token / RLS mismatch
+      const { data: { session: currentSession } } = await supabase.auth.getSession()
 
-      if (updateError) throw updateError
+      const headers: Record<string, string> = {
+        apikey: SUPABASE_KEY,
+        'Content-Type': 'application/json',
+      }
+
+      if (currentSession?.access_token) {
+        headers['Authorization'] = `Bearer ${currentSession.access_token}`
+      }
+
+      // Use the apply_to_task RPC for atomic acceptance
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/apply_to_task`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          p_task_id: task.id,
+          p_executor_id: currentExecutor.id,
+          p_message: null,
+        }),
+      })
+
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(text || `Failed: ${response.status}`)
+      }
+
+      const result = await response.json()
+      if (result && result.success === false) {
+        throw new Error(result.error || 'La tarea ya no esta disponible')
+      }
 
       onAccept?.()
     } catch (err) {
@@ -296,6 +327,32 @@ export function TaskDetail({
             </div>
           </div>
         </section>
+
+        {/* Payment / Refund status */}
+        {showPayment && (
+          <section>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+              {task.status === 'expired' ? 'Reembolso' : 'Pago'}
+            </h2>
+            {paymentLoading ? (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-gray-600">Cargando estado de pago...</span>
+              </div>
+            ) : payment ? (
+              <PaymentStatus payment={payment} compact={false} showTimeline={true} />
+            ) : task.status === 'submitted' ? (
+              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-yellow-700">Procesando pago...</span>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
+                No hay registros de pago para esta tarea.
+              </p>
+            )}
+          </section>
+        )}
       </div>
 
       {/* Actions */}
@@ -310,7 +367,10 @@ export function TaskDetail({
           {!currentExecutor ? (
             <div className="text-center">
               <p className="text-gray-600 mb-2">Inicia sesion para aceptar esta tarea</p>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <button
+                onClick={() => navigate('/')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
                 Iniciar sesion
               </button>
             </div>

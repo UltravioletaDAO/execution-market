@@ -5,7 +5,7 @@ interface UsersProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chamba.ultravioletadao.xyz'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 type UserType = 'agents' | 'workers'
 
@@ -214,7 +214,7 @@ export default function Users({ adminKey }: UsersProps) {
           onClick={() => { setUserType('agents'); setPage(1) }}
           className={`px-6 py-2 rounded-lg font-medium transition-colors ${
             userType === 'agents'
-              ? 'bg-chamba-600 text-white'
+              ? 'bg-em-600 text-white'
               : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
           }`}
         >
@@ -224,7 +224,7 @@ export default function Users({ adminKey }: UsersProps) {
           onClick={() => { setUserType('workers'); setPage(1) }}
           className={`px-6 py-2 rounded-lg font-medium transition-colors ${
             userType === 'workers'
-              ? 'bg-chamba-600 text-white'
+              ? 'bg-em-600 text-white'
               : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
           }`}
         >

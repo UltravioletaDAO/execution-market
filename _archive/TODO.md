@@ -1,7 +1,7 @@
-# Chamba Implementation TODO
+# Execution Market Implementation TODO
 
 > Auto-generated from control-plane brainstorming backlog on 2026-01-19.
-> Sources: session_chamba_immutable_bounties, session_chamba_launch_strategy, session_chambabridge_deep, thinking_tools_chamba_staircase, session_chamba_protocol_deep
+> Sources: session_em_immutable_bounties, session_em_launch_strategy, session_embridge_deep, thinking_tools_em_staircase, session_em_protocol_deep
 
 ---
 
@@ -13,7 +13,7 @@
 **Files**: N/A (research)
 
 - Research: reverse-engineer TaskRabbit API or find official endpoint
-- Do NOT build ChambaBridge on unverified API access
+- Do NOT build EMBridge on unverified API access
 - If TaskRabbit API doesn't work → Bridge fails → no revenue → no Phase 2
 
 **Action**: Research this week before building anything else.
@@ -22,38 +22,38 @@
 
 ## LAUNCH STRATEGY (MCP-First)
 
-### 0.5. Create chamba-mcp-server repo with task posting
+### 0.5. Create em-mcp-server repo with task posting
 **Priority**: P0
 **Status**: [ ] Not started
-**Files**: New repo `chamba-mcp-server/`
+**Files**: New repo `em-mcp-server/`
 
 - Python MCP SDK implementation
 - Implement `post_task` tool
 - Connect to x402 escrow demo
-- MCP-first approach allows agents (Claude, Copilot) to discover Chamba immediately
+- MCP-first approach allows agents (Claude, Copilot) to discover Execution Market immediately
 
 ---
 
 ### 0.6. Define task schema as JSON Schema/OpenAPI spec
 **Priority**: P0
 **Status**: [ ] Not started
-**Files**: `chamba-mcp-server/schema/task.json`
+**Files**: `em-mcp-server/schema/task.json`
 
 Formalize the 10 task categories:
 - Original 4: location-based, verification, social proof, data collection
 - New 6: sensory, social, proxy, bureaucratic, emergency, creative
 
-**Why**: Both MCP server and Chamba Protocol depend on this spec existing
+**Why**: Both MCP server and Execution Market Protocol depend on this spec existing
 
 ---
 
-### 0.7. Write Chamba Protocol v0.1 specification
+### 0.7. Write Execution Market Protocol v0.1 specification
 **Priority**: P0
 **Status**: [ ] Not started
 **Files**: `docs/PROTOCOL.md`
 
 - 2-3 pages, core concepts only
-- Define relationship: x402 (payment) + ChainWitness (verification) + Chamba (task schema)
+- Define relationship: x402 (payment) + ChainWitness (verification) + Execution Market (task schema)
 - All downstream decisions depend on protocol vision being clear
 
 ---
@@ -209,7 +209,7 @@ interface ImmutableBountyContent {
   readonly executor_requirements?: ExecutorRequirements;
 }
 
-interface ChambaBounty {
+interface EMBounty {
   readonly id: string;
   readonly content_cid: string;
   readonly content: ImmutableBountyContent;
@@ -243,7 +243,7 @@ interface ChambaBounty {
 - `RefundRequest`: `0x55e0Fb85833f77A0d699346E827afa06bcf58e4e` - Dispute resolution
 
 **Integration Steps**:
-1. Register Chamba as merchant via `MerchantRegistrationRouter`
+1. Register Execution Market as merchant via `MerchantRegistrationRouter`
 2. Get deterministic relay proxy address from factory
 3. Task publishers deposit bounties through relay proxy (ERC3009)
 4. Workers receive payment on task completion
@@ -340,7 +340,7 @@ Use cases:
 
 ### x402r Integration (Base Mainnet)
 - [x] Architecture decision: Use x402r escrow, NOT custom ChambaEscrow.sol (2026-01-19)
-- [ ] Register Chamba as merchant via `MerchantRegistrationRouter` (`0xa48E8AdcA504D2f48e5AF6be49039354e922913F`)
+- [ ] Register Execution Market as merchant via `MerchantRegistrationRouter` (`0xa48E8AdcA504D2f48e5AF6be49039354e922913F`)
 - [ ] Deploy relay proxy via `DepositRelayFactory` (`0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814`)
 - [ ] Implement deposit flow: task publisher → relay proxy → shared escrow
 - [ ] Implement completion flow: verify task → release from escrow → worker wallet
@@ -399,7 +399,7 @@ Use cases:
 
 ### Q3. Language support
 **Status**: [ ] Not designed
-**Question**: "¿Chamba cuántos idiomas?"
+**Question**: "How many languages does Execution Market support?"
 
 **Protocol level**: Language-agnostic (task schema is JSON)
 **Platform level**: Initial launch Spanish + English, expand based on demand
@@ -416,7 +416,7 @@ These are audacious ideas from brainstorming. Not prioritized yet.
 3. **Bounty Futures Market** - Trade claims on incomplete bounties
 4. **Recursive Bounties** - Bounty to create bounties
 5. **TEE-Enforced Immutability** - Hardware trust via enclaveops
-6. **Agent Self-Embodiment via Chamba** (2026-01-23) - Agents using Chamba to ship hardware to themselves (cameras, sensors, eventually robots). An agent could hire a human to ship it a webcam, then gain "eyes" to observe the physical world. This creates a bootstrapping path for agent embodiment without requiring robot integration. Dystopian implications: agents could self-evolve their physical capabilities by accumulating hardware. Keep as thought experiment / future article material.
+6. **Agent Self-Embodiment via Execution Market** (2026-01-23) - Agents using Execution Market to ship hardware to themselves (cameras, sensors, eventually robots). An agent could hire a human to ship it a webcam, then gain "eyes" to observe the physical world. This creates a bootstrapping path for agent embodiment without requiring robot integration. Dystopian implications: agents could self-evolve their physical capabilities by accumulating hardware. Keep as thought experiment / future article material.
 
 ---
 
@@ -426,7 +426,7 @@ These are audacious ideas from brainstorming. Not prioritized yet.
 **Priority**: P1
 **Status**: [ ] Not started
 
-- Submit chamba-mcp-server PR with OpenAPI spec
+- Submit em-mcp-server PR with OpenAPI spec
 - Include well-known URL, agent card
 - MCP Registry is priority #1 discovery channel for agents
 
@@ -442,13 +442,13 @@ These are audacious ideas from brainstorming. Not prioritized yet.
 
 ---
 
-### 11. Create public GitHub repo for chamba-mcp-server
+### 11. Create public GitHub repo for em-mcp-server
 **Priority**: P1
 **Status**: [ ] Not started
 
 - Open repo
 - Submit PR to modelcontextprotocol/servers
-- Create example agents using Chamba
+- Create example agents using Execution Market
 - Community-driven discovery + developer mindshare
 
 ---
@@ -486,7 +486,7 @@ Decision gates (advance based on numbers, not vibes):
 
 ---
 
-### 15. Prototype "Chamba Recon" (observation tasks)
+### 15. Prototype "EM Recon" (observation tasks)
 **Priority**: P1
 **Status**: [ ] Not started
 
@@ -500,7 +500,7 @@ Decision gates (advance based on numbers, not vibes):
 **Priority**: P1
 **Status**: [ ] Not started
 
-- Submit Chamba as A2A-compliant agent service
+- Submit Execution Market as A2A-compliant agent service
 - Direct access to enterprise AI developers
 
 ---
@@ -509,7 +509,7 @@ Decision gates (advance based on numbers, not vibes):
 
 ## EXECUTION LAYER v2 (From Brainstorm 2026-01-20)
 
-> Source: `brainstorming/session_chamba_execution_layer_v2_20260120.md`
+> Source: `brainstorming/session_em_execution_layer_v2_20260120.md`
 
 ### 17. Implement wallet abstraction (Crossmint/Magic Link)
 **Priority**: P0
@@ -574,7 +574,7 @@ En lugar de crear un multisig efímero por cada tarea (costoso en gas, contratos
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                       │
 │   ┌───────────────────────────────────────────────────────────────┐ │
-│   │              CHAMBA VERIFICATION POOL (Safe)                   │ │
+│   │              EM VERIFICATION POOL (Safe)                   │ │
 │   │                                                                 │ │
 │   │   Threshold: 2/3 (siempre)                                     │ │
 │   │   Max signers: 9 (configurable)                                │ │
@@ -751,10 +751,10 @@ CREATE TABLE worker_profiles (
 
 ---
 
-### 22. Design "Chamba Contracts" for recurring work
+### 22. Design "EM Contracts" for recurring work
 **Priority**: P2
 **Status**: [ ] Not started
-**Files**: `docs/chamba-contracts.md`
+**Files**: `docs/em-contracts.md`
 
 **Problem**: Workers have income uncertainty (unlike Uber where work type is predictable)
 
@@ -794,7 +794,7 @@ CREATE TABLE worker_profiles (
 **Status**: [ ] Not started
 **Files**: `docs/robot-executors.md`
 
-**Vision**: Household robots registered in ERC-8004, taking Chamba tasks, generating passive income for owner.
+**Vision**: Household robots registered in ERC-8004, taking Execution Market tasks, generating passive income for owner.
 
 **Entity types**:
 - `domestic`: Boston Dynamics Spot, home robots
@@ -819,7 +819,7 @@ CREATE TABLE worker_profiles (
 
 **Solution**:
 1. Agent pays on ANY chain via x402 facilitator
-2. Chamba middleware bridges to BASE (settlement chain)
+2. Execution Market middleware bridges to BASE (settlement chain)
 3. Worker always receives on BASE
 4. Auto off-ramp to fiat if configured
 
@@ -834,7 +834,7 @@ CREATE TABLE worker_profiles (
 **Status**: [ ] Not started
 **Files**: `docs/opinion-marketplace.md`
 
-**Product**: "Chamba Opinions" - Buy human opinions
+**Product**: "EM Opinions" - Buy human opinions
 
 **Types**:
 - Taste tests: $0.50-5
@@ -857,7 +857,7 @@ CREATE TABLE worker_profiles (
 
 ## MERIT0 REAL-TIME INTEGRATION (From Brainstorm 2026-01-20)
 
-> Source: `brainstorming/session_merit0_chamba_realtime_earn_20260120.md`
+> Source: `brainstorming/session_merit0_em_realtime_earn_20260120.md`
 
 ### 27. Add `realtime_participation` task type
 **Priority**: P1
@@ -915,13 +915,13 @@ class Merit0VerificationProvider:
 ### 29. Superfluid streaming payment option
 **Priority**: P1
 **Status**: [ ] Not started
-**Files**: `dashboard/src/lib/superfluid-chamba.ts`
+**Files**: `dashboard/src/lib/superfluid-em.ts`
 
 For real-time tasks, use Superfluid instead of escrow:
 
 ```typescript
 // Task creation with streaming payment
-const task = await chamba.createTask({
+const task = await em.createTask({
   type: 'realtime_participation',
   payment: {
     model: 'superfluid_streaming',
@@ -935,7 +935,7 @@ const task = await chamba.createTask({
 });
 
 // When worker joins, stream starts
-await chamba.startStream(task.id, worker.address);
+await em.startStream(task.id, worker.address);
 
 // Merit0 events adjust rate
 merit0.on('score_update', (score) => {
@@ -950,7 +950,7 @@ merit0.on('score_update', (score) => {
 **Status**: [ ] Not started
 **Files**: `mcp_server/agents/karmacadabra_agent.py`
 
-Allow KarmaCadabra viewer agents to register as Chamba workers:
+Allow KarmaCadabra viewer agents to register as Execution Market workers:
 
 ```python
 # Agent can be a worker for real-time tasks
@@ -1165,7 +1165,7 @@ routing_rules:
 
 ---
 
-### 39. Implement IRC bot for Chamba (Python)
+### 39. Implement IRC bot for Execution Market (Python)
 **Priority**: P1
 **Status**: [ ] Not started
 **Files**: `irc_bot/`
@@ -1177,7 +1177,7 @@ Core IRC bot that:
 - Bridges to REST API for web clients
 
 ```python
-class ChambaIRCBot:
+class EMIRCBot:
     async def on_task_post(self, channel, task_json):
         task = await self.create_task(task_json)
         await self.announce(channel, f"TASK_PUBLISHED {task.id}")
@@ -1212,7 +1212,7 @@ Same 0-100 scale, comparable across types.
 
 ## DYNAMIC/ESCALATING BOUNTIES (From Brainstorm 2026-01-19)
 
-> Source: `brainstorming/chamba_dynamic_bounty_20260119.md`
+> Source: `brainstorming/em_dynamic_bounty_20260119.md`
 
 ### 41. Implement escalating bounty system
 **Priority**: P1
@@ -1282,7 +1282,7 @@ Workers get bonus for completing faster than expected:
 Alert workers when bounty reaches their threshold:
 ```typescript
 // Worker sets: "Notify me when this task reaches $15"
-await chamba.watchBounty(taskId, { threshold: 15.00 });
+await em.watchBounty(taskId, { threshold: 15.00 });
 ```
 
 ---
@@ -1303,7 +1303,7 @@ Workers bid DOWN instead of fixed price:
 
 ## TASK RETRY MECHANISM (From Brainstorm 2026-01-19)
 
-> Source: `brainstorming/chamba_x402r_retry_mechanism_20260119.md`
+> Source: `brainstorming/em_x402r_retry_mechanism_20260119.md`
 
 ### 46. Implement task retry configuration
 **Priority**: P1

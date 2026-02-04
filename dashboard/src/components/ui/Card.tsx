@@ -90,8 +90,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           ],
           // Selected state
           selected && [
-            'ring-2 ring-chamba-500',
-            'border-chamba-500 dark:border-chamba-500',
+            'ring-2 ring-em-500',
+            'border-em-500 dark:border-em-500',
           ],
           // Custom classes
           className
@@ -316,7 +316,7 @@ export function StatCard({
           )}
         </div>
         {icon && (
-          <div className="flex-shrink-0 p-3 rounded-lg bg-chamba-50 dark:bg-chamba-900/20 text-chamba-600 dark:text-chamba-400">
+          <div className="flex-shrink-0 p-3 rounded-lg bg-em-50 dark:bg-em-900/20 text-em-600 dark:text-em-400">
             {icon}
           </div>
         )}

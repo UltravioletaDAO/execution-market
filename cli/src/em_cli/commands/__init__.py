@@ -1,5 +1,5 @@
 """
-Chamba CLI command modules.
+Execution Market CLI command modules.
 
 This package organizes CLI commands into logical groups:
 - auth: Authentication and profile management

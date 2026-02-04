@@ -1,5 +1,5 @@
 """
-Chamba Price Check Task Type
+Execution Market Price Check Task Type
 
 Task type for price verification tasks:
 - Product price verification

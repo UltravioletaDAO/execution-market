@@ -1,7 +1,7 @@
 /**
- * Chamba ERC-8004 Registration Script
+ * Execution Market ERC-8004 Registration Script
  *
- * Registers Chamba as an agent in the ERC-8004 IdentityRegistry on Sepolia.
+ * Registers Execution Market as an agent in the ERC-8004 IdentityRegistry on Sepolia.
  *
  * Usage:
  *   npx tsx scripts/register_erc8004.ts
@@ -47,13 +47,13 @@ const IDENTITY_REGISTRY_ABI = [
   },
 ] as const;
 
-// Chamba Agent metadata
-const CHAMBA_AGENT_URI = 'https://chamba.ultravioletadao.xyz/.well-known/agent.json';
-const CHAMBA_METADATA = [
-  { key: 'name', value: 'Chamba' },
+// Execution Market Agent metadata
+const EM_AGENT_URI = 'https://execution.market/.well-known/agent.json';
+const EM_METADATA = [
+  { key: 'name', value: 'Execution Market' },
   { key: 'type', value: 'service_provider' },
   { key: 'category', value: 'human_execution_layer' },
-  { key: 'description', value: 'Human execution layer for AI agents - API de manos humanas' },
+  { key: 'description', value: 'Human Execution Layer for AI Agents - API de manos humanas' },
   { key: 'protocols', value: 'A2A,MCP,HTTP' },
   { key: 'capabilities', value: 'task_publish,task_verify,evidence_submit,escrow_management' },
   { key: 'ecosystem', value: 'ultravioleta' },
@@ -67,7 +67,7 @@ async function main() {
 
   const rpcUrl = process.env.ETHEREUM_RPC_URL || 'https://1rpc.io/eth';
 
-  console.log('Chamba ERC-8004 Registration');
+  console.log('Execution Market ERC-8004 Registration');
   console.log('================================');
   console.log(`Network: Ethereum Mainnet (${mainnet.id})`);
   console.log(`Identity Registry: ${ERC8004_IDENTITY_REGISTRY}`);
@@ -115,14 +115,14 @@ async function main() {
   console.log(`\nProceeding with registration...`);
 
   // Register
-  console.log('\n📝 Registering Chamba...');
-  console.log(`Agent URI: ${CHAMBA_AGENT_URI}`);
+  console.log('\n📝 Registering Execution Market...');
+  console.log(`Agent URI: ${EM_AGENT_URI}`);
 
   const hash = await walletClient.writeContract({
     address: ERC8004_IDENTITY_REGISTRY,
     abi: IDENTITY_REGISTRY_ABI,
     functionName: 'register',
-    args: [CHAMBA_AGENT_URI],
+    args: [EM_AGENT_URI],
   });
 
   console.log(`\n⏳ Transaction submitted: ${hash}`);
@@ -145,9 +145,9 @@ async function main() {
 
     if (registeredEvent && registeredEvent.topics[1]) {
       const agentId = BigInt(registeredEvent.topics[1]);
-      console.log(`Chamba Agent ID: ${agentId}`);
+      console.log(`Execution Market Agent ID: ${agentId}`);
       console.log(`\nUpdate .env.local with:`);
-      console.log(`CHAMBA_AGENT_ID=${agentId}`);
+      console.log(`EM_AGENT_ID=${agentId}`);
     } else {
       console.log('\nCheck the transaction on Etherscan to get your Agent ID:');
       console.log(`https://etherscan.io/tx/${hash}`);

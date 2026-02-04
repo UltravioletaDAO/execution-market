@@ -81,7 +81,8 @@ export function WalletSelector({
   className = '',
 }: WalletSelectorProps) {
   const { t } = useTranslation()
-  const wallet = useWallet()
+  const { signing = false, ...walletRest } = useWallet()
+  const wallet = { signing, ...walletRest }
 
   // Local state
   const [selectedWallet, setSelectedWallet] = useState<WalletType | null>(null)
@@ -288,7 +289,12 @@ export function WalletSelector({
               disabled={wallet.isConnecting || !email}
               className="flex-1 py-3 px-4 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
-              {wallet.isConnecting ? (
+              {wallet.signing ? (
+                <>
+                  <SpinnerIcon />
+                  {t('wallet.signing', 'Sign the message in your wallet...')}
+                </>
+              ) : wallet.isConnecting ? (
                 <>
                   <SpinnerIcon />
                   {t('wallet.connecting', 'Connecting...')}
@@ -301,23 +307,6 @@ export function WalletSelector({
         </form>
       ) : (
         <>
-          {/* Optional display name for non-email wallets */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('wallet.displayNameForNew', 'Display name (for new users)')}
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
-              placeholder={t('wallet.displayNamePlaceholder', 'Your name')}
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              {t('wallet.displayNameHint', 'Ignored if your wallet is already registered')}
-            </p>
-          </div>
-
           {/* Wallet options */}
           <div className="space-y-2">
             {availableOptions.map((option) => (
@@ -341,8 +330,13 @@ export function WalletSelector({
                   <div className="font-medium text-gray-900">{option.name}</div>
                   <div className="text-xs text-gray-500">{option.description}</div>
                 </div>
-                {selectedWallet === option.id && wallet.isConnecting && (
+                {selectedWallet === option.id && wallet.isConnecting && !wallet.signing && (
                   <SpinnerIcon />
+                )}
+                {selectedWallet === option.id && wallet.signing && (
+                  <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
                 )}
                 {option.requiresEmail && !wallet.isConnecting && (
                   <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -360,6 +354,28 @@ export function WalletSelector({
             </p>
           )}
         </>
+      )}
+
+      {/* Signing indicator */}
+      {wallet.signing && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+          <div className="flex-shrink-0">
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-800">
+              {t('wallet.signing', 'Sign the message in your wallet...')}
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              {t('wallet.signingDesc', 'Confirm your identity by signing the request in your wallet')}
+            </p>
+          </div>
+          <SpinnerIcon />
+        </div>
       )}
 
       {/* Security note */}

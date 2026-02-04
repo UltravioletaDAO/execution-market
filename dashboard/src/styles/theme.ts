@@ -1,5 +1,5 @@
 /**
- * Chamba Theme System
+ * Execution Market Theme System
  *
  * Centralized theme configuration for consistent styling across the dashboard.
  * This file provides type-safe theme tokens and helper functions.
@@ -14,9 +14,9 @@ import type { TaskStatus } from '../types/database';
 export const colors = {
   // Brand colors
   brand: {
-    primary: '#0ea5e9',      // chamba-500
-    primaryLight: '#38bdf8', // chamba-400
-    primaryDark: '#0284c7',  // chamba-600
+    primary: '#0ea5e9',      // em-500
+    primaryLight: '#38bdf8', // em-400
+    primaryDark: '#0284c7',  // em-600
     secondary: '#8b5cf6',    // violet-500
     accent: '#f59e0b',       // amber-500
   },

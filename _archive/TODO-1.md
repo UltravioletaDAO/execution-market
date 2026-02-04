@@ -1,6 +1,6 @@
-# Chamba TODO - Part 1 (Items 51-100)
+# Execution Market TODO - Part 1 (Items 51-100)
 
-> Pipeline, Reputation, Bounties Extended, Protocol, ChambaBridge
+> Pipeline, Reputation, Bounties Extended, Protocol, EMBridge
 >
 > See also: [TODO.md](TODO.md) (Items 0-50), [TODO-2.md](TODO-2.md) (Items 101-157)
 
@@ -8,7 +8,7 @@
 
 ## TASK PIPELINE (From Brainstorm 2026-01-19)
 
-> Source: `brainstorming/chamba_task_pipeline_20260119.md`
+> Source: `brainstorming/em_task_pipeline_20260119.md`
 
 ### 51. Implement task processing pipeline
 **Priority**: P1
@@ -22,7 +22,7 @@ Full pipeline: original_request → verify executability → translate → publi
 │                    TASK PROCESSING PIPELINE                          │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                       │
-│   AGENT REQUEST              CHAMBA PROCESSING           EXECUTION   │
+│   AGENT REQUEST              EM PROCESSING           EXECUTION   │
 │   ─────────────              ─────────────────           ─────────   │
 │                                                                       │
 │   "Necesito que alguien     ┌─────────────────┐                      │
@@ -174,7 +174,7 @@ CREATE TABLE executability_checks (
 
 ## GLOBAL REPUTATION / SEALS (From Brainstorm 2026-01-19)
 
-> Source: `brainstorming/chamba_global_reputation_20260119.md`
+> Source: `brainstorming/em_global_reputation_20260119.md`
 
 ### 58. Implement ERC-8004-BIDIRECTIONAL extension
 **Priority**: P1
@@ -350,7 +350,7 @@ When verification fails or disputes arise:
 
 ## IMMUTABLE BOUNTIES (Extended) (From Brainstorm 2026-01-19)
 
-> Source: `brainstorming/session_chamba_immutable_bounties_20260119.md`
+> Source: `brainstorming/session_em_immutable_bounties_20260119.md`
 
 ### 68. Implement versioned bounties (Git-style linking)
 **Priority**: P2
@@ -437,7 +437,7 @@ Task Evidence Root
 ### 74. DAO-governed exceptions
 **Priority**: P3
 **Status**: [ ] Not started
-**Files**: Integration with ChambaDAO
+**Files**: Integration with EM DAO
 
 Edge cases voted on by DAO:
 - Worker requests exception
@@ -463,24 +463,24 @@ Tasks require specific seals to claim:
 
 ---
 
-## CHAMBA PROTOCOL (Open Standard) (From Brainstorm 2026-01-12)
+## EXECUTION MARKET PROTOCOL (Open Standard) (From Brainstorm 2026-01-12)
 
-> Source: `brainstorming/session_chamba_protocol_deep_20260112_1230.md`
+> Source: `brainstorming/session_em_protocol_deep_20260112_1230.md`
 
-### 76. Implement Chamba DID (Decentralized Worker Identity)
+### 76. Implement EM DID (Decentralized Worker Identity)
 **Priority**: P1
 **Status**: [ ] Not started
 **Files**: `protocol/did/`
 
-Every worker has portable identity: `did:chamba:worker123`
-- Works across all Chamba-compatible marketplaces
+Every worker has portable identity: `did:em:worker123`
+- Works across all EM-compatible marketplaces
 - Reputation portable between platforms
 
 ```json
 {
-  "@context": "https://chamba.protocol/v1",
-  "id": "did:chamba:worker123",
-  "type": "ChambaIdentity",
+  "@context": "https://em.protocol/v1",
+  "id": "did:em:worker123",
+  "type": "EMIdentity",
   "attestations": [...],
   "reputation_score": 87
 }
@@ -488,7 +488,7 @@ Every worker has portable identity: `did:chamba:worker123`
 
 ---
 
-### 77. Research Chamba Gossip (P2P Task Routing)
+### 77. Research EM Gossip (P2P Task Routing)
 **Priority**: P3
 **Status**: [ ] Not started
 **Files**: `docs/research/gossip-protocol.md`
@@ -499,12 +499,12 @@ Tasks propagate via libp2p gossip, no central server:
 
 ---
 
-### 78. Implement Chamba Attestations (EAS schema)
+### 78. Implement EM Attestations (EAS schema)
 **Priority**: P1
 **Status**: [ ] Not started
 **Files**: `contracts/EASSchemas.sol`
 
-Deploy EAS schemas for Chamba skills:
+Deploy EAS schemas for Execution Market skills:
 ```solidity
 // Skill attestation schema
 bytes32 constant SKILL_SCHEMA = keccak256(
@@ -541,7 +541,7 @@ Financial instruments on task completion rates:
 **Status**: [ ] Not started
 **Files**: `docs/research/reputation-import.md`
 
-Scrape TaskRabbit/Fiverr profiles, mint as Chamba attestations:
+Scrape TaskRabbit/Fiverr profiles, mint as EM attestations:
 - Bootstrap network effect
 - Workers start with existing reputation
 
@@ -573,15 +573,15 @@ Transition plan:
 ### 84. Define JSON-LD context
 **Priority**: P1
 **Status**: [ ] Not started
-**Files**: `protocol/context/chamba-v1.jsonld`
+**Files**: `protocol/context/em-v1.jsonld`
 
 ```json
 {
   "@context": {
-    "chamba": "https://chamba.protocol/v1#",
-    "Task": "chamba:Task",
-    "Evidence": "chamba:Evidence",
-    "Reputation": "chamba:Reputation"
+    "em": "https://em.protocol/v1#",
+    "Task": "em:Task",
+    "Evidence": "em:Evidence",
+    "Reputation": "em:Reputation"
   }
 }
 ```
@@ -636,7 +636,7 @@ Post task on any chain, execute on any chain:
 
 ---
 
-### 89. Research protocol token (CHAMBA)
+### 89. Research protocol token (EM)
 **Priority**: P3
 **Status**: [ ] Not started
 **Files**: `docs/research/protocol-token.md`
@@ -652,9 +652,9 @@ Token for governance + staking:
 
 ---
 
-## CHAMBABRIDGE (Middleware) (From Brainstorm 2026-01-12)
+## EMBRIDGE (Middleware) (From Brainstorm 2026-01-12)
 
-> Source: `brainstorming/session_chambabridge_deep_20260112_1230.md`
+> Source: `brainstorming/session_embridge_deep_20260112_1230.md`
 
 ### 90. Build TaskRabbit adapter (unofficial API)
 **Priority**: P1 (if API works)
@@ -663,7 +663,7 @@ Token for governance + staking:
 
 ```python
 class TaskRabbitAdapter(PlatformAdapter):
-    async def create_task(self, task: ChambaTask) -> str:
+    async def create_task(self, task: EMTask) -> str:
         tr_task = self.convert_to_taskrabbit_format(task)
         result = await self.client.post("/tasks", tr_task)
         return result["id"]
@@ -786,7 +786,7 @@ Platforms send us tasks they can't fill:
 **Status**: [ ] Not started
 **Files**: `docs/research/virtual-platform.md`
 
-Agents think they're using "TaskRabbit API" but it's ChambaBridge:
+Agents think they're using "TaskRabbit API" but it's EMBridge:
 - Zero behavior change for agents
 - Build TaskRabbit-compatible API surface
 

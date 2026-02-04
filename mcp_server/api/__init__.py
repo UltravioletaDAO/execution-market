@@ -1,5 +1,5 @@
 """
-Chamba REST API Module
+Execution Market REST API Module
 
 Provides HTTP endpoints in addition to MCP tools.
 

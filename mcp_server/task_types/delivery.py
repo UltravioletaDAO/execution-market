@@ -1,5 +1,5 @@
 """
-Chamba Delivery Task Type
+Execution Market Delivery Task Type
 
 Task type for delivery/pickup tasks:
 - Package delivery between locations

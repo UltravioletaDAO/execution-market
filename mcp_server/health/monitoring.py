@@ -1,5 +1,5 @@
 """
-Monitoring Utilities for Chamba
+Monitoring Utilities for Execution Market
 
 Provides:
 - Structured logging setup
@@ -44,7 +44,7 @@ class StructuredFormatter(logging.Formatter):
     - Splunk
     """
 
-    def __init__(self, service_name: str = "chamba"):
+    def __init__(self, service_name: str = "execution-market"):
         super().__init__()
         self.service_name = service_name
         self.environment = os.getenv("ENVIRONMENT", "development")
@@ -154,7 +154,7 @@ class HumanReadableFormatter(logging.Formatter):
 def setup_logging(
     level: str = "INFO",
     structured: bool = None,
-    service_name: str = "chamba",
+    service_name: str = "execution-market",
 ) -> None:
     """
     Configure logging for the application.

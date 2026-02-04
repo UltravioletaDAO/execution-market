@@ -1,5 +1,5 @@
 """
-Chamba MCP Server - FastAPI Wrapper with Streamable HTTP Transport
+Execution Market MCP Server - FastAPI Wrapper with Streamable HTTP Transport
 
 Provides HTTP endpoints for health checks and MCP server initialization.
 MCP server exposed via Streamable HTTP transport at /mcp endpoint.
@@ -28,6 +28,7 @@ from pydantic import BaseModel
 
 import supabase_client as db
 from jobs.task_expiration import run_task_expiration_loop
+from jobs.auto_payment import run_auto_payment_loop
 
 # Import MCP server for Streamable HTTP mounting
 from server import mcp as mcp_server
@@ -41,7 +42,7 @@ from health import router as health_router, setup_logging, get_metrics_collector
 # x402 SDK Integration (NOW-202)
 try:
     from integrations.x402.sdk_client import (
-        ChambaX402SDK,
+        EMX402SDK,
         setup_x402_for_app,
         check_sdk_available,
         get_sdk_info,
@@ -50,7 +51,7 @@ try:
     X402_SDK_AVAILABLE = check_sdk_available()
 except ImportError:
     X402_SDK_AVAILABLE = False
-    ChambaX402SDK = None
+    EMX402SDK = None
     setup_x402_for_app = None
     FACILITATOR_URL = None
 
@@ -68,15 +69,15 @@ except ImportError:
 try:
     from integrations.erc8004 import (
         get_facilitator_client,
-        get_chamba_reputation,
-        CHAMBA_AGENT_ID,
+        get_em_reputation,
+        EM_AGENT_ID,
         ERC8004_NETWORK,
         FACILITATOR_URL as ERC8004_FACILITATOR_URL,
     )
     ERC8004_AVAILABLE = True
 except ImportError:
     ERC8004_AVAILABLE = False
-    CHAMBA_AGENT_ID = 469
+    EM_AGENT_ID = 469
     ERC8004_NETWORK = "ethereum"
     ERC8004_FACILITATOR_URL = "https://facilitator.ultravioletadao.xyz"
 
@@ -106,11 +107,14 @@ async def lifespan(app: FastAPI):
     Manages MCP session manager, background jobs, and other async resources.
     Required for Streamable HTTP transport to work correctly.
     """
-    logger.info("Starting Chamba MCP Server with Streamable HTTP transport")
+    logger.info("Starting Execution Market MCP Server with Streamable HTTP transport")
 
     # Start background jobs
     expiration_task = asyncio.create_task(run_task_expiration_loop())
     logger.info("Task expiration background job scheduled")
+
+    auto_payment_task = asyncio.create_task(run_auto_payment_loop())
+    logger.info("Auto-payment background job scheduled")
 
     # Initialize MCP session manager
     # The session manager must be running for Streamable HTTP to work
@@ -133,13 +137,18 @@ async def lifespan(app: FastAPI):
 
     # Cancel background jobs on shutdown
     expiration_task.cancel()
+    auto_payment_task.cancel()
     try:
         await expiration_task
     except asyncio.CancelledError:
         pass
-    logger.info("Task expiration background job stopped")
+    try:
+        await auto_payment_task
+    except asyncio.CancelledError:
+        pass
+    logger.info("Background jobs stopped")
 
-    logger.info("Shutting down Chamba MCP Server")
+    logger.info("Shutting down Execution Market MCP Server")
 
 
 # OpenAPI Tags for documentation organization (NOW-206)
@@ -189,12 +198,12 @@ tags_metadata = [
 # Initialize FastAPI app with enhanced metadata (NOW-206)
 # Include lifespan for MCP Streamable HTTP session management
 app = FastAPI(
-    title="Chamba API",
+    title="Execution Market API",
     lifespan=lifespan,
     description="""
 ## Human Execution Layer for AI Agents
 
-Chamba connects AI agents with human workers for physical-world tasks.
+Execution Market connects AI agents with human workers for physical-world tasks.
 
 ### Features
 - **x402 Payments**: Gasless stablecoin payments via facilitator
@@ -211,9 +220,9 @@ Chamba connects AI agents with human workers for physical-world tasks.
 Supports 19 mainnets including Ethereum, Base, Polygon, Optimism, Arbitrum, Avalanche.
 
 ### Links
-- [Dashboard](https://app.chamba.ultravioletadao.xyz)
-- [Documentation](https://docs.chamba.ultravioletadao.xyz)
-- [GitHub](https://github.com/ultravioleta-dao/chamba)
+- [Dashboard](https://execution.market)
+- [Documentation](https://docs.execution.market)
+- [GitHub](https://github.com/ultravioleta-dao/execution-market)
     """,
     version="1.0.0",
     contact={
@@ -235,10 +244,10 @@ Supports 19 mainnets including Ethereum, Base, Polygon, Optimism, Arbitrum, Aval
 add_api_middleware(app)
 
 # Initialize x402 SDK (NOW-202)
-x402_sdk: Optional[ChambaX402SDK] = None
+x402_sdk: Optional[EMX402SDK] = None
 if X402_SDK_AVAILABLE and setup_x402_for_app:
     try:
-        treasury_address = os.environ.get("CHAMBA_TREASURY_ADDRESS")
+        treasury_address = os.environ.get("EM_TREASURY_ADDRESS", os.environ.get("CHAMBA_TREASURY_ADDRESS"))
         network = os.environ.get("X402_NETWORK", "base")
         x402_sdk = setup_x402_for_app(
             app,
@@ -289,9 +298,9 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:5174",  # MCP Inspector
         "http://localhost:6274",  # Claude Desktop MCP Inspector
-        "https://chamba.ultravioletadao.xyz",
-        "https://app.chamba.ultravioletadao.xyz",
-        "https://admin.chamba.ultravioletadao.xyz",
+        "https://execution.market",
+        "https://app.execution.market",
+        "https://admin.execution.market",
         "https://inspector.modelcontextprotocol.io",  # Official MCP Inspector
     ],
     allow_credentials=True,
@@ -702,10 +711,10 @@ async def x402_networks():
 @app.get("/")
 async def root():
     """Root endpoint with MCP server info."""
-    base_url = os.environ.get("MCP_BASE_URL", "https://api.chamba.ultravioletadao.xyz")
+    base_url = os.environ.get("MCP_BASE_URL", "https://api.execution.market")
 
     return {
-        "name": "Chamba MCP Server",
+        "name": "Execution Market MCP Server",
         "version": "0.1.0",
         "description": "Human Execution Layer for AI Agents",
         "mcp": {
@@ -721,16 +730,16 @@ async def root():
                 "batch_requests",
             ],
             "tools": [
-                "chamba_publish_task",
-                "chamba_get_tasks",
-                "chamba_get_task",
-                "chamba_check_submission",
-                "chamba_approve_submission",
-                "chamba_cancel_task",
-                "chamba_apply_to_task",
-                "chamba_submit_work",
-                "chamba_get_my_tasks",
-                "chamba_withdraw_earnings",
+                "em_publish_task",
+                "em_get_tasks",
+                "em_get_task",
+                "em_check_submission",
+                "em_approve_submission",
+                "em_cancel_task",
+                "em_apply_to_task",
+                "em_submit_work",
+                "em_get_my_tasks",
+                "em_withdraw_earnings",
             ],
         },
         "endpoints": {
@@ -757,9 +766,9 @@ async def root():
             "a2a": f"{base_url}/a2a/v1",
         },
         "links": {
-            "dashboard": "https://app.chamba.ultravioletadao.xyz",
-            "docs": "https://docs.chamba.ultravioletadao.xyz",
-            "github": "https://github.com/ultravioleta-dao/chamba",
+            "dashboard": "https://execution.market",
+            "docs": "https://docs.execution.market",
+            "github": "https://github.com/ultravioleta-dao/execution-market",
             "mcp_spec": "https://modelcontextprotocol.io/specification/2025-03-26",
             "a2a_spec": "https://a2a-protocol.org/latest/specification/",
         },
@@ -774,7 +783,7 @@ async def root():
         "reputation": {
             "erc8004": "enabled" if ERC8004_AVAILABLE else "disabled",
             "network": ERC8004_NETWORK,
-            "chamba_agent_id": CHAMBA_AGENT_ID,
+            "em_agent_id": EM_AGENT_ID,
             "facilitator": ERC8004_FACILITATOR_URL if ERC8004_AVAILABLE else "https://facilitator.ultravioletadao.xyz",
             "contracts": {
                 "identity_registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",

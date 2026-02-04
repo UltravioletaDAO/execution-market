@@ -41,7 +41,7 @@ const Scene1Hook: React.FC = () => {
           <div style={{ width: 50, height: 50, borderRadius: "50%", backgroundColor: colors.primary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
             📍
           </div>
-          <span style={{ color: colors.textMuted, fontSize: 24 }}>Chamba</span>
+          <span style={{ color: colors.textMuted, fontSize: 24 }}>Execution Market</span>
         </div>
         <p style={{ color: colors.text, fontSize: 32, lineHeight: 1.5, margin: 0 }}>
           "Verificar cartel de <span style={{ color: colors.accent }}>'Se Renta'</span>"
@@ -159,7 +159,7 @@ const Scene5Arbitrage: React.FC = () => {
   );
 };
 
-// ============ ESCENA 6: SOLUCIÓN - CHAMBA ============
+// ============ ESCENA 6: SOLUCIÓN - EXECUTION MARKET ============
 const Scene6Solution: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -170,7 +170,7 @@ const Scene6Solution: React.FC = () => {
     <AbsoluteFill style={{ backgroundColor: colors.bg, justifyContent: "center", alignItems: "center" }}>
       <div style={{ textAlign: "center" }}>
         <h1 style={{ color: colors.primary, fontSize: 180, fontWeight: "bold", transform: `scale(${logoScale})`, textShadow: `0 0 100px ${colors.primary}`, marginBottom: 40 }}>
-          CHAMBA
+          EXECUTION MARKET
         </h1>
         <p style={{ color: colors.text, fontSize: 42, opacity: textFade, maxWidth: 900 }}>
           Infraestructura para que <span style={{ color: colors.secondary }}>agentes contraten humanos</span>
@@ -236,7 +236,7 @@ const Scene8CTA: React.FC = () => {
 };
 
 // ============ VIDEO PRINCIPAL V18 ============
-export const ChambaV18: React.FC = () => {
+export const EMV18: React.FC = () => {
   const { fps } = useVideoConfig();
 
   const scenes = [

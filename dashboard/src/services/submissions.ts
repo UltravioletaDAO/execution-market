@@ -1,5 +1,5 @@
 /**
- * Chamba Submission API Service
+ * Execution Market Submission API Service
  *
  * API service for submission operations including submitting work,
  * fetching submissions, and approving/rejecting submissions.

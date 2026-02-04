@@ -1,5 +1,5 @@
 """
-Tests for the Chamba WebSocket Module (New Modular Structure)
+Tests for the Execution Market WebSocket Module (New Modular Structure)
 
 Tests the websocket/ directory components:
 - server.py: Connection manager and WebSocket endpoint

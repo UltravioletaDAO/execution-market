@@ -1,5 +1,5 @@
 """
-WebSocket Integration Module for Chamba MCP Tools
+WebSocket Integration Module for Execution Market MCP Tools
 
 Provides simple functions for emitting WebSocket events from MCP tools
 and other parts of the application. This module handles the complexity

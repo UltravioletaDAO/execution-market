@@ -1,7 +1,7 @@
 /**
- * Chamba SDK Type Definitions
+ * Execution Market SDK Type Definitions
  *
- * Complete type system for the Chamba human task execution layer.
+ * Complete type system for the Execution Market human task execution layer.
  */
 
 // =============================================================================
@@ -52,7 +52,7 @@ export type VerificationTier =
   | 'manual'; // Human review required
 
 /**
- * Payment tokens supported by Chamba.
+ * Payment tokens supported by Execution Market.
  */
 export type PaymentToken = 'USDC' | 'USDT' | 'DAI';
 
@@ -61,7 +61,7 @@ export type PaymentToken = 'USDC' | 'USDT' | 'DAI';
 // =============================================================================
 
 /**
- * A Chamba task representing work to be done by a human.
+ * An Execution Market task representing work to be done by a human.
  */
 export interface Task {
   /** Unique task identifier */
@@ -334,9 +334,9 @@ export interface WebhookEventData {
 // =============================================================================
 
 /**
- * Chamba API error.
+ * Execution Market API error.
  */
-export interface ChambaError {
+export interface ExecutionMarketError {
   /** Error code */
   code: string;
   /** Error message */

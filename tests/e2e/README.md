@@ -1,6 +1,6 @@
-# Chamba E2E Tests
+# Execution Market E2E Tests
 
-Comprehensive end-to-end tests for the Chamba platform using Playwright.
+Comprehensive end-to-end tests for the Execution Market platform using Playwright.
 
 ## Test Coverage
 
@@ -120,7 +120,7 @@ Comprehensive end-to-end tests for the Chamba platform using Playwright.
 
 ```bash
 # Install dependencies
-cd ideas/chamba/tests/e2e
+cd tests/e2e
 npm install
 
 # Install Playwright browsers
@@ -193,7 +193,7 @@ import { test, expect } from './fixtures/test-fixtures';
 test.describe('My Feature', () => {
   test('should do something', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Chamba')).toBeVisible();
+    await expect(page.getByText('Execution Market')).toBeVisible();
   });
 });
 ```
@@ -222,7 +222,7 @@ For GitHub Actions:
 ```yaml
 - name: Run E2E Tests
   run: |
-    cd ideas/chamba/tests/e2e
+    cd tests/e2e
     npm ci
     npx playwright install --with-deps
     npm test
@@ -234,9 +234,9 @@ For GitHub Actions:
 ## Troubleshooting
 
 ### Tests fail with "App not accessible"
-Make sure the Chamba dashboard is running:
+Make sure the Execution Market dashboard is running:
 ```bash
-cd ideas/chamba/dashboard
+cd dashboard
 npm run dev
 ```
 

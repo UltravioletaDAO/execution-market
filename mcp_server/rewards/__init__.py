@@ -1,5 +1,5 @@
 """
-Chamba Flexible Rewards Module
+Execution Market Flexible Rewards Module
 
 Supports multiple reward types for enterprise flexibility:
 - x402: USDC/crypto payments

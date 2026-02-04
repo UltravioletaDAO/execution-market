@@ -1,0 +1,164 @@
+/**
+ * Register relay as merchant (setting our wallet as arbiter), then refund.
+ *
+ * The deposit was made through the relay, so the escrow's "merchant" for our
+ * deposit is the relay address. We need to be the arbiter of the relay to
+ * call refund/release.
+ *
+ * registerMerchant(relay) from our wallet -> sets wallet as arbiter of relay
+ * refund(address, amount) -> refunds USDC back to the payer
+ *
+ * Usage: npx tsx register-relay-and-refund.ts
+ */
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  parseAbi,
+  formatUnits,
+  parseUnits,
+  encodeAbiParameters,
+  parseAbiParameters,
+  type Hex,
+} from 'viem'
+import { base } from 'viem/chains'
+import { privateKeyToAccount } from 'viem/accounts'
+import * as dotenv from 'dotenv'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: resolve(__dirname, '../.env.local') })
+
+const pk = process.env.WALLET_PRIVATE_KEY as `0x${string}`
+const account = privateKeyToAccount(pk)
+const rpcUrl = process.env.BASE_MAINNET_RPC_URL!
+
+const publicClient = createPublicClient({ chain: base, transport: http(rpcUrl) })
+const walletClient = createWalletClient({ account, chain: base, transport: http(rpcUrl) })
+
+const ESCROW = '0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC' as const
+const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const
+const RELAY = '0xe8CCF8Be24867cf21b4031fB1A5226932483EAF3' as const
+
+async function bal(addr: `0x${string}`) {
+  return publicClient.readContract({
+    address: USDC,
+    abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
+    functionName: 'balanceOf',
+    args: [addr],
+  })
+}
+
+async function main() {
+  console.log('=== Register Relay as Merchant + Refund ===')
+  console.log('Wallet:', account.address)
+  console.log('Relay:', RELAY)
+
+  // Step 1: Register relay as merchant (makes our wallet the arbiter)
+  console.log('\n--- Step 1: registerMerchant(relay) ---')
+
+  // Check current arbiter
+  const arbiterBefore = await publicClient.readContract({
+    address: ESCROW,
+    abi: parseAbi(['function getArbiter(address) view returns (address)']),
+    functionName: 'getArbiter',
+    args: [RELAY],
+  })
+  console.log('Relay arbiter before:', arbiterBefore)
+
+  if (arbiterBefore === '0x0000000000000000000000000000000000000000') {
+    const regHash = await walletClient.writeContract({
+      address: ESCROW,
+      abi: parseAbi(['function registerMerchant(address)']),
+      functionName: 'registerMerchant',
+      args: [RELAY],
+    })
+    console.log('TX:', regHash)
+    console.log('BaseScan: https://basescan.org/tx/' + regHash)
+
+    const regReceipt = await publicClient.waitForTransactionReceipt({ hash: regHash })
+    console.log('Status:', regReceipt.status)
+    console.log('Gas used:', regReceipt.gasUsed.toString())
+
+    // Verify
+    const arbiterAfter = await publicClient.readContract({
+      address: ESCROW,
+      abi: parseAbi(['function getArbiter(address) view returns (address)']),
+      functionName: 'getArbiter',
+      args: [RELAY],
+    })
+    console.log('Relay arbiter after:', arbiterAfter)
+  } else {
+    console.log('Relay already registered, arbiter:', arbiterBefore)
+  }
+
+  // Step 2: Try refund
+  console.log('\n--- Step 2: Refund $0.01 ---')
+  const walletBefore = await bal(account.address)
+  console.log('Wallet USDC before:', formatUnits(walletBefore, 6))
+
+  // refund(address payer, uint256 amount)
+  // The payer in the deposit was our wallet
+  const refundAmount = 10000n // 0.01 USDC
+  const cd = encodeAbiParameters(parseAbiParameters('address, uint256'), [account.address, refundAmount])
+  const fullCalldata = ('0x410085df' + cd.slice(2)) as Hex
+
+  // Simulate
+  console.log('Simulating refund...')
+  try {
+    await publicClient.call({
+      to: ESCROW,
+      data: fullCalldata,
+      account: account.address,
+    })
+    console.log('Simulation: SUCCESS')
+  } catch (e: any) {
+    console.log('Simulation error:', e.shortMessage?.substring(0, 200))
+    // If still fails, try release instead
+    console.log('\nTrying release(wallet, amount) instead...')
+    const releaseCd = encodeAbiParameters(parseAbiParameters('address, uint256'), [account.address, refundAmount])
+    const releaseCalldata = ('0x0357371d' + releaseCd.slice(2)) as Hex
+    try {
+      await publicClient.call({
+        to: ESCROW,
+        data: releaseCalldata,
+        account: account.address,
+      })
+      console.log('release simulation: SUCCESS')
+    } catch (e2: any) {
+      console.log('release simulation error:', e2.shortMessage?.substring(0, 200))
+    }
+    return
+  }
+
+  // Execute refund
+  console.log('Executing refund...')
+  const txHash = await walletClient.sendTransaction({
+    to: ESCROW,
+    data: fullCalldata,
+  })
+  console.log('TX:', txHash)
+  console.log('BaseScan: https://basescan.org/tx/' + txHash)
+
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash })
+  console.log('Status:', receipt.status)
+  console.log('Gas used:', receipt.gasUsed.toString())
+
+  for (const log of receipt.logs) {
+    console.log('\nLog from:', log.address)
+    console.log('  Topics:', log.topics.map(t => t.substring(0, 20) + '...'))
+    console.log('  Data:', log.data?.substring(0, 130))
+  }
+
+  // State after
+  const walletAfter = await bal(account.address)
+  console.log('\n--- After Refund ---')
+  console.log('Wallet USDC:', formatUnits(walletAfter, 6), `(was ${formatUnits(walletBefore, 6)})`)
+  console.log('USDC recovered:', formatUnits(walletAfter - walletBefore, 6))
+
+  const ethAfter = await publicClient.getBalance({ address: account.address })
+  console.log('ETH remaining:', formatUnits(ethAfter, 18))
+}
+
+main().catch(console.error)

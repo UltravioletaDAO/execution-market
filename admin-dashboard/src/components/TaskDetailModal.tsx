@@ -7,7 +7,7 @@ interface TaskDetailModalProps {
   onClose: () => void
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chamba.ultravioletadao.xyz'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 async function fetchTaskDetail(adminKey: string, taskId: string) {
   const response = await fetch(`${API_BASE}/api/v1/admin/tasks/${taskId}?admin_key=${adminKey}`)
@@ -259,7 +259,7 @@ export default function TaskDetailModal({ taskId, adminKey, onClose }: TaskDetai
                       href={`https://basescan.org/tx/${task.escrow_tx_hash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-chamba-400 hover:text-chamba-300 font-mono text-sm"
+                      className="text-em-400 hover:text-em-300 font-mono text-sm"
                     >
                       {task.escrow_tx_hash?.slice(0, 12)}...
                     </a>
@@ -317,7 +317,7 @@ export default function TaskDetailModal({ taskId, adminKey, onClose }: TaskDetai
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="bg-gray-700 rounded p-2 text-center text-chamba-400 hover:text-chamba-300 text-sm"
+                        className="bg-gray-700 rounded p-2 text-center text-em-400 hover:text-em-300 text-sm"
                       >
                         Evidence {i + 1}
                       </a>
@@ -368,7 +368,7 @@ export default function TaskDetailModal({ taskId, adminKey, onClose }: TaskDetai
                 <button
                   onClick={handleSaveEdit}
                   disabled={updateMutation.isPending}
-                  className="px-4 py-2 bg-chamba-600 hover:bg-chamba-700 text-white rounded disabled:opacity-50"
+                  className="px-4 py-2 bg-em-600 hover:bg-em-700 text-white rounded disabled:opacity-50"
                 >
                   {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -384,7 +384,7 @@ export default function TaskDetailModal({ taskId, adminKey, onClose }: TaskDetai
                 {['published', 'accepted'].includes(task.status) && (
                   <button
                     onClick={handleStartEdit}
-                    className="px-4 py-2 bg-chamba-600 hover:bg-chamba-700 text-white rounded"
+                    className="px-4 py-2 bg-em-600 hover:bg-em-700 text-white rounded"
                   >
                     Edit Task
                   </button>

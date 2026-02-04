@@ -1,7 +1,7 @@
 {
-  "name": "chamba-e2e-tests",
+  "name": "execution-market-e2e-tests",
   "version": "1.0.0",
-  "description": "End-to-end tests for Chamba - Human Execution Layer",
+  "description": "End-to-end tests for Execution Market - Human Execution Layer",
   "private": true,
   "scripts": {
     "test": "npx playwright test",

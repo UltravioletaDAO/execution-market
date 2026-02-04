@@ -1,5 +1,5 @@
 """
-Health Check Endpoints for Chamba.
+Health Check Endpoints for Execution Market.
 
 Provides liveness, readiness, and detailed health probes for:
 - Kubernetes/ECS container orchestration
@@ -78,7 +78,7 @@ class SystemHealth:
 
 class HealthChecker:
     """
-    Comprehensive health checker for all Chamba components.
+    Comprehensive health checker for all Execution Market components.
 
     Features:
     - Caching to prevent excessive health check load
@@ -720,24 +720,24 @@ async def prometheus_metrics() -> Response:
 
     # System up status
     lines.extend([
-        "# HELP chamba_up Service health status (1=healthy, 0.5=degraded, 0=unhealthy)",
-        "# TYPE chamba_up gauge",
-        f'chamba_up{{status="{health.status.value}",version="{health.version}"}} {1 if health.status == HealthStatus.HEALTHY else (0.5 if health.status == HealthStatus.DEGRADED else 0)}',
+        "# HELP em_up Service health status (1=healthy, 0.5=degraded, 0=unhealthy)",
+        "# TYPE em_up gauge",
+        f'em_up{{status="{health.status.value}",version="{health.version}"}} {1 if health.status == HealthStatus.HEALTHY else (0.5 if health.status == HealthStatus.DEGRADED else 0)}',
         ""
     ])
 
     # Uptime
     lines.extend([
-        "# HELP chamba_uptime_seconds Service uptime in seconds",
-        "# TYPE chamba_uptime_seconds counter",
-        f"chamba_uptime_seconds {health.uptime_seconds:.2f}",
+        "# HELP em_uptime_seconds Service uptime in seconds",
+        "# TYPE em_uptime_seconds counter",
+        f"em_uptime_seconds {health.uptime_seconds:.2f}",
         ""
     ])
 
     # Component health
     lines.extend([
-        "# HELP chamba_component_health Component health status (1=healthy, 0.5=degraded, 0=unhealthy)",
-        "# TYPE chamba_component_health gauge",
+        "# HELP em_component_health Component health status (1=healthy, 0.5=degraded, 0=unhealthy)",
+        "# TYPE em_component_health gauge",
     ])
 
     for name, comp in health.components.items():
@@ -746,27 +746,27 @@ async def prometheus_metrics() -> Response:
             HealthStatus.DEGRADED: 0.5,
             HealthStatus.UNHEALTHY: 0
         }[comp.status]
-        lines.append(f'chamba_component_health{{component="{name}"}} {health_value}')
+        lines.append(f'em_component_health{{component="{name}"}} {health_value}')
 
     lines.append("")
 
     # Component latency
     lines.extend([
-        "# HELP chamba_component_latency_ms Component check latency in milliseconds",
-        "# TYPE chamba_component_latency_ms gauge",
+        "# HELP em_component_latency_ms Component check latency in milliseconds",
+        "# TYPE em_component_latency_ms gauge",
     ])
 
     for name, comp in health.components.items():
         if comp.latency_ms is not None:
-            lines.append(f'chamba_component_latency_ms{{component="{name}"}} {comp.latency_ms:.2f}')
+            lines.append(f'em_component_latency_ms{{component="{name}"}} {comp.latency_ms:.2f}')
 
     lines.append("")
 
     # Last check timestamp
     lines.extend([
-        "# HELP chamba_health_check_timestamp_seconds Unix timestamp of last health check",
-        "# TYPE chamba_health_check_timestamp_seconds gauge",
-        f"chamba_health_check_timestamp_seconds {health.timestamp.timestamp():.0f}",
+        "# HELP em_health_check_timestamp_seconds Unix timestamp of last health check",
+        "# TYPE em_health_check_timestamp_seconds gauge",
+        f"em_health_check_timestamp_seconds {health.timestamp.timestamp():.0f}",
     ])
 
     return Response(
@@ -815,7 +815,7 @@ async def version_info() -> Dict[str, Any]:
     """
     checker = get_health_checker()
     return {
-        "name": "Chamba API",
+        "name": "Execution Market API",
         "version": checker.version,
         "environment": checker.environment,
         "build_date": os.getenv("BUILD_DATE", "unknown"),

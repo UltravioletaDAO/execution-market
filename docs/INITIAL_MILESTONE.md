@@ -1,4 +1,4 @@
-# Chamba - Initial Milestone Completed
+# Execution Market - Initial Milestone Completed
 
 > **Fecha**: 2026-01-25
 > **Versión**: v0.1.0-alpha
@@ -8,7 +8,7 @@
 
 ## Resumen Ejecutivo
 
-El proyecto Chamba "Human Execution Layer for AI Agents" ha completado su fase inicial de desarrollo con **62 tasks de código** finalizados, representando ~55,000+ líneas de código en ~260+ archivos.
+El proyecto Execution Market "Human Execution Layer for AI Agents" ha completado su fase inicial de desarrollo con **62 tasks de código** finalizados, representando ~55,000+ líneas de código en ~260+ archivos.
 
 ---
 
@@ -67,8 +67,8 @@ El proyecto Chamba "Human Execution Layer for AI Agents" ha completado su fase i
 
 ### SDKs
 
-- **Python SDK** (`chamba.py`): ChambaClient con todas las operaciones
-- **TypeScript SDK** (`@chamba/sdk`): Client completo con tipos
+- **Python SDK** (`execution_market.py`): ExecutionMarketClient con todas las operaciones
+- **TypeScript SDK** (`@execution-market/sdk`): Client completo con tipos
 
 ### Infrastructure
 
@@ -105,7 +105,7 @@ El proyecto Chamba "Human Execution Layer for AI Agents" ha completado su fase i
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                      CHAMBA MCP SERVER                          │
+│                      EXECUTION MARKET MCP SERVER                          │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
 │  │ Task Mgmt   │  │ Verification│  │  Payments   │             │
 │  │ - Create    │  │ - Pre-check │  │ - x402      │             │
@@ -140,12 +140,12 @@ El proyecto Chamba "Human Execution Layer for AI Agents" ha completado su fase i
 ## Tasks Pendientes (Configuración Manual)
 
 ### NOW-006: Dominio y SSL
-- [ ] Crear hosted zone en Route53 para `chamba.ultravioleta.xyz`
+- [ ] Crear hosted zone en Route53 para `execution.market`
 - [ ] Solicitar certificado SSL en ACM
 - [ ] Validar certificado via DNS
 
 ### NOW-007: AWS Secrets Manager
-- [ ] Crear secret `chamba/production` con:
+- [ ] Crear secret `execution-market/production` con:
   - SUPABASE_URL
   - SUPABASE_KEY
   - ANTHROPIC_API_KEY
@@ -178,29 +178,29 @@ El proyecto Chamba "Human Execution Layer for AI Agents" ha completado su fase i
 
 ```bash
 # Desarrollo local
-cd ideas/chamba
+cd ideas/execution-market
 docker-compose up -d
 curl http://localhost:8080/health
 
 # Build para producción
-docker build -t chamba-mcp:latest ./mcp_server
-docker build -t chamba-dashboard:latest ./dashboard
+docker build -t execution-market-mcp:latest ./mcp_server
+docker build -t execution-market-dashboard:latest ./dashboard
 
 # Deploy a AWS
 ./scripts/deploy.sh production
 
 # Verificar deploy
-curl https://chamba.ultravioleta.xyz/health
+curl https://execution.market/health
 ```
 
 ---
 
 ## Contacto
 
-- **Proyecto**: Chamba - Human Execution Layer
-- **Repo**: `control-plane/ideas/chamba/`
-- **Docs**: https://docs.chamba.ultravioleta.xyz
-- **API**: https://api.chamba.ultravioleta.xyz
+- **Proyecto**: Execution Market - Human Execution Layer
+- **Repo**: `control-plane/ideas/execution-market/`
+- **Docs**: https://docs.execution.market
+- **API**: https://api.execution.market
 
 ---
 

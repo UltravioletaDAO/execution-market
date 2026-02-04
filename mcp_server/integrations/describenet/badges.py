@@ -1,5 +1,5 @@
 """
-Badge Management for Chamba (NOW-168)
+Badge Management for Execution Market (NOW-168)
 
 Manages fusion badges that represent sustained excellence:
 - MASTER_WORKER: 50+ tasks, 6+ months active, high reputation

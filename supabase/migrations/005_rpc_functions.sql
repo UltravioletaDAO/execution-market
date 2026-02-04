@@ -1,5 +1,5 @@
 -- ============================================================================
--- CHAMBA: Human Execution Layer for AI Agents
+-- EXECUTION MARKET: Human Execution Layer for AI Agents
 -- Migration: 005_rpc_functions.sql
 -- Description: Required RPC functions for all major operations
 -- Version: 2.0.0
@@ -96,11 +96,12 @@ BEGIN
         VALUES (v_executor_id, 'newcomer', 'Newcomer', 'Complete your first task', 0, 1);
 
     ELSE
-        -- Update existing executor
+        -- Update existing executor: always bind to current session user_id
+        -- so returning users with a new anonymous session get linked correctly
         UPDATE executors
         SET
             last_active_at = NOW(),
-            user_id = COALESCE(executors.user_id, v_user_id),
+            user_id = COALESCE(v_user_id, executors.user_id),
             email = COALESCE(executors.email, p_email)
         WHERE executors.id = v_executor_id;
     END IF;
@@ -166,11 +167,11 @@ BEGIN
     SET is_primary = FALSE, updated_at = NOW()
     WHERE user_id = p_user_id AND wallet_address != v_normalized_wallet;
 
-    -- Link executor if exists
+    -- Link executor to current session (always update user_id so
+    -- returning users with a new anonymous session get linked correctly)
     UPDATE executors
     SET user_id = p_user_id, last_active_at = NOW()
-    WHERE LOWER(wallet_address) = v_normalized_wallet
-      AND user_id IS NULL;
+    WHERE LOWER(wallet_address) = v_normalized_wallet;
 
     RETURN TRUE;
 END;

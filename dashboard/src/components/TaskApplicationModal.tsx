@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Task } from '../types/database'
 
@@ -40,21 +41,25 @@ export function TaskApplicationModal({ task, onClose, onSuccess }: TaskApplicati
   }, [])
 
   const handleSubmit = async () => {
-    if (!executor || !session) return
+    if (!executor) return
 
     setSubmitting(true)
     setError(null)
 
     try {
+      // Get fresh session from Supabase (avoids race condition with React state)
+      const { data: { session: currentSession } } = await supabase.auth.getSession()
+
       const headers: Record<string, string> = {
         apikey: SUPABASE_KEY,
         'Content-Type': 'application/json',
       }
 
-      if (session.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`
+      if (currentSession?.access_token) {
+        headers['Authorization'] = `Bearer ${currentSession.access_token}`
       }
 
+      // Apply to task and accept atomically via RPC
       const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/apply_to_task`, {
         method: 'POST',
         headers,
@@ -68,6 +73,11 @@ export function TaskApplicationModal({ task, onClose, onSuccess }: TaskApplicati
       if (!response.ok) {
         const text = await response.text()
         throw new Error(text || `Application failed: ${response.status}`)
+      }
+
+      const result = await response.json()
+      if (result && result.success === false) {
+        throw new Error(result.error || 'Task is no longer available')
       }
 
       onSuccess()

@@ -1,5 +1,5 @@
 """
-Network Resilience Module for Chamba
+Network Resilience Module for Execution Market
 
 Handles network connectivity, timeouts, and push notifications
 for reliable task execution in unstable network conditions.

@@ -1,7 +1,7 @@
 """
 Worker Protection Module
 
-Provides emergency fund and worker safety mechanisms for the Chamba platform.
+Provides emergency fund and worker safety mechanisms for the Execution Market platform.
 
 Components:
 - fund.py: Core ProtectionFund class with contribute() and process_claim()

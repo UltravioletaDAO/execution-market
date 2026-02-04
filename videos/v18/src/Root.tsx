@@ -1,10 +1,10 @@
 import { Composition } from "remotion";
-import { ChambaV18 } from "./ChambaV18";
+import { EMV18 } from "./EMV18";
 
 export const RemotionRoot: React.FC = () => (
   <Composition
-    id="ChambaV18"
-    component={ChambaV18}
+    id="EMV18"
+    component={EMV18}
     durationInFrames={90 * 30} // 90 seconds at 30fps
     fps={30}
     width={1920}

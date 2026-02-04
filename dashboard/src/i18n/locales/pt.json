@@ -135,6 +135,10 @@
     "displayNameForNew": "Nome (apenas novos usuarios)",
     "displayNameHint": "Ignorado se sua carteira ja esta registrada",
     "connecting": "Conectando...",
+    "signing": "Assine a mensagem na sua carteira...",
+    "signingDesc": "Confirme sua identidade assinando a solicitacao na sua carteira",
+    "signatureRejected": "Assinatura da carteira necessaria para continuar. Por favor assine a mensagem na sua carteira.",
+    "tryAgain": "Tentar novamente",
     "continue": "Continuar",
     "emailNotAvailable": "Carteira por email nao disponivel. Por favor use MetaMask ou WalletConnect.",
     "securityNote": "Sua carteira e usada para identidade e pagamentos. Nunca armazenamos suas chaves privadas."
@@ -377,7 +381,7 @@
     "photoRequired": "Foto obrigatoria"
   },
   "onboarding": {
-    "welcomeTitle": "Bem-vindo ao Chamba!",
+    "welcomeTitle": "Bem-vindo ao Execution Market!",
     "welcomeSubtitle": "Complete tarefas, ganhe cripto. Vamos configurar seu perfil.",
     "selectLanguage": "Selecione seu idioma",
     "getStarted": "Comecar",
@@ -462,9 +466,9 @@
   "pwa": {
     "offline": "Offline - As mudancas serao sincronizadas quando voce voltar a ficar online",
     "updateAvailable": "Atualizacao disponivel",
-    "updateMessage": "Uma nova versao do Chamba esta pronta",
+    "updateMessage": "Uma nova versao do Execution Market esta pronta",
     "updateNow": "Atualizar agora",
-    "installTitle": "Instalar Chamba",
+    "installTitle": "Instalar Execution Market",
     "installSubtitle": "Acesse mais rapido pela tela inicial",
     "addToHome": "Adicionar a tela inicial",
     "install": "Instalar",
@@ -504,8 +508,8 @@
     "faq": {
       "title": "Perguntas frequentes",
       "whatIsChamba": {
-        "q": "O que e o Chamba?",
-        "a": "Chamba e uma plataforma onde voce pode ganhar dinheiro completando tarefas do mundo real para agentes de IA. Voce verifica coisas, coleta dados, tira fotos, e mais - tudo pelo seu celular."
+        "q": "O que e o Execution Market?",
+        "a": "Execution Market e uma plataforma onde voce pode ganhar dinheiro completando tarefas do mundo real para agentes de IA. Voce verifica coisas, coleta dados, tira fotos, e mais - tudo pelo seu celular."
       },
       "howToStart": {
         "q": "Como comeco?",
@@ -516,7 +520,7 @@
         "a": "Nao! Se voce nao tem experiencia com cripto, ajudaremos a criar uma carteira apenas com seu email. Voce recebe pagamentos em USDC (uma moeda estavel que sempre vale $1 USD) e pode sacar para seu banco local."
       },
       "requirements": {
-        "q": "O que preciso para usar o Chamba?",
+        "q": "O que preciso para usar o Execution Market?",
         "a": "Apenas um smartphone com internet, camera e GPS. Algumas tarefas podem exigir habilidades especificas (como falar ingles ou ter veiculo), mas ha tarefas para todos os perfis."
       },
       "howPaid": {
@@ -533,7 +537,7 @@
       },
       "fees": {
         "q": "Ha taxas?",
-        "a": "Chamba cobra uma pequena comissao por tarefa completada (ja incluida no preco que voce ve). Os saques tem um custo de rede muito baixo (~$0.01 no Base)."
+        "a": "Execution Market cobra uma pequena comissao por tarefa completada (ja incluida no preco que voce ve). Os saques tem um custo de rede muito baixo (~$0.01 no Base)."
       },
       "taskTypes": {
         "q": "Que tipos de tarefas existem?",

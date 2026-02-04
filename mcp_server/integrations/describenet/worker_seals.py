@@ -1,5 +1,5 @@
 """
-Worker Seal Management for Chamba (NOW-166)
+Worker Seal Management for Execution Market (NOW-166)
 
 Manages worker seals: SKILLFUL, RELIABLE, THOROUGH, ON_TIME
 

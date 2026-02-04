@@ -1,5 +1,5 @@
 #!/bin/bash
-# Chamba Manual Deployment Script
+# Execution Market Manual Deployment Script
 # Run this after Docker Desktop is running
 
 set -e
@@ -14,7 +14,7 @@ DASHBOARD_REPO="chamba-dashboard"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-echo "=== Chamba Deployment Script ==="
+echo "=== Execution Market Deployment Script ==="
 echo "Region: $AWS_REGION"
 echo "ECR Registry: $ECR_REGISTRY"
 echo ""
@@ -44,7 +44,7 @@ echo ""
 echo "4. Building Dashboard..."
 cd "$PROJECT_ROOT/dashboard"
 docker build --platform linux/amd64 -t $DASHBOARD_REPO:latest \
-  --build-arg NEXT_PUBLIC_API_URL=https://api.chamba.ultravioletadao.xyz .
+  --build-arg NEXT_PUBLIC_API_URL=https://api.execution.market .
 docker tag $DASHBOARD_REPO:latest $ECR_REGISTRY/$DASHBOARD_REPO:latest
 
 # Push to ECR

@@ -1,5 +1,5 @@
 """
-Admin API Routes for Chamba Platform Management
+Admin API Routes for Execution Market Platform Management
 
 Provides endpoints for platform administrators to:
 - View and modify platform configuration
@@ -44,7 +44,7 @@ async def verify_admin_key(api_key: str = Query(..., alias="admin_key")):
     import os
     import secrets as _secrets
 
-    expected_key = os.environ.get("CHAMBA_ADMIN_KEY", "")
+    expected_key = os.environ.get("EM_ADMIN_KEY", os.environ.get("CHAMBA_ADMIN_KEY", ""))
 
     if not expected_key:
         raise HTTPException(

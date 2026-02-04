@@ -1,4 +1,4 @@
-# Chamba: Technical Architecture Document
+# Execution Market: Technical Architecture Document
 
 > **Version**: 3.0.0
 > **Last Updated**: 2026-01-24
@@ -32,7 +32,7 @@
 
 ### 1.1 Vision
 
-Chamba is the **Universal Execution Layer** - infrastructure that enables AI agents to contract executors (humans today, robots tomorrow) for tasks requiring physical presence, human authority, or specialized access.
+Execution Market is the **Universal Execution Layer** - infrastructure that enables AI agents to contract executors (humans today, robots tomorrow) for tasks requiring physical presence, human authority, or specialized access.
 
 **Key Framing** (from Grok analysis):
 - **NOT** a full-time employment replacement
@@ -44,19 +44,19 @@ Chamba is the **Universal Execution Layer** - infrastructure that enables AI age
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                              CHAMBA UNIVERSAL EXECUTION LAYER                            │
+│                              EXECUTION MARKET UNIVERSAL EXECUTION LAYER                            │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                          │
 │  ┌─────────────────┐     ┌─────────────────────────────────────────┐     ┌───────────┐ │
-│  │   AI AGENTS     │     │              CHAMBA CORE                 │     │ EXECUTORS │ │
+│  │   AI AGENTS     │     │              EXECUTION MARKET CORE                 │     │ EXECUTORS │ │
 │  │   (Requesters)  │     │                                         │     │           │ │
 │  │                 │     │  ┌─────────────────────────────────────┐│     │ ┌───────┐ │ │
 │  │ ┌─────────────┐ │     │  │           MCP SERVER               ││     │ │HUMANS │ │ │
-│  │ │  Colmena    │─┼────►│  │  - chamba_publish_task             ││◄────┼─│ Web   │ │ │
-│  │ │  Foragers   │ │     │  │  - chamba_get_tasks                ││     │ │ Mobile│ │ │
-│  │ └─────────────┘ │     │  │  - chamba_check_submission         ││     │ └───────┘ │ │
-│  │                 │     │  │  - chamba_approve_submission       ││     │           │ │
-│  │ ┌─────────────┐ │     │  │  - chamba_cancel_task              ││     │ ┌───────┐ │ │
+│  │ │  Colmena    │─┼────►│  │  - em_publish_task             ││◄────┼─│ Web   │ │ │
+│  │ │  Foragers   │ │     │  │  - em_get_tasks                ││     │ │ Mobile│ │ │
+│  │ └─────────────┘ │     │  │  - em_check_submission         ││     │ └───────┘ │ │
+│  │                 │     │  │  - em_approve_submission       ││     │           │ │
+│  │ ┌─────────────┐ │     │  │  - em_cancel_task              ││     │ ┌───────┐ │ │
 │  │ │  Council    │─┼────►│  └─────────────────────────────────────┘│     │ │ROBOTS │ │ │
 │  │ │ Orchestrator│ │     │                   │                     │     │ │(Future│ │ │
 │  │ └─────────────┘ │     │                   ▼                     │     │ └───────┘ │ │
@@ -123,28 +123,28 @@ mcp_server/
 These 6 tools are currently implemented for AI agents to publish and manage tasks:
 
 ```python
-@mcp.tool(name="chamba_publish_task")
-async def chamba_publish_task(params: PublishTaskInput) -> str:
+@mcp.tool(name="em_publish_task")
+async def em_publish_task(params: PublishTaskInput) -> str:
     """Create escrow (bounty + agent_bond), publish task, return task_id"""
 
-@mcp.tool(name="chamba_get_tasks")
-async def chamba_get_tasks(params: GetTasksInput) -> str:
+@mcp.tool(name="em_get_tasks")
+async def em_get_tasks(params: GetTasksInput) -> str:
     """List tasks with filters (agent_id, status, category)"""
 
-@mcp.tool(name="chamba_get_task")
-async def chamba_get_task(params: GetTaskInput) -> str:
+@mcp.tool(name="em_get_task")
+async def em_get_task(params: GetTaskInput) -> str:
     """Get details of specific task"""
 
-@mcp.tool(name="chamba_check_submission")
-async def chamba_check_submission(params: CheckSubmissionInput) -> str:
+@mcp.tool(name="em_check_submission")
+async def em_check_submission(params: CheckSubmissionInput) -> str:
     """Check submission status, retrieve evidence"""
 
-@mcp.tool(name="chamba_approve_submission")
-async def chamba_approve_submission(params: ApproveSubmissionInput) -> str:
+@mcp.tool(name="em_approve_submission")
+async def em_approve_submission(params: ApproveSubmissionInput) -> str:
     """Approve/dispute submission, release/hold payment, handle partial payouts"""
 
-@mcp.tool(name="chamba_cancel_task")
-async def chamba_cancel_task(params: CancelTaskInput) -> str:
+@mcp.tool(name="em_cancel_task")
+async def em_cancel_task(params: CancelTaskInput) -> str:
     """Cancel unpublished task, refund escrow + agent_bond"""
 ```
 
@@ -154,20 +154,20 @@ These tools are needed for AI agents acting on behalf of workers:
 
 ```python
 # TODO: Implement these tools
-@mcp.tool(name="chamba_apply_to_task")
-async def chamba_apply_to_task(...) -> str:
+@mcp.tool(name="em_apply_to_task")
+async def em_apply_to_task(...) -> str:
     """Worker applies to available task"""
 
-@mcp.tool(name="chamba_submit_work")
-async def chamba_submit_work(...) -> str:
+@mcp.tool(name="em_submit_work")
+async def em_submit_work(...) -> str:
     """Worker submits evidence, triggers partial payout"""
 
-@mcp.tool(name="chamba_get_my_tasks")
-async def chamba_get_my_tasks(...) -> str:
+@mcp.tool(name="em_get_my_tasks")
+async def em_get_my_tasks(...) -> str:
     """Worker views assigned/completed tasks"""
 
-@mcp.tool(name="chamba_withdraw_earnings")
-async def chamba_withdraw_earnings(...) -> str:
+@mcp.tool(name="em_withdraw_earnings")
+async def em_withdraw_earnings(...) -> str:
     """Worker withdraws to wallet or off-ramp"""
 ```
 
@@ -406,7 +406,7 @@ CREATE INDEX idx_feedback_months ON reputation_feedback(months_old);
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    CHAMBA PAYMENT ARCHITECTURE V2                            │
+│                    EXECUTION MARKET PAYMENT ARCHITECTURE V2                            │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
@@ -414,7 +414,7 @@ CREATE INDEX idx_feedback_months ON reputation_feedback(months_old);
 │  │                                                                      │   │
 │  │  Bounty ($X)          Agent Bond (10-20%)        Platform Fee (6-8%)│   │
 │  │  ────────────         ─────────────────────      ─────────────────  │   │
-│  │  Goes to worker       Slashed if unfair          70% Chamba         │   │
+│  │  Goes to worker       Slashed if unfair          70% Execution Market         │   │
 │  │  on completion        rejection per arbitration  30% Arbitration Pool│   │
 │  │                                                                      │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
@@ -459,12 +459,12 @@ CREATE INDEX idx_feedback_months ON reputation_feedback(months_old);
 ```mermaid
 sequenceDiagram
     participant Agent as AI Agent
-    participant MCP as Chamba MCP
+    participant MCP as Execution Market MCP
     participant Escrow as x402 Escrow
     participant DB as Supabase
     participant Worker as Human Executor
 
-    Agent->>MCP: chamba_publish_task()
+    Agent->>MCP: em_publish_task()
     MCP->>Escrow: Create escrow (bounty + bond + fee)
     Note over Escrow: Agent deposits:<br/>Bounty: $10<br/>Bond: $1.50 (15%)<br/>Fee: $0.70 (7%)
     Escrow-->>MCP: escrow_id
@@ -601,7 +601,7 @@ def get_regional_multiplier(location: str) -> float:
 
 ### 6.1 ERC-8004 + Bayesian Aggregation Layer
 
-**CRITICAL ARCHITECTURE DECISION**: ERC-8004 stores raw ratings on-chain. The **Bayesian aggregation** is an **off-chain layer** specific to Chamba that makes scores resistant to manipulation.
+**CRITICAL ARCHITECTURE DECISION**: ERC-8004 stores raw ratings on-chain. The **Bayesian aggregation** is an **off-chain layer** specific to Execution Market that makes scores resistant to manipulation.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -620,7 +620,7 @@ def get_regional_multiplier(location: str) -> float:
 │                                      │                                       │
 │                                      ▼                                       │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                    OFF-CHAIN (Chamba Bayesian Layer)                 │   │
+│  │                    OFF-CHAIN (Execution Market Bayesian Layer)                 │   │
 │  │                                                                      │   │
 │  │  Subgraph indexes on-chain ratings and calculates:                   │   │
 │  │                                                                      │   │
@@ -644,7 +644,7 @@ def get_regional_multiplier(location: str) -> float:
 ```python
 def calculate_bayesian_score(executor_id: str) -> float:
     """
-    Calculates Chamba's internal Bayesian score.
+    Calculates Execution Market's internal Bayesian score.
 
     This formula is NOT published in the article - it's our secret sauce.
     In public docs we say: "The system has aggregation mechanisms that weight
@@ -806,7 +806,7 @@ task_bundle = {
 │  │   x402-rs     │  │   Colmena     │  │ ChainWitness  │                   │
 │  │   (10)        │  │   (8)         │  │   (8)         │                   │
 │  │ Core payments │  │ Foragers use  │  │ Evidence      │                   │
-│  │ + refunds     │  │ Chamba        │  │ notarization  │                   │
+│  │ + refunds     │  │ Execution Market        │  │ notarization  │                   │
 │  └───────────────┘  └───────────────┘  └───────────────┘                   │
 │                                                                              │
 │  SECONDARY (Score 5-7):                                                      │
@@ -975,12 +975,12 @@ def detect_genai_photo(image: bytes, metadata: dict) -> float:
 
 ### 11.2 Explicit Positioning (CRITICAL)
 
-**Chamba is NOT:**
+**Execution Market is NOT:**
 - A full-time employment replacement
 - A primary income source
 - A permanent solution to AI displacement
 
-**Chamba IS:**
+**Execution Market IS:**
 - Extra income ($5-15/day optional)
 - Flexible (tasks find you, take if you want)
 - A **temporary bridge** during AI disruption (2-5 year window)
@@ -1176,7 +1176,7 @@ TRANSITION_FUND = {
 
 ### 11.1 MCP Tools Reference
 
-#### `chamba_publish_task`
+#### `em_publish_task`
 
 **Input**:
 ```typescript
@@ -1200,7 +1200,7 @@ TRANSITION_FUND = {
 }
 ```
 
-#### `chamba_approve_submission`
+#### `em_approve_submission`
 
 **Input**:
 ```typescript

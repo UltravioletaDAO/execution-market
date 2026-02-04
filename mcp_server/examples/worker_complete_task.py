@@ -2,7 +2,7 @@
 """
 Example: Worker Completing a Task
 
-This example demonstrates how a human worker can use the Chamba MCP server
+This example demonstrates how a human worker can use the Execution Market MCP server
 to browse available tasks, apply to a task, submit evidence, and withdraw
 earnings.
 
@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 class MockMCPClient:
     """Mock MCP client for demonstration purposes."""
 
-    def __init__(self, base_url: str = "https://api.chamba.ultravioletadao.xyz"):
+    def __init__(self, base_url: str = "https://api.execution.market"):
         self.base_url = base_url
         self.connected = False
 
@@ -38,7 +38,7 @@ class MockMCPClient:
         print(f"Parameters: {json.dumps(params, indent=2)}")
 
         # Simulated responses for demonstration
-        if tool_name == "chamba_get_tasks":
+        if tool_name == "em_get_tasks":
             return {
                 "total": 25,
                 "count": 3,
@@ -78,7 +78,7 @@ class MockMCPClient:
                     },
                 ],
             }
-        elif tool_name == "chamba_apply_to_task":
+        elif tool_name == "em_apply_to_task":
             return {
                 "success": True,
                 "task_id": params["task_id"],
@@ -86,7 +86,7 @@ class MockMCPClient:
                 "status": "accepted",  # Auto-accept for this example
                 "message": "Your application was automatically accepted!",
             }
-        elif tool_name == "chamba_submit_work":
+        elif tool_name == "em_submit_work":
             return {
                 "success": True,
                 "submission_id": "7f3c1d2e-4a5b-6c7d-8e9f-0a1b2c3d4e5f",
@@ -95,7 +95,7 @@ class MockMCPClient:
                 "evidence_received": list(params["evidence"].keys()),
                 "submitted_at": datetime.now(timezone.utc).isoformat(),
             }
-        elif tool_name == "chamba_get_my_tasks":
+        elif tool_name == "em_get_my_tasks":
             return {
                 "total": 5,
                 "completed": 3,
@@ -127,7 +127,7 @@ class MockMCPClient:
                     },
                 ],
             }
-        elif tool_name == "chamba_withdraw_earnings":
+        elif tool_name == "em_withdraw_earnings":
             return {
                 "success": True,
                 "amount_usdc": params.get("amount_usdc") or 28.50,
@@ -161,7 +161,7 @@ async def browse_available_tasks(
         List of available tasks
     """
     result = await client.call_tool(
-        "chamba_get_tasks",
+        "em_get_tasks",
         {
             "status": "published",
             "category": "physical_presence",
@@ -199,7 +199,7 @@ async def apply_to_task(
         Application result
     """
     result = await client.call_tool(
-        "chamba_apply_to_task",
+        "em_apply_to_task",
         {
             "task_id": task_id,
             "executor_id": executor_id,
@@ -231,7 +231,7 @@ async def submit_evidence(
         Submission result
     """
     result = await client.call_tool(
-        "chamba_submit_work",
+        "em_submit_work",
         {
             "task_id": task_id,
             "executor_id": executor_id,
@@ -255,7 +255,7 @@ async def check_my_status(client: MockMCPClient, executor_id: str) -> dict:
         Your tasks and earnings status
     """
     result = await client.call_tool(
-        "chamba_get_my_tasks",
+        "em_get_my_tasks",
         {
             "executor_id": executor_id,
             "response_format": "json",
@@ -285,7 +285,7 @@ async def withdraw_earnings(
     if amount is not None:
         params["amount_usdc"] = amount
 
-    result = await client.call_tool("chamba_withdraw_earnings", params)
+    result = await client.call_tool("em_withdraw_earnings", params)
 
     return result
 
@@ -342,7 +342,7 @@ async def main():
 
     # Initialize client
     client = MockMCPClient()
-    await client.connect("wss://api.chamba.ultravioletadao.xyz/mcp")
+    await client.connect("wss://api.execution.market/mcp")
 
     # Step 1: Browse available tasks
     print("\n" + "=" * 60)

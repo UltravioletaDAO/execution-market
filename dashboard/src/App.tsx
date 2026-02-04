@@ -1,4 +1,4 @@
-// Chamba Dashboard - Main App Component with Routing
+// Execution Market Dashboard - Main App Component with Routing
 import { useState, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 
@@ -112,7 +112,7 @@ function AgentDashboardPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-2xl">&#128188;</span>
-              <span className="font-bold text-lg text-gray-900">Chamba</span>
+              <span className="font-bold text-lg text-gray-900">Execution Market</span>
               <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
                 Agent
               </span>

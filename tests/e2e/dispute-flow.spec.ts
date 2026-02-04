@@ -24,12 +24,12 @@ async function navigateToDisputes(page: Page, role: 'worker' | 'agent' | 'valida
   await page.addInitScript(
     ({ user, role }) => {
       if (role === 'validator') {
-        window.localStorage.setItem('chamba_is_validator', 'true');
-        window.localStorage.setItem('chamba_validator_stake', String(user.stake));
+        window.localStorage.setItem('em_is_validator', 'true');
+        window.localStorage.setItem('em_validator_stake', String(user.stake));
       }
-      window.localStorage.setItem('chamba_wallet_address', user.walletAddress);
-      window.localStorage.setItem('chamba_display_name', user.displayName);
-      window.localStorage.setItem('chamba_user_role', role);
+      window.localStorage.setItem('em_wallet_address', user.walletAddress);
+      window.localStorage.setItem('em_display_name', user.displayName);
+      window.localStorage.setItem('em_user_role', role);
     },
     {
       user: role === 'validator' ? TEST_USERS.validator : TEST_USERS.worker,

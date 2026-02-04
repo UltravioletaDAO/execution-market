@@ -11,8 +11,8 @@ test.describe('PWA Features', () => {
     expect(response.status()).toBe(200);
     
     const manifest = await response.json();
-    expect(manifest.name).toBe('Chamba - Human Execution Layer');
-    expect(manifest.short_name).toBe('Chamba');
+    expect(manifest.name).toBe('Execution Market');
+    expect(manifest.short_name).toBe('Execution Market');
     expect(manifest.display).toBe('standalone');
     expect(manifest.icons.length).toBeGreaterThan(0);
   });

@@ -1,5 +1,5 @@
 """
-Stream Manager for Chamba Tasks
+Stream Manager for Execution Market Tasks
 
 High-level stream management for long-running tasks.
 """
@@ -43,7 +43,7 @@ class TaskStream:
 
 class StreamManager:
     """
-    Manages payment streams for Chamba tasks.
+    Manages payment streams for Execution Market tasks.
 
     Features:
     - Create streams for long-running tasks

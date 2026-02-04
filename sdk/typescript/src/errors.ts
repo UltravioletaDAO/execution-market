@@ -1,27 +1,27 @@
 /**
- * Chamba SDK Error Classes
+ * Execution Market SDK Error Classes
  */
 
-import type { ChambaError, ValidationError } from './types';
+import type { ExecutionMarketError, ValidationError } from './types';
 
 /**
- * Base error class for all Chamba SDK errors.
+ * Base error class for all Execution Market SDK errors.
  */
-export class ChambaSDKError extends Error {
+export class ExecutionMarketSDKError extends Error {
   public readonly code: string;
   public readonly statusCode: number;
   public readonly details?: Record<string, unknown>;
 
-  constructor(error: ChambaError) {
+  constructor(error: ExecutionMarketError) {
     super(error.message);
-    this.name = 'ChambaSDKError';
+    this.name = 'ExecutionMarketSDKError';
     this.code = error.code;
     this.statusCode = error.statusCode;
     this.details = error.details;
 
     // Maintains proper stack trace for where error was thrown
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, ChambaSDKError);
+      Error.captureStackTrace(this, ExecutionMarketSDKError);
     }
   }
 }
@@ -29,7 +29,7 @@ export class ChambaSDKError extends Error {
 /**
  * Error thrown when authentication fails.
  */
-export class AuthenticationError extends ChambaSDKError {
+export class AuthenticationError extends ExecutionMarketSDKError {
   constructor(message = 'Authentication failed. Check your API key.') {
     super({
       code: 'AUTHENTICATION_ERROR',
@@ -43,7 +43,7 @@ export class AuthenticationError extends ChambaSDKError {
 /**
  * Error thrown when authorization fails.
  */
-export class AuthorizationError extends ChambaSDKError {
+export class AuthorizationError extends ExecutionMarketSDKError {
   constructor(message = 'You do not have permission to perform this action.') {
     super({
       code: 'AUTHORIZATION_ERROR',
@@ -57,7 +57,7 @@ export class AuthorizationError extends ChambaSDKError {
 /**
  * Error thrown when a resource is not found.
  */
-export class NotFoundError extends ChambaSDKError {
+export class NotFoundError extends ExecutionMarketSDKError {
   public readonly resourceType: string;
   public readonly resourceId: string;
 
@@ -77,7 +77,7 @@ export class NotFoundError extends ChambaSDKError {
 /**
  * Error thrown when request validation fails.
  */
-export class ValidationFailedError extends ChambaSDKError {
+export class ValidationFailedError extends ExecutionMarketSDKError {
   public readonly errors: ValidationError[];
 
   constructor(errors: ValidationError[]) {
@@ -95,7 +95,7 @@ export class ValidationFailedError extends ChambaSDKError {
 /**
  * Error thrown when rate limit is exceeded.
  */
-export class RateLimitError extends ChambaSDKError {
+export class RateLimitError extends ExecutionMarketSDKError {
   public readonly retryAfter: number;
 
   constructor(retryAfter: number) {
@@ -113,7 +113,7 @@ export class RateLimitError extends ChambaSDKError {
 /**
  * Error thrown when task is in invalid state for operation.
  */
-export class InvalidStateError extends ChambaSDKError {
+export class InvalidStateError extends ExecutionMarketSDKError {
   public readonly currentState: string;
   public readonly requiredStates: string[];
 
@@ -133,7 +133,7 @@ export class InvalidStateError extends ChambaSDKError {
 /**
  * Error thrown when insufficient funds for operation.
  */
-export class InsufficientFundsError extends ChambaSDKError {
+export class InsufficientFundsError extends ExecutionMarketSDKError {
   public readonly required: number;
   public readonly available: number;
   public readonly token: string;
@@ -155,7 +155,7 @@ export class InsufficientFundsError extends ChambaSDKError {
 /**
  * Error thrown when operation times out.
  */
-export class TimeoutError extends ChambaSDKError {
+export class TimeoutError extends ExecutionMarketSDKError {
   public readonly operation: string;
   public readonly timeoutMs: number;
 
@@ -175,7 +175,7 @@ export class TimeoutError extends ChambaSDKError {
 /**
  * Error thrown when network request fails.
  */
-export class NetworkError extends ChambaSDKError {
+export class NetworkError extends ExecutionMarketSDKError {
   public readonly originalError?: Error;
 
   constructor(message: string, originalError?: Error) {
@@ -196,7 +196,7 @@ export class NetworkError extends ChambaSDKError {
 export function createErrorFromResponse(
   statusCode: number,
   data: Record<string, unknown>
-): ChambaSDKError {
+): ExecutionMarketSDKError {
   const code = (data.code as string) || 'UNKNOWN_ERROR';
   const message = (data.message as string) || 'An unknown error occurred.';
   const details = data.details as Record<string, unknown> | undefined;
@@ -206,7 +206,7 @@ export function createErrorFromResponse(
       if (data.errors && Array.isArray(data.errors)) {
         return new ValidationFailedError(data.errors as ValidationError[]);
       }
-      return new ChambaSDKError({ code, message, statusCode, details });
+      return new ExecutionMarketSDKError({ code, message, statusCode, details });
 
     case 401:
       return new AuthenticationError(message);
@@ -238,6 +238,6 @@ export function createErrorFromResponse(
       return new RateLimitError((details?.retryAfter as number) || 60);
 
     default:
-      return new ChambaSDKError({ code, message, statusCode, details });
+      return new ExecutionMarketSDKError({ code, message, statusCode, details });
   }
 }

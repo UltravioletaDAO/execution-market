@@ -1,5 +1,5 @@
 """
-Agent Bond Management for Chamba
+Agent Bond Management for Execution Market
 
 Implements the agent bonding mechanism that protects workers from unfair rejections.
 Agents deposit bounty + 10-20% extra as a bond that gets slashed if they unfairly reject work.
@@ -194,7 +194,7 @@ class ProofOfAttemptResult:
 
 class AgentBondManager:
     """
-    Manages agent bonds for Chamba tasks.
+    Manages agent bonds for Execution Market tasks.
 
     The bond mechanism protects workers from unfair rejections:
     - Agents deposit bounty + 10-20% extra as bond
@@ -230,14 +230,16 @@ class AgentBondManager:
 
         # Treasury address for slashed bonds
         self.treasury_address = os.environ.get(
+            "EM_TREASURY_ADDRESS", os.environ.get(
             "CHAMBA_TREASURY_ADDRESS",
-            "0x0000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000")
         )
 
         # Worker Protection Fund address (receives slashed bonds)
         self.protection_fund_address = os.environ.get(
+            "EM_PROTECTION_FUND_ADDRESS", os.environ.get(
             "CHAMBA_PROTECTION_FUND_ADDRESS",
-            "0x0000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000")
         )
 
     # -------------------------------------------------------------------------

@@ -21,7 +21,7 @@ test.describe('Health Checks', () => {
     await page.goto('/');
     
     // Should load without errors
-    await expect(page).toHaveTitle(/Chamba/i);
+    await expect(page).toHaveTitle(/Execution Market/i);
     
     // Main content should be visible
     await expect(page.locator('main')).toBeVisible();

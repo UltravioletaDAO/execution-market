@@ -1,5 +1,5 @@
 """
-Chamba API client for CLI.
+Execution Market API client for CLI.
 
 Provides a robust HTTP client wrapper with:
 - Auth header injection
@@ -77,7 +77,7 @@ class APIError(Exception):
 
 @dataclass
 class Task:
-    """A Chamba task."""
+    """An Execution Market task."""
     id: str
     title: str
     instructions: str
@@ -163,12 +163,12 @@ class WithdrawResult:
     error: Optional[str] = None
 
 
-class ChambaAPIClient:
+class EMAPIClient:
     """
-    Chamba API client with retry logic and error handling.
+    Execution Market API client with retry logic and error handling.
 
     Example:
-        >>> client = ChambaAPIClient()
+        >>> client = EMAPIClient()
         >>> tasks = client.list_tasks(status="published", limit=10)
         >>> for task in tasks:
         ...     print(f"{task.title}: ${task.bounty_usd}")
@@ -490,7 +490,7 @@ class ChambaAPIClient:
         executor_id = get_executor_id()
         if not executor_id:
             raise APIError(
-                message="Executor ID not configured. Set CHAMBA_EXECUTOR_ID or run 'chamba login --worker'",
+                message="Executor ID not configured. Set EM_EXECUTOR_ID or run 'em login --worker'",
                 status_code=400
             )
 
@@ -524,7 +524,7 @@ class ChambaAPIClient:
         executor_id = get_executor_id()
         if not executor_id:
             raise APIError(
-                message="Executor ID not configured. Set CHAMBA_EXECUTOR_ID or run 'chamba login --worker'",
+                message="Executor ID not configured. Set EM_EXECUTOR_ID or run 'em login --worker'",
                 status_code=400
             )
 
@@ -645,7 +645,7 @@ class ChambaAPIClient:
             self._client.close()
             self._client = None
 
-    def __enter__(self) -> "ChambaAPIClient":
+    def __enter__(self) -> "EMAPIClient":
         return self
 
     def __exit__(self, *args) -> None:
@@ -653,14 +653,14 @@ class ChambaAPIClient:
 
 
 # Global client instance
-_client: Optional[ChambaAPIClient] = None
+_client: Optional[EMAPIClient] = None
 
 
-def get_client() -> ChambaAPIClient:
+def get_client() -> EMAPIClient:
     """Get or create the global API client."""
     global _client
     if _client is None:
-        _client = ChambaAPIClient()
+        _client = EMAPIClient()
     return _client
 
 
@@ -670,3 +670,7 @@ def reset_client() -> None:
     if _client:
         _client.close()
     _client = None
+
+
+# Backward compatibility alias
+ChambaAPIClient = EMAPIClient

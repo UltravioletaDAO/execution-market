@@ -1,4 +1,4 @@
-# Chamba Licensing Strategy
+# Execution Market Licensing Strategy
 
 > Análisis de opciones de licenciamiento para protocolo abierto + plataforma propietaria.
 > Fecha: 2026-01-22
@@ -8,13 +8,13 @@
 ## Estructura Propuesta
 
 ```
-chamba-protocol/         (PÚBLICO - UltravioletaDAO)
+execution-market-protocol/         (PÚBLICO - UltravioletaDAO)
 ├── specs/               Especificaciones del protocolo
 ├── schemas/             JSON schemas para tareas, workers, verificación
 ├── reference/           Implementación de referencia
 └── docs/                Documentación
 
-chamba-platform/         (PRIVADO - por ahora)
+execution-market-platform/         (PRIVADO - por ahora)
 ├── api/                 Backend API
 ├── matching/            Algoritmo de matching workers
 ├── verification/        Sistema de verificación
@@ -101,7 +101,7 @@ chamba-platform/         (PRIVADO - por ahora)
 ### Para el Protocolo: **Apache 2.0**
 
 Razones:
-1. **Máxima adopción** - Queremos que muchos implementen Chamba Protocol
+1. **Máxima adopción** - Queremos que muchos implementen Execution Market Protocol
 2. **Estándar de la industria** - Web3/crypto prefiere Apache/MIT
 3. **Protección de patentes** - Mejor que MIT para protocolo técnico
 4. **Compatible con enterprise** - Empresas no tienen miedo de Apache
@@ -119,7 +119,7 @@ Razones:
 
 ## Estructura de Archivos de Licencia
 
-### chamba-protocol/LICENSE
+### execution-market-protocol/LICENSE
 
 ```
                                  Apache License
@@ -141,11 +141,11 @@ Razones:
    limitations under the License.
 ```
 
-### chamba-platform/ (sin LICENSE público)
+### execution-market-platform/ (sin LICENSE público)
 
 Mantener privado. Si alguien pregunta:
-> "Chamba Platform is proprietary software developed by Ultravioleta DAO.
-> The underlying Chamba Protocol is open source under Apache 2.0."
+> "Execution Market Platform is proprietary software developed by Ultravioleta DAO.
+> The underlying Execution Market Protocol is open source under Apache 2.0."
 
 ---
 
@@ -155,11 +155,11 @@ Mantener privado. Si alguien pregunta:
 
 > **Plataforma y protocolo**
 >
-> Algo importante: Chamba es **ambos**.
+> Algo importante: Execution Market es **ambos**.
 >
-> El **Chamba Protocol** es open source bajo Apache 2.0 — el mismo estándar usado por Kubernetes, TensorFlow, y la mayoría de infraestructura moderna. Cualquiera puede implementarlo, modificarlo, o construir encima. Las specs, schemas, y documentación están públicas en GitHub.
+> El **Execution Market Protocol** es open source bajo Apache 2.0 — el mismo estándar usado por Kubernetes, TensorFlow, y la mayoría de infraestructura moderna. Cualquiera puede implementarlo, modificarlo, o construir encima. Las specs, schemas, y documentación están públicas en GitHub.
 >
-> La **Chamba Platform** es nuestra implementación del protocolo — el marketplace donde agentes publican tareas y humanos las toman. El matching algorithm, el sistema de verificación, y la interfaz son propietarios por ahora.
+> La **Execution Market Platform** es nuestra implementación del protocolo — el marketplace donde agentes publican tareas y humanos las toman. El matching algorithm, el sistema de verificación, y la interfaz son propietarios por ahora.
 >
 > ¿Por qué? Porque el valor del protocolo está en la adopción. Cuantos más lo implementen, más valioso se vuelve. Pero la plataforma es donde capturamos valor para seguir construyendo.
 >
@@ -178,7 +178,7 @@ Mantener privado. Si alguien pregunta:
 
 ## Próximos Pasos
 
-1. [ ] Crear repo `chamba-protocol` en UltravioletaDAO GitHub
+1. [ ] Crear repo `execution-market-protocol` en UltravioletaDAO GitHub
 2. [ ] Agregar LICENSE con Apache 2.0
 3. [ ] Escribir specs iniciales
 4. [ ] Crear schemas JSON para:
@@ -187,4 +187,4 @@ Mantener privado. Si alguien pregunta:
    - Verification result
    - Payment settlement
 5. [ ] Documentar MCP tools para agentes
-6. [ ] Crear repo privado `chamba-platform`
+6. [ ] Crear repo privado `execution-market-platform`

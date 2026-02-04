@@ -73,12 +73,12 @@ export function SettingsPage({ executor, onBack, onLogout }: SettingsPageProps) 
 
   // Load settings from storage
   useEffect(() => {
-    const savedNotifications = localStorage.getItem('chamba_notification_settings')
+    const savedNotifications = localStorage.getItem('em_notification_settings')
     if (savedNotifications) {
       setNotificationSettings(JSON.parse(savedNotifications))
     }
 
-    const savedPrivacy = localStorage.getItem('chamba_privacy_settings')
+    const savedPrivacy = localStorage.getItem('em_privacy_settings')
     if (savedPrivacy) {
       setPrivacySettings(JSON.parse(savedPrivacy))
     }
@@ -109,7 +109,7 @@ export function SettingsPage({ executor, onBack, onLogout }: SettingsPageProps) 
   const updateNotificationSetting = useCallback((key: keyof NotificationSettings, value: boolean) => {
     setNotificationSettings((prev) => {
       const updated = { ...prev, [key]: value }
-      localStorage.setItem('chamba_notification_settings', JSON.stringify(updated))
+      localStorage.setItem('em_notification_settings', JSON.stringify(updated))
       return updated
     })
   }, [])
@@ -118,7 +118,7 @@ export function SettingsPage({ executor, onBack, onLogout }: SettingsPageProps) 
   const updatePrivacySetting = useCallback((key: keyof PrivacySettings, value: boolean) => {
     setPrivacySettings((prev) => {
       const updated = { ...prev, [key]: value }
-      localStorage.setItem('chamba_privacy_settings', JSON.stringify(updated))
+      localStorage.setItem('em_privacy_settings', JSON.stringify(updated))
       return updated
     })
   }, [])
@@ -126,7 +126,7 @@ export function SettingsPage({ executor, onBack, onLogout }: SettingsPageProps) 
   // Change language
   const changeLanguage = useCallback((lang: string) => {
     i18n.changeLanguage(lang)
-    localStorage.setItem('chamba_language', lang)
+    localStorage.setItem('em_language', lang)
   }, [i18n])
 
   // Delete account

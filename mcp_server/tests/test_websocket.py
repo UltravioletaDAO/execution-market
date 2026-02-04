@@ -1,5 +1,5 @@
 """
-Tests for the Chamba MCP WebSocket Server.
+Tests for the Execution Market MCP WebSocket Server.
 
 Run with: pytest mcp_server/tests/test_websocket.py -v
 """

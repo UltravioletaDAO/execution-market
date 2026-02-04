@@ -1,7 +1,7 @@
 """
-Chamba ERC-8004 Integration
+Execution Market ERC-8004 Integration
 
-On-chain identity and reputation for the Chamba platform.
+On-chain identity and reputation for the Execution Market platform.
 
 Two approaches available:
 1. Direct on-chain (register.py, reputation.py) - for full control
@@ -27,15 +27,15 @@ from .facilitator_client import (
     AgentIdentity,
     FeedbackResult,
     ReputationSummary,
-    # Chamba functions
-    get_chamba_reputation,
-    get_chamba_identity,
+    # EM functions
+    get_em_reputation,
+    get_em_identity,
     rate_worker,
     rate_agent,
     get_agent_info,
     get_agent_reputation,
     # Config
-    CHAMBA_AGENT_ID,
+    EM_AGENT_ID,
     ERC8004_CONTRACTS,
     ERC8004_NETWORK,
     FACILITATOR_URL,
@@ -51,13 +51,13 @@ __all__ = [
     'AgentIdentity',
     'FeedbackResult',
     'ReputationSummary',
-    'get_chamba_reputation',
-    'get_chamba_identity',
+    'get_em_reputation',
+    'get_em_identity',
     'rate_worker',
     'rate_agent',
     'get_agent_info',
     'get_agent_reputation',
-    'CHAMBA_AGENT_ID',
+    'EM_AGENT_ID',
     'ERC8004_CONTRACTS',
     'ERC8004_NETWORK',
     'FACILITATOR_URL',

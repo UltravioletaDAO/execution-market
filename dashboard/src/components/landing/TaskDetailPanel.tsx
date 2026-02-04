@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTranslation as useCustomTranslation } from '../../i18n/hooks/useTranslation'
 import type { Task, TaskCategory } from '../../types/database'
+import { PaymentStatus } from '../PaymentStatus'
+import { useTaskPayment } from '../../hooks/useTaskPayment'
 
 interface TaskDetailPanelProps {
   task: Task
@@ -35,6 +37,10 @@ const EVIDENCE_TYPE_LABELS: Record<string, string> = {
 export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: TaskDetailPanelProps) {
   const { t } = useTranslation()
   const { formatCurrency, formatTimeRemaining } = useCustomTranslation()
+
+  // Fetch payment data for this task (only when escrow_tx or escrow_id is present)
+  const hasEscrow = Boolean(task.escrow_tx || task.escrow_id)
+  const { payment, loading: paymentLoading } = useTaskPayment(hasEscrow ? task.id : null)
 
   // Close on escape key
   useEffect(() => {
@@ -193,6 +199,76 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
                   </li>
                 ))}
               </ul>
+            </section>
+          )}
+
+          {/* Payment / Escrow Status */}
+          {hasEscrow && (
+            <section>
+              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+                {t('payment.status', 'Estado del Pago')}
+              </h3>
+
+              {paymentLoading && (
+                <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  {t('common.loading', 'Cargando...')}
+                </div>
+              )}
+
+              {!paymentLoading && payment && (
+                <>
+                  <PaymentStatus
+                    payment={payment}
+                    showTimeline={true}
+                  />
+
+                  {/* Prominent refund confirmation banner */}
+                  {payment.status === 'refunded' && (
+                    <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-semibold text-green-800">
+                            {t('payment.refundConfirmed', 'Reembolso Confirmado')}
+                          </p>
+                          <p className="text-xs text-green-700 mt-0.5">
+                            {t('payment.refundConfirmedDesc', 'Los fondos han sido devueltos al agente. Esta tarea ha expirado.')}
+                          </p>
+                          {payment.escrow_tx && (
+                            <a
+                              href={
+                                payment.network === 'base' || payment.network === 'base-mainnet'
+                                  ? `https://basescan.org/tx/${payment.escrow_tx}`
+                                  : `https://sepolia.basescan.org/tx/${payment.escrow_tx}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 mt-1.5 text-xs font-mono text-green-700 hover:text-green-900 underline transition-colors"
+                            >
+                              {payment.escrow_tx.slice(0, 10)}...{payment.escrow_tx.slice(-6)}
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {!paymentLoading && !payment && (
+                <p className="text-sm text-gray-400 italic">
+                  {t('payment.noData', 'No hay datos de pago disponibles.')}
+                </p>
+              )}
             </section>
           )}
         </div>

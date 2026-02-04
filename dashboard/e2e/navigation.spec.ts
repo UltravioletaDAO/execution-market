@@ -47,7 +47,7 @@ test.describe('Navigation', () => {
 
   test('logo links to home', async ({ page }) => {
     await page.goto('/tasks');
-    await page.click('[data-testid="logo"], header a:has-text("Chamba")');
+    await page.click('[data-testid="logo"], header a:has-text("Execution Market")');
     await expect(page).toHaveURL('/');
   });
 });

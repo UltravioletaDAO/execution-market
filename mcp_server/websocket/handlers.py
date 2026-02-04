@@ -1,5 +1,5 @@
 """
-WebSocket Event Handlers for Chamba
+WebSocket Event Handlers for Execution Market
 
 Handles broadcasting events to appropriate room subscribers with:
 - Permission filtering

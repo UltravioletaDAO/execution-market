@@ -1,10 +1,10 @@
 """
-Task commands for Chamba CLI (Worker perspective).
+Task commands for Execution Market CLI (Worker perspective).
 
 Commands:
-    chamba tasks list --location "lat,lng" --radius 10
-    chamba tasks apply <task-id>
-    chamba tasks submit <task-id> --evidence <file>
+    em tasks list --location "lat,lng" --radius 10
+    em tasks apply <task-id>
+    em tasks submit <task-id> --evidence <file>
 """
 
 import sys
@@ -16,7 +16,7 @@ import click
 
 from ..config import get_api_key, get_config_manager
 from ..api import (
-    ChambaAPIClient,
+    EMAPIClient,
     APIError,
     Task,
     TaskStatus,
@@ -133,20 +133,20 @@ def list_tasks(
     Examples:
 
         # List all published tasks
-        chamba tasks list
+        em tasks list
 
         # List tasks near a location
-        chamba tasks list --location "19.4326,-99.1332" --radius 5
+        em tasks list --location "19.4326,-99.1332" --radius 5
 
         # List high-value tasks
-        chamba tasks list --min-bounty 10 --category physical_presence
+        em tasks list --min-bounty 10 --category physical_presence
 
         # Get JSON output for scripting
-        chamba tasks list --output json
+        em tasks list --output json
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     # Parse location if provided
@@ -220,13 +220,13 @@ def apply_task(ctx, task_id: str, message: Optional[str]):
 
     Examples:
 
-        chamba tasks apply abc123
+        em tasks apply abc123
 
-        chamba tasks apply abc123 --message "I can complete this within 2 hours"
+        em tasks apply abc123 --message "I can complete this within 2 hours"
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     config_mgr = get_config_manager()
@@ -234,7 +234,7 @@ def apply_task(ctx, task_id: str, message: Optional[str]):
 
     if not executor_id:
         print_error("No executor ID configured.")
-        print_info("Run 'chamba login --wallet <addr> --executor-id <id>' to set up worker mode.")
+        print_info("Run 'em login --wallet <addr> --executor-id <id>' to set up worker mode.")
         sys.exit(1)
 
     try:
@@ -260,7 +260,7 @@ def apply_task(ctx, task_id: str, message: Optional[str]):
         if result.get("status") == "accepted":
             print_success(f"You have been assigned to task {task_id}")
             print_info("Start working and submit evidence when complete:")
-            print_info(f"  chamba tasks submit {task_id} --evidence @evidence.json")
+            print_info(f"  em tasks submit {task_id} --evidence @evidence.json")
         else:
             print_success(f"Application submitted for task {task_id}")
             print_info("Your application is pending approval from the agent.")
@@ -292,14 +292,14 @@ def submit_task(ctx, task_id: str, evidence: str, notes: Optional[str]):
     Examples:
 
         # Inline JSON evidence
-        chamba tasks submit abc123 --evidence '{"photo_geo": {"url": "...", "lat": 19.43, "lng": -99.13}}'
+        em tasks submit abc123 --evidence '{"photo_geo": {"url": "...", "lat": 19.43, "lng": -99.13}}'
 
         # From file
-        chamba tasks submit abc123 --evidence @evidence.json --notes "Completed as requested"
+        em tasks submit abc123 --evidence @evidence.json --notes "Completed as requested"
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     config_mgr = get_config_manager()
@@ -307,7 +307,7 @@ def submit_task(ctx, task_id: str, evidence: str, notes: Optional[str]):
 
     if not executor_id:
         print_error("No executor ID configured.")
-        print_info("Run 'chamba login --wallet <addr> --executor-id <id>' to set up worker mode.")
+        print_info("Run 'em login --wallet <addr> --executor-id <id>' to set up worker mode.")
         sys.exit(1)
 
     # Parse evidence
@@ -387,13 +387,13 @@ def task_status(ctx, task_id: str, output: str):
 
     Examples:
 
-        chamba tasks status abc123
+        em tasks status abc123
 
-        chamba tasks status abc123 --output json
+        em tasks status abc123 --output json
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     try:
@@ -430,13 +430,13 @@ def my_tasks(ctx, status: Optional[str], output: str):
 
     Examples:
 
-        chamba tasks my
+        em tasks my
 
-        chamba tasks my --status in_progress
+        em tasks my --status in_progress
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     config_mgr = get_config_manager()
@@ -444,7 +444,7 @@ def my_tasks(ctx, status: Optional[str], output: str):
 
     if not executor_id:
         print_error("No executor ID configured.")
-        print_info("Run 'chamba login --wallet <addr> --executor-id <id>' to set up worker mode.")
+        print_info("Run 'em login --wallet <addr> --executor-id <id>' to set up worker mode.")
         sys.exit(1)
 
     try:

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Example: MCP Protocol Client for Chamba
+Example: MCP Protocol Client for Execution Market
 
-This example demonstrates how to connect to the Chamba MCP server
+This example demonstrates how to connect to the Execution Market MCP server
 using the official MCP SDK with SSE (Server-Sent Events) transport.
 
 MCP Transport Options (per MCP spec):
@@ -30,15 +30,15 @@ from mcp.client.sse import sse_client
 
 # Configuration
 MCP_SERVER_URL = os.environ.get(
-    "CHAMBA_MCP_URL",
-    "https://api.chamba.ultravioletadao.xyz/mcp/sse"
+    "EM_MCP_URL",
+    "https://api.execution.market/mcp/sse"
 )
-API_KEY = os.environ.get("CHAMBA_API_KEY", "")
+API_KEY = os.environ.get("EM_API_KEY", "")
 
 
 async def main():
     """
-    Main example demonstrating Chamba MCP client usage.
+    Main example demonstrating Execution Market MCP client usage.
 
     This shows:
     - Connecting via SSE transport (the correct MCP transport)
@@ -46,7 +46,7 @@ async def main():
     - Calling tools to publish and manage tasks
     """
 
-    print(f"Connecting to Chamba MCP server at {MCP_SERVER_URL}...")
+    print(f"Connecting to Execution Market MCP server at {MCP_SERVER_URL}...")
 
     # Set up headers for authentication
     headers = {}
@@ -59,7 +59,7 @@ async def main():
             # Initialize the session
             await session.initialize()
 
-            print("Connected to Chamba MCP server!")
+            print("Connected to Execution Market MCP server!")
             print(f"Server: {session.server_info}")
 
             # List available tools
@@ -73,7 +73,7 @@ async def main():
             print("\n=== Server Status ===")
             try:
                 result = await session.call_tool(
-                    "chamba_server_status",
+                    "em_server_status",
                     {}
                 )
                 print(f"Status: {result.content}")
@@ -84,7 +84,7 @@ async def main():
             print("\n=== Fee Structure ===")
             try:
                 result = await session.call_tool(
-                    "chamba_get_fee_structure",
+                    "em_get_fee_structure",
                     {}
                 )
                 print(f"Fees: {result.content}")
@@ -96,7 +96,7 @@ async def main():
                 print("\n=== Publishing Task ===")
                 try:
                     result = await session.call_tool(
-                        "chamba_publish_task",
+                        "em_publish_task",
                         {
                             "agent_id": "example_agent",
                             "title": "Verify coffee shop hours",
@@ -130,13 +130,13 @@ async def list_tools_only():
 
             tools = await session.list_tools()
 
-            print("Chamba MCP Tools:")
+            print("Execution Market MCP Tools:")
             for tool in tools.tools:
                 print(f"  {tool.name}")
 
 
 if __name__ == "__main__":
-    print("Chamba MCP Client Example")
+    print("Execution Market MCP Client Example")
     print("=" * 50)
     print("Transport: SSE (Server-Sent Events) over HTTP")
     print("Note: MCP uses SSE/HTTP, NOT WebSocket")

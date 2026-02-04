@@ -1,5 +1,5 @@
 -- ============================================================================
--- CHAMBA: Human Execution Layer for AI Agents
+-- EXECUTION MARKET: Human Execution Layer for AI Agents
 -- Migration: 002_escrow_and_payments.sql
 -- Description: Escrow tracking, payment history, and x402 integration
 -- Version: 2.0.0

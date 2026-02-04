@@ -1,4 +1,4 @@
-# Chamba MCP Server Dockerfile
+# Execution Market MCP Server Dockerfile
 # Python 3.11 + FastMCP + FastAPI
 
 FROM python:3.11-slim as builder

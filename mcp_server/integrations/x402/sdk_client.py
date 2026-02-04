@@ -1,5 +1,5 @@
 """
-x402 SDK Integration for Chamba (NOW-202)
+x402 SDK Integration for Execution Market (NOW-202)
 
 Uses the official uvd-x402-sdk for payment processing with the Ultravioleta DAO facilitator.
 This module replaces the custom client implementation with the standardized SDK.
@@ -63,27 +63,28 @@ FACILITATOR_URL = os.environ.get(
     "https://facilitator.ultravioletadao.xyz"
 )
 
-# Chamba treasury address for fee collection
-CHAMBA_TREASURY = os.environ.get(
-    "CHAMBA_TREASURY_ADDRESS",
-    "0x0000000000000000000000000000000000000000"
+# Execution Market treasury address for fee collection
+EM_TREASURY = os.environ.get(
+    "EM_TREASURY_ADDRESS",
+    os.environ.get("EM_TREASURY_ADDRESS",
+    "0x0000000000000000000000000000000000000000")
 )
 
 # Default network for payments
 DEFAULT_NETWORK = os.environ.get("X402_NETWORK", "base")
 
 # Platform fee percentage
-PLATFORM_FEE_PERCENT = Decimal(os.environ.get("CHAMBA_PLATFORM_FEE", "0.08"))
+PLATFORM_FEE_PERCENT = Decimal(os.environ.get("EM_PLATFORM_FEE", os.environ.get("CHAMBA_PLATFORM_FEE", "0.08")))
 
 
 # =============================================================================
 # Payment Models
 # =============================================================================
 
-class ChambaPaymentConfig(BaseModel):
-    """Configuration for Chamba payment endpoints."""
+class EMPaymentConfig(BaseModel):
+    """Configuration for Execution Market payment endpoints."""
     recipient_address: str
-    description: str = "Chamba task payment"
+    description: str = "Execution Market task payment"
     network: str = DEFAULT_NETWORK
     resource: Optional[str] = None
 
@@ -104,9 +105,9 @@ class TaskPaymentResult(BaseModel):
 # SDK Wrapper Class
 # =============================================================================
 
-class ChambaX402SDK:
+class EMX402SDK:
     """
-    Wrapper around uvd-x402-sdk for Chamba-specific functionality.
+    Wrapper around uvd-x402-sdk for Execution Market-specific functionality.
 
     Provides:
     - FastAPI integration for payment-gated endpoints
@@ -123,7 +124,7 @@ class ChambaX402SDK:
         network: str = DEFAULT_NETWORK,
     ):
         """
-        Initialize Chamba x402 SDK wrapper.
+        Initialize Execution Market x402 SDK wrapper.
 
         Args:
             app: FastAPI application (for automatic integration)
@@ -137,7 +138,7 @@ class ChambaX402SDK:
                 "Install with: pip install uvd-x402-sdk[fastapi]"
             )
 
-        self.recipient_address = recipient_address or CHAMBA_TREASURY
+        self.recipient_address = recipient_address or EM_TREASURY
         self.facilitator_url = facilitator_url or FACILITATOR_URL
         self.network = network
 
@@ -157,7 +158,7 @@ class ChambaX402SDK:
             self._setup_fastapi(app)
 
         logger.info(
-            "ChambaX402SDK initialized: facilitator=%s, network=%s",
+            "EMX402SDK initialized: facilitator=%s, network=%s",
             self.facilitator_url,
             self.network
         )
@@ -204,7 +205,7 @@ class ChambaX402SDK:
 
         return self.fastapi_x402.require_payment(
             amount_usd=amount_usd,
-            description=description or "Chamba payment",
+            description=description or "Execution Market payment",
             network=network or self.network,
         )
 
@@ -223,7 +224,7 @@ class ChambaX402SDK:
 
         return self.fastapi_x402.optional_payment(
             amount_usd=amount_usd,
-            description=description or "Chamba optional payment",
+            description=description or "Execution Market optional payment",
         )
 
     # =========================================================================
@@ -313,7 +314,7 @@ class ChambaX402SDK:
 
         Calculates platform fee and distributes:
         - 92% to worker (net after 8% fee)
-        - 8% to Chamba treasury
+        - 8% to Execution Market treasury
 
         Args:
             task_id: Task identifier
@@ -394,14 +395,14 @@ class ChambaX402SDK:
 # Module-Level Functions
 # =============================================================================
 
-_default_sdk: Optional[ChambaX402SDK] = None
+_default_sdk: Optional[EMX402SDK] = None
 
 
-def get_sdk() -> ChambaX402SDK:
-    """Get or create the default ChambaX402SDK instance."""
+def get_sdk() -> EMX402SDK:
+    """Get or create the default EMX402SDK instance."""
     global _default_sdk
     if _default_sdk is None:
-        _default_sdk = ChambaX402SDK()
+        _default_sdk = EMX402SDK()
     return _default_sdk
 
 
@@ -409,7 +410,7 @@ def setup_x402_for_app(
     app: FastAPI,
     recipient_address: Optional[str] = None,
     network: str = DEFAULT_NETWORK,
-) -> ChambaX402SDK:
+) -> EMX402SDK:
     """
     Setup x402 integration for a FastAPI app.
 
@@ -429,10 +430,10 @@ def setup_x402_for_app(
         network: Default network
 
     Returns:
-        Configured ChambaX402SDK instance
+        Configured EMX402SDK instance
     """
     global _default_sdk
-    _default_sdk = ChambaX402SDK(
+    _default_sdk = EMX402SDK(
         app=app,
         recipient_address=recipient_address,
         network=network,

@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Auth Setup
+ * Execution Market E2E Auth Setup
  *
  * This file runs before other tests to set up authentication state.
  */

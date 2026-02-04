@@ -1,4 +1,4 @@
-# Chamba Infrastructure - VPC Configuration
+# Execution Market Infrastructure - VPC Configuration
 
 # VPC
 resource "aws_vpc" "main" {

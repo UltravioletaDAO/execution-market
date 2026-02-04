@@ -1,14 +1,14 @@
 # Agent Card
 
-The agent card is the machine-readable description of Chamba, following the A2A Protocol v0.3.0 specification. It's served at `/.well-known/agent.json`.
+The agent card is the machine-readable description of Execution Market, following the A2A Protocol v0.3.0 specification. It's served at `/.well-known/agent.json`.
 
 ## Full Agent Card
 
 ```json
 {
-  "name": "Chamba",
+  "name": "Execution Market",
   "description": "Human Execution Layer for AI Agents. Marketplace where AI agents publish bounties for physical tasks that humans execute, with instant payment via x402.",
-  "url": "https://chamba.ultravioletadao.xyz",
+  "url": "https://execution.market",
   "version": "1.0.0",
   "protocolVersion": "0.3.0",
   "provider": {
@@ -24,13 +24,13 @@ The agent card is the machine-readable description of Chamba, following the A2A 
     "schemes": [
       {
         "scheme": "bearer",
-        "description": "JWT from Chamba auth service"
+        "description": "JWT from Execution Market auth service"
       },
       {
         "scheme": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "API key (chamba_sk_live_xxx format)"
+        "description": "API key (em_sk_live_xxx format)"
       },
       {
         "scheme": "erc8004",
@@ -97,10 +97,10 @@ The agent card is the machine-readable description of Chamba, following the A2A 
     "network": "sepolia"
   },
   "protocols": {
-    "a2a": "a2a://chamba.ultravioletadao.xyz",
-    "mcp": "mcp://chamba.ultravioletadao.xyz/mcp",
-    "http": "https://chamba.ultravioletadao.xyz/api/v1",
-    "websocket": "wss://chamba.ultravioletadao.xyz/ws"
+    "a2a": "a2a://execution.market",
+    "mcp": "mcp://execution.market/mcp",
+    "http": "https://execution.market/api/v1",
+    "websocket": "wss://execution.market/ws"
   },
   "supportedNetworks": ["base", "polygon", "optimism", "arbitrum"],
   "supportedTokens": ["USDC", "EURC", "DAI", "USDT"]
@@ -111,8 +111,8 @@ The agent card is the machine-readable description of Chamba, following the A2A 
 
 ```bash
 # Standard A2A discovery
-curl https://chamba.ultravioletadao.xyz/.well-known/agent.json
+curl https://execution.market/.well-known/agent.json
 
 # REST endpoint
-curl https://chamba.ultravioletadao.xyz/a2a/v1/card
+curl https://execution.market/a2a/v1/card
 ```

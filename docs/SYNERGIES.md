@@ -1,4 +1,4 @@
-# Chamba: Ecosystem Synergies
+# Execution Market: Ecosystem Synergies
 
 > Analisis detallado de conexiones con el ecosistema Ultravioleta DAO
 
@@ -31,15 +31,15 @@
 
 **Score**: 10/10 - **FOUNDATIONAL**
 
-**Relationship**: x402 es el sistema nervioso de pagos de Chamba. Sin x402, no hay Chamba.
+**Relationship**: x402 es el sistema nervioso de pagos de Execution Market. Sin x402, no hay Execution Market.
 
 **How They Connect**:
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                 CHAMBA + x402 FLOW                       │
+│            EXECUTION MARKET + x402 FLOW                  │
 ├─────────────────────────────────────────────────────────┤
 │                                                          │
-│  AGENT                   CHAMBA              x402        │
+│  AGENT              EXECUTION MARKET         x402        │
 │  ─────                   ──────              ────        │
 │                                                          │
 │  Publica task ──────────► Recibe ──────────► Escrow     │
@@ -92,7 +92,7 @@
        await refund_escrow(escrow_id, agent.wallet)
    ```
 
-**Why Score 10**: Sin x402, Chamba no puede funcionar. Es el core del value prop.
+**Why Score 10**: Sin x402, Execution Market no puede funcionar. Es el core del value prop.
 
 ---
 
@@ -123,7 +123,7 @@
 **How They Connect**:
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                COLMENA + CHAMBA                          │
+│           COLMENA + EXECUTION MARKET                     │
 ├─────────────────────────────────────────────────────────┤
 │                                                          │
 │  COLMENA HIVE                                            │
@@ -135,7 +135,7 @@
 │        │                                                 │
 │        ▼                                                 │
 │  ┌────────────┐     ┌──────────┐                        │
-│  │ Pheromone  │────►│  CHAMBA  │ ──► Task publicada:   │
+│  │ Pheromone  │────►│  EXEC   │ ──► Task publicada:   │
 │  │ "need_scan"│     │  MCP     │     "Escanear pp 45-67│
 │  └────────────┘     └──────────┘      de libro X"       │
 │                           │                              │
@@ -147,7 +147,7 @@
 │                           │                              │
 │                           ▼                              │
 │  ┌────────────┐     ┌──────────┐                        │
-│  │  Forager   │◄────│  CHAMBA  │ ◄── Evidence verified │
+│  │  Forager   │◄────│  EXEC   │ ◄── Evidence verified │
 │  │  Receives  │     │  Return  │                        │
 │  │  PDFs      │     └──────────┘                        │
 │  └────────────┘                                          │
@@ -158,8 +158,8 @@
 **Integration Points**:
 
 1. **Pheromone Bus** - Foragers emiten "need_physical" pheromones
-2. **MCP Tool** - Foragers llaman `chamba_publish_task`
-3. **Callback** - Chamba notifica via pheromone cuando task completa
+2. **MCP Tool** - Foragers llaman `em_publish_task`
+3. **Callback** - Execution Market notifica via pheromone cuando task completa
 
 **Use Cases**:
 - Escanear libros/documentos fisicos
@@ -167,7 +167,7 @@
 - Fotografiar ubicaciones
 - Recolectar muestras
 
-**Why Score 8**: Colmena es el caso de uso mas claro y frecuente.
+**Why Score 8**: Colmena es el caso de uso mas claro y frecuente para Execution Market.
 
 ---
 
@@ -180,7 +180,7 @@
 **How They Connect**:
 ```
 ┌─────────────────────────────────────────────────────────┐
-│             CHAMBA + CHAINWITNESS                        │
+│        EXECUTION MARKET + CHAINWITNESS                   │
 ├─────────────────────────────────────────────────────────┤
 │                                                          │
 │  SUBMISSION                CHAINWITNESS                  │
@@ -251,16 +251,16 @@ Council recibe request complejo:
    Y tomar fotos del menu Y confirmar precios"
 
 Council descompone:
-  1. Task A: Verificar horario (Chamba - physical_presence)
-  2. Task B: Fotografiar menu (Chamba - physical_presence)
-  3. Task C: Confirmar precios (Chamba - knowledge_access)
+  1. Task A: Verificar horario (Execution Market - physical_presence)
+  2. Task B: Fotografiar menu (Execution Market - physical_presence)
+  3. Task C: Confirmar precios (Execution Market - knowledge_access)
 
-Council publica todas via Chamba MCP, recibe resultados,
+Council publica todas via Execution Market MCP, recibe resultados,
 sintetiza respuesta final.
 ```
 
 **Integration Points**:
-- Council usa Chamba como tool cuando tareas requieren presencia fisica
+- Council usa Execution Market como tool cuando tareas requieren presencia fisica
 - Council puede publicar multiples tasks en paralelo
 - Council sintetiza resultados de multiples executions
 
@@ -294,7 +294,7 @@ sintetiza respuesta final.
 
 **Score**: 8/10 - **PROTOCOL** (UPGRADED from 6)
 
-**Relationship**: A2A protocol via MeshRelay + ERC-8004 agent discovery. Chamba is registered as a service agent in the ERC-8004 Identity Registry.
+**Relationship**: A2A protocol via MeshRelay + ERC-8004 agent discovery. Execution Market is registered as a service agent in the ERC-8004 Identity Registry.
 
 **How They Connect**:
 ```
@@ -302,10 +302,10 @@ sintetiza respuesta final.
 │              ERC-8004 + MESHRELAY INTEGRATION                    │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  EXTERNAL AGENT                    CHAMBA AGENT                  │
+│  EXTERNAL AGENT                    EXECUTION MARKET AGENT                  │
 │  ──────────────                    ────────────                  │
 │  ┌────────────┐                    ┌────────────┐               │
-│  │ Colmena    │ ──► ERC-8004  ──►  │   Chamba   │               │
+│  │ Colmena    │ ──► ERC-8004  ──►  │   Execution Market   │               │
 │  │ Forager    │     Registry        │   Agent    │               │
 │  └────────────┘     Discovery       └────────────┘               │
 │        │                                  │                      │
@@ -323,15 +323,15 @@ sintetiza respuesta final.
 ```
 
 **Integration Points**:
-1. **Agent Discovery** - External agents find Chamba via ERC-8004 registry
+1. **Agent Discovery** - External agents find Execution Market via ERC-8004 registry
 2. **A2A Messaging** - Standard protocol for task publication
 3. **Message Routing** - MeshRelay routes messages between agents
-4. **Capability Query** - Agents query Chamba's capabilities before connecting
+4. **Capability Query** - Agents query Execution Market's capabilities before connecting
 
 **ERC-8004 Identity**:
 ```json
 {
-  "agentId": "chamba.ultravioleta.eth",
+  "agentId": "execution-market.ultravioleta.eth",
   "type": "service_provider",
   "category": "human_execution_layer",
   "capabilities": [
@@ -343,7 +343,7 @@ sintetiza respuesta final.
 }
 ```
 
-**Why Score 8 (upgraded from 6)**: ERC-8004 makes Chamba discoverable in the agentic economy. Without it, agents can't find Chamba programmatically.
+**Why Score 8 (upgraded from 6)**: ERC-8004 makes Execution Market discoverable in the agentic economy. Without it, agents can't find Execution Market programmatically.
 
 ---
 
@@ -368,7 +368,7 @@ Ultratrack puede trackear:
 ```
 
 **Integration Points**:
-- Feed de eventos de Chamba a Ultratrack
+- Feed de eventos de Execution Market a Ultratrack
 - Dashboards de ejecutores
 - Analytics para el marketplace
 
@@ -415,7 +415,7 @@ Ultratrack puede trackear:
 **Relationship**: Monitoring de uptime del marketplace.
 
 **Integration Points**:
-- Health checks de Chamba API
+- Health checks de Execution Market API
 - Alertas si el service esta down
 - Metricas de latencia
 
@@ -447,7 +447,7 @@ Ultratrack puede trackear:
 
 ## Patterns Applied
 
-| Pattern | Application in Chamba |
+| Pattern | Application in Execution Market |
 |---------|----------------------|
 | **sub-agent-delegation** | Agentes delegan tareas fisicas a humanos |
 | **mcp-data-layer** | Task API expuesta como MCP server |
@@ -460,7 +460,7 @@ Ultratrack puede trackear:
 
 ## Tools Used
 
-| Tool | Purpose in Chamba |
+| Tool | Purpose in Execution Market |
 |------|-------------------|
 | **claude-agent-sdk** | Agentes que publican tasks |
 | **uvd-x402-sdk** | Sistema de micropagos |
@@ -482,22 +482,22 @@ Ultratrack puede trackear:
 | Setup x402 escrow creation | x402-rs | 🔲 | `create_escrow(amount, timeout)` |
 | Setup x402 payment release | uvd-x402-sdk-python | 🔲 | `release_escrow(id, recipient)` |
 | Setup x402 refund flow | uvd-x402-sdk-python | 🔲 | `refund_escrow(id)` |
-| Basic MCP server with publish tool | chamba | 🔲 | `chamba_publish_task` |
-| Basic MCP server with check tool | chamba | 🔲 | `chamba_check_task` |
+| Basic MCP server with publish tool | execution-market| 🔲 | `em_publish_task` |
+| Basic MCP server with check tool | execution-market| 🔲 | `em_check_task` |
 
 **Integration Test**:
 ```python
 # End-to-end test: Agent publishes, human accepts, submits, gets paid
 async def test_full_lifecycle():
-    task = await chamba.publish_task(...)  # Creates x402 escrow
-    await chamba.accept_task(task.id, executor="human_1")
-    await chamba.submit_evidence(task.id, evidence={...})
-    result = await chamba.verify_submission(task.id, action="accept")
+    task = await em.publish_task(...)  # Creates x402 escrow
+    await em.accept_task(task.id, executor="human_1")
+    await em.submit_evidence(task.id, evidence={...})
+    result = await em.verify_submission(task.id, action="accept")
     assert result.payment_tx is not None  # x402 payment released
 ```
 
 **Deliverables**:
-- [ ] Chamba API accepting task publications
+- [ ] Execution Market API accepting task publications
 - [ ] x402 escrow created on publish
 - [ ] Payment released on verification
 - [ ] Basic error handling
@@ -506,15 +506,15 @@ async def test_full_lifecycle():
 
 ### Phase 2: Agent Integration (Week 3-4)
 
-**Goal**: Ecosystem agents can use Chamba as a tool
+**Goal**: Ecosystem agents can use Execution Market as a tool
 
 | Task | Project | Status | Details |
 |------|---------|--------|---------|
-| Full MCP tool suite | chamba | 🔲 | All 5 tools working |
+| Full MCP tool suite | execution-market| 🔲 | All 5 tools working |
 | Colmena pheromone for "need_physical" | colmena | 🔲 | New pheromone type |
-| Forager agent using Chamba | colmena | 🔲 | Book scanning use case |
+| Forager agent using Execution Market | colmena | 🔲 | Book scanning use case |
 | Council orchestration support | council | 🔲 | Multi-step physical tasks |
-| A2A protocol adapter | meshrelay | 🔲 | External agents can use Chamba |
+| A2A protocol adapter | meshrelay | 🔲 | External agents can use Execution Market |
 
 **Colmena Integration Details**:
 ```python
@@ -528,8 +528,8 @@ class PhysicalTaskForager(Forager):
             "urgency": request.urgency
         })
 
-        # Publish to Chamba
-        task = await self.mcp.call_tool("chamba_publish_task", {
+        # Publish to Execution Market
+        task = await self.mcp.call_tool("em_publish_task", {
             "category": "knowledge_access",
             "title": f"Scan document: {request.document_name}",
             "instructions": request.instructions,
@@ -557,8 +557,8 @@ class PhysicalTaskForager(Forager):
 |------|---------|--------|---------|
 | Evidence hash notarization | chainwitness | 🔲 | `notarize(hash, metadata)` |
 | Proof verification | chainwitness | 🔲 | `verify(proof_id, hash)` |
-| Auto-check pipeline | chamba | 🔲 | Schema + metadata validation |
-| AI verification layer | chamba | 🔲 | Image/document analysis |
+| Auto-check pipeline | execution-market| 🔲 | Schema + metadata validation |
+| AI verification layer | execution-market| 🔲 | Image/document analysis |
 | Arbitration smart contract | base/optimism | 🔲 | On-chain dispute resolution |
 | EnclaveOps integration | enclaveops | 🔲 | Sensitive task handling |
 
@@ -634,7 +634,7 @@ async def notify_new_task(task: Task):
     if task.bounty_usd >= 20:  # High value
         await telemesh.broadcast(
             channels=get_relevant_channels(task.location, task.category),
-            message=f"🔥 New Chamba: {task.title}\n"
+            message=f"🔥 New Execution Market: {task.title}\n"
                     f"💰 ${task.bounty_usd}\n"
                     f"📍 {task.location.address_hint}\n"
                     f"⏰ {task.deadline_hours}h deadline"
@@ -653,7 +653,7 @@ async def notify_new_task(task: Task):
 
 ```
                     ┌─────────────┐
-                    │   CHAMBA    │
+                    │   EXECUTION MARKET    │
                     │   (core)    │
                     └──────┬──────┘
                            │
@@ -694,7 +694,7 @@ P3 = Nice to have, improves UX
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌─────────┐         ┌─────────┐         ┌─────────┐           │
-│  │ Colmena │────────►│ CHAMBA  │────────►│ChainWit │           │
+│  │ Colmena │────────►│ EXECUTION MARKET  │────────►│ChainWit │           │
 │  │ Forager │  task   │  Core   │ evidence│  ness   │           │
 │  └─────────┘         └─────────┘         └─────────┘           │
 │       ▲                   │                   │                 │

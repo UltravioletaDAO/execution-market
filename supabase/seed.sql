@@ -1,5 +1,5 @@
 -- ============================================================================
--- CHAMBA: Seed Data for Testing
+-- EXECUTION MARKET: Seed Data for Testing
 -- Description: Creates test executor and sample tasks for development/testing
 -- Safe to run multiple times (uses ON CONFLICT DO NOTHING)
 -- ============================================================================

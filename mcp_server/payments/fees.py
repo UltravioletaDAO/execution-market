@@ -264,8 +264,9 @@ class FeeManager:
             custom_rates: Override default fee rates (for testing/promotions)
         """
         self.treasury_wallet = treasury_wallet or os.environ.get(
+            "EM_TREASURY_ADDRESS", os.environ.get(
             "CHAMBA_TREASURY_ADDRESS",
-            "0x0000000000000000000000000000000000000000"
+            "0x0000000000000000000000000000000000000000")
         )
         self.fee_rates = custom_rates or FEE_RATES.copy()
 

@@ -1,4 +1,4 @@
-// Chamba: Withdrawal Form Component
+// Execution Market: Withdrawal Form Component
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useWithdrawal, type EarningsData } from '../../hooks/useProfile'

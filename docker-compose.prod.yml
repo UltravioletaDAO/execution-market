@@ -1,4 +1,4 @@
-# Chamba Docker Compose - Production Configuration
+# Execution Market Docker Compose - Production Configuration
 # Extends docker-compose.yml with production optimizations
 #
 # Usage:
@@ -287,7 +287,7 @@ secrets:
 # Network Configuration
 # ===================
 networks:
-  chamba-network:
+  execution-market-network:
     driver: bridge
     driver_opts:
       com.docker.network.bridge.enable_icc: "true"

@@ -1,5 +1,5 @@
 """
-Chamba MCP Server - External Integrations
+Execution Market MCP Server - External Integrations
 
 Modules for integrating with external services:
 - x402: Payment processing via x402 protocol

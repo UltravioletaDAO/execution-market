@@ -1,5 +1,5 @@
 """
-Chamba Webhook Notification System (NOW-087)
+Execution Market Webhook Notification System (NOW-087)
 
 Production-ready webhook system with:
 - Strongly-typed event payloads
@@ -24,7 +24,7 @@ Usage:
     registry = get_webhook_registry()
     registration = registry.register(
         owner_id="agent_123",
-        url="https://example.com/webhooks/chamba",
+        url="https://example.com/webhooks/em",
         events=[WebhookEventType.TASK_CREATED, WebhookEventType.PAYMENT_RELEASED],
         description="My webhook endpoint",
     )

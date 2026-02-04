@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Authentication Fixtures
+ * Execution Market E2E Authentication Fixtures
  *
  * Helpers for authentication in E2E tests.
  */
@@ -22,7 +22,7 @@ export interface TestUser {
 
 export const TEST_EXECUTOR: TestUser = {
   id: 'user-001',
-  email: 'executor@chamba.work',
+  email: 'executor@execution.market',
   password: 'test-password-123',
   displayName: 'Test Executor',
   walletAddress: mockExecutor.wallet_address,
@@ -31,7 +31,7 @@ export const TEST_EXECUTOR: TestUser = {
 
 export const TEST_AGENT: TestUser = {
   id: 'user-agent-001',
-  email: 'agent@chamba.work',
+  email: 'agent@execution.market',
   password: 'agent-password-123',
   displayName: 'Test Agent',
   walletAddress: mockAgent.wallet_address,

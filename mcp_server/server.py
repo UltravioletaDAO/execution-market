@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
 """
-Chamba MCP Server - Human Execution Layer for AI Agents
+Execution Market MCP Server - Human Execution Layer for AI Agents
 
 This MCP server allows AI agents to publish tasks for human execution,
 monitor submissions, and approve/reject completed work.
 
 OpenAPI Metadata:
-    Title: Chamba Human Execution Layer API
+    Title: Execution Market Human Execution Layer API
     Version: 1.0.0
     Description: Enable AI agents to delegate real-world tasks to human workers
     Contact: ultravioletadao@gmail.com
     License: MIT
-    Terms of Service: https://chamba.ultravioletadao.xyz/terms
+    Terms of Service: https://execution.market/terms
 
 API Documentation:
-    - API Reference: https://api.chamba.ultravioletadao.xyz/docs
-    - Integration Guide: https://github.com/ultravioleta-dao/chamba/blob/main/docs/INTEGRATION.md
-    - Webhooks Guide: https://github.com/ultravioleta-dao/chamba/blob/main/docs/WEBHOOKS.md
+    - API Reference: https://api.execution.market/docs
+    - Integration Guide: https://github.com/ultravioleta-dao/execution-market/blob/main/docs/INTEGRATION.md
+    - Webhooks Guide: https://github.com/ultravioleta-dao/execution-market/blob/main/docs/WEBHOOKS.md
 
 Integrated Systems:
-    - MCP Protocol: Tool invocation via SSE/HTTP (https://api.chamba.ultravioletadao.xyz/mcp)
+    - MCP Protocol: Tool invocation via SSE/HTTP (https://api.execution.market/mcp)
     - A2A Protocol: Agent discovery (/.well-known/agent.json)
     - Webhooks: HMAC-SHA256 signed real-time notifications
     - x402 Protocol: Payments and escrow via USDC on Base/Polygon/Optimism
     - Fee Management: 6-8% platform fee by task category
 
 Authentication Methods:
-    - API Key: X-API-Key header (chamba_sk_live_xxx)
+    - API Key: X-API-Key header (em_sk_live_xxx)
     - Bearer Token: JWT in Authorization header
     - ERC-8004: Agent Registry identity token
 
@@ -38,36 +38,36 @@ Rate Limits by Tier:
 Available Tools:
 
 Employer Tools (for AI Agents):
-    - chamba_publish_task: Publish a new task for human execution
-    - chamba_get_tasks: Get tasks (filtered by agent, status, category)
-    - chamba_get_task: Get details of a specific task
-    - chamba_check_submission: Check submission status for a task
-    - chamba_approve_submission: Approve or reject a submission
-    - chamba_cancel_task: Cancel a published task
-    - chamba_assign_task: Assign a task to a specific worker
-    - chamba_batch_create_tasks: Create multiple tasks at once
-    - chamba_get_task_analytics: Get task analytics and metrics
+    - em_publish_task: Publish a new task for human execution
+    - em_get_tasks: Get tasks (filtered by agent, status, category)
+    - em_get_task: Get details of a specific task
+    - em_check_submission: Check submission status for a task
+    - em_approve_submission: Approve or reject a submission
+    - em_cancel_task: Cancel a published task
+    - em_assign_task: Assign a task to a specific worker
+    - em_batch_create_tasks: Create multiple tasks at once
+    - em_get_task_analytics: Get task analytics and metrics
 
 Worker Tools (for Human Workers):
-    - chamba_apply_to_task: Apply to work on a task
-    - chamba_submit_work: Submit evidence of completed work
-    - chamba_get_my_tasks: Get assigned tasks and earnings
-    - chamba_withdraw_earnings: Withdraw available balance
+    - em_apply_to_task: Apply to work on a task
+    - em_submit_work: Submit evidence of completed work
+    - em_get_my_tasks: Get assigned tasks and earnings
+    - em_withdraw_earnings: Withdraw available balance
 
 Advanced Escrow Tools (PaymentOperator via SDK):
-    - chamba_escrow_recommend_strategy: Get AI-recommended payment strategy
-    - chamba_escrow_authorize: Lock bounty in escrow on-chain
-    - chamba_escrow_release: Release escrowed funds to worker
-    - chamba_escrow_refund: Refund escrowed funds to agent
-    - chamba_escrow_charge: Instant payment without escrow
-    - chamba_escrow_partial_release: Partial release + refund (proof of attempt)
-    - chamba_escrow_dispute: Post-release refund (requires arbitration)
-    - chamba_escrow_status: Query escrow payment state
+    - em_escrow_recommend_strategy: Get AI-recommended payment strategy
+    - em_escrow_authorize: Lock bounty in escrow on-chain
+    - em_escrow_release: Release escrowed funds to worker
+    - em_escrow_refund: Refund escrowed funds to agent
+    - em_escrow_charge: Instant payment without escrow
+    - em_escrow_partial_release: Partial release + refund (proof of attempt)
+    - em_escrow_dispute: Post-release refund (requires arbitration)
+    - em_escrow_status: Query escrow payment state
 
 Utility Tools:
-    - chamba_get_fee_structure: Get platform fee rates by category
-    - chamba_calculate_fee: Calculate fees for a potential task
-    - chamba_server_status: Get server and integration status
+    - em_get_fee_structure: Get platform fee rates by category
+    - em_calculate_fee: Calculate fees for a potential task
+    - em_server_status: Get server and integration status
 
 Example Requests:
 
@@ -103,6 +103,7 @@ import json
 import logging
 import os
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Dict, Any, Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -143,35 +144,25 @@ logger = logging.getLogger(__name__)
 # ============== GLOBAL MANAGERS ==============
 
 
-# Initialize x402 client if configured
-x402_client: Optional[Any] = None
-if os.environ.get("X402_PRIVATE_KEY"):
-    try:
-        from integrations.x402.client import X402Client
-        x402_client = X402Client()
-        logger.info("x402 client initialized for real payments")
-    except ImportError:
-        logger.warning("x402 client not available, payments will be simulated")
-
-# Initialize escrow manager (optional)
-escrow_manager: Optional[Any] = None
-if x402_client:
-    try:
-        from integrations.x402.escrow import EscrowManager
-        escrow_manager = EscrowManager(
-            x402_client=x402_client,
-            treasury_address=os.environ.get("CHAMBA_TREASURY_ADDRESS"),
-        )
-        logger.info("Escrow manager initialized")
-    except ImportError:
-        logger.warning("Could not initialize escrow manager")
+# Initialize x402 SDK (via facilitator — no direct contract calls)
+x402_sdk: Optional[Any] = None
+try:
+    from integrations.x402.sdk_client import get_sdk, check_sdk_available, SDK_AVAILABLE as X402_SDK_AVAILABLE
+    if X402_SDK_AVAILABLE:
+        x402_sdk = get_sdk()
+        logger.info("x402 SDK initialized (facilitator: %s)", x402_sdk.facilitator_url)
+    else:
+        logger.warning("uvd-x402-sdk not installed, payments will be simulated")
+except ImportError:
+    X402_SDK_AVAILABLE = False
+    logger.warning("x402 SDK client not available, payments will be simulated")
 
 # Initialize fee manager (optional)
 fee_manager: Optional[Any] = None
 try:
     from payments.fees import FeeManager, calculate_platform_fee
     fee_manager = FeeManager(
-        treasury_wallet=os.environ.get("CHAMBA_TREASURY_ADDRESS"),
+        treasury_wallet=os.environ.get("EM_TREASURY_ADDRESS", os.environ.get("CHAMBA_TREASURY_ADDRESS")),
     )
     logger.info("Fee manager initialized")
 except ImportError:
@@ -228,13 +219,13 @@ except ImportError:
 
 # OpenAPI/MCP Server Metadata
 SERVER_INFO = {
-    "name": "chamba_mcp",
-    "title": "Chamba Human Execution Layer",
+    "name": "execution-market",
+    "title": "Execution Market Human Execution Layer",
     "description": "Enable AI agents to delegate real-world tasks to human workers with crypto payments",
     "version": "1.0.0",
     "contact": {
         "name": "Ultravioleta DAO",
-        "url": "https://chamba.ultravioletadao.xyz",
+        "url": "https://execution.market",
         "email": "ultravioletadao@gmail.com",
     },
     "license": {
@@ -272,11 +263,11 @@ mcp = FastMCP(
 worker_config = WorkerToolsConfig(
     min_withdrawal_usdc=float(os.environ.get("MIN_WITHDRAWAL_USDC", "5.0")),
     platform_fee_percent=float(os.environ.get("PLATFORM_FEE_PERCENT", "8.0")),
-    x402_enabled=x402_client is not None,
+    x402_enabled=x402_sdk is not None,
 )
 
 # Register worker tools
-register_worker_tools(mcp, db, x402_client, worker_config)
+register_worker_tools(mcp, db, x402_sdk, worker_config)
 
 # Configure and register agent tools (NOW-015 to NOW-018)
 agent_config = AgentToolsConfig(
@@ -557,7 +548,7 @@ async def notify_payment_failed(task: Dict[str, Any], error_code: str, error_mes
 
 
 @mcp.tool(
-    name="chamba_publish_task",
+    name="em_publish_task",
     annotations={
         "title": "Publish Task for Human Execution",
         "readOnlyHint": False,
@@ -566,9 +557,9 @@ async def notify_payment_failed(task: Dict[str, Any], error_code: str, error_mes
         "openWorldHint": True
     }
 )
-async def chamba_publish_task(params: PublishTaskInput) -> str:
+async def em_publish_task(params: PublishTaskInput) -> str:
     """
-    Publish a new task for human execution in the Chamba system.
+    Publish a new task for human execution in the Execution Market.
 
     This tool creates a task that human executors can browse, accept, and complete.
     Tasks require evidence of completion which the agent can later verify.
@@ -623,20 +614,32 @@ async def chamba_publish_task(params: PublishTaskInput) -> str:
             payment_token=params.payment_token or "USDC",
         )
 
-        # Create escrow if configured
+        # Authorize escrow via SDK (facilitator handles gas)
         escrow_info = None
-        if escrow_manager:
+        if ADVANCED_ESCROW_AVAILABLE:
             try:
-                from integrations.x402.escrow import create_escrow_for_task
-                escrow_info = await create_escrow_for_task(
+                from integrations.x402.advanced_escrow_integration import authorize_task_bounty
+                escrow_result = authorize_task_bounty(
                     task_id=task["id"],
-                    bounty_usdc=params.bounty_usd,
-                    agent_address=params.agent_id,
-                    timeout_hours=params.deadline_hours + 24,  # Extra buffer
+                    receiver=params.agent_id,  # Receiver set at release time
+                    amount_usdc=Decimal(str(params.bounty_usd)),
                 )
-                logger.info(f"Escrow created for task {task['id']}: {escrow_info.get('escrow_id')}")
+                escrow_info = {
+                    "escrow_id": task["id"],
+                    "status": escrow_result.status if hasattr(escrow_result, 'status') else "authorized",
+                    "deposit_tx": getattr(escrow_result, 'tx_hash', '') or '',
+                }
+                logger.info(f"Escrow authorized via SDK for task {task['id']}")
             except Exception as e:
-                logger.warning(f"Could not create escrow: {e}")
+                logger.warning(f"Could not authorize escrow via SDK: {e}")
+        elif x402_sdk:
+            # Fallback: record escrow intent without on-chain authorization
+            escrow_info = {
+                "escrow_id": task["id"],
+                "status": "pending",
+                "deposit_tx": "",
+            }
+            logger.info(f"Escrow recorded (SDK-only) for task {task['id']}")
 
         # Dispatch webhook
         if WebhookEventType:
@@ -670,7 +673,7 @@ async def chamba_publish_task(params: PublishTaskInput) -> str:
 """
 
         response += """
-The task is now visible to human executors. Use `chamba_get_task` with the task ID to monitor progress, or `chamba_check_submission` when a human submits evidence."""
+The task is now visible to human executors. Use `em_get_task` with the task ID to monitor progress, or `em_check_submission` when a human submits evidence."""
 
         return response
 
@@ -679,18 +682,18 @@ The task is now visible to human executors. Use `chamba_get_task` with the task 
 
 
 @mcp.tool(
-    name="chamba_get_tasks",
+    name="em_get_tasks",
     annotations={
-        "title": "Get Chamba Tasks",
+        "title": "Get Tasks",
         "readOnlyHint": True,
         "destructiveHint": False,
         "idempotentHint": True,
         "openWorldHint": True
     }
 )
-async def chamba_get_tasks(params: GetTasksInput) -> str:
+async def em_get_tasks(params: GetTasksInput) -> str:
     """
-    Get tasks from the Chamba system with optional filters.
+    Get tasks from the Execution Market system with optional filters.
 
     Use this to monitor your published tasks or browse available tasks.
 
@@ -782,7 +785,7 @@ async def chamba_get_tasks(params: GetTasksInput) -> str:
 
 
 @mcp.tool(
-    name="chamba_get_task",
+    name="em_get_task",
     annotations={
         "title": "Get Task Details",
         "readOnlyHint": True,
@@ -791,7 +794,7 @@ async def chamba_get_tasks(params: GetTasksInput) -> str:
         "openWorldHint": True
     }
 )
-async def chamba_get_task(params: GetTaskInput) -> str:
+async def em_get_task(params: GetTaskInput) -> str:
     """
     Get detailed information about a specific task.
 
@@ -810,14 +813,13 @@ async def chamba_get_task(params: GetTaskInput) -> str:
             return f"Error: Task {params.task_id} not found"
 
         if params.response_format == ResponseFormat.JSON:
-            # Include escrow info if available
-            if escrow_manager:
-                try:
-                    escrow = escrow_manager.get_escrow(params.task_id)
-                    if escrow:
-                        task["escrow"] = escrow.to_dict()
-                except Exception:
-                    pass
+            # Include escrow info from task record (SDK-based flow stores in DB)
+            if task.get("escrow_tx") or task.get("escrow_amount_usdc"):
+                task["escrow"] = {
+                    "status": "authorized" if task.get("escrow_tx") else "pending",
+                    "amount_usdc": task.get("escrow_amount_usdc"),
+                    "tx_ref": task.get("escrow_tx", ""),
+                }
             return json.dumps(task, indent=2, default=str)
 
         return format_task_markdown(task)
@@ -827,7 +829,7 @@ async def chamba_get_task(params: GetTaskInput) -> str:
 
 
 @mcp.tool(
-    name="chamba_check_submission",
+    name="em_check_submission",
     annotations={
         "title": "Check Task Submissions",
         "readOnlyHint": True,
@@ -836,12 +838,12 @@ async def chamba_get_task(params: GetTaskInput) -> str:
         "openWorldHint": True
     }
 )
-async def chamba_check_submission(params: CheckSubmissionInput) -> str:
+async def em_check_submission(params: CheckSubmissionInput) -> str:
     """
     Check submissions for a task you published.
 
     Use this to see if a human has submitted evidence for your task.
-    You can then use chamba_approve_submission to accept or reject.
+    You can then use em_approve_submission to accept or reject.
 
     Args:
         params (CheckSubmissionInput): Validated input parameters containing:
@@ -898,7 +900,7 @@ No human has submitted evidence yet. The task is {'still available' if task['sta
 
 
 @mcp.tool(
-    name="chamba_approve_submission",
+    name="em_approve_submission",
     annotations={
         "title": "Approve or Reject Submission",
         "readOnlyHint": False,
@@ -907,7 +909,7 @@ No human has submitted evidence yet. The task is {'still available' if task['sta
         "openWorldHint": True
     }
 )
-async def chamba_approve_submission(params: ApproveSubmissionInput) -> str:
+async def em_approve_submission(params: ApproveSubmissionInput) -> str:
     """
     Approve or reject a submission from a human executor.
 
@@ -937,49 +939,63 @@ async def chamba_approve_submission(params: ApproveSubmissionInput) -> str:
         # Get task for context
         task = await db.get_task(submission.get("task_id"))
 
-        # Handle payment release on approval
+        # Handle payment release on approval via SDK (facilitator pays gas)
         payment_info = None
-        if params.verdict.value == "accepted" and task and escrow_manager:
-            try:
-                from integrations.x402.escrow import release_on_approval
-                worker_wallet = submission.get("executor", {}).get("wallet_address")
-                if worker_wallet:
-                    payment_info = await release_on_approval(
-                        task_id=task["id"],
-                        escrow_id=task.get("escrow_id", ""),
-                        worker_address=worker_wallet,
-                        bounty_usdc=task["bounty_usd"],
-                    )
-                    logger.info(f"Payment released for task {task['id']}: {payment_info}")
+        if params.verdict.value == "accepted" and task:
+            worker_wallet = submission.get("executor", {}).get("wallet_address")
+            if worker_wallet:
+                # Try advanced escrow first (SDK-based), then basic SDK settle
+                if ADVANCED_ESCROW_AVAILABLE:
+                    try:
+                        from integrations.x402.advanced_escrow_integration import release_to_worker
+                        result = release_to_worker(task_id=task["id"])
+                        payment_info = {
+                            "tx_hash": getattr(result, 'transaction_hash', ''),
+                            "success": getattr(result, 'success', False),
+                            "amount": task["bounty_usd"],
+                        }
+                        logger.info(f"Payment released via advanced escrow for task {task['id']}")
+                    except Exception as e:
+                        logger.error(f"Advanced escrow release failed: {e}")
 
-                    # Dispatch payment webhook
-                    if webhook_registry and WebhookEventType and PaymentPayload:
-                        try:
-                            payload = PaymentPayload(
-                                task_id=task["id"],
-                                amount_usdc=task["bounty_usd"],
-                                recipient=worker_wallet,
-                                tx_hash=payment_info.get("tx_hashes", [""])[0] if payment_info else None,
-                            )
-                            event = WebhookEvent(
-                                event_type=WebhookEventType.PAYMENT_RELEASED,
-                                payload=payload,
-                            )
-                            webhooks = webhook_registry.get_by_owner_and_event(
-                                params.agent_id, WebhookEventType.PAYMENT_RELEASED
-                            )
-                            for webhook in webhooks:
-                                await send_webhook(
-                                    url=webhook.url,
-                                    event=event,
-                                    secret=webhook_registry.get_secret(webhook.webhook_id),
-                                    webhook_id=webhook.webhook_id,
-                                )
-                        except Exception as e:
-                            logger.error(f"Failed to dispatch payment webhook: {e}")
+                if not payment_info and x402_sdk:
+                    try:
+                        payment_info = await x402_sdk.settle_task_payment(
+                            task_id=task["id"],
+                            payment_header=task.get("escrow_tx", ""),
+                            worker_address=worker_wallet,
+                            bounty_amount=Decimal(str(task["bounty_usd"])),
+                        )
+                        logger.info(f"Payment settled via SDK for task {task['id']}: {payment_info}")
+                    except Exception as e:
+                        logger.error(f"SDK payment settlement failed: {e}")
 
-            except Exception as e:
-                logger.error(f"Failed to release payment: {e}")
+                # Dispatch payment webhook
+                if payment_info and webhook_registry and WebhookEventType and PaymentPayload:
+                    try:
+                        tx_hash = payment_info.get("tx_hash", "")
+                        payload = PaymentPayload(
+                            task_id=task["id"],
+                            amount_usdc=task["bounty_usd"],
+                            recipient=worker_wallet,
+                            tx_hash=tx_hash,
+                        )
+                        event = WebhookEvent(
+                            event_type=WebhookEventType.PAYMENT_RELEASED,
+                            payload=payload,
+                        )
+                        webhooks = webhook_registry.get_by_owner_and_event(
+                            params.agent_id, WebhookEventType.PAYMENT_RELEASED
+                        )
+                        for webhook in webhooks:
+                            await send_webhook(
+                                url=webhook.url,
+                                event=event,
+                                secret=webhook_registry.get_secret(webhook.webhook_id),
+                                webhook_id=webhook.webhook_id,
+                            )
+                    except Exception as e:
+                        logger.error(f"Failed to dispatch payment webhook: {e}")
 
         # Dispatch submission verdict webhook
         if task and WebhookEventType:
@@ -1028,7 +1044,7 @@ The task has been marked as completed and the executor will receive payment."""
 
 
 @mcp.tool(
-    name="chamba_cancel_task",
+    name="em_cancel_task",
     annotations={
         "title": "Cancel Published Task",
         "readOnlyHint": False,
@@ -1037,7 +1053,7 @@ The task has been marked as completed and the executor will receive payment."""
         "openWorldHint": True
     }
 )
-async def chamba_cancel_task(params: CancelTaskInput) -> str:
+async def em_cancel_task(params: CancelTaskInput) -> str:
     """
     Cancel a task you published (only if still in 'published' status).
 
@@ -1056,19 +1072,20 @@ async def chamba_cancel_task(params: CancelTaskInput) -> str:
     try:
         task = await db.cancel_task(params.task_id, params.agent_id)
 
-        # Handle escrow refund
+        # Handle escrow refund via SDK (facilitator pays gas)
         refund_info = None
-        if escrow_manager:
+        if ADVANCED_ESCROW_AVAILABLE:
             try:
-                from integrations.x402.escrow import refund_on_cancel
-                refund_info = await refund_on_cancel(
-                    task_id=params.task_id,
-                    escrow_id=task.get("escrow_id", ""),
-                    reason=params.reason or "Task cancelled by agent",
-                )
-                logger.info(f"Escrow refunded for task {params.task_id}: {refund_info}")
+                from integrations.x402.advanced_escrow_integration import refund_to_agent
+                result = refund_to_agent(task_id=params.task_id)
+                refund_info = {
+                    "amount_refunded": task.get("bounty_usd", 0),
+                    "tx_hash": getattr(result, 'transaction_hash', ''),
+                    "success": getattr(result, 'success', False),
+                }
+                logger.info(f"Escrow refunded via SDK for task {params.task_id}")
             except Exception as e:
-                logger.warning(f"Could not refund escrow: {e}")
+                logger.warning(f"Could not refund escrow via SDK: {e}")
 
         # Dispatch webhook
         if WebhookEventType:
@@ -1102,25 +1119,25 @@ The task is no longer available for human executors."""
 # ============== WORKER TOOLS ==============
 # Worker tools (NOW-011 to NOW-014) are now registered via the worker_tools module
 # See: tools/worker_tools.py for implementations of:
-# - chamba_apply_to_task (NOW-011)
-# - chamba_submit_work (NOW-012)
-# - chamba_get_my_tasks (NOW-013)
-# - chamba_withdraw_earnings (NOW-014)
+# - em_apply_to_task (NOW-011)
+# - em_submit_work (NOW-012)
+# - em_get_my_tasks (NOW-013)
+# - em_withdraw_earnings (NOW-014)
 
 
 # ============== EMPLOYER TOOLS (NOW-015 to NOW-018) ==============
 # Enhanced agent tools are now registered via the agent_tools module
 # See: tools/agent_tools.py for implementations of:
-# - chamba_assign_task (NOW-015) - with eligibility checks
-# - chamba_batch_create_tasks (NOW-017) - with atomic/best-effort modes
-# - chamba_get_task_analytics (NOW-018) - with comprehensive metrics
+# - em_assign_task (NOW-015) - with eligibility checks
+# - em_batch_create_tasks (NOW-017) - with atomic/best-effort modes
+# - em_get_task_analytics (NOW-018) - with comprehensive metrics
 
 
 # ============== UTILITY TOOLS ==============
 
 
 @mcp.tool(
-    name="chamba_get_fee_structure",
+    name="em_get_fee_structure",
     annotations={
         "title": "Get Platform Fee Structure",
         "readOnlyHint": True,
@@ -1129,7 +1146,7 @@ The task is no longer available for human executors."""
         "openWorldHint": False
     }
 )
-async def chamba_get_fee_structure() -> str:
+async def em_get_fee_structure() -> str:
     """
     Get the current platform fee structure.
 
@@ -1149,7 +1166,7 @@ async def chamba_get_fee_structure() -> str:
         structure = fee_manager.get_fee_structure()
 
         lines = [
-            "# Chamba Platform Fee Structure",
+            "# Platform Fee Structure",
             "",
             "## Fee Rates by Category",
         ]
@@ -1181,7 +1198,7 @@ async def chamba_get_fee_structure() -> str:
 
 
 @mcp.tool(
-    name="chamba_calculate_fee",
+    name="em_calculate_fee",
     annotations={
         "title": "Calculate Task Fee",
         "readOnlyHint": True,
@@ -1190,7 +1207,7 @@ async def chamba_get_fee_structure() -> str:
         "openWorldHint": False
     }
 )
-async def chamba_calculate_fee(
+async def em_calculate_fee(
     bounty_usd: float,
     category: TaskCategory,
 ) -> str:
@@ -1228,7 +1245,7 @@ async def chamba_calculate_fee(
 
 
 @mcp.tool(
-    name="chamba_server_status",
+    name="em_server_status",
     annotations={
         "title": "Get Server Status",
         "readOnlyHint": True,
@@ -1237,9 +1254,9 @@ async def chamba_calculate_fee(
         "openWorldHint": False
     }
 )
-async def chamba_server_status() -> str:
+async def em_server_status() -> str:
     """
-    Get the current status of the Chamba MCP server and its integrations.
+    Get the current status of the Execution Market MCP server and its integrations.
 
     Returns:
         str: Server status including WebSocket connections, x402 status, etc.
@@ -1253,7 +1270,7 @@ async def chamba_server_status() -> str:
                 pass
 
         lines = [
-            "# Chamba MCP Server Status",
+            "# Execution Market MCP Server Status",
             "",
             f"**Timestamp**: {datetime.now(timezone.utc).isoformat()}",
             "",
@@ -1263,8 +1280,7 @@ async def chamba_server_status() -> str:
             f"- **Unique Agents**: {ws_stats.get('unique_agents', 0)}",
             "",
             "## Integrations",
-            f"- **x402 Client**: {'Enabled' if x402_client else 'Disabled (simulated payments)'}",
-            f"- **Escrow Manager**: {'Enabled' if escrow_manager else 'Disabled'}",
+            f"- **x402 SDK**: {'Enabled' if x402_sdk else 'Disabled (simulated payments)'}",
             f"- **Advanced Escrow**: {'Enabled' if ADVANCED_ESCROW_AVAILABLE else 'Disabled (uvd-x402-sdk not installed)'}",
             f"- **Fee Manager**: {'Enabled' if fee_manager else 'Disabled'}",
             f"- **Webhook Registry**: {'Enabled' if webhook_registry else 'Disabled'}",

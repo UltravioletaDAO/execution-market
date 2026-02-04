@@ -181,7 +181,7 @@ export function PaymentHistory({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `chamba-payments-${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `execution-market-payments-${new Date().toISOString().split('T')[0]}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }, [filteredPayments])

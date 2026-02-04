@@ -1,5 +1,5 @@
 """
-Chamba SDK for Python
+Execution Market SDK for Python
 
 Simple client for AI agents to create and manage human tasks.
 """
@@ -47,7 +47,7 @@ class EvidenceType(str, Enum):
 
 @dataclass
 class Task:
-    """Chamba task."""
+    """Execution Market task."""
     id: str
     title: str
     instructions: str
@@ -86,12 +86,12 @@ class TaskResult:
     payment_tx: Optional[str] = None
 
 
-class ChambaClient:
+class ExecutionMarketClient:
     """
-    Chamba API client for AI agents.
+    Execution Market API client for AI agents.
 
     Example:
-        >>> client = ChambaClient(api_key="your_key")
+        >>> client = ExecutionMarketClient(api_key="your_key")
         >>> task = client.create_task(
         ...     title="Check store hours",
         ...     instructions="Photo of posted hours",
@@ -103,7 +103,7 @@ class ChambaClient:
         >>> result = client.wait_for_completion(task.id)
     """
 
-    DEFAULT_BASE_URL = "https://api.chamba.ultravioleta.xyz"
+    DEFAULT_BASE_URL = "https://api.execution.market"
 
     def __init__(
         self,
@@ -112,18 +112,18 @@ class ChambaClient:
         timeout: float = 30.0
     ):
         """
-        Initialize Chamba client.
+        Initialize Execution Market client.
 
         Args:
-            api_key: API key (or CHAMBA_API_KEY env var)
+            api_key: API key (or EM_API_KEY env var)
             base_url: API base URL
             timeout: Request timeout in seconds
         """
-        self.api_key = api_key or os.getenv("CHAMBA_API_KEY")
+        self.api_key = api_key or os.getenv("EM_API_KEY") or os.getenv("CHAMBA_API_KEY")
         if not self.api_key:
-            raise ValueError("API key required. Set CHAMBA_API_KEY or pass api_key.")
+            raise ValueError("API key required. Set EM_API_KEY or pass api_key.")
 
-        self.base_url = base_url or os.getenv("CHAMBA_API_URL", self.DEFAULT_BASE_URL)
+        self.base_url = base_url or os.getenv("EM_API_URL") or os.getenv("CHAMBA_API_URL", self.DEFAULT_BASE_URL)
         self.timeout = timeout
         self._client = httpx.Client(
             base_url=self.base_url,
@@ -352,6 +352,6 @@ class ChambaClient:
 
 
 # Convenience function
-def create_client(api_key: Optional[str] = None) -> ChambaClient:
-    """Create a Chamba client."""
-    return ChambaClient(api_key=api_key)
+def create_client(api_key: Optional[str] = None) -> ExecutionMarketClient:
+    """Create an Execution Market client."""
+    return ExecutionMarketClient(api_key=api_key)

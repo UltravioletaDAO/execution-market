@@ -1,4 +1,4 @@
--- Chamba MCP Server: Initial Database Schema
+-- Execution Market MCP Server: Initial Database Schema
 -- Migration: 20260125000001_initial_schema.sql
 -- Description: Core tables for executors, agents, tasks, applications, submissions, and escrows
 
@@ -390,7 +390,7 @@ CREATE TRIGGER tasks_updated_at
 -- COMMENTS
 -- ============================================
 
-COMMENT ON TABLE executors IS 'Human workers who complete tasks in the Chamba network';
+COMMENT ON TABLE executors IS 'Human workers who complete tasks in the Execution Market network';
 COMMENT ON TABLE agents IS 'AI agents or organizations that create and fund tasks';
 COMMENT ON TABLE tasks IS 'Bounties posted by agents for human execution';
 COMMENT ON TABLE applications IS 'Worker applications to tasks';

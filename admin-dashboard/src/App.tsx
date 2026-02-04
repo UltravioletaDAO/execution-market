@@ -33,7 +33,7 @@ function App() {
 
     // Verify the admin key with the backend
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chamba.ultravioletadao.xyz'
+      const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
       const response = await fetch(`${API_BASE}/api/v1/admin/verify?admin_key=${adminKey}`)
 
       if (response.ok) {
@@ -71,11 +71,11 @@ function App() {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-chamba-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-em-600 rounded-lg flex items-center justify-center">
               <span className="text-white text-xl">🔧</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Chamba Admin</h1>
+              <h1 className="text-2xl font-bold text-white">Execution Market Admin</h1>
               <p className="text-gray-400 text-sm">Platform Management Console</p>
             </div>
           </div>
@@ -88,7 +88,7 @@ function App() {
               type="password"
               value={adminKey}
               onChange={(e) => setAdminKey(e.target.value)}
-              className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:border-chamba-500 focus:outline-none focus:ring-1 focus:ring-chamba-500"
+              className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:border-em-500 focus:outline-none focus:ring-1 focus:ring-em-500"
               placeholder="Enter admin key..."
               autoFocus
             />
@@ -97,7 +97,7 @@ function App() {
             )}
             <button
               type="submit"
-              className="w-full mt-4 bg-chamba-600 hover:bg-chamba-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
+              className="w-full mt-4 bg-em-600 hover:bg-em-700 text-white px-4 py-3 rounded-lg font-medium transition-colors"
             >
               Login
             </button>
@@ -117,11 +117,11 @@ function App() {
       <aside className="fixed left-0 top-0 h-full w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
         <div className="p-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-chamba-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-em-600 rounded-lg flex items-center justify-center">
               <span className="text-white text-sm">🔧</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">Chamba Admin</h1>
+              <h1 className="text-lg font-bold text-white">Execution Market Admin</h1>
               <p className="text-gray-400 text-xs">Platform Management</p>
             </div>
           </div>
@@ -133,7 +133,7 @@ function App() {
               key={item.path}
               to={item.path}
               className={`flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
-                location.pathname === item.path ? 'bg-gray-700 text-white border-l-4 border-chamba-500' : ''
+                location.pathname === item.path ? 'bg-gray-700 text-white border-l-4 border-em-500' : ''
               }`}
             >
               <span className="mr-3 text-lg">{item.icon}</span>

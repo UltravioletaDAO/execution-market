@@ -1,5 +1,5 @@
 """
-Minimal A2A Test Server for Chamba
+Minimal A2A Test Server for Execution Market
 Run with: python test_a2a_server.py
 
 WARNING: Development/testing only. Do NOT deploy to production.
@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from a2a.agent_card import router as a2a_router
 
-app = FastAPI(title='Chamba A2A Test Server')
+app = FastAPI(title='Execution Market A2A Test Server')
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -37,7 +37,7 @@ async def health():
 @app.get('/')
 async def root():
     return {
-        'message': 'Chamba A2A Test Server',
+        'message': 'Execution Market A2A Test Server',
         'endpoints': [
             '/.well-known/agent.json',
             '/v1/card',
@@ -47,5 +47,5 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    print("Starting Chamba A2A Test Server on http://localhost:8001")
+    print("Starting Execution Market A2A Test Server on http://localhost:8001")
     uvicorn.run(app, host='0.0.0.0', port=8001)

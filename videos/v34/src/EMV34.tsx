@@ -42,7 +42,7 @@ const Scene1Hook: React.FC = () => {
           <div style={{ width: 50, height: 50, borderRadius: "50%", backgroundColor: colors.primary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
             📍
           </div>
-          <span style={{ color: colors.textMuted, fontSize: 24 }}>Chamba</span>
+          <span style={{ color: colors.textMuted, fontSize: 24 }}>Execution Market</span>
         </div>
         <p style={{ color: colors.text, fontSize: 30, lineHeight: 1.5, margin: 0 }}>
           "Verificar cartel de <span style={{ color: colors.accent }}>'Se Renta'</span> - 200 metros"
@@ -161,7 +161,7 @@ const Scene5Problem: React.FC = () => {
   );
 };
 
-// ============ ESCENA 6: CHAMBA - SOLUCION ============
+// ============ ESCENA 6: EXECUTION MARKET - SOLUCION ============
 const Scene6Solution: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -173,7 +173,7 @@ const Scene6Solution: React.FC = () => {
     <AbsoluteFill style={{ backgroundColor: colors.bg, justifyContent: "center", alignItems: "center" }}>
       <div style={{ textAlign: "center" }}>
         <h1 style={{ color: colors.primary, fontSize: 160, fontWeight: "bold", transform: `scale(${logoScale})`, textShadow: `0 0 100px ${colors.primary}`, marginBottom: 20 }}>
-          CHAMBA
+          EXECUTION MARKET
         </h1>
         <p style={{ color: colors.accent, fontSize: 36, opacity: textFade, fontWeight: "bold", letterSpacing: 4 }}>
           UNIVERSAL EXECUTION LAYER
@@ -187,16 +187,16 @@ const Scene6Solution: React.FC = () => {
   );
 };
 
-// ============ ESCENA 7: MTURK VS CHAMBA ============
+// ============ ESCENA 7: MTURK VS EXECUTION MARKET ============
 const Scene7Comparison: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   const rows = [
-    { label: "Cliente", mturk: "Humanos", chamba: "Agentes IA", color: colors.secondary },
-    { label: "Velocidad", mturk: "Horas/dias", chamba: "Segundos", color: colors.success },
-    { label: "Pagos", mturk: "Retrasados", chamba: "Instantaneos", color: colors.accent },
-    { label: "Minimo", mturk: "$5+", chamba: "$0.50", color: colors.primary },
+    { label: "Cliente", mturk: "Humanos", em: "Agentes IA", color: colors.secondary },
+    { label: "Velocidad", mturk: "Horas/dias", em: "Segundos", color: colors.success },
+    { label: "Pagos", mturk: "Retrasados", em: "Instantaneos", color: colors.accent },
+    { label: "Minimo", mturk: "$5+", em: "$0.50", color: colors.primary },
   ];
 
   return (
@@ -217,12 +217,12 @@ const Scene7Comparison: React.FC = () => {
         </div>
         <div style={{ width: 2, backgroundColor: colors.textMuted, opacity: 0.3 }} />
         <div style={{ textAlign: "center" }}>
-          <h3 style={{ color: colors.success, fontSize: 32, marginBottom: 20 }}>Chamba</h3>
+          <h3 style={{ color: colors.success, fontSize: 32, marginBottom: 20 }}>Execution Market</h3>
           {rows.map((row, i) => {
             const delay = i * 12;
             const opacity = interpolate(frame, [delay, delay + 15], [0, 1], { extrapolateRight: "clamp" });
             return (
-              <p key={i} style={{ color: row.color, fontSize: 28, fontWeight: "bold", opacity, margin: "15px 0" }}>{row.chamba}</p>
+              <p key={i} style={{ color: row.color, fontSize: 28, fontWeight: "bold", opacity, margin: "15px 0" }}>{row.em}</p>
             );
           })}
         </div>
@@ -372,7 +372,7 @@ const Scene11CTA: React.FC = () => {
 };
 
 // ============ VIDEO PRINCIPAL V34 ============
-export const ChambaV34: React.FC = () => {
+export const EMV34: React.FC = () => {
   const { fps } = useVideoConfig();
 
   const scenes = [

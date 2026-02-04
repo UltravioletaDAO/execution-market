@@ -221,7 +221,7 @@ The test suite is located at `/mnt/z/ultravioleta/dao/x402-rs/tests/escrow/`:
 
 ```bash
 cd /path/to/x402-rs/tests/escrow
-pytest test_chamba_scenarios.py -v
+pytest test_em_scenarios.py -v
 ```
 
 ## SDK Testing

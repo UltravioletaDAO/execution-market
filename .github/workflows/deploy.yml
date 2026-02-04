@@ -1,4 +1,4 @@
-name: Chamba CI/CD
+name: Execution Market CI/CD
 
 on:
   push:
@@ -17,7 +17,7 @@ env:
   ECS_CLUSTER: chamba-cluster
   MCP_SERVER_SERVICE: chamba-mcp-server
   DASHBOARD_SERVICE: chamba-dashboard
-  BASE_URL: https://app.chamba.ultravioleta.xyz
+  BASE_URL: https://app.execution.market
 
 jobs:
   test-mcp-server:

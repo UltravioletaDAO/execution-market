@@ -1,5 +1,5 @@
 """
-Output formatting for Chamba CLI.
+Output formatting for Execution Market CLI.
 
 Provides:
 - Table format for lists

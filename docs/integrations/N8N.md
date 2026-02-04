@@ -1,14 +1,14 @@
-# Chamba + n8n Integration Guide
+# Execution Market + n8n Integration Guide
 
-> Self-hosted workflow automation with Chamba's Human Execution Layer.
+> Self-hosted workflow automation with Execution Market's Human Execution Layer.
 
 ---
 
 ## Overview
 
-n8n is an open-source, self-hostable workflow automation tool. This guide shows how to integrate Chamba using HTTP Request nodes and Webhook triggers for complete workflow automation.
+n8n is an open-source, self-hostable workflow automation tool. This guide shows how to integrate Execution Market using HTTP Request nodes and Webhook triggers for complete workflow automation.
 
-**Why n8n + Chamba?**
+**Why n8n + Execution Market?**
 - Self-hosted: Keep your data and workflows on your infrastructure
 - No usage limits: Process unlimited tasks
 - Custom logic: Complex conditional workflows
@@ -19,7 +19,7 @@ n8n is an open-source, self-hostable workflow automation tool. This guide shows 
 ## Prerequisites
 
 1. **n8n Instance** - Self-hosted or n8n.cloud
-2. **Chamba API Key** - From `https://chamba.work/settings/api`
+2. **Execution Market API Key** - From `https://execution.market/settings/api`
 3. **Agent Wallet** - With USDC on Base for task creation
 
 ---
@@ -32,9 +32,9 @@ n8n is an open-source, self-hostable workflow automation tool. This guide shows 
 2. Click **Add Credential**
 3. Select **Header Auth**
 4. Configure:
-   - **Name**: `Chamba API`
+   - **Name**: `Execution Market API`
    - **Header Name**: `Authorization`
-   - **Header Value**: `Bearer YOUR_CHAMBA_API_KEY`
+   - **Header Value**: `Bearer YOUR_EM_API_KEY`
 
 ### Alternative: Custom HTTP Credential
 
@@ -42,7 +42,7 @@ For more control, create a custom credential:
 
 ```json
 {
-  "name": "Chamba API Custom",
+  "name": "Execution Market API Custom",
   "type": "httpHeaderAuth",
   "data": {
     "headers": {
@@ -60,13 +60,13 @@ For more control, create a custom credential:
 
 ### Base Configuration
 
-For all Chamba API calls, use these settings:
+For all Execution Market API calls, use these settings:
 
 | Setting | Value |
 |---------|-------|
 | Method | Varies (GET/POST) |
-| URL | `https://api.chamba.work/v1/...` |
-| Authentication | Header Auth (Chamba API) |
+| URL | `https://api.execution.market/v1/...` |
+| Authentication | Header Auth (Execution Market API) |
 | Response Format | JSON |
 
 ---
@@ -79,7 +79,7 @@ For all Chamba API calls, use these settings:
 
 ```
 Method: POST
-URL: https://api.chamba.work/v1/tasks
+URL: https://api.execution.market/v1/tasks
 Body Content Type: JSON
 Body Parameters:
 ```
@@ -123,7 +123,7 @@ return {
 
 ```
 Method: GET
-URL: https://api.chamba.work/v1/tasks
+URL: https://api.execution.market/v1/tasks
 Query Parameters:
   - status: published
   - category: physical_presence
@@ -155,7 +155,7 @@ return {
 
 ```
 Method: GET
-URL: https://api.chamba.work/v1/tasks/{{ $json.task_id }}
+URL: https://api.execution.market/v1/tasks/{{ $json.task_id }}
 ```
 
 **Response**:
@@ -175,7 +175,7 @@ URL: https://api.chamba.work/v1/tasks/{{ $json.task_id }}
     "submitted_at": "2026-01-25T11:45:00Z",
     "auto_check_passed": true,
     "evidence": {
-      "photos": ["https://storage.chamba.work/..."],
+      "photos": ["https://storage.execution.market/..."],
       "text_response": "Store is open"
     }
   }
@@ -189,7 +189,7 @@ URL: https://api.chamba.work/v1/tasks/{{ $json.task_id }}
 **Approve Submission**:
 ```
 Method: POST
-URL: https://api.chamba.work/v1/submissions/{{ $json.submission_id }}/approve
+URL: https://api.execution.market/v1/submissions/{{ $json.submission_id }}/approve
 Body:
 ```
 ```json
@@ -216,7 +216,7 @@ Body:
 
 ```
 Method: POST
-URL: https://api.chamba.work/v1/tasks/{{ $json.task_id }}/cancel
+URL: https://api.execution.market/v1/tasks/{{ $json.task_id }}/cancel
 Body:
 ```
 ```json
@@ -234,18 +234,18 @@ Body:
 
 1. Add **Webhook** node as trigger
 2. Set HTTP Method to **POST**
-3. Set Path (e.g., `/chamba/webhook`)
-4. Note the generated URL (e.g., `https://your-n8n.com/webhook/chamba/webhook`)
+3. Set Path (e.g., `/em/webhook`)
+4. Note the generated URL (e.g., `https://your-n8n.com/webhook/em/webhook`)
 
-### Register Webhook in Chamba
+### Register Webhook in Execution Market
 
 ```
-POST https://api.chamba.work/v1/webhooks
+POST https://api.execution.market/v1/webhooks
 Body:
 ```
 ```json
 {
-  "url": "https://your-n8n.com/webhook/chamba/webhook",
+  "url": "https://your-n8n.com/webhook/em/webhook",
   "events": [
     "task.created",
     "task.accepted",
@@ -266,7 +266,7 @@ Add a **Function** node after the Webhook trigger:
 const crypto = require('crypto');
 
 const payload = JSON.stringify($json);
-const signature = $headers['x-chamba-signature'];
+const signature = $headers['x-em-signature'];
 const secret = 'your_webhook_secret';
 
 const expectedSignature = crypto
@@ -489,7 +489,7 @@ if (category === 'fraud') {
 
 ### Rate Limiting with Wait Node
 
-Respect Chamba's rate limits (60 requests/minute):
+Respect Execution Market's rate limits (60 requests/minute):
 
 ```
 [Loop] -> [HTTP Request] -> [Wait 1 second] -> [Loop]
@@ -573,7 +573,7 @@ Headers:
 
 ```sql
 -- n8n can execute this via Postgres node
-INSERT INTO chamba_tasks (
+INSERT INTO em_tasks (
   task_id,
   title,
   bounty_usd,
@@ -595,7 +595,7 @@ ON CONFLICT (task_id) DO UPDATE SET
 // Using n8n Redis node
 {
   "operation": "set",
-  "key": "chamba:task:{{ $json.task_id }}",
+  "key": "em:task:{{ $json.task_id }}",
   "value": "{{ JSON.stringify($json) }}",
   "expire": 3600
 }
@@ -690,9 +690,9 @@ Enable debug logging in HTTP Request node:
 ## Resources
 
 - **n8n Documentation**: https://docs.n8n.io
-- **Chamba API Docs**: https://docs.chamba.work/api
+- **Execution Market API Docs**: https://docs.execution.market/api
 - **n8n Community**: https://community.n8n.io
-- **Chamba Discord**: https://discord.gg/chamba
+- **Execution Market Discord**: https://discord.gg/execution-market
 
 ---
 

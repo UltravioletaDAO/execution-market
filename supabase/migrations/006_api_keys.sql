@@ -1,5 +1,5 @@
 -- ============================================================================
--- CHAMBA: API Keys Management
+-- EXECUTION MARKET: API Keys Management
 -- Migration: 006_api_keys.sql
 -- Description: API keys for agent authentication
 -- Version: 1.0.0
@@ -14,7 +14,7 @@ CREATE TABLE api_keys (
 
     -- Key data (store hash, not raw key)
     key_hash VARCHAR(64) NOT NULL,  -- SHA256 hash of the API key
-    key_prefix VARCHAR(32) NOT NULL, -- First 32 chars for display (chamba_tier_...)
+    key_prefix VARCHAR(32) NOT NULL, -- First 32 chars for display (em_tier_...)
 
     -- Agent association
     agent_id VARCHAR(255) NOT NULL,  -- ERC-8004 agent ID or identifier

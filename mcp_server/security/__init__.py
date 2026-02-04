@@ -1,5 +1,5 @@
 """
-Security module for Chamba MCP Server.
+Security module for Execution Market MCP Server.
 
 Includes:
 - Fraud detection (multi-device, wash trading, collusion, behavioral)

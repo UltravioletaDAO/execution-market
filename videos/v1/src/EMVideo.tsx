@@ -62,7 +62,7 @@ const Scene1Hook: React.FC = () => {
           >
             📍
           </div>
-          <span style={{ color: colors.textMuted, fontSize: 24 }}>Chamba</span>
+          <span style={{ color: colors.textMuted, fontSize: 24 }}>Execution Market</span>
         </div>
         <p style={{ color: colors.text, fontSize: 32, lineHeight: 1.5, margin: 0 }}>
           "Un agente necesita verificar que el cartel de{" "}
@@ -236,7 +236,7 @@ const Scene4Examples: React.FC = () => {
   );
 };
 
-// ============ ESCENA 5: SOLUCIÓN - CHAMBA ============
+// ============ ESCENA 5: SOLUCIÓN - EXECUTION MARKET ============
 const Scene5Solution: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -263,7 +263,7 @@ const Scene5Solution: React.FC = () => {
             marginBottom: 40,
           }}
         >
-          CHAMBA
+          EXECUTION MARKET
         </h1>
         <p
           style={{
@@ -363,7 +363,7 @@ const Scene7CTA: React.FC = () => {
 };
 
 // ============ VIDEO PRINCIPAL ============
-export const ChambaVideo: React.FC = () => {
+export const EMVideo: React.FC = () => {
   const { fps } = useVideoConfig();
 
   // Duración de cada escena en segundos

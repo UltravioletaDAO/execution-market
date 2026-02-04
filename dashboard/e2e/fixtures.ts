@@ -1,5 +1,5 @@
 /**
- * Chamba Dashboard - E2E Test Fixtures
+ * Execution Market Dashboard - E2E Test Fixtures
  *
  * Shared test utilities, mock data, and helper functions
  */
@@ -62,8 +62,8 @@ export const MOCK_SUBMISSION = {
  */
 export async function setupWorkerSession(page: Page): Promise<void> {
   await page.addInitScript((worker) => {
-    window.localStorage.setItem('chamba_auth', JSON.stringify(worker));
-    window.localStorage.setItem('chamba_role', 'worker');
+    window.localStorage.setItem('em_auth', JSON.stringify(worker));
+    window.localStorage.setItem('em_role', 'worker');
   }, MOCK_WORKER);
 }
 
@@ -72,8 +72,8 @@ export async function setupWorkerSession(page: Page): Promise<void> {
  */
 export async function setupAgentSession(page: Page): Promise<void> {
   await page.addInitScript((agent) => {
-    window.localStorage.setItem('chamba_auth', JSON.stringify(agent));
-    window.localStorage.setItem('chamba_role', 'agent');
+    window.localStorage.setItem('em_auth', JSON.stringify(agent));
+    window.localStorage.setItem('em_role', 'agent');
   }, MOCK_AGENT);
 }
 
@@ -82,8 +82,8 @@ export async function setupAgentSession(page: Page): Promise<void> {
  */
 export async function clearSession(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    window.localStorage.removeItem('chamba_auth');
-    window.localStorage.removeItem('chamba_role');
+    window.localStorage.removeItem('em_auth');
+    window.localStorage.removeItem('em_role');
   });
 }
 

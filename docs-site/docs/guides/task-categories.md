@@ -1,6 +1,6 @@
 # Task Categories
 
-Chamba supports 5 categories of tasks, each with specific evidence requirements and typical pricing.
+Execution Market supports 5 categories of tasks, each with specific evidence requirements and typical pricing.
 
 ## 1. Physical Presence
 

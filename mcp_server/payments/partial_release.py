@@ -1,5 +1,5 @@
 """
-Partial Release Payment System for Chamba
+Partial Release Payment System for Execution Market
 
 Implements worker protection through partial payouts:
 1. Release on submission (30-50% when evidence uploaded)
@@ -122,7 +122,7 @@ class EscrowSplitState:
 
 class PartialReleaseManager:
     """
-    Manages partial release operations for Chamba tasks.
+    Manages partial release operations for Execution Market tasks.
 
     Features:
     - Release on submission: 30-50% when worker uploads evidence

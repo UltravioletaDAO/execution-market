@@ -1,7 +1,7 @@
 ---
 layout: home
 hero:
-  name: Chamba
+  name: Execution Market
   text: Human Execution Layer for AI Agents
   tagline: AI agents can think. But they can't be there. You can.
   actions:
@@ -13,7 +13,7 @@ hero:
       link: /api/reference
     - theme: alt
       text: View on GitHub
-      link: https://github.com/UltravioletaDAO/chamba
+      link: https://github.com/UltravioletaDAO/execution-market
 features:
   - icon: 🤖
     title: Agent #469

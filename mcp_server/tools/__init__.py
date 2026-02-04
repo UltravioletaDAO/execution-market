@@ -1,7 +1,7 @@
 """
-Chamba MCP Server Tools
+Execution Market MCP Server Tools
 
-Modular tool implementations for the Chamba MCP server.
+Modular tool implementations for the Execution Market MCP server.
 
 Tools are organized by role:
 - agent_tools: Enhanced tools for AI agents managing tasks at scale

@@ -1,8 +1,8 @@
 """
-Configuration management for Chamba CLI.
+Configuration management for Execution Market CLI.
 
 Handles:
-- API key storage in ~/.chamba/config
+- API key storage in ~/.execution-market/config
 - Environment variable overrides
 - Multiple profile support
 """
@@ -15,14 +15,14 @@ from dataclasses import dataclass, asdict, field
 
 
 # Default configuration directory
-DEFAULT_CONFIG_DIR = Path.home() / ".chamba"
+DEFAULT_CONFIG_DIR = Path.home() / ".execution-market"
 DEFAULT_CONFIG_FILE = DEFAULT_CONFIG_DIR / "config.json"
-DEFAULT_API_URL = "https://api.chamba.ultravioleta.xyz"
+DEFAULT_API_URL = "https://api.execution.market"
 
 
 @dataclass
 class Profile:
-    """A Chamba CLI profile configuration."""
+    """An Execution Market CLI profile configuration."""
 
     name: str
     api_key: str
@@ -44,7 +44,7 @@ class Profile:
 
 @dataclass
 class Config:
-    """Chamba CLI configuration."""
+    """Execution Market CLI configuration."""
 
     active_profile: str = "default"
     profiles: Dict[str, Profile] = field(default_factory=dict)
@@ -99,14 +99,14 @@ class Config:
 
 
 class ConfigManager:
-    """Manages Chamba CLI configuration."""
+    """Manages Execution Market CLI configuration."""
 
     def __init__(self, config_dir: Optional[Path] = None):
         """
         Initialize config manager.
 
         Args:
-            config_dir: Custom config directory (default: ~/.chamba)
+            config_dir: Custom config directory (default: ~/.execution-market)
         """
         self.config_dir = config_dir or DEFAULT_CONFIG_DIR
         self.config_file = self.config_dir / "config.json"
@@ -155,8 +155,8 @@ class ConfigManager:
         Get API key with environment variable override.
 
         Priority:
-        1. CHAMBA_API_KEY environment variable
-        2. Profile-specific environment variable (CHAMBA_API_KEY_<PROFILE>)
+        1. EM_API_KEY environment variable (fallback: CHAMBA_API_KEY)
+        2. Profile-specific environment variable (EM_API_KEY_<PROFILE>)
         3. Config file
 
         Args:
@@ -165,14 +165,14 @@ class ConfigManager:
         Returns:
             API key or None
         """
-        # Check global env var first
-        env_key = os.environ.get("CHAMBA_API_KEY")
+        # Check global env var first (new name, then legacy fallback)
+        env_key = os.environ.get("EM_API_KEY") or os.environ.get("CHAMBA_API_KEY")
         if env_key:
             return env_key
 
         # Check profile-specific env var
         name = profile_name or self.config.active_profile
-        env_key = os.environ.get(f"CHAMBA_API_KEY_{name.upper()}")
+        env_key = os.environ.get(f"EM_API_KEY_{name.upper()}") or os.environ.get(f"CHAMBA_API_KEY_{name.upper()}")
         if env_key:
             return env_key
 
@@ -190,8 +190,8 @@ class ConfigManager:
         Returns:
             API URL
         """
-        # Check env var first
-        env_url = os.environ.get("CHAMBA_API_URL")
+        # Check env var first (new name, then legacy fallback)
+        env_url = os.environ.get("EM_API_URL") or os.environ.get("CHAMBA_API_URL")
         if env_url:
             return env_url
 
@@ -210,8 +210,8 @@ class ConfigManager:
         Returns:
             Executor ID or None
         """
-        # Check env var first
-        env_id = os.environ.get("CHAMBA_EXECUTOR_ID")
+        # Check env var first (new name, then legacy fallback)
+        env_id = os.environ.get("EM_EXECUTOR_ID") or os.environ.get("CHAMBA_EXECUTOR_ID")
         if env_id:
             return env_id
 

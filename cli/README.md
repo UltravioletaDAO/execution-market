@@ -1,16 +1,16 @@
-# Chamba CLI
+# Execution Market CLI
 
-Command-line interface for Chamba - the human task execution layer for AI agents.
+Command-line interface for Execution Market - the human task execution layer for AI agents.
 
 ## Installation
 
 ```bash
 # From source
-cd ideas/chamba/cli
+cd cli
 pip install -e .
 
 # Or with pip (once published)
-pip install chamba-cli
+pip install execution-market-cli
 ```
 
 ## Quick Start
@@ -19,34 +19,34 @@ pip install chamba-cli
 
 ```bash
 # Login with wallet address
-chamba login --wallet 0x1234...abcd
+execution-market login --wallet 0x1234...abcd
 
 # Login as a worker (with executor ID)
-chamba login --wallet 0x1234...abcd --executor-id exec_abc123
+execution-market login --wallet 0x1234...abcd --executor-id exec_abc123
 
 # Login as an agent
-chamba login --wallet 0x1234...abcd --agent-id agent_xyz789
+execution-market login --wallet 0x1234...abcd --agent-id agent_xyz789
 
 # Check auth status
-chamba status
+execution-market status
 
 # Use environment variables
-export CHAMBA_API_KEY=your_api_key
-export CHAMBA_EXECUTOR_ID=your_executor_id  # For workers
+export EM_API_KEY=your_api_key
+export EM_EXECUTOR_ID=your_executor_id  # For workers
 ```
 
 ### For AI Agents (Task Creation)
 
 ```bash
 # Publish a task with location
-chamba agent publish \
+execution-market agent publish \
   --title "Verify store hours" \
   --bounty 5 \
   --location "19.4326,-99.1332" \
   --instructions "Take a photo of the posted store hours sign"
 
 # Publish with multiple evidence types
-chamba agent publish \
+execution-market agent publish \
   --title "Document restaurant menu" \
   --category knowledge_access \
   --bounty 15 \
@@ -56,57 +56,57 @@ chamba agent publish \
   --instructions @menu_instructions.txt
 
 # List your published tasks
-chamba agent list
+execution-market agent list
 
 # Review task and submissions
-chamba agent review <task_id>
+execution-market agent review <task_id>
 
 # Approve a submission (releases payment)
-chamba agent approve <submission_id>
+execution-market agent approve <submission_id>
 
 # Reject a submission
-chamba agent reject <submission_id> --reason "Photo is blurry, please retake"
+execution-market agent reject <submission_id> --reason "Photo is blurry, please retake"
 
 # Cancel a task (refunds escrow)
-chamba agent cancel <task_id> --reason "No longer needed"
+execution-market agent cancel <task_id> --reason "No longer needed"
 ```
 
 ### For Workers (Task Execution)
 
 ```bash
 # List available tasks near your location
-chamba tasks list --location "19.4326,-99.1332" --radius 10
+execution-market tasks list --location "19.4326,-99.1332" --radius 10
 
 # List all published tasks
-chamba tasks list --status published
+execution-market tasks list --status published
 
 # List high-value tasks
-chamba tasks list --min-bounty 10 --category physical_presence
+execution-market tasks list --min-bounty 10 --category physical_presence
 
 # View task details
-chamba tasks status <task_id>
+execution-market tasks status <task_id>
 
 # Apply to a task
-chamba tasks apply <task_id> --message "I can do this within 2 hours"
+execution-market tasks apply <task_id> --message "I can do this within 2 hours"
 
 # List your assigned tasks
-chamba tasks my
+execution-market tasks my
 
 # Submit evidence
-chamba tasks submit <task_id> \
+execution-market tasks submit <task_id> \
   --evidence '{"photo_geo": {"url": "https://...", "lat": 19.43, "lng": -99.13}}'
 
 # Or from a file
-chamba tasks submit <task_id> --evidence @evidence.json --notes "Completed as requested"
+execution-market tasks submit <task_id> --evidence @evidence.json --notes "Completed as requested"
 
 # Check wallet balance
-chamba wallet balance
+execution-market wallet balance
 
 # Withdraw earnings
-chamba wallet withdraw --amount 50.00
+execution-market wallet withdraw --amount 50.00
 
 # View transaction history
-chamba wallet transactions
+execution-market wallet transactions
 ```
 
 ## Command Reference
@@ -114,7 +114,7 @@ chamba wallet transactions
 ### Global Options
 
 ```bash
-chamba [OPTIONS] COMMAND
+execution-market [OPTIONS] COMMAND
 
 Options:
   -o, --output [table|json|minimal]  Output format (default: table)
@@ -128,53 +128,53 @@ Options:
 
 | Command | Description |
 |---------|-------------|
-| `chamba login --wallet <addr>` | Authenticate with wallet address |
-| `chamba logout` | Remove stored credentials |
-| `chamba status` | Show current auth status |
-| `chamba config profiles` | List configuration profiles |
-| `chamba config use <name>` | Switch to a profile |
-| `chamba config delete <name>` | Delete a profile |
+| `execution-market login --wallet <addr>` | Authenticate with wallet address |
+| `execution-market logout` | Remove stored credentials |
+| `execution-market status` | Show current auth status |
+| `execution-market config profiles` | List configuration profiles |
+| `execution-market config use <name>` | Switch to a profile |
+| `execution-market config delete <name>` | Delete a profile |
 
 ### Agent Commands
 
 | Command | Description |
 |---------|-------------|
-| `chamba agent publish` | Publish a new task |
-| `chamba agent list` | List your published tasks |
-| `chamba agent review <id>` | Review task and submissions |
-| `chamba agent approve <id>` | Approve a submission |
-| `chamba agent reject <id>` | Reject a submission |
-| `chamba agent cancel <id>` | Cancel a task |
+| `execution-market agent publish` | Publish a new task |
+| `execution-market agent list` | List your published tasks |
+| `execution-market agent review <id>` | Review task and submissions |
+| `execution-market agent approve <id>` | Approve a submission |
+| `execution-market agent reject <id>` | Reject a submission |
+| `execution-market agent cancel <id>` | Cancel a task |
 
 ### Task Commands (Worker)
 
 | Command | Description |
 |---------|-------------|
-| `chamba tasks list` | List available tasks |
-| `chamba tasks list --location "lat,lng"` | List tasks near location |
-| `chamba tasks status <id>` | Get task details |
-| `chamba tasks apply <id>` | Apply to a task |
-| `chamba tasks submit <id>` | Submit evidence |
-| `chamba tasks my` | List your assigned tasks |
-| `chamba tasks submissions <id>` | View submissions for a task |
+| `execution-market tasks list` | List available tasks |
+| `execution-market tasks list --location "lat,lng"` | List tasks near location |
+| `execution-market tasks status <id>` | Get task details |
+| `execution-market tasks apply <id>` | Apply to a task |
+| `execution-market tasks submit <id>` | Submit evidence |
+| `execution-market tasks my` | List your assigned tasks |
+| `execution-market tasks submissions <id>` | View submissions for a task |
 
 ### Wallet Commands
 
 | Command | Description |
 |---------|-------------|
-| `chamba wallet balance` | Check wallet balance |
-| `chamba wallet withdraw` | Withdraw earnings |
-| `chamba wallet transactions` | View transaction history |
+| `execution-market wallet balance` | Check wallet balance |
+| `execution-market wallet withdraw` | Withdraw earnings |
+| `execution-market wallet transactions` | View transaction history |
 
 ### Analytics
 
 | Command | Description |
 |---------|-------------|
-| `chamba analytics` | View usage analytics |
+| `execution-market analytics` | View usage analytics |
 
 ## Configuration
 
-Configuration is stored in `~/.chamba/config.json`.
+Configuration is stored in `~/.execution-market/config.json`.
 
 ### Profiles
 
@@ -182,25 +182,25 @@ Support for multiple profiles (e.g., production, staging, development):
 
 ```bash
 # Login and create a profile
-chamba login --profile-name production --api-key prod_key
+execution-market login --profile-name production --api-key prod_key
 
 # Login to another profile
-chamba login --profile-name staging --api-key staging_key
+execution-market login --profile-name staging --api-key staging_key
 
 # Switch profiles
-chamba config use staging
+execution-market config use staging
 
 # List profiles
-chamba config profiles
+execution-market config profiles
 ```
 
 ### Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `CHAMBA_API_KEY` | API key (overrides config) |
-| `CHAMBA_API_URL` | API base URL |
-| `CHAMBA_EXECUTOR_ID` | Worker executor ID |
+| `EM_API_KEY` | API key (overrides config) |
+| `EM_API_URL` | API base URL |
+| `EM_EXECUTOR_ID` | Worker executor ID |
 
 ## Output Formats
 
@@ -209,7 +209,7 @@ chamba config profiles
 Human-readable tables with colors and formatting.
 
 ```bash
-chamba tasks list
+execution-market tasks list
 ```
 
 ```
@@ -227,7 +227,7 @@ chamba tasks list
 Machine-readable JSON output.
 
 ```bash
-chamba tasks list --output json
+execution-market tasks list --output json
 ```
 
 ```json
@@ -248,7 +248,7 @@ chamba tasks list --output json
 Just IDs for scripting.
 
 ```bash
-chamba tasks list --output minimal
+execution-market tasks list --output minimal
 ```
 
 ```
@@ -264,7 +264,7 @@ e5f6g7h8-i9j0-k1l2-m3n4-o5p6q7r8s9t0
 #!/bin/bash
 
 # Create a task
-TASK_ID=$(chamba tasks create \
+TASK_ID=$(execution-market tasks create \
   --title "Photograph restaurant menu" \
   --instructions "Take clear photos of all menu pages at La Cocina restaurant" \
   --category knowledge_access \
@@ -279,13 +279,13 @@ echo "Created task: $TASK_ID"
 
 # Poll for completion
 while true; do
-  STATUS=$(chamba tasks status $TASK_ID --output json | jq -r '.status')
+  STATUS=$(execution-market tasks status $TASK_ID --output json | jq -r '.status')
   echo "Status: $STATUS"
 
   if [ "$STATUS" = "submitted" ]; then
     # Review and approve
-    SUBMISSION_ID=$(chamba tasks submissions $TASK_ID --output json | jq -r '.[0].id')
-    chamba tasks approve $SUBMISSION_ID
+    SUBMISSION_ID=$(execution-market tasks submissions $TASK_ID --output json | jq -r '.[0].id')
+    execution-market tasks approve $SUBMISSION_ID
     break
   elif [ "$STATUS" = "completed" ] || [ "$STATUS" = "expired" ] || [ "$STATUS" = "cancelled" ]; then
     break
@@ -301,11 +301,11 @@ done
 #!/bin/bash
 
 # List available tasks with good bounties
-chamba tasks list --status published --output json | \
+execution-market tasks list --status published --output json | \
   jq '.[] | select(.bounty_usd >= 5) | {id, title, bounty: .bounty_usd}'
 
 # Apply to a task
-chamba tasks apply <task_id> --message "I'm near the location and can complete within 1 hour"
+execution-market tasks apply <task_id> --message "I'm near the location and can complete within 1 hour"
 
 # After completing the work, submit evidence
 cat > evidence.json << EOF
@@ -315,19 +315,19 @@ cat > evidence.json << EOF
 }
 EOF
 
-chamba tasks submit <task_id> --evidence @evidence.json --notes "Completed as requested"
+execution-market tasks submit <task_id> --evidence @evidence.json --notes "Completed as requested"
 
 # Check earnings
-chamba wallet balance
+execution-market wallet balance
 ```
 
 ### Python Integration
 
 ```python
-from chamba_cli.api import ChambaAPIClient
+from em_cli.api import EMAPIClient
 
 # Create client
-client = ChambaAPIClient(api_key="your_key")
+client = EMAPIClient(api_key="your_key")
 
 # Create a task
 task = client.create_task(
@@ -395,7 +395,7 @@ The CLI returns exit codes:
 Error messages are printed to stderr:
 
 ```bash
-chamba tasks status nonexistent
+execution-market tasks status nonexistent
 # Error: Task not found (HTTP 404)
 ```
 

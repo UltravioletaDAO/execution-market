@@ -1,7 +1,7 @@
 """
-Chamba Reputation System
+Execution Market Reputation System
 
-A comprehensive Bayesian reputation system for the Chamba human execution layer.
+A comprehensive Bayesian reputation system for the Execution Market human execution layer.
 
 Components:
 - bayesian.py: Core Bayesian calculator using Beta-Binomial model
@@ -11,7 +11,7 @@ Components:
 - models.py: Data models and types
 
 Quick Start:
-    >>> from chamba.mcp_server.reputation import (
+    >>> from mcp_server.reputation import (
     ...     BayesianCalculator,
     ...     create_new_reputation,
     ...     DecayManager,

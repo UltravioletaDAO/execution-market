@@ -6,7 +6,7 @@ interface TasksProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chamba.ultravioletadao.xyz'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 async function fetchTasks(adminKey: string, status?: string, page: number = 1, search?: string) {
   const params = new URLSearchParams({
@@ -84,7 +84,7 @@ export default function Tasks({ adminKey }: TasksProps) {
             onClick={() => { setStatusFilter(status === statusFilter ? '' : status); setPage(1) }}
             className={`p-3 rounded-lg text-center transition-all ${
               status === statusFilter
-                ? 'ring-2 ring-chamba-500 bg-gray-700'
+                ? 'ring-2 ring-em-500 bg-gray-700'
                 : 'bg-gray-800 hover:bg-gray-700'
             }`}
           >
@@ -121,7 +121,7 @@ export default function Tasks({ adminKey }: TasksProps) {
           />
           <button
             type="submit"
-            className="bg-chamba-600 hover:bg-chamba-700 text-white px-4 py-2 rounded"
+            className="bg-em-600 hover:bg-em-700 text-white px-4 py-2 rounded"
           >
             Search
           </button>
@@ -192,7 +192,7 @@ export default function Tasks({ adminKey }: TasksProps) {
                 <td className="px-6 py-4">
                   <button
                     onClick={(e) => { e.stopPropagation(); setSelectedTaskId(task.id) }}
-                    className="text-chamba-400 hover:text-chamba-300 text-sm"
+                    className="text-em-400 hover:text-em-300 text-sm"
                   >
                     View
                   </button>

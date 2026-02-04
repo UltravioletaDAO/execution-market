@@ -5,7 +5,7 @@ interface AuditLogProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chamba.ultravioletadao.xyz'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 async function fetchAuditLog(adminKey: string, page: number = 1, category?: string) {
   const params = new URLSearchParams({
@@ -105,7 +105,7 @@ export default function AuditLog({ adminKey }: AuditLogProps) {
                   {entry.changed_at ? new Date(entry.changed_at).toLocaleString() : 'N/A'}
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-chamba-400 font-mono text-sm">{entry.config_key}</span>
+                  <span className="text-em-400 font-mono text-sm">{entry.config_key}</span>
                 </td>
                 <td className="px-6 py-4">
                   <DiffView oldValue={entry.old_value} newValue={entry.new_value} />

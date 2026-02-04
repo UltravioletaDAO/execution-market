@@ -95,7 +95,7 @@ refund_on_cancel(task_id, reason)
 # Transaction time: ~5 seconds on Base
 ```
 
-**Important:** The contract does NOT auto-refund on timeout. The agent must explicitly execute the refund transaction. Chamba handles this with automatic expiration monitoring.
+**Important:** The contract does NOT auto-refund on timeout. The agent must explicitly execute the refund transaction. Execution Market handles this with automatic expiration monitoring.
 
 ### 5. Partial Release + Refund (Proof-of-Attempt)
 

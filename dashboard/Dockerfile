@@ -1,4 +1,4 @@
-# Chamba Dashboard Dockerfile
+# Execution Market Dashboard Dockerfile
 # Node 20 + Vite + React
 
 # Build stage

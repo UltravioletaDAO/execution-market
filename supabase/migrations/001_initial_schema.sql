@@ -1,5 +1,5 @@
 -- ============================================================================
--- CHAMBA: Human Execution Layer for AI Agents
+-- EXECUTION MARKET: Human Execution Layer for AI Agents
 -- Migration: 001_initial_schema.sql
 -- Description: Core database schema - tables, enums, indexes, RLS policies
 -- Version: 2.0.0

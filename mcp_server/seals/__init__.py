@@ -1,5 +1,5 @@
 """
-Chamba Seals & Credentials Module (NOW-183 to NOW-187)
+Execution Market Seals & Credentials Module (NOW-183 to NOW-187)
 
 On-chain verifiable credentials for worker capabilities.
 
@@ -16,7 +16,7 @@ Components:
 - display: UI formatting for profiles and cards
 
 Usage:
-    >>> from chamba.seals import (
+    >>> from mcp_server.seals import (
     ...     SealRegistry,
     ...     SealIssuanceService,
     ...     SealVerificationService,
@@ -39,7 +39,7 @@ Usage:
     >>> results = await issuance.check_and_issue_automatic(stats)
     >>>
     >>> # Verify seals for task eligibility
-    >>> from chamba.seals import TaskSealRequirement
+    >>> from mcp_server.seals import TaskSealRequirement
     >>> requirements = TaskSealRequirement(
     ...     required_seals=["delivery_certified"],
     ...     preferred_seals=["tasks_100_completed"],

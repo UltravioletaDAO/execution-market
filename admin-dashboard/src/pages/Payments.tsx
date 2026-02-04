@@ -5,7 +5,7 @@ interface PaymentsProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chamba.ultravioletadao.xyz'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 async function fetchPayments(adminKey: string, period: string, page: number = 1) {
   const params = new URLSearchParams({
@@ -217,7 +217,7 @@ export default function Payments({ adminKey }: PaymentsProps) {
                       href={`https://basescan.org/tx/${tx.tx_hash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-chamba-400 hover:text-chamba-300"
+                      className="text-em-400 hover:text-em-300"
                     >
                       {tx.tx_hash.slice(0, 8)}...
                     </a>

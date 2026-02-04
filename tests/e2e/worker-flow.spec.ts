@@ -41,8 +41,8 @@ test.describe('Worker Flow', () => {
     test('should display welcome screen with language selection', async ({ page }) => {
       await page.goto('/');
 
-      // Verify Chamba branding is visible
-      await expect(page.getByText('Chamba')).toBeVisible();
+      // Verify Execution Market branding is visible
+      await expect(page.getByText('Execution Market')).toBeVisible();
 
       // Check for login button
       const loginButton = page.getByRole('button', { name: /iniciar sesion|login/i });
@@ -98,7 +98,7 @@ test.describe('Worker Flow', () => {
       await expect(page.getByPlaceholder(/email|correo/i)).toBeVisible();
 
       // Fill form
-      const uniqueEmail = `test+${Date.now()}@chamba.lat`;
+      const uniqueEmail = `test+${Date.now()}@execution.market`;
       await page.getByPlaceholder(/email|correo/i).fill(uniqueEmail);
       await page.getByPlaceholder(/password|contrasena/i).fill('TestPassword123!');
 
@@ -188,8 +188,8 @@ test.describe('Worker Flow', () => {
       await page.goto('/');
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
-          window.localStorage.setItem('chamba_display_name', worker.displayName);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_display_name', worker.displayName);
         },
         TEST_USERS.worker
       );
@@ -301,9 +301,9 @@ test.describe('Worker Flow', () => {
       // Setup authenticated worker
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
-          window.localStorage.setItem('chamba_display_name', worker.displayName);
-          window.localStorage.setItem('chamba_reputation', String(worker.reputation));
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_display_name', worker.displayName);
+          window.localStorage.setItem('em_reputation', String(worker.reputation));
         },
         TEST_USERS.worker
       );
@@ -336,9 +336,9 @@ test.describe('Worker Flow', () => {
       // Setup low reputation worker
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
-          window.localStorage.setItem('chamba_display_name', worker.displayName);
-          window.localStorage.setItem('chamba_reputation', String(worker.reputation));
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_display_name', worker.displayName);
+          window.localStorage.setItem('em_reputation', String(worker.reputation));
         },
         TEST_USERS.workerLowRep
       );
@@ -363,7 +363,7 @@ test.describe('Worker Flow', () => {
     test('should not allow accepting already taken task', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -402,8 +402,8 @@ test.describe('Worker Flow', () => {
     test('should navigate to submission form for accepted task', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
-          window.localStorage.setItem('chamba_display_name', worker.displayName);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_display_name', worker.displayName);
         },
         TEST_USERS.worker
       );
@@ -438,7 +438,7 @@ test.describe('Worker Flow', () => {
     test('should upload photo evidence', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -474,7 +474,7 @@ test.describe('Worker Flow', () => {
     test('should validate required evidence before submission', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -502,7 +502,7 @@ test.describe('Worker Flow', () => {
     test('should submit evidence successfully', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -556,7 +556,7 @@ test.describe('Worker Flow', () => {
     test('should verify EXIF/GPS data extraction from photo', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -595,7 +595,7 @@ test.describe('Worker Flow', () => {
     test('should see payment status after approval', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -614,7 +614,7 @@ test.describe('Worker Flow', () => {
     test('should display payment history', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -639,7 +639,7 @@ test.describe('Worker Flow', () => {
     test('should see reputation update after task completion', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -660,7 +660,7 @@ test.describe('Worker Flow', () => {
     test('should initiate withdrawal', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -692,8 +692,8 @@ test.describe('Worker Flow', () => {
     test('should display worker profile with all sections', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
-          window.localStorage.setItem('chamba_display_name', worker.displayName);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_display_name', worker.displayName);
         },
         TEST_USERS.worker
       );
@@ -712,7 +712,7 @@ test.describe('Worker Flow', () => {
     test('should update display name', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -746,7 +746,7 @@ test.describe('Worker Flow', () => {
     test('should change language preference', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );
@@ -788,7 +788,7 @@ test.describe('Worker Flow', () => {
 
     test('should handle session expiration', async ({ page }) => {
       await page.addInitScript(() => {
-        window.localStorage.setItem('chamba_wallet_address', 'expired_session');
+        window.localStorage.setItem('em_wallet_address', 'expired_session');
       });
 
       // Mock API to return 401
@@ -812,7 +812,7 @@ test.describe('Worker Flow', () => {
     test('should recover from submission failure', async ({ page }) => {
       await page.addInitScript(
         (worker) => {
-          window.localStorage.setItem('chamba_wallet_address', worker.walletAddress);
+          window.localStorage.setItem('em_wallet_address', worker.walletAddress);
         },
         TEST_USERS.worker
       );

@@ -1,4 +1,4 @@
-# Chamba Infrastructure - Application Load Balancer
+# Execution Market Infrastructure - Application Load Balancer
 
 # ALB Security Group
 resource "aws_security_group" "alb" {

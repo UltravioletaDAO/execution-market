@@ -1,4 +1,4 @@
-# Chamba Infrastructure - Variables
+# Execution Market Infrastructure - Variables
 
 variable "aws_region" {
   description = "AWS region"
@@ -15,7 +15,7 @@ variable "environment" {
 variable "domain_name" {
   description = "Domain name for the application"
   type        = string
-  default     = "chamba.ultravioletadao.xyz"
+  default     = "execution.market"
 }
 
 # VPC
@@ -79,7 +79,7 @@ variable "dashboard_image" {
 variable "domain" {
   description = "Root domain for the application"
   type        = string
-  default     = "chamba.ultravioletadao.xyz"
+  default     = "execution.market"
 }
 
 variable "api_subdomain" {

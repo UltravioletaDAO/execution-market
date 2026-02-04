@@ -44,7 +44,7 @@ export interface UseThemeReturn {
   setSystem: () => void;
 }
 
-const STORAGE_KEY = 'chamba-theme';
+const STORAGE_KEY = 'em-theme';
 const THEME_ATTRIBUTE = 'class';
 const DARK_CLASS = 'dark';
 

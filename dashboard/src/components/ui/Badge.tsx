@@ -41,8 +41,8 @@ const variantClasses = {
     'dark:bg-slate-800 dark:text-slate-300',
   ].join(' '),
   primary: [
-    'bg-chamba-100 text-chamba-800',
-    'dark:bg-chamba-900/30 dark:text-chamba-400',
+    'bg-em-100 text-em-800',
+    'dark:bg-em-900/30 dark:text-em-400',
   ].join(' '),
   secondary: [
     'bg-violet-100 text-violet-800',
@@ -72,7 +72,7 @@ const variantClasses = {
 
 const dotColorClasses = {
   default: 'bg-slate-400 dark:bg-slate-500',
-  primary: 'bg-chamba-500',
+  primary: 'bg-em-500',
   secondary: 'bg-violet-500',
   success: 'bg-emerald-500',
   warning: 'bg-amber-500',

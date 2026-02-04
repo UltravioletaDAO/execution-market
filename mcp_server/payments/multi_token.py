@@ -94,7 +94,7 @@ class PaymentRequest:
 
 class MultiTokenPayments:
     """
-    Multi-token payment system for Chamba.
+    Multi-token payment system for Execution Market.
 
     Features:
     - Support for USDC, EURC, DAI, USDT

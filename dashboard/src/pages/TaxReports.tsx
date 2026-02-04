@@ -897,7 +897,7 @@ export function TaxReports({ executor, onBack }: TaxReportsProps) {
 
     try {
       const timestamp = new Date().toISOString().split('T')[0]
-      const filename = `chamba-tax-report-${timestamp}`
+      const filename = `execution-market-tax-report-${timestamp}`
 
       switch (format) {
         case 'csv': {
@@ -959,7 +959,7 @@ export function TaxReports({ executor, onBack }: TaxReportsProps) {
               {t('tax.disclaimer', 'Tax Disclaimer')}
             </h3>
             <p className="text-sm text-amber-700">
-              {t('tax.disclaimerText', 'This report is for informational purposes only. Please consult a tax professional for advice specific to your situation. Chamba does not provide tax advice.')}
+              {t('tax.disclaimerText', 'This report is for informational purposes only. Please consult a tax professional for advice specific to your situation. Execution Market does not provide tax advice.')}
             </p>
           </div>
         </div>

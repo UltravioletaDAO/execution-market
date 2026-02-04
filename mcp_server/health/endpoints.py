@@ -1,5 +1,5 @@
 """
-Health Check Endpoints for Chamba
+Health Check Endpoints for Execution Market
 
 Provides HTTP endpoints for health probes:
 - GET /health - Basic health check (comprehensive)
@@ -367,7 +367,7 @@ async def version_info() -> Dict[str, Any]:
     checker = get_health_checker()
 
     return {
-        "name": "Chamba MCP Server",
+        "name": "Execution Market MCP Server",
         "version": checker.version,
         "environment": checker.environment,
         "build_date": os.getenv("BUILD_DATE", "unknown"),
@@ -392,11 +392,11 @@ async def prometheus_metrics(
     Compatible with Prometheus, Grafana, and other monitoring tools.
 
     Metrics include:
-    - chamba_requests_total: Request count by endpoint and status
-    - chamba_request_duration_seconds: Request latency histogram
-    - chamba_active_tasks: Active tasks by status and category
-    - chamba_escrow_balance_usd: Escrow balance by token
-    - chamba_component_health: Component health status
+    - em_requests_total: Request count by endpoint and status
+    - em_request_duration_seconds: Request latency histogram
+    - em_active_tasks: Active tasks by status and category
+    - em_escrow_balance_usd: Escrow balance by token
+    - em_component_health: Component health status
 
     Args:
         refresh: If True, refreshes expensive metrics from database

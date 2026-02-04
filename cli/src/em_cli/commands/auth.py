@@ -1,10 +1,10 @@
 """
-Authentication commands for Chamba CLI.
+Authentication commands for Execution Market CLI.
 
 Commands:
-    chamba login --wallet <address>    # Login with wallet
-    chamba logout                      # Remove credentials
-    chamba status                      # Show auth status
+    em login --wallet <address>        # Login with wallet
+    em logout                          # Remove credentials
+    em status                          # Show auth status
 """
 
 import sys
@@ -18,7 +18,7 @@ from ..config import (
     get_api_key,
     DEFAULT_API_URL,
 )
-from ..api import ChambaAPIClient, APIError, reset_client
+from ..api import EMAPIClient, APIError, reset_client
 from ..output import (
     console,
     print_success,
@@ -54,7 +54,7 @@ def auth_group():
 )
 @click.option(
     "--api-key", "-k",
-    help="API key (or set CHAMBA_API_KEY env var)"
+    help="API key (or set EM_API_KEY env var)"
 )
 @click.option(
     "--api-url", "-u",
@@ -83,18 +83,18 @@ def login(
     agent_id: Optional[str],
 ):
     """
-    Authenticate with Chamba using a wallet address.
+    Authenticate with Execution Market using a wallet address.
 
     Examples:
 
         # Login as worker
-        chamba login --wallet 0x1234...abcd
+        em login --wallet 0x1234...abcd
 
         # Login with executor ID (pre-registered worker)
-        chamba login --wallet 0x1234...abcd --executor-id exec_abc123
+        em login --wallet 0x1234...abcd --executor-id exec_abc123
 
         # Login as agent
-        chamba login --wallet 0x1234...abcd --agent-id agent_xyz789
+        em login --wallet 0x1234...abcd --agent-id agent_xyz789
     """
     # Validate wallet address
     if not is_valid_wallet_address(wallet):
@@ -116,7 +116,7 @@ def login(
     if api_key:
         with spinner("Validating API connection..."):
             try:
-                client = ChambaAPIClient(api_key=api_key, base_url=api_url)
+                client = EMAPIClient(api_key=api_key, base_url=api_url)
                 # Try health check
                 client._request_with_retry("GET", "/v1/health")
                 client.close()
@@ -198,7 +198,7 @@ def status():
 
     if not active_profile:
         print_warning("Not logged in")
-        print_info("Run 'chamba login --wallet <address>' to authenticate")
+        print_info("Run 'em login --wallet <address>' to authenticate")
         return
 
     from rich.panel import Panel

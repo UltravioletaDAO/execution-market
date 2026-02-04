@@ -222,7 +222,7 @@ El conjunto de pruebas se encuentra en `/mnt/z/ultravioleta/dao/x402-rs/tests/es
 
 ```bash
 cd /path/to/x402-rs/tests/escrow
-pytest test_chamba_scenarios.py -v
+pytest test_em_scenarios.py -v
 ```
 
 ## Pruebas con SDK

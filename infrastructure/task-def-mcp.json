@@ -18,7 +18,7 @@
       "environment": [
         {"name": "PORT", "value": "8000"},
         {"name": "ENVIRONMENT", "value": "production"},
-        {"name": "CHAMBA_BASE_URL", "value": "https://chamba.ultravioletadao.xyz"}
+        {"name": "EM_BASE_URL", "value": "https://execution.market"}
       ],
       "secrets": [
         {

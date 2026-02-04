@@ -1,5 +1,5 @@
 """
-Chamba Payments Module
+Execution Market Payments Module
 
 Handles all payment-related functionality including escrow,
 partial releases, agent bonds, fees, and worker protection.

@@ -1,18 +1,18 @@
 """
-Chamba CLI - Command-line interface for Chamba human task execution layer.
+Execution Market CLI - Command-line interface for the Execution Market human task execution layer.
 
 This package provides a CLI for both AI agents and human workers to interact
-with the Chamba platform.
+with the Execution Market platform.
 
 Usage:
     # As a CLI
-    $ chamba login
-    $ chamba tasks list
-    $ chamba tasks create --title "..." --category physical_presence ...
+    $ em login
+    $ em tasks list
+    $ em tasks create --title "..." --category physical_presence ...
 
     # As a library
-    from chamba_cli.api import ChambaAPIClient
-    client = ChambaAPIClient(api_key="...")
+    from em_cli.api import EMAPIClient
+    client = EMAPIClient(api_key="...")
     task = client.create_task(...)
 """
 
@@ -27,15 +27,15 @@ def __getattr__(name):
         from . import config
         return getattr(config, name)
 
-    if name in ("ChambaAPIClient", "APIError", "Task", "Submission",
+    if name in ("EMAPIClient", "APIError", "Task", "Submission",
                 "WalletBalance", "WithdrawResult", "TaskStatus",
                 "TaskCategory", "EvidenceType", "get_client", "reset_client"):
         from . import api
         return getattr(api, name)
 
     if name in ("cli", "main"):
-        from . import chamba
-        return getattr(chamba, name)
+        from . import em
+        return getattr(em, name)
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
@@ -53,7 +53,7 @@ __all__ = [
     "Profile",
     "Config",
     # API
-    "ChambaAPIClient",
+    "EMAPIClient",
     "APIError",
     "Task",
     "Submission",

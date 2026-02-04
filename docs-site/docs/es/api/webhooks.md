@@ -1,6 +1,6 @@
 # Webhooks
 
-Chamba puede enviar notificaciones en tiempo real a tu servidor cuando ocurren eventos relevantes. Los webhooks te permiten reaccionar automaticamente a cambios en tareas, entregas y pagos sin necesidad de hacer polling.
+Execution Market puede enviar notificaciones en tiempo real a tu servidor cuando ocurren eventos relevantes. Los webhooks te permiten reaccionar automaticamente a cambios en tareas, entregas y pagos sin necesidad de hacer polling.
 
 ---
 
@@ -54,7 +54,7 @@ Cada webhook envia un request `POST` con el siguiente formato JSON:
 
 ## Seguridad del Webhook
 
-Cada solicitud de webhook incluye un encabezado `X-Chamba-Signature` que puedes usar para verificar que la solicitud proviene de Chamba y no fue manipulada.
+Cada solicitud de webhook incluye un encabezado `X-EM-Signature` que puedes usar para verificar que la solicitud proviene de Execution Market y no fue manipulada.
 
 La firma se calcula usando HMAC-SHA256 con tu secreto de webhook:
 
@@ -63,7 +63,7 @@ import hmac
 import hashlib
 
 def verify_webhook(payload: bytes, signature: str, secret: str) -> bool:
-    """Verifica la firma de un webhook de Chamba."""
+    """Verifica la firma de un webhook de Execution Market."""
     expected = hmac.new(
         secret.encode(),
         payload,
@@ -96,11 +96,11 @@ Siempre verifica la firma antes de procesar el webhook. Nunca confies en solicit
 Registra tu endpoint de webhook usando la API:
 
 ```bash
-curl -X POST https://chamba.ultravioletadao.xyz/api/v1/webhooks \
+curl -X POST https://execution.market/api/v1/webhooks \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "url": "https://tu-servidor.com/webhooks/chamba",
+    "url": "https://tu-servidor.com/webhooks/em",
     "events": ["submission.approved", "submission.rejected", "dispute.opened"],
     "secret": "tu_secreto_webhook_seguro"
   }'
@@ -111,7 +111,7 @@ curl -X POST https://chamba.ultravioletadao.xyz/api/v1/webhooks \
 ```json
 {
   "id": "wh_abc123",
-  "url": "https://tu-servidor.com/webhooks/chamba",
+  "url": "https://tu-servidor.com/webhooks/em",
   "events": ["submission.approved", "submission.rejected", "dispute.opened"],
   "status": "active",
   "created_at": "2025-07-15T10:00:00Z"
@@ -142,7 +142,7 @@ POST /webhooks/:id/test
 
 ## Reintentos
 
-Si tu servidor no responde con un codigo `2xx` dentro de 10 segundos, Chamba reintentara la entrega del webhook:
+Si tu servidor no responde con un codigo `2xx` dentro de 10 segundos, Execution Market reintentara la entrega del webhook:
 
 | Intento | Retraso |
 |---------|---------|
@@ -154,7 +154,7 @@ Si tu servidor no responde con un codigo `2xx` dentro de 10 segundos, Chamba rei
 
 Despues de 5 intentos fallidos, el webhook se marca como `failed` y no se reintenta mas. Puedes reactivarlo manualmente desde la API.
 
-Cada reintento incluye el encabezado `X-Chamba-Retry-Count` con el numero de intento.
+Cada reintento incluye el encabezado `X-EM-Retry-Count` con el numero de intento.
 
 ---
 
@@ -174,7 +174,7 @@ Cada reintento incluye el encabezado `X-Chamba-Retry-Count` con el numero de int
 
 2. **Implementa idempotencia:** Usa el campo `id` del evento para evitar procesar el mismo webhook dos veces.
 
-3. **Verifica la firma:** Siempre valida el encabezado `X-Chamba-Signature` antes de procesar el payload.
+3. **Verifica la firma:** Siempre valida el encabezado `X-EM-Signature` antes de procesar el payload.
 
 4. **Usa HTTPS:** Solo se permiten URLs con HTTPS para endpoints de webhook.
 

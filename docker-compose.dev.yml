@@ -1,4 +1,4 @@
-# Chamba Docker Compose - Development Overrides
+# Execution Market Docker Compose - Development Overrides
 # Extends docker-compose.yml with development-specific configuration
 #
 # Usage:
@@ -134,24 +134,24 @@ services:
   # Mailhog (Alternative to Inbucket)
   # ===================
   # mailhog:
-  #   container_name: chamba-mailhog
+  #   container_name: execution-market-mailhog
   #   image: mailhog/mailhog:latest
   #   ports:
   #     - "54333:8025"  # Web UI
   #     - "54334:1025"  # SMTP
   #   networks:
-  #     - chamba-network
+  #     - execution-market-network
 
   # ===================
   # PGAdmin (Optional Database UI)
   # ===================
   # pgadmin:
-  #   container_name: chamba-pgadmin
+  #   container_name: execution-market-pgadmin
   #   image: dpage/pgadmin4:latest
   #   ports:
   #     - "54340:80"
   #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: admin@chamba.local
+  #     PGADMIN_DEFAULT_EMAIL: admin@execution-market.local
   #     PGADMIN_DEFAULT_PASSWORD: admin
   #     PGADMIN_CONFIG_SERVER_MODE: "False"
   #   volumes:
@@ -160,13 +160,13 @@ services:
   #     supabase-db:
   #       condition: service_healthy
   #   networks:
-  #     - chamba-network
+  #     - execution-market-network
 
   # ===================
   # Redis Commander (Optional Redis UI)
   # ===================
   # redis-commander:
-  #   container_name: chamba-redis-commander
+  #   container_name: execution-market-redis-commander
   #   image: rediscommander/redis-commander:latest
   #   ports:
   #     - "54341:8081"
@@ -175,8 +175,8 @@ services:
   #   depends_on:
   #     - redis
   #   networks:
-  #     - chamba-network
+  #     - execution-market-network
 
 # volumes:
 #   pgadmin-data:
-#     name: chamba-pgadmin-data
+#     name: execution-market-pgadmin-data

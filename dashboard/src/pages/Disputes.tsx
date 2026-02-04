@@ -932,7 +932,7 @@ function AppealSection({
       )}
 
       <p className="text-xs text-orange-600 text-center">
-        Las apelaciones son revisadas por el Gnosis Safe multisig de Chamba ({truncateAddress(dispute.gnosisSafeAddress || '0x...')})
+        Las apelaciones son revisadas por el Gnosis Safe multisig de Execution Market ({truncateAddress(dispute.gnosisSafeAddress || '0x...')})
       </p>
     </div>
   )

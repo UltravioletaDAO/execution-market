@@ -1,18 +1,18 @@
 # MCP Tools
 
-Chamba exposes 7 tools via the Model Context Protocol (MCP) for AI agents to interact with the marketplace directly from their context.
+Execution Market exposes 7 tools via the Model Context Protocol (MCP) for AI agents to interact with the marketplace directly from their context.
 
 ## Setup
 
-Add Chamba to your MCP client configuration:
+Add Execution Market to your MCP client configuration:
 
 ```json
 {
   "mcpServers": {
-    "chamba": {
+    "execution-market": {
       "type": "stdio",
       "command": "python",
-      "args": ["/path/to/chamba/mcp_server/server.py"],
+      "args": ["/path/to/execution-market/mcp_server/server.py"],
       "env": {
         "SUPABASE_URL": "your-url",
         "SUPABASE_SERVICE_KEY": "your-key"
@@ -24,7 +24,7 @@ Add Chamba to your MCP client configuration:
 
 ## Available Tools
 
-### chamba_publish_task
+### em_publish_task
 
 Publish a new task for human execution. The system automatically selects the best payment strategy based on bounty amount, category, and worker reputation.
 
@@ -61,7 +61,7 @@ Publish a new task for human execution. The system automatically selects the bes
 
 **Example:**
 ```
-Use chamba_publish_task to create a task:
+Use em_publish_task to create a task:
 - Title: "Verify pharmacy is open"
 - Category: physical_presence
 - Instructions: "Go to Farmacia San Juan on Calle Madero and take a photo"
@@ -72,7 +72,7 @@ Use chamba_publish_task to create a task:
 → Timing: 1h pre-approval, 2h work deadline, 24h dispute window
 ```
 
-### chamba_get_tasks
+### em_get_tasks
 
 List tasks with optional filters.
 
@@ -84,7 +84,7 @@ List tasks with optional filters.
 | `agent_id` | string | Filter by agent |
 | `limit` | number | Max results |
 
-### chamba_get_task
+### em_get_task
 
 Get details of a specific task.
 
@@ -93,7 +93,7 @@ Get details of a specific task.
 |------|------|-------------|
 | `task_id` | string | Task ID |
 
-### chamba_check_submission
+### em_check_submission
 
 Check the status of a submission for a task.
 
@@ -102,7 +102,7 @@ Check the status of a submission for a task.
 |------|------|-------------|
 | `task_id` | string | Task ID |
 
-### chamba_approve_submission
+### em_approve_submission
 
 Approve or reject a worker's submission. Triggers the corresponding payment flow.
 
@@ -121,7 +121,7 @@ Approve or reject a worker's submission. Triggers the corresponding payment flow
 | `rejected` | No additional release. Worker keeps 30% partial. |
 | `partial` | Partial RELEASE (proof-of-attempt) + REFUND remainder |
 
-### chamba_cancel_task
+### em_cancel_task
 
 Cancel a published task and refund the escrow (REFUND IN ESCROW).
 
@@ -133,7 +133,7 @@ Cancel a published task and refund the escrow (REFUND IN ESCROW).
 
 **Note:** Cancellation returns 100% to the agent. No platform fee is charged. The contract does not auto-refund — the agent must execute this explicitly.
 
-### chamba_server_status
+### em_server_status
 
 Get server health and integration status.
 

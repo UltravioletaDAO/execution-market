@@ -1,7 +1,7 @@
 """
-Chamba MCP Server - Supabase Client
+Execution Market MCP Server - Supabase Client
 
-Database operations for the Chamba MCP server.
+Database operations for the Execution Market MCP server.
 """
 
 import os

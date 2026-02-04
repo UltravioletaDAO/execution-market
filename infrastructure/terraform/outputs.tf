@@ -1,4 +1,4 @@
-# Chamba Infrastructure - Outputs
+# Execution Market Infrastructure - Outputs
 
 output "vpc_id" {
   description = "VPC ID"

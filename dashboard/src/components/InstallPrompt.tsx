@@ -10,7 +10,7 @@
 import React, { useState, useEffect } from 'react'
 import { usePWA } from '../hooks/usePWA'
 
-const DISMISS_KEY = 'chamba-install-dismissed'
+const DISMISS_KEY = 'em-install-dismissed'
 const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 interface InstallPromptProps {
@@ -98,7 +98,7 @@ export function InstallPrompt({
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-white text-base">Update Available</h3>
             <p className="text-sm text-blue-100 mt-0.5">
-              A new version of Chamba is ready to install.
+              A new version of Execution Market is ready to install.
             </p>
             <div className="flex gap-2 mt-3">
               <button
@@ -148,7 +148,7 @@ export function InstallPrompt({
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-white text-base">Install Chamba</h3>
+          <h3 className="font-semibold text-white text-base">Install Execution Market</h3>
           <p className="text-sm text-slate-400 mt-0.5 leading-relaxed">
             Add to your home screen for quick access and offline support.
           </p>
@@ -234,7 +234,7 @@ export function IOSInstallPrompt() {
 
     // Show on iOS Safari when not installed
     if (isIOS && isMobile && !isInStandaloneMode && !isInstalled) {
-      const dismissed = localStorage.getItem('chamba-ios-install-dismissed')
+      const dismissed = localStorage.getItem('em-ios-install-dismissed')
       if (!dismissed) {
         setShow(true)
       }
@@ -242,7 +242,7 @@ export function IOSInstallPrompt() {
   }, [isInstalled, isMobile])
 
   const handleDismiss = () => {
-    localStorage.setItem('chamba-ios-install-dismissed', 'true')
+    localStorage.setItem('em-ios-install-dismissed', 'true')
     setShow(false)
   }
 
@@ -257,7 +257,7 @@ export function IOSInstallPrompt() {
           </svg>
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-white text-base">Install Chamba</h3>
+          <h3 className="font-semibold text-white text-base">Install Execution Market</h3>
           <p className="text-sm text-slate-400 mt-1">
             Tap{' '}
             <span className="inline-flex items-center px-1.5 py-0.5 bg-slate-700 rounded text-white">

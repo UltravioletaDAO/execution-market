@@ -1,5 +1,5 @@
 """
-Chamba Mystery Shopping Task Type
+Execution Market Mystery Shopping Task Type
 
 Task type for mystery shopping/experience testing:
 - Retail experience evaluation

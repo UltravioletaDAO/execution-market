@@ -1,4 +1,4 @@
-# Chamba Agent Starter Kit
+# Execution Market Agent Starter Kit
 
 > Build AI agents that hire humans for physical tasks
 
@@ -7,14 +7,14 @@
 ### Python
 
 ```bash
-pip install chamba-sdk
+pip install execution-market-sdk
 ```
 
 ```python
-from chamba import ChambaClient
+from em import ExecutionMarketClient
 
 # Initialize
-client = ChambaClient(api_key="your_api_key")
+client = ExecutionMarketClient(api_key="your_api_key")
 
 # Create a task
 task = client.create_task(
@@ -40,16 +40,16 @@ if result.status == "completed":
 ### TypeScript
 
 ```bash
-npm install @chamba/sdk
+npm install @execution-market/sdk
 ```
 
 ```typescript
-import { Chamba } from '@chamba/sdk';
+import { ExecutionMarket } from '@execution-market/sdk';
 
-const chamba = new Chamba({ apiKey: 'your_api_key' });
+const em = new ExecutionMarket({ apiKey: 'your_api_key' });
 
 // Create a task
-const task = await chamba.tasks.create({
+const task = await em.tasks.create({
   title: 'Check store hours',
   instructions: 'Photo of the posted hours on the door',
   category: 'knowledge_access',
@@ -60,7 +60,7 @@ const task = await chamba.tasks.create({
 });
 
 // Subscribe to updates
-chamba.tasks.onUpdate(task.id, (update) => {
+em.tasks.onUpdate(task.id, (update) => {
   console.log(`Status: ${update.status}`);
   if (update.status === 'submitted') {
     console.log('Submission received, reviewing...');
@@ -169,7 +169,7 @@ Subscribe to real-time updates:
 
 ```python
 # In your webhook handler
-@app.post("/chamba-webhook")
+@app.post("/em-webhook")
 async def handle_webhook(request: Request):
     event = await request.json()
 
@@ -256,10 +256,10 @@ task = client.create_task(
 ```python
 """Agent that checks if stores are open."""
 
-from chamba import ChambaClient
+from em import ExecutionMarketClient
 import asyncio
 
-client = ChambaClient()
+client = ExecutionMarketClient()
 
 async def check_stores(stores: list[dict]):
     """Check multiple stores in parallel."""
@@ -299,9 +299,9 @@ async def check_stores(stores: list[dict]):
 ```python
 """Agent that tracks competitor prices."""
 
-from chamba import ChambaClient
+from em import ExecutionMarketClient
 
-client = ChambaClient()
+client = ExecutionMarketClient()
 
 def create_price_check(product: str, stores: list[str], city: str):
     """Create price check tasks for a product across stores."""
@@ -331,9 +331,9 @@ def create_price_check(product: str, stores: list[str], city: str):
 
 ## Support
 
-- **Documentation**: https://docs.chamba.ultravioleta.xyz
+- **Documentation**: https://docs.execution.market
 - **Discord**: https://discord.gg/ultravioleta
-- **GitHub**: https://github.com/ultravioleta/chamba
+- **GitHub**: https://github.com/ultravioleta/execution-market
 - **Email**: support@ultravioleta.xyz
 
 ---

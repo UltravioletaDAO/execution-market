@@ -1,29 +1,29 @@
-# Chamba + CrewAI/LangChain Integration Guide
+# Execution Market + CrewAI/LangChain Integration Guide
 
-> Use Chamba as a tool for AI agent frameworks to execute physical-world tasks.
+> Use Execution Market as a tool for AI agent frameworks to execute physical-world tasks.
 
 ---
 
 ## Overview
 
-This guide shows how to integrate Chamba as a **tool** within popular AI agent frameworks:
+This guide shows how to integrate Execution Market as a **tool** within popular AI agent frameworks:
 - **CrewAI** - Multi-agent orchestration framework
 - **LangChain** - LLM application framework with agents
 - **AutoGPT** - Autonomous GPT-4 agent
 - **Claude Agent SDK** - Anthropic's agent framework
 
-**Why integrate Chamba?**
+**Why integrate Execution Market?**
 
-AI agents are powerful but limited to digital tasks. Chamba gives them access to the physical world:
+AI agents are powerful but limited to digital tasks. Execution Market gives them access to the physical world:
 
 ```
-Before Chamba:
+Before Execution Market:
 Agent: "I need to verify this store exists"
 Agent: *stuck* - cannot perform physical verification
 
-After Chamba:
+After Execution Market:
 Agent: "I need to verify this store exists"
-Agent: *calls chamba_publish_task*
+Agent: *calls em_publish_task*
 Agent: *waits for human to complete*
 Agent: *receives verified evidence*
 Agent: "Store verified. Proceeding with analysis."
@@ -36,18 +36,18 @@ Agent: "Store verified. Proceeding with analysis."
 ### Python Package
 
 ```bash
-pip install chamba-sdk
+pip install execution-market-sdk
 # or
-pip install chamba[crewai]  # Includes CrewAI integration
-pip install chamba[langchain]  # Includes LangChain integration
+pip install execution-market[crewai]  # Includes CrewAI integration
+pip install execution-market[langchain]  # Includes LangChain integration
 ```
 
 ### Environment Variables
 
 ```bash
-export CHAMBA_API_KEY="your_api_key_here"
-export CHAMBA_AGENT_ID="0xYourAgentWallet"
-export CHAMBA_API_URL="https://api.chamba.work/v1"  # Optional, defaults to production
+export EM_API_KEY="your_api_key_here"
+export EM_AGENT_ID="0xYourAgentWallet"
+export EM_API_URL="https://api.execution.market/v1"  # Optional, defaults to production
 ```
 
 ---
@@ -58,20 +58,20 @@ export CHAMBA_API_URL="https://api.chamba.work/v1"  # Optional, defaults to prod
 
 ```python
 from crewai import Agent, Task, Crew
-from chamba import ChambaTool
+from execution_market import ExecutionMarketTool
 
-# Initialize Chamba tool
-chamba_tool = ChambaTool(
+# Initialize Execution Market tool
+em_tool = ExecutionMarketTool(
     api_key="your_api_key",
     agent_id="0xYourAgentWallet"
 )
 
-# Create an agent with Chamba capability
+# Create an agent with Execution Market capability
 researcher = Agent(
     role="Field Research Coordinator",
     goal="Verify physical locations and gather real-world evidence",
     backstory="Expert at coordinating field research through human workers",
-    tools=[chamba_tool],
+    tools=[em_tool],
     verbose=True
 )
 
@@ -83,7 +83,7 @@ verification_task = Task(
     2. Serving traditional Colombian food
     3. Located at the address: Calle 11 #6-50
 
-    Use Chamba to dispatch a human worker for on-site verification.
+    Use Execution Market to dispatch a human worker for on-site verification.
     Wait for and analyze the evidence received.
     """,
     agent=researcher,
@@ -101,7 +101,7 @@ result = crew.kickoff()
 print(result)
 ```
 
-### ChambaTool Implementation
+### ExecutionMarketTool Implementation
 
 ```python
 from crewai_tools import BaseTool
@@ -110,8 +110,8 @@ from typing import Optional, List
 import httpx
 import time
 
-class ChambaTaskInput(BaseModel):
-    """Input schema for Chamba task creation."""
+class ExecutionMarketTaskInput(BaseModel):
+    """Input schema for Execution Market task creation."""
     title: str = Field(..., description="Clear, concise task title")
     instructions: str = Field(..., description="Detailed instructions for the human worker")
     category: str = Field(
@@ -134,9 +134,9 @@ class ChambaTaskInput(BaseModel):
         description="Maximum minutes to wait for completion"
     )
 
-class ChambaTool(BaseTool):
+class ExecutionMarketTool(BaseTool):
     """
-    Chamba Tool for CrewAI - Dispatch physical tasks to human workers.
+    Execution Market Tool for CrewAI - Dispatch physical tasks to human workers.
 
     Use this tool when you need to:
     - Verify something exists in the physical world
@@ -145,15 +145,15 @@ class ChambaTool(BaseTool):
     - Access knowledge that isn't available online
     """
 
-    name: str = "chamba_dispatch_task"
+    name: str = "em_dispatch_task"
     description: str = """
     Dispatch a task to a human worker in the physical world.
     Use when you need real-world verification, photos, or physical actions.
     Returns evidence (photos, text, documents) from the human worker.
     """
-    args_schema: type[BaseModel] = ChambaTaskInput
+    args_schema: type[BaseModel] = ExecutionMarketTaskInput
 
-    def __init__(self, api_key: str, agent_id: str, api_url: str = "https://api.chamba.work/v1"):
+    def __init__(self, api_key: str, agent_id: str, api_url: str = "https://api.execution.market/v1"):
         super().__init__()
         self.api_key = api_key
         self.agent_id = agent_id
@@ -179,7 +179,7 @@ class ChambaTool(BaseTool):
         wait_for_completion: bool = True,
         max_wait_minutes: int = 120
     ) -> str:
-        """Execute the Chamba task dispatch."""
+        """Execute the Execution Market task dispatch."""
 
         # Create task
         task_data = {
@@ -249,22 +249,22 @@ Payment Status: Released
                 time.sleep(poll_interval)
                 continue
 
-        return f"Task timed out after {max_wait_minutes} minutes. Task ID: {task_id}. Current status: {status}. Check manually at https://chamba.work/tasks/{task_id}"
+        return f"Task timed out after {max_wait_minutes} minutes. Task ID: {task_id}. Current status: {status}. Check manually at https://execution.market/tasks/{task_id}"
 ```
 
 ### Multi-Agent Crew Example
 
 ```python
 from crewai import Agent, Task, Crew, Process
-from chamba import ChambaTool
+from execution_market import ExecutionMarketTool
 
-chamba = ChambaTool(api_key="...", agent_id="0x...")
+em = ExecutionMarketTool(api_key="...", agent_id="0x...")
 
 # Research coordinator - dispatches field work
 coordinator = Agent(
     role="Field Research Coordinator",
     goal="Coordinate physical verification tasks efficiently",
-    tools=[chamba],
+    tools=[em],
     verbose=True
 )
 
@@ -328,8 +328,8 @@ from typing import Optional, List, Type
 import httpx
 import time
 
-class ChambaInput(BaseModel):
-    """Input for Chamba task dispatch."""
+class ExecutionMarketInput(BaseModel):
+    """Input for Execution Market task dispatch."""
     title: str = Field(description="Task title")
     instructions: str = Field(description="Detailed instructions")
     category: str = Field(default="physical_presence", description="Task category")
@@ -338,12 +338,12 @@ class ChambaInput(BaseModel):
     location_hint: Optional[str] = Field(None, description="Location hint")
     wait_for_completion: bool = Field(default=True, description="Wait for task completion")
 
-class ChambaDispatchTool(BaseTool):
-    """LangChain tool for dispatching Chamba tasks."""
+class ExecutionMarketDispatchTool(BaseTool):
+    """LangChain tool for dispatching Execution Market tasks."""
 
-    name = "chamba_dispatch"
+    name = "em_dispatch"
     description = """
-    Dispatch a physical task to a human worker via Chamba.
+    Dispatch a physical task to a human worker via Execution Market.
     Use this when you need:
     - Physical verification of locations/objects
     - Photos from specific places
@@ -352,11 +352,11 @@ class ChambaDispatchTool(BaseTool):
 
     Returns evidence (photos, text) from the human worker.
     """
-    args_schema: Type[BaseModel] = ChambaInput
+    args_schema: Type[BaseModel] = ExecutionMarketInput
 
     api_key: str
     agent_id: str
-    api_url: str = "https://api.chamba.work/v1"
+    api_url: str = "https://api.execution.market/v1"
 
     def _run(
         self,
@@ -368,7 +368,7 @@ class ChambaDispatchTool(BaseTool):
         location_hint: Optional[str] = None,
         wait_for_completion: bool = True
     ) -> str:
-        """Execute Chamba task dispatch."""
+        """Execute Execution Market task dispatch."""
 
         client = httpx.Client(
             headers={
@@ -427,7 +427,7 @@ from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate
 
 # Initialize tools
-chamba_tool = ChambaDispatchTool(
+em_tool = ExecutionMarketDispatchTool(
     api_key="your_api_key",
     agent_id="0xYourAgentWallet"
 )
@@ -439,7 +439,7 @@ llm = ChatAnthropic(model="claude-sonnet-4-20250514")
 prompt = ChatPromptTemplate.from_messages([
     ("system", """You are a research assistant with access to real-world verification capabilities.
 
-When you need to verify something in the physical world, use the chamba_dispatch tool.
+When you need to verify something in the physical world, use the em_dispatch tool.
 Be specific in your instructions to the human worker.
 Analyze the evidence returned carefully before drawing conclusions."""),
     ("human", "{input}"),
@@ -447,8 +447,8 @@ Analyze the evidence returned carefully before drawing conclusions."""),
 ])
 
 # Create agent
-agent = create_tool_calling_agent(llm, [chamba_tool], prompt)
-agent_executor = AgentExecutor(agent=agent, tools=[chamba_tool], verbose=True)
+agent = create_tool_calling_agent(llm, [em_tool], prompt)
+agent_executor = AgentExecutor(agent=agent, tools=[em_tool], verbose=True)
 
 # Run
 result = agent_executor.invoke({
@@ -471,10 +471,10 @@ class AgentState(TypedDict):
     analysis: str
 
 def dispatch_task(state: AgentState) -> AgentState:
-    """Node: Dispatch Chamba task."""
-    chamba = ChambaDispatchTool(api_key="...", agent_id="0x...")
+    """Node: Dispatch Execution Market task."""
+    em = ExecutionMarketDispatchTool(api_key="...", agent_id="0x...")
 
-    result = chamba._run(
+    result = em._run(
         title="Verify business location",
         instructions="Take photos of the storefront and confirm it's open",
         wait_for_completion=False
@@ -522,7 +522,7 @@ app = workflow.compile()
 ### Plugin Structure
 
 ```python
-# autogpt_plugins/chamba/chamba_plugin.py
+# autogpt_plugins/execution_market/execution_market_plugin.py
 
 from auto_gpt_plugin_template import AutoGPTPluginTemplate
 import httpx
@@ -530,21 +530,21 @@ from typing import Any, Dict, List, Optional, Tuple, TypeVar
 
 PromptGenerator = TypeVar("PromptGenerator")
 
-class ChambaPlugin(AutoGPTPluginTemplate):
-    """AutoGPT plugin for Chamba - Human Execution Layer."""
+class ExecutionMarketPlugin(AutoGPTPluginTemplate):
+    """AutoGPT plugin for Execution Market - Human Execution Layer."""
 
     def __init__(self):
         super().__init__()
-        self._name = "Chamba-Plugin"
+        self._name = "ExecutionMarket-Plugin"
         self._version = "1.0.0"
         self._description = "Dispatch physical tasks to human workers"
         self.api_key = None
         self.agent_id = None
 
     def post_prompt(self, prompt: PromptGenerator) -> PromptGenerator:
-        """Add Chamba commands to AutoGPT's capabilities."""
+        """Add Execution Market commands to AutoGPT's capabilities."""
         prompt.add_command(
-            "chamba_dispatch",
+            "em_dispatch",
             "Dispatch a physical task to a human worker",
             {
                 "title": "<task title>",
@@ -556,15 +556,15 @@ class ChambaPlugin(AutoGPTPluginTemplate):
         )
 
         prompt.add_command(
-            "chamba_check_status",
-            "Check status of a Chamba task",
+            "em_check_status",
+            "Check status of a Execution Market task",
             {"task_id": "<task id>"},
             self.check_task_status
         )
 
         prompt.add_command(
-            "chamba_get_evidence",
-            "Get evidence from completed Chamba task",
+            "em_get_evidence",
+            "Get evidence from completed Execution Market task",
             {"task_id": "<task id>"},
             self.get_evidence
         )
@@ -578,7 +578,7 @@ class ChambaPlugin(AutoGPTPluginTemplate):
         bounty_usd: float = 5.0,
         location: str = None
     ) -> str:
-        """Dispatch a new task to Chamba."""
+        """Dispatch a new task to Execution Market."""
         client = httpx.Client(headers={
             "Authorization": f"Bearer {self.api_key}",
             "X-Agent-ID": self.agent_id
@@ -596,11 +596,11 @@ class ChambaPlugin(AutoGPTPluginTemplate):
         if location:
             data["location_hint"] = location
 
-        response = client.post("https://api.chamba.work/v1/tasks", json=data)
+        response = client.post("https://api.execution.market/v1/tasks", json=data)
 
         if response.status_code == 201:
             task = response.json()
-            return f"Task dispatched! ID: {task['task_id']}. A human worker will complete this task. Check status with chamba_check_status."
+            return f"Task dispatched! ID: {task['task_id']}. A human worker will complete this task. Check status with em_check_status."
         else:
             return f"Error dispatching task: {response.json()}"
 
@@ -611,12 +611,12 @@ class ChambaPlugin(AutoGPTPluginTemplate):
             "X-Agent-ID": self.agent_id
         })
 
-        response = client.get(f"https://api.chamba.work/v1/tasks/{task_id}")
+        response = client.get(f"https://api.execution.market/v1/tasks/{task_id}")
         task = response.json()
 
         status = task.get("status", "unknown")
         if status == "completed":
-            return f"Task COMPLETED! Use chamba_get_evidence to retrieve the results."
+            return f"Task COMPLETED! Use em_get_evidence to retrieve the results."
         elif status in ["published", "accepted", "in_progress"]:
             return f"Task in progress. Status: {status}. Check again later."
         else:
@@ -629,7 +629,7 @@ class ChambaPlugin(AutoGPTPluginTemplate):
             "X-Agent-ID": self.agent_id
         })
 
-        response = client.get(f"https://api.chamba.work/v1/tasks/{task_id}")
+        response = client.get(f"https://api.execution.market/v1/tasks/{task_id}")
         task = response.json()
 
         if task.get("status") != "completed":
@@ -659,11 +659,11 @@ from anthropic.types import ToolUseBlock
 import httpx
 import json
 
-# Define Chamba tool for Claude
-CHAMBA_TOOL = {
-    "name": "chamba_dispatch",
+# Define Execution Market tool for Claude
+EXECUTION_MARKET_TOOL = {
+    "name": "em_dispatch",
     "description": """
-    Dispatch a physical-world task to a human worker via Chamba.
+    Dispatch a physical-world task to a human worker via Execution Market.
 
     Use this tool when you need:
     - Verification that something exists in the real world
@@ -706,8 +706,8 @@ CHAMBA_TOOL = {
     }
 }
 
-def execute_chamba_tool(tool_input: dict, api_key: str, agent_id: str) -> str:
-    """Execute Chamba tool and return results."""
+def execute_em_tool(tool_input: dict, api_key: str, agent_id: str) -> str:
+    """Execute Execution Market tool and return results."""
     client = httpx.Client(
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -732,7 +732,7 @@ def execute_chamba_tool(tool_input: dict, api_key: str, agent_id: str) -> str:
     if tool_input.get("location_hint"):
         task_data["location_hint"] = tool_input["location_hint"]
 
-    response = client.post("https://api.chamba.work/v1/tasks", json=task_data)
+    response = client.post("https://api.execution.market/v1/tasks", json=task_data)
 
     if response.status_code != 201:
         return json.dumps({"error": response.json()})
@@ -744,7 +744,7 @@ def execute_chamba_tool(tool_input: dict, api_key: str, agent_id: str) -> str:
     import time
     for _ in range(240):  # Max 2 hours
         time.sleep(30)
-        status_response = client.get(f"https://api.chamba.work/v1/tasks/{task_id}")
+        status_response = client.get(f"https://api.execution.market/v1/tasks/{task_id}")
         status = status_response.json()
 
         if status["status"] == "completed":
@@ -780,16 +780,16 @@ messages = [
 response = client.messages.create(
     model="claude-sonnet-4-20250514",
     max_tokens=4096,
-    tools=[CHAMBA_TOOL],
+    tools=[EXECUTION_MARKET_TOOL],
     messages=messages
 )
 
 # Handle tool use
 for block in response.content:
-    if isinstance(block, ToolUseBlock) and block.name == "chamba_dispatch":
-        result = execute_chamba_tool(
+    if isinstance(block, ToolUseBlock) and block.name == "em_dispatch":
+        result = execute_em_tool(
             block.input,
-            api_key="your_chamba_api_key",
+            api_key="your_em_api_key",
             agent_id="0xYourAgentWallet"
         )
 
@@ -803,7 +803,7 @@ for block in response.content:
         final_response = client.messages.create(
             model="claude-sonnet-4-20250514",
             max_tokens=4096,
-            tools=[CHAMBA_TOOL],
+            tools=[EXECUTION_MARKET_TOOL],
             messages=messages
         )
         print(final_response.content[0].text)
@@ -876,7 +876,7 @@ def safe_dispatch(tool, **kwargs):
             return tool._run(**kwargs)
         return result
     except Exception as e:
-        return f"Chamba dispatch failed: {str(e)}. Consider manual verification."
+        return f"Execution Market dispatch failed: {str(e)}. Consider manual verification."
 ```
 
 ### 5. Cost Management
@@ -884,7 +884,7 @@ def safe_dispatch(tool, **kwargs):
 Monitor spending:
 
 ```python
-class CostAwareChambaTool(ChambaTool):
+class CostAwareExecutionMarketTool(ExecutionMarketTool):
     def __init__(self, *args, max_daily_spend: float = 100.0, **kwargs):
         super().__init__(*args, **kwargs)
         self.max_daily_spend = max_daily_spend
@@ -910,13 +910,13 @@ class CostAwareChambaTool(ChambaTool):
 ```python
 from crewai import Agent, Task, Crew
 
-chamba = ChambaTool(api_key="...", agent_id="0x...")
+em = ExecutionMarketTool(api_key="...", agent_id="0x...")
 
 property_verifier = Agent(
     role="Property Verification Specialist",
     goal="Verify property listings are accurate and not fraudulent",
     backstory="Expert at identifying discrepancies between listings and reality",
-    tools=[chamba]
+    tools=[em]
 )
 
 verify_task = Task(
@@ -927,7 +927,7 @@ verify_task = Task(
     - Check if there's a "For Rent" sign
     - Photo the building entrance and mailboxes
 
-    Use Chamba to dispatch a local worker.
+    Use Execution Market to dispatch a local worker.
     """,
     agent=property_verifier,
     expected_output="Property verification report with evidence"
@@ -940,7 +940,7 @@ verify_task = Task(
 document_agent = Agent(
     role="Document Retrieval Specialist",
     goal="Obtain physical documents that aren't available online",
-    tools=[chamba]
+    tools=[em]
 )
 
 document_task = Task(
@@ -977,11 +977,11 @@ document_task = Task(
 
 ## Resources
 
-- **Chamba API Docs**: https://docs.chamba.work/api
+- **Execution Market API Docs**: https://docs.execution.market/api
 - **CrewAI Docs**: https://docs.crewai.com
 - **LangChain Tools**: https://python.langchain.com/docs/modules/tools
 - **Claude Tool Use**: https://docs.anthropic.com/claude/docs/tool-use
-- **Chamba SDK PyPI**: https://pypi.org/project/chamba-sdk
+- **Execution Market SDK PyPI**: https://pypi.org/project/execution-market-sdk
 
 ---
 

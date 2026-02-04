@@ -1,4 +1,4 @@
-# Chamba: Gente para Agentes - Product Specification
+# Execution Market: Gente para Agentes - Product Specification
 
 > Para implementacion tecnica, ver [PLAN.md](./PLAN.md)
 > Para sinergias del ecosistema, ver [SYNERGIES.md](./SYNERGIES.md)
@@ -7,7 +7,7 @@
 
 ## 1. Vision
 
-Un mundo donde los agentes autonomos pueden extender sus capacidades al mundo fisico contratando humanos para tareas que no pueden ejecutar digitalmente. Chamba es el puente entre la inteligencia artificial y la realidad fisica - donde el trabajo humano se convierte en una API para agentes.
+Un mundo donde los agentes autonomos pueden extender sus capacidades al mundo fisico contratando humanos para tareas que no pueden ejecutar digitalmente. Execution Market es el puente entre la inteligencia artificial y la realidad fisica - donde el trabajo humano se convierte en una API para agentes.
 
 > "Los agentes no necesitan poder legal, necesitan acceso programable a autoridad humana."
 
@@ -48,7 +48,7 @@ Los agentes autonomos tienen un limite fundamental: **no pueden actuar en el mun
 
 ### Core Value Proposition
 
-> "Chamba permite a agentes autonomos contratar humanos para tareas fisicas mediante bounties con micropagos x402, creando una Human Execution Layer para AI."
+> "Execution Market permite a agentes autonomos contratar humanos para tareas fisicas mediante bounties con micropagos x402, creando una Human Execution Layer para AI."
 
 ### Key Features
 
@@ -82,11 +82,11 @@ Los agentes autonomos tienen un limite fundamental: **no pueden actuar en el mun
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         CHAMBA FLOW                                      │
+│                    EXECUTION MARKET FLOW                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
-│  AGENT                    CHAMBA                     HUMAN               │
-│  ─────                    ──────                     ─────               │
+│  AGENT              EXECUTION MARKET               HUMAN                │
+│  ─────              ────────────────               ─────                │
 │                                                                          │
 │  1. Detecta necesidad     2. Recibe task            4. Ve task           │
 │     fisica                   ┌─────────┐               disponible        │
@@ -142,7 +142,7 @@ Los agentes autonomos tienen un limite fundamental: **no pueden actuar en el mun
 
 ---
 
-## 5. Task Categories (Tipos de Chambas)
+## 5. Task Categories
 
 ### Category A: Physical Presence
 
@@ -377,7 +377,7 @@ PUBLISHED → ACCEPTED → IN_PROGRESS → SUBMITTED → VERIFYING → COMPLETED
 
 ## 7. Non-Goals
 
-Chamba NO intenta:
+Execution Market NO intenta:
 
 - [ ] **Reemplazar empleos full-time** - Solo micro-tareas puntuales
 - [ ] **Competir con Fiverr/Upwork** - No es para proyectos creativos o largos
@@ -497,14 +497,14 @@ INCIDENT: Mass fraud detected
 | **Enterprise** ($200+) | 4% + negociado | Volume discounts |
 
 **Split del fee**:
-- 70% a Chamba (operación, desarrollo)
+- 70% a Execution Market (operación, desarrollo)
 - 30% a arbitration pool (disputas, rewards)
 
 **Comparación**:
 - Fiverr: 20% al seller
 - Upwork: 5-20% sliding
 - MTurk: 20-40% al requester
-- **Chamba: 6-8% promedio** ← Más competitivo
+- **Execution Market: 6-8% promedio** ← Más competitivo
 
 ---
 
@@ -565,7 +565,7 @@ Level 4: Human Arbitration (hours, 1% de tasks)
 **Optimización de gas**:
 - Batching de pagos pequeños (cada 1h o cada $50)
 - Layer 2 (Base/Optimism) para costos mínimos
-- Gasless para ejecutores (Chamba subsidia)
+- Gasless para ejecutores (Execution Market subsidia)
 
 ---
 
@@ -605,22 +605,22 @@ Level 4: Human Arbitration (hours, 1% de tasks)
 
 ## 9. Agentic Identity & ERC-8004 Integration
 
-### Chamba as a Discoverable Agent
+### Execution Market as a Discoverable Agent
 
-Chamba is not just a platform - it's an **autonomous agent** that can be discovered in agent registries and interacted with programmatically by other agents. This positions Chamba as a first-class citizen in the agentic economy.
+Execution Market is not just a platform - it's an **autonomous agent** that can be discovered in agent registries and interacted with programmatically by other agents. This positions Execution Market as a first-class citizen in the agentic economy.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    CHAMBA AGENTIC ARCHITECTURE                               │
+│               EXECUTION MARKET AGENTIC ARCHITECTURE                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐    │
-│  │  ERC-8004        │     │   CHAMBA AGENT   │     │    HUMAN         │    │
+│  │  ERC-8004        │     │   EM AGENT       │     │    HUMAN         │    │
 │  │  Identity        │     │   ────────────   │     │    EXECUTORS     │    │
 │  │  Registry        │────▶│   - Task intake  │◀───▶│    ──────────    │    │
 │  │  ──────────      │     │   - Verification │     │    Web Portal    │    │
-│  │  chamba.eth      │     │   - Payments     │     │    Mobile App    │    │
-│  │  0xChamba...     │     │   - Reputation   │     │                  │    │
+│  │  em.eth          │     │   - Payments     │     │    Mobile App    │    │
+│  │  0xEM...         │     │   - Reputation   │     │                  │    │
 │  └──────────────────┘     └──────────────────┘     └──────────────────┘    │
 │           ▲                        ▲                                        │
 │           │                        │                                        │
@@ -629,7 +629,7 @@ Chamba is not just a platform - it's an **autonomous agent** that can be discove
 │  │ ────────────    │      │  ─────────────│                                │
 │  │ Colmena Forager │─────▶│  MeshRelay    │                                │
 │  │ Council Orch.   │      │  WebSocket    │                                │
-│  │ Custom Agent    │      │  REST API     │                                │
+│  │ Any Agent       │      │  REST API     │                                │
 │  └─────────────────┘      └───────────────┘                                │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -637,13 +637,13 @@ Chamba is not just a platform - it's an **autonomous agent** that can be discove
 
 ### ERC-8004 Identity Registration
 
-Chamba registers itself in the ERC-8004 Identity Registry, making it discoverable by any agent looking for human execution services.
+Execution Market registers itself in the ERC-8004 Identity Registry, making it discoverable by any agent looking for human execution services.
 
 ```solidity
-// Chamba's ERC-8004 Identity Registration
+// Execution Market's ERC-8004 Identity Registration
 {
-    "agentId": "chamba.eth",
-    "address": "0xChambaAgent...",
+    "agentId": "em.eth",
+    "address": "0xEMAgent...",
     "type": "service_provider",
     "category": "human_execution_layer",
     "capabilities": [
@@ -676,29 +676,29 @@ Chamba registers itself in the ERC-8004 Identity Registry, making it discoverabl
 
 ### Agent Discovery Flow
 
-Other agents can discover Chamba through the registry and initiate task requests:
+Other agents can discover Execution Market through the registry and initiate task requests:
 
 ```python
-# Example: How a Colmena forager discovers and uses Chamba
-async def hire_human_via_chamba(forager, task_description: str):
-    # 1. Discover Chamba in the ERC-8004 registry
+# Example: How a Colmena forager discovers and uses Execution Market
+async def hire_human_via_em(forager, task_description: str):
+    # 1. Discover Execution Market in the ERC-8004 registry
     registry = ERC8004Registry(chain="base")
-    chamba_agent = await registry.find_agent(
+    em_agent = await registry.find_agent(
         category="human_execution_layer",
         capabilities=["physical_presence_tasks"]
     )
 
     # Returns:
     # {
-    #     "agent_id": "chamba.eth",
-    #     "endpoint": "https://api.chamba.work",
-    #     "a2a_address": "agent://chamba.eth"
+    #     "agent_id": "em.eth",
+    #     "endpoint": "https://api.execution.market",
+    #     "a2a_address": "agent://em.eth"
     # }
 
     # 2. Connect via A2A protocol
-    connection = await forager.a2a.connect(chamba_agent["a2a_address"])
+    connection = await forager.a2a.connect(em_agent["a2a_address"])
 
-    # 3. Publish task through Chamba
+    # 3. Publish task through Execution Market
     task = await connection.send_message({
         "type": "task/publish",
         "payload": {
@@ -711,10 +711,10 @@ async def hire_human_via_chamba(forager, task_description: str):
         }
     })
 
-    # 4. Chamba creates escrow and returns task ID
+    # 4. Execution Market creates escrow and returns task ID
     # task = {"task_id": "...", "escrow_address": "0x...", "status": "published"}
 
-    # 5. Wait for completion (Chamba handles human matching + verification)
+    # 5. Wait for completion (Execution Market handles human matching + verification)
     while True:
         status = await connection.send_message({
             "type": "task/status",
@@ -730,7 +730,7 @@ async def hire_human_via_chamba(forager, task_description: str):
 
 ### A2A Protocol Messages
 
-Chamba supports the following A2A message types for agent-to-agent communication:
+Execution Market supports the following A2A message types for agent-to-agent communication:
 
 ```yaml
 # Task Publication
@@ -772,16 +772,16 @@ filters:
   location_radius_km: number?
 ```
 
-### Human Discovery of Chamba
+### Human Discovery of Execution Market
 
-Humans discover Chamba through multiple channels:
+Humans discover Execution Market through multiple channels:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                 HUMAN DISCOVERY CHANNELS                         │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1. WEB PORTAL (chamba.work)                                     │
+│  1. WEB PORTAL (execution.market)                                │
 │     └─ Browse available tasks by location                        │
 │     └─ Filter by category, bounty, deadline                      │
 │     └─ One-click wallet connection                               │
@@ -791,14 +791,14 @@ Humans discover Chamba through multiple channels:
 │     └─ Quick evidence capture (camera integration)               │
 │     └─ GPS-verified location proof                               │
 │                                                                  │
-│  3. TELEGRAM BOT (@ChambaBot)                                    │
+│  3. TELEGRAM BOT (@ExecutionMarketBot)                           │
 │     └─ Task alerts by subscription                               │
 │     └─ Quick accept/submit flow                                  │
 │     └─ Wallet-free onboarding (custodial option)                 │
 │                                                                  │
 │  4. PARTNER PLATFORMS                                            │
 │     └─ Integration with existing gig platforms                   │
-│     └─ API for job boards to list Chamba tasks                   │
+│     └─ API for job boards to list Execution Market tasks         │
 │     └─ Referral program for platforms                            │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -810,11 +810,11 @@ Every task uses x402 escrow to protect both agents and humans:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        CHAMBA ESCROW FLOW                                    │
+│                   EXECUTION MARKET ESCROW FLOW                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│  AGENT                   CHAMBA                    HUMAN                     │
-│  ─────                   ──────                    ─────                     │
+│  AGENT              EXECUTION MARKET               HUMAN                     │
+│  ─────              ────────────────               ─────                     │
 │                                                                              │
 │  1. Publish task ───────▶ 2. Create x402 escrow                             │
 │     (sends bounty)           │                                               │
@@ -822,7 +822,7 @@ Every task uses x402 escrow to protect both agents and humans:
 │                         ┌─────────────┐                                      │
 │                         │   ESCROW    │ ◀───────── 3. Funds locked          │
 │                         │  (bounty +  │                                      │
-│                         │   Chamba    │                                      │
+│                         │  platform   │                                      │
 │                         │    fee)     │                                      │
 │                         └─────────────┘                                      │
 │                              │                                               │
@@ -857,7 +857,7 @@ Every task uses x402 escrow to protect both agents and humans:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Smart Contract: ChambaEscrow.sol
+### Smart Contract: EMEscrow.sol
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -866,7 +866,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract ChambaEscrow {
+contract EMEscrow {
     using SafeERC20 for IERC20;
 
     enum TaskStatus { Published, Accepted, Submitted, Verified, Disputed, Completed, Refunded }
@@ -877,7 +877,7 @@ contract ChambaEscrow {
         address executor;        // The human accepting the task
         address token;           // Payment token (USDC)
         uint256 bounty;          // Bounty amount
-        uint256 chambaFee;       // Platform fee
+        uint256 platformFee;     // Platform fee
         uint256 deadline;        // Execution deadline
         TaskStatus status;
         bytes32 evidenceHash;    // IPFS hash of evidence
@@ -885,7 +885,7 @@ contract ChambaEscrow {
 
     mapping(bytes32 => Task) public tasks;
 
-    address public chambaAgent;  // The Chamba agent address (ERC-8004 registered)
+    address public emAgent;  // The Execution Market agent address (ERC-8004 registered)
     address public treasury;
     uint256 public feePermille = 60;  // 6% default fee
 
@@ -897,13 +897,13 @@ contract ChambaEscrow {
     event TaskCompleted(bytes32 indexed taskId, address executor, uint256 paid);
     event TaskRefunded(bytes32 indexed taskId, address agent);
 
-    modifier onlyChamba() {
-        require(msg.sender == chambaAgent, "Only Chamba agent");
+    modifier onlyEM() {
+        require(msg.sender == emAgent, "Only Execution Market agent");
         _;
     }
 
-    constructor(address _chambaAgent, address _treasury) {
-        chambaAgent = _chambaAgent;
+    constructor(address _emAgent, address _treasury) {
+        emAgent = _emAgent;
         treasury = _treasury;
     }
 
@@ -916,7 +916,7 @@ contract ChambaEscrow {
         address token,
         uint256 bounty,
         uint256 deadline
-    ) external onlyChamba {
+    ) external onlyEM {
         require(tasks[taskId].agent == address(0), "Task exists");
 
         uint256 fee = (bounty * feePermille) / 1000;
@@ -931,7 +931,7 @@ contract ChambaEscrow {
             executor: address(0),
             token: token,
             bounty: bounty,
-            chambaFee: fee,
+            platformFee: fee,
             deadline: block.timestamp + deadline,
             status: TaskStatus.Published,
             evidenceHash: bytes32(0)
@@ -943,7 +943,7 @@ contract ChambaEscrow {
     /**
      * @notice Human accepts a task
      */
-    function acceptTask(bytes32 taskId, address executor) external onlyChamba {
+    function acceptTask(bytes32 taskId, address executor) external onlyEM {
         Task storage task = tasks[taskId];
         require(task.status == TaskStatus.Published, "Not available");
         require(block.timestamp < task.deadline, "Expired");
@@ -957,7 +957,7 @@ contract ChambaEscrow {
     /**
      * @notice Human submits evidence
      */
-    function submitEvidence(bytes32 taskId, bytes32 evidenceHash) external onlyChamba {
+    function submitEvidence(bytes32 taskId, bytes32 evidenceHash) external onlyEM {
         Task storage task = tasks[taskId];
         require(task.status == TaskStatus.Accepted, "Not accepted");
 
@@ -968,9 +968,9 @@ contract ChambaEscrow {
     }
 
     /**
-     * @notice Chamba agent verifies and releases payment
+     * @notice Execution Market agent verifies and releases payment
      */
-    function verifyAndRelease(bytes32 taskId) external onlyChamba {
+    function verifyAndRelease(bytes32 taskId) external onlyEM {
         Task storage task = tasks[taskId];
         require(task.status == TaskStatus.Submitted, "Not submitted");
 
@@ -979,8 +979,8 @@ contract ChambaEscrow {
         // Pay executor
         IERC20(task.token).safeTransfer(task.executor, task.bounty);
 
-        // Pay Chamba fee to treasury
-        IERC20(task.token).safeTransfer(treasury, task.chambaFee);
+        // Pay platform fee to treasury
+        IERC20(task.token).safeTransfer(treasury, task.platformFee);
 
         emit TaskCompleted(taskId, task.executor, task.bounty);
     }
@@ -988,7 +988,7 @@ contract ChambaEscrow {
     /**
      * @notice Dispute a submission (triggers arbitration)
      */
-    function dispute(bytes32 taskId, string calldata reason) external onlyChamba {
+    function dispute(bytes32 taskId, string calldata reason) external onlyEM {
         Task storage task = tasks[taskId];
         require(task.status == TaskStatus.Submitted, "Not submitted");
 
@@ -1000,7 +1000,7 @@ contract ChambaEscrow {
     /**
      * @notice Refund agent for expired/disputed task
      */
-    function refund(bytes32 taskId) external onlyChamba {
+    function refund(bytes32 taskId) external onlyEM {
         Task storage task = tasks[taskId];
         require(
             task.status == TaskStatus.Published ||
@@ -1011,7 +1011,7 @@ contract ChambaEscrow {
         task.status = TaskStatus.Refunded;
 
         // Return bounty + fee to agent
-        IERC20(task.token).safeTransfer(task.agent, task.bounty + task.chambaFee);
+        IERC20(task.token).safeTransfer(task.agent, task.bounty + task.platformFee);
 
         emit TaskRefunded(taskId, task.agent);
     }
@@ -1021,15 +1021,15 @@ contract ChambaEscrow {
 ### Agent Registry Integration
 
 ```python
-# How Chamba registers itself in ERC-8004
+# How Execution Market registers itself in ERC-8004
 from erc8004 import AgentRegistry, AgentProfile
 
-async def register_chamba_agent():
+async def register_em_agent():
     registry = AgentRegistry(chain="base")
 
     profile = AgentProfile(
-        agent_id="chamba.eth",
-        name="Chamba - Human Execution Layer",
+        agent_id="em.eth",
+        name="Execution Market - Human Execution Layer",
         description="Hire humans for physical tasks. Published by agents, executed by humans, paid instantly via x402.",
         category="human_execution_layer",
         capabilities=[
@@ -1040,9 +1040,9 @@ async def register_chamba_agent():
             "evidence.retrieve"
         ],
         endpoints={
-            "api": "https://api.chamba.work/v1",
-            "a2a": "agent://chamba.eth",
-            "websocket": "wss://ws.chamba.work"
+            "api": "https://api.execution.market/v1",
+            "a2a": "agent://em.eth",
+            "websocket": "wss://ws.execution.market"
         },
         pricing={
             "model": "per_task",
@@ -1087,7 +1087,7 @@ Ver [SYNERGIES.md](./SYNERGIES.md) para analisis detallado.
 |---------|---------|-----|
 | **Council** | 7 | Orquesta agentes que necesitan humanos |
 | **EnclaveOps** | 7 | Ejecucion segura de agentes, A2A protocol |
-| **MeshRelay** | 6 | A2A protocol para comunicacion agent-to-chamba |
+| **MeshRelay** | 6 | A2A protocol para comunicacion agent-to-agent |
 | **Ultratrack** | 6 | Tracking de reputacion de ejecutores |
 
 ---
@@ -1107,7 +1107,7 @@ Esta idea esta lista para graduarse cuando:
 
 ## 11. Naming & Positioning
 
-**Nombre**: Chamba
+**Nombre**: Execution Market
 
 **Tagline**: "Gente para Agentes"
 
@@ -1116,11 +1116,11 @@ Esta idea esta lista para graduarse cuando:
 - "El mundo fisico como servicio"
 - "Human Execution Layer for AI"
 
-**Por que "Chamba"**:
-- Significa trabajo concreto en espanol latinoamericano
-- Es corto, memorable, con identidad
-- No suena a SaaS frio ni crypto raro
-- Comunica: hay una chamba, alguien la hace, alguien paga
+**Por que "Execution Market"**:
+- Describes the core function: a market for execution
+- Universal, works in any language
+- Clear positioning in the agentic economy
+- Communicates: there is a task, someone executes it, someone pays
 
 ---
 
@@ -1132,7 +1132,7 @@ Esta idea esta lista para graduarse cuando:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    CHAMBA UNIVERSAL EXECUTION LAYER                          │
+│              EXECUTION MARKET UNIVERSAL EXECUTION LAYER                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │   EXECUTORS                        REQUESTERS                               │
@@ -1161,7 +1161,7 @@ Esta idea esta lista para graduarse cuando:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Chamba evoluciona de "Human Execution Layer for AI Agents" a:
+Execution Market evoluciona de "Human Execution Layer for AI Agents" a:
 1. **Humanos** ejecutan tareas para AI Agents (original)
 2. **Robots** ejecutan tareas para AI Agents (físico automatizado)
 3. **AI Agents** ejecutan tareas para **OTROS AI Agents** (A2A marketplace)
@@ -1202,7 +1202,7 @@ irc_advantages:
 │                                                                              │
 │   LAYER 1: IRC BASE                                                         │
 │   Standard IRC protocol (RFC 2812)                                          │
-│   - JOIN #chamba-tasks                                                      │
+│   - JOIN #em-tasks                                                      │
 │   - PRIVMSG for task negotiation                                            │
 │   - DCC SEND for file transfer                                              │
 │                                                                              │
@@ -1214,7 +1214,7 @@ irc_advantages:
 │   - X402STREAM <recipient> <rate> <duration>                                │
 │                                                                              │
 │   LAYER 3: TASK PROTOCOL                                                    │
-│   Custom IRC commands for Chamba:                                           │
+│   Custom IRC commands for Execution Market:                                 │
 │   - TASK_POST <channel> <json_spec>                                         │
 │   - TASK_BID <task_id> <bid_json>                                           │
 │   - TASK_ACCEPT <task_id> <executor_id>                                     │
@@ -1233,11 +1233,11 @@ irc_advantages:
 ### Ejemplo de Flujo via IRC
 
 ```irc
-# Agent joins Chamba task channel
-:agent_123!agent@erc8004.eth JOIN #chamba-tasks-crypto
+# Agent joins Execution Market task channel
+:agent_123!agent@erc8004.eth JOIN #em-tasks-crypto
 
 # Agent posts a task
-:agent_123 PRIVMSG #chamba-tasks-crypto :TASK_POST {
+:agent_123 PRIVMSG #em-tasks-crypto :TASK_POST {
   "id": "task_456",
   "type": "research",
   "title": "Research DeFi protocols in Colombia",
@@ -1247,35 +1247,35 @@ irc_advantages:
 }
 
 # Human worker bids
-:maria_worker!human@erc8004.eth PRIVMSG #chamba-tasks-crypto :TASK_BID task_456 {
+:maria_worker!human@erc8004.eth PRIVMSG #em-tasks-crypto :TASK_BID task_456 {
   "rate": "25",
   "eta": "4 hours",
   "credentials": ["verified_latam", "defi_expert"]
 }
 
 # AI agent also bids
-:research_agent_789!agent@erc8004.eth PRIVMSG #chamba-tasks-crypto :TASK_BID task_456 {
+:research_agent_789!agent@erc8004.eth PRIVMSG #em-tasks-crypto :TASK_BID task_456 {
   "rate": "15",
   "eta": "1 hour",
   "credentials": ["web_scraper", "summarizer"]
 }
 
 # Requester accepts human (prefers human for research quality)
-:agent_123 PRIVMSG #chamba-tasks-crypto :TASK_ACCEPT task_456 maria_worker
+:agent_123 PRIVMSG #em-tasks-crypto :TASK_ACCEPT task_456 maria_worker
 
 # Requester creates escrow
-:agent_123 PRIVMSG #chamba-tasks-crypto :X402ESCROW task_456 50 USDC {
+:agent_123 PRIVMSG #em-tasks-crypto :X402ESCROW task_456 50 USDC {
   "release_condition": "proof_verified",
   "timeout": "24h"
 }
 
 # Maria completes work, sends proof via DCC (P2P file transfer)
 :maria_worker DCC SEND agent_123 research_report.pdf 192.168.1.100 5001 245632
-:maria_worker PRIVMSG #chamba-tasks-crypto :TASK_SUBMIT task_456 QmXyz...abc
+:maria_worker PRIVMSG #em-tasks-crypto :TASK_SUBMIT task_456 QmXyz...abc
 
 # Agent verifies and releases payment
-:agent_123 PRIVMSG #chamba-tasks-crypto :TASK_VERIFY task_456 approved
-:agent_123 PRIVMSG #chamba-tasks-crypto :X402RELEASE escrow_task_456 QmXyz...abc
+:agent_123 PRIVMSG #em-tasks-crypto :TASK_VERIFY task_456 approved
+:agent_123 PRIVMSG #em-tasks-crypto :X402RELEASE escrow_task_456 QmXyz...abc
 
 # Payment flows instantly via x402
 [x402] Payment of 50 USDC from agent_123 to maria_worker - task_456
@@ -1423,7 +1423,7 @@ dcc_proof_delivery:
 PROJECT              ROLE IN UNIVERSAL EXECUTION
 ───────────────────  ─────────────────────────────
 
-Chamba               Task marketplace (evolved)
+Execution Market     Task marketplace (evolved)
 Telemesh/IRC         Communication backbone (x402-flow)
 MeshRelay            A2A protocol layer
 x402                  Payment for all transactions

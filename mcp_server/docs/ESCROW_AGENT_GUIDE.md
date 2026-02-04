@@ -1,6 +1,6 @@
 # Advanced Escrow Guide for AI Agents
 
-This guide explains how to use the Advanced Escrow payment system in Chamba.
+This guide explains how to use the Advanced Escrow payment system in Execution Market.
 The escrow system holds bounty funds on-chain until task completion, protecting
 both agents and workers.
 
@@ -44,8 +44,8 @@ Agent                    PaymentOperator          Worker
 approve, they get paid.
 
 **MCP calls**:
-1. `chamba_escrow_authorize` (task_id, receiver, amount, strategy="escrow_capture")
-2. `chamba_escrow_release` (task_id)
+1. `em_escrow_authorize` (task_id, receiver, amount, strategy="escrow_capture")
+2. `em_escrow_release` (task_id)
 
 ### Flow 2: AUTHORIZE -> REFUND (Cancellation)
 
@@ -66,8 +66,8 @@ availability, business hours). If conditions aren't met, you get your
 money back.
 
 **MCP calls**:
-1. `chamba_escrow_authorize` (task_id, receiver, amount, strategy="escrow_cancel")
-2. `chamba_escrow_refund` (task_id)
+1. `em_escrow_authorize` (task_id, receiver, amount, strategy="escrow_cancel")
+2. `em_escrow_refund` (task_id)
 
 ### Flow 3: CHARGE (Instant Payment)
 
@@ -82,7 +82,7 @@ Agent                    PaymentOperator          Worker
 No escrow step - funds go directly to the worker.
 
 **MCP calls**:
-1. `chamba_escrow_charge` (task_id, receiver, amount)
+1. `em_escrow_charge` (task_id, receiver, amount)
 
 ### Flow 4: AUTHORIZE -> PARTIAL RELEASE + REFUND (Proof of Attempt)
 
@@ -103,8 +103,8 @@ Agent                    PaymentOperator          Worker
 task. Reward the attempt (default 15%) and recover the rest.
 
 **MCP calls**:
-1. `chamba_escrow_authorize` (task_id, receiver, amount, strategy="partial_payment")
-2. `chamba_escrow_partial_release` (task_id, release_percent=15)
+1. `em_escrow_authorize` (task_id, receiver, amount, strategy="partial_payment")
+2. `em_escrow_partial_release` (task_id, release_percent=15)
 
 ### Dispute Resolution (Arbiter Escrow)
 
@@ -132,13 +132,13 @@ escrow under arbiter control, which guarantees they are available for refund
 if quality fails.
 
 **MCP calls**:
-1. `chamba_escrow_authorize` (task_id, receiver, amount, strategy="dispute_resolution")
+1. `em_escrow_authorize` (task_id, receiver, amount, strategy="dispute_resolution")
 2. Wait for arbiter review
-3. `chamba_escrow_release` (if approved) OR `chamba_escrow_refund` (if rejected)
+3. `em_escrow_release` (if approved) OR `em_escrow_refund` (if rejected)
 
 ### Post-Release Refund (NOT AVAILABLE)
 
-The `chamba_escrow_dispute` tool exists but is **not functional in production**.
+The `em_escrow_dispute` tool exists but is **not functional in production**.
 The protocol team has not yet implemented the required `tokenCollector` contract.
 
 The recommended approach for disputes is to keep funds in escrow (see above).
@@ -146,7 +146,7 @@ Post-release refunds rely on merchant goodwill and are not guaranteed.
 
 ## Strategy Decision Tree
 
-Use `chamba_escrow_recommend_strategy` to get an automated recommendation,
+Use `em_escrow_recommend_strategy` to get an automated recommendation,
 or follow this logic:
 
 ```
@@ -191,19 +191,19 @@ Tiers are auto-detected from the bounty amount. You can override with the
 
 | Tool | Description |
 |------|-------------|
-| `chamba_escrow_recommend_strategy` | Get AI-recommended payment strategy |
-| `chamba_escrow_status` | Query current escrow state for a task |
+| `em_escrow_recommend_strategy` | Get AI-recommended payment strategy |
+| `em_escrow_status` | Query current escrow state for a task |
 
 ### Write Tools (on-chain transactions)
 
 | Tool | Description | Gas Required |
 |------|-------------|-------------|
-| `chamba_escrow_authorize` | Lock funds in escrow (max $100) | Yes |
-| `chamba_escrow_release` | Pay worker from escrow | Yes |
-| `chamba_escrow_refund` | Return funds to agent | Yes |
-| `chamba_escrow_charge` | Instant payment (max $100) | Yes |
-| `chamba_escrow_partial_release` | Split payment + refund | Yes (2 txs) |
-| `chamba_escrow_dispute` | Post-release refund | NOT FUNCTIONAL |
+| `em_escrow_authorize` | Lock funds in escrow (max $100) | Yes |
+| `em_escrow_release` | Pay worker from escrow | Yes |
+| `em_escrow_refund` | Return funds to agent | Yes |
+| `em_escrow_charge` | Instant payment (max $100) | Yes |
+| `em_escrow_partial_release` | Split payment + refund | Yes (2 txs) |
+| `em_escrow_dispute` | Post-release refund | NOT FUNCTIONAL |
 
 ## Example: Complete Task Lifecycle
 
@@ -211,11 +211,11 @@ Tiers are auto-detected from the bounty amount. You can override with the
 1. Agent decides to publish a $25 task
 
 2. Check recommended strategy:
-   -> chamba_escrow_recommend_strategy(amount_usdc=25.0, worker_reputation=0.7)
+   -> em_escrow_recommend_strategy(amount_usdc=25.0, worker_reputation=0.7)
    -> Result: "escrow_capture"
 
 3. Authorize escrow:
-   -> chamba_escrow_authorize(
+   -> em_escrow_authorize(
         task_id="abc-123",
         receiver="0xWorkerWallet...",
         amount_usdc=25.0,
@@ -224,11 +224,11 @@ Tiers are auto-detected from the bounty amount. You can override with the
    -> Result: Authorized, tx=0x...
 
 4. Worker completes the task, agent approves:
-   -> chamba_escrow_release(task_id="abc-123")
+   -> em_escrow_release(task_id="abc-123")
    -> Result: Released $25.00 USDC to worker
 
 5. Verify final state:
-   -> chamba_escrow_status(task_id="abc-123")
+   -> em_escrow_status(task_id="abc-123")
    -> Result: status=RELEASED, released=$25.00
 ```
 
@@ -238,11 +238,11 @@ Tiers are auto-detected from the bounty amount. You can override with the
 1. High-value task with quality review needed
 
 2. Check strategy:
-   -> chamba_escrow_recommend_strategy(amount_usdc=75.0, requires_quality_review=true)
+   -> em_escrow_recommend_strategy(amount_usdc=75.0, requires_quality_review=true)
    -> Result: "dispute_resolution"
 
 3. Authorize (funds locked, NOT released):
-   -> chamba_escrow_authorize(
+   -> em_escrow_authorize(
         task_id="xyz-789",
         receiver="0xWorker...",
         amount_usdc=75.0,
@@ -250,10 +250,10 @@ Tiers are auto-detected from the bounty amount. You can override with the
       )
 
 4a. Arbiter approves quality:
-    -> chamba_escrow_release(task_id="xyz-789")
+    -> em_escrow_release(task_id="xyz-789")
 
 4b. Arbiter rejects quality (funds still in escrow, guaranteed refund):
-    -> chamba_escrow_refund(task_id="xyz-789")
+    -> em_escrow_refund(task_id="xyz-789")
 ```
 
 ## FAQ
@@ -271,13 +271,13 @@ A: No funds are locked. Check that your wallet has sufficient USDC and that
 the PaymentOperator contract has spending approval.
 
 **Q: Can I release partial amounts?**
-A: Yes, use `chamba_escrow_partial_release` to split the payment. Release a
+A: Yes, use `em_escrow_partial_release` to split the payment. Release a
 percentage to the worker and refund the rest.
 
 **Q: Why does dispute always fail?**
 A: The `refundPostEscrow` function requires a `tokenCollector` contract that
 the protocol team has not implemented yet. Use in-escrow refund instead:
-keep funds locked and call `chamba_escrow_refund` if quality fails.
+keep funds locked and call `em_escrow_refund` if quality fails.
 
 **Q: What is the maximum I can escrow?**
 A: $100 USDC per deposit (contract-enforced limit). The protocol team can
@@ -292,7 +292,7 @@ A: The facilitator covers gas costs. Your wallet only needs USDC.
 
 **Q: What's the difference between EscrowPeriod and refundExpiry?**
 A: `EscrowPeriod` controls how long funds stay in escrow (for in-escrow refunds).
-`refundExpiry` is only for commerce-payments post-escrow refunds. Chamba uses
+`refundExpiry` is only for commerce-payments post-escrow refunds. Execution Market uses
 `EscrowPeriod` for all escrow flows.
 
 ## Limits and Restrictions

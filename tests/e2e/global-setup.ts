@@ -1,5 +1,5 @@
 /**
- * Chamba E2E Tests - Global Setup
+ * Execution Market E2E Tests - Global Setup
  *
  * Runs once before all tests to:
  * 1. Verify test environment is ready
@@ -9,7 +9,7 @@
 import { chromium, FullConfig } from '@playwright/test';
 
 async function globalSetup(config: FullConfig) {
-  console.log('\n=== Chamba E2E Test Suite - Global Setup ===\n');
+  console.log('\n=== Execution Market E2E Test Suite - Global Setup ===\n');
 
   const baseURL = config.projects[0].use.baseURL || 'http://localhost:3000';
 
@@ -33,13 +33,13 @@ async function globalSetup(config: FullConfig) {
     console.log('App is running and accessible.');
 
     // 2. Check for essential elements
-    const chambaLogo = page.getByText('Chamba');
-    const isReady = await chambaLogo.isVisible({ timeout: 10000 }).catch(() => false);
+    const emLogo = page.getByText('Execution Market');
+    const isReady = await emLogo.isVisible({ timeout: 10000 }).catch(() => false);
 
     if (isReady) {
-      console.log('App loaded successfully with Chamba branding.');
+      console.log('App loaded successfully with Execution Market branding.');
     } else {
-      console.warn('Warning: Could not verify Chamba branding. Tests may still work.');
+      console.warn('Warning: Could not verify Execution Market branding. Tests may still work.');
     }
 
     // 3. Set up test data via API (if available)
@@ -63,8 +63,8 @@ async function globalSetup(config: FullConfig) {
   } catch (error) {
     console.error('\nGlobal Setup Failed:');
     console.error(error);
-    console.error('\nMake sure the Chamba dashboard is running:');
-    console.error('  cd ideas/chamba/dashboard && npm run dev\n');
+    console.error('\nMake sure the Execution Market dashboard is running:');
+    console.error('  cd dashboard && npm run dev\n');
     throw error;
   } finally {
     await browser.close();

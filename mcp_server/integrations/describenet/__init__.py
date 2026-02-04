@@ -1,9 +1,9 @@
 """
-describe.net Seals Integration for Chamba (NOW-166 to NOW-170)
+describe.net Seals Integration for Execution Market (NOW-166 to NOW-170)
 
-Bidirectional reputation flow between Chamba and describe.net:
-- Chamba task completions generate seals on describe.net
-- describe.net seals influence Chamba matching algorithms
+Bidirectional reputation flow between Execution Market and describe.net:
+- Execution Market task completions generate seals on describe.net
+- describe.net seals influence Execution Market matching algorithms
 - Workers can filter requesters by reputation seals
 
 Seal Types:

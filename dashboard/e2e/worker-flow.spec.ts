@@ -1,5 +1,5 @@
 /**
- * Chamba Dashboard - Worker Flow E2E Tests
+ * Execution Market Dashboard - Worker Flow E2E Tests
  *
  * Tests for the complete worker journey:
  * - Viewing available tasks
@@ -25,7 +25,7 @@ async function setupWorkerSession(page: import('@playwright/test').Page) {
   // when authenticated. In production, you'd set localStorage/cookies.
   await page.addInitScript(() => {
     // Mock auth state
-    window.localStorage.setItem('chamba_auth', JSON.stringify({
+    window.localStorage.setItem('em_auth', JSON.stringify({
       user_id: 'test-worker-1',
       role: 'executor',
       wallet_address: '0x1234567890123456789012345678901234567890',

@@ -1,10 +1,10 @@
 """
-Agent commands for Chamba CLI.
+Agent commands for Execution Market CLI.
 
 Commands for AI agents or human agents to publish and manage tasks:
-    chamba agent publish --title "..." --bounty 10 --location "lat,lng"
-    chamba agent review <task-id>
-    chamba agent approve <submission-id>
+    em agent publish --title "..." --bounty 10 --location "lat,lng"
+    em agent review <task-id>
+    em agent approve <submission-id>
 """
 
 import sys
@@ -16,7 +16,7 @@ import click
 
 from ..config import get_api_key, get_config_manager
 from ..api import (
-    ChambaAPIClient,
+    EMAPIClient,
     APIError,
     TaskCategory,
     EvidenceType,
@@ -167,14 +167,14 @@ def publish(
     Examples:
 
         # Simple task
-        chamba agent publish \\
+        em agent publish \\
             --title "Verify store is open" \\
             --bounty 5 \\
             --location "19.4326,-99.1332" \\
             --instructions "Take a photo of the storefront showing the open/closed sign"
 
         # Task with multiple evidence types
-        chamba agent publish \\
+        em agent publish \\
             --title "Document restaurant menu" \\
             --category knowledge_access \\
             --bounty 15 \\
@@ -186,7 +186,7 @@ def publish(
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     # Handle instructions from file
@@ -278,7 +278,7 @@ def publish(
             print_task_detail(task)
             console.print()
             print_info("Monitor task status with:")
-            print_info(f"  chamba agent review {task.id}")
+            print_info(f"  em agent review {task.id}")
 
     except APIError as e:
         print_error(str(e))
@@ -302,13 +302,13 @@ def review(ctx, task_id: str, output: str):
 
     Examples:
 
-        chamba agent review abc123
+        em agent review abc123
 
-        chamba agent review abc123 --output json
+        em agent review abc123 --output json
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     try:
@@ -335,8 +335,8 @@ def review(ctx, task_id: str, output: str):
                 if pending:
                     console.print("[bold]Quick Actions:[/bold]")
                     for sub in pending[:3]:  # Show first 3
-                        console.print(f"  chamba agent approve {sub.id}")
-                        console.print(f"  chamba agent reject {sub.id} --reason '...'")
+                        console.print(f"  em agent approve {sub.id}")
+                        console.print(f"  em agent reject {sub.id} --reason '...'")
             else:
                 print_info("No submissions yet")
 
@@ -369,13 +369,13 @@ def approve(ctx, submission_id: str, notes: Optional[str], output: str):
 
     Examples:
 
-        chamba agent approve sub_abc123
+        em agent approve sub_abc123
 
-        chamba agent approve sub_abc123 --notes "Great work, thank you!"
+        em agent approve sub_abc123 --notes "Great work, thank you!"
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     try:
@@ -423,11 +423,11 @@ def reject(ctx, submission_id: str, reason: str, output: str):
 
     Examples:
 
-        chamba agent reject sub_abc123 --reason "Photo is blurry, please retake"
+        em agent reject sub_abc123 --reason "Photo is blurry, please retake"
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     if not confirm(f"Reject submission {submission_id}?"):
@@ -475,13 +475,13 @@ def list_agent_tasks(ctx, status: Optional[str], limit: int, output: str):
 
     Examples:
 
-        chamba agent list
+        em agent list
 
-        chamba agent list --status submitted
+        em agent list --status submitted
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     try:
@@ -527,11 +527,11 @@ def cancel(ctx, task_id: str, reason: Optional[str]):
 
     Examples:
 
-        chamba agent cancel abc123 --reason "No longer needed"
+        em agent cancel abc123 --reason "No longer needed"
     """
     api_key = get_api_key()
     if not api_key:
-        print_error("Not logged in. Run 'chamba login --wallet <address>' first.")
+        print_error("Not logged in. Run 'em login --wallet <address>' first.")
         sys.exit(1)
 
     try:

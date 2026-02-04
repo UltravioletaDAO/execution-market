@@ -1,5 +1,5 @@
 """
-Metrics Collection for Chamba Monitoring.
+Metrics Collection for Execution Market Monitoring.
 
 Production-ready metrics collection supporting Prometheus and CloudWatch.
 
@@ -370,7 +370,7 @@ class Summary:
 
 class MetricsRegistry:
     """
-    Central registry for all Chamba metrics.
+    Central registry for all Execution Market metrics.
 
     Metrics categories:
     - Task lifecycle (created, completed, failed, duration)
@@ -388,38 +388,38 @@ class MetricsRegistry:
         # Task Metrics
         # =====================================================================
         self.tasks_created = Counter(
-            "chamba_tasks_created_total",
+            "em_tasks_created_total",
             "Total number of tasks created",
             labels=["category", "agent_tier"]
         )
 
         self.tasks_completed = Counter(
-            "chamba_tasks_completed_total",
+            "em_tasks_completed_total",
             "Total number of tasks completed successfully",
             labels=["category"]
         )
 
         self.tasks_failed = Counter(
-            "chamba_tasks_failed_total",
+            "em_tasks_failed_total",
             "Total number of tasks that failed or were cancelled",
             labels=["category", "reason"]
         )
 
         self.task_duration = Histogram(
-            "chamba_task_duration_seconds",
+            "em_task_duration_seconds",
             "Task completion duration in seconds",
             buckets=Histogram.TASK_BUCKETS,
             labels=["category"]
         )
 
         self.active_tasks = Gauge(
-            "chamba_active_tasks",
+            "em_active_tasks",
             "Number of currently active tasks",
             labels=["status"]
         )
 
         self.task_bounty = Histogram(
-            "chamba_task_bounty_usd",
+            "em_task_bounty_usd",
             "Task bounty amounts in USD",
             buckets=Histogram.PAYMENT_BUCKETS,
             labels=["category"]
@@ -429,25 +429,25 @@ class MetricsRegistry:
         # Submission Metrics
         # =====================================================================
         self.submissions_received = Counter(
-            "chamba_submissions_received_total",
+            "em_submissions_received_total",
             "Total submissions received",
             labels=["category"]
         )
 
         self.submissions_approved = Counter(
-            "chamba_submissions_approved_total",
+            "em_submissions_approved_total",
             "Total submissions approved",
             labels=["category"]
         )
 
         self.submissions_rejected = Counter(
-            "chamba_submissions_rejected_total",
+            "em_submissions_rejected_total",
             "Total submissions rejected",
             labels=["category", "reason"]
         )
 
         self.submission_review_time = Histogram(
-            "chamba_submission_review_seconds",
+            "em_submission_review_seconds",
             "Time to review submissions",
             labels=["category", "verdict"]
         )
@@ -456,31 +456,31 @@ class MetricsRegistry:
         # Payment Metrics
         # =====================================================================
         self.payments_processed = Counter(
-            "chamba_payments_processed_total",
+            "em_payments_processed_total",
             "Total payments processed",
             labels=["token", "status"]
         )
 
         self.payment_volume = Counter(
-            "chamba_payment_volume_usd_total",
+            "em_payment_volume_usd_total",
             "Total payment volume in USD",
             labels=["token"]
         )
 
         self.payment_failures = Counter(
-            "chamba_payment_failures_total",
+            "em_payment_failures_total",
             "Total payment failures",
             labels=["token", "error_type"]
         )
 
         self.payment_latency = Histogram(
-            "chamba_payment_processing_seconds",
+            "em_payment_processing_seconds",
             "Payment processing time",
             labels=["token"]
         )
 
         self.escrow_balance = Gauge(
-            "chamba_escrow_balance_usd",
+            "em_escrow_balance_usd",
             "Current escrow balance in USD",
             labels=["token"]
         )
@@ -489,30 +489,30 @@ class MetricsRegistry:
         # Worker Metrics
         # =====================================================================
         self.active_workers = Gauge(
-            "chamba_active_workers",
+            "em_active_workers",
             "Number of active workers",
             labels=["tier", "category"]
         )
 
         self.worker_registrations = Counter(
-            "chamba_worker_registrations_total",
+            "em_worker_registrations_total",
             "Total worker registrations"
         )
 
         self.worker_reputation_distribution = Histogram(
-            "chamba_worker_reputation_score",
+            "em_worker_reputation_score",
             "Distribution of worker reputation scores",
             buckets=(10, 25, 50, 75, 100, 150, 200, 300, 500)
         )
 
         self.worker_availability = Gauge(
-            "chamba_worker_availability_ratio",
+            "em_worker_availability_ratio",
             "Ratio of available workers to total workers",
             labels=["category"]
         )
 
         self.worker_task_acceptance_rate = Gauge(
-            "chamba_worker_task_acceptance_rate",
+            "em_worker_task_acceptance_rate",
             "Rolling task acceptance rate per worker tier",
             labels=["tier"]
         )
@@ -521,31 +521,31 @@ class MetricsRegistry:
         # API Metrics
         # =====================================================================
         self.api_requests = Counter(
-            "chamba_api_requests_total",
+            "em_api_requests_total",
             "Total API requests",
             labels=["method", "path", "status"]
         )
 
         self.api_latency = Histogram(
-            "chamba_api_latency_seconds",
+            "em_api_latency_seconds",
             "API request latency",
             labels=["method", "path"]
         )
 
         self.api_errors = Counter(
-            "chamba_api_errors_total",
+            "em_api_errors_total",
             "Total API errors",
             labels=["method", "path", "error_type"]
         )
 
         self.api_rate_limited = Counter(
-            "chamba_api_rate_limited_total",
+            "em_api_rate_limited_total",
             "Total requests that were rate limited",
             labels=["tier"]
         )
 
         self.websocket_connections = Gauge(
-            "chamba_websocket_connections",
+            "em_websocket_connections",
             "Current WebSocket connections",
             labels=["type"]
         )
@@ -554,25 +554,25 @@ class MetricsRegistry:
         # Verification Metrics
         # =====================================================================
         self.verifications_performed = Counter(
-            "chamba_verifications_total",
+            "em_verifications_total",
             "Total verifications performed",
             labels=["type", "result"]
         )
 
         self.verification_latency = Histogram(
-            "chamba_verification_latency_seconds",
+            "em_verification_latency_seconds",
             "Verification processing time",
             labels=["type"]
         )
 
         self.ai_review_calls = Counter(
-            "chamba_ai_review_calls_total",
+            "em_ai_review_calls_total",
             "Total AI review API calls",
             labels=["model", "status"]
         )
 
         self.ai_review_tokens = Counter(
-            "chamba_ai_review_tokens_total",
+            "em_ai_review_tokens_total",
             "Total tokens used for AI review",
             labels=["model", "direction"]  # direction: input/output
         )
@@ -581,19 +581,19 @@ class MetricsRegistry:
         # Dispute Metrics
         # =====================================================================
         self.disputes_opened = Counter(
-            "chamba_disputes_opened_total",
+            "em_disputes_opened_total",
             "Total disputes opened",
             labels=["category"]
         )
 
         self.disputes_resolved = Counter(
-            "chamba_disputes_resolved_total",
+            "em_disputes_resolved_total",
             "Total disputes resolved",
             labels=["category", "resolution"]
         )
 
         self.dispute_resolution_time = Histogram(
-            "chamba_dispute_resolution_seconds",
+            "em_dispute_resolution_seconds",
             "Time to resolve disputes",
             buckets=(3600, 7200, 14400, 28800, 86400, 172800, 604800)  # 1hr to 1 week
         )
@@ -602,31 +602,31 @@ class MetricsRegistry:
         # System Metrics
         # =====================================================================
         self.health_check_duration = Histogram(
-            "chamba_health_check_duration_seconds",
+            "em_health_check_duration_seconds",
             "Health check duration",
             labels=["component"]
         )
 
         self.background_job_duration = Histogram(
-            "chamba_background_job_duration_seconds",
+            "em_background_job_duration_seconds",
             "Background job execution time",
             labels=["job_type"]
         )
 
         self.background_job_failures = Counter(
-            "chamba_background_job_failures_total",
+            "em_background_job_failures_total",
             "Background job failures",
             labels=["job_type", "error_type"]
         )
 
         self.cache_hits = Counter(
-            "chamba_cache_hits_total",
+            "em_cache_hits_total",
             "Cache hit count",
             labels=["cache"]
         )
 
         self.cache_misses = Counter(
-            "chamba_cache_misses_total",
+            "em_cache_misses_total",
             "Cache miss count",
             labels=["cache"]
         )

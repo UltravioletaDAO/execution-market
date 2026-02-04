@@ -1,5 +1,5 @@
 """
-Health Check Functions for Chamba Dependencies
+Health Check Functions for Execution Market Dependencies
 
 Provides individual health check functions for:
 - Database (Supabase PostgreSQL)
@@ -503,7 +503,7 @@ async def check_blockchain(timeout: float = 10.0) -> ComponentHealth:
 
 class HealthChecker:
     """
-    Comprehensive health checker for all Chamba components.
+    Comprehensive health checker for all Execution Market components.
 
     Features:
     - Caching to prevent excessive health check load

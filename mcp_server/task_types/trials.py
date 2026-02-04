@@ -1,5 +1,5 @@
 """
-Chamba Trials - Experience Testing Tasks (NOW-132)
+Execution Market Trials - Experience Testing Tasks (NOW-132)
 
 Implements "mystery shopping" style tasks:
 - Restaurant experience evaluations

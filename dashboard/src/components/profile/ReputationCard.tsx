@@ -1,4 +1,4 @@
-// Chamba: Reputation Card Component
+// Execution Market: Reputation Card Component
 import { useTranslation } from 'react-i18next'
 import type { ReputationData } from '../../hooks/useProfile'
 

@@ -1,4 +1,4 @@
-# Chamba Infrastructure - Route53 DNS
+# Execution Market Infrastructure - Route53 DNS
 
 # Data source for existing hosted zone
 data "aws_route53_zone" "main" {
@@ -46,9 +46,9 @@ resource "aws_acm_certificate_validation" "main" {
 }
 
 # A Record - MCP Server subdomain (new)
-# Note: main domain (chamba.ultravioletadao.xyz) and api subdomain are managed externally
-# - chamba.ultravioletadao.xyz → CloudFront (static dashboard)
-# - api.chamba.ultravioletadao.xyz → facilitator ELB
+# Note: main domain (execution.market) and api subdomain are managed externally
+# - execution.market → CloudFront (static dashboard)
+# - api.execution.market → facilitator ELB
 resource "aws_route53_record" "mcp" {
   zone_id = data.aws_route53_zone.main.zone_id
   name    = "mcp.${var.domain}"

@@ -1,5 +1,5 @@
 """
-Badge System for Chamba
+Badge System for Execution Market
 
 Achievement badges that workers can earn through various milestones.
 

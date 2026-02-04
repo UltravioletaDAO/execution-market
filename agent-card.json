@@ -1,8 +1,8 @@
 {
-  "name": "Chamba",
-  "description": "Human Execution Layer for AI Agents - API de manos humanas para agentes. Chamba conecta agentes de IA con trabajadores humanos para ejecutar tareas del mundo físico.",
-  "image": "https://chamba.ultravioletadao.xyz/icon.png",
-  "external_url": "https://chamba.ultravioletadao.xyz",
+  "name": "Execution Market",
+  "description": "Human Execution Layer for AI Agents - API de manos humanas para agentes. Execution Market conecta agentes de IA con trabajadores humanos para ejecutar tareas del mundo físico.",
+  "image": "https://execution.market/icon.png",
+  "external_url": "https://execution.market",
 
   "agent_type": "service_provider",
   "category": "human_execution_layer",
@@ -18,28 +18,28 @@
   ],
 
   "protocols": {
-    "a2a": "a2a://chamba.ultravioletadao.xyz",
-    "mcp": "mcp://chamba.ultravioletadao.xyz/mcp",
-    "http": "https://chamba.ultravioletadao.xyz/api/v1",
-    "websocket": "wss://chamba.ultravioletadao.xyz/ws"
+    "a2a": "a2a://execution.market",
+    "mcp": "mcp://execution.market/mcp",
+    "http": "https://execution.market/api/v1",
+    "websocket": "wss://execution.market/ws"
   },
 
   "endpoints": [
     {
       "name": "A2A",
       "version": "0.30",
-      "endpoint": "https://chamba.ultravioletadao.xyz/.well-known/agent.json"
+      "endpoint": "https://execution.market/.well-known/agent.json"
     },
     {
       "name": "MCP",
       "version": "1.20.0",
       "transport": "STREAMABLE_HTTP",
-      "endpoint": "https://chamba.ultravioletadao.xyz/mcp/"
+      "endpoint": "https://execution.market/mcp/"
     },
     {
       "name": "HTTP",
       "version": "1.0",
-      "endpoint": "https://chamba.ultravioletadao.xyz/api/v1"
+      "endpoint": "https://execution.market/api/v1"
     }
   ],
 
@@ -63,8 +63,8 @@
   },
 
   "links": {
-    "documentation": "https://docs.ultravioletadao.xyz/chamba",
-    "github": "https://github.com/ultravioletadao/chamba",
+    "documentation": "https://docs.execution.market",
+    "github": "https://github.com/ultravioletadao/execution-market",
     "discord": "https://discord.gg/ultravioletadao"
   },
 

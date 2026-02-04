@@ -1,12 +1,12 @@
 /**
- * HTTP Client for Chamba API
+ * HTTP Client for Execution Market API
  *
  * Alternative HTTP client using native fetch (no axios dependency).
  * Use this for lightweight deployments or environments without axios.
  */
 
 import {
-  ChambaSDKError,
+  ExecutionMarketSDKError,
   AuthenticationError,
   RateLimitError,
   ValidationFailedError,
@@ -52,7 +52,7 @@ export class HttpClient {
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${this.config.apiKey}`,
       'Content-Type': 'application/json',
-      'User-Agent': '@chamba/sdk-typescript/0.1.0',
+      'User-Agent': '@execution-market/sdk-typescript/0.1.0',
     };
 
     let lastError: Error | null = null;
@@ -101,7 +101,7 @@ export class HttpClient {
     }
 
     // If we get here, all retries failed
-    if (lastError instanceof ChambaSDKError) {
+    if (lastError instanceof ExecutionMarketSDKError) {
       throw lastError;
     }
 

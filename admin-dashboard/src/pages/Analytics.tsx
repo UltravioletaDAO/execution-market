@@ -20,7 +20,7 @@ interface AnalyticsProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.chamba.ultravioletadao.xyz'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 async function fetchAnalytics(adminKey: string, period: string) {
   const params = new URLSearchParams({

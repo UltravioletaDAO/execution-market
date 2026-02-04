@@ -1,5 +1,5 @@
 """
-Leaderboard Functions for Chamba
+Leaderboard Functions for Execution Market
 
 Provides rankings and leaderboard functionality:
 1. Top workers by score (global and by location)

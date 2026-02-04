@@ -1,6 +1,6 @@
-# Chamba TODO - Part 2 (Items 101-157)
+# Execution Market TODO - Part 2 (Items 101-157)
 
-> Agent Scenarios, Launch Strategy, Staircase, Concepts, Ecosystem Synergies, CHAMBA CHIMBA, Enterprise
+> Agent Scenarios, Launch Strategy, Staircase, Concepts, Ecosystem Synergies, EM CHIMBA, Enterprise
 >
 > See also: [TODO.md](TODO.md) (Items 0-50), [TODO-1.md](TODO-1.md) (Items 51-100)
 
@@ -8,7 +8,7 @@
 
 ## AGENT SCENARIOS (From Brainstorm 2026-01-11)
 
-> Source: `brainstorming/session_chamba_agent_scenarios_20260111_1500.md`
+> Source: `brainstorming/session_em_agent_scenarios_20260111_1500.md`
 
 ### 102. Implement "Agent Eyes" concept (AR glasses avatar)
 **Priority**: P3
@@ -34,7 +34,7 @@ Humans pre-sell availability by location/time:
 
 ```typescript
 // Worker lists availability
-await chamba.listAvailability({
+await em.listAvailability({
   worker: myAddress,
   location: { lat: 40.7, lng: -74.0, radius_km: 5 },
   times: [
@@ -45,7 +45,7 @@ await chamba.listAvailability({
 });
 
 // Agent reserves slot
-await chamba.reserveSlot(workerId, "monday", 10);
+await em.reserveSlot(workerId, "monday", 10);
 ```
 
 ---
@@ -62,7 +62,7 @@ Tasks that train their own automation:
 
 ---
 
-### 105. Implement "Chamba Recon" (observation tasks)
+### 105. Implement "EM Recon" (observation tasks)
 **Priority**: P1
 **Status**: [ ] Not started
 **Files**: `mcp_server/task_types/recon.py`
@@ -80,7 +80,7 @@ Examples:
 
 ---
 
-### 106. Design "Chamba Trials" (experience testing)
+### 106. Design "EM Trials" (experience testing)
 **Priority**: P2
 **Status**: [ ] Not started
 **Files**: `docs/concepts/trials.md`
@@ -104,7 +104,7 @@ Agents coordinate last-mile delivery:
 
 ---
 
-### 108. Design "Chamba Prime" (premium tier)
+### 108. Design "EM Prime" (premium tier)
 **Priority**: P2
 **Status**: [ ] Not started
 **Files**: `docs/concepts/prime.md`
@@ -134,7 +134,7 @@ Worker progression:
 
 ## LAUNCH STRATEGY (Extended) (From Brainstorm 2026-01-14)
 
-> Source: `brainstorming/session_chamba_launch_strategy_20260114.md`
+> Source: `brainstorming/session_em_launch_strategy_20260114.md`
 
 ### 110. Define task type tiers
 **Priority**: P0
@@ -213,7 +213,7 @@ Three views:
 
 ## STAIRCASE STRATEGY (From Thinking Tools Analysis)
 
-> Source: `brainstorming/thinking_tools_chamba_staircase_20260112.md`
+> Source: `brainstorming/thinking_tools_em_staircase_20260112.md`
 
 ### 115. Implement phase transition logic
 **Priority**: P1
@@ -288,10 +288,10 @@ Annotation market requires enterprise sales capability:
 **Status**: [ ] Not started
 **Files**: `docs/PROTOCOL_ADOPTION.md`
 
-How to get external platforms to implement Chamba Protocol:
+How to get external platforms to implement Execution Market Protocol:
 1. Prove value with own marketplace
 2. Open-source everything
-3. Create "Chamba Inside" badge
+3. Create "EM Inside" badge
 4. Offer integration support
 5. Build community, not just code
 
@@ -303,7 +303,7 @@ How to get external platforms to implement Chamba Protocol:
 **Files**: `docs/MANIFESTO.md`
 
 Internal manifesto explaining WHY this sequence:
-> "We are building Chamba not to compete with TaskRabbit, but to create what TaskRabbit cannot: an open protocol for human work..."
+> "We are building Execution Market not to compete with TaskRabbit, but to create what TaskRabbit cannot: an open protocol for human work..."
 
 See full draft in brainstorming file.
 
@@ -327,7 +327,7 @@ Protocol abstracts: All of the above as spec
 
 ## ADDITIONAL CONCEPTS (From Various Brainstorms)
 
-### 122. ChambaReverso (humans hire agents)
+### 122. EMReverso (humans hire agents)
 **Priority**: P3
 **Status**: [ ] Not started
 **Files**: `docs/concepts/reverso.md`
@@ -340,7 +340,7 @@ Flip the model: Humans post tasks, AI agents execute:
 
 ---
 
-### 123. Chamba Zero (fully anonymous)
+### 123. EM Zero (fully anonymous)
 **Priority**: P3
 **Status**: [ ] Not started
 **Files**: `docs/concepts/zero.md`
@@ -365,7 +365,7 @@ Trade claims on incomplete tasks:
 
 ---
 
-### 125. ChambaDAO (worker ownership)
+### 125. EM DAO (worker ownership)
 **Priority**: P2
 **Status**: [ ] Not started
 **Files**: `docs/governance/`
@@ -396,7 +396,7 @@ Cryptographic proof of physical presence:
 **Status**: [ ] Not started
 **Files**: `docs/strategy/annotation-pivot.md`
 
-Frame Chamba as "Human Annotation Infrastructure":
+Frame Execution Market as "Human Annotation Infrastructure":
 - Compete with Scale AI
 - $26B market by 2027
 - RLHF, data labeling, model evaluation
@@ -410,7 +410,7 @@ Frame Chamba as "Human Annotation Infrastructure":
 
 ## ECOSYSTEM SYNERGIES (From Grep Search 2026-01-21)
 
-> Source: Cross-referencing all documents containing "chamba"
+> Source: Cross-referencing all documents containing "execution market"
 
 ### 128. x402-insurance integration - Work insurance distribution
 **Priority**: P1
@@ -419,7 +419,7 @@ Frame Chamba as "Human Annotation Infrastructure":
 
 **Source**: `ideas/x402-insurance/SYNERGIES.md` (Score 10 - Critical)
 
-Chamba is the PRIMARY distribution channel for x402-insurance:
+Execution Market is the PRIMARY distribution channel for x402-insurance:
 
 **Work Insurance Categories**:
 - **Weather**: Task cancelled due to weather → automatic refund
@@ -475,7 +475,7 @@ Expands on item #67 with detailed integration:
 
 **Source**: `ideas/private-task-markets/SPEC.md`
 
-PTM = "Sealed-Bid Labor Dark Pool combining Chamba + Colmena + EnclaveOps"
+PTM = "Sealed-Bid Labor Dark Pool combining Execution Market + Colmena + EnclaveOps"
 
 **Sealed-bid auction flow**:
 ```
@@ -550,7 +550,7 @@ task = {
 **Worker-side filtering**:
 ```python
 # Workers can filter tasks by requester reputation
-available_tasks = await chamba.get_tasks(
+available_tasks = await em.get_tasks(
     requester_seals=["FAIR_EVALUATOR", "FAST_PAYMENT"],
     min_requester_score=80
 )
@@ -584,28 +584,28 @@ Result: "verified" or "not verified"
 
 ---
 
-### 134. ContextoMatch as Chamba frontend
+### 134. ContextoMatch as Execution Market frontend
 **Priority**: P1
 **Status**: [ ] Not started
 **Files**: Integration with ContextoMatch
 
 **Source**: `ideas/contexto-match/SYNERGIES.md` (Score 10 - Maximum)
 
-**Key insight**: "ContextoMatch ES el frontend de Chamba para usuarios"
+**Key insight**: "ContextoMatch ES el frontend de Execution Market para usuarios"
 
 **Integration model**:
 ```
-ContextoMatch (talent discovery) → Chamba (execution layer)
+ContextoMatch (talent discovery) → Execution Market (execution layer)
                 ↓
-User finds worker via blind matching → Hires via Chamba task
+User finds worker via blind matching → Hires via Execution Market task
                 ↓
 Worker completes → Payment via x402 → Reputation to describe-net
 ```
 
 **Unified Profile**:
 - Worker has ONE identity across both systems
-- Skills verified in ContextoMatch → Available as seals in Chamba
-- Task history in Chamba → Reputation in ContextoMatch
+- Skills verified in ContextoMatch → Available as seals in Execution Market
+- Task history in Execution Market → Reputation in ContextoMatch
 
 **Agent-to-Human hiring flow**:
 ```python
@@ -616,8 +616,8 @@ candidates = await contexto.match(
     mode="blind"  # ZK matching
 )
 
-# Then hires via Chamba
-task = await chamba.create_task(
+# Then hires via Execution Market
+task = await em.create_task(
     matched_worker=candidates[0].zk_id,
     type="photo_verification"
 )
@@ -744,7 +744,7 @@ class CascadingTask:
 
 **Integration with x402-insurance**:
 ```python
-task = await chamba.create_task(
+task = await em.create_task(
     type="document_notarization",
     bounty=50.00,
     insurance={
@@ -788,8 +788,8 @@ class ViewerAgentParticipation:
         return stream_analysis.engagement_peaks
 
     async def register_as_worker(self):
-        """Register as Chamba worker for realtime_participation tasks"""
-        await chamba.register_worker(
+        """Register as Execution Market worker for realtime_participation tasks"""
+        await em.register_worker(
             type="ai_agent",
             capabilities=["stream_participation", "chat_engagement"],
             payment_model="superfluid_streaming"
@@ -811,17 +811,17 @@ Viewer sees earnings increase
 
 ---
 
-## CHAMBA CHIMBA Stream Expansion (2026-01-20)
+## EM CHIMBA Stream Expansion (2026-01-20)
 
 > Source: AbraCadabra stream `streamers/0xultravioleta/20260120/2675352141`
-> Brainstorm: `brainstorming/from_chamba_chimba_stream_20260120.md`
+> Brainstorm: `brainstorming/from_em_chimba_stream_20260120.md`
 
 ### 140. Robot Worker Registry (ERC-8004 extension)
 **Priority**: P0
 **Status**: [ ] Not started
 **Files**: `contracts/RobotRegistry.sol`, `docs/architecture/robot-identity.md`
 
-**Source**: CHAMBA CHIMBA stream - "Todo va a ser trustless en RC-8004"
+**Source**: EM CHIMBA stream - "Todo va a ser trustless en RC-8004"
 
 Extend ERC-8004 to register robots as first-class workers:
 
@@ -857,7 +857,7 @@ struct RobotIdentity {
 **Status**: [ ] Not started
 **Files**: `docs/economics/robot-farming.md`, `mcp_server/farming/`
 
-**Source**: CHAMBA CHIMBA stream - "Hay gente que va a comprar farmas de robots para trabajar en Chamba"
+**Source**: EM CHIMBA stream - "Hay gente que va a comprar farmas de robots para trabajar en Execution Market"
 
 Design economics for robot fleet monetization:
 
@@ -903,7 +903,7 @@ Robot Farming: Hardware → Physical Tasks → Payments
 **Status**: [ ] Not started
 **Files**: `mcp_server/workers/categories.py`, `docs/workers/taxonomy.md`
 
-**Source**: CHAMBA CHIMBA stream - Brainstorm with Felipe
+**Source**: EM CHIMBA stream - Brainstorm with Felipe
 
 Implement comprehensive worker categorization:
 
@@ -946,7 +946,7 @@ class WorkerCategories:
 
 **Query Example**:
 ```python
-workers = await chamba.find_workers(
+workers = await em.find_workers(
     expertise=["photographer", "translator"],
     location={"lat": 6.2442, "lng": -75.5812, "radius_km": 10},
     modality="physical",
@@ -963,7 +963,7 @@ workers = await chamba.find_workers(
 **Status**: [ ] Not started
 **Files**: `contracts/ValidatorConsensus.sol`, `mcp_server/validation/consensus.py`
 
-**Source**: CHAMBA CHIMBA stream - "Consenso 2 de 3... podemos utilizar el Safe multisig que ya tenemos integrado para el Ultravioletado"
+**Source**: EM CHIMBA stream - "Consenso 2 de 3... podemos utilizar el Safe multisig que ya tenemos integrado para el Ultravioletado"
 
 Multi-validator verification with Safe integration:
 
@@ -1023,7 +1023,7 @@ class ValidatorConsensus:
 **Status**: [ ] Not started
 **Files**: `mcp_server/verification/livestream.py`, Integration with Superfluid
 
-**Source**: CHAMBA CHIMBA stream - "Live stream más AI monitoring con pago en tiempo real usando Superfluid"
+**Source**: EM CHIMBA stream - "Live stream más AI monitoring con pago en tiempo real usando Superfluid"
 
 Real-time task verification via live streaming:
 
@@ -1084,9 +1084,9 @@ class LiveStreamVerification:
 **Status**: [ ] Not started
 **Files**: `demos/drone-agent/`, `docs/demos/drone-agent.md`
 
-**Source**: CHAMBA CHIMBA stream - "Imagínate un agent que controle un drone y que lo navegue, esa está buena para una hackathon"
+**Source**: EM CHIMBA stream - "Imagínate un agent que controle un drone y que lo navegue, esa está buena para una hackathon"
 
-Demo: AI Agent controlling a drone for Chamba tasks
+Demo: AI Agent controlling a drone for Execution Market tasks
 
 **Concept**:
 ```python
@@ -1097,7 +1097,7 @@ class DroneAgent:
         self.drone = drone_api
         self.llm = llm_client
 
-    async def execute_task(self, task: ChambaTask):
+    async def execute_task(self, task: EMTask):
         """Agent interprets task and controls drone"""
 
         # Parse task requirements
@@ -1139,7 +1139,7 @@ class DroneAgent:
 **Status**: [ ] Not started
 **Files**: `docs/workers/exoskeletons.md`
 
-**Source**: CHAMBA CHIMBA stream - "Exoesqueletos que amplifican capacidad humana para trabajos físicos pesados"
+**Source**: EM CHIMBA stream - "Exoesqueletos que amplifican capacidad humana para trabajos físicos pesados"
 
 Register exoskeleton-equipped humans as enhanced workers:
 
@@ -1176,7 +1176,7 @@ class ExoskeletonWorker(Worker):
 **Status**: [ ] Not started
 **Files**: `mcp_server/verification/sensors.py`
 
-**Source**: CHAMBA CHIMBA stream - "Robots que tienen mil veces más capacidades, visión térmica... cosas que son imposibles para un humano"
+**Source**: EM CHIMBA stream - "Robots que tienen mil veces más capacidades, visión térmica... cosas que son imposibles para un humano"
 
 Robots with advanced sensors provide superior verification:
 
@@ -1211,20 +1211,20 @@ QUALITY_MULTIPLIER = {
 
 ---
 
-### 148. Chamba as Agent Cloud Member
+### 148. Execution Market as Agent Cloud Member
 **Priority**: P1
 **Status**: [ ] Not started
 **Files**: `mcp_server/agent_cloud/`, `docs/architecture/agent-cloud.md`
 
-**Source**: CHAMBA CHIMBA stream - "Chamba podría ser un trustless agent también en Agent Cloud"
+**Source**: EM CHIMBA stream - "Execution Market podría ser un trustless agent también en Agent Cloud"
 
-Deploy Chamba as an agent that other agents call:
+Deploy Execution Market as an agent that other agents call:
 
 **Architecture**:
 ```
-External Agent → Calls Chamba Agent → "I need verification in Medellín"
+External Agent → Calls Execution Market Agent → "I need verification in Medellín"
                         ↓
-              Chamba parses request
+              Execution Market parses request
                         ↓
               Finds suitable worker (human/robot)
                         ↓
@@ -1235,10 +1235,10 @@ External Agent → Calls Chamba Agent → "I need verification in Medellín"
               Returns result to calling agent
 ```
 
-**MCP Interface for Chamba Agent**:
+**MCP Interface for Execution Market Agent**:
 ```python
 @mcp_tool
-async def chamba_request_task(
+async def em_request_task(
     task_type: str,
     location: Optional[GeoLocation],
     requirements: Dict,
@@ -1246,7 +1246,7 @@ async def chamba_request_task(
     deadline: datetime
 ) -> TaskResult:
     """
-    Request Chamba to find and assign a worker.
+    Request Execution Market to find and assign a worker.
 
     Args:
         task_type: Type of task (verification, delivery, notarization, etc.)
@@ -1264,7 +1264,7 @@ async def chamba_request_task(
 **Agent-to-Agent Negotiation**:
 ```
 Calling Agent: "Need photo verification, budget $5"
-Chamba Agent: "Lowest available: $3, ETA 2 hours"
+Execution Market Agent: "Lowest available: $3, ETA 2 hours"
 Calling Agent: "Accepted"
 → Task created, monitored, completed, paid
 ```
@@ -1276,7 +1276,7 @@ Calling Agent: "Accepted"
 **Status**: [ ] Not started
 **Files**: `contracts/ValidatorRotation.sol`
 
-**Source**: CHAMBA CHIMBA stream - "Puede ser que esté rotando algunas multisig... rotación de firmantes sin crear nuevos contratos"
+**Source**: EM CHIMBA stream - "Puede ser que esté rotando algunas multisig... rotación de firmantes sin crear nuevos contratos"
 
 Self-governing validator rotation without redeploying contracts:
 
@@ -1317,7 +1317,7 @@ contract ValidatorRotation {
 
 ---
 
-### 150. Flexible Reward Types (Chamba Enterprise Core)
+### 150. Flexible Reward Types (Execution Market Enterprise Core)
 **Priority**: P0
 **Status**: [ ] Not started
 **Files**: `mcp_server/rewards/`, `contracts/RewardRouter.sol`
@@ -1345,7 +1345,7 @@ reward:
   # For type: "token"
   token:
     amount: "10"
-    contract: "0x..."  # $CHAMBA or custom
+    contract: "0x..."  # $EM or custom
 
   # For type: "custom"
   custom:
@@ -1377,7 +1377,7 @@ contract RewardRouter {
 
 **Use Cases**:
 - Enterprise: Points for internal recognition
-- Public Chamba: x402 payments
+- Public Execution Market: x402 payments
 - DAO: Governance tokens
 - Volunteer: None (reputation only)
 
@@ -1388,20 +1388,20 @@ contract RewardRouter {
 **Status**: [ ] Not started
 **Files**: `mcp_server/enterprise/config.py`, `contracts/EnterpriseRegistry.sol`
 
-**Source**: psilocibin3 - "Yo tengo muchos clientes que usarían el chamba enterprise"
+**Source**: psilocibin3 - "Yo tengo muchos clientes que usarían el execution market enterprise"
 
-Enterprise-specific configuration that uses the same Chamba Protocol:
+Enterprise-specific configuration that uses the same Execution Market Protocol:
 
 **Enterprise Config**:
 ```python
 @dataclass
 class EnterpriseConfig:
-    """Configuration for private Chamba Enterprise instance"""
+    """Configuration for private Execution Market Enterprise instance"""
 
     # Identity
     enterprise_id: str  # e.g., "acme-corp"
     name: str
-    domain: str  # e.g., "chamba.acme.com"
+    domain: str  # e.g., "em.acme.com"
 
     # Access Control
     visibility: Literal["private", "hybrid", "public"] = "private"
@@ -1452,8 +1452,8 @@ contract EnterpriseRegistry {
 
 Integrate describe.net seals for rich worker reputation:
 
-**Seal Categories for Chamba**:
-| describe.net Category | Chamba Application |
+**Seal Categories for Execution Market**:
+| describe.net Category | Execution Market Application |
 |-----------------------|-------------------|
 | SKILLS | Task matching by expertise |
 | CAREER | Professional verification tasks |
@@ -1462,9 +1462,9 @@ Integrate describe.net seals for rich worker reputation:
 
 **Integration Flow**:
 ```
-1. Worker signs up for Chamba
+1. Worker signs up for Execution Market
 2. Links describe.net profile (via Farcaster/ENS)
-3. Chamba reads relevant seals
+3. Execution Market reads relevant seals
 4. Task matching uses seal data
 5. Completed tasks generate new seals
 ```
@@ -1491,8 +1491,8 @@ class WorkerWithSeals(Worker):
 ```
 
 **Bidirectional Value**:
-- Chamba → describe.net: Task completions become seals
-- describe.net → Chamba: Seals inform task matching
+- Execution Market → describe.net: Task completions become seals
+- describe.net → Execution Market: Seals inform task matching
 
 ---
 
@@ -1581,7 +1581,7 @@ class EnterpriseWorkerPool:
     workers: List[EnterpriseWorker]
 
     def add_worker(self, employee_id: str, wallet: str):
-        """Onboard employee to Chamba Enterprise"""
+        """Onboard employee to Execution Market Enterprise"""
         worker = EnterpriseWorker(
             employee_id=employee_id,
             wallet=wallet,
@@ -1622,18 +1622,18 @@ class EnterpriseWorkerPool:
 
 **Source**: Brainstorm session - "incluso un L1 de Avalanche para el día de mañana"
 
-Evaluate Avalanche L1 (subnet) for Chamba Protocol sovereignty:
+Evaluate Avalanche L1 (subnet) for Execution Market Protocol sovereignty:
 
 **Why Avalanche L1?**:
-- Custom gas token ($CHAMBA)
+- Custom gas token ($EM)
 - Validator requirements for task validators
 - Native staking for worker bonds
 - Cross-chain messaging to Ethereum/Base
 
 **Architecture Exploration**:
 ```
-Avalanche L1 "Chamba Chain"
-├── Native Token: $CHAMBA
+Avalanche L1 "EM Chain"
+├── Native Token: $EM
 ├── Consensus: Custom (Task Validators)
 ├── State: Worker registry, Task queue, Reputation
 └── Bridges: Teleporter to C-Chain, LayerZero to Ethereum
@@ -1664,17 +1664,17 @@ Settlement Options:
 **Status**: [ ] Not started
 **Files**: `mcp_server/integrations/psilocibin3.py`
 
-**Source**: psilocibin3 - "combinaría mis agentes para que use el chamba protocol"
+**Source**: psilocibin3 - "combinaría mis agentes para que use el execution market protocol"
 
 Integration pathway for psilocibin3's existing agent ecosystem:
 
 **Integration Points**:
 ```python
 class Psilocibin3Integration:
-    """Bridge between psilocibin3 agents and Chamba Protocol"""
+    """Bridge between psilocibin3 agents and Execution Market Protocol"""
 
     async def receive_task_request(self, agent_request: Dict) -> Task:
-        """Convert agent request to Chamba task"""
+        """Convert agent request to Execution Market task"""
         return Task(
             requester=agent_request["agent_id"],
             requester_type="agent",
@@ -1721,7 +1721,7 @@ describe.net has:
 - Quality scores and endorsements
 - Cross-platform context (Farcaster, social)
 
-Chamba needs:
+Execution Market needs:
 - AI validators for task verification
 - Calibration data for AI judgment
 - Ground truth for "good work"
@@ -1730,12 +1730,12 @@ Chamba needs:
 **Calibration Pipeline**:
 ```python
 class AICalibrator:
-    """Use describe.net data to calibrate Chamba AI validators"""
+    """Use describe.net data to calibrate Execution Market AI validators"""
 
     async def build_calibration_set(self):
         """Extract high-quality examples from describe.net"""
         # Get descriptions with high endorsement counts
-        # Filter by category relevant to Chamba tasks
+        # Filter by category relevant to Execution Market tasks
         # Create evaluation pairs (task, quality_label)
         pass
 
@@ -1765,25 +1765,25 @@ class AICalibrator:
 > Source: `streamers/0xultravioleta/20260121/2676209434`
 > Karma Hello correlation: `karma-hello/logs/chat/0xultravioleta/20260121/full.txt`
 
-### 158. Chamba Protocol Architecture (Not Just Marketplace)
+### 158. Execution Market Protocol Architecture (Not Just Marketplace)
 **Priority**: P0
 **Status**: [ ] Not started
 **Files**: `docs/architecture/protocol-vs-client.md`
 
 **Source**: psilocibin3 chat + stream discussion
 
-Key insight: Chamba should be a **PROTOCOL**, not just a marketplace.
+Key insight: Execution Market should be a **PROTOCOL**, not just a marketplace.
 
 **Analogía**:
 ```
-HTTP (protocol)   ←→   Chamba Protocol
-Chrome (client)   ←→   Chamba Marketplace (public)
-Firefox (client)  ←→   Chamba Enterprise (B2B)
+HTTP (protocol)   ←→   Execution Market Protocol
+Chrome (client)   ←→   Execution Market Marketplace (public)
+Firefox (client)  ←→   Execution Market Enterprise (B2B)
 ```
 
 **Protocol Definition**:
 ```python
-class ChambaProtocol:
+class EMProtocol:
     """Abstract protocol that any implementation must follow"""
 
     # Core operations
@@ -1801,9 +1801,9 @@ class ChambaProtocol:
 **Implementations**:
 | Implementation | Target | Rewards | Workers |
 |----------------|--------|---------|---------|
-| Chamba Public | B2C | x402 USDC | Open marketplace |
-| Chamba Enterprise | B2B | Points/tokens | Private pool |
-| Chamba Hybrid | B2B2C | Configurable | Private + overflow to public |
+| EM Public | B2C | x402 USDC | Open marketplace |
+| Execution Market Enterprise | B2B | Points/tokens | Private pool |
+| EM Hybrid | B2B2C | Configurable | Private + overflow to public |
 
 ---
 
@@ -1814,22 +1814,22 @@ class ChambaProtocol:
 
 **Source**: mrmuerteco chat - "Lo que estás haciendo es darle cuerpo físico a los agentes. Brillante."
 
-**Narrative**: Chamba gives AI agents a physical body through humans (and robots).
+**Narrative**: Execution Market gives AI agents a physical body through humans (and robots).
 
 **Positioning**:
 ```
 AI agents are powerful but trapped in the digital world.
 They can analyze, plan, decide - but can't ACT physically.
 
-Chamba is the bridge.
+Execution Market is the bridge.
 
-Through Chamba, agents get:
+Through Execution Market, agents get:
 - Eyes (human observers, robot cameras)
 - Hands (human workers, robot manipulators)
 - Feet (human couriers, delivery robots)
 - Voice (human callers, phone agents)
 
-Physical embodiment for AI. That's Chamba.
+Physical embodiment for AI. That's Execution Market.
 ```
 
 **Use in**:
@@ -1845,7 +1845,7 @@ Physical embodiment for AI. That's Chamba.
 **Status**: [ ] Not started
 **Files**: `docs/business/design-partners.md`
 
-**Source**: Karma Hello chat - "Yo sería el primer user de Chamba Protocol. Me sirve demasiado para mi producto. Wen"
+**Source**: Karma Hello chat - "Yo sería el primer user de Execution Market Protocol. Me sirve demasiado para mi producto. Wen"
 
 **Action Items**:
 1. [ ] Contact psilocibin3 for design partner agreement
@@ -1859,7 +1859,7 @@ Agent de atención al cliente realiza venta
         ↓
 Monta tarea: "Ir a Servientrega → mandar pedido"
         ↓
-Humano toma tarea via Chamba
+Humano toma tarea via Execution Market
         ↓
 Completa y reporta número de guía
         ↓
@@ -1925,21 +1925,21 @@ class RewardConfig:
 **Status**: [ ] Acknowledged
 **Files**: `docs/strategy/timing.md`
 
-**Source**: psilocibin3 - "Que salga rápido Chamba que en 12 meses Claude nos reemplaza"
+**Source**: psilocibin3 - "Que salga rápido Execution Market que en 12 meses Claude nos reemplaza"
 
 **Strategic Implication**:
 ```
 Current State (2026):
 - AI can't do physical tasks
 - Humans needed for "last mile"
-- Chamba fills the gap
+- Execution Market fills the gap
 
 Future State (2027-2028?):
 - Robots become mainstream
 - AI-robot coordination improves
 - Human tasks shrink but don't disappear
 
-Chamba's Evolution:
+Execution Market's Evolution:
 Phase 1 (Now): Humans as AI's physical layer
 Phase 2 (Soon): Humans + Robots mixed workforce
 Phase 3 (Later): Robots primary, humans for edge cases
@@ -1955,14 +1955,14 @@ Phase 3 (Later): Robots primary, humans for edge cases
 
 ---
 
-### 163. Thought-to-Earn Integration (T2E + Chamba)
+### 163. Thought-to-Earn Integration (T2E + Execution Market)
 **Priority**: P2
 **Status**: [ ] Not started
 **Files**: `docs/integrations/thought-to-earn.md`
 
 **Source**: Stream discussion on EEG + monetization
 
-**Concept**: Thoughts detected via EEG → Automatically post tasks to Chamba
+**Concept**: Thoughts detected via EEG → Automatically post tasks to Execution Market
 
 **Flow**:
 ```
@@ -1970,7 +1970,7 @@ MindWave EEG detects "intention pattern"
         ↓
 ML model classifies: "User wants coffee delivered"
         ↓
-Auto-generate Chamba task:
+Auto-generate Execution Market task:
   {
     type: "delivery",
     item: "coffee",
@@ -1988,18 +1988,18 @@ Payment settles via x402
 **Dependencies**:
 - T2E project (EEG infrastructure)
 - Abracadabra (intent classification)
-- Chamba Protocol (task execution)
+- Execution Market Protocol (task execution)
 
 **Timeline**: Post-MVP, requires T2E progress.
 
 ---
 
-### 164. Robot/Drone Workers in Chamba
+### 164. Robot/Drone Workers in Execution Market
 **Priority**: P2
 **Status**: [ ] Not started
 **Files**: `mcp_server/workers/robots.py`
 
-**Source**: Stream - "La gente va a farmear Chamba con robots"
+**Source**: Stream - "La gente va a farmear Execution Market con robots"
 
 **Worker Types**:
 ```python
@@ -2042,7 +2042,7 @@ class RobotWorker(Worker):
 
 **Robot Farming Business Model**:
 ```
-Person buys robot(s) → Registers in Chamba → Robot auto-accepts tasks
+Person buys robot(s) → Registers in Execution Market → Robot auto-accepts tasks
         ↓
 Robot completes verification tasks 24/7
         ↓
@@ -2110,7 +2110,7 @@ class VerificationWithPrivacy:
 
 **Source**: lomito326 chat - "crear una API física para instaurarla en locales, que almacene datos en tiempo real"
 
-**Concept**: Physical world APIs that Chamba can query/trigger.
+**Concept**: Physical world APIs that Execution Market can query/trigger.
 
 **Example Flow**:
 ```
@@ -2118,7 +2118,7 @@ Restaurant API reports: "90% capacity, 20 min wait"
         ↓
 Agent decides: need verification
         ↓
-Posts Chamba task: "Verify restaurant capacity at [address]"
+Posts Execution Market task: "Verify restaurant capacity at [address]"
         ↓
 Worker goes, takes photo, confirms
         ↓
@@ -2128,14 +2128,14 @@ Agent books reservation or suggests alternative
 ```
 
 **Physical API Categories**:
-| Category | Data Points | Chamba Task Type |
+| Category | Data Points | Execution Market Task Type |
 |----------|-------------|------------------|
 | Restaurants | Capacity, wait time, ambiance | Verification, mystery shop |
 | Retail | Stock levels, prices, crowds | Inventory check, price check |
 | Real Estate | Property condition, neighborhood | Property verification |
 | Events | Attendance, vibe, parking | Event recon |
 
-**Integration**: Chamba as the "refresh" mechanism for physical APIs when data goes stale.
+**Integration**: Execution Market as the "refresh" mechanism for physical APIs when data goes stale.
 
 ---
 
@@ -2152,7 +2152,7 @@ Agent books reservation or suggests alternative
 ```
 Agent A (Customer Service) needs legal review
         ↓
-Posts task to Chamba: "Review ToS for compliance"
+Posts task to Execution Market: "Review ToS for compliance"
         ↓
 Agent B (Legal Specialist) claims task
         ↓
@@ -2220,7 +2220,7 @@ class WebhookNotifier:
         ).hexdigest()
 
         headers = {
-            "X-Chamba-Signature": signature,
+            "X-EM-Signature": signature,
             "Content-Type": "application/json"
         }
 
@@ -2246,7 +2246,7 @@ class WebhookNotifier:
 1. Enterprise agent posts task
 2. Task includes webhook_url in config
 3. Worker completes task
-4. Chamba calls webhook with result
+4. Execution Market calls webhook with result
 5. Enterprise agent receives notification instantly
 6. Agent continues workflow (e.g., notify customer)
 ```
@@ -2256,12 +2256,12 @@ class WebhookNotifier:
 ## MEANING ECONOMY FRAMEWORK (From Future of Work Essay)
 
 > Source: `techniques/raw/future-of-work.txt` + `brainstorming/from_future_of_work_20260122.md`
-> Essay by Dan Koe - Validates Chamba's thesis philosophically
+> Essay by Dan Koe - Validates Execution Market's thesis philosophically
 
 ### 168. Add "Theoretical Foundation" section to SPEC.md
 **Priority**: P1
 **Status**: [ ] Not started
-**Files**: `ideas/chamba/SPEC.md`
+**Files**: `ideas/em/SPEC.md`
 
 **Source**: "Future of Work" essay - explains WHY human work has value in AI era
 
@@ -2269,12 +2269,12 @@ class WebhookNotifier:
 ```markdown
 ## Theoretical Foundation
 
-Chamba is built on the premise that human work has value that AI cannot replicate.
+Execution Market is built on the premise that human work has value that AI cannot replicate.
 
 ### The Swap Test
 > "If you could swap the creator and the creation would be just as valuable, then AI can replace it."
 
-ALL Chamba task categories **fail the Swap Test**:
+ALL Execution Market task categories **fail the Swap Test**:
 - Physical Presence → Requires specific human at specific location
 - Human Authority → Requires legal/professional authority
 - Knowledge Access → Requires physical access
@@ -2284,18 +2284,18 @@ ALL Chamba task categories **fail the Swap Test**:
 Jobs that persist when AI automates utility work:
 1. High-liability roles (someone to blame)
 2. Statutory positions (legally required humans)
-3. **Experience economy** ← Chamba Category A
-4. **Meaning makers** ← Chamba Category C
+3. **Experience economy** ← Execution Market Category A
+4. **Meaning makers** ← Execution Market Category C
 5. Relationship/trust jobs
 
 ### Three Meaning Generators
-Chamba enables all three:
+Execution Market enables all three:
 - **Struggle**: Real challenges, potential for failure
 - **Curiosity**: Diverse task marketplace
 - **Status**: On-chain reputation system
 ```
 
-**Why P1**: Differentiates Chamba from "just another gig platform".
+**Why P1**: Differentiates Execution Market from "just another gig platform".
 
 ---
 
@@ -2379,7 +2379,7 @@ async def validate_human_required(task: TaskSpec) -> SwapTestResult:
 
 **Use Cases**:
 - Prevent wasteful bounties for AI-doable tasks
-- Educate agents on when to use Chamba vs AI
+- Educate agents on when to use Execution Market vs AI
 - Reduce disputes (task was misspecified)
 
 ---
@@ -2393,12 +2393,12 @@ async def validate_human_required(task: TaskSpec) -> SwapTestResult:
 
 The essay defines 5 levels: Agency > Taste > Perspective > Persuasion > Technical.
 
-**Chamba Training Program** (optional for workers):
+**Execution Market Training Program** (optional for workers):
 
-| Level | Chamba Implementation | Unlock |
+| Level | Execution Market Implementation | Unlock |
 |-------|----------------------|--------|
 | **Technical** | Complete onboarding, pass basic verification | Access to Category A tasks |
-| **Persuasion** | N/A (Chamba is transactional) | - |
+| **Persuasion** | N/A (Execution Market is transactional) | - |
 | **Perspective** | Complete diverse task types, earn cross-category badges | Access to Category C tasks |
 | **Taste** | Become validator, curate quality | Validator status + fees |
 | **Agency** | Build reputation, set own rates, choose specialization | Premium task access |
@@ -2417,7 +2417,7 @@ The essay defines 5 levels: Agency > Taste > Perspective > Persuasion > Technica
 
 **Source**: Future of Work essay - Meaning Economy positioning
 
-Update Chamba's positioning to emphasize philosophical differentiation:
+Update Execution Market's positioning to emphasize philosophical differentiation:
 
 **Current**: "Gente para Agentes" (tactical)
 **Enhanced**: "The Human Layer for the AI Economy" (strategic)
@@ -2434,7 +2434,7 @@ Value Props:
 4. Real-world action when AI needs hands
 
 Positioning Statement:
-"Chamba connects AI agents with human workers for tasks that require
+"Execution Market connects AI agents with human workers for tasks that require
 physical presence, legal authority, or human judgment—the work that
 matters in an automated world."
 ```
@@ -2448,9 +2448,9 @@ matters in an automated world."
 
 ## AQAL Framework Integration (I & WE Quadrants)
 
-> Source: `brainstorming/from_aqal_wilber_chamba_20260122.md`
-> Analysis: Chamba is strong in IT (9/10) and ITS (8/10) but weak in I (4/10) and WE (3/10)
-> Priority: HIGH - Without I and WE, Chamba is just another gig platform
+> Source: `brainstorming/from_aqal_wilber_em_20260122.md`
+> Analysis: Execution Market is strong in IT (9/10) and ITS (8/10) but weak in I (4/10) and WE (3/10)
+> Priority: HIGH - Without I and WE, Execution Market is just another gig platform
 
 ### 173. Worker Dignity Narrative
 **Priority**: P1
@@ -2458,16 +2458,16 @@ matters in an automated world."
 **Files**: `docs/philosophy/dignity.md`, README.md
 **AQAL Quadrant**: I (Interior Individual)
 
-**Source**: AQAL analysis - Chamba needs to answer "why work here?" beyond "fast payment"
+**Source**: AQAL analysis - Execution Market needs to answer "why work here?" beyond "fast payment"
 
 **Current State**:
-- Chamba only talks about: "instant x402 payments", "no intermediaries"
+- Execution Market only talks about: "instant x402 payments", "no intermediaries"
 - This is IT language (technical benefits)
 - Missing: dignity, autonomy, ownership, meaning
 
 **Narrative Elements to Develop**:
 ```markdown
-## Why Chamba is Different (Worker Perspective)
+## Why Execution Market is Different (Worker Perspective)
 
 ### 1. Ownership of Your Work
 - Your reputation is YOURS (on-chain, portable via ERC-8004)
@@ -2554,14 +2554,14 @@ function getOnboardingFlow(level: Level): OnboardingFlow {
 
 **Source**: AQAL analysis - WE quadrant is weakest (3/10)
 
-**Problem**: Chamba executors have no collective identity. They're just "workers on platform X".
+**Problem**: Execution Market executors have no collective identity. They're just "workers on platform X".
 
 **Solution**: Create identity, rituals, and community artifacts.
 
 **Community Elements**:
 
 1. **Name**: "Chambeadores" (not "workers", "executors", "gig workers")
-   - Verb form: "Chambear" = to work on Chamba
+   - Verb form: "Chambear" = to work on Execution Market
    - Past tense: "Chambeé una verificación" = I did a verification task
 
 2. **Visual Identity**:
@@ -2578,7 +2578,7 @@ function getOnboardingFlow(level: Level): OnboardingFlow {
 4. **Spaces**:
    - Discord server with category channels
    - Telegram groups by region
-   - Weekly AMA with Chamba team
+   - Weekly AMA with Execution Market team
 
 5. **Artifacts**:
    - "Código del Chambeador" (code of conduct written BY workers)
@@ -2612,7 +2612,7 @@ community_features:
 ### 176. Worker Voice in Governance
 **Priority**: P2
 **Status**: [ ] Not started
-**Files**: `contracts/ChambaGovernance.sol`, `web_app/governance/`
+**Files**: `contracts/EMGovernance.sol`, `web_app/governance/`
 **AQAL Quadrant**: WE (Interior Collective)
 
 **Source**: AQAL Green level - "pluralistic, community governance"
@@ -2665,7 +2665,7 @@ function calculateVotingPower(address worker) returns (uint256) {
 
 **Source**: AQAL analysis + Future of Work essay + Merit0 integration
 
-**Problem**: Chamba only tracks $$ earned. This is Orange-level thinking.
+**Problem**: Execution Market only tracks $$ earned. This is Orange-level thinking.
 
 **Solution**: Track "meaning metrics" alongside financial metrics.
 
@@ -2699,7 +2699,7 @@ interface MeaningMetrics {
 **Dashboard Design**:
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Your Chamba Impact                                          │
+│  Your Execution Market Impact                                          │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  💰 Earned: $1,234          🎯 Tasks: 147                   │
@@ -2723,7 +2723,7 @@ interface MeaningMetrics {
 
 **Integration with Merit0**:
 - Merit0 provides real-time value scoring
-- Chamba feeds Merit0 with task completion data
+- Execution Market feeds Merit0 with task completion data
 - Merit0 returns meaning score for worker dashboard
 
 ---
@@ -2736,13 +2736,13 @@ interface MeaningMetrics {
 
 **Source**: AQAL analysis + describe.net synergy (Score 10)
 
-**Problem**: Worker reputation exists only within Chamba. Not portable.
+**Problem**: Worker reputation exists only within Execution Market. Not portable.
 
 **Solution**: Use describe.net seals as portable, verifiable worker credentials.
 
 **Seal Types for Chambeadores**:
 ```yaml
-chamba_seals:
+em_seals:
   # Category completion seals
   physical_presence_pro:
     name: "Physical Presence Pro"
@@ -2796,17 +2796,17 @@ chamba_seals:
 
 ## IRC-FIRST MVP PATHWAY (From claude-irc-bridge 2026-01-24)
 
-> Source: `control-plane/brainstorming/from_claude_irc_bridge_20260124.md`
+> Source: `control-plane/brainstorming/from_claude_irc_bridge_em_20260124.md`
 > Pattern: Brain Agent Orchestration (PATTERNS.md#brain-agent-orchestration)
 
-### 178. Fork claude-irc-bridge as chamba-irc-prototype
+### 178. Fork claude-irc-bridge as em-irc-prototype
 **Priority**: P1
 **Status**: [ ] Not started
-**Files**: New repo `chamba-irc-prototype/`
+**Files**: New repo `em-irc-prototype/`
 
-**Insight**: claude-irc-bridge has 70% of Chamba's architecture already built:
-- Brain Agent = Chamba Task Router
-- Task Queue (SQS/Redis) = Chamba Task Queue
+**Insight**: claude-irc-bridge has 70% of Execution Market's architecture already built:
+- Brain Agent = EM Task Router
+- Task Queue (SQS/Redis) = EM Task Queue
 - Claude Code Executor = Human Worker (swap out!)
 - IRC Broadcast = Status updates to requester
 - Memory/Wisdom layers = Worker reputation + project history
@@ -2819,14 +2819,14 @@ chamba_seals:
 5. Integrate x402 for payments
 6. IRC logs → ChainWitness for audit trail
 
-**Why P1**: Fastest path to Chamba MVP. IRC interface already works.
+**Why P1**: Fastest path to Execution Market MVP. IRC interface already works.
 
 ---
 
 ### 179. Implement `!bounty` IRC command
 **Priority**: P1
 **Status**: [ ] Not started
-**Files**: `chamba-irc-prototype/commands/bounty.py`
+**Files**: `em-irc-prototype/commands/bounty.py`
 
 ```python
 async def handle_bounty(channel: str, user: str, args: str):
@@ -2862,7 +2862,7 @@ async def handle_bounty(channel: str, user: str, args: str):
 ### 180. Implement `!claim` and `!submit` IRC commands
 **Priority**: P1
 **Status**: [ ] Not started
-**Files**: `chamba-irc-prototype/commands/claim.py`, `commands/submit.py`
+**Files**: `em-irc-prototype/commands/claim.py`, `commands/submit.py`
 
 ```python
 async def handle_claim(channel: str, worker: str, task_id: str):
@@ -2894,7 +2894,7 @@ async def handle_submit(channel: str, worker: str, task_id: str, proof: str):
 ### 181. Wire x402 payments to IRC bot
 **Priority**: P1
 **Status**: [ ] Not started
-**Files**: `chamba-irc-prototype/payments/x402_bridge.py`
+**Files**: `em-irc-prototype/payments/x402_bridge.py`
 
 ```python
 from uvd_x402_sdk import X402Client
@@ -2929,7 +2929,7 @@ class IRCPaymentBridge:
 ### 182. Add ChainWitness notarization for IRC logs
 **Priority**: P2
 **Status**: [ ] Not started
-**Files**: `chamba-irc-prototype/audit/chainwitness.py`
+**Files**: `em-irc-prototype/audit/chainwitness.py`
 
 ```python
 async def notarize_task_lifecycle(task_id: str, events: List[TaskEvent]):
@@ -3009,29 +3009,29 @@ async def notarize_task_lifecycle(task_id: str, events: List[TaskEvent]):
 
 ### Stream Sources (2026-01-20)
 - Stream: `streamers/0xultravioleta/20260120/2675352141`
-- Brainstorm: `brainstorming/from_chamba_chimba_stream_20260120.md`
+- Brainstorm: `brainstorming/from_em_chimba_stream_20260120.md`
 - Summary: `resumen_completo.txt`
 - Transcript: `analisis_completo.txt`
 
 ### Brainstorming Sessions
-- Brainstorm: `brainstorming/chamba_enterprise_describenet_20260121.md` **(NEW - psilocibin3 + describe.net)**
-- Brainstorm: `brainstorming/session_chamba_immutable_bounties_20260119.md`
-- Brainstorm: `brainstorming/session_chamba_execution_layer_v2_20260120.md`
-- Brainstorm: `brainstorming/session_merit0_chamba_realtime_earn_20260120.md`
-- Brainstorm: `brainstorming/chamba_dynamic_bounty_20260119.md`
-- Brainstorm: `brainstorming/chamba_x402r_retry_mechanism_20260119.md`
-- Brainstorm: `brainstorming/chamba_task_pipeline_20260119.md`
-- Brainstorm: `brainstorming/chamba_global_reputation_20260119.md`
-- Brainstorm: `brainstorming/session_chamba_protocol_deep_20260112_1230.md`
-- Brainstorm: `brainstorming/session_chambabridge_deep_20260112_1230.md`
-- Brainstorm: `brainstorming/session_chamba_agent_scenarios_20260111_1500.md`
-- Brainstorm: `brainstorming/session_chamba_launch_strategy_20260114.md`
-- Brainstorm: `brainstorming/thinking_tools_chamba_staircase_20260112.md`
-- Brainstorm: `brainstorming/from_abracadabra_chamba_stream_20260112.md`
+- Brainstorm: `brainstorming/em_enterprise_describenet_20260121.md` **(NEW - psilocibin3 + describe.net)**
+- Brainstorm: `brainstorming/session_em_immutable_bounties_20260119.md`
+- Brainstorm: `brainstorming/session_em_execution_layer_v2_20260120.md`
+- Brainstorm: `brainstorming/session_merit0_em_realtime_earn_20260120.md`
+- Brainstorm: `brainstorming/em_dynamic_bounty_20260119.md`
+- Brainstorm: `brainstorming/em_x402r_retry_mechanism_20260119.md`
+- Brainstorm: `brainstorming/em_task_pipeline_20260119.md`
+- Brainstorm: `brainstorming/em_global_reputation_20260119.md`
+- Brainstorm: `brainstorming/session_em_protocol_deep_20260112_1230.md`
+- Brainstorm: `brainstorming/session_embridge_deep_20260112_1230.md`
+- Brainstorm: `brainstorming/session_em_agent_scenarios_20260111_1500.md`
+- Brainstorm: `brainstorming/session_em_launch_strategy_20260114.md`
+- Brainstorm: `brainstorming/thinking_tools_em_staircase_20260112.md`
+- Brainstorm: `brainstorming/from_abracadabra_em_stream_20260112.md`
 - Pattern source: `brainstorming/from_anthropic_long_running_agents_20260119.md`
 - Anthropic article: https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents
 - **Meaning Economy**: `brainstorming/from_future_of_work_20260122.md` (Dan Koe essay)
-- **IRC-First MVP**: `brainstorming/from_claude_irc_bridge_20260124.md` (claude-irc-bridge architecture → Chamba)
+- **IRC-First MVP**: `brainstorming/from_claude_irc_bridge_em_20260124.md` (claude-irc-bridge architecture → Execution Market)
 
 ### Ecosystem Synergies (Grep Search 2026-01-21)
 - Synergy: `ideas/x402-insurance/SYNERGIES.md` (Score 10)
@@ -3045,4 +3045,4 @@ async def notarize_task_lifecycle(task_id: str, events: List[TaskEvent]):
 - Synergy: `ideas/merit0/PROGRESS.md`
 - Ecosystem: `ECOSYSTEM.md`
 - Integration: `INTEGRATION.md`
-- Questions: `questions/chamba.md`
+- Questions: `questions/em.md`

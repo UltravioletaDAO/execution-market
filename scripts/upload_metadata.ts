@@ -1,5 +1,5 @@
 /**
- * Chamba Agent Metadata Upload Script
+ * Execution Market Agent Metadata Upload Script
  *
  * Uploads agent metadata to IPFS via Pinata and updates the ERC-8004 agent URI.
  *
@@ -9,7 +9,7 @@
  * Requirements:
  *   - WALLET_PRIVATE_KEY in .env.local
  *   - PINATA_API_KEY and PINATA_SECRET_KEY in .env.local
- *   - CHAMBA_AGENT_ID in .env.local
+ *   - EM_AGENT_ID (or CHAMBA_AGENT_ID as fallback) in .env.local
  */
 
 import { createWalletClient, createPublicClient, http } from 'viem';
@@ -88,7 +88,7 @@ async function uploadToPinata(metadata: object): Promise<string> {
     body: JSON.stringify({
       pinataContent: metadata,
       pinataMetadata: {
-        name: 'chamba-agent-metadata.json',
+        name: 'execution-market-agent-metadata.json',
       },
     }),
   });
@@ -167,12 +167,12 @@ async function updateAgentURI(agentId: bigint, newUri: string): Promise<string> 
 }
 
 async function main() {
-  const agentId = process.env.CHAMBA_AGENT_ID;
+  const agentId = process.env.EM_AGENT_ID || process.env.CHAMBA_AGENT_ID;
   if (!agentId) {
-    throw new Error('CHAMBA_AGENT_ID not found in .env.local');
+    throw new Error('EM_AGENT_ID not found in .env.local (CHAMBA_AGENT_ID also accepted as fallback)');
   }
 
-  console.log('🚀 Chamba Agent Metadata Upload');
+  console.log('🚀 Execution Market Agent Metadata Upload');
   console.log('================================');
   console.log(`Agent ID: ${agentId}`);
   console.log(`Source: ${AGENT_CARD_PATH}`);

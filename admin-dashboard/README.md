@@ -1,4 +1,4 @@
-# Chamba Admin Dashboard
+# Execution Market Admin Dashboard
 
 Internal dashboard for platform configuration, monitoring, and management.
 
@@ -52,7 +52,7 @@ Internal dashboard for platform configuration, monitoring, and management.
 ## Quick Start
 
 ```bash
-cd ideas/chamba/admin-dashboard
+cd admin-dashboard
 
 # Install dependencies
 npm install
@@ -69,7 +69,7 @@ Create a `.env.local` file:
 
 ```env
 # Production
-VITE_API_URL=https://api.chamba.ultravioletadao.xyz
+VITE_API_URL=https://api.execution.market
 
 # Local development
 VITE_API_URL=http://localhost:8000
@@ -85,11 +85,11 @@ Output will be in `dist/` directory.
 
 ## Authentication
 
-The dashboard uses admin key authentication. Set the `CHAMBA_ADMIN_KEY` environment variable on the backend to enable admin access.
+The dashboard uses admin key authentication. Set the `EM_ADMIN_KEY` environment variable on the backend to enable admin access.
 
 ```bash
 # On the MCP server
-export CHAMBA_ADMIN_KEY=your-secure-admin-key
+export EM_ADMIN_KEY=your-secure-admin-key
 ```
 
 ## API Endpoints
@@ -148,7 +148,7 @@ admin-dashboard/
 
 ## Deployment
 
-Deploy to admin.chamba.ultravioletadao.xyz via:
+Deploy to admin.execution.market via:
 - CloudFront + S3 (same infrastructure as main dashboard)
 - Or any static hosting (Vercel, Netlify, etc.)
 

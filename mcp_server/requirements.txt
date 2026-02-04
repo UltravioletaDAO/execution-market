@@ -1,4 +1,4 @@
-# Chamba MCP Server Dependencies
+# Execution Market MCP Server Dependencies
 # Python 3.11+
 
 # ===================
@@ -6,7 +6,7 @@
 # ===================
 mcp>=1.20.0  # Required for streamable HTTP transport
 pydantic>=2.5.0
-starlette>=0.35.0  # Required for ASGI mounting
+# starlette pinned by fastapi — do not specify separately
 
 # ===================
 # Web Framework

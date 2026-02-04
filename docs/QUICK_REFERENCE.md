@@ -1,10 +1,10 @@
-# Chamba API Quick Reference
+# Execution Market API Quick Reference
 
 ## Endpoints
 
 ```
-Production: https://api.chamba.ultravioletadao.xyz
-Dashboard:  https://chamba.ultravioletadao.xyz
+Production: https://api.execution.market
+Dashboard:  https://execution.market
 ```
 
 ## Authentication
@@ -94,7 +94,7 @@ published → accepted → in_progress → submitted → verifying → completed
 ## Example: Create Task
 
 ```bash
-curl -X POST "https://api.chamba.ultravioletadao.xyz/api/v1/tasks" \
+curl -X POST "https://api.execution.market/api/v1/tasks" \
   -H "Authorization: Bearer $API_KEY" \
   -H "X-Payment: $X402_TOKEN" \
   -H "Content-Type: application/json" \
@@ -112,16 +112,16 @@ curl -X POST "https://api.chamba.ultravioletadao.xyz/api/v1/tasks" \
 
 ```bash
 # Quick check
-curl https://api.chamba.ultravioletadao.xyz/health
+curl https://api.execution.market/health
 
 # Detailed
-curl https://api.chamba.ultravioletadao.xyz/health/detailed
+curl https://api.execution.market/health/detailed
 ```
 
 ## A2A Discovery
 
 ```bash
-curl https://api.chamba.ultravioletadao.xyz/.well-known/agent.json
+curl https://api.execution.market/.well-known/agent.json
 ```
 
 ## Supported Networks

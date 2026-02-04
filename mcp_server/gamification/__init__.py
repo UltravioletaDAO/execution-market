@@ -1,5 +1,5 @@
 """
-Gamification module for Chamba.
+Gamification module for Execution Market.
 
 Provides progression system, achievements, and streak tracking.
 """

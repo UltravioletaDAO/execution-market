@@ -2,7 +2,7 @@
 
 ## Primary Networks
 
-Chamba's x402 integration supports payments across multiple EVM-compatible networks. The facilitator at `facilitator.ultravioletadao.xyz` handles cross-chain routing.
+Execution Market's x402 integration supports payments across multiple EVM-compatible networks. The facilitator at `facilitator.ultravioletadao.xyz` handles cross-chain routing.
 
 ### Production Networks
 
@@ -63,7 +63,7 @@ The x402 facilitator supports **17+ mainnets** including:
 
 ## Network Selection
 
-The recommended network for Chamba payments is **Base** due to:
+The recommended network for Execution Market payments is **Base** due to:
 - Low gas costs (~$0.01 per transaction)
 - USDC native support
 - x402r escrow contract availability

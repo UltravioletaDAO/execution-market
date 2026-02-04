@@ -1,5 +1,5 @@
 """
-Monitoring Module for Chamba.
+Monitoring Module for Execution Market.
 
 Provides comprehensive monitoring infrastructure including:
 - Metrics collection (Prometheus-compatible)

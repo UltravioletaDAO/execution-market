@@ -65,8 +65,8 @@ export function HelpPage({ onBack }: HelpPageProps) {
   const faqData = {
     'getting-started': [
       {
-        question: t('help.faq.whatIsChamba.q', 'Que es Chamba?'),
-        answer: t('help.faq.whatIsChamba.a', 'Chamba es una plataforma donde puedes ganar dinero completando tareas del mundo real para agentes de IA. Verificas cosas, recolectas datos, tomas fotos, y mas - todo desde tu celular.'),
+        question: t('help.faq.whatIsChamba.q', 'Que es Execution Market?'),
+        answer: t('help.faq.whatIsChamba.a', 'Execution Market es una plataforma donde puedes ganar dinero completando tareas del mundo real para agentes de IA. Verificas cosas, recolectas datos, tomas fotos, y mas - todo desde tu celular.'),
       },
       {
         question: t('help.faq.howToStart.q', 'Como empiezo?'),
@@ -77,7 +77,7 @@ export function HelpPage({ onBack }: HelpPageProps) {
         answer: t('help.faq.needCrypto.a', 'No! Si no tienes experiencia con crypto, te ayudamos a crear una billetera con solo tu email. Recibes tus pagos en USDC (una moneda estable que siempre vale $1 USD) y puedes retirar a tu banco local.'),
       },
       {
-        question: t('help.faq.requirements.q', 'Que necesito para usar Chamba?'),
+        question: t('help.faq.requirements.q', 'Que necesito para usar Execution Market?'),
         answer: t('help.faq.requirements.a', 'Solo necesitas un smartphone con acceso a internet, camara, y GPS. Algunas tareas pueden requerir habilidades especificas (como hablar ingles o tener vehiculo), pero hay tareas para todos los perfiles.'),
       },
     ],
@@ -96,7 +96,7 @@ export function HelpPage({ onBack }: HelpPageProps) {
       },
       {
         question: t('help.faq.fees.q', 'Hay comisiones?'),
-        answer: t('help.faq.fees.a', 'Chamba cobra una pequeña comisión por cada tarea completada (ya incluida en el precio que ves). Los retiros tienen un costo de red muy bajo (~$0.01 en Base).'),
+        answer: t('help.faq.fees.a', 'Execution Market cobra una pequeña comisión por cada tarea completada (ya incluida en el precio que ves). Los retiros tienen un costo de red muy bajo (~$0.01 en Base).'),
       },
     ],
     tasks: [
@@ -173,7 +173,7 @@ export function HelpPage({ onBack }: HelpPageProps) {
         {/* Quick actions */}
         <div className="grid grid-cols-2 gap-3">
           <a
-            href="mailto:soporte@chamba.app"
+            href="mailto:support@executionmarket.app"
             className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
           >
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -187,7 +187,7 @@ export function HelpPage({ onBack }: HelpPageProps) {
           </a>
 
           <a
-            href="https://t.me/chambasoporte"
+            href="https://t.me/executionmarket"
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
@@ -296,7 +296,7 @@ export function HelpPage({ onBack }: HelpPageProps) {
             {t('help.stillNeedHelp.subtitle', 'Nuestro equipo de soporte esta listo para ayudarte')}
           </p>
           <a
-            href="mailto:soporte@chamba.app"
+            href="mailto:support@executionmarket.app"
             className="inline-flex items-center gap-2 px-6 py-2.5 bg-white text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
