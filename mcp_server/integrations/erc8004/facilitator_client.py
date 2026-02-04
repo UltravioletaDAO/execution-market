@@ -42,7 +42,7 @@ FACILITATOR_URL = os.environ.get(
 ERC8004_NETWORK = os.environ.get("ERC8004_NETWORK", "ethereum")
 
 # Execution Market Agent ID
-EM_AGENT_ID = int(os.environ.get("EM_AGENT_ID", os.environ.get("CHAMBA_AGENT_ID", "469")))
+EM_AGENT_ID = int(os.environ.get("EM_AGENT_ID", "469"))
 
 # Contract addresses
 ERC8004_CONTRACTS = {

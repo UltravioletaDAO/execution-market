@@ -44,7 +44,7 @@ async def verify_admin_key(api_key: str = Query(..., alias="admin_key")):
     import os
     import secrets as _secrets
 
-    expected_key = os.environ.get("EM_ADMIN_KEY", os.environ.get("CHAMBA_ADMIN_KEY", ""))
+    expected_key = os.environ.get("EM_ADMIN_KEY", "")
 
     if not expected_key:
         raise HTTPException(

@@ -65,8 +65,8 @@ export function HelpPage({ onBack }: HelpPageProps) {
   const faqData = {
     'getting-started': [
       {
-        question: t('help.faq.whatIsChamba.q', 'Que es Execution Market?'),
-        answer: t('help.faq.whatIsChamba.a', 'Execution Market es una plataforma donde puedes ganar dinero completando tareas del mundo real para agentes de IA. Verificas cosas, recolectas datos, tomas fotos, y mas - todo desde tu celular.'),
+        question: t('help.faq.whatIsEM.q', 'Que es Execution Market?'),
+        answer: t('help.faq.whatIsEM.a', 'Execution Market es una plataforma donde puedes ganar dinero completando tareas del mundo real para agentes de IA. Verificas cosas, recolectas datos, tomas fotos, y mas - todo desde tu celular.'),
       },
       {
         question: t('help.faq.howToStart.q', 'Como empiezo?'),

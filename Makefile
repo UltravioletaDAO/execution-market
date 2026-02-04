@@ -1,5 +1,5 @@
 # =============================================================================
-# Chamba Makefile
+# Execution Market Makefile
 # =============================================================================
 # Common commands for local development
 #
@@ -44,7 +44,7 @@ RESET := \033[0m
 
 help: ## Show this help message
 	@echo ""
-	@echo "$(CYAN)Chamba Development Commands$(RESET)"
+	@echo "$(CYAN)Execution Market Development Commands$(RESET)"
 	@echo "============================"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -62,31 +62,31 @@ help: ## Show this help message
 # =============================================================================
 
 up: check-env ## Start all services in background
-	@echo "$(CYAN)Starting Chamba services...$(RESET)"
+	@echo "$(CYAN)Starting Execution Market services...$(RESET)"
 	$(DC) up -d
 	@echo "$(GREEN)Services started!$(RESET)"
 	@make urls
 
 dev: check-env ## Start with development overrides (hot reload)
-	@echo "$(CYAN)Starting Chamba in development mode...$(RESET)"
+	@echo "$(CYAN)Starting Execution Market in development mode...$(RESET)"
 	$(DC_DEV) up -d
 	@echo "$(GREEN)Development services started!$(RESET)"
 	@make urls
 
 prod: check-env ## Start with production configuration
-	@echo "$(CYAN)Starting Chamba in production mode...$(RESET)"
+	@echo "$(CYAN)Starting Execution Market in production mode...$(RESET)"
 	$(DC_PROD) up -d
 	@echo "$(GREEN)Production services started!$(RESET)"
 
 down: ## Stop all services
-	@echo "$(CYAN)Stopping Chamba services...$(RESET)"
+	@echo "$(CYAN)Stopping Execution Market services...$(RESET)"
 	$(DC) down
 	@echo "$(GREEN)Services stopped.$(RESET)"
 
 stop: down ## Alias for down
 
 restart: ## Restart all services
-	@echo "$(CYAN)Restarting Chamba services...$(RESET)"
+	@echo "$(CYAN)Restarting Execution Market services...$(RESET)"
 	$(DC) restart
 	@echo "$(GREEN)Services restarted.$(RESET)"
 
@@ -120,7 +120,7 @@ ps: status ## Alias for status
 
 urls: ## Show service URLs
 	@echo ""
-	@echo "$(CYAN)Chamba Services:$(RESET)"
+	@echo "$(CYAN)Execution Market Services:$(RESET)"
 	@echo "  Dashboard:        $(GREEN)http://localhost:5173$(RESET)"
 	@echo "  MCP Server:       $(GREEN)http://localhost:8000$(RESET)"
 	@echo "  MCP Health:       $(GREEN)http://localhost:8000/health$(RESET)"
@@ -259,10 +259,10 @@ reset: ## Reset everything and restart
 	@make urls
 
 clean: ## Remove all containers, volumes, and images
-	@echo "$(RED)WARNING: This will remove ALL Chamba Docker resources!$(RESET)"
+	@echo "$(RED)WARNING: This will remove ALL Execution Market Docker resources!$(RESET)"
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ]
 	$(DC) down -v --rmi all --remove-orphans
-	docker network rm chamba-network 2>/dev/null || true
+	docker network rm em-network 2>/dev/null || true
 	@echo "$(GREEN)Cleanup complete.$(RESET)"
 
 prune: ## Remove unused Docker resources
@@ -276,7 +276,7 @@ prune: ## Remove unused Docker resources
 # =============================================================================
 
 setup: ## Initial setup (create .env, pull images)
-	@echo "$(CYAN)Setting up Chamba development environment...$(RESET)"
+	@echo "$(CYAN)Setting up Execution Market development environment...$(RESET)"
 	@if [ ! -f .env ]; then \
 		cp .env.docker.example .env; \
 		echo "$(GREEN)Created .env from .env.docker.example$(RESET)"; \

@@ -34,7 +34,7 @@ FROM python:3.11-slim AS development
 WORKDIR /app
 
 # Create non-root user
-RUN groupadd -r chamba && useradd -r -g chamba -d /app chamba
+RUN groupadd -r em && useradd -r -g em -d /app em
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -53,7 +53,7 @@ RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 COPY . .
 
 # Set ownership
-RUN chown -R chamba:chamba /app
+RUN chown -R em:em /app
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -70,7 +70,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 EXPOSE ${PORT}
 
 # Switch to non-root user
-USER chamba
+USER em
 
 # Run with uvicorn (development mode with reload)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
@@ -83,7 +83,7 @@ FROM python:3.11-slim AS production
 WORKDIR /app
 
 # Create non-root user
-RUN groupadd -r chamba && useradd -r -g chamba -d /app chamba
+RUN groupadd -r em && useradd -r -g em -d /app em
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -106,10 +106,10 @@ COPY . .
 RUN rm -rf tests/ *.md .git* __pycache__ .pytest_cache .mypy_cache
 
 # Set ownership
-RUN chown -R chamba:chamba /app
+RUN chown -R em:em /app
 
 # Create cache directory
-RUN mkdir -p /app/.cache && chown chamba:chamba /app/.cache
+RUN mkdir -p /app/.cache && chown em:em /app/.cache
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -127,7 +127,7 @@ HEALTHCHECK --interval=15s --timeout=10s --start-period=30s --retries=5 \
 EXPOSE ${PORT}
 
 # Switch to non-root user
-USER chamba
+USER em
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]

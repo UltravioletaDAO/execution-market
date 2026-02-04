@@ -331,18 +331,6 @@ class HealthChecker:
                 evidence_bucket_exists = True  # If no exception, bucket exists
             except Exception as e:
                 error_msg = str(e)
-                # Try alternate bucket name
-                try:
-                    files = await asyncio.wait_for(
-                        asyncio.to_thread(
-                            lambda: client.storage.from_("chamba-evidence").list()
-                        ),
-                        timeout=self.COMPONENT_TIMEOUTS.get("storage", self.DEFAULT_TIMEOUT)
-                    )
-                    evidence_bucket_exists = True
-                    bucket_name = "chamba-evidence"
-                except Exception:
-                    pass
 
             latency = (time.time() - start) * 1000
 

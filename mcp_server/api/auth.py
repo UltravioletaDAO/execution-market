@@ -166,30 +166,21 @@ def _is_valid_key_format(api_key: str) -> bool:
     - em_growth_<32 chars>
     - em_enterprise_<32 chars>
     - Legacy: sk_em_<32 chars>
-    - Legacy (deprecated): chamba_<tier>_<32 chars>, sk_chamba_<32 chars>
+    - Legacy: sk_em_<32 chars>
     """
     if not api_key:
         return False
 
-    # Legacy format (deprecated)
-    if api_key.startswith("sk_chamba_"):
-        return len(api_key) >= 42  # sk_chamba_ + 32 chars
-
-    # Legacy format (deprecated)
+    # Legacy format
     if api_key.startswith("sk_em_"):
         return len(api_key) >= 38  # sk_em_ + 32 chars
 
-    # New format
+    # Standard format
     valid_prefixes = [
         "em_free_",
         "em_starter_",
         "em_growth_",
         "em_enterprise_",
-        # Legacy (deprecated) prefixes
-        "chamba_free_",
-        "chamba_starter_",
-        "chamba_growth_",
-        "chamba_enterprise_",
     ]
 
     for prefix in valid_prefixes:
@@ -268,14 +259,13 @@ def _dev_validate_key(api_key: str, key_hash: str) -> Optional[APIKeyData]:
     tier = APITier.FREE
     agent_id = "dev_agent"
 
-    if api_key.startswith("em_enterprise_") or api_key.startswith("chamba_enterprise_"):
+    if api_key.startswith("em_enterprise_"):
         tier = APITier.ENTERPRISE
-    elif api_key.startswith("em_growth_") or api_key.startswith("chamba_growth_"):
+    elif api_key.startswith("em_growth_"):
         tier = APITier.GROWTH
-    elif api_key.startswith("em_starter_") or api_key.startswith("chamba_starter_"):
+    elif api_key.startswith("em_starter_"):
         tier = APITier.STARTER
-    elif api_key.startswith("sk_em_") or api_key.startswith("sk_chamba_"):
-        # Legacy key, assume starter tier
+    elif api_key.startswith("sk_em_"):
         tier = APITier.STARTER
 
     # Extract agent_id from key if present (format: em_tier_agentid_random)

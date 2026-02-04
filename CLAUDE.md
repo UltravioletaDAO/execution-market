@@ -348,6 +348,102 @@ When creating test tasks:
 | Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
 | Facilitator Reputation API | `POST /feedback`, `GET /reputation/{network}/{agentId}` |
 
+### Complete URL Map
+
+#### Production URLs
+
+| URL | Service | Description |
+|-----|---------|-------------|
+| `https://execution.market` | Dashboard | Worker-facing React SPA |
+| `https://mcp.execution.market` | MCP Server | API + MCP transport for agents |
+| `https://mcp.execution.market/health` | Health | Full health check with component details |
+| `https://mcp.execution.market/docs` | Swagger UI | Interactive API documentation |
+| `https://mcp.execution.market/redoc` | ReDoc | Alternative API documentation |
+| `https://mcp.execution.market/.well-known/agent.json` | A2A | Agent discovery card |
+
+#### Dashboard Pages (`https://execution.market`)
+
+| Path | Page | Auth |
+|------|------|------|
+| `/` | Home (hero, task browser, how-it-works) | Public |
+| `/about` | About Execution Market | Public |
+| `/faq` | FAQ | Public |
+| `/tasks` | Browse & apply for tasks | Worker |
+| `/profile` | Worker profile, earnings, reputation | Worker |
+| `/earnings` | Earnings tracking (placeholder) | Worker |
+| `/agent/dashboard` | Agent analytics, task mgmt, submissions | Agent |
+| `/agent/tasks` | Agent task management (placeholder) | Agent |
+| `/agent/tasks/new` | Create new task (placeholder) | Agent |
+
+#### MCP Server API Endpoints (`https://mcp.execution.market`)
+
+**Health & Monitoring:**
+- `GET /health` — Basic health check (ALB)
+- `GET /health/` — Detailed health with component latency
+- `GET /health/live` | `/health/ready` | `/health/startup` — K8s probes
+- `GET /health/metrics` — Prometheus metrics
+- `GET /health/version` — Version info
+
+**MCP Transport:**
+- `POST /mcp/` — MCP Streamable HTTP (SSE) for AI agent tool invocation
+- `GET /mcp/` — MCP session initialization
+
+**REST API — Agent Endpoints (`/api/v1`):** (API key required)
+- `POST /api/v1/tasks` — Create task (with x402 payment)
+- `GET /api/v1/tasks` — List agent's tasks
+- `GET /api/v1/tasks/{id}` — Get task details
+- `POST /api/v1/tasks/batch` — Batch create (max 50)
+- `POST /api/v1/tasks/{id}/cancel` — Cancel + refund
+- `GET /api/v1/tasks/{id}/submissions` — Get submissions
+- `POST /api/v1/submissions/{id}/approve` — Approve + pay
+- `POST /api/v1/submissions/{id}/reject` — Reject
+- `GET /api/v1/analytics` — Agent analytics
+
+**REST API — Worker Endpoints (`/api/v1`):**
+- `POST /api/v1/executors/register` — Register worker
+- `GET /api/v1/tasks/available` — Browse available tasks
+- `POST /api/v1/tasks/{id}/apply` — Apply to task
+- `POST /api/v1/tasks/{id}/submit` — Submit work + evidence
+- `GET /api/v1/executors/{id}/tasks` — Worker's tasks
+- `GET /api/v1/executors/{id}/stats` — Worker stats
+
+**REST API — Admin Endpoints (`/api/v1/admin`):** (Admin key required)
+- `GET /api/v1/admin/verify` — Verify admin key
+- `GET /api/v1/admin/stats` — Platform statistics
+- `GET /api/v1/admin/tasks` — All tasks (search, filter)
+- `GET|PUT /api/v1/admin/tasks/{id}` — Task details/override
+- `GET /api/v1/admin/payments` — Transaction history
+- `GET /api/v1/admin/payments/stats` — Payment stats
+- `GET /api/v1/admin/users/agents` | `/workers` — User lists
+- `PUT /api/v1/admin/users/{id}/status` — Suspend/activate
+- `GET|PUT /api/v1/admin/config` | `/{key}` — Platform config
+- `GET /api/v1/admin/config/audit` — Config change audit
+- `GET /api/v1/admin/analytics` — Analytics data
+
+**Escrow (`/api/v1/escrow`):**
+- `GET /api/v1/escrow/config` — x402r configuration
+- `GET /api/v1/escrow/balance` — Merchant USDC balance
+- `POST /api/v1/escrow/release` — Release to worker
+- `POST /api/v1/escrow/refund` — Refund to agent
+
+**Reputation (`/api/v1/reputation`):**
+- `GET /api/v1/reputation/em` — EM reputation score
+- `GET /api/v1/reputation/agents/{id}` — Agent reputation
+- `POST /api/v1/reputation/workers/rate` — Rate worker
+- `POST /api/v1/reputation/agents/rate` — Rate agent
+
+**WebSocket:**
+- `WS /ws` — Real-time task notifications
+- `GET /ws/stats` — WebSocket stats
+
+#### Not Yet Deployed
+
+| App | Directory | Intended URL | Status |
+|-----|-----------|-------------|--------|
+| Admin Dashboard | `admin-dashboard/` | `admin.execution.market` | Built, no CI/CD pipeline |
+| Docs Site | `docs-site/` | `docs.execution.market` | VitePress, no pipeline |
+| Landing Pages | `landing/` | N/A | Static HTML, no deployment |
+
 ### Key Integration Files
 
 | File | Purpose |

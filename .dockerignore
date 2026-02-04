@@ -1,5 +1,5 @@
 # =============================================================================
-# Chamba Docker Ignore
+# Execution Market Docker Ignore
 # =============================================================================
 # Files and directories to exclude from Docker build context
 # This improves build performance and prevents sensitive files from being

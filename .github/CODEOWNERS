@@ -1,8 +1,8 @@
-# CODEOWNERS - Chamba Project
+# CODEOWNERS - Execution Market Project
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Default owners for everything in the repo
-* @ultravioletadao/chamba-maintainers
+* @ultravioletadao/em-maintainers
 
 # Backend (Python/FastAPI)
 /backend/ @ultravioletadao/backend-team
@@ -36,9 +36,9 @@ Dockerfile @ultravioletadao/devops-team
 /backend/src/crypto/ @ultravioletadao/security-team @ultravioletadao/blockchain-team
 
 # Documentation
-/docs/ @ultravioletadao/chamba-maintainers
-*.md @ultravioletadao/chamba-maintainers
-README.md @ultravioletadao/chamba-maintainers
+/docs/ @ultravioletadao/em-maintainers
+*.md @ultravioletadao/em-maintainers
+README.md @ultravioletadao/em-maintainers
 
 # Configuration files
 pyproject.toml @ultravioletadao/backend-team

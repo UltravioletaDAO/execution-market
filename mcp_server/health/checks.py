@@ -359,18 +359,6 @@ async def check_storage(timeout: float = 5.0) -> ComponentHealth:
             evidence_bucket_exists = True
         except Exception as e:
             error_msg = str(e)
-            # Try alternate bucket name
-            try:
-                files = await asyncio.wait_for(
-                    asyncio.to_thread(
-                        lambda: client.storage.from_("chamba-evidence").list()
-                    ),
-                    timeout=timeout
-                )
-                evidence_bucket_exists = True
-                bucket_name = "chamba-evidence"
-            except Exception:
-                pass
 
         latency = (time.time() - start) * 1000
 
