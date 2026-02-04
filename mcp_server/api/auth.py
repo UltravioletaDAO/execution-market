@@ -38,8 +38,19 @@ class APITier:
     ENTERPRISE = "enterprise"
 
 
-# Cache for API key validation (in production, use Redis)
+# Cache for API key validation with TTL (in production, use Redis)
+_API_KEY_CACHE_TTL_SECONDS = 300  # 5 minutes
 _api_key_cache: dict[str, APIKeyData] = {}
+_api_key_cache_timestamps: dict[str, float] = {}
+
+
+def _is_cache_entry_valid(key_hash: str) -> bool:
+    """Check if a cache entry is still within its TTL."""
+    import time
+    cached_at = _api_key_cache_timestamps.get(key_hash)
+    if cached_at is None:
+        return False
+    return (time.time() - cached_at) < _API_KEY_CACHE_TTL_SECONDS
 
 
 async def verify_api_key(
@@ -87,12 +98,11 @@ async def verify_api_key(
             detail="Invalid API key format"
         )
 
-    # Check cache first
+    # Check cache first (with TTL)
     key_hash = _hash_key(api_key)
-    if key_hash in _api_key_cache:
+    if key_hash in _api_key_cache and _is_cache_entry_valid(key_hash):
         cached = _api_key_cache[key_hash]
         if cached.is_valid:
-            # Update last used
             cached.last_used = datetime.now(timezone.utc)
             return cached
         else:
@@ -100,6 +110,10 @@ async def verify_api_key(
                 status_code=401,
                 detail="API key has been revoked"
             )
+    elif key_hash in _api_key_cache and not _is_cache_entry_valid(key_hash):
+        # TTL expired, remove stale entry
+        del _api_key_cache[key_hash]
+        _api_key_cache_timestamps.pop(key_hash, None)
 
     # Validate against database
     key_data = await _validate_key_from_db(api_key, key_hash)
@@ -110,8 +124,10 @@ async def verify_api_key(
             detail="Invalid or expired API key"
         )
 
-    # Cache the validated key
+    # Cache the validated key with TTL
+    import time
     _api_key_cache[key_hash] = key_data
+    _api_key_cache_timestamps[key_hash] = time.time()
 
     return key_data
 
@@ -224,8 +240,10 @@ async def _validate_key_from_db(api_key: str, key_hash: str) -> Optional[APIKeyD
     except Exception as e:
         logger.error("Error validating API key: %s", str(e))
 
-        # In development, allow keys matching pattern without DB
-        if os.environ.get("ENVIRONMENT") == "development":
+        # In development, allow keys matching pattern without DB (requires explicit opt-in)
+        if (os.environ.get("ENVIRONMENT") == "development"
+                and os.environ.get("DEV_ALLOW_FAKE_KEYS") == "true"):
+            logger.warning("Dev mode: using fake key validation (DB unavailable)")
             return _dev_validate_key(api_key, key_hash)
 
         return None
@@ -349,9 +367,10 @@ def clear_api_key_cache() -> int:
     Returns:
         Number of entries cleared
     """
-    global _api_key_cache
+    global _api_key_cache, _api_key_cache_timestamps
     count = len(_api_key_cache)
     _api_key_cache = {}
+    _api_key_cache_timestamps = {}
     return count
 
 
@@ -366,6 +385,7 @@ def invalidate_api_key(key_hash: str) -> bool:
         True if key was in cache and invalidated
     """
     if key_hash in _api_key_cache:
-        _api_key_cache[key_hash].is_valid = False
+        del _api_key_cache[key_hash]
+        _api_key_cache_timestamps.pop(key_hash, None)
         return True
     return False

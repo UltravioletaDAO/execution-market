@@ -1,8 +1,16 @@
 """
 Minimal A2A Test Server for Chamba
 Run with: python test_a2a_server.py
+
+WARNING: Development/testing only. Do NOT deploy to production.
 """
+import os
 import sys
+
+if os.environ.get("ENVIRONMENT") == "production":
+    print("ERROR: test_a2a_server.py must not run in production. Exiting.")
+    sys.exit(1)
+
 sys.path.insert(0, '.')
 
 from fastapi import FastAPI
@@ -12,9 +20,13 @@ from a2a.agent_card import router as a2a_router
 app = FastAPI(title='Chamba A2A Test Server')
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['*'],
-    allow_methods=['*'],
-    allow_headers=['*']
+    allow_origins=[
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://localhost:8000',
+    ],
+    allow_methods=['GET', 'POST', 'OPTIONS'],
+    allow_headers=['Content-Type', 'Authorization']
 )
 app.include_router(a2a_router)
 
