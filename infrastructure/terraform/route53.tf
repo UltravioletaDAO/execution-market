@@ -2,7 +2,7 @@
 
 # Data source for existing hosted zone
 data "aws_route53_zone" "main" {
-  name         = "ultravioletadao.xyz"
+  name         = var.domain
   private_zone = false
 }
 
