@@ -902,6 +902,10 @@ async def get_available_tasks(
     category: Optional[TaskCategory] = Query(None, description="Filter by category"),
     min_bounty: Optional[float] = Query(None, ge=0, description="Minimum bounty USD"),
     max_bounty: Optional[float] = Query(None, le=10000, description="Maximum bounty USD"),
+    include_expired: bool = Query(
+        False,
+        description="Include expired tasks in response. Useful as landing fallback when there are no active tasks.",
+    ),
     limit: int = Query(20, ge=1, le=100, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
 ) -> AvailableTasksResponse:
@@ -909,15 +913,19 @@ async def get_available_tasks(
     Get available tasks for workers.
 
     Public endpoint that returns tasks in 'published' status.
+    Can optionally include expired tasks for read-only discovery surfaces.
     Supports location-based filtering and bounty range filtering.
     """
     try:
         client = db.get_client()
 
         # Build query
-        query = client.table("tasks").select(
-            "id, title, category, bounty_usd, deadline, location_hint, min_reputation, created_at"
-        ).eq("status", "published")
+        query = client.table("tasks").select("*")
+
+        if include_expired:
+            query = query.in_("status", ["published", "expired"])
+        else:
+            query = query.eq("status", "published")
 
         # Apply category filter
         if category:
@@ -930,7 +938,10 @@ async def get_available_tasks(
             query = query.lte("bounty_usd", max_bounty)
 
         # Execute query
-        result = query.order("bounty_usd", desc=True).range(offset, offset + limit - 1).execute()
+        if include_expired:
+            result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+        else:
+            result = query.order("bounty_usd", desc=True).range(offset, offset + limit - 1).execute()
 
         tasks = result.data or []
 
@@ -939,6 +950,7 @@ async def get_available_tasks(
             "category": category.value if category else None,
             "min_bounty": min_bounty,
             "max_bounty": max_bounty,
+            "include_expired": include_expired,
             "location": {"lat": lat, "lng": lng, "radius_km": radius_km} if lat and lng else None,
         }
 
