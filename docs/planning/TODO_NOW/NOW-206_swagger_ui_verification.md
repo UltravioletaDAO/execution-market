@@ -56,7 +56,7 @@ app = FastAPI(
     contact={
         "name": "Ultravioleta DAO",
         "url": "https://ultravioletadao.xyz",
-        "email": "hello@ultravioletadao.xyz",
+        "email": "ultravioletadao@gmail.com",
     },
     license_info={
         "name": "MIT",
