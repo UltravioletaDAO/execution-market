@@ -76,10 +76,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   })
   const [loading, setLoading] = useState(true)
   const [error] = useState<Error | null>(null)
+  const [dynamicInitialized, setDynamicInitialized] = useState(false)
 
   // Derived state
   const walletAddress = primaryWallet?.address?.toLowerCase() || null
-  const isAuthenticated = isLoggedIn && !!walletAddress
+  // Only consider authenticated once Dynamic has had a chance to restore session
+  const isAuthenticated = dynamicInitialized && isLoggedIn && !!walletAddress
   const isProfileComplete = !!executor?.display_name
 
   // --------------------------------------------------------------------------
@@ -164,6 +166,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const openAuthModal = useCallback(() => {
     setShowAuthFlow(true)
   }, [setShowAuthFlow])
+
+  // --------------------------------------------------------------------------
+  // Effect: Track Dynamic.xyz initialization
+  // Dynamic SDK restores session from localStorage on mount, we wait for it
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    // Give Dynamic.xyz a moment to restore session from localStorage
+    // If user has a session, primaryWallet will be set; if not, it stays undefined
+    const timer = setTimeout(() => {
+      setDynamicInitialized(true)
+      console.log('[Auth] Dynamic initialized')
+    }, 500) // 500ms should be enough for localStorage restore
+
+    return () => clearTimeout(timer)
+  }, []) // Only run once on mount
 
   // --------------------------------------------------------------------------
   // Effect: Fetch executor when wallet changes

@@ -15,6 +15,7 @@ export function Home() {
     setUserType,
     isAuthenticated,
     isProfileComplete,
+    loading,
     openAuthModal,
     refreshExecutor,
   } = useAuth()
@@ -23,11 +24,16 @@ export function Home() {
   const taskSectionRef = useRef<HTMLElement>(null)
   const howItWorksRef = useRef<HTMLElement>(null)
 
-  // Handle auth state changes
+  // Handle auth state changes - wait for loading to complete before making navigation decisions
   useEffect(() => {
+    // Don't make decisions while still loading executor data
+    if (loading) {
+      return
+    }
+
     // Detect when user just authenticated (transition from not-auth to auth)
     if (isAuthenticated && !wasAuthenticated) {
-      console.log('[Home] User just authenticated, isProfileComplete:', isProfileComplete)
+      console.log('[Home] User authenticated, isProfileComplete:', isProfileComplete, 'loading:', loading)
       setUserType('worker')
 
       if (isProfileComplete) {
@@ -39,7 +45,7 @@ export function Home() {
       }
     }
     setWasAuthenticated(isAuthenticated)
-  }, [isAuthenticated, wasAuthenticated, isProfileComplete, setUserType, navigate])
+  }, [isAuthenticated, wasAuthenticated, isProfileComplete, loading, setUserType, navigate])
 
   const handleConnectWallet = useCallback(() => {
     openAuthModal()
