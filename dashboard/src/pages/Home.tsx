@@ -7,6 +7,7 @@ import { AppFooter } from '../components/layout/AppFooter'
 import { HeroSection } from '../components/landing/HeroSection'
 import { PublicTaskBrowser } from '../components/landing/PublicTaskBrowser'
 import { HowItWorks } from '../components/landing/HowItWorks'
+import { AgentIntegration } from '../components/landing/AgentIntegration'
 
 export function Home() {
   const navigate = useNavigate()
@@ -23,6 +24,7 @@ export function Home() {
   const [wasAuthenticated, setWasAuthenticated] = useState(false)
   const taskSectionRef = useRef<HTMLElement>(null)
   const howItWorksRef = useRef<HTMLElement>(null)
+  const agentSectionRef = useRef<HTMLElement>(null)
 
   // Handle auth state changes - wait for loading to complete before making navigation decisions
   useEffect(() => {
@@ -100,6 +102,8 @@ export function Home() {
           ref={howItWorksRef}
           onConnectWallet={handleConnectWallet}
         />
+
+        <AgentIntegration ref={agentSectionRef} />
       </main>
 
       <AppFooter />
