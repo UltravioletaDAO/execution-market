@@ -437,20 +437,20 @@ async def get_platform_stats(
         except Exception as e:
             logger.warning(f"Could not query escrows: {e}")
 
-        # Active users
+        # Active users — use count queries for efficiency
         workers_count = 0
         agents_count = 0
         try:
             workers_result = supabase.table("executors").select("id", count="exact").execute()
             workers_count = workers_result.count or 0
         except Exception as e:
-            logger.warning(f"Could not query executors: {e}")
+            logger.warning(f"Could not count executors: {e}")
 
         try:
             agents_result = supabase.table("api_keys").select("id", count="exact").eq("is_active", True).execute()
             agents_count = agents_result.count or 0
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Could not count agents: {e}")
 
         return {
             "tasks": {
@@ -965,23 +965,25 @@ async def get_analytics(
                 })
 
         # Top agents (by task count)
-        agents_result = supabase.table("api_keys").select(
-            "id, agent_id, name"
-        ).eq("is_active", True).limit(10).execute()
+        try:
+            agents_result = supabase.table("api_keys").select("*").eq(
+                "is_active", True
+            ).limit(10).execute()
+        except Exception:
+            agents_result = type("R", (), {"data": []})()
 
         top_agents = []
         for agent in (agents_result.data or []):
             agent_id = agent.get("agent_id") or agent["id"]
-            tasks = supabase.table("tasks").select("id", count="exact").eq(
-                "agent_id", agent_id
-            ).execute()
 
+            task_count = 0
             total_spent = 0.0
             try:
-                escrows = supabase.table("escrows").select("total_amount_usdc").eq(
+                tasks = supabase.table("tasks").select("id, bounty_usd", count="exact").eq(
                     "agent_id", agent_id
                 ).execute()
-                total_spent = sum(float(e.get("total_amount_usdc", 0) or 0) for e in (escrows.data or []))
+                task_count = tasks.count or 0
+                total_spent = sum(float(t.get("bounty_usd", 0) or 0) for t in (tasks.data or []))
             except Exception:
                 pass
 
@@ -990,7 +992,7 @@ async def get_analytics(
                 "wallet_address": agent_id,
                 "name": agent.get("name", ""),
                 "total_spent_usd": round(total_spent, 2),
-                "task_count": tasks.count or 0,
+                "task_count": task_count,
             })
 
         top_agents.sort(key=lambda x: x["task_count"], reverse=True)
