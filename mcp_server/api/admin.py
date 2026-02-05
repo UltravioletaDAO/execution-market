@@ -753,56 +753,58 @@ async def list_agents(
     try:
         supabase = db.get_supabase_client()
 
-        # api_keys columns: id, key_prefix, agent_id, name, tier, is_active, usage_count, created_at
+        # Use select("*") to avoid failing on missing columns
         result = supabase.table("api_keys").select(
-            "id, key_prefix, agent_id, name, tier, is_active, usage_count, created_at"
+            "*", count="exact"
         ).order("created_at", desc=True).range(offset, offset + limit - 1).execute()
 
         agents = []
         for agent in (result.data or []):
-            # Count tasks by agent_id (the ERC-8004 identifier)
             agent_id = agent.get("agent_id") or agent["id"]
-            tasks = supabase.table("tasks").select("id", count="exact").eq(
-                "agent_id", agent_id
-            ).execute()
 
-            # Sum total spent from escrows
-            total_spent = 0.0
+            # Count tasks — wrapped in try/except for resilience
+            task_count = 0
             try:
-                escrows = supabase.table("escrows").select("total_amount_usdc").eq(
+                tasks = supabase.table("tasks").select("id", count="exact").eq(
                     "agent_id", agent_id
                 ).execute()
-                total_spent = sum(float(e.get("total_amount_usdc", 0) or 0) for e in (escrows.data or []))
+                task_count = tasks.count or 0
+            except Exception:
+                pass
+
+            # Sum total spent from tasks bounties (escrows table may not exist)
+            total_spent = 0.0
+            try:
+                spent_tasks = supabase.table("tasks").select("bounty_usd").eq(
+                    "agent_id", agent_id
+                ).in_("status", ["completed", "submitted", "accepted", "in_progress"]).execute()
+                total_spent = sum(float(t.get("bounty_usd", 0) or 0) for t in (spent_tasks.data or []))
             except Exception:
                 pass
 
             agents.append({
                 "id": agent["id"],
-                "wallet_address": agent.get("agent_id", ""),  # Frontend expects wallet_address
+                "wallet_address": agent.get("agent_id", ""),
                 "name": agent.get("name", agent.get("key_prefix", "")),
                 "tier": agent.get("tier", "free"),
-                "created_at": agent["created_at"],
-                "task_count": tasks.count or 0,
+                "created_at": agent.get("created_at"),
+                "task_count": task_count,
                 "total_spent_usd": round(total_spent, 2),
                 "status": "active" if agent.get("is_active") else "suspended",
                 "usage_count": agent.get("usage_count", 0),
             })
 
-        # Stats
-        total_agents = supabase.table("api_keys").select("id", count="exact").execute()
-        active_agents = supabase.table("api_keys").select("id", count="exact").eq("is_active", True).execute()
-
         return {
             "users": agents,
-            "count": len(agents),
+            "count": result.count or len(agents),
             "offset": offset,
             "stats": {
-                "total_agents": total_agents.count or 0,
-                "active_agents": active_agents.count or 0,
+                "total_agents": result.count or len(agents),
+                "active_agents": sum(1 for a in agents if a["status"] == "active"),
             },
         }
     except Exception as e:
-        logger.error(f"Error listing agents: {e}")
+        logger.error(f"Error listing agents: {e}", exc_info=True)
         return {"users": [], "count": 0, "offset": offset, "stats": {}}
 
 
@@ -816,45 +818,47 @@ async def list_workers(
     try:
         supabase = db.get_supabase_client()
 
-        # executors columns: id, wallet_address, display_name, reputation_score,
-        #   status, total_earned_usdc, created_at
+        # Use select("*") to avoid failing on missing columns.
+        # Different DB environments may have different column sets.
         result = supabase.table("executors").select(
-            "id, wallet_address, display_name, reputation_score, status, total_earned_usdc, created_at"
+            "*", count="exact"
         ).order("created_at", desc=True).range(offset, offset + limit - 1).execute()
 
         workers = []
         for worker in (result.data or []):
-            # Count completed tasks from tasks table (not task_applications)
-            tasks = supabase.table("tasks").select("id", count="exact").eq(
-                "executor_id", worker["id"]
-            ).eq("status", "completed").execute()
+            # Count completed tasks
+            task_count = 0
+            try:
+                tasks = supabase.table("tasks").select("id", count="exact").eq(
+                    "executor_id", worker["id"]
+                ).eq("status", "completed").execute()
+                task_count = tasks.count or 0
+            except Exception:
+                pass
 
             workers.append({
                 "id": worker["id"],
                 "wallet_address": worker.get("wallet_address", ""),
                 "name": worker.get("display_name", ""),
-                "created_at": worker["created_at"],
-                "task_count": tasks.count or 0,
+                "created_at": worker.get("created_at"),
+                "task_count": task_count,
                 "total_earned_usd": float(worker.get("total_earned_usdc", 0) or 0),
                 "reputation_score": worker.get("reputation_score", 0),
                 "status": worker.get("status", "active"),
                 "success_rate": None,
             })
 
-        # Stats
-        total_workers = supabase.table("executors").select("id", count="exact").execute()
-
         return {
             "users": workers,
-            "count": len(workers),
+            "count": result.count or len(workers),
             "offset": offset,
             "stats": {
-                "total_workers": total_workers.count or 0,
-                "active_workers": total_workers.count or 0,
+                "total_workers": result.count or len(workers),
+                "active_workers": result.count or len(workers),
             },
         }
     except Exception as e:
-        logger.error(f"Error listing workers: {e}")
+        logger.error(f"Error listing workers: {e}", exc_info=True)
         return {"users": [], "count": 0, "offset": offset, "stats": {}}
 
 
@@ -992,15 +996,23 @@ async def get_analytics(
         top_agents.sort(key=lambda x: x["task_count"], reverse=True)
 
         # Top workers (by reputation)
-        workers_result = supabase.table("executors").select(
-            "id, wallet_address, display_name, reputation_score, total_earned_usdc"
-        ).order("reputation_score", desc=True).limit(10).execute()
+        try:
+            workers_result = supabase.table("executors").select("*").order(
+                "created_at", desc=True
+            ).limit(10).execute()
+        except Exception:
+            workers_result = type("R", (), {"data": []})()
 
         top_workers = []
         for worker in (workers_result.data or []):
-            tasks = supabase.table("tasks").select("id", count="exact").eq(
-                "executor_id", worker["id"]
-            ).eq("status", "completed").execute()
+            task_count = 0
+            try:
+                tasks = supabase.table("tasks").select("id", count="exact").eq(
+                    "executor_id", worker["id"]
+                ).eq("status", "completed").execute()
+                task_count = tasks.count or 0
+            except Exception:
+                pass
 
             top_workers.append({
                 "id": worker["id"],
@@ -1008,7 +1020,7 @@ async def get_analytics(
                 "name": worker.get("display_name", ""),
                 "reputation_score": worker.get("reputation_score", 0),
                 "total_earned_usd": float(worker.get("total_earned_usdc", 0) or 0),
-                "task_count": tasks.count or 0,
+                "task_count": task_count,
             })
 
         return {
