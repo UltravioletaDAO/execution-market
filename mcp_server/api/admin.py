@@ -418,24 +418,23 @@ async def get_platform_stats(
         except Exception as e:
             logger.warning(f"Could not query tasks: {e}")
 
-        # Financial stats from escrows table (correct columns)
+        # Financial stats derived from tasks (escrows table may not exist)
         total_volume = 0.0
         total_fees = 0.0
         active_escrow = 0.0
         try:
-            escrows_result = supabase.table("escrows").select(
-                "total_amount_usdc, platform_fee_usdc, status"
-            ).execute()
-            if escrows_result.data:
-                for escrow in escrows_result.data:
-                    amount = float(escrow.get("total_amount_usdc", 0) or 0)
-                    fee = float(escrow.get("platform_fee_usdc", 0) or 0)
+            fin_result = supabase.table("tasks").select("bounty_usd, status").execute()
+            fee_pct = 0.08
+            if fin_result.data:
+                for task in fin_result.data:
+                    amount = float(task.get("bounty_usd", 0) or 0)
                     total_volume += amount
-                    total_fees += fee
-                    if escrow.get("status") in ("pending", "funded"):
+                    if task.get("status") == "completed":
+                        total_fees += amount * fee_pct
+                    if task.get("status") in ("published", "accepted", "in_progress", "submitted"):
                         active_escrow += amount
         except Exception as e:
-            logger.warning(f"Could not query escrows: {e}")
+            logger.warning(f"Could not compute financial stats: {e}")
 
         # Active users — use count queries for efficiency
         workers_count = 0
@@ -692,19 +691,6 @@ async def list_payments(
         logger.error(f"Error listing payments: {e}", exc_info=True)
         return {"transactions": [], "count": 0, "offset": offset}
 
-
-def _escrow_status_to_type(status: Optional[str]) -> str:
-    """Map escrow status to a payment type label."""
-    mapping = {
-        "pending": "deposit",
-        "funded": "deposit",
-        "released": "release",
-        "partial_released": "partial_release",
-        "refunded": "refund",
-        "disputed": "dispute",
-        "expired": "expired",
-    }
-    return mapping.get(status or "", "unknown")
 
 
 @router.get("/payments/stats")
