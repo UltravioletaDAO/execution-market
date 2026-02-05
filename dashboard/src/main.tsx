@@ -20,17 +20,27 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     Promise.resolve()
       .then(async () => {
         const registrations = await navigator.serviceWorker.getRegistrations()
+        const hadRegistrations = registrations.length > 0
         await Promise.all(registrations.map((reg) => reg.unregister()))
+        let hadCaches = false
         if ('caches' in window) {
           const cacheNames = await caches.keys()
+          hadCaches = cacheNames.some((name) => name.startsWith('em-'))
           await Promise.all(
             cacheNames
               .filter((name) => name.startsWith('em-'))
               .map((name) => caches.delete(name))
           )
         }
+        return hadRegistrations || hadCaches
       })
-      .finally(() => {
+      .then((shouldReload) => {
+        window.localStorage.setItem(swResetKey, swResetVersion)
+        if (shouldReload) {
+          window.location.reload()
+        }
+      })
+      .catch(() => {
         window.localStorage.setItem(swResetKey, swResetVersion)
       })
   }
