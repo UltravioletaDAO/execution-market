@@ -16,6 +16,18 @@ interface UseTasksResult {
   refetch: () => Promise<void>
 }
 
+const normalizeError = (err: unknown): Error => {
+  if (err instanceof Error) return err
+  if (err && typeof err === 'object') {
+    const message = (err as { message?: string }).message
+    const code = (err as { code?: string }).code
+    if (message) {
+      return new Error(code ? `${message} (${code})` : message)
+    }
+  }
+  return new Error('Failed to fetch tasks')
+}
+
 export function useTasks(options: UseTasksOptions = {}): UseTasksResult {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -52,7 +64,7 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksResult {
       if (fetchError) throw fetchError
       setTasks(data || [])
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch tasks'))
+      setError(normalizeError(err))
     } finally {
       setLoading(false)
     }
@@ -185,7 +197,7 @@ export function useMyTasks(executorId: string | undefined): UseTasksResult {
       if (fetchError) throw fetchError
       setTasks(data || [])
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch tasks'))
+      setError(normalizeError(err))
     } finally {
       setLoading(false)
     }

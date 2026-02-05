@@ -115,9 +115,39 @@ export function useWalletAuth(options: UseWalletAuthOptions = {}) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: linkError } = await (supabase.rpc as any)(
           'link_wallet_to_session',
-          { p_wallet_address: normalizedWallet }
+          {
+            p_user_id: authData.user.id,
+            p_wallet_address: normalizedWallet,
+          }
         )
-        if (linkError) throw new Error('Failed to link wallet to session')
+        if (linkError) {
+          console.error('[WalletAuth] link_wallet_to_session error:', linkError)
+          console.error('[WalletAuth] link_wallet_to_session details:', {
+            code: (linkError as { code?: string }).code,
+            message: (linkError as { message?: string }).message,
+            details: (linkError as { details?: string }).details,
+            hint: (linkError as { hint?: string }).hint,
+          })
+          // Fallback to get_or_create_executor (also links user_id)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: rpcError } = await (supabase.rpc as any)(
+            'get_or_create_executor',
+            {
+              p_wallet_address: normalizedWallet,
+              p_display_name: displayName || null,
+            }
+          )
+          if (rpcError) {
+            console.error('[WalletAuth] get_or_create_executor fallback error:', rpcError)
+            console.error('[WalletAuth] get_or_create_executor fallback details:', {
+              code: (rpcError as { code?: string }).code,
+              message: (rpcError as { message?: string }).message,
+              details: (rpcError as { details?: string }).details,
+              hint: (rpcError as { hint?: string }).hint,
+            })
+            throw new Error('Failed to link wallet to session')
+          }
+        }
       } else {
         // New user - create executor profile
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
