@@ -23,8 +23,10 @@ from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 from starlette.routing import Mount
 from pydantic import BaseModel
+from pathlib import Path
 
 import supabase_client as db
 from jobs.task_expiration import run_task_expiration_loop
@@ -772,6 +774,13 @@ async def root():
             "mcp_spec": "https://modelcontextprotocol.io/specification/2025-03-26",
             "a2a_spec": "https://a2a-protocol.org/latest/specification/",
         },
+        "skills": {
+            "main": f"{base_url}/skill.md",
+            "heartbeat": f"{base_url}/heartbeat.md",
+            "workflows": f"{base_url}/workflows.md",
+            "list": f"{base_url}/skills",
+            "install": f"clawhub install execution-market",
+        },
         "payments": {
             "x402_sdk": "enabled" if x402_sdk else "disabled",
             "x402r_escrow": "enabled" if X402R_AVAILABLE else "disabled",
@@ -790,6 +799,95 @@ async def root():
                 "reputation_registry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
             },
         },
+    }
+
+
+# =============================================================================
+# SKILL DOCUMENTATION ENDPOINTS (OpenClaw / MoltX compatible)
+# =============================================================================
+
+# Path to skill files (inside mcp_server for Docker compatibility)
+SKILL_DIR = Path(__file__).parent / "skills"
+
+
+@app.get("/skill.md", response_class=PlainTextResponse, tags=["A2A"])
+async def get_skill_md():
+    """
+    Get the main skill documentation for AI agents.
+
+    This file follows the OpenClaw SKILL.md format and can be used by:
+    - OpenClaw agents (install via `clawhub install execution-market`)
+    - MoltX/MoltBook agents (read and follow instructions)
+    - Any AI agent that understands markdown documentation
+
+    Install locally:
+    ```bash
+    mkdir -p ~/.openclaw/skills/execution-market
+    curl -s https://api.execution.market/skill.md > ~/.openclaw/skills/execution-market/SKILL.md
+    ```
+    """
+    skill_file = SKILL_DIR / "SKILL.md"
+    if not skill_file.exists():
+        raise HTTPException(status_code=404, detail="SKILL.md not found")
+    return skill_file.read_text(encoding="utf-8")
+
+
+@app.get("/heartbeat.md", response_class=PlainTextResponse, tags=["A2A"])
+async def get_heartbeat_md():
+    """
+    Get the heartbeat documentation for task monitoring.
+
+    Describes efficient polling patterns and health checks for AI agents
+    integrating with Execution Market.
+    """
+    heartbeat_file = SKILL_DIR / "HEARTBEAT.md"
+    if not heartbeat_file.exists():
+        raise HTTPException(status_code=404, detail="HEARTBEAT.md not found")
+    return heartbeat_file.read_text(encoding="utf-8")
+
+
+@app.get("/workflows.md", response_class=PlainTextResponse, tags=["A2A"])
+async def get_workflows_md():
+    """
+    Get common workflow patterns for Execution Market tasks.
+
+    Includes examples for physical verification, knowledge access,
+    simple actions, and more.
+    """
+    workflows_file = SKILL_DIR / "WORKFLOWS.md"
+    if not workflows_file.exists():
+        raise HTTPException(status_code=404, detail="WORKFLOWS.md not found")
+    return workflows_file.read_text(encoding="utf-8")
+
+
+@app.get("/skills", tags=["A2A"])
+async def list_skills():
+    """
+    List all available skill documentation files.
+
+    Returns URLs for each skill file that agents can fetch.
+    """
+    base_url = os.environ.get("MCP_BASE_URL", "https://api.execution.market")
+
+    files = []
+    if SKILL_DIR.exists():
+        for f in SKILL_DIR.glob("*.md"):
+            files.append({
+                "name": f.stem,
+                "filename": f.name,
+                "url": f"{base_url}/{f.name.lower()}",
+            })
+
+    return {
+        "name": "execution-market",
+        "version": "1.0.0",
+        "description": "Hire humans for physical-world tasks",
+        "install": {
+            "openclaw": "clawhub install execution-market",
+            "manual": f"curl -s {base_url}/skill.md > ~/.openclaw/skills/execution-market/SKILL.md",
+        },
+        "files": files,
+        "primary": f"{base_url}/skill.md",
     }
 
 

@@ -1,0 +1,71 @@
+# ClawHub publishing configuration for Execution Market skill
+# See: https://docs.openclaw.ai/tools/clawhub
+
+slug: ultravioleta/execution-market
+name: Execution Market
+version: 1.0.0
+
+# Skill metadata
+description: |
+  Human Execution Layer for AI Agents.
+  Hire humans for physical-world tasks: verifications, deliveries, document collection.
+  Instant USDC payments via x402.
+
+# Tags for discovery
+tags:
+  - marketplace
+  - physical-tasks
+  - human-execution
+  - x402
+  - payments
+  - verification
+  - delivery
+  - documents
+
+# Required environment variables
+requires:
+  env:
+    - EM_API_KEY
+
+# Primary environment variable
+primaryEnv: EM_API_KEY
+
+# Category for browsing
+category: marketplace
+
+# Endpoints
+endpoints:
+  api: https://api.execution.market
+  mcp: https://mcp.execution.market/mcp/
+  skill_md: https://mcp.execution.market/skill.md
+  heartbeat_md: https://mcp.execution.market/heartbeat.md
+  workflows_md: https://mcp.execution.market/workflows.md
+  docs: https://api.execution.market/docs
+
+# Files to include in skill bundle
+files:
+  - SKILL.md
+  - HEARTBEAT.md
+  - WORKFLOWS.md
+
+# Author
+author:
+  name: Ultravioleta DAO
+  url: https://ultravioletadao.xyz
+  email: UltravioletaDAO@gmail.com
+
+# Repository
+repository: https://github.com/ultravioletadao
+
+# License
+license: MIT
+
+# Changelog
+changelog: |
+  ## 1.0.0 (2026-02-05)
+  - Initial release
+  - REST API for task creation and management
+  - MCP server for Claude/OpenClaw integration
+  - x402 gasless payments on Base
+  - Worker reputation via ERC-8004
+  - Complete skill documentation (SKILL.md, HEARTBEAT.md, WORKFLOWS.md)

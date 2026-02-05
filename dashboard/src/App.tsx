@@ -17,6 +17,7 @@ import { WorkerTasks } from './pages/WorkerTasks'
 import { About } from './pages/About'
 import { FAQ } from './pages/FAQ'
 import { AgentDashboard } from './pages/AgentDashboard'
+import { AgentOnboarding } from './pages/AgentOnboarding'
 
 // --------------------------------------------------------------------------
 // Profile Page (Worker - Protected)
@@ -216,6 +217,7 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/about" element={<About />} />
       <Route path="/faq" element={<FAQ />} />
+      <Route path="/agents" element={<AgentOnboarding />} />
 
       {/* Worker Routes (Protected - Workers Only) */}
       <Route
