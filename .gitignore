@@ -63,6 +63,10 @@ supabase/.temp/
 # Large video assets (manage separately)
 videos/insights-2026/
 
+# Agent tool symlink dirs (only contain symlinks, break on Windows git)
+.codex/
+.opencode/
+
 # Misc
 .unused/
 .internal/
