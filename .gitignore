@@ -66,6 +66,10 @@ videos/insights-2026/
 # Agent tool symlink dirs (only contain symlinks, break on Windows git)
 .codex/
 .opencode/
+# Symlinks in .claude/skills that point to .agents/ (content tracked there)
+.claude/skills/vercel-react-best-practices
+.claude/skills/web-design-guidelines
+.claude/skills/skill-creator
 
 # Misc
 .unused/
