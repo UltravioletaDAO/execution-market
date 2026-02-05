@@ -1,0 +1,153 @@
+{
+    "taskDefinition": {
+        "taskDefinitionArn": "arn:aws:ecs:us-east-2:YOUR_AWS_ACCOUNT_ID:task-definition/em-production-mcp-server:4",
+        "containerDefinitions": [
+            {
+                "name": "mcp-server",
+                "image": "YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest",
+                "cpu": 0,
+                "portMappings": [
+                    {
+                        "containerPort": 8000,
+                        "hostPort": 8000,
+                        "protocol": "tcp"
+                    }
+                ],
+                "essential": true,
+                "environment": [
+                    {
+                        "name": "PORT",
+                        "value": "8000"
+                    },
+                    {
+                        "name": "ENVIRONMENT",
+                        "value": "production"
+                    }
+                ],
+                "mountPoints": [],
+                "volumesFrom": [],
+                "secrets": [
+                    {
+                        "name": "SUPABASE_URL",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/supabase:SUPABASE_URL::"
+                    },
+                    {
+                        "name": "SUPABASE_ANON_KEY",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/supabase:SUPABASE_ANON_KEY::"
+                    },
+                    {
+                        "name": "SUPABASE_SERVICE_KEY",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/supabase:SUPABASE_SERVICE_ROLE_KEY::"
+                    },
+                    {
+                        "name": "EM_ADMIN_KEY",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/admin-key"
+                    },
+                    {
+                        "name": "WALLET_PRIVATE_KEY",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/x402:PRIVATE_KEY::"
+                    },
+                    {
+                        "name": "X402_NETWORK",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/x402:X402_NETWORK::"
+                    },
+                    {
+                        "name": "X402_RPC_URL",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/x402:X402_RPC_URL::"
+                    },
+                    {
+                        "name": "X402_FACILITATOR_URL",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/x402:FACILITATOR_URL::"
+                    },
+                    {
+                        "name": "EM_ESCROW_ADDRESS",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/x402:X402R_ESCROW::"
+                    },
+                    {
+                        "name": "USDC_ADDRESS",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/x402:USDC_ADDRESS::"
+                    },
+                    {
+                        "name": "EM_TREASURY_ADDRESS",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/commission:wallet_address::"
+                    }
+                ],
+                "logConfiguration": {
+                    "logDriver": "awslogs",
+                    "options": {
+                        "awslogs-group": "/ecs/em-production/mcp-server",
+                        "awslogs-region": "us-east-2",
+                        "awslogs-stream-prefix": "ecs"
+                    }
+                },
+                "healthCheck": {
+                    "command": [
+                        "CMD-SHELL",
+                        "curl -f http://localhost:8000/health || exit 1"
+                    ],
+                    "interval": 30,
+                    "timeout": 5,
+                    "retries": 3,
+                    "startPeriod": 60
+                },
+                "systemControls": []
+            }
+        ],
+        "family": "em-production-mcp-server",
+        "taskRoleArn": "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/em-production-ecs-task",
+        "executionRoleArn": "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/em-production-ecs-execution",
+        "networkMode": "awsvpc",
+        "revision": 4,
+        "volumes": [],
+        "status": "ACTIVE",
+        "requiresAttributes": [
+            {
+                "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+            },
+            {
+                "name": "ecs.capability.execution-role-awslogs"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.ecr-auth"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+            },
+            {
+                "name": "ecs.capability.secrets.asm.environment-variables"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.task-iam-role"
+            },
+            {
+                "name": "ecs.capability.container-health-check"
+            },
+            {
+                "name": "ecs.capability.execution-role-ecr-pull"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+            },
+            {
+                "name": "ecs.capability.task-eni"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
+            }
+        ],
+        "placementConstraints": [],
+        "compatibilities": [
+            "EC2",
+            "FARGATE",
+            "MANAGED_INSTANCES"
+        ],
+        "requiresCompatibilities": [
+            "FARGATE"
+        ],
+        "cpu": "256",
+        "memory": "512",
+        "registeredAt": "2026-02-05T17:17:40.008000-05:00",
+        "registeredBy": "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:user/YOUR_IAM_USER"
+    },
+    "tags": []
+}
