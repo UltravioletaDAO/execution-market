@@ -940,17 +940,10 @@ async def get_analytics(
             start_str = start_date.strftime("%Y-%m-%d")
 
             all_tasks = supabase.table("tasks").select(
-                "created_at, status, updated_at"
+                "created_at, status, updated_at, bounty_usd"
             ).gte("created_at", start_str).execute()
 
-            try:
-                all_escrows = supabase.table("escrows").select(
-                    "total_amount_usdc, created_at"
-                ).gte("created_at", start_str).execute()
-            except Exception:
-                all_escrows = type("R", (), {"data": []})()
-
-            # Build daily maps
+            # Build daily maps from tasks data
             created_by_day: Dict[str, int] = {}
             completed_by_day: Dict[str, int] = {}
             volume_by_day: Dict[str, float] = {}
@@ -958,14 +951,12 @@ async def get_analytics(
             for task in (all_tasks.data or []):
                 day = task["created_at"][:10]
                 created_by_day[day] = created_by_day.get(day, 0) + 1
+                # Track volume from task bounties
+                amount = float(task.get("bounty_usd", 0) or 0)
+                volume_by_day[day] = volume_by_day.get(day, 0) + amount
                 if task.get("status") == "completed" and task.get("updated_at"):
                     cday = task["updated_at"][:10]
                     completed_by_day[cday] = completed_by_day.get(cday, 0) + 1
-
-            for escrow in (all_escrows.data or []):
-                day = escrow["created_at"][:10]
-                amount = float(escrow.get("total_amount_usdc", 0) or 0)
-                volume_by_day[day] = volume_by_day.get(day, 0) + amount
 
             for i in range(days):
                 date = start_date + timedelta(days=i)
