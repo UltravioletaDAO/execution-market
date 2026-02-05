@@ -256,10 +256,10 @@ async def setup_em_merchant():
     import os
 
     rpc_url = os.getenv("BASE_RPC_URL", "https://mainnet.base.org")
-    private_key = os.getenv("X402_PRIVATE_KEY")
+    private_key = os.getenv("WALLET_PRIVATE_KEY")
 
     if not private_key:
-        raise ValueError("X402_PRIVATE_KEY required")
+        raise ValueError("WALLET_PRIVATE_KEY required")
 
     merchant = X402Merchant(rpc_url, private_key)
     config = await merchant.setup_complete()

@@ -147,14 +147,16 @@ export function WalletSelector({
 
     try {
       await wallet.connect(option.id, { displayName: displayName || undefined })
-      onSuccess?.()
+      // Don't call onSuccess here for MetaMask/WalletConnect — wagmiConnect() is non-blocking,
+      // so connect() returns before auth completes. AuthModal's useEffect on wallet.isAuthenticated
+      // handles success once the full auth flow (signature + Supabase) finishes.
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Connection failed')
       setLocalError(error.message)
       onError?.(error)
       setSelectedWallet(null)
     }
-  }, [wallet, displayName, onSuccess, onError])
+  }, [wallet, displayName, onError])
 
   const handleEmailSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()

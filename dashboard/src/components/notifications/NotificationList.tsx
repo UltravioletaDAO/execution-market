@@ -12,7 +12,7 @@ import { useCallback, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNotificationContext } from './NotificationProvider'
 import { NotificationItem } from './NotificationItem'
-import type { Notification, NotificationFilter, NotificationType } from '../../types/notification'
+import type { Notification, NotificationFilter } from '../../types/notification'
 
 // ============================================================================
 // Filter Configuration

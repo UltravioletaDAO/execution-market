@@ -111,7 +111,7 @@ function parseExifFromBuffer(buffer: ArrayBuffer): {
 
     // APP1 marker (EXIF)
     if (marker === 0xE1) {
-      const length = view.getUint16(offset + 2)
+      const _length = view.getUint16(offset + 2)
       const exifOffset = offset + 4
 
       // Check for "Exif\0\0" header

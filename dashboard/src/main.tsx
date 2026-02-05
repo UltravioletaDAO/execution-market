@@ -1,12 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { WagmiProvider } from 'wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Initialize i18n (must be imported before App)
 import './i18n'
 
-import { wagmiConfig } from './lib/wagmi'
+// Dynamic.xyz provider for wallet auth
+import { DynamicProvider } from './providers/DynamicProvider'
+
 import App from './App'
 import './index.css'
 
@@ -22,10 +23,10 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <DynamicProvider>
         <App />
-      </QueryClientProvider>
-    </WagmiProvider>
+      </DynamicProvider>
+    </QueryClientProvider>
   </StrictMode>,
 )

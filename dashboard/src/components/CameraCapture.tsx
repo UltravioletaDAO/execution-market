@@ -230,7 +230,7 @@ function parseExif(view: DataView): ExifData {
   return result;
 }
 
-function parseExifSegment(view: DataView, start: number, length: number): Partial<ExifData> {
+function parseExifSegment(view: DataView, start: number, _length: number): Partial<ExifData> {
   const result: Partial<ExifData> = {};
 
   // Check "Exif\0\0" header

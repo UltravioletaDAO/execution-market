@@ -348,6 +348,7 @@ export function useWallet(): WalletState {
         const { error: linkError } = await (supabase.rpc as any)(
           'link_wallet_to_session',
           {
+            p_user_id: authData.user.id,
             p_wallet_address: normalizedWallet,
             ...(signature && verificationMessage ? {
               p_signature: signature,
@@ -374,6 +375,7 @@ export function useWallet(): WalletState {
       }
 
       lastAuthAddress.current = normalizedWallet
+      localStorage.setItem('em_last_wallet_address', normalizedWallet)
       setIsAuthenticated(true)
       setStatus('authenticated')
     } catch (err) {
@@ -490,6 +492,8 @@ export function useWallet(): WalletState {
       authenticateWithSupabase(wagmiAddress, pendingDisplayName || undefined, walletType)
         .catch((err) => {
           console.error('Auth failed:', err)
+          setError({ code: 'AUTH_FAILED', message: err instanceof Error ? err.message : 'Authentication failed' })
+          setStatus('error')
         })
     }
   }, [wagmiConnected, wagmiAddress, walletType, authenticateWithSupabase])
@@ -520,6 +524,7 @@ export function useWallet(): WalletState {
       setError(null)
       authInProgress.current = false
       lastAuthAddress.current = null
+      localStorage.removeItem('em_last_wallet_address')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Disconnect failed'
       setError({ code: 'DISCONNECT_FAILED', message })

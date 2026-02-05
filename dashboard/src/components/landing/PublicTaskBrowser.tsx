@@ -1,4 +1,4 @@
-import { useState, forwardRef } from 'react'
+import { useState, forwardRef, memo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAvailableTasks } from '../../hooks/useTasks'
@@ -8,26 +8,29 @@ import { TaskDetailPanel } from './TaskDetailPanel'
 import { TaskApplicationModal } from '../TaskApplicationModal'
 import type { Task, TaskCategory } from '../../types/database'
 import { useTranslation as useCustomTranslation } from '../../i18n/hooks/useTranslation'
+import { CATEGORY_ICONS } from '../../constants/categories'
 
 interface PublicTaskBrowserProps {
   onAuthRequired: () => void
 }
 
 // Inline job card that shows bounty prominently with Apply button
-function JobCard({ task, onClick }: { task: Task; onClick: () => void }) {
+const JobCard = memo(function JobCard({ task, onClick }: { task: Task; onClick: () => void }) {
   const { t } = useTranslation()
   const { formatCurrency, formatTimeRemaining } = useCustomTranslation()
 
-  const CATEGORY_ICONS: Record<TaskCategory, string> = {
-    physical_presence: '📍',
-    knowledge_access: '📚',
-    human_authority: '📋',
-    simple_action: '✋',
-    digital_physical: '🔗',
-  }
-
   const deadlineText = formatTimeRemaining(task.deadline)
   const isExpiring = new Date(task.deadline).getTime() - Date.now() < 24 * 60 * 60 * 1000
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        onClick()
+      }
+    },
+    [onClick]
+  )
 
   return (
     <article
@@ -35,9 +38,7 @@ function JobCard({ task, onClick }: { task: Task; onClick: () => void }) {
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() }
-      }}
+      onKeyDown={handleKeyDown}
     >
       <div className="p-4">
         {/* Top row: category + deadline */}
@@ -83,7 +84,7 @@ function JobCard({ task, onClick }: { task: Task; onClick: () => void }) {
       </div>
     </article>
   )
-}
+})
 
 export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>(
   function PublicTaskBrowser({ onAuthRequired }, ref) {

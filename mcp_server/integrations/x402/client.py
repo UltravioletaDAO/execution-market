@@ -378,7 +378,7 @@ class X402Client:
             "X402_FACILITATOR_URL", DEFAULT_FACILITATOR_URL
         )
         self.rpc_url = rpc_url or os.environ.get("X402_RPC_URL", self._get_default_rpc(network))
-        self._private_key = private_key or os.environ.get("X402_PRIVATE_KEY")
+        self._private_key = private_key or os.environ.get("WALLET_PRIVATE_KEY")
         self.network = network
         self.default_token = default_token
         self.timeout = timeout
@@ -1116,7 +1116,7 @@ async def create_em_escrow(
     Convenience function to create an escrow for an Execution Market task.
 
     Uses environment variables for configuration:
-    - X402_PRIVATE_KEY: Signing key
+    - WALLET_PRIVATE_KEY: Signing key
     - X402_RPC_URL: RPC endpoint
     - X402_FACILITATOR_URL: Facilitator URL
     """

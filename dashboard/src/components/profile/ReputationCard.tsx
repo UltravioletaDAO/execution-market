@@ -146,7 +146,7 @@ export function ReputationCard({ reputation, loading }: ReputationCardProps) {
           </svg>
           <div className="text-sm">
             <span className="font-medium text-amber-800">
-              {reputation.disputed_tasks} {t('profile.disputedTasks', 'disputed task(s)')}
+              {reputation?.disputed_tasks} {t('profile.disputedTasks', 'disputed task(s)')}
             </span>
             <p className="text-amber-700 text-xs mt-0.5">
               {t('profile.disputeWarning', 'Disputes may affect your reputation score')}

@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { AuthModal } from '../components/AuthModal'
 import { ProfileCompletionModal } from '../components/ProfileCompletionModal'
 import { AppHeader } from '../components/layout/AppHeader'
 import { AppFooter } from '../components/layout/AppFooter'
@@ -11,15 +10,40 @@ import { HowItWorks } from '../components/landing/HowItWorks'
 
 export function Home() {
   const navigate = useNavigate()
-  const { userType, setUserType, isAuthenticated, isProfileComplete, reloadSession } = useAuth()
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const {
+    userType,
+    setUserType,
+    isAuthenticated,
+    isProfileComplete,
+    openAuthModal,
+    refreshExecutor,
+  } = useAuth()
   const [showProfileCompletion, setShowProfileCompletion] = useState(false)
+  const [wasAuthenticated, setWasAuthenticated] = useState(false)
   const taskSectionRef = useRef<HTMLElement>(null)
   const howItWorksRef = useRef<HTMLElement>(null)
 
+  // Handle auth state changes
+  useEffect(() => {
+    // Detect when user just authenticated (transition from not-auth to auth)
+    if (isAuthenticated && !wasAuthenticated) {
+      console.log('[Home] User just authenticated, isProfileComplete:', isProfileComplete)
+      setUserType('worker')
+
+      if (isProfileComplete) {
+        // Returning user with complete profile — go straight to tasks
+        navigate('/tasks')
+      } else {
+        // New user or incomplete profile — show completion modal
+        setShowProfileCompletion(true)
+      }
+    }
+    setWasAuthenticated(isAuthenticated)
+  }, [isAuthenticated, wasAuthenticated, isProfileComplete, setUserType, navigate])
+
   const handleConnectWallet = useCallback(() => {
-    setShowAuthModal(true)
-  }, [])
+    openAuthModal()
+  }, [openAuthModal])
 
   const handleGoToDashboard = useCallback(() => {
     navigate(userType === 'agent' ? '/agent/dashboard' : '/tasks')
@@ -33,19 +57,11 @@ export function Home() {
     howItWorksRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  const handleAuthSuccess = useCallback(async () => {
-    setShowAuthModal(false)
-    setUserType('worker')
-    // Reload session + executor from Supabase before showing profile modal
-    // This ensures the anonymous session and executor are available
-    await reloadSession()
-    setShowProfileCompletion(true)
-  }, [setUserType, reloadSession])
-
   const handleProfileComplete = useCallback(() => {
     setShowProfileCompletion(false)
+    refreshExecutor()
     navigate('/tasks')
-  }, [navigate])
+  }, [navigate, refreshExecutor])
 
   const handleProfileSkip = useCallback(() => {
     setShowProfileCompletion(false)
@@ -54,14 +70,6 @@ export function Home() {
 
   const shouldShowProfileCompletion =
     showProfileCompletion && isAuthenticated && !isProfileComplete
-
-  // Returning users with a complete profile: skip modal, go straight to tasks
-  useEffect(() => {
-    if (showProfileCompletion && isAuthenticated && isProfileComplete) {
-      setShowProfileCompletion(false)
-      navigate('/tasks')
-    }
-  }, [showProfileCompletion, isAuthenticated, isProfileComplete, navigate])
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -89,12 +97,6 @@ export function Home() {
       </main>
 
       <AppFooter />
-
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onSuccess={handleAuthSuccess}
-      />
 
       {shouldShowProfileCompletion && (
         <ProfileCompletionModal

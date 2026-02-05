@@ -154,8 +154,8 @@ function SelectionHandler({
   return null;
 }
 
-// Fit map bounds to show all tasks
-function useFitBounds(
+// Fit map bounds to show all tasks (currently unused but kept for future use)
+function _useFitBounds(
   map: L.Map | null,
   tasks: Task[],
   userPosition: Position | null
@@ -193,7 +193,7 @@ export function TaskMap({
   height = '400px',
 }: TaskMapProps) {
   const [selectionLocation, setSelectionLocation] = useState<Location | null>(null);
-  const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
+  const [_mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const mapRef = useRef<L.Map | null>(null);
 
   const {

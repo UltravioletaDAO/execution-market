@@ -110,7 +110,7 @@ export function ThemeToggle({
   showLabel = false,
   className,
 }: ThemeToggleProps) {
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme: _theme, isDark, toggleTheme } = useTheme();
 
   if (variant === 'switch') {
     return <ThemeSwitch size={size} className={className} />;

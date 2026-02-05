@@ -220,7 +220,7 @@ export function Modal({
 /**
  * ModalHeader Component
  */
-export interface ModalHeaderProps extends HTMLAttributes<HTMLDivElement> {
+export interface ModalHeaderProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   /** Title text */
   title?: ReactNode;
   /** Subtitle/description */

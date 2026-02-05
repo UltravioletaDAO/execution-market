@@ -1,0 +1,66 @@
+/**
+ * Dynamic Wallet Button
+ *
+ * A simple button that opens the Dynamic authentication modal.
+ * Shows wallet address when connected, or "Connect Wallet" when not.
+ */
+
+import { DynamicWidget } from '@dynamic-labs/sdk-react-core'
+import { useAuth } from '../context/AuthContext'
+
+interface DynamicWalletButtonProps {
+  className?: string
+  variant?: 'default' | 'compact'
+}
+
+export function DynamicWalletButton({
+  className = '',
+  variant = 'default',
+}: DynamicWalletButtonProps) {
+  return (
+    <div className={className}>
+      <DynamicWidget
+        variant={variant === 'compact' ? 'dropdown' : 'modal'}
+      />
+    </div>
+  )
+}
+
+/**
+ * Simple connect button that triggers Dynamic modal
+ */
+interface ConnectButtonProps {
+  className?: string
+  children?: React.ReactNode
+}
+
+export function ConnectButton({ className = '', children }: ConnectButtonProps) {
+  const { isAuthenticated, walletAddress, openAuthModal, logout } = useAuth()
+
+  if (isAuthenticated && walletAddress) {
+    return (
+      <div className={`flex items-center gap-2 ${className}`}>
+        <span className="text-sm text-gray-600">
+          {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+        </span>
+        <button
+          onClick={logout}
+          className="text-sm text-red-600 hover:text-red-700"
+        >
+          Disconnect
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={openAuthModal}
+      className={`px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-colors ${className}`}
+    >
+      {children || 'Connect Wallet'}
+    </button>
+  )
+}
+
+export default DynamicWalletButton

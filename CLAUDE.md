@@ -355,10 +355,12 @@ When creating test tasks:
 | URL | Service | Description |
 |-----|---------|-------------|
 | `https://execution.market` | Dashboard | Worker-facing React SPA |
-| `https://mcp.execution.market` | MCP Server | API + MCP transport for agents |
-| `https://mcp.execution.market/health` | Health | Full health check with component details |
-| `https://mcp.execution.market/docs` | Swagger UI | Interactive API documentation |
-| `https://mcp.execution.market/redoc` | ReDoc | Alternative API documentation |
+| `https://api.execution.market` | API Gateway | Redirects to Swagger UI at `/docs` |
+| `https://api.execution.market/docs` | Swagger UI | Interactive API documentation |
+| `https://api.execution.market/redoc` | ReDoc | Alternative API documentation |
+| `https://api.execution.market/api/v1/*` | REST API | All API endpoints |
+| `https://mcp.execution.market` | MCP Server | MCP transport for agents |
+| `https://mcp.execution.market/mcp/` | MCP Transport | Streamable HTTP endpoint |
 | `https://mcp.execution.market/.well-known/agent.json` | A2A | Agent discovery card |
 
 #### Dashboard Pages (`https://execution.market`)
@@ -375,7 +377,7 @@ When creating test tasks:
 | `/agent/tasks` | Agent task management (placeholder) | Agent |
 | `/agent/tasks/new` | Create new task (placeholder) | Agent |
 
-#### MCP Server API Endpoints (`https://mcp.execution.market`)
+#### API Endpoints (`https://api.execution.market` or `https://mcp.execution.market`)
 
 **Health & Monitoring:**
 - `GET /health` — Basic health check (ALB)

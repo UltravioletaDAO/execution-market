@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useProfileUpdate, type ProfileUpdateData } from '../../hooks/useProfileUpdate'
 import type { Executor } from '../../types/database'
@@ -45,6 +45,41 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
   const [email, setEmail] = useState(executor.email || '')
 
   const isValid = displayName.trim().length > 0 && bio.trim().length > 0
+  const modalRef = useRef<HTMLDivElement>(null)
+
+  // Focus trap - keep focus within modal
+  useEffect(() => {
+    const modal = modalRef.current
+    if (!modal) return
+
+    const focusableElements = modal.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+
+    // Focus first element on mount
+    firstElement?.focus()
+
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault()
+          lastElement?.focus()
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault()
+          firstElement?.focus()
+        }
+      }
+    }
+
+    modal.addEventListener('keydown', handleTabKey)
+    return () => modal.removeEventListener('keydown', handleTabKey)
+  }, [])
 
   // Close on escape
   useEffect(() => {
@@ -97,14 +132,20 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg max-h-[90vh] mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profile-edit-modal-title"
+        className="relative w-full max-w-lg max-h-[90vh] mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+      >
         {/* Header */}
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 id="profile-edit-modal-title" className="text-xl font-bold text-gray-900">
               {t('profile.edit.title', 'Edit Profile')}
             </h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -113,9 +154,10 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
           </div>
           <button
             onClick={onClose}
+            aria-label={t('common.close', 'Close modal')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -278,8 +320,16 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-              {error}
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm text-red-700">{error}</p>
+                  <p className="text-xs text-red-500 mt-1">{t('common.tryAgain', 'Click Save to try again')}</p>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -67,7 +67,7 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1eWhweXRtdGt5ZXZueGZma3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2NzgzOTMsImV4cCI6MjA4NDI1NDM5M30.R4Sf4SwDo-5yRhRMOazQ-4Jn972YLT7lYunjdqiGjaU';
 
 const MCP_SERVER_URL = 'https://mcp.execution.market';
-const DASHBOARD_URL = 'https://app.execution.market';
+const DASHBOARD_URL = 'https://execution.market';
 
 // Base Mainnet contracts
 const MAINNET_FACTORY = '0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814' as Address;

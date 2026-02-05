@@ -377,12 +377,12 @@ export function useEscrow(options: UseEscrowOptions = {}): UseEscrowReturn {
         const taskIdBytes = keccak256(toBytes(taskId))
 
         // First approve the token spend
-        const approveHash = await approveAsync({
+        const _approveHash = await approveAsync({
           address: tokenAddress,
           abi: ERC20_ABI,
           functionName: 'approve',
           args: [DEPOSIT_RELAY_FACTORY as Address, amountWei],
-          chainId,
+          chainId: chainId as 1 | 8453 | 84532 | 11155111,
         })
 
         // Wait a moment for approval to propagate
@@ -394,7 +394,7 @@ export function useEscrow(options: UseEscrowOptions = {}): UseEscrowReturn {
           abi: DEPOSIT_RELAY_ABI,
           functionName: 'createEscrow',
           args: [tokenAddress, amountWei, beneficiaryAddress, timeoutTimestamp, taskIdBytes],
-          chainId,
+          chainId: chainId as 1 | 8453 | 84532 | 11155111,
         })
 
         setPendingTx(hash)
@@ -452,7 +452,7 @@ export function useEscrow(options: UseEscrowOptions = {}): UseEscrowReturn {
           abi: DEPOSIT_RELAY_ABI,
           functionName: 'releaseEscrow',
           args: [escrowIdBytes, recipient as Address, releaseAmount],
-          chainId,
+          chainId: chainId as 1 | 8453 | 84532 | 11155111,
         })
 
         setPendingTx(hash)
@@ -497,7 +497,7 @@ export function useEscrow(options: UseEscrowOptions = {}): UseEscrowReturn {
           abi: DEPOSIT_RELAY_ABI,
           functionName: 'refundEscrow',
           args: [escrowIdBytes],
-          chainId,
+          chainId: chainId as 1 | 8453 | 84532 | 11155111,
         })
 
         setPendingTx(hash)

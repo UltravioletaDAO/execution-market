@@ -4,7 +4,7 @@
  * A badge component for displaying worker experience levels.
  */
 
-import { type ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 import {
   getLevelBadgeClass,
   getLevelColor,
@@ -41,13 +41,14 @@ const iconSizeClasses = {
 /**
  * Star icon for level display
  */
-function StarIcon({ className }: { className?: string }) {
+function StarIcon({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="currentColor"
       className={className}
+      style={style}
     >
       <path
         fillRule="evenodd"

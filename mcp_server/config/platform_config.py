@@ -249,7 +249,7 @@ class PlatformConfig:
     @classmethod
     async def get_min_bounty(cls) -> Decimal:
         """Get minimum bounty in USD."""
-        return await cls.get("bounty.min_usd", Decimal("0.25"))
+        return await cls.get("bounty.min_usd", Decimal("0.01"))
 
     @classmethod
     async def get_max_bounty(cls) -> Decimal:

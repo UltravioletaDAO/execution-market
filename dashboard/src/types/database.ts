@@ -260,6 +260,66 @@ export interface SubmissionUpdate {
   payment_amount?: number | null
 }
 
+// Notification types (for notifications table)
+export type NotificationType =
+  | 'task_nearby'
+  | 'task_approved'
+  | 'task_rejected'
+  | 'payment_received'
+  | 'payment_pending'
+  | 'dispute_opened'
+  | 'dispute_update'
+  | 'dispute_resolved'
+  | 'task_assigned'
+  | 'task_expired'
+  | 'task_reminder'
+  | 'reputation_change'
+  | 'system'
+  | 'achievement'
+
+export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'
+
+export interface NotificationRow {
+  id: string
+  executor_id: string
+  type: NotificationType
+  title: string
+  message: string
+  read: boolean
+  task_id?: string
+  submission_id?: string
+  dispute_id?: string
+  action_url?: string
+  action_label?: string
+  priority?: NotificationPriority
+  metadata?: Record<string, unknown>
+  expires_at?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+}
+
+export interface NotificationInsert {
+  executor_id: string
+  type: NotificationType
+  title: string
+  message: string
+  read?: boolean
+  task_id?: string
+  submission_id?: string
+  dispute_id?: string
+  action_url?: string
+  action_label?: string
+  priority?: NotificationPriority
+  metadata?: Record<string, unknown>
+  expires_at?: string
+}
+
+export interface NotificationUpdate {
+  read?: boolean
+  deleted_at?: string
+}
+
 // Supabase Database type definition
 export interface Database {
   public: {
@@ -293,6 +353,11 @@ export interface Database {
         Row: TaskApplication
         Insert: Omit<TaskApplication, 'id' | 'created_at'>
         Update: Partial<Omit<TaskApplication, 'id'>>
+      }
+      notifications: {
+        Row: NotificationRow
+        Insert: NotificationInsert
+        Update: NotificationUpdate
       }
     }
     Enums: {

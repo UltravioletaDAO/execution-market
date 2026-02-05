@@ -247,14 +247,14 @@ async def check_x402(timeout: float = 5.0) -> ComponentHealth:
         ComponentHealth with x402 status
     """
     x402_url = os.getenv("X402_FACILITATOR_URL", os.getenv("X402_URL", "https://facilitator.ultravioletadao.xyz"))
-    x402_key = os.getenv("X402_PRIVATE_KEY")
+    wallet_key = os.getenv("WALLET_PRIVATE_KEY")
 
     start = time.time()
 
     # Check configuration
     config_issues = []
-    if not x402_key:
-        config_issues.append("X402_PRIVATE_KEY not set")
+    if not wallet_key:
+        config_issues.append("WALLET_PRIVATE_KEY not set")
 
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:

@@ -78,7 +78,7 @@ export function NotificationProvider({
   const [error, setError] = useState<Error | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [filter, setFilter] = useState<NotificationFilter>('all')
-  const [wsStatus, setWsStatus] = useState<WebSocketStatus>('disconnected')
+  const [_wsStatus, setWsStatus] = useState<WebSocketStatus>('disconnected')
 
   // Refs
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
