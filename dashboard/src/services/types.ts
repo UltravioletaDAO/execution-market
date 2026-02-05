@@ -172,7 +172,7 @@ export interface SubmissionWithDetails extends Omit<import('../types/database').
 /**
  * Application with task details
  */
-export interface ApplicationWithTask extends import('../types/database').TaskApplication {
+export type ApplicationWithTask = import('../types/database').TaskApplication & {
   task?: TaskWithExecutor
 }
 

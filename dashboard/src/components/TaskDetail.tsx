@@ -1,6 +1,7 @@
 // Execution Market: Task Detail Component
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useTaskPayment } from '../hooks/useTaskPayment'
 import { PaymentStatus } from './PaymentStatus'
@@ -17,32 +18,34 @@ interface TaskDetailProps {
   onAccept?: () => void
 }
 
-// Spanish labels - should eventually use i18n
-const CATEGORY_LABELS: Record<TaskCategory, string> = {
-  physical_presence: 'Presencia Fisica',
-  knowledge_access: 'Acceso a Conocimiento',
-  human_authority: 'Autoridad Humana',
-  simple_action: 'Accion Simple',
-  digital_physical: 'Digital-Fisico',
+// Category labels resolved via i18n (see tasks.categories in locale files)
+const CATEGORY_KEYS: Record<TaskCategory, string> = {
+  physical_presence: 'physical_presence',
+  knowledge_access: 'knowledge_access',
+  human_authority: 'human_authority',
+  simple_action: 'simple_action',
+  digital_physical: 'digital_physical',
 }
 
-const EVIDENCE_TYPE_LABELS: Record<string, string> = {
-  photo: 'Foto',
-  photo_geo: 'Foto con ubicacion',
-  video: 'Video',
-  document: 'Documento',
-  receipt: 'Recibo',
-  signature: 'Firma',
-  notarized: 'Notarizado',
-  timestamp_proof: 'Prueba de tiempo',
-  text_response: 'Respuesta de texto',
-  measurement: 'Medicion',
-  screenshot: 'Captura de pantalla',
+// Evidence type labels resolved via i18n (see tasks.evidenceTypes in locale files)
+const EVIDENCE_TYPE_KEYS: Record<string, string> = {
+  photo: 'photo',
+  photo_geo: 'photo_geo',
+  video: 'video',
+  document: 'document',
+  receipt: 'receipt',
+  signature: 'signature',
+  notarized: 'notarized',
+  timestamp_proof: 'timestamp_proof',
+  text_response: 'text_response',
+  measurement: 'measurement',
+  screenshot: 'screenshot',
 }
 
-function formatDeadline(deadline: string): string {
+function formatDeadline(deadline: string, lang = 'en'): string {
+  const localeMap: Record<string, string> = { en: 'en-US', es: 'es-MX', pt: 'pt-BR' }
   const date = new Date(deadline)
-  return date.toLocaleDateString('es-MX', {
+  return date.toLocaleDateString(localeMap[lang] || lang, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -65,11 +68,18 @@ export function TaskDetail({
   onBack,
   onAccept,
 }: TaskDetailProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [accepting, setAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const showPayment = task.status === 'completed' || task.status === 'submitted' || task.status === 'expired'
+  const hasEscrowContext = Boolean(task.escrow_tx || task.escrow_id)
+  const showPayment =
+    hasEscrowContext ||
+    task.status === 'completed' ||
+    task.status === 'submitted' ||
+    task.status === 'expired' ||
+    task.status === 'cancelled'
   const { payment, loading: paymentLoading } = useTaskPayment(showPayment ? task.id : null)
 
   const canAccept =
@@ -154,7 +164,7 @@ export function TaskDetail({
             <div className="flex items-center gap-2 mb-2">
               <span className="text-2xl">{CATEGORY_ICONS[task.category]}</span>
               <span className="text-sm text-gray-500 uppercase tracking-wide">
-                {CATEGORY_LABELS[task.category]}
+                {t(`tasks.categories.${CATEGORY_KEYS[task.category]}`, task.category)}
               </span>
             </div>
             <h1 className="text-xl font-bold text-gray-900">{task.title}</h1>
@@ -196,7 +206,7 @@ export function TaskDetail({
                   className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-sm rounded-full"
                 >
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
-                  {EVIDENCE_TYPE_LABELS[type] || type}
+                  {t(`tasks.evidenceTypes.${EVIDENCE_TYPE_KEYS[type] || type}`, type)}
                 </span>
               ))}
             </div>
@@ -208,7 +218,7 @@ export function TaskDetail({
                     className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-600 text-sm rounded-full"
                   >
                     <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
-                    {EVIDENCE_TYPE_LABELS[type] || type} (opcional)
+                    {t(`tasks.evidenceTypes.${EVIDENCE_TYPE_KEYS[type] || type}`, type)} ({t('common.optional', 'optional')})
                   </span>
                 ))}
               </div>
@@ -327,7 +337,11 @@ export function TaskDetail({
         {showPayment && (
           <section>
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {task.status === 'expired' ? 'Reembolso' : 'Pago'}
+              {task.status === 'expired' || task.status === 'cancelled'
+                ? 'Reembolso'
+                : hasEscrowContext
+                ? 'Escrow y Pago'
+                : 'Pago'}
             </h2>
             {paymentLoading ? (
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -341,6 +355,10 @@ export function TaskDetail({
                 <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
                 <span className="text-sm text-yellow-700">Procesando pago...</span>
               </div>
+            ) : hasEscrowContext ? (
+              <p className="text-sm text-blue-700 p-3 bg-blue-50 rounded-lg">
+                Escrow detectado. Esperando sincronizacion de transacciones x402.
+              </p>
             ) : (
               <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
                 No hay registros de pago para esta tarea.

@@ -1,5 +1,7 @@
 /**
  * Test REAL x402r escrow deposit on Base Mainnet.
+ * DEBUG ONLY: this script sends direct wallet->contract transactions
+ * and does NOT use the facilitator settlement path.
  *
  * Flow:
  * 1. Agent signs EIP-3009 transferWithAuthorization for USDC
@@ -7,8 +9,8 @@
  * 3. Relay executes transferWithAuthorization → USDC to relay → to escrow
  * 4. Escrow records deposit
  *
- * Usage: npx tsx test-real-deposit.ts [amount_usdc]
- * Example: npx tsx test-real-deposit.ts 0.01
+ * Usage: npx tsx test-real-deposit.ts --allow-direct-wallet [amount_usdc]
+ * Example: npx tsx test-real-deposit.ts --allow-direct-wallet 0.01
  */
 import {
   createPublicClient,
@@ -81,7 +83,16 @@ async function getBalance(address: `0x${string}`) {
 }
 
 async function main() {
-  const amountStr = process.argv[2] || '0.01'
+  const allowDirectWallet = process.argv.includes('--allow-direct-wallet')
+  if (!allowDirectWallet) {
+    console.error('ERROR: Direct wallet mode is disabled by default.')
+    console.error('Use facilitator flow instead (`test-x402-full-flow.ts --strict-api`).')
+    console.error('If you intentionally need low-level contract debugging, re-run with --allow-direct-wallet.')
+    process.exit(1)
+  }
+
+  const positional = process.argv.slice(2).filter(arg => !arg.startsWith('--'))
+  const amountStr = positional[0] || '0.01'
   const amountUsdc = parseFloat(amountStr)
   const amountAtomic = parseUnits(amountStr, 6)
 

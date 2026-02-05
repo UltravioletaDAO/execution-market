@@ -28,7 +28,7 @@ const TASK_EXAMPLES_ES = [
 
 export function HeroSection({ onConnectWallet, onGoToDashboard, onScrollToTasks }: HeroSectionProps) {
   const { t, i18n } = useTranslation()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
 
   const examples = i18n.language === 'es' ? TASK_EXAMPLES_ES : TASK_EXAMPLES_EN
 
@@ -68,9 +68,10 @@ export function HeroSection({ onConnectWallet, onGoToDashboard, onScrollToTasks 
           ) : (
             <button
               onClick={onConnectWallet}
-              className="px-8 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors text-base"
+              disabled={loading}
+              className="px-8 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors text-base disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {t('landing.startEarning', 'Start Earning')}
+              {loading ? t('common.loading', 'Loading...') : t('landing.startEarning', 'Start Earning')}
             </button>
           )}
         </div>

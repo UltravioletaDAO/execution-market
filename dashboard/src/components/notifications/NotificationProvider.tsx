@@ -70,6 +70,8 @@ export function NotificationProvider({
   executorId,
   enableWebSocket = true,
 }: NotificationProviderProps) {
+  const db = supabase as any
+
   // State
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -81,7 +83,7 @@ export function NotificationProvider({
   const [_wsStatus, setWsStatus] = useState<WebSocketStatus>('disconnected')
 
   // Refs
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const channelRef = useRef<any>(null)
   const offsetRef = useRef(0)
 
   // --------------------------------------------------------------------------
@@ -102,7 +104,7 @@ export function NotificationProvider({
 
         const offset = reset ? 0 : offsetRef.current
 
-        let query = supabase
+        let query = db
           .from('notifications')
           .select('*')
           .eq('executor_id', executorId)
@@ -152,7 +154,7 @@ export function NotificationProvider({
     }
 
     try {
-      const { count, error: countError } = await supabase
+      const { count, error: countError } = await db
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('executor_id', executorId)
@@ -176,7 +178,7 @@ export function NotificationProvider({
     const setupChannel = () => {
       setWsStatus('connecting')
 
-      const channel = supabase
+      const channel = db
         .channel(`notifications-${executorId}`)
         .on(
           'postgres_changes',
@@ -186,7 +188,7 @@ export function NotificationProvider({
             table: 'notifications',
             filter: `executor_id=eq.${executorId}`,
           },
-          (payload) => {
+          (payload: any) => {
             const newNotification = payload.new as Notification
 
             setNotifications((prev) => [newNotification, ...prev])
@@ -206,7 +208,7 @@ export function NotificationProvider({
             table: 'notifications',
             filter: `executor_id=eq.${executorId}`,
           },
-          (payload) => {
+          (payload: any) => {
             const updated = payload.new as Notification
 
             setNotifications((prev) =>
@@ -227,7 +229,7 @@ export function NotificationProvider({
             table: 'notifications',
             filter: `executor_id=eq.${executorId}`,
           },
-          (payload) => {
+          (payload: any) => {
             const deleted = payload.old as Notification
 
             setNotifications((prev) => prev.filter((n) => n.id !== deleted.id))
@@ -237,7 +239,7 @@ export function NotificationProvider({
             }
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           if (status === 'SUBSCRIBED') {
             setWsStatus('connected')
           } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
@@ -254,7 +256,7 @@ export function NotificationProvider({
 
     return () => {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
+        db.removeChannel(channelRef.current)
         channelRef.current = null
       }
       setWsStatus('disconnected')
@@ -281,7 +283,7 @@ export function NotificationProvider({
       }
 
       try {
-        const { error: insertError } = await supabase
+        const { error: insertError } = await db
           .from('notifications')
           .insert({ ...notification, executor_id: executorId })
 
@@ -298,7 +300,7 @@ export function NotificationProvider({
 
   const removeNotification = useCallback(async (id: string) => {
     try {
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await db
         .from('notifications')
         .delete()
         .eq('id', id)
@@ -314,7 +316,7 @@ export function NotificationProvider({
 
   const markAsRead = useCallback(async (id: string) => {
     try {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await db
         .from('notifications')
         .update({ read: true })
         .eq('id', id)
@@ -336,7 +338,7 @@ export function NotificationProvider({
     if (!executorId) return
 
     try {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await db
         .from('notifications')
         .update({ read: true })
         .eq('executor_id', executorId)

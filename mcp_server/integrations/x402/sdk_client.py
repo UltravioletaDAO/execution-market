@@ -349,6 +349,70 @@ class EMX402SDK:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
+    async def refund_task_payment(
+        self,
+        task_id: str,
+        escrow_id: str,
+        reason: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Refund a task payment back to the agent.
+
+        This uses the x402r escrow integration when available.
+        The operation is best-effort and returns a structured result.
+
+        Args:
+            task_id: Task identifier
+            escrow_id: Escrow/deposit identifier
+            reason: Optional refund reason for logs/audit
+
+        Returns:
+            Dict with refund details
+        """
+        if not escrow_id:
+            return {
+                "success": False,
+                "task_id": task_id,
+                "escrow_id": escrow_id,
+                "error": "Missing escrow_id",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        try:
+            from .x402r_escrow import refund_payment
+        except Exception:
+            return {
+                "success": False,
+                "task_id": task_id,
+                "escrow_id": escrow_id,
+                "error": "x402r refund integration not available",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        try:
+            refund_result = await refund_payment(deposit_id=escrow_id)
+            amount = getattr(refund_result, "amount", None)
+            return {
+                "success": bool(getattr(refund_result, "success", False)),
+                "task_id": task_id,
+                "escrow_id": escrow_id,
+                "tx_hash": getattr(refund_result, "tx_hash", None),
+                "payer": getattr(refund_result, "payer", None),
+                "amount": str(amount) if amount is not None else None,
+                "reason": reason,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        except Exception as e:
+            logger.error("Task payment refund failed: %s", str(e))
+            return {
+                "success": False,
+                "task_id": task_id,
+                "escrow_id": escrow_id,
+                "error": str(e),
+                "reason": reason,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
     # =========================================================================
     # Health Check
     # =========================================================================

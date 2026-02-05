@@ -9,12 +9,12 @@
  *   5. Verify task status changed to 'expired'
  *
  * Two modes:
- *   --live     Uses Base Mainnet contracts for real escrow (requires USDC)
+ *   --live     Uses Base Mainnet contracts for real escrow (direct wallet mode, debug only)
  *   (default)  Simulated mode — creates task, monitors expiry, verifies MCP server job
  *
  * Usage:
  *   npx tsx test-escrow-flow.ts          # Simulated (server-side expiry test)
- *   npx tsx test-escrow-flow.ts --live   # Real on-chain (Base Mainnet, needs USDC)
+ *   npx tsx test-escrow-flow.ts --live --allow-direct-wallet   # Direct on-chain debug mode
  */
 
 import {
@@ -42,6 +42,7 @@ config({ path: resolve(__dirname, '../.env.local') });
 // =============================================================================
 
 const LIVE_MODE = process.argv.includes('--live');
+const ALLOW_DIRECT_WALLET = process.argv.includes('--allow-direct-wallet');
 
 const PRIVATE_KEY = (process.env.WALLET_PRIVATE_KEY ||
   '0xc6c257c724e09edf7c49f7cc33d3beba5ece73a98e9dda83b31dada3ddbc5c9d') as Hex;
@@ -190,6 +191,13 @@ function header(step: number, title: string): void {
 // =============================================================================
 
 async function main(): Promise<void> {
+  if (LIVE_MODE && !ALLOW_DIRECT_WALLET) {
+    throw new Error(
+      'Direct wallet mode is disabled by default. ' +
+      'Use facilitator flow (`test-x402-full-flow.ts --strict-api`) or pass --allow-direct-wallet for debugging.'
+    );
+  }
+
   console.log(`\n=== Execution Market Escrow E2E Test (${LIVE_MODE ? 'LIVE - Base Mainnet' : 'Simulated'}) ===`);
   console.log('Wallet:', WALLET_ADDRESS);
   console.log('MCP Server:', MCP_SERVER_URL);

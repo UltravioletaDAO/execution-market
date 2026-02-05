@@ -48,6 +48,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, '../.env.local') });
+config({ path: resolve(__dirname, '../mcp_server/.env'), override: false });
 
 // =============================================================================
 // Configuration
@@ -65,6 +66,7 @@ const WALLET_ADDRESS = account.address;
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://puyhpytmtkyevnxffksl.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1eWhweXRtdGt5ZXZueGZma3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2NzgzOTMsImV4cCI6MjA4NDI1NDM5M30.R4Sf4SwDo-5yRhRMOazQ-4Jn972YLT7lYunjdqiGjaU';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 
 const MCP_SERVER_URL = 'https://mcp.execution.market';
 const DASHBOARD_URL = 'https://execution.market';
@@ -223,10 +225,12 @@ async function supabaseRequest(
   method: 'GET' | 'POST' | 'PATCH' = 'GET',
   body?: Record<string, unknown>,
   returnSingle = false,
+  useServiceRole = false,
 ): Promise<any> {
+  const authKey = useServiceRole && SUPABASE_SERVICE_KEY ? SUPABASE_SERVICE_KEY : SUPABASE_ANON_KEY;
   const headers: Record<string, string> = {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    apikey: authKey,
+    Authorization: `Bearer ${authKey}`,
     'Content-Type': 'application/json',
   };
   if (returnSingle) headers['Accept'] = 'application/vnd.pgrst.object+json';
@@ -248,6 +252,27 @@ async function supabaseRequest(
   return JSON.parse(text);
 }
 
+async function cancelTaskSafely(taskId: string): Promise<boolean> {
+  const path = `tasks?id=eq.${taskId}`;
+  const payload = { status: 'cancelled' };
+
+  if (SUPABASE_SERVICE_KEY) {
+    try {
+      await supabaseRequest(path, 'PATCH', payload, false, true);
+      return true;
+    } catch {
+      // Fallback to anon in case service key is stale.
+    }
+  }
+
+  try {
+    await supabaseRequest(path, 'PATCH', payload);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function parseArgs(): Record<string, string> {
   const args: Record<string, string> = {};
   const argv = process.argv.slice(2);
@@ -255,7 +280,7 @@ function parseArgs(): Record<string, string> {
     if (argv[i].startsWith('--')) {
       const key = argv[i].slice(2);
       // Flags without values
-      if (key === 'live' || key === 'cleanup' || key === 'monitor') {
+      if (key === 'live' || key === 'cleanup' || key === 'monitor' || key === 'allow-direct-wallet') {
         args[key] = 'true';
       } else if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
         args[key] = argv[i + 1];
@@ -266,6 +291,17 @@ function parseArgs(): Record<string, string> {
     }
   }
   return args;
+}
+
+function assertFacilitatorOnlyMode(liveMode: boolean, args: Record<string, string>): void {
+  if (!liveMode) return;
+  if (args['allow-direct-wallet'] === 'true') return;
+
+  throw new Error(
+    'Direct wallet escrow path is disabled by default. ' +
+    'Use facilitator flow instead: `npm exec -- tsx test-x402-full-flow.ts -- --count 1 --strict-api`. ' +
+    'If you intentionally need direct on-chain debugging, add `--allow-direct-wallet`.'
+  );
 }
 
 async function checkUSDCBalance(): Promise<bigint> {
@@ -384,9 +420,21 @@ async function createTask(opts: CreateTaskOptions): Promise<{
   let escrowId: string | null = null;
 
   if (opts.liveEscrow) {
-    const result = await createOnChainEscrow(taskId, opts.bountyUsd, opts.deadlineMinutes);
-    escrowTx = result.escrowTx;
-    escrowId = result.escrowId;
+    try {
+      const result = await createOnChainEscrow(taskId, opts.bountyUsd, opts.deadlineMinutes);
+      escrowTx = result.escrowTx;
+      escrowId = result.escrowId;
+    } catch (err: any) {
+      const cause = err?.shortMessage || err?.message || String(err);
+      console.error(`  Escrow creation failed for task ${taskId}: ${cause}`);
+      const cancelled = await cancelTaskSafely(taskId);
+      if (cancelled) {
+        console.error(`  Task ${taskId} was auto-cancelled to avoid a published task without escrow.`);
+      } else {
+        console.error(`  CRITICAL: could not auto-cancel task ${taskId}. Manual cleanup required.`);
+      }
+      throw new Error(`Escrow creation failed for task ${taskId}.`);
+    }
   } else {
     // Simulated escrow markers
     escrowTx = `0x${'0'.repeat(58)}sim${Math.random().toString(16).slice(2, 6)}`;
@@ -511,6 +559,7 @@ async function runPreset(presetName: string, args: Record<string, string>): Prom
   const deadline = parseInt(args.deadline || '15', 10);
   const liveMode = args.live === 'true';
   const shouldMonitor = args.monitor === 'true';
+  assertFacilitatorOnlyMode(liveMode, args);
 
   console.log(`\n=== Creating Task: ${presetName} ===`);
   console.log(`Bounty: $${bounty.toFixed(2)} | Deadline: ${deadline}min | Mode: ${liveMode ? 'LIVE (Base Mainnet)' : 'Simulated'}`);
@@ -544,6 +593,7 @@ async function runCustom(args: Record<string, string>): Promise<void> {
   const evidence = args.evidence || 'screenshot';
   const liveMode = args.live === 'true';
   const shouldMonitor = args.monitor === 'true';
+  assertFacilitatorOnlyMode(liveMode, args);
 
   if (!title) {
     console.error('ERROR: --title is required for custom tasks');
@@ -577,6 +627,7 @@ async function runFibonacci(args: Record<string, string>): Promise<void> {
   const liveMode = args.live === 'true';
   const deadline = parseInt(args.deadline || '15', 10);
   const count = Math.min(parseInt(args.count || '6', 10), FIBONACCI_BOUNTIES.length);
+  assertFacilitatorOnlyMode(liveMode, args);
 
   console.log(`\n=== Fibonacci Task Series ===`);
   console.log(`Creating ${count} tasks with Fibonacci bounties`);
@@ -710,6 +761,7 @@ Options:
   --bounty <usd>     Bounty amount in USD (default: 0.21)
   --deadline <min>   Deadline in minutes (default: 15)
   --live             Use real on-chain escrow (Base Mainnet, needs USDC)
+  --allow-direct-wallet  Allow direct wallet->contract calls (debug only, not facilitator flow)
   --monitor          Monitor task until completion/expiry
   --count <n>        Number of tasks for fibonacci preset (default: 6)
   --category <cat>   Task category (simple_action, physical_presence, etc.)

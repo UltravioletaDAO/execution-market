@@ -20,6 +20,8 @@ import type {
   AgentAnalytics,
 } from './types'
 
+const db = supabase as any
+
 // ============== TASK LISTING ==============
 
 /**
@@ -38,7 +40,7 @@ export async function getTasks(filters: TaskFilters = {}): Promise<PaginatedResp
   } = filters
 
   // Build query
-  let query = supabase
+  let query = db
     .from('tasks')
     .select('*, executor:executors(id, display_name, wallet_address, reputation_score)', { count: 'exact' })
     .order('created_at', { ascending: false })
@@ -94,7 +96,7 @@ export async function getTasks(filters: TaskFilters = {}): Promise<PaginatedResp
  * Get a single task by ID
  */
 export async function getTask(taskId: string): Promise<TaskWithExecutor | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('tasks')
     .select('*, executor:executors(id, display_name, wallet_address, reputation_score)')
     .eq('id', taskId)
@@ -143,7 +145,7 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
     status: 'published',
   }
 
-  const { data: task, error } = await supabase
+  const { data: task, error } = await db
     .from('tasks')
     .insert(taskData)
     .select()
@@ -175,7 +177,7 @@ export async function applyToTask(data: ApplyToTaskData): Promise<{ application:
   }
 
   // Get executor to check reputation
-  const { data: executor, error: executorError } = await supabase
+  const { data: executor, error: executorError } = await db
     .from('executors')
     .select('*')
     .eq('id', executorId)
@@ -192,7 +194,7 @@ export async function applyToTask(data: ApplyToTaskData): Promise<{ application:
   }
 
   // Check for existing application
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from('task_applications')
     .select('*')
     .eq('task_id', taskId)
@@ -211,7 +213,7 @@ export async function applyToTask(data: ApplyToTaskData): Promise<{ application:
     status: 'pending' as const,
   }
 
-  const { data: application, error } = await supabase
+  const { data: application, error } = await db
     .from('task_applications')
     .insert(applicationData)
     .select('*, task:tasks(*)')
@@ -231,7 +233,7 @@ export async function applyToTask(data: ApplyToTaskData): Promise<{ application:
  * Cancel application to a task
  */
 export async function cancelApplication(applicationId: string, executorId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('task_applications')
     .delete()
     .eq('id', applicationId)
@@ -249,7 +251,7 @@ export async function cancelApplication(applicationId: string, executorId: strin
  * Cancel a published task
  */
 export async function cancelTask(data: CancelTaskData): Promise<Task> {
-  const { taskId, agentId, reason } = data
+  const { taskId, agentId, reason: _reason } = data
 
   // Get task to verify ownership and status
   const task = await getTask(taskId)
@@ -266,7 +268,7 @@ export async function cancelTask(data: CancelTaskData): Promise<Task> {
   }
 
   // Update task status
-  const { data: updatedTask, error } = await supabase
+  const { data: updatedTask, error } = await db
     .from('tasks')
     .update({
       status: 'cancelled',
@@ -289,7 +291,7 @@ export async function cancelTask(data: CancelTaskData): Promise<Task> {
  * Assign a task to a specific executor
  */
 export async function assignTask(data: AssignTaskData): Promise<{ task: Task; executor: { id: string; display_name: string | null } }> {
-  const { taskId, agentId, executorId, notes } = data
+  const { taskId, agentId, executorId, notes: _notes } = data
 
   // Get task to verify ownership
   const task = await getTask(taskId)
@@ -306,7 +308,7 @@ export async function assignTask(data: AssignTaskData): Promise<{ task: Task; ex
   }
 
   // Get executor to verify existence and reputation
-  const { data: executor, error: executorError } = await supabase
+  const { data: executor, error: executorError } = await db
     .from('executors')
     .select('*')
     .eq('id', executorId)
@@ -323,7 +325,7 @@ export async function assignTask(data: AssignTaskData): Promise<{ task: Task; ex
   }
 
   // Update task
-  const { data: updatedTask, error } = await supabase
+  const { data: updatedTask, error } = await db
     .from('tasks')
     .update({
       executor_id: executorId,
@@ -339,14 +341,14 @@ export async function assignTask(data: AssignTaskData): Promise<{ task: Task; ex
   }
 
   // Update the accepted application
-  await supabase
+  await db
     .from('task_applications')
     .update({ status: 'accepted' })
     .eq('task_id', taskId)
     .eq('executor_id', executorId)
 
   // Reject other applications
-  await supabase
+  await db
     .from('task_applications')
     .update({ status: 'rejected' })
     .eq('task_id', taskId)
@@ -369,7 +371,7 @@ export async function assignTask(data: AssignTaskData): Promise<{ task: Task; ex
  */
 export async function getMyTasks(executorId: string): Promise<WorkerTasksResponse> {
   // Get assigned tasks
-  const { data: assignedTasks, error: tasksError } = await supabase
+  const { data: assignedTasks, error: tasksError } = await db
     .from('tasks')
     .select('*, executor:executors(id, display_name, wallet_address, reputation_score)')
     .eq('executor_id', executorId)
@@ -380,7 +382,7 @@ export async function getMyTasks(executorId: string): Promise<WorkerTasksRespons
   }
 
   // Get pending applications
-  const { data: applications, error: appsError } = await supabase
+  const { data: applications, error: appsError } = await db
     .from('task_applications')
     .select('*, task:tasks(*)')
     .eq('executor_id', executorId)
@@ -392,7 +394,7 @@ export async function getMyTasks(executorId: string): Promise<WorkerTasksRespons
   }
 
   // Get recent submissions
-  const { data: submissions, error: subsError } = await supabase
+  const { data: submissions, error: subsError } = await db
     .from('submissions')
     .select('*, task:tasks(*)')
     .eq('executor_id', executorId)
@@ -432,7 +434,7 @@ export async function getTaskAnalytics(agentId: string, days: number = 30): Prom
   startDate.setDate(startDate.getDate() - days)
 
   // Get all tasks for agent in date range
-  const { data: tasks, error } = await supabase
+  const { data: tasks, error } = await db
     .from('tasks')
     .select('*')
     .eq('agent_id', agentId)
@@ -450,7 +452,7 @@ export async function getTaskAnalytics(agentId: string, days: number = 30): Prom
   const byCategory: Record<string, number> = {}
   let totalPaid = 0
 
-  taskList.forEach((task) => {
+  taskList.forEach((task: any) => {
     // Count by status
     const status = task.status || 'unknown'
     byStatus[status] = (byStatus[status] || 0) + 1
@@ -470,13 +472,13 @@ export async function getTaskAnalytics(agentId: string, days: number = 30): Prom
   const avgBounty = completed > 0 ? totalPaid / completed : 0
 
   // Get top workers
-  const completedTasks = taskList.filter((t) => t.status === 'completed')
-  const executorIds = [...new Set(completedTasks.map((t) => t.executor_id).filter(Boolean))]
+  const completedTasks = taskList.filter((t: any) => t.status === 'completed')
+  const executorIds = [...new Set(completedTasks.map((t: any) => t.executor_id).filter(Boolean))]
 
   let topWorkers: AgentAnalytics['topWorkers'] = []
 
   if (executorIds.length > 0) {
-    const { data: workers } = await supabase
+    const { data: workers } = await db
       .from('executors')
       .select('id, display_name, reputation_score')
       .in('id', executorIds.slice(0, 10))
@@ -484,20 +486,20 @@ export async function getTaskAnalytics(agentId: string, days: number = 30): Prom
     if (workers) {
       // Count tasks per worker
       const workerCounts: Record<string, number> = {}
-      completedTasks.forEach((t) => {
+      completedTasks.forEach((t: any) => {
         if (t.executor_id) {
           workerCounts[t.executor_id] = (workerCounts[t.executor_id] || 0) + 1
         }
       })
 
       topWorkers = workers
-        .map((w) => ({
+        .map((w: any) => ({
           id: w.id,
           displayName: w.display_name,
           reputation: w.reputation_score || 0,
           tasksCompleted: workerCounts[w.id] || 0,
         }))
-        .sort((a, b) => b.tasksCompleted - a.tasksCompleted)
+        .sort((a: any, b: any) => b.tasksCompleted - a.tasksCompleted)
         .slice(0, 5)
     }
   }
@@ -521,3 +523,5 @@ export async function getTaskAnalytics(agentId: string, days: number = 30): Prom
     periodDays: days,
   }
 }
+
+

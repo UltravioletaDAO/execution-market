@@ -1,9 +1,11 @@
 /**
  * Test REAL x402r escrow REFUND on Base Mainnet.
  * Returns escrowed funds back to the agent.
+ * DEBUG ONLY: this script sends direct wallet->contract transactions
+ * and does NOT use facilitator-only production flow.
  *
- * Usage: npx tsx test-refund.ts [amount_usdc]
- * Example: npx tsx test-refund.ts 0.01
+ * Usage: npx tsx test-refund.ts --allow-direct-wallet [amount_usdc]
+ * Example: npx tsx test-refund.ts --allow-direct-wallet 0.01
  */
 import {
   createPublicClient,
@@ -46,7 +48,16 @@ async function bal(addr: `0x${string}`) {
 }
 
 async function main() {
-  const amountStr = process.argv[2] || '0.01'
+  const allowDirectWallet = process.argv.includes('--allow-direct-wallet')
+  if (!allowDirectWallet) {
+    console.error('ERROR: Direct wallet mode is disabled by default.')
+    console.error('Use facilitator flow instead (`test-x402-full-flow.ts --strict-api`).')
+    console.error('If you intentionally need low-level contract debugging, re-run with --allow-direct-wallet.')
+    process.exit(1)
+  }
+
+  const positional = process.argv.slice(2).filter(arg => !arg.startsWith('--'))
+  const amountStr = positional[0] || '0.01'
   const amountAtomic = parseUnits(amountStr, 6)
 
   console.log('=== Real x402r Escrow REFUND ===')

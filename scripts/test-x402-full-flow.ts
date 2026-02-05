@@ -14,6 +14,8 @@
  * Usage:
  *   npx tsx test-x402-full-flow.ts                  # Full x402 via MCP API
  *   npx tsx test-x402-full-flow.ts --direct         # Fallback: direct Supabase insert
+ *   npx tsx test-x402-full-flow.ts --strict-api     # Fail fast on any non-facilitator fallback (default)
+ *   npx tsx test-x402-full-flow.ts --strict-api false
  *   npx tsx test-x402-full-flow.ts --count 3        # Only first N Fibonacci tasks
  *   npx tsx test-x402-full-flow.ts --monitor        # Monitor tasks after creation
  *   npx tsx test-x402-full-flow.ts --auto-approve   # Auto-approve submissions
@@ -116,7 +118,7 @@ function parseArgs(): Record<string, string> {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i].startsWith('--')) {
       const key = argv[i].slice(2);
-      if (['direct', 'monitor', 'auto-approve'].includes(key)) {
+      if (['direct', 'monitor', 'auto-approve', 'strict-api'].includes(key)) {
         args[key] = 'true';
       } else if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
         args[key] = argv[i + 1];
@@ -133,6 +135,7 @@ const CLI_ARGS = parseArgs();
 const DIRECT_MODE = CLI_ARGS['direct'] === 'true';
 const MONITOR_MODE = CLI_ARGS['monitor'] === 'true';
 const AUTO_APPROVE = CLI_ARGS['auto-approve'] === 'true';
+const STRICT_API = CLI_ARGS['strict-api'] !== 'false';
 const TASK_COUNT = Math.min(parseInt(CLI_ARGS['count'] || '5', 10), FIBONACCI_BOUNTIES.length);
 const DEADLINE_MINUTES = parseInt(CLI_ARGS['deadline'] || '15', 10);
 
@@ -547,6 +550,7 @@ async function monitorTasks(
         }
       } catch (err: any) {
         console.log(`  Error polling task ${taskId.slice(0, 8)}: ${err.message?.slice(0, 60)}`);
+        if (STRICT_API) throw err;
       }
     }
 
@@ -596,6 +600,9 @@ async function autoApproveSubmissions(taskId: string, apiKey: string): Promise<v
         console.log(`  Approved! Payment TX: ${result.data?.payment_tx || 'pending'}`);
       } else {
         const text = await res.text();
+        if (STRICT_API) {
+          throw new Error(`Approval via API failed (${res.status}): ${text.slice(0, 250)}`);
+        }
         console.log(`  Approval via API failed (${res.status}), falling back to Supabase...`);
 
         // Fallback: approve directly in Supabase
@@ -614,6 +621,7 @@ async function autoApproveSubmissions(taskId: string, apiKey: string): Promise<v
     }
   } catch (err: any) {
     console.log(`  Error auto-approving: ${err.message?.slice(0, 80)}`);
+    if (STRICT_API) throw err;
   }
 }
 
@@ -639,6 +647,7 @@ async function main(): Promise<void> {
   console.log(`  Facilitator:  ${FACILITATOR_URL}`);
   console.log(`  Monitor:      ${MONITOR_MODE ? 'Yes' : 'No'}`);
   console.log(`  Auto-approve: ${AUTO_APPROVE ? 'Yes' : 'No'}`);
+  console.log(`  Strict API:   ${STRICT_API ? 'Yes' : 'No'}`);
 
   // =========================================================================
   // Step 1: Pre-flight checks
@@ -654,14 +663,20 @@ async function main(): Promise<void> {
     const x402Status = health.components?.x402?.status;
     if (x402Status !== 'healthy') {
       console.log(`  x402 status: ${x402Status} — ${health.components?.x402?.message}`);
+      if (STRICT_API && !DIRECT_MODE) {
+        throw new Error(`MCP x402 component unhealthy: ${x402Status}`);
+      }
     }
 
     const chainStatus = health.components?.blockchain;
     if (chainStatus) {
       console.log(`  Blockchain: ${chainStatus.details?.network} @ block ${chainStatus.details?.block_number}`);
     }
-  } catch {
+  } catch (err: any) {
     console.log('  MCP Server: unreachable (continuing anyway)');
+    if (STRICT_API && !DIRECT_MODE) {
+      throw new Error(`MCP preflight failed: ${err?.message || err}`);
+    }
   }
 
   // Check facilitator
@@ -669,8 +684,14 @@ async function main(): Promise<void> {
     const fRes = await fetch(`${FACILITATOR_URL}/health`);
     const fHealth = await fRes.json();
     console.log(`  Facilitator: ${fHealth.status}`);
-  } catch {
+    if (STRICT_API && !DIRECT_MODE && fHealth?.status !== 'healthy') {
+      throw new Error(`Facilitator unhealthy: ${JSON.stringify(fHealth).slice(0, 200)}`);
+    }
+  } catch (err: any) {
     console.log('  Facilitator: unreachable');
+    if (STRICT_API && !DIRECT_MODE) {
+      throw new Error(`Facilitator preflight failed: ${err?.message || err}`);
+    }
   }
 
   // Check USDC balance
@@ -730,6 +751,9 @@ async function main(): Promise<void> {
         console.log(`  Facilitator: VALID (payer: ${verifyResult.payer?.slice(0, 10)}...)`);
       } else {
         console.log(`  Facilitator: ${JSON.stringify(verifyResult).slice(0, 150)}`);
+        if (STRICT_API) {
+          throw new Error(`Facilitator verify rejected payment for Fib #${i + 1}`);
+        }
       }
 
       // Try creating task via MCP API
@@ -752,6 +776,9 @@ async function main(): Promise<void> {
           status: task.status || 'published',
         });
       } else {
+        if (STRICT_API) {
+          throw new Error(`Task creation via MCP API failed for Fib #${i + 1} and strict mode is enabled.`);
+        }
         // Fallback to direct Supabase insert
         console.log(`  API failed, falling back to direct Supabase insert...`);
         task = await createTaskDirect(template, bounty, i);

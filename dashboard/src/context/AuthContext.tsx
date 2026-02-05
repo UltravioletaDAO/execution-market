@@ -87,14 +87,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true)
   const [error] = useState<Error | null>(null)
   const [dynamicInitialized, setDynamicInitialized] = useState(false)
+  const [persistedWalletAddress, setPersistedWalletAddress] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    const stored = localStorage.getItem(WALLET_STORAGE_KEY)
+    return stored ? stored.toLowerCase() : null
+  })
   const lastWalletRef = useRef<string | null>(null)
   const linkedWalletRef = useRef<string | null>(null)
   const linkingRef = useRef(false)
 
   // Derived state
-  const walletAddress = primaryWallet?.address?.toLowerCase() || null
+  const dynamicWalletAddress = primaryWallet?.address?.toLowerCase() || null
+  const walletAddress = dynamicWalletAddress || persistedWalletAddress || null
   // Only consider authenticated once Dynamic has had a chance to restore session
-  const isAuthenticated = dynamicInitialized && isLoggedIn && !!walletAddress
+  const isAuthenticated =
+    dynamicInitialized &&
+    ((isLoggedIn && !!dynamicWalletAddress) || !!persistedWalletAddress)
   const isProfileComplete = !!executor?.display_name
 
   // --------------------------------------------------------------------------
@@ -306,6 +314,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await supabase.auth.signOut()
     setExecutor(null)
     setUserType(null)
+    setPersistedWalletAddress(null)
     localStorage.removeItem(WALLET_STORAGE_KEY)
     linkedWalletRef.current = null
     lastWalletRef.current = null
@@ -315,8 +324,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Open auth modal
   // --------------------------------------------------------------------------
   const openAuthModal = useCallback(() => {
+    if (isAuthenticated && walletAddress) {
+      return
+    }
     setShowAuthFlow(true)
-  }, [setShowAuthFlow])
+  }, [isAuthenticated, walletAddress, setShowAuthFlow])
 
   // --------------------------------------------------------------------------
   // Effect: Track Dynamic.xyz initialization
@@ -337,13 +349,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Effect: Fetch executor when wallet changes
   // --------------------------------------------------------------------------
   useEffect(() => {
+    if (!dynamicInitialized) {
+      setLoading(true)
+      return
+    }
+
     if (walletAddress) {
       localStorage.setItem(WALLET_STORAGE_KEY, walletAddress)
+      setPersistedWalletAddress(walletAddress)
       lastWalletRef.current = walletAddress
       setLoading(true)
       linkWalletToSession(walletAddress)
         .then(() => fetchExecutor(walletAddress))
         .then((data) => {
+          // If we can't recover executor data for a persisted-only wallet,
+          // clear persisted session and require explicit re-auth.
+          if (!dynamicWalletAddress && !data) {
+            localStorage.removeItem(WALLET_STORAGE_KEY)
+            setPersistedWalletAddress(null)
+            setUserType(null)
+          }
           setExecutor(data)
           setLoading(false)
         })
@@ -363,7 +388,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         })
       }
     }
-  }, [walletAddress, fetchExecutor, linkWalletToSession])
+  }, [dynamicInitialized, dynamicWalletAddress, walletAddress, fetchExecutor, linkWalletToSession, setUserType])
 
   // --------------------------------------------------------------------------
   // Context Value

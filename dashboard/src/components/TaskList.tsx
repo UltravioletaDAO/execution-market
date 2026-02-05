@@ -1,4 +1,5 @@
 // Execution Market: Task List Component
+import { useTranslation } from 'react-i18next'
 import { TaskCard } from './TaskCard'
 import type { Task, TaskCategory } from '../types/database'
 
@@ -114,19 +115,20 @@ interface CategoryFilterProps {
   onChange: (category: TaskCategory | null) => void
 }
 
-const CATEGORIES: { value: TaskCategory | null; label: string; icon: string }[] = [
-  { value: null, label: 'Todas', icon: '🏠' },
-  { value: 'physical_presence', label: 'Presencia', icon: '📍' },
-  { value: 'knowledge_access', label: 'Conocimiento', icon: '📚' },
-  { value: 'human_authority', label: 'Autoridad', icon: '📋' },
-  { value: 'simple_action', label: 'Accion', icon: '✋' },
-  { value: 'digital_physical', label: 'Digital', icon: '🔗' },
+const CATEGORIES: { value: TaskCategory | null; key: string; icon: string }[] = [
+  { value: null, key: 'all', icon: '🏠' },
+  { value: 'physical_presence', key: 'physical_presence', icon: '📍' },
+  { value: 'knowledge_access', key: 'knowledge_access', icon: '📚' },
+  { value: 'human_authority', key: 'human_authority', icon: '📋' },
+  { value: 'simple_action', key: 'simple_action', icon: '✋' },
+  { value: 'digital_physical', key: 'digital_physical', icon: '🔗' },
 ]
 
 export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-wrap gap-2">
-      {CATEGORIES.map(({ value, label, icon }) => (
+      {CATEGORIES.map(({ value, key, icon }) => (
         <button
           key={value ?? 'all'}
           onClick={() => onChange(value)}
@@ -137,7 +139,7 @@ export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
           }`}
         >
           <span>{icon}</span>
-          <span>{label}</span>
+          <span>{t(`tasks.categories.${key}`, key)}</span>
         </button>
       ))}
     </div>
