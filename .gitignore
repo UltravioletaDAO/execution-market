@@ -42,6 +42,8 @@ htmlcov/
 .terraform/
 *.tfvars
 !*.tfvars.example
+*.tfplan
+infrastructure/terraform/tfplan
 
 # Video project artifacts
 video-v*/node_modules/
@@ -51,6 +53,15 @@ video/out/
 
 # Admin dashboard
 admin-dashboard/node_modules/
+
+# Vendor contracts (use forge install / submodules)
+contracts/lib/
+
+# Supabase temp
+supabase/.temp/
+
+# Large video assets (manage separately)
+videos/insights-2026/
 
 # Misc
 .unused/
