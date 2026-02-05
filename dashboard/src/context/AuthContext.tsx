@@ -85,44 +85,58 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const isProfileComplete = !!executor?.display_name
 
   // --------------------------------------------------------------------------
-  // Fetch executor from Supabase by wallet address
+  // Fetch or create executor using RPC function (bypasses RLS)
   // --------------------------------------------------------------------------
   const fetchExecutor = useCallback(async (wallet: string): Promise<Executor | null> => {
     const normalizedWallet = wallet.toLowerCase()
 
     try {
-      // Try to get existing executor
-      const { data, error: fetchError } = await supabase
-        .from('executors')
-        .select('*')
-        .eq('wallet_address', normalizedWallet)
-        .single()
+      // Use RPC function that bypasses RLS to get or create executor
+      const { data, error } = await supabase.rpc('get_or_create_executor', {
+        p_wallet_address: normalizedWallet,
+        p_display_name: null,
+        p_email: null,
+        p_signature: null,
+        p_message: null,
+      })
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        // PGRST116 = no rows found, which is OK for new users
+      if (error) {
+        console.error('[Auth] get_or_create_executor error:', error)
         return null
       }
 
-      if (data) {
-        return data as Executor
-      }
-
-      // No executor found - create one
-      const { data: newExecutor, error: createError } = await supabase
-        .from('executors')
-        .insert({
-          wallet_address: normalizedWallet,
-          status: 'active',
-        } as never)
-        .select()
-        .single()
-
-      if (createError) {
+      // RPC returns an array, get first element
+      const executorData = Array.isArray(data) ? data[0] : data
+      if (!executorData) {
+        console.error('[Auth] No executor data returned')
         return null
       }
 
-      return newExecutor as Executor
-    } catch {
+      console.log('[Auth] Executor loaded:', executorData.id, 'isNew:', executorData.is_new)
+
+      // Map RPC response to Executor type
+      return {
+        id: executorData.id,
+        wallet_address: executorData.wallet_address,
+        display_name: executorData.display_name,
+        email: executorData.email,
+        reputation_score: executorData.reputation_score,
+        tier: executorData.tier,
+        tasks_completed: executorData.tasks_completed,
+        balance_usdc: executorData.balance_usdc,
+        created_at: executorData.created_at,
+        // Fill in optional fields with defaults
+        bio: null,
+        avatar_url: null,
+        location_lat: null,
+        location_lng: null,
+        location_city: null,
+        location_country: null,
+        roles: [],
+        status: 'active',
+      } as Executor
+    } catch (err) {
+      console.error('[Auth] fetchExecutor exception:', err)
       return null
     }
   }, [])
