@@ -638,11 +638,15 @@ async def list_payments(
     offset: int = Query(0, ge=0),
     admin: dict = Depends(verify_admin_key)
 ) -> Dict[str, Any]:
-    """List escrow transactions (proxy for payments until payments table exists)."""
+    """List payment transactions derived from completed tasks."""
     try:
         supabase = db.get_supabase_client()
 
-        query = supabase.table("escrows").select("*", count="exact")
+        # Use completed/submitted tasks as the source of truth for payments.
+        # escrows table may not exist; tasks table always does.
+        query = supabase.table("tasks").select("*", count="exact").in_(
+            "status", ["completed", "submitted", "accepted", "cancelled"]
+        )
 
         if period != "all":
             periods = {"24h": 1, "7d": 7, "30d": 30, "90d": 90}
@@ -653,19 +657,30 @@ async def list_payments(
         query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
         result = query.execute()
 
-        # Map escrow rows to transaction-like format for the frontend
         transactions = []
         for row in (result.data or []):
+            status_map = {
+                "completed": "confirmed",
+                "submitted": "pending",
+                "accepted": "pending",
+                "cancelled": "refunded",
+            }
+            type_map = {
+                "completed": "release",
+                "submitted": "deposit",
+                "accepted": "deposit",
+                "cancelled": "refund",
+            }
             transactions.append({
                 "id": row["id"],
                 "created_at": row["created_at"],
-                "type": _escrow_status_to_type(row.get("status")),
-                "amount_usd": float(row.get("total_amount_usdc", 0) or 0),
-                "task_id": row.get("task_id"),
+                "type": type_map.get(row.get("status", ""), "unknown"),
+                "amount_usd": float(row.get("bounty_usd", 0) or 0),
+                "task_id": row["id"],
                 "wallet_address": row.get("agent_id", ""),
-                "status": "confirmed" if row.get("status") in ("funded", "released", "refunded") else "pending",
-                "tx_hash": row.get("funding_tx"),
-                "payment_strategy": "escrow_capture",
+                "status": status_map.get(row.get("status", ""), "pending"),
+                "tx_hash": row.get("escrow_tx"),
+                "payment_strategy": "x402_escrow",
             })
 
         return {
@@ -674,7 +689,7 @@ async def list_payments(
             "offset": offset,
         }
     except Exception as e:
-        logger.error(f"Error listing payments: {e}")
+        logger.error(f"Error listing payments: {e}", exc_info=True)
         return {"transactions": [], "count": 0, "offset": offset}
 
 
@@ -697,13 +712,12 @@ async def get_payment_stats(
     period: str = Query("7d", description="Time period: 24h, 7d, 30d, 90d, all"),
     admin: dict = Depends(verify_admin_key)
 ) -> Dict[str, Any]:
-    """Get payment statistics for the period."""
+    """Get payment statistics derived from tasks."""
     try:
         supabase = db.get_supabase_client()
 
-        query = supabase.table("escrows").select(
-            "total_amount_usdc, platform_fee_usdc, status, created_at"
-        )
+        # Derive payment stats from tasks table (escrows table may not exist)
+        query = supabase.table("tasks").select("bounty_usd, status, created_at")
 
         if period != "all":
             periods = {"24h": 1, "7d": 7, "30d": 30, "90d": 90}
@@ -712,24 +726,37 @@ async def get_payment_stats(
             query = query.gte("created_at", cutoff)
 
         result = query.execute()
-        escrows = result.data or []
+        tasks = result.data or []
 
-        total_volume = sum(float(e.get("total_amount_usdc", 0) or 0) for e in escrows)
-        total_fees = sum(float(e.get("platform_fee_usdc", 0) or 0) for e in escrows)
+        fee_pct = 0.08  # Default platform fee
+        try:
+            cfg = supabase.table("platform_config").select("value").eq(
+                "key", "fees.platform_fee_pct"
+            ).execute()
+            if cfg.data:
+                fee_pct = float(cfg.data[0]["value"])
+        except Exception:
+            pass
+
+        total_volume = sum(float(t.get("bounty_usd", 0) or 0) for t in tasks)
+        completed_volume = sum(
+            float(t.get("bounty_usd", 0) or 0) for t in tasks
+            if t.get("status") == "completed"
+        )
+        total_fees = round(completed_volume * fee_pct, 2)
         active_escrow = sum(
-            float(e.get("total_amount_usdc", 0) or 0)
-            for e in escrows
-            if e.get("status") in ("pending", "funded")
+            float(t.get("bounty_usd", 0) or 0) for t in tasks
+            if t.get("status") in ("published", "accepted", "in_progress", "submitted")
         )
 
         return {
             "total_volume_usd": round(total_volume, 2),
-            "total_fees_usd": round(total_fees, 2),
+            "total_fees_usd": total_fees,
             "active_escrow_usd": round(active_escrow, 2),
-            "transaction_count": len(escrows),
+            "transaction_count": len(tasks),
         }
     except Exception as e:
-        logger.error(f"Error getting payment stats: {e}")
+        logger.error(f"Error getting payment stats: {e}", exc_info=True)
         return {
             "total_volume_usd": 0,
             "total_fees_usd": 0,
