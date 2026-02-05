@@ -11,11 +11,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
+const noOpLock = async (_name: string, _timeout: number, fn: () => Promise<unknown>) => {
+  return await fn()
+}
+
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
+    // We rely on Dynamic.xyz for wallet auth; Supabase auth is best-effort only.
+    // Disable session persistence to avoid cross-tab lock timeouts.
+    persistSession: false,
+    autoRefreshToken: false,
     detectSessionInUrl: false,
+    // Avoid Web Locks API deadlocks in some browsers
+    lock: noOpLock,
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
   },
   global: {

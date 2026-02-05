@@ -11,6 +11,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react'
 import { useDynamicContext, useIsLoggedIn } from '@dynamic-labs/sdk-react-core'
@@ -45,6 +46,15 @@ interface AuthContextValue {
 // --------------------------------------------------------------------------
 
 const USER_TYPE_STORAGE_KEY = 'em_user_type'
+const WALLET_STORAGE_KEY = 'em_last_wallet_address'
+
+const isAbortError = (err: unknown): boolean => {
+  if (!err || typeof err !== 'object') return false
+  const message = (err as { message?: string }).message || ''
+  return message.includes('AbortError') || message.includes('signal is aborted')
+}
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 // --------------------------------------------------------------------------
 // Context
@@ -77,6 +87,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true)
   const [error] = useState<Error | null>(null)
   const [dynamicInitialized, setDynamicInitialized] = useState(false)
+  const lastWalletRef = useRef<string | null>(null)
+  const linkedWalletRef = useRef<string | null>(null)
+  const linkingRef = useRef(false)
 
   // Derived state
   const walletAddress = primaryWallet?.address?.toLowerCase() || null
@@ -85,23 +98,121 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const isProfileComplete = !!executor?.display_name
 
   // --------------------------------------------------------------------------
+  // Ensure we have a Supabase session (anonymous) so RLS can resolve auth.uid()
+  // --------------------------------------------------------------------------
+  const ensureSupabaseSession = useCallback(async () => {
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (sessionData.session?.user) {
+      return sessionData.session.user
+    }
+
+    const { data, error: authError } = await supabase.auth.signInAnonymously()
+    if (authError) {
+      throw authError
+    }
+
+    return data.user
+  }, [])
+
+  // --------------------------------------------------------------------------
+  // Link wallet to Supabase session (security definer RPC, supports anon users)
+  // --------------------------------------------------------------------------
+  const linkWalletToSession = useCallback(async (wallet: string) => {
+    if (linkingRef.current || linkedWalletRef.current === wallet) {
+      return
+    }
+
+    linkingRef.current = true
+    try {
+      const user = await ensureSupabaseSession()
+      if (!user) return
+
+      const { error: linkError } = await supabase.rpc('link_wallet_to_session', {
+        p_user_id: user.id,
+        p_wallet_address: wallet,
+      })
+
+      if (linkError) {
+        console.warn('[Auth] link_wallet_to_session error:', linkError)
+        console.warn('[Auth] link_wallet_to_session error details:', {
+          code: (linkError as { code?: string }).code,
+          message: (linkError as { message?: string }).message,
+          details: (linkError as { details?: string }).details,
+          hint: (linkError as { hint?: string }).hint,
+        })
+      } else {
+        linkedWalletRef.current = wallet
+      }
+    } catch (err) {
+      console.warn('[Auth] Failed to link wallet to session:', err)
+    } finally {
+      linkingRef.current = false
+    }
+  }, [ensureSupabaseSession])
+
+  // --------------------------------------------------------------------------
   // Fetch or create executor using RPC function (bypasses RLS)
   // --------------------------------------------------------------------------
   const fetchExecutor = useCallback(async (wallet: string): Promise<Executor | null> => {
     const normalizedWallet = wallet.toLowerCase()
 
     try {
-      // Use RPC function that bypasses RLS to get or create executor
-      const { data, error } = await supabase.rpc('get_or_create_executor', {
+      const rpcCall = async () => supabase.rpc('get_or_create_executor', {
         p_wallet_address: normalizedWallet,
         p_display_name: null,
         p_email: null,
-        p_signature: null,
-        p_message: null,
       })
+
+      let { data, error } = await rpcCall()
+      if (error && isAbortError(error)) {
+        await delay(250)
+        const retry = await rpcCall()
+        data = retry.data
+        error = retry.error
+      }
 
       if (error) {
         console.error('[Auth] get_or_create_executor error:', error)
+
+        // Fallback: try to load executor directly by wallet
+        const { data: existing, error: existingError } = await supabase
+          .from('executors')
+          .select('*')
+          .eq('wallet_address', normalizedWallet)
+          .maybeSingle()
+
+        if (existingError) {
+          console.error('[Auth] Fallback executor lookup error:', existingError)
+        }
+
+        if (existing) {
+          return existing as Executor
+        }
+
+        // Last resort: attempt to create executor directly (requires authenticated role)
+        const { data: sessionData } = await supabase.auth.getSession()
+        const sessionUser = sessionData.session?.user
+
+        if (sessionUser) {
+          const displayName = `Worker_${normalizedWallet.slice(2, 10)}`
+          const { data: inserted, error: insertError } = await supabase
+            .from('executors')
+            .insert({
+              wallet_address: normalizedWallet,
+              user_id: sessionUser.id,
+              display_name: displayName,
+              email: null,
+            })
+            .select('*')
+            .single()
+
+          if (insertError) {
+            console.error('[Auth] Fallback executor insert error:', insertError)
+          } else if (inserted) {
+            return inserted as Executor
+          }
+        }
+
         return null
       }
 
@@ -112,28 +223,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return null
       }
 
-      console.log('[Auth] Executor loaded:', executorData.id, 'isNew:', executorData.is_new)
+      // Fetch full executor profile for complete fields
+      const { data: fullExecutor, error: fullError } = await supabase
+        .from('executors')
+        .select('*')
+        .eq('id', executorData.id)
+        .maybeSingle()
 
-      // Map RPC response to Executor type
+      if (fullExecutor && !fullError) {
+        console.log('[Auth] Executor loaded:', fullExecutor.id, 'isNew:', executorData.is_new)
+        return fullExecutor as Executor
+      }
+
+      if (fullError) {
+        console.warn('[Auth] Executor full fetch failed, using RPC data:', fullError)
+      }
+
+      console.log('[Auth] Executor loaded (RPC only):', executorData.id, 'isNew:', executorData.is_new)
+
+      // Map RPC response to Executor type (fallback)
       return {
         id: executorData.id,
+        user_id: null,
         wallet_address: executorData.wallet_address,
         display_name: executorData.display_name,
-        email: executorData.email,
-        reputation_score: executorData.reputation_score,
-        tier: executorData.tier,
-        tasks_completed: executorData.tasks_completed,
-        balance_usdc: executorData.balance_usdc,
-        created_at: executorData.created_at,
-        // Fill in optional fields with defaults
         bio: null,
         avatar_url: null,
-        location_lat: null,
-        location_lng: null,
+        skills: [],
+        languages: [],
+        roles: [],
+        email: executorData.email,
+        phone: null,
+        default_location: null,
         location_city: null,
         location_country: null,
-        roles: [],
-        status: 'active',
+        reputation_score: executorData.reputation_score,
+        tasks_completed: executorData.tasks_completed,
+        tasks_disputed: 0,
+        tasks_abandoned: 0,
+        avg_rating: null,
+        reputation_contract: null,
+        reputation_token_id: null,
+        created_at: executorData.created_at,
+        updated_at: executorData.created_at,
+        last_active_at: null,
       } as Executor
     } catch (err) {
       console.error('[Auth] fetchExecutor exception:', err)
@@ -160,18 +293,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // --------------------------------------------------------------------------
   const refreshExecutor = useCallback(async () => {
     if (!walletAddress) return
+    await linkWalletToSession(walletAddress)
     const executorData = await fetchExecutor(walletAddress)
     setExecutor(executorData)
-  }, [walletAddress, fetchExecutor])
+  }, [walletAddress, fetchExecutor, linkWalletToSession])
 
   // --------------------------------------------------------------------------
   // Logout
   // --------------------------------------------------------------------------
   const logout = useCallback(async () => {
     await handleLogOut()
+    await supabase.auth.signOut()
     setExecutor(null)
     setUserType(null)
-    localStorage.removeItem('em_last_wallet_address')
+    localStorage.removeItem(WALLET_STORAGE_KEY)
+    linkedWalletRef.current = null
+    lastWalletRef.current = null
   }, [handleLogOut, setUserType])
 
   // --------------------------------------------------------------------------
@@ -201,17 +338,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // --------------------------------------------------------------------------
   useEffect(() => {
     if (walletAddress) {
-      localStorage.setItem('em_last_wallet_address', walletAddress)
+      localStorage.setItem(WALLET_STORAGE_KEY, walletAddress)
+      lastWalletRef.current = walletAddress
       setLoading(true)
-      fetchExecutor(walletAddress).then((data) => {
-        setExecutor(data)
-        setLoading(false)
-      })
+      linkWalletToSession(walletAddress)
+        .then(() => fetchExecutor(walletAddress))
+        .then((data) => {
+          setExecutor(data)
+          setLoading(false)
+        })
+        .catch((err) => {
+          console.error('[Auth] Failed to load executor:', err)
+          setExecutor(null)
+          setLoading(false)
+        })
     } else {
       setExecutor(null)
       setLoading(false)
+      if (lastWalletRef.current) {
+        lastWalletRef.current = null
+        linkedWalletRef.current = null
+        supabase.auth.signOut().catch((err) => {
+          console.warn('[Auth] Failed to clear Supabase session:', err)
+        })
+      }
     }
-  }, [walletAddress, fetchExecutor])
+  }, [walletAddress, fetchExecutor, linkWalletToSession])
 
   // --------------------------------------------------------------------------
   // Context Value

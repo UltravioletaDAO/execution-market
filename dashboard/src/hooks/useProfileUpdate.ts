@@ -24,8 +24,8 @@ export function useProfileUpdate() {
 
       try {
         // With Dynamic.xyz auth, we use the executor from context (loaded via wallet address)
-        // No Supabase session exists - auth is wallet-based
-        const executorId = executor?.id
+        // If missing, attempt to create or lookup by wallet
+        let executorId = executor?.id
 
         if (!executorId) {
           console.error('[useProfileUpdate] No executor in context')
@@ -37,40 +37,40 @@ export function useProfileUpdate() {
               .from('executors')
               .select('id')
               .eq('wallet_address', walletAddress.toLowerCase())
-              .single()
+              .maybeSingle()
 
-            if (findError || !execData) {
-              setError('Executor not found. Please reconnect your wallet.')
-              return false
+            if (findError) {
+              console.error('[useProfileUpdate] Wallet lookup error:', findError)
             }
 
-            // Found executor by wallet, use RPC to update
-            const { error: updateError } = await supabase.rpc('update_executor_profile', {
-              p_executor_id: execData.id,
-              p_display_name: data.display_name,
-              p_bio: data.bio,
-              p_skills: data.skills,
-              p_languages: data.languages,
-              p_location_city: data.location_city || null,
-              p_location_country: data.location_country || null,
-              p_email: data.email || null,
-            })
+            if (!execData && walletAddress) {
+              // Try to create executor if missing (RPC)
+              const { data: created, error: createError } = await supabase.rpc('get_or_create_executor', {
+                p_wallet_address: walletAddress.toLowerCase(),
+                p_display_name: data.display_name || null,
+                p_email: data.email || null,
+              })
 
-            if (updateError) {
-              console.error('[useProfileUpdate] RPC update failed:', updateError)
-              throw new Error(updateError.message)
+              if (createError) {
+                console.error('[useProfileUpdate] get_or_create_executor failed:', createError)
+              } else {
+                const createdExecutor = Array.isArray(created) ? created[0] : created
+                if (createdExecutor?.id) {
+                  executorId = createdExecutor.id
+                }
+              }
+            } else if (execData?.id) {
+              executorId = execData.id
             }
-
-            await refreshExecutor()
-            return true
           }
 
-          setError('Not authenticated. Please connect your wallet.')
-          return false
+          if (!executorId) {
+            setError('Executor not found. Please reconnect your wallet.')
+            return false
+          }
         }
 
-        // Use RPC function to update profile (bypasses RLS)
-        const { error: updateError } = await supabase.rpc('update_executor_profile', {
+        const updatePayload = {
           p_executor_id: executorId,
           p_display_name: data.display_name,
           p_bio: data.bio,
@@ -79,11 +79,36 @@ export function useProfileUpdate() {
           p_location_city: data.location_city || null,
           p_location_country: data.location_country || null,
           p_email: data.email || null,
-        })
+        }
+
+        // Use RPC function to update profile (bypasses RLS)
+        const { error: updateError } = await supabase.rpc('update_executor_profile', updatePayload)
 
         if (updateError) {
           console.error('[useProfileUpdate] RPC update failed:', updateError)
-          throw new Error(updateError.message)
+
+          // Fallback to direct update when RPC is missing
+          if (updateError.code?.startsWith('PGRST') || updateError.message?.includes('update_executor_profile')) {
+            const { error: directError } = await supabase
+              .from('executors')
+              .update({
+                display_name: data.display_name,
+                bio: data.bio,
+                skills: data.skills,
+                languages: data.languages,
+                location_city: data.location_city || null,
+                location_country: data.location_country || null,
+                email: data.email || null,
+              })
+              .eq('id', executorId)
+
+            if (directError) {
+              console.error('[useProfileUpdate] Direct update failed:', directError)
+              throw new Error(directError.message)
+            }
+          } else {
+            throw new Error(updateError.message)
+          }
         }
 
         console.log('[useProfileUpdate] Profile updated successfully')
