@@ -31,6 +31,8 @@ Backlog operativo enfocado en **ship rápido** y reducir caos de cambios.
 - [x] `PAY-006` Mostrar transaccion de pago final al worker en timeline de `PaymentStatus`.
 - [ ] `PAY-007` Validar en produccion `publish -> submit -> approve` y comprobar links de tx en UI.
 - [x] `PAY-008` Corregir flujo `task-factory --live`: `createEscrow` revierte y deja task huerfana sin `escrow_tx` (rollback/cancel automatico + error diagnostico).
+- [x] `PAY-009` Exponer endpoint publico de metricas para reflejar actividad real (`/api/v1/public/metrics`).
+- [ ] `PAY-010` Garantizar que las tx de pago visibles en UI provienen de flujo facilitador (no wallet directa) y bloquear rutas de prueba directas en scripts de release.
 
 ### Operación de release
 
@@ -38,6 +40,8 @@ Backlog operativo enfocado en **ship rápido** y reducir caos de cambios.
 - [ ] `OPS-002` Publicar checklist único de release.
 - [ ] `OPS-003` Definir rollback plan con pasos exactos.
 - [ ] `OPS-004` Congelar scope 72h (solo bugfixes).
+- [x] `OPS-007` Deploy unificado backend+frontend en ECS con tags inmutables y verificacion de `rollout=COMPLETED`.
+- [ ] `OPS-008` Automatizar deploy unificado con script reproducible (build/push/register/update/wait/health).
 
 ---
 
@@ -93,6 +97,14 @@ Usar esta plantilla:
 - [x] `AUTH-002` Bloquear CTA de login mientras se restaura estado auth (evita prompts falsos).
 - [ ] `AUTH-003` Validar manualmente en produccion que Start Earning no vuelve a pedir firma tras login inicial.
 - [ ] `AUTH-004` Agregar test e2e de persistencia: login -> home -> Start Earning -> no-sign -> refresh -> sigue autenticado.
+
+### Observabilidad de plataforma (nuevo)
+
+- [x] `MET-001` Mostrar metrica real de `registered workers` en landing.
+- [x] `MET-002` Mostrar metrica real de `workers taking tasks` en landing.
+- [x] `MET-003` Mostrar metrica real de actividad de usuarios en dashboard logueado.
+- [ ] `MET-004` Añadir cache server-side (30-60s) para endpoint de metricas y reducir carga de consultas.
+- [ ] `MET-005` Incluir `total_volume_usd` confiable una vez que escrows/funding rows estén sincronizados en prod.
 
 ### Topologia API (P0 claridad)
 
