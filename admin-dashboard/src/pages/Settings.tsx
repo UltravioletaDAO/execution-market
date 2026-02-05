@@ -1,30 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { adminGet, adminPut } from '../lib/api'
 
 interface SettingsProps {
   adminKey: string
-}
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
-
-async function fetchConfig(adminKey: string) {
-  const response = await fetch(`${API_BASE}/api/v1/admin/config?admin_key=${adminKey}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch config')
-  }
-  return response.json()
-}
-
-async function updateConfig(adminKey: string, key: string, value: unknown, reason?: string) {
-  const response = await fetch(`${API_BASE}/api/v1/admin/config/${key}?admin_key=${adminKey}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ value, reason }),
-  })
-  if (!response.ok) {
-    throw new Error('Failed to update config')
-  }
-  return response.json()
 }
 
 function ConfigInput({
@@ -52,7 +31,7 @@ function ConfigInput({
     mutationFn: () => {
       const parsedValue = type === 'number' ? parseFloat(newValue) :
                          type === 'boolean' ? newValue === 'true' : newValue
-      return updateConfig(adminKey, configKey, parsedValue, reason)
+      return adminPut(`/api/v1/admin/config/${configKey}`, adminKey, { value: parsedValue, reason })
     },
     onSuccess: () => {
       setEditing(false)
@@ -161,7 +140,7 @@ export default function Settings({ adminKey }: SettingsProps) {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['config', adminKey],
-    queryFn: () => fetchConfig(adminKey),
+    queryFn: () => adminGet('/api/v1/admin/config', adminKey),
     enabled: !!adminKey,
   })
 

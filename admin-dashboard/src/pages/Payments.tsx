@@ -5,34 +5,18 @@ interface PaymentsProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
+import { adminGet } from '../lib/api'
 
 async function fetchPayments(adminKey: string, period: string, page: number = 1) {
-  const params = new URLSearchParams({
-    admin_key: adminKey,
+  return adminGet('/api/v1/admin/payments', adminKey, {
     period,
     limit: '20',
     offset: String((page - 1) * 20),
   })
-
-  const response = await fetch(`${API_BASE}/api/v1/admin/payments?${params}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch payments')
-  }
-  return response.json()
 }
 
 async function fetchPaymentStats(adminKey: string, period: string) {
-  const params = new URLSearchParams({
-    admin_key: adminKey,
-    period,
-  })
-
-  const response = await fetch(`${API_BASE}/api/v1/admin/payments/stats?${params}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch payment stats')
-  }
-  return response.json()
+  return adminGet('/api/v1/admin/payments/stats', adminKey, { period })
 }
 
 const typeColors: Record<string, string> = {
