@@ -343,26 +343,13 @@ async def update_config_value(
 
         old_value = current.data[0]["value"]
 
-        # Convert the value to proper JSONB format
-        import json
+        # Pass raw value to Supabase — the client handles JSONB serialization.
+        # Do NOT json.dumps() — that double-encodes (e.g. 100 → "100" string).
         new_value = request.value
-        if isinstance(new_value, (int, float)):
-            jsonb_value = json.dumps(new_value)
-        elif isinstance(new_value, bool):
-            jsonb_value = json.dumps(new_value)
-        elif isinstance(new_value, str):
-            # Try to parse as number first
-            try:
-                float(new_value)
-                jsonb_value = new_value  # It's a number string, store as-is
-            except ValueError:
-                jsonb_value = json.dumps(new_value)  # Wrap string in quotes
-        else:
-            jsonb_value = json.dumps(new_value)
 
         # Update directly in DB
         result = supabase.table("platform_config").update({
-            "value": jsonb_value,
+            "value": new_value,
             "updated_by": admin.get("actor_id"),
         }).eq("key", key).execute()
 
