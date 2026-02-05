@@ -21,6 +21,13 @@ export function register(config?: ServiceWorkerConfig): void {
     return
   }
 
+  // Only register SW on the dashboard hostname, not api.* or mcp.*
+  const hostname = window.location.hostname
+  if (hostname !== 'execution.market' && hostname !== 'localhost') {
+    console.log('[SW] Skipping registration on non-dashboard hostname:', hostname)
+    return
+  }
+
   window.addEventListener('load', () => {
     registerServiceWorker('/sw.js', config)
   })

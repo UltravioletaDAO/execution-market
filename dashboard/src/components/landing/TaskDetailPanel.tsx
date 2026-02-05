@@ -38,9 +38,15 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
   const { t } = useTranslation()
   const { formatCurrency, formatTimeRemaining } = useCustomTranslation()
 
-  // Fetch payment data for this task (only when escrow_tx or escrow_id is present)
+  // Fetch payment data when escrow exists or task has reached payment-sensitive states
   const hasEscrow = Boolean(task.escrow_tx || task.escrow_id)
-  const { payment, loading: paymentLoading } = useTaskPayment(hasEscrow ? task.id : null)
+  const shouldLoadPayment =
+    hasEscrow ||
+    task.status === 'submitted' ||
+    task.status === 'completed' ||
+    task.status === 'expired' ||
+    task.status === 'cancelled'
+  const { payment, loading: paymentLoading } = useTaskPayment(shouldLoadPayment ? task.id : null)
 
   // Close on escape key
   useEffect(() => {
@@ -203,7 +209,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
           )}
 
           {/* Payment / Escrow Status */}
-          {hasEscrow && (
+          {shouldLoadPayment && (
             <section>
               <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
                 {t('payment.status', 'Estado del Pago')}
@@ -266,7 +272,9 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
 
               {!paymentLoading && !payment && (
                 <p className="text-sm text-gray-400 italic">
-                  {t('payment.noData', 'No hay datos de pago disponibles.')}
+                  {hasEscrow
+                    ? t('payment.syncingData', 'Escrow detectado. Esperando sincronizacion de transacciones x402.')
+                    : t('payment.noData', 'No hay datos de pago disponibles.')}
                 </p>
               )}
             </section>

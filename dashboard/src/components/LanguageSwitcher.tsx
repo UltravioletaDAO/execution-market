@@ -29,7 +29,7 @@ interface LanguageSwitcherProps {
  */
 export function LanguageSwitcher({
   className = '',
-  showFlags = true,
+  showFlags = false,
   showLabels = true,
   compact = false,
 }: LanguageSwitcherProps) {

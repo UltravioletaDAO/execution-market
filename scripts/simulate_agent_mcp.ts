@@ -10,6 +10,8 @@
  * Usage:
  *   cd scripts
  *   npx tsx simulate_agent_mcp.ts
+ *   npx tsx simulate_agent_mcp.ts --mock
+ *   npx tsx simulate_agent_mcp.ts --allow-direct-wallet   # debug only
  *
  * Requirements:
  *   - MCP server running at API_URL
@@ -38,6 +40,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://YOUR_PROJECT_REF.supab
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_KEY;
 const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY as `0x${string}`;
 const MOCK_MODE = process.argv.includes('--mock');
+const ALLOW_DIRECT_WALLET = process.argv.includes('--allow-direct-wallet');
 
 // Contract addresses (Ethereum Mainnet)
 const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
@@ -136,6 +139,12 @@ class EMAgentSimulator {
     this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
     if (!MOCK_MODE && PRIVATE_KEY) {
+      if (!ALLOW_DIRECT_WALLET) {
+        throw new Error(
+          'Direct wallet mode is disabled by default. Use --mock or facilitator-based scripts. ' +
+          'For low-level debugging only, pass --allow-direct-wallet.'
+        );
+      }
       this.account = privateKeyToAccount(PRIVATE_KEY);
       this.agentId = this.account.address;
 

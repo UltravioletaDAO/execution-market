@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends, Query, Path
 from pydantic import BaseModel, Field
 
+import supabase_client as db
+
 # ERC-8004 Facilitator client
 try:
     from integrations.erc8004 import (
@@ -41,6 +43,22 @@ from .auth import verify_api_key, APIKeyData
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/reputation", tags=["Reputation"])
+
+
+def _normalize_address(value: Optional[str]) -> str:
+    """Normalize wallet-like addresses for safe case-insensitive comparison."""
+    return str(value or "").strip().lower()
+
+
+async def _get_task_or_404(task_id: str) -> Dict[str, Any]:
+    """Fetch task by id and raise 404 when not found."""
+    try:
+        task = await db.get_task(task_id)
+    except Exception:
+        task = None
+    if not task:
+        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    return task
 
 
 # =============================================================================
@@ -332,12 +350,29 @@ async def rate_worker_endpoint(
     if not ERC8004_AVAILABLE:
         raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
 
-    # TODO: Verify agent owns the task (api_key.agent_id matches task.agent_id)
+    task = await _get_task_or_404(request.task_id)
+    if task.get("agent_id") != api_key.agent_id:
+        raise HTTPException(status_code=403, detail="Not authorized to rate worker for this task")
+
+    task_status = str(task.get("status", "")).lower()
+    if task_status in {"published", "cancelled", "expired"}:
+        raise HTTPException(status_code=409, detail=f"Task status {task_status} cannot be rated yet")
+
+    task_executor_wallet = _normalize_address(
+        (task.get("executor") or {}).get("wallet_address")
+    )
+    requested_worker_wallet = _normalize_address(request.worker_address)
+    if requested_worker_wallet and task_executor_wallet and requested_worker_wallet != task_executor_wallet:
+        raise HTTPException(status_code=403, detail="Worker address does not match assigned executor")
+
+    worker_address = requested_worker_wallet or task_executor_wallet
+    if not worker_address:
+        raise HTTPException(status_code=409, detail="Task has no assigned worker to rate")
 
     result = await rate_worker(
         task_id=request.task_id,
         score=request.score,
-        worker_address=request.worker_address or "",
+        worker_address=worker_address,
         comment=request.comment or "",
         proof_tx=request.proof_tx,
     )
@@ -345,6 +380,14 @@ async def rate_worker_endpoint(
     logger.info(
         "Agent %s rated worker for task %s: score=%d, success=%s",
         api_key.agent_id, request.task_id, request.score, result.success
+    )
+    logger.info(
+        "SECURITY_AUDIT action=reputation.rate_worker actor=%s task=%s worker=%s score=%d success=%s",
+        api_key.agent_id,
+        request.task_id,
+        worker_address,
+        request.score,
+        result.success,
     )
 
     return FeedbackResponse(
@@ -384,7 +427,25 @@ async def rate_agent_endpoint(
     if not ERC8004_AVAILABLE:
         raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
 
-    # TODO: Verify worker was assigned to the task
+    task = await _get_task_or_404(request.task_id)
+    task_status = str(task.get("status", "")).lower()
+    if task_status in {"published", "cancelled", "expired"}:
+        raise HTTPException(status_code=409, detail=f"Task status {task_status} cannot be rated yet")
+
+    task_executor_wallet = _normalize_address((task.get("executor") or {}).get("wallet_address"))
+    if not task.get("executor_id") and not task_executor_wallet:
+        raise HTTPException(status_code=409, detail="Task has no assigned worker")
+
+    # Verify the provided ERC-8004 agent identity maps to the task owner.
+    # This blocks mismatched task/agent feedback injection.
+    agent_identity = await get_agent_info(request.agent_id)
+    if not agent_identity:
+        raise HTTPException(status_code=404, detail=f"Agent {request.agent_id} not found")
+
+    task_agent = _normalize_address(task.get("agent_id"))
+    identity_owner = _normalize_address(agent_identity.owner)
+    if task_agent and identity_owner and task_agent != identity_owner:
+        raise HTTPException(status_code=403, detail="Task agent does not match rated agent identity")
 
     result = await rate_agent(
         agent_id=request.agent_id,
@@ -397,6 +458,13 @@ async def rate_agent_endpoint(
     logger.info(
         "Worker rated agent %d for task %s: score=%d, success=%s",
         request.agent_id, request.task_id, request.score, result.success
+    )
+    logger.info(
+        "SECURITY_AUDIT action=reputation.rate_agent task=%s agent_id=%d score=%d success=%s",
+        request.task_id,
+        request.agent_id,
+        request.score,
+        result.success,
     )
 
     return FeedbackResponse(

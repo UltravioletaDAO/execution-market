@@ -167,6 +167,208 @@ export interface TaskApplication {
   created_at: string
 }
 
+export type PaymentRowType =
+  | 'task_payment'
+  | 'withdrawal'
+  | 'bonus'
+  | 'refund'
+  | 'escrow_create'
+  | 'partial_release'
+  | 'final_release'
+  | 'full_release'
+  | 'partial_refund'
+  | 'platform_fee'
+  | 'deposit'
+
+export type PaymentRowStatus =
+  | 'pending'
+  | 'processing'
+  | 'confirmed'
+  | 'completed'
+  | 'failed'
+  | 'refunded'
+  | 'cancelled'
+  | 'available'
+  | 'disputed'
+  | 'partial_released'
+  | 'escrowed'
+  | 'funded'
+
+export interface PaymentRow {
+  id: string
+  escrow_id: string | null
+  task_id: string | null
+  executor_id: string | null
+  submission_id: string | null
+  payment_type: PaymentRowType | null
+  type: PaymentRowType | null
+  status: PaymentRowStatus
+  amount_usdc: number | null
+  amount: number | null
+  fee_usdc: number | null
+  net_amount_usdc: number | null
+  currency: string | null
+  x402_escrow_id: string | null
+  escrow_tx: string | null
+  transaction_hash: string | null
+  tx_hash: string | null
+  from_address: string | null
+  to_address: string | null
+  chain_id: number | null
+  network: string | null
+  token_address: string | null
+  block_number: number | null
+  gas_used: number | null
+  gas_price_gwei: number | null
+  memo: string | null
+  error_message: string | null
+  error_code: string | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+  updated_at: string | null
+  confirmed_at: string | null
+  completed_at: string | null
+  processing_started_at: string | null
+  failed_at: string | null
+  retry_count: number | null
+  last_retry_at: string | null
+  next_retry_at: string | null
+}
+
+export interface PaymentInsert {
+  escrow_id?: string | null
+  task_id?: string | null
+  executor_id?: string | null
+  submission_id?: string | null
+  payment_type?: PaymentRowType | null
+  type?: PaymentRowType | null
+  status?: PaymentRowStatus
+  amount_usdc?: number | null
+  amount?: number | null
+  fee_usdc?: number | null
+  currency?: string | null
+  x402_escrow_id?: string | null
+  escrow_tx?: string | null
+  transaction_hash?: string | null
+  tx_hash?: string | null
+  from_address?: string | null
+  to_address?: string | null
+  chain_id?: number | null
+  network?: string | null
+  token_address?: string | null
+  block_number?: number | null
+  memo?: string | null
+  error_message?: string | null
+  error_code?: string | null
+  metadata?: Record<string, unknown> | null
+  confirmed_at?: string | null
+  completed_at?: string | null
+  processing_started_at?: string | null
+  failed_at?: string | null
+  retry_count?: number | null
+  last_retry_at?: string | null
+  next_retry_at?: string | null
+}
+
+export interface EscrowRow {
+  id: string
+  task_id: string
+  agent_id: string
+  escrow_id: string
+  escrow_address: string | null
+  funding_tx: string | null
+  deposit_tx: string | null
+  release_tx: string | null
+  refund_tx: string | null
+  status: string
+  total_amount_usdc: number | null
+  amount_usdc: number | null
+  platform_fee_usdc: number | null
+  net_bounty_usdc: number | null
+  released_amount_usdc: number | null
+  beneficiary_id: string | null
+  beneficiary_address: string | null
+  chain_id: number | null
+  token_address: string | null
+  timeout_hours: number | null
+  expires_at: string | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+  updated_at: string | null
+  funded_at: string | null
+  partial_released_at: string | null
+  released_at: string | null
+  refunded_at: string | null
+}
+
+export interface EscrowInsert {
+  task_id: string
+  agent_id: string
+  escrow_id: string
+  escrow_address?: string | null
+  funding_tx?: string | null
+  deposit_tx?: string | null
+  release_tx?: string | null
+  refund_tx?: string | null
+  status?: string
+  total_amount_usdc?: number | null
+  amount_usdc?: number | null
+  platform_fee_usdc?: number | null
+  released_amount_usdc?: number | null
+  beneficiary_id?: string | null
+  beneficiary_address?: string | null
+  chain_id?: number | null
+  token_address?: string | null
+  timeout_hours?: number | null
+  expires_at?: string | null
+  metadata?: Record<string, unknown> | null
+  funded_at?: string | null
+  partial_released_at?: string | null
+  released_at?: string | null
+  refunded_at?: string | null
+}
+
+export interface WithdrawalRow {
+  id: string
+  executor_id: string
+  amount_usdc: number
+  fee_usdc: number | null
+  net_amount_usdc: number | null
+  destination_address: string
+  destination_chain_id: number | null
+  status: string
+  transaction_hash: string | null
+  tx_hash: string | null
+  block_number: number | null
+  error_message: string | null
+  error_code: string | null
+  requested_at: string | null
+  processed_at: string | null
+  created_at: string
+  processing_started_at: string | null
+  completed_at: string | null
+  failed_at: string | null
+}
+
+export interface WithdrawalInsert {
+  executor_id: string
+  amount_usdc: number
+  fee_usdc?: number | null
+  destination_address: string
+  destination_chain_id?: number | null
+  status?: string
+  transaction_hash?: string | null
+  tx_hash?: string | null
+  block_number?: number | null
+  error_message?: string | null
+  error_code?: string | null
+  requested_at?: string | null
+  processed_at?: string | null
+  processing_started_at?: string | null
+  completed_at?: string | null
+  failed_at?: string | null
+}
+
 // Insert types (for INSERT operations - id and timestamps auto-generated)
 export interface ExecutorInsert {
   user_id?: string | null
@@ -328,36 +530,196 @@ export interface Database {
         Row: Executor
         Insert: ExecutorInsert
         Update: Partial<ExecutorInsert>
+        Relationships: []
       }
       tasks: {
         Row: Task
         Insert: TaskInsert
         Update: TaskUpdate
+        Relationships: [
+          {
+            foreignKeyName: 'tasks_executor_id_fkey'
+            columns: ['executor_id']
+            isOneToOne: false
+            referencedRelation: 'executors'
+            referencedColumns: ['id']
+          },
+        ]
       }
       submissions: {
         Row: Submission
         Insert: SubmissionInsert
         Update: SubmissionUpdate
+        Relationships: [
+          {
+            foreignKeyName: 'submissions_task_id_fkey'
+            columns: ['task_id']
+            isOneToOne: false
+            referencedRelation: 'tasks'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'submissions_executor_id_fkey'
+            columns: ['executor_id']
+            isOneToOne: false
+            referencedRelation: 'executors'
+            referencedColumns: ['id']
+          },
+        ]
       }
       disputes: {
         Row: Dispute
         Insert: Omit<Dispute, 'id' | 'created_at'>
         Update: Partial<Omit<Dispute, 'id'>>
+        Relationships: [
+          {
+            foreignKeyName: 'disputes_task_id_fkey'
+            columns: ['task_id']
+            isOneToOne: false
+            referencedRelation: 'tasks'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'disputes_submission_id_fkey'
+            columns: ['submission_id']
+            isOneToOne: false
+            referencedRelation: 'submissions'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'disputes_executor_id_fkey'
+            columns: ['executor_id']
+            isOneToOne: false
+            referencedRelation: 'executors'
+            referencedColumns: ['id']
+          },
+        ]
       }
       reputation_log: {
         Row: ReputationLog
         Insert: Omit<ReputationLog, 'id' | 'created_at'>
         Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'reputation_log_executor_id_fkey'
+            columns: ['executor_id']
+            isOneToOne: false
+            referencedRelation: 'executors'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'reputation_log_task_id_fkey'
+            columns: ['task_id']
+            isOneToOne: false
+            referencedRelation: 'tasks'
+            referencedColumns: ['id']
+          },
+        ]
       }
       task_applications: {
         Row: TaskApplication
         Insert: Omit<TaskApplication, 'id' | 'created_at'>
         Update: Partial<Omit<TaskApplication, 'id'>>
+        Relationships: [
+          {
+            foreignKeyName: 'task_applications_task_id_fkey'
+            columns: ['task_id']
+            isOneToOne: false
+            referencedRelation: 'tasks'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'task_applications_executor_id_fkey'
+            columns: ['executor_id']
+            isOneToOne: false
+            referencedRelation: 'executors'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      escrows: {
+        Row: EscrowRow
+        Insert: EscrowInsert
+        Update: Partial<EscrowInsert>
+        Relationships: [
+          {
+            foreignKeyName: 'escrows_task_id_fkey'
+            columns: ['task_id']
+            isOneToOne: false
+            referencedRelation: 'tasks'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'escrows_beneficiary_id_fkey'
+            columns: ['beneficiary_id']
+            isOneToOne: false
+            referencedRelation: 'executors'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      payments: {
+        Row: PaymentRow
+        Insert: PaymentInsert
+        Update: Partial<PaymentInsert>
+        Relationships: [
+          {
+            foreignKeyName: 'payments_escrow_id_fkey'
+            columns: ['escrow_id']
+            isOneToOne: false
+            referencedRelation: 'escrows'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'payments_task_id_fkey'
+            columns: ['task_id']
+            isOneToOne: false
+            referencedRelation: 'tasks'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'payments_executor_id_fkey'
+            columns: ['executor_id']
+            isOneToOne: false
+            referencedRelation: 'executors'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'payments_submission_id_fkey'
+            columns: ['submission_id']
+            isOneToOne: false
+            referencedRelation: 'submissions'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      withdrawals: {
+        Row: WithdrawalRow
+        Insert: WithdrawalInsert
+        Update: Partial<WithdrawalInsert>
+        Relationships: [
+          {
+            foreignKeyName: 'withdrawals_executor_id_fkey'
+            columns: ['executor_id']
+            isOneToOne: false
+            referencedRelation: 'executors'
+            referencedColumns: ['id']
+          },
+        ]
       }
       notifications: {
         Row: NotificationRow
         Insert: NotificationInsert
         Update: NotificationUpdate
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_executor_id_fkey'
+            columns: ['executor_id']
+            isOneToOne: false
+            referencedRelation: 'executors'
+            referencedColumns: ['id']
+          },
+        ]
       }
     }
     Enums: {

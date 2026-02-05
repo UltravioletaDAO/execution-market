@@ -180,11 +180,8 @@ export function EvidenceUpload({
     const filename = `evidence_${timestamp.toISOString().replace(/[:.]/g, '-')}.jpg`
     const file = await blobToFile(photo.blob, filename)
 
-    // Calculate distance if task location provided
-    const distance = currentGps ? calculateDistance(currentGps) : undefined
-    const _withinRange = distance !== undefined && taskLocation?.radiusKm
-      ? distance / 1000 <= taskLocation.radiusKm
-      : undefined
+    // Calculate distance if task location provided (used later during verification)
+    void (currentGps ? calculateDistance(currentGps) : undefined)
 
     // Map EvidenceType to EvidenceItem.type (limited set)
     const mapToPreviewType = (et: EvidenceType): EvidenceItem['type'] => {

@@ -1,11 +1,9 @@
+/* Font Imports — must precede all other statements per CSS spec */
+@import url('https://rsms.me/inter/inter.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* ============================================================================
-   Font Imports
-   ============================================================================ */
-@import url('https://rsms.me/inter/inter.css');
 
 /* ============================================================================
    CSS Custom Properties

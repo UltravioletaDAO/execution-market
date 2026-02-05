@@ -16,6 +16,7 @@ Usage:
 import asyncio
 import json
 import logging
+import os
 import secrets
 from datetime import datetime, timezone
 from typing import Dict, Set, Optional, Any, Callable, Awaitable, List
@@ -175,6 +176,7 @@ class WebSocketManager:
         self.max_subscriptions_per_connection = max_subscriptions_per_connection
         self.rate_limit_messages = rate_limit_messages
         self.rate_limit_window_seconds = rate_limit_window_seconds
+        self.require_auth_token = os.environ.get("WS_REQUIRE_AUTH_TOKEN", "false").lower() == "true"
 
         # Background tasks
         self._heartbeat_task: Optional[asyncio.Task] = None
@@ -218,9 +220,14 @@ class WebSocketManager:
         logger.info("WebSocketManager stopped")
 
     @asynccontextmanager
-    async def connection_context(self, websocket: WebSocket, user_id: Optional[str] = None):
+    async def connection_context(
+        self,
+        websocket: WebSocket,
+        user_id: Optional[str] = None,
+        user_type: Optional[str] = None,
+    ):
         """Context manager for handling connection lifecycle."""
-        connection = await self.connect(websocket, user_id)
+        connection = await self.connect(websocket, user_id, user_type)
         try:
             yield connection
         finally:
@@ -338,6 +345,46 @@ class WebSocketManager:
         connection.state = ConnectionState.DISCONNECTED
         logger.info(f"Connection closed: {connection_id} ({reason})")
 
+    @staticmethod
+    def _normalize_auth_token(token: Optional[str]) -> str:
+        """Normalize token value by stripping optional Bearer prefix."""
+        normalized = (token or "").strip()
+        if normalized.lower().startswith("bearer "):
+            normalized = normalized[7:].strip()
+        return normalized
+
+    async def _validate_api_token(
+        self,
+        token: str,
+        expected_user_id: Optional[str] = None,
+    ) -> Optional[Dict[str, str]]:
+        """
+        Validate API token via shared API auth module.
+
+        Returns dict with user metadata when valid, None otherwise.
+        """
+        normalized = self._normalize_auth_token(token)
+        if not normalized:
+            return None
+
+        try:
+            # Lazy import to avoid module-level coupling.
+            from api.auth import verify_api_key
+            key_data = await verify_api_key(f"Bearer {normalized}")
+        except Exception as e:
+            logger.warning("WebSocket API token validation failed: %s", e)
+            return None
+
+        if expected_user_id and key_data.agent_id != expected_user_id:
+            logger.warning(
+                "WebSocket token user mismatch: expected=%s actual=%s",
+                expected_user_id,
+                key_data.agent_id,
+            )
+            return None
+
+        return {"user_id": key_data.agent_id, "user_type": "agent", "tier": key_data.tier}
+
     async def authenticate(
         self,
         connection_id: str,
@@ -361,8 +408,34 @@ class WebSocketManager:
         if not connection:
             return False
 
+        requested_user_type = (user_type or "agent").strip().lower()
+        if requested_user_type not in {"agent", "worker"}:
+            await self._send(connection_id, ServerMessage(
+                type=ServerMessageType.AUTH_FAILED,
+                payload={"error": "Invalid user_type. Expected 'agent' or 'worker'"}
+            ))
+            return False
+
+        auth_user_id = user_id
+        if token:
+            token_data = await self._validate_api_token(token, expected_user_id=user_id)
+            if not token_data:
+                await self._send(connection_id, ServerMessage(
+                    type=ServerMessageType.AUTH_FAILED,
+                    payload={"error": "Invalid authentication token"}
+                ))
+                return False
+            auth_user_id = token_data["user_id"]
+            requested_user_type = token_data.get("user_type", requested_user_type)
+        elif self.require_auth_token and requested_user_type == "agent":
+            await self._send(connection_id, ServerMessage(
+                type=ServerMessageType.AUTH_FAILED,
+                payload={"error": "Authentication token required"}
+            ))
+            return False
+
         # Check connection limits
-        existing = self._user_connections.get(user_id, set())
+        existing = self._user_connections.get(auth_user_id, set())
         if len(existing) >= self.max_connections_per_user:
             await self._send(connection_id, ServerMessage(
                 type=ServerMessageType.AUTH_FAILED,
@@ -370,27 +443,37 @@ class WebSocketManager:
             ))
             return False
 
-        # TODO: Validate token against database if provided
-        # For now, trust the user_id
+        # Cleanup previous user mapping if connection is being re-authenticated.
+        if connection.user_id and connection.user_id != auth_user_id:
+            prev_conns = self._user_connections.get(connection.user_id, set())
+            prev_conns.discard(connection_id)
+            if not prev_conns:
+                self._user_connections.pop(connection.user_id, None)
 
         # Update connection
-        connection.user_id = user_id
-        connection.user_type = user_type
+        connection.user_id = auth_user_id
+        connection.user_type = requested_user_type
         connection.state = ConnectionState.AUTHENTICATED
 
         # Update user connections
-        self._user_connections[user_id].add(connection_id)
+        self._user_connections[auth_user_id].add(connection_id)
 
         # Auto-subscribe to user's personal room
-        await self._subscribe_internal(connection_id, get_user_room(user_id))
+        await self._subscribe_internal(connection_id, get_user_room(auth_user_id))
 
         # Send acknowledgment
         await self._send(connection_id, ServerMessage(
             type=ServerMessageType.AUTH_SUCCESS,
-            payload={"user_id": user_id, "user_type": user_type}
+            payload={"user_id": auth_user_id, "user_type": requested_user_type}
         ))
 
-        logger.info(f"Connection authenticated: {connection_id} -> {user_id} ({user_type})")
+        logger.info(
+            "Connection authenticated: %s -> %s (%s, token=%s)",
+            connection_id,
+            auth_user_id,
+            requested_user_type,
+            "yes" if token else "no",
+        )
         return True
 
     def get_connection(self, connection_id: str) -> Optional[Connection]:
@@ -872,13 +955,22 @@ async def websocket_endpoint(
     - category:<category> - New tasks in a category (for workers)
     - global - System-wide announcements
     """
-    # Validate API key if provided
+    # Validate API key if provided and optionally pre-authenticate.
     authenticated_user = None
     authenticated_type = None
-    if api_key and user_id:
-        # TODO: Validate API key against database
-        authenticated_user = user_id
-        authenticated_type = user_type or "agent"
+    if api_key:
+        token_data = await ws_manager._validate_api_token(
+            api_key,
+            expected_user_id=user_id if user_id else None,
+        )
+        if not token_data:
+            await websocket.close(code=1008, reason="Invalid API key")
+            return
+        authenticated_user = token_data["user_id"]
+        authenticated_type = user_type or token_data.get("user_type", "agent")
+    elif user_id and ws_manager.require_auth_token:
+        await websocket.close(code=1008, reason="API key required")
+        return
 
     try:
         async with ws_manager.connection_context(websocket, authenticated_user, authenticated_type) as connection:

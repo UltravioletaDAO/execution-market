@@ -1,5 +1,5 @@
 // Execution Market Dashboard - Main App Component with Routing
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 
 // Auth
@@ -18,6 +18,10 @@ import { About } from './pages/About'
 import { FAQ } from './pages/FAQ'
 import { AgentDashboard } from './pages/AgentDashboard'
 import { AgentOnboarding } from './pages/AgentOnboarding'
+import { Earnings, type ChartPeriod } from './pages/Earnings'
+import { TaskManagement } from './pages/agent/TaskManagement'
+import { CreateTask } from './pages/agent/CreateTask'
+import { useEarnings, useTaskHistory } from './hooks/useProfile'
 
 // --------------------------------------------------------------------------
 // Profile Page (Worker - Protected)
@@ -92,16 +96,98 @@ function ProfilePageWrapper() {
 }
 
 // --------------------------------------------------------------------------
-// Earnings Page (Worker - Protected) - Placeholder
+// Earnings Page (Worker - Protected)
 // --------------------------------------------------------------------------
 
 function EarningsPage() {
   const navigate = useNavigate()
+  const { executor } = useAuth()
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('month')
+
+  const { earnings, loading: earningsLoading, error } = useEarnings(executor?.id)
+  const { history, loading: historyLoading } = useTaskHistory(executor?.id, 20)
+
+  const thisWeekUsdc = useMemo(() => {
+    const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000)
+    return history
+      .filter((item) => item.status === 'approved' && new Date(item.submitted_at).getTime() >= cutoff)
+      .reduce((sum, item) => sum + (item.payment_amount ?? item.bounty_usd ?? 0), 0)
+  }, [history])
+
+  const summary = useMemo(() => {
+    if (!earnings) return null
+    return {
+      total_earned_usdc: earnings.total_earned_usdc ?? 0,
+      available_balance_usdc: earnings.balance_usdc ?? 0,
+      pending_usdc: earnings.pending_earnings_usdc ?? 0,
+      this_month_usdc: earnings.this_month_usdc ?? 0,
+      last_month_usdc: earnings.last_month_usdc ?? 0,
+      this_week_usdc: thisWeekUsdc,
+    }
+  }, [earnings, thisWeekUsdc])
+
+  const transactions = useMemo(() => {
+    return history.map((item) => ({
+      id: item.id,
+      type: 'task_payment' as const,
+      amount_usdc: item.payment_amount ?? item.bounty_usd ?? 0,
+      status: (item.status === 'approved'
+        ? 'completed'
+        : item.status === 'rejected'
+          ? 'failed'
+          : 'pending') as 'completed' | 'failed' | 'pending',
+      tx_hash: null,
+      network: 'base',
+      created_at: item.verified_at ?? item.submitted_at,
+      task_title: item.task_title,
+      task_id: item.task_id,
+    }))
+  }, [history])
+
+  const pendingPayments = useMemo(() => {
+    return history
+      .filter((item) => item.status === 'pending')
+      .map((item) => ({
+        id: item.id,
+        task_id: item.task_id,
+        task_title: item.task_title,
+        bounty_usd: item.bounty_usd ?? 0,
+        submitted_at: item.submitted_at,
+        expected_payout_date: new Date(new Date(item.submitted_at).getTime() + (48 * 60 * 60 * 1000)).toISOString(),
+        status: 'awaiting_review' as const,
+      }))
+  }, [history])
+
+  const chartData = useMemo(() => {
+    if (!summary) return []
+
+    if (chartPeriod === 'week') {
+      return [
+        { label: 'Ultimos 7 dias', value: summary.this_week_usdc },
+        { label: 'Pendiente', value: summary.pending_usdc },
+      ]
+    }
+
+    if (chartPeriod === 'year') {
+      return [
+        { label: 'Q1', value: summary.this_month_usdc },
+        { label: 'Q2', value: summary.this_month_usdc },
+        { label: 'Q3', value: summary.last_month_usdc },
+        { label: 'Q4', value: summary.last_month_usdc },
+      ]
+    }
+
+    return [
+      { label: 'Mes actual', value: summary.this_month_usdc },
+      { label: 'Mes pasado', value: summary.last_month_usdc },
+      { label: 'Pendiente', value: summary.pending_usdc },
+    ]
+  }, [summary, chartPeriod])
 
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/tasks')}
@@ -115,16 +201,18 @@ function EarningsPage() {
           </div>
         </div>
       </header>
-      <main className="max-w-2xl mx-auto px-4 py-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Pagina de Ganancias</h2>
-          <p className="text-gray-500">Esta pagina esta en desarrollo.</p>
-        </div>
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        <Earnings
+          summary={summary}
+          transactions={transactions}
+          pendingPayments={pendingPayments}
+          chartData={chartData}
+          loading={earningsLoading || historyLoading}
+          error={error}
+          onWithdraw={() => navigate('/profile')}
+          onChartPeriodChange={setChartPeriod}
+          chartPeriod={chartPeriod}
+        />
       </main>
     </div>
   )
@@ -168,39 +256,41 @@ function AgentDashboardPage() {
 }
 
 // --------------------------------------------------------------------------
-// Agent Tasks Page (Agent - Protected) - Placeholder
+// Agent Tasks Page (Agent - Protected)
 // --------------------------------------------------------------------------
 
 function AgentTasksPage() {
   const navigate = useNavigate()
+  const { executor } = useAuth()
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/agent/dashboard')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="font-bold text-lg text-gray-900">Gestionar Tareas</h1>
-          </div>
-        </div>
-      </header>
       <main className="max-w-6xl mx-auto px-4 py-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Gestion de Tareas</h2>
-          <p className="text-gray-500">Esta pagina esta en desarrollo.</p>
-        </div>
+        <TaskManagement
+          agentId={executor?.id ?? ''}
+          onBack={() => navigate('/agent/dashboard')}
+          onCreateTask={() => navigate('/agent/tasks/new')}
+          onViewTask={(task) => console.log('View task:', task.id)}
+          onEditTask={(task) => console.log('Edit task:', task.id)}
+          onViewApplicants={(task) => console.log('View applicants for task:', task.id)}
+        />
+      </main>
+    </div>
+  )
+}
+
+function AgentCreateTaskPage() {
+  const navigate = useNavigate()
+  const { executor } = useAuth()
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        <CreateTask
+          agentId={executor?.id ?? ''}
+          onBack={() => navigate('/agent/tasks')}
+          onSuccess={() => navigate('/agent/tasks')}
+        />
       </main>
     </div>
   )
@@ -266,7 +356,7 @@ function AppRoutes() {
         path="/agent/tasks/new"
         element={
           <AgentGuard>
-            <AgentTasksPage />
+            <AgentCreateTaskPage />
           </AgentGuard>
         }
       />

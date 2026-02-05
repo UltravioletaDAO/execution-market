@@ -5,6 +5,7 @@ Database operations for the Execution Market MCP server.
 """
 
 import os
+import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta, timezone
 from supabase import create_client, Client
@@ -15,6 +16,8 @@ SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SU
 
 # Initialize Supabase client
 _client: Optional[Client] = None
+_applications_table_name: Optional[str] = None
+logger = logging.getLogger(__name__)
 
 
 def get_client() -> Client:
@@ -29,6 +32,44 @@ def get_client() -> Client:
 
 # Alias for backwards compatibility
 get_supabase_client = get_client
+
+
+def _resolve_applications_table(client: Client) -> str:
+    """
+    Resolve canonical applications table name with backward compatibility.
+
+    Prefer `task_applications` (schema canonical); fall back to legacy
+    `applications` when running against older databases.
+    """
+    global _applications_table_name
+
+    if _applications_table_name:
+        return _applications_table_name
+
+    for table_name in ("task_applications", "applications"):
+        try:
+            client.table(table_name).select("id").limit(1).execute()
+            _applications_table_name = table_name
+            if table_name != "task_applications":
+                logger.warning(
+                    "Using legacy applications table '%s'. Migrate to 'task_applications'.",
+                    table_name,
+                )
+            return _applications_table_name
+        except Exception:
+            continue
+
+    _applications_table_name = "task_applications"
+    logger.warning(
+        "Could not verify applications table existence. Defaulting to '%s'.",
+        _applications_table_name,
+    )
+    return _applications_table_name
+
+
+def get_applications_table_name() -> str:
+    """Public helper for modules that need the resolved applications table."""
+    return _resolve_applications_table(get_client())
 
 
 # ============== TASK OPERATIONS ==============
@@ -284,6 +325,7 @@ async def apply_to_task(
 ) -> Dict[str, Any]:
     """Worker applies to a task."""
     client = get_client()
+    applications_table = _resolve_applications_table(client)
 
     # Get task to verify it's available
     task = await get_task(task_id)
@@ -303,7 +345,7 @@ async def apply_to_task(
         raise Exception(f"Insufficient reputation. Required: {min_rep}, yours: {executor.data['reputation_score']}")
 
     # Check for existing application
-    existing = client.table("applications").select("*").eq(
+    existing = client.table(applications_table).select("*").eq(
         "task_id", task_id
     ).eq("executor_id", executor_id).execute()
 
@@ -318,7 +360,7 @@ async def apply_to_task(
         "status": "pending",
     }
 
-    result = client.table("applications").insert(application_data).execute()
+    result = client.table(applications_table).insert(application_data).execute()
 
     if result.data and len(result.data) > 0:
         return {
@@ -389,6 +431,7 @@ async def get_executor_tasks(
 ) -> Dict[str, Any]:
     """Get all tasks for an executor (assigned + applications)."""
     client = get_client()
+    applications_table = _resolve_applications_table(client)
 
     # Get assigned tasks
     tasks_query = client.table("tasks").select(
@@ -404,7 +447,7 @@ async def get_executor_tasks(
     # Get applications
     applications = []
     if include_applications:
-        app_result = client.table("applications").select(
+        app_result = client.table(applications_table).select(
             "*, task:tasks(*)"
         ).eq("executor_id", executor_id).eq("status", "pending").execute()
         applications = app_result.data or []
@@ -462,6 +505,7 @@ async def assign_task(
 ) -> Dict[str, Any]:
     """Agent assigns a task to a specific executor."""
     client = get_client()
+    applications_table = _resolve_applications_table(client)
 
     # Get task
     task = await get_task(task_id)
@@ -496,12 +540,12 @@ async def assign_task(
     updated_task = await update_task(task_id, updates)
 
     # Update any pending application to accepted
-    client.table("applications").update({
+    client.table(applications_table).update({
         "status": "accepted"
     }).eq("task_id", task_id).eq("executor_id", executor_id).execute()
 
     # Reject other applications
-    client.table("applications").update({
+    client.table(applications_table).update({
         "status": "rejected",
         "rejection_reason": "Task assigned to another executor"
     }).eq("task_id", task_id).neq("executor_id", executor_id).execute()

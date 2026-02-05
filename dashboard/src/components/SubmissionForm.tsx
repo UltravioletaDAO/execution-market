@@ -1,10 +1,12 @@
 // Execution Market: Evidence Submission Form
 import { useState, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import type { Task, EvidenceType, Executor } from '../types/database'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 interface SubmissionFormProps {
   task: Task
@@ -13,29 +15,42 @@ interface SubmissionFormProps {
   onCancel?: () => void
 }
 
+interface VerificationResult {
+  verified: boolean
+  confidence: number
+  decision: string
+  explanation: string
+  issues: string[]
+}
+
 interface EvidenceFile {
   type: EvidenceType
   file: File
   preview?: string
   uploading: boolean
   uploaded: boolean
+  uploadedPath?: string
   progress: number // 0-100
   error?: string
+  verifying?: boolean
+  verification?: VerificationResult
 }
 
-const EVIDENCE_TYPE_LABELS: Record<string, { label: string; accept: string; icon: string }> = {
-  photo: { label: 'Foto', accept: 'image/*', icon: '📷' },
-  photo_geo: { label: 'Foto con ubicacion', accept: 'image/*', icon: '📍' },
-  video: { label: 'Video', accept: 'video/*', icon: '🎥' },
-  document: { label: 'Documento', accept: '.pdf,.doc,.docx', icon: '📄' },
-  receipt: { label: 'Recibo', accept: 'image/*,.pdf', icon: '🧾' },
-  signature: { label: 'Firma', accept: 'image/*', icon: '✍️' },
-  notarized: { label: 'Notarizado', accept: '.pdf,image/*', icon: '📋' },
-  timestamp_proof: { label: 'Prueba de tiempo', accept: 'image/*,.pdf', icon: '⏰' },
-  screenshot: { label: 'Captura de pantalla', accept: 'image/*', icon: '🖥️' },
-  text_response: { label: 'Respuesta de texto', accept: '', icon: '📝' },
-  measurement: { label: 'Medicion', accept: '', icon: '📏' },
+const EVIDENCE_TYPE_CONFIG: Record<string, { accept: string; icon: string }> = {
+  photo: { accept: 'image/*', icon: '📷' },
+  photo_geo: { accept: 'image/*', icon: '📍' },
+  video: { accept: 'video/*', icon: '🎥' },
+  document: { accept: '.pdf,.doc,.docx', icon: '📄' },
+  receipt: { accept: 'image/*,.pdf', icon: '🧾' },
+  signature: { accept: 'image/*', icon: '✍️' },
+  notarized: { accept: '.pdf,image/*', icon: '📋' },
+  timestamp_proof: { accept: 'image/*,.pdf', icon: '⏰' },
+  screenshot: { accept: 'image/*', icon: '🖥️' },
+  text_response: { accept: '', icon: '📝' },
+  measurement: { accept: '', icon: '📏' },
 }
+
+const isImageType = (fileType: string) => fileType.startsWith('image/')
 
 export function SubmissionForm({
   task,
@@ -43,6 +58,7 @@ export function SubmissionForm({
   onSubmit,
   onCancel,
 }: SubmissionFormProps) {
+  const { t } = useTranslation()
   const [files, setFiles] = useState<Map<EvidenceType, EvidenceFile>>(new Map())
   const [textResponses, setTextResponses] = useState<Map<string, string>>(new Map())
   const [submitting, setSubmitting] = useState(false)
@@ -55,54 +71,11 @@ export function SubmissionForm({
   const isTextType = (type: EvidenceType) =>
     type === 'text_response' || type === 'measurement'
 
-  const handleFileSelect = useCallback(
-    (type: EvidenceType, file: File) => {
-      // Create preview for images
-      let preview: string | undefined
-      if (file.type.startsWith('image/')) {
-        preview = URL.createObjectURL(file)
-      }
-
-      setFiles((prev) => {
-        const next = new Map(prev)
-        next.set(type, {
-          type,
-          file,
-          preview,
-          uploading: false,
-          uploaded: false,
-          progress: 0,
-        })
-        return next
-      })
-    },
-    []
-  )
-
-  const handleTextChange = useCallback((type: string, value: string) => {
-    setTextResponses((prev) => {
-      const next = new Map(prev)
-      next.set(type, value)
-      return next
-    })
-  }, [])
-
-  const removeFile = useCallback((type: EvidenceType) => {
-    setFiles((prev) => {
-      const next = new Map(prev)
-      const existing = next.get(type)
-      if (existing?.preview) {
-        URL.revokeObjectURL(existing.preview)
-      }
-      next.delete(type)
-      return next
-    })
-  }, [])
-
   const uploadFile = async (evidenceFile: EvidenceFile): Promise<string> => {
-    const path = `${executor.user_id}/${task.id}/${evidenceFile.type}_${Date.now()}`
+    const path = `${executor.id}/${task.id}/${evidenceFile.type}_${Date.now()}`
+    const { data: { session } } = await supabase.auth.getSession()
+    const authToken = session?.access_token || SUPABASE_KEY
 
-    // Use XMLHttpRequest for progress tracking (Supabase JS doesn't expose it)
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       const uploadUrl = `${SUPABASE_URL}/storage/v1/object/evidence/${path}`
@@ -134,12 +107,110 @@ export function SubmissionForm({
 
       xhr.open('POST', uploadUrl)
       xhr.setRequestHeader('apikey', SUPABASE_KEY)
-      xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_KEY}`)
+      xhr.setRequestHeader('Authorization', `Bearer ${authToken}`)
       xhr.setRequestHeader('Content-Type', evidenceFile.file.type || 'application/octet-stream')
       xhr.setRequestHeader('x-upsert', 'true')
       xhr.send(evidenceFile.file)
     })
   }
+
+  const verifyEvidence = async (path: string, evidenceType: EvidenceType) => {
+    try {
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/evidence/${path}`
+      const res = await fetch(`${API_URL}/api/v1/evidence/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_id: task.id,
+          evidence_url: publicUrl,
+          evidence_type: evidenceType,
+        }),
+      })
+      if (res.ok) {
+        return (await res.json()) as VerificationResult
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  // Upload immediately when file is selected, then verify
+  const handleFileSelect = useCallback(
+    async (type: EvidenceType, file: File) => {
+      let preview: string | undefined
+      if (file.type.startsWith('image/')) {
+        preview = URL.createObjectURL(file)
+      }
+
+      const evidenceFile: EvidenceFile = {
+        type, file, preview,
+        uploading: true, uploaded: false, progress: 0,
+      }
+
+      setFiles((prev) => new Map(prev).set(type, evidenceFile))
+
+      try {
+        const path = await uploadFile(evidenceFile)
+
+        setFiles((prev) => {
+          const next = new Map(prev)
+          next.set(type, { ...evidenceFile, uploading: false, uploaded: true, uploadedPath: path, progress: 100 })
+          return next
+        })
+
+        // Run AI verification for image types
+        if (isImageType(file.type)) {
+          setFiles((prev) => {
+            const next = new Map(prev)
+            const f = next.get(type)
+            if (f) next.set(type, { ...f, verifying: true })
+            return next
+          })
+
+          const verification = await verifyEvidence(path, type)
+
+          setFiles((prev) => {
+            const next = new Map(prev)
+            const f = next.get(type)
+            if (f) next.set(type, { ...f, verifying: false, verification: verification || undefined })
+            return next
+          })
+        }
+      } catch {
+        setFiles((prev) => {
+          const next = new Map(prev)
+          const f = next.get(type)
+          if (f) next.set(type, { ...f, uploading: false, error: t('submission.uploadError') })
+          return next
+        })
+      }
+    },
+    [executor.id, task.id, t]
+  )
+
+  const handleTextChange = useCallback((type: string, value: string) => {
+    setTextResponses((prev) => {
+      const next = new Map(prev)
+      next.set(type, value)
+      return next
+    })
+  }, [])
+
+  const removeFile = useCallback((type: EvidenceType) => {
+    setFiles((prev) => {
+      const next = new Map(prev)
+      const existing = next.get(type)
+      if (existing?.preview) {
+        URL.revokeObjectURL(existing.preview)
+      }
+      next.delete(type)
+      return next
+    })
+    // Reset the input so the same file can be re-selected
+    const input = fileInputRefs.current.get(type)
+    if (input) input.value = ''
+  }, [])
 
   const handleSubmit = async () => {
     setSubmitting(true)
@@ -147,67 +218,47 @@ export function SubmissionForm({
 
     try {
       // Validate required evidence
-      const missingRequired = allRequired.filter((type) => {
-        if (isTextType(type)) {
-          return !textResponses.get(type)?.trim()
+      const missingRequired = allRequired.filter((evType) => {
+        if (isTextType(evType)) {
+          return !textResponses.get(evType)?.trim()
         }
-        return !files.has(type)
+        return !files.has(evType)
       })
 
       if (missingRequired.length > 0) {
-        throw new Error(
-          `Falta evidencia requerida: ${missingRequired
-            .map((t) => EVIDENCE_TYPE_LABELS[t]?.label || t)
-            .join(', ')}`
-        )
+        const items = missingRequired
+          .map((evType) => t(`tasks.evidenceTypes.${evType}`, evType))
+          .join(', ')
+        throw new Error(t('submission.missingEvidence', { items }))
       }
 
-      // Upload files
+      // Check all files are uploaded (they should be, since we upload on select)
+      const notUploaded = [...files.values()].filter(f => !f.uploaded)
+      if (notUploaded.length > 0) {
+        throw new Error(t('submission.uploadError'))
+      }
+
+      // Build evidence data from already-uploaded files
       const evidenceData: Record<string, unknown> = {}
       const uploadedPaths: string[] = []
 
       for (const [type, evidenceFile] of files) {
-        setFiles((prev) => {
-          const next = new Map(prev)
-          const file = next.get(type)
-          if (file) {
-            next.set(type, { ...file, uploading: true })
-          }
-          return next
-        })
-
-        try {
-          const path = await uploadFile(evidenceFile)
-          uploadedPaths.push(path)
+        if (evidenceFile.uploadedPath) {
+          uploadedPaths.push(evidenceFile.uploadedPath)
           evidenceData[type] = {
-            file: path,
+            file: evidenceFile.uploadedPath,
             filename: evidenceFile.file.name,
             size: evidenceFile.file.size,
             type: evidenceFile.file.type,
           }
-
-          setFiles((prev) => {
-            const next = new Map(prev)
-            const file = next.get(type)
-            if (file) {
-              next.set(type, { ...file, uploading: false, uploaded: true })
+          // Include verification result if available
+          if (evidenceFile.verification) {
+            (evidenceData[type] as Record<string, unknown>).ai_verification = {
+              verified: evidenceFile.verification.verified,
+              confidence: evidenceFile.verification.confidence,
+              decision: evidenceFile.verification.decision,
             }
-            return next
-          })
-        } catch (err) {
-          setFiles((prev) => {
-            const next = new Map(prev)
-            const file = next.get(type)
-            if (file) {
-              next.set(type, {
-                ...file,
-                uploading: false,
-                error: 'Error al subir',
-              })
-            }
-            return next
-          })
-          throw new Error(`Error al subir ${EVIDENCE_TYPE_LABELS[type]?.label || type}`)
+          }
         }
       }
 
@@ -218,7 +269,7 @@ export function SubmissionForm({
         }
       }
 
-      // Get fresh session to avoid stale token / RLS mismatch
+      // Get fresh session
       const { data: { session: currentSession } } = await supabase.auth.getSession()
 
       const headers: Record<string, string> = {
@@ -231,7 +282,7 @@ export function SubmissionForm({
         headers['Authorization'] = `Bearer ${currentSession.access_token}`
       }
 
-      // Create submission via REST API (bypasses Supabase JS silent RLS failures)
+      // Create submission
       const submitResponse = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
         method: 'POST',
         headers,
@@ -249,7 +300,7 @@ export function SubmissionForm({
         throw new Error(text || `Submission failed: ${submitResponse.status}`)
       }
 
-      // Update task status to submitted
+      // Update task status
       const statusResponse = await fetch(
         `${SUPABASE_URL}/rest/v1/tasks?id=eq.${task.id}`,
         {
@@ -265,16 +316,69 @@ export function SubmissionForm({
 
       onSubmit?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al enviar evidencia')
+      setError(err instanceof Error ? err.message : t('submission.submitError'))
     } finally {
       setSubmitting(false)
     }
   }
 
+  const renderVerificationBadge = (evidenceFile: EvidenceFile) => {
+    if (evidenceFile.verifying) {
+      return (
+        <div className="mt-2 flex items-center gap-2 text-sm text-blue-600">
+          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span>{t('submission.verifying')}</span>
+        </div>
+      )
+    }
+
+    if (!evidenceFile.verification) return null
+
+    const v = evidenceFile.verification
+    if (v.verified) {
+      return (
+        <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          <span>{t('submission.verifyPass')}</span>
+        </div>
+      )
+    }
+
+    // "needs_human" = AI unavailable, don't show warning
+    if (v.decision === 'needs_human' && v.confidence === 0) {
+      return null
+    }
+
+    return (
+      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="flex items-center gap-2 text-sm text-yellow-700">
+          <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          <span className="font-medium">{t('submission.verifyFail')}</span>
+        </div>
+        {v.explanation && (
+          <p className="text-xs text-yellow-600 mt-1 ml-6">{v.explanation}</p>
+        )}
+        {v.issues.length > 0 && (
+          <ul className="text-xs text-yellow-600 mt-1 ml-6 list-disc list-inside">
+            {v.issues.map((issue, i) => <li key={i}>{issue}</li>)}
+          </ul>
+        )}
+      </div>
+    )
+  }
+
   const renderEvidenceInput = (type: EvidenceType, required: boolean) => {
-    const config = EVIDENCE_TYPE_LABELS[type]
+    const config = EVIDENCE_TYPE_CONFIG[type]
     const evidenceFile = files.get(type)
     const textValue = textResponses.get(type) || ''
+    const label = t(`tasks.evidenceTypes.${type}`, type)
 
     if (isTextType(type)) {
       return (
@@ -282,13 +386,13 @@ export function SubmissionForm({
           <label className="block">
             <span className="flex items-center gap-2 font-medium text-gray-700 mb-2">
               <span>{config?.icon}</span>
-              <span>{config?.label || type}</span>
+              <span>{label}</span>
               {required && <span className="text-red-500">*</span>}
             </span>
             <textarea
               value={textValue}
               onChange={(e) => handleTextChange(type, e.target.value)}
-              placeholder={type === 'measurement' ? 'Ej: 2.5 metros' : 'Escribe tu respuesta...'}
+              placeholder={type === 'measurement' ? t('submission.measurementPlaceholder') : t('submission.textPlaceholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               rows={3}
             />
@@ -302,11 +406,19 @@ export function SubmissionForm({
         <div className="flex items-center justify-between mb-2">
           <span className="flex items-center gap-2 font-medium text-gray-700">
             <span>{config?.icon}</span>
-            <span>{config?.label || type}</span>
+            <span>{label}</span>
             {required && <span className="text-red-500">*</span>}
           </span>
-          {evidenceFile?.uploaded && (
-            <span className="text-green-600 text-sm">Subido</span>
+          {evidenceFile?.uploaded && !evidenceFile.uploading && (
+            <span className="flex items-center gap-2">
+              <span className="text-green-600 text-sm">✓</span>
+              <button
+                onClick={() => removeFile(type)}
+                className="text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                {t('submission.change')}
+              </button>
+            </span>
           )}
         </div>
 
@@ -335,7 +447,7 @@ export function SubmissionForm({
                   </div>
                 </div>
                 <div className="text-white text-sm font-medium">
-                  Subiendo... {evidenceFile.progress}%
+                  {t('submission.uploading', { progress: evidenceFile.progress })}
                 </div>
               </div>
             )}
@@ -345,24 +457,26 @@ export function SubmissionForm({
                 <span className="text-sm text-red-600">{evidenceFile.error}</span>
                 <button
                   onClick={() => {
-                    // Clear error and allow re-upload
-                    setFiles((prev) => {
-                      const next = new Map(prev)
-                      const file = next.get(type)
-                      if (file) {
-                        next.set(type, { ...file, error: undefined, progress: 0 })
-                      }
-                      return next
-                    })
+                    // Re-upload the same file
+                    const file = evidenceFile.file
+                    removeFile(type)
+                    handleFileSelect(type, file)
                   }}
                   className="text-sm text-blue-600 hover:text-blue-800 underline"
                 >
-                  Reintentar
+                  {t('submission.retry')}
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  onClick={() => removeFile(type)}
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  {t('submission.changeFile')}
                 </button>
               </div>
             )}
 
-            {!evidenceFile.uploading && !evidenceFile.uploaded && (
+            {!evidenceFile.uploading && !evidenceFile.uploaded && !evidenceFile.error && (
               <button
                 onClick={() => removeFile(type)}
                 className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
@@ -372,6 +486,9 @@ export function SubmissionForm({
                 </svg>
               </button>
             )}
+
+            {/* AI Verification result */}
+            {evidenceFile.uploaded && renderVerificationBadge(evidenceFile)}
           </div>
         ) : (
           <label className="block w-full p-6 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
@@ -400,17 +517,20 @@ export function SubmissionForm({
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               />
             </svg>
-            <span className="text-gray-500">Seleccionar archivo</span>
+            <span className="text-gray-500">{t('submission.selectFile')}</span>
           </label>
         )}
       </div>
     )
   }
 
+  // Check if any file is still uploading or verifying
+  const anyPending = [...files.values()].some(f => f.uploading || f.verifying)
+
   return (
     <div className="bg-white rounded-lg border border-gray-200">
       <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Enviar Evidencia</h2>
+        <h2 className="text-lg font-semibold text-gray-900">{t('submission.title')}</h2>
         <p className="text-sm text-gray-500 mt-1">{task.title}</p>
       </div>
 
@@ -427,7 +547,7 @@ export function SubmissionForm({
                   onClick={() => setError(null)}
                   className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
                 >
-                  Cerrar e intentar de nuevo
+                  {t('submission.closeRetry')}
                 </button>
               </div>
             </div>
@@ -438,7 +558,7 @@ export function SubmissionForm({
         {allRequired.length > 0 && (
           <section>
             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
-              Evidencia Requerida
+              {t('submission.requiredEvidence')}
             </h3>
             <div className="space-y-3">
               {allRequired.map((type) => renderEvidenceInput(type, true))}
@@ -450,7 +570,7 @@ export function SubmissionForm({
         {allOptional.length > 0 && (
           <section>
             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
-              Evidencia Opcional
+              {t('submission.optionalEvidence')}
             </h3>
             <div className="space-y-3">
               {allOptional.map((type) => renderEvidenceInput(type, false))}
@@ -465,14 +585,14 @@ export function SubmissionForm({
           disabled={submitting}
           className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
         >
-          Cancelar
+          {t('common.cancel')}
         </button>
         <button
           onClick={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || anyPending}
           className="flex-1 py-2 px-4 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? 'Enviando...' : 'Enviar Evidencia'}
+          {submitting ? t('submission.submitting') : t('submission.submitButton')}
         </button>
       </div>
     </div>

@@ -6,6 +6,7 @@ Includes agent endpoints (authenticated) and worker endpoints (public/semi-publi
 """
 
 import logging
+import json
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
@@ -16,7 +17,7 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 import supabase_client as db
 from models import TaskCategory, EvidenceType, TaskStatus
-from verification.ai_review import process_verification, calculate_auto_score
+from verification.ai_review import process_verification, calculate_auto_score, verify_with_ai, VerificationDecision
 from .auth import (
     verify_api_key,
     verify_api_key_optional,
@@ -86,6 +87,175 @@ async def get_max_bounty() -> Decimal:
     return Decimal("10000.00")
 
 logger = logging.getLogger(__name__)
+X402_AUTH_REF_PREFIX = "x402_auth_"
+
+# Escrow lifecycle compatibility sets. The codebase currently supports mixed
+# status vocabularies across legacy and newer payment integrations.
+REFUNDABLE_ESCROW_STATUSES = {"deposited", "funded", "partial_released"}
+ALREADY_REFUNDED_ESCROW_STATUSES = {"refunded"}
+NON_REFUNDABLE_ESCROW_STATUSES = {"released"}
+
+
+def _normalize_status(value: Optional[str]) -> str:
+    return str(value or "").strip().lower()
+
+
+def _extract_payment_tx(payment_row: Dict[str, Any]) -> Optional[str]:
+    return payment_row.get("tx_hash") or payment_row.get("transaction_hash")
+
+
+def _is_release_payment(payment_row: Dict[str, Any]) -> bool:
+    payment_type = _normalize_status(payment_row.get("type") or payment_row.get("payment_type"))
+    if not payment_type:
+        return True
+    return payment_type in {"release", "full_release", "final_release", "partial_release"}
+
+
+def _is_payment_finalized(payment_row: Dict[str, Any]) -> bool:
+    status = _normalize_status(payment_row.get("status"))
+    if status in {"confirmed", "completed", "settled", "released", "success"}:
+        return True
+    return bool(_extract_payment_tx(payment_row))
+
+
+def _get_existing_submission_payment(submission_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Best-effort lookup for an existing release payment for a submission.
+
+    Handles schema drift between legacy (`type`, `tx_hash`) and newer
+    (`payment_type`, `transaction_hash`) payment column naming.
+    """
+    try:
+        client = db.get_client()
+        result = (
+            client.table("payments")
+            .select("*")
+            .eq("submission_id", submission_id)
+            .order("created_at", desc=True)
+            .limit(10)
+            .execute()
+        )
+        rows = result.data or []
+        if not rows:
+            return None
+
+        release_rows = [row for row in rows if _is_release_payment(row)]
+        if not release_rows:
+            return rows[0]
+
+        for row in release_rows:
+            if _is_payment_finalized(row):
+                return row
+
+        return release_rows[0]
+    except Exception as payment_lookup_err:
+        logger.warning(
+            "Could not lookup existing payment for submission %s: %s",
+            submission_id,
+            payment_lookup_err,
+        )
+        return None
+
+
+def _record_refund_payment(
+    task: Dict[str, Any],
+    agent_id: str,
+    refund_tx: Optional[str],
+    reason: Optional[str],
+) -> None:
+    """
+    Best-effort persistence of refund payment audit row.
+
+    Uses legacy-compatible payment fields and fails open if schema differs.
+    """
+    try:
+        client = db.get_client()
+        amount = float(task.get("escrow_amount_usdc") or task.get("bounty_usd") or 0)
+        client.table("payments").insert({
+            "task_id": task.get("id"),
+            "type": "refund",
+            "status": "confirmed" if refund_tx else "pending",
+            "tx_hash": refund_tx,
+            "amount_usdc": amount,
+            "escrow_id": task.get("escrow_id"),
+            "to_address": task.get("agent_id") or agent_id,
+            "note": f"Task cancellation refund. reason={reason or 'not_provided'}",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }).execute()
+    except Exception as payment_err:
+        logger.warning(
+            "Could not persist refund payment audit row for task %s: %s",
+            task.get("id"),
+            payment_err,
+        )
+
+
+def _is_probable_x402_header(value: Optional[str]) -> bool:
+    if not value or not isinstance(value, str):
+        return False
+    normalized = value.strip()
+    if len(normalized) < 100:
+        return False
+    if normalized.startswith("eyJ"):  # base64-encoded JSON payload
+        return True
+    if normalized.startswith("{"):  # raw JSON payload
+        return True
+    return False
+
+
+def _extract_x402_header_from_metadata(metadata: Any) -> Optional[str]:
+    if not metadata:
+        return None
+
+    data = metadata
+    if isinstance(metadata, str):
+        try:
+            data = json.loads(metadata)
+        except Exception:
+            return None
+
+    if not isinstance(data, dict):
+        return None
+
+    for key in ("x_payment_header", "payment_header", "xPaymentHeader"):
+        value = data.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+
+    return None
+
+
+def _resolve_task_payment_header(task_id: Optional[str], task_escrow_tx: Optional[str]) -> Optional[str]:
+    """
+    Resolve the original x402 X-Payment header for settlement.
+
+    Priority:
+    1) `tasks.escrow_tx` if it already contains a full header (legacy behavior)
+    2) `escrows.metadata.x_payment_header` (current canonical storage)
+    """
+    if _is_probable_x402_header(task_escrow_tx):
+        return task_escrow_tx
+
+    if not task_id:
+        return None
+
+    try:
+        client = db.get_client()
+        escrow_result = (
+            client.table("escrows")
+            .select("metadata")
+            .eq("task_id", task_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = escrow_result.data or []
+        if not rows:
+            return None
+        return _extract_x402_header_from_metadata(rows[0].get("metadata"))
+    except Exception as err:
+        logger.warning("Could not resolve x402 payment header for task %s: %s", task_id, err)
+        return None
 
 # UUID validation pattern for path parameters
 UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
@@ -434,43 +604,48 @@ async def create_task(
         # Verify x402 payment
         payment_result = None
         x_payment_header = None  # Store original header for later settlement
-        if X402_AVAILABLE:
-            # Get the original X-Payment header before verification
-            x_payment_header = http_request.headers.get("X-Payment") or http_request.headers.get("x-payment")
-
-            payment_result = await verify_x402_payment(http_request, total_required)
-
-            if not payment_result.success:
-                # Return 402 Payment Required
-                return JSONResponse(
-                    status_code=402,
-                    content={
-                        "error": "Payment required",
-                        "message": f"Task creation requires x402 payment of ${total_required} (bounty ${bounty} + {platform_fee_pct * 100}% platform fee)",
-                        "required_amount_usd": str(total_required),
-                        "bounty_usd": str(bounty),
-                        "platform_fee_percent": str(platform_fee_pct * 100),
-                        "platform_fee_usd": str(total_required - bounty),
-                        "payment_error": payment_result.error,
-                        "x402_info": {
-                            "facilitator": "https://facilitator.ultravioletadao.xyz",
-                            "networks": ["base", "ethereum", "polygon", "optimism", "arbitrum"],
-                            "tokens": ["USDC", "USDT", "DAI"]
-                        }
-                    },
-                    headers={
-                        "X-402-Price": str(total_required),
-                        "X-402-Currency": "USD",
-                        "X-402-Description": f"Create task: {request.title[:50]}",
-                    }
-                )
-
-            logger.info(
-                "x402 payment verified: payer=%s, amount=%.2f, tx=%s",
-                payment_result.payer_address,
-                payment_result.amount_usd,
-                payment_result.tx_hash
+        if not X402_AVAILABLE:
+            raise HTTPException(
+                status_code=503,
+                detail="x402 payment service unavailable; task creation is facilitator-only",
             )
+
+        # Get the original X-Payment header before verification
+        x_payment_header = http_request.headers.get("X-Payment") or http_request.headers.get("x-payment")
+
+        payment_result = await verify_x402_payment(http_request, total_required)
+
+        if not payment_result.success:
+            # Return 402 Payment Required
+            return JSONResponse(
+                status_code=402,
+                content={
+                    "error": "Payment required",
+                    "message": f"Task creation requires x402 payment of ${total_required} (bounty ${bounty} + {platform_fee_pct * 100}% platform fee)",
+                    "required_amount_usd": str(total_required),
+                    "bounty_usd": str(bounty),
+                    "platform_fee_percent": str(platform_fee_pct * 100),
+                    "platform_fee_usd": str(total_required - bounty),
+                    "payment_error": payment_result.error,
+                    "x402_info": {
+                        "facilitator": "https://facilitator.ultravioletadao.xyz",
+                        "networks": ["base", "ethereum", "polygon", "optimism", "arbitrum"],
+                        "tokens": ["USDC", "USDT", "DAI"]
+                    }
+                },
+                headers={
+                    "X-402-Price": str(total_required),
+                    "X-402-Currency": "USD",
+                    "X-402-Description": f"Create task: {request.title[:50]}",
+                }
+            )
+
+        logger.info(
+            "x402 payment verified: payer=%s, amount=%.2f, tx=%s",
+            payment_result.payer_address,
+            payment_result.amount_usd,
+            payment_result.tx_hash
+        )
 
         # Calculate deadline
         deadline = datetime.now(timezone.utc) + timedelta(hours=request.deadline_hours)
@@ -498,12 +673,15 @@ async def create_task(
                 # Generate a unique escrow reference (not a tx hash - no tx happened yet)
                 import uuid
                 escrow_ref = f"escrow_{task['id'][:8]}_{uuid.uuid4().hex[:8]}"
+                payment_reference = f"{X402_AUTH_REF_PREFIX}{uuid.uuid4().hex[:16]}"
 
                 # Update task with escrow info
-                # IMPORTANT: escrow_tx now stores the X-Payment header for later settlement
+                # IMPORTANT:
+                # - tasks.escrow_tx stores a short reference (VARCHAR-compatible)
+                # - full X-Payment header is stored in escrows.metadata for settlement
                 escrow_updates = {
                     "escrow_id": escrow_ref,
-                    "escrow_tx": x_payment_header,  # Store original header for settlement
+                    "escrow_tx": payment_reference,
                     "escrow_amount_usdc": float(total_required),
                     "escrow_created_at": datetime.now(timezone.utc).isoformat(),
                 }
@@ -525,6 +703,10 @@ async def create_task(
                         "platform_fee_usdc": float(total_required - bounty),
                         "beneficiary_address": payment_result.payer_address,
                         "network": payment_result.network,
+                        "metadata": {
+                            "x_payment_header": x_payment_header,
+                            "payment_reference": payment_reference,
+                        },
                         "created_at": datetime.now(timezone.utc).isoformat(),
                     }).execute()
                 except Exception as escrow_err:
@@ -564,6 +746,72 @@ async def create_task(
     except Exception as e:
         logger.error("Failed to create task: %s", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail="Internal error while creating task")
+
+
+@router.get(
+    "/tasks/available",
+    response_model=AvailableTasksResponse,
+    responses={
+        200: {"description": "Available tasks retrieved"},
+    }
+)
+async def get_available_tasks(
+    lat: Optional[float] = Query(None, ge=-90, le=90, description="Latitude for location filtering"),
+    lng: Optional[float] = Query(None, ge=-180, le=180, description="Longitude for location filtering"),
+    radius_km: int = Query(50, ge=1, le=500, description="Search radius in kilometers"),
+    category: Optional[TaskCategory] = Query(None, description="Filter by category"),
+    min_bounty: Optional[float] = Query(None, ge=0, description="Minimum bounty USD"),
+    max_bounty: Optional[float] = Query(None, le=10000, description="Maximum bounty USD"),
+    limit: int = Query(20, ge=1, le=100, description="Maximum results"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
+) -> AvailableTasksResponse:
+    """
+    Get available tasks for workers.
+
+    Public endpoint that returns tasks in 'published' status.
+    Supports location-based filtering and bounty range filtering.
+    """
+    try:
+        client = db.get_client()
+
+        # Build query
+        query = client.table("tasks").select(
+            "id, title, category, bounty_usd, deadline, location_hint, min_reputation, created_at"
+        ).eq("status", "published")
+
+        # Apply category filter
+        if category:
+            query = query.eq("category", category.value)
+
+        # Apply bounty filters
+        if min_bounty is not None:
+            query = query.gte("bounty_usd", min_bounty)
+        if max_bounty is not None:
+            query = query.lte("bounty_usd", max_bounty)
+
+        # Execute query
+        result = query.order("bounty_usd", desc=True).range(offset, offset + limit - 1).execute()
+
+        tasks = result.data or []
+
+        # Build filters applied response
+        filters_applied = {
+            "category": category.value if category else None,
+            "min_bounty": min_bounty,
+            "max_bounty": max_bounty,
+            "location": {"lat": lat, "lng": lng, "radius_km": radius_km} if lat and lng else None,
+        }
+
+        return AvailableTasksResponse(
+            tasks=tasks,
+            count=len(tasks),
+            offset=offset,
+            filters_applied={k: v for k, v in filters_applied.items() if v is not None},
+        )
+
+    except Exception as e:
+        logger.error("Failed to get available tasks: %s", str(e))
+        raise HTTPException(status_code=500, detail="Failed to get available tasks")
 
 
 @router.get(
@@ -747,12 +995,46 @@ async def approve_submission(
             raise HTTPException(status_code=404, detail="Submission not found")
         raise HTTPException(status_code=403, detail="Not authorized to approve this submission")
 
-    # Check if already processed
+    # Check if already processed.
+    # If already accepted, return idempotent success for safe client retries.
     submission = await db.get_submission(submission_id)
-    if submission.get("agent_verdict") not in [None, "pending"]:
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    existing_verdict = _normalize_status(submission.get("agent_verdict"))
+    if existing_verdict in {"accepted", "approved"}:
+        existing_payment = _get_existing_submission_payment(submission_id)
+        response_data = {
+            "submission_id": submission_id,
+            "verdict": "accepted",
+            "idempotent": True,
+        }
+        if existing_payment:
+            existing_payment_tx = _extract_payment_tx(existing_payment)
+            if existing_payment_tx:
+                response_data["payment_tx"] = existing_payment_tx
+
+        return SuccessResponse(
+            message="Submission already approved.",
+            data=response_data,
+        )
+
+    if existing_verdict not in {"", "pending"}:
         raise HTTPException(
             status_code=409,
             detail=f"Submission already processed with verdict: {submission.get('agent_verdict')}"
+        )
+
+    task = submission.get("task") or {}
+    task_status = _normalize_status(task.get("status"))
+    if task_status in {"cancelled", "refunded", "expired"}:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot approve submission while task status is '{task_status}'",
+        )
+    if task_status == "completed":
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot approve submission because task is already completed",
         )
 
     # Update submission
@@ -778,18 +1060,27 @@ async def approve_submission(
 
         escrow_id = task.get("escrow_id")
         escrow_tx = task.get("escrow_tx")
+        payment_header = _resolve_task_payment_header(task.get("id"), escrow_tx)
         worker_address = executor.get("wallet_address")
         bounty = Decimal(str(task.get("bounty_usd", 0)))
         platform_fee_pct = await get_platform_fee_percent()
         fee = (bounty * platform_fee_pct).quantize(Decimal("0.01"))
         worker_payout = bounty - fee
 
-        if escrow_tx and worker_address and worker_payout > 0 and X402_AVAILABLE:
+        existing_payment = _get_existing_submission_payment(submission_id)
+        if existing_payment and _is_payment_finalized(existing_payment):
+            release_tx = _extract_payment_tx(existing_payment)
+            logger.info(
+                "Idempotent payment hit for submission %s (tx=%s)",
+                submission_id,
+                release_tx,
+            )
+        elif payment_header and worker_address and worker_payout > 0 and X402_AVAILABLE:
             # Use x402 SDK to settle payment via facilitator (gasless)
             sdk = get_sdk()
             result = await sdk.settle_task_payment(
                 task_id=task.get("id", ""),
-                payment_header=escrow_tx,  # Original payment reference
+                payment_header=payment_header,
                 worker_address=worker_address,
                 bounty_amount=bounty,
             )
@@ -799,7 +1090,7 @@ async def approve_submission(
 
                 # Record payment
                 client = db.get_client()
-                client.table("payments").insert({
+                payment_record = {
                     "task_id": task["id"],
                     "executor_id": executor.get("id"),
                     "submission_id": submission_id,
@@ -812,7 +1103,21 @@ async def approve_submission(
                     "to_address": worker_address,
                     "note": "Payment settled via x402 SDK facilitator",
                     "created_at": datetime.now(timezone.utc).isoformat(),
-                }).execute()
+                }
+
+                try:
+                    if existing_payment and existing_payment.get("id"):
+                        client.table("payments").update(payment_record).eq(
+                            "id", existing_payment["id"]
+                        ).execute()
+                    else:
+                        client.table("payments").insert(payment_record).execute()
+                except Exception as payment_record_err:
+                    logger.warning(
+                        "Could not persist payment record for submission %s: %s",
+                        submission_id,
+                        payment_record_err,
+                    )
 
                 # Update escrow status
                 client.table("escrows").update({
@@ -863,8 +1168,13 @@ async def approve_submission(
                     "SDK settlement failed for task %s: %s",
                     task["id"], release_error
                 )
-        elif not escrow_tx:
-            logger.warning("No escrow_tx for task %s, skipping payment release", task.get("id"))
+        elif existing_payment:
+            logger.info(
+                "Submission %s has an existing non-final payment record; skipping new settlement",
+                submission_id,
+            )
+        elif not payment_header:
+            logger.warning("No x402 payment header found for task %s, skipping payment release", task.get("id"))
         elif not worker_address:
             logger.warning("No wallet_address for executor, skipping payment for task %s", task.get("id"))
         elif not X402_AVAILABLE:
@@ -977,51 +1287,109 @@ async def cancel_task(
         if task.get("agent_id") != api_key.agent_id:
             raise HTTPException(status_code=403, detail="Not authorized to cancel this task")
 
+        # Idempotency for client retries: cancelling an already-cancelled task
+        # should return success.
+        if _normalize_status(task.get("status")) == "cancelled":
+            return SuccessResponse(
+                message="Task already cancelled.",
+                data={"task_id": task_id, "reason": reason, "idempotent": True},
+            )
+
         # Check if we need to handle escrow refund
-        escrow_tx = task.get("escrow_tx")  # This is the X-Payment header
+        escrow_tx = task.get("escrow_tx")  # This stores X-Payment payload
         escrow_id = task.get("escrow_id")
 
-        if escrow_tx and X402_AVAILABLE:
-            # Check escrow status - if "authorized", no funds moved yet
-            # If "deposited" or "settled", we need to attempt refund
+        if escrow_tx:
             try:
                 client = db.get_client()
-                escrow_result = client.table("escrows").select("status").eq("task_id", task_id).single().execute()
-                escrow_status = escrow_result.data.get("status") if escrow_result.data else "authorized"
-
-                if escrow_status == "deposited":
-                    # Funds were settled to escrow - need to refund
-                    # This would require calling the facilitator's refund endpoint
-                    # For now, log and mark as needs_refund
-                    logger.warning(
-                        "Task %s has deposited escrow - manual refund may be needed",
-                        task_id
+                escrow_row = None
+                try:
+                    escrow_result = (
+                        client.table("escrows")
+                        .select("id,status,escrow_id,refunded_at,released_at")
+                        .eq("task_id", task_id)
+                        .single()
+                        .execute()
                     )
+                    escrow_row = escrow_result.data or None
+                except Exception:
+                    escrow_row = None
+
+                escrow_status = _normalize_status((escrow_row or {}).get("status") or "authorized")
+                effective_escrow_id = (escrow_row or {}).get("escrow_id") or escrow_id
+
+                if escrow_status in ALREADY_REFUNDED_ESCROW_STATUSES:
                     refund_info = {
-                        "status": "needs_manual_refund",
-                        "escrow_id": escrow_id,
-                        "reason": "Payment was settled to escrow before cancellation"
+                        "status": "already_refunded",
+                        "escrow_id": effective_escrow_id,
                     }
+                elif escrow_status in NON_REFUNDABLE_ESCROW_STATUSES:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"Cannot cancel task because escrow is already {escrow_status}",
+                    )
+                elif escrow_status in REFUNDABLE_ESCROW_STATUSES:
+                    if X402_AVAILABLE:
+                        sdk = get_sdk()
+                        refund_result = await sdk.refund_task_payment(
+                            task_id=task_id,
+                            escrow_id=str(effective_escrow_id or ""),
+                            reason=reason,
+                        )
+                        if refund_result.get("success"):
+                            refund_info = {
+                                "status": "refunded",
+                                "escrow_id": effective_escrow_id,
+                                "tx_hash": refund_result.get("tx_hash"),
+                            }
+                            try:
+                                client.table("escrows").update({
+                                    "status": "refunded",
+                                    "refunded_at": datetime.now(timezone.utc).isoformat(),
+                                }).eq("task_id", task_id).execute()
+                            except Exception as escrow_update_err:
+                                logger.warning(
+                                    "Could not mark escrow refunded for task %s: %s",
+                                    task_id,
+                                    escrow_update_err,
+                                )
+                            _record_refund_payment(
+                                task=task,
+                                agent_id=api_key.agent_id,
+                                refund_tx=refund_result.get("tx_hash"),
+                                reason=reason,
+                            )
+                        else:
+                            refund_info = {
+                                "status": "refund_manual_required",
+                                "escrow_id": effective_escrow_id,
+                                "error": refund_result.get("error", "Refund attempt failed"),
+                            }
+                    else:
+                        refund_info = {
+                            "status": "refund_manual_required",
+                            "escrow_id": effective_escrow_id,
+                            "error": "x402 SDK not available",
+                        }
                 else:
-                    # Payment was only authorized, not settled
-                    # The EIP-3009 authorization will expire naturally
+                    # Common case for EIP-3009 authorize-only flow: no funds moved.
                     refund_info = {
                         "status": "authorization_expired",
-                        "message": "Payment authorization will expire. No funds were moved."
+                        "message": "Payment authorization will expire. No funds were moved.",
                     }
 
-                # Update escrow status to cancelled
-                client.table("escrows").update({
-                    "status": "cancelled",
-                    "cancelled_at": datetime.now(timezone.utc).isoformat(),
-                    "cancel_reason": reason,
-                }).eq("task_id", task_id).execute()
-
+            except HTTPException:
+                raise
             except Exception as escrow_err:
                 logger.warning("Could not check/update escrow for task %s: %s", task_id, escrow_err)
 
         # Cancel the task in database
-        await db.cancel_task(task_id, api_key.agent_id)
+        try:
+            await db.cancel_task(task_id, api_key.agent_id)
+        except Exception as cancel_err:
+            cancel_error = str(cancel_err).lower()
+            if "status: cancelled" not in cancel_error and "already cancelled" not in cancel_error:
+                raise
 
         logger.info(
             "Task cancelled: id=%s, agent=%s, reason=%s, escrow=%s",
@@ -1032,12 +1400,21 @@ async def cancel_task(
         if refund_info:
             response_data["escrow"] = refund_info
 
+        status_label = (refund_info or {}).get("status")
+        message_suffix = ""
+        if status_label == "authorization_expired":
+            message_suffix = " Payment authorization expired (no funds moved)."
+        elif status_label == "refunded":
+            message_suffix = " Escrow refunded to agent."
+        elif status_label == "already_refunded":
+            message_suffix = " Escrow was already refunded."
+        elif status_label == "not_refundable":
+            message_suffix = " Escrow was already released."
+        elif status_label in {"refund_manual_required", "refund_failed"}:
+            message_suffix = " Escrow refund requires manual intervention."
+
         return SuccessResponse(
-            message="Task cancelled successfully." + (
-                " Payment authorization expired (no funds moved)." if refund_info and refund_info.get("status") == "authorization_expired"
-                else " Escrow refund may be required." if refund_info and refund_info.get("status") == "needs_manual_refund"
-                else ""
-            ),
+            message=f"Task cancelled successfully.{message_suffix}",
             data=response_data
         )
 
@@ -1090,72 +1467,6 @@ async def get_analytics(
 # =============================================================================
 # WORKER ENDPOINTS (PUBLIC/SEMI-PUBLIC)
 # =============================================================================
-
-
-@router.get(
-    "/tasks/available",
-    response_model=AvailableTasksResponse,
-    responses={
-        200: {"description": "Available tasks retrieved"},
-    }
-)
-async def get_available_tasks(
-    lat: Optional[float] = Query(None, ge=-90, le=90, description="Latitude for location filtering"),
-    lng: Optional[float] = Query(None, ge=-180, le=180, description="Longitude for location filtering"),
-    radius_km: int = Query(50, ge=1, le=500, description="Search radius in kilometers"),
-    category: Optional[TaskCategory] = Query(None, description="Filter by category"),
-    min_bounty: Optional[float] = Query(None, ge=0, description="Minimum bounty USD"),
-    max_bounty: Optional[float] = Query(None, le=10000, description="Maximum bounty USD"),
-    limit: int = Query(20, ge=1, le=100, description="Maximum results"),
-    offset: int = Query(0, ge=0, description="Pagination offset"),
-) -> AvailableTasksResponse:
-    """
-    Get available tasks for workers.
-
-    Public endpoint that returns tasks in 'published' status.
-    Supports location-based filtering and bounty range filtering.
-    """
-    try:
-        client = db.get_client()
-
-        # Build query
-        query = client.table("tasks").select(
-            "id, title, category, bounty_usd, deadline, location_hint, min_reputation, created_at"
-        ).eq("status", "published")
-
-        # Apply category filter
-        if category:
-            query = query.eq("category", category.value)
-
-        # Apply bounty filters
-        if min_bounty is not None:
-            query = query.gte("bounty_usd", min_bounty)
-        if max_bounty is not None:
-            query = query.lte("bounty_usd", max_bounty)
-
-        # Execute query
-        result = query.order("bounty_usd", desc=True).range(offset, offset + limit - 1).execute()
-
-        tasks = result.data or []
-
-        # Build filters applied response
-        filters_applied = {
-            "category": category.value if category else None,
-            "min_bounty": min_bounty,
-            "max_bounty": max_bounty,
-            "location": {"lat": lat, "lng": lng, "radius_km": radius_km} if lat and lng else None,
-        }
-
-        return AvailableTasksResponse(
-            tasks=tasks,
-            count=len(tasks),
-            offset=offset,
-            filters_applied={k: v for k, v in filters_applied.items() if v is not None},
-        )
-
-    except Exception as e:
-        logger.error("Failed to get available tasks: %s", str(e))
-        raise HTTPException(status_code=500, detail="Failed to get available tasks")
 
 
 @router.post(
@@ -1270,6 +1581,99 @@ async def submit_work(
             raise HTTPException(status_code=400, detail=error_msg)
         logger.error("Unexpected error submitting work for task %s: %s", task_id, error_msg)
         raise HTTPException(status_code=500, detail="Internal error while submitting work")
+
+
+# =============================================================================
+# EVIDENCE VERIFICATION
+# =============================================================================
+
+
+class VerifyEvidenceRequest(BaseModel):
+    """Request to verify evidence against task requirements."""
+    task_id: str = Field(..., description="UUID of the task")
+    evidence_url: str = Field(..., description="Public URL of the uploaded evidence file")
+    evidence_type: str = Field(default="photo", description="Type of evidence being verified")
+
+
+class VerifyEvidenceResponse(BaseModel):
+    """Result of AI evidence verification."""
+    verified: bool
+    confidence: float = Field(..., ge=0, le=1)
+    decision: str  # approved, rejected, needs_human
+    explanation: str
+    issues: List[str] = []
+
+
+@router.post(
+    "/evidence/verify",
+    response_model=VerifyEvidenceResponse,
+    responses={
+        200: {"description": "Verification result"},
+        404: {"model": ErrorResponse, "description": "Task not found"},
+        503: {"model": ErrorResponse, "description": "AI verification unavailable"},
+    }
+)
+async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceResponse:
+    """
+    Verify evidence against task requirements using AI.
+
+    Worker endpoint: after uploading evidence, call this to get instant
+    AI feedback on whether the evidence matches what the task requires.
+    This does NOT create a submission - it's a pre-check.
+
+    When ANTHROPIC_API_KEY is not configured, returns a mock approval
+    so the submission flow works end-to-end.
+    """
+    import os
+
+    # Get task details
+    task = await db.get_task(request.task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Check if Anthropic API key is configured
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        logger.info("AI verification mock mode (no ANTHROPIC_API_KEY): task=%s", request.task_id)
+        return VerifyEvidenceResponse(
+            verified=True,
+            confidence=0.85,
+            decision="approved",
+            explanation=f"Evidence received for '{task.get('title', 'task')}'. Full AI verification will be enabled soon.",
+            issues=[],
+        )
+
+    try:
+        result = await verify_with_ai(
+            task={
+                "title": task.get("title", ""),
+                "category": task.get("category", "general"),
+                "instructions": task.get("instructions", ""),
+                "evidence_schema": task.get("evidence_schema", {}),
+            },
+            evidence={
+                "type": request.evidence_type,
+                "notes": "",
+            },
+            photo_urls=[request.evidence_url],
+        )
+
+        return VerifyEvidenceResponse(
+            verified=result.decision == VerificationDecision.APPROVED,
+            confidence=result.confidence,
+            decision=result.decision.value,
+            explanation=result.explanation,
+            issues=result.issues,
+        )
+
+    except Exception as e:
+        logger.warning("AI verification unavailable for task %s: %s", request.task_id, e)
+        return VerifyEvidenceResponse(
+            verified=True,
+            confidence=0.5,
+            decision="approved",
+            explanation="AI verification temporarily unavailable. Evidence accepted for agent review.",
+            issues=[],
+        )
 
 
 # =============================================================================

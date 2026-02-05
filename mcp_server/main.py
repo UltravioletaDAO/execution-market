@@ -466,129 +466,50 @@ async def register_executor(data: ExecutorRegistration):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.post("/api/v1/tasks/apply", tags=["Tasks"])
+@app.post(
+    "/api/v1/tasks/apply",
+    tags=["Tasks"],
+    deprecated=True,
+    include_in_schema=False,
+)
 async def apply_to_task(data: TaskApplication):
-    """Apply to work on a task."""
-    try:
-        client = db.get_client()
-
-        # Get task
-        task = await db.get_task(data.task_id)
-        if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
-
-        if task["status"] != "published":
-            raise HTTPException(
-                status_code=400,
-                detail=f"Task is not available (status: {task['status']})"
-            )
-
-        # Check if executor exists
-        executor = client.table("executors").select("*").eq(
-            "id", data.executor_id
-        ).single().execute()
-
-        if not executor.data:
-            raise HTTPException(status_code=404, detail="Executor not found")
-
-        # Check minimum reputation
-        if task.get("min_reputation", 0) > executor.data.get("reputation_score", 0):
-            raise HTTPException(
-                status_code=403,
-                detail=f"Insufficient reputation. Required: {task['min_reputation']}, yours: {executor.data['reputation_score']}"
-            )
-
-        # Check for existing application
-        existing = client.table("applications").select("*").eq(
-            "task_id", data.task_id
-        ).eq("executor_id", data.executor_id).execute()
-
-        if existing.data and len(existing.data) > 0:
-            raise HTTPException(status_code=400, detail="Already applied to this task")
-
-        # Create application
-        application_data = {
-            "task_id": data.task_id,
-            "executor_id": data.executor_id,
-            "message": data.message,
-            "status": "pending",
-        }
-
-        result = client.table("applications").insert(application_data).execute()
-
-        if result.data and len(result.data) > 0:
-            return {
-                "application": result.data[0],
-                "message": "Application submitted successfully"
-            }
-
-        raise HTTPException(status_code=500, detail="Failed to create application")
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal server error")
+    """Deprecated legacy endpoint. Use /api/v1/tasks/{task_id}/apply instead."""
+    canonical = f"/api/v1/tasks/{data.task_id}/apply"
+    logger.warning(
+        "Legacy endpoint /api/v1/tasks/apply called. Redirect users to %s",
+        canonical,
+    )
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "error": "Endpoint deprecated",
+            "message": "Use canonical worker application endpoint.",
+            "canonical_endpoint": canonical,
+        },
+    )
 
 
-@app.post("/api/v1/submissions", tags=["Submissions"])
+@app.post(
+    "/api/v1/submissions",
+    tags=["Submissions"],
+    deprecated=True,
+    include_in_schema=False,
+)
 async def submit_work(data: WorkSubmission):
-    """Submit completed work with evidence."""
-    try:
-        client = db.get_client()
-
-        # Get task
-        task = await db.get_task(data.task_id)
-        if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
-
-        # Verify executor is assigned to this task
-        if task.get("executor_id") != data.executor_id:
-            raise HTTPException(
-                status_code=403,
-                detail="You are not assigned to this task"
-            )
-
-        if task["status"] not in ["accepted", "in_progress"]:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Task is not in a submittable state (status: {task['status']})"
-            )
-
-        # Validate evidence schema
-        required = task.get("evidence_schema", {}).get("required", [])
-        for req in required:
-            if req not in data.evidence:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Missing required evidence: {req}"
-                )
-
-        # Create submission
-        submission_data = {
-            "task_id": data.task_id,
-            "executor_id": data.executor_id,
-            "evidence": data.evidence,
-            "submitted_at": datetime.now(timezone.utc).isoformat(),
-            "agent_verdict": "pending",
-        }
-
-        result = client.table("submissions").insert(submission_data).execute()
-
-        if result.data and len(result.data) > 0:
-            # Update task status
-            await db.update_task(data.task_id, {"status": "submitted"})
-
-            return {
-                "submission": result.data[0],
-                "message": "Work submitted successfully. Awaiting agent review."
-            }
-
-        raise HTTPException(status_code=500, detail="Failed to create submission")
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal server error")
+    """Deprecated legacy endpoint. Use /api/v1/tasks/{task_id}/submit instead."""
+    canonical = f"/api/v1/tasks/{data.task_id}/submit"
+    logger.warning(
+        "Legacy endpoint /api/v1/submissions called. Redirect users to %s",
+        canonical,
+    )
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "error": "Endpoint deprecated",
+            "message": "Use canonical worker submission endpoint.",
+            "canonical_endpoint": canonical,
+        },
+    )
 
 
 @app.get("/api/v1/executors/{executor_id}/tasks", tags=["Workers"])

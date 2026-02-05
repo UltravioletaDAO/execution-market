@@ -174,6 +174,7 @@ export function NotificationBell({
   onNotificationClick,
   onViewAll,
 }: NotificationBellProps) {
+  const db = supabase as any
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -208,7 +209,7 @@ export function NotificationBell({
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('notifications')
         .select('*')
         .eq('executor_id', executorId)
@@ -232,7 +233,7 @@ export function NotificationBell({
 
   // Subscribe to real-time notifications
   useEffect(() => {
-    const channel = supabase
+    const channel = db
       .channel(`notifications-${executorId}`)
       .on(
         'postgres_changes',
@@ -242,7 +243,7 @@ export function NotificationBell({
           table: 'notifications',
           filter: `executor_id=eq.${executorId}`,
         },
-        (payload) => {
+        (payload: any) => {
           const newNotification = payload.new as Notification
           setNotifications((prev) => [newNotification, ...prev])
           setHasNewNotification(true)
@@ -254,14 +255,14 @@ export function NotificationBell({
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      db.removeChannel(channel)
     }
   }, [executorId])
 
   // Mark notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      await supabase
+      await db
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
@@ -277,7 +278,7 @@ export function NotificationBell({
   // Mark all as read
   const markAllAsRead = useCallback(async () => {
     try {
-      await supabase
+      await db
         .from('notifications')
         .update({ read: true })
         .eq('executor_id', executorId)

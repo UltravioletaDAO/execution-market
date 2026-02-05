@@ -12,7 +12,7 @@ interface AppHeaderProps {
 export function AppHeader({ onConnectWallet, onScrollToHowItWorks }: AppHeaderProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { isAuthenticated, userType, executor } = useAuth()
+  const { isAuthenticated, userType, executor, loading } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navLinks = [
@@ -86,9 +86,10 @@ export function AppHeader({ onConnectWallet, onScrollToHowItWorks }: AppHeaderPr
             ) : (
               <button
                 onClick={onConnectWallet}
-                className="px-4 py-1.5 bg-emerald-500 text-white text-sm font-semibold rounded-md hover:bg-emerald-400 transition-colors"
+                disabled={loading}
+                className="px-4 py-1.5 bg-emerald-500 text-white text-sm font-semibold rounded-md hover:bg-emerald-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {t('landing.startEarning', 'Start Earning')}
+                {loading ? t('common.loading', 'Loading...') : t('landing.startEarning', 'Start Earning')}
               </button>
             )}
 

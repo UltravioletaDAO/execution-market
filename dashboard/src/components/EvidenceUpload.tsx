@@ -111,7 +111,6 @@ function parseExifFromBuffer(buffer: ArrayBuffer): {
 
     // APP1 marker (EXIF)
     if (marker === 0xE1) {
-      const _length = view.getUint16(offset + 2)
       const exifOffset = offset + 4
 
       // Check for "Exif\0\0" header
@@ -305,6 +304,14 @@ function getDeviceInfo(): EvidenceMetadata['deviceInfo'] {
 // Progress stages for upload
 type UploadStage = 'preparing' | 'validating' | 'uploading' | 'finalizing' | 'complete'
 
+const PROGRESS_STAGES = ['preparing', 'validating', 'uploading', 'finalizing'] as const
+type ProgressStage = (typeof PROGRESS_STAGES)[number]
+
+function getProgressStageIndex(stage: UploadStage): number {
+  if (stage === 'complete') return PROGRESS_STAGES.length
+  return PROGRESS_STAGES.indexOf(stage as ProgressStage)
+}
+
 const UPLOAD_STAGE_LABELS: Record<UploadStage, string> = {
   preparing: 'Preparando...',
   validating: 'Validando evidencia...',
@@ -345,6 +352,7 @@ export function EvidenceUpload({
   const [gpsTimestamp, setGpsTimestamp] = useState<number | null>(null)
   const [gpsError, setGpsError] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const currentStageIndex = getProgressStageIndex(uploadStage)
 
   // Detect mobile device
   useEffect(() => {
@@ -1104,13 +1112,13 @@ export function EvidenceUpload({
 
             {/* Stage indicators */}
             <div className="mt-4 flex justify-between text-xs text-gray-400">
-              {(['preparing', 'validating', 'uploading', 'finalizing'] as const).map((stage, index) => (
+              {PROGRESS_STAGES.map((stage, index) => (
                 <div
                   key={stage}
                   className={`flex flex-col items-center ${
                     uploadStage === stage
                       ? 'text-blue-600 font-medium'
-                      : (['preparing', 'validating', 'uploading', 'finalizing'] as const).indexOf(uploadStage) > index
+                      : currentStageIndex > index
                       ? 'text-green-600'
                       : ''
                   }`}
@@ -1119,7 +1127,7 @@ export function EvidenceUpload({
                     className={`w-2 h-2 rounded-full mb-1 ${
                       uploadStage === stage
                         ? 'bg-blue-600'
-                        : (['preparing', 'validating', 'uploading', 'finalizing'] as const).indexOf(uploadStage) > index
+                        : currentStageIndex > index
                         ? 'bg-green-500'
                         : 'bg-gray-300'
                     }`}
