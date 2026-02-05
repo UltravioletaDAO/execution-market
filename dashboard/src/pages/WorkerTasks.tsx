@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { useAvailableTasks, useMyTasks } from '../hooks/useTasks'
 import { useTaskPayment } from '../hooks/useTaskPayment'
+import { usePublicMetrics } from '../hooks/usePublicMetrics'
 import { TaskList, CategoryFilter } from '../components/TaskList'
 import { TaskDetail } from '../components/TaskDetail'
 import { SubmissionForm } from '../components/SubmissionForm'
@@ -74,6 +75,15 @@ function SubmissionConfirmation({
   )
 }
 
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-3">
+      <div className="text-xs uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="text-lg font-bold text-gray-900 mt-1">{value}</div>
+    </div>
+  )
+}
+
 export function WorkerTasks() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -98,6 +108,7 @@ export function WorkerTasks() {
     loading: myTasksLoading,
     error: myTasksError,
   } = useMyTasks(executor?.id)
+  const { metrics: platformMetrics, loading: metricsLoading } = usePublicMetrics()
 
   const handleTaskClick = useCallback((task: Task) => {
     setSelectedTask(task)
@@ -174,6 +185,26 @@ export function WorkerTasks() {
     // List view
     return (
       <>
+        {/* Platform metrics */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <MetricCard
+            label={t('metrics.registeredUsers', 'Registered Users')}
+            value={metricsLoading || !platformMetrics ? '...' : new Intl.NumberFormat('en-US').format(platformMetrics.users.registered_workers)}
+          />
+          <MetricCard
+            label={t('metrics.activeWorkers', 'Workers Taking Tasks')}
+            value={metricsLoading || !platformMetrics ? '...' : new Intl.NumberFormat('en-US').format(platformMetrics.activity.workers_with_active_tasks)}
+          />
+          <MetricCard
+            label={t('metrics.activeAgents', 'Active Agents')}
+            value={metricsLoading || !platformMetrics ? '...' : new Intl.NumberFormat('en-US').format(platformMetrics.activity.agents_with_live_tasks)}
+          />
+          <MetricCard
+            label={t('metrics.completedTasks', 'Completed Tasks')}
+            value={metricsLoading || !platformMetrics ? '...' : new Intl.NumberFormat('en-US').format(platformMetrics.tasks.completed)}
+          />
+        </div>
+
         {/* Tab selector */}
         <div className="flex border-b border-gray-200 mb-4">
           <button

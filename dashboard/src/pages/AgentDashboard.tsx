@@ -3,6 +3,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import type { Task, TaskStatus, TaskCategory, Submission } from '../types/database'
+import { usePublicMetrics } from '../hooks/usePublicMetrics'
 
 // --------------------------------------------------------------------------
 // Types
@@ -319,6 +320,7 @@ export function AgentDashboard({
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTasksFilter, setActiveTasksFilter] = useState<'all' | 'pending' | 'in_progress'>('all')
+  const { metrics: platformMetrics, loading: platformMetricsLoading } = usePublicMetrics()
 
   // Mock data load - in production, fetch from API/Supabase
   useEffect(() => {
@@ -653,6 +655,66 @@ export function AgentDashboard({
       {/* ------------------------------------------------------------------ */}
       {/* Analytics Overview */}
       {/* ------------------------------------------------------------------ */}
+      <section>
+        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
+          Platform Pulse
+        </h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Usuarios Registrados"
+            value={
+              platformMetricsLoading || !platformMetrics
+                ? '...'
+                : new Intl.NumberFormat('en-US').format(platformMetrics.users.registered_workers)
+            }
+            icon={
+              <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5V4H2v16h5m10 0v-8a2 2 0 00-2-2H9a2 2 0 00-2 2v8m10 0H7" />
+              </svg>
+            }
+          />
+          <StatCard
+            label="Workers Activos"
+            value={
+              platformMetricsLoading || !platformMetrics
+                ? '...'
+                : new Intl.NumberFormat('en-US').format(platformMetrics.activity.workers_with_active_tasks)
+            }
+            icon={
+              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            }
+          />
+          <StatCard
+            label="Agentes Activos"
+            value={
+              platformMetricsLoading || !platformMetrics
+                ? '...'
+                : new Intl.NumberFormat('en-US').format(platformMetrics.activity.agents_with_live_tasks)
+            }
+            icon={
+              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
+              </svg>
+            }
+          />
+          <StatCard
+            label="Tareas Completadas"
+            value={
+              platformMetricsLoading || !platformMetrics
+                ? '...'
+                : new Intl.NumberFormat('en-US').format(platformMetrics.tasks.completed)
+            }
+            icon={
+              <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            }
+          />
+        </div>
+      </section>
+
       {analytics && (
         <section>
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
