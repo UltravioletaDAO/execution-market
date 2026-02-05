@@ -2,9 +2,6 @@ import { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
-
 export interface ProfileUpdateData {
   display_name: string
   bio: string
@@ -16,7 +13,7 @@ export interface ProfileUpdateData {
 }
 
 export function useProfileUpdate() {
-  const { executor, refreshExecutor } = useAuth()
+  const { executor, walletAddress, refreshExecutor } = useAuth()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,102 +23,82 @@ export function useProfileUpdate() {
       setError(null)
 
       try {
-        // Get fresh session directly from Supabase (not React state)
-        const { data: { session: currentSession } } = await supabase.auth.getSession()
+        // With Dynamic.xyz auth, we use the executor from context (loaded via wallet address)
+        // No Supabase session exists - auth is wallet-based
+        const executorId = executor?.id
 
-        if (!currentSession?.user) {
-          setError('Not authenticated')
+        if (!executorId) {
+          console.error('[useProfileUpdate] No executor in context')
+
+          // If executor not in context but we have wallet, try to find by wallet
+          if (walletAddress) {
+            console.log('[useProfileUpdate] Trying wallet lookup:', walletAddress)
+            const { data: execData, error: findError } = await supabase
+              .from('executors')
+              .select('id')
+              .eq('wallet_address', walletAddress.toLowerCase())
+              .single()
+
+            if (findError || !execData) {
+              setError('Executor not found. Please reconnect your wallet.')
+              return false
+            }
+
+            // Found executor by wallet, use RPC to update
+            const { error: updateError } = await supabase.rpc('update_executor_profile', {
+              p_executor_id: execData.id,
+              p_display_name: data.display_name,
+              p_bio: data.bio,
+              p_skills: data.skills,
+              p_languages: data.languages,
+              p_location_city: data.location_city || null,
+              p_location_country: data.location_country || null,
+              p_email: data.email || null,
+            })
+
+            if (updateError) {
+              console.error('[useProfileUpdate] RPC update failed:', updateError)
+              throw new Error(updateError.message)
+            }
+
+            await refreshExecutor()
+            return true
+          }
+
+          setError('Not authenticated. Please connect your wallet.')
           return false
         }
 
-        const headers: Record<string, string> = {
-          apikey: SUPABASE_KEY,
-          'Content-Type': 'application/json',
-          Prefer: 'return=minimal',
+        // Use RPC function to update profile (bypasses RLS)
+        const { error: updateError } = await supabase.rpc('update_executor_profile', {
+          p_executor_id: executorId,
+          p_display_name: data.display_name,
+          p_bio: data.bio,
+          p_skills: data.skills,
+          p_languages: data.languages,
+          p_location_city: data.location_city || null,
+          p_location_country: data.location_country || null,
+          p_email: data.email || null,
+        })
+
+        if (updateError) {
+          console.error('[useProfileUpdate] RPC update failed:', updateError)
+          throw new Error(updateError.message)
         }
 
-        if (currentSession.access_token) {
-          headers['Authorization'] = `Bearer ${currentSession.access_token}`
-        }
-
-        // Resolve executor ID: try context first, then query by user_id,
-        // then fallback to wallet_address from user metadata.
-        // This handles race conditions where onAuthStateChange set executor=null
-        // before the RPC call created the executor row.
-        let executorId = executor?.id
-
-        if (!executorId) {
-          console.log('[useProfileUpdate] executor is null in context, looking up by user_id...')
-          const findResponse = await fetch(
-            `${SUPABASE_URL}/rest/v1/executors?user_id=eq.${currentSession.user.id}&select=id`,
-            { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${currentSession.access_token}` } }
-          )
-          if (findResponse.ok) {
-            const found = await findResponse.json()
-            if (found.length > 0) {
-              executorId = found[0].id
-              console.log('[useProfileUpdate] found executor by user_id:', executorId)
-            }
-          }
-        }
-
-        if (!executorId) {
-          const wallet = currentSession.user.user_metadata?.wallet_address
-          if (wallet) {
-            console.log('[useProfileUpdate] trying wallet_address fallback:', wallet)
-            const walletResponse = await fetch(
-              `${SUPABASE_URL}/rest/v1/executors?wallet_address=eq.${wallet}&select=id`,
-              { headers: { apikey: SUPABASE_KEY } }
-            )
-            if (walletResponse.ok) {
-              const walletData = await walletResponse.json()
-              if (walletData.length > 0) {
-                executorId = walletData[0].id
-                console.log('[useProfileUpdate] found executor by wallet:', executorId)
-              }
-            }
-          }
-        }
-
-        if (!executorId) {
-          setError('Not authenticated')
-          return false
-        }
-
-        const response = await fetch(
-          `${SUPABASE_URL}/rest/v1/executors?id=eq.${executorId}`,
-          {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({
-              display_name: data.display_name,
-              bio: data.bio,
-              skills: data.skills,
-              languages: data.languages,
-              location_city: data.location_city || null,
-              location_country: data.location_country || null,
-              email: data.email || null,
-              updated_at: new Date().toISOString(),
-            }),
-          }
-        )
-
-        if (!response.ok) {
-          const text = await response.text()
-          throw new Error(text || `Update failed: ${response.status}`)
-        }
-
+        console.log('[useProfileUpdate] Profile updated successfully')
         await refreshExecutor()
         return true
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to update profile'
+        console.error('[useProfileUpdate] Error:', message)
         setError(message)
         return false
       } finally {
         setSaving(false)
       }
     },
-    [executor, refreshExecutor]
+    [executor, walletAddress, refreshExecutor]
   )
 
   return { updateProfile, saving, error }
