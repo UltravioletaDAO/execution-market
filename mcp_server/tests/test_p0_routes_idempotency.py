@@ -93,6 +93,41 @@ class _HeaderClient:
         return self._table
 
 
+class _MetricsQuery:
+    def __init__(self, rows=None, count=None):
+        self._rows = rows or []
+        self._count = count
+
+    def select(self, *_args, **kwargs):
+        return self
+
+    def eq(self, *_args, **_kwargs):
+        return self
+
+    def execute(self):
+        resolved_count = self._count if isinstance(self._count, int) else None
+        return SimpleNamespace(data=self._rows, count=resolved_count)
+
+
+class _MetricsClient:
+    def __init__(self, tasks_rows, escrow_rows, worker_count=0, agent_count=0):
+        self._tasks_rows = tasks_rows
+        self._escrow_rows = escrow_rows
+        self._worker_count = worker_count
+        self._agent_count = agent_count
+
+    def table(self, name: str):
+        if name == "tasks":
+            return _MetricsQuery(rows=self._tasks_rows)
+        if name == "escrows":
+            return _MetricsQuery(rows=self._escrow_rows)
+        if name == "executors":
+            return _MetricsQuery(rows=[], count=self._worker_count)
+        if name == "api_keys":
+            return _MetricsQuery(rows=[], count=self._agent_count)
+        raise AssertionError(f"Unexpected table access: {name}")
+
+
 @pytest.mark.asyncio
 async def test_approve_submission_returns_idempotent_success(monkeypatch):
     submission_id = "11111111-1111-1111-1111-111111111111"
@@ -362,3 +397,46 @@ def test_resolve_task_payment_header_reads_from_escrow_metadata(monkeypatch):
         task_escrow_tx="x402_auth_abc123",
     )
     assert resolved == stored_header
+
+
+@pytest.mark.asyncio
+async def test_get_public_platform_metrics_aggregates_counts(monkeypatch):
+    fake_client = _MetricsClient(
+        tasks_rows=[
+            {"status": "published", "executor_id": None, "agent_id": "agent_1"},
+            {"status": "accepted", "executor_id": "worker_1", "agent_id": "agent_1"},
+            {"status": "submitted", "executor_id": "worker_1", "agent_id": "agent_1"},
+            {"status": "completed", "executor_id": "worker_2", "agent_id": "agent_2"},
+            {"status": "completed", "executor_id": "worker_1", "agent_id": "agent_1"},
+        ],
+        escrow_rows=[
+            {"total_amount_usdc": 10.5, "platform_fee_usdc": 0.8},
+            {"total_amount_usdc": "5.25", "platform_fee_usdc": "0.42"},
+        ],
+        worker_count=12,
+        agent_count=4,
+    )
+    monkeypatch.setattr(routes.db, "get_client", lambda: fake_client)
+
+    result = await routes.get_public_platform_metrics()
+
+    assert result.users["registered_workers"] == 12
+    assert result.users["registered_agents"] == 4
+    assert result.users["workers_with_tasks"] == 2
+    assert result.users["workers_active_now"] == 1
+    assert result.users["workers_completed"] == 2
+    assert result.users["agents_active_now"] == 1
+
+    assert result.tasks["total"] == 5
+    assert result.tasks["published"] == 1
+    assert result.tasks["accepted"] == 1
+    assert result.tasks["submitted"] == 1
+    assert result.tasks["completed"] == 2
+    assert result.tasks["live"] == 3
+
+    assert result.activity["workers_with_active_tasks"] == 1
+    assert result.activity["workers_with_completed_tasks"] == 2
+    assert result.activity["agents_with_live_tasks"] == 1
+
+    assert result.payments["total_volume_usd"] == 15.75
+    assert result.payments["total_fees_usd"] == 1.22

@@ -141,3 +141,8 @@ export {
   useTaskPayment,
   type UseTaskPaymentReturn,
 } from './useTaskPayment'
+
+export {
+  usePublicMetrics,
+  type PublicPlatformMetrics,
+} from './usePublicMetrics'

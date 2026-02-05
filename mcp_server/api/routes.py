@@ -94,6 +94,8 @@ X402_AUTH_REF_PREFIX = "x402_auth_"
 REFUNDABLE_ESCROW_STATUSES = {"deposited", "funded", "partial_released"}
 ALREADY_REFUNDED_ESCROW_STATUSES = {"refunded"}
 NON_REFUNDABLE_ESCROW_STATUSES = {"released"}
+LIVE_TASK_STATUSES = {"published", "accepted", "in_progress", "submitted", "verifying"}
+ACTIVE_WORKER_TASK_STATUSES = {"accepted", "in_progress", "submitted", "verifying"}
 
 
 def _normalize_status(value: Optional[str]) -> str:
@@ -495,6 +497,15 @@ class PublicConfigResponse(BaseModel):
     preferred_network: str
 
 
+class PublicPlatformMetricsResponse(BaseModel):
+    """Public high-level platform metrics for landing/dashboard surfaces."""
+    users: Dict[str, int]
+    tasks: Dict[str, int]
+    activity: Dict[str, int]
+    payments: Dict[str, float]
+    generated_at: datetime
+
+
 class ConfigUpdateRequest(BaseModel):
     """Request to update a config value (admin only)."""
     value: Any = Field(..., description="New value for the config key")
@@ -541,6 +552,135 @@ async def get_public_config() -> PublicConfigResponse:
         supported_networks=["base", "ethereum", "polygon", "optimism", "arbitrum"],
         supported_tokens=["USDC", "USDT", "DAI"],
         preferred_network="base",
+    )
+
+
+@router.get(
+    "/public/metrics",
+    response_model=PublicPlatformMetricsResponse,
+    responses={
+        200: {"description": "Public platform metrics"},
+    },
+)
+async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
+    """
+    Get public platform metrics for landing and dashboard views.
+
+    This endpoint is intentionally read-only and unauthenticated.
+    """
+    generated_at = datetime.now(timezone.utc)
+    client = db.get_client()
+
+    users = {
+        "registered_workers": 0,
+        "registered_agents": 0,
+        "workers_with_tasks": 0,
+        "workers_active_now": 0,
+        "workers_completed": 0,
+        "agents_active_now": 0,
+    }
+    tasks: Dict[str, int] = {
+        "total": 0,
+        "published": 0,
+        "accepted": 0,
+        "in_progress": 0,
+        "submitted": 0,
+        "verifying": 0,
+        "completed": 0,
+        "disputed": 0,
+        "cancelled": 0,
+        "expired": 0,
+        "live": 0,
+    }
+    activity = {
+        "workers_with_active_tasks": 0,
+        "workers_with_completed_tasks": 0,
+        "agents_with_live_tasks": 0,
+    }
+    payments = {
+        "total_volume_usd": 0.0,
+        "total_fees_usd": 0.0,
+    }
+
+    # Registered workers
+    try:
+        workers_result = client.table("executors").select("id", count="exact").execute()
+        users["registered_workers"] = int(workers_result.count or 0)
+    except Exception as e:
+        logger.warning("Could not query executors count for public metrics: %s", e)
+
+    # Registered agents (active API keys as proxy for active/registered agents)
+    try:
+        agents_result = (
+            client.table("api_keys")
+            .select("id", count="exact")
+            .eq("is_active", True)
+            .execute()
+        )
+        users["registered_agents"] = int(agents_result.count or 0)
+    except Exception as e:
+        logger.warning("Could not query agents count for public metrics: %s", e)
+
+    # Task and activity aggregates
+    try:
+        tasks_result = client.table("tasks").select("status, executor_id, agent_id").execute()
+        task_rows = tasks_result.data or []
+
+        workers_with_tasks = set()
+        workers_active = set()
+        workers_completed = set()
+        agents_active = set()
+
+        for row in task_rows:
+            status = _normalize_status(row.get("status"))
+            if not status:
+                continue
+
+            tasks[status] = tasks.get(status, 0) + 1
+            tasks["total"] += 1
+
+            executor_id = row.get("executor_id")
+            if executor_id:
+                workers_with_tasks.add(executor_id)
+                if status in ACTIVE_WORKER_TASK_STATUSES:
+                    workers_active.add(executor_id)
+                if status == "completed":
+                    workers_completed.add(executor_id)
+
+            agent_id = row.get("agent_id")
+            if agent_id and status in LIVE_TASK_STATUSES:
+                agents_active.add(agent_id)
+
+        tasks["live"] = sum(tasks.get(status, 0) for status in LIVE_TASK_STATUSES)
+        users["workers_with_tasks"] = len(workers_with_tasks)
+        users["workers_active_now"] = len(workers_active)
+        users["workers_completed"] = len(workers_completed)
+        users["agents_active_now"] = len(agents_active)
+
+        activity["workers_with_active_tasks"] = len(workers_active)
+        activity["workers_with_completed_tasks"] = len(workers_completed)
+        activity["agents_with_live_tasks"] = len(agents_active)
+    except Exception as e:
+        logger.warning("Could not query task aggregates for public metrics: %s", e)
+
+    # Financial aggregates from escrows
+    try:
+        escrows_result = client.table("escrows").select("total_amount_usdc, platform_fee_usdc").execute()
+        for row in escrows_result.data or []:
+            payments["total_volume_usd"] += float(row.get("total_amount_usdc") or 0.0)
+            payments["total_fees_usd"] += float(row.get("platform_fee_usdc") or 0.0)
+    except Exception as e:
+        logger.warning("Could not query escrow aggregates for public metrics: %s", e)
+
+    payments["total_volume_usd"] = round(payments["total_volume_usd"], 2)
+    payments["total_fees_usd"] = round(payments["total_fees_usd"], 2)
+
+    return PublicPlatformMetricsResponse(
+        users=users,
+        tasks=tasks,
+        activity=activity,
+        payments=payments,
+        generated_at=generated_at,
     )
 
 
