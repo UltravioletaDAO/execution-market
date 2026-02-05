@@ -36,6 +36,15 @@ try:
 except ImportError:
     X402_AVAILABLE = False
 
+# ERC-8004 reputation integration
+try:
+    from integrations.erc8004 import rate_worker, EM_AGENT_ID
+    ERC8004_AVAILABLE = True
+except ImportError:
+    ERC8004_AVAILABLE = False
+    rate_worker = None
+    EM_AGENT_ID = 469  # Default
+
 # Platform configuration
 try:
     from config import PlatformConfig
@@ -424,7 +433,11 @@ async def create_task(
 
         # Verify x402 payment
         payment_result = None
+        x_payment_header = None  # Store original header for later settlement
         if X402_AVAILABLE:
+            # Get the original X-Payment header before verification
+            x_payment_header = http_request.headers.get("X-Payment") or http_request.headers.get("x-payment")
+
             payment_result = await verify_x402_payment(http_request, total_required)
 
             if not payment_result.success:
@@ -478,14 +491,19 @@ async def create_task(
         )
 
         # Store escrow data if payment was verified via x402 SDK / facilitator
-        if payment_result and payment_result.success and payment_result.tx_hash:
+        # NOTE: We store the X-Payment header for later settlement (during approval)
+        # The payment is VERIFIED but NOT SETTLED yet - funds stay with agent until approval
+        if payment_result and payment_result.success and x_payment_header:
             try:
-                deposit_id = payment_result.tx_hash  # SDK uses tx_hash as deposit ref
+                # Generate a unique escrow reference (not a tx hash - no tx happened yet)
+                import uuid
+                escrow_ref = f"escrow_{task['id'][:8]}_{uuid.uuid4().hex[:8]}"
 
                 # Update task with escrow info
+                # IMPORTANT: escrow_tx now stores the X-Payment header for later settlement
                 escrow_updates = {
-                    "escrow_id": deposit_id,
-                    "escrow_tx": payment_result.tx_hash,
+                    "escrow_id": escrow_ref,
+                    "escrow_tx": x_payment_header,  # Store original header for settlement
                     "escrow_amount_usdc": float(total_required),
                     "escrow_created_at": datetime.now(timezone.utc).isoformat(),
                 }
@@ -493,23 +511,29 @@ async def create_task(
                 task.update(escrow_updates)
 
                 # Create escrow record
-                client = db.get_client()
-                client.table("escrows").insert({
-                    "task_id": task["id"],
-                    "agent_id": api_key.agent_id,
-                    "escrow_id": deposit_id,
-                    "funding_tx": payment_result.tx_hash,
-                    "status": "deposited",
-                    "total_amount_usdc": float(total_required),
-                    "platform_fee_usdc": float(total_required - bounty),
-                    "beneficiary_address": payment_result.payer_address,
-                    "network": payment_result.network,
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                }).execute()
+                # NOTE: x_payment_header is stored in task.escrow_tx, not in escrows table
+                # This avoids schema changes and keeps the header with the task
+                try:
+                    client = db.get_client()
+                    client.table("escrows").insert({
+                        "task_id": task["id"],
+                        "agent_id": api_key.agent_id,
+                        "escrow_id": escrow_ref,
+                        "funding_tx": None,  # Will be set when payment is settled
+                        "status": "authorized",  # Payment authorized, not yet captured
+                        "total_amount_usdc": float(total_required),
+                        "platform_fee_usdc": float(total_required - bounty),
+                        "beneficiary_address": payment_result.payer_address,
+                        "network": payment_result.network,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }).execute()
+                except Exception as escrow_err:
+                    # escrows table might not have all columns, log and continue
+                    logger.warning("Could not create escrow record: %s", escrow_err)
 
                 logger.info(
-                    "Escrow recorded via SDK: task=%s, tx=%s, amount=%.2f",
-                    task["id"], deposit_id[:16] + "...", float(total_required)
+                    "x402 payment authorized: task=%s, escrow=%s, amount=%.2f, payer=%s",
+                    task["id"], escrow_ref, float(total_required), payment_result.payer_address[:10] + "..."
                 )
             except Exception as e:
                 # Non-fatal: task was created, escrow recording failed
@@ -800,6 +824,39 @@ async def approve_submission(
                     "Payment settled via SDK: task=%s, worker=%s, net=%.2f, tx=%s",
                     task["id"], worker_address[:10], float(worker_payout), release_tx
                 )
+
+                # Submit on-chain reputation feedback (ERC-8004)
+                # This is non-blocking - payment success is not dependent on reputation
+                if ERC8004_AVAILABLE and rate_worker:
+                    try:
+                        # Default positive score for completed work
+                        # TODO: Allow agents to specify score in approval request
+                        reputation_score = 80  # Good work
+
+                        reputation_result = await rate_worker(
+                            task_id=task["id"],
+                            score=reputation_score,
+                            worker_address=worker_address,
+                            comment=f"Task completed and paid: {task.get('title', 'Unknown')[:50]}",
+                            proof_tx=release_tx,  # Payment tx as proof
+                        )
+
+                        if reputation_result.success:
+                            logger.info(
+                                "ERC-8004 reputation submitted: task=%s, worker=%s, score=%d, tx=%s",
+                                task["id"], worker_address[:10], reputation_score, reputation_result.transaction_hash
+                            )
+                        else:
+                            logger.warning(
+                                "ERC-8004 reputation failed: task=%s, error=%s",
+                                task["id"], reputation_result.error
+                            )
+                    except Exception as rep_err:
+                        # Don't fail payment if reputation submission fails
+                        logger.error(
+                            "Exception submitting ERC-8004 reputation for task %s: %s",
+                            task["id"], str(rep_err)
+                        )
             else:
                 release_error = result.get("error", "SDK settlement failed")
                 logger.error(
@@ -902,22 +959,90 @@ async def cancel_task(
     """
     Cancel a task.
 
-    Only tasks in 'published' status can be cancelled. Escrow will be returned.
+    Only tasks in 'published' status can be cancelled.
+
+    For x402 payments:
+    - If payment was AUTHORIZED but not SETTLED, the authorization expires naturally
+    - If payment was SETTLED to escrow, funds are refunded to agent
     """
+    refund_info = None
     try:
         reason = request.reason if request else None
+
+        # Get task details before cancellation to check escrow status
+        task = await db.get_task(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        if task.get("agent_id") != api_key.agent_id:
+            raise HTTPException(status_code=403, detail="Not authorized to cancel this task")
+
+        # Check if we need to handle escrow refund
+        escrow_tx = task.get("escrow_tx")  # This is the X-Payment header
+        escrow_id = task.get("escrow_id")
+
+        if escrow_tx and X402_AVAILABLE:
+            # Check escrow status - if "authorized", no funds moved yet
+            # If "deposited" or "settled", we need to attempt refund
+            try:
+                client = db.get_client()
+                escrow_result = client.table("escrows").select("status").eq("task_id", task_id).single().execute()
+                escrow_status = escrow_result.data.get("status") if escrow_result.data else "authorized"
+
+                if escrow_status == "deposited":
+                    # Funds were settled to escrow - need to refund
+                    # This would require calling the facilitator's refund endpoint
+                    # For now, log and mark as needs_refund
+                    logger.warning(
+                        "Task %s has deposited escrow - manual refund may be needed",
+                        task_id
+                    )
+                    refund_info = {
+                        "status": "needs_manual_refund",
+                        "escrow_id": escrow_id,
+                        "reason": "Payment was settled to escrow before cancellation"
+                    }
+                else:
+                    # Payment was only authorized, not settled
+                    # The EIP-3009 authorization will expire naturally
+                    refund_info = {
+                        "status": "authorization_expired",
+                        "message": "Payment authorization will expire. No funds were moved."
+                    }
+
+                # Update escrow status to cancelled
+                client.table("escrows").update({
+                    "status": "cancelled",
+                    "cancelled_at": datetime.now(timezone.utc).isoformat(),
+                    "cancel_reason": reason,
+                }).eq("task_id", task_id).execute()
+
+            except Exception as escrow_err:
+                logger.warning("Could not check/update escrow for task %s: %s", task_id, escrow_err)
+
+        # Cancel the task in database
         await db.cancel_task(task_id, api_key.agent_id)
 
         logger.info(
-            "Task cancelled: id=%s, agent=%s, reason=%s",
-            task_id, api_key.agent_id, reason
+            "Task cancelled: id=%s, agent=%s, reason=%s, escrow=%s",
+            task_id, api_key.agent_id, reason, refund_info
         )
+
+        response_data = {"task_id": task_id, "reason": reason}
+        if refund_info:
+            response_data["escrow"] = refund_info
 
         return SuccessResponse(
-            message="Task cancelled successfully. Escrow will be returned.",
-            data={"task_id": task_id, "reason": reason}
+            message="Task cancelled successfully." + (
+                " Payment authorization expired (no funds moved)." if refund_info and refund_info.get("status") == "authorization_expired"
+                else " Escrow refund may be required." if refund_info and refund_info.get("status") == "needs_manual_refund"
+                else ""
+            ),
+            data=response_data
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         error_msg = str(e)
         if "not found" in error_msg.lower():
