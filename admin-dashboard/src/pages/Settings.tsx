@@ -14,6 +14,7 @@ function ConfigInput({
   suffix,
   adminKey,
   onSuccess,
+  saveDivisor,
 }: {
   label: string
   configKey: string
@@ -22,6 +23,7 @@ function ConfigInput({
   suffix?: string
   adminKey: string
   onSuccess: () => void
+  saveDivisor?: number
 }) {
   const [editing, setEditing] = useState(false)
   const [newValue, setNewValue] = useState(String(value))
@@ -29,8 +31,11 @@ function ConfigInput({
 
   const mutation = useMutation({
     mutationFn: () => {
-      const parsedValue = type === 'number' ? parseFloat(newValue) :
+      let parsedValue: any = type === 'number' ? parseFloat(newValue) :
                          type === 'boolean' ? newValue === 'true' : newValue
+      if (type === 'number' && saveDivisor) {
+        parsedValue = parsedValue / saveDivisor
+      }
       return adminPut(`/api/v1/admin/config/${configKey}`, adminKey, { value: parsedValue, reason })
     },
     onSuccess: () => {
@@ -173,6 +178,7 @@ export default function Settings({ adminKey }: SettingsProps) {
           label="Platform Fee"
           configKey="fees.platform_fee_pct"
           value={(fees.platform_fee_pct || 0.08) * 100}
+          saveDivisor={100}
           suffix="%"
           adminKey={adminKey}
           onSuccess={handleSuccess}
@@ -181,6 +187,7 @@ export default function Settings({ adminKey }: SettingsProps) {
           label="Partial Release on Submission"
           configKey="fees.partial_release_pct"
           value={(fees.partial_release_pct || 0.30) * 100}
+          saveDivisor={100}
           suffix="%"
           adminKey={adminKey}
           onSuccess={handleSuccess}
