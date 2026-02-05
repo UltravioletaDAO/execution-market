@@ -11,6 +11,31 @@ import { DynamicProvider } from './providers/DynamicProvider'
 import App from './App'
 import './index.css'
 
+// Emergency cache reset to recover users stuck on stale service worker builds.
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  const swResetKey = 'em_sw_reset_version'
+  const swResetVersion = '2026-02-05-cache-hotfix-1'
+
+  if (window.localStorage.getItem(swResetKey) !== swResetVersion) {
+    Promise.resolve()
+      .then(async () => {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(registrations.map((reg) => reg.unregister()))
+        if ('caches' in window) {
+          const cacheNames = await caches.keys()
+          await Promise.all(
+            cacheNames
+              .filter((name) => name.startsWith('em-'))
+              .map((name) => caches.delete(name))
+          )
+        }
+      })
+      .finally(() => {
+        window.localStorage.setItem(swResetKey, swResetVersion)
+      })
+  }
+}
+
 // Create React Query client
 const queryClient = new QueryClient({
   defaultOptions: {

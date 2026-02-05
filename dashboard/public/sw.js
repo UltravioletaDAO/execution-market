@@ -4,10 +4,8 @@
  * Handles offline caching, push notifications, and background sync.
  */
 
-const CACHE_NAME = 'em-v1';
+const CACHE_NAME = 'em-v2-20260205';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/offline.html',
 ];
@@ -50,6 +48,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Always prefer network for SPA navigations to avoid stale app shells
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request, CACHE_NAME));
+    return;
+  }
+
   // API requests - network only with cache fallback
   if (url.pathname.startsWith('/api/') || url.hostname.includes('supabase')) {
     event.respondWith(networkFirst(request, API_CACHE));
@@ -62,8 +66,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets - cache first
-  event.respondWith(cacheFirst(request, CACHE_NAME));
+  // Versioned assets - cache first
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(cacheFirst(request, CACHE_NAME));
+    return;
+  }
+
+  // Other same-origin requests - prefer network to minimize stale content
+  event.respondWith(networkFirst(request, CACHE_NAME));
 });
 
 // Network first strategy
