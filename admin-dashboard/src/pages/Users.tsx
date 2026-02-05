@@ -1,38 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { adminGet, adminPut } from '../lib/api'
 
 interface UsersProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
-
 type UserType = 'agents' | 'workers'
 
 async function fetchUsers(adminKey: string, type: UserType, page: number = 1) {
-  const params = new URLSearchParams({
-    admin_key: adminKey,
+  return adminGet(`/api/v1/admin/users/${type}`, adminKey, {
     limit: '20',
     offset: String((page - 1) * 20),
   })
-
-  const response = await fetch(`${API_BASE}/api/v1/admin/users/${type}?${params}`)
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${type}`)
-  }
-  return response.json()
 }
 
 async function updateUserStatus(adminKey: string, userId: string, status: string) {
-  const response = await fetch(`${API_BASE}/api/v1/admin/users/${userId}/status?admin_key=${adminKey}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  })
-  if (!response.ok) {
-    throw new Error('Failed to update user status')
-  }
-  return response.json()
+  return adminPut(`/api/v1/admin/users/${userId}/status`, adminKey, { status })
 }
 
 function UserCard({
@@ -68,11 +52,11 @@ function UserCard({
             {isAgent ? '🤖' : '👷'}
           </div>
           <div>
-            <p className="text-white font-mono text-sm">
-              {user.wallet_address?.slice(0, 6)}...{user.wallet_address?.slice(-4)}
+            <p className="text-white text-sm font-medium">
+              {user.name || user.wallet_address?.slice(0, 6) + '...' + user.wallet_address?.slice(-4)}
             </p>
-            <p className="text-gray-400 text-xs">
-              ID: {user.id?.slice(0, 8)}
+            <p className="text-gray-400 text-xs font-mono">
+              {user.wallet_address?.slice(0, 6)}...{user.wallet_address?.slice(-4)}
             </p>
           </div>
         </div>

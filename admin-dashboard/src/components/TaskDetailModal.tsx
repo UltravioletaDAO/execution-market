@@ -7,38 +7,18 @@ interface TaskDetailModalProps {
   onClose: () => void
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
+import { adminGet, adminPut, adminPost } from '../lib/api'
 
 async function fetchTaskDetail(adminKey: string, taskId: string) {
-  const response = await fetch(`${API_BASE}/api/v1/admin/tasks/${taskId}?admin_key=${adminKey}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch task')
-  }
-  return response.json()
+  return adminGet(`/api/v1/admin/tasks/${taskId}`, adminKey)
 }
 
 async function updateTask(adminKey: string, taskId: string, updates: any) {
-  const response = await fetch(`${API_BASE}/api/v1/admin/tasks/${taskId}?admin_key=${adminKey}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updates),
-  })
-  if (!response.ok) {
-    throw new Error('Failed to update task')
-  }
-  return response.json()
+  return adminPut(`/api/v1/admin/tasks/${taskId}`, adminKey, updates)
 }
 
 async function cancelTask(adminKey: string, taskId: string, reason: string) {
-  const response = await fetch(`${API_BASE}/api/v1/admin/tasks/${taskId}/cancel?admin_key=${adminKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reason }),
-  })
-  if (!response.ok) {
-    throw new Error('Failed to cancel task')
-  }
-  return response.json()
+  return adminPost(`/api/v1/admin/tasks/${taskId}/cancel`, adminKey, { reason })
 }
 
 const statusColors: Record<string, string> = {

@@ -6,22 +6,16 @@ interface TasksProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
+import { adminGet } from '../lib/api'
 
 async function fetchTasks(adminKey: string, status?: string, page: number = 1, search?: string) {
-  const params = new URLSearchParams({
-    admin_key: adminKey,
+  const params: Record<string, string> = {
     limit: '20',
     offset: String((page - 1) * 20),
-  })
-  if (status) params.set('status', status)
-  if (search) params.set('search', search)
-
-  const response = await fetch(`${API_BASE}/api/v1/admin/tasks?${params}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch tasks')
   }
-  return response.json()
+  if (status) params.status = status
+  if (search) params.search = search
+  return adminGet('/api/v1/admin/tasks', adminKey, params)
 }
 
 const statusColors: Record<string, string> = {

@@ -343,16 +343,6 @@ async def update_config_value(
 
         old_value = current.data[0]["value"]
 
-        # Set session variable for the trigger to capture the reason
-        if request.reason:
-            try:
-                supabase.rpc("set_config", {
-                    "setting_name": "app.config_change_reason",
-                    "new_value": request.reason,
-                }).execute()
-            except Exception:
-                pass  # Non-critical
-
         # Convert the value to proper JSONB format
         import json
         new_value = request.value
@@ -378,6 +368,19 @@ async def update_config_value(
 
         if not result.data:
             raise HTTPException(status_code=500, detail="Failed to update configuration")
+
+        # Update audit log reason directly (trigger can't capture session vars via REST)
+        if request.reason:
+            try:
+                latest = supabase.table("config_audit_log").select("id").eq(
+                    "config_key", key
+                ).order("changed_at", desc=True).limit(1).execute()
+                if latest.data:
+                    supabase.table("config_audit_log").update({
+                        "reason": request.reason,
+                    }).eq("id", latest.data[0]["id"]).execute()
+            except Exception:
+                pass  # Non-critical
 
         # Invalidate cache
         if CONFIG_AVAILABLE:
@@ -936,9 +939,12 @@ async def get_analytics(
                 "created_at, status, updated_at"
             ).gte("created_at", start_str).execute()
 
-            all_escrows = supabase.table("escrows").select(
-                "total_amount_usdc, created_at"
-            ).gte("created_at", start_str).execute()
+            try:
+                all_escrows = supabase.table("escrows").select(
+                    "total_amount_usdc, created_at"
+                ).gte("created_at", start_str).execute()
+            except Exception:
+                all_escrows = type("R", (), {"data": []})()
 
             # Build daily maps
             created_by_day: Dict[str, int] = {}
@@ -979,10 +985,14 @@ async def get_analytics(
                 "agent_id", agent_id
             ).execute()
 
-            escrows = supabase.table("escrows").select("total_amount_usdc").eq(
-                "agent_id", agent_id
-            ).execute()
-            total_spent = sum(float(e.get("total_amount_usdc", 0) or 0) for e in (escrows.data or []))
+            total_spent = 0.0
+            try:
+                escrows = supabase.table("escrows").select("total_amount_usdc").eq(
+                    "agent_id", agent_id
+                ).execute()
+                total_spent = sum(float(e.get("total_amount_usdc", 0) or 0) for e in (escrows.data or []))
+            except Exception:
+                pass
 
             top_agents.append({
                 "id": agent["id"],

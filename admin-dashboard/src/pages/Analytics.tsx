@@ -20,27 +20,14 @@ interface AnalyticsProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
+import { adminGet } from '../lib/api'
 
 async function fetchAnalytics(adminKey: string, period: string) {
-  const params = new URLSearchParams({
-    admin_key: adminKey,
-    period,
-  })
-
-  const response = await fetch(`${API_BASE}/api/v1/admin/analytics?${params}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch analytics')
-  }
-  return response.json()
+  return adminGet('/api/v1/admin/analytics', adminKey, { period })
 }
 
 async function fetchStats(adminKey: string) {
-  const response = await fetch(`${API_BASE}/api/v1/admin/stats?admin_key=${adminKey}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch stats')
-  }
-  return response.json()
+  return adminGet('/api/v1/admin/stats', adminKey)
 }
 
 const COLORS = ['#10B981', '#F59E0B', '#6366F1', '#EC4899', '#8B5CF6', '#EF4444']

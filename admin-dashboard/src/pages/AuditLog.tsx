@@ -1,25 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { adminGet } from '../lib/api'
 
 interface AuditLogProps {
   adminKey: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
-
 async function fetchAuditLog(adminKey: string, page: number = 1, category?: string) {
-  const params = new URLSearchParams({
-    admin_key: adminKey,
+  const params: Record<string, string> = {
     limit: '50',
     offset: String((page - 1) * 50),
-  })
-  if (category) params.set('category', category)
-
-  const response = await fetch(`${API_BASE}/api/v1/admin/config/audit?${params}`)
-  if (!response.ok) {
-    throw new Error('Failed to fetch audit log')
   }
-  return response.json()
+  if (category) params.category = category
+  return adminGet('/api/v1/admin/config/audit', adminKey, params)
 }
 
 function formatValue(value: any): string {

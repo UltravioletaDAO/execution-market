@@ -31,23 +31,21 @@ function App() {
       return
     }
 
-    // Verify the admin key with the backend
+    // Verify the admin key with the backend using header auth
     try {
       const API_BASE = import.meta.env.VITE_API_URL || 'https://api.execution.market'
-      const response = await fetch(`${API_BASE}/api/v1/admin/verify?admin_key=${adminKey}`)
+      const response = await fetch(`${API_BASE}/api/v1/admin/verify`, {
+        headers: { 'X-Admin-Key': adminKey },
+      })
 
       if (response.ok) {
         setIsAuthenticated(true)
-        // Store in session storage for page refresh
         sessionStorage.setItem('adminKey', adminKey)
       } else {
         setLoginError('Invalid admin key')
       }
     } catch {
-      // If verification endpoint doesn't exist, allow login anyway
-      // (for development/MVP purposes)
-      setIsAuthenticated(true)
-      sessionStorage.setItem('adminKey', adminKey)
+      setLoginError('Cannot reach the server. Please try again.')
     }
   }
 
