@@ -37,6 +37,7 @@ const EVIDENCE_TYPE_LABELS: Record<string, string> = {
 export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: TaskDetailPanelProps) {
   const { t } = useTranslation()
   const { formatCurrency, formatTimeRemaining } = useCustomTranslation()
+  const isAcceptable = task.status === 'published'
 
   // Fetch payment data when escrow exists or task has reached payment-sensitive states
   const hasEscrow = Boolean(task.escrow_tx || task.escrow_id)
@@ -283,7 +284,16 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
 
         {/* Action footer */}
         <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-          {isAuthenticated ? (
+          {!isAcceptable ? (
+            <button
+              disabled
+              className="w-full py-3 bg-gray-300 text-gray-700 font-semibold rounded-xl cursor-not-allowed"
+            >
+              {task.status === 'expired'
+                ? t('tasks.expired', 'Task expired')
+                : t('tasks.unavailable', 'Task not available')}
+            </button>
+          ) : isAuthenticated ? (
             <button
               onClick={onApply}
               className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors"

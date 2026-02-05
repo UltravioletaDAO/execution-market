@@ -21,6 +21,7 @@ const JobCard = memo(function JobCard({ task, onClick }: { task: Task; onClick: 
 
   const deadlineText = formatTimeRemaining(task.deadline)
   const isExpiring = new Date(task.deadline).getTime() - Date.now() < 24 * 60 * 60 * 1000
+  const isExpired = task.status === 'expired'
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -77,8 +78,12 @@ const JobCard = memo(function JobCard({ task, onClick }: { task: Task; onClick: 
           <div className="text-xl font-black text-emerald-600">
             {formatCurrency(task.bounty_usd)}
           </div>
-          <span className="px-4 py-1.5 bg-emerald-600 text-white text-sm font-semibold rounded-lg group-hover:bg-emerald-500 transition-colors">
-            {t('tasks.apply', 'Apply')}
+          <span className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-colors ${
+            isExpired
+              ? 'bg-gray-200 text-gray-600'
+              : 'bg-emerald-600 text-white group-hover:bg-emerald-500'
+          }`}>
+            {isExpired ? t('tasks.expired', 'Expired') : t('tasks.apply', 'Apply')}
           </span>
         </div>
       </div>
@@ -95,7 +100,10 @@ export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>
     const [selectedTask, setSelectedTask] = useState<Task | null>(null)
     const [applyingTask, setApplyingTask] = useState<Task | null>(null)
 
-    const { tasks, loading, error } = useAvailableTasks({ category: category ?? undefined })
+    const { tasks, loading, error } = useAvailableTasks({
+      category: category ?? undefined,
+      includeExpiredFallback: true,
+    })
 
     const handleTaskClick = (task: Task) => {
       setSelectedTask(task)

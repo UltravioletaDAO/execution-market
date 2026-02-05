@@ -9,6 +9,10 @@ interface UseTasksOptions {
   limit?: number
 }
 
+interface UseAvailableTasksOptions extends Omit<UseTasksOptions, 'status'> {
+  includeExpiredFallback?: boolean
+}
+
 interface UseTasksResult {
   tasks: Task[]
   loading: boolean
@@ -167,8 +171,101 @@ export function useTask(taskId: string | undefined): UseTaskResult {
 }
 
 // Available tasks for executors (published, not accepted)
-export function useAvailableTasks(options: Omit<UseTasksOptions, 'status'> = {}): UseTasksResult {
-  return useTasks({ ...options, status: 'published' })
+export function useAvailableTasks(options: UseAvailableTasksOptions = {}): UseTasksResult {
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  const buildAvailableTasksUrl = useCallback((includeExpired: boolean): string => {
+    const base = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
+    const path = base.endsWith('/api') ? `${base}/v1/tasks/available` : `${base}/api/v1/tasks/available`
+    const params = new URLSearchParams()
+
+    if (options.category) {
+      params.set('category', options.category)
+    }
+    if (options.limit) {
+      params.set('limit', String(options.limit))
+    } else {
+      params.set('limit', '50')
+    }
+    if (includeExpired) {
+      params.set('include_expired', 'true')
+    }
+
+    return `${path}?${params.toString()}`
+  }, [options.category, options.limit])
+
+  const normalizeTask = useCallback((raw: any): Task => {
+    const normalizedStatus = (raw?.status || 'published') as TaskStatus
+    return {
+      ...raw,
+      status: normalizedStatus,
+      evidence_schema: raw?.evidence_schema || { required: [], optional: [] },
+      required_roles: raw?.required_roles || [],
+      payment_token: raw?.payment_token || 'USDC',
+      min_reputation: raw?.min_reputation || 0,
+      max_executors: raw?.max_executors || 1,
+      updated_at: raw?.updated_at || raw?.created_at || new Date().toISOString(),
+      location: raw?.location || null,
+      location_radius_km: raw?.location_radius_km ?? null,
+      accepted_at: raw?.accepted_at ?? null,
+      chainwitness_proof: raw?.chainwitness_proof ?? null,
+      completed_at: raw?.completed_at ?? null,
+      executor_id: raw?.executor_id ?? null,
+      escrow_tx: raw?.escrow_tx ?? null,
+      escrow_id: raw?.escrow_id ?? null,
+    } as Task
+  }, [])
+
+  const fetchAvailableTasks = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const primaryRes = await fetch(buildAvailableTasksUrl(false), {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!primaryRes.ok) {
+        throw new Error(`Failed to fetch available tasks (${primaryRes.status})`)
+      }
+
+      const primaryData = await primaryRes.json() as { tasks?: any[] }
+      let incoming = (primaryData.tasks || []).map(normalizeTask)
+
+      if (incoming.length === 0 && options.includeExpiredFallback) {
+        const fallbackRes = await fetch(buildAvailableTasksUrl(true), {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        })
+
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json() as { tasks?: any[] }
+          incoming = (fallbackData.tasks || []).map(normalizeTask)
+        }
+      }
+
+      setTasks(incoming)
+    } catch (err) {
+      setError(normalizeError(err))
+      setTasks([])
+    } finally {
+      setLoading(false)
+    }
+  }, [buildAvailableTasksUrl, normalizeTask, options.includeExpiredFallback])
+
+  useEffect(() => {
+    fetchAvailableTasks()
+  }, [fetchAvailableTasks])
+
+  useEffect(() => {
+    const intervalId = window.setInterval(fetchAvailableTasks, 30_000)
+    return () => window.clearInterval(intervalId)
+  }, [fetchAvailableTasks])
+
+  return { tasks, loading, error, refetch: fetchAvailableTasks }
 }
 
 // My tasks (for logged-in executor)
