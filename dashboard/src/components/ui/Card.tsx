@@ -109,7 +109,7 @@ Card.displayName = 'Card';
 /**
  * CardHeader Component
  */
-export interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {
+export interface CardHeaderProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
   /** Title element */
   title?: ReactNode;
   /** Subtitle/description */

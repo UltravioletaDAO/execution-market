@@ -17,23 +17,19 @@ interface UseTasksResult {
 }
 
 export function useTasks(options: UseTasksOptions = {}): UseTasksResult {
-  console.log('[useTasks] Hook called with options:', options)
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   const fetchTasks = useCallback(async () => {
-    console.log('[useTasks] fetchTasks called')
     setLoading(true)
     setError(null)
 
     try {
-      console.log('[useTasks] Building query...')
       let query = supabase
         .from('tasks')
         .select('*')
         .order('created_at', { ascending: false })
-      console.log('[useTasks] Query built, about to execute...')
 
       if (options.status) {
         if (Array.isArray(options.status)) {
@@ -51,11 +47,7 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksResult {
         query = query.limit(options.limit)
       }
 
-      console.log('[useTasks] Executing query NOW...')
       const { data, error: fetchError } = await query
-      console.log('[useTasks] Query returned!')
-
-      console.log('Tasks query result:', { data, error: fetchError })
 
       if (fetchError) throw fetchError
       setTasks(data || [])

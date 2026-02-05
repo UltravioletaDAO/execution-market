@@ -87,7 +87,7 @@ export function useNotifications(): UseNotificationsReturn {
     error,
     hasMore,
     filter,
-    toasts,
+    toasts: _toasts,
     addNotification,
     removeNotification,
     markAsRead,

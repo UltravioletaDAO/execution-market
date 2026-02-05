@@ -7,7 +7,7 @@
  * - Update notification support
  */
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { usePWA } from '../hooks/usePWA'
 
 const DISMISS_KEY = 'em-install-dismissed'

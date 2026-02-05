@@ -19,6 +19,7 @@ interface EvidenceFile {
   preview?: string
   uploading: boolean
   uploaded: boolean
+  progress: number // 0-100
   error?: string
 }
 
@@ -70,6 +71,7 @@ export function SubmissionForm({
           preview,
           uploading: false,
           uploaded: false,
+          progress: 0,
         })
         return next
       })
@@ -99,12 +101,44 @@ export function SubmissionForm({
 
   const uploadFile = async (evidenceFile: EvidenceFile): Promise<string> => {
     const path = `${executor.user_id}/${task.id}/${evidenceFile.type}_${Date.now()}`
-    const { error: uploadError } = await supabase.storage
-      .from('evidence')
-      .upload(path, evidenceFile.file)
 
-    if (uploadError) throw uploadError
-    return path
+    // Use XMLHttpRequest for progress tracking (Supabase JS doesn't expose it)
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      const uploadUrl = `${SUPABASE_URL}/storage/v1/object/evidence/${path}`
+
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100)
+          setFiles((prev) => {
+            const next = new Map(prev)
+            const file = next.get(evidenceFile.type)
+            if (file) {
+              next.set(evidenceFile.type, { ...file, progress })
+            }
+            return next
+          })
+        }
+      })
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(path)
+        } else {
+          reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`))
+        }
+      })
+
+      xhr.addEventListener('error', () => reject(new Error('Network error during upload')))
+      xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')))
+
+      xhr.open('POST', uploadUrl)
+      xhr.setRequestHeader('apikey', SUPABASE_KEY)
+      xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_KEY}`)
+      xhr.setRequestHeader('Content-Type', evidenceFile.file.type || 'application/octet-stream')
+      xhr.setRequestHeader('x-upsert', 'true')
+      xhr.send(evidenceFile.file)
+    })
   }
 
   const handleSubmit = async () => {
@@ -291,13 +325,41 @@ export function SubmissionForm({
             )}
 
             {evidenceFile.uploading && (
-              <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                <div className="text-white">Subiendo...</div>
+              <div className="absolute inset-0 bg-black/70 rounded-lg flex flex-col items-center justify-center p-4">
+                <div className="w-full max-w-[200px] mb-2">
+                  <div className="h-2 bg-white/30 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-white rounded-full transition-all duration-300"
+                      style={{ width: `${evidenceFile.progress}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="text-white text-sm font-medium">
+                  Subiendo... {evidenceFile.progress}%
+                </div>
               </div>
             )}
 
             {evidenceFile.error && (
-              <div className="mt-2 text-sm text-red-600">{evidenceFile.error}</div>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-sm text-red-600">{evidenceFile.error}</span>
+                <button
+                  onClick={() => {
+                    // Clear error and allow re-upload
+                    setFiles((prev) => {
+                      const next = new Map(prev)
+                      const file = next.get(type)
+                      if (file) {
+                        next.set(type, { ...file, error: undefined, progress: 0 })
+                      }
+                      return next
+                    })
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  Reintentar
+                </button>
+              </div>
             )}
 
             {!evidenceFile.uploading && !evidenceFile.uploaded && (
@@ -354,8 +416,21 @@ export function SubmissionForm({
 
       <div className="p-4 space-y-4">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-            {error}
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm text-red-700">{error}</p>
+                <button
+                  onClick={() => setError(null)}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                >
+                  Cerrar e intentar de nuevo
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

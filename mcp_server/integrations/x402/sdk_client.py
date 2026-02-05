@@ -251,41 +251,32 @@ class EMX402SDK:
             TaskPaymentResult with verification details
         """
         try:
-            # Parse payment header
-            payment_data = self.client.parse_payment_header(payment_header)
+            # Extract and validate payment payload from X-Payment header
+            payload = self.client.extract_payload(payment_header)
 
-            # Verify amount matches
-            if Decimal(payment_data.get("amount", 0)) < expected_amount:
+            # Get payer address from the payload
+            payer_address, payer_network = self.client.get_payer_address(payment_header)
+
+            # Verify with facilitator (validates signature on-chain without settling)
+            verify_response = self.client.verify_payment(payload, expected_amount)
+
+            if not verify_response.isValid:
                 return TaskPaymentResult(
                     success=False,
-                    payer_address=payment_data.get("payer", "unknown"),
-                    amount_usd=Decimal(payment_data.get("amount", 0)),
-                    network=self.network,
+                    payer_address=verify_response.payer or payer_address or "unknown",
+                    amount_usd=expected_amount,
+                    network=payload.network,
                     timestamp=datetime.now(timezone.utc),
                     task_id=task_id,
-                    error=f"Insufficient payment: expected {expected_amount}, got {payment_data.get('amount')}",
-                )
-
-            # Verify with facilitator
-            verification = await self.client.verify(payment_header)
-
-            if not verification.get("valid"):
-                return TaskPaymentResult(
-                    success=False,
-                    payer_address=payment_data.get("payer", "unknown"),
-                    amount_usd=Decimal(payment_data.get("amount", 0)),
-                    network=self.network,
-                    timestamp=datetime.now(timezone.utc),
-                    task_id=task_id,
-                    error=verification.get("error", "Payment verification failed"),
+                    error=verify_response.invalidReason or verify_response.message or "Payment verification failed",
                 )
 
             return TaskPaymentResult(
                 success=True,
-                payer_address=verification.get("payer_address", payment_data.get("payer")),
-                amount_usd=Decimal(str(verification.get("amount", payment_data.get("amount", 0)))),
-                tx_hash=verification.get("tx_hash"),
-                network=verification.get("network", self.network),
+                payer_address=verify_response.payer or payer_address,
+                amount_usd=expected_amount,
+                tx_hash=None,  # No tx_hash until settlement
+                network=payload.network,
                 timestamp=datetime.now(timezone.utc),
                 task_id=task_id,
             )
@@ -330,21 +321,22 @@ class EMX402SDK:
             platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(Decimal("0.01"))
             worker_net = bounty_amount - platform_fee
 
-            # Settle via facilitator
-            settlement = await self.client.settle(
-                payment_header,
-                recipient=worker_address,
-            )
+            # Extract payload from header
+            payload = self.client.extract_payload(payment_header)
+
+            # Settle via facilitator (on-chain transfer)
+            settle_response = self.client.settle_payment(payload, bounty_amount)
 
             return {
-                "success": True,
+                "success": settle_response.success,
                 "task_id": task_id,
                 "worker_address": worker_address,
                 "gross_amount": float(bounty_amount),
                 "platform_fee": float(platform_fee),
                 "net_to_worker": float(worker_net),
-                "tx_hash": settlement.get("tx_hash"),
-                "network": settlement.get("network", self.network),
+                "tx_hash": settle_response.get_transaction_hash(),
+                "network": payload.network,
+                "payer": settle_response.payer,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
@@ -369,15 +361,19 @@ class EMX402SDK:
             Dict with health status
         """
         try:
-            # Check facilitator
-            facilitator_health = await self.client.health()
+            import httpx
+            async with httpx.AsyncClient() as http_client:
+                response = await http_client.get(
+                    f"{self.facilitator_url}/health",
+                    timeout=10.0,
+                )
+                facilitator_health = response.json() if response.status_code == 200 else {}
 
             return {
                 "sdk_available": True,
                 "facilitator_url": self.facilitator_url,
-                "facilitator_healthy": facilitator_health.get("healthy", False),
-                "supported_networks": facilitator_health.get("networks", []),
-                "version": facilitator_health.get("version"),
+                "facilitator_healthy": response.status_code == 200,
+                "facilitator_status": facilitator_health.get("status", "unknown"),
                 "network": self.network,
                 "recipient": self.recipient_address,
             }

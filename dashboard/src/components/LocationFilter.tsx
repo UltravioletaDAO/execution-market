@@ -11,11 +11,21 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
+// GPS Coordinates type (exported for consumers)
+export interface GPSCoordinates {
+  lat: number
+  lng: number
+}
+
 // Props interface
-interface LocationFilterProps {
-  onFilterChange: (distance: number, location: { lat: number; lng: number } | null) => void
+export interface LocationFilterProps {
+  onFilterChange?: (distance: number, location: GPSCoordinates | null) => void
+  onDistanceChange?: (distance: number) => void
+  onLocationChange?: (location: GPSCoordinates | null) => void
   initialDistance?: number
-  initialLocation?: { lat: number; lng: number }
+  initialLocation?: GPSCoordinates
+  maxDistance?: number
+  showLocationButton?: boolean
 }
 
 // Location state type
@@ -52,8 +62,12 @@ function getCurrentPosition(): Promise<{ lat: number; lng: number } | null> {
 
 export function LocationFilter({
   onFilterChange,
+  onDistanceChange,
+  onLocationChange,
   initialDistance = 25,
   initialLocation,
+  maxDistance: _maxDistance = 100,
+  showLocationButton: _showLocationButton = true,
 }: LocationFilterProps) {
   const [distance, setDistance] = useState(initialDistance)
   const [location, setLocation] = useState<LocationState | null>(
@@ -66,8 +80,11 @@ export function LocationFilter({
 
   // Notify parent of filter changes
   useEffect(() => {
-    onFilterChange(distance, location ? { lat: location.lat, lng: location.lng } : null)
-  }, [distance, location, onFilterChange])
+    const coords = location ? { lat: location.lat, lng: location.lng } : null
+    onFilterChange?.(distance, coords)
+    onDistanceChange?.(distance)
+    onLocationChange?.(coords)
+  }, [distance, location, onFilterChange, onDistanceChange, onLocationChange])
 
   // Handle distance slider change
   const handleDistanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,5 +305,3 @@ export function LocationFilter({
     </div>
   )
 }
-
-export { LocationFilter }

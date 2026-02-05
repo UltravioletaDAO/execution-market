@@ -180,11 +180,9 @@ function ToastItem({ toast, onDismiss, index }: ToastItemProps) {
       <div className="p-4">
         <div className="flex items-start gap-3">
           {/* Icon */}
-          {(toast.icon || Icon) && (
-            <div className={`flex-shrink-0 ${config.iconColor}`}>
-              {toast.icon || <Icon />}
-            </div>
-          )}
+          <div className={`flex-shrink-0 ${config.iconColor}`}>
+            {toast.icon ?? <Icon />}
+          </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">

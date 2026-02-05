@@ -103,7 +103,7 @@ function EarningsPage() {
 
 function AgentDashboardPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { executor } = useAuth()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -123,7 +123,7 @@ function AgentDashboardPage() {
       </header>
       <main className="max-w-6xl mx-auto px-4 py-6">
         <AgentDashboard
-          agentId={user?.id ?? ''}
+          agentId={executor?.id ?? ''}
           onBack={() => navigate('/')}
           onCreateTask={() => navigate('/agent/tasks/new')}
           onViewTask={(task) => console.log('View task:', task.id)}

@@ -54,7 +54,7 @@ export function StatusBadge({
   className,
   icon,
 }: StatusBadgeProps) {
-  const normalizedStatus = status.replace('-', '_');
+  const _normalizedStatus = status.replace('-', '_');
   const displayLabel = label || formatStatus(status);
   const dotAnimation = getStatusDotAnimationClass(status);
 
@@ -173,7 +173,8 @@ export function StatusIndicator({
       )}
       style={{
         backgroundColor: getStatusColor(status),
-        ringColor: getStatusColor(status),
+        // @ts-expect-error: CSS custom property for ring color
+        '--tw-ring-color': getStatusColor(status),
       }}
       role="img"
       aria-label={`Status: ${formatStatus(status)}`}

@@ -183,7 +183,7 @@ export function usePWA(): UsePWAReturn {
       try {
         const subscription = await swRegistration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
         })
 
         return subscription
@@ -285,7 +285,7 @@ export function usePushNotifications() {
 
     const sub = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
     })
 
     setSubscription(sub)

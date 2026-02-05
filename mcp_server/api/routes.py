@@ -64,7 +64,7 @@ async def get_min_bounty() -> Decimal:
             return await PlatformConfig.get_min_bounty()
         except Exception:
             pass
-    return Decimal("0.25")
+    return Decimal("0.01")
 
 
 async def get_max_bounty() -> Decimal:
@@ -535,6 +535,8 @@ async def create_task(
             min_reputation=task.get("min_reputation", 0),
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Failed to create task: %s", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail="Internal error while creating task")

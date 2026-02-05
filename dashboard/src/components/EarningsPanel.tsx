@@ -591,10 +591,3 @@ export function EarningsPanel({
   )
 }
 
-// Re-export types for external use
-export type {
-  EarningsSummary,
-  PendingTask,
-  Transaction,
-  EarningsPanelProps,
-}

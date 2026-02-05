@@ -12,7 +12,7 @@
  * - Support multiple evidence items
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import type { EvidenceType } from '../../types/database'
@@ -143,7 +143,7 @@ export function EvidenceUpload({
   )
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isMobile] = useState(() =>
+  const [_isMobile] = useState(() =>
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   )
 
@@ -182,13 +182,20 @@ export function EvidenceUpload({
 
     // Calculate distance if task location provided
     const distance = currentGps ? calculateDistance(currentGps) : undefined
-    const withinRange = distance !== undefined && taskLocation?.radiusKm
+    const _withinRange = distance !== undefined && taskLocation?.radiusKm
       ? distance / 1000 <= taskLocation.radiusKm
       : undefined
 
+    // Map EvidenceType to EvidenceItem.type (limited set)
+    const mapToPreviewType = (et: EvidenceType): EvidenceItem['type'] => {
+      if (et === 'photo' || et === 'photo_geo' || et === 'video' || et === 'document') return et
+      // Map other types to photo for preview purposes
+      return 'photo'
+    }
+
     const item: EvidenceItem = {
       id,
-      type: currentEvidenceType,
+      type: mapToPreviewType(currentEvidenceType),
       file,
       dataUrl: photo.dataUrl,
       timestamp,
@@ -246,9 +253,15 @@ export function EvidenceUpload({
         img.src = dataUrl
       })
 
+      // Map EvidenceType to EvidenceItem.type (limited set)
+      const previewType: EvidenceItem['type'] =
+        currentEvidenceType === 'photo' || currentEvidenceType === 'photo_geo' ||
+        currentEvidenceType === 'video' || currentEvidenceType === 'document'
+          ? currentEvidenceType : 'photo'
+
       newItems.push({
         id,
-        type: currentEvidenceType,
+        type: previewType,
         file,
         dataUrl,
         timestamp: new Date(file.lastModified),

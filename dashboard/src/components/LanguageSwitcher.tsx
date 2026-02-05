@@ -72,7 +72,6 @@ export function LanguageSwitcher({
 export function LanguageSwitcherDropdown({ className = '' }: LanguageSwitcherProps) {
   useTranslation() // Hook needed for re-render on language change
   const currentLang = getCurrentLanguage()
-  const currentConfig = LANGUAGE_CONFIG[currentLang]
 
   return (
     <select

@@ -4,22 +4,15 @@
  * Fully internationalized using i18n translations
  */
 
+import { memo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Task, TaskCategory, TaskStatus } from '../types/database'
+import type { Task, TaskStatus } from '../types/database'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
+import { CATEGORY_ICONS } from '../constants/categories'
 
 interface TaskCardProps {
   task: Task
   onClick?: () => void
-}
-
-// Category icons (emoji-based, universal)
-const CATEGORY_ICONS: Record<TaskCategory, string> = {
-  physical_presence: '📍',
-  knowledge_access: '📚',
-  human_authority: '📋',
-  simple_action: '✋',
-  digital_physical: '🔗',
 }
 
 // Status colors (Tailwind classes)
@@ -35,12 +28,22 @@ const STATUS_COLORS: Record<TaskStatus, string> = {
   cancelled: 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500',
 }
 
-export function TaskCard({ task, onClick }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps) {
   const { t } = useTranslation()
   const { formatCurrency, formatTimeRemaining } = useCustomTranslation()
 
   const isExpiringSoon =
     new Date(task.deadline).getTime() - Date.now() < 24 * 60 * 60 * 1000
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        onClick?.()
+      }
+    },
+    [onClick]
+  )
 
   // Get translated category label
   const categoryLabel = t(`tasks.categories.${task.category}`)
@@ -60,12 +63,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onClick?.()
-        }
-      }}
+      onKeyDown={handleKeyDown}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -157,6 +155,6 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       )}
     </article>
   )
-}
+})
 
 export default TaskCard

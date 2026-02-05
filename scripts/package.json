@@ -10,7 +10,10 @@
     "test:task": "tsx test_create_task.ts",
     "simulate:agent": "tsx simulate_agent_mcp.ts",
     "simulate:agent:mock": "tsx simulate_agent_mcp.ts --mock",
-    "test:escrow": "tsx test-escrow-flow.ts"
+    "test:escrow": "tsx test-escrow-flow.ts",
+    "test:x402": "tsx test-x402-full-flow.ts",
+    "test:x402:direct": "tsx test-x402-full-flow.ts --direct",
+    "test:x402:monitor": "tsx test-x402-full-flow.ts --monitor --auto-approve"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

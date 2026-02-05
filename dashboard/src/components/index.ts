@@ -14,8 +14,7 @@ export type {
   GPSCoordinates as EvidenceGPSCoordinates,
 } from './EvidenceUpload'
 export { DisputesPage } from './DisputesPage'
-// Legacy NotificationBell - use notifications/NotificationBell instead
-export { NotificationBell as NotificationBellLegacy, type Notification as LegacyNotification } from './NotificationBell'
+// Note: Legacy NotificationBell removed - use './notifications' directly
 export { LocationFilter, type GPSCoordinates } from './LocationFilter'
 export { PWAPrompt } from './PWAPrompt'
 export { InstallPrompt, IOSInstallPrompt } from './InstallPrompt'
@@ -49,8 +48,7 @@ export {
 export { CameraCapture } from './CameraCapture'
 export type { CaptureResult } from './CameraCapture'
 
-// Evidence module (new structured components)
-export * from './evidence'
+// Evidence module (import directly from './evidence' for full API)
 export {
   EvidenceUpload as EvidenceUploadNew,
   CameraCapture as CameraCaptureNew,
@@ -59,57 +57,27 @@ export {
   EvidenceVerification,
 } from './evidence'
 
-// Map components
+// Map components - for better tree-shaking, import directly from './map'
 export {
   TaskMap,
   LocationPicker,
-  TaskMarker,
-  TaskCluster,
   NearbyTasks,
   useLocation,
-  calculateDistance,
-  isWithinRadius,
-  getDistanceToTask,
-  sortTasksByDistance,
-  filterTasksByRadius,
-  formatDistance,
-  positionToLocation,
-  locationToPosition,
-  geocodeAddress,
-  reverseGeocode,
 } from './map'
 export type {
   Position,
   LocationState,
-  UseLocationOptions,
-  TaskWithDistance,
 } from './map'
 
-// Notifications module
+// Notifications - for full API, import directly from './notifications'
 export {
   NotificationProvider,
-  NotificationContext,
   useNotificationContext,
   NotificationBell,
-  NotificationList,
-  NotificationItem,
   Toast,
   ToastContainer,
 } from './notifications'
 export type {
   Notification,
   NotificationType,
-  NotificationInsert,
-  NotificationRow,
-  NotificationFilter,
-  NotificationPriority,
-  NotificationContextValue,
-  ToastType,
-  ToastSeverity,
-  ToastOptions,
-  ToastAction,
-  OnNotificationClick,
-  NotificationComponentProps,
-  NotificationPaginationParams,
-  WebSocketStatus,
 } from './notifications'

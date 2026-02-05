@@ -21,12 +21,14 @@ ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 ARG VITE_API_URL
 ARG VITE_WALLET_CONNECT_PROJECT_ID
+ARG VITE_DYNAMIC_ENVIRONMENT_ID
 
 # Only set ENV if ARG is non-empty, otherwise let Vite read .env.production
 RUN if [ -n "$VITE_SUPABASE_URL" ]; then export VITE_SUPABASE_URL="$VITE_SUPABASE_URL"; fi && \
     if [ -n "$VITE_SUPABASE_ANON_KEY" ]; then export VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY"; fi && \
     if [ -n "$VITE_API_URL" ]; then export VITE_API_URL="$VITE_API_URL"; fi && \
     if [ -n "$VITE_WALLET_CONNECT_PROJECT_ID" ]; then export VITE_WALLET_CONNECT_PROJECT_ID="$VITE_WALLET_CONNECT_PROJECT_ID"; fi && \
+    if [ -n "$VITE_DYNAMIC_ENVIRONMENT_ID" ]; then export VITE_DYNAMIC_ENVIRONMENT_ID="$VITE_DYNAMIC_ENVIRONMENT_ID"; fi && \
     npm run build
 
 # Production stage with nginx

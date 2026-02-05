@@ -311,7 +311,7 @@ function formatRelativeTime(dateStr: string, locale: string = 'es'): string {
 // Props
 // ============================================================================
 
-interface NotificationItemProps {
+export interface NotificationItemProps {
   notification: Notification
   onClick?: (notification: Notification) => void
   onAction?: (notification: Notification) => void
@@ -320,6 +320,7 @@ interface NotificationItemProps {
   showActions?: boolean
   compact?: boolean
   className?: string
+  style?: React.CSSProperties
 }
 
 // ============================================================================
@@ -335,6 +336,7 @@ export function NotificationItem({
   showActions = false,
   compact = false,
   className = '',
+  style,
 }: NotificationItemProps) {
   const { i18n, t } = useTranslation()
   const config = NOTIFICATION_CONFIG[notification.type] || NOTIFICATION_CONFIG.system
@@ -372,6 +374,7 @@ export function NotificationItem({
     return (
       <button
         onClick={handleClick}
+        style={style}
         className={`
           w-full px-3 py-2 flex items-center gap-2
           text-left transition-colors duration-150
@@ -419,6 +422,7 @@ export function NotificationItem({
       tabIndex={0}
       onClick={handleClick}
       onKeyDown={(e) => e.key === 'Enter' && handleClick()}
+      style={style}
       className={`
         group w-full px-4 py-3 flex items-start gap-3
         text-left transition-all duration-150 cursor-pointer

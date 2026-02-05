@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { useAvailableTasks } from '../hooks/useTasks'
 import { TaskCard } from './TaskCard'
 import { LocationFilter, type GPSCoordinates } from './LocationFilter'
+import type { TaskCategory } from '../types/database'
 
 // Types
 interface TaskFilters {
@@ -64,7 +65,7 @@ const SORT_OPTIONS = [
 ]
 
 export function TaskBrowser({
-  executorId,
+  executorId: _executorId,
   executorSkills = [],
   onTaskSelect,
 }: TaskBrowserProps) {
@@ -81,12 +82,14 @@ export function TaskBrowser({
   const [showFilters, setShowFilters] = useState(false)
   const [showLocationFilter, setShowLocationFilter] = useState(false)
 
-  // Fetch tasks
-  const { tasks, loading, error, hasMore, loadMore, refetch } = useAvailableTasks({
-    category: filters.category || undefined,
-    location: filters.location || undefined,
-    maxDistance: filters.maxDistance || undefined,
+  // Fetch tasks - note: useAvailableTasks doesn't have pagination yet
+  const { tasks, loading, error, refetch } = useAvailableTasks({
+    category: (filters.category as TaskCategory) || undefined,
   })
+
+  // Pagination not implemented yet in useTasks
+  const hasMore = false
+  const loadMore = () => {}
 
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
@@ -94,16 +97,16 @@ export function TaskBrowser({
 
     // Filter by pay range
     if (filters.minPay !== null) {
-      result = result.filter((task) => task.payment_amount >= filters.minPay!)
+      result = result.filter((task) => task.bounty_usd >= filters.minPay!)
     }
     if (filters.maxPay !== null) {
-      result = result.filter((task) => task.payment_amount <= filters.maxPay!)
+      result = result.filter((task) => task.bounty_usd <= filters.maxPay!)
     }
 
     // Filter by skills (if executor has skills defined)
     if (filters.skills.length > 0) {
       result = result.filter((task) => {
-        const taskSkills = (task.required_skills as string[]) || []
+        const taskSkills = (task.required_roles as string[]) || []
         return filters.skills.some((skill) => taskSkills.includes(skill))
       })
     }
@@ -111,7 +114,7 @@ export function TaskBrowser({
     // Sort
     switch (filters.sortBy) {
       case 'highest_pay':
-        result.sort((a, b) => b.payment_amount - a.payment_amount)
+        result.sort((a, b) => b.bounty_usd - a.bounty_usd)
         break
       case 'nearest':
         // Would need distance calculation from location
@@ -441,7 +444,7 @@ export function TaskBrowser({
           // Task cards
           <>
             {filteredTasks.map((task) => {
-              const skillMatch = getSkillMatch((task.required_skills as string[]) || [])
+              const skillMatch = getSkillMatch((task.required_roles as string[]) || [])
               return (
                 <div key={task.id} className="relative">
                   <TaskCard

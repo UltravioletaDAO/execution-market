@@ -99,6 +99,16 @@ async def run_auto_payment_loop() -> None:
 
     from supabase_client import get_client
 
+    # Check if payments table exists before entering loop
+    try:
+        client = get_client()
+        client.table("payments").select("id").limit(1).execute()
+    except Exception as exc:
+        if "PGRST205" in str(exc) or "Could not find the table" in str(exc):
+            logger.info("[auto-payment] payments table does not exist, skipping auto-payment job")
+            return
+        logger.warning("[auto-payment] Could not verify payments table: %s", exc)
+
     while True:
         try:
             client = get_client()

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useTaskPayment } from '../hooks/useTaskPayment'
 import { PaymentStatus } from './PaymentStatus'
 import type { Task, TaskCategory, Executor } from '../types/database'
+import { CATEGORY_ICONS } from '../constants/categories'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -16,20 +17,13 @@ interface TaskDetailProps {
   onAccept?: () => void
 }
 
+// Spanish labels - should eventually use i18n
 const CATEGORY_LABELS: Record<TaskCategory, string> = {
   physical_presence: 'Presencia Fisica',
   knowledge_access: 'Acceso a Conocimiento',
   human_authority: 'Autoridad Humana',
   simple_action: 'Accion Simple',
   digital_physical: 'Digital-Fisico',
-}
-
-const CATEGORY_ICONS: Record<TaskCategory, string> = {
-  physical_presence: '📍',
-  knowledge_access: '📚',
-  human_authority: '📋',
-  simple_action: '✋',
-  digital_physical: '🔗',
 }
 
 const EVIDENCE_TYPE_LABELS: Record<string, string> = {
@@ -141,6 +135,7 @@ export function TaskDetail({
       <div className="p-4 border-b border-gray-200">
         <button
           onClick={onBack}
+          aria-label="Volver a la lista de tareas"
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-3"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -359,8 +354,21 @@ export function TaskDetail({
       {task.status === 'published' && (
         <div className="p-4 bg-gray-50 border-t border-gray-200">
           {error && (
-            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-              {error}
+            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm text-red-700">{error}</p>
+                  <button
+                    onClick={() => setError(null)}
+                    className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                  >
+                    Cerrar e intentar de nuevo
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

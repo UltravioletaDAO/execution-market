@@ -11,7 +11,6 @@ import {
   getReputationLabel,
   getReputationColorClass,
   getReputationBgClass,
-  colors,
 } from '../../styles/theme';
 import { cn } from '../../lib/utils';
 
