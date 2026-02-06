@@ -53,6 +53,7 @@ ALL_MIGRATIONS=(
     "019_add_refund_tx_to_tasks.sql"
     "020_tasks_erc8004_agent_id.sql"
     "021_add_reputation_tx_to_submissions.sql"
+    "022_evidence_forensic_metadata.sql"
 )
 
 if [ -z "${SUPABASE_DB_URL:-}" ]; then

@@ -1,8 +1,15 @@
 // Execution Market: Evidence Submission Form
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import type { Task, EvidenceType, Executor } from '../types/database'
+import {
+  uploadEvidenceFile,
+  collectForensicMetadata,
+  isS3PipelineEnabled,
+  type EvidenceMetadata,
+  type UploadResult,
+} from '../services/evidence'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -30,6 +37,7 @@ interface EvidenceFile {
   uploading: boolean
   uploaded: boolean
   uploadedPath?: string
+  uploadResult?: UploadResult
   progress: number // 0-100
   error?: string
   verifying?: boolean
@@ -67,50 +75,30 @@ export function SubmissionForm({
 
   const allRequired = task.evidence_schema.required
   const allOptional = task.evidence_schema.optional || []
+  const [forensicMetadata, setForensicMetadata] = useState<EvidenceMetadata | null>(null)
+
+  // Collect forensic metadata once on mount
+  useEffect(() => {
+    collectForensicMetadata().then(setForensicMetadata).catch(() => {})
+  }, [])
 
   const isTextType = (type: EvidenceType) =>
     type === 'text_response' || type === 'measurement'
 
-  const uploadFile = async (evidenceFile: EvidenceFile): Promise<string> => {
-    const path = `${executor.id}/${task.id}/${evidenceFile.type}_${Date.now()}`
-    const { data: { session } } = await supabase.auth.getSession()
-    const authToken = session?.access_token || SUPABASE_KEY
-
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-      const uploadUrl = `${SUPABASE_URL}/storage/v1/object/evidence/${path}`
-
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100)
-          setFiles((prev) => {
-            const next = new Map(prev)
-            const file = next.get(evidenceFile.type)
-            if (file) {
-              next.set(evidenceFile.type, { ...file, progress })
-            }
-            return next
-          })
-        }
-      })
-
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(path)
-        } else {
-          reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`))
-        }
-      })
-
-      xhr.addEventListener('error', () => reject(new Error('Network error during upload')))
-      xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')))
-
-      xhr.open('POST', uploadUrl)
-      xhr.setRequestHeader('apikey', SUPABASE_KEY)
-      xhr.setRequestHeader('Authorization', `Bearer ${authToken}`)
-      xhr.setRequestHeader('Content-Type', evidenceFile.file.type || 'application/octet-stream')
-      xhr.setRequestHeader('x-upsert', 'true')
-      xhr.send(evidenceFile.file)
+  const doUpload = async (evidenceFile: EvidenceFile): Promise<UploadResult> => {
+    return uploadEvidenceFile({
+      file: evidenceFile.file,
+      taskId: task.id,
+      executorId: executor.id,
+      evidenceType: evidenceFile.type,
+      onProgress: (pct) => {
+        setFiles((prev) => {
+          const next = new Map(prev)
+          const f = next.get(evidenceFile.type)
+          if (f) next.set(evidenceFile.type, { ...f, progress: pct })
+          return next
+        })
+      },
     })
   }
 
@@ -151,11 +139,12 @@ export function SubmissionForm({
       setFiles((prev) => new Map(prev).set(type, evidenceFile))
 
       try {
-        const path = await uploadFile(evidenceFile)
+        const result = await doUpload(evidenceFile)
+        const path = result.key
 
         setFiles((prev) => {
           const next = new Map(prev)
-          next.set(type, { ...evidenceFile, uploading: false, uploaded: true, uploadedPath: path, progress: 100 })
+          next.set(type, { ...evidenceFile, uploading: false, uploaded: true, uploadedPath: path, uploadResult: result, progress: 100 })
           return next
         })
 
@@ -241,24 +230,38 @@ export function SubmissionForm({
       // Build evidence data from already-uploaded files
       const evidenceData: Record<string, unknown> = {}
       const uploadedPaths: string[] = []
+      const checksums: string[] = []
+      let storageBackend: 'supabase' | 's3' = 'supabase'
 
       for (const [type, evidenceFile] of files) {
         if (evidenceFile.uploadedPath) {
           uploadedPaths.push(evidenceFile.uploadedPath)
-          evidenceData[type] = {
+          const entry: Record<string, unknown> = {
             file: evidenceFile.uploadedPath,
             filename: evidenceFile.file.name,
             size: evidenceFile.file.size,
             type: evidenceFile.file.type,
           }
+          // Include upload result details
+          if (evidenceFile.uploadResult) {
+            entry.checksum = evidenceFile.uploadResult.checksum
+            entry.backend = evidenceFile.uploadResult.backend
+            entry.public_url = evidenceFile.uploadResult.public_url
+            if (evidenceFile.uploadResult.nonce) {
+              entry.nonce = evidenceFile.uploadResult.nonce
+            }
+            checksums.push(evidenceFile.uploadResult.checksum)
+            storageBackend = evidenceFile.uploadResult.backend
+          }
           // Include verification result if available
           if (evidenceFile.verification) {
-            (evidenceData[type] as Record<string, unknown>).ai_verification = {
+            entry.ai_verification = {
               verified: evidenceFile.verification.verified,
               confidence: evidenceFile.verification.confidence,
               decision: evidenceFile.verification.decision,
             }
           }
+          evidenceData[type] = entry
         }
       }
 
@@ -268,6 +271,9 @@ export function SubmissionForm({
           evidenceData[type] = { value: value.trim() }
         }
       }
+
+      // Compute combined content hash from individual checksums
+      const combinedHash = checksums.length > 0 ? checksums.sort().join(':') : undefined
 
       // Get fresh session
       const { data: { session: currentSession } } = await supabase.auth.getSession()
@@ -282,17 +288,26 @@ export function SubmissionForm({
         headers['Authorization'] = `Bearer ${currentSession.access_token}`
       }
 
-      // Create submission
+      // Create submission with forensic metadata
+      const submissionBody: Record<string, unknown> = {
+        task_id: task.id,
+        executor_id: executor.id,
+        evidence: evidenceData,
+        evidence_files: uploadedPaths,
+        submitted_at: new Date().toISOString(),
+        storage_backend: storageBackend,
+      }
+      if (forensicMetadata) {
+        submissionBody.evidence_metadata = forensicMetadata
+      }
+      if (combinedHash) {
+        submissionBody.evidence_content_hash = combinedHash
+      }
+
       const submitResponse = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          task_id: task.id,
-          executor_id: executor.id,
-          evidence: evidenceData,
-          evidence_files: uploadedPaths,
-          submitted_at: new Date().toISOString(),
-        }),
+        body: JSON.stringify(submissionBody),
       })
 
       if (!submitResponse.ok) {
