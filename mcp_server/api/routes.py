@@ -656,7 +656,7 @@ async def _settle_submission_payment(
                 "network": "base",
                 "to_address": worker_address,
                 "settlement_method": "facilitator",
-                "note": note if release_tx else f"{note} (awaiting tx hash)",
+                "note": f"{note} | fee_tx={result.get('fee_tx_hash', 'n/a')}" if release_tx else f"{note} (awaiting tx hash)",
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
 
