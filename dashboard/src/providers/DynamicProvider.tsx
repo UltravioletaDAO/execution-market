@@ -11,7 +11,7 @@ import {
   DynamicWidget,
 } from '@dynamic-labs/sdk-react-core'
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum'
-import { DYNAMIC_ENVIRONMENT_ID, isDynamicConfigured } from '../lib/dynamic'
+import { DYNAMIC_ENVIRONMENT_ID, isDynamicConfigured, dynamicCssOverrides } from '../lib/dynamic'
 
 // Re-export for convenience
 export { DynamicWidget }
@@ -34,6 +34,9 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
       settings={{
         environmentId: DYNAMIC_ENVIRONMENT_ID,
         walletConnectors: [EthereumWalletConnectors],
+        cssOverrides: dynamicCssOverrides,
+        // Auto-connect previously connected wallet on page load
+        initialAuthenticationMode: 'connect',
         events: {
           onAuthSuccess: ({ user }) => {
             console.log('[Dynamic] Auth success:', user?.walletPublicKey || 'unknown wallet')
