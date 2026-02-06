@@ -825,6 +825,32 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
     payments["total_volume_usd"] = round(payments["total_volume_usd"], 2)
     payments["total_fees_usd"] = round(payments["total_fees_usd"], 2)
 
+    # Fallback derivation to avoid misleading zero counters in degraded schemas.
+    # If registry tables drift or fail, derive from task/submission activity.
+    if users["registered_workers"] == 0:
+        try:
+            submissions_result = client.table("submissions").select("executor_id").execute()
+            worker_ids = {
+                row.get("executor_id")
+                for row in (submissions_result.data or [])
+                if row.get("executor_id")
+            }
+            users["registered_workers"] = len(worker_ids)
+        except Exception as e:
+            logger.warning("Could not derive registered_workers from submissions fallback: %s", e)
+
+    if users["registered_agents"] == 0:
+        try:
+            tasks_agents_result = client.table("tasks").select("agent_id").execute()
+            agent_ids = {
+                row.get("agent_id")
+                for row in (tasks_agents_result.data or [])
+                if row.get("agent_id")
+            }
+            users["registered_agents"] = len(agent_ids)
+        except Exception as e:
+            logger.warning("Could not derive registered_agents from tasks fallback: %s", e)
+
     return PublicPlatformMetricsResponse(
         users=users,
         tasks=tasks,
