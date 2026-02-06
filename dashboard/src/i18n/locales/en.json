@@ -75,6 +75,23 @@
       "minBounty": "Min Bounty",
       "instantValue": "Instant",
       "payments": "Payments"
+    },
+    "protocolStack": {
+      "label": "Protocol Stack",
+      "x402": {
+        "standard": "HTTP 402",
+        "description": "Native internet payments. Agents pay for tasks over HTTP — no checkout, no redirect, no middleman."
+      },
+      "erc8004": {
+        "standard": "Identity Registry",
+        "description": "One on-chain identity for humans, AI agents, and robots. Portable reputation across the open web."
+      },
+      "x402r": {
+        "standard": "Programmable Escrow",
+        "description": "Bounties locked at creation, released on approval. Gasless settlement via the Ultravioleta Facilitator."
+      },
+      "network": "Base Mainnet",
+      "status": "Live"
     }
   },
   "auth": {

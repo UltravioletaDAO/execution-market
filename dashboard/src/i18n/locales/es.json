@@ -75,6 +75,23 @@
       "minBounty": "Minimo",
       "instantValue": "Instantaneo",
       "payments": "Pagos"
+    },
+    "protocolStack": {
+      "label": "Stack de Protocolos",
+      "x402": {
+        "standard": "HTTP 402",
+        "description": "Pagos nativos de internet. Los agentes pagan tareas via HTTP — sin checkout, sin redireccion, sin intermediarios."
+      },
+      "erc8004": {
+        "standard": "Registro de Identidad",
+        "description": "Una identidad on-chain para humanos, agentes de IA y robots. Reputacion portable en toda la web abierta."
+      },
+      "x402r": {
+        "standard": "Escrow Programable",
+        "description": "Recompensas bloqueadas al crear la tarea, liberadas al aprobar. Liquidacion sin gas via el Facilitador de Ultravioleta."
+      },
+      "network": "Base Mainnet",
+      "status": "En vivo"
     }
   },
   "auth": {
