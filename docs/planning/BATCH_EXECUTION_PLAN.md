@@ -110,7 +110,7 @@ feat: batch 0 — commit audited work from global-tasks session
 ---
 
 ## BATCH 2 — Landing Page & Auth Fixes (P0-UI-005, P0-UI-006, P0-AUTH-001, P0-AUTH-002)
-**Status**: `PENDING`
+**Status**: `DONE (2026-02-06)`
 **Estimated context**: Medium
 **Goal**: Fix user-facing UX issues in public pages and auth flow
 
@@ -382,7 +382,7 @@ Signed: ___
 |-------|--------|------|---------|-------|
 | 0 | DONE | 2026-02-06 | current | Commit 8482a23, 128 files, build passes |
 | 1 | DONE | 2026-02-06 | current | Commit cf73845, TaskDetail + types, build passes |
-| 2 | PENDING | | | |
+| 2 | DONE | 2026-02-06 | current | Commit e6185a4, auth persistence + docs |
 | 3 | PENDING | | | |
 | 4 | PENDING | | | |
 | 5 | PENDING | | | |
