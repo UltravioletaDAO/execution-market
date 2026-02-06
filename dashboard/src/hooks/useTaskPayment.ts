@@ -48,6 +48,15 @@ interface TaskEscrowRow {
   updated_at: string
 }
 
+interface SubmissionPaymentRow {
+  id: string
+  payment_tx: string | null
+  payment_amount: number | null
+  paid_at: string | null
+  verified_at: string | null
+  submitted_at: string
+}
+
 interface UseTaskPaymentReturn {
   payment: PaymentData | null
   loading: boolean
@@ -57,6 +66,14 @@ interface UseTaskPaymentReturn {
 
 const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/
 const SETTLED_STATUSES = new Set(['confirmed', 'completed', 'available', 'funded', 'released'])
+
+function isMissingTableError(error: unknown, tableName: string): boolean {
+  if (!error || typeof error !== 'object') return false
+  const maybeError = error as { code?: string; message?: string; details?: string }
+  if (maybeError.code !== 'PGRST205') return false
+  const haystack = `${maybeError.message || ''} ${maybeError.details || ''}`.toLowerCase()
+  return haystack.includes(`public.${tableName.toLowerCase()}`)
+}
 
 function isTxHash(value?: string | null): value is string {
   return typeof value === 'string' && TX_HASH_REGEX.test(value.trim())
@@ -261,13 +278,20 @@ function buildFromRows(taskId: string, rows: PaymentRow[]): PaymentData {
   }
 }
 
-function buildFromTaskFallback(task: TaskEscrowRow): PaymentData | null {
+function buildFromTaskFallback(task: TaskEscrowRow, submissionPayment: SubmissionPaymentRow | null): PaymentData | null {
   if (!task.escrow_tx && !task.escrow_id) {
     return null
   }
 
+  const payoutTx = pickTxHash(submissionPayment?.payment_tx)
+  const payoutAmount = asNumber(submissionPayment?.payment_amount) || task.bounty_usd
+  const payoutTimestamp =
+    submissionPayment?.paid_at ??
+    submissionPayment?.verified_at ??
+    task.updated_at
+
   const status: PaymentStatusType =
-    task.status === 'completed'
+    task.status === 'completed' || Boolean(payoutTx)
       ? 'completed'
       : task.status === 'cancelled' || task.status === 'expired'
       ? 'refunded'
@@ -292,9 +316,10 @@ function buildFromTaskFallback(task: TaskEscrowRow): PaymentData | null {
     events.push({
       id: `${task.id}-payout-complete`,
       type: 'final_release',
-      amount: task.bounty_usd,
+      amount: payoutAmount,
+      tx_hash: payoutTx,
       network: 'base',
-      timestamp: task.updated_at,
+      timestamp: payoutTimestamp,
       actor: 'system',
     })
   }
@@ -314,7 +339,7 @@ function buildFromTaskFallback(task: TaskEscrowRow): PaymentData | null {
     task_id: task.id,
     status,
     total_amount: task.bounty_usd,
-    released_amount: status === 'completed' ? task.bounty_usd : 0,
+    released_amount: status === 'completed' ? payoutAmount : 0,
     currency: 'USDC',
     escrow_tx: txHash,
     escrow_contract: undefined,
@@ -363,6 +388,52 @@ function mergeTaskEscrowContext(base: PaymentData, task: TaskEscrowRow | null): 
   return merged
 }
 
+function mergeSubmissionPaymentContext(base: PaymentData, submissionPayment: SubmissionPaymentRow | null): PaymentData {
+  const payoutTx = pickTxHash(submissionPayment?.payment_tx)
+  if (!submissionPayment || !payoutTx) {
+    return base
+  }
+
+  const alreadyHasPayoutTx = base.events.some(
+    (event) => event.type === 'final_release' && Boolean(event.tx_hash)
+  )
+  if (alreadyHasPayoutTx) {
+    return base
+  }
+
+  const payoutAmount = asNumber(submissionPayment.payment_amount) || base.total_amount
+  const payoutTimestamp =
+    submissionPayment.paid_at ??
+    submissionPayment.verified_at ??
+    submissionPayment.submitted_at
+
+  const nextEvents: PaymentEvent[] = [
+    ...base.events,
+    {
+      id: `${base.task_id}-submission-payout-${submissionPayment.id}`,
+      type: 'final_release',
+      amount: payoutAmount,
+      tx_hash: payoutTx,
+      network: base.network || 'base',
+      timestamp: payoutTimestamp,
+      actor: 'system',
+      note: 'Pago liquidado via facilitador x402',
+    },
+  ]
+
+  const nextTotal = Math.max(base.total_amount, payoutAmount)
+  const nextReleased = Math.max(base.released_amount, payoutAmount)
+
+  return {
+    ...base,
+    status: base.status === 'refunded' ? base.status : 'completed',
+    total_amount: nextTotal,
+    released_amount: nextReleased,
+    events: nextEvents,
+    updated_at: payoutTimestamp,
+  }
+}
+
 export function useTaskPayment(taskId: string | null | undefined): UseTaskPaymentReturn {
   const [payment, setPayment] = useState<PaymentData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -378,7 +449,7 @@ export function useTaskPayment(taskId: string | null | undefined): UseTaskPaymen
       setLoading(true)
       setError(null)
 
-      const [paymentsResult, taskResult] = await Promise.all([
+      const [paymentsResult, taskResult, submissionResult] = await Promise.all([
         supabase
           .from('payments')
           .select('*')
@@ -389,21 +460,36 @@ export function useTaskPayment(taskId: string | null | undefined): UseTaskPaymen
           .select('id, status, bounty_usd, escrow_tx, escrow_id, created_at, updated_at')
           .eq('id', taskId)
           .maybeSingle(),
+        supabase
+          .from('submissions')
+          .select('id, payment_tx, payment_amount, paid_at, verified_at, submitted_at')
+          .eq('task_id', taskId)
+          .not('payment_tx', 'is', null)
+          .order('submitted_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ])
 
-      if (paymentsResult.error) throw paymentsResult.error
+      if (paymentsResult.error && !isMissingTableError(paymentsResult.error, 'payments')) {
+        throw paymentsResult.error
+      }
       if (taskResult.error) throw taskResult.error
+      if (submissionResult.error && !isMissingTableError(submissionResult.error, 'submissions')) {
+        throw submissionResult.error
+      }
 
       const taskEscrow = (taskResult.data as TaskEscrowRow | null) ?? null
       const rows = (paymentsResult.data as PaymentRow[] | null) ?? []
+      const submissionPayment = (submissionResult.data as SubmissionPaymentRow | null) ?? null
 
       if (rows.length === 0) {
-        setPayment(taskEscrow ? buildFromTaskFallback(taskEscrow) : null)
+        setPayment(taskEscrow ? buildFromTaskFallback(taskEscrow, submissionPayment) : null)
         return
       }
 
       const aggregated = buildFromRows(taskId, rows)
-      setPayment(mergeTaskEscrowContext(aggregated, taskEscrow))
+      const withTaskContext = mergeTaskEscrowContext(aggregated, taskEscrow)
+      setPayment(mergeSubmissionPaymentContext(withTaskContext, submissionPayment))
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch payment'))
       setPayment(null)
@@ -428,6 +514,30 @@ export function useTaskPayment(taskId: string | null | undefined): UseTaskPaymen
           schema: 'public',
           table: 'payments',
           filter: `task_id=eq.${taskId}`,
+        },
+        () => {
+          void fetchPayment()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'submissions',
+          filter: `task_id=eq.${taskId}`,
+        },
+        () => {
+          void fetchPayment()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tasks',
+          filter: `id=eq.${taskId}`,
         },
         () => {
           void fetchPayment()
