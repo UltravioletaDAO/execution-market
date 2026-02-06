@@ -149,6 +149,10 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+function roundUsd(value: number): number {
+  return Number(value.toFixed(2));
+}
+
 function header(step: number, title: string): void {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`  Step ${step}: ${title}`);
@@ -337,7 +341,7 @@ const TASK_TEMPLATES: TaskDefinition[] = [
     category: 'physical_presence',
     bountyUsd: 0,
     deadlineMinutes: DEADLINE_MINUTES,
-    evidenceRequired: ['photo', 'text'],
+    evidenceRequired: ['photo', 'text_response'],
   },
   {
     title: 'Translate a short paragraph from English to Spanish',
@@ -349,7 +353,7 @@ const TASK_TEMPLATES: TaskDefinition[] = [
     category: 'human_authority',
     bountyUsd: 0,
     deadlineMinutes: DEADLINE_MINUTES,
-    evidenceRequired: ['text'],
+    evidenceRequired: ['text_response'],
   },
   {
     title: 'Collect prices of 5 items at a local grocery store',
@@ -360,7 +364,7 @@ const TASK_TEMPLATES: TaskDefinition[] = [
     category: 'knowledge_access',
     bountyUsd: 0,
     deadlineMinutes: DEADLINE_MINUTES,
-    evidenceRequired: ['photo', 'text'],
+    evidenceRequired: ['photo', 'text_response'],
   },
 ];
 
@@ -631,7 +635,9 @@ async function autoApproveSubmissions(taskId: string, apiKey: string): Promise<v
 
 async function main(): Promise<void> {
   const totalBounty = FIBONACCI_BOUNTIES.slice(0, TASK_COUNT).reduce((a, b) => a + b, 0);
-  const totalWithFee = totalBounty * (1 + PLATFORM_FEE_PERCENT);
+  const totalWithFee = FIBONACCI_BOUNTIES
+    .slice(0, TASK_COUNT)
+    .reduce((sum, bounty) => sum + roundUsd(bounty * (1 + PLATFORM_FEE_PERCENT)), 0);
 
   console.log('\n' + '='.repeat(60));
   console.log('  Execution Market — Fibonacci x402 Payment Flow Test');
@@ -726,7 +732,7 @@ async function main(): Promise<void> {
 
     for (let i = 0; i < TASK_COUNT; i++) {
       const bounty = FIBONACCI_BOUNTIES[i];
-      const totalAmount = bounty * (1 + PLATFORM_FEE_PERCENT);
+      const totalAmount = roundUsd(bounty * (1 + PLATFORM_FEE_PERCENT));
       const template = TASK_TEMPLATES[i % TASK_TEMPLATES.length];
 
       console.log(`\n  [Fib #${i + 1}] $${bounty.toFixed(2)} (total with fee: $${totalAmount.toFixed(2)})`);
