@@ -12,37 +12,37 @@
    ========================================================================== */
 
 :root {
-    /* Brand Colors */
-    --em-purple: #8B5CF6;
-    --em-purple-dark: #7C3AED;
-    --em-purple-light: #A78BFA;
-    --em-cyan: #06B6D4;
-    --em-amber: #F59E0B;
-    --em-green: #10B981;
+    /* Brand Colors - Monochrome */
+    --em-purple: #111111;
+    --em-purple-dark: #000000;
+    --em-purple-light: #3f3f46;
+    --em-cyan: #52525b;
+    --em-amber: #71717a;
+    --em-green: #1f1f1f;
 
-    /* Enterprise Colors */
-    --enterprise-blue: #2563eb;
-    --enterprise-blue-dark: #1d4ed8;
-    --enterprise-blue-light: #3b82f6;
+    /* Enterprise Colors - Monochrome */
+    --enterprise-blue: #111111;
+    --enterprise-blue-dark: #000000;
+    --enterprise-blue-light: #3f3f46;
 
     /* Neutrals */
     --black: #000000;
     --white: #ffffff;
-    --gray-50: #f8fafc;
-    --gray-100: #f1f5f9;
-    --gray-200: #e2e8f0;
-    --gray-300: #cbd5e1;
-    --gray-400: #94a3b8;
-    --gray-500: #64748b;
-    --gray-600: #475569;
-    --gray-700: #334155;
-    --gray-800: #1e293b;
-    --gray-900: #0f172a;
+    --gray-50: #fafafa;
+    --gray-100: #f4f4f5;
+    --gray-200: #e4e4e7;
+    --gray-300: #d4d4d8;
+    --gray-400: #a1a1aa;
+    --gray-500: #71717a;
+    --gray-600: #52525b;
+    --gray-700: #3f3f46;
+    --gray-800: #27272a;
+    --gray-900: #18181b;
 
     /* Semantic Colors */
-    --success: #10B981;
-    --warning: #F59E0B;
-    --danger: #EF4444;
+    --success: #3f3f46;
+    --warning: #71717a;
+    --danger: #1f1f1f;
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -52,8 +52,8 @@
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 
     /* Typography */
-    --font-mono: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'Roboto Mono', 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
+    --font-sans: 'Roboto Mono', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
     /* Spacing */
     --space-1: 4px;
@@ -69,11 +69,11 @@
     --space-20: 80px;
 
     /* Border Radius */
-    --radius-sm: 4px;
-    --radius: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
+    --radius-sm: 2px;
+    --radius: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
     --radius-full: 9999px;
 
     /* Transitions */
@@ -175,17 +175,17 @@ body {
     justify-content: center;
     gap: var(--space-2);
     padding: var(--space-3) var(--space-5);
-    border-radius: var(--radius);
+    border-radius: 0;
     font-weight: 500;
     font-size: 0.9rem;
     text-decoration: none;
     cursor: pointer;
-    transition: all var(--transition);
+    transition: color var(--transition), background-color var(--transition), border-color var(--transition);
     border: none;
 }
 
 .btn:hover {
-    transform: translateY(-1px);
+    transform: none;
 }
 
 .btn-lg {
@@ -196,14 +196,15 @@ body {
 /* Cards */
 .card {
     background: var(--white);
-    border-radius: var(--radius-lg);
+    border-radius: 0;
     border: 1px solid var(--gray-200);
     padding: var(--space-6);
     transition: all var(--transition);
 }
 
 .card:hover {
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow);
+    border-color: var(--gray-900);
 }
 
 /* Badges */
@@ -218,17 +219,17 @@ body {
 }
 
 .badge-success {
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(0, 0, 0, 0.06);
     color: var(--success);
 }
 
 .badge-warning {
-    background: rgba(245, 158, 11, 0.1);
+    background: rgba(0, 0, 0, 0.06);
     color: var(--warning);
 }
 
 .badge-danger {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(0, 0, 0, 0.06);
     color: var(--danger);
 }
 

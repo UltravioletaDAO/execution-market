@@ -89,20 +89,20 @@ interface AnalyticsProps {
 // ============================================================================
 
 const COLORS = {
-  primary: '#3b82f6',
-  secondary: '#10b981',
-  tertiary: '#8b5cf6',
-  quaternary: '#f59e0b',
-  danger: '#ef4444',
-  muted: '#6b7280',
+  primary: '#404040',
+  secondary: '#3f3f46',
+  tertiary: '#52525b',
+  quaternary: '#71717a',
+  danger: '#1f1f1f',
+  muted: '#71717a',
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  physical_presence: '#3b82f6',
-  knowledge_access: '#10b981',
-  human_authority: '#8b5cf6',
-  simple_action: '#f59e0b',
-  digital_physical: '#ec4899',
+  physical_presence: '#404040',
+  knowledge_access: '#3f3f46',
+  human_authority: '#52525b',
+  simple_action: '#71717a',
+  digital_physical: '#5f5f5f',
 }
 
 const TIME_RANGES = [
@@ -538,16 +538,16 @@ export function Analytics({ onBack }: AnalyticsProps) {
                   <stop offset="95%" stopColor={COLORS.secondary} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#9ca3af" tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#a1a1aa" tickLine={false} />
               <YAxis
                 yAxisId="left"
                 tick={{ fontSize: 12 }}
-                stroke="#9ca3af"
+                stroke="#a1a1aa"
                 tickLine={false}
                 tickFormatter={(value) => `$${formatCompactNumber(value)}`}
               />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} stroke="#9ca3af" tickLine={false} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} stroke="#a1a1aa" tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               <Area
@@ -574,9 +574,9 @@ export function Analytics({ onBack }: AnalyticsProps) {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.tasksByRegion} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis type="number" tick={{ fontSize: 12 }} stroke="#9ca3af" tickLine={false} />
-                <YAxis dataKey="region" type="category" tick={{ fontSize: 12 }} stroke="#9ca3af" tickLine={false} width={80} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+                <XAxis type="number" tick={{ fontSize: 12 }} stroke="#a1a1aa" tickLine={false} />
+                <YAxis dataKey="region" type="category" tick={{ fontSize: 12 }} stroke="#a1a1aa" tickLine={false} width={80} />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (!active || !payload || !payload.length) return null
@@ -678,9 +678,9 @@ export function Analytics({ onBack }: AnalyticsProps) {
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.workerRetention} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#9ca3af" tickLine={false} />
-              <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+              <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#a1a1aa" tickLine={false} />
+              <YAxis tick={{ fontSize: 12 }} stroke="#a1a1aa" tickLine={false} />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (!active || !payload || !payload.length) return null

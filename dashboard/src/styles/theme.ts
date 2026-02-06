@@ -14,103 +14,103 @@ import type { TaskStatus } from '../types/database';
 export const colors = {
   // Brand colors
   brand: {
-    primary: '#0ea5e9',      // em-500
-    primaryLight: '#38bdf8', // em-400
-    primaryDark: '#0284c7',  // em-600
-    secondary: '#8b5cf6',    // violet-500
-    accent: '#f59e0b',       // amber-500
+    primary: '#111111',
+    primaryLight: '#3f3f46',
+    primaryDark: '#000000',
+    secondary: '#52525b',
+    accent: '#71717a',
   },
 
   // Task status colors
   taskStatus: {
-    published: '#3b82f6',    // blue-500
-    accepted: '#8b5cf6',     // violet-500
-    in_progress: '#f59e0b',  // amber-500
-    submitted: '#6366f1',    // indigo-500
-    verifying: '#a855f7',    // purple-500
-    completed: '#10b981',    // emerald-500
-    disputed: '#ef4444',     // red-500
-    expired: '#6b7280',      // gray-500
-    cancelled: '#9ca3af',    // gray-400
+    published: '#3f3f46',
+    accepted: '#52525b',
+    in_progress: '#71717a',
+    submitted: '#a1a1aa',
+    verifying: '#d4d4d8',
+    completed: '#111111',
+    disputed: '#1f1f1f',
+    expired: '#a1a1aa',
+    cancelled: '#d4d4d8',
   } as const,
 
   // Worker level colors
   levelColors: {
-    novice: '#9ca3af',       // gray-400
-    apprentice: '#3b82f6',   // blue-500
-    journeyman: '#8b5cf6',   // violet-500
-    expert: '#f59e0b',       // amber-500
-    master: '#ef4444',       // red-500
+    novice: '#d4d4d8',
+    apprentice: '#a1a1aa',
+    journeyman: '#71717a',
+    expert: '#3f3f46',
+    master: '#111111',
   } as const,
 
   // Reputation bands
   reputation: {
-    poor: { color: '#ef4444', min: 0, max: 30, label: 'Poor' },
-    fair: { color: '#f59e0b', min: 30, max: 50, label: 'Fair' },
-    good: { color: '#10b981', min: 50, max: 70, label: 'Good' },
-    excellent: { color: '#3b82f6', min: 70, max: 90, label: 'Excellent' },
-    elite: { color: '#8b5cf6', min: 90, max: 100, label: 'Elite' },
+    poor: { color: '#d4d4d8', min: 0, max: 30, label: 'Poor' },
+    fair: { color: '#a1a1aa', min: 30, max: 50, label: 'Fair' },
+    good: { color: '#71717a', min: 50, max: 70, label: 'Good' },
+    excellent: { color: '#3f3f46', min: 70, max: 90, label: 'Excellent' },
+    elite: { color: '#111111', min: 90, max: 100, label: 'Elite' },
   } as const,
 
   // Semantic colors
   semantic: {
-    success: '#10b981',
-    warning: '#f59e0b',
-    error: '#ef4444',
-    info: '#3b82f6',
+    success: '#3f3f46',
+    warning: '#71717a',
+    error: '#1f1f1f',
+    info: '#52525b',
   },
 
   // Background colors
   background: {
     primary: {
       light: '#ffffff',
-      dark: '#0f172a',
+      dark: '#000000',
     },
     secondary: {
-      light: '#f8fafc',
-      dark: '#1e293b',
+      light: '#f4f4f5',
+      dark: '#09090b',
     },
     tertiary: {
-      light: '#f1f5f9',
-      dark: '#334155',
+      light: '#e4e4e7',
+      dark: '#18181b',
     },
     elevated: {
       light: '#ffffff',
-      dark: '#1e293b',
+      dark: '#09090b',
     },
   },
 
   // Text colors
   text: {
     primary: {
-      light: '#0f172a',
-      dark: '#f8fafc',
+      light: '#09090b',
+      dark: '#fafafa',
     },
     secondary: {
-      light: '#475569',
-      dark: '#94a3b8',
+      light: '#3f3f46',
+      dark: '#d4d4d8',
     },
     muted: {
-      light: '#64748b',
-      dark: '#64748b',
+      light: '#71717a',
+      dark: '#a1a1aa',
     },
     inverse: {
-      light: '#f8fafc',
-      dark: '#0f172a',
+      light: '#fafafa',
+      dark: '#09090b',
     },
   },
 
   // Border colors
   border: {
     default: {
-      light: '#e2e8f0',
-      dark: '#334155',
+      light: '#d4d4d8',
+      dark: '#3f3f46',
     },
     light: {
-      light: '#f1f5f9',
-      dark: '#475569',
+      light: '#e4e4e7',
+      dark: '#52525b',
     },
-    focus: '#0ea5e9',
+    focus: '#111111',
   },
 } as const;
 
@@ -205,10 +205,10 @@ export const shadows = {
   lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
   xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
   '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-  glow: '0 0 20px rgba(14, 165, 233, 0.3)',
-  glowMd: '0 0 30px rgba(14, 165, 233, 0.4)',
-  glowLg: '0 0 40px rgba(14, 165, 233, 0.5)',
-  innerGlow: 'inset 0 0 20px rgba(14, 165, 233, 0.1)',
+  glow: '0 0 20px rgba(0, 0, 0, 0.2)',
+  glowMd: '0 0 30px rgba(0, 0, 0, 0.25)',
+  glowLg: '0 0 40px rgba(0, 0, 0, 0.3)',
+  innerGlow: 'inset 0 0 20px rgba(0, 0, 0, 0.08)',
 } as const;
 
 // ============================================================================

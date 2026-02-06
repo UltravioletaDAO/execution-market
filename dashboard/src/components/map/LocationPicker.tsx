@@ -29,7 +29,7 @@ const DEFAULT_ZOOM = 12;
 
 // Create a custom pin icon
 const createPinIcon = (isUser: boolean = false): L.DivIcon => {
-  const color = isUser ? '#3b82f6' : '#ef4444';
+  const color = isUser ? '#404040' : '#1f1f1f';
   const size = isUser ? 20 : 32;
 
   const html = isUser
@@ -318,8 +318,8 @@ export function LocationPicker({
                   center={[value.lat, value.lng]}
                   radius={actualRadius * 1000} // Convert km to meters
                   pathOptions={{
-                    color: '#3b82f6',
-                    fillColor: '#3b82f6',
+                    color: '#404040',
+                    fillColor: '#404040',
                     fillOpacity: 0.1,
                     weight: 2,
                   }}

@@ -6,7 +6,7 @@
     <title>EXECUTION MARKET | Universal Execution Layer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -15,20 +15,20 @@
         }
 
         :root {
-            --bg: #0a0a0a;
-            --primary: #8B5CF6;
-            --secondary: #06B6D4;
-            --accent: #F59E0B;
-            --success: #10B981;
-            --text: #e0e0e0;
-            --text-muted: #6b7280;
-            --glow: rgba(139, 92, 246, 0.4);
+            --bg: #ffffff;
+            --primary: #111111;
+            --secondary: #27272a;
+            --accent: #3f3f46;
+            --success: #18181b;
+            --text: #09090b;
+            --text-muted: #52525b;
+            --glow: rgba(0, 0, 0, 0.2);
         }
 
         body {
             background: var(--bg);
             color: var(--text);
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Roboto Mono', monospace;
             min-height: 100vh;
             overflow-x: hidden;
         }
@@ -41,7 +41,8 @@
             width: 100%;
             height: 100%;
             z-index: 0;
-            opacity: 0.15;
+            opacity: 0.08;
+            mix-blend-mode: multiply;
         }
 
         /* Main Content */
@@ -57,14 +58,14 @@
         .ascii-header {
             text-align: center;
             margin-bottom: 60px;
-            animation: glitch 0.3s infinite;
+            animation: none;
         }
 
         .ascii-logo {
             font-size: 8px;
             line-height: 1;
             color: var(--primary);
-            text-shadow: 0 0 20px var(--glow);
+            text-shadow: 0 0 16px var(--glow);
             white-space: pre;
             display: inline-block;
         }
@@ -121,9 +122,9 @@
         }
 
         .info-box {
-            background: rgba(31, 31, 35, 0.8);
+            background: rgba(255, 255, 255, 0.95);
             border: 1px solid var(--primary);
-            border-radius: 4px;
+            border-radius: 0;
             padding: 24px;
             position: relative;
             overflow: hidden;
@@ -195,7 +196,7 @@
             font-size: 48px;
             font-weight: 700;
             color: var(--accent);
-            text-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+            text-shadow: 0 0 24px rgba(0, 0, 0, 0.2);
         }
 
         .stat-label {
@@ -250,7 +251,7 @@
         .footer {
             text-align: center;
             padding: 40px 0;
-            border-top: 1px solid rgba(139, 92, 246, 0.2);
+            border-top: 1px solid rgba(0, 0, 0, 0.15);
             margin-top: 80px;
         }
 
@@ -301,8 +302,8 @@
             z-index: 100;
             background: repeating-linear-gradient(
                 0deg,
-                rgba(0, 0, 0, 0.1),
-                rgba(0, 0, 0, 0.1) 1px,
+                rgba(0, 0, 0, 0.04),
+                rgba(0, 0, 0, 0.04) 1px,
                 transparent 1px,
                 transparent 2px
             );
@@ -427,11 +428,11 @@
         const drops = Array(columns).fill(1);
 
         function drawMatrix() {
-            ctx.fillStyle = 'rgba(10, 10, 10, 0.05)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.fillStyle = '#8B5CF6';
-            ctx.font = fontSize + 'px JetBrains Mono';
+            ctx.fillStyle = '#111111';
+            ctx.font = fontSize + 'px Roboto Mono';
 
             for (let i = 0; i < drops.length; i++) {
                 const char = chars[Math.floor(Math.random() * chars.length)];
