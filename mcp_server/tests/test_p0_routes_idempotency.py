@@ -48,19 +48,35 @@ class _FakePaymentsTable:
         return SimpleNamespace(data=self.inserted_rows[-1] if self.inserted_rows else None)
 
 
+class _FakeTasksTable:
+    def __init__(self):
+        self.last_update = None
+
+    def update(self, payload):
+        self.last_update = payload
+        return self
+
+    def eq(self, *_args, **_kwargs):
+        return self
+
+    def execute(self):
+        return SimpleNamespace(data=self.last_update)
+
+
 class _FakeClient:
     def __init__(self, escrow_status: str):
         self.escrows = _FakeEscrowsTable(status=escrow_status)
         self.payments = _FakePaymentsTable()
+        self.tasks = _FakeTasksTable()
 
     def table(self, name: str):
         if name == "escrows":
             return self.escrows
         if name == "payments":
             return self.payments
-        if name != "escrows":
-            raise AssertionError(f"Unexpected table access: {name}")
-        return self.escrows
+        if name == "tasks":
+            return self.tasks
+        raise AssertionError(f"Unexpected table access: {name}")
 
 
 class _HeaderEscrowTable:
@@ -478,6 +494,8 @@ async def test_cancel_task_refunds_when_escrow_is_deposited(monkeypatch):
     assert result.data["escrow"]["status"] == "refunded"
     assert result.data["escrow"]["tx_hash"] == "0xrefundtx"
     assert fake_client.escrows.last_update["status"] == "refunded"
+    assert fake_client.escrows.last_update["refund_tx"] == "0xrefundtx"
+    assert fake_client.tasks.last_update["refund_tx"] == "0xrefundtx"
     assert fake_client.payments.inserted_rows[0]["type"] == "refund"
     assert fake_client.payments.inserted_rows[0]["tx_hash"] == "0xrefundtx"
     assert refund_task_payment.await_count == 1
@@ -565,6 +583,219 @@ async def test_cancel_task_uses_authorization_expiry_when_not_funded(monkeypatch
     assert result.data["escrow"]["status"] == "authorization_expired"
     assert refund_task_payment.await_count == 0
     cancel_task_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_cancel_task_already_refunded_is_noop(monkeypatch):
+    task_id = "44444444-4444-4444-4444-444444444445"
+    api_key = SimpleNamespace(agent_id="agent_test")
+
+    monkeypatch.setattr(routes, "X402_AVAILABLE", True)
+    monkeypatch.setattr(
+        routes.db,
+        "get_task",
+        AsyncMock(
+            return_value={
+                "id": task_id,
+                "agent_id": "agent_test",
+                "status": "published",
+                "escrow_tx": "x-payment-payload",
+                "escrow_id": "escrow_test",
+            }
+        ),
+    )
+
+    fake_client = _FakeClient(escrow_status="refunded")
+    monkeypatch.setattr(routes.db, "get_client", lambda: fake_client)
+
+    cancel_task_mock = AsyncMock()
+    monkeypatch.setattr(routes.db, "cancel_task", cancel_task_mock)
+
+    refund_task_payment = AsyncMock()
+    monkeypatch.setattr(
+        routes,
+        "get_sdk",
+        lambda: SimpleNamespace(refund_task_payment=refund_task_payment),
+    )
+
+    result = await routes.cancel_task(
+        task_id=task_id,
+        request=None,
+        api_key=api_key,
+    )
+
+    assert result.data["escrow"]["status"] == "already_refunded"
+    assert refund_task_payment.await_count == 0
+    cancel_task_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_cancel_task_unknown_status_attempts_refund(monkeypatch):
+    task_id = "44444444-4444-4444-4444-444444444446"
+    api_key = SimpleNamespace(agent_id="agent_test")
+
+    monkeypatch.setattr(routes, "X402_AVAILABLE", True)
+    monkeypatch.setattr(
+        routes.db,
+        "get_task",
+        AsyncMock(
+            return_value={
+                "id": task_id,
+                "agent_id": "agent_test",
+                "status": "published",
+                "escrow_tx": "x-payment-payload",
+                "escrow_id": "escrow_test",
+            }
+        ),
+    )
+
+    fake_client = _FakeClient(escrow_status="some_unknown_status")
+    monkeypatch.setattr(routes.db, "get_client", lambda: fake_client)
+
+    cancel_task_mock = AsyncMock()
+    monkeypatch.setattr(routes.db, "cancel_task", cancel_task_mock)
+
+    refund_task_payment = AsyncMock(
+        return_value={"success": True, "tx_hash": "0xunknownrefund", "method": "facilitator"}
+    )
+    monkeypatch.setattr(
+        routes,
+        "get_sdk",
+        lambda: SimpleNamespace(refund_task_payment=refund_task_payment),
+    )
+
+    result = await routes.cancel_task(
+        task_id=task_id,
+        request=None,
+        api_key=api_key,
+    )
+
+    assert result.data["escrow"]["status"] == "refunded"
+    assert result.data["escrow"]["tx_hash"] == "0xunknownrefund"
+    assert refund_task_payment.await_count == 1
+    assert fake_client.tasks.last_update["refund_tx"] == "0xunknownrefund"
+    cancel_task_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_cancel_task_unknown_status_falls_back_to_expired_on_failure(monkeypatch):
+    task_id = "44444444-4444-4444-4444-444444444447"
+    api_key = SimpleNamespace(agent_id="agent_test")
+
+    monkeypatch.setattr(routes, "X402_AVAILABLE", True)
+    monkeypatch.setattr(
+        routes.db,
+        "get_task",
+        AsyncMock(
+            return_value={
+                "id": task_id,
+                "agent_id": "agent_test",
+                "status": "published",
+                "escrow_tx": "x-payment-payload",
+                "escrow_id": "escrow_test",
+            }
+        ),
+    )
+
+    fake_client = _FakeClient(escrow_status="some_unknown_status")
+    monkeypatch.setattr(routes.db, "get_client", lambda: fake_client)
+
+    cancel_task_mock = AsyncMock()
+    monkeypatch.setattr(routes.db, "cancel_task", cancel_task_mock)
+
+    refund_task_payment = AsyncMock(side_effect=Exception("SDK failure"))
+    monkeypatch.setattr(
+        routes,
+        "get_sdk",
+        lambda: SimpleNamespace(refund_task_payment=refund_task_payment),
+    )
+
+    result = await routes.cancel_task(
+        task_id=task_id,
+        request=None,
+        api_key=api_key,
+    )
+
+    assert result.data["escrow"]["status"] == "authorization_expired"
+    cancel_task_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_payment_timeline_shows_refund_event(monkeypatch):
+    task_id = "55555555-5555-5555-5555-555555555556"
+    monkeypatch.setattr(
+        routes.db,
+        "get_task",
+        AsyncMock(
+            return_value={
+                "id": task_id,
+                "agent_id": "agent_test",
+                "status": "cancelled",
+                "bounty_usd": 5.0,
+                "escrow_tx": "x402_auth_reference",
+                "escrow_id": "escrow_ref",
+                "refund_tx": "0x" + "c" * 64,
+                "created_at": "2026-02-06T10:00:00+00:00",
+                "updated_at": "2026-02-06T10:05:00+00:00",
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_client",
+        lambda: _TaskPaymentClient(
+            payments=[],
+            escrows=[],
+            submissions=[],
+            missing_tables={"payments", "escrows"},
+        ),
+    )
+
+    result = await routes.get_task_payment(task_id=task_id, api_key=None)
+
+    assert result.status == "refunded"
+    refund_events = [e for e in result.events if e.type == "refund"]
+    assert len(refund_events) == 1
+    assert refund_events[0].tx_hash == "0x" + "c" * 64
+
+
+@pytest.mark.asyncio
+async def test_payment_timeline_shows_auth_expired_for_cancelled_without_refund(monkeypatch):
+    task_id = "55555555-5555-5555-5555-555555555557"
+    monkeypatch.setattr(
+        routes.db,
+        "get_task",
+        AsyncMock(
+            return_value={
+                "id": task_id,
+                "agent_id": "agent_test",
+                "status": "cancelled",
+                "bounty_usd": 2.0,
+                "escrow_tx": "x402_auth_reference",
+                "escrow_id": None,
+                "refund_tx": None,
+                "created_at": "2026-02-06T10:00:00+00:00",
+                "updated_at": "2026-02-06T10:03:00+00:00",
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_client",
+        lambda: _TaskPaymentClient(
+            payments=[],
+            escrows=[],
+            submissions=[],
+            missing_tables={"payments", "escrows"},
+        ),
+    )
+
+    result = await routes.get_task_payment(task_id=task_id, api_key=None)
+
+    assert result.status == "refunded"
+    auth_expired_events = [e for e in result.events if e.type == "authorization_expired"]
+    assert len(auth_expired_events) == 1
+    assert auth_expired_events[0].tx_hash is None
 
 
 @pytest.mark.asyncio

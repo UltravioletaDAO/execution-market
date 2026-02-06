@@ -11,6 +11,8 @@
  */
 
 import { useState, useCallback, useMemo } from 'react'
+import { TxHashLink } from '../../components/TxHashLink'
+import { PaymentStatusBadge } from '../../components/PaymentStatusBadge'
 import type { Task, Submission, Executor, EvidenceType } from '../../types/database'
 
 // ============================================================================
@@ -724,6 +726,27 @@ export function SubmissionReview({
                 <div>
                   <p className="text-gray-500">Hash de Evidencia</p>
                   <p className="font-mono text-gray-900">{submission.evidence_hash.slice(0, 12)}...</p>
+                </div>
+              )}
+              {submission.agent_verdict && (
+                <div>
+                  <p className="text-gray-500">Veredicto</p>
+                  <PaymentStatusBadge
+                    status={submission.agent_verdict === 'accepted' ? 'released' : submission.agent_verdict === 'rejected' ? 'cancelled' : submission.agent_verdict}
+                    txHash={submission.payment_tx}
+                  />
+                </div>
+              )}
+              {submission.payment_tx && (
+                <div>
+                  <p className="text-gray-500">Transaccion de Pago</p>
+                  <TxHashLink txHash={submission.payment_tx} />
+                </div>
+              )}
+              {submission.paid_at && (
+                <div>
+                  <p className="text-gray-500">Fecha de Pago</p>
+                  <p className="text-gray-900">{formatDate(submission.paid_at)}</p>
                 </div>
               )}
             </div>

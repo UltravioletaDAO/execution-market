@@ -49,6 +49,14 @@ except ImportError:
     PaymentVerificationError = Exception
     PaymentSettlementError = Exception
 
+# EscrowClient for gasless refunds via facilitator
+try:
+    from uvd_x402_sdk.escrow import EscrowClient as SDKEscrowClient
+    ESCROW_SDK_AVAILABLE = True
+except ImportError:
+    SDKEscrowClient = None
+    ESCROW_SDK_AVAILABLE = False
+
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +80,15 @@ EM_TREASURY = os.environ.get(
 
 # Default network for payments
 DEFAULT_NETWORK = os.environ.get("X402_NETWORK", "base")
+
+# Escrow service URL (for gasless refunds via facilitator)
+ESCROW_URL = os.environ.get(
+    "X402_ESCROW_URL",
+    "https://escrow.ultravioletadao.xyz"
+)
+
+# API key for escrow service (reuse main API key if not set separately)
+ESCROW_API_KEY = os.environ.get("X402_ESCROW_API_KEY", os.environ.get("X402_API_KEY"))
 
 # Platform fee percentage
 PLATFORM_FEE_PERCENT = Decimal(os.environ.get("EM_PLATFORM_FEE", "0.08"))
@@ -390,10 +407,14 @@ class EMX402SDK:
         reason: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Refund a task payment back to the agent.
+        Refund a task payment back to the agent via the facilitator (gasless).
 
-        This uses the x402r escrow integration when available.
-        The operation is best-effort and returns a structured result.
+        Uses the uvd-x402-sdk EscrowClient.request_refund() which calls the
+        escrow service. The facilitator pays gas — the agent recovers USDC
+        without spending anything on gas.
+
+        Falls back to direct contract call (x402r_escrow) only if the SDK
+        EscrowClient is not available.
 
         Args:
             task_id: Task identifier
@@ -412,6 +433,46 @@ class EMX402SDK:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
+        # Primary path: gasless refund via EscrowClient (facilitator pays gas)
+        if ESCROW_SDK_AVAILABLE:
+            try:
+                async with SDKEscrowClient(
+                    base_url=ESCROW_URL,
+                    api_key=ESCROW_API_KEY,
+                ) as escrow_client:
+                    refund_result = await escrow_client.request_refund(
+                        escrow_id=escrow_id,
+                        reason=reason or f"Task {task_id} cancelled",
+                    )
+
+                tx_hash = getattr(refund_result, "transaction_hash", None)
+
+                logger.info(
+                    "Gasless refund succeeded: task=%s, escrow=%s, tx=%s, status=%s",
+                    task_id, escrow_id, tx_hash, refund_result.status,
+                )
+
+                return {
+                    "success": True,
+                    "task_id": task_id,
+                    "escrow_id": escrow_id,
+                    "refund_id": refund_result.id,
+                    "tx_hash": tx_hash,
+                    "status": refund_result.status.value if hasattr(refund_result.status, "value") else str(refund_result.status),
+                    "amount_requested": getattr(refund_result, "amount_requested", None),
+                    "reason": reason,
+                    "method": "facilitator",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            except Exception as e:
+                logger.warning(
+                    "Gasless refund failed for task %s (escrow %s), "
+                    "falling back to direct contract: %s",
+                    task_id, escrow_id, str(e),
+                )
+                # Fall through to legacy path below
+
+        # Legacy fallback: direct contract call (agent pays gas)
         try:
             from .x402r_escrow import refund_payment
         except Exception:
@@ -419,11 +480,15 @@ class EMX402SDK:
                 "success": False,
                 "task_id": task_id,
                 "escrow_id": escrow_id,
-                "error": "x402r refund integration not available",
+                "error": "Neither EscrowClient nor x402r refund integration available",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         try:
+            logger.warning(
+                "Using legacy direct-contract refund for task %s (agent pays gas)",
+                task_id,
+            )
             refund_result = await refund_payment(deposit_id=escrow_id)
             amount = getattr(refund_result, "amount", None)
             return {
@@ -434,10 +499,11 @@ class EMX402SDK:
                 "payer": getattr(refund_result, "payer", None),
                 "amount": str(amount) if amount is not None else None,
                 "reason": reason,
+                "method": "direct_contract",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         except Exception as e:
-            logger.error("Task payment refund failed: %s", str(e))
+            logger.error("Task payment refund failed (all paths): %s", str(e))
             return {
                 "success": False,
                 "task_id": task_id,
@@ -472,6 +538,8 @@ class EMX402SDK:
                 "facilitator_url": self.facilitator_url,
                 "facilitator_healthy": response.status_code == 200,
                 "facilitator_status": facilitator_health.get("status", "unknown"),
+                "escrow_url": ESCROW_URL,
+                "escrow_sdk_available": ESCROW_SDK_AVAILABLE,
                 "network": self.network,
                 "recipient": self.recipient_address,
             }

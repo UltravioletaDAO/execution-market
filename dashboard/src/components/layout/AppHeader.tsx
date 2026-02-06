@@ -19,6 +19,8 @@ export function AppHeader({ onConnectWallet, onScrollToHowItWorks }: AppHeaderPr
     { label: t('nav.home', 'Jobs'), href: '/' },
     { label: t('footer.about', 'About'), href: '/about' },
     { label: t('help.faq.title', 'FAQ'), href: '/faq' },
+    { label: t('nav.agents', 'For Agents'), href: '/agents' },
+    { label: t('nav.developers', 'Developers'), href: '/developers' },
   ]
 
   return (

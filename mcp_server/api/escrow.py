@@ -1,8 +1,9 @@
 """
 x402r Escrow API Routes
 
-Provides REST endpoints for escrow management via x402r contracts.
-Uses Base Mainnet for production payments.
+Provides REST endpoints for escrow management.
+Uses the x402 SDK + Ultravioleta Facilitator (gasless) as the primary path.
+Falls back to direct contract calls only when the SDK is unavailable.
 
 Contracts (Base Mainnet):
 - Factory: 0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814
@@ -16,7 +17,14 @@ from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, Path, Query
 from pydantic import BaseModel, Field
 
-# x402r escrow client
+# x402 SDK (facilitator-backed, gasless) — PRIMARY path
+try:
+    from integrations.x402.sdk_client import get_sdk, SDK_AVAILABLE
+    X402_SDK_AVAILABLE = SDK_AVAILABLE
+except ImportError:
+    X402_SDK_AVAILABLE = False
+
+# x402r direct escrow client — FALLBACK only
 try:
     from integrations.x402 import (
         get_x402r_escrow,
@@ -318,7 +326,8 @@ async def get_merchant_balance(
         401: {"description": "Unauthorized"},
         400: {"description": "Invalid request"},
         503: {"description": "Escrow not available"},
-    }
+    },
+    deprecated=True,
 )
 async def release_to_worker(
     request: ReleaseRequest,
@@ -327,16 +336,18 @@ async def release_to_worker(
     """
     Release escrowed funds to a worker.
 
-    **Requires authentication**: Only the Execution Market backend can release funds.
+    **Deprecated**: Use `POST /api/v1/submissions/{id}/approve` instead.
+    The approval endpoint handles settlement via the x402 facilitator (gasless).
 
-    This is called when:
-    1. Agent approves a submission
-    2. Task is marked as completed
-
-    The funds go from escrow directly to the worker's wallet.
+    This legacy endpoint calls the escrow contract directly (agent pays gas).
     """
     if not X402R_AVAILABLE:
         raise HTTPException(status_code=503, detail="x402r escrow not available")
+
+    logger.warning(
+        "DEPRECATED: Direct contract release by %s — use /api/v1/submissions/{id}/approve instead",
+        api_key.agent_id,
+    )
 
     try:
         amount = Decimal(request.amount)
@@ -352,7 +363,7 @@ async def release_to_worker(
     )
 
     logger.info(
-        "Release request by %s: deposit=%s, worker=%s, amount=%s, success=%s",
+        "Release request by %s: deposit=%s, worker=%s, amount=%s, success=%s (DIRECT CONTRACT)",
         api_key.agent_id, request.deposit_id[:16], request.worker_address[:10],
         request.amount, result.success
     )
@@ -385,20 +396,62 @@ async def refund_to_agent(
 
     **Requires authentication**: Only the Execution Market backend can refund.
 
+    Uses the x402 SDK + facilitator (gasless) as the primary path.
+    Falls back to direct contract call only if the SDK is unavailable.
+
     This is called when:
     1. Task is cancelled
     2. Dispute resolved in agent's favor
     3. No worker accepted the task before deadline
-
-    The funds go from escrow back to the original payer.
     """
+    # Primary path: gasless refund via SDK + facilitator
+    if X402_SDK_AVAILABLE:
+        try:
+            sdk = get_sdk()
+            result = await sdk.refund_task_payment(
+                task_id=f"escrow-{request.deposit_id[:16]}",
+                escrow_id=request.deposit_id,
+                reason=f"Refund requested by agent {api_key.agent_id}",
+            )
+
+            tx_hash = result.get("tx_hash")
+            success = result.get("success", False)
+            method = result.get("method", "facilitator")
+
+            logger.info(
+                "Refund via %s by %s: deposit=%s, success=%s, tx=%s",
+                method, api_key.agent_id, request.deposit_id[:16],
+                success, tx_hash,
+            )
+
+            return RefundResponse(
+                success=success,
+                tx_hash=tx_hash,
+                deposit_id=request.deposit_id,
+                payer=result.get("payer", ""),
+                amount=str(result.get("amount_requested", result.get("amount", "0"))),
+                error=result.get("error"),
+            )
+        except Exception as sdk_err:
+            logger.warning(
+                "SDK refund failed for deposit %s, falling back to direct contract: %s",
+                request.deposit_id[:16], sdk_err,
+            )
+            # Fall through to direct contract below
+
+    # Fallback: direct contract call (agent pays gas)
     if not X402R_AVAILABLE:
-        raise HTTPException(status_code=503, detail="x402r escrow not available")
+        raise HTTPException(status_code=503, detail="Neither SDK nor x402r escrow available")
+
+    logger.warning(
+        "Using direct contract refund (agent pays gas) for deposit %s by %s",
+        request.deposit_id[:16], api_key.agent_id,
+    )
 
     result = await refund_payment(deposit_id=request.deposit_id)
 
     logger.info(
-        "Refund request by %s: deposit=%s, success=%s",
+        "Refund via direct contract by %s: deposit=%s, success=%s",
         api_key.agent_id, request.deposit_id[:16], result.success
     )
 

@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import type { Executor, TaskCategory } from '../types/database'
 import type { EarningsData, ReputationData, TaskHistoryItem } from '../hooks/useProfile'
 import { useEarnings, useReputation, useTaskHistory, useWithdrawal } from '../hooks/useProfile'
+import { useIdentity } from '../hooks/useIdentity'
 import { SkillSelector } from '../components/SkillSelector'
 
 // --------------------------------------------------------------------------
@@ -1105,6 +1106,116 @@ function WithdrawalModal({
 }
 
 // --------------------------------------------------------------------------
+// Identity Badge Section (ERC-8004)
+// --------------------------------------------------------------------------
+
+function IdentitySection({ executorId }: { executorId: string }) {
+  const { t } = useTranslation()
+  const { identity, loading, isRegistered, agentId, error } = useIdentity(executorId)
+
+  if (loading) {
+    return (
+      <section className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex items-center gap-3 animate-pulse">
+          <div className="w-10 h-10 bg-gray-200 rounded-full" />
+          <div className="flex-1">
+            <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
+            <div className="h-3 bg-gray-200 rounded w-1/2" />
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // Service unavailable or unloaded -- hide section silently
+  if (!identity && !error) {
+    return null
+  }
+
+  return (
+    <section className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="flex items-center gap-3">
+        {/* Icon */}
+        <div
+          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+            isRegistered
+              ? 'bg-green-100 text-green-600'
+              : 'bg-gray-100 text-gray-400'
+          }`}
+        >
+          {isRegistered ? (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {t('profile.identity', 'Identidad On-Chain')}
+            </h3>
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                isRegistered
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {isRegistered
+                ? t('profile.identityRegistered', 'Verificado')
+                : t('profile.identityNotRegistered', 'No registrado')}
+            </span>
+          </div>
+          {isRegistered && agentId ? (
+            <p className="text-xs text-gray-500 mt-0.5">
+              ERC-8004 Agent #{agentId} &middot; {identity?.network || 'Base'}
+            </p>
+          ) : (
+            <p className="text-xs text-gray-500 mt-0.5">
+              {t(
+                'profile.identityHint',
+                'Registra tu identidad en Base para mayor confianza',
+              )}
+            </p>
+          )}
+        </div>
+
+        {/* Network badge */}
+        {isRegistered && (
+          <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-full">
+            <div className="w-2 h-2 bg-blue-500 rounded-full" />
+            <span className="text-xs font-medium text-blue-700">Base</span>
+          </div>
+        )}
+      </div>
+
+      {/* Error display */}
+      {error && (
+        <p className="mt-2 text-xs text-amber-600 bg-amber-50 rounded px-2 py-1">
+          {error}
+        </p>
+      )}
+    </section>
+  )
+}
+
+// --------------------------------------------------------------------------
 // Main Profile Page Component
 // --------------------------------------------------------------------------
 
@@ -1271,6 +1382,9 @@ export function Profile({ executor, onBack, onLogout }: ProfilePageProps) {
           </div>
         </div>
       </section>
+
+      {/* On-Chain Identity Section */}
+      <IdentitySection executorId={executor.id} />
 
       {/* Reputation Section */}
       <ReputationSection

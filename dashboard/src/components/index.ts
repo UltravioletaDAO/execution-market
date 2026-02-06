@@ -34,6 +34,11 @@ export {
 } from './PaymentStatus'
 export { SettingsPage } from './SettingsPage'
 export { HelpPage } from './HelpPage'
+export { TxHashLink, type TxHashLinkProps } from './TxHashLink'
+export {
+  PaymentStatusBadge as PaymentStatusBadgeNew,
+  type PaymentStatusBadgeProps as PaymentStatusBadgeNewProps,
+} from './PaymentStatusBadge'
 
 // Profile components
 export {

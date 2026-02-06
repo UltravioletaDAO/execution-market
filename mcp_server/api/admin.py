@@ -451,6 +451,18 @@ async def get_platform_stats(
         except Exception as e:
             logger.warning(f"Could not count agents: {e}")
 
+        # Orphaned payments alert: accepted submissions without payment_tx
+        orphaned_count = 0
+        try:
+            orphaned_result = supabase.table("submissions").select(
+                "id", count="exact"
+            ).in_(
+                "agent_verdict", ["accepted", "approved"]
+            ).is_("payment_tx", "null").execute()
+            orphaned_count = orphaned_result.count or 0
+        except Exception as e:
+            logger.warning(f"Could not count orphaned payments: {e}")
+
         return {
             "tasks": {
                 "by_status": tasks_by_status,
@@ -460,6 +472,7 @@ async def get_platform_stats(
                 "total_volume_usd": round(total_volume, 2),
                 "total_fees_usd": round(total_fees, 2),
                 "active_escrow_usd": round(active_escrow, 2),
+                "orphaned_accepted_no_tx": orphaned_count,
             },
             "users": {
                 "active_workers": workers_count,
@@ -1047,3 +1060,99 @@ async def get_analytics(
             "top_workers": [],
             "trends": {},
         }
+
+
+# =============================================================================
+# PAYMENT RETRY ENDPOINTS
+# =============================================================================
+
+
+@router.get("/payments/orphaned")
+async def get_orphaned_payments(
+    limit: int = Query(20, ge=1, le=100),
+    admin: dict = Depends(verify_admin_key),
+) -> Dict[str, Any]:
+    """List submissions accepted/approved but missing payment_tx."""
+    try:
+        supabase = db.get_supabase_client()
+        result = (
+            supabase.table("submissions")
+            .select("id, task_id, executor_id, agent_verdict, payment_tx, updated_at, task:tasks(id, title, bounty_usd, escrow_tx, status), executor:executors(id, wallet_address, display_name)")
+            .in_("agent_verdict", ["accepted", "approved"])
+            .is_("payment_tx", "null")
+            .order("updated_at", desc=False)
+            .limit(limit)
+            .execute()
+        )
+        submissions = result.data or []
+        return {
+            "orphaned_submissions": submissions,
+            "count": len(submissions),
+        }
+    except Exception as e:
+        logger.error(f"Error fetching orphaned payments: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/payments/retry/{submission_id}")
+async def retry_submission_payment(
+    submission_id: str,
+    admin: dict = Depends(verify_admin_key),
+) -> Dict[str, Any]:
+    """Manually retry settlement for a specific orphaned submission."""
+    try:
+        from jobs.auto_payment import _retry_settlement
+
+        supabase = db.get_supabase_client()
+
+        # Fetch the submission with task/executor joins
+        result = (
+            supabase.table("submissions")
+            .select("id, task_id, executor_id, agent_verdict, payment_tx, task:tasks(id, bounty_usd, escrow_tx, escrow_id, status), executor:executors(id, wallet_address)")
+            .eq("id", submission_id)
+            .limit(1)
+            .execute()
+        )
+
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Submission not found")
+
+        submission = result.data[0]
+
+        if submission.get("payment_tx"):
+            return {
+                "status": "already_paid",
+                "payment_tx": submission["payment_tx"],
+                "message": "Submission already has a payment_tx",
+            }
+
+        verdict = (submission.get("agent_verdict") or "").lower().strip()
+        if verdict not in ("accepted", "approved"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Submission verdict is '{verdict}', not accepted/approved",
+            )
+
+        success = await _retry_settlement(supabase, submission)
+
+        if success:
+            # Re-fetch to get the updated payment_tx
+            updated = supabase.table("submissions").select("payment_tx, paid_at, payment_amount").eq("id", submission_id).limit(1).execute()
+            updated_data = updated.data[0] if updated.data else {}
+            return {
+                "status": "settled",
+                "payment_tx": updated_data.get("payment_tx"),
+                "paid_at": updated_data.get("paid_at"),
+                "payment_amount": updated_data.get("payment_amount"),
+            }
+        else:
+            return {
+                "status": "failed",
+                "message": "Settlement attempt failed — check server logs for details",
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrying payment for submission {submission_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -34,6 +34,19 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
       settings={{
         environmentId: DYNAMIC_ENVIRONMENT_ID,
         walletConnectors: [EthereumWalletConnectors],
+        events: {
+          onAuthSuccess: ({ user }) => {
+            console.log('[Dynamic] Auth success:', user?.walletPublicKey || 'unknown wallet')
+          },
+          onLogout: () => {
+            console.log('[Dynamic] User logged out')
+            // Clear persisted wallet on Dynamic logout
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('em_last_wallet_address')
+              localStorage.removeItem('em_user_type')
+            }
+          },
+        },
       }}
     >
       {children}

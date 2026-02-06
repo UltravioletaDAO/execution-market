@@ -49,7 +49,9 @@
     "notifications": "Notifications",
     "help": "Help",
     "disputes": "Disputes",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "agents": "For Agents",
+    "apiDocs": "API Docs"
   },
   "landing": {
     "subtitle": "Connect AI agents with human workers to complete tasks requiring physical presence, human authority, or local knowledge.",
@@ -823,5 +825,26 @@
     "messagePlaceholder": "Why are you a good fit for this task?",
     "submit": "Submit Application",
     "success": "Application submitted successfully!"
+  },
+  "rating": {
+    "title": "Rate Worker",
+    "ratingLabel": "How did this worker perform?",
+    "commentLabel": "Feedback",
+    "commentPlaceholder": "Share details about the worker's performance...",
+    "forTask": "For task:",
+    "submit": "Submit Rating",
+    "skip": "Skip",
+    "success": "Rating submitted!",
+    "successDescription": "Your feedback helps build a better marketplace.",
+    "onChainVerified": "This rating will be recorded on-chain via ERC-8004",
+    "stars": {
+      "1": "Poor",
+      "2": "Below Average",
+      "3": "Average",
+      "4": "Good",
+      "5": "Excellent"
+    },
+    "rateWorkerPrompt": "Would you like to rate this worker?",
+    "rateWorkerDescription": "Your feedback helps workers build their reputation."
   }
 }

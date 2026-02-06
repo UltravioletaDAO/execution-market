@@ -2,8 +2,11 @@
 // Dashboard for AI agents managing tasks, reviewing submissions, and viewing analytics
 
 import { useState, useCallback, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Task, TaskStatus, TaskCategory, Submission } from '../types/database'
 import { usePublicMetrics } from '../hooks/usePublicMetrics'
+import { WorkerRatingModal } from '../components/WorkerRatingModal'
+import { WorkerReputationBadge } from '../components/WorkerReputationBadge'
 
 // --------------------------------------------------------------------------
 // Types
@@ -221,9 +224,11 @@ function ActiveTaskItem({
 function PendingSubmissionItem({
   submission,
   onReview,
+  onApproveAndRate,
 }: {
   submission: AgentSubmission
   onReview?: () => void
+  onApproveAndRate?: () => void
 }) {
   const executor = submission.executor
   const task = submission.task
@@ -251,12 +256,9 @@ function PendingSubmissionItem({
           <p className="text-sm font-medium text-gray-900">
             {executor?.display_name || 'Ejecutor Anonimo'}
           </p>
-          <span className="flex items-center gap-1 text-xs text-amber-600">
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-            {executor?.reputation_score ?? 50}
-          </span>
+          {executor && (
+            <WorkerReputationBadge score={executor.reputation_score ?? 50} />
+          )}
         </div>
         <p className="text-sm text-gray-600 truncate mt-0.5">{task?.title || 'Tarea'}</p>
         <p className="text-xs text-gray-400 mt-1">
@@ -264,13 +266,26 @@ function PendingSubmissionItem({
         </p>
       </div>
 
-      {/* Review button */}
-      <button
-        onClick={onReview}
-        className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors flex-shrink-0"
-      >
-        Revisar
-      </button>
+      {/* Action buttons */}
+      <div className="flex flex-col gap-1.5 flex-shrink-0">
+        <button
+          onClick={onReview}
+          className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors"
+        >
+          Revisar
+        </button>
+        {submission.auto_check_passed && onApproveAndRate && (
+          <button
+            onClick={onApproveAndRate}
+            className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-1"
+          >
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            Aprobar
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -321,6 +336,11 @@ export function AgentDashboard({
   const [loading, setLoading] = useState(true)
   const [activeTasksFilter, setActiveTasksFilter] = useState<'all' | 'pending' | 'in_progress'>('all')
   const { metrics: platformMetrics, loading: platformMetricsLoading } = usePublicMetrics()
+
+  // Rating modal state
+  const [ratingSubmission, setRatingSubmission] = useState<AgentSubmission | null>(null)
+
+  const { t } = useTranslation()
 
   // Mock data load - in production, fetch from API/Supabase
   useEffect(() => {
@@ -851,6 +871,7 @@ export function AgentDashboard({
                   key={submission.id}
                   submission={submission}
                   onReview={() => onReviewSubmission?.(submission)}
+                  onApproveAndRate={() => setRatingSubmission(submission)}
                 />
               ))
             )}
@@ -936,6 +957,28 @@ export function AgentDashboard({
           </div>
         )}
       </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Worker Rating Modal */}
+      {/* ------------------------------------------------------------------ */}
+      {ratingSubmission && ratingSubmission.executor && (
+        <WorkerRatingModal
+          taskId={ratingSubmission.task_id}
+          taskTitle={ratingSubmission.task?.title || 'Task'}
+          worker={{
+            id: ratingSubmission.executor.id,
+            display_name: ratingSubmission.executor.display_name,
+            reputation_score: ratingSubmission.executor.reputation_score,
+            avatar_url: ratingSubmission.executor.avatar_url,
+            wallet_address: ratingSubmission.executor.wallet_address,
+          }}
+          proofTx={ratingSubmission.payment_tx}
+          onClose={() => setRatingSubmission(null)}
+          onSuccess={() => {
+            setRatingSubmission(null)
+          }}
+        />
+      )}
     </div>
   )
 }
