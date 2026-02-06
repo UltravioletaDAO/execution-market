@@ -28,10 +28,10 @@ interface Cluster {
 
 // Determine cluster color based on average bounty
 function getClusterColor(avgBounty: number): { bg: string; border: string } {
-  if (avgBounty >= 100) return { bg: '#22c55e', border: '#16a34a' }; // High value - green
-  if (avgBounty >= 50) return { bg: '#3b82f6', border: '#2563eb' };  // Medium-high - blue
-  if (avgBounty >= 20) return { bg: '#eab308', border: '#ca8a04' };  // Medium - yellow
-  return { bg: '#6b7280', border: '#4b5563' };                        // Low - gray
+  if (avgBounty >= 100) return { bg: '#4b4b4b', border: '#3f3f46' }; // High value - green
+  if (avgBounty >= 50) return { bg: '#404040', border: '#2a2a2a' };  // Medium-high - blue
+  if (avgBounty >= 20) return { bg: '#8a8a8a', border: '#787878' };  // Medium - yellow
+  return { bg: '#71717a', border: '#52525b' };                        // Low - gray
 }
 
 // Create cluster icon

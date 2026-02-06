@@ -108,11 +108,11 @@ const TIME_RANGES: { key: TimeRange; label: string }[] = [
 ]
 
 const CATEGORY_COLORS = {
-  physical_presence: '#3b82f6',
-  knowledge_access: '#10b981',
-  human_authority: '#8b5cf6',
-  simple_action: '#f59e0b',
-  digital_physical: '#ec4899',
+  physical_presence: '#404040',
+  knowledge_access: '#3f3f46',
+  human_authority: '#52525b',
+  simple_action: '#71717a',
+  digital_physical: '#5f5f5f',
 }
 
 const CATEGORY_LABELS = {
@@ -580,33 +580,33 @@ export function Analytics({ agentId, onBack }: AgentAnalyticsProps) {
             <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorTareas" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#404040" stopOpacity={0.1} />
+                  <stop offset="95%" stopColor="#404040" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorCompletadas" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#3f3f46" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#3f3f46" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#9ca3af" tickLine={false} />
-              <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#a1a1aa" tickLine={false} />
+              <YAxis tick={{ fontSize: 12 }} stroke="#a1a1aa" tickLine={false} />
               <Tooltip
-                contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                contentStyle={{ borderRadius: '8px', border: '1px solid #e4e4e7' }}
                 labelStyle={{ fontWeight: 600 }}
               />
               <Legend />
               <Area
                 type="monotone"
                 dataKey="Tareas"
-                stroke="#3b82f6"
+                stroke="#404040"
                 fill="url(#colorTareas)"
                 strokeWidth={2}
               />
               <Area
                 type="monotone"
                 dataKey="Completadas"
-                stroke="#10b981"
+                stroke="#3f3f46"
                 fill="url(#colorCompletadas)"
                 strokeWidth={2}
               />
@@ -620,14 +620,14 @@ export function Analytics({ agentId, onBack }: AgentAnalyticsProps) {
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#9ca3af" tickLine={false} />
-              <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" tickLine={false} tickFormatter={(v) => `$${v}`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#a1a1aa" tickLine={false} />
+              <YAxis tick={{ fontSize: 12 }} stroke="#a1a1aa" tickLine={false} tickFormatter={(v) => `$${v}`} />
               <Tooltip
-                contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                contentStyle={{ borderRadius: '8px', border: '1px solid #e4e4e7' }}
                 formatter={(value: number) => [formatCurrency(value), 'Gasto']}
               />
-              <Bar dataKey="Gasto" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Gasto" fill="#52525b" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -69,15 +69,15 @@ interface TaskStatusBreakdown {
 // ============================================================================
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
-  published: '#22c55e',
-  accepted: '#3b82f6',
-  in_progress: '#f59e0b',
-  submitted: '#8b5cf6',
-  verifying: '#6366f1',
-  completed: '#6b7280',
-  disputed: '#ef4444',
-  expired: '#9ca3af',
-  cancelled: '#d1d5db',
+  published: '#4b4b4b',
+  accepted: '#404040',
+  in_progress: '#71717a',
+  submitted: '#52525b',
+  verifying: '#6b6b6b',
+  completed: '#71717a',
+  disputed: '#1f1f1f',
+  expired: '#a1a1aa',
+  cancelled: '#d4d4d8',
 }
 
 const STATUS_LABELS: Record<TaskStatus, string> = {

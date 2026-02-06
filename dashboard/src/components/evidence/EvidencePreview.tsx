@@ -169,7 +169,7 @@ export function EvidencePreview({
             <div
               className="absolute inset-0 bg-black/50 flex items-center justify-center"
               style={{
-                background: `linear-gradient(to top, rgba(59, 130, 246, 0.5) ${evidence.uploadProgress}%, transparent ${evidence.uploadProgress}%)`,
+                background: `linear-gradient(to top, rgba(64, 64, 64, 0.5) ${evidence.uploadProgress}%, transparent ${evidence.uploadProgress}%)`,
               }}
             >
               <span className="text-white text-xs font-bold">{evidence.uploadProgress}%</span>

@@ -14,31 +14,31 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --primary-light: #3b82f6;
-            --secondary: #0f172a;
-            --accent: #06b6d4;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
+            --primary: #111111;
+            --primary-dark: #000000;
+            --primary-light: #27272a;
+            --secondary: #09090b;
+            --accent: #3f3f46;
+            --success: #18181b;
+            --warning: #52525b;
+            --danger: #71717a;
             --white: #ffffff;
-            --gray-50: #f8fafc;
-            --gray-100: #f1f5f9;
-            --gray-200: #e2e8f0;
-            --gray-300: #cbd5e1;
-            --gray-400: #94a3b8;
-            --gray-500: #64748b;
-            --gray-600: #475569;
-            --gray-700: #334155;
-            --gray-800: #1e293b;
-            --gray-900: #0f172a;
+            --gray-50: #fafafa;
+            --gray-100: #f4f4f5;
+            --gray-200: #e4e4e7;
+            --gray-300: #d4d4d8;
+            --gray-400: #a1a1aa;
+            --gray-500: #71717a;
+            --gray-600: #52525b;
+            --gray-700: #3f3f46;
+            --gray-800: #27272a;
+            --gray-900: #18181b;
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -46,7 +46,7 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Roboto Mono', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--white);
             color: var(--gray-800);
             line-height: 1.6;
@@ -868,6 +868,106 @@
                 gap: 16px;
                 text-align: center;
             }
+        }
+
+        /* Monochrome visual language overrides */
+        .logo-icon {
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 0;
+        }
+
+        .btn {
+            border-radius: 0;
+            letter-spacing: 0.02em;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .hero {
+            background: linear-gradient(180deg, var(--white) 0%, var(--gray-50) 100%);
+        }
+
+        .hero-badge {
+            background: linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0.1));
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 0;
+            color: var(--primary);
+        }
+
+        .hero-badge::before {
+            background: var(--primary);
+            animation: none;
+        }
+
+        .hero h1 span {
+            background: none;
+            -webkit-text-fill-color: currentColor;
+            color: var(--primary);
+        }
+
+        .hero-card,
+        .trust-card,
+        .case-card,
+        .tech-card,
+        .comparison-table {
+            border-radius: 0;
+        }
+
+        .trust-card:hover,
+        .case-card:hover {
+            transform: none;
+            border-color: var(--gray-800);
+            box-shadow: var(--shadow);
+        }
+
+        .trust-icon {
+            background: linear-gradient(135deg, rgba(0,0,0,0.04), rgba(0,0,0,0.08));
+            border-radius: 0;
+        }
+
+        .how-grid::before {
+            background: linear-gradient(90deg, rgba(0,0,0,0.1), rgba(0,0,0,0.5), rgba(0,0,0,0.1));
+            opacity: 0.35;
+        }
+
+        .how-step-number {
+            background: var(--primary);
+            border-radius: 0;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+        }
+
+        .comparison-table .highlight-row {
+            background: linear-gradient(90deg, rgba(0,0,0,0.03), rgba(0,0,0,0.07));
+        }
+
+        .badge-good,
+        .badge-bad,
+        .badge-ok {
+            border-radius: 0;
+            background: rgba(0,0,0,0.06);
+            color: var(--gray-800);
+        }
+
+        .cta-section {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-white {
+            background: var(--white);
+            color: var(--primary);
+            border: 1px solid var(--white);
+        }
+
+        .btn-outline-white {
+            border: 1px solid rgba(255,255,255,0.45);
         }
     </style>
 </head>
