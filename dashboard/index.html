@@ -24,8 +24,8 @@
     <meta name="twitter:image" content="/og-image.png" />
 
     <!-- Theme Colors -->
-    <meta name="theme-color" content="#0ea5e9" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <meta name="color-scheme" content="light dark" />
 
     <!-- PWA Meta Tags -->
@@ -41,16 +41,13 @@
     <meta name="apple-mobile-web-app-orientations" content="portrait" />
 
     <!-- Preconnect to external resources -->
-    <link rel="preconnect" href="https://rsms.me" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://supabase.co" />
     <link rel="dns-prefetch" href="https://supabase.co" />
 
-    <!-- Font Loading: Inter (UI) and JetBrains Mono (Code) -->
-    <link rel="preload" href="https://rsms.me/inter/inter.css" as="style" />
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <!-- Font Loading -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
     <!-- Prevent phone number detection on iOS -->
     <meta name="format-detection" content="telephone=no" />
@@ -66,10 +63,9 @@
         text-rendering: optimizeLegibility;
       }
 
-      /* Inter font feature settings */
+      /* Core typography */
       :root {
-        font-family: 'Inter var', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+        font-family: 'Roboto Mono', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       }
 
       /* Prevent pull-to-refresh during camera capture */
@@ -97,13 +93,13 @@
         justify-content: center;
         min-height: 100vh;
         min-height: 100dvh;
-        background: #f8fafc;
+        background: #fafafa;
       }
 
       .dark #root:empty,
       @media (prefers-color-scheme: dark) {
         #root:empty {
-          background: #0f172a;
+          background: #09090b;
         }
       }
 
@@ -111,8 +107,8 @@
         content: '';
         width: 40px;
         height: 40px;
-        border: 3px solid #e2e8f0;
-        border-top-color: #0ea5e9;
+        border: 3px solid #e4e4e7;
+        border-top-color: #111111;
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
       }
@@ -120,8 +116,8 @@
       .dark #root:empty::after,
       @media (prefers-color-scheme: dark) {
         #root:empty::after {
-          border-color: #334155;
-          border-top-color: #0ea5e9;
+          border-color: #3f3f46;
+          border-top-color: #fafafa;
         }
       }
 
@@ -162,7 +158,7 @@
           // Update theme-color meta tag
           var metaThemeColor = document.querySelector('meta[name="theme-color"]');
           if (metaThemeColor) {
-            metaThemeColor.setAttribute('content', theme === 'dark' ? '#0f172a' : '#0ea5e9');
+            metaThemeColor.setAttribute('content', theme === 'dark' ? '#000000' : '#ffffff');
           }
         } catch (e) {
           console.error('Theme detection error:', e);
@@ -176,7 +172,7 @@
       <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; text-align: center; font-family: system-ui, sans-serif;">
         <div>
           <h1 style="font-size: 1.5rem; margin-bottom: 1rem;">JavaScript Required</h1>
-          <p style="color: #64748b;">Execution Market requires JavaScript to run. Please enable JavaScript in your browser settings.</p>
+          <p style="color: #71717a;">Execution Market requires JavaScript to run. Please enable JavaScript in your browser settings.</p>
         </div>
       </div>
     </noscript>

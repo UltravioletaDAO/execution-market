@@ -1069,7 +1069,7 @@ export function EvidenceUpload({
                     cy="50"
                     r="45"
                     fill="none"
-                    stroke="#E5E7EB"
+                    stroke="#e4e4e7"
                     strokeWidth="8"
                   />
                   {/* Progress circle */}
@@ -1078,7 +1078,7 @@ export function EvidenceUpload({
                     cy="50"
                     r="45"
                     fill="none"
-                    stroke="#2563EB"
+                    stroke="#2a2a2a"
                     strokeWidth="8"
                     strokeLinecap="round"
                     strokeDasharray={`${uploadProgress * 2.83} 283`}

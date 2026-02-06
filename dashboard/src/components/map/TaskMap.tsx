@@ -41,10 +41,10 @@ const createUserIcon = (): L.DivIcon => {
     <div style="
       width: 24px;
       height: 24px;
-      background-color: #3b82f6;
+      background-color: #404040;
       border: 4px solid white;
       border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+      box-shadow: 0 2px 8px rgba(64, 64, 64, 0.5);
     ">
       <div style="
         width: 8px;
@@ -73,14 +73,14 @@ const createSelectionIcon = (): L.DivIcon => {
     <div style="
       width: 32px;
       height: 32px;
-      border: 3px dashed #ef4444;
+      border: 3px dashed #1f1f1f;
       border-radius: 50%;
       animation: pulse 1.5s ease-in-out infinite;
     ">
       <div style="
         width: 8px;
         height: 8px;
-        background: #ef4444;
+        background: #1f1f1f;
         border-radius: 50%;
         position: absolute;
         top: 50%;
@@ -297,7 +297,7 @@ export function TaskMap({
         zoom={zoom ?? DEFAULT_ZOOM}
         className="h-full w-full rounded-lg"
         ref={mapRef}
-        style={{ background: '#f3f4f6' }}
+        style={{ background: '#f4f4f5' }}
       >
         {/* Map tiles */}
         <TileLayer
@@ -344,8 +344,8 @@ export function TaskMap({
             center={[selectedTask.location.lat, selectedTask.location.lng]}
             radius={selectedTask.location_radius_km * 1000}
             pathOptions={{
-              color: '#8b5cf6',
-              fillColor: '#8b5cf6',
+              color: '#52525b',
+              fillColor: '#52525b',
               fillOpacity: 0.1,
               weight: 2,
               dashArray: '5, 5',
@@ -366,8 +366,8 @@ export function TaskMap({
                 center={[userPosition.latitude, userPosition.longitude]}
                 radius={userPosition.accuracy}
                 pathOptions={{
-                  color: '#3b82f6',
-                  fillColor: '#3b82f6',
+                  color: '#404040',
+                  fillColor: '#404040',
                   fillOpacity: 0.1,
                   weight: 1,
                 }}
@@ -379,8 +379,8 @@ export function TaskMap({
                 center={[userPosition.latitude, userPosition.longitude]}
                 radius={userLocationRadius * 1000}
                 pathOptions={{
-                  color: '#3b82f6',
-                  fillColor: '#3b82f6',
+                  color: '#404040',
+                  fillColor: '#404040',
                   fillOpacity: 0.05,
                   weight: 2,
                 }}

@@ -6,7 +6,7 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#111111",
   "scope": "/",
   "id": "com.ultravioleta.execution-market",
   "lang": "es-MX",
