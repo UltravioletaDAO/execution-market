@@ -342,24 +342,25 @@ To activate S3 pipeline: set `enable_evidence_pipeline = true` in terraform.tfva
 ---
 
 ## BATCH 10 — Deployment & Ops (P2-OPS-001 to P2-OPS-003)
-**Status**: `PENDING`
+**Status**: `DONE (2026-02-06)`
 **Estimated context**: Small
 **Goal**: Streamline deployment process
 
 ### Tasks
-- `P2-OPS-001` Create build + deploy script with immutable tags
-- `P2-OPS-002` Add post-deploy parity checks
-- `P2-OPS-003` Add release note template with tx evidence
+- ✅ `P2-OPS-001` Created `.claude/scripts/deploy.sh` — unified deploy for dashboard+MCP with immutable git-SHA tags, ECR push, ECS force-deploy. Fixed `deploy-dashboard.sh` account ID placeholder.
+- ✅ `P2-OPS-002` Post-deploy health checks built into `deploy.sh`: API health, sanity check, dashboard reachability, route parity count, deployed commit verification. Runs automatically after 30s stabilization.
+- ✅ `P2-OPS-003` Created `.claude/scripts/release-notes.sh` — generates Markdown release notes with commit log, service URLs, infrastructure status, on-chain tx evidence table, post-deploy checklist.
 
 ### Key files
-- `.claude/scripts/deploy-dashboard.sh`
-- `.claude/scripts/build-all.sh`
-- `.github/workflows/deploy.yml`
+- `.claude/scripts/deploy.sh` — unified deploy (new)
+- `.claude/scripts/release-notes.sh` — release notes generator (new)
+- `.claude/scripts/deploy-dashboard.sh` — fixed account ID
+- `.claude/scripts/build-all.sh` — existing (unchanged)
 
 ### Acceptance criteria
-- Single command deploys with tagged images
-- Post-deploy health check runs automatically
-- Release notes capture tx evidence links
+- ✅ Single command deploys with tagged images (`./deploy.sh`)
+- ✅ Post-deploy health check runs automatically (4 checks)
+- ✅ Release notes capture tx evidence links
 
 ---
 
