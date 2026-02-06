@@ -184,7 +184,40 @@ def _insert_escrow_record(record: Dict[str, Any]) -> bool:
 
 
 def _extract_payment_tx(payment_row: Dict[str, Any]) -> Optional[str]:
-    return payment_row.get("tx_hash") or payment_row.get("transaction_hash")
+    if not payment_row:
+        return None
+
+    direct_candidates = (
+        payment_row.get("tx_hash"),
+        payment_row.get("transaction_hash"),
+        payment_row.get("payment_tx"),
+        payment_row.get("transaction"),
+        payment_row.get("hash"),
+    )
+    for value in direct_candidates:
+        if isinstance(value, str) and _is_tx_hash(value):
+            return value.strip()
+
+    nested_keys = (
+        "metadata",
+        "meta",
+        "details",
+        "result",
+        "response",
+        "provider_response",
+        "settlement",
+        "receipt",
+        "raw",
+    )
+    for key in nested_keys:
+        nested = payment_row.get(key)
+        if not isinstance(nested, dict):
+            continue
+        nested_tx = _extract_payment_tx(nested)
+        if nested_tx:
+            return nested_tx
+
+    return None
 
 
 def _is_release_payment(payment_row: Dict[str, Any]) -> bool:
@@ -195,10 +228,18 @@ def _is_release_payment(payment_row: Dict[str, Any]) -> bool:
 
 
 def _is_payment_finalized(payment_row: Dict[str, Any]) -> bool:
+    tx_hash = _extract_payment_tx(payment_row)
+
+    # For release/final payments we require explicit tx evidence.
+    # A "confirmed" status without tx hash can happen in drifted environments
+    # and must remain retryable.
+    if _is_release_payment(payment_row):
+        return bool(tx_hash)
+
     status = _normalize_status(payment_row.get("status"))
     if status in {"confirmed", "completed", "settled", "released", "success"}:
         return True
-    return bool(_extract_payment_tx(payment_row))
+    return bool(tx_hash)
 
 
 def _get_existing_submission_payment(submission_id: str) -> Optional[Dict[str, Any]]:
@@ -540,7 +581,20 @@ async def _settle_submission_payment(
         )
 
         if result.get("success"):
-            release_tx = result.get("tx_hash")
+            release_tx = _pick_first_tx_hash(
+                result.get("tx_hash"),
+                result.get("transaction_hash"),
+                result.get("transaction"),
+                result.get("hash"),
+            )
+            payment_status = "confirmed" if release_tx else "pending"
+
+            if not release_tx:
+                release_error = (
+                    f"Settlement response for task {task_id} did not include tx hash; retry required"
+                )
+                logger.error(release_error)
+
             client = db.get_client()
             payment_record = {
                 "task_id": task_id,
@@ -548,7 +602,7 @@ async def _settle_submission_payment(
                 "submission_id": submission_id,
                 "type": "release",
                 "payment_type": "full_release",
-                "status": "confirmed",
+                "status": payment_status,
                 "tx_hash": release_tx,
                 "transaction_hash": release_tx,
                 "amount_usdc": float(worker_payout),
@@ -556,7 +610,7 @@ async def _settle_submission_payment(
                 "escrow_id": escrow_id,
                 "network": "base",
                 "to_address": worker_address,
-                "note": note,
+                "note": note if release_tx else f"{note} (awaiting tx hash)",
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
 
@@ -575,37 +629,38 @@ async def _settle_submission_payment(
                     payment_record_err,
                 )
 
-            try:
-                client.table("escrows").update({
-                    "status": "released",
-                    "released_at": datetime.now(timezone.utc).isoformat(),
-                }).eq("task_id", task_id).execute()
-            except Exception as escrow_update_err:
-                logger.warning(
-                    "Could not update escrow release status for task %s: %s",
-                    task_id,
-                    escrow_update_err,
+            if release_tx:
+                try:
+                    client.table("escrows").update({
+                        "status": "released",
+                        "released_at": datetime.now(timezone.utc).isoformat(),
+                    }).eq("task_id", task_id).execute()
+                except Exception as escrow_update_err:
+                    logger.warning(
+                        "Could not update escrow release status for task %s: %s",
+                        task_id,
+                        escrow_update_err,
+                    )
+
+                _record_submission_paid_fields(
+                    submission_id=submission_id,
+                    tx_hash=release_tx,
+                    amount_usdc=float(worker_payout),
                 )
 
-            _record_submission_paid_fields(
-                submission_id=submission_id,
-                tx_hash=release_tx,
-                amount_usdc=float(worker_payout),
-            )
+                logger.info(
+                    "Payment settled via SDK: task=%s, worker=%s, net=%.2f, tx=%s",
+                    task_id,
+                    worker_address[:10],
+                    float(worker_payout),
+                    release_tx,
+                )
 
-            logger.info(
-                "Payment settled via SDK: task=%s, worker=%s, net=%.2f, tx=%s",
-                task_id,
-                worker_address[:10],
-                float(worker_payout),
-                release_tx,
-            )
-
-            await _send_reputation_feedback(
-                task=task,
-                worker_address=worker_address,
-                release_tx=release_tx,
-            )
+                await _send_reputation_feedback(
+                    task=task,
+                    worker_address=worker_address,
+                    release_tx=release_tx,
+                )
         else:
             release_error = result.get("error", "SDK settlement failed")
             logger.error(
@@ -1971,36 +2026,60 @@ async def approve_submission(
             detail="Cannot approve submission because task is already completed",
         )
 
-    # Update submission
     notes = request.notes if request else None
-    await db.update_submission(
-        submission_id=submission_id,
-        agent_id=api_key.agent_id,
-        verdict="accepted",
-        notes=notes,
-    )
-
-    logger.info(
-        "Submission approved: id=%s, agent=%s",
-        submission_id, api_key.agent_id
-    )
-
-    refreshed_submission = await db.get_submission(submission_id)
     settlement = await _settle_submission_payment(
         submission_id=submission_id,
-        submission=refreshed_submission or submission,
+        submission=submission,
+        note="Manual approval payout via x402 facilitator",
     )
     release_tx = settlement.get("payment_tx")
     release_error = settlement.get("payment_error")
 
-    response_data = {"submission_id": submission_id, "verdict": "accepted"}
-    if release_tx:
-        response_data["payment_tx"] = release_tx
+    if not release_tx:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not settle payment before approval: {release_error or 'missing tx hash'}",
+        )
+
+    # Only mark approved/completed after settlement has tx evidence.
+    try:
+        await db.update_submission(
+            submission_id=submission_id,
+            agent_id=api_key.agent_id,
+            verdict="accepted",
+            notes=notes,
+        )
+    except Exception as state_err:
+        logger.error(
+            "Payment released for submission %s but state update failed: %s",
+            submission_id,
+            state_err,
+        )
+        return SuccessResponse(
+            message="Payment released, but submission state update needs retry.",
+            data={
+                "submission_id": submission_id,
+                "verdict": "accepted_pending_state_update",
+                "payment_tx": release_tx,
+                "payment_error": str(state_err),
+            },
+        )
+
+    logger.info(
+        "Submission approved and paid: id=%s, agent=%s, tx=%s",
+        submission_id, api_key.agent_id, release_tx
+    )
+
+    response_data = {
+        "submission_id": submission_id,
+        "verdict": "accepted",
+        "payment_tx": release_tx,
+    }
     if release_error:
         response_data["payment_error"] = release_error
 
     return SuccessResponse(
-        message="Submission approved. Payment released to worker." if release_tx else "Submission approved. Payment will be released to worker.",
+        message="Submission approved. Payment released to worker.",
         data=response_data
     )
 

@@ -212,6 +212,48 @@ async def test_approve_submission_returns_idempotent_success(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_approve_submission_requires_tx_before_marking_accepted(monkeypatch):
+    submission_id = "12121212-1111-1111-1111-111111111111"
+    api_key = SimpleNamespace(agent_id="agent_test")
+
+    submission_payload = {
+        "id": submission_id,
+        "agent_verdict": "pending",
+        "task": {
+            "id": "task_approve_guard",
+            "status": "submitted",
+        },
+    }
+
+    monkeypatch.setattr(
+        routes, "verify_agent_owns_submission", AsyncMock(return_value=True)
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_submission",
+        AsyncMock(return_value=submission_payload),
+    )
+    monkeypatch.setattr(
+        routes,
+        "_settle_submission_payment",
+        AsyncMock(return_value={"payment_tx": None, "payment_error": "missing tx hash"}),
+    )
+
+    update_submission = AsyncMock()
+    monkeypatch.setattr(routes.db, "update_submission", update_submission)
+
+    with pytest.raises(HTTPException) as exc:
+        await routes.approve_submission(
+            submission_id=submission_id,
+            request=routes.ApprovalRequest(notes="approve"),
+            api_key=api_key,
+        )
+
+    assert exc.value.status_code == 502
+    update_submission.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_submit_work_auto_pays_and_marks_completed(monkeypatch):
     task_id = "88888888-8888-4888-8888-888888888888"
     submission_id = "99999999-9999-4999-9999-999999999999"
@@ -321,6 +363,23 @@ async def test_submit_work_keeps_review_flow_when_instant_payout_not_ready(monke
     assert "payment_tx" not in result.data
     settle_mock.assert_not_awaited()
     auto_approve.assert_not_awaited()
+
+
+def test_release_payment_requires_tx_hash_for_finalization():
+    row_without_tx = {
+        "payment_type": "full_release",
+        "status": "confirmed",
+        "tx_hash": None,
+        "transaction_hash": None,
+    }
+    row_with_tx = {
+        "payment_type": "full_release",
+        "status": "confirmed",
+        "tx_hash": "0x" + "a" * 64,
+    }
+
+    assert routes._is_payment_finalized(row_without_tx) is False
+    assert routes._is_payment_finalized(row_with_tx) is True
 
 
 @pytest.mark.asyncio
