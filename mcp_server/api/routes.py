@@ -7,6 +7,7 @@ Includes agent endpoints (authenticated) and worker endpoints (public/semi-publi
 
 import logging
 import json
+import re
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
@@ -135,6 +136,51 @@ def _sanitize_reference(value: Optional[str]) -> Optional[str]:
     if len(normalized) > 96 or normalized.startswith("eyJ"):
         return f"x402 authorization: {normalized[:12]}...{normalized[-8:]}"
     return f"x402 reference: {normalized}"
+
+
+def _extract_missing_column_name(error_msg: str) -> Optional[str]:
+    match = re.search(r"Could not find the '([^']+)' column", error_msg)
+    if match:
+        return match.group(1)
+    return None
+
+
+def _insert_escrow_record(record: Dict[str, Any]) -> bool:
+    """
+    Persist escrow rows with schema-drift tolerance.
+
+    Environments can differ on escrows columns. This helper removes unknown
+    columns one by one and retries so we can at least persist metadata
+    (`x_payment_header`) required for settlement.
+    """
+    payload = dict(record)
+    if not payload:
+        return False
+
+    try:
+        client = db.get_client()
+    except Exception as err:
+        logger.warning("Could not initialize db client for escrow insert: %s", err)
+        return False
+
+    while payload:
+        try:
+            client.table("escrows").insert(payload).execute()
+            return True
+        except Exception as err:
+            err_msg = str(err)
+            missing_column = _extract_missing_column_name(err_msg)
+            if missing_column and missing_column in payload:
+                logger.warning(
+                    "escrows.%s missing in current schema; retrying escrow insert without it",
+                    missing_column,
+                )
+                payload.pop(missing_column, None)
+                continue
+            logger.warning("Could not create escrow record: %s", err_msg)
+            return False
+
+    return False
 
 
 def _extract_payment_tx(payment_row: Dict[str, Any]) -> Optional[str]:
@@ -879,6 +925,20 @@ class WorkerApplicationRequest(BaseModel):
     )
 
 
+class WorkerAssignRequest(BaseModel):
+    """Request model for assigning a task to a worker."""
+    executor_id: str = Field(
+        ...,
+        description="Worker's executor ID",
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    )
+    notes: Optional[str] = Field(
+        default=None,
+        description="Optional assignment notes for the worker",
+        max_length=500
+    )
+
+
 class WorkerSubmissionRequest(BaseModel):
     """Request model for worker submitting work."""
     executor_id: str = Field(
@@ -1308,30 +1368,24 @@ async def create_task(
                 await db.update_task(task["id"], escrow_updates)
                 task.update(escrow_updates)
 
-                # Create escrow record
-                # NOTE: x_payment_header is stored in task.escrow_tx, not in escrows table
-                # This avoids schema changes and keeps the header with the task
-                try:
-                    client = db.get_client()
-                    client.table("escrows").insert({
-                        "task_id": task["id"],
-                        "agent_id": api_key.agent_id,
-                        "escrow_id": escrow_ref,
-                        "funding_tx": None,  # Will be set when payment is settled
-                        "status": "authorized",  # Payment authorized, not yet captured
-                        "total_amount_usdc": float(total_required),
-                        "platform_fee_usdc": float(total_required - bounty),
-                        "beneficiary_address": payment_result.payer_address,
-                        "network": payment_result.network,
-                        "metadata": {
-                            "x_payment_header": x_payment_header,
-                            "payment_reference": payment_reference,
-                        },
-                        "created_at": datetime.now(timezone.utc).isoformat(),
-                    }).execute()
-                except Exception as escrow_err:
-                    # escrows table might not have all columns, log and continue
-                    logger.warning("Could not create escrow record: %s", escrow_err)
+                # Persist escrow metadata for later settlement.
+                # Critical: include x_payment_header somewhere recoverable.
+                _insert_escrow_record({
+                    "task_id": task["id"],
+                    "agent_id": api_key.agent_id,
+                    "escrow_id": escrow_ref,
+                    "funding_tx": None,  # populated when settlement occurs
+                    "status": "authorized",
+                    "total_amount_usdc": float(total_required),
+                    "platform_fee_usdc": float(total_required - bounty),
+                    "beneficiary_address": payment_result.payer_address,
+                    "network": payment_result.network,
+                    "metadata": {
+                        "x_payment_header": x_payment_header,
+                        "payment_reference": payment_reference,
+                    },
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                })
 
                 logger.info(
                     "x402 payment authorized: task=%s, escrow=%s, amount=%.2f, payer=%s",
@@ -2218,6 +2272,73 @@ async def get_analytics(
         top_workers=result["top_workers"],
         period_days=result["period_days"],
     )
+
+
+@router.post(
+    "/tasks/{task_id}/assign",
+    response_model=SuccessResponse,
+    responses={
+        200: {"description": "Task assigned"},
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Not authorized or ineligible"},
+        404: {"model": ErrorResponse, "description": "Task or executor not found"},
+        409: {"model": ErrorResponse, "description": "Task not assignable in current status"},
+    }
+)
+async def assign_task_to_worker(
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
+    request: WorkerAssignRequest = ...,
+    api_key: APIKeyData = Depends(verify_api_key),
+) -> SuccessResponse:
+    """
+    Assign a published task to a worker.
+
+    Agent endpoint used to move task status from `published` to `accepted`
+    by selecting a specific executor.
+    """
+    try:
+        result = await db.assign_task(
+            task_id=task_id,
+            agent_id=api_key.agent_id,
+            executor_id=request.executor_id,
+            notes=request.notes,
+        )
+
+        task = result.get("task", {})
+        executor = result.get("executor", {})
+        logger.info(
+            "Task assigned: task=%s, agent=%s, executor=%s",
+            task_id,
+            api_key.agent_id[:10],
+            request.executor_id[:10],
+        )
+
+        return SuccessResponse(
+            message="Task assigned successfully",
+            data={
+                "task_id": task_id,
+                "executor_id": request.executor_id,
+                "status": task.get("status", "accepted"),
+                "assigned_at": task.get("assigned_at"),
+                "worker_wallet": executor.get("wallet_address"),
+            }
+        )
+
+    except Exception as e:
+        error_msg = str(e)
+        lowered = error_msg.lower()
+        if "not found" in lowered:
+            if "executor" in lowered:
+                raise HTTPException(status_code=404, detail="Executor not found")
+            raise HTTPException(status_code=404, detail="Task not found")
+        elif "not authorized" in lowered:
+            raise HTTPException(status_code=403, detail="Not authorized to assign this task")
+        elif "cannot be assigned" in lowered or "status" in lowered:
+            raise HTTPException(status_code=409, detail=error_msg)
+        elif "insufficient reputation" in lowered:
+            raise HTTPException(status_code=403, detail=error_msg)
+        logger.error("Unexpected error assigning task %s: %s", task_id, error_msg)
+        raise HTTPException(status_code=500, detail="Internal error while assigning task")
 
 
 # =============================================================================
