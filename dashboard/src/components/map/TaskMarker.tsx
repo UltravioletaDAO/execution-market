@@ -17,15 +17,15 @@ interface TaskMarkerProps {
 
 // Status colors for markers
 const STATUS_COLORS: Record<TaskStatus, { bg: string; border: string; text: string }> = {
-  published: { bg: '#22c55e', border: '#16a34a', text: '#ffffff' },      // Green - available
-  accepted: { bg: '#3b82f6', border: '#2563eb', text: '#ffffff' },       // Blue - assigned
-  in_progress: { bg: '#eab308', border: '#ca8a04', text: '#000000' },    // Yellow - in progress
-  submitted: { bg: '#a855f7', border: '#9333ea', text: '#ffffff' },      // Purple - submitted
-  verifying: { bg: '#6366f1', border: '#4f46e5', text: '#ffffff' },      // Indigo - verifying
-  completed: { bg: '#6b7280', border: '#4b5563', text: '#ffffff' },      // Gray - completed
-  disputed: { bg: '#ef4444', border: '#dc2626', text: '#ffffff' },       // Red - disputed
-  expired: { bg: '#9ca3af', border: '#6b7280', text: '#ffffff' },        // Light gray - expired
-  cancelled: { bg: '#d1d5db', border: '#9ca3af', text: '#374151' },      // Lighter gray - cancelled
+  published: { bg: '#4b4b4b', border: '#3f3f46', text: '#ffffff' },      // Green - available
+  accepted: { bg: '#404040', border: '#2a2a2a', text: '#ffffff' },       // Blue - assigned
+  in_progress: { bg: '#8a8a8a', border: '#787878', text: '#000000' },    // Yellow - in progress
+  submitted: { bg: '#7a7a7a', border: '#6f6f6f', text: '#ffffff' },      // Purple - submitted
+  verifying: { bg: '#6b6b6b', border: '#636363', text: '#ffffff' },      // Indigo - verifying
+  completed: { bg: '#71717a', border: '#52525b', text: '#ffffff' },      // Gray - completed
+  disputed: { bg: '#1f1f1f', border: '#2f2f2f', text: '#ffffff' },       // Red - disputed
+  expired: { bg: '#a1a1aa', border: '#71717a', text: '#ffffff' },        // Light gray - expired
+  cancelled: { bg: '#d4d4d8', border: '#a1a1aa', text: '#3f3f46' },      // Lighter gray - cancelled
 };
 
 // Format bounty for display in marker
