@@ -403,11 +403,11 @@ def test_resolve_task_payment_header_reads_from_escrow_metadata(monkeypatch):
 async def test_get_public_platform_metrics_aggregates_counts(monkeypatch):
     fake_client = _MetricsClient(
         tasks_rows=[
-            {"status": "published", "executor_id": None, "agent_id": "agent_1"},
-            {"status": "accepted", "executor_id": "worker_1", "agent_id": "agent_1"},
-            {"status": "submitted", "executor_id": "worker_1", "agent_id": "agent_1"},
-            {"status": "completed", "executor_id": "worker_2", "agent_id": "agent_2"},
-            {"status": "completed", "executor_id": "worker_1", "agent_id": "agent_1"},
+            {"status": "published", "executor_id": None, "agent_id": "agent_1", "bounty_usd": 0},
+            {"status": "accepted", "executor_id": "worker_1", "agent_id": "agent_1", "bounty_usd": 0},
+            {"status": "submitted", "executor_id": "worker_1", "agent_id": "agent_1", "bounty_usd": 0},
+            {"status": "completed", "executor_id": "worker_2", "agent_id": "agent_2", "bounty_usd": 10.5},
+            {"status": "completed", "executor_id": "worker_1", "agent_id": "agent_1", "bounty_usd": 5.25},
         ],
         escrow_rows=[
             {"total_amount_usdc": 10.5, "platform_fee_usdc": 0.8},
@@ -439,4 +439,4 @@ async def test_get_public_platform_metrics_aggregates_counts(monkeypatch):
     assert result.activity["agents_with_live_tasks"] == 1
 
     assert result.payments["total_volume_usd"] == 15.75
-    assert result.payments["total_fees_usd"] == 1.22
+    assert result.payments["total_fees_usd"] == 1.26
