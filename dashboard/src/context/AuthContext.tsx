@@ -324,11 +324,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Open auth modal
   // --------------------------------------------------------------------------
   const openAuthModal = useCallback(() => {
+    // Don't open modal if already authenticated
     if (isAuthenticated && walletAddress) {
       return
     }
+    // Don't open modal while SDK is still loading (may be restoring session)
+    if (loading && !dynamicInitialized) {
+      return
+    }
     setShowAuthFlow(true)
-  }, [isAuthenticated, walletAddress, setShowAuthFlow])
+  }, [isAuthenticated, walletAddress, loading, dynamicInitialized, setShowAuthFlow])
 
   // --------------------------------------------------------------------------
   // Effect: Track Dynamic.xyz initialization via sdkHasLoaded
