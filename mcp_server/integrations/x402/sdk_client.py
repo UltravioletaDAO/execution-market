@@ -231,6 +231,39 @@ class EMX402SDK:
     # Task Payment Processing
     # =========================================================================
 
+    @staticmethod
+    def _extract_settlement_tx_hash(settle_response: Any) -> Optional[str]:
+        """
+        Extract tx hash from SDK settle response across SDK versions.
+
+        Handles both model methods (`get_transaction_hash`) and direct attrs
+        that can vary between releases (`transaction`, `tx_hash`,
+        `transaction_hash`).
+        """
+        if settle_response is None:
+            return None
+
+        tx_candidates = []
+
+        getter = getattr(settle_response, "get_transaction_hash", None)
+        if callable(getter):
+            try:
+                tx_candidates.append(getter())
+            except Exception:
+                pass
+
+        for attr in ("tx_hash", "transaction_hash", "transaction", "hash"):
+            try:
+                tx_candidates.append(getattr(settle_response, attr, None))
+            except Exception:
+                continue
+
+        for value in tx_candidates:
+            if isinstance(value, str) and value.startswith("0x") and len(value) == 66:
+                return value
+
+        return None
+
     async def verify_task_payment(
         self,
         task_id: str,
@@ -326,6 +359,7 @@ class EMX402SDK:
 
             # Settle via facilitator (on-chain transfer)
             settle_response = self.client.settle_payment(payload, bounty_amount)
+            tx_hash = self._extract_settlement_tx_hash(settle_response)
 
             return {
                 "success": settle_response.success,
@@ -334,7 +368,7 @@ class EMX402SDK:
                 "gross_amount": float(bounty_amount),
                 "platform_fee": float(platform_fee),
                 "net_to_worker": float(worker_net),
-                "tx_hash": settle_response.get_transaction_hash(),
+                "tx_hash": tx_hash,
                 "network": payload.network,
                 "payer": settle_response.payer,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
