@@ -35,3 +35,25 @@ dashboard_image_tag     = "latest"
 # anthropic_api_key    = ""
 # x402_facilitator_key = ""
 # base_rpc_url         = ""
+
+# Evidence pipeline (optional)
+# Set to true to create API Gateway + Lambda + S3 + CloudFront stack.
+enable_evidence_pipeline = false
+
+# Optional custom bucket name. If empty, Terraform generates one.
+evidence_bucket_name = ""
+
+# CORS allowlist for presigned URL API + direct browser upload to S3.
+evidence_allowed_origins = [
+  "https://execution.market",
+  "https://www.execution.market"
+]
+
+# Presigned URL behavior
+evidence_presign_expiry_seconds = 900
+evidence_max_upload_mb          = 25
+evidence_retention_days         = 365
+
+# Custom domain for CDN (requires ACM cert in us-east-1).
+evidence_subdomain           = "storage"
+evidence_acm_certificate_arn = ""
