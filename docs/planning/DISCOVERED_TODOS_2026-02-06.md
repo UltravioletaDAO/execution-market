@@ -6,8 +6,9 @@ Items discovered during Batch 0-3 execution that are **not explicitly tracked** 
 
 ## P0 — Must Fix Before Launch
 
-### TODO-D00: Workers Never Receive USDC — Treasury Collects Everything
+### TODO-D00: Workers Never Receive USDC — Treasury Collects Everything — FIXED
 **Severity**: CRITICAL (P0)
+**Status**: FIXED (commit `94c6e30`, deployed task def rev 22)
 **Discovered during**: P0-PAY-006 live test with separate worker wallet
 
 **The Problem**: ALL x402 payments go to the EM Treasury (`0xae07ceb6...`), NOT to the worker. The EIP-3009 `TransferWithAuthorization` is signed with `to: EM_TREASURY` (hardcoded in `test-x402-rapid-flow.ts:304` and in task creation flow). When the facilitator settles, it executes `agent → treasury`. The `worker_address` parameter in `sdk_client.py:settle_task_payment` is accepted but **never used for the on-chain transfer** — it's only metadata.
@@ -114,6 +115,27 @@ The current architecture uses verify-then-settle (authorize → settle on approv
 
 $0.10 USDC from direct relay deposit (tx `0xda31cbe...`) is stuck in the vault. Needs refund via `EscrowClient.request_refund()` (gasless) or wait for contract expiry.
 
+### TODO-D12: On-Chain Splitter Contract for Automated Fee Distribution
+**Severity**: FUTURE (post-MVP)
+**Discovered during**: TODO-D00 fix discussion (2026-02-06)
+
+The current split payment uses TWO separate EIP-3009 auths signed at approval time (agent→worker + agent→treasury). This works for MVP but has limitations:
+- Requires agent's private key in MCP server
+- Two separate on-chain txs per payout
+- Fee logic is application-level, not auditable on-chain
+
+**Better long-term approach**: Deploy a **PaymentSplitter** contract:
+1. Escrow releases USDC to splitter address
+2. Splitter auto-distributes: worker gets (100% - fee), treasury gets fee
+3. Fee percentage configurable via admin function
+4. Single on-chain tx, fully auditable
+
+**Alternatives considered**:
+- `AdvancedEscrowClient.charge()` — SDK supports it, but agent pays gas (not gasless)
+- Disbursement account pattern — intermediate wallet that the platform controls
+
+**Current MVP approach** (dual EIP-3009 auths) is sufficient for launch. Splitter contract should be prioritized for production at scale.
+
 ### TODO-D11: SubmissionForm.tsx Bypasses Service Layer
 **Severity**: MEDIUM
 **Known bug from CLAUDE.md.**
@@ -128,7 +150,7 @@ $0.10 USDC from direct relay deposit (tx `0xda31cbe...`) is stuck in the vault. 
 
 | TODO | Add To | As |
 |------|--------|----|
-| **TODO-D00 (worker not paid)** | **NEW Batch 4.5** | **P0-PAY-CRITICAL: Implement treasury→worker disbursement or switch to split payment** |
+| ~~TODO-D00 (worker not paid)~~ | ~~Batch 4.5~~ | **FIXED** — Split payment via dual EIP-3009 auths (commit `94c6e30`) |
 | TODO-D01 (self-payment) | **Batch 4** | P0-PAY-008: Fix self-payment detection (compare wallets, not API key IDs) |
 | TODO-D02 (payments table) | **Batch 4** | P0-PAY-009: Create `payments` table in live DB |
 | TODO-D03 (escrows table) | **Batch 8** | P1-DB-002: Decide escrows table fate (create or remove refs) |
