@@ -2,6 +2,14 @@
 
 Backlog operativo enfocado en **ship rápido** y reducir caos de cambios.
 
+## Update 2026-02-06
+- Ver análisis completo: `docs/planning/SHIP_REVIEW_2026-02-06.md`.
+- Deploy vigente validado en producción: `em-production-dashboard:8` y `em-production-mcp-server:14`.
+- Se confirmó drift de esquema productivo: faltan tablas `payments` y `escrows` (impacta trazabilidad canónica de tx).
+- Se agregaron fixes live:
+`dashboard/src/hooks/useTaskPayment.ts` ahora degrada sin tabla `payments` y toma payout tx desde `submissions.payment_tx`.
+`mcp_server/api/routes.py` calcula métricas públicas financieras desde `tasks`.
+
 ## Regla base
 - No meter features nuevas mientras haya P0 abiertos.
 - Todo item debe tener owner, criterio de aceptación y fecha.
