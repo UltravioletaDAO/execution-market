@@ -115,16 +115,51 @@ The current architecture uses verify-then-settle (authorize → settle on approv
 
 $0.10 USDC from direct relay deposit (tx `0xda31cbe...`) is stuck in the vault. Needs refund via `EscrowClient.request_refund()` (gasless) or wait for contract expiry.
 
-### TODO-D12: Modify uvd-x402-sdk to Support Custom payTo in settle_payment()
+### TODO-D12: Modify uvd-x402-sdk to Support Custom payTo in settle_payment() — FIXED
 **Severity**: MEDIUM
+**Status**: FIXED (SDK v0.8.1 published to PyPI, commit `736acd7`)
 **Discovered during**: TODO-D00 fix (2026-02-06)
 
-The Python SDK's `settle_payment()` always sets `payTo=self.config.get_recipient(network)` (treasury). The facilitator validates `payTo == auth.to`, so we can't use the SDK to settle payments to worker addresses. Currently we use direct HTTP to the facilitator `/settle` endpoint.
+Added `pay_to: Optional[str] = None` parameter to `verify_payment()`, `settle_payment()`, `process_payment()`, and `verify_only()`. When set, overrides `config.recipient_evm` in `_build_payment_requirements()`.
 
-**Fix**: Add a `pay_to` optional parameter to `X402Client.settle_payment()` that overrides `config.recipient_evm` in `_build_payment_requirements()`. This is ~5 lines changed in `uvd-x402-sdk-python/src/uvd_x402_sdk/client.py`.
+**Release**: https://github.com/UltravioletaDAO/uvd-x402-sdk-python/releases/tag/v0.8.1
+**Install**: `pip install uvd-x402-sdk==0.8.1`
 
-**Repo**: `/mnt/z/ultravioleta/dao/uvd-x402-sdk-python`
-**Relates to**: sdk_client.py `_settle_signed_auth()` which currently bypasses the SDK.
+### TODO-D14: Agent's Original Auth Never Settled — Platform Pays From Own Wallet
+**Severity**: HIGH (P0)
+**Status**: OPEN
+**Discovered during**: Architecture review after TODO-D00 fix (2026-02-06)
+
+**The Problem**: When a task is approved, `settle_task_payment()` signs TWO NEW EIP-3009 auths from the **platform wallet** (`0x3403...`). The agent's original auth (stored in `task.escrow_tx`) is **never settled**. This means:
+- The agent never actually pays USDC
+- The platform wallet pays workers from its own balance ($29.97)
+- When the platform wallet runs out, all payments stop
+- The original auth just expires unused
+
+**Correct flow** (two-step settlement):
+```
+1. SETTLE agent's original auth  →  Agent pays Platform (full bounty)
+2. Platform signs new auth       →  Platform pays Worker (bounty - fee)
+3. Fee stays in platform wallet
+```
+
+**Fix** (in `sdk_client.py:settle_task_payment()`):
+```python
+# Step 0: Settle agent's original auth (agent → platform wallet)
+payload = self.client.extract_payload(payment_header)
+settle_resp = self.client.settle_payment(payload, bounty_amount)
+# Now platform wallet has the USDC from the agent
+
+# Step 1: Disburse to worker (existing code)
+# Step 2: Collect fee (existing code, or just keep it)
+```
+
+**Prerequisites**:
+- Agent's auth.to must point to the platform wallet (`0x3403...`), NOT the treasury
+- Test scripts need to sign auths to platform wallet address
+- SDK v0.8.1 with `pay_to` ✅ (for cases where auth.to differs from config)
+
+**Relates to**: Batch 5 or next payment batch. ~15 lines of code change.
 
 ### TODO-D13: On-Chain Splitter Contract for Automated Fee Distribution
 **Severity**: FUTURE (post-MVP)
@@ -155,6 +190,20 @@ The current split payment uses TWO separate EIP-3009 auths signed at approval ti
 
 **Relates to**: Batch 7 (Evidence Pipeline) — but the service layer fix should happen sooner.
 
+### TODO-D15: Add Mermaid Diagrams to Documentation
+**Severity**: LOW (documentation quality)
+**Status**: OPEN
+
+Add Mermaid diagrams to key documentation files for visual clarity:
+- **Payment flow**: Task creation → verify → approve → settle → disburse (in CLAUDE.md or dedicated doc)
+- **Task lifecycle**: State machine (PUBLISHED → ACCEPTED → ... → COMPLETED/DISPUTED)
+- **Auth flow**: Dynamic.xyz → wallet → executor lookup → session
+- **Infrastructure**: ECS → ALB → Route53 → CloudFront
+- **Escrow states**: AUTHORIZED → RELEASED / CANCELLED
+
+**Target files**: CLAUDE.md, SPEC.md, PLAN.md, `docs/planning/` docs
+**Format**: GitHub-flavored Mermaid (renders in GitHub, VS Code, and most Markdown viewers)
+
 ---
 
 ## Suggested Additions to Existing Batches
@@ -171,3 +220,6 @@ The current split payment uses TWO separate EIP-3009 auths signed at approval ti
 | TODO-D07 (ABI deprecation) | **Batch 9** | P2-TEST-006: Remove x402r_escrow.py after SDK migration |
 | TODO-D09 (funded refund) | **Batch 6** | P1-ERC-006: Migrate to AdvancedEscrowClient for true funded escrow |
 | TODO-D11 (SubmissionForm) | **Batch 7** | P1-EVID-000: Fix SubmissionForm to use service layer (prerequisite) |
+| ~~TODO-D12 (SDK pay_to)~~ | ~~SDK~~ | **FIXED** — SDK v0.8.1 published to PyPI (commit `736acd7`) |
+| TODO-D14 (agent auth not settled) | **Batch 5** | P0-PAY-010: Settle agent's original auth before disbursing to worker |
+| TODO-D15 (mermaid diagrams) | **Batch 8** | P1-DOC-001: Add Mermaid diagrams to key docs for visual clarity |
