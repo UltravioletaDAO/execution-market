@@ -623,8 +623,9 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
 
     # Task and activity aggregates
     try:
-        tasks_result = client.table("tasks").select("status, executor_id, agent_id").execute()
+        tasks_result = client.table("tasks").select("status, executor_id, agent_id, bounty_usd").execute()
         task_rows = tasks_result.data or []
+        fee_pct = float(await get_platform_fee_percent())
 
         workers_with_tasks = set()
         workers_active = set()
@@ -638,6 +639,10 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
 
             tasks[status] = tasks.get(status, 0) + 1
             tasks["total"] += 1
+            amount = float(row.get("bounty_usd") or 0.0)
+            payments["total_volume_usd"] += amount
+            if status == "completed":
+                payments["total_fees_usd"] += amount * fee_pct
 
             executor_id = row.get("executor_id")
             if executor_id:
@@ -662,15 +667,6 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
         activity["agents_with_live_tasks"] = len(agents_active)
     except Exception as e:
         logger.warning("Could not query task aggregates for public metrics: %s", e)
-
-    # Financial aggregates from escrows
-    try:
-        escrows_result = client.table("escrows").select("total_amount_usdc, platform_fee_usdc").execute()
-        for row in escrows_result.data or []:
-            payments["total_volume_usd"] += float(row.get("total_amount_usdc") or 0.0)
-            payments["total_fees_usd"] += float(row.get("platform_fee_usdc") or 0.0)
-    except Exception as e:
-        logger.warning("Could not query escrow aggregates for public metrics: %s", e)
 
     payments["total_volume_usd"] = round(payments["total_volume_usd"], 2)
     payments["total_fees_usd"] = round(payments["total_fees_usd"], 2)
