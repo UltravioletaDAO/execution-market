@@ -67,6 +67,59 @@ interface UseTaskPaymentReturn {
 const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/
 const SETTLED_STATUSES = new Set(['confirmed', 'completed', 'available', 'funded', 'released'])
 
+function getTaskPaymentUrl(taskId: string): string {
+  const base = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
+  if (base.endsWith('/api')) {
+    return `${base}/v1/tasks/${taskId}/payment`
+  }
+  return `${base}/api/v1/tasks/${taskId}/payment`
+}
+
+function isPaymentEvent(value: unknown): value is PaymentEvent {
+  if (!value || typeof value !== 'object') return false
+  const maybe = value as Record<string, unknown>
+  return (
+    typeof maybe.id === 'string' &&
+    typeof maybe.type === 'string' &&
+    typeof maybe.actor === 'string' &&
+    typeof maybe.timestamp === 'string' &&
+    typeof maybe.network === 'string'
+  )
+}
+
+function normalizeCanonicalPayment(data: unknown): PaymentData | null {
+  if (!data || typeof data !== 'object') return null
+  const maybe = data as Record<string, unknown>
+  if (
+    typeof maybe.task_id !== 'string' ||
+    typeof maybe.status !== 'string' ||
+    typeof maybe.total_amount !== 'number' ||
+    typeof maybe.released_amount !== 'number' ||
+    typeof maybe.network !== 'string' ||
+    !Array.isArray(maybe.events) ||
+    typeof maybe.created_at !== 'string' ||
+    typeof maybe.updated_at !== 'string'
+  ) {
+    return null
+  }
+
+  const events = maybe.events.filter(isPaymentEvent)
+
+  return {
+    task_id: maybe.task_id,
+    status: maybe.status as PaymentStatusType,
+    total_amount: maybe.total_amount,
+    released_amount: maybe.released_amount,
+    currency: typeof maybe.currency === 'string' ? maybe.currency : 'USDC',
+    escrow_tx: typeof maybe.escrow_tx === 'string' ? maybe.escrow_tx : undefined,
+    escrow_contract: typeof maybe.escrow_contract === 'string' ? maybe.escrow_contract : undefined,
+    network: maybe.network,
+    events,
+    created_at: maybe.created_at,
+    updated_at: maybe.updated_at,
+  }
+}
+
 function isMissingTableError(error: unknown, tableName: string): boolean {
   if (!error || typeof error !== 'object') return false
   const maybeError = error as { code?: string; message?: string; details?: string }
@@ -448,6 +501,24 @@ export function useTaskPayment(taskId: string | null | undefined): UseTaskPaymen
     try {
       setLoading(true)
       setError(null)
+
+      const canonicalResponse = await fetch(getTaskPaymentUrl(taskId), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-Info': 'execution-market-dashboard',
+        },
+      })
+
+      if (canonicalResponse.ok) {
+        const canonicalData = normalizeCanonicalPayment(await canonicalResponse.json())
+        if (canonicalData) {
+          setPayment(canonicalData)
+          return
+        }
+      } else if (![401, 403, 404, 500, 503].includes(canonicalResponse.status)) {
+        throw new Error(`Failed to fetch canonical task payment (${canonicalResponse.status})`)
+      }
 
       const [paymentsResult, taskResult, submissionResult] = await Promise.all([
         supabase
