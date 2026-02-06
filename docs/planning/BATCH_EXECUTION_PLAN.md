@@ -217,30 +217,48 @@ feat: batch 0 — commit audited work from global-tasks session
 ---
 
 ## BATCH 6 — ERC-8004 Integration (P1-ERC-001 to P1-ERC-005)
-**Status**: `PENDING`
+**Status**: `DONE (2026-02-06)`
 **Estimated context**: Large
 **Goal**: Full ERC-8004 identity and reputation integration
 
 ### Tasks
-- `P1-ERC-001` Worker identity registration via facilitator (identity.py already exists)
-- `P1-ERC-002` Agent identity verification on task creation
-- `P1-ERC-003` Bidirectional reputation feedback (WorkerRatingModal wiring)
-- `P1-ERC-004` Persist identity_tx + reputation_tx in DB, surface in UI
-- `P1-ERC-005` Facilitator health check for identity + reputation
+- `P1-ERC-001` ✅ Worker identity registration via facilitator
+  - Backend: `identity.py` has `check_worker_identity()`, `build_worker_registration_tx()`, `confirm_worker_registration()`
+  - API: 3 endpoints in routes.py (GET identity, POST register-identity, POST confirm-identity)
+  - Frontend: `useIdentity` hook wired into Profile.tsx `IdentitySection`
+- `P1-ERC-002` ✅ Agent identity verification on task creation
+  - Non-blocking check in `routes.py:create_task()` (line 1448)
+  - Stores `erc8004_agent_id` on task when agent is registered
+  - Warning logged when agent not registered (doesn't block creation)
+- `P1-ERC-003` ✅ Bidirectional reputation feedback
+  - Agent→Worker: `POST /api/v1/reputation/workers/rate` with API key auth
+  - Worker→Agent: `POST /api/v1/reputation/agents/rate` (public)
+  - WorkerRatingModal wired in AgentDashboard.tsx (star rating 1-5 → score 0-100)
+- `P1-ERC-004` ✅ Persist reputation_tx in DB, surface in UI
+  - Migration 021: `reputation_tx TEXT` column on submissions
+  - `reputation.py` stores tx hash in submission after successful feedback
+  - AgentDashboard shows ERC-8004 badge + TxHashLink when reputation_tx present
+- `P1-ERC-005` ✅ Facilitator health check for identity + reputation
+  - `check_erc8004()` in health.py queries `GET /identity/{network}/{agent_id}`
+  - Runs as part of `check_all()` alongside database, x402, blockchain checks
+  - Reports agent name + status (healthy/degraded/unavailable)
 
 ### Key files
-- `mcp_server/integrations/erc8004/identity.py` — already built
-- `mcp_server/integrations/erc8004/__init__.py` — exports ready
-- `mcp_server/integrations/erc8004/facilitator_client.py` — reputation client
-- `dashboard/src/hooks/useIdentity.ts` — already built
-- `dashboard/src/components/WorkerRatingModal.tsx` — already built
-- `dashboard/src/services/reputation.ts` — already built
+- `mcp_server/integrations/erc8004/identity.py` — worker identity check + registration
+- `mcp_server/integrations/erc8004/facilitator_client.py` — reputation + identity client
+- `mcp_server/api/reputation.py` — rating endpoints + reputation_tx persistence
+- `mcp_server/api/health.py` — facilitator health check
+- `dashboard/src/hooks/useIdentity.ts` — identity hook in Profile.tsx
+- `dashboard/src/components/WorkerRatingModal.tsx` — star rating modal
+- `dashboard/src/pages/AgentDashboard.tsx` — reputation_tx display
+- `supabase/migrations/021_add_reputation_tx_to_submissions.sql` — new column
 
 ### Acceptance criteria
-- Worker can check registration status from profile page
-- Agent identity verified on task creation (warning if not registered)
-- Rating modal submits to ERC-8004 via facilitator
-- Tx hashes stored and visible in UI
+- ✅ Worker can check registration status from profile page
+- ✅ Agent identity verified on task creation (warning if not registered)
+- ✅ Rating modal submits to ERC-8004 via facilitator
+- ✅ Tx hashes stored and visible in UI
+- ✅ Facilitator health check running
 
 ---
 
@@ -399,7 +417,7 @@ Signed: ___
 | 3 | DONE | 2026-02-06 | current | Live payment tx confirmed, scripts audited, settlement_method tracked |
 | 4 | DONE | 2026-02-06 | granular-tasks | **CRITICAL**: Workers not paid on-chain (TODO-D00). Cancel states verified. |
 | 5 | DONE | 2026-02-06 | continuation | Route audit (72 routes), D14 fix (agent auth settlement), D01 fix (self-payment), D02 fix (migration script), mermaid docs |
-| 6 | PENDING | | | |
+| 6 | DONE | 2026-02-06 | continuation | ERC-8004 full integration: identity, reputation, health check, reputation_tx persistence + UI |
 | 7 | PENDING | | | |
 | 8 | PENDING | | | |
 | 9 | PENDING | | | |

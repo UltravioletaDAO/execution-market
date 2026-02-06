@@ -240,6 +240,30 @@ Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t em-d
 
 **Reference:** See `docs/planning/PAYMENT_ARCHITECTURE.md` for examples of all diagram types.
 
+### Claude Code Memory Organization
+
+Memory files live in the auto memory directory (`~/.claude/projects/.../memory/`). They persist across conversations.
+
+**Structure:**
+- `MEMORY.md` — **Concise index only** (<120 lines). Contains project context, topic file table, batch progress, fix summary, open issues.
+- Topic files (e.g., `payment-architecture.md`, `infrastructure.md`) — Detailed learnings per domain.
+
+**Rules:**
+- MEMORY.md is always loaded into the system prompt. Lines after 200 are truncated.
+- When adding new learnings, find the right topic file or create a new one.
+- Always update the topic table in MEMORY.md when creating new topic files.
+- Keep MEMORY.md under 120 lines — move details to topic files.
+- Organize semantically by topic, not chronologically.
+
+**Current topic files:**
+| File | Domain |
+|------|--------|
+| `payment-architecture.md` | x402 flow, wallets, SDK, settlement |
+| `infrastructure.md` | AWS, ECS, ALB, DNS, secrets |
+| `database.md` | Supabase, migrations, RPC functions |
+| `frontend.md` | Dynamic.xyz, admin dashboard, UI bugs |
+| `ecosystem.md` | Facilitator, SDKs, ERC-8004 contracts |
+
 ## Operational State (as of 2026-02-04)
 
 ### Deployment Details

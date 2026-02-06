@@ -388,6 +388,22 @@ async def rate_worker_endpoint(
         result.success,
     )
 
+    # Persist reputation_tx in the approved submission for audit trail
+    if result.success and result.transaction_hash:
+        try:
+            client = db.get_client()
+            client.table("submissions").update(
+                {"reputation_tx": result.transaction_hash}
+            ).eq("task_id", request.task_id).eq(
+                "status", "approved"
+            ).execute()
+            logger.info(
+                "Stored reputation_tx=%s for task %s",
+                result.transaction_hash[:16], request.task_id,
+            )
+        except Exception as e:
+            logger.warning("Failed to store reputation_tx for task %s: %s", request.task_id, e)
+
     return FeedbackResponse(
         success=result.success,
         transaction_hash=result.transaction_hash,
