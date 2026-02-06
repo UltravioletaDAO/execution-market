@@ -44,6 +44,7 @@ htmlcov/
 !*.tfvars.example
 *.tfplan
 infrastructure/terraform/tfplan
+infrastructure/terraform/lambda/*.zip
 
 # Video project artifacts
 video-v*/node_modules/

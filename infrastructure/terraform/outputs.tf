@@ -54,3 +54,28 @@ output "dashboard_service_name" {
   description = "Dashboard ECS service name"
   value       = aws_ecs_service.dashboard.name
 }
+
+output "evidence_enabled" {
+  description = "Whether the managed evidence pipeline is enabled"
+  value       = var.enable_evidence_pipeline
+}
+
+output "evidence_bucket_name" {
+  description = "S3 bucket name for evidence uploads"
+  value       = var.enable_evidence_pipeline ? aws_s3_bucket.evidence[0].id : null
+}
+
+output "evidence_cloudfront_domain" {
+  description = "CloudFront domain for evidence delivery"
+  value       = var.enable_evidence_pipeline ? aws_cloudfront_distribution.evidence[0].domain_name : null
+}
+
+output "evidence_public_base_url" {
+  description = "Public base URL used to serve evidence"
+  value       = var.enable_evidence_pipeline ? (local.evidence_custom_domain_ready ? "https://${local.evidence_custom_domain_name}" : "https://${aws_cloudfront_distribution.evidence[0].domain_name}") : null
+}
+
+output "evidence_presign_api_url" {
+  description = "HTTP API invoke URL for presigned upload/download URL generation"
+  value       = var.enable_evidence_pipeline ? aws_apigatewayv2_stage.evidence_default[0].invoke_url : null
+}

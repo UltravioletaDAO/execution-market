@@ -93,3 +93,52 @@ variable "app_subdomain" {
   type        = string
   default     = "app"
 }
+
+# Evidence pipeline (optional): API Gateway -> Lambda -> S3 -> CloudFront
+variable "enable_evidence_pipeline" {
+  description = "Enable managed evidence upload and delivery stack"
+  type        = bool
+  default     = false
+}
+
+variable "evidence_subdomain" {
+  description = "Subdomain for evidence CDN when custom domain is configured"
+  type        = string
+  default     = "storage"
+}
+
+variable "evidence_acm_certificate_arn" {
+  description = "ACM certificate ARN for CloudFront custom domain (must be in us-east-1). Leave empty to use default *.cloudfront.net domain."
+  type        = string
+  default     = ""
+}
+
+variable "evidence_bucket_name" {
+  description = "Optional explicit S3 bucket name for evidence. Leave empty to auto-generate."
+  type        = string
+  default     = ""
+}
+
+variable "evidence_allowed_origins" {
+  description = "Allowed browser origins for evidence upload CORS"
+  type        = list(string)
+  default     = ["https://execution.market", "https://www.execution.market"]
+}
+
+variable "evidence_retention_days" {
+  description = "S3 evidence retention in days. Set 0 to disable automatic expiration."
+  type        = number
+  default     = 365
+}
+
+variable "evidence_presign_expiry_seconds" {
+  description = "Expiration time in seconds for presigned upload/download URLs"
+  type        = number
+  default     = 900
+}
+
+variable "evidence_max_upload_mb" {
+  description = "Maximum size in MB for presigned uploads (enforced in presigned POST mode)"
+  type        = number
+  default     = 25
+}
