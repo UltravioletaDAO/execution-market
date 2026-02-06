@@ -343,12 +343,11 @@ class EMX402SDK:
         pay_to: str,
     ) -> Dict[str, Any]:
         """
-        Settle a locally-signed EIP-3009 auth via a direct HTTP call to the facilitator.
+        Settle a locally-signed EIP-3009 auth via direct HTTP to the facilitator.
 
-        We build the V1 VerifyRequest/SettleRequest format manually because the SDK's
-        settle_payment() always sets payTo from config (treasury), but the facilitator
-        validates payTo == auth.to.  For worker disbursement, payTo must match the
-        worker address in the signed auth.
+        Used for worker disbursement and fee collection where the platform wallet
+        signs NEW auths (not the agent's original). For settling the agent's original
+        auth, use self.client.settle_payment() (SDK v0.8.1+ with pay_to support).
         """
         import httpx
 
@@ -590,24 +589,49 @@ class EMX402SDK:
         bounty_amount: Decimal,
     ) -> Dict[str, Any]:
         """
-        Settle a task payment with proper split: worker gets 92%, treasury gets 8%.
+        Settle a task payment: collect from agent, then disburse to worker.
 
-        Instead of settling the original auth (which goes 100% to treasury),
-        we sign TWO new EIP-3009 auths from the agent wallet:
-        1. agent → worker (bounty minus fee)
-        2. agent → treasury (platform fee)
+        Three-step flow:
+        0. Settle agent's original EIP-3009 auth (agent → platform wallet)
+        1. Sign new auth: platform wallet → worker (bounty minus fee)
+        2. Sign new auth: platform wallet → treasury (platform fee)
 
-        The original task-creation auth is NOT settled — it was only for verification
-        (proof that the agent has sufficient funds).
-
-        Both settlements are GASLESS via the Ultravioleta facilitator.
+        Step 0 is skipped when agent wallet == platform wallet (test scenario).
+        All settlements are GASLESS via the Ultravioleta facilitator.
         """
         try:
+            # Step 0: Settle agent's original auth to collect USDC
+            agent_settle_tx = None
+            try:
+                payer_address, _ = self.client.get_payer_address(payment_header)
+                platform_address = self._get_agent_account().address
+
+                if payer_address.lower() != platform_address.lower():
+                    # Real external agent — settle their auth to collect payment
+                    payload = self.client.extract_payload(payment_header)
+                    settle_resp = self.client.settle_payment(payload, bounty_amount)
+                    agent_settle_tx = self._extract_settlement_tx_hash(settle_resp)
+                    logger.info(
+                        "Agent auth settled: task=%s, agent=%s, tx=%s",
+                        task_id, payer_address[:10], agent_settle_tx,
+                    )
+                else:
+                    logger.info(
+                        "Skipping agent auth settlement for task %s (agent == platform wallet)",
+                        task_id,
+                    )
+            except Exception as e:
+                # Log but continue — agent may have already paid, or auth expired
+                logger.warning(
+                    "Agent auth settlement failed for task %s (continuing): %s",
+                    task_id, e,
+                )
+
             # Calculate fee breakdown
             platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(Decimal("0.01"))
             worker_net = bounty_amount - platform_fee
 
-            # 1. Pay the worker
+            # Step 1: Pay the worker
             worker_result = await self.disburse_to_worker(
                 worker_address=worker_address,
                 amount_usdc=worker_net,
@@ -621,10 +645,11 @@ class EMX402SDK:
                     "success": False,
                     "task_id": task_id,
                     "error": worker_result.get("error", "Worker disbursement failed"),
+                    "agent_settle_tx": agent_settle_tx,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
 
-            # 2. Collect platform fee (non-blocking — worker already paid)
+            # Step 2: Collect platform fee (non-blocking — worker already paid)
             fee_result = await self.collect_platform_fee(
                 fee_amount=platform_fee,
                 task_id=task_id,
@@ -646,6 +671,7 @@ class EMX402SDK:
                 "net_to_worker": float(worker_net),
                 "tx_hash": worker_tx,
                 "fee_tx_hash": fee_tx,
+                "agent_settle_tx": agent_settle_tx,
                 "network": "base",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
