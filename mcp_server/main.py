@@ -67,7 +67,7 @@ try:
 except ImportError:
     X402R_AVAILABLE = False
 
-# ERC-8004 Integration (Ethereum Mainnet)
+# ERC-8004 Integration (Base-first via facilitator)
 try:
     from integrations.erc8004 import (
         get_facilitator_client,
@@ -80,7 +80,7 @@ try:
 except ImportError:
     ERC8004_AVAILABLE = False
     EM_AGENT_ID = 469
-    ERC8004_NETWORK = "ethereum"
+    ERC8004_NETWORK = "base"
     ERC8004_FACILITATOR_URL = "https://facilitator.ultravioletadao.xyz"
 
 logger = logging.getLogger(__name__)
@@ -181,7 +181,7 @@ tags_metadata = [
     },
     {
         "name": "Reputation",
-        "description": "ERC-8004 reputation and identity on Ethereum Mainnet. Bidirectional feedback between agents and workers.",
+        "description": "ERC-8004 reputation and identity via facilitator (Base-first configuration). Bidirectional feedback between agents and workers.",
     },
     {
         "name": "A2A",
@@ -283,7 +283,7 @@ app.include_router(health_router)
 # Provides /api/v1/admin/config, /api/v1/admin/stats
 app.include_router(admin_router)
 
-# Include ERC-8004 Reputation router (Ethereum Mainnet)
+# Include ERC-8004 Reputation router (Base-first)
 # Provides /api/v1/reputation/* for on-chain identity and feedback
 app.include_router(reputation_router)
 
@@ -405,7 +405,7 @@ async def health_check():
         except Exception:
             x402r_status = "error"
 
-    # ERC-8004 status (Ethereum Mainnet)
+    # ERC-8004 status (Base-first via facilitator)
     erc8004_status = "disabled"
     if ERC8004_AVAILABLE:
         try:
@@ -426,7 +426,7 @@ async def health_check():
             "websocket": ws_status,
             "x402": x402_status,
             "x402r_escrow": x402r_status,  # Base Mainnet escrow
-            "erc8004": erc8004_status,  # Ethereum Mainnet reputation
+            "erc8004": erc8004_status,  # Facilitator-backed reputation
         }
     )
 

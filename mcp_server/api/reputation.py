@@ -4,10 +4,7 @@ ERC-8004 Reputation API Routes
 Provides REST endpoints for on-chain reputation and identity via the Facilitator.
 Bidirectional feedback: agents can rate workers, workers can rate agents.
 
-Network: Ethereum Mainnet
-Contracts:
-- Identity Registry: 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432
-- Reputation Registry: 0x8004BAa17C55a88189AE136b182e5fdA19dE9b63
+Network: configurable via `ERC8004_NETWORK` (Base-first default).
 """
 
 import logging
@@ -174,7 +171,7 @@ async def get_erc8004_info() -> ERC8004InfoResponse:
     if not ERC8004_AVAILABLE:
         return ERC8004InfoResponse(
             available=False,
-            network="ethereum",
+            network="base",
             facilitator_url="https://facilitator.ultravioletadao.xyz",
             em_agent_id=469,
             contracts={},
@@ -206,7 +203,8 @@ async def get_em_reputation_endpoint() -> ReputationResponse:
     """
     Get Execution Market's reputation as a platform/agent.
 
-    Returns the aggregated reputation score from the ERC-8004 Reputation Registry.
+    Returns the aggregated reputation score from the ERC-8004 Reputation Registry
+    on the configured facilitator network.
     """
     if not ERC8004_AVAILABLE:
         raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
@@ -343,7 +341,7 @@ async def rate_worker_endpoint(
 
     Agents use this endpoint to submit on-chain reputation feedback
     for workers who completed their tasks. The feedback is recorded
-    on Ethereum mainnet via the ERC-8004 Reputation Registry.
+    via the configured facilitator network in the ERC-8004 Reputation Registry.
 
     **Requires authentication**: Agent must own the task.
     """

@@ -19,6 +19,7 @@
  *   npx tsx test-x402-full-flow.ts --count 3        # Only first N Fibonacci tasks
  *   npx tsx test-x402-full-flow.ts --monitor        # Monitor tasks after creation
  *   npx tsx test-x402-full-flow.ts --auto-approve   # Auto-approve submissions
+ *   npx tsx test-x402-full-flow.ts --monitor-timeout 8  # Stop monitor after 8 minutes
  *   npx tsx test-x402-full-flow.ts --deadline 10    # Deadline in minutes (default: 15)
  */
 
@@ -138,6 +139,7 @@ const AUTO_APPROVE = CLI_ARGS['auto-approve'] === 'true';
 const STRICT_API = CLI_ARGS['strict-api'] !== 'false';
 const TASK_COUNT = Math.min(parseInt(CLI_ARGS['count'] || '5', 10), FIBONACCI_BOUNTIES.length);
 const DEADLINE_MINUTES = parseInt(CLI_ARGS['deadline'] || '15', 10);
+const MONITOR_TIMEOUT_MINUTES = Math.max(1, parseInt(CLI_ARGS['monitor-timeout'] || '20', 10));
 
 // =============================================================================
 // Helpers
@@ -520,12 +522,23 @@ async function monitorTasks(
   apiKey: string,
 ): Promise<void> {
   console.log(`\nMonitoring ${tasks.length} tasks...`);
-  console.log('Press Ctrl+C to stop.\n');
+  console.log(`Monitor timeout: ${MONITOR_TIMEOUT_MINUTES} min. Press Ctrl+C to stop early.\n`);
 
   const POLL_MS = 15_000;
   const activeTasks = new Map(tasks.map((t) => [t.id, { ...t }]));
+  const startedAt = Date.now();
+  const timeoutMs = MONITOR_TIMEOUT_MINUTES * 60 * 1000;
 
   while (activeTasks.size > 0) {
+    if (Date.now() - startedAt > timeoutMs) {
+      console.log(`\nMonitor timeout reached (${MONITOR_TIMEOUT_MINUTES} min).`);
+      console.log('Tasks still active:');
+      for (const [, task] of activeTasks) {
+        console.log(`  Fib #${task.fibIndex + 1} ${task.id} [${task.status}]`);
+      }
+      break;
+    }
+
     for (const [taskId, task] of activeTasks) {
       try {
         const current = await supabaseRequest(
@@ -652,6 +665,7 @@ async function main(): Promise<void> {
   console.log(`  MCP Server:   ${MCP_SERVER_URL}`);
   console.log(`  Facilitator:  ${FACILITATOR_URL}`);
   console.log(`  Monitor:      ${MONITOR_MODE ? 'Yes' : 'No'}`);
+  console.log(`  Monitor max:  ${MONITOR_TIMEOUT_MINUTES} min`);
   console.log(`  Auto-approve: ${AUTO_APPROVE ? 'Yes' : 'No'}`);
   console.log(`  Strict API:   ${STRICT_API ? 'Yes' : 'No'}`);
 
