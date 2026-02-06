@@ -36,7 +36,7 @@ NC='\033[0m' # No Color
 # Configuration - Update these for your environment
 # =============================================================================
 # IMPORTANT: Replace <YOUR_ACCOUNT_ID> with your actual AWS account ID
-AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-<YOUR_ACCOUNT_ID>}"
+AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-YOUR_AWS_ACCOUNT_ID}"
 AWS_REGION="${AWS_REGION:-us-east-2}"
 ECR_REPO="${ECR_REPO:-em-production-dashboard}"
 ECS_CLUSTER="${ECS_CLUSTER:-em-production-cluster}"
