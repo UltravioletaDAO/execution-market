@@ -308,6 +308,14 @@ def _is_missing_table_error(error: Exception, table_name: str) -> bool:
     )
 
 
+def _is_not_found_error(error: Exception) -> bool:
+    payload = str(error).lower()
+    return any(
+        marker in payload
+        for marker in ("pgrst116", "0 rows", "no rows", "not found")
+    )
+
+
 def _normalize_payment_network(payment_row: Dict[str, Any], fallback: str = "base") -> str:
     network = str(payment_row.get("network") or "").strip().lower()
     if network:
@@ -1172,7 +1180,15 @@ async def get_task_payment(
     `tx_hash` vs `transaction_hash`) and degrades safely when `payments`
     or `escrows` tables are missing in a live environment.
     """
-    task = await db.get_task(task_id)
+    try:
+        task = await db.get_task(task_id)
+    except Exception as task_err:
+        if _is_not_found_error(task_err):
+            task = None
+        else:
+            logger.warning("Failed to load task %s for payment endpoint: %s", task_id, task_err)
+            raise HTTPException(status_code=500, detail="Failed to resolve task payment")
+
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
