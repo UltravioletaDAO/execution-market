@@ -585,3 +585,18 @@ async def test_get_task_payment_falls_back_when_payments_table_missing(monkeypat
     assert result.total_amount == 3.0
     assert result.released_amount == 3.0
     assert any(event.type == "final_release" for event in result.events)
+
+
+@pytest.mark.asyncio
+async def test_get_task_payment_returns_404_when_task_is_missing(monkeypatch):
+    task_id = "77777777-7777-7777-7777-777777777777"
+    monkeypatch.setattr(
+        routes.db,
+        "get_task",
+        AsyncMock(side_effect=Exception("PGRST116: JSON object requested, multiple (or no) rows returned")),
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await routes.get_task_payment(task_id=task_id, api_key=None)
+
+    assert exc.value.status_code == 404
