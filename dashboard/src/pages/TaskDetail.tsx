@@ -762,19 +762,36 @@ export function TaskDetailPage({
           ) : payment ? (
             <PaymentStatus payment={payment} compact={false} showTimeline={true} />
           ) : hasEscrowContext ? (
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <PaymentStatusBadge status="authorized" />
-                <span className="text-sm text-blue-700">Fondos en escrow</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <PaymentStatusBadge status="authorized" txHash={task.escrow_tx} />
+                  <span className="text-sm text-blue-700">Fondos en escrow</span>
+                </div>
               </div>
-              {task.escrow_id && (
-                <span className="text-xs font-mono text-blue-500">{task.escrow_id}</span>
+              {task.escrow_tx && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 pl-1">
+                  <span className="text-gray-400">Escrow tx:</span>
+                  <TxHashLink txHash={task.escrow_tx} />
+                </div>
               )}
             </div>
           ) : task.status === 'cancelled' ? (
-            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
-              <PaymentStatusBadge status="cancelled" />
-              <span className="text-sm text-red-700">Autorizacion expirada - fondos no fueron movidos</span>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
+                <PaymentStatusBadge status={task.refund_tx ? 'refunded' : 'cancelled'} txHash={task.refund_tx} />
+                <span className="text-sm text-red-700">
+                  {task.refund_tx
+                    ? 'Fondos reembolsados al agente'
+                    : 'Autorizacion expirada - fondos no fueron movidos'}
+                </span>
+              </div>
+              {task.refund_tx && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 pl-1">
+                  <span className="text-gray-400">Refund tx:</span>
+                  <TxHashLink txHash={task.refund_tx} />
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">

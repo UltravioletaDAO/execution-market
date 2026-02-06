@@ -102,6 +102,7 @@ export interface Task {
   accepted_at: string | null
   chainwitness_proof: string | null
   completed_at: string | null
+  refund_tx: string | null
   // Joined relations
   executor?: Executor
 }
