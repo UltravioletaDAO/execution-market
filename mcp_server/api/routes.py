@@ -298,6 +298,310 @@ def _resolve_task_payment_header(task_id: Optional[str], task_escrow_tx: Optiona
         return None
 
 
+def _extract_payment_amount(payment_row: Optional[Dict[str, Any]]) -> float:
+    if not payment_row:
+        return 0.0
+    return _as_amount(
+        payment_row.get("amount_usdc")
+        or payment_row.get("amount")
+        or payment_row.get("released_amount_usdc")
+        or payment_row.get("released_amount")
+    )
+
+
+def _record_submission_paid_fields(
+    submission_id: str,
+    tx_hash: Optional[str],
+    amount_usdc: float,
+) -> None:
+    """
+    Best-effort persistence for submission-level payout fields.
+
+    Keeps compatibility when some live databases do not yet include these columns.
+    """
+    if not tx_hash:
+        return
+
+    try:
+        client = db.get_client()
+        client.table("submissions").update({
+            "payment_tx": tx_hash,
+            "payment_amount": round(float(amount_usdc or 0), 6),
+            "paid_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", submission_id).execute()
+    except Exception as err:
+        logger.warning(
+            "Could not update submission paid fields for %s: %s",
+            submission_id,
+            err,
+        )
+
+
+async def _send_reputation_feedback(
+    task: Dict[str, Any],
+    worker_address: Optional[str],
+    release_tx: Optional[str],
+) -> None:
+    if not (ERC8004_AVAILABLE and rate_worker and worker_address and release_tx):
+        return
+
+    try:
+        reputation_score = 80  # Default positive score for completed work.
+        reputation_result = await rate_worker(
+            task_id=task["id"],
+            score=reputation_score,
+            worker_address=worker_address,
+            comment=f"Task completed and paid: {task.get('title', 'Unknown')[:50]}",
+            proof_tx=release_tx,
+        )
+
+        if reputation_result.success:
+            logger.info(
+                "ERC-8004 reputation submitted: task=%s, worker=%s, score=%d, tx=%s",
+                task["id"],
+                worker_address[:10],
+                reputation_score,
+                reputation_result.transaction_hash,
+            )
+        else:
+            logger.warning(
+                "ERC-8004 reputation failed: task=%s, error=%s",
+                task["id"],
+                reputation_result.error,
+            )
+    except Exception as rep_err:
+        logger.error(
+            "Exception submitting ERC-8004 reputation for task %s: %s",
+            task.get("id"),
+            str(rep_err),
+        )
+
+
+async def _is_submission_ready_for_instant_payout(
+    submission_id: str,
+    submission: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Check if a submission has enough context to settle payment immediately.
+    """
+    existing_payment = _get_existing_submission_payment(submission_id)
+    if existing_payment and _is_payment_finalized(existing_payment):
+        return {
+            "ready": True,
+            "reason": "already_settled",
+            "existing_payment": existing_payment,
+        }
+
+    task = submission.get("task") or {}
+    executor = submission.get("executor") or {}
+
+    task_id = task.get("id")
+    worker_address = executor.get("wallet_address")
+    payment_header = _resolve_task_payment_header(task_id, task.get("escrow_tx"))
+
+    bounty = Decimal(str(task.get("bounty_usd", 0)))
+    platform_fee_pct = await get_platform_fee_percent()
+    fee = (bounty * platform_fee_pct).quantize(Decimal("0.01"))
+    worker_payout = bounty - fee
+
+    if not X402_AVAILABLE:
+        return {"ready": False, "reason": "x402_unavailable"}
+    if not task_id:
+        return {"ready": False, "reason": "missing_task"}
+    if not payment_header:
+        return {"ready": False, "reason": "missing_payment_header"}
+    if not worker_address:
+        return {"ready": False, "reason": "missing_worker_wallet"}
+    if worker_payout <= 0:
+        return {"ready": False, "reason": "non_positive_payout"}
+
+    return {
+        "ready": True,
+        "reason": "ready",
+        "existing_payment": None,
+    }
+
+
+async def _settle_submission_payment(
+    submission_id: str,
+    submission: Dict[str, Any],
+    note: str = "Payment settled via x402 SDK facilitator",
+) -> Dict[str, Optional[str]]:
+    """
+    Settle payout for one submission with idempotency safeguards.
+    """
+    release_tx: Optional[str] = None
+    release_error: Optional[str] = None
+
+    task = submission.get("task") or {}
+    executor = submission.get("executor") or {}
+
+    escrow_id = task.get("escrow_id")
+    task_id = task.get("id")
+    worker_address = executor.get("wallet_address")
+
+    bounty = Decimal(str(task.get("bounty_usd", 0)))
+    platform_fee_pct = await get_platform_fee_percent()
+    fee = (bounty * platform_fee_pct).quantize(Decimal("0.01"))
+    worker_payout = bounty - fee
+
+    existing_payment = _get_existing_submission_payment(submission_id)
+    if existing_payment and _is_payment_finalized(existing_payment):
+        release_tx = _extract_payment_tx(existing_payment)
+        if release_tx:
+            existing_amount = _extract_payment_amount(existing_payment) or float(worker_payout)
+            _record_submission_paid_fields(
+                submission_id=submission_id,
+                tx_hash=release_tx,
+                amount_usdc=existing_amount,
+            )
+            logger.info(
+                "Idempotent payment hit for submission %s (tx=%s)",
+                submission_id,
+                release_tx,
+            )
+        return {"payment_tx": release_tx, "payment_error": None}
+
+    payment_header = _resolve_task_payment_header(task_id, task.get("escrow_tx"))
+    if not payment_header:
+        return {
+            "payment_tx": None,
+            "payment_error": f"No x402 payment header found for task {task_id}",
+        }
+    if not worker_address:
+        return {
+            "payment_tx": None,
+            "payment_error": f"No worker wallet address for task {task_id}",
+        }
+    if not X402_AVAILABLE:
+        return {
+            "payment_tx": None,
+            "payment_error": f"x402 SDK not available for task {task_id}",
+        }
+    if worker_payout <= 0:
+        return {
+            "payment_tx": None,
+            "payment_error": f"Worker payout is non-positive for task {task_id}",
+        }
+
+    try:
+        sdk = get_sdk()
+        result = await sdk.settle_task_payment(
+            task_id=task_id or "",
+            payment_header=payment_header,
+            worker_address=worker_address,
+            bounty_amount=bounty,
+        )
+
+        if result.get("success"):
+            release_tx = result.get("tx_hash")
+            client = db.get_client()
+            payment_record = {
+                "task_id": task_id,
+                "executor_id": executor.get("id"),
+                "submission_id": submission_id,
+                "type": "release",
+                "payment_type": "full_release",
+                "status": "confirmed",
+                "tx_hash": release_tx,
+                "transaction_hash": release_tx,
+                "amount_usdc": float(worker_payout),
+                "fee_usdc": float(fee),
+                "escrow_id": escrow_id,
+                "network": "base",
+                "to_address": worker_address,
+                "note": note,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+
+            try:
+                if existing_payment and existing_payment.get("id"):
+                    client.table("payments").update(payment_record).eq(
+                        "id",
+                        existing_payment["id"],
+                    ).execute()
+                else:
+                    client.table("payments").insert(payment_record).execute()
+            except Exception as payment_record_err:
+                logger.warning(
+                    "Could not persist payment record for submission %s: %s",
+                    submission_id,
+                    payment_record_err,
+                )
+
+            try:
+                client.table("escrows").update({
+                    "status": "released",
+                    "released_at": datetime.now(timezone.utc).isoformat(),
+                }).eq("task_id", task_id).execute()
+            except Exception as escrow_update_err:
+                logger.warning(
+                    "Could not update escrow release status for task %s: %s",
+                    task_id,
+                    escrow_update_err,
+                )
+
+            _record_submission_paid_fields(
+                submission_id=submission_id,
+                tx_hash=release_tx,
+                amount_usdc=float(worker_payout),
+            )
+
+            logger.info(
+                "Payment settled via SDK: task=%s, worker=%s, net=%.2f, tx=%s",
+                task_id,
+                worker_address[:10],
+                float(worker_payout),
+                release_tx,
+            )
+
+            await _send_reputation_feedback(
+                task=task,
+                worker_address=worker_address,
+                release_tx=release_tx,
+            )
+        else:
+            release_error = result.get("error", "SDK settlement failed")
+            logger.error(
+                "SDK settlement failed for task %s: %s",
+                task_id,
+                release_error,
+            )
+    except Exception as err:
+        release_error = str(err)
+        logger.error("Failed to settle payment for submission %s: %s", submission_id, err)
+
+    return {"payment_tx": release_tx, "payment_error": release_error}
+
+
+async def _auto_approve_submission(
+    submission_id: str,
+    submission: Dict[str, Any],
+    note: str,
+) -> Dict[str, Any]:
+    verdict = _normalize_status(submission.get("agent_verdict"))
+    if verdict in {"accepted", "approved"}:
+        return submission
+    if verdict not in {"", "pending"}:
+        raise ValueError(
+            f"Submission {submission_id} cannot be auto-approved from verdict '{submission.get('agent_verdict')}'"
+        )
+
+    task = submission.get("task") or {}
+    agent_id = task.get("agent_id")
+    if not agent_id:
+        raise ValueError(f"Submission {submission_id} missing task.agent_id")
+
+    await db.update_submission(
+        submission_id=submission_id,
+        agent_id=agent_id,
+        verdict="accepted",
+        notes=note,
+    )
+    refreshed = await db.get_submission(submission_id)
+    return refreshed or submission
+
+
 def _is_missing_table_error(error: Exception, table_name: str) -> bool:
     payload = str(error).lower()
     table_ref = f"public.{table_name.lower()}"
@@ -1574,16 +1878,20 @@ async def approve_submission(
         raise HTTPException(status_code=404, detail="Submission not found")
     existing_verdict = _normalize_status(submission.get("agent_verdict"))
     if existing_verdict in {"accepted", "approved"}:
-        existing_payment = _get_existing_submission_payment(submission_id)
+        settlement = await _settle_submission_payment(
+            submission_id=submission_id,
+            submission=submission,
+            note="Idempotent settlement retry after prior approval",
+        )
         response_data = {
             "submission_id": submission_id,
             "verdict": "accepted",
             "idempotent": True,
         }
-        if existing_payment:
-            existing_payment_tx = _extract_payment_tx(existing_payment)
-            if existing_payment_tx:
-                response_data["payment_tx"] = existing_payment_tx
+        if settlement.get("payment_tx"):
+            response_data["payment_tx"] = settlement["payment_tx"]
+        if settlement.get("payment_error"):
+            response_data["payment_error"] = settlement["payment_error"]
 
         return SuccessResponse(
             message="Submission already approved.",
@@ -1623,140 +1931,13 @@ async def approve_submission(
         submission_id, api_key.agent_id
     )
 
-    # Release payment to worker via x402 SDK / facilitator
-    release_tx = None
-    release_error = None
-    try:
-        task = submission.get("task", {})
-        executor = submission.get("executor", {})
-
-        escrow_id = task.get("escrow_id")
-        escrow_tx = task.get("escrow_tx")
-        payment_header = _resolve_task_payment_header(task.get("id"), escrow_tx)
-        worker_address = executor.get("wallet_address")
-        bounty = Decimal(str(task.get("bounty_usd", 0)))
-        platform_fee_pct = await get_platform_fee_percent()
-        fee = (bounty * platform_fee_pct).quantize(Decimal("0.01"))
-        worker_payout = bounty - fee
-
-        existing_payment = _get_existing_submission_payment(submission_id)
-        if existing_payment and _is_payment_finalized(existing_payment):
-            release_tx = _extract_payment_tx(existing_payment)
-            logger.info(
-                "Idempotent payment hit for submission %s (tx=%s)",
-                submission_id,
-                release_tx,
-            )
-        elif payment_header and worker_address and worker_payout > 0 and X402_AVAILABLE:
-            # Use x402 SDK to settle payment via facilitator (gasless)
-            sdk = get_sdk()
-            result = await sdk.settle_task_payment(
-                task_id=task.get("id", ""),
-                payment_header=payment_header,
-                worker_address=worker_address,
-                bounty_amount=bounty,
-            )
-
-            if result.get("success"):
-                release_tx = result.get("tx_hash")
-
-                # Record payment
-                client = db.get_client()
-                payment_record = {
-                    "task_id": task["id"],
-                    "executor_id": executor.get("id"),
-                    "submission_id": submission_id,
-                    "type": "release",
-                    "payment_type": "full_release",
-                    "status": "confirmed",
-                    "tx_hash": release_tx,
-                    "transaction_hash": release_tx,
-                    "amount_usdc": float(worker_payout),
-                    "fee_usdc": float(fee),
-                    "escrow_id": escrow_id,
-                    "network": "base",
-                    "to_address": worker_address,
-                    "note": "Payment settled via x402 SDK facilitator",
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                }
-
-                try:
-                    if existing_payment and existing_payment.get("id"):
-                        client.table("payments").update(payment_record).eq(
-                            "id", existing_payment["id"]
-                        ).execute()
-                    else:
-                        client.table("payments").insert(payment_record).execute()
-                except Exception as payment_record_err:
-                    logger.warning(
-                        "Could not persist payment record for submission %s: %s",
-                        submission_id,
-                        payment_record_err,
-                    )
-
-                # Update escrow status
-                client.table("escrows").update({
-                    "status": "released",
-                    "released_at": datetime.now(timezone.utc).isoformat(),
-                }).eq("task_id", task["id"]).execute()
-
-                logger.info(
-                    "Payment settled via SDK: task=%s, worker=%s, net=%.2f, tx=%s",
-                    task["id"], worker_address[:10], float(worker_payout), release_tx
-                )
-
-                # Submit on-chain reputation feedback (ERC-8004)
-                # This is non-blocking - payment success is not dependent on reputation
-                if ERC8004_AVAILABLE and rate_worker:
-                    try:
-                        # Default positive score for completed work
-                        # TODO: Allow agents to specify score in approval request
-                        reputation_score = 80  # Good work
-
-                        reputation_result = await rate_worker(
-                            task_id=task["id"],
-                            score=reputation_score,
-                            worker_address=worker_address,
-                            comment=f"Task completed and paid: {task.get('title', 'Unknown')[:50]}",
-                            proof_tx=release_tx,  # Payment tx as proof
-                        )
-
-                        if reputation_result.success:
-                            logger.info(
-                                "ERC-8004 reputation submitted: task=%s, worker=%s, score=%d, tx=%s",
-                                task["id"], worker_address[:10], reputation_score, reputation_result.transaction_hash
-                            )
-                        else:
-                            logger.warning(
-                                "ERC-8004 reputation failed: task=%s, error=%s",
-                                task["id"], reputation_result.error
-                            )
-                    except Exception as rep_err:
-                        # Don't fail payment if reputation submission fails
-                        logger.error(
-                            "Exception submitting ERC-8004 reputation for task %s: %s",
-                            task["id"], str(rep_err)
-                        )
-            else:
-                release_error = result.get("error", "SDK settlement failed")
-                logger.error(
-                    "SDK settlement failed for task %s: %s",
-                    task["id"], release_error
-                )
-        elif existing_payment:
-            logger.info(
-                "Submission %s has an existing non-final payment record; skipping new settlement",
-                submission_id,
-            )
-        elif not payment_header:
-            logger.warning("No x402 payment header found for task %s, skipping payment release", task.get("id"))
-        elif not worker_address:
-            logger.warning("No wallet_address for executor, skipping payment for task %s", task.get("id"))
-        elif not X402_AVAILABLE:
-            logger.warning("x402 SDK not available, skipping payment for task %s", task.get("id"))
-    except Exception as e:
-        release_error = str(e)
-        logger.error("Failed to settle payment for submission %s: %s", submission_id, e)
+    refreshed_submission = await db.get_submission(submission_id)
+    settlement = await _settle_submission_payment(
+        submission_id=submission_id,
+        submission=refreshed_submission or submission,
+    )
+    release_tx = settlement.get("payment_tx")
+    release_error = settlement.get("payment_error")
 
     response_data = {"submission_id": submission_id, "verdict": "accepted"}
     if release_tx:
@@ -2130,18 +2311,72 @@ async def submit_work(
             notes=request.notes,
         )
 
+        submission_id = result["submission"]["id"]
         logger.info(
             "Work submitted: task=%s, executor=%s, submission=%s",
-            task_id, request.executor_id[:8], result["submission"]["id"]
+            task_id, request.executor_id[:8], submission_id
         )
 
+        response_data: Dict[str, Any] = {
+            "submission_id": submission_id,
+            "task_id": task_id,
+            "status": "submitted",
+        }
+        response_message = "Work submitted successfully. Awaiting agent review."
+
+        # Attempt instant payout at submission time when x402 settlement context exists.
+        try:
+            submission = await db.get_submission(submission_id)
+            if submission:
+                readiness = await _is_submission_ready_for_instant_payout(
+                    submission_id=submission_id,
+                    submission=submission,
+                )
+                if readiness.get("ready"):
+                    settlement = await _settle_submission_payment(
+                        submission_id=submission_id,
+                        submission=submission,
+                        note="Instant payout on worker submission via x402 facilitator",
+                    )
+                    payment_tx = settlement.get("payment_tx")
+                    payment_error = settlement.get("payment_error")
+
+                    if payment_tx:
+                        try:
+                            await _auto_approve_submission(
+                                submission_id=submission_id,
+                                submission=submission,
+                                note="Auto-approved after successful instant payout",
+                            )
+                            response_data["status"] = "completed"
+                            response_data["verdict"] = "accepted"
+                        except Exception as finalize_err:
+                            payment_error = (
+                                payment_error
+                                or f"Payment released but could not finalize task state: {finalize_err}"
+                            )
+                        response_data["payment_tx"] = payment_tx
+                        response_message = "Work submitted and paid instantly."
+
+                    if payment_error:
+                        response_data["payment_error"] = payment_error
+                else:
+                    logger.info(
+                        "Instant payout skipped for submission %s (reason=%s)",
+                        submission_id,
+                        readiness.get("reason"),
+                    )
+        except Exception as instant_err:
+            logger.error(
+                "Instant payout attempt failed for submission %s: %s",
+                submission_id,
+                instant_err,
+            )
+            response_data["payment_error"] = str(instant_err)
+
         return SuccessResponse(
-            message="Work submitted successfully. Awaiting agent review.",
-            data={
-                "submission_id": result["submission"]["id"],
-                "task_id": task_id,
-                "status": "submitted"
-            }
+            message=response_message,
+            data=response_data,
         )
 
     except Exception as e:

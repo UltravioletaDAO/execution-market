@@ -121,15 +121,121 @@ async def _process_expired_task(client, task: dict) -> None:
         )
 
 
+async def _process_submitted_timeout_task(client, task: dict) -> bool:
+    """
+    Handle submitted tasks that passed deadline.
+
+    Returns:
+        bool: True when handled as submitted flow (even if retry needed),
+        False when caller should fall back to normal expiration/refund flow.
+    """
+    task_id = task["id"]
+    logger.info("[expiration] Submitted task %s reached deadline; attempting auto-settlement", task_id)
+
+    try:
+        submission_result = (
+            client.table("submissions")
+            .select("id,agent_verdict")
+            .eq("task_id", task_id)
+            .order("submitted_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+    except Exception as exc:
+        logger.error("[expiration] Could not query submissions for task %s: %s", task_id, exc)
+        return False
+
+    rows = submission_result.data or []
+    if not rows:
+        logger.warning("[expiration] Task %s is submitted but has no submission row; expiring task", task_id)
+        return False
+
+    submission_id = rows[0].get("id")
+    if not submission_id:
+        logger.warning("[expiration] Task %s submission row missing id; expiring task", task_id)
+        return False
+
+    try:
+        import supabase_client as db
+        from api import routes as api_routes
+
+        submission = await db.get_submission(submission_id)
+        if not submission:
+            logger.warning(
+                "[expiration] Could not load submission %s for task %s; expiring task",
+                submission_id,
+                task_id,
+            )
+            return False
+
+        readiness = await api_routes._is_submission_ready_for_instant_payout(
+            submission_id=submission_id,
+            submission=submission,
+        )
+        if not readiness.get("ready"):
+            logger.warning(
+                "[expiration] Task %s submission %s not ready for payout (reason=%s). Keeping submitted for retry.",
+                task_id,
+                submission_id,
+                readiness.get("reason"),
+            )
+            return True
+
+        settlement = await api_routes._settle_submission_payment(
+            submission_id=submission_id,
+            submission=submission,
+            note="Auto-settlement on deadline for submitted task",
+        )
+        payment_tx = settlement.get("payment_tx")
+        if not payment_tx:
+            logger.warning(
+                "[expiration] Task %s submission %s settlement did not produce tx (error=%s). Keeping submitted for retry.",
+                task_id,
+                submission_id,
+                settlement.get("payment_error"),
+            )
+            return True
+
+        try:
+            await api_routes._auto_approve_submission(
+                submission_id=submission_id,
+                submission=submission,
+                note="Auto-approved at deadline after successful payout",
+            )
+        except Exception as finalize_err:
+            logger.error(
+                "[expiration] Payment released for task %s but could not finalize completion: %s",
+                task_id,
+                finalize_err,
+            )
+
+        logger.info(
+            "[expiration] Submitted task %s auto-settled on deadline (submission=%s, tx=%s)",
+            task_id,
+            submission_id,
+            payment_tx,
+        )
+        return True
+    except Exception as exc:
+        logger.error(
+            "[expiration] Submitted timeout processing failed for task %s: %s",
+            task_id,
+            exc,
+        )
+        return True
+
+
 async def run_task_expiration_loop() -> None:
     """
     Background loop that checks for expired tasks every CHECK_INTERVAL seconds.
 
     Queries Supabase for tasks where:
-      - status IN ('published', 'accepted')
+      - status IN ('published', 'accepted', 'submitted')
       - deadline < NOW()
 
-    For each matching task it expires the task and attempts a refund.
+    For each matching task:
+      - submitted: attempts auto-settlement/completion first
+      - others: expires task and attempts refund
     """
     logger.info(
         "[expiration] Task expiration job started (interval=%ds)", CHECK_INTERVAL
@@ -147,7 +253,7 @@ async def run_task_expiration_loop() -> None:
             result = (
                 client.table("tasks")
                 .select("id, status, agent_id, bounty_usd, escrow_id, deadline")
-                .in_("status", ["published", "accepted"])
+                .in_("status", ["published", "accepted", "submitted"])
                 .lt("deadline", now)
                 .execute()
             )
@@ -161,6 +267,10 @@ async def run_task_expiration_loop() -> None:
                 )
 
                 for task in expired_tasks:
+                    if task.get("status") == "submitted":
+                        handled = await _process_submitted_timeout_task(client, task)
+                        if handled:
+                            continue
                     await _process_expired_task(client, task)
             else:
                 logger.debug("[expiration] No expired tasks found")
