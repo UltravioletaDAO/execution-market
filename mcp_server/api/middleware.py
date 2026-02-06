@@ -97,9 +97,19 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/.well-known/agent.json",
     }
 
+    # Path prefixes exempt from rate limiting (have their own auth)
+    EXEMPT_PREFIXES = (
+        "/api/v1/admin/",
+        "/health/",
+    )
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Skip rate limiting for exempt paths
         if request.url.path in self.EXEMPT_PATHS:
+            return await call_next(request)
+
+        # Skip rate limiting for exempt prefixes (admin endpoints have their own auth)
+        if request.url.path.startswith(self.EXEMPT_PREFIXES):
             return await call_next(request)
 
         # Skip for WebSocket upgrades
