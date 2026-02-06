@@ -7,7 +7,7 @@ readiness: 98  # Percent ready for graduation (MCP Server + Auth UI complete)
 created: "2026-01-10"
 updated: "2026-01-17"
 
-author: "lxhxr"
+author: "0xultravioleta <0xultravioleta@gmail.com>"
 contributors: []
 
 summary: "Human Execution Layer registrado como agente ERC-8004. Otros agentes lo descubren en el registry, se conectan via A2A protocol, y publican bounties para tareas fisicas que humanos ejecutan y cobran via x402 micropagos."
