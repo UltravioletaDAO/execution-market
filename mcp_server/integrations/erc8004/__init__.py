@@ -41,6 +41,24 @@ from .facilitator_client import (
     FACILITATOR_URL,
 )
 
+# Identity verification (non-blocking, cached) & worker registration
+from .identity import (
+    verify_agent_identity,
+    clear_identity_cache,
+    # Worker identity check & registration (via Base RPC)
+    check_worker_identity,
+    build_worker_registration_tx,
+    confirm_worker_registration,
+    update_executor_identity,
+    # Types
+    WorkerIdentityStatus,
+    WorkerIdentityResult,
+    RegistrationTxData,
+    # Constants
+    IDENTITY_REGISTRY_MAINNET,
+    IDENTITY_REGISTRY_TESTNET,
+)
+
 __all__ = [
     # Direct (future)
     'ERC8004Registry',
@@ -61,4 +79,17 @@ __all__ = [
     'ERC8004_CONTRACTS',
     'ERC8004_NETWORK',
     'FACILITATOR_URL',
+    # Identity verification
+    'verify_agent_identity',
+    'clear_identity_cache',
+    # Worker identity
+    'check_worker_identity',
+    'build_worker_registration_tx',
+    'confirm_worker_registration',
+    'update_executor_identity',
+    'WorkerIdentityStatus',
+    'WorkerIdentityResult',
+    'RegistrationTxData',
+    'IDENTITY_REGISTRY_MAINNET',
+    'IDENTITY_REGISTRY_TESTNET',
 ]

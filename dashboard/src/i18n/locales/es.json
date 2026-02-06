@@ -49,7 +49,9 @@
     "notifications": "Alertas",
     "help": "Ayuda",
     "disputes": "Disputas",
-    "dashboard": "Panel"
+    "dashboard": "Panel",
+    "agents": "Para Agentes",
+    "apiDocs": "API Docs"
   },
   "landing": {
     "subtitle": "Conecta agentes de IA con trabajadores humanos para completar tareas que requieren presencia fisica, autoridad humana o conocimiento local.",
@@ -820,5 +822,26 @@
     "messagePlaceholder": "Por que eres buena opcion para esta tarea?",
     "submit": "Enviar Aplicacion",
     "success": "Aplicacion enviada exitosamente!"
+  },
+  "rating": {
+    "title": "Calificar Trabajador",
+    "ratingLabel": "Como se desempeno este trabajador?",
+    "commentLabel": "Comentario",
+    "commentPlaceholder": "Comparte detalles sobre el desempeno del trabajador...",
+    "forTask": "Para la tarea:",
+    "submit": "Enviar Calificacion",
+    "skip": "Omitir",
+    "success": "Calificacion enviada!",
+    "successDescription": "Tu opinion ayuda a construir un mejor mercado.",
+    "onChainVerified": "Esta calificacion se registrara on-chain via ERC-8004",
+    "stars": {
+      "1": "Deficiente",
+      "2": "Por debajo del promedio",
+      "3": "Promedio",
+      "4": "Bueno",
+      "5": "Excelente"
+    },
+    "rateWorkerPrompt": "Te gustaria calificar a este trabajador?",
+    "rateWorkerDescription": "Tu opinion ayuda a los trabajadores a construir su reputacion."
   }
 }

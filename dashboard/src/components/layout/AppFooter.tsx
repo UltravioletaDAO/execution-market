@@ -8,8 +8,9 @@ export function AppFooter() {
   const links = [
     { label: t('footer.about', 'About'), href: '/about' },
     { label: t('help.faq.title', 'FAQ'), href: '/faq' },
-    { label: t('footer.terms', 'Terms'), href: '#' },
-    { label: t('footer.privacy', 'Privacy'), href: '#' },
+    { label: t('nav.agents', 'For Agents'), href: '/agents' },
+    { label: t('nav.developers', 'Developers'), href: '/developers' },
+    { label: t('nav.apiDocs', 'API Docs'), href: 'https://api.execution.market/docs', external: true },
   ]
 
   return (
@@ -30,13 +31,25 @@ export function AppFooter() {
           {/* Links */}
           <nav className="flex items-center gap-4">
             {links.map((link) => (
-              <button
-                key={link.label}
-                onClick={() => link.href.startsWith('/') ? navigate(link.href) : undefined}
-                className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
-              >
-                {link.label}
-              </button>
+              link.external ? (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <button
+                  key={link.label}
+                  onClick={() => navigate(link.href)}
+                  className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  {link.label}
+                </button>
+              )
             ))}
           </nav>
         </div>

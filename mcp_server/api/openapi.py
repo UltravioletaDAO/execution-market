@@ -351,6 +351,7 @@ class TaskResponse(BaseModel):
     executor_id: Optional[str] = Field(None, description="Assigned worker ID")
     created_at: datetime = Field(..., description="Creation timestamp")
     escrow_tx: Optional[str] = Field(None, description="Escrow transaction hash")
+    erc8004_agent_id: Optional[str] = Field(None, description="ERC-8004 on-chain agent ID (if verified)")
 
 
 class TaskListResponse(BaseModel):

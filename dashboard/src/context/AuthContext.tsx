@@ -71,7 +71,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { primaryWallet, handleLogOut, setShowAuthFlow } = useDynamicContext()
+  const { primaryWallet, handleLogOut, setShowAuthFlow, sdkHasLoaded } = useDynamicContext()
   const isLoggedIn = useIsLoggedIn()
 
   const [executor, setExecutor] = useState<Executor | null>(null)
@@ -99,10 +99,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Derived state
   const dynamicWalletAddress = primaryWallet?.address?.toLowerCase() || null
   const walletAddress = dynamicWalletAddress || persistedWalletAddress || null
-  // Only consider authenticated once Dynamic has had a chance to restore session
-  const isAuthenticated =
-    dynamicInitialized &&
-    ((isLoggedIn && !!dynamicWalletAddress) || !!persistedWalletAddress)
+  // Only consider authenticated when Dynamic SDK says user is logged in.
+  // persistedWalletAddress is a hint for executor lookup, NOT an auth signal.
+  const isAuthenticated = dynamicInitialized && isLoggedIn && !!dynamicWalletAddress
   const isProfileComplete = !!executor?.display_name
 
   // --------------------------------------------------------------------------
@@ -272,6 +271,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         avg_rating: null,
         reputation_contract: null,
         reputation_token_id: null,
+        erc8004_agent_id: null,
         created_at: executorData.created_at,
         updated_at: executorData.created_at,
         last_active_at: null,
@@ -331,19 +331,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [isAuthenticated, walletAddress, setShowAuthFlow])
 
   // --------------------------------------------------------------------------
-  // Effect: Track Dynamic.xyz initialization
-  // Dynamic SDK restores session from localStorage on mount, we wait for it
+  // Effect: Track Dynamic.xyz initialization via sdkHasLoaded
+  // No more race-prone setTimeout — we rely on the SDK's own readiness signal
   // --------------------------------------------------------------------------
   useEffect(() => {
-    // Give Dynamic.xyz a moment to restore session from localStorage
-    // If user has a session, primaryWallet will be set; if not, it stays undefined
-    const timer = setTimeout(() => {
+    if (sdkHasLoaded && !dynamicInitialized) {
       setDynamicInitialized(true)
-      console.log('[Auth] Dynamic initialized')
-    }, 500) // 500ms should be enough for localStorage restore
-
-    return () => clearTimeout(timer)
-  }, []) // Only run once on mount
+      console.log('[Auth] Dynamic SDK loaded, initialized')
+    }
+  }, [sdkHasLoaded, dynamicInitialized])
 
   // --------------------------------------------------------------------------
   // Effect: Fetch executor when wallet changes
@@ -383,7 +379,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (lastWalletRef.current) {
         lastWalletRef.current = null
         linkedWalletRef.current = null
-        supabase.auth.signOut().catch((err) => {
+        supabase.auth.signOut().catch((err: unknown) => {
           console.warn('[Auth] Failed to clear Supabase session:', err)
         })
       }

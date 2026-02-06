@@ -47,6 +47,14 @@ except ImportError:
     rate_worker = None
     EM_AGENT_ID = 469  # Default
 
+# ERC-8004 identity verification (non-blocking, cached)
+try:
+    from integrations.erc8004 import verify_agent_identity
+    ERC8004_IDENTITY_AVAILABLE = True
+except ImportError:
+    ERC8004_IDENTITY_AVAILABLE = False
+    verify_agent_identity = None
+
 # Platform configuration
 try:
     from config import PlatformConfig
@@ -95,6 +103,8 @@ X402_AUTH_REF_PREFIX = "x402_auth_"
 REFUNDABLE_ESCROW_STATUSES = {"deposited", "funded", "partial_released"}
 ALREADY_REFUNDED_ESCROW_STATUSES = {"refunded"}
 NON_REFUNDABLE_ESCROW_STATUSES = {"released"}
+# EIP-3009 authorize-only: no funds moved, authorization just expires.
+AUTHORIZE_ONLY_ESCROW_STATUSES = {"authorized", "pending"}
 LIVE_TASK_STATUSES = {"published", "accepted", "in_progress", "submitted", "verifying"}
 ACTIVE_WORKER_TASK_STATUSES = {"accepted", "in_progress", "submitted", "verifying"}
 TASK_PAYMENT_SETTLED_STATUSES = {"confirmed", "completed", "settled", "released", "success", "available"}
@@ -109,6 +119,16 @@ def _as_amount(value: Any) -> float:
         return float(value)
     except (TypeError, ValueError):
         return 0.0
+
+
+def _is_valid_eth_address(value: Optional[str]) -> bool:
+    """Validate Ethereum address format (0x + 40 hex chars)."""
+    if not value or not isinstance(value, str):
+        return False
+    v = value.strip()
+    if len(v) != 42 or not v.startswith("0x"):
+        return False
+    return all(c in "0123456789abcdefABCDEF" for c in v[2:])
 
 
 def _is_tx_hash(value: Optional[str]) -> bool:
@@ -286,6 +306,7 @@ def _record_refund_payment(
     agent_id: str,
     refund_tx: Optional[str],
     reason: Optional[str],
+    settlement_method: Optional[str] = None,
 ) -> None:
     """
     Best-effort persistence of refund payment audit row.
@@ -306,6 +327,7 @@ def _record_refund_payment(
             "escrow_id": task.get("escrow_id"),
             "network": "base",
             "to_address": task.get("agent_id") or agent_id,
+            "settlement_method": settlement_method or "unknown",
             "note": f"Task cancellation refund. reason={reason or 'not_provided'}",
             "created_at": datetime.now(timezone.utc).isoformat(),
         }).execute()
@@ -499,6 +521,11 @@ async def _is_submission_ready_for_instant_payout(
         return {"ready": False, "reason": "missing_payment_header"}
     if not worker_address:
         return {"ready": False, "reason": "missing_worker_wallet"}
+    if not _is_valid_eth_address(worker_address):
+        return {"ready": False, "reason": "invalid_worker_wallet_format"}
+    agent_id = task.get("agent_id", "")
+    if agent_id and worker_address.lower() == agent_id.lower():
+        return {"ready": False, "reason": "self_payment_blocked"}
     if worker_payout <= 0:
         return {"ready": False, "reason": "non_positive_payout"}
 
@@ -560,6 +587,24 @@ async def _settle_submission_payment(
             "payment_tx": None,
             "payment_error": f"No worker wallet address for task {task_id}",
         }
+    if not _is_valid_eth_address(worker_address):
+        return {
+            "payment_tx": None,
+            "payment_error": f"Invalid worker wallet format for task {task_id}: {worker_address[:10]}...",
+        }
+
+    # Prevent self-payment: worker must differ from the task's agent wallet
+    agent_id = task.get("agent_id", "")
+    if agent_id and worker_address.lower() == agent_id.lower():
+        logger.error(
+            "BLOCKED: Self-payment attempt for task %s — worker wallet %s matches agent_id",
+            task_id, worker_address[:10],
+        )
+        return {
+            "payment_tx": None,
+            "payment_error": f"Worker wallet matches agent wallet for task {task_id} — self-payment blocked",
+        }
+
     if not X402_AVAILABLE:
         return {
             "payment_tx": None,
@@ -610,6 +655,7 @@ async def _settle_submission_payment(
                 "escrow_id": escrow_id,
                 "network": "base",
                 "to_address": worker_address,
+                "settlement_method": "facilitator",
                 "note": note if release_tx else f"{note} (awaiting tx hash)",
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
@@ -765,6 +811,8 @@ def _actor_from_event_type(event_type: str) -> str:
         return "agent"
     if event_type == "dispute_hold":
         return "arbitrator"
+    if event_type in {"refund", "authorization_expired"}:
+        return "system"
     return "system"
 
 
@@ -776,7 +824,7 @@ def _derive_payment_status(
     task_status_normalized = _normalize_status(task_status)
     event_set = set(event_types)
 
-    if "refund" in event_set:
+    if "refund" in event_set or "authorization_expired" in event_set:
         return "refunded"
     if "final_release" in event_set:
         return "completed"
@@ -897,6 +945,7 @@ class TaskResponse(BaseModel):
     evidence_schema: Optional[Dict] = None
     location_hint: Optional[str] = None
     min_reputation: int = 0
+    erc8004_agent_id: Optional[str] = None
 
 
 class TaskListResponse(BaseModel):
@@ -1382,6 +1431,37 @@ async def create_task(
             payment_result.tx_hash
         )
 
+        # ---- ERC-8004 Agent Identity Verification (non-blocking) --------
+        # Soft check: look up the agent's on-chain identity.  If registered,
+        # we attach the erc8004_agent_id to the task for audit/display.
+        # A failure here never blocks task creation.
+        erc8004_identity: Optional[Dict[str, Any]] = None
+        if ERC8004_IDENTITY_AVAILABLE and verify_agent_identity is not None:
+            try:
+                erc8004_identity = await verify_agent_identity(
+                    api_key.agent_id,
+                    network="base",
+                )
+                if erc8004_identity and erc8004_identity.get("registered"):
+                    logger.info(
+                        "ERC-8004 identity verified for agent %s: agent_id=%s, owner=%s",
+                        api_key.agent_id,
+                        erc8004_identity.get("agent_id"),
+                        erc8004_identity.get("owner"),
+                    )
+                else:
+                    logger.warning(
+                        "ERC-8004 identity NOT registered for agent %s (network=base). "
+                        "Task creation will proceed without on-chain identity.",
+                        api_key.agent_id,
+                    )
+            except Exception as e:
+                logger.warning(
+                    "ERC-8004 identity check failed (non-blocking) for agent %s: %s",
+                    api_key.agent_id,
+                    e,
+                )
+
         # Calculate deadline
         deadline = datetime.now(timezone.utc) + timedelta(hours=request.deadline_hours)
 
@@ -1399,6 +1479,46 @@ async def create_task(
             min_reputation=request.min_reputation,
             payment_token=request.payment_token,
         )
+
+        # ---- Persist ERC-8004 identity on the task record ---------------
+        if erc8004_identity and erc8004_identity.get("registered"):
+            try:
+                identity_updates: Dict[str, Any] = {}
+
+                # Store agent_id in a dedicated column if available
+                resolved_agent_id = erc8004_identity.get("agent_id")
+                if resolved_agent_id is not None:
+                    identity_updates["erc8004_agent_id"] = str(resolved_agent_id)
+
+                # Also enrich the task metadata JSONB (always safe)
+                existing_metadata = task.get("metadata") or {}
+                if isinstance(existing_metadata, str):
+                    existing_metadata = json.loads(existing_metadata)
+                existing_metadata["erc8004"] = {
+                    "agent_id": resolved_agent_id,
+                    "owner": erc8004_identity.get("owner"),
+                    "name": erc8004_identity.get("name"),
+                    "metadata_uri": erc8004_identity.get("metadata_uri"),
+                    "network": erc8004_identity.get("network"),
+                    "verified_at": datetime.now(timezone.utc).isoformat(),
+                }
+                identity_updates["metadata"] = existing_metadata
+
+                if identity_updates:
+                    await db.update_task(task["id"], identity_updates)
+                    task.update(identity_updates)
+                    logger.info(
+                        "ERC-8004 identity stored on task %s: agent_id=%s",
+                        task["id"],
+                        resolved_agent_id,
+                    )
+            except Exception as e:
+                # Non-fatal: task was created, identity recording failed
+                logger.error(
+                    "Failed to store ERC-8004 identity on task %s: %s",
+                    task["id"],
+                    e,
+                )
 
         # Store escrow data if payment was verified via x402 SDK / facilitator
         # NOTE: We store the X-Payment header for later settlement (during approval)
@@ -1468,6 +1588,7 @@ async def create_task(
             evidence_schema=task.get("evidence_schema"),
             location_hint=task.get("location_hint"),
             min_reputation=task.get("min_reputation", 0),
+            erc8004_agent_id=task.get("erc8004_agent_id"),
         )
 
     except HTTPException:
@@ -1596,6 +1717,7 @@ async def get_task(
         evidence_schema=task.get("evidence_schema"),
         location_hint=task.get("location_hint"),
         min_reputation=task.get("min_reputation", 0),
+        erc8004_agent_id=task.get("erc8004_agent_id"),
     )
 
 
@@ -1810,6 +1932,43 @@ async def get_task_payment(
             "note": "Payment settled via x402 facilitator",
         })
 
+    # Inject refund event if task has a refund_tx (funded escrow that was refunded)
+    refund_tx_from_task = _pick_first_tx_hash(task.get("refund_tx"))
+    if refund_tx_from_task and not any(
+        event["type"] == "refund" and event.get("tx_hash") == refund_tx_from_task
+        for event in events
+    ):
+        refund_timestamp = str(task.get("updated_at") or updated_at)
+        events.append({
+            "id": f"{task_id}-refund-task",
+            "type": "refund",
+            "actor": "system",
+            "amount": total_amount if total_amount > 0 else None,
+            "tx_hash": refund_tx_from_task,
+            "network": default_network,
+            "timestamp": refund_timestamp,
+            "note": "Escrow refunded to agent via facilitator",
+        })
+
+    # For cancelled tasks without refund_tx, inject authorization_expired event
+    if (
+        task_status == "cancelled"
+        and has_escrow_context
+        and not refund_tx_from_task
+        and not any(event["type"] in {"refund", "authorization_expired"} for event in events)
+    ):
+        cancel_timestamp = str(task.get("updated_at") or updated_at)
+        events.append({
+            "id": f"{task_id}-auth-expired",
+            "type": "authorization_expired",
+            "actor": "system",
+            "amount": None,
+            "tx_hash": None,
+            "network": default_network,
+            "timestamp": cancel_timestamp,
+            "note": "Payment authorization expired. No funds were moved.",
+        })
+
     events.sort(key=lambda event: event.get("timestamp") or "")
 
     if _normalize_status(task.get("status")) == "completed" and released_amount <= 0 and total_amount > 0:
@@ -1884,6 +2043,7 @@ async def list_tasks(
             agent_id=task["agent_id"],
             executor_id=task.get("executor_id"),
             min_reputation=task.get("min_reputation", 0),
+            erc8004_agent_id=task.get("erc8004_agent_id"),
         ))
 
     return TaskListResponse(
@@ -2226,14 +2386,29 @@ async def cancel_task(
                             reason=reason,
                         )
                         if refund_result.get("success"):
+                            refund_tx_hash = refund_result.get("tx_hash")
                             refund_info = {
                                 "status": "refunded",
                                 "escrow_id": effective_escrow_id,
-                                "tx_hash": refund_result.get("tx_hash"),
+                                "tx_hash": refund_tx_hash,
+                                "refund_id": refund_result.get("refund_id"),
+                                "method": refund_result.get("method", "unknown"),
                             }
+                            # Store refund tx on the task itself
+                            if refund_tx_hash:
+                                try:
+                                    client.table("tasks").update({
+                                        "refund_tx": refund_tx_hash,
+                                    }).eq("id", task_id).execute()
+                                except Exception as task_update_err:
+                                    logger.warning(
+                                        "Could not store refund_tx on task %s: %s",
+                                        task_id, task_update_err,
+                                    )
                             try:
                                 client.table("escrows").update({
                                     "status": "refunded",
+                                    "refund_tx": refund_tx_hash,
                                     "refunded_at": datetime.now(timezone.utc).isoformat(),
                                 }).eq("task_id", task_id).execute()
                             except Exception as escrow_update_err:
@@ -2245,8 +2420,9 @@ async def cancel_task(
                             _record_refund_payment(
                                 task=task,
                                 agent_id=api_key.agent_id,
-                                refund_tx=refund_result.get("tx_hash"),
+                                refund_tx=refund_tx_hash,
                                 reason=reason,
+                                settlement_method=refund_result.get("method"),
                             )
                         else:
                             refund_info = {
@@ -2260,12 +2436,65 @@ async def cancel_task(
                             "escrow_id": effective_escrow_id,
                             "error": "x402 SDK not available",
                         }
-                else:
-                    # Common case for EIP-3009 authorize-only flow: no funds moved.
+                elif escrow_status in AUTHORIZE_ONLY_ESCROW_STATUSES:
+                    # EIP-3009 authorize-only: no funds moved, authorization expires.
                     refund_info = {
                         "status": "authorization_expired",
                         "message": "Payment authorization will expire. No funds were moved.",
                     }
+                else:
+                    # Unknown escrow status — attempt refund if SDK is available
+                    logger.warning(
+                        "Unknown escrow status '%s' for task %s, attempting refund",
+                        escrow_status, task_id,
+                    )
+                    if X402_AVAILABLE:
+                        try:
+                            sdk = get_sdk()
+                            refund_result = await sdk.refund_task_payment(
+                                task_id=task_id,
+                                escrow_id=str(effective_escrow_id or ""),
+                                reason=reason,
+                            )
+                            if refund_result.get("success"):
+                                refund_tx_hash = refund_result.get("tx_hash")
+                                refund_info = {
+                                    "status": "refunded",
+                                    "escrow_id": effective_escrow_id,
+                                    "tx_hash": refund_tx_hash,
+                                    "method": refund_result.get("method", "unknown"),
+                                }
+                                if refund_tx_hash:
+                                    try:
+                                        client.table("tasks").update({
+                                            "refund_tx": refund_tx_hash,
+                                        }).eq("id", task_id).execute()
+                                    except Exception:
+                                        pass
+                                _record_refund_payment(
+                                    task=task,
+                                    agent_id=api_key.agent_id,
+                                    refund_tx=refund_tx_hash,
+                                    reason=reason,
+                                    settlement_method=refund_result.get("method"),
+                                )
+                            else:
+                                refund_info = {
+                                    "status": "refund_manual_required",
+                                    "escrow_id": effective_escrow_id,
+                                    "error": refund_result.get("error", "Unknown status, refund failed"),
+                                }
+                        except Exception as refund_err:
+                            logger.warning("Refund attempt failed for task %s: %s", task_id, refund_err)
+                            refund_info = {
+                                "status": "authorization_expired",
+                                "message": "Could not determine escrow state. Authorization will expire.",
+                            }
+                    else:
+                        refund_info = {
+                            "status": "authorization_expired",
+                            "message": "Payment authorization will expire. No funds were moved.",
+                        }
 
             except HTTPException:
                 raise
@@ -2684,6 +2913,336 @@ async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceRespo
             explanation="AI verification temporarily unavailable. Evidence accepted for agent review.",
             issues=[],
         )
+
+
+# =============================================================================
+# WORKER IDENTITY (ERC-8004)
+# =============================================================================
+
+# Import worker identity functions (non-blocking)
+try:
+    from integrations.erc8004.identity import (
+        check_worker_identity,
+        build_worker_registration_tx,
+        confirm_worker_registration,
+        update_executor_identity,
+        WorkerIdentityStatus,
+    )
+    WORKER_IDENTITY_AVAILABLE = True
+except ImportError:
+    WORKER_IDENTITY_AVAILABLE = False
+
+
+class IdentityCheckResponse(BaseModel):
+    """Response for worker identity check."""
+    status: str = Field(..., description="registered, not_registered, or error")
+    agent_id: Optional[int] = Field(None, description="ERC-8004 token ID if registered")
+    wallet_address: Optional[str] = None
+    network: str = "base"
+    chain_id: int = 8453
+    registry_address: Optional[str] = None
+    error: Optional[str] = None
+
+
+class RegisterIdentityRequest(BaseModel):
+    """Request to prepare an identity registration transaction."""
+    agent_uri: Optional[str] = Field(
+        None,
+        description="Metadata URI for the identity (defaults to execution.market profile URL)",
+        max_length=500,
+    )
+
+
+class RegisterIdentityResponse(BaseModel):
+    """Response with unsigned transaction data for identity registration."""
+    status: str = Field(..., description="Current identity status before registration")
+    agent_id: Optional[int] = Field(None, description="Existing agent ID if already registered")
+    transaction: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Unsigned transaction data (to, data, chainId, value, estimated_gas)",
+    )
+    message: str
+
+
+class ConfirmIdentityRequest(BaseModel):
+    """Request to confirm a registration transaction."""
+    tx_hash: str = Field(
+        ...,
+        description="Transaction hash of the registration tx",
+        min_length=66,
+        max_length=66,
+    )
+
+
+@router.get(
+    "/executors/{executor_id}/identity",
+    response_model=IdentityCheckResponse,
+    responses={
+        200: {"description": "Identity status retrieved"},
+        404: {"model": ErrorResponse, "description": "Executor not found"},
+        503: {"model": ErrorResponse, "description": "Identity service unavailable"},
+    },
+    tags=["Workers", "Identity"],
+)
+async def get_worker_identity(
+    executor_id: str = Path(..., description="UUID of the executor", pattern=UUID_PATTERN),
+) -> IdentityCheckResponse:
+    """
+    Check a worker's ERC-8004 on-chain identity status.
+
+    Queries the ERC-8004 Identity Registry on Base Mainnet to determine
+    whether the worker's wallet holds an identity token.
+    """
+    if not WORKER_IDENTITY_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Worker identity service not available",
+        )
+
+    # Look up executor
+    try:
+        client = db.get_client()
+        result = client.table("executors").select(
+            "id, wallet_address, erc8004_agent_id"
+        ).eq("id", executor_id).execute()
+    except Exception as e:
+        logger.error("Failed to look up executor %s: %s", executor_id, e)
+        raise HTTPException(status_code=500, detail="Database error")
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Executor not found")
+
+    executor = result.data[0]
+    wallet = executor.get("wallet_address")
+
+    if not wallet or not _is_valid_eth_address(wallet):
+        raise HTTPException(
+            status_code=400,
+            detail="Executor has no valid wallet address",
+        )
+
+    # Check if we already have the agent_id cached in Supabase
+    cached_agent_id = executor.get("erc8004_agent_id")
+    if cached_agent_id is not None:
+        return IdentityCheckResponse(
+            status="registered",
+            agent_id=cached_agent_id,
+            wallet_address=wallet,
+        )
+
+    # Check on-chain
+    try:
+        identity = await check_worker_identity(wallet)
+    except Exception as e:
+        logger.error("Identity check failed for executor %s: %s", executor_id, e)
+        return IdentityCheckResponse(
+            status="error",
+            wallet_address=wallet,
+            error=str(e),
+        )
+
+    # If registered, persist the agent_id in Supabase
+    if identity.status == WorkerIdentityStatus.REGISTERED and identity.agent_id:
+        try:
+            await update_executor_identity(executor_id, identity.agent_id)
+        except Exception as e:
+            logger.warning("Failed to persist agent_id for executor %s: %s", executor_id, e)
+
+    return IdentityCheckResponse(
+        status=identity.status.value,
+        agent_id=identity.agent_id,
+        wallet_address=identity.wallet_address,
+        network=identity.network,
+        chain_id=identity.chain_id,
+        registry_address=identity.registry_address,
+        error=identity.error,
+    )
+
+
+@router.post(
+    "/executors/{executor_id}/register-identity",
+    response_model=RegisterIdentityResponse,
+    responses={
+        200: {"description": "Registration tx data or already-registered confirmation"},
+        404: {"model": ErrorResponse, "description": "Executor not found"},
+        503: {"model": ErrorResponse, "description": "Identity service unavailable"},
+    },
+    tags=["Workers", "Identity"],
+)
+async def register_worker_identity(
+    executor_id: str = Path(..., description="UUID of the executor", pattern=UUID_PATTERN),
+    request: RegisterIdentityRequest = RegisterIdentityRequest(),
+) -> RegisterIdentityResponse:
+    """
+    Prepare an ERC-8004 identity registration transaction for a worker.
+
+    If the worker is already registered, returns their agent ID.
+    Otherwise, returns the unsigned transaction data that the worker's
+    wallet (Dynamic.xyz frontend) must sign and submit.
+
+    The worker pays gas (~$0.01 on Base Mainnet).
+    """
+    if not WORKER_IDENTITY_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Worker identity service not available",
+        )
+
+    # Look up executor
+    try:
+        client = db.get_client()
+        result = client.table("executors").select(
+            "id, wallet_address, erc8004_agent_id"
+        ).eq("id", executor_id).execute()
+    except Exception as e:
+        logger.error("Failed to look up executor %s: %s", executor_id, e)
+        raise HTTPException(status_code=500, detail="Database error")
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Executor not found")
+
+    executor = result.data[0]
+    wallet = executor.get("wallet_address")
+
+    if not wallet or not _is_valid_eth_address(wallet):
+        raise HTTPException(
+            status_code=400,
+            detail="Executor has no valid wallet address",
+        )
+
+    # Check current on-chain status
+    try:
+        identity = await check_worker_identity(wallet)
+    except Exception as e:
+        logger.error("Identity check failed for %s: %s", executor_id, e)
+        raise HTTPException(
+            status_code=503,
+            detail=f"Could not check on-chain identity: {e}",
+        )
+
+    # Already registered
+    if identity.status == WorkerIdentityStatus.REGISTERED:
+        # Persist if not already saved
+        if identity.agent_id and not executor.get("erc8004_agent_id"):
+            try:
+                await update_executor_identity(executor_id, identity.agent_id)
+            except Exception:
+                pass
+
+        return RegisterIdentityResponse(
+            status="registered",
+            agent_id=identity.agent_id,
+            transaction=None,
+            message=f"Worker already registered with agent ID {identity.agent_id}",
+        )
+
+    # Build registration tx
+    try:
+        tx_data = await build_worker_registration_tx(
+            wallet_address=wallet,
+            agent_uri=request.agent_uri,
+        )
+    except Exception as e:
+        logger.error("Failed to build registration tx for %s: %s", executor_id, e)
+        raise HTTPException(
+            status_code=503,
+            detail=f"Could not prepare registration transaction: {e}",
+        )
+
+    logger.info(
+        "Registration tx prepared: executor=%s, wallet=%s, chain=%d, gas=%s",
+        executor_id, wallet[:10], tx_data.chain_id, tx_data.estimated_gas,
+    )
+
+    return RegisterIdentityResponse(
+        status="not_registered",
+        agent_id=None,
+        transaction=tx_data.to_dict(),
+        message="Sign and submit this transaction to register your on-chain identity",
+    )
+
+
+@router.post(
+    "/executors/{executor_id}/confirm-identity",
+    response_model=IdentityCheckResponse,
+    responses={
+        200: {"description": "Registration confirmed"},
+        404: {"model": ErrorResponse, "description": "Executor not found"},
+        503: {"model": ErrorResponse, "description": "Identity service unavailable"},
+    },
+    tags=["Workers", "Identity"],
+)
+async def confirm_identity_registration(
+    executor_id: str = Path(..., description="UUID of the executor", pattern=UUID_PATTERN),
+    request: ConfirmIdentityRequest = ...,
+) -> IdentityCheckResponse:
+    """
+    Confirm a worker's identity registration after the transaction is mined.
+
+    After the worker signs and submits the registration tx, the frontend
+    calls this endpoint with the tx hash. The backend re-checks the on-chain
+    state and stores the agent ID if registration succeeded.
+    """
+    if not WORKER_IDENTITY_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Worker identity service not available",
+        )
+
+    # Look up executor
+    try:
+        client = db.get_client()
+        result = client.table("executors").select(
+            "id, wallet_address"
+        ).eq("id", executor_id).execute()
+    except Exception as e:
+        logger.error("Failed to look up executor %s: %s", executor_id, e)
+        raise HTTPException(status_code=500, detail="Database error")
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Executor not found")
+
+    executor = result.data[0]
+    wallet = executor.get("wallet_address")
+
+    if not wallet or not _is_valid_eth_address(wallet):
+        raise HTTPException(
+            status_code=400,
+            detail="Executor has no valid wallet address",
+        )
+
+    # Confirm on-chain
+    try:
+        identity = await confirm_worker_registration(wallet, request.tx_hash)
+    except Exception as e:
+        logger.error("Identity confirmation failed for %s: %s", executor_id, e)
+        return IdentityCheckResponse(
+            status="error",
+            wallet_address=wallet,
+            error=str(e),
+        )
+
+    # Persist agent_id if registered
+    if identity.status == WorkerIdentityStatus.REGISTERED and identity.agent_id:
+        try:
+            await update_executor_identity(executor_id, identity.agent_id)
+        except Exception as e:
+            logger.warning("Failed to persist agent_id for %s: %s", executor_id, e)
+
+    logger.info(
+        "Identity confirmation: executor=%s, status=%s, agent_id=%s, tx=%s",
+        executor_id, identity.status.value, identity.agent_id, request.tx_hash,
+    )
+
+    return IdentityCheckResponse(
+        status=identity.status.value,
+        agent_id=identity.agent_id,
+        wallet_address=identity.wallet_address,
+        network=identity.network,
+        chain_id=identity.chain_id,
+        registry_address=identity.registry_address,
+        error=identity.error,
+    )
 
 
 # =============================================================================

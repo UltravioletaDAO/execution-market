@@ -14,6 +14,10 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { SubmissionForm } from '../components/SubmissionForm'
+import { TxHashLink } from '../components/TxHashLink'
+import { PaymentStatusBadge } from '../components/PaymentStatusBadge'
+import { useTaskPayment } from '../hooks/useTaskPayment'
+import { PaymentStatus } from '../components/PaymentStatus'
 import type { Task, TaskCategory, TaskStatus, Executor, TaskApplication } from '../types/database'
 
 // ============================================================================
@@ -633,6 +637,16 @@ export function TaskDetailPage({
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Load payment data when task has escrow context or is in a terminal state
+  const hasEscrowContext = Boolean(task.escrow_tx || task.escrow_id)
+  const showPaymentSection =
+    hasEscrowContext ||
+    task.status === 'completed' ||
+    task.status === 'submitted' ||
+    task.status === 'expired' ||
+    task.status === 'cancelled'
+  const { payment, loading: paymentLoading } = useTaskPayment(showPaymentSection ? task.id : null)
+
   const isAssigned = task.executor_id === executor?.id
   const canApply = useMemo(() => {
     if (!executor) return { can: false, reason: 'Debes iniciar sesion para aplicar' }
@@ -730,6 +744,45 @@ export function TaskDetailPage({
 
       {/* Bounty Breakdown */}
       <BountyBreakdown bountyUsd={task.bounty_usd} paymentToken={task.payment_token} />
+
+      {/* Payment / Escrow Status */}
+      {showPaymentSection && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            {task.status === 'cancelled' ? 'Reembolso' : 'Escrow y Pago'}
+          </h3>
+          {paymentLoading ? (
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-gray-600">Cargando estado de pago...</span>
+            </div>
+          ) : payment ? (
+            <PaymentStatus payment={payment} compact={false} showTimeline={true} />
+          ) : hasEscrowContext ? (
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <PaymentStatusBadge status="authorized" />
+                <span className="text-sm text-blue-700">Fondos en escrow</span>
+              </div>
+              {task.escrow_id && (
+                <span className="text-xs font-mono text-blue-500">{task.escrow_id}</span>
+              )}
+            </div>
+          ) : task.status === 'cancelled' ? (
+            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg">
+              <PaymentStatusBadge status="cancelled" />
+              <span className="text-sm text-red-700">Autorizacion expirada - fondos no fueron movidos</span>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
+              Sin registros de pago para esta tarea.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Location Map (if location exists) */}
       {(task.location || task.location_hint) && <LocationMap task={task} />}

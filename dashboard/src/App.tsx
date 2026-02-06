@@ -18,6 +18,7 @@ import { About } from './pages/About'
 import { FAQ } from './pages/FAQ'
 import { AgentDashboard } from './pages/AgentDashboard'
 import { AgentOnboarding } from './pages/AgentOnboarding'
+import { Developers } from './pages/Developers'
 import { Earnings, type ChartPeriod } from './pages/Earnings'
 import { TaskManagement } from './pages/agent/TaskManagement'
 import { CreateTask } from './pages/agent/CreateTask'
@@ -308,6 +309,7 @@ function AppRoutes() {
       <Route path="/about" element={<About />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/agents" element={<AgentOnboarding />} />
+      <Route path="/developers" element={<Developers />} />
 
       {/* Worker Routes (Protected - Workers Only) */}
       <Route

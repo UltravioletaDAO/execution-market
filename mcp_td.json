@@ -22,6 +22,14 @@
                     {
                         "name": "ENVIRONMENT",
                         "value": "production"
+                    },
+                    {
+                        "name": "ERC8004_NETWORK",
+                        "value": "base"
+                    },
+                    {
+                        "name": "EM_AGENT_ID",
+                        "value": "469"
                     }
                 ],
                 "mountPoints": [],
@@ -70,6 +78,10 @@
                     {
                         "name": "EM_TREASURY_ADDRESS",
                         "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/commission:wallet_address::"
+                    },
+                    {
+                        "name": "ANTHROPIC_API_KEY",
+                        "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/anthropic:ANTHROPIC_API_KEY::"
                     }
                 ],
                 "logConfiguration": {

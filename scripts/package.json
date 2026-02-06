@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "register:erc8004": "tsx register_erc8004.ts",
+    "register:erc8004:base": "tsx register-erc8004-base.ts",
     "register:x402r": "tsx register_x402r.ts",
     "upload:metadata": "tsx upload_metadata.ts",
     "test:task": "tsx test_create_task.ts",

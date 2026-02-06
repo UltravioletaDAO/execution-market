@@ -6,6 +6,7 @@ Provides HTTP endpoints for health probes:
 - GET /health/ready - Readiness probe (can accept traffic?)
 - GET /health/live - Liveness probe (is process alive?)
 - GET /health/detailed - Detailed status with all dependencies
+- GET /health/routes - Route parity check (lists all registered routes)
 
 Compatible with:
 - Kubernetes health probes
@@ -16,10 +17,12 @@ Compatible with:
 
 import json
 import logging
+from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, Query, Request, Response, status
+from starlette.routing import Mount, Route
 
 from .checks import HealthChecker, HealthStatus, SystemHealth
 
@@ -373,6 +376,97 @@ async def version_info() -> Dict[str, Any]:
         "build_date": os.getenv("BUILD_DATE", "unknown"),
         "git_commit": os.getenv("GIT_COMMIT", "unknown")[:8] if os.getenv("GIT_COMMIT") else "unknown",
         "uptime_seconds": round(checker.uptime_seconds, 2)
+    }
+
+
+# =============================================================================
+# Route Parity Check Endpoint
+# =============================================================================
+
+
+def _collect_routes(routes, prefix: str = "") -> List[Dict[str, Any]]:
+    """Recursively collect all routes from the app, including mounted sub-apps."""
+    collected = []
+    for route in routes:
+        if isinstance(route, Route):
+            path = prefix + route.path
+            collected.append({
+                "path": path,
+                "methods": sorted(route.methods - {"HEAD"}) if route.methods else [],
+                "name": route.name or "",
+                "tags": getattr(route, "tags", None) or [],
+            })
+        elif isinstance(route, Mount):
+            mount_path = prefix + route.path
+            # Recurse into mounted sub-applications
+            sub_routes = getattr(route, "routes", None)
+            if sub_routes:
+                collected.extend(_collect_routes(sub_routes, mount_path))
+            else:
+                # Opaque mount (e.g. MCP ASGI app) — record the mount point itself
+                collected.append({
+                    "path": mount_path,
+                    "methods": ["MOUNT"],
+                    "name": route.name or "",
+                    "tags": [],
+                })
+    return collected
+
+
+def _group_prefix(path: str) -> str:
+    """Derive a human-readable group name from a route path."""
+    if path.startswith("/api/v1/admin"):
+        return "admin"
+    if path.startswith("/api/v1/escrow"):
+        return "escrow"
+    if path.startswith("/api/v1/reputation"):
+        return "reputation"
+    if path.startswith("/api/v1"):
+        return "api/v1"
+    if path.startswith("/health"):
+        return "health"
+    if path.startswith("/ws"):
+        return "websocket"
+    if path.startswith("/mcp"):
+        return "mcp"
+    if path.startswith("/.well-known") or path.startswith("/discovery"):
+        return "a2a"
+    return "root"
+
+
+@router.get("/routes")
+async def route_parity_check(request: Request) -> Dict[str, Any]:
+    """
+    List all registered routes in the FastAPI application.
+
+    Diagnostic endpoint for verifying production route parity.
+    For each route returns path, methods, name, and tags.
+    Routes are grouped by their URL prefix.
+
+    No authentication required — no sensitive data is exposed.
+    """
+    app = request.app
+    all_routes = _collect_routes(app.routes)
+
+    # Sort routes by path for deterministic output
+    all_routes.sort(key=lambda r: r["path"])
+
+    # Group by prefix
+    groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for route in all_routes:
+        group = _group_prefix(route["path"])
+        groups[group].append(route)
+
+    return {
+        "total": len(all_routes),
+        "by_group": {
+            group: {
+                "count": len(routes),
+                "routes": routes,
+            }
+            for group, routes in sorted(groups.items())
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 

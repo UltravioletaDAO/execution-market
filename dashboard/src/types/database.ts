@@ -71,6 +71,7 @@ export interface Executor {
   avg_rating: number | null
   reputation_contract: string | null
   reputation_token_id: number | null
+  erc8004_agent_id: number | null
   created_at: string
   updated_at: string
   last_active_at: string | null
@@ -391,6 +392,7 @@ export interface ExecutorInsert {
   avg_rating?: number | null
   reputation_contract?: string | null
   reputation_token_id?: number | null
+  erc8004_agent_id?: number | null
   last_active_at?: string | null
 }
 
