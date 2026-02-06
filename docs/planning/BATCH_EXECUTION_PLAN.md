@@ -294,25 +294,25 @@ To activate S3 pipeline: set `enable_evidence_pipeline = true` in terraform.tfva
 ---
 
 ## BATCH 8 — Data & Analytics (P1-MET-001 to P1-MET-003, P1-DB-001)
-**Status**: `PENDING`
+**Status**: `DONE (2026-02-06)`
 **Estimated context**: Medium
 **Goal**: Fix analytics and ensure schema consistency
 
 ### Tasks
-- `P1-MET-001` Fix analytics queries to match live DB (no escrows/payments tables)
-- `P1-MET-002` Add global stats card to dashboard home page
-- `P1-MET-003` Add periodic metrics sanity check
-- `P1-DB-001` Schema parity audit across environments
+- ✅ `P1-MET-001` Analytics already use `tasks`/`submissions` (not `escrows`/`payments`). Verified in admin.py — all endpoints derive metrics from task bounties.
+- ✅ `P1-MET-002` StatsBar enhanced: added Live Tasks count and Total Paid Out (USD) alongside existing Registered Users and Completed Tasks. Uses `usePublicMetrics` hook.
+- ✅ `P1-MET-003` Added `GET /health/sanity` endpoint — verifies task status consistency, payment evidence, executor assignment, stuck tasks, orphaned submissions, zero-bounty tasks.
+- ✅ `P1-DB-001` Full schema parity audit: `docs/planning/SCHEMA_PARITY_AUDIT_2026-02-06.md` — all 22 migrations applied, 13 tables, 12 custom RPC functions documented.
 
 ### Key files
-- `mcp_server/api/admin.py` — analytics endpoints (already improved)
-- `dashboard/src/pages/Home.tsx` — add stats card
-- `supabase/migrations/` — verify applied state
+- `mcp_server/health/endpoints.py` — new `/health/sanity` endpoint
+- `dashboard/src/components/landing/StatsBar.tsx` — enhanced stats card
+- `docs/planning/SCHEMA_PARITY_AUDIT_2026-02-06.md` — full audit
 
 ### Acceptance criteria
-- Analytics endpoints return valid data from live DB
-- Dashboard home shows key metrics
-- Schema differences documented
+- ✅ Analytics endpoints return valid data from live DB
+- ✅ Dashboard home shows key metrics (4 stats: live tasks, users, completed, total paid)
+- ✅ Schema differences documented
 
 ---
 
