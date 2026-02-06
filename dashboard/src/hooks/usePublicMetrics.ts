@@ -43,47 +43,78 @@ interface UsePublicMetricsResult {
 
 const REFRESH_INTERVAL_MS = 60_000
 
-function getPublicMetricsUrl(): string {
-  const base = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
+function buildMetricsUrl(base: string): string {
+  const normalized = (base || '').replace(/\/+$/, '')
+  if (!normalized) return '/api/v1/public/metrics'
 
-  if (base.endsWith('/api')) {
-    return `${base}/v1/public/metrics`
+  if (normalized.endsWith('/api')) {
+    return `${normalized}/v1/public/metrics`
   }
 
-  return `${base}/api/v1/public/metrics`
+  return `${normalized}/api/v1/public/metrics`
+}
+
+function getPublicMetricsUrls(): string[] {
+  const base = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
+  const urls = [
+    buildMetricsUrl(base),
+    'https://api.execution.market/api/v1/public/metrics',
+    '/api/v1/public/metrics',
+  ]
+
+  const deduped: string[] = []
+  for (const candidate of urls) {
+    if (!candidate) continue
+    if (!deduped.includes(candidate)) {
+      deduped.push(candidate)
+    }
+  }
+  return deduped
 }
 
 export function usePublicMetrics(): UsePublicMetricsResult {
   const [metrics, setMetrics] = useState<PublicPlatformMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const endpoint = useMemo(() => getPublicMetricsUrl(), [])
+  const endpoints = useMemo(() => getPublicMetricsUrls(), [])
 
   const refresh = useCallback(async () => {
     setError(null)
 
     try {
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Client-Info': 'execution-market-dashboard',
-        },
-      })
+      let lastError: Error | null = null
 
-      if (!response.ok) {
-        throw new Error(`Failed to load platform metrics (${response.status})`)
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Client-Info': 'execution-market-dashboard',
+            },
+          })
+
+          if (!response.ok) {
+            lastError = new Error(`Failed to load platform metrics (${response.status})`)
+            continue
+          }
+
+          const data = await response.json() as PublicPlatformMetrics
+          setMetrics(data)
+          return
+        } catch (endpointErr) {
+          lastError = endpointErr instanceof Error ? endpointErr : new Error('Failed to load platform metrics')
+        }
       }
 
-      const data = await response.json() as PublicPlatformMetrics
-      setMetrics(data)
+      throw lastError ?? new Error('Failed to load platform metrics')
     } catch (err) {
       const normalized = err instanceof Error ? err : new Error('Failed to load platform metrics')
       setError(normalized)
     } finally {
       setLoading(false)
     }
-  }, [endpoint])
+  }, [endpoints])
 
   useEffect(() => {
     let mounted = true
