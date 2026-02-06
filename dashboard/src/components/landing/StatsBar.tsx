@@ -8,10 +8,13 @@ function formatCount(value: number): string {
 export function StatsBar() {
   const { t } = useTranslation()
   const { metrics, loading } = usePublicMetrics()
+  const totalRegisteredUsers = metrics
+    ? (metrics.users.registered_workers || 0) + (metrics.users.registered_agents || 0)
+    : 0
 
   const stats = [
     {
-      value: metrics ? formatCount(metrics.users.registered_workers) : (loading ? '...' : '0'),
+      value: metrics ? formatCount(totalRegisteredUsers) : (loading ? '...' : '0'),
       label: t('landing.stats.registeredUsers', 'Registered Users'),
     },
     {
