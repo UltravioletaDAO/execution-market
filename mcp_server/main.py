@@ -306,11 +306,13 @@ app.add_middleware(
         "https://inspector.modelcontextprotocol.io",  # Official MCP Inspector
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=[
         "Authorization",
         "Content-Type",
         "X-API-Key",
+        "X-Admin-Key",
+        "X-Admin-Actor",
         "X-Device-ID",
         "X-Request-ID",
         "X-Payment",
