@@ -471,6 +471,154 @@ async def route_parity_check(request: Request) -> Dict[str, Any]:
 
 
 # =============================================================================
+# Metrics Sanity Check Endpoint
+# =============================================================================
+
+
+@router.get("/sanity")
+async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
+    """
+    Periodic metrics sanity check.
+
+    Verifies data consistency across the platform:
+    - Task counts by status sum correctly
+    - Completed tasks have payment evidence
+    - No orphaned submissions (task deleted but submission exists)
+    - No stuck tasks (accepted but idle for >24h)
+
+    Returns a list of warnings for any inconsistencies found.
+    """
+    import supabase_client
+    client = supabase_client.get_client()
+    warnings: List[Dict[str, str]] = []
+    checks_passed = 0
+    checks_total = 0
+
+    try:
+        # Check 1: Task status distribution
+        checks_total += 1
+        try:
+            tasks_result = client.table("tasks").select(
+                "id, status, bounty_usd, executor_id, created_at, updated_at"
+            ).execute()
+            tasks = tasks_result.data or []
+            status_counts: Dict[str, int] = {}
+            for t in tasks:
+                s = t.get("status", "unknown")
+                status_counts[s] = status_counts.get(s, 0) + 1
+            checks_passed += 1
+        except Exception as e:
+            warnings.append({"check": "task_counts", "message": f"Failed to query tasks: {e}"})
+            tasks = []
+            status_counts = {}
+
+        # Check 2: Completed tasks should have payment_tx or escrow_tx
+        checks_total += 1
+        completed_no_payment = [
+            t["id"] for t in tasks
+            if t.get("status") == "completed"
+            and not t.get("payment_tx") and not t.get("escrow_tx")
+        ]
+        if completed_no_payment:
+            warnings.append({
+                "check": "completed_no_payment",
+                "message": f"{len(completed_no_payment)} completed task(s) have no payment evidence",
+                "task_ids": completed_no_payment[:10],
+            })
+        else:
+            checks_passed += 1
+
+        # Check 3: Accepted/in_progress tasks should have an executor
+        checks_total += 1
+        active_no_executor = [
+            t["id"] for t in tasks
+            if t.get("status") in ("accepted", "in_progress", "submitted")
+            and not t.get("executor_id")
+        ]
+        if active_no_executor:
+            warnings.append({
+                "check": "active_no_executor",
+                "message": f"{len(active_no_executor)} active task(s) have no executor assigned",
+                "task_ids": active_no_executor[:10],
+            })
+        else:
+            checks_passed += 1
+
+        # Check 4: Stuck tasks (accepted >24h ago, no update)
+        checks_total += 1
+        from datetime import datetime as dt, timezone as tz, timedelta as td
+        cutoff = (dt.now(tz.utc) - td(hours=24)).isoformat()
+        stuck_tasks = [
+            t["id"] for t in tasks
+            if t.get("status") in ("accepted", "in_progress")
+            and (t.get("updated_at") or t.get("created_at", "")) < cutoff
+        ]
+        if stuck_tasks:
+            warnings.append({
+                "check": "stuck_tasks",
+                "message": f"{len(stuck_tasks)} task(s) stuck in active state >24h",
+                "task_ids": stuck_tasks[:10],
+            })
+        else:
+            checks_passed += 1
+
+        # Check 5: Orphaned submissions (submission exists for non-existent task)
+        checks_total += 1
+        try:
+            subs_result = client.table("submissions").select("id, task_id").execute()
+            subs = subs_result.data or []
+            task_ids = {t["id"] for t in tasks}
+            orphaned = [s["id"] for s in subs if s.get("task_id") not in task_ids]
+            if orphaned:
+                warnings.append({
+                    "check": "orphaned_submissions",
+                    "message": f"{len(orphaned)} submission(s) reference non-existent tasks",
+                    "submission_ids": orphaned[:10],
+                })
+            else:
+                checks_passed += 1
+        except Exception as e:
+            warnings.append({"check": "orphaned_submissions", "message": f"Failed: {e}"})
+
+        # Check 6: Financial consistency — total bounties vs task count
+        checks_total += 1
+        total_bounty = sum(float(t.get("bounty_usd", 0) or 0) for t in tasks)
+        zero_bounty_active = [
+            t["id"] for t in tasks
+            if t.get("status") in ("published", "accepted", "in_progress", "submitted")
+            and float(t.get("bounty_usd", 0) or 0) == 0
+        ]
+        if zero_bounty_active:
+            warnings.append({
+                "check": "zero_bounty_active",
+                "message": f"{len(zero_bounty_active)} active task(s) have $0 bounty",
+                "task_ids": zero_bounty_active[:10],
+            })
+        else:
+            checks_passed += 1
+
+    except Exception as e:
+        warnings.append({"check": "sanity_check", "message": f"Sanity check failed: {e}"})
+
+    all_ok = checks_passed == checks_total
+    if not all_ok:
+        response.status_code = status.HTTP_200_OK  # Warnings are informational, not failures
+
+    return {
+        "status": "ok" if all_ok else "warnings",
+        "checks_passed": checks_passed,
+        "checks_total": checks_total,
+        "warnings": warnings,
+        "summary": {
+            "task_status_distribution": status_counts,
+            "total_tasks": len(tasks),
+            "total_bounty_usd": round(total_bounty, 2),
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# =============================================================================
 # Prometheus Metrics Endpoint
 # =============================================================================
 
