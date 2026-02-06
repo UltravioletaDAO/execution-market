@@ -82,7 +82,7 @@ feat: batch 0 — commit audited work from global-tasks session
 ---
 
 ## BATCH 1 — Payment UI Wiring (P0-UI-001 to P0-UI-004)
-**Status**: `PENDING`
+**Status**: `DONE (2026-02-06)`
 **Estimated context**: Medium
 **Goal**: Make on-chain transactions visible in the dashboard
 
@@ -381,7 +381,7 @@ Signed: ___
 | Batch | Status | Date | Session | Notes |
 |-------|--------|------|---------|-------|
 | 0 | DONE | 2026-02-06 | current | Commit 8482a23, 128 files, build passes |
-| 1 | PENDING | | | |
+| 1 | DONE | 2026-02-06 | current | Commit cf73845, TaskDetail + types, build passes |
 | 2 | PENDING | | | |
 | 3 | PENDING | | | |
 | 4 | PENDING | | | |
