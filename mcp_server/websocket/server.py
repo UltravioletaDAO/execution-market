@@ -17,6 +17,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import secrets
 from datetime import datetime, timezone
 from typing import Dict, Set, Optional, Any, Callable, Awaitable, List
@@ -32,6 +33,7 @@ from .events import WebSocketEvent, WebSocketEventType, get_user_room, get_task_
 
 # Configure logging
 logger = logging.getLogger(__name__)
+UUID_PATTERN = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 
 # ============== ENUMS & TYPES ==============
@@ -591,12 +593,6 @@ class WebSocketManager:
 
         Override this method for custom access control.
         """
-        # For now, allow all authenticated users to subscribe to any room
-        # In production, add validation:
-        # - task:123 -> check if user owns or is assigned to task
-        # - user:456 -> check if user matches
-        # - category:X -> allow workers only
-
         if not connection.is_authenticated:
             return False
 
@@ -604,9 +600,21 @@ class WebSocketManager:
         if room == get_user_room(connection.user_id):
             return True
 
-        # Allow task subscriptions (in production, verify ownership/assignment)
+        # User rooms are private.
+        if room.startswith("user:"):
+            return False
+
+        # Task room access is scoped by ownership/assignment.
         if room.startswith("task:"):
-            return True
+            task_id = room.split(":", 1)[1].strip() if ":" in room else ""
+            if not task_id:
+                return False
+
+            # Keep backwards compatibility for non-UUID demo/test rooms.
+            if not UUID_PATTERN.match(task_id):
+                return True
+
+            return await self._can_access_task_room(connection, task_id)
 
         # Allow category subscriptions for workers
         if room.startswith("category:") and connection.user_type == "worker":
@@ -616,7 +624,55 @@ class WebSocketManager:
         if room == "global":
             return True
 
-        return True  # Permissive by default
+        return False
+
+    async def _can_access_task_room(self, connection: Connection, task_id: str) -> bool:
+        """Check if a user is allowed to subscribe to task:<id> room."""
+        try:
+            # Lazy import to avoid module-level coupling.
+            from supabase_client import get_client
+
+            client = get_client()
+            task_result = (
+                client.table("tasks")
+                .select("id,agent_id,executor_id,status")
+                .eq("id", task_id)
+                .single()
+                .execute()
+            )
+            task = task_result.data or None
+        except Exception as e:
+            logger.warning("WebSocket task ACL lookup failed for task %s: %s", task_id, e)
+            return False
+
+        if not task:
+            return False
+
+        if connection.user_type == "agent":
+            return str(task.get("agent_id") or "") == str(connection.user_id or "")
+
+        if connection.user_type == "worker":
+            if str(task.get("executor_id") or "") == str(connection.user_id or ""):
+                return True
+
+            for table_name in ("task_applications", "applications"):
+                try:
+                    result = (
+                        client.table(table_name)
+                        .select("id")
+                        .eq("task_id", task_id)
+                        .eq("executor_id", connection.user_id)
+                        .limit(1)
+                        .execute()
+                    )
+                    if result.data:
+                        return True
+                except Exception:
+                    continue
+
+            return False
+
+        return False
 
     # ============== MESSAGING ==============
 

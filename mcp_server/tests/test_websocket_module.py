@@ -353,6 +353,7 @@ class TestEventHandlers:
     async def test_rate_limiter(self):
         """Test event rate limiter."""
         limiter = EventRateLimiter()
+        limiter._config.cooldown_seconds = 0
 
         user_id = "agent-123"
         event_type = "TaskCreated"

@@ -96,3 +96,41 @@ async def test_authenticate_requires_token_when_strict_mode_enabled():
 
     assert ok is False
     assert conn.state == ConnectionState.CONNECTED
+
+
+@pytest.mark.asyncio
+async def test_validate_room_access_blocks_other_user_room():
+    manager = WebSocketManager()
+    ws = FakeWebSocket()
+    conn = await manager.connect(ws, user_id="agent_1", user_type="agent")
+
+    allowed = await manager._validate_room_access(conn, "user:agent_2")
+
+    assert allowed is False
+
+
+@pytest.mark.asyncio
+async def test_validate_room_access_checks_task_acl_for_uuid_rooms():
+    manager = WebSocketManager()
+    ws = FakeWebSocket()
+    conn = await manager.connect(ws, user_id="agent_1", user_type="agent")
+    manager._can_access_task_room = AsyncMock(return_value=False)
+
+    allowed = await manager._validate_room_access(
+        conn,
+        "task:77777777-7777-7777-7777-777777777777",
+    )
+
+    assert allowed is False
+    manager._can_access_task_room.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_validate_room_access_allows_non_uuid_task_room_for_compat():
+    manager = WebSocketManager()
+    ws = FakeWebSocket()
+    conn = await manager.connect(ws, user_id="agent_1", user_type="agent")
+
+    allowed = await manager._validate_room_access(conn, "task:demo-room")
+
+    assert allowed is True
