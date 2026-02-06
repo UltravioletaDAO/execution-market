@@ -422,6 +422,56 @@ class HealthChecker:
                 message=f"x402 unavailable: {str(e)[:50]}"
             )
 
+    async def check_erc8004(self) -> ComponentHealth:
+        """Check ERC-8004 facilitator (identity + reputation) availability."""
+        facilitator_url = os.getenv(
+            "X402_FACILITATOR_URL",
+            "https://facilitator.ultravioletadao.xyz"
+        )
+        agent_id = os.getenv("EM_AGENT_ID", "469")
+        network = os.getenv("ERC8004_NETWORK", "base")
+        start = time.time()
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.COMPONENT_TIMEOUTS.get("erc8004", self.DEFAULT_TIMEOUT)
+            ) as client:
+                response = await client.get(
+                    f"{facilitator_url}/identity/{network}/{agent_id}"
+                )
+                latency = (time.time() - start) * 1000
+
+                if response.status_code == 200:
+                    data = response.json()
+                    name = data.get("name", "unknown")
+                    return ComponentHealth(
+                        name="erc8004",
+                        status=HealthStatus.HEALTHY,
+                        latency_ms=latency,
+                        message=f"Identity + reputation operational (agent {agent_id}: {name})"
+                    )
+                elif response.status_code == 404:
+                    return ComponentHealth(
+                        name="erc8004",
+                        status=HealthStatus.DEGRADED,
+                        latency_ms=latency,
+                        message=f"Facilitator reachable but agent {agent_id} not found on {network}"
+                    )
+                else:
+                    return ComponentHealth(
+                        name="erc8004",
+                        status=HealthStatus.DEGRADED,
+                        latency_ms=latency,
+                        message=f"Facilitator returned {response.status_code}"
+                    )
+        except Exception as e:
+            return ComponentHealth(
+                name="erc8004",
+                status=HealthStatus.DEGRADED,
+                latency_ms=(time.time() - start) * 1000,
+                message=f"ERC-8004 facilitator unavailable: {str(e)[:50]}"
+            )
+
     async def check_all(self, force_refresh: bool = False) -> SystemHealth:
         """
         Run all health checks concurrently.
@@ -457,6 +507,7 @@ class HealthChecker:
             ("storage", self.check_storage()),
             ("anthropic", self.check_anthropic()),
             ("x402", self.check_x402()),
+            ("erc8004", self.check_erc8004()),
         ]
 
         # Add custom checks

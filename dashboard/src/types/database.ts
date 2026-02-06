@@ -123,6 +123,7 @@ export interface Submission {
   agent_verdict: string | null
   agent_notes: string | null
   payment_tx: string | null
+  reputation_tx: string | null
   paid_at: string | null
   payment_amount: number | null
   // Joined relations
