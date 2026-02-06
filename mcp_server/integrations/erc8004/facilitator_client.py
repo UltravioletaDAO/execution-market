@@ -13,9 +13,10 @@ Endpoints:
 - POST /feedback/revoke                  - Revoke feedback
 - POST /feedback/response                - Agent responds to feedback
 
-Contracts (Ethereum Mainnet):
-- Identity Registry: 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432
-- Reputation Registry: 0x8004BAa17C55a88189AE136b182e5fdA19dE9b63
+Contracts:
+- Base Mainnet (env-configurable)
+- Ethereum Mainnet
+- Ethereum Sepolia
 """
 
 import os
@@ -38,14 +39,19 @@ FACILITATOR_URL = os.environ.get(
     "https://facilitator.ultravioletadao.xyz"
 )
 
-# ERC-8004 on Ethereum Mainnet (not testnet!)
-ERC8004_NETWORK = os.environ.get("ERC8004_NETWORK", "ethereum")
+# Base-first default for Execution Market runtime
+ERC8004_NETWORK = os.environ.get("ERC8004_NETWORK", "base")
 
 # Execution Market Agent ID
 EM_AGENT_ID = int(os.environ.get("EM_AGENT_ID", "469"))
 
 # Contract addresses
 ERC8004_CONTRACTS = {
+    "base": {
+        "identity_registry": os.environ.get("ERC8004_IDENTITY_REGISTRY_BASE", ""),
+        "reputation_registry": os.environ.get("ERC8004_REPUTATION_REGISTRY_BASE", ""),
+        "chain_id": 8453,
+    },
     "ethereum": {
         "identity_registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
         "reputation_registry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
@@ -70,7 +76,7 @@ class AgentIdentity:
     owner: str
     agent_uri: str
     agent_wallet: Optional[str] = None
-    network: str = "ethereum"
+    network: str = ERC8004_NETWORK
     name: Optional[str] = None
     description: Optional[str] = None
     image: Optional[str] = None
@@ -84,7 +90,7 @@ class FeedbackResult:
     transaction_hash: Optional[str] = None
     feedback_index: Optional[int] = None
     error: Optional[str] = None
-    network: str = "ethereum"
+    network: str = ERC8004_NETWORK
 
 
 @dataclass
@@ -94,7 +100,7 @@ class ReputationSummary:
     count: int
     summary_value: int
     summary_value_decimals: int = 0
-    network: str = "ethereum"
+    network: str = ERC8004_NETWORK
 
     @property
     def score(self) -> float:
@@ -556,7 +562,7 @@ async def rate_worker(
     if proof_tx:
         proof = {
             "transactionHash": {"Evm": proof_tx},
-            "network": "base",  # x402r payments on Base
+            "network": ERC8004_NETWORK,
         }
 
     return await client.submit_feedback(
@@ -600,7 +606,7 @@ async def rate_agent(
     if proof_tx:
         proof = {
             "transactionHash": {"Evm": proof_tx},
-            "network": "base",
+            "network": ERC8004_NETWORK,
         }
 
     return await client.submit_feedback(
