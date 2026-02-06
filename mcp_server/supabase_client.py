@@ -6,6 +6,7 @@ Database operations for the Execution Market MCP server.
 
 import os
 import logging
+import re
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta, timezone
 from supabase import create_client, Client
@@ -70,6 +71,19 @@ def _resolve_applications_table(client: Client) -> str:
 def get_applications_table_name() -> str:
     """Public helper for modules that need the resolved applications table."""
     return _resolve_applications_table(get_client())
+
+
+def _extract_missing_column(error_msg: str) -> Optional[str]:
+    """
+    Extract missing column name from PostgREST schema errors.
+
+    Example:
+    "Could not find the 'assigned_at' column of 'tasks' in the schema cache"
+    """
+    match = re.search(r"Could not find the '([^']+)' column", error_msg)
+    if match:
+        return match.group(1)
+    return None
 
 
 # ============== TASK OPERATIONS ==============
@@ -174,12 +188,29 @@ async def get_task(task_id: str) -> Optional[Dict[str, Any]]:
 async def update_task(task_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
     """Update a task."""
     client = get_client()
+    pending_updates = dict(updates)
 
-    result = client.table("tasks").update(updates).eq("id", task_id).execute()
+    # Handle schema drift by removing unknown columns and retrying.
+    while pending_updates:
+        try:
+            result = client.table("tasks").update(pending_updates).eq("id", task_id).execute()
 
-    if result.data and len(result.data) > 0:
-        return result.data[0]
-    raise Exception("Failed to update task")
+            if result.data and len(result.data) > 0:
+                return result.data[0]
+            raise Exception("Failed to update task")
+        except Exception as e:
+            missing_column = _extract_missing_column(str(e))
+            if missing_column and missing_column in pending_updates:
+                logger.warning(
+                    "tasks.%s missing in current schema; retrying update for task %s without it",
+                    missing_column,
+                    task_id,
+                )
+                pending_updates.pop(missing_column, None)
+                continue
+            raise
+
+    raise Exception("Failed to update task: no compatible columns found in current schema")
 
 
 async def cancel_task(task_id: str, agent_id: str) -> Dict[str, Any]:
@@ -359,8 +390,24 @@ async def apply_to_task(
         "message": message,
         "status": "pending",
     }
-
-    result = client.table(applications_table).insert(application_data).execute()
+    pending_application_data = dict(application_data)
+    while pending_application_data:
+        try:
+            result = client.table(applications_table).insert(pending_application_data).execute()
+            break
+        except Exception as e:
+            missing_column = _extract_missing_column(str(e))
+            if missing_column and missing_column in pending_application_data:
+                logger.warning(
+                    "%s.%s missing in current schema; retrying application insert without it",
+                    applications_table,
+                    missing_column,
+                )
+                pending_application_data.pop(missing_column, None)
+                continue
+            raise
+    else:
+        raise Exception("Failed to create application: no compatible columns found")
 
     if result.data and len(result.data) > 0:
         return {
@@ -408,8 +455,23 @@ async def submit_work(
         "submitted_at": datetime.now(timezone.utc).isoformat(),
         "agent_verdict": "pending",
     }
-
-    result = client.table("submissions").insert(submission_data).execute()
+    pending_submission_data = dict(submission_data)
+    while pending_submission_data:
+        try:
+            result = client.table("submissions").insert(pending_submission_data).execute()
+            break
+        except Exception as e:
+            missing_column = _extract_missing_column(str(e))
+            if missing_column and missing_column in pending_submission_data:
+                logger.warning(
+                    "submissions.%s missing in current schema; retrying submission insert without it",
+                    missing_column,
+                )
+                pending_submission_data.pop(missing_column, None)
+                continue
+            raise
+    else:
+        raise Exception("Failed to create submission: no compatible columns found")
 
     if result.data and len(result.data) > 0:
         # Update task status
@@ -540,15 +602,47 @@ async def assign_task(
     updated_task = await update_task(task_id, updates)
 
     # Update any pending application to accepted
-    client.table(applications_table).update({
-        "status": "accepted"
-    }).eq("task_id", task_id).eq("executor_id", executor_id).execute()
+    try:
+        client.table(applications_table).update({
+            "status": "accepted"
+        }).eq("task_id", task_id).eq("executor_id", executor_id).execute()
+    except Exception as e:
+        logger.warning(
+            "Could not mark selected application as accepted (table=%s, task=%s, executor=%s): %s",
+            applications_table,
+            task_id,
+            executor_id,
+            e,
+        )
 
     # Reject other applications
-    client.table(applications_table).update({
+    rejection_updates = {
         "status": "rejected",
         "rejection_reason": "Task assigned to another executor"
-    }).eq("task_id", task_id).neq("executor_id", executor_id).execute()
+    }
+    while rejection_updates:
+        try:
+            client.table(applications_table).update(rejection_updates).eq(
+                "task_id", task_id
+            ).neq("executor_id", executor_id).execute()
+            break
+        except Exception as e:
+            missing_column = _extract_missing_column(str(e))
+            if missing_column and missing_column in rejection_updates:
+                logger.warning(
+                    "%s.%s missing in current schema; retrying reject-applications update without it",
+                    applications_table,
+                    missing_column,
+                )
+                rejection_updates.pop(missing_column, None)
+                continue
+            logger.warning(
+                "Could not reject non-selected applications (table=%s, task=%s): %s",
+                applications_table,
+                task_id,
+                e,
+            )
+            break
 
     return {
         "task": updated_task,

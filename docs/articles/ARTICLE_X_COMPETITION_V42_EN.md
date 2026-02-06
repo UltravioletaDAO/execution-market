@@ -45,9 +45,7 @@ Each of these pieces — escrow, reputation, verification, universal support —
 
 ---
 
-<!--
-IMAGE 1: Illustration of a person walking down the street, receives a notification on their phone, takes a photo of a "For Rent" sign, and money appears in their wallet. Style: minimalist, vibrant colors.
--->
+![A person photographs a For Rent sign and receives instant payment](1.png)
 
 **No interview. No schedule. No boss.**
 
@@ -274,9 +272,7 @@ Stop me if you've heard this one.
 
 No.
 
-<!--
-IMAGE 2: Visual comparison table Gig Economy Legacy vs Execution Market. Yesterday's infrastructure vs infrastructure for agents.
--->
+![Legacy Gig Economy vs Human-only Platforms vs Execution Market](2.png)
 
 | | Legacy Gig Economy | "Human-only" Platforms | Execution Market |
 |--|-------------------|----------------------|------------------|
@@ -421,9 +417,7 @@ But an agent that can pay $0.25 instantly will make **thousands** of verificatio
 
 ### And here's what many don't see
 
-<!--
-IMAGE 7: World map with money icons. $0.25 in USA = almost nothing. $0.25 in Colombia = 1,000 pesos. $0.25 in Nigeria = more than hourly wage. Purchasing power differential visualization.
--->
+![Global purchasing power - $0.25 means different things in different countries](7.png)
 
 $0.25 in San Francisco doesn't buy a coffee. But $0.25 in Colombia is 1,000 pesos. In Argentina, Venezuela, Nigeria, or the Philippines, those cents represent proportionally much more.
 
@@ -443,21 +437,7 @@ When a student in Bogota and an agent in San Francisco can transact in seconds, 
 
 ## The rails already exist
 
-<!--
-IMAGE 3: Architecture diagram showing the 4 base technologies: x402 (payments), x402r (refunds), Superfluid (streaming), ERC-8004 (reputation). Arrows connecting them. Style: technical but accessible.
-
-```mermaid
-graph LR
-    A[AI Agent] -->|publishes task| B[Execution Market Protocol]
-    B -->|x402 payment| C[Worker]
-    C -->|completes + evidence| B
-    B -->|verifies| D{Valid?}
-    D -->|Yes| E[Instant Payment]
-    D -->|No| F[x402r Refund]
-    E --> G[ERC-8004 +rep]
-    F --> H[ERC-8004 -rep]
-```
--->
+![Architecture: x402 payments, x402r refunds, Superfluid streaming, ERC-8004 reputation](3.png)
 
 This isn't theory. This isn't a white paper. The pieces are already built and working.
 
@@ -536,9 +516,7 @@ When your reputation is yours to keep and yours to lose, who exactly needs a pla
 
 ### Smart verification
 
-<!--
-IMAGE 4: Verification pyramid. Wide base "Auto-verification (80%)", middle "AI Review (15%)", top "Human Arbitration (5%)". Representative icons at each level.
--->
+![Verification pyramid: Auto-check 80%, AI Review 15%, Human Arbitration 5%](4.png)
 
 Most tasks verify automatically: GPS confirms location, timestamp confirms time, OCR extracts text from photos. If everything checks out, instant payment.
 
@@ -565,28 +543,7 @@ And the best part: **validating is paid work**. 5-15% of the bounty goes to vali
 
 ## The use case that already works
 
-<!--
-IMAGE 5: Side-by-side diagram. Left: "TODAY" - complicated flow with 6 steps, red arrows, clock icons (hours/days). Right: "WITH EXECUTION MARKET" - simple flow with 3 steps, green arrows, lightning icons (seconds).
-
-```mermaid
-graph TD
-    subgraph "TODAY (hours/days)"
-        A1[Agent closes sale] --> B1[Notifies human]
-        B1 --> C1[Human finds someone to ship]
-        C1 --> D1[Coordinates schedules/payment]
-        D1 --> E1[Someone goes and ships]
-        E1 --> F1[Reports to human]
-        F1 --> G1[Human updates agent]
-    end
-
-    subgraph "WITH EXECUTION MARKET (minutes)"
-        A2[Agent publishes task $8] --> B2[Nearby worker takes it]
-        B2 --> C2[Ships + photo of receipt]
-        C2 --> D2[Automatic verification]
-        D2 --> E2[Instant payment]
-    end
-```
--->
+![Today's flow (hours/days) vs Execution Market flow (seconds)](5.png)
 
 A company has an agent handling customer service. The agent closes a sale. The customer wants shipping.
 
@@ -707,9 +664,7 @@ Capitalism in its purest form — no meetings, no negotiations, no bullshit.
 
 ## Why "Universal" — Humans AND Robots
 
-<!--
-IMAGE 6: Visual timeline. 2024-2025: "Humans execute". 2026-2027: "Humans + Robots". 2028+: "Mostly robots, humans in high-value tasks". Person and robot icons in changing proportions.
--->
+![Timeline: 2024 humans only, 2026 humans + robots, 2028+ mostly robots](6.png)
 
 This is the elephant in the room that nobody else wants to see.
 
