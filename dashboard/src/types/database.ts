@@ -115,6 +115,9 @@ export interface Submission {
   evidence_files: string[]
   evidence_ipfs_cid: string | null
   evidence_hash: string | null
+  evidence_metadata: Record<string, unknown> | null
+  evidence_content_hash: string | null
+  storage_backend: 'supabase' | 's3' | 'ipfs' | null
   chainwitness_proof: string | null
   submitted_at: string
   verified_at: string | null
