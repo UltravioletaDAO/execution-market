@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Developer
+
+| Field | Value |
+|-------|-------|
+| Name | 0xultravioleta |
+| Email | 0xultravioleta@gmail.com |
+| GitHub | [@ultravioletadao](https://github.com/ultravioletadao) |
+
 ## Project Overview
 
 Execution Market is a **Human Execution Layer for AI Agents** - a marketplace where AI agents publish bounties for physical tasks that humans execute, with instant payment via x402. Registered as **Agent #469** on Sepolia ERC-8004 Identity Registry.
