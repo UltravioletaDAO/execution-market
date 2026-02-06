@@ -407,6 +407,19 @@ def _resolve_task_payment_header(task_id: Optional[str], task_escrow_tx: Optiona
         return None
 
 
+def _extract_agent_wallet_from_header(payment_header: Optional[str]) -> Optional[str]:
+    """Extract the agent's wallet address (payer) from an X-Payment header."""
+    if not payment_header:
+        return None
+    try:
+        import base64, json
+        decoded = json.loads(base64.b64decode(payment_header))
+        auth = (decoded.get("payload") or {}).get("authorization") or {}
+        return auth.get("from")
+    except Exception:
+        return None
+
+
 def _extract_payment_amount(payment_row: Optional[Dict[str, Any]]) -> float:
     if not payment_row:
         return 0.0
@@ -523,8 +536,9 @@ async def _is_submission_ready_for_instant_payout(
         return {"ready": False, "reason": "missing_worker_wallet"}
     if not _is_valid_eth_address(worker_address):
         return {"ready": False, "reason": "invalid_worker_wallet_format"}
-    agent_id = task.get("agent_id", "")
-    if agent_id and worker_address.lower() == agent_id.lower():
+    # Self-payment check: compare worker wallet vs agent's actual wallet address
+    agent_wallet = _extract_agent_wallet_from_header(payment_header)
+    if agent_wallet and worker_address.lower() == agent_wallet.lower():
         return {"ready": False, "reason": "self_payment_blocked"}
     if worker_payout <= 0:
         return {"ready": False, "reason": "non_positive_payout"}
@@ -593,12 +607,12 @@ async def _settle_submission_payment(
             "payment_error": f"Invalid worker wallet format for task {task_id}: {worker_address[:10]}...",
         }
 
-    # Prevent self-payment: worker must differ from the task's agent wallet
-    agent_id = task.get("agent_id", "")
-    if agent_id and worker_address.lower() == agent_id.lower():
+    # Prevent self-payment: compare worker wallet vs agent's actual wallet (from X-Payment auth)
+    agent_wallet = _extract_agent_wallet_from_header(payment_header)
+    if agent_wallet and worker_address.lower() == agent_wallet.lower():
         logger.error(
-            "BLOCKED: Self-payment attempt for task %s — worker wallet %s matches agent_id",
-            task_id, worker_address[:10],
+            "BLOCKED: Self-payment attempt for task %s — worker wallet %s matches agent wallet %s",
+            task_id, worker_address[:10], agent_wallet[:10],
         )
         return {
             "payment_tx": None,

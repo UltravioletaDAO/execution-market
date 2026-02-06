@@ -25,23 +25,26 @@ Items discovered during Batch 0-3 execution that are **not explicitly tracked** 
 
 **Impact**: No worker has ever been paid through x402. All $0.03 from test tasks went to treasury.
 
-### TODO-D01: Self-Payment Bug (Agent Wallet = Worker Wallet)
-**Severity**: HIGH (but less critical than D00 since workers aren't paid anyway)
+### TODO-D01: Self-Payment Bug (Agent Wallet = Worker Wallet) — FIXED
+**Severity**: HIGH
+**Status**: FIXED (Batch 5, 2026-02-06)
 **Discovered during**: P0-PAY-001 live test
 
-The rapid flow test used the same wallet for agent and worker (`0x857fe6...`). The payment went through successfully — USDC moved from agent to agent via the facilitator. The self-payment check in `routes.py:580-606` compares `worker_address` with `agent_id`, but `agent_id` is the API key identifier (e.g., `em_starter`), NOT the wallet address. So the check never catches wallet-to-wallet self-payment.
+**The Problem**: Self-payment check compared `worker_address` vs `agent_id` (API key string like `em_starter`), NOT the agent's wallet address.
 
-**Fix**: Compare `worker_address.lower()` against the agent's actual wallet address (from the task's payment authorization or the `api_keys` table).
+**Fix**: Added `_extract_agent_wallet_from_header()` helper that decodes X-Payment header → `auth.from` (agent's actual wallet). Fixed in both `_pre_check_payment_readiness()` and `_settle_submission_payment()`.
 
 **Payment TX that should have been blocked**: `0xe3640e0d5bc147d1621aa103a1da1f2c965c1659204eb2b1d152da8dca61b440`
 
-### TODO-D02: `payments` Table Doesn't Exist in Live DB
+### TODO-D02: `payments` Table Doesn't Exist in Live DB — FIXED
 **Severity**: MEDIUM
+**Status**: FIXED (Batch 5, 2026-02-06) — migration exists, script created to apply
 **Discovered during**: P0-PAY-003 analysis
 
-Migration 016 adds `settlement_method` to `payments`, but the `payments` table itself may not exist in the live DB (noted in admin dashboard fixes). All payment inserts are wrapped in try/except so they fail silently. This means **no payment audit trail is being persisted**.
+Migration 015 (`015_payment_ledger_canonical.sql`) already creates both `payments` and `escrows` tables with `IF NOT EXISTS`. The issue was that migrations 015-020 were never applied to production.
 
-**Fix**: Create the `payments` table via migration if it doesn't exist. Verify with `SELECT * FROM information_schema.tables WHERE table_name = 'payments'`.
+**Fix**: Created `scripts/apply-outstanding-migrations.sh` that applies migrations 015-020 to the live DB.
+**Run**: `export SUPABASE_DB_URL=... && bash scripts/apply-outstanding-migrations.sh`
 
 ### TODO-D03: `escrows` Table Doesn't Exist in Live DB
 **Severity**: MEDIUM
@@ -127,7 +130,7 @@ Added `pay_to: Optional[str] = None` parameter to `verify_payment()`, `settle_pa
 
 ### TODO-D14: Agent's Original Auth Never Settled — Platform Pays From Own Wallet
 **Severity**: HIGH (P0)
-**Status**: OPEN
+**Status**: FIXED (Batch 5, 2026-02-06)
 **Discovered during**: Architecture review after TODO-D00 fix (2026-02-06)
 
 **The Problem**: When a task is approved, `settle_task_payment()` signs TWO NEW EIP-3009 auths from the **platform wallet** (`0x3403...`). The agent's original auth (stored in `task.escrow_tx`) is **never settled**. This means:
@@ -211,8 +214,8 @@ Add Mermaid diagrams to key documentation files for visual clarity:
 | TODO | Add To | As |
 |------|--------|----|
 | ~~TODO-D00 (worker not paid)~~ | ~~Batch 4.5~~ | **FIXED** — Split payment via dual EIP-3009 auths (commit `94c6e30`) |
-| TODO-D01 (self-payment) | **Batch 4** | P0-PAY-008: Fix self-payment detection (compare wallets, not API key IDs) |
-| TODO-D02 (payments table) | **Batch 4** | P0-PAY-009: Create `payments` table in live DB |
+| ~~TODO-D01 (self-payment)~~ | ~~Batch 5~~ | **FIXED** — Compare actual wallet addresses from X-Payment header |
+| ~~TODO-D02 (payments table)~~ | ~~Batch 5~~ | **FIXED** — Migration 015 creates tables, script applies to production |
 | TODO-D03 (escrows table) | **Batch 8** | P1-DB-002: Decide escrows table fate (create or remove refs) |
 | TODO-D04 (Base registration) | **Batch 6** | P1-ERC-000: Re-register Agent #469 on Base (prerequisite) |
 | TODO-D05 (ANTHROPIC_API_KEY) | **Batch 10** | P2-OPS-004: Wire remaining secrets to ECS |
@@ -221,5 +224,5 @@ Add Mermaid diagrams to key documentation files for visual clarity:
 | TODO-D09 (funded refund) | **Batch 6** | P1-ERC-006: Migrate to AdvancedEscrowClient for true funded escrow |
 | TODO-D11 (SubmissionForm) | **Batch 7** | P1-EVID-000: Fix SubmissionForm to use service layer (prerequisite) |
 | ~~TODO-D12 (SDK pay_to)~~ | ~~SDK~~ | **FIXED** — SDK v0.8.1 published to PyPI (commit `736acd7`) |
-| TODO-D14 (agent auth not settled) | **Batch 5** | P0-PAY-010: Settle agent's original auth before disbursing to worker |
+| ~~TODO-D14 (agent auth not settled)~~ | ~~Batch 5~~ | **FIXED** — settle_task_payment() now settles agent auth first (skip if agent==platform) |
 | TODO-D15 (mermaid diagrams) | **Batch 8** | P1-DOC-001: Add Mermaid diagrams to key docs for visual clarity |

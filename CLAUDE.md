@@ -221,6 +221,25 @@ Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t em-d
 
 **Never leave files dangling in root.** If unsure, put in `docs/`.
 
+## Documentation Standards
+
+### Mermaid Diagrams
+**All documentation that describes flows, state machines, or architecture MUST include Mermaid diagrams.** This is a mandatory standard for this project.
+
+- Use `sequenceDiagram` for multi-actor flows (payment flow, API calls, auth flow)
+- Use `stateDiagram-v2` for state machines (task lifecycle, escrow states)
+- Use `graph LR` or `graph TD` for architecture/relationship diagrams (wallet map, infrastructure)
+- Use `flowchart` for decision trees and conditional logic
+
+**When to add diagrams:**
+- Any new flow involving 3+ steps → sequence diagram
+- Any entity with 3+ states → state diagram
+- Any system with 3+ interacting components → architecture graph
+
+**Format:** GitHub-flavored Mermaid (renders in GitHub, VS Code, and most Markdown viewers). Wrap in triple-backtick `mermaid` code blocks.
+
+**Reference:** See `docs/planning/PAYMENT_ARCHITECTURE.md` for examples of all diagram types.
+
 ## Operational State (as of 2026-02-04)
 
 ### Deployment Details
