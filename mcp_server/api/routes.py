@@ -96,10 +96,45 @@ ALREADY_REFUNDED_ESCROW_STATUSES = {"refunded"}
 NON_REFUNDABLE_ESCROW_STATUSES = {"released"}
 LIVE_TASK_STATUSES = {"published", "accepted", "in_progress", "submitted", "verifying"}
 ACTIVE_WORKER_TASK_STATUSES = {"accepted", "in_progress", "submitted", "verifying"}
+TASK_PAYMENT_SETTLED_STATUSES = {"confirmed", "completed", "settled", "released", "success", "available"}
 
 
 def _normalize_status(value: Optional[str]) -> str:
     return str(value or "").strip().lower()
+
+
+def _as_amount(value: Any) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _is_tx_hash(value: Optional[str]) -> bool:
+    if not value or not isinstance(value, str):
+        return False
+    normalized = value.strip()
+    if len(normalized) != 66 or not normalized.startswith("0x"):
+        return False
+    return all(char in "0123456789abcdefABCDEF" for char in normalized[2:])
+
+
+def _pick_first_tx_hash(*values: Optional[str]) -> Optional[str]:
+    for value in values:
+        if _is_tx_hash(value):
+            return value.strip()
+    return None
+
+
+def _sanitize_reference(value: Optional[str]) -> Optional[str]:
+    if not value or not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    if not normalized or _is_tx_hash(normalized):
+        return None
+    if len(normalized) > 96 or normalized.startswith("eyJ"):
+        return f"x402 authorization: {normalized[:12]}...{normalized[-8:]}"
+    return f"x402 reference: {normalized}"
 
 
 def _extract_payment_tx(payment_row: Dict[str, Any]) -> Optional[str]:
@@ -176,10 +211,13 @@ def _record_refund_payment(
         client.table("payments").insert({
             "task_id": task.get("id"),
             "type": "refund",
+            "payment_type": "refund",
             "status": "confirmed" if refund_tx else "pending",
             "tx_hash": refund_tx,
+            "transaction_hash": refund_tx,
             "amount_usdc": amount,
             "escrow_id": task.get("escrow_id"),
+            "network": "base",
             "to_address": task.get("agent_id") or agent_id,
             "note": f"Task cancellation refund. reason={reason or 'not_provided'}",
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -258,6 +296,87 @@ def _resolve_task_payment_header(task_id: Optional[str], task_escrow_tx: Optiona
     except Exception as err:
         logger.warning("Could not resolve x402 payment header for task %s: %s", task_id, err)
         return None
+
+
+def _is_missing_table_error(error: Exception, table_name: str) -> bool:
+    payload = str(error).lower()
+    table_ref = f"public.{table_name.lower()}"
+    return (
+        "pgrst205" in payload and table_ref in payload
+    ) or (
+        "does not exist" in payload and table_name.lower() in payload
+    )
+
+
+def _normalize_payment_network(payment_row: Dict[str, Any], fallback: str = "base") -> str:
+    network = str(payment_row.get("network") or "").strip().lower()
+    if network:
+        return network
+
+    chain_id = payment_row.get("chain_id")
+    if chain_id == 84532:
+        return "base-sepolia"
+    if chain_id == 8453:
+        return "base"
+    return fallback
+
+
+def _normalize_payment_type(payment_row: Dict[str, Any]) -> str:
+    payment_type = payment_row.get("type") or payment_row.get("payment_type")
+    return _normalize_status(payment_type)
+
+
+def _event_type_from_payment_row(payment_row: Dict[str, Any]) -> str:
+    payment_type = _normalize_payment_type(payment_row)
+    status = _normalize_status(payment_row.get("status"))
+
+    if status == "disputed":
+        return "dispute_hold"
+    if payment_type in {"refund", "partial_refund"} or status in {"refunded", "cancelled"}:
+        return "refund"
+    if payment_type == "partial_release" or status == "partial_released":
+        return "partial_release"
+    if payment_type in {"final_release", "full_release", "release"}:
+        return "final_release"
+    if payment_type == "task_payment":
+        return "final_release" if status in TASK_PAYMENT_SETTLED_STATUSES else "escrow_created"
+    if payment_type in {"escrow_create", "deposit"}:
+        return "escrow_created"
+    if status in {"funded", "deposited", "authorized"}:
+        return "escrow_created"
+    return "escrow_created" if status not in TASK_PAYMENT_SETTLED_STATUSES else "final_release"
+
+
+def _actor_from_event_type(event_type: str) -> str:
+    if event_type in {"escrow_created", "escrow_funded", "instant_charge"}:
+        return "agent"
+    if event_type == "dispute_hold":
+        return "arbitrator"
+    return "system"
+
+
+def _derive_payment_status(
+    task_status: str,
+    has_escrow_context: bool,
+    event_types: List[str],
+) -> str:
+    task_status_normalized = _normalize_status(task_status)
+    event_set = set(event_types)
+
+    if "refund" in event_set:
+        return "refunded"
+    if "final_release" in event_set:
+        return "completed"
+    if "partial_release" in event_set:
+        return "partial_released"
+    if has_escrow_context or "escrow_created" in event_set or "escrow_funded" in event_set:
+        return "escrowed"
+
+    if task_status_normalized == "completed":
+        return "completed"
+    if task_status_normalized in {"cancelled", "expired"}:
+        return "refunded"
+    return "pending"
 
 # UUID validation pattern for path parameters
 UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
@@ -504,6 +623,33 @@ class PublicPlatformMetricsResponse(BaseModel):
     activity: Dict[str, int]
     payments: Dict[str, float]
     generated_at: datetime
+
+
+class TaskPaymentEventResponse(BaseModel):
+    """Canonical payment timeline event for a task."""
+    id: str
+    type: str
+    actor: str
+    timestamp: str
+    network: str
+    amount: Optional[float] = None
+    tx_hash: Optional[str] = None
+    note: Optional[str] = None
+
+
+class TaskPaymentResponse(BaseModel):
+    """Canonical payment timeline and status for a task."""
+    task_id: str
+    status: str
+    total_amount: float
+    released_amount: float
+    currency: str = "USDC"
+    escrow_tx: Optional[str] = None
+    escrow_contract: Optional[str] = None
+    network: str = "base"
+    events: List[TaskPaymentEventResponse]
+    created_at: str
+    updated_at: str
 
 
 class ConfigUpdateRequest(BaseModel):
@@ -1007,6 +1153,242 @@ async def get_task(
 
 
 @router.get(
+    "/tasks/{task_id}/payment",
+    response_model=TaskPaymentResponse,
+    responses={
+        200: {"description": "Canonical task payment timeline"},
+        403: {"model": ErrorResponse, "description": "Not authorized to view payment details"},
+        404: {"model": ErrorResponse, "description": "Task not found"},
+    }
+)
+async def get_task_payment(
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
+    api_key: Optional[APIKeyData] = Depends(verify_api_key_optional),
+) -> TaskPaymentResponse:
+    """
+    Get canonical payment ledger for one task.
+
+    This endpoint normalizes mixed schemas (`type` vs `payment_type`,
+    `tx_hash` vs `transaction_hash`) and degrades safely when `payments`
+    or `escrows` tables are missing in a live environment.
+    """
+    task = await db.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task_status = _normalize_status(task.get("status"))
+    requester_is_owner = bool(api_key and task.get("agent_id") == api_key.agent_id)
+    if task_status == "draft" and not requester_is_owner:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to view draft task payment details",
+        )
+
+    client = db.get_client()
+    payment_rows: List[Dict[str, Any]] = []
+    escrows_row: Optional[Dict[str, Any]] = None
+    submission_payment_row: Optional[Dict[str, Any]] = None
+
+    try:
+        payment_result = (
+            client.table("payments")
+            .select("*")
+            .eq("task_id", task_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+        payment_rows = payment_result.data or []
+    except Exception as payment_err:
+        if not _is_missing_table_error(payment_err, "payments"):
+            logger.warning("Failed to query payments for task %s: %s", task_id, payment_err)
+
+    try:
+        escrows_result = (
+            client.table("escrows")
+            .select("*")
+            .eq("task_id", task_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        escrows_rows = escrows_result.data or []
+        if escrows_rows:
+            escrows_row = escrows_rows[0]
+    except Exception as escrow_err:
+        if not _is_missing_table_error(escrow_err, "escrows"):
+            logger.warning("Failed to query escrows for task %s: %s", task_id, escrow_err)
+
+    try:
+        submission_result = (
+            client.table("submissions")
+            .select("id,payment_tx,payment_amount,paid_at,verified_at,submitted_at")
+            .eq("task_id", task_id)
+            .not_("payment_tx", "is", "null")
+            .order("submitted_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        submission_rows = submission_result.data or []
+        if submission_rows:
+            submission_payment_row = submission_rows[0]
+    except Exception as submission_err:
+        if not _is_missing_table_error(submission_err, "submissions"):
+            logger.warning("Failed to query submission payment fallback for task %s: %s", task_id, submission_err)
+
+    default_network = "base"
+    created_at = str(task.get("created_at") or datetime.now(timezone.utc).isoformat())
+    updated_at = str(task.get("updated_at") or created_at)
+    events: List[Dict[str, Any]] = []
+    total_amount = _as_amount(task.get("bounty_usd"))
+    released_amount = 0.0
+
+    for index, row in enumerate(payment_rows):
+        event_type = _event_type_from_payment_row(row)
+        amount = _as_amount(
+            row.get("amount_usdc")
+            or row.get("amount")
+            or row.get("total_amount_usdc")
+            or row.get("net_amount_usdc")
+            or row.get("released_amount_usdc")
+            or row.get("released_amount")
+        )
+        status = _normalize_status(row.get("status"))
+        if event_type == "escrow_created":
+            total_amount = max(total_amount, amount)
+        if event_type in {"partial_release", "final_release"} and status in TASK_PAYMENT_SETTLED_STATUSES:
+            released_amount += amount
+
+        event_timestamp = str(
+            row.get("completed_at")
+            or row.get("confirmed_at")
+            or row.get("updated_at")
+            or row.get("created_at")
+            or updated_at
+        )
+        updated_at = max(updated_at, event_timestamp)
+
+        network = _normalize_payment_network(row, default_network)
+        tx_hash = _pick_first_tx_hash(
+            row.get("tx_hash"),
+            row.get("transaction_hash"),
+            row.get("release_tx"),
+            row.get("refund_tx"),
+            row.get("deposit_tx"),
+            row.get("funding_tx"),
+        )
+        note = _sanitize_reference(
+            row.get("tx_hash")
+            or row.get("transaction_hash")
+            or row.get("deposit_tx")
+            or row.get("funding_tx")
+        )
+
+        events.append({
+            "id": f"{row.get('id') or task_id}-{event_type}-{index}",
+            "type": event_type,
+            "actor": _actor_from_event_type(event_type),
+            "amount": amount if amount > 0 else None,
+            "tx_hash": tx_hash,
+            "network": network,
+            "timestamp": event_timestamp,
+            "note": note,
+        })
+
+    has_escrow_context = bool(task.get("escrow_id") or task.get("escrow_tx") or escrows_row)
+    if has_escrow_context and not any(event["type"] in {"escrow_created", "escrow_funded"} for event in events):
+        escrow_amount = _as_amount(
+            (escrows_row or {}).get("total_amount_usdc")
+            or (escrows_row or {}).get("amount_usdc")
+            or task.get("bounty_usd")
+        )
+        total_amount = max(total_amount, escrow_amount)
+
+        escrow_timestamp = str(
+            (escrows_row or {}).get("created_at")
+            or task.get("created_at")
+            or created_at
+        )
+        updated_at = max(updated_at, escrow_timestamp)
+        escrow_tx_hash = _pick_first_tx_hash(
+            (escrows_row or {}).get("deposit_tx"),
+            (escrows_row or {}).get("funding_tx"),
+            task.get("escrow_tx"),
+        )
+        escrow_reference = _sanitize_reference(task.get("escrow_tx"))
+        events.append({
+            "id": f"{task_id}-escrow-created-fallback",
+            "type": "escrow_created",
+            "actor": "agent",
+            "amount": escrow_amount if escrow_amount > 0 else None,
+            "tx_hash": escrow_tx_hash,
+            "network": default_network,
+            "timestamp": escrow_timestamp,
+            "note": escrow_reference,
+        })
+
+    submission_tx = _pick_first_tx_hash((submission_payment_row or {}).get("payment_tx"))
+    if submission_tx and not any(
+        event["type"] == "final_release" and event.get("tx_hash") == submission_tx
+        for event in events
+    ):
+        submission_amount = _as_amount((submission_payment_row or {}).get("payment_amount"))
+        if submission_amount <= 0:
+            submission_amount = total_amount
+        released_amount = max(released_amount, submission_amount)
+        total_amount = max(total_amount, submission_amount)
+
+        payout_timestamp = str(
+            (submission_payment_row or {}).get("paid_at")
+            or (submission_payment_row or {}).get("verified_at")
+            or (submission_payment_row or {}).get("submitted_at")
+            or updated_at
+        )
+        updated_at = max(updated_at, payout_timestamp)
+        events.append({
+            "id": f"{task_id}-submission-payout-{(submission_payment_row or {}).get('id') or 'latest'}",
+            "type": "final_release",
+            "actor": "system",
+            "amount": submission_amount if submission_amount > 0 else None,
+            "tx_hash": submission_tx,
+            "network": default_network,
+            "timestamp": payout_timestamp,
+            "note": "Payment settled via x402 facilitator",
+        })
+
+    events.sort(key=lambda event: event.get("timestamp") or "")
+
+    if _normalize_status(task.get("status")) == "completed" and released_amount <= 0 and total_amount > 0:
+        released_amount = total_amount
+
+    derived_status = _derive_payment_status(
+        task_status=task_status,
+        has_escrow_context=has_escrow_context,
+        event_types=[event["type"] for event in events],
+    )
+
+    if not events:
+        updated_at = str(task.get("updated_at") or task.get("created_at") or updated_at)
+
+    return TaskPaymentResponse(
+        task_id=task_id,
+        status=derived_status,
+        total_amount=round(total_amount, 6),
+        released_amount=round(released_amount, 6),
+        currency="USDC",
+        escrow_tx=_pick_first_tx_hash(
+            (escrows_row or {}).get("deposit_tx"),
+            (escrows_row or {}).get("funding_tx"),
+            task.get("escrow_tx"),
+        ),
+        escrow_contract=None,
+        network=default_network,
+        events=[TaskPaymentEventResponse(**event) for event in events],
+        created_at=created_at,
+        updated_at=updated_at,
+    )
+
+
+@router.get(
     "/tasks",
     response_model=TaskListResponse,
     responses={
@@ -1243,11 +1625,14 @@ async def approve_submission(
                     "executor_id": executor.get("id"),
                     "submission_id": submission_id,
                     "type": "release",
+                    "payment_type": "full_release",
                     "status": "confirmed",
                     "tx_hash": release_tx,
+                    "transaction_hash": release_tx,
                     "amount_usdc": float(worker_payout),
                     "fee_usdc": float(fee),
                     "escrow_id": escrow_id,
+                    "network": "base",
                     "to_address": worker_address,
                     "note": "Payment settled via x402 SDK facilitator",
                     "created_at": datetime.now(timezone.utc).isoformat(),

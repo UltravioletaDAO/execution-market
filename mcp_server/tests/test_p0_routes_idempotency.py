@@ -128,6 +128,56 @@ class _MetricsClient:
         raise AssertionError(f"Unexpected table access: {name}")
 
 
+class _TaskPaymentQuery:
+    def __init__(self, rows=None, fail_message=None):
+        self.rows = rows or []
+        self.fail_message = fail_message
+        self._limit = None
+
+    def select(self, *_args, **_kwargs):
+        return self
+
+    def eq(self, *_args, **_kwargs):
+        return self
+
+    def order(self, *_args, **_kwargs):
+        return self
+
+    def limit(self, value):
+        self._limit = value
+        return self
+
+    def not_(self, *_args, **_kwargs):
+        return self
+
+    def execute(self):
+        if self.fail_message:
+            raise Exception(self.fail_message)
+        rows = self.rows[: self._limit] if isinstance(self._limit, int) else self.rows
+        return SimpleNamespace(data=rows)
+
+
+class _TaskPaymentClient:
+    def __init__(self, payments=None, escrows=None, submissions=None, missing_tables=None):
+        self._payments = payments or []
+        self._escrows = escrows or []
+        self._submissions = submissions or []
+        self._missing_tables = set(missing_tables or [])
+
+    def table(self, name: str):
+        if name in self._missing_tables:
+            return _TaskPaymentQuery(
+                fail_message=f"PGRST205: relation \"public.{name}\" does not exist"
+            )
+        if name == "payments":
+            return _TaskPaymentQuery(rows=self._payments)
+        if name == "escrows":
+            return _TaskPaymentQuery(rows=self._escrows)
+        if name == "submissions":
+            return _TaskPaymentQuery(rows=self._submissions)
+        raise AssertionError(f"Unexpected table access: {name}")
+
+
 @pytest.mark.asyncio
 async def test_approve_submission_returns_idempotent_success(monkeypatch):
     submission_id = "11111111-1111-1111-1111-111111111111"
@@ -440,3 +490,98 @@ async def test_get_public_platform_metrics_aggregates_counts(monkeypatch):
 
     assert result.payments["total_volume_usd"] == 15.75
     assert result.payments["total_fees_usd"] == 1.26
+
+
+@pytest.mark.asyncio
+async def test_get_task_payment_returns_canonical_timeline(monkeypatch):
+    task_id = "55555555-5555-5555-5555-555555555555"
+    monkeypatch.setattr(
+        routes.db,
+        "get_task",
+        AsyncMock(
+            return_value={
+                "id": task_id,
+                "agent_id": "agent_test",
+                "status": "completed",
+                "bounty_usd": 6.5,
+                "escrow_tx": "x402_auth_reference_token",
+                "escrow_id": "escrow_ref",
+                "created_at": "2026-02-06T10:00:00+00:00",
+                "updated_at": "2026-02-06T10:15:00+00:00",
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_client",
+        lambda: _TaskPaymentClient(
+            payments=[
+                {
+                    "id": "payment_1",
+                    "type": "release",
+                    "status": "confirmed",
+                    "amount_usdc": 6.5,
+                    "tx_hash": "0x" + "a" * 64,
+                    "created_at": "2026-02-06T10:12:00+00:00",
+                    "network": "base",
+                }
+            ],
+            escrows=[{"task_id": task_id, "status": "released", "created_at": "2026-02-06T10:01:00+00:00"}],
+            submissions=[],
+        ),
+    )
+
+    result = await routes.get_task_payment(task_id=task_id, api_key=None)
+
+    assert result.task_id == task_id
+    assert result.status == "completed"
+    assert result.total_amount == 6.5
+    assert result.released_amount == 6.5
+    assert any(event.type == "final_release" for event in result.events)
+    assert any(event.type == "escrow_created" for event in result.events)
+
+
+@pytest.mark.asyncio
+async def test_get_task_payment_falls_back_when_payments_table_missing(monkeypatch):
+    task_id = "66666666-6666-6666-6666-666666666666"
+    monkeypatch.setattr(
+        routes.db,
+        "get_task",
+        AsyncMock(
+            return_value={
+                "id": task_id,
+                "agent_id": "agent_test",
+                "status": "completed",
+                "bounty_usd": 3.0,
+                "escrow_tx": "x402_auth_reference_token",
+                "escrow_id": "escrow_ref",
+                "created_at": "2026-02-06T11:00:00+00:00",
+                "updated_at": "2026-02-06T11:20:00+00:00",
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_client",
+        lambda: _TaskPaymentClient(
+            payments=[],
+            escrows=[],
+            submissions=[
+                {
+                    "id": "sub_1",
+                    "payment_tx": "0x" + "b" * 64,
+                    "payment_amount": 3.0,
+                    "paid_at": "2026-02-06T11:19:00+00:00",
+                    "submitted_at": "2026-02-06T11:10:00+00:00",
+                }
+            ],
+            missing_tables={"payments"},
+        ),
+    )
+
+    result = await routes.get_task_payment(task_id=task_id, api_key=None)
+
+    assert result.status == "completed"
+    assert result.total_amount == 3.0
+    assert result.released_amount == 3.0
+    assert any(event.type == "final_release" for event in result.events)
