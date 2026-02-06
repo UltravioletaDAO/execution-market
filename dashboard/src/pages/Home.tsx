@@ -5,6 +5,7 @@ import { ProfileCompletionModal } from '../components/ProfileCompletionModal'
 import { AppHeader } from '../components/layout/AppHeader'
 import { AppFooter } from '../components/layout/AppFooter'
 import { HeroSection } from '../components/landing/HeroSection'
+import { ProtocolStack } from '../components/landing/ProtocolStack'
 import { StatsBar } from '../components/landing/StatsBar'
 import { PublicTaskBrowser } from '../components/landing/PublicTaskBrowser'
 import { HowItWorks } from '../components/landing/HowItWorks'
@@ -93,6 +94,8 @@ export function Home() {
           onGoToDashboard={handleGoToDashboard}
           onScrollToTasks={handleScrollToTasks}
         />
+
+        <ProtocolStack />
 
         <StatsBar />
 

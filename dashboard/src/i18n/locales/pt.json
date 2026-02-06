@@ -64,7 +64,24 @@
     "feature2Title": "Pagamentos Instantaneos",
     "feature2Desc": "Receba em USDC instantaneamente quando seu trabalho for aprovado. Sem esperar dias por transferencias bancarias.",
     "feature3Title": "Verificado e Seguro",
-    "feature3Desc": "Todas as tarefas usam ChainWitness para evidencias a prova de adulteracao. Disputas sao resolvidas de forma justa."
+    "feature3Desc": "Todas as tarefas usam ChainWitness para evidencias a prova de adulteracao. Disputas sao resolvidas de forma justa.",
+    "protocolStack": {
+      "label": "Stack de Protocolos",
+      "x402": {
+        "standard": "HTTP 402",
+        "description": "Pagamentos nativos da internet. Agentes pagam tarefas via HTTP — sem checkout, sem redirecionamento, sem intermediarios."
+      },
+      "erc8004": {
+        "standard": "Registro de Identidade",
+        "description": "Uma identidade on-chain para humanos, agentes de IA e robos. Reputacao portavel em toda a web aberta."
+      },
+      "x402r": {
+        "standard": "Escrow Programavel",
+        "description": "Recompensas bloqueadas na criacao, liberadas na aprovacao. Liquidacao sem gas via o Facilitador Ultravioleta."
+      },
+      "network": "Base Mainnet",
+      "status": "Ao vivo"
+    }
   },
   "auth": {
     "login": "Entrar",
