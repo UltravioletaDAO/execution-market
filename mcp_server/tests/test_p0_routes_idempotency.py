@@ -189,12 +189,12 @@ async def test_approve_submission_returns_idempotent_success(monkeypatch):
     monkeypatch.setattr(
         routes.db,
         "get_submission",
-        AsyncMock(return_value={"agent_verdict": "accepted"}),
+        AsyncMock(return_value={"id": submission_id, "agent_verdict": "accepted", "task": {"id": "task_1"}}),
     )
     monkeypatch.setattr(
         routes,
-        "_get_existing_submission_payment",
-        lambda _submission_id: {"tx_hash": "0xalreadysettled"},
+        "_settle_submission_payment",
+        AsyncMock(return_value={"payment_tx": "0xalreadysettled", "payment_error": None}),
     )
 
     update_submission = AsyncMock()
@@ -209,6 +209,118 @@ async def test_approve_submission_returns_idempotent_success(monkeypatch):
     assert result.data["idempotent"] is True
     assert result.data["payment_tx"] == "0xalreadysettled"
     update_submission.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_submit_work_auto_pays_and_marks_completed(monkeypatch):
+    task_id = "88888888-8888-4888-8888-888888888888"
+    submission_id = "99999999-9999-4999-9999-999999999999"
+    executor_id = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"
+
+    submission_payload = {
+        "id": submission_id,
+        "task": {
+            "id": task_id,
+            "agent_id": "agent_test",
+            "bounty_usd": 1.0,
+            "escrow_tx": "x402_auth_ref",
+        },
+        "executor": {
+            "id": executor_id,
+            "wallet_address": "0x1234567890abcdef1234567890abcdef12345678",
+        },
+        "agent_verdict": "pending",
+    }
+
+    monkeypatch.setattr(
+        routes.db,
+        "submit_work",
+        AsyncMock(return_value={"submission": {"id": submission_id}, "task": {"id": task_id}}),
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_submission",
+        AsyncMock(return_value=submission_payload),
+    )
+    monkeypatch.setattr(
+        routes,
+        "_is_submission_ready_for_instant_payout",
+        AsyncMock(return_value={"ready": True, "reason": "ready"}),
+    )
+    monkeypatch.setattr(
+        routes,
+        "_settle_submission_payment",
+        AsyncMock(return_value={"payment_tx": "0x" + "a" * 64, "payment_error": None}),
+    )
+    auto_approve = AsyncMock(return_value=submission_payload)
+    monkeypatch.setattr(routes, "_auto_approve_submission", auto_approve)
+
+    result = await routes.submit_work(
+        task_id=task_id,
+        request=routes.WorkerSubmissionRequest(
+            executor_id=executor_id,
+            evidence={"screenshot": "https://example.com/proof.png"},
+            notes="done",
+        ),
+    )
+
+    assert result.message == "Work submitted and paid instantly."
+    assert result.data["status"] == "completed"
+    assert result.data["verdict"] == "accepted"
+    assert result.data["payment_tx"] == "0x" + "a" * 64
+    auto_approve.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_submit_work_keeps_review_flow_when_instant_payout_not_ready(monkeypatch):
+    task_id = "88888888-8888-4888-8888-888888888889"
+    submission_id = "99999999-9999-4999-9999-999999999998"
+    executor_id = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"
+
+    submission_payload = {
+        "id": submission_id,
+        "task": {
+            "id": task_id,
+            "agent_id": "agent_test",
+            "bounty_usd": 1.0,
+        },
+        "executor": {"id": executor_id, "wallet_address": None},
+        "agent_verdict": "pending",
+    }
+
+    monkeypatch.setattr(
+        routes.db,
+        "submit_work",
+        AsyncMock(return_value={"submission": {"id": submission_id}, "task": {"id": task_id}}),
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_submission",
+        AsyncMock(return_value=submission_payload),
+    )
+    monkeypatch.setattr(
+        routes,
+        "_is_submission_ready_for_instant_payout",
+        AsyncMock(return_value={"ready": False, "reason": "missing_payment_header"}),
+    )
+    settle_mock = AsyncMock()
+    monkeypatch.setattr(routes, "_settle_submission_payment", settle_mock)
+    auto_approve = AsyncMock()
+    monkeypatch.setattr(routes, "_auto_approve_submission", auto_approve)
+
+    result = await routes.submit_work(
+        task_id=task_id,
+        request=routes.WorkerSubmissionRequest(
+            executor_id=executor_id,
+            evidence={"photo": "https://example.com/photo.png"},
+        ),
+    )
+
+    assert result.message == "Work submitted successfully. Awaiting agent review."
+    assert result.data["status"] == "submitted"
+    assert "payment_tx" not in result.data
+    settle_mock.assert_not_awaited()
+    auto_approve.assert_not_awaited()
 
 
 @pytest.mark.asyncio
