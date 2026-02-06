@@ -365,7 +365,7 @@ To activate S3 pipeline: set `enable_evidence_pipeline = true` in terraform.tfva
 ---
 
 ## BATCH 11 — Final Launch Validation (T-001 to T-006)
-**Status**: `PENDING`
+**Status**: `PENDING` (requires live testing with real USDC)
 **Estimated context**: Large (live testing)
 **Goal**: End-to-end validation of all critical flows on production
 
@@ -376,6 +376,18 @@ To activate S3 pipeline: set `enable_evidence_pipeline = true` in terraform.tfva
 - `T-004` ERC-8004 identity + reputation for worker and agent
 - `T-005` UI: all tx visible and clickable in dashboard
 - `T-006` Session persistence: wallet survives navigation
+
+### How to run
+```bash
+# T-001 to T-003: Use rapid flow with real payment
+cd scripts && npx tsx test-x402-rapid-flow.ts --count 1 --deadline 5 --auto-approve --strict
+
+# T-001 to T-004: Full E2E with reputation
+cd scripts && npx tsx test-x402-e2e.ts --live
+
+# T-005: Manual — check dashboard at execution.market
+# T-006: Manual — connect wallet, navigate, verify wallet persists
+```
 
 ### Acceptance criteria
 - All 6 tests pass on production
@@ -395,16 +407,29 @@ T-006: PASS/FAIL
 ---
 
 ## BATCH 12 — Release Gate (RG-001 to RG-005)
-**Status**: `PENDING`
+**Status**: `PARTIAL (2026-02-06)` — 3/5 gates passed programmatically
 **Estimated context**: Small (verification only)
 **Goal**: Final go/no-go checklist
 
 ### Checklist
-- [ ] `RG-001` No accepted submission without `payment_tx`
-- [ ] `RG-002` At least one payout + one refund tx in same release cycle
-- [ ] `RG-003` API/UI route parity confirmed
-- [ ] `RG-004` Evidence upload via managed pipeline
-- [ ] `RG-005` ERC-8004 flows facilitator-backed and observable
+- [~] `RG-001` No accepted submission without `payment_tx` — **13 pre-x402 test tasks without payment evidence (expected, not a blocker for new tasks)**
+- [ ] `RG-002` At least one payout + one refund tx in same release cycle — **Requires Batch 11 live testing**
+- [x] `RG-003` API/UI route parity confirmed — **89 routes across 9 groups (health, api/v1, admin, escrow, reputation, a2a, mcp, websocket, root)**
+- [x] `RG-004` Evidence upload via managed pipeline — **Lambda returns presigned URLs with nonces, S3+CloudFront deployed**
+- [x] `RG-005` ERC-8004 flows facilitator-backed and observable — **Agent card served at /.well-known/agent.json, protocol v0.3.0**
+
+### Production Status (2026-02-06)
+```
+API Health:         degraded (optional Redis missing — non-critical)
+API Version:        1.0.0, production
+Routes:             89 across 9 groups
+Dashboard:          HTTP 200 (0.29s)
+Agent Card:         Execution Market, protocol 0.3.0
+Evidence Lambda:    Working (presigned URLs + nonces)
+Sanity Check:       5/6 passed (1 warning: pre-x402 tasks)
+Total Tasks:        181 ($537.08 total bounty)
+Task Distribution:  148 expired, 13 completed, 14 cancelled, 6 submitted
+```
 
 ### Sign-off
 ```
@@ -426,9 +451,9 @@ Signed: ___
 | 4 | DONE | 2026-02-06 | granular-tasks | **CRITICAL**: Workers not paid on-chain (TODO-D00). Cancel states verified. |
 | 5 | DONE | 2026-02-06 | continuation | Route audit (72 routes), D14 fix (agent auth settlement), D01 fix (self-payment), D02 fix (migration script), mermaid docs |
 | 6 | DONE | 2026-02-06 | continuation | ERC-8004 full integration: identity, reputation, health check, reputation_tx persistence + UI |
-| 7 | PENDING | | | |
-| 8 | PENDING | | | |
-| 9 | PENDING | | | |
-| 10 | PENDING | | | |
-| 11 | PENDING | | | |
-| 12 | PENDING | | | |
+| 7 | DONE | 2026-02-06 | continuation | Evidence pipeline: S3+CloudFront+Lambda deployed, migration 022, SubmissionForm refactored, forensic metadata |
+| 8 | DONE | 2026-02-06 | continuation | Sanity endpoint, enhanced StatsBar (4 metrics), schema parity audit (all 22 migrations confirmed) |
+| 9 | DONE | 2026-02-06 | continuation | Smoke test script, payment E2E test, fallback defaults hardened, 560 unit tests passing |
+| 10 | DONE | 2026-02-06 | continuation | Unified deploy.sh with immutable tags + health checks, release-notes.sh generator |
+| 11 | PENDING | | | Requires live testing with real USDC (T-001 to T-006) |
+| 12 | PARTIAL | 2026-02-06 | continuation | 3/5 gates passed programmatically (routes, evidence, A2A). Needs funded flow for RG-001/002 |
