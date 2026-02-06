@@ -222,6 +222,13 @@ Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t em-d
 | Dashboard | `execution.market` | `em-production-dashboard:latest` | `em-production-cluster` / `em-production-dashboard` |
 | MCP Server | `mcp.execution.market` | `em-production-mcp-server:latest` | `em-production-cluster` / `em-production-mcp-server` |
 
+**CRITICAL: ECS Image Tag Rules**
+- Always use the `:latest` tag for all images. ECS task definitions MUST reference `:latest`.
+- CI/CD may create specific tags (`ship-*`) but the task definition must use `:latest` so manual deploys work.
+- If a task definition references a specific tag (e.g., `ship-20260206-*`), update it to `:latest` by registering a new revision.
+- When deploying from multiple sessions in parallel, always build from the latest code and push as `:latest`.
+- After `docker push :latest`, always verify the ECS task definition references `:latest` (not a `ship-*` tag).
+
 Always push to the correct ECR repo in **us-east-2**:
 ```bash
 # Login to ECR (default account, us-east-2)
@@ -237,7 +244,7 @@ docker build --no-cache -f mcp_server/Dockerfile -t em-mcp ./mcp_server
 docker tag em-mcp:latest 518898403364.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest
 docker push 518898403364.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest
 
-# Force new deployment
+# Force new deployment (task def MUST use :latest tag)
 aws ecs update-service --cluster em-production-cluster --service em-production-dashboard --force-new-deployment --region us-east-2
 aws ecs update-service --cluster em-production-cluster --service em-production-mcp-server --force-new-deployment --region us-east-2
 ```
@@ -249,7 +256,7 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 | `SUPABASE_URL` | `.env.local` | `https://puyhpytmtkyevnxffksl.supabase.co` |
 | `SUPABASE_ANON_KEY` | `.env.local` | Publishable key for frontend (`sb_publishable_...`) |
 | `SUPABASE_SERVICE_KEY` | `mcp_server/.env` | Service role key (bypasses RLS) |
-| `WALLET_PRIVATE_KEY` | `.env.local` | Agent wallet `0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd` |
+| `WALLET_PRIVATE_KEY` | `.env.local` | **Dev** agent wallet `0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd` |
 | `SUPABASE_DB_PASSWORD` | `.env.local` | Direct postgres password |
 | Supabase Management API | `~/.supabase/access-token` | For running SQL migrations (`sbp_c5dd...`) |
 | AWS ECR | Standard AWS CLI auth | `518898403364.dkr.ecr.us-east-2.amazonaws.com` |
@@ -283,14 +290,26 @@ Wrong Flow (DO NOT USE):
 | DepositRelayFactory | `0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814` |
 | Deposit Relay (our wallet) | `0xe8CCF8Be24867cf21b4031fB1A5226932483EAF3` |
 | Vault | `0x0b3fC8BA8952C6cA6807F667894b0b7c9c40fc8b` |
-| Agent Wallet | `0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd` |
+| Agent Wallet (dev) | `0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd` |
+| Agent Wallet (production/ECS) | `0x34033041a5944B8F10f8E4D8496Bfb84f1A293A8` |
 | Execution Market Treasury | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` |
 
-**Payment Flow for Tasks**:
-1. **Deposit** (task creation): SDK signs → Facilitator → Relay → Vault → Escrow tracks it
-2. **Release** (task approval): SDK `settle()` → Facilitator → USDC to worker (gasless)
-3. **Refund** (task cancellation): SDK → Facilitator → USDC back to agent
-4. **Platform fee**: 8% deducted on release (worker gets 92% of bounty)
+**Wallet Notes**:
+- **Dev wallet** (`0x857f`): Used by local scripts and tests. Key in `.env.local`.
+- **Production wallet** (`0x3403`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`.
+- These are currently different keys. Production wallet has ~$30 USDC for live payments.
+
+**Payment Flow for Tasks** (as of 2026-02-06):
+1. **Deposit** (task creation): Agent signs EIP-3009 auth → MCP verifies via Facilitator → Task created (no funds move yet)
+2. **Release** (task approval): MCP signs TWO new EIP-3009 auths: agent→worker (92%) + agent→treasury (8%) → Facilitator settles both (gasless)
+3. **Refund** (task cancellation): Original auth expires — no funds ever moved, no action needed
+4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 8%). Set to `0.00` for 0% fee.
+
+**Split Payment Architecture** (current MVP):
+- At approval, `sdk_client.py:settle_task_payment()` signs fresh EIP-3009 auths from the agent wallet
+- Uses direct HTTP to facilitator `/settle` (not SDK's `settle_payment()` — see note below)
+- The facilitator validates `payTo == auth.to`, so the SDK's `settle_payment()` which hardcodes `payTo=config.recipient` cannot be used for worker disbursement
+- **TODO**: Modify `uvd-x402-sdk` to support custom `payTo` parameter, then switch from direct HTTP back to SDK
 
 ### Database State
 

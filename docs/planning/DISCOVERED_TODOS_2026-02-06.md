@@ -115,7 +115,18 @@ The current architecture uses verify-then-settle (authorize → settle on approv
 
 $0.10 USDC from direct relay deposit (tx `0xda31cbe...`) is stuck in the vault. Needs refund via `EscrowClient.request_refund()` (gasless) or wait for contract expiry.
 
-### TODO-D12: On-Chain Splitter Contract for Automated Fee Distribution
+### TODO-D12: Modify uvd-x402-sdk to Support Custom payTo in settle_payment()
+**Severity**: MEDIUM
+**Discovered during**: TODO-D00 fix (2026-02-06)
+
+The Python SDK's `settle_payment()` always sets `payTo=self.config.get_recipient(network)` (treasury). The facilitator validates `payTo == auth.to`, so we can't use the SDK to settle payments to worker addresses. Currently we use direct HTTP to the facilitator `/settle` endpoint.
+
+**Fix**: Add a `pay_to` optional parameter to `X402Client.settle_payment()` that overrides `config.recipient_evm` in `_build_payment_requirements()`. This is ~5 lines changed in `uvd-x402-sdk-python/src/uvd_x402_sdk/client.py`.
+
+**Repo**: `/mnt/z/ultravioleta/dao/uvd-x402-sdk-python`
+**Relates to**: sdk_client.py `_settle_signed_auth()` which currently bypasses the SDK.
+
+### TODO-D13: On-Chain Splitter Contract for Automated Fee Distribution
 **Severity**: FUTURE (post-MVP)
 **Discovered during**: TODO-D00 fix discussion (2026-02-06)
 
