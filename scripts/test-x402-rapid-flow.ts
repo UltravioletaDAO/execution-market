@@ -68,7 +68,7 @@ const PLATFORM_FEE_PERCENT = Number(ARGS.fee || process.env.EM_PLATFORM_FEE || '
 const AUTO_APPROVE = boolArg(ARGS, 'auto-approve', true);
 const STRICT = boolArg(ARGS, 'strict', true);
 const RUN_REFUND_CHECK = boolArg(ARGS, 'run-refund-check', true);
-const ALLOW_SUPABASE_FALLBACK = boolArg(ARGS, 'allow-supabase-fallback', true);
+const ALLOW_SUPABASE_FALLBACK = boolArg(ARGS, 'allow-supabase-fallback', false);
 const DRY_RUN = boolArg(ARGS, 'dry-run', false);
 
 // ---------------------------------------------------------------------------
