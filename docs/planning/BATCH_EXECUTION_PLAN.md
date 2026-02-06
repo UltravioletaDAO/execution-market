@@ -48,7 +48,7 @@ All code has been audited and is GOOD quality. Batch 0 commits this work.
 ---
 
 ## BATCH 0 — Housekeeping & Commit Existing Work
-**Status**: `PENDING`
+**Status**: `DONE (2026-02-06)`
 **Estimated context**: Small (mostly git operations)
 **Goal**: Commit all audited work from global-tasks session cleanly
 
@@ -380,7 +380,7 @@ Signed: ___
 
 | Batch | Status | Date | Session | Notes |
 |-------|--------|------|---------|-------|
-| 0 | PENDING | | | |
+| 0 | DONE | 2026-02-06 | current | Commit 8482a23, 128 files, build passes |
 | 1 | PENDING | | | |
 | 2 | PENDING | | | |
 | 3 | PENDING | | | |
