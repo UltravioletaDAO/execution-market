@@ -14,11 +14,15 @@ Facilitator: https://facilitator.ultravioletadao.xyz
 """
 
 import os
+import json
 import logging
+import secrets
+import base64
 from decimal import Decimal
 from typing import Optional, Dict, Any, Callable
 from datetime import datetime, timezone
 
+from eth_account import Account
 from fastapi import FastAPI, Request, Response, Depends
 from pydantic import BaseModel
 
@@ -74,8 +78,7 @@ FACILITATOR_URL = os.environ.get(
 # Execution Market treasury address for fee collection
 EM_TREASURY = os.environ.get(
     "EM_TREASURY_ADDRESS",
-    os.environ.get("EM_TREASURY_ADDRESS",
-    "0x0000000000000000000000000000000000000000")
+    "YOUR_TREASURY_WALLET"
 )
 
 # Default network for payments
@@ -245,6 +248,242 @@ class EMX402SDK:
         )
 
     # =========================================================================
+    # EIP-3009 Signing for Worker Disbursement
+    # =========================================================================
+
+    # USDC EIP-712 domain on Base
+    USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    USDC_DOMAIN = {
+        "name": "USD Coin",
+        "version": "2",
+        "chainId": 8453,
+        "verifyingContract": USDC_ADDRESS,
+    }
+    TRANSFER_WITH_AUTH_TYPES = {
+        "TransferWithAuthorization": [
+            {"name": "from", "type": "address"},
+            {"name": "to", "type": "address"},
+            {"name": "value", "type": "uint256"},
+            {"name": "validAfter", "type": "uint256"},
+            {"name": "validBefore", "type": "uint256"},
+            {"name": "nonce", "type": "bytes32"},
+        ],
+    }
+
+    def _get_agent_account(self) -> Account:
+        """Get the agent wallet Account from WALLET_PRIVATE_KEY."""
+        pk = os.environ.get("WALLET_PRIVATE_KEY")
+        if not pk:
+            raise RuntimeError("WALLET_PRIVATE_KEY not set — cannot sign disbursement")
+        return Account.from_key(pk)
+
+    def _sign_eip3009_transfer(
+        self,
+        to_address: str,
+        amount_usdc: Decimal,
+        valid_for_seconds: int = 3600,
+    ) -> Dict[str, Any]:
+        """
+        Sign an EIP-3009 TransferWithAuthorization for USDC on Base.
+
+        Returns dict with 'authorization' and 'signature' fields.
+        """
+        account = self._get_agent_account()
+        value = int(amount_usdc * Decimal(10 ** 6))
+        now = int(datetime.now(timezone.utc).timestamp())
+        nonce = "0x" + secrets.token_hex(32)
+
+        message = {
+            "from": account.address,
+            "to": to_address,
+            "value": value,
+            "validAfter": 0,
+            "validBefore": now + valid_for_seconds,
+            "nonce": nonce,
+        }
+
+        # Sign EIP-712 typed data
+        signed = account.sign_typed_data(
+            domain_data=self.USDC_DOMAIN,
+            message_types=self.TRANSFER_WITH_AUTH_TYPES,
+            message_data=message,
+        )
+
+        authorization = {
+            "from": account.address,
+            "to": to_address,
+            "value": str(value),
+            "validAfter": "0",
+            "validBefore": str(now + valid_for_seconds),
+            "nonce": nonce,
+        }
+
+        return {
+            "authorization": authorization,
+            "signature": signed.signature.hex() if hasattr(signed.signature, 'hex') else hex(signed.signature),
+        }
+
+    def _build_x402_header(self, auth_data: Dict[str, Any]) -> str:
+        """Build a base64-encoded X-Payment header from authorization + signature."""
+        payload = {
+            "x402Version": 1,
+            "scheme": "exact",
+            "network": "base",
+            "payload": {
+                "signature": auth_data["signature"],
+                "authorization": auth_data["authorization"],
+            },
+        }
+        return base64.b64encode(json.dumps(payload).encode()).decode()
+
+    def _settle_signed_auth(
+        self,
+        auth_data: Dict[str, Any],
+        amount_usdc: Decimal,
+        pay_to: str,
+    ) -> Dict[str, Any]:
+        """
+        Settle a locally-signed EIP-3009 auth via a direct HTTP call to the facilitator.
+
+        We build the V1 VerifyRequest/SettleRequest format manually because the SDK's
+        settle_payment() always sets payTo from config (treasury), but the facilitator
+        validates payTo == auth.to.  For worker disbursement, payTo must match the
+        worker address in the signed auth.
+        """
+        import httpx
+
+        header = self._build_x402_header(auth_data)
+        payload_data = json.loads(base64.b64decode(header))
+
+        value_wei = int(amount_usdc * Decimal(10 ** 6))
+        settle_request = {
+            "x402Version": 1,
+            "paymentPayload": payload_data,
+            "paymentRequirements": {
+                "scheme": "exact",
+                "network": "base",
+                "maxAmountRequired": str(value_wei),
+                "resource": "https://api.execution.market/api/v1/tasks",
+                "description": "Execution Market payment",
+                "mimeType": "application/json",
+                "payTo": pay_to,
+                "maxTimeoutSeconds": 300,
+                "asset": self.USDC_ADDRESS,
+                "extra": {"name": "USD Coin", "version": "2"},
+            },
+        }
+
+        resp = httpx.post(
+            f"{self.facilitator_url}/settle",
+            json=settle_request,
+            timeout=30.0,
+        )
+
+        if resp.status_code != 200:
+            error_body = resp.text[:500]
+            logger.error("Facilitator settle HTTP %d: %s", resp.status_code, error_body)
+            return {"success": False, "error": f"Facilitator HTTP {resp.status_code}: {error_body}"}
+
+        data = resp.json()
+        tx_hash = data.get("transaction") or data.get("tx_hash") or data.get("transaction_hash")
+
+        return {
+            "success": data.get("success", bool(tx_hash)),
+            "tx_hash": tx_hash,
+            "payer": data.get("payer"),
+        }
+
+    async def disburse_to_worker(
+        self,
+        worker_address: str,
+        amount_usdc: Decimal,
+        task_id: str,
+    ) -> Dict[str, Any]:
+        """
+        Sign a new EIP-3009 auth from agent wallet to worker and settle via facilitator.
+
+        This is GASLESS — the facilitator pays gas on behalf of the agent.
+        """
+        try:
+            auth = self._sign_eip3009_transfer(
+                to_address=worker_address,
+                amount_usdc=amount_usdc,
+            )
+            result = self._settle_signed_auth(auth, amount_usdc, pay_to=worker_address)
+
+            if result.get("success"):
+                logger.info(
+                    "Worker disbursement OK: task=%s, worker=%s, amount=%.6f, tx=%s",
+                    task_id, worker_address[:10], float(amount_usdc),
+                    result.get("tx_hash"),
+                )
+            else:
+                logger.error(
+                    "Worker disbursement FAILED: task=%s, error=%s",
+                    task_id, result.get("error"),
+                )
+
+            return {
+                **result,
+                "recipient": worker_address,
+                "amount": float(amount_usdc),
+                "type": "worker_payout",
+            }
+
+        except Exception as e:
+            logger.error("Worker disbursement error: %s", e)
+            return {"success": False, "error": str(e), "type": "worker_payout"}
+
+    async def collect_platform_fee(
+        self,
+        fee_amount: Decimal,
+        task_id: str,
+        treasury_address: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Sign a new EIP-3009 auth from agent wallet to treasury for the platform fee.
+
+        This is GASLESS — the facilitator pays gas on behalf of the agent.
+        """
+        treasury = treasury_address or EM_TREASURY
+        if not treasury or treasury == "0x0000000000000000000000000000000000000000":
+            logger.warning("No treasury address configured — skipping fee collection for task %s", task_id)
+            return {"success": True, "tx_hash": None, "skipped": True, "type": "platform_fee"}
+
+        if fee_amount <= 0:
+            logger.info("Fee is zero for task %s — skipping fee collection", task_id)
+            return {"success": True, "tx_hash": None, "skipped": True, "type": "platform_fee"}
+
+        try:
+            auth = self._sign_eip3009_transfer(
+                to_address=treasury,
+                amount_usdc=fee_amount,
+            )
+            result = self._settle_signed_auth(auth, fee_amount, pay_to=treasury)
+
+            if result.get("success"):
+                logger.info(
+                    "Fee collection OK: task=%s, fee=%.6f, tx=%s",
+                    task_id, float(fee_amount), result.get("tx_hash"),
+                )
+            else:
+                logger.warning(
+                    "Fee collection FAILED (non-blocking): task=%s, error=%s",
+                    task_id, result.get("error"),
+                )
+
+            return {
+                **result,
+                "recipient": treasury,
+                "amount": float(fee_amount),
+                "type": "platform_fee",
+            }
+
+        except Exception as e:
+            logger.warning("Fee collection error (non-blocking): %s", e)
+            return {"success": False, "error": str(e), "type": "platform_fee"}
+
+    # =========================================================================
     # Task Payment Processing
     # =========================================================================
 
@@ -351,43 +590,63 @@ class EMX402SDK:
         bounty_amount: Decimal,
     ) -> Dict[str, Any]:
         """
-        Settle a task payment (release to worker).
+        Settle a task payment with proper split: worker gets 92%, treasury gets 8%.
 
-        Calculates platform fee and distributes:
-        - 92% to worker (net after 8% fee)
-        - 8% to Execution Market treasury
+        Instead of settling the original auth (which goes 100% to treasury),
+        we sign TWO new EIP-3009 auths from the agent wallet:
+        1. agent → worker (bounty minus fee)
+        2. agent → treasury (platform fee)
 
-        Args:
-            task_id: Task identifier
-            payment_header: x402 payment header
-            worker_address: Worker's wallet address
-            bounty_amount: Full bounty amount
+        The original task-creation auth is NOT settled — it was only for verification
+        (proof that the agent has sufficient funds).
 
-        Returns:
-            Dict with settlement details
+        Both settlements are GASLESS via the Ultravioleta facilitator.
         """
         try:
             # Calculate fee breakdown
             platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(Decimal("0.01"))
             worker_net = bounty_amount - platform_fee
 
-            # Extract payload from header
-            payload = self.client.extract_payload(payment_header)
+            # 1. Pay the worker
+            worker_result = await self.disburse_to_worker(
+                worker_address=worker_address,
+                amount_usdc=worker_net,
+                task_id=task_id,
+            )
 
-            # Settle via facilitator (on-chain transfer)
-            settle_response = self.client.settle_payment(payload, bounty_amount)
-            tx_hash = self._extract_settlement_tx_hash(settle_response)
+            worker_tx = worker_result.get("tx_hash")
+            if not worker_result.get("success") or not worker_tx:
+                # Worker payment failed — don't collect fee either
+                return {
+                    "success": False,
+                    "task_id": task_id,
+                    "error": worker_result.get("error", "Worker disbursement failed"),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+
+            # 2. Collect platform fee (non-blocking — worker already paid)
+            fee_result = await self.collect_platform_fee(
+                fee_amount=platform_fee,
+                task_id=task_id,
+            )
+
+            fee_tx = fee_result.get("tx_hash")
+            if not fee_result.get("success"):
+                logger.warning(
+                    "Worker paid but fee collection failed for task %s: %s",
+                    task_id, fee_result.get("error"),
+                )
 
             return {
-                "success": settle_response.success,
+                "success": True,
                 "task_id": task_id,
                 "worker_address": worker_address,
                 "gross_amount": float(bounty_amount),
                 "platform_fee": float(platform_fee),
                 "net_to_worker": float(worker_net),
-                "tx_hash": tx_hash,
-                "network": payload.network,
-                "payer": settle_response.payer,
+                "tx_hash": worker_tx,
+                "fee_tx_hash": fee_tx,
+                "network": "base",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
