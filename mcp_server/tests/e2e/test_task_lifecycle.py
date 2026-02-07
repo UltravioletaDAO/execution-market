@@ -55,7 +55,9 @@ async def test_complete_task_lifecycle(
     mock_supabase.register_worker(test_worker)
 
     # ========== STEP 1: Agent publishes task ==========
-    deadline = datetime.now(timezone.utc) + timedelta(hours=sample_task_input["deadline_hours"])
+    deadline = datetime.now(timezone.utc) + timedelta(
+        hours=sample_task_input["deadline_hours"]
+    )
     task = await mock_supabase.create_task(
         agent_id=sample_task_input["agent_id"],
         title=sample_task_input["title"],
@@ -536,7 +538,9 @@ async def test_lifecycle_with_timeout_after_partial_release(
     # Remaining goes back to agent: $50 - $13.80 = $36.20
     # (This includes the platform fee since task wasn't completed)
     remaining = Decimal("50.00") - Decimal("13.80")
-    assert Decimal(str(refund_result["amount_refunded"])) == remaining.quantize(Decimal("0.01"))
+    assert Decimal(str(refund_result["amount_refunded"])) == remaining.quantize(
+        Decimal("0.01")
+    )
 
 
 # ============== DISPUTE HANDLING ==============
@@ -698,7 +702,7 @@ async def test_lifecycle_with_dispute_agent_wins(
             "metadata": {
                 "lat": 0.0,  # Wrong location
                 "lng": 0.0,
-            }
+            },
         },
         "timestamp_proof": datetime.now(timezone.utc).isoformat(),
     }

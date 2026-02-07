@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 
 # ============== MOCK DATA CLASSES ==============
@@ -20,6 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 @dataclass
 class MockWallet:
     """Mock wallet for testing."""
+
     address: str
     balance_usdc: float = 1000.0
 
@@ -27,6 +28,7 @@ class MockWallet:
 @dataclass
 class MockAgent:
     """Test agent with API key and wallet."""
+
     agent_id: str
     api_key: str
     wallet: MockWallet
@@ -49,6 +51,7 @@ class MockAgent:
 @dataclass
 class MockWorker:
     """Test worker with executor_id and wallet."""
+
     executor_id: str
     wallet: MockWallet
     display_name: str = "Test Worker"
@@ -75,6 +78,7 @@ class MockWorker:
 @dataclass
 class MockEscrowRecord:
     """Track escrow state for a task."""
+
     escrow_id: str
     task_id: str
     total_amount: Decimal
@@ -85,7 +89,9 @@ class MockEscrowRecord:
     deposit_tx: str = ""
     release_txs: List[Dict[str, Any]] = field(default_factory=list)
     refund_tx: Optional[str] = None
-    timeout_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(hours=48))
+    timeout_at: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc) + timedelta(hours=48)
+    )
 
     @property
     def remaining_amount(self) -> Decimal:
@@ -154,23 +160,29 @@ class MockEscrowManager:
         escrow = self._get_escrow(task_id)
 
         if escrow.status not in ("deposited",):
-            raise ValueError(f"Cannot release partial: escrow status is {escrow.status}")
+            raise ValueError(
+                f"Cannot release partial: escrow status is {escrow.status}"
+            )
 
         # Calculate 30% of net (after fees)
         net_bounty = escrow.total_amount * (1 - self.PLATFORM_FEE_PERCENT)
-        partial_amount = (net_bounty * self.PARTIAL_RELEASE_PERCENT).quantize(Decimal("0.01"))
+        partial_amount = (net_bounty * self.PARTIAL_RELEASE_PERCENT).quantize(
+            Decimal("0.01")
+        )
 
         tx_hash = self._generate_tx_hash()
         escrow.beneficiary_wallet = worker_wallet
         escrow.released_amount += partial_amount
         escrow.status = "partial_released"
-        escrow.release_txs.append({
-            "tx_hash": tx_hash,
-            "amount": float(partial_amount),
-            "recipient": worker_wallet,
-            "type": "partial",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        escrow.release_txs.append(
+            {
+                "tx_hash": tx_hash,
+                "amount": float(partial_amount),
+                "recipient": worker_wallet,
+                "type": "partial",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
         return {
             "success": True,
@@ -197,32 +209,38 @@ class MockEscrowManager:
         platform_fee = escrow.total_amount * self.PLATFORM_FEE_PERCENT
 
         # Worker gets remaining net (after partial)
-        worker_remaining = (net_bounty - escrow.released_amount).quantize(Decimal("0.01"))
+        worker_remaining = (net_bounty - escrow.released_amount).quantize(
+            Decimal("0.01")
+        )
 
         tx_hashes = []
 
         # Release to worker
         if worker_remaining > 0:
             worker_tx = self._generate_tx_hash()
-            escrow.release_txs.append({
-                "tx_hash": worker_tx,
-                "amount": float(worker_remaining),
-                "recipient": worker_wallet,
-                "type": "final",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            escrow.release_txs.append(
+                {
+                    "tx_hash": worker_tx,
+                    "amount": float(worker_remaining),
+                    "recipient": worker_wallet,
+                    "type": "final",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
             escrow.released_amount += worker_remaining
             tx_hashes.append(worker_tx)
 
         # Record platform fee (would go to treasury)
         fee_tx = self._generate_tx_hash()
-        escrow.release_txs.append({
-            "tx_hash": fee_tx,
-            "amount": float(platform_fee),
-            "recipient": "treasury",
-            "type": "fee",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        escrow.release_txs.append(
+            {
+                "tx_hash": fee_tx,
+                "amount": float(platform_fee),
+                "recipient": "treasury",
+                "type": "fee",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
         escrow.released_amount += platform_fee
         tx_hashes.append(fee_tx)
 
@@ -304,7 +322,9 @@ class MockEscrowManager:
             # Reset to deposited state for refund
             escrow.status = "deposited"
             escrow.released_amount = Decimal("0")
-            return await self.refund_on_cancel(task_id, "Dispute resolved in favor of agent")
+            return await self.refund_on_cancel(
+                task_id, "Dispute resolved in favor of agent"
+            )
 
         else:
             raise ValueError(f"Invalid winner: {winner}")
@@ -334,7 +354,9 @@ class MockEscrowManager:
                 "type": "timeout_partial_refund",
             }
         else:
-            return await self.refund_on_cancel(task_id, "Task expired without assignment")
+            return await self.refund_on_cancel(
+                task_id, "Task expired without assignment"
+            )
 
     def get_escrow(self, task_id: str) -> Optional[MockEscrowRecord]:
         """Get escrow state for a task."""
@@ -450,7 +472,7 @@ class MockSupabaseClient:
             tasks = [t for t in tasks if t["category"] == category]
 
         total = len(tasks)
-        tasks = tasks[offset:offset + limit]
+        tasks = tasks[offset : offset + limit]
 
         return {
             "total": total,
@@ -460,7 +482,9 @@ class MockSupabaseClient:
             "has_more": total > offset + len(tasks),
         }
 
-    async def update_task(self, task_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_task(
+        self, task_id: str, updates: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Update a task."""
         if task_id not in self._tasks:
             raise ValueError(f"Task {task_id} not found")
@@ -635,16 +659,21 @@ class MockSupabaseClient:
         if verdict == "accepted":
             sub["verified_at"] = datetime.now(timezone.utc).isoformat()
             # Update task status
-            await self.update_task(task["id"], {
-                "status": "completed",
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-            })
+            await self.update_task(
+                task["id"],
+                {
+                    "status": "completed",
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                },
+            )
             # Update worker reputation
             executor = self._executors.get(sub["executor_id"])
             if executor:
                 executor["reputation_score"] = executor.get("reputation_score", 0) + 10
                 executor["tasks_completed"] = executor.get("tasks_completed", 0) + 1
-                executor["active_tasks_count"] = max(0, executor.get("active_tasks_count", 1) - 1)
+                executor["active_tasks_count"] = max(
+                    0, executor.get("active_tasks_count", 1) - 1
+                )
 
         elif verdict == "disputed":
             await self.update_task(task["id"], {"status": "disputed"})
@@ -657,7 +686,9 @@ class MockSupabaseClient:
 
     async def get_executor_earnings(self, executor_id: str) -> Dict[str, Any]:
         """Get earnings summary for an executor."""
-        payments = [p for p in self._payments.values() if p.get("executor_id") == executor_id]
+        payments = [
+            p for p in self._payments.values() if p.get("executor_id") == executor_id
+        ]
 
         completed = [p for p in payments if p.get("status") == "completed"]
         pending = [p for p in payments if p.get("status") == "pending"]
@@ -737,10 +768,13 @@ class MockSupabaseClient:
         # Update task based on outcome
         task_id = dispute["task_id"]
         if outcome == "worker_wins":
-            await self.update_task(task_id, {
-                "status": "completed",
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-            })
+            await self.update_task(
+                task_id,
+                {
+                    "status": "completed",
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                },
+            )
         elif outcome == "agent_wins":
             await self.update_task(task_id, {"status": "cancelled"})
 
@@ -821,28 +855,30 @@ class MockTableBuilder:
         items = list(self._data.values())
 
         # Apply filters
-        for field, op, value in self._filters:
+        for field_name, op, value in self._filters:
             if op == "eq":
-                items = [i for i in items if i.get(field) == value]
+                items = [i for i in items if i.get(field_name) == value]
             elif op == "neq":
-                items = [i for i in items if i.get(field) != value]
+                items = [i for i in items if i.get(field_name) != value]
             elif op == "in":
-                items = [i for i in items if i.get(field) in value]
+                items = [i for i in items if i.get(field_name) in value]
             elif op == "gte":
-                items = [i for i in items if i.get(field) >= value]
+                items = [i for i in items if i.get(field_name) >= value]
 
         # Apply ordering
         if self._order_by:
-            field, desc = self._order_by
-            items.sort(key=lambda x: x.get(field, ""), reverse=desc)
+            field_name, desc = self._order_by
+            items.sort(key=lambda x: x.get(field_name, ""), reverse=desc)
 
         # Apply pagination
         if self._offset_val:
-            items = items[self._offset_val:]
+            items = items[self._offset_val :]
         if self._limit_val:
-            items = items[:self._limit_val]
+            items = items[: self._limit_val]
 
-        return MagicMock(data=items[0] if hasattr(self, '_single') else items, count=len(items))
+        return MagicMock(
+            data=items[0] if hasattr(self, "_single") else items, count=len(items)
+        )
 
     def insert(self, data: Dict[str, Any]):
         """Insert data."""
@@ -854,9 +890,7 @@ class MockTableBuilder:
     def update(self, updates: Dict[str, Any]):
         """Update matching records."""
         for item in self._data.values():
-            match = all(
-                item.get(f) == v for f, op, v in self._filters if op == "eq"
-            )
+            match = all(item.get(f) == v for f, op, v in self._filters if op == "eq")
             if match:
                 item.update(updates)
         return self
@@ -922,7 +956,7 @@ def sample_evidence():
                 "lat": 25.7617,
                 "lng": -80.1918,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
+            },
         },
         "text_response": "Store is open 9am-9pm daily. Photo shows entrance with hours posted.",
     }
@@ -935,10 +969,14 @@ def miami_location():
 
 
 @pytest.fixture
-async def published_task(mock_supabase, mock_escrow_manager, test_agent, sample_task_input):
+async def published_task(
+    mock_supabase, mock_escrow_manager, test_agent, sample_task_input
+):
     """Create a published task with escrow."""
     # Create task in database
-    deadline = datetime.now(timezone.utc) + timedelta(hours=sample_task_input["deadline_hours"])
+    deadline = datetime.now(timezone.utc) + timedelta(
+        hours=sample_task_input["deadline_hours"]
+    )
     task = await mock_supabase.create_task(
         agent_id=sample_task_input["agent_id"],
         title=sample_task_input["title"],
@@ -981,7 +1019,9 @@ async def assigned_task(published_task, mock_supabase, test_agent, test_worker):
 
 
 @pytest.fixture
-async def submitted_task(assigned_task, mock_supabase, mock_escrow_manager, test_worker, sample_evidence):
+async def submitted_task(
+    assigned_task, mock_supabase, mock_escrow_manager, test_worker, sample_evidence
+):
     """Create a task with submitted work."""
     # Submit work
     result = await mock_supabase.submit_work(

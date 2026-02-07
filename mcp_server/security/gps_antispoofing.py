@@ -12,13 +12,11 @@ This module extends the existing verification/gps_antispoofing.py
 with additional detection methods for fraud scoring.
 """
 
-import asyncio
-import hashlib
 import math
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional, Tuple, List, Dict, Any
 from enum import Enum
 
@@ -56,8 +54,10 @@ EARTH_RADIUS_METERS = 6_371_000
 # DATA CLASSES
 # =============================================================================
 
+
 class MockLocationIndicator(str, Enum):
     """Indicators of mock/fake location."""
+
     MOCK_FLAG_SET = "mock_flag_set"
     DEVELOPER_OPTIONS = "developer_options"
     MOCK_APP_DETECTED = "mock_app_detected"
@@ -71,6 +71,7 @@ class MockLocationIndicator(str, Enum):
 @dataclass
 class GPSData:
     """GPS location data from a submission."""
+
     latitude: float
     longitude: float
     altitude: Optional[float] = None
@@ -86,6 +87,7 @@ class GPSData:
 @dataclass
 class DeviceInfo:
     """Device information for fingerprinting and mock detection."""
+
     device_id: Optional[str] = None
     user_agent: Optional[str] = None
     screen_width: Optional[int] = None
@@ -108,6 +110,7 @@ class DeviceInfo:
 @dataclass
 class SensorData:
     """Sensor data from device (accelerometer, gyroscope)."""
+
     accelerometer: Optional[Tuple[float, float, float]] = None  # x, y, z in m/s^2
     gyroscope: Optional[Tuple[float, float, float]] = None  # x, y, z in rad/s
     magnetometer: Optional[Tuple[float, float, float]] = None  # x, y, z in microtesla
@@ -117,6 +120,7 @@ class SensorData:
 @dataclass
 class LocationRecord:
     """Historical location record for pattern analysis."""
+
     gps_data: GPSData
     timestamp: datetime
     device_id: Optional[str] = None
@@ -126,6 +130,7 @@ class LocationRecord:
 @dataclass
 class MockLocationResult:
     """Result of mock location detection."""
+
     is_mock: bool
     confidence: float
     indicators: List[MockLocationIndicator]
@@ -135,6 +140,7 @@ class MockLocationResult:
 @dataclass
 class PlausibilityResult:
     """Result of location plausibility check."""
+
     is_plausible: bool
     confidence: float
     reason: Optional[str] = None
@@ -147,6 +153,7 @@ class PlausibilityResult:
 @dataclass
 class SpoofingResult:
     """Comprehensive GPS spoofing detection result."""
+
     is_spoofed: bool
     risk_score: float  # 0.0 to 1.0
     confidence: float
@@ -158,6 +165,7 @@ class SpoofingResult:
 # =============================================================================
 # GPS ANTI-SPOOFING CLASS
 # =============================================================================
+
 
 class GPSAntiSpoofing:
     """
@@ -222,7 +230,9 @@ class GPSAntiSpoofing:
         mock_result = await self.detect_mock_location(gps_data, device_info)
         checks_performed.append("mock_location")
         if mock_result.is_mock:
-            reasons.append(f"Mock location detected: {', '.join(i.value for i in mock_result.indicators)}")
+            reasons.append(
+                f"Mock location detected: {', '.join(i.value for i in mock_result.indicators)}"
+            )
             risk_scores.append(0.9)
             details["mock_location"] = {
                 "is_mock": True,
@@ -299,9 +309,7 @@ class GPSAntiSpoofing:
         )
 
     async def detect_mock_location(
-        self,
-        gps_data: GPSData,
-        device_info: Optional[DeviceInfo] = None
+        self, gps_data: GPSData, device_info: Optional[DeviceInfo] = None
     ) -> MockLocationResult:
         """
         Detect if GPS data comes from a mock/fake location.
@@ -337,9 +345,15 @@ class GPSAntiSpoofing:
             # Check 3: Mock location apps
             if device_info.mock_location_apps:
                 known_mock_apps = [
-                    "fake gps", "mock location", "gps joystick",
-                    "location spoofer", "fly gps", "fake location",
-                    "gps emulator", "mock gps", "location changer"
+                    "fake gps",
+                    "mock location",
+                    "gps joystick",
+                    "location spoofer",
+                    "fly gps",
+                    "fake location",
+                    "gps emulator",
+                    "mock gps",
+                    "location changer",
                 ]
                 for app in device_info.mock_location_apps:
                     if any(mock in app.lower() for mock in known_mock_apps):
@@ -364,9 +378,12 @@ class GPSAntiSpoofing:
 
         # Check if coordinates are suspiciously "perfect"
         # Real GPS rarely gives perfectly round coordinates
-        if (lat_decimal == 0.0 or lon_decimal == 0.0 or
-            str(gps_data.latitude).endswith('0000') or
-            str(gps_data.longitude).endswith('0000')):
+        if (
+            lat_decimal == 0.0
+            or lon_decimal == 0.0
+            or str(gps_data.latitude).endswith("0000")
+            or str(gps_data.longitude).endswith("0000")
+        ):
             indicators.append(MockLocationIndicator.PERFECT_COORDINATES)
             confidence = max(confidence, 0.5)
 
@@ -380,7 +397,7 @@ class GPSAntiSpoofing:
                 "accuracy_meters": gps_data.accuracy_meters,
                 "mock_flag": gps_data.is_mock,
                 "mock_provider": gps_data.mock_provider,
-            }
+            },
         )
 
     async def verify_location_plausibility(
@@ -438,8 +455,10 @@ class GPSAntiSpoofing:
 
         # Calculate distance
         distance_m = self._haversine_distance(
-            last_location.latitude, last_location.longitude,
-            current_location.latitude, current_location.longitude
+            last_location.latitude,
+            last_location.longitude,
+            current_location.latitude,
+            current_location.longitude,
         )
 
         # Calculate speed
@@ -538,8 +557,10 @@ class GPSAntiSpoofing:
 
         # Check if current location is far from typical area
         current_distance = self._haversine_distance(
-            center_lat, center_lon,
-            current_location.latitude, current_location.longitude
+            center_lat,
+            center_lon,
+            current_location.latitude,
+            current_location.longitude,
         )
 
         # Location is suspicious if > 3x typical radius
@@ -554,7 +575,9 @@ class GPSAntiSpoofing:
             }
 
         # Check altitude consistency (if available)
-        altitudes = [r.gps_data.altitude for r in history if r.gps_data.altitude is not None]
+        altitudes = [
+            r.gps_data.altitude for r in history if r.gps_data.altitude is not None
+        ]
         if altitudes and current_location.altitude is not None:
             avg_altitude = sum(altitudes) / len(altitudes)
             altitude_diff = abs(current_location.altitude - avg_altitude)
@@ -577,9 +600,7 @@ class GPSAntiSpoofing:
         }
 
     async def _check_network_location(
-        self,
-        ip_address: str,
-        claimed_gps: GPSData
+        self, ip_address: str, claimed_gps: GPSData
     ) -> Dict[str, Any]:
         """Compare IP geolocation with claimed GPS."""
         # Skip for private IPs
@@ -601,10 +622,15 @@ class GPSAntiSpoofing:
             }
 
         # Calculate distance
-        distance_km = self._haversine_distance(
-            ip_location.latitude, ip_location.longitude,
-            claimed_gps.latitude, claimed_gps.longitude
-        ) / 1000
+        distance_km = (
+            self._haversine_distance(
+                ip_location.latitude,
+                ip_location.longitude,
+                claimed_gps.latitude,
+                claimed_gps.longitude,
+            )
+            / 1000
+        )
 
         if distance_km > MAX_IP_GPS_DISTANCE_KM:
             return {
@@ -623,9 +649,7 @@ class GPSAntiSpoofing:
         }
 
     async def _check_sensor_consistency(
-        self,
-        sensor_data: SensorData,
-        gps_data: GPSData
+        self, sensor_data: SensorData, gps_data: GPSData
     ) -> Dict[str, Any]:
         """Cross-validate sensor data with GPS movement."""
         suspicious_flags: List[str] = []
@@ -642,7 +666,11 @@ class GPSAntiSpoofing:
             is_stationary = accel_minus_gravity < 0.3
 
             # If GPS shows significant speed but device is stationary
-            if gps_data.speed_mps and gps_data.speed_mps > MAX_WALKING_SPEED_MPS and is_stationary:
+            if (
+                gps_data.speed_mps
+                and gps_data.speed_mps > MAX_WALKING_SPEED_MPS
+                and is_stationary
+            ):
                 suspicious_flags.append(
                     f"GPS shows {gps_data.speed_mps:.1f} m/s but accelerometer shows stationary"
                 )
@@ -672,8 +700,10 @@ class GPSAntiSpoofing:
         bearings = []
         for i in range(len(locations) - 1):
             bearing = self._calculate_bearing(
-                locations[i].latitude, locations[i].longitude,
-                locations[i+1].latitude, locations[i+1].longitude
+                locations[i].latitude,
+                locations[i].longitude,
+                locations[i + 1].latitude,
+                locations[i + 1].longitude,
             )
             bearings.append(bearing)
 
@@ -688,10 +718,7 @@ class GPSAntiSpoofing:
         return bearing_variance < 5
 
     async def _store_location(
-        self,
-        executor_id: str,
-        gps_data: GPSData,
-        device_id: Optional[str]
+        self, executor_id: str, gps_data: GPSData, device_id: Optional[str]
     ) -> None:
         """Store location in history."""
         record = LocationRecord(
@@ -705,7 +732,9 @@ class GPSAntiSpoofing:
 
         # Keep only last 100 locations
         if len(self._location_history[executor_id]) > 100:
-            self._location_history[executor_id] = self._location_history[executor_id][-100:]
+            self._location_history[executor_id] = self._location_history[executor_id][
+                -100:
+            ]
 
     async def _get_ip_location(self, ip_address: str) -> Optional[GPSData]:
         """Get geolocation from IP address."""
@@ -719,18 +748,33 @@ class GPSAntiSpoofing:
     def _is_private_ip(self, ip_address: str) -> bool:
         """Check if IP is private/local."""
         private_prefixes = [
-            "10.", "172.16.", "172.17.", "172.18.", "172.19.",
-            "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
-            "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
-            "172.30.", "172.31.", "192.168.", "127.", "localhost",
-            "::1", "fe80:",
+            "10.",
+            "172.16.",
+            "172.17.",
+            "172.18.",
+            "172.19.",
+            "172.20.",
+            "172.21.",
+            "172.22.",
+            "172.23.",
+            "172.24.",
+            "172.25.",
+            "172.26.",
+            "172.27.",
+            "172.28.",
+            "172.29.",
+            "172.30.",
+            "172.31.",
+            "192.168.",
+            "127.",
+            "localhost",
+            "::1",
+            "fe80:",
         ]
         return any(ip_address.startswith(p) for p in private_prefixes)
 
     def _haversine_distance(
-        self,
-        lat1: float, lon1: float,
-        lat2: float, lon2: float
+        self, lat1: float, lon1: float, lat2: float, lon2: float
     ) -> float:
         """Calculate distance in meters using Haversine formula."""
         phi1 = math.radians(lat1)
@@ -738,24 +782,25 @@ class GPSAntiSpoofing:
         delta_phi = math.radians(lat2 - lat1)
         delta_lambda = math.radians(lon2 - lon1)
 
-        a = (math.sin(delta_phi / 2) ** 2 +
-             math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2)
+        a = (
+            math.sin(delta_phi / 2) ** 2
+            + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+        )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
         return EARTH_RADIUS_METERS * c
 
     def _calculate_bearing(
-        self,
-        lat1: float, lon1: float,
-        lat2: float, lon2: float
+        self, lat1: float, lon1: float, lat2: float, lon2: float
     ) -> float:
         """Calculate bearing between two points in degrees."""
         lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
 
         dlon = lon2 - lon1
         x = math.sin(dlon) * math.cos(lat2)
-        y = (math.cos(lat1) * math.sin(lat2) -
-             math.sin(lat1) * math.cos(lat2) * math.cos(dlon))
+        y = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(
+            lat2
+        ) * math.cos(dlon)
 
         bearing = math.atan2(x, y)
         return (math.degrees(bearing) + 360) % 360

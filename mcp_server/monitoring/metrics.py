@@ -18,10 +18,9 @@ import logging
 from typing import Dict, Any, Optional, List, Tuple, Callable
 from dataclasses import dataclass, field
 from collections import defaultdict
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from functools import wraps
-import math
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +29,11 @@ logger = logging.getLogger(__name__)
 # Metric Types
 # =============================================================================
 
+
 @dataclass
 class MetricValue:
     """A single metric value with timestamp and labels."""
+
     value: float
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     labels: Dict[str, str] = field(default_factory=dict)
@@ -40,6 +41,7 @@ class MetricValue:
 
 class MetricType(str, Enum):
     """Prometheus metric types."""
+
     COUNTER = "counter"
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
@@ -169,7 +171,7 @@ class Histogram:
         name: str,
         description: str,
         buckets: Tuple[float, ...] = None,
-        labels: List[str] = None
+        labels: List[str] = None,
     ):
         self.name = name
         self.description = description
@@ -289,6 +291,7 @@ class _Timer:
         def wrapper(*args, **kwargs):
             with self:
                 return func(*args, **kwargs)
+
         return wrapper
 
 
@@ -309,7 +312,7 @@ class Summary:
         description: str,
         quantiles: Tuple[float, ...] = None,
         max_age: int = None,
-        labels: List[str] = None
+        labels: List[str] = None,
     ):
         self.name = name
         self.description = description
@@ -356,8 +359,7 @@ class Summary:
         """Remove observations older than max_age."""
         cutoff = now - self.max_age
         self._observations[key] = [
-            obs for obs in self._observations[key]
-            if obs[0] > cutoff
+            obs for obs in self._observations[key] if obs[0] > cutoff
         ]
 
     def _make_key(self, label_values: Dict[str, str]) -> Tuple:
@@ -367,6 +369,7 @@ class Summary:
 # =============================================================================
 # Metrics Registry
 # =============================================================================
+
 
 class MetricsRegistry:
     """
@@ -390,39 +393,37 @@ class MetricsRegistry:
         self.tasks_created = Counter(
             "em_tasks_created_total",
             "Total number of tasks created",
-            labels=["category", "agent_tier"]
+            labels=["category", "agent_tier"],
         )
 
         self.tasks_completed = Counter(
             "em_tasks_completed_total",
             "Total number of tasks completed successfully",
-            labels=["category"]
+            labels=["category"],
         )
 
         self.tasks_failed = Counter(
             "em_tasks_failed_total",
             "Total number of tasks that failed or were cancelled",
-            labels=["category", "reason"]
+            labels=["category", "reason"],
         )
 
         self.task_duration = Histogram(
             "em_task_duration_seconds",
             "Task completion duration in seconds",
             buckets=Histogram.TASK_BUCKETS,
-            labels=["category"]
+            labels=["category"],
         )
 
         self.active_tasks = Gauge(
-            "em_active_tasks",
-            "Number of currently active tasks",
-            labels=["status"]
+            "em_active_tasks", "Number of currently active tasks", labels=["status"]
         )
 
         self.task_bounty = Histogram(
             "em_task_bounty_usd",
             "Task bounty amounts in USD",
             buckets=Histogram.PAYMENT_BUCKETS,
-            labels=["category"]
+            labels=["category"],
         )
 
         # =====================================================================
@@ -431,25 +432,25 @@ class MetricsRegistry:
         self.submissions_received = Counter(
             "em_submissions_received_total",
             "Total submissions received",
-            labels=["category"]
+            labels=["category"],
         )
 
         self.submissions_approved = Counter(
             "em_submissions_approved_total",
             "Total submissions approved",
-            labels=["category"]
+            labels=["category"],
         )
 
         self.submissions_rejected = Counter(
             "em_submissions_rejected_total",
             "Total submissions rejected",
-            labels=["category", "reason"]
+            labels=["category", "reason"],
         )
 
         self.submission_review_time = Histogram(
             "em_submission_review_seconds",
             "Time to review submissions",
-            labels=["category", "verdict"]
+            labels=["category", "verdict"],
         )
 
         # =====================================================================
@@ -458,63 +459,56 @@ class MetricsRegistry:
         self.payments_processed = Counter(
             "em_payments_processed_total",
             "Total payments processed",
-            labels=["token", "status"]
+            labels=["token", "status"],
         )
 
         self.payment_volume = Counter(
             "em_payment_volume_usd_total",
             "Total payment volume in USD",
-            labels=["token"]
+            labels=["token"],
         )
 
         self.payment_failures = Counter(
             "em_payment_failures_total",
             "Total payment failures",
-            labels=["token", "error_type"]
+            labels=["token", "error_type"],
         )
 
         self.payment_latency = Histogram(
-            "em_payment_processing_seconds",
-            "Payment processing time",
-            labels=["token"]
+            "em_payment_processing_seconds", "Payment processing time", labels=["token"]
         )
 
         self.escrow_balance = Gauge(
-            "em_escrow_balance_usd",
-            "Current escrow balance in USD",
-            labels=["token"]
+            "em_escrow_balance_usd", "Current escrow balance in USD", labels=["token"]
         )
 
         # =====================================================================
         # Worker Metrics
         # =====================================================================
         self.active_workers = Gauge(
-            "em_active_workers",
-            "Number of active workers",
-            labels=["tier", "category"]
+            "em_active_workers", "Number of active workers", labels=["tier", "category"]
         )
 
         self.worker_registrations = Counter(
-            "em_worker_registrations_total",
-            "Total worker registrations"
+            "em_worker_registrations_total", "Total worker registrations"
         )
 
         self.worker_reputation_distribution = Histogram(
             "em_worker_reputation_score",
             "Distribution of worker reputation scores",
-            buckets=(10, 25, 50, 75, 100, 150, 200, 300, 500)
+            buckets=(10, 25, 50, 75, 100, 150, 200, 300, 500),
         )
 
         self.worker_availability = Gauge(
             "em_worker_availability_ratio",
             "Ratio of available workers to total workers",
-            labels=["category"]
+            labels=["category"],
         )
 
         self.worker_task_acceptance_rate = Gauge(
             "em_worker_task_acceptance_rate",
             "Rolling task acceptance rate per worker tier",
-            labels=["tier"]
+            labels=["tier"],
         )
 
         # =====================================================================
@@ -523,31 +517,27 @@ class MetricsRegistry:
         self.api_requests = Counter(
             "em_api_requests_total",
             "Total API requests",
-            labels=["method", "path", "status"]
+            labels=["method", "path", "status"],
         )
 
         self.api_latency = Histogram(
-            "em_api_latency_seconds",
-            "API request latency",
-            labels=["method", "path"]
+            "em_api_latency_seconds", "API request latency", labels=["method", "path"]
         )
 
         self.api_errors = Counter(
             "em_api_errors_total",
             "Total API errors",
-            labels=["method", "path", "error_type"]
+            labels=["method", "path", "error_type"],
         )
 
         self.api_rate_limited = Counter(
             "em_api_rate_limited_total",
             "Total requests that were rate limited",
-            labels=["tier"]
+            labels=["tier"],
         )
 
         self.websocket_connections = Gauge(
-            "em_websocket_connections",
-            "Current WebSocket connections",
-            labels=["type"]
+            "em_websocket_connections", "Current WebSocket connections", labels=["type"]
         )
 
         # =====================================================================
@@ -556,46 +546,44 @@ class MetricsRegistry:
         self.verifications_performed = Counter(
             "em_verifications_total",
             "Total verifications performed",
-            labels=["type", "result"]
+            labels=["type", "result"],
         )
 
         self.verification_latency = Histogram(
             "em_verification_latency_seconds",
             "Verification processing time",
-            labels=["type"]
+            labels=["type"],
         )
 
         self.ai_review_calls = Counter(
             "em_ai_review_calls_total",
             "Total AI review API calls",
-            labels=["model", "status"]
+            labels=["model", "status"],
         )
 
         self.ai_review_tokens = Counter(
             "em_ai_review_tokens_total",
             "Total tokens used for AI review",
-            labels=["model", "direction"]  # direction: input/output
+            labels=["model", "direction"],  # direction: input/output
         )
 
         # =====================================================================
         # Dispute Metrics
         # =====================================================================
         self.disputes_opened = Counter(
-            "em_disputes_opened_total",
-            "Total disputes opened",
-            labels=["category"]
+            "em_disputes_opened_total", "Total disputes opened", labels=["category"]
         )
 
         self.disputes_resolved = Counter(
             "em_disputes_resolved_total",
             "Total disputes resolved",
-            labels=["category", "resolution"]
+            labels=["category", "resolution"],
         )
 
         self.dispute_resolution_time = Histogram(
             "em_dispute_resolution_seconds",
             "Time to resolve disputes",
-            buckets=(3600, 7200, 14400, 28800, 86400, 172800, 604800)  # 1hr to 1 week
+            buckets=(3600, 7200, 14400, 28800, 86400, 172800, 604800),  # 1hr to 1 week
         )
 
         # =====================================================================
@@ -604,31 +592,27 @@ class MetricsRegistry:
         self.health_check_duration = Histogram(
             "em_health_check_duration_seconds",
             "Health check duration",
-            labels=["component"]
+            labels=["component"],
         )
 
         self.background_job_duration = Histogram(
             "em_background_job_duration_seconds",
             "Background job execution time",
-            labels=["job_type"]
+            labels=["job_type"],
         )
 
         self.background_job_failures = Counter(
             "em_background_job_failures_total",
             "Background job failures",
-            labels=["job_type", "error_type"]
+            labels=["job_type", "error_type"],
         )
 
         self.cache_hits = Counter(
-            "em_cache_hits_total",
-            "Cache hit count",
-            labels=["cache"]
+            "em_cache_hits_total", "Cache hit count", labels=["cache"]
         )
 
         self.cache_misses = Counter(
-            "em_cache_misses_total",
-            "Cache miss count",
-            labels=["cache"]
+            "em_cache_misses_total", "Cache miss count", labels=["cache"]
         )
 
     # =========================================================================
@@ -636,10 +620,7 @@ class MetricsRegistry:
     # =========================================================================
 
     def record_task_created(
-        self,
-        category: str,
-        bounty_usd: float,
-        agent_tier: str = "free"
+        self, category: str, bounty_usd: float, agent_tier: str = "free"
     ) -> None:
         """Record task creation with associated metrics."""
         self.tasks_created.inc(category=category, agent_tier=agent_tier)
@@ -647,10 +628,7 @@ class MetricsRegistry:
         self.task_bounty.observe(bounty_usd, category=category)
 
     def record_task_completed(
-        self,
-        category: str,
-        duration_seconds: float,
-        bounty_usd: float
+        self, category: str, duration_seconds: float, bounty_usd: float
     ) -> None:
         """Record successful task completion."""
         self.tasks_completed.inc(category=category)
@@ -658,27 +636,18 @@ class MetricsRegistry:
         self.active_tasks.dec(status="in_progress")
         self.payment_volume.inc(bounty_usd, token="USDC")
 
-    def record_task_failed(
-        self,
-        category: str,
-        reason: str
-    ) -> None:
+    def record_task_failed(self, category: str, reason: str) -> None:
         """Record task failure."""
         self.tasks_failed.inc(category=category, reason=reason)
         self.active_tasks.dec(status="in_progress")
 
     def record_submission(
-        self,
-        category: str,
-        verdict: str,
-        review_time_seconds: float
+        self, category: str, verdict: str, review_time_seconds: float
     ) -> None:
         """Record submission with verdict."""
         self.submissions_received.inc(category=category)
         self.submission_review_time.observe(
-            review_time_seconds,
-            category=category,
-            verdict=verdict
+            review_time_seconds, category=category, verdict=verdict
         )
 
         if verdict == "approved":
@@ -692,7 +661,7 @@ class MetricsRegistry:
         token: str = "USDC",
         duration_seconds: float = 0,
         success: bool = True,
-        error_type: str = None
+        error_type: str = None,
     ) -> None:
         """Record payment processing."""
         status = "success" if success else "failed"
@@ -706,51 +675,32 @@ class MetricsRegistry:
             self.payment_failures.inc(token=token, error_type=error_type or "unknown")
 
     def record_api_request(
-        self,
-        method: str,
-        path: str,
-        status_code: int,
-        duration_seconds: float
+        self, method: str, path: str, status_code: int, duration_seconds: float
     ) -> None:
         """Record API request metrics."""
         # Normalize path (remove IDs)
         normalized_path = self._normalize_path(path)
 
         self.api_requests.inc(
-            method=method,
-            path=normalized_path,
-            status=str(status_code)
+            method=method, path=normalized_path, status=str(status_code)
         )
-        self.api_latency.observe(
-            duration_seconds,
-            method=method,
-            path=normalized_path
-        )
+        self.api_latency.observe(duration_seconds, method=method, path=normalized_path)
 
         if status_code >= 400:
             error_type = "client_error" if status_code < 500 else "server_error"
             self.api_errors.inc(
-                method=method,
-                path=normalized_path,
-                error_type=error_type
+                method=method, path=normalized_path, error_type=error_type
             )
 
     def record_verification(
-        self,
-        verification_type: str,
-        result: str,
-        duration_seconds: float
+        self, verification_type: str, result: str, duration_seconds: float
     ) -> None:
         """Record verification metrics."""
         self.verifications_performed.inc(type=verification_type, result=result)
         self.verification_latency.observe(duration_seconds, type=verification_type)
 
     def record_ai_review(
-        self,
-        model: str,
-        input_tokens: int,
-        output_tokens: int,
-        success: bool = True
+        self, model: str, input_tokens: int, output_tokens: int, success: bool = True
     ) -> None:
         """Record AI review API usage."""
         status = "success" if success else "failed"
@@ -761,15 +711,16 @@ class MetricsRegistry:
     def _normalize_path(self, path: str) -> str:
         """Normalize API path by replacing UUIDs and IDs with placeholders."""
         import re
+
         # Replace UUIDs
         path = re.sub(
-            r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
-            '{id}',
+            r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            "{id}",
             path,
-            flags=re.IGNORECASE
+            flags=re.IGNORECASE,
         )
         # Replace numeric IDs
-        path = re.sub(r'/\d+(?=/|$)', '/{id}', path)
+        path = re.sub(r"/\d+(?=/|$)", "/{id}", path)
         return path
 
     # =========================================================================
@@ -838,7 +789,7 @@ class MetricsRegistry:
         """Format a single metric for Prometheus."""
         lines = [
             f"# HELP {metric.name} {metric.description}",
-            f"# TYPE {metric.name} {metric._type.value}"
+            f"# TYPE {metric.name} {metric._type.value}",
         ]
 
         if isinstance(metric, Counter):
@@ -859,7 +810,11 @@ class MetricsRegistry:
                 # Buckets (cumulative)
                 for bucket in metric.buckets:
                     count = metric._bucket_counts[labels][bucket]
-                    bucket_label = f'{label_str[:-1]},le="{bucket}"}}'if label_str else f'{{le="{bucket}"}}'
+                    bucket_label = (
+                        f'{label_str[:-1]},le="{bucket}"}}'
+                        if label_str
+                        else f'{{le="{bucket}"}}'
+                    )
                     if label_str and label_str != "{}":
                         bucket_label = f'{label_str[:-1]},le="{bucket}"}}'
                     else:
@@ -867,8 +822,14 @@ class MetricsRegistry:
                     lines.append(f"{metric.name}_bucket{bucket_label} {count}")
 
                 # +Inf bucket
-                inf_label = f'{label_str[:-1]},le="+Inf"}}' if label_str and label_str != "{}" else '{le="+Inf"}'
-                lines.append(f"{metric.name}_bucket{inf_label} {metric._counts[labels]}")
+                inf_label = (
+                    f'{label_str[:-1]},le="+Inf"}}'
+                    if label_str and label_str != "{}"
+                    else '{le="+Inf"}'
+                )
+                lines.append(
+                    f"{metric.name}_bucket{inf_label} {metric._counts[labels]}"
+                )
 
                 # Sum and count
                 lines.append(f"{metric.name}_sum{label_str} {metric._sums[labels]}")
@@ -911,7 +872,9 @@ class MetricsRegistry:
                 "requests_total": sum(self.api_requests.get_all().values()),
                 "errors_total": sum(self.api_errors.get_all().values()),
             },
-            "uptime_seconds": (datetime.now(timezone.utc) - self._start_time).total_seconds()
+            "uptime_seconds": (
+                datetime.now(timezone.utc) - self._start_time
+            ).total_seconds(),
         }
 
 
@@ -966,19 +929,19 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                 method=request.method,
                 path=request.url.path,
                 status_code=response.status_code,
-                duration_seconds=duration
+                duration_seconds=duration,
             )
 
             return response
 
-        except Exception as e:
+        except Exception:
             duration = time.time() - start
 
             get_metrics().record_api_request(
                 method=request.method,
                 path=request.url.path,
                 status_code=500,
-                duration_seconds=duration
+                duration_seconds=duration,
             )
 
             raise
@@ -1004,8 +967,7 @@ async def prometheus_metrics() -> Response:
     content = registry.to_prometheus()
 
     return Response(
-        content=content,
-        media_type="text/plain; version=0.0.4; charset=utf-8"
+        content=content, media_type="text/plain; version=0.0.4; charset=utf-8"
     )
 
 

@@ -106,7 +106,7 @@ export function usePayments({
 
       if (fetchError) throw fetchError
 
-      const formattedPayments: Payment[] = (data || []).map((p) => ({
+      const formattedPayments: Payment[] = (data || []).map((p: any) => ({
         id: p.id,
         type: p.type,
         status: p.status,
@@ -167,7 +167,7 @@ export function usePayments({
           table: 'payments',
           filter: `executor_id=eq.${executorId}`,
         },
-        (payload) => {
+        (payload: any) => {
           if (payload.eventType === 'INSERT') {
             const newPayment = payload.new as Payment
             setPayments((prev) => [newPayment, ...prev])
@@ -224,7 +224,7 @@ export function usePaymentStats(executorId: string): UsePaymentStatsReturn {
       let pendingAmount = 0
       let taskCount = 0
 
-      ;(payments || []).forEach((p) => {
+      ;(payments || []).forEach((p: any) => {
         if (p.status === 'confirmed') {
           if (p.type === 'task_payment' || p.type === 'bonus') {
             totalEarned += p.amount

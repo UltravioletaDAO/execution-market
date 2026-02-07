@@ -5,12 +5,10 @@ Automatically increases bounties for unclaimed tasks based on time.
 Implements dynamic pricing to ensure tasks get completed.
 """
 
-import os
 import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import Enum
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EscalationConfig:
     """Configuration for bounty escalation."""
+
     # Base escalation rate (15% default)
     rate: float = 0.15
     # Interval between escalations (2 hours default)
@@ -33,6 +32,7 @@ class EscalationConfig:
 @dataclass
 class UrgencyConfig:
     """Configuration for urgency multipliers."""
+
     # Multiplier for <2hr deadline
     urgent_2hr: float = 1.5
     # Multiplier for <30min deadline
@@ -46,6 +46,7 @@ class UrgencyConfig:
 @dataclass
 class EscalationResult:
     """Result of bounty escalation."""
+
     task_id: str
     original_bounty: float
     new_bounty: float
@@ -73,7 +74,7 @@ class BountyEscalator:
     def __init__(
         self,
         escalation_config: Optional[EscalationConfig] = None,
-        urgency_config: Optional[UrgencyConfig] = None
+        urgency_config: Optional[UrgencyConfig] = None,
     ):
         """
         Initialize bounty escalator.
@@ -86,8 +87,7 @@ class BountyEscalator:
         self.urgency = urgency_config or UrgencyConfig()
 
     async def check_and_escalate(
-        self,
-        tasks: List[Dict[str, Any]]
+        self, tasks: List[Dict[str, Any]]
     ) -> List[EscalationResult]:
         """
         Check all unclaimed tasks and escalate bounties if needed.
@@ -108,7 +108,7 @@ class BountyEscalator:
                 continue
 
             # Skip if below minimum
-            if task.get('bounty_usd', 0) < self.escalation.min_bounty_usd:
+            if task.get("bounty_usd", 0) < self.escalation.min_bounty_usd:
                 continue
 
             # Check if needs escalation
@@ -123,7 +123,7 @@ class BountyEscalator:
         base_bounty: float,
         deadline: datetime,
         location_hint: Optional[str] = None,
-        task_type: str = "simple_action"
+        task_type: str = "simple_action",
     ) -> Dict[str, Any]:
         """
         Calculate suggested bounty with all multipliers.
@@ -143,31 +143,31 @@ class BountyEscalator:
         # Urgency multiplier
         time_to_deadline = (deadline - now).total_seconds()
         if time_to_deadline < 1800:  # <30 min
-            multipliers['urgency'] = self.urgency.urgent_30min
+            multipliers["urgency"] = self.urgency.urgent_30min
         elif time_to_deadline < 7200:  # <2 hr
-            multipliers['urgency'] = self.urgency.urgent_2hr
+            multipliers["urgency"] = self.urgency.urgent_2hr
         else:
-            multipliers['urgency'] = 1.0
+            multipliers["urgency"] = 1.0
 
         # Location premium
         if location_hint and self._is_rural_location(location_hint):
-            multipliers['location'] = self.urgency.rural_premium
+            multipliers["location"] = self.urgency.rural_premium
         else:
-            multipliers['location'] = 1.0
+            multipliers["location"] = 1.0
 
         # Peak hours surge
         if self._is_peak_hour(now):
-            multipliers['surge'] = self.urgency.peak_surge
+            multipliers["surge"] = self.urgency.peak_surge
         else:
-            multipliers['surge'] = 1.0
+            multipliers["surge"] = 1.0
 
         # Task type minimum
         type_minimums = {
-            'simple_action': 0.50,
-            'physical_presence': 1.00,
-            'knowledge_access': 2.00,
-            'human_authority': 5.00,
-            'digital_physical': 3.00
+            "simple_action": 0.50,
+            "physical_presence": 1.00,
+            "knowledge_access": 2.00,
+            "human_authority": 5.00,
+            "digital_physical": 3.00,
         }
         min_bounty = type_minimums.get(task_type, 0.50)
 
@@ -179,11 +179,11 @@ class BountyEscalator:
         suggested = max(base_bounty * total_multiplier, min_bounty)
 
         return {
-            'base_bounty': base_bounty,
-            'suggested_bounty': round(suggested, 2),
-            'total_multiplier': round(total_multiplier, 2),
-            'multipliers': multipliers,
-            'minimum_for_type': min_bounty
+            "base_bounty": base_bounty,
+            "suggested_bounty": round(suggested, 2),
+            "total_multiplier": round(total_multiplier, 2),
+            "multipliers": multipliers,
+            "minimum_for_type": min_bounty,
         }
 
     async def run_escalation_job(self) -> Dict[str, Any]:
@@ -204,13 +204,13 @@ class BountyEscalator:
         duration = (end - start).total_seconds()
 
         summary = {
-            'job': 'escalate_bounties',
-            'started_at': start.isoformat(),
-            'completed_at': end.isoformat(),
-            'duration_seconds': duration,
-            'tasks_checked': 0,
-            'tasks_escalated': len(results),
-            'results': [r.__dict__ for r in results]
+            "job": "escalate_bounties",
+            "started_at": start.isoformat(),
+            "completed_at": end.isoformat(),
+            "duration_seconds": duration,
+            "tasks_checked": 0,
+            "tasks_escalated": len(results),
+            "results": [r.__dict__ for r in results],
         }
 
         logger.info(f"Escalation job completed: {len(results)} tasks escalated")
@@ -219,25 +219,27 @@ class BountyEscalator:
     # Private methods
 
     def _check_task_escalation(
-        self,
-        task: Dict[str, Any],
-        now: datetime
+        self, task: Dict[str, Any], now: datetime
     ) -> Optional[EscalationResult]:
         """Check if a task needs escalation."""
-        task_id = task['id']
-        current_bounty = task['bounty_usd']
-        original_bounty = task.get('original_bounty_usd', current_bounty)
-        created_at = task.get('created_at', now)
-        last_escalation = task.get('last_escalation')
+        task_id = task["id"]
+        current_bounty = task["bounty_usd"]
+        original_bounty = task.get("original_bounty_usd", current_bounty)
+        created_at = task.get("created_at", now)
+        last_escalation = task.get("last_escalation")
 
         # Parse dates if strings
         if isinstance(created_at, str):
-            created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+            created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
         if isinstance(last_escalation, str):
-            last_escalation = datetime.fromisoformat(last_escalation.replace('Z', '+00:00'))
+            last_escalation = datetime.fromisoformat(
+                last_escalation.replace("Z", "+00:00")
+            )
 
         # Calculate current multiplier
-        current_multiplier = current_bounty / original_bounty if original_bounty > 0 else 1.0
+        current_multiplier = (
+            current_bounty / original_bounty if original_bounty > 0 else 1.0
+        )
 
         # Check if at max
         if current_multiplier >= self.escalation.max_multiplier:
@@ -253,12 +255,12 @@ class BountyEscalator:
         # Calculate new bounty
         new_multiplier = min(
             current_multiplier * (1 + self.escalation.rate),
-            self.escalation.max_multiplier
+            self.escalation.max_multiplier,
         )
         new_bounty = original_bounty * new_multiplier
 
         # Count escalations
-        escalation_count = task.get('escalation_count', 0) + 1
+        escalation_count = task.get("escalation_count", 0) + 1
 
         return EscalationResult(
             task_id=task_id,
@@ -268,14 +270,23 @@ class BountyEscalator:
             escalation_count=escalation_count,
             reason=f"Auto-escalation after {hours_since:.1f}h unclaimed",
             next_escalation_at=now + timedelta(hours=self.escalation.interval_hours)
-            if new_multiplier < self.escalation.max_multiplier else None
+            if new_multiplier < self.escalation.max_multiplier
+            else None,
         )
 
     def _is_rural_location(self, location_hint: str) -> bool:
         """Check if location appears rural."""
         rural_keywords = [
-            'rural', 'remote', 'countryside', 'pueblo', 'village',
-            'farm', 'ranch', 'mountain', 'forest', 'desert'
+            "rural",
+            "remote",
+            "countryside",
+            "pueblo",
+            "village",
+            "farm",
+            "ranch",
+            "mountain",
+            "forest",
+            "desert",
         ]
         return any(kw in location_hint.lower() for kw in rural_keywords)
 
@@ -286,6 +297,7 @@ class BountyEscalator:
 
 
 # Job scheduler helper
+
 
 async def schedule_escalation_job(interval_minutes: int = 30):
     """

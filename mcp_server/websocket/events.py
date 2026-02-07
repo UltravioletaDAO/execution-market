@@ -28,6 +28,7 @@ class WebSocketEventType(str, Enum):
     Naming convention: <Category><Action>
     These are optimized for real-time delivery and client-side handling.
     """
+
     # Task lifecycle events
     TASK_CREATED = "TaskCreated"
     TASK_UPDATED = "TaskUpdated"
@@ -73,8 +74,11 @@ class WebSocketEventType(str, Enum):
 @dataclass
 class EventMetadata:
     """Standard metadata included in every WebSocket event."""
+
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     version: str = "1.0"
 
     def to_dict(self) -> Dict[str, Any]:
@@ -84,6 +88,7 @@ class EventMetadata:
 @dataclass
 class TaskCreatedPayload:
     """Payload for TaskCreated event."""
+
     task_id: str
     title: str
     category: str
@@ -102,6 +107,7 @@ class TaskCreatedPayload:
 @dataclass
 class TaskUpdatedPayload:
     """Payload for TaskUpdated event."""
+
     task_id: str
     status: str
     previous_status: Optional[str] = None
@@ -115,6 +121,7 @@ class TaskUpdatedPayload:
 @dataclass
 class TaskCancelledPayload:
     """Payload for TaskCancelled event."""
+
     task_id: str
     title: str
     reason: Optional[str] = None
@@ -128,6 +135,7 @@ class TaskCancelledPayload:
 @dataclass
 class ApplicationReceivedPayload:
     """Payload for ApplicationReceived event."""
+
     application_id: str
     task_id: str
     worker_id: str
@@ -143,6 +151,7 @@ class ApplicationReceivedPayload:
 @dataclass
 class WorkerAssignedPayload:
     """Payload for WorkerAssigned event."""
+
     task_id: str
     worker_id: str
     worker_name: Optional[str] = None
@@ -157,6 +166,7 @@ class WorkerAssignedPayload:
 @dataclass
 class SubmissionReceivedPayload:
     """Payload for SubmissionReceived event."""
+
     submission_id: str
     task_id: str
     task_title: str
@@ -172,6 +182,7 @@ class SubmissionReceivedPayload:
 @dataclass
 class SubmissionApprovedPayload:
     """Payload for SubmissionApproved event."""
+
     submission_id: str
     task_id: str
     worker_id: str
@@ -187,6 +198,7 @@ class SubmissionApprovedPayload:
 @dataclass
 class SubmissionRejectedPayload:
     """Payload for SubmissionRejected event."""
+
     submission_id: str
     task_id: str
     worker_id: str
@@ -202,6 +214,7 @@ class SubmissionRejectedPayload:
 @dataclass
 class PaymentReleasedPayload:
     """Payload for PaymentReleased event."""
+
     payment_id: str
     task_id: str
     amount_usd: float
@@ -220,6 +233,7 @@ class PaymentReleasedPayload:
 @dataclass
 class PaymentFailedPayload:
     """Payload for PaymentFailed event."""
+
     task_id: str
     amount_usd: float
     error_code: str
@@ -234,6 +248,7 @@ class PaymentFailedPayload:
 @dataclass
 class NotificationNewPayload:
     """Payload for NotificationNew event."""
+
     notification_id: str
     type: str  # "task_update", "payment", "submission", "system"
     title: str
@@ -257,6 +272,7 @@ class WebSocketEvent:
 
     This is the structure sent over WebSocket connections.
     """
+
     event_type: WebSocketEventType
     payload: Dict[str, Any]
     room: Optional[str] = None  # Target room for this event
@@ -293,7 +309,9 @@ class WebSocketEvent:
     # Factory methods for common events
 
     @classmethod
-    def task_created(cls, payload: TaskCreatedPayload, room: Optional[str] = None) -> "WebSocketEvent":
+    def task_created(
+        cls, payload: TaskCreatedPayload, room: Optional[str] = None
+    ) -> "WebSocketEvent":
         """Create TaskCreated event."""
         return cls(
             event_type=WebSocketEventType.TASK_CREATED,
@@ -311,7 +329,9 @@ class WebSocketEvent:
         )
 
     @classmethod
-    def task_cancelled(cls, payload: TaskCancelledPayload, room: str) -> "WebSocketEvent":
+    def task_cancelled(
+        cls, payload: TaskCancelledPayload, room: str
+    ) -> "WebSocketEvent":
         """Create TaskCancelled event."""
         return cls(
             event_type=WebSocketEventType.TASK_CANCELLED,
@@ -320,7 +340,9 @@ class WebSocketEvent:
         )
 
     @classmethod
-    def application_received(cls, payload: ApplicationReceivedPayload, agent_id: str) -> "WebSocketEvent":
+    def application_received(
+        cls, payload: ApplicationReceivedPayload, agent_id: str
+    ) -> "WebSocketEvent":
         """Create ApplicationReceived event (sent to task owner)."""
         return cls(
             event_type=WebSocketEventType.APPLICATION_RECEIVED,
@@ -329,7 +351,9 @@ class WebSocketEvent:
         )
 
     @classmethod
-    def worker_assigned(cls, payload: WorkerAssignedPayload, rooms: List[str]) -> List["WebSocketEvent"]:
+    def worker_assigned(
+        cls, payload: WorkerAssignedPayload, rooms: List[str]
+    ) -> List["WebSocketEvent"]:
         """Create WorkerAssigned events (sent to both task owner and worker)."""
         return [
             cls(
@@ -341,7 +365,9 @@ class WebSocketEvent:
         ]
 
     @classmethod
-    def submission_received(cls, payload: SubmissionReceivedPayload, agent_id: str) -> "WebSocketEvent":
+    def submission_received(
+        cls, payload: SubmissionReceivedPayload, agent_id: str
+    ) -> "WebSocketEvent":
         """Create SubmissionReceived event."""
         return cls(
             event_type=WebSocketEventType.SUBMISSION_RECEIVED,
@@ -350,7 +376,9 @@ class WebSocketEvent:
         )
 
     @classmethod
-    def submission_approved(cls, payload: SubmissionApprovedPayload) -> "WebSocketEvent":
+    def submission_approved(
+        cls, payload: SubmissionApprovedPayload
+    ) -> "WebSocketEvent":
         """Create SubmissionApproved event (sent to worker)."""
         return cls(
             event_type=WebSocketEventType.SUBMISSION_APPROVED,
@@ -359,7 +387,9 @@ class WebSocketEvent:
         )
 
     @classmethod
-    def submission_rejected(cls, payload: SubmissionRejectedPayload) -> "WebSocketEvent":
+    def submission_rejected(
+        cls, payload: SubmissionRejectedPayload
+    ) -> "WebSocketEvent":
         """Create SubmissionRejected event (sent to worker)."""
         return cls(
             event_type=WebSocketEventType.SUBMISSION_REJECTED,
@@ -368,7 +398,9 @@ class WebSocketEvent:
         )
 
     @classmethod
-    def payment_released(cls, payload: PaymentReleasedPayload, worker_id: str) -> "WebSocketEvent":
+    def payment_released(
+        cls, payload: PaymentReleasedPayload, worker_id: str
+    ) -> "WebSocketEvent":
         """Create PaymentReleased event."""
         return cls(
             event_type=WebSocketEventType.PAYMENT_RELEASED,
@@ -377,7 +409,9 @@ class WebSocketEvent:
         )
 
     @classmethod
-    def payment_failed(cls, payload: PaymentFailedPayload, user_id: str) -> "WebSocketEvent":
+    def payment_failed(
+        cls, payload: PaymentFailedPayload, user_id: str
+    ) -> "WebSocketEvent":
         """Create PaymentFailed event."""
         return cls(
             event_type=WebSocketEventType.PAYMENT_FAILED,
@@ -386,7 +420,9 @@ class WebSocketEvent:
         )
 
     @classmethod
-    def notification(cls, payload: NotificationNewPayload, user_id: str) -> "WebSocketEvent":
+    def notification(
+        cls, payload: NotificationNewPayload, user_id: str
+    ) -> "WebSocketEvent":
         """Create NotificationNew event."""
         return cls(
             event_type=WebSocketEventType.NOTIFICATION_NEW,

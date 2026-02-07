@@ -22,8 +22,8 @@ import pytest
 import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
-from dataclasses import dataclass, field
+from unittest.mock import MagicMock, patch
+from dataclasses import dataclass
 from typing import Optional, Dict, Any
 
 # Mock the mcp module before any tools import triggers it
@@ -37,7 +37,6 @@ if "mcp" not in sys.modules:
 from ..e2e.conftest import (
     MockAgent,
     MockWorker,
-    MockEscrowManager,
     MockSupabaseClient,
 )
 
@@ -50,6 +49,7 @@ from ..e2e.conftest import (
 @dataclass
 class MockPaymentInfo:
     """Simulates uvd_x402_sdk PaymentInfo."""
+
     receiver: str = ""
     amount: int = 0
     tier: str = "standard"
@@ -59,6 +59,7 @@ class MockPaymentInfo:
 @dataclass
 class MockAuthorizationResult:
     """Simulates uvd_x402_sdk AuthorizationResult."""
+
     success: bool = True
     transaction_hash: str = "0xAUTH_TX_MOCK_1234567890abcdef"
     error: Optional[str] = None
@@ -67,6 +68,7 @@ class MockAuthorizationResult:
 @dataclass
 class MockTransactionResult:
     """Simulates uvd_x402_sdk TransactionResult."""
+
     success: bool = True
     transaction_hash: str = "0xTX_MOCK_1234567890abcdef"
     gas_used: int = 85000
@@ -93,7 +95,7 @@ class MockAdvancedEscrowClient:
         return MockPaymentInfo(
             receiver=receiver,
             amount=amount,
-            tier=tier.value if hasattr(tier, 'value') else tier,
+            tier=tier.value if hasattr(tier, "value") else tier,
             max_fee_bps=max_fee_bps,
         )
 
@@ -110,14 +112,18 @@ class MockAdvancedEscrowClient:
             transaction_hash=self._next_tx("AUTH"),
         )
 
-    def release(self, payment_info: MockPaymentInfo, amount=None) -> MockTransactionResult:
+    def release(
+        self, payment_info: MockPaymentInfo, amount=None
+    ) -> MockTransactionResult:
         return MockTransactionResult(
             success=True,
             transaction_hash=self._next_tx("RELEASE"),
             gas_used=92000,
         )
 
-    def refund_in_escrow(self, payment_info: MockPaymentInfo, amount=None) -> MockTransactionResult:
+    def refund_in_escrow(
+        self, payment_info: MockPaymentInfo, amount=None
+    ) -> MockTransactionResult:
         return MockTransactionResult(
             success=True,
             transaction_hash=self._next_tx("REFUND"),
@@ -151,7 +157,7 @@ class MockEMAdvancedEscrow:
         self._task_payments: Dict[str, Any] = {}
 
     def _amount_to_atomic(self, amount_usdc: Decimal) -> int:
-        return int(amount_usdc * Decimal(10 ** 6))
+        return int(amount_usdc * Decimal(10**6))
 
     def _get_tier_value(self, amount_usdc: Decimal) -> str:
         if amount_usdc < 5:
@@ -163,11 +169,19 @@ class MockEMAdvancedEscrow:
         else:
             return "enterprise"
 
-    def recommend_strategy(self, amount_usdc, worker_reputation=0.0,
-                           external_dependency=False, requires_quality_review=False,
-                           erc8004_score=None):
+    def recommend_strategy(
+        self,
+        amount_usdc,
+        worker_reputation=0.0,
+        external_dependency=False,
+        requires_quality_review=False,
+        erc8004_score=None,
+    ):
         from integrations.x402.advanced_escrow_integration import PaymentStrategy
-        effective_rep = erc8004_score if erc8004_score is not None else worker_reputation
+
+        effective_rep = (
+            erc8004_score if erc8004_score is not None else worker_reputation
+        )
 
         if effective_rep >= 0.90 and amount_usdc < 5:
             return PaymentStrategy.INSTANT_PAYMENT
@@ -278,8 +292,12 @@ class MockEMAdvancedEscrow:
         release_amount = payment.amount_usdc * release_frac
         refund_amount = payment.amount_usdc - release_amount
 
-        release_result = self.client.release(payment.payment_info, self._amount_to_atomic(release_amount))
-        refund_result = self.client.refund_in_escrow(payment.payment_info, self._amount_to_atomic(refund_amount))
+        release_result = self.client.release(
+            payment.payment_info, self._amount_to_atomic(release_amount)
+        )
+        refund_result = self.client.refund_in_escrow(
+            payment.payment_info, self._amount_to_atomic(refund_amount)
+        )
 
         payment.released_usdc = release_amount
         payment.refunded_usdc = refund_amount
@@ -311,9 +329,11 @@ def patch_escrow_tools(mock_advanced_escrow):
     Patch the escrow_tools module so tools use MockEMAdvancedEscrow
     instead of requiring the real uvd-x402-sdk.
     """
-    with patch("tools.escrow_tools.ADVANCED_ESCROW_AVAILABLE", True), \
-         patch("tools.escrow_tools._get_escrow", return_value=mock_advanced_escrow), \
-         patch("tools.escrow_tools.DEPOSIT_LIMIT_USDC", Decimal("100")):
+    with (
+        patch("tools.escrow_tools.ADVANCED_ESCROW_AVAILABLE", True),
+        patch("tools.escrow_tools._get_escrow", return_value=mock_advanced_escrow),
+        patch("tools.escrow_tools.DEPOSIT_LIMIT_USDC", Decimal("100")),
+    ):
         yield mock_advanced_escrow
 
 
@@ -330,6 +350,7 @@ def escrow_tools(patch_escrow_tools):
         EscrowRecommendInput,
         EscrowPartialReleaseInput,
     )
+
     return {
         "EscrowAuthorizeInput": EscrowAuthorizeInput,
         "EscrowReleaseInput": EscrowReleaseInput,
@@ -354,11 +375,13 @@ def registered_tools(patch_escrow_tools):
             def decorator(func):
                 tool_registry[name] = func
                 return func
+
             return decorator
 
     mock_mcp = MockMCP()
 
     from tools.escrow_tools import register_escrow_tools
+
     register_escrow_tools(mock_mcp)
 
     return tool_registry
@@ -395,26 +418,32 @@ async def test_flow_release_happy_path(
 
     # --- Step 1: Recommend strategy ---
     from tools.escrow_tools import EscrowRecommendInput
+
     recommend = registered_tools["em_escrow_recommend_strategy"]
-    rec_result = await recommend(EscrowRecommendInput(
-        amount_usdc=10.00,
-        worker_reputation=0.75,
-        external_dependency=False,
-        requires_quality_review=False,
-    ))
+    rec_result = await recommend(
+        EscrowRecommendInput(
+            amount_usdc=10.00,
+            worker_reputation=0.75,
+            external_dependency=False,
+            requires_quality_review=False,
+        )
+    )
 
     assert "escrow_capture" in rec_result
     assert "recommended" in rec_result.lower()
 
     # --- Step 2: Authorize escrow ---
     from tools.escrow_tools import EscrowAuthorizeInput
+
     authorize = registered_tools["em_escrow_authorize"]
-    auth_result = await authorize(EscrowAuthorizeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=10.00,
-        strategy="escrow_capture",
-    ))
+    auth_result = await authorize(
+        EscrowAuthorizeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=10.00,
+            strategy="escrow_capture",
+        )
+    )
 
     assert "Escrow Authorized" in auth_result
     assert "AUTH" in auth_result  # tx hash prefix
@@ -467,10 +496,13 @@ async def test_flow_release_happy_path(
 
     # --- Step 5: Release escrow to worker ---
     from tools.escrow_tools import EscrowReleaseInput
+
     release = registered_tools["em_escrow_release"]
-    release_result = await release(EscrowReleaseInput(
-        task_id=task_id,
-    ))
+    release_result = await release(
+        EscrowReleaseInput(
+            task_id=task_id,
+        )
+    )
 
     assert "Payment Released to Worker" in release_result
     assert "RELEASE" in release_result  # tx hash
@@ -482,6 +514,7 @@ async def test_flow_release_happy_path(
 
     # Verify escrow state via status tool
     from tools.escrow_tools import EscrowStatusInput
+
     status = registered_tools["em_escrow_status"]
     status_result = await status(EscrowStatusInput(task_id=task_id))
 
@@ -500,20 +533,25 @@ async def test_flow_release_with_amount(
 
     # Authorize
     from tools.escrow_tools import EscrowAuthorizeInput, EscrowReleaseInput
+
     authorize = registered_tools["em_escrow_authorize"]
-    await authorize(EscrowAuthorizeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=50.00,
-        strategy="escrow_capture",
-    ))
+    await authorize(
+        EscrowAuthorizeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=50.00,
+            strategy="escrow_capture",
+        )
+    )
 
     # Release with explicit amount
     release = registered_tools["em_escrow_release"]
-    result = await release(EscrowReleaseInput(
-        task_id=task_id,
-        amount_usdc=50.00,
-    ))
+    result = await release(
+        EscrowReleaseInput(
+            task_id=task_id,
+            amount_usdc=50.00,
+        )
+    )
 
     assert "Payment Released to Worker" in result
     assert "$50.00 USDC" in result
@@ -546,13 +584,16 @@ async def test_flow_refund_happy_path(
 
     # --- Step 1: Authorize escrow ---
     from tools.escrow_tools import EscrowAuthorizeInput
+
     authorize = registered_tools["em_escrow_authorize"]
-    auth_result = await authorize(EscrowAuthorizeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=25.00,
-        strategy="escrow_cancel",
-    ))
+    auth_result = await authorize(
+        EscrowAuthorizeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=25.00,
+            strategy="escrow_cancel",
+        )
+    )
 
     assert "Escrow Authorized" in auth_result
     assert "em_escrow_refund" in auth_result  # next step for cancel strategy
@@ -580,10 +621,13 @@ async def test_flow_refund_happy_path(
 
     # --- Step 4: Refund escrow to agent ---
     from tools.escrow_tools import EscrowRefundInput
+
     refund = registered_tools["em_escrow_refund"]
-    refund_result = await refund(EscrowRefundInput(
-        task_id=task_id,
-    ))
+    refund_result = await refund(
+        EscrowRefundInput(
+            task_id=task_id,
+        )
+    )
 
     assert "Escrow Refunded to Agent" in refund_result
     assert "REFUND" in refund_result  # tx hash
@@ -591,6 +635,7 @@ async def test_flow_refund_happy_path(
 
     # --- Step 5: Verify status shows refunded ---
     from tools.escrow_tools import EscrowStatusInput
+
     status = registered_tools["em_escrow_status"]
     status_result = await status(EscrowStatusInput(task_id=task_id))
 
@@ -607,19 +652,24 @@ async def test_flow_refund_with_amount(
     worker_wallet = "0x" + "D" * 40
 
     from tools.escrow_tools import EscrowAuthorizeInput, EscrowRefundInput
+
     authorize = registered_tools["em_escrow_authorize"]
-    await authorize(EscrowAuthorizeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=75.00,
-        strategy="escrow_cancel",
-    ))
+    await authorize(
+        EscrowAuthorizeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=75.00,
+            strategy="escrow_cancel",
+        )
+    )
 
     refund = registered_tools["em_escrow_refund"]
-    result = await refund(EscrowRefundInput(
-        task_id=task_id,
-        amount_usdc=75.00,
-    ))
+    result = await refund(
+        EscrowRefundInput(
+            task_id=task_id,
+            amount_usdc=75.00,
+        )
+    )
 
     assert "Escrow Refunded to Agent" in result
     assert "$75.00 USDC" in result
@@ -637,14 +687,17 @@ async def test_authorize_rejects_over_100(
 ):
     """Amounts > $100 are rejected by authorize tool BEFORE reaching on-chain."""
     from tools.escrow_tools import EscrowAuthorizeInput
+
     authorize = registered_tools["em_escrow_authorize"]
 
-    result = await authorize(EscrowAuthorizeInput(
-        task_id=str(uuid.uuid4()),
-        receiver="0x" + "A" * 40,
-        amount_usdc=150.00,
-        strategy="escrow_capture",
-    ))
+    result = await authorize(
+        EscrowAuthorizeInput(
+            task_id=str(uuid.uuid4()),
+            receiver="0x" + "A" * 40,
+            amount_usdc=150.00,
+            strategy="escrow_capture",
+        )
+    )
 
     assert "Exceeds Contract Deposit Limit" in result
     assert "$100" in result
@@ -658,13 +711,16 @@ async def test_charge_rejects_over_100(
 ):
     """Amounts > $100 are rejected by charge tool BEFORE reaching on-chain."""
     from tools.escrow_tools import EscrowChargeInput
+
     charge = registered_tools["em_escrow_charge"]
 
-    result = await charge(EscrowChargeInput(
-        task_id=str(uuid.uuid4()),
-        receiver="0x" + "B" * 40,
-        amount_usdc=200.00,
-    ))
+    result = await charge(
+        EscrowChargeInput(
+            task_id=str(uuid.uuid4()),
+            receiver="0x" + "B" * 40,
+            amount_usdc=200.00,
+        )
+    )
 
     assert "Exceeds Contract Deposit Limit" in result
     assert "$100" in result
@@ -677,14 +733,17 @@ async def test_authorize_at_exact_limit(
 ):
     """$100 exactly should be accepted (not rejected)."""
     from tools.escrow_tools import EscrowAuthorizeInput
+
     authorize = registered_tools["em_escrow_authorize"]
 
-    result = await authorize(EscrowAuthorizeInput(
-        task_id=str(uuid.uuid4()),
-        receiver="0x" + "E" * 40,
-        amount_usdc=100.00,
-        strategy="escrow_capture",
-    ))
+    result = await authorize(
+        EscrowAuthorizeInput(
+            task_id=str(uuid.uuid4()),
+            receiver="0x" + "E" * 40,
+            amount_usdc=100.00,
+            strategy="escrow_capture",
+        )
+    )
 
     assert "Escrow Authorized" in result
     assert "Exceeds" not in result
@@ -697,14 +756,17 @@ async def test_authorize_under_limit(
 ):
     """$99.99 should be accepted."""
     from tools.escrow_tools import EscrowAuthorizeInput
+
     authorize = registered_tools["em_escrow_authorize"]
 
-    result = await authorize(EscrowAuthorizeInput(
-        task_id=str(uuid.uuid4()),
-        receiver="0x" + "F" * 40,
-        amount_usdc=99.99,
-        strategy="escrow_capture",
-    ))
+    result = await authorize(
+        EscrowAuthorizeInput(
+            task_id=str(uuid.uuid4()),
+            receiver="0x" + "F" * 40,
+            amount_usdc=99.99,
+            strategy="escrow_capture",
+        )
+    )
 
     assert "Escrow Authorized" in result
 
@@ -716,12 +778,15 @@ async def test_recommend_strategy_warns_over_limit(
 ):
     """Strategy recommendation warns when amount > $100."""
     from tools.escrow_tools import EscrowRecommendInput
+
     recommend = registered_tools["em_escrow_recommend_strategy"]
 
-    result = await recommend(EscrowRecommendInput(
-        amount_usdc=250.00,
-        worker_reputation=0.5,
-    ))
+    result = await recommend(
+        EscrowRecommendInput(
+            amount_usdc=250.00,
+            worker_reputation=0.5,
+        )
+    )
 
     assert "Deposit Limit Warning" in result
     assert "$100" in result
@@ -742,11 +807,14 @@ async def test_dispute_tool_returns_not_available(
     Per commit 0ee2cf4: tokenCollector not implemented.
     """
     from tools.escrow_tools import EscrowDisputeInput
+
     dispute = registered_tools["em_escrow_dispute"]
 
-    result = await dispute(EscrowDisputeInput(
-        task_id=str(uuid.uuid4()),
-    ))
+    result = await dispute(
+        EscrowDisputeInput(
+            task_id=str(uuid.uuid4()),
+        )
+    )
 
     assert "Not Available" in result
     assert "tokenCollector" in result
@@ -773,13 +841,16 @@ async def test_arbiter_escrow_release_path(
 
     # --- Authorize with dispute_resolution strategy ---
     from tools.escrow_tools import EscrowAuthorizeInput
+
     authorize = registered_tools["em_escrow_authorize"]
-    auth_result = await authorize(EscrowAuthorizeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=75.00,
-        strategy="dispute_resolution",
-    ))
+    auth_result = await authorize(
+        EscrowAuthorizeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=75.00,
+            strategy="dispute_resolution",
+        )
+    )
 
     assert "Escrow Authorized" in auth_result
     assert "Arbiter reviews" in auth_result
@@ -825,6 +896,7 @@ async def test_arbiter_escrow_release_path(
     )
 
     from tools.escrow_tools import EscrowReleaseInput
+
     release = registered_tools["em_escrow_release"]
     release_result = await release(EscrowReleaseInput(task_id=task_id))
 
@@ -853,13 +925,16 @@ async def test_arbiter_escrow_refund_path(
 
     # --- Authorize with dispute_resolution strategy ---
     from tools.escrow_tools import EscrowAuthorizeInput
+
     authorize = registered_tools["em_escrow_authorize"]
-    await authorize(EscrowAuthorizeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=60.00,
-        strategy="dispute_resolution",
-    ))
+    await authorize(
+        EscrowAuthorizeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=60.00,
+            strategy="dispute_resolution",
+        )
+    )
 
     # --- Task posted, worker submits bad work ---
     deadline = datetime.now(timezone.utc) + timedelta(hours=48)
@@ -895,6 +970,7 @@ async def test_arbiter_escrow_refund_path(
     )
 
     from tools.escrow_tools import EscrowRefundInput
+
     refund = registered_tools["em_escrow_refund"]
     refund_result = await refund(EscrowRefundInput(task_id=task_id))
 
@@ -903,6 +979,7 @@ async def test_arbiter_escrow_refund_path(
 
     # Verify status
     from tools.escrow_tools import EscrowStatusInput
+
     status = registered_tools["em_escrow_status"]
     status_result = await status(EscrowStatusInput(task_id=task_id))
     assert "refunded" in status_result.lower()
@@ -918,13 +995,16 @@ async def test_recommend_dispute_resolution_for_high_value_low_rep(
     high-value tasks with low-reputation workers.
     """
     from tools.escrow_tools import EscrowRecommendInput
+
     recommend = registered_tools["em_escrow_recommend_strategy"]
 
-    result = await recommend(EscrowRecommendInput(
-        amount_usdc=75.00,
-        worker_reputation=0.30,
-        requires_quality_review=False,
-    ))
+    result = await recommend(
+        EscrowRecommendInput(
+            amount_usdc=75.00,
+            worker_reputation=0.30,
+            requires_quality_review=False,
+        )
+    )
 
     assert "dispute_resolution" in result
     assert "recommended" in result.lower()
@@ -940,13 +1020,16 @@ async def test_recommend_dispute_resolution_for_quality_review(
     quality review is required and amount >= $50.
     """
     from tools.escrow_tools import EscrowRecommendInput
+
     recommend = registered_tools["em_escrow_recommend_strategy"]
 
-    result = await recommend(EscrowRecommendInput(
-        amount_usdc=80.00,
-        worker_reputation=0.80,
-        requires_quality_review=True,
-    ))
+    result = await recommend(
+        EscrowRecommendInput(
+            amount_usdc=80.00,
+            worker_reputation=0.80,
+            requires_quality_review=True,
+        )
+    )
 
     assert "dispute_resolution" in result
     assert "Dispute Resolution Note" in result
@@ -965,11 +1048,14 @@ async def test_release_nonexistent_task(
 ):
     """Releasing a task that was never authorized returns error."""
     from tools.escrow_tools import EscrowReleaseInput
+
     release = registered_tools["em_escrow_release"]
 
-    result = await release(EscrowReleaseInput(
-        task_id="nonexistent-task-id",
-    ))
+    result = await release(
+        EscrowReleaseInput(
+            task_id="nonexistent-task-id",
+        )
+    )
 
     assert "Error" in result or "error" in result.lower()
 
@@ -981,11 +1067,14 @@ async def test_refund_nonexistent_task(
 ):
     """Refunding a task that was never authorized returns error."""
     from tools.escrow_tools import EscrowRefundInput
+
     refund = registered_tools["em_escrow_refund"]
 
-    result = await refund(EscrowRefundInput(
-        task_id="nonexistent-task-id",
-    ))
+    result = await refund(
+        EscrowRefundInput(
+            task_id="nonexistent-task-id",
+        )
+    )
 
     assert "Error" in result or "error" in result.lower()
 
@@ -997,11 +1086,14 @@ async def test_status_nonexistent_task(
 ):
     """Status for a task without escrow returns informative message."""
     from tools.escrow_tools import EscrowStatusInput
+
     status = registered_tools["em_escrow_status"]
 
-    result = await status(EscrowStatusInput(
-        task_id="no-such-task",
-    ))
+    result = await status(
+        EscrowStatusInput(
+            task_id="no-such-task",
+        )
+    )
 
     assert "No Escrow Found" in result
 
@@ -1017,21 +1109,27 @@ async def test_instant_payment_flow(
 
     # Recommend should suggest instant for high-rep micro task
     from tools.escrow_tools import EscrowRecommendInput
+
     recommend = registered_tools["em_escrow_recommend_strategy"]
-    rec_result = await recommend(EscrowRecommendInput(
-        amount_usdc=3.00,
-        worker_reputation=0.95,
-    ))
+    rec_result = await recommend(
+        EscrowRecommendInput(
+            amount_usdc=3.00,
+            worker_reputation=0.95,
+        )
+    )
     assert "instant_payment" in rec_result
 
     # Charge directly
     from tools.escrow_tools import EscrowChargeInput
+
     charge = registered_tools["em_escrow_charge"]
-    charge_result = await charge(EscrowChargeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=3.00,
-    ))
+    charge_result = await charge(
+        EscrowChargeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=3.00,
+        )
+    )
 
     assert "Instant Payment Sent" in charge_result
     assert "CHARGE" in charge_result
@@ -1048,20 +1146,25 @@ async def test_partial_release_flow(
 
     # Authorize first
     from tools.escrow_tools import EscrowAuthorizeInput, EscrowPartialReleaseInput
+
     authorize = registered_tools["em_escrow_authorize"]
-    await authorize(EscrowAuthorizeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=50.00,
-        strategy="partial_payment",
-    ))
+    await authorize(
+        EscrowAuthorizeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=50.00,
+            strategy="partial_payment",
+        )
+    )
 
     # Partial release (20% to worker, 80% refund)
     partial = registered_tools["em_escrow_partial_release"]
-    result = await partial(EscrowPartialReleaseInput(
-        task_id=task_id,
-        release_percent=20,
-    ))
+    result = await partial(
+        EscrowPartialReleaseInput(
+            task_id=task_id,
+            release_percent=20,
+        )
+    )
 
     assert "Partial Release Complete" in result
     assert "20%" in result
@@ -1078,13 +1181,16 @@ async def test_status_after_authorize(
     worker_wallet = "0x" + "D" * 40
 
     from tools.escrow_tools import EscrowAuthorizeInput, EscrowStatusInput
+
     authorize = registered_tools["em_escrow_authorize"]
-    await authorize(EscrowAuthorizeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=20.00,
-        strategy="escrow_capture",
-    ))
+    await authorize(
+        EscrowAuthorizeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=20.00,
+            strategy="escrow_capture",
+        )
+    )
 
     status = registered_tools["em_escrow_status"]
     result = await status(EscrowStatusInput(task_id=task_id))
@@ -1114,12 +1220,14 @@ async def test_status_after_release_no_dispute_suggestion(
     )
 
     authorize = registered_tools["em_escrow_authorize"]
-    await authorize(EscrowAuthorizeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=30.00,
-        strategy="escrow_capture",
-    ))
+    await authorize(
+        EscrowAuthorizeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=30.00,
+            strategy="escrow_capture",
+        )
+    )
 
     release = registered_tools["em_escrow_release"]
     await release(EscrowReleaseInput(task_id=task_id))
@@ -1129,7 +1237,11 @@ async def test_status_after_release_no_dispute_suggestion(
 
     assert "released" in result.lower()
     assert "em_escrow_dispute" not in result
-    assert "not available" in result.lower() or "not implemented" in result.lower() or "Post-release dispute" in result
+    assert (
+        "not available" in result.lower()
+        or "not implemented" in result.lower()
+        or "Post-release dispute" in result
+    )
 
 
 @pytest.mark.asyncio
@@ -1142,25 +1254,31 @@ async def test_escrow_cancel_strategy_flow(
     For weather/event-dependent tasks.
     """
     from tools.escrow_tools import EscrowRecommendInput
+
     recommend = registered_tools["em_escrow_recommend_strategy"]
-    rec_result = await recommend(EscrowRecommendInput(
-        amount_usdc=30.00,
-        worker_reputation=0.70,
-        external_dependency=True,
-    ))
+    rec_result = await recommend(
+        EscrowRecommendInput(
+            amount_usdc=30.00,
+            worker_reputation=0.70,
+            external_dependency=True,
+        )
+    )
     assert "escrow_cancel" in rec_result
 
     task_id = str(uuid.uuid4())
     worker_wallet = "0x" + "F" * 40
 
     from tools.escrow_tools import EscrowAuthorizeInput, EscrowRefundInput
+
     authorize = registered_tools["em_escrow_authorize"]
-    auth_result = await authorize(EscrowAuthorizeInput(
-        task_id=task_id,
-        receiver=worker_wallet,
-        amount_usdc=30.00,
-        strategy="escrow_cancel",
-    ))
+    auth_result = await authorize(
+        EscrowAuthorizeInput(
+            task_id=task_id,
+            receiver=worker_wallet,
+            amount_usdc=30.00,
+            strategy="escrow_cancel",
+        )
+    )
 
     assert "Escrow Authorized" in auth_result
     assert "em_escrow_refund" in auth_result

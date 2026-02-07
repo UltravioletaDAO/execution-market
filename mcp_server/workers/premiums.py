@@ -17,7 +17,7 @@ This incentivizes:
 import logging
 from typing import Optional, List, Dict, Any, Set
 from dataclasses import dataclass, field
-from datetime import datetime, date, time, timezone, timedelta
+from datetime import datetime, date, timezone, timedelta
 from enum import Enum
 from zoneinfo import ZoneInfo
 
@@ -26,16 +26,18 @@ logger = logging.getLogger(__name__)
 
 class PremiumType(str, Enum):
     """Types of time-based premiums."""
+
     WEEKEND = "weekend"
     NIGHT = "night"
     HOLIDAY = "holiday"
-    SURGE = "surge"              # Dynamic demand-based premium
-    URGENT = "urgent"            # Short deadline tasks
+    SURGE = "surge"  # Dynamic demand-based premium
+    URGENT = "urgent"  # Short deadline tasks
 
 
 @dataclass
 class PremiumConfig:
     """Configuration for premium calculations."""
+
     # Base premium percentages
     weekend_premium_pct: float = 15.0
     night_premium_pct: float = 25.0
@@ -43,7 +45,7 @@ class PremiumConfig:
 
     # Night hours definition (in worker's local time)
     night_start_hour: int = 20  # 8 PM
-    night_end_hour: int = 6     # 6 AM
+    night_end_hour: int = 6  # 6 AM
 
     # Weekend definition (0=Monday, 6=Sunday)
     weekend_days: Set[int] = field(default_factory=lambda: {5, 6})  # Sat, Sun
@@ -65,6 +67,7 @@ class PremiumConfig:
 @dataclass
 class TimePremium:
     """Calculated premium for a specific time window."""
+
     base_amount: float
     premium_amount: float
     total_amount: float
@@ -82,6 +85,7 @@ class TimePremium:
 @dataclass
 class HolidayDefinition:
     """Definition of a holiday."""
+
     name: str
     month: int
     day: int
@@ -94,53 +98,41 @@ DEFAULT_HOLIDAYS = [
     # International/Global
     HolidayDefinition("New Year's Day", 1, 1),
     HolidayDefinition("Christmas Day", 12, 25),
-
     # US
     HolidayDefinition("Independence Day", 7, 4, ["US"]),
     HolidayDefinition("Thanksgiving", 11, 28, ["US"]),  # Approximation
-    HolidayDefinition("Memorial Day", 5, 27, ["US"]),   # Approximation
-    HolidayDefinition("Labor Day", 9, 2, ["US"]),       # Approximation
-
+    HolidayDefinition("Memorial Day", 5, 27, ["US"]),  # Approximation
+    HolidayDefinition("Labor Day", 9, 2, ["US"]),  # Approximation
     # Mexico
     HolidayDefinition("Dia de la Independencia", 9, 16, ["MX"]),
     HolidayDefinition("Dia de los Muertos", 11, 2, ["MX"]),
     HolidayDefinition("Cinco de Mayo", 5, 5, ["MX"]),
     HolidayDefinition("Revolucion Mexicana", 11, 20, ["MX"]),
-
     # Brazil
     HolidayDefinition("Independence Day", 9, 7, ["BR"]),
-    HolidayDefinition("Carnival", 2, 25, ["BR"]),       # Approximation
-
+    HolidayDefinition("Carnival", 2, 25, ["BR"]),  # Approximation
     # Argentina
     HolidayDefinition("Revolucion de Mayo", 5, 25, ["AR"]),
     HolidayDefinition("Independence Day", 7, 9, ["AR"]),
-
     # Colombia
     HolidayDefinition("Independence Day", 7, 20, ["CO"]),
     HolidayDefinition("Batalla de Boyaca", 8, 7, ["CO"]),
-
     # UK
     HolidayDefinition("Boxing Day", 12, 26, ["GB"]),
-    HolidayDefinition("Bank Holiday", 8, 26, ["GB"]),   # Approximation
-
+    HolidayDefinition("Bank Holiday", 8, 26, ["GB"]),  # Approximation
     # Germany
     HolidayDefinition("German Unity Day", 10, 3, ["DE"]),
-
     # France
     HolidayDefinition("Bastille Day", 7, 14, ["FR"]),
-
     # Spain
     HolidayDefinition("National Day", 10, 12, ["ES"]),
-
     # India
     HolidayDefinition("Independence Day", 8, 15, ["IN"]),
     HolidayDefinition("Republic Day", 1, 26, ["IN"]),
-    HolidayDefinition("Diwali", 11, 1, ["IN"]),         # Approximation
-
+    HolidayDefinition("Diwali", 11, 1, ["IN"]),  # Approximation
     # Japan
     HolidayDefinition("Golden Week", 5, 3, ["JP"]),
     HolidayDefinition("Culture Day", 11, 3, ["JP"]),
-
     # China
     HolidayDefinition("Chinese New Year", 2, 10, ["CN"]),  # Approximation
     HolidayDefinition("National Day", 10, 1, ["CN"]),
@@ -173,7 +165,7 @@ class PremiumCalculator:
     def __init__(
         self,
         config: Optional[PremiumConfig] = None,
-        holidays: Optional[List[HolidayDefinition]] = None
+        holidays: Optional[List[HolidayDefinition]] = None,
     ):
         """
         Initialize premium calculator.
@@ -192,7 +184,7 @@ class PremiumCalculator:
         worker_timezone: str = "UTC",
         worker_country: Optional[str] = None,
         deadline_hours: Optional[int] = None,
-        demand_multiplier: float = 1.0
+        demand_multiplier: float = 1.0,
     ) -> TimePremium:
         """
         Calculate total premium for a task.
@@ -225,53 +217,66 @@ class PremiumCalculator:
 
         # Check weekend
         if self._is_weekend(local_time):
-            applied_premiums.append({
-                "type": PremiumType.WEEKEND.value,
-                "percentage": self.config.weekend_premium_pct,
-                "reason": f"Weekend ({local_time.strftime('%A')})",
-            })
+            applied_premiums.append(
+                {
+                    "type": PremiumType.WEEKEND.value,
+                    "percentage": self.config.weekend_premium_pct,
+                    "reason": f"Weekend ({local_time.strftime('%A')})",
+                }
+            )
             total_pct += self.config.weekend_premium_pct
 
         # Check night
         if self._is_night(local_time):
-            applied_premiums.append({
-                "type": PremiumType.NIGHT.value,
-                "percentage": self.config.night_premium_pct,
-                "reason": f"Night hours ({local_time.strftime('%H:%M')})",
-            })
+            applied_premiums.append(
+                {
+                    "type": PremiumType.NIGHT.value,
+                    "percentage": self.config.night_premium_pct,
+                    "reason": f"Night hours ({local_time.strftime('%H:%M')})",
+                }
+            )
             total_pct += self.config.night_premium_pct
 
         # Check holiday
         holiday = self._check_holiday(local_time.date(), worker_country)
         if holiday:
-            applied_premiums.append({
-                "type": PremiumType.HOLIDAY.value,
-                "percentage": self.config.holiday_premium_pct,
-                "reason": f"Holiday: {holiday.name}",
-            })
+            applied_premiums.append(
+                {
+                    "type": PremiumType.HOLIDAY.value,
+                    "percentage": self.config.holiday_premium_pct,
+                    "reason": f"Holiday: {holiday.name}",
+                }
+            )
             total_pct += self.config.holiday_premium_pct
 
         # Check urgency
-        if deadline_hours is not None and deadline_hours <= self.config.urgent_threshold_hours:
-            applied_premiums.append({
-                "type": PremiumType.URGENT.value,
-                "percentage": self.config.urgent_premium_pct,
-                "reason": f"Urgent task ({deadline_hours}h deadline)",
-            })
+        if (
+            deadline_hours is not None
+            and deadline_hours <= self.config.urgent_threshold_hours
+        ):
+            applied_premiums.append(
+                {
+                    "type": PremiumType.URGENT.value,
+                    "percentage": self.config.urgent_premium_pct,
+                    "reason": f"Urgent task ({deadline_hours}h deadline)",
+                }
+            )
             total_pct += self.config.urgent_premium_pct
 
         # Check surge
         if self.config.enable_surge and demand_multiplier > 1.0:
             surge_pct = min(
                 (demand_multiplier - 1.0) * 20.0,  # 20% per 1.0 demand increase
-                self.config.surge_max_pct
+                self.config.surge_max_pct,
             )
             if surge_pct >= self.config.surge_min_pct:
-                applied_premiums.append({
-                    "type": PremiumType.SURGE.value,
-                    "percentage": surge_pct,
-                    "reason": f"High demand (x{demand_multiplier:.1f})",
-                })
+                applied_premiums.append(
+                    {
+                        "type": PremiumType.SURGE.value,
+                        "percentage": surge_pct,
+                        "reason": f"High demand (x{demand_multiplier:.1f})",
+                    }
+                )
                 total_pct += surge_pct
 
         # Apply stacking rules
@@ -286,11 +291,13 @@ class PremiumCalculator:
         if total_pct > self.config.max_total_premium_pct:
             original_pct = total_pct
             total_pct = self.config.max_total_premium_pct
-            applied_premiums.append({
-                "type": "cap",
-                "percentage": -(original_pct - total_pct),
-                "reason": f"Premium capped at {self.config.max_total_premium_pct}%",
-            })
+            applied_premiums.append(
+                {
+                    "type": "cap",
+                    "percentage": -(original_pct - total_pct),
+                    "reason": f"Premium capped at {self.config.max_total_premium_pct}%",
+                }
+            )
 
         # Calculate amounts
         premium_amount = base_amount * (total_pct / 100)
@@ -312,7 +319,7 @@ class PremiumCalculator:
         start_time: datetime,
         end_time: datetime,
         worker_timezone: str = "UTC",
-        worker_country: Optional[str] = None
+        worker_country: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Estimate average premium for a time period.
@@ -374,9 +381,7 @@ class PremiumCalculator:
         }
 
     def get_premium_schedule(
-        self,
-        worker_timezone: str = "UTC",
-        worker_country: Optional[str] = None
+        self, worker_timezone: str = "UTC", worker_country: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Get premium schedule for a worker's week.
@@ -385,7 +390,15 @@ class PremiumCalculator:
             Dict with premium rates by day/hour
         """
         schedule = {}
-        days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        days = [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ]
 
         for day_idx, day_name in enumerate(days):
             schedule[day_name] = {
@@ -395,7 +408,9 @@ class PremiumCalculator:
 
             for hour in range(24):
                 # Create a sample datetime for this day/hour
-                sample_time = datetime(2026, 1, 20 + day_idx, hour, 0, tzinfo=timezone.utc)
+                sample_time = datetime(
+                    2026, 1, 20 + day_idx, hour, 0, tzinfo=timezone.utc
+                )
 
                 premium = self.calculate_premium(
                     base_amount=100.0,
@@ -412,9 +427,7 @@ class PremiumCalculator:
         return schedule
 
     def get_upcoming_holidays(
-        self,
-        country: Optional[str] = None,
-        days_ahead: int = 90
+        self, country: Optional[str] = None, days_ahead: int = 90
     ) -> List[Dict[str, Any]]:
         """
         Get upcoming holidays for planning.
@@ -432,7 +445,11 @@ class PremiumCalculator:
 
         for holiday in self.holidays:
             # Check country filter
-            if country and holiday.country_codes and country not in holiday.country_codes:
+            if (
+                country
+                and holiday.country_codes
+                and country not in holiday.country_codes
+            ):
                 continue
 
             # Check if holiday falls in range (for current and next year)
@@ -446,13 +463,15 @@ class PremiumCalculator:
                     continue  # Invalid date (e.g., Feb 30)
 
                 if today <= holiday_date <= end_date:
-                    upcoming.append({
-                        "name": holiday.name,
-                        "date": holiday_date.isoformat(),
-                        "day_of_week": holiday_date.strftime("%A"),
-                        "premium_pct": self.config.holiday_premium_pct,
-                        "countries": holiday.country_codes or ["GLOBAL"],
-                    })
+                    upcoming.append(
+                        {
+                            "name": holiday.name,
+                            "date": holiday_date.isoformat(),
+                            "day_of_week": holiday_date.strftime("%A"),
+                            "premium_pct": self.config.holiday_premium_pct,
+                            "countries": holiday.country_codes or ["GLOBAL"],
+                        }
+                    )
 
         # Sort by date
         upcoming.sort(key=lambda h: h["date"])
@@ -468,15 +487,16 @@ class PremiumCalculator:
         hour = dt.hour
         if self.config.night_start_hour > self.config.night_end_hour:
             # Night spans midnight (e.g., 20:00 - 06:00)
-            return hour >= self.config.night_start_hour or hour < self.config.night_end_hour
+            return (
+                hour >= self.config.night_start_hour
+                or hour < self.config.night_end_hour
+            )
         else:
             # Night doesn't span midnight
             return self.config.night_start_hour <= hour < self.config.night_end_hour
 
     def _check_holiday(
-        self,
-        check_date: date,
-        country: Optional[str] = None
+        self, check_date: date, country: Optional[str] = None
     ) -> Optional[HolidayDefinition]:
         """Check if date is a holiday."""
         for holiday in self.holidays:
@@ -503,7 +523,7 @@ def calculate_task_premium(
     base_amount: float,
     worker_timezone: str = "UTC",
     worker_country: Optional[str] = None,
-    deadline_hours: Optional[int] = None
+    deadline_hours: Optional[int] = None,
 ) -> TimePremium:
     """
     Quick premium calculation for a task.

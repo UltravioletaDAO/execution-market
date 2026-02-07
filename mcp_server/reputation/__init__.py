@@ -90,25 +90,21 @@ __all__ = [
     "ReputationScore",
     "ReputationHistory",
     "ConfidenceInterval",
-
     # Bayesian
     "BayesianCalculator",
     "BayesianConfig",
     "Rating",
     "calculate_bayesian_score",
     "create_new_reputation",
-
     # Decay
     "DecayManager",
     "DecayConfig",
     "apply_batch_decay",
     "get_decay_schedule",
-
     # Badges
     "BadgeManager",
     "BadgeContext",
     "check_and_award_badges",
-
     # Leaderboard
     "LeaderboardManager",
     "LeaderboardEntry",

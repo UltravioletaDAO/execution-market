@@ -172,9 +172,7 @@ async def browse_available_tasks(
 
     # Filter tasks that match reputation
     available = [
-        task
-        for task in result["tasks"]
-        if task["min_reputation"] <= my_reputation
+        task for task in result["tasks"] if task["min_reputation"] <= my_reputation
     ]
 
     return available
@@ -426,11 +424,11 @@ async def main():
         notes="Photo clearly shows store front with hours posted on door.",
     )
 
-    print(f"\nSubmission result:")
+    print("\nSubmission result:")
     print(f"  Submission ID: {submit_result['submission_id']}")
     print(f"  Status: {submit_result['status']}")
     print(f"  Evidence received: {', '.join(submit_result['evidence_received'])}")
-    print(f"\nAwaiting agent review...")
+    print("\nAwaiting agent review...")
 
     # Step 4: Check earnings
     print("\n" + "=" * 60)
@@ -439,7 +437,7 @@ async def main():
 
     status = await check_my_status(client, executor_id)
 
-    print(f"\nYour Status:")
+    print("\nYour Status:")
     print(f"  Total tasks: {status['total']}")
     print(f"  Completed: {status['completed']}")
     print(f"  In progress: {status['in_progress']}")
@@ -451,7 +449,9 @@ async def main():
     for task in status["tasks"][:3]:
         earned = task.get("earned", 0)
         print(f"  - {task['title']}")
-        print(f"    Status: {task['status']}, Bounty: ${task['bounty_usd']:.2f}", end="")
+        print(
+            f"    Status: {task['status']}, Bounty: ${task['bounty_usd']:.2f}", end=""
+        )
         if earned:
             print(f", Earned: ${earned:.2f}")
         else:
@@ -467,7 +467,7 @@ async def main():
 
         withdraw_result = await withdraw_earnings(client, executor_id)
 
-        print(f"\nWithdrawal successful!")
+        print("\nWithdrawal successful!")
         print(f"  Amount: ${withdraw_result['amount_usdc']:.2f}")
         print(f"  Gas fee: ${withdraw_result['gas_used']:.2f}")
         print(f"  Net amount: ${withdraw_result['net_amount']:.2f}")

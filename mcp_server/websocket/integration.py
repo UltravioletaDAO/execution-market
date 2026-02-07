@@ -42,6 +42,7 @@ class EventEmitter:
             self._initialized = True
             try:
                 from .handlers import handlers
+
                 self._handlers = handlers
                 logger.debug("WebSocket handlers loaded")
             except ImportError as e:

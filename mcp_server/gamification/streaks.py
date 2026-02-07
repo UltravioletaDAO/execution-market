@@ -6,7 +6,7 @@ Tracks worker activity streaks and bonuses.
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from typing import Dict, Optional, List, Tuple, Any
 
 logger = logging.getLogger(__name__)
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class StreakBonus:
     """Bonus for maintaining a streak."""
+
     days: int
     bonus_percentage: float
     name: str
@@ -24,6 +25,7 @@ class StreakBonus:
 @dataclass
 class StreakData:
     """Internal streak tracking data."""
+
     current: int
     longest: int
     last_active: date
@@ -49,9 +51,15 @@ class StreakTracker:
     """
 
     BONUSES = [
-        StreakBonus(30, 0.25, "Monthly Master", "Incredible dedication! 25% bonus on all tasks."),
-        StreakBonus(14, 0.15, "Two Week Warrior", "Two weeks strong! 15% bonus on all tasks."),
-        StreakBonus(7, 0.10, "Weekly Warrior", "One week complete! 10% bonus on all tasks."),
+        StreakBonus(
+            30, 0.25, "Monthly Master", "Incredible dedication! 25% bonus on all tasks."
+        ),
+        StreakBonus(
+            14, 0.15, "Two Week Warrior", "Two weeks strong! 15% bonus on all tasks."
+        ),
+        StreakBonus(
+            7, 0.10, "Weekly Warrior", "One week complete! 10% bonus on all tasks."
+        ),
         StreakBonus(3, 0.05, "Streak Started", "Keep it going! 5% bonus on all tasks."),
     ]
 
@@ -62,9 +70,7 @@ class StreakTracker:
         self._streaks: Dict[str, StreakData] = {}
 
     def record_activity(
-        self,
-        worker_id: str,
-        activity_time: Optional[datetime] = None
+        self, worker_id: str, activity_time: Optional[datetime] = None
     ) -> Dict[str, Any]:
         """
         Record daily activity for worker.
@@ -81,10 +87,7 @@ class StreakTracker:
 
         if worker_id not in self._streaks:
             self._streaks[worker_id] = StreakData(
-                current=1,
-                longest=1,
-                last_active=today,
-                history=[today]
+                current=1, longest=1, last_active=today, history=[today]
             )
             logger.info(f"Worker {worker_id} started first streak")
             return self._build_response(worker_id, milestone_reached=1)
@@ -115,7 +118,9 @@ class StreakTracker:
             data.current += 1
             data.freeze_available = False
             data.freeze_used_at = today
-            logger.info(f"Worker {worker_id} used streak freeze, streak continues at {data.current}")
+            logger.info(
+                f"Worker {worker_id} used streak freeze, streak continues at {data.current}"
+            )
 
             if data.current in self.MILESTONES:
                 milestone_reached = data.current
@@ -138,7 +143,7 @@ class StreakTracker:
         return self._build_response(
             worker_id,
             milestone_reached=milestone_reached,
-            streak_restored=(days_diff == 2 and old_streak > 0)
+            streak_restored=(days_diff == 2 and old_streak > 0),
         )
 
     def get_streak(self, worker_id: str) -> int:
@@ -169,9 +174,7 @@ class StreakTracker:
         return None
 
     def apply_streak_bonus(
-        self,
-        worker_id: str,
-        base_amount: float
+        self, worker_id: str, base_amount: float
     ) -> Tuple[float, Optional[StreakBonus]]:
         """
         Apply streak bonus to amount.
@@ -184,7 +187,7 @@ class StreakTracker:
         if bonus:
             final = base_amount * (1 + bonus.bonus_percentage)
             logger.debug(
-                f"Applied {bonus.name} ({bonus.bonus_percentage*100}%) "
+                f"Applied {bonus.name} ({bonus.bonus_percentage * 100}%) "
                 f"to {base_amount} -> {final}"
             )
             return (final, bonus)
@@ -202,7 +205,7 @@ class StreakTracker:
                 "days_to_next_bonus": 3,
                 "freeze_available": True,
                 "at_risk": False,
-                "motivation_message": "Complete a task to start your streak!"
+                "motivation_message": "Complete a task to start your streak!",
             }
 
         data = self._streaks[worker_id]
@@ -228,23 +231,24 @@ class StreakTracker:
             "bonus": {
                 "percentage": bonus.bonus_percentage,
                 "name": bonus.name,
-                "description": bonus.description
-            } if bonus else None,
+                "description": bonus.description,
+            }
+            if bonus
+            else None,
             "next_bonus_at": next_bonus_at,
             "days_to_next_bonus": (next_bonus_at - current) if next_bonus_at else None,
             "freeze_available": data.freeze_available,
-            "freeze_used_at": data.freeze_used_at.isoformat() if data.freeze_used_at else None,
+            "freeze_used_at": data.freeze_used_at.isoformat()
+            if data.freeze_used_at
+            else None,
             "at_risk": at_risk,
             "last_active": data.last_active.isoformat(),
             "motivation_message": motivation,
-            "history_length": len(data.history)
+            "history_length": len(data.history),
         }
 
     def get_streak_calendar(
-        self,
-        worker_id: str,
-        year: Optional[int] = None,
-        month: Optional[int] = None
+        self, worker_id: str, year: Optional[int] = None, month: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Get activity calendar for worker.
@@ -261,8 +265,7 @@ class StreakTracker:
 
         # Filter history to requested month
         active_days = [
-            d.day for d in data.history
-            if d.year == year and d.month == month
+            d.day for d in data.history if d.year == year and d.month == month
         ]
 
         return {
@@ -270,7 +273,7 @@ class StreakTracker:
             "month": month,
             "active_days": sorted(active_days),
             "total_days": len(active_days),
-            "current_streak": self.get_streak(worker_id)
+            "current_streak": self.get_streak(worker_id),
         }
 
     def get_leaderboard(self, limit: int = 10) -> List[Dict[str, Any]]:
@@ -285,7 +288,7 @@ class StreakTracker:
                 for worker_id, data in self._streaks.items()
             ],
             key=lambda x: (x[1], x[2]),  # Current streak, then longest
-            reverse=True
+            reverse=True,
         )[:limit]
 
         return [
@@ -294,7 +297,9 @@ class StreakTracker:
                 "worker_id": worker_id,
                 "current_streak": current,
                 "longest_streak": longest,
-                "bonus": self.get_bonus(worker_id).name if self.get_bonus(worker_id) else None
+                "bonus": self.get_bonus(worker_id).name
+                if self.get_bonus(worker_id)
+                else None,
             }
             for i, (worker_id, current, longest) in enumerate(sorted_workers)
         ]
@@ -324,12 +329,7 @@ class StreakTracker:
         logger.info(f"Worker {worker_id} manually used streak freeze")
         return True
 
-    def _get_motivation_message(
-        self,
-        current: int,
-        longest: int,
-        at_risk: bool
-    ) -> str:
+    def _get_motivation_message(self, current: int, longest: int, at_risk: bool) -> str:
         """Generate a motivation message based on streak status."""
         if at_risk:
             if current >= 7:
@@ -358,7 +358,7 @@ class StreakTracker:
         self,
         worker_id: str,
         milestone_reached: Optional[int] = None,
-        streak_restored: bool = False
+        streak_restored: bool = False,
     ) -> Dict[str, Any]:
         """Build standard response dict."""
         stats = self.get_streak_stats(worker_id)
@@ -369,12 +369,14 @@ class StreakTracker:
             "bonus": stats["bonus"],
             "freeze_available": stats["freeze_available"],
             "at_risk": stats["at_risk"],
-            "message": stats["motivation_message"]
+            "message": stats["motivation_message"],
         }
 
         if milestone_reached:
             response["milestone_reached"] = milestone_reached
-            response["milestone_message"] = f"Congratulations! You've reached a {milestone_reached}-day streak!"
+            response["milestone_message"] = (
+                f"Congratulations! You've reached a {milestone_reached}-day streak!"
+            )
 
         if streak_restored:
             response["streak_restored"] = True
@@ -382,11 +384,7 @@ class StreakTracker:
 
         return response
 
-    def import_streak_data(
-        self,
-        worker_id: str,
-        data: Dict[str, Any]
-    ) -> None:
+    def import_streak_data(self, worker_id: str, data: Dict[str, Any]) -> None:
         """Import existing streak data."""
         history = []
         for d in data.get("history", []):
@@ -411,7 +409,7 @@ class StreakTracker:
             last_active=last_active,
             history=history,
             freeze_available=data.get("freeze_available", True),
-            freeze_used_at=freeze_used_at
+            freeze_used_at=freeze_used_at,
         )
 
     def export_streak_data(self, worker_id: str) -> Dict[str, Any]:
@@ -426,12 +424,15 @@ class StreakTracker:
             "last_active": data.last_active.isoformat(),
             "history": [d.isoformat() for d in data.history],
             "freeze_available": data.freeze_available,
-            "freeze_used_at": data.freeze_used_at.isoformat() if data.freeze_used_at else None
+            "freeze_used_at": data.freeze_used_at.isoformat()
+            if data.freeze_used_at
+            else None,
         }
 
 
 # Singleton
 _tracker: Optional[StreakTracker] = None
+
 
 def get_streak_tracker() -> StreakTracker:
     """Get singleton streak tracker."""

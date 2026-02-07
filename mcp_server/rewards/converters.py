@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ConversionRate:
     """Conversion rate between units."""
+
     from_unit: str
     to_unit: str
     rate: float
@@ -35,7 +36,7 @@ class PointsConverter:
     def __init__(
         self,
         base_rate: float = 100.0,  # 100 points = $1
-        tier_rates: Optional[Dict[str, float]] = None
+        tier_rates: Optional[Dict[str, float]] = None,
     ):
         """
         Initialize points converter.
@@ -47,11 +48,7 @@ class PointsConverter:
         self.base_rate = base_rate
         self.tier_rates = tier_rates or {}
 
-    def points_to_usd(
-        self,
-        points: float,
-        tier: Optional[str] = None
-    ) -> float:
+    def points_to_usd(self, points: float, tier: Optional[str] = None) -> float:
         """
         Convert points to USD.
 
@@ -66,10 +63,7 @@ class PointsConverter:
         return points / rate
 
     def usd_to_points(
-        self,
-        usd: float,
-        tier: Optional[str] = None,
-        bonus_multiplier: float = 1.0
+        self, usd: float, tier: Optional[str] = None, bonus_multiplier: float = 1.0
     ) -> float:
         """
         Convert USD to points.
@@ -93,7 +87,7 @@ class PointsConverter:
             to_unit="Points",
             rate=rate,
             timestamp=datetime.utcnow(),
-            source="fixed"
+            source="fixed",
         )
 
 
@@ -116,9 +110,7 @@ class TokenConverter:
     }
 
     def __init__(
-        self,
-        price_feed_url: Optional[str] = None,
-        cache_ttl_seconds: int = 300
+        self, price_feed_url: Optional[str] = None, cache_ttl_seconds: int = 300
     ):
         """
         Initialize token converter.
@@ -159,11 +151,7 @@ class TokenConverter:
         # Fallback to defaults
         return self.DEFAULT_PRICES.get(symbol.upper(), 1.0)
 
-    async def token_to_usd(
-        self,
-        amount: float,
-        symbol: str
-    ) -> float:
+    async def token_to_usd(self, amount: float, symbol: str) -> float:
         """
         Convert token amount to USD.
 
@@ -178,10 +166,7 @@ class TokenConverter:
         return amount * price
 
     async def usd_to_token(
-        self,
-        usd: float,
-        symbol: str,
-        slippage: float = 0.01
+        self, usd: float, symbol: str, slippage: float = 0.01
     ) -> float:
         """
         Convert USD to token amount.
@@ -206,9 +191,7 @@ class TokenConverter:
         return self.DEFAULT_PRICES.get(symbol.upper(), 1.0)
 
     def get_conversion_rate(
-        self,
-        from_symbol: str,
-        to_symbol: str = "USD"
+        self, from_symbol: str, to_symbol: str = "USD"
     ) -> ConversionRate:
         """Get conversion rate between tokens."""
         # Synchronous fallback
@@ -221,17 +204,14 @@ class TokenConverter:
             to_unit=to_symbol,
             rate=rate,
             timestamp=datetime.utcnow(),
-            source="default"
+            source="default",
         )
 
 
 # Utility functions
 
-def format_reward_display(
-    amount: float,
-    unit: str,
-    decimals: int = 2
-) -> str:
+
+def format_reward_display(amount: float, unit: str, decimals: int = 2) -> str:
     """
     Format reward for display.
 

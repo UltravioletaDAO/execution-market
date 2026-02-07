@@ -46,8 +46,10 @@ HIGH_VALUE_BOUNTY_PERCENTILE = 0.9  # Top 10% of bounties
 # DATA CLASSES
 # =============================================================================
 
+
 class BehavioralFlag(str, Enum):
     """Behavioral warning flags."""
+
     VELOCITY_ABUSE = "velocity_abuse"
     CHERRY_PICKING = "cherry_picking"
     COLLUSION = "collusion"
@@ -62,6 +64,7 @@ class BehavioralFlag(str, Enum):
 @dataclass
 class BehavioralResult:
     """Result of behavioral analysis."""
+
     risk_score: float  # 0.0 to 1.0
     flags: List[BehavioralFlag] = field(default_factory=list)
 
@@ -89,6 +92,7 @@ class BehavioralResult:
 @dataclass
 class ExecutorProfile:
     """Behavioral profile for an executor/worker."""
+
     executor_id: str
     first_seen: datetime
     last_seen: datetime
@@ -123,6 +127,7 @@ class ExecutorProfile:
 @dataclass
 class TaskRecord:
     """Record of a task for behavioral analysis."""
+
     task_id: str
     agent_id: str
     executor_id: Optional[str]
@@ -140,6 +145,7 @@ class TaskRecord:
 # =============================================================================
 # BEHAVIORAL ANALYZER CLASS
 # =============================================================================
+
 
 class BehavioralAnalyzer:
     """
@@ -218,7 +224,7 @@ class BehavioralAnalyzer:
         now = datetime.now(timezone.utc)
 
         # Ensure profile exists
-        profile = self._get_or_create_profile(executor_id)
+        self._get_or_create_profile(executor_id)
 
         # 1. Check velocity abuse
         velocity_result = await self.detect_velocity_abuse(executor_id)
@@ -343,11 +349,7 @@ class BehavioralAnalyzer:
             "daily_count": len(daily_tasks),
         }
 
-    async def detect_collusion(
-        self,
-        executor_id: str,
-        agent_id: str
-    ) -> Dict[str, Any]:
+    async def detect_collusion(self, executor_id: str, agent_id: str) -> Dict[str, Any]:
         """
         Detect collusion patterns between executor and agent.
 
@@ -374,7 +376,9 @@ class BehavioralAnalyzer:
             return {
                 "suspicious": True,
                 "reason": f"Repeated pairing: agent {agent_id[:8]}... and worker {executor_id[:8]}... paired {new_count} times",
-                "risk_score": min(0.9, 0.5 + (new_count - self.suspicious_pairing_count) * 0.1),
+                "risk_score": min(
+                    0.9, 0.5 + (new_count - self.suspicious_pairing_count) * 0.1
+                ),
                 "pair_count": new_count,
                 "threshold": self.suspicious_pairing_count,
             }
@@ -396,9 +400,7 @@ class BehavioralAnalyzer:
         }
 
     async def check_device_fingerprint(
-        self,
-        executor_id: str,
-        device_id: str
+        self, executor_id: str, device_id: str
     ) -> Dict[str, Any]:
         """
         Check for multiple accounts using same device.
@@ -436,9 +438,7 @@ class BehavioralAnalyzer:
         }
 
     async def _check_ip_patterns(
-        self,
-        executor_id: str,
-        ip_address: str
+        self, executor_id: str, ip_address: str
     ) -> Dict[str, Any]:
         """Check for multiple accounts from same IP."""
         # Track IP to executor mapping
@@ -450,7 +450,7 @@ class BehavioralAnalyzer:
 
         # Check for multi-account (with higher threshold for IPs)
         if len(existing_executors) > MAX_ACCOUNTS_PER_IP:
-            other_accounts = existing_executors - {executor_id}
+            existing_executors - {executor_id}
             return {
                 "suspicious": True,
                 "reason": f"IP {ip_address} used by {len(existing_executors)} accounts",
@@ -482,7 +482,7 @@ class BehavioralAnalyzer:
         agent_id: str,
         device_id: Optional[str],
         ip_address: Optional[str],
-        timestamp: datetime
+        timestamp: datetime,
     ) -> None:
         """Record activity for tracking."""
         # Update hourly/daily activity

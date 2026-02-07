@@ -19,8 +19,7 @@ Tests cover:
 import pytest
 import json
 import re
-from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import httpx
 import pytest_asyncio
@@ -54,6 +53,7 @@ from ..a2a.agent_card import (
 # ENUM TESTS
 # =============================================================================
 
+
 class TestEnums:
     """Tests for enum definitions."""
 
@@ -76,13 +76,16 @@ class TestEnums:
         """InputOutputMode enum should have expected values."""
         assert InputOutputMode.JSON.value == "application/json"
         assert InputOutputMode.TEXT_PLAIN.value == "text/plain"
-        assert InputOutputMode.FORM_URLENCODED.value == "application/x-www-form-urlencoded"
+        assert (
+            InputOutputMode.FORM_URLENCODED.value == "application/x-www-form-urlencoded"
+        )
         assert InputOutputMode.MULTIPART.value == "multipart/form-data"
 
 
 # =============================================================================
 # AGENT PROVIDER TESTS
 # =============================================================================
+
 
 class TestAgentProvider:
     """Tests for AgentProvider dataclass."""
@@ -117,6 +120,7 @@ class TestAgentProvider:
 # AGENT CAPABILITIES TESTS
 # =============================================================================
 
+
 class TestAgentCapabilities:
     """Tests for AgentCapabilities dataclass."""
 
@@ -149,6 +153,7 @@ class TestAgentCapabilities:
 # =============================================================================
 # AGENT SKILL TESTS
 # =============================================================================
+
 
 class TestAgentSkill:
     """Tests for AgentSkill dataclass."""
@@ -192,6 +197,7 @@ class TestAgentSkill:
 # AGENT INTERFACE TESTS
 # =============================================================================
 
+
 class TestAgentInterface:
     """Tests for AgentInterface dataclass."""
 
@@ -231,6 +237,7 @@ class TestAgentInterface:
 # =============================================================================
 # SECURITY SCHEME TESTS
 # =============================================================================
+
 
 class TestSecurityScheme:
     """Tests for SecurityScheme dataclass."""
@@ -300,6 +307,7 @@ class TestSecurityScheme:
 # =============================================================================
 # AGENT CARD TESTS
 # =============================================================================
+
 
 class TestAgentCard:
     """Tests for AgentCard dataclass."""
@@ -396,6 +404,7 @@ class TestAgentCard:
 # EM SKILLS TESTS
 # =============================================================================
 
+
 class TestEMSkills:
     """Tests for get_em_skills() function."""
 
@@ -431,7 +440,7 @@ class TestEMSkills:
         skills = get_em_skills()
 
         for skill in skills:
-            assert skill.id, f"Skill missing id"
+            assert skill.id, "Skill missing id"
             assert skill.name, f"Skill {skill.id} missing name"
             assert skill.description, f"Skill {skill.id} missing description"
             assert len(skill.tags) > 0, f"Skill {skill.id} missing tags"
@@ -443,6 +452,7 @@ class TestEMSkills:
 # =============================================================================
 # GET_AGENT_CARD TESTS
 # =============================================================================
+
 
 class TestGetAgentCard:
     """Tests for get_agent_card() function."""
@@ -495,7 +505,9 @@ class TestGetAgentCard:
 
         transports = {i.transport for i in card.additional_interfaces}
         assert TransportType.JSONRPC in transports
-        assert TransportType.STREAMABLE_HTTP in transports  # MCP uses Streamable HTTP transport
+        assert (
+            TransportType.STREAMABLE_HTTP in transports
+        )  # MCP uses Streamable HTTP transport
         assert TransportType.HTTP_JSON in transports
 
     def test_card_has_security_schemes(self):
@@ -516,6 +528,7 @@ class TestGetAgentCard:
 # =============================================================================
 # FASTAPI ROUTER TESTS (Sync with TestClient for compatibility)
 # =============================================================================
+
 
 class TestFastAPIRouter:
     """Tests for FastAPI router endpoints using sync TestClient."""
@@ -577,6 +590,7 @@ class TestFastAPIRouter:
 # FASTAPI ROUTER TESTS (Async with httpx.AsyncClient)
 # =============================================================================
 
+
 @pytest.mark.asyncio
 class TestFastAPIRouterAsync:
     """Tests for FastAPI router endpoints using async httpx.AsyncClient."""
@@ -589,7 +603,9 @@ class TestFastAPIRouterAsync:
         app = FastAPI()
         app.include_router(router)
         transport = ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
             yield client
 
     async def test_well_known_endpoint_async(self, async_client):
@@ -676,6 +692,7 @@ class TestFastAPIRouterAsync:
 # A2A PROTOCOL COMPLIANCE TESTS
 # =============================================================================
 
+
 class TestA2ACompliance:
     """Tests for A2A Protocol 0.3.0 compliance."""
 
@@ -756,7 +773,9 @@ class TestA2ACompliance:
         caps = data["capabilities"]
 
         for key, value in caps.items():
-            assert isinstance(value, bool), f"Capability {key} should be boolean, got {type(value)}"
+            assert isinstance(value, bool), (
+                f"Capability {key} should be boolean, got {type(value)}"
+            )
 
     def test_skills_have_required_fields(self):
         """Skills should have all A2A required fields."""
@@ -777,7 +796,9 @@ class TestA2ACompliance:
         for skill in data["skills"]:
             skill_id = skill["id"]
             # IDs should be kebab-case or snake_case, alphanumeric with dashes/underscores
-            assert re.match(r"^[a-z0-9][a-z0-9\-_]*$", skill_id), f"Invalid skill ID format: {skill_id}"
+            assert re.match(r"^[a-z0-9][a-z0-9\-_]*$", skill_id), (
+                f"Invalid skill ID format: {skill_id}"
+            )
 
     def test_skills_input_output_modes_format(self):
         """Skill input/output modes should be valid MIME types per A2A spec."""
@@ -797,18 +818,27 @@ class TestA2ACompliance:
 
         for interface in data.get("additionalInterfaces", []):
             assert "url" in interface, "Interface missing required 'url' field"
-            assert "transport" in interface, "Interface missing required 'transport' field"
+            assert "transport" in interface, (
+                "Interface missing required 'transport' field"
+            )
 
     def test_interfaces_transport_valid_values(self):
         """Interface transport should be valid A2A transport type."""
         card = get_agent_card()
         data = card.to_dict()
 
-        valid_transports = {"JSONRPC", "GRPC", "HTTP+JSON", "WEBSOCKET", "STREAMABLE_HTTP"}
+        valid_transports = {
+            "JSONRPC",
+            "GRPC",
+            "HTTP+JSON",
+            "WEBSOCKET",
+            "STREAMABLE_HTTP",
+        }
 
         for interface in data.get("additionalInterfaces", []):
-            assert interface["transport"] in valid_transports, \
+            assert interface["transport"] in valid_transports, (
                 f"Invalid transport: {interface['transport']}"
+            )
 
     def test_security_schemes_valid_types(self):
         """Security schemes should use valid A2A types."""
@@ -818,7 +848,9 @@ class TestA2ACompliance:
         valid_types = {"oauth2", "openIdConnect", "apiKey", "http"}
 
         for name, scheme in data.get("securitySchemes", {}).items():
-            assert scheme["type"] in valid_types, f"Invalid type for {name}: {scheme['type']}"
+            assert scheme["type"] in valid_types, (
+                f"Invalid type for {name}: {scheme['type']}"
+            )
 
     def test_security_schemes_http_has_scheme(self):
         """HTTP security schemes should have a scheme field per A2A spec."""
@@ -827,7 +859,9 @@ class TestA2ACompliance:
 
         for name, scheme in data.get("securitySchemes", {}).items():
             if scheme["type"] == "http":
-                assert "scheme" in scheme, f"HTTP security scheme {name} missing 'scheme' field"
+                assert "scheme" in scheme, (
+                    f"HTTP security scheme {name} missing 'scheme' field"
+                )
 
     def test_security_schemes_apikey_has_location(self):
         """API key security schemes should have location per A2A spec."""
@@ -837,8 +871,9 @@ class TestA2ACompliance:
         for name, scheme in data.get("securitySchemes", {}).items():
             if scheme["type"] == "apiKey":
                 assert "in" in scheme, f"API key scheme {name} missing 'in' field"
-                assert scheme["in"] in {"header", "query"}, \
+                assert scheme["in"] in {"header", "query"}, (
                     f"API key scheme {name} has invalid 'in' value: {scheme['in']}"
+                )
 
     def test_security_array_format(self):
         """Security array should be properly formatted per A2A spec."""
@@ -858,7 +893,13 @@ class TestA2ACompliance:
         card = get_agent_card()
         data = card.to_dict()
 
-        valid_transports = {"JSONRPC", "GRPC", "HTTP+JSON", "WEBSOCKET", "STREAMABLE_HTTP"}
+        valid_transports = {
+            "JSONRPC",
+            "GRPC",
+            "HTTP+JSON",
+            "WEBSOCKET",
+            "STREAMABLE_HTTP",
+        }
         assert data["preferredTransport"] in valid_transports
 
     def test_default_modes_are_lists(self):
@@ -885,6 +926,7 @@ class TestA2ACompliance:
 # =============================================================================
 # SERIALIZATION ROUND-TRIP TESTS
 # =============================================================================
+
 
 class TestSerialization:
     """Tests for JSON serialization round-trips."""
@@ -927,6 +969,7 @@ class TestSerialization:
 # =============================================================================
 # EDGE CASE TESTS
 # =============================================================================
+
 
 class TestEdgeCases:
     """Tests for edge cases and error conditions."""
@@ -991,7 +1034,9 @@ class TestEdgeCases:
         )
         data = card.to_dict()
 
-        assert "additionalInterfaces" not in data or data.get("additionalInterfaces") == []
+        assert (
+            "additionalInterfaces" not in data or data.get("additionalInterfaces") == []
+        )
 
     def test_long_description(self):
         """Very long descriptions should be handled."""
@@ -1119,7 +1164,7 @@ class TestEdgeCases:
         skill = AgentSkill(
             id="quote-skill",
             name="Quote Skill",
-            description='He said "Hello" and she replied \'Hi\'',
+            description="He said \"Hello\" and she replied 'Hi'",
         )
         data = skill.to_dict()
         json_str = json.dumps(data)
@@ -1304,6 +1349,7 @@ class TestEdgeCases:
 # =============================================================================
 # ADDITIONAL INTEGRATION TESTS
 # =============================================================================
+
 
 class TestIntegration:
     """Integration tests for the A2A module."""

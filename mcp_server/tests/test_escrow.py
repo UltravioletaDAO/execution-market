@@ -11,7 +11,7 @@ Tests the EscrowManager class and related functionality for:
 import pytest
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 import uuid
 
 from ..integrations.x402.escrow import (
@@ -20,18 +20,14 @@ from ..integrations.x402.escrow import (
     PaymentToken,
     TaskEscrow,
     FeeBreakdown,
-    ReleaseRecord,
     EscrowStateError,
-    PLATFORM_FEE_PERCENT,
     MINIMUM_PAYOUT,
-    PARTIAL_RELEASE_PERCENT,
 )
 from ..integrations.x402.client import (
     X402Client,
     X402Error,
     PaymentResult as ClientPaymentResult,
     EscrowDeposit as ClientEscrowDeposit,
-    EscrowInfo,
     EscrowStatus as ClientEscrowStatus,
     PaymentToken as ClientPaymentToken,
     InsufficientFundsError,
@@ -41,6 +37,7 @@ from ..integrations.x402.client import (
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_x402_client():
@@ -80,6 +77,7 @@ def sample_task_id():
 # =============================================================================
 # Deposit Tests
 # =============================================================================
+
 
 class TestDepositCreatesEscrow:
     """Test that deposit operations create escrow records correctly."""
@@ -346,13 +344,18 @@ class TestDepositWithInsufficientBalance:
 # Release Tests
 # =============================================================================
 
+
 class TestReleaseFullAmount:
     """Test full release of escrow to worker."""
 
     @pytest.mark.asyncio
     async def test_release_full_amount(
-        self, escrow_manager, mock_x402_client, sample_task_id,
-        sample_agent_wallet, sample_worker_wallet
+        self,
+        escrow_manager,
+        mock_x402_client,
+        sample_task_id,
+        sample_agent_wallet,
+        sample_worker_wallet,
     ):
         """Release full amount to worker on approval."""
         # Setup: Create escrow first
@@ -407,8 +410,12 @@ class TestReleaseWithPlatformFee:
 
     @pytest.mark.asyncio
     async def test_release_deducts_8_percent_fee(
-        self, escrow_manager, mock_x402_client, sample_task_id,
-        sample_agent_wallet, sample_worker_wallet
+        self,
+        escrow_manager,
+        mock_x402_client,
+        sample_task_id,
+        sample_agent_wallet,
+        sample_worker_wallet,
     ):
         """Release deducts 8% platform fee and sends to treasury."""
         # Setup escrow
@@ -473,8 +480,12 @@ class TestReleaseRequiresValidStatus:
 
     @pytest.mark.asyncio
     async def test_release_from_deposited_succeeds(
-        self, escrow_manager, mock_x402_client, sample_task_id,
-        sample_agent_wallet, sample_worker_wallet
+        self,
+        escrow_manager,
+        mock_x402_client,
+        sample_task_id,
+        sample_agent_wallet,
+        sample_worker_wallet,
     ):
         """Release succeeds when escrow is in DEPOSITED status."""
         mock_x402_client.create_escrow = AsyncMock(
@@ -568,8 +579,12 @@ class TestReleaseUpdatesStatus:
 
     @pytest.mark.asyncio
     async def test_full_release_sets_released_status(
-        self, escrow_manager, mock_x402_client, sample_task_id,
-        sample_agent_wallet, sample_worker_wallet
+        self,
+        escrow_manager,
+        mock_x402_client,
+        sample_task_id,
+        sample_agent_wallet,
+        sample_worker_wallet,
     ):
         """Full release changes status to RELEASED."""
         mock_x402_client.create_escrow = AsyncMock(
@@ -613,8 +628,12 @@ class TestReleaseUpdatesStatus:
 
     @pytest.mark.asyncio
     async def test_release_records_transaction(
-        self, escrow_manager, mock_x402_client, sample_task_id,
-        sample_agent_wallet, sample_worker_wallet
+        self,
+        escrow_manager,
+        mock_x402_client,
+        sample_task_id,
+        sample_agent_wallet,
+        sample_worker_wallet,
     ):
         """Release records transaction in release_txs list."""
         mock_x402_client.create_escrow = AsyncMock(
@@ -657,8 +676,7 @@ class TestReleaseUpdatesStatus:
         assert len(escrow.release_txs) >= 1
 
         worker_release = next(
-            (r for r in escrow.release_txs if r.release_type == "final"),
-            None
+            (r for r in escrow.release_txs if r.release_type == "final"), None
         )
         assert worker_release is not None
         assert worker_release.tx_hash == "0xWORKER_RELEASE"
@@ -670,13 +688,18 @@ class TestReleaseUpdatesStatus:
 # Partial Release Tests
 # =============================================================================
 
+
 class TestPartialReleaseOnSubmission:
     """Test partial release (30%) on worker submission."""
 
     @pytest.mark.asyncio
     async def test_partial_release_30_percent(
-        self, escrow_manager, mock_x402_client, sample_task_id,
-        sample_agent_wallet, sample_worker_wallet
+        self,
+        escrow_manager,
+        mock_x402_client,
+        sample_task_id,
+        sample_agent_wallet,
+        sample_worker_wallet,
     ):
         """Partial release sends 30% of net amount to worker."""
         # Setup escrow
@@ -727,8 +750,12 @@ class TestPartialReleaseTracking:
 
     @pytest.mark.asyncio
     async def test_partial_release_tracks_amount(
-        self, escrow_manager, mock_x402_client, sample_task_id,
-        sample_agent_wallet, sample_worker_wallet
+        self,
+        escrow_manager,
+        mock_x402_client,
+        sample_task_id,
+        sample_agent_wallet,
+        sample_worker_wallet,
     ):
         """Partial release updates released_amount correctly."""
         mock_x402_client.create_escrow = AsyncMock(
@@ -773,16 +800,19 @@ class TestPartialReleaseTracking:
 
         # Verify release record
         partial_release = next(
-            (r for r in escrow.release_txs if r.release_type == "partial"),
-            None
+            (r for r in escrow.release_txs if r.release_type == "partial"), None
         )
         assert partial_release is not None
         assert partial_release.amount == Decimal("27.60")
 
     @pytest.mark.asyncio
     async def test_partial_release_sets_beneficiary(
-        self, escrow_manager, mock_x402_client, sample_task_id,
-        sample_agent_wallet, sample_worker_wallet
+        self,
+        escrow_manager,
+        mock_x402_client,
+        sample_task_id,
+        sample_agent_wallet,
+        sample_worker_wallet,
     ):
         """Partial release sets beneficiary wallet."""
         mock_x402_client.create_escrow = AsyncMock(
@@ -829,8 +859,12 @@ class TestFinalReleaseAfterPartial:
 
     @pytest.mark.asyncio
     async def test_final_release_completes_remaining_70(
-        self, escrow_manager, mock_x402_client, sample_task_id,
-        sample_agent_wallet, sample_worker_wallet
+        self,
+        escrow_manager,
+        mock_x402_client,
+        sample_task_id,
+        sample_agent_wallet,
+        sample_worker_wallet,
     ):
         """Final release after partial sends remaining 70%."""
         # Setup escrow
@@ -908,6 +942,7 @@ class TestFinalReleaseAfterPartial:
 # =============================================================================
 # Refund Tests
 # =============================================================================
+
 
 class TestRefundOnCancel:
     """Test refund when task is cancelled."""
@@ -1058,8 +1093,12 @@ class TestRefundBlockedIfPartialReleased:
 
     @pytest.mark.asyncio
     async def test_refund_blocked_with_any_released_amount(
-        self, escrow_manager, mock_x402_client, sample_task_id,
-        sample_agent_wallet, sample_worker_wallet
+        self,
+        escrow_manager,
+        mock_x402_client,
+        sample_task_id,
+        sample_agent_wallet,
+        sample_worker_wallet,
     ):
         """Cannot refund if any amount has been released."""
         # Create escrow in DEPOSITED state but with some released amount
@@ -1085,6 +1124,7 @@ class TestRefundBlockedIfPartialReleased:
 # =============================================================================
 # Dispute Tests
 # =============================================================================
+
 
 class TestDisputeLocksEscrow:
     """Test that dispute locks escrow."""
@@ -1287,9 +1327,7 @@ class TestResolveDisputeAgentWins:
             )
 
     @pytest.mark.asyncio
-    async def test_resolve_invalid_winner_raises(
-        self, escrow_manager, sample_task_id
-    ):
+    async def test_resolve_invalid_winner_raises(self, escrow_manager, sample_task_id):
         """Invalid winner value raises ValueError."""
         escrow_manager._escrows[sample_task_id] = TaskEscrow(
             task_id=sample_task_id,
@@ -1313,6 +1351,7 @@ class TestResolveDisputeAgentWins:
 # =============================================================================
 # Edge Cases and Utilities
 # =============================================================================
+
 
 class TestEscrowRetrieval:
     """Test escrow retrieval methods."""

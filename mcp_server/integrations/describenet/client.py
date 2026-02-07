@@ -30,7 +30,13 @@ logger = logging.getLogger(__name__)
 
 class DescribeNetError(Exception):
     """Base exception for describe.net API errors."""
-    def __init__(self, message: str, status_code: Optional[int] = None, response: Optional[Dict] = None):
+
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        response: Optional[Dict] = None,
+    ):
         super().__init__(message)
         self.status_code = status_code
         self.response = response
@@ -38,17 +44,20 @@ class DescribeNetError(Exception):
 
 class DescribeNetAuthError(DescribeNetError):
     """Authentication error with describe.net."""
+
     pass
 
 
 class DescribeNetRateLimitError(DescribeNetError):
     """Rate limit exceeded."""
+
     pass
 
 
 @dataclass
 class DescribeNetConfig:
     """Configuration for describe.net API client."""
+
     api_url: str = "https://api.describe.net/v1"
     api_key: Optional[str] = None
     api_secret: Optional[str] = None
@@ -60,7 +69,9 @@ class DescribeNetConfig:
     def from_env(cls) -> "DescribeNetConfig":
         """Load configuration from environment variables."""
         return cls(
-            api_url=os.environ.get("DESCRIBENET_API_URL", "https://api.describe.net/v1"),
+            api_url=os.environ.get(
+                "DESCRIBENET_API_URL", "https://api.describe.net/v1"
+            ),
             api_key=os.environ.get("DESCRIBENET_API_KEY"),
             api_secret=os.environ.get("DESCRIBENET_API_SECRET"),
             timeout_seconds=int(os.environ.get("DESCRIBENET_TIMEOUT", "30")),
@@ -142,9 +153,7 @@ class DescribeNetClient:
             message += f".{body}"
 
         signature = hmac.new(
-            self.config.api_secret.encode(),
-            message.encode(),
-            hashlib.sha256
+            self.config.api_secret.encode(), message.encode(), hashlib.sha256
         ).hexdigest()
 
         return f"{timestamp}.{signature}"
@@ -191,22 +200,18 @@ class DescribeNetClient:
 
             if response.status_code == 401:
                 raise DescribeNetAuthError(
-                    "Authentication failed with describe.net",
-                    status_code=401
+                    "Authentication failed with describe.net", status_code=401
                 )
 
             if response.status_code == 429:
-                raise DescribeNetRateLimitError(
-                    "Rate limit exceeded",
-                    status_code=429
-                )
+                raise DescribeNetRateLimitError("Rate limit exceeded", status_code=429)
 
             if response.status_code >= 400:
                 error_data = response.json() if response.content else {}
                 raise DescribeNetError(
                     f"API error: {response.status_code}",
                     status_code=response.status_code,
-                    response=error_data
+                    response=error_data,
                 )
 
             return response.json() if response.content else {}
@@ -393,7 +398,9 @@ class DescribeNetClient:
 
         response = await self._request("POST", "/badges", data=data)
 
-        logger.info(f"Created badge {badge_type.value} (level {level}) for {user_type} {user_id}")
+        logger.info(
+            f"Created badge {badge_type.value} (level {level}) for {user_type} {user_id}"
+        )
 
         return Badge(
             badge_type=badge_type,
@@ -487,9 +494,7 @@ class DescribeNetClient:
             Full reputation summary including all seals and badges
         """
         response = await self._request(
-            "GET",
-            f"/reputation/{user_id}",
-            params={"org_id": self.config.em_org_id}
+            "GET", f"/reputation/{user_id}", params={"org_id": self.config.em_org_id}
         )
 
         return {
@@ -527,9 +532,7 @@ class DescribeNetClient:
             message = f"{timestamp}.POST./webhook.{payload.decode()}"
 
             expected_sig = hmac.new(
-                self.config.api_secret.encode(),
-                message.encode(),
-                hashlib.sha256
+                self.config.api_secret.encode(), message.encode(), hashlib.sha256
             ).hexdigest()
 
             return hmac.compare_digest(provided_sig, expected_sig)

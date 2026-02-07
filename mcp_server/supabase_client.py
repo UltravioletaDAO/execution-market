@@ -12,8 +12,14 @@ from datetime import datetime, timedelta, timezone
 from supabase import create_client, Client
 
 # Environment variables
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://YOUR_PROJECT_REF.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_ANON_KEY", "")
+SUPABASE_URL = os.environ.get(
+    "SUPABASE_URL", "https://YOUR_PROJECT_REF.supabase.co"
+)
+SUPABASE_KEY = (
+    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    or os.environ.get("SUPABASE_SERVICE_KEY")
+    or os.environ.get("SUPABASE_ANON_KEY", "")
+)
 
 # Initialize Supabase client
 _client: Optional[Client] = None
@@ -26,7 +32,9 @@ def get_client() -> Client:
     global _client
     if _client is None:
         if not SUPABASE_KEY:
-            raise ValueError("SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY environment variable required")
+            raise ValueError(
+                "SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY environment variable required"
+            )
         _client = create_client(SUPABASE_URL, SUPABASE_KEY)
     return _client
 
@@ -108,7 +116,7 @@ async def create_task(
 
     evidence_schema = {
         "required": evidence_required,
-        "optional": evidence_optional or []
+        "optional": evidence_optional or [],
     }
 
     task_data = {
@@ -143,7 +151,9 @@ async def get_tasks(
     """Get tasks with optional filters."""
     client = get_client()
 
-    query = client.table("tasks").select("*, executor:executors(id, display_name, reputation_score)")
+    query = client.table("tasks").select(
+        "*, executor:executors(id, display_name, reputation_score)"
+    )
 
     if agent_id:
         query = query.eq("agent_id", agent_id)
@@ -165,7 +175,9 @@ async def get_tasks(
     total = count_result.count if count_result.count else 0
 
     # Get paginated results
-    result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+    result = (
+        query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+    )
 
     return {
         "total": total,
@@ -180,9 +192,15 @@ async def get_task(task_id: str) -> Optional[Dict[str, Any]]:
     """Get a single task by ID."""
     client = get_client()
 
-    result = client.table("tasks").select(
-        "*, executor:executors(id, display_name, wallet_address, reputation_score)"
-    ).eq("id", task_id).single().execute()
+    result = (
+        client.table("tasks")
+        .select(
+            "*, executor:executors(id, display_name, wallet_address, reputation_score)"
+        )
+        .eq("id", task_id)
+        .single()
+        .execute()
+    )
 
     return result.data
 
@@ -195,7 +213,12 @@ async def update_task(task_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
     # Handle schema drift by removing unknown columns and retrying.
     while pending_updates:
         try:
-            result = client.table("tasks").update(pending_updates).eq("id", task_id).execute()
+            result = (
+                client.table("tasks")
+                .update(pending_updates)
+                .eq("id", task_id)
+                .execute()
+            )
 
             if result.data and len(result.data) > 0:
                 return result.data[0]
@@ -212,12 +235,14 @@ async def update_task(task_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
                 continue
             raise
 
-    raise Exception("Failed to update task: no compatible columns found in current schema")
+    raise Exception(
+        "Failed to update task: no compatible columns found in current schema"
+    )
 
 
 async def cancel_task(task_id: str, agent_id: str) -> Dict[str, Any]:
     """Cancel a task (only if published and owned by agent)."""
-    client = get_client()
+    get_client()
 
     # Verify ownership and status
     task = await get_task(task_id)
@@ -238,9 +263,15 @@ async def get_submissions_for_task(task_id: str) -> List[Dict[str, Any]]:
     """Get all submissions for a task."""
     client = get_client()
 
-    result = client.table("submissions").select(
-        "*, executor:executors(id, display_name, wallet_address, reputation_score)"
-    ).eq("task_id", task_id).order("submitted_at", desc=True).execute()
+    result = (
+        client.table("submissions")
+        .select(
+            "*, executor:executors(id, display_name, wallet_address, reputation_score)"
+        )
+        .eq("task_id", task_id)
+        .order("submitted_at", desc=True)
+        .execute()
+    )
 
     return result.data or []
 
@@ -249,9 +280,15 @@ async def get_submission(submission_id: str) -> Optional[Dict[str, Any]]:
     """Get a single submission by ID."""
     client = get_client()
 
-    result = client.table("submissions").select(
-        "*, task:tasks(*), executor:executors(id, display_name, wallet_address, reputation_score)"
-    ).eq("id", submission_id).single().execute()
+    result = (
+        client.table("submissions")
+        .select(
+            "*, task:tasks(*), executor:executors(id, display_name, wallet_address, reputation_score)"
+        )
+        .eq("id", submission_id)
+        .single()
+        .execute()
+    )
 
     return result.data
 
@@ -278,25 +315,32 @@ async def update_submission(
     updates = {
         "agent_verdict": verdict,
         "agent_notes": notes,
-        "verified_at": datetime.now(timezone.utc).isoformat() if verdict == "accepted" else None,
+        "verified_at": datetime.now(timezone.utc).isoformat()
+        if verdict == "accepted"
+        else None,
     }
 
-    result = client.table("submissions").update(updates).eq("id", submission_id).execute()
+    result = (
+        client.table("submissions").update(updates).eq("id", submission_id).execute()
+    )
 
     if result.data and len(result.data) > 0:
         # If accepted, also update task status
         if verdict == "accepted":
-            await update_task(task["id"], {
-                "status": "completed",
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-            })
+            await update_task(
+                task["id"],
+                {
+                    "status": "completed",
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                },
+            )
 
             # Update executor reputation
             await _update_executor_reputation(
                 submission["executor_id"],
                 task["id"],
                 delta=10,  # +10 for completed task
-                reason="Task completed successfully"
+                reason="Task completed successfully",
             )
 
         return result.data[0]
@@ -314,7 +358,13 @@ async def _update_executor_reputation(
     client = get_client()
 
     # Get current score
-    executor = client.table("executors").select("reputation_score").eq("id", executor_id).single().execute()
+    executor = (
+        client.table("executors")
+        .select("reputation_score")
+        .eq("id", executor_id)
+        .single()
+        .execute()
+    )
     if not executor.data:
         return
 
@@ -322,16 +372,20 @@ async def _update_executor_reputation(
     new_score = max(0, current_score + delta)
 
     # Update score
-    client.table("executors").update({"reputation_score": new_score}).eq("id", executor_id).execute()
+    client.table("executors").update({"reputation_score": new_score}).eq(
+        "id", executor_id
+    ).execute()
 
     # Log the change
-    client.table("reputation_log").insert({
-        "executor_id": executor_id,
-        "task_id": task_id,
-        "delta": delta,
-        "new_score": new_score,
-        "reason": reason,
-    }).execute()
+    client.table("reputation_log").insert(
+        {
+            "executor_id": executor_id,
+            "task_id": task_id,
+            "delta": delta,
+            "new_score": new_score,
+            "reason": reason,
+        }
+    ).execute()
 
 
 # ============== EXECUTOR OPERATIONS ==============
@@ -341,9 +395,15 @@ async def get_executor_stats(executor_id: str) -> Optional[Dict[str, Any]]:
     """Get executor statistics."""
     client = get_client()
 
-    result = client.table("executors").select(
-        "id, display_name, wallet_address, reputation_score, tasks_completed, tasks_disputed"
-    ).eq("id", executor_id).single().execute()
+    result = (
+        client.table("executors")
+        .select(
+            "id, display_name, wallet_address, reputation_score, tasks_completed, tasks_disputed"
+        )
+        .eq("id", executor_id)
+        .single()
+        .execute()
+    )
 
     return result.data
 
@@ -368,19 +428,27 @@ async def apply_to_task(
         raise Exception(f"Task is not available (status: {task['status']})")
 
     # Get executor to check reputation
-    executor = client.table("executors").select("*").eq("id", executor_id).single().execute()
+    executor = (
+        client.table("executors").select("*").eq("id", executor_id).single().execute()
+    )
     if not executor.data:
         raise Exception(f"Executor {executor_id} not found")
 
     # Check minimum reputation
     min_rep = task.get("min_reputation", 0)
     if executor.data.get("reputation_score", 0) < min_rep:
-        raise Exception(f"Insufficient reputation. Required: {min_rep}, yours: {executor.data['reputation_score']}")
+        raise Exception(
+            f"Insufficient reputation. Required: {min_rep}, yours: {executor.data['reputation_score']}"
+        )
 
     # Check for existing application
-    existing = client.table(applications_table).select("*").eq(
-        "task_id", task_id
-    ).eq("executor_id", executor_id).execute()
+    existing = (
+        client.table(applications_table)
+        .select("*")
+        .eq("task_id", task_id)
+        .eq("executor_id", executor_id)
+        .execute()
+    )
 
     if existing.data and len(existing.data) > 0:
         raise Exception("Already applied to this task")
@@ -395,7 +463,11 @@ async def apply_to_task(
     pending_application_data = dict(application_data)
     while pending_application_data:
         try:
-            result = client.table(applications_table).insert(pending_application_data).execute()
+            result = (
+                client.table(applications_table)
+                .insert(pending_application_data)
+                .execute()
+            )
             break
         except Exception as e:
             missing_column = _extract_missing_column(str(e))
@@ -440,7 +512,9 @@ async def submit_work(
         raise Exception("You are not assigned to this task")
 
     if task["status"] not in ["accepted", "in_progress"]:
-        raise Exception(f"Task is not in a submittable state (status: {task['status']})")
+        raise Exception(
+            f"Task is not in a submittable state (status: {task['status']})"
+        )
 
     # Validate required evidence
     required = task.get("evidence_schema", {}).get("required", [])
@@ -460,7 +534,9 @@ async def submit_work(
     pending_submission_data = dict(submission_data)
     while pending_submission_data:
         try:
-            result = client.table("submissions").insert(pending_submission_data).execute()
+            result = (
+                client.table("submissions").insert(pending_submission_data).execute()
+            )
             break
         except Exception as e:
             missing_column = _extract_missing_column(str(e))
@@ -498,9 +574,11 @@ async def get_executor_tasks(
     applications_table = _resolve_applications_table(client)
 
     # Get assigned tasks
-    tasks_query = client.table("tasks").select(
-        "*, agent:agents(id, display_name)"
-    ).eq("executor_id", executor_id)
+    tasks_query = (
+        client.table("tasks")
+        .select("*, agent:agents(id, display_name)")
+        .eq("executor_id", executor_id)
+    )
 
     if status:
         tasks_query = tasks_query.eq("status", status)
@@ -511,15 +589,24 @@ async def get_executor_tasks(
     # Get applications
     applications = []
     if include_applications:
-        app_result = client.table(applications_table).select(
-            "*, task:tasks(*)"
-        ).eq("executor_id", executor_id).eq("status", "pending").execute()
+        app_result = (
+            client.table(applications_table)
+            .select("*, task:tasks(*)")
+            .eq("executor_id", executor_id)
+            .eq("status", "pending")
+            .execute()
+        )
         applications = app_result.data or []
 
     # Get submissions
-    sub_result = client.table("submissions").select(
-        "*, task:tasks(*)"
-    ).eq("executor_id", executor_id).order("submitted_at", desc=True).limit(10).execute()
+    sub_result = (
+        client.table("submissions")
+        .select("*, task:tasks(*)")
+        .eq("executor_id", executor_id)
+        .order("submitted_at", desc=True)
+        .limit(10)
+        .execute()
+    )
     submissions = sub_result.data or []
 
     return {
@@ -530,7 +617,7 @@ async def get_executor_tasks(
             "assigned": len(assigned_tasks),
             "pending_applications": len(applications),
             "submissions": len(submissions),
-        }
+        },
     }
 
 
@@ -539,9 +626,9 @@ async def get_executor_earnings(executor_id: str) -> Dict[str, Any]:
     client = get_client()
 
     # Get all payments
-    payments_result = client.table("payments").select("*").eq(
-        "executor_id", executor_id
-    ).execute()
+    payments_result = (
+        client.table("payments").select("*").eq("executor_id", executor_id).execute()
+    )
     payments = payments_result.data or []
 
     # Calculate totals
@@ -584,7 +671,9 @@ async def assign_task(
         raise Exception(f"Task cannot be assigned (status: {task['status']})")
 
     # Verify executor exists
-    executor = client.table("executors").select("*").eq("id", executor_id).single().execute()
+    executor = (
+        client.table("executors").select("*").eq("id", executor_id).single().execute()
+    )
     if not executor.data:
         raise Exception(f"Executor {executor_id} not found")
 
@@ -605,9 +694,9 @@ async def assign_task(
 
     # Update any pending application to accepted
     try:
-        client.table(applications_table).update({
-            "status": "accepted"
-        }).eq("task_id", task_id).eq("executor_id", executor_id).execute()
+        client.table(applications_table).update({"status": "accepted"}).eq(
+            "task_id", task_id
+        ).eq("executor_id", executor_id).execute()
     except Exception as e:
         logger.warning(
             "Could not mark selected application as accepted (table=%s, task=%s, executor=%s): %s",
@@ -620,7 +709,7 @@ async def assign_task(
     # Reject other applications
     rejection_updates = {
         "status": "rejected",
-        "rejection_reason": "Task assigned to another executor"
+        "rejection_reason": "Task assigned to another executor",
     }
     while rejection_updates:
         try:
@@ -666,9 +755,13 @@ async def get_agent_analytics(
     start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
     # Get all tasks for agent in date range
-    tasks_result = client.table("tasks").select("*").eq(
-        "agent_id", agent_id
-    ).gte("created_at", start_date.isoformat()).execute()
+    tasks_result = (
+        client.table("tasks")
+        .select("*")
+        .eq("agent_id", agent_id)
+        .gte("created_at", start_date.isoformat())
+        .execute()
+    )
 
     tasks = tasks_result.data or []
 
@@ -700,12 +793,17 @@ async def get_agent_analytics(
     if completed > 0:
         # Get completed task executor IDs
         completed_tasks = [t for t in tasks if t.get("status") == "completed"]
-        executor_ids = list(set(t.get("executor_id") for t in completed_tasks if t.get("executor_id")))
+        executor_ids = list(
+            set(t.get("executor_id") for t in completed_tasks if t.get("executor_id"))
+        )
 
         if executor_ids:
-            workers_result = client.table("executors").select(
-                "id, display_name, reputation_score"
-            ).in_("id", executor_ids[:10]).execute()
+            workers_result = (
+                client.table("executors")
+                .select("id, display_name, reputation_score")
+                .in_("id", executor_ids[:10])
+                .execute()
+            )
 
             if workers_result.data:
                 # Count tasks per worker

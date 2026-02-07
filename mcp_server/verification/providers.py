@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ProviderConfig:
     """Configuration for a verification provider."""
+
     name: str
     model: str
     api_key: Optional[str] = None
@@ -39,6 +40,7 @@ class ProviderConfig:
 @dataclass
 class VisionRequest:
     """Standardized vision request across providers."""
+
     prompt: str
     images: List[bytes]
     image_types: List[str]  # MIME types
@@ -48,6 +50,7 @@ class VisionRequest:
 @dataclass
 class VisionResponse:
     """Standardized vision response across providers."""
+
     text: str
     model: str
     provider: str
@@ -79,7 +82,9 @@ class AnthropicProvider(VerificationProvider):
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
-        self.model_id = model or os.environ.get("AI_VERIFICATION_MODEL", "claude-sonnet-4-20250514")
+        self.model_id = model or os.environ.get(
+            "AI_VERIFICATION_MODEL", "claude-sonnet-4-20250514"
+        )
 
     @property
     def name(self) -> str:
@@ -95,14 +100,16 @@ class AnthropicProvider(VerificationProvider):
 
         content = []
         for img_data, mime_type in zip(request.images, request.image_types):
-            content.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": mime_type,
-                    "data": base64.b64encode(img_data).decode(),
-                },
-            })
+            content.append(
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": mime_type,
+                        "data": base64.b64encode(img_data).decode(),
+                    },
+                }
+            )
         content.append({"type": "text", "text": request.prompt})
 
         message = client.messages.create(
@@ -140,10 +147,12 @@ class OpenAIProvider(VerificationProvider):
         content = []
         for img_data, mime_type in zip(request.images, request.image_types):
             b64 = base64.b64encode(img_data).decode()
-            content.append({
-                "type": "image_url",
-                "image_url": {"url": f"data:{mime_type};base64,{b64}"},
-            })
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime_type};base64,{b64}"},
+                }
+            )
         content.append({"type": "text", "text": request.prompt})
 
         async with httpx.AsyncClient() as client:
@@ -193,7 +202,8 @@ class BedrockProvider(VerificationProvider):
     def is_available(self) -> bool:
         try:
             import boto3
-            client = boto3.client("bedrock-runtime", region_name=self.region)
+
+            boto3.client("bedrock-runtime", region_name=self.region)
             return True
         except Exception:
             return False
@@ -205,21 +215,25 @@ class BedrockProvider(VerificationProvider):
 
         content = []
         for img_data, mime_type in zip(request.images, request.image_types):
-            content.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": mime_type,
-                    "data": base64.b64encode(img_data).decode(),
-                },
-            })
+            content.append(
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": mime_type,
+                        "data": base64.b64encode(img_data).decode(),
+                    },
+                }
+            )
         content.append({"type": "text", "text": request.prompt})
 
-        body = json.dumps({
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": request.max_tokens,
-            "messages": [{"role": "user", "content": content}],
-        })
+        body = json.dumps(
+            {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": request.max_tokens,
+                "messages": [{"role": "user", "content": content}],
+            }
+        )
 
         response = client.invoke_model(
             modelId=self.model_id,
@@ -270,7 +284,9 @@ def get_provider(
     if name in PROVIDERS:
         provider = PROVIDERS[name](**kwargs)
         if provider.is_available():
-            logger.info("Using AI provider: %s (model: %s)", provider.name, provider.model_id)
+            logger.info(
+                "Using AI provider: %s (model: %s)", provider.name, provider.model_id
+            )
             return provider
         logger.warning("Requested provider '%s' not available, trying fallbacks", name)
 
@@ -298,11 +314,13 @@ def list_available_providers() -> List[dict]:
     for name, cls in PROVIDERS.items():
         try:
             p = cls()
-            result.append({
-                "name": name,
-                "available": p.is_available(),
-                "model": p.model_id,
-            })
+            result.append(
+                {
+                    "name": name,
+                    "available": p.is_available(),
+                    "model": p.model_id,
+                }
+            )
         except Exception:
             result.append({"name": name, "available": False, "model": None})
     return result

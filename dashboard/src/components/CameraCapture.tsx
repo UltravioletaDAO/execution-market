@@ -304,25 +304,27 @@ function parseIFD(
 
       // Handle different types
       switch (type) {
-        case 2: // ASCII
+        case 2: { // ASCII
           const strOffset = view.getUint32(entryOffset + 8, littleEndian);
           value = '';
           for (let j = 0; j < count - 1; j++) {
             value += String.fromCharCode(view.getUint8(tiffStart + strOffset + j));
           }
           break;
+        }
         case 3: // SHORT
           value = view.getUint16(entryOffset + 8, littleEndian);
           break;
         case 4: // LONG
           value = view.getUint32(entryOffset + 8, littleEndian);
           break;
-        case 5: // RATIONAL
+        case 5: { // RATIONAL
           const ratOffset = view.getUint32(entryOffset + 8, littleEndian);
           const num = view.getUint32(tiffStart + ratOffset, littleEndian);
           const den = view.getUint32(tiffStart + ratOffset + 4, littleEndian);
           value = num / den;
           break;
+        }
         default:
           continue;
       }

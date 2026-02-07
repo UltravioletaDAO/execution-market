@@ -12,13 +12,13 @@ They have tiered levels (Bronze, Silver, Gold, Platinum).
 """
 
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List, Tuple
 
 from .seals import Badge, BadgeType, SealStatus
 from .client import DescribeNetClient, DescribeNetError
-from .worker_seals import WorkerMetrics, WorkerSealType
+from .worker_seals import WorkerMetrics
 from .requester_seals import RequesterMetrics
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,7 @@ class MasterWorkerCriteria:
     - Gold: 200+ tasks, 18+ months, 85+ rating, 4 seals
     - Platinum: 500+ tasks, 24+ months, 90+ rating, 4 seals, no disputes in 6mo
     """
+
     # Bronze (Level 1)
     bronze_min_tasks: int = 50
     bronze_min_months: int = 6
@@ -63,6 +64,7 @@ class MasterWorkerCriteria:
 @dataclass
 class TrustedRequesterCriteria:
     """Criteria for TRUSTED_REQUESTER badge levels."""
+
     # Bronze
     bronze_min_tasks: int = 100
     bronze_min_months: int = 6
@@ -84,6 +86,7 @@ class TrustedRequesterCriteria:
 @dataclass
 class SpecialistCriteria:
     """Criteria for SPECIALIST badge (category-specific)."""
+
     min_tasks_in_category: int = 20
     min_rating_in_category: float = 80.0
     min_success_rate_in_category: float = 0.90
@@ -188,9 +191,13 @@ class BadgeManager:
         if metrics.total_tasks < criteria.bronze_min_tasks:
             missing.append(f"tasks ({metrics.total_tasks}/{criteria.bronze_min_tasks})")
         if metrics.days_active < criteria.bronze_min_months * 30:
-            missing.append(f"months active ({metrics.days_active // 30}/{criteria.bronze_min_months})")
+            missing.append(
+                f"months active ({metrics.days_active // 30}/{criteria.bronze_min_months})"
+            )
         if metrics.average_rating < criteria.bronze_min_rating:
-            missing.append(f"rating ({metrics.average_rating:.1f}/{criteria.bronze_min_rating})")
+            missing.append(
+                f"rating ({metrics.average_rating:.1f}/{criteria.bronze_min_rating})"
+            )
 
         return None, f"Not eligible - need: {', '.join(missing)}"
 
@@ -215,7 +222,10 @@ class BadgeManager:
 
         days_active = 0
         if metrics.first_task_date:
-            days_active = (datetime.now(timezone.utc) - metrics.first_task_date.replace(tzinfo=timezone.utc)).days
+            days_active = (
+                datetime.now(timezone.utc)
+                - metrics.first_task_date.replace(tzinfo=timezone.utc)
+            ).days
 
         # Check Gold
         if (
@@ -281,11 +291,13 @@ class BadgeManager:
                 else:
                     level = 1  # Bronze
 
-                specialists.append((
-                    category,
-                    level,
-                    f"{category.title()} Specialist - {tasks} tasks at {rating:.1f} rating"
-                ))
+                specialists.append(
+                    (
+                        category,
+                        level,
+                        f"{category.title()} Specialist - {tasks} tasks at {rating:.1f} rating",
+                    )
+                )
 
         return specialists
 
@@ -320,7 +332,9 @@ class BadgeManager:
         seal_count = len(active_seals)
 
         # Check MASTER_WORKER
-        level, reason = self.check_master_worker_eligibility(metrics, seal_count, recent_disputes)
+        level, reason = self.check_master_worker_eligibility(
+            metrics, seal_count, recent_disputes
+        )
         if level:
             existing = current_badge_types.get(BadgeType.MASTER_WORKER)
             if existing:
@@ -332,7 +346,11 @@ class BadgeManager:
             else:
                 # New badge
                 badge = await self.create_badge(
-                    worker_id, BadgeType.MASTER_WORKER, "worker", level, metrics.to_dict()
+                    worker_id,
+                    BadgeType.MASTER_WORKER,
+                    "worker",
+                    level,
+                    metrics.to_dict(),
                 )
                 if badge:
                     badges_earned.append(badge)
@@ -342,26 +360,32 @@ class BadgeManager:
             specialist_eligibility = self.check_specialist_eligibility(category_metrics)
             for category, level, reason in specialist_eligibility:
                 # Use composite key for specialist badges
-                badge_key = f"specialist_{category}"
                 existing_specialist = next(
-                    (b for b in current_badges
-                     if b.badge_type == BadgeType.SPECIALIST
-                     and b.criteria_snapshot
-                     and b.criteria_snapshot.get("category") == category),
-                    None
+                    (
+                        b
+                        for b in current_badges
+                        if b.badge_type == BadgeType.SPECIALIST
+                        and b.criteria_snapshot
+                        and b.criteria_snapshot.get("category") == category
+                    ),
+                    None,
                 )
                 if existing_specialist:
                     if level > existing_specialist.level:
                         badge = await self.upgrade_badge(
-                            existing_specialist, level,
-                            {"category": category, **category_metrics[category]}
+                            existing_specialist,
+                            level,
+                            {"category": category, **category_metrics[category]},
                         )
                         if badge:
                             badges_upgraded.append(badge)
                 else:
                     badge = await self.create_badge(
-                        worker_id, BadgeType.SPECIALIST, "worker", level,
-                        {"category": category, **category_metrics[category]}
+                        worker_id,
+                        BadgeType.SPECIALIST,
+                        "worker",
+                        level,
+                        {"category": category, **category_metrics[category]},
                     )
                     if badge:
                         badges_earned.append(badge)
@@ -409,7 +433,11 @@ class BadgeManager:
                         badges_upgraded.append(badge)
             else:
                 badge = await self.create_badge(
-                    requester_id, BadgeType.TRUSTED_REQUESTER, "requester", level, metrics.to_dict()
+                    requester_id,
+                    BadgeType.TRUSTED_REQUESTER,
+                    "requester",
+                    level,
+                    metrics.to_dict(),
                 )
                 if badge:
                     badges_earned.append(badge)
@@ -442,7 +470,9 @@ class BadgeManager:
                 level=level,
             )
             self._update_cache(user_id, badge)
-            logger.info(f"Created badge {badge_type.value} (level {level}) for {user_type} {user_id}")
+            logger.info(
+                f"Created badge {badge_type.value} (level {level}) for {user_type} {user_id}"
+            )
             return badge
 
         try:
@@ -513,8 +543,7 @@ class BadgeManager:
 
         # Replace existing badge of same type (or type+category for specialist)
         self._badge_cache[user_id] = [
-            b for b in self._badge_cache[user_id]
-            if not self._badges_match(b, badge)
+            b for b in self._badge_cache[user_id] if not self._badges_match(b, badge)
         ]
         self._badge_cache[user_id].append(badge)
 
@@ -524,8 +553,12 @@ class BadgeManager:
             return False
         if b1.badge_type == BadgeType.SPECIALIST:
             # For specialist, also check category
-            cat1 = b1.criteria_snapshot.get("category") if b1.criteria_snapshot else None
-            cat2 = b2.criteria_snapshot.get("category") if b2.criteria_snapshot else None
+            cat1 = (
+                b1.criteria_snapshot.get("category") if b1.criteria_snapshot else None
+            )
+            cat2 = (
+                b2.criteria_snapshot.get("category") if b2.criteria_snapshot else None
+            )
             return cat1 == cat2
         return True
 
@@ -564,13 +597,16 @@ class BadgeManager:
             "badges": badge_display,
             "badge_count": len(badges),
             "highest_level": max((b.level for b in badges), default=0),
-            "has_master_worker": any(b.badge_type == BadgeType.MASTER_WORKER for b in badges),
+            "has_master_worker": any(
+                b.badge_type == BadgeType.MASTER_WORKER for b in badges
+            ),
         }
 
 
 @dataclass
 class BadgeUpdateResult:
     """Result of badge evaluation and update."""
+
     user_id: str
     user_type: str
     badges_earned: List[Badge]
@@ -589,6 +625,7 @@ class BadgeUpdateResult:
 
 
 # ============== EARLY ADOPTER BADGE ==============
+
 
 async def grant_early_adopter_badge(
     badge_manager: BadgeManager,

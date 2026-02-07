@@ -21,10 +21,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
-from starlette.routing import Mount
 from pydantic import BaseModel
 from pathlib import Path
 
@@ -36,10 +35,10 @@ from jobs.auto_payment import run_auto_payment_loop
 from server import mcp as mcp_server
 from websocket import ws_router, ws_manager
 from a2a import a2a_router
-from api import api_router, add_api_middleware, health_router as api_health_router
+from api import api_router, add_api_middleware
 from api import reputation_router, escrow_router
 from api.admin import router as admin_router
-from health import router as health_router, setup_logging, get_metrics_collector
+from health import router as health_router
 
 # x402 SDK Integration (NOW-202)
 try:
@@ -50,6 +49,7 @@ try:
         get_sdk_info,
         FACILITATOR_URL,
     )
+
     X402_SDK_AVAILABLE = check_sdk_available()
 except ImportError:
     X402_SDK_AVAILABLE = False
@@ -61,11 +61,11 @@ except ImportError:
 try:
     from integrations.erc8004 import (
         get_facilitator_client,
-        get_em_reputation,
         EM_AGENT_ID,
         ERC8004_NETWORK,
         FACILITATOR_URL as ERC8004_FACILITATOR_URL,
     )
+
     ERC8004_AVAILABLE = True
 except ImportError:
     ERC8004_AVAILABLE = False
@@ -406,7 +406,7 @@ async def health_check():
             "websocket": ws_status,
             "x402": x402_status,
             "erc8004": erc8004_status,  # Facilitator-backed reputation
-        }
+        },
     )
 
 
@@ -418,9 +418,12 @@ async def register_executor(data: ExecutorRegistration):
         client = db.get_client()
 
         # Check if executor already exists
-        existing = client.table("executors").select("*").eq(
-            "wallet_address", data.wallet_address.lower()
-        ).execute()
+        existing = (
+            client.table("executors")
+            .select("*")
+            .eq("wallet_address", data.wallet_address.lower())
+            .execute()
+        )
 
         if existing.data and len(existing.data) > 0:
             return {"executor": existing.data[0], "created": False}
@@ -443,7 +446,7 @@ async def register_executor(data: ExecutorRegistration):
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -499,9 +502,11 @@ async def get_my_tasks(executor_id: str, status: str | None = None):
     try:
         client = db.get_client()
 
-        query = client.table("tasks").select(
-            "*, agent:agents(id, display_name)"
-        ).eq("executor_id", executor_id)
+        query = (
+            client.table("tasks")
+            .select("*, agent:agents(id, display_name)")
+            .eq("executor_id", executor_id)
+        )
 
         if status:
             query = query.eq("status", status)
@@ -510,10 +515,10 @@ async def get_my_tasks(executor_id: str, status: str | None = None):
 
         return {
             "tasks": result.data or [],
-            "count": len(result.data) if result.data else 0
+            "count": len(result.data) if result.data else 0,
         }
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -527,7 +532,7 @@ async def get_executor_stats(executor_id: str):
         return stats
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -552,7 +557,11 @@ async def get_available_tasks(
         if max_bounty is not None:
             query = query.lte("bounty_usd", max_bounty)
 
-        result = query.order("bounty_usd", desc=True).range(offset, offset + limit - 1).execute()
+        result = (
+            query.order("bounty_usd", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
 
         return {
             "tasks": result.data or [],
@@ -560,7 +569,7 @@ async def get_available_tasks(
             "offset": offset,
         }
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -593,14 +602,34 @@ async def x402_networks():
     return {
         "facilitator": FACILITATOR_URL or "https://facilitator.ultravioletadao.xyz",
         "mainnets": [
-            "ethereum", "base", "polygon", "optimism", "arbitrum",
-            "avalanche", "bsc", "gnosis", "celo", "linea",
-            "scroll", "zksync", "mantle", "mode", "hyperliquid",
-            "sonic", "megaeth", "worldchain", "ink",
+            "ethereum",
+            "base",
+            "polygon",
+            "optimism",
+            "arbitrum",
+            "avalanche",
+            "bsc",
+            "gnosis",
+            "celo",
+            "linea",
+            "scroll",
+            "zksync",
+            "mantle",
+            "mode",
+            "hyperliquid",
+            "sonic",
+            "megaeth",
+            "worldchain",
+            "ink",
         ],
         "testnets": [
-            "sepolia", "base-sepolia", "polygon-amoy", "optimism-sepolia",
-            "arbitrum-sepolia", "avalanche-fuji", "bsc-testnet",
+            "sepolia",
+            "base-sepolia",
+            "polygon-amoy",
+            "optimism-sepolia",
+            "arbitrum-sepolia",
+            "avalanche-fuji",
+            "bsc-testnet",
         ],
         "tokens": {
             "USDC": "Native Circle USDC on all networks",
@@ -681,7 +710,7 @@ async def root():
             "heartbeat": f"{base_url}/heartbeat.md",
             "workflows": f"{base_url}/workflows.md",
             "list": f"{base_url}/skills",
-            "install": f"clawhub install execution-market",
+            "install": "clawhub install execution-market",
         },
         "payments": {
             "x402_sdk": "enabled" if x402_sdk else "disabled",
@@ -693,7 +722,9 @@ async def root():
             "erc8004": "enabled" if ERC8004_AVAILABLE else "disabled",
             "network": ERC8004_NETWORK,
             "em_agent_id": EM_AGENT_ID,
-            "facilitator": ERC8004_FACILITATOR_URL if ERC8004_AVAILABLE else "https://facilitator.ultravioletadao.xyz",
+            "facilitator": ERC8004_FACILITATOR_URL
+            if ERC8004_AVAILABLE
+            else "https://facilitator.ultravioletadao.xyz",
             "contracts": {
                 "identity_registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
                 "reputation_registry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
@@ -772,11 +803,13 @@ async def list_skills():
     files = []
     if SKILL_DIR.exists():
         for f in SKILL_DIR.glob("*.md"):
-            files.append({
-                "name": f.stem,
-                "filename": f.name,
-                "url": f"{base_url}/{f.name.lower()}",
-            })
+            files.append(
+                {
+                    "name": f.stem,
+                    "filename": f.name,
+                    "url": f"{base_url}/{f.name.lower()}",
+                }
+            )
 
     return {
         "name": "execution-market",
@@ -794,4 +827,5 @@ async def list_skills():
 # Run with: uvicorn api:app --reload
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -4,13 +4,10 @@ Tests for Worker Protection Fund (NOW-100, NOW-101)
 
 import pytest
 from decimal import Decimal
-from datetime import datetime, timezone, timedelta
 
 from ..protection.fund import (
     ProtectionFund,
     FundConfig,
-    FundClaim,
-    FundContribution,
     ClaimType,
     ClaimStatus,
     ContributionSource,
@@ -188,7 +185,7 @@ class TestClaimSubmission:
                 worker_id="worker_monthly",
                 claim_type=ClaimType.PAYMENT_FAILURE,
                 amount=Decimal("50.00"),
-                reason=f"Claim {i+1}",
+                reason=f"Claim {i + 1}",
                 evidence={},
             )
             # Approve and pay each claim
@@ -401,7 +398,7 @@ class TestWorkerEligibility:
                 worker_id="heavy_user",
                 claim_type=ClaimType.PAYMENT_FAILURE,
                 amount=Decimal("50.00"),
-                reason=f"Claim {i+1}",
+                reason=f"Claim {i + 1}",
                 evidence={},
             )
             await fund.approve_claim(claim.id, "admin", Decimal("50.00"))
@@ -465,7 +462,7 @@ class TestStatistics:
                 worker_id="multi_claimer",
                 claim_type=ClaimType.PAYMENT_FAILURE,
                 amount=Decimal("10.00"),
-                reason=f"Claim {i+1}",
+                reason=f"Claim {i + 1}",
                 evidence={},
             )
 

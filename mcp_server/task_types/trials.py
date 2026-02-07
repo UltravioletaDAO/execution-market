@@ -24,18 +24,20 @@ from uuid import uuid4
 
 class TrialType(str, Enum):
     """Types of trial/experience testing tasks."""
-    RESTAURANT = "restaurant"       # Dining experience
-    RETAIL = "retail"              # Store shopping experience
-    PRODUCT = "product"            # Physical product testing
-    SERVICE = "service"            # Service quality (salon, spa, etc.)
-    HOSPITALITY = "hospitality"    # Hotel/lodging experience
-    ENTERTAINMENT = "entertainment" # Movies, events, etc.
-    DELIVERY = "delivery"          # Delivery service testing
-    ONLINE = "online"              # Online service/UX testing
+
+    RESTAURANT = "restaurant"  # Dining experience
+    RETAIL = "retail"  # Store shopping experience
+    PRODUCT = "product"  # Physical product testing
+    SERVICE = "service"  # Service quality (salon, spa, etc.)
+    HOSPITALITY = "hospitality"  # Hotel/lodging experience
+    ENTERTAINMENT = "entertainment"  # Movies, events, etc.
+    DELIVERY = "delivery"  # Delivery service testing
+    ONLINE = "online"  # Online service/UX testing
 
 
 class EvaluationCriteria(str, Enum):
     """Standard evaluation criteria for trials."""
+
     # Common
     OVERALL_SATISFACTION = "overall_satisfaction"
     VALUE_FOR_MONEY = "value_for_money"
@@ -81,6 +83,7 @@ class CriteriaConfig:
         required: Whether this criterion is mandatory
         description: Explanation for evaluator
     """
+
     criteria: EvaluationCriteria
     weight: float
     min_score: int = 1
@@ -111,6 +114,7 @@ class ReimbursementConfig:
         allowed_categories: Categories eligible for reimbursement
         payment_method: How reimbursement is processed
     """
+
     max_amount: Decimal
     requires_receipt: bool = True
     allowed_categories: List[str] = field(default_factory=list)
@@ -148,6 +152,7 @@ class TrialTask:
         created_at: When task was created
         metadata: Additional task-specific data
     """
+
     id: str
     trial_type: TrialType
     title: str
@@ -215,6 +220,7 @@ class TrialSubmission:
         evidence_urls: URLs to other evidence
         submitted_at: When submitted
     """
+
     submission_id: str
     task_id: str
     executor_id: str
@@ -246,8 +252,9 @@ class TrialSubmission:
             if config.criteria.value in self.scores:
                 score = self.scores[config.criteria.value]
                 # Normalize to 0-100 scale
-                normalized = ((score - config.min_score) /
-                              (config.max_score - config.min_score)) * 100
+                normalized = (
+                    (score - config.min_score) / (config.max_score - config.min_score)
+                ) * 100
                 weighted_sum += normalized * config.weight
                 total_weight += config.weight
 
@@ -502,12 +509,16 @@ class TrialFactory:
             criteria.extend(additional_criteria)
 
         reimbursement = ReimbursementConfig(
-            max_amount=max_reimbursement or cls.DEFAULT_REIMBURSEMENT[TrialType.RESTAURANT],
+            max_amount=max_reimbursement
+            or cls.DEFAULT_REIMBURSEMENT[TrialType.RESTAURANT],
             requires_receipt=True,
             allowed_categories=["food", "beverages", "tip"],
         )
 
-        default_scenario = scenario or "Dine in as a regular customer. Order an appetizer, main course, and beverage."
+        default_scenario = (
+            scenario
+            or "Dine in as a regular customer. Order an appetizer, main course, and beverage."
+        )
 
         instructions = f"""
 MYSTERY SHOPPING ASSIGNMENT: {business_name}
@@ -563,7 +574,7 @@ SUBMISSION:
             metadata={
                 "trial_type": "restaurant",
                 "max_party_size": 2,
-            }
+            },
         )
 
     @classmethod
@@ -602,9 +613,18 @@ SUBMISSION:
             allowed_categories=["purchase"],
         )
 
-        dept_text = f" in the {target_department} department" if target_department else ""
-        purchase_text = "Make a small purchase to evaluate the checkout process." if must_purchase else "A purchase is not required, but evaluate the checkout area."
-        default_scenario = scenario or f"Visit as a regular shopper{dept_text}. Browse, ask for assistance, and {purchase_text.lower()}"
+        dept_text = (
+            f" in the {target_department} department" if target_department else ""
+        )
+        purchase_text = (
+            "Make a small purchase to evaluate the checkout process."
+            if must_purchase
+            else "A purchase is not required, but evaluate the checkout area."
+        )
+        default_scenario = (
+            scenario
+            or f"Visit as a regular shopper{dept_text}. Browse, ask for assistance, and {purchase_text.lower()}"
+        )
 
         instructions = f"""
 MYSTERY SHOPPING ASSIGNMENT: {business_name}
@@ -657,7 +677,7 @@ SUBMISSION:
                 "trial_type": "retail",
                 "target_department": target_department,
                 "must_purchase": must_purchase,
-            }
+            },
         )
 
     @classmethod
@@ -689,7 +709,8 @@ SUBMISSION:
         criteria = TRIAL_CRITERIA[TrialType.PRODUCT].copy()
 
         reimbursement = ReimbursementConfig(
-            max_amount=max_reimbursement or cls.DEFAULT_REIMBURSEMENT[TrialType.PRODUCT],
+            max_amount=max_reimbursement
+            or cls.DEFAULT_REIMBURSEMENT[TrialType.PRODUCT],
             requires_receipt=True,
             allowed_categories=["product_purchase", "shipping"],
         )
@@ -759,7 +780,7 @@ SUBMISSION:
                 "product_url": product_url,
                 "usage_duration_days": usage_duration_days,
                 "test_scenarios": test_scenarios,
-            }
+            },
         )
 
     @classmethod
@@ -789,7 +810,8 @@ SUBMISSION:
         criteria = TRIAL_CRITERIA[TrialType.DELIVERY].copy()
 
         reimbursement = ReimbursementConfig(
-            max_amount=max_reimbursement or cls.DEFAULT_REIMBURSEMENT[TrialType.DELIVERY],
+            max_amount=max_reimbursement
+            or cls.DEFAULT_REIMBURSEMENT[TrialType.DELIVERY],
             requires_receipt=True,
             allowed_categories=["order", "delivery_fee", "tip"],
         )
@@ -861,7 +883,7 @@ SUBMISSION:
                 "trial_type": "delivery",
                 "service_type": service_type,
                 "order_requirements": order_requirements,
-            }
+            },
         )
 
 
@@ -895,7 +917,9 @@ def create_trial(
     if not method:
         raise ValueError(f"No factory method for trial type: {trial_type}")
 
-    return method(business_name=business_name, business_address=business_address, **kwargs)
+    return method(
+        business_name=business_name, business_address=business_address, **kwargs
+    )
 
 
 def get_criteria_for_type(trial_type: TrialType) -> List[CriteriaConfig]:

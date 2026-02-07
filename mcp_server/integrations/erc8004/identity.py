@@ -156,6 +156,7 @@ async def verify_agent_identity(
 # Internal helpers for agent verification
 # ---------------------------------------------------------------------------
 
+
 async def _lookup_by_agent_id(agent_id: int, network: str) -> Dict[str, Any]:
     """
     Look up an agent by its numeric ERC-8004 token ID using the Facilitator.
@@ -224,7 +225,9 @@ BASE_RPC_URL = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
 DEFAULT_WORKER_URI_TEMPLATE = "https://execution.market/workers/{wallet}"
 
 _USE_TESTNET = os.environ.get("ERC8004_USE_TESTNET", "").lower() in (
-    "1", "true", "yes",
+    "1",
+    "true",
+    "yes",
 )
 
 
@@ -252,6 +255,7 @@ def _get_rpc_url() -> str:
 # ABI encoding helpers (zero extra dependencies)
 # ---------------------------------------------------------------------------
 
+
 def _encode_address(addr: str) -> str:
     """ABI-encode an address as a left-padded 32-byte hex word (no 0x prefix)."""
     return addr.lower().replace("0x", "").zfill(64)
@@ -267,17 +271,19 @@ def _encode_string(s: str) -> str:
 
 
 # Pre-computed 4-byte selectors (keccak256 of the canonical signature)
-SELECTOR_BALANCE_OF = "0x70a08231"           # balanceOf(address)
-SELECTOR_REGISTER = "0xf2c298be"             # register(string)
-SELECTOR_TOKEN_OF_OWNER = "0x2f745c59"       # tokenOfOwnerByIndex(address,uint256)
+SELECTOR_BALANCE_OF = "0x70a08231"  # balanceOf(address)
+SELECTOR_REGISTER = "0xf2c298be"  # register(string)
+SELECTOR_TOKEN_OF_OWNER = "0x2f745c59"  # tokenOfOwnerByIndex(address,uint256)
 
 
 # ---------------------------------------------------------------------------
 # Types
 # ---------------------------------------------------------------------------
 
+
 class WorkerIdentityStatus(str, Enum):
     """Worker on-chain identity status."""
+
     REGISTERED = "registered"
     NOT_REGISTERED = "not_registered"
     ERROR = "error"
@@ -286,6 +292,7 @@ class WorkerIdentityStatus(str, Enum):
 @dataclass
 class WorkerIdentityResult:
     """Result of checking a worker's on-chain identity."""
+
     status: WorkerIdentityStatus
     agent_id: Optional[int] = None
     wallet_address: Optional[str] = None
@@ -304,6 +311,7 @@ class WorkerIdentityResult:
 @dataclass
 class RegistrationTxData:
     """Unsigned transaction data for ERC-8004 registration."""
+
     to: str
     data: str
     chain_id: int
@@ -318,6 +326,7 @@ class RegistrationTxData:
 # ---------------------------------------------------------------------------
 # Lightweight JSON-RPC helpers (no web3 needed)
 # ---------------------------------------------------------------------------
+
 
 async def _eth_call(to: str, data: str, rpc_url: Optional[str] = None) -> str:
     """Execute an ``eth_call`` and return the hex-encoded result."""
@@ -337,7 +346,10 @@ async def _eth_call(to: str, data: str, rpc_url: Optional[str] = None) -> str:
 
 
 async def _eth_estimate_gas(
-    from_addr: str, to: str, data: str, rpc_url: Optional[str] = None,
+    from_addr: str,
+    to: str,
+    data: str,
+    rpc_url: Optional[str] = None,
 ) -> int:
     """Estimate gas for a transaction via JSON-RPC."""
     url = rpc_url or _get_rpc_url()
@@ -360,6 +372,7 @@ async def _eth_estimate_gas(
 # ---------------------------------------------------------------------------
 # Worker Identity Check
 # ---------------------------------------------------------------------------
+
 
 async def check_worker_identity(wallet_address: str) -> WorkerIdentityResult:
     """
@@ -418,9 +431,7 @@ async def check_worker_identity(wallet_address: str) -> WorkerIdentityResult:
         agent_id: Optional[int] = None
         try:
             tok_data = (
-                SELECTOR_TOKEN_OF_OWNER
-                + _encode_address(wallet_address)
-                + "0" * 64
+                SELECTOR_TOKEN_OF_OWNER + _encode_address(wallet_address) + "0" * 64
             )
             tok_raw = await _eth_call(registry, tok_data)
             if tok_raw and tok_raw != "0x":
@@ -454,6 +465,7 @@ async def check_worker_identity(wallet_address: str) -> WorkerIdentityResult:
 # ---------------------------------------------------------------------------
 # Gasless Worker Registration (via Facilitator — all 14 networks)
 # ---------------------------------------------------------------------------
+
 
 async def register_worker_gasless(
     wallet_address: str,
@@ -509,7 +521,10 @@ async def register_worker_gasless(
         agent_id = result.get("agentId")
         logger.info(
             "Worker registered gaslessly: wallet=%s, agent_id=%s, network=%s, tx=%s",
-            wallet_address, agent_id, network, result.get("transaction"),
+            wallet_address,
+            agent_id,
+            network,
+            result.get("transaction"),
         )
 
         # Invalidate cache
@@ -519,6 +534,7 @@ async def register_worker_gasless(
             _identity_cache_timestamps.pop(key, None)
 
         from .facilitator_client import ERC8004_CONTRACTS
+
         chain_id = ERC8004_CONTRACTS.get(network, {}).get("chain_id", 0)
 
         return WorkerIdentityResult(
@@ -542,6 +558,7 @@ async def register_worker_gasless(
 # ---------------------------------------------------------------------------
 # Registration Transaction Builder (Legacy — worker pays gas)
 # ---------------------------------------------------------------------------
+
 
 def _build_register_calldata(agent_uri: str) -> str:
     """
@@ -595,7 +612,9 @@ async def build_worker_registration_tx(
     estimated_gas: Optional[int] = None
     try:
         estimated_gas = await _eth_estimate_gas(
-            from_addr=wallet_address, to=registry, data=calldata,
+            from_addr=wallet_address,
+            to=registry,
+            data=calldata,
         )
         estimated_gas = int(estimated_gas * 1.2)  # +20 % buffer
     except Exception as e:
@@ -615,6 +634,7 @@ async def build_worker_registration_tx(
 # Registration Confirmation
 # ---------------------------------------------------------------------------
 
+
 async def confirm_worker_registration(
     wallet_address: str,
     tx_hash: Optional[str] = None,
@@ -633,7 +653,8 @@ async def confirm_worker_registration(
     if tx_hash:
         logger.info(
             "Confirming worker registration: wallet=%s tx=%s",
-            wallet_address, tx_hash,
+            wallet_address,
+            tx_hash,
         )
 
     return await check_worker_identity(wallet_address)
@@ -642,6 +663,7 @@ async def confirm_worker_registration(
 # ---------------------------------------------------------------------------
 # Supabase helper -- persist on-chain identity in executor row
 # ---------------------------------------------------------------------------
+
 
 async def update_executor_identity(
     executor_id: str,
@@ -667,12 +689,14 @@ async def update_executor_identity(
             pass
 
         client.table("executors").update(update_data).eq(
-            "id", executor_id,
+            "id",
+            executor_id,
         ).execute()
 
         logger.info(
             "Updated executor %s with erc8004_agent_id=%s",
-            executor_id, agent_id,
+            executor_id,
+            agent_id,
         )
         return True
 

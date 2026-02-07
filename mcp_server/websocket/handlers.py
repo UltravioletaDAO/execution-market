@@ -12,13 +12,12 @@ These handlers are called from MCP tools when state changes occur.
 
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List, Set
+from typing import Dict, Any, Optional, List
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .events import (
     WebSocketEvent,
-    WebSocketEventType,
     TaskCreatedPayload,
     TaskUpdatedPayload,
     TaskCancelledPayload,
@@ -33,7 +32,6 @@ from .events import (
     get_task_room,
     get_user_room,
     get_category_room,
-    get_global_room,
 )
 from .server import ws_manager, Connection
 
@@ -46,6 +44,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RateLimitConfig:
     """Configuration for rate limiting events."""
+
     max_events_per_minute: int = 60
     max_events_per_hour: int = 1000
     cooldown_seconds: float = 0.1  # Min time between events of same type
@@ -56,8 +55,12 @@ class EventRateLimiter:
 
     def __init__(self):
         # Track events per user per minute
-        self._minute_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
-        self._hour_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        self._minute_counts: Dict[str, Dict[str, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
+        self._hour_counts: Dict[str, Dict[str, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
         self._last_event: Dict[str, Dict[str, datetime]] = defaultdict(dict)
         self._minute_reset: datetime = datetime.now(timezone.utc)
         self._hour_reset: datetime = datetime.now(timezone.utc)
@@ -88,7 +91,10 @@ class EventRateLimiter:
             return False
 
         # Check minute limit
-        if self._minute_counts[user_id][event_type] >= self._config.max_events_per_minute:
+        if (
+            self._minute_counts[user_id][event_type]
+            >= self._config.max_events_per_minute
+        ):
             logger.warning(f"Rate limit (minute) for {user_id}/{event_type}")
             return False
 
@@ -112,7 +118,9 @@ rate_limiter = EventRateLimiter()
 # ============== PERMISSION CHECKING ==============
 
 
-async def check_task_access(connection: Connection, task_id: str, task_data: Dict[str, Any]) -> bool:
+async def check_task_access(
+    connection: Connection, task_id: str, task_data: Dict[str, Any]
+) -> bool:
     """
     Check if a connection has access to task events.
 
@@ -144,9 +152,7 @@ async def check_task_access(connection: Connection, task_id: str, task_data: Dic
 
 
 async def check_submission_access(
-    connection: Connection,
-    submission_data: Dict[str, Any],
-    task_data: Dict[str, Any]
+    connection: Connection, submission_data: Dict[str, Any], task_data: Dict[str, Any]
 ) -> bool:
     """Check if a connection has access to submission events."""
     if not connection.is_authenticated:
@@ -165,7 +171,9 @@ async def check_submission_access(
     return False
 
 
-async def check_payment_access(connection: Connection, payment_data: Dict[str, Any]) -> bool:
+async def check_payment_access(
+    connection: Connection, payment_data: Dict[str, Any]
+) -> bool:
     """Check if a connection has access to payment events."""
     if not connection.is_authenticated:
         return False
@@ -441,8 +449,7 @@ class EventHandlers:
         )
 
         events = WebSocketEvent.worker_assigned(
-            payload,
-            rooms=[get_user_room(agent_id), get_user_room(worker_id)]
+            payload, rooms=[get_user_room(agent_id), get_user_room(worker_id)]
         )
 
         total_sent = 0

@@ -13,7 +13,6 @@ Key features:
 """
 
 import logging
-import asyncio
 import httpx
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
@@ -26,14 +25,16 @@ logger = logging.getLogger(__name__)
 
 class NotificationPriority(str, Enum):
     """Notification priority levels."""
-    LOW = "low"           # Background updates
-    NORMAL = "normal"     # Standard notifications
-    HIGH = "high"         # Time-sensitive (timeout warnings)
-    CRITICAL = "critical" # Requires immediate attention
+
+    LOW = "low"  # Background updates
+    NORMAL = "normal"  # Standard notifications
+    HIGH = "high"  # Time-sensitive (timeout warnings)
+    CRITICAL = "critical"  # Requires immediate attention
 
 
 class NotificationType(str, Enum):
     """Types of notifications."""
+
     TASK_AVAILABLE = "task_available"
     TASK_ASSIGNED = "task_assigned"
     TASK_REMINDER = "task_reminder"
@@ -67,6 +68,7 @@ class NotificationPayload:
         collapse_key: Key for collapsing similar notifications
         created_at: When notification was created
     """
+
     notification_id: str
     notification_type: NotificationType
     recipient_id: str
@@ -84,6 +86,7 @@ class NotificationPayload:
 @dataclass
 class DeliveryResult:
     """Result of notification delivery."""
+
     notification_id: str
     provider: str
     success: bool
@@ -107,9 +110,7 @@ class NotificationProvider(ABC):
 
     @abstractmethod
     async def send(
-        self,
-        device_token: str,
-        payload: NotificationPayload
+        self, device_token: str, payload: NotificationPayload
     ) -> DeliveryResult:
         """
         Send notification to a single device.
@@ -125,9 +126,7 @@ class NotificationProvider(ABC):
 
     @abstractmethod
     async def send_batch(
-        self,
-        device_tokens: List[str],
-        payload: NotificationPayload
+        self, device_tokens: List[str], payload: NotificationPayload
     ) -> List[DeliveryResult]:
         """
         Send notification to multiple devices.
@@ -166,7 +165,7 @@ class FirebaseProvider(NotificationProvider):
         self,
         project_id: str,
         service_account_key: Optional[Dict] = None,
-        credentials_path: Optional[str] = None
+        credentials_path: Optional[str] = None,
     ):
         """
         Initialize Firebase provider.
@@ -191,8 +190,7 @@ class FirebaseProvider(NotificationProvider):
         """Ensure HTTP client is initialized."""
         if not self._client:
             self._client = httpx.AsyncClient(
-                timeout=30.0,
-                headers={"Content-Type": "application/json"}
+                timeout=30.0, headers={"Content-Type": "application/json"}
             )
 
     async def _get_access_token(self) -> str:
@@ -215,59 +213,53 @@ class FirebaseProvider(NotificationProvider):
         return "placeholder_token"
 
     def _build_fcm_message(
-        self,
-        device_token: str,
-        payload: NotificationPayload
+        self, device_token: str, payload: NotificationPayload
     ) -> Dict:
         """Build FCM message format."""
         # Map priority
-        android_priority = "high" if payload.priority in (
-            NotificationPriority.HIGH,
-            NotificationPriority.CRITICAL
-        ) else "normal"
+        android_priority = (
+            "high"
+            if payload.priority
+            in (NotificationPriority.HIGH, NotificationPriority.CRITICAL)
+            else "normal"
+        )
 
-        apns_priority = "10" if payload.priority in (
-            NotificationPriority.HIGH,
-            NotificationPriority.CRITICAL
-        ) else "5"
+        apns_priority = (
+            "10"
+            if payload.priority
+            in (NotificationPriority.HIGH, NotificationPriority.CRITICAL)
+            else "5"
+        )
 
         message = {
             "message": {
                 "token": device_token,
-                "notification": {
-                    "title": payload.title,
-                    "body": payload.body
-                },
+                "notification": {"title": payload.title, "body": payload.body},
                 "data": {
                     "notification_id": payload.notification_id,
                     "notification_type": payload.notification_type.value,
                     "recipient_id": payload.recipient_id,
-                    **{k: str(v) for k, v in payload.data.items()}
+                    **{k: str(v) for k, v in payload.data.items()},
                 },
                 "android": {
                     "priority": android_priority,
                     "ttl": f"{payload.ttl_seconds}s",
-                    "notification": {
-                        "click_action": "FLUTTER_NOTIFICATION_CLICK"
-                    }
+                    "notification": {"click_action": "FLUTTER_NOTIFICATION_CLICK"},
                 },
                 "apns": {
                     "headers": {
                         "apns-priority": apns_priority,
                         "apns-expiration": str(
                             int(datetime.utcnow().timestamp()) + payload.ttl_seconds
-                        )
+                        ),
                     },
                     "payload": {
                         "aps": {
-                            "alert": {
-                                "title": payload.title,
-                                "body": payload.body
-                            },
-                            "sound": "default"
+                            "alert": {"title": payload.title, "body": payload.body},
+                            "sound": "default",
                         }
-                    }
-                }
+                    },
+                },
             }
         }
 
@@ -276,14 +268,14 @@ class FirebaseProvider(NotificationProvider):
 
         if payload.collapse_key:
             message["message"]["android"]["collapse_key"] = payload.collapse_key
-            message["message"]["apns"]["headers"]["apns-collapse-id"] = payload.collapse_key
+            message["message"]["apns"]["headers"]["apns-collapse-id"] = (
+                payload.collapse_key
+            )
 
         return message
 
     async def send(
-        self,
-        device_token: str,
-        payload: NotificationPayload
+        self, device_token: str, payload: NotificationPayload
     ) -> DeliveryResult:
         """Send notification via FCM."""
         await self._ensure_client()
@@ -295,9 +287,7 @@ class FirebaseProvider(NotificationProvider):
             url = f"https://fcm.googleapis.com/v1/projects/{self.project_id}/messages:send"
 
             response = await self._client.post(
-                url,
-                json=message,
-                headers={"Authorization": f"Bearer {access_token}"}
+                url, json=message, headers={"Authorization": f"Bearer {access_token}"}
             )
 
             if response.status_code == 200:
@@ -307,7 +297,7 @@ class FirebaseProvider(NotificationProvider):
                     provider=self.name,
                     success=True,
                     provider_message_id=result.get("name"),
-                    delivered_at=datetime.utcnow()
+                    delivered_at=datetime.utcnow(),
                 )
             else:
                 error_data = response.json() if response.content else {}
@@ -315,7 +305,7 @@ class FirebaseProvider(NotificationProvider):
                     notification_id=payload.notification_id,
                     provider=self.name,
                     success=False,
-                    error=f"FCM error {response.status_code}: {error_data}"
+                    error=f"FCM error {response.status_code}: {error_data}",
                 )
 
         except Exception as e:
@@ -324,13 +314,11 @@ class FirebaseProvider(NotificationProvider):
                 notification_id=payload.notification_id,
                 provider=self.name,
                 success=False,
-                error=str(e)
+                error=str(e),
             )
 
     async def send_batch(
-        self,
-        device_tokens: List[str],
-        payload: NotificationPayload
+        self, device_tokens: List[str], payload: NotificationPayload
     ) -> List[DeliveryResult]:
         """Send notification to multiple devices via FCM."""
         # FCM HTTP v1 API doesn't support native batch, send individually
@@ -355,11 +343,7 @@ class OneSignalProvider(NotificationProvider):
     Uses OneSignal REST API for sending notifications.
     """
 
-    def __init__(
-        self,
-        app_id: str,
-        rest_api_key: str
-    ):
+    def __init__(self, app_id: str, rest_api_key: str):
         """
         Initialize OneSignal provider.
 
@@ -383,14 +367,12 @@ class OneSignalProvider(NotificationProvider):
                 timeout=30.0,
                 headers={
                     "Content-Type": "application/json",
-                    "Authorization": f"Basic {self._rest_api_key}"
-                }
+                    "Authorization": f"Basic {self._rest_api_key}",
+                },
             )
 
     def _build_onesignal_message(
-        self,
-        player_ids: List[str],
-        payload: NotificationPayload
+        self, player_ids: List[str], payload: NotificationPayload
     ) -> Dict:
         """Build OneSignal message format."""
         # Map priority to OneSignal priority (1-10)
@@ -398,7 +380,7 @@ class OneSignalProvider(NotificationProvider):
             NotificationPriority.LOW: 1,
             NotificationPriority.NORMAL: 5,
             NotificationPriority.HIGH: 8,
-            NotificationPriority.CRITICAL: 10
+            NotificationPriority.CRITICAL: 10,
         }
 
         message = {
@@ -410,10 +392,10 @@ class OneSignalProvider(NotificationProvider):
                 "notification_id": payload.notification_id,
                 "notification_type": payload.notification_type.value,
                 "recipient_id": payload.recipient_id,
-                **payload.data
+                **payload.data,
             },
             "priority": priority_map.get(payload.priority, 5),
-            "ttl": payload.ttl_seconds
+            "ttl": payload.ttl_seconds,
         }
 
         if payload.image_url:
@@ -430,17 +412,13 @@ class OneSignalProvider(NotificationProvider):
         return message
 
     async def send(
-        self,
-        device_token: str,
-        payload: NotificationPayload
+        self, device_token: str, payload: NotificationPayload
     ) -> DeliveryResult:
         """Send notification via OneSignal."""
         return (await self.send_batch([device_token], payload))[0]
 
     async def send_batch(
-        self,
-        device_tokens: List[str],
-        payload: NotificationPayload
+        self, device_tokens: List[str], payload: NotificationPayload
     ) -> List[DeliveryResult]:
         """Send notification to multiple devices via OneSignal."""
         await self._ensure_client()
@@ -449,8 +427,7 @@ class OneSignalProvider(NotificationProvider):
             message = self._build_onesignal_message(device_tokens, payload)
 
             response = await self._client.post(
-                f"{self._base_url}/notifications",
-                json=message
+                f"{self._base_url}/notifications", json=message
             )
 
             if response.status_code in (200, 201):
@@ -464,7 +441,7 @@ class OneSignalProvider(NotificationProvider):
                         provider=self.name,
                         success=True,
                         provider_message_id=notification_id,
-                        delivered_at=datetime.utcnow()
+                        delivered_at=datetime.utcnow(),
                     )
                     for _ in device_tokens
                 ]
@@ -475,7 +452,7 @@ class OneSignalProvider(NotificationProvider):
                         notification_id=payload.notification_id,
                         provider=self.name,
                         success=False,
-                        error=f"OneSignal error {response.status_code}: {error_data}"
+                        error=f"OneSignal error {response.status_code}: {error_data}",
                     )
                     for _ in device_tokens
                 ]
@@ -487,7 +464,7 @@ class OneSignalProvider(NotificationProvider):
                     notification_id=payload.notification_id,
                     provider=self.name,
                     success=False,
-                    error=str(e)
+                    error=str(e),
                 )
                 for _ in device_tokens
             ]
@@ -500,9 +477,10 @@ class OneSignalProvider(NotificationProvider):
         """
         # Basic UUID format check
         import re
+
         uuid_pattern = re.compile(
-            r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$',
-            re.IGNORECASE
+            r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            re.IGNORECASE,
         )
         return bool(uuid_pattern.match(device_token))
 
@@ -513,63 +491,63 @@ NOTIFICATION_TEMPLATES = {
     NotificationType.TASK_AVAILABLE: {
         "title": "New Task Available",
         "body": "A new {category} task is available for ${bounty}",
-        "priority": NotificationPriority.NORMAL
+        "priority": NotificationPriority.NORMAL,
     },
     NotificationType.TASK_ASSIGNED: {
         "title": "Task Assigned",
         "body": "You've been assigned: {task_title}",
-        "priority": NotificationPriority.HIGH
+        "priority": NotificationPriority.HIGH,
     },
     NotificationType.TASK_REMINDER: {
         "title": "Task Reminder",
         "body": "Don't forget: {task_title} - {time_remaining} remaining",
-        "priority": NotificationPriority.NORMAL
+        "priority": NotificationPriority.NORMAL,
     },
     NotificationType.TIMEOUT_WARNING: {
         "title": "Submission Deadline Approaching",
         "body": "Only {time_remaining} left to submit: {task_title}",
-        "priority": NotificationPriority.HIGH
+        "priority": NotificationPriority.HIGH,
     },
     NotificationType.TIMEOUT_EXPIRED: {
         "title": "Submission Deadline Passed",
         "body": "Time expired for: {task_title}",
-        "priority": NotificationPriority.CRITICAL
+        "priority": NotificationPriority.CRITICAL,
     },
     NotificationType.SUBMISSION_RECEIVED: {
         "title": "Submission Received",
         "body": "Your submission for {task_title} is under review",
-        "priority": NotificationPriority.NORMAL
+        "priority": NotificationPriority.NORMAL,
     },
     NotificationType.SUBMISSION_APPROVED: {
         "title": "Submission Approved!",
         "body": "Great work! Your submission for {task_title} was approved. Payment: ${amount}",
-        "priority": NotificationPriority.HIGH
+        "priority": NotificationPriority.HIGH,
     },
     NotificationType.SUBMISSION_REJECTED: {
         "title": "Submission Needs Revision",
         "body": "Your submission for {task_title} requires changes: {reason}",
-        "priority": NotificationPriority.HIGH
+        "priority": NotificationPriority.HIGH,
     },
     NotificationType.PAYMENT_SENT: {
         "title": "Payment Sent",
         "body": "You've received ${amount} for {task_title}",
-        "priority": NotificationPriority.HIGH
+        "priority": NotificationPriority.HIGH,
     },
     NotificationType.DISPUTE_OPENED: {
         "title": "Dispute Opened",
         "body": "A dispute has been opened for: {task_title}",
-        "priority": NotificationPriority.CRITICAL
+        "priority": NotificationPriority.CRITICAL,
     },
     NotificationType.GRACE_PERIOD_WARNING: {
         "title": "Connection Issue Detected",
         "body": "Reconnect within {time_remaining} to keep your tasks",
-        "priority": NotificationPriority.CRITICAL
+        "priority": NotificationPriority.CRITICAL,
     },
     NotificationType.RECONNECTION_NEEDED: {
         "title": "Reconnection Required",
         "body": "Your session expired. Reconnect to continue working",
-        "priority": NotificationPriority.CRITICAL
-    }
+        "priority": NotificationPriority.CRITICAL,
+    },
 }
 
 
@@ -632,7 +610,7 @@ class PushNotificationManager:
         user_id: str,
         device_token: str,
         provider: str,
-        device_info: Optional[Dict] = None
+        device_info: Optional[Dict] = None,
     ) -> bool:
         """
         Register a device for push notifications.
@@ -653,7 +631,9 @@ class PushNotificationManager:
 
         # Validate token
         if not await provider_impl.validate_token(device_token):
-            logger.warning(f"Invalid device token for {provider}: {device_token[:20]}...")
+            logger.warning(
+                f"Invalid device token for {provider}: {device_token[:20]}..."
+            )
             return False
 
         if user_id not in self._devices:
@@ -669,22 +649,20 @@ class PushNotificationManager:
                 return True
 
         # Add new device
-        self._devices[user_id].append({
-            "token": device_token,
-            "provider": provider,
-            "info": device_info or {},
-            "registered_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        })
+        self._devices[user_id].append(
+            {
+                "token": device_token,
+                "provider": provider,
+                "info": device_info or {},
+                "registered_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            }
+        )
 
         logger.info(f"Device registered for {user_id} via {provider}")
         return True
 
-    async def unregister_device(
-        self,
-        user_id: str,
-        device_token: str
-    ) -> bool:
+    async def unregister_device(self, user_id: str, device_token: str) -> bool:
         """
         Unregister a device.
 
@@ -700,8 +678,7 @@ class PushNotificationManager:
 
         original_count = len(self._devices[user_id])
         self._devices[user_id] = [
-            d for d in self._devices[user_id]
-            if d["token"] != device_token
+            d for d in self._devices[user_id] if d["token"] != device_token
         ]
 
         if len(self._devices[user_id]) < original_count:
@@ -718,14 +695,17 @@ class PushNotificationManager:
         self,
         notification_type: NotificationType,
         recipient_id: str,
-        data: Dict[str, Any]
+        data: Dict[str, Any],
     ) -> NotificationPayload:
         """Build notification payload from template."""
-        template = NOTIFICATION_TEMPLATES.get(notification_type, {
-            "title": "Notification",
-            "body": "You have a new notification",
-            "priority": NotificationPriority.NORMAL
-        })
+        template = NOTIFICATION_TEMPLATES.get(
+            notification_type,
+            {
+                "title": "Notification",
+                "body": "You have a new notification",
+                "priority": NotificationPriority.NORMAL,
+            },
+        )
 
         # Format title and body with data
         title = template["title"]
@@ -742,7 +722,7 @@ class PushNotificationManager:
             title=title,
             body=body,
             priority=template["priority"],
-            data=data
+            data=data,
         )
 
     async def send_notification(
@@ -750,7 +730,7 @@ class PushNotificationManager:
         notification_type: NotificationType,
         recipient_id: str,
         data: Optional[Dict[str, Any]] = None,
-        custom_payload: Optional[NotificationPayload] = None
+        custom_payload: Optional[NotificationPayload] = None,
     ) -> List[DeliveryResult]:
         """
         Send notification to a user.
@@ -768,9 +748,7 @@ class PushNotificationManager:
             payload = custom_payload
         else:
             payload = self._build_payload_from_template(
-                notification_type,
-                recipient_id,
-                data or {}
+                notification_type, recipient_id, data or {}
             )
 
         devices = self._devices.get(recipient_id, [])
@@ -800,7 +778,7 @@ class PushNotificationManager:
         self,
         notification_type: NotificationType,
         recipient_ids: List[str],
-        data: Optional[Dict[str, Any]] = None
+        data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, List[DeliveryResult]]:
         """
         Send notification to multiple users.
@@ -816,18 +794,12 @@ class PushNotificationManager:
         results = {}
         for recipient_id in recipient_ids:
             results[recipient_id] = await self.send_notification(
-                notification_type,
-                recipient_id,
-                data
+                notification_type, recipient_id, data
             )
         return results
 
     async def send_timeout_warning(
-        self,
-        recipient_id: str,
-        task_id: str,
-        task_title: str,
-        time_remaining: str
+        self, recipient_id: str, task_id: str, task_title: str, time_remaining: str
     ) -> List[DeliveryResult]:
         """
         Send timeout warning notification.
@@ -840,14 +812,12 @@ class PushNotificationManager:
             {
                 "task_id": task_id,
                 "task_title": task_title,
-                "time_remaining": time_remaining
-            }
+                "time_remaining": time_remaining,
+            },
         )
 
     async def send_grace_period_warning(
-        self,
-        recipient_id: str,
-        time_remaining: str
+        self, recipient_id: str, time_remaining: str
     ) -> List[DeliveryResult]:
         """
         Send grace period warning notification.
@@ -857,7 +827,7 @@ class PushNotificationManager:
         return await self.send_notification(
             NotificationType.GRACE_PERIOD_WARNING,
             recipient_id,
-            {"time_remaining": time_remaining}
+            {"time_remaining": time_remaining},
         )
 
     def get_user_devices(self, user_id: str) -> List[Dict]:
@@ -865,9 +835,7 @@ class PushNotificationManager:
         return self._devices.get(user_id, [])
 
     def get_delivery_history(
-        self,
-        limit: int = 100,
-        notification_id: Optional[str] = None
+        self, limit: int = 100, notification_id: Optional[str] = None
     ) -> List[DeliveryResult]:
         """Get delivery history."""
         history = self._delivery_history
@@ -886,12 +854,11 @@ class PushNotificationManager:
         by_provider = {}
         for provider_name in self._providers.keys():
             provider_results = [
-                r for r in self._delivery_history
-                if r.provider == provider_name
+                r for r in self._delivery_history if r.provider == provider_name
             ]
             by_provider[provider_name] = {
                 "total": len(provider_results),
-                "success": sum(1 for r in provider_results if r.success)
+                "success": sum(1 for r in provider_results if r.success),
             }
 
         total_devices = sum(len(devices) for devices in self._devices.values())
@@ -904,7 +871,9 @@ class PushNotificationManager:
                 "total": total_sent,
                 "successful": successful,
                 "failed": failed,
-                "success_rate": (successful / total_sent * 100) if total_sent > 0 else 0
+                "success_rate": (successful / total_sent * 100)
+                if total_sent > 0
+                else 0,
             },
-            "by_provider": by_provider
+            "by_provider": by_provider,
         }

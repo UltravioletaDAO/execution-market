@@ -97,7 +97,13 @@ class PlatformConfig:
         "feature.partial_release_enabled": True,
         "feature.websocket_notifications": True,
         # Payments
-        "x402.supported_networks": ["base", "ethereum", "polygon", "optimism", "arbitrum"],
+        "x402.supported_networks": [
+            "base",
+            "ethereum",
+            "polygon",
+            "optimism",
+            "arbitrum",
+        ],
         "x402.supported_tokens": ["USDC", "USDT", "DAI"],
         "x402.preferred_network": "ethereum",
         "x402.facilitator_url": "https://facilitator.ultravioletadao.xyz",
@@ -199,16 +205,16 @@ class PlatformConfig:
         ):
             try:
                 return Decimal(str(value))
-            except:
+            except Exception:
                 return value
 
         # Integer values
-        if any(
-            pattern in key for pattern in ["_hours", "max_", "limits."]
-        ) and not any(pattern in key for pattern in ["_usd", "_pct"]):
+        if any(pattern in key for pattern in ["_hours", "max_", "limits."]) and not any(
+            pattern in key for pattern in ["_usd", "_pct"]
+        ):
             try:
                 return int(value)
-            except:
+            except Exception:
                 return value
 
         return value
@@ -356,9 +362,7 @@ class PlatformConfig:
 
         # Return defaults for this category
         return {
-            k: v
-            for k, v in cls._defaults.items()
-            if k.startswith(category.value + ".")
+            k: v for k, v in cls._defaults.items() if k.startswith(category.value + ".")
         }
 
     @classmethod

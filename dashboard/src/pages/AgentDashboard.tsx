@@ -31,7 +31,7 @@ interface AgentAnalytics {
   activeExecutors: number
 }
 
-interface AgentSubmission extends Submission {
+interface AgentSubmission extends Omit<Submission, 'executor'> {
   task?: Task
   executor?: {
     id: string
@@ -387,6 +387,7 @@ export function AgentDashboard({
           evidence_schema: { required: ['photo_geo'] },
           bounty_usd: 15.00,
           payment_token: 'USDC',
+          payment_network: 'base',
           escrow_tx: null,
           escrow_id: null,
           deadline: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
@@ -400,6 +401,7 @@ export function AgentDashboard({
           accepted_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
           chainwitness_proof: null,
           completed_at: null,
+          refund_tx: null,
         },
         {
           id: '2',
@@ -413,6 +415,7 @@ export function AgentDashboard({
           evidence_schema: { required: ['document', 'signature'] },
           bounty_usd: 45.00,
           payment_token: 'USDC',
+          payment_network: 'base',
           escrow_tx: null,
           escrow_id: null,
           deadline: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
@@ -426,6 +429,7 @@ export function AgentDashboard({
           accepted_at: null,
           chainwitness_proof: null,
           completed_at: null,
+          refund_tx: null,
         },
         {
           id: '3',
@@ -439,6 +443,7 @@ export function AgentDashboard({
           evidence_schema: { required: ['photo', 'receipt'] },
           bounty_usd: 8.00,
           payment_token: 'USDC',
+          payment_network: 'base',
           escrow_tx: null,
           escrow_id: null,
           deadline: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
@@ -452,6 +457,7 @@ export function AgentDashboard({
           accepted_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
           chainwitness_proof: null,
           completed_at: null,
+          refund_tx: null,
         },
       ])
 
@@ -465,7 +471,11 @@ export function AgentDashboard({
           evidence_files: ['photo.jpg', 'receipt.jpg'],
           evidence_ipfs_cid: 'QmXx...',
           evidence_hash: '0xabc...',
+          evidence_metadata: null,
+          evidence_content_hash: null,
+          storage_backend: null,
           chainwitness_proof: null,
+          reputation_tx: null,
           submitted_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
           verified_at: null,
           auto_check_passed: true,
@@ -487,6 +497,7 @@ export function AgentDashboard({
             evidence_schema: { required: ['photo', 'receipt'] },
             bounty_usd: 8.00,
             payment_token: 'USDC',
+            payment_network: 'base',
             escrow_tx: null,
             escrow_id: null,
             deadline: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
@@ -500,6 +511,7 @@ export function AgentDashboard({
             accepted_at: null,
             chainwitness_proof: null,
             completed_at: null,
+            refund_tx: null,
           },
           executor: {
             id: 'exec-2',
@@ -517,7 +529,11 @@ export function AgentDashboard({
           evidence_files: ['verificacion.jpg'],
           evidence_ipfs_cid: 'QmYy...',
           evidence_hash: '0xdef...',
+          evidence_metadata: null,
+          evidence_content_hash: null,
+          storage_backend: null,
           chainwitness_proof: null,
+          reputation_tx: null,
           submitted_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
           verified_at: null,
           auto_check_passed: false,
@@ -539,6 +555,7 @@ export function AgentDashboard({
             evidence_schema: { required: ['photo_geo'] },
             bounty_usd: 5.00,
             payment_token: 'USDC',
+            payment_network: 'base',
             escrow_tx: null,
             escrow_id: null,
             deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -552,6 +569,7 @@ export function AgentDashboard({
             accepted_at: null,
             chainwitness_proof: null,
             completed_at: null,
+            refund_tx: null,
           },
           executor: {
             id: 'exec-3',

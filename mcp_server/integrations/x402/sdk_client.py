@@ -23,7 +23,7 @@ from typing import Optional, Dict, Any, Callable
 from datetime import datetime, timezone
 
 from eth_account import Account
-from fastapi import FastAPI, Request, Response, Depends
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 
 # Import from uvd-x402-sdk
@@ -40,6 +40,7 @@ try:
         PaymentVerificationError,
         PaymentSettlementError,
     )
+
     SDK_AVAILABLE = True
 except ImportError:
     SDK_AVAILABLE = False
@@ -56,6 +57,7 @@ except ImportError:
 # EscrowClient for gasless refunds via facilitator
 try:
     from uvd_x402_sdk.escrow import EscrowClient as SDKEscrowClient
+
     ESCROW_SDK_AVAILABLE = True
 except ImportError:
     SDKEscrowClient = None
@@ -71,14 +73,12 @@ logger = logging.getLogger(__name__)
 
 # Default facilitator URL (Ultravioleta DAO production)
 FACILITATOR_URL = os.environ.get(
-    "X402_FACILITATOR_URL",
-    "https://facilitator.ultravioletadao.xyz"
+    "X402_FACILITATOR_URL", "https://facilitator.ultravioletadao.xyz"
 )
 
 # Execution Market treasury address for fee collection
 EM_TREASURY = os.environ.get(
-    "EM_TREASURY_ADDRESS",
-    "YOUR_TREASURY_WALLET"
+    "EM_TREASURY_ADDRESS", "YOUR_TREASURY_WALLET"
 )
 
 # Default network for payments
@@ -101,51 +101,187 @@ ENABLED_NETWORKS = [n.strip() for n in _enabled_raw.split(",") if n.strip()]
 
 NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     # --- Production Mainnets ---
-    "base": {"chain_id": 8453, "tokens": {
-        "USDC": {"address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "name": "USD Coin", "version": "2", "decimals": 6},
-        "EURC": {"address": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42", "name": "EURC", "version": "1", "decimals": 6},
-        "USDT": {"address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", "name": "Tether USD", "version": "1", "decimals": 6},
-    }},
-    "ethereum": {"chain_id": 1, "tokens": {
-        "USDC": {"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "name": "USD Coin", "version": "2", "decimals": 6},
-        "EURC": {"address": "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c", "name": "EURC", "version": "1", "decimals": 6},
-        "PYUSD": {"address": "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8", "name": "PayPal USD", "version": "1", "decimals": 6},
-        "USDT": {"address": "0xdAC17F958D2ee523a2206206994597C13D831ec7", "name": "Tether USD", "version": "1", "decimals": 6},
-    }},
-    "polygon": {"chain_id": 137, "tokens": {
-        "USDC": {"address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "name": "USD Coin", "version": "2", "decimals": 6},
-        "USDT": {"address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", "name": "Tether USD", "version": "1", "decimals": 6},
-    }},
-    "arbitrum": {"chain_id": 42161, "tokens": {
-        "USDC": {"address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "name": "USD Coin", "version": "2", "decimals": 6},
-        "USDT": {"address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", "name": "Tether USD", "version": "1", "decimals": 6},
-    }},
-    "optimism": {"chain_id": 10, "tokens": {
-        "USDC": {"address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", "name": "USD Coin", "version": "2", "decimals": 6},
-        "USDT": {"address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", "name": "Tether USD", "version": "1", "decimals": 6},
-    }},
-    "hyperevm": {"chain_id": 999, "tokens": {
-        "USDC": {"address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb", "name": "USD Coin", "version": "1", "decimals": 6},
-    }},
-    "unichain": {"chain_id": 130, "tokens": {
-        "USDC": {"address": "0x078D782b760474a361dDA0AF3839290b0EF57AD6", "name": "USD Coin", "version": "2", "decimals": 6},
-    }},
-    "scroll": {"chain_id": 534352, "tokens": {
-        "USDC": {"address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4", "name": "USD Coin", "version": "2", "decimals": 6},
-    }},
+    "base": {
+        "chain_id": 8453,
+        "tokens": {
+            "USDC": {
+                "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+            "EURC": {
+                "address": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
+                "name": "EURC",
+                "version": "1",
+                "decimals": 6,
+            },
+            "USDT": {
+                "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+                "name": "Tether USD",
+                "version": "1",
+                "decimals": 6,
+            },
+        },
+    },
+    "ethereum": {
+        "chain_id": 1,
+        "tokens": {
+            "USDC": {
+                "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+            "EURC": {
+                "address": "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c",
+                "name": "EURC",
+                "version": "1",
+                "decimals": 6,
+            },
+            "PYUSD": {
+                "address": "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
+                "name": "PayPal USD",
+                "version": "1",
+                "decimals": 6,
+            },
+            "USDT": {
+                "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+                "name": "Tether USD",
+                "version": "1",
+                "decimals": 6,
+            },
+        },
+    },
+    "polygon": {
+        "chain_id": 137,
+        "tokens": {
+            "USDC": {
+                "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+            "USDT": {
+                "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+                "name": "Tether USD",
+                "version": "1",
+                "decimals": 6,
+            },
+        },
+    },
+    "arbitrum": {
+        "chain_id": 42161,
+        "tokens": {
+            "USDC": {
+                "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+            "USDT": {
+                "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+                "name": "Tether USD",
+                "version": "1",
+                "decimals": 6,
+            },
+        },
+    },
+    "optimism": {
+        "chain_id": 10,
+        "tokens": {
+            "USDC": {
+                "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+            "USDT": {
+                "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+                "name": "Tether USD",
+                "version": "1",
+                "decimals": 6,
+            },
+        },
+    },
+    "hyperevm": {
+        "chain_id": 999,
+        "tokens": {
+            "USDC": {
+                "address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+                "name": "USD Coin",
+                "version": "1",
+                "decimals": 6,
+            },
+        },
+    },
+    "unichain": {
+        "chain_id": 130,
+        "tokens": {
+            "USDC": {
+                "address": "0x078D782b760474a361dDA0AF3839290b0EF57AD6",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+        },
+    },
+    "scroll": {
+        "chain_id": 534352,
+        "tokens": {
+            "USDC": {
+                "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+        },
+    },
     # --- Testnets ---
-    "base-sepolia": {"chain_id": 84532, "tokens": {
-        "USDC": {"address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e", "name": "USD Coin", "version": "2", "decimals": 6},
-    }},
-    "ethereum-sepolia": {"chain_id": 11155111, "tokens": {
-        "USDC": {"address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", "name": "USD Coin", "version": "2", "decimals": 6},
-    }},
-    "polygon-amoy": {"chain_id": 80002, "tokens": {
-        "USDC": {"address": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582", "name": "USD Coin", "version": "2", "decimals": 6},
-    }},
-    "arbitrum-sepolia": {"chain_id": 421614, "tokens": {
-        "USDC": {"address": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d", "name": "USD Coin", "version": "2", "decimals": 6},
-    }},
+    "base-sepolia": {
+        "chain_id": 84532,
+        "tokens": {
+            "USDC": {
+                "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+        },
+    },
+    "ethereum-sepolia": {
+        "chain_id": 11155111,
+        "tokens": {
+            "USDC": {
+                "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+        },
+    },
+    "polygon-amoy": {
+        "chain_id": 80002,
+        "tokens": {
+            "USDC": {
+                "address": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+        },
+    },
+    "arbitrum-sepolia": {
+        "chain_id": 421614,
+        "tokens": {
+            "USDC": {
+                "address": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+                "name": "USD Coin",
+                "version": "2",
+                "decimals": 6,
+            },
+        },
+    },
 }
 
 
@@ -208,7 +344,9 @@ def validate_payment_network(network: str) -> str:
     """
     if network not in NETWORK_CONFIG:
         supported = ", ".join(sorted(NETWORK_CONFIG.keys()))
-        raise ValueError(f"Network '{network}' not recognized. Known networks: {supported}")
+        raise ValueError(
+            f"Network '{network}' not recognized. Known networks: {supported}"
+        )
 
     if network not in ENABLED_NETWORKS:
         enabled = ", ".join(sorted(ENABLED_NETWORKS))
@@ -229,11 +367,9 @@ def get_supported_tokens(network: str) -> list:
         return []
     return sorted(net_config["tokens"].keys())
 
+
 # Escrow service URL (for gasless refunds via facilitator)
-ESCROW_URL = os.environ.get(
-    "X402_ESCROW_URL",
-    "https://escrow.ultravioletadao.xyz"
-)
+ESCROW_URL = os.environ.get("X402_ESCROW_URL", "https://escrow.ultravioletadao.xyz")
 
 # API key for escrow service (reuse main API key if not set separately)
 ESCROW_API_KEY = os.environ.get("X402_ESCROW_API_KEY", os.environ.get("X402_API_KEY"))
@@ -246,8 +382,10 @@ PLATFORM_FEE_PERCENT = Decimal(os.environ.get("EM_PLATFORM_FEE", "0.08"))
 # Payment Models
 # =============================================================================
 
+
 class EMPaymentConfig(BaseModel):
     """Configuration for Execution Market payment endpoints."""
+
     recipient_address: str
     description: str = "Execution Market task payment"
     network: str = DEFAULT_NETWORK
@@ -256,6 +394,7 @@ class EMPaymentConfig(BaseModel):
 
 class TaskPaymentResult(BaseModel):
     """Result of a task payment verification."""
+
     success: bool
     payer_address: str
     amount_usd: Decimal
@@ -269,6 +408,7 @@ class TaskPaymentResult(BaseModel):
 # =============================================================================
 # SDK Wrapper Class
 # =============================================================================
+
 
 class EMX402SDK:
     """
@@ -325,7 +465,7 @@ class EMX402SDK:
         logger.info(
             "EMX402SDK initialized: facilitator=%s, network=%s",
             self.facilitator_url,
-            self.network
+            self.network,
         )
 
     def _setup_fastapi(self, app: FastAPI) -> None:
@@ -488,7 +628,9 @@ class EMX402SDK:
 
         return {
             "authorization": authorization,
-            "signature": signed.signature.hex() if hasattr(signed.signature, 'hex') else hex(signed.signature),
+            "signature": signed.signature.hex()
+            if hasattr(signed.signature, "hex")
+            else hex(signed.signature),
             "network": network,
             "asset": token_address,
         }
@@ -544,7 +686,10 @@ class EMX402SDK:
                 "payTo": pay_to,
                 "maxTimeoutSeconds": 300,
                 "asset": asset_address,
-                "extra": {"name": token_config["name"], "version": token_config["version"]},
+                "extra": {
+                    "name": token_config["name"],
+                    "version": token_config["version"],
+                },
             },
         }
 
@@ -557,10 +702,17 @@ class EMX402SDK:
         if resp.status_code != 200:
             error_body = resp.text[:500]
             logger.error("Facilitator settle HTTP %d: %s", resp.status_code, error_body)
-            return {"success": False, "error": f"Facilitator HTTP {resp.status_code}: {error_body}"}
+            return {
+                "success": False,
+                "error": f"Facilitator HTTP {resp.status_code}: {error_body}",
+            }
 
         data = resp.json()
-        tx_hash = data.get("transaction") or data.get("tx_hash") or data.get("transaction_hash")
+        tx_hash = (
+            data.get("transaction")
+            or data.get("tx_hash")
+            or data.get("transaction_hash")
+        )
 
         return {
             "success": data.get("success", bool(tx_hash)),
@@ -593,13 +745,16 @@ class EMX402SDK:
             if result.get("success"):
                 logger.info(
                     "Worker disbursement OK: task=%s, worker=%s, amount=%.6f, tx=%s",
-                    task_id, worker_address[:10], float(amount_usdc),
+                    task_id,
+                    worker_address[:10],
+                    float(amount_usdc),
                     result.get("tx_hash"),
                 )
             else:
                 logger.error(
                     "Worker disbursement FAILED: task=%s, error=%s",
-                    task_id, result.get("error"),
+                    task_id,
+                    result.get("error"),
                 )
 
             return {
@@ -628,12 +783,25 @@ class EMX402SDK:
         """
         treasury = treasury_address or EM_TREASURY
         if not treasury or treasury == "0x0000000000000000000000000000000000000000":
-            logger.warning("No treasury address configured — skipping fee collection for task %s", task_id)
-            return {"success": True, "tx_hash": None, "skipped": True, "type": "platform_fee"}
+            logger.warning(
+                "No treasury address configured — skipping fee collection for task %s",
+                task_id,
+            )
+            return {
+                "success": True,
+                "tx_hash": None,
+                "skipped": True,
+                "type": "platform_fee",
+            }
 
         if fee_amount <= 0:
             logger.info("Fee is zero for task %s — skipping fee collection", task_id)
-            return {"success": True, "tx_hash": None, "skipped": True, "type": "platform_fee"}
+            return {
+                "success": True,
+                "tx_hash": None,
+                "skipped": True,
+                "type": "platform_fee",
+            }
 
         try:
             auth = self._sign_eip3009_transfer(
@@ -647,12 +815,15 @@ class EMX402SDK:
             if result.get("success"):
                 logger.info(
                     "Fee collection OK: task=%s, fee=%.6f, tx=%s",
-                    task_id, float(fee_amount), result.get("tx_hash"),
+                    task_id,
+                    float(fee_amount),
+                    result.get("tx_hash"),
                 )
             else:
                 logger.warning(
                     "Fee collection FAILED (non-blocking): task=%s, error=%s",
-                    task_id, result.get("error"),
+                    task_id,
+                    result.get("error"),
                 )
 
             return {
@@ -740,7 +911,9 @@ class EMX402SDK:
                     network=payload.network,
                     timestamp=datetime.now(timezone.utc),
                     task_id=task_id,
-                    error=verify_response.invalidReason or verify_response.message or "Payment verification failed",
+                    error=verify_response.invalidReason
+                    or verify_response.message
+                    or "Payment verification failed",
                 )
 
             return TaskPaymentResult(
@@ -812,7 +985,9 @@ class EMX402SDK:
                     agent_settle_tx = self._extract_settlement_tx_hash(settle_resp)
                     logger.info(
                         "Agent auth settled: task=%s, agent=%s, tx=%s",
-                        task_id, payer_address[:10], agent_settle_tx,
+                        task_id,
+                        payer_address[:10],
+                        agent_settle_tx,
                     )
                 else:
                     logger.info(
@@ -823,11 +998,14 @@ class EMX402SDK:
                 # Log but continue — agent may have already paid, or auth expired
                 logger.warning(
                     "Agent auth settlement failed for task %s (continuing): %s",
-                    task_id, e,
+                    task_id,
+                    e,
                 )
 
             # Calculate fee breakdown
-            platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(Decimal("0.000001"))
+            platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(
+                Decimal("0.000001")
+            )
             # Enforce minimum fee of $0.01 to avoid zero-fee on small bounties
             if platform_fee > 0 and platform_fee < Decimal("0.01"):
                 platform_fee = Decimal("0.01")
@@ -865,7 +1043,8 @@ class EMX402SDK:
             if not fee_result.get("success"):
                 logger.warning(
                     "Worker paid but fee collection failed for task %s: %s",
-                    task_id, fee_result.get("error"),
+                    task_id,
+                    fee_result.get("error"),
                 )
 
             return {
@@ -941,7 +1120,10 @@ class EMX402SDK:
 
                 logger.info(
                     "Gasless refund succeeded: task=%s, escrow=%s, tx=%s, status=%s",
-                    task_id, escrow_id, tx_hash, refund_result.status,
+                    task_id,
+                    escrow_id,
+                    tx_hash,
+                    refund_result.status,
                 )
 
                 return {
@@ -950,8 +1132,12 @@ class EMX402SDK:
                     "escrow_id": escrow_id,
                     "refund_id": refund_result.id,
                     "tx_hash": tx_hash,
-                    "status": refund_result.status.value if hasattr(refund_result.status, "value") else str(refund_result.status),
-                    "amount_requested": getattr(refund_result, "amount_requested", None),
+                    "status": refund_result.status.value
+                    if hasattr(refund_result.status, "value")
+                    else str(refund_result.status),
+                    "amount_requested": getattr(
+                        refund_result, "amount_requested", None
+                    ),
                     "reason": reason,
                     "method": "facilitator",
                     "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -960,7 +1146,9 @@ class EMX402SDK:
                 logger.warning(
                     "Gasless refund failed for task %s (escrow %s), "
                     "falling back to direct contract: %s",
-                    task_id, escrow_id, str(e),
+                    task_id,
+                    escrow_id,
+                    str(e),
                 )
                 # Fall through to legacy path below
 
@@ -987,12 +1175,15 @@ class EMX402SDK:
         """
         try:
             import httpx
+
             async with httpx.AsyncClient() as http_client:
                 response = await http_client.get(
                     f"{self.facilitator_url}/health",
                     timeout=10.0,
                 )
-                facilitator_health = response.json() if response.status_code == 200 else {}
+                facilitator_health = (
+                    response.json() if response.status_code == 200 else {}
+                )
 
             return {
                 "sdk_available": True,
@@ -1081,7 +1272,9 @@ async def verify_x402_payment(
     sdk = get_sdk()
 
     # Get x402 payment header
-    payment_header = request.headers.get("X-Payment") or request.headers.get("x-payment")
+    payment_header = request.headers.get("X-Payment") or request.headers.get(
+        "x-payment"
+    )
 
     if not payment_header:
         return TaskPaymentResult(
@@ -1105,6 +1298,7 @@ async def verify_x402_payment(
 # Check SDK Availability
 # =============================================================================
 
+
 def check_sdk_available() -> bool:
     """Check if uvd-x402-sdk is available."""
     return SDK_AVAILABLE
@@ -1121,6 +1315,7 @@ def get_sdk_info() -> Dict[str, Any]:
 
     try:
         import uvd_x402_sdk
+
         return {
             "available": True,
             "version": getattr(uvd_x402_sdk, "__version__", "unknown"),

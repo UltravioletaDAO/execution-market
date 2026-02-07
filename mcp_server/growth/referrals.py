@@ -41,11 +41,12 @@ logger = logging.getLogger(__name__)
 
 class ReferralStatus(str, Enum):
     """Status of a referral in the system."""
-    PENDING = "pending"           # Referred user signed up but hasn't started
-    QUALIFYING = "qualifying"     # Working on required tasks
-    COMPLETED = "completed"       # Required tasks done, bonus paid
-    EXPIRED = "expired"           # Didn't complete in time
-    REJECTED = "rejected"         # Fraud detected or invalid referral
+
+    PENDING = "pending"  # Referred user signed up but hasn't started
+    QUALIFYING = "qualifying"  # Working on required tasks
+    COMPLETED = "completed"  # Required tasks done, bonus paid
+    EXPIRED = "expired"  # Didn't complete in time
+    REJECTED = "rejected"  # Fraud detected or invalid referral
 
 
 @dataclass
@@ -67,6 +68,7 @@ class ReferralConfig:
         max_active_codes: Maximum active codes per referrer
         fraud_check_enabled: Enable fraud detection
     """
+
     tasks_required: int = 5
     bonus_amount_min: float = 1.00
     bonus_amount_max: float = 2.00
@@ -97,6 +99,7 @@ class ReferralCode:
         bonus_amount: Bonus amount for this specific code
         metadata: Additional metadata
     """
+
     code: str
     referrer_id: str
     created_at: datetime
@@ -151,6 +154,7 @@ class Referral:
         tx_hash: Payment transaction hash
         metadata: Additional tracking data
     """
+
     id: str
     code: str
     referrer_id: str
@@ -204,6 +208,7 @@ class ReferralStats:
         avg_completion_days: Average days to completion
         conversion_rate: Percentage that complete requirements
     """
+
     referrer_id: str
     total_referrals: int = 0
     completed_referrals: int = 0
@@ -276,15 +281,13 @@ class ReferralManager:
         Uses only uppercase letters and digits, avoiding ambiguous chars (0, O, I, L, 1).
         """
         # Exclude ambiguous characters
-        alphabet = ''.join(
-            c for c in string.ascii_uppercase + string.digits
-            if c not in '0O1IL'
+        alphabet = "".join(
+            c for c in string.ascii_uppercase + string.digits if c not in "0O1IL"
         )
 
         # Generate random part
-        random_part = ''.join(
-            secrets.choice(alphabet)
-            for _ in range(self.config.code_length)
+        random_part = "".join(
+            secrets.choice(alphabet) for _ in range(self.config.code_length)
         )
 
         # Combine with prefix
@@ -307,9 +310,13 @@ class ReferralManager:
         """
         # Check minimum tasks completed
         if self.db_client:
-            result = self.db_client.table("workers").select(
-                "tasks_completed, created_at"
-            ).eq("id", referrer_id).single().execute()
+            result = (
+                self.db_client.table("workers")
+                .select("tasks_completed, created_at")
+                .eq("id", referrer_id)
+                .single()
+                .execute()
+            )
 
             if not result.data:
                 return False, "Worker not found"
@@ -323,7 +330,8 @@ class ReferralManager:
 
         # Check active codes limit
         active_codes = sum(
-            1 for code in self._codes.values()
+            1
+            for code in self._codes.values()
             if code.referrer_id == referrer_id and code.is_valid
         )
         if active_codes >= self.config.max_active_codes:
@@ -335,12 +343,13 @@ class ReferralManager:
         # Check cooldown
         if self.config.cooldown_hours > 0:
             recent_codes = [
-                code for code in self._codes.values()
-                if code.referrer_id == referrer_id
+                code for code in self._codes.values() if code.referrer_id == referrer_id
             ]
             if recent_codes:
                 latest = max(recent_codes, key=lambda c: c.created_at)
-                cooldown_end = latest.created_at + timedelta(hours=self.config.cooldown_hours)
+                cooldown_end = latest.created_at + timedelta(
+                    hours=self.config.cooldown_hours
+                )
                 if datetime.now(timezone.utc) < cooldown_end:
                     remaining = cooldown_end - datetime.now(timezone.utc)
                     return False, (
@@ -384,18 +393,27 @@ class ReferralManager:
         # Additional fraud checks with database
         if self.db_client:
             # Check for shared IP/device patterns
-            referrer_data = self.db_client.table("workers").select(
-                "signup_ip, device_fingerprint"
-            ).eq("id", referral_code.referrer_id).single().execute()
+            referrer_data = (
+                self.db_client.table("workers")
+                .select("signup_ip, device_fingerprint")
+                .eq("id", referral_code.referrer_id)
+                .single()
+                .execute()
+            )
 
-            referee_data = self.db_client.table("workers").select(
-                "signup_ip, device_fingerprint"
-            ).eq("id", referee_id).single().execute()
+            referee_data = (
+                self.db_client.table("workers")
+                .select("signup_ip, device_fingerprint")
+                .eq("id", referee_id)
+                .single()
+                .execute()
+            )
 
             if referrer_data.data and referee_data.data:
                 # Same IP check
-                if (referrer_data.data.get("signup_ip") ==
-                    referee_data.data.get("signup_ip")):
+                if referrer_data.data.get("signup_ip") == referee_data.data.get(
+                    "signup_ip"
+                ):
                     logger.warning(
                         f"Same IP referral: referrer={referral_code.referrer_id}, "
                         f"referee={referee_id}"
@@ -404,8 +422,9 @@ class ReferralManager:
                     return True, "FLAGGED: Same IP address"
 
                 # Same device check
-                if (referrer_data.data.get("device_fingerprint") ==
-                    referee_data.data.get("device_fingerprint")):
+                if referrer_data.data.get(
+                    "device_fingerprint"
+                ) == referee_data.data.get("device_fingerprint"):
                     logger.warning(
                         f"Same device referral: referrer={referral_code.referrer_id}, "
                         f"referee={referee_id}"
@@ -450,8 +469,9 @@ class ReferralManager:
 
         # Determine bonus amount
         bonus = bonus_amount or self.config.bonus_amount_default
-        bonus = max(self.config.bonus_amount_min,
-                   min(self.config.bonus_amount_max, bonus))
+        bonus = max(
+            self.config.bonus_amount_min, min(self.config.bonus_amount_max, bonus)
+        )
 
         # Calculate expiration
         now = datetime.now(timezone.utc)
@@ -476,19 +496,20 @@ class ReferralManager:
 
         # Persist to database
         if self.db_client:
-            self.db_client.table("referral_codes").insert({
-                "code": code_str,
-                "referrer_id": referrer_id,
-                "created_at": now.isoformat(),
-                "max_uses": referral_code.max_uses,
-                "expires_at": expires_at.isoformat() if expires_at else None,
-                "bonus_amount": bonus,
-                "metadata": metadata or {},
-            }).execute()
+            self.db_client.table("referral_codes").insert(
+                {
+                    "code": code_str,
+                    "referrer_id": referrer_id,
+                    "created_at": now.isoformat(),
+                    "max_uses": referral_code.max_uses,
+                    "expires_at": expires_at.isoformat() if expires_at else None,
+                    "bonus_amount": bonus,
+                    "metadata": metadata or {},
+                }
+            ).execute()
 
         logger.info(
-            f"Referral code generated: {code_str} by {referrer_id}, "
-            f"bonus=${bonus:.2f}"
+            f"Referral code generated: {code_str} by {referrer_id}, bonus=${bonus:.2f}"
         )
 
         return referral_code
@@ -521,9 +542,13 @@ class ReferralManager:
 
         # Try database if not in memory
         if not referral_code and self.db_client:
-            result = self.db_client.table("referral_codes").select(
-                "*"
-            ).eq("code", code).single().execute()
+            result = (
+                self.db_client.table("referral_codes")
+                .select("*")
+                .eq("code", code)
+                .single()
+                .execute()
+            )
 
             if result.data:
                 referral_code = ReferralCode(
@@ -532,10 +557,15 @@ class ReferralManager:
                     created_at=datetime.fromisoformat(result.data["created_at"]),
                     uses=result.data.get("uses", 0),
                     max_uses=result.data.get("max_uses"),
-                    expires_at=(datetime.fromisoformat(result.data["expires_at"])
-                               if result.data.get("expires_at") else None),
+                    expires_at=(
+                        datetime.fromisoformat(result.data["expires_at"])
+                        if result.data.get("expires_at")
+                        else None
+                    ),
                     is_active=result.data.get("is_active", True),
-                    bonus_amount=result.data.get("bonus_amount", self.config.bonus_amount_default),
+                    bonus_amount=result.data.get(
+                        "bonus_amount", self.config.bonus_amount_default
+                    ),
                     metadata=result.data.get("metadata", {}),
                 )
                 self._codes[code] = referral_code
@@ -546,7 +576,10 @@ class ReferralManager:
         if not referral_code.is_valid:
             if referral_code.max_uses and referral_code.uses >= referral_code.max_uses:
                 raise ValueError("This referral code has reached its usage limit")
-            if referral_code.expires_at and datetime.now(timezone.utc) > referral_code.expires_at:
+            if (
+                referral_code.expires_at
+                and datetime.now(timezone.utc) > referral_code.expires_at
+            ):
                 raise ValueError("This referral code has expired")
             raise ValueError("This referral code is no longer active")
 
@@ -586,25 +619,29 @@ class ReferralManager:
 
         # Persist to database
         if self.db_client:
-            self.db_client.table("referrals").insert({
-                "id": referral_id,
-                "code": code,
-                "referrer_id": referral_code.referrer_id,
-                "referee_id": referee_id,
-                "status": ReferralStatus.PENDING.value,
-                "tasks_completed": 0,
-                "tasks_required": self.config.tasks_required,
-                "bonus_amount": referral_code.bonus_amount,
-                "bonus_paid": False,
-                "created_at": now.isoformat(),
-                "expires_at": referral.expires_at.isoformat(),
-                "metadata": referral.metadata,
-            }).execute()
+            self.db_client.table("referrals").insert(
+                {
+                    "id": referral_id,
+                    "code": code,
+                    "referrer_id": referral_code.referrer_id,
+                    "referee_id": referee_id,
+                    "status": ReferralStatus.PENDING.value,
+                    "tasks_completed": 0,
+                    "tasks_required": self.config.tasks_required,
+                    "bonus_amount": referral_code.bonus_amount,
+                    "bonus_paid": False,
+                    "created_at": now.isoformat(),
+                    "expires_at": referral.expires_at.isoformat(),
+                    "metadata": referral.metadata,
+                }
+            ).execute()
 
             # Update code uses
-            self.db_client.table("referral_codes").update({
-                "uses": referral_code.uses,
-            }).eq("code", code).execute()
+            self.db_client.table("referral_codes").update(
+                {
+                    "uses": referral_code.uses,
+                }
+            ).eq("code", code).execute()
 
         logger.info(
             f"Referral applied: {code} -> {referee_id}, "
@@ -638,11 +675,14 @@ class ReferralManager:
 
         # Try database if not in memory
         if not referral_id and self.db_client:
-            result = self.db_client.table("referrals").select(
-                "id"
-            ).eq("referee_id", worker_id).eq(
-                "status", ReferralStatus.PENDING.value
-            ).single().execute()
+            result = (
+                self.db_client.table("referrals")
+                .select("id")
+                .eq("referee_id", worker_id)
+                .eq("status", ReferralStatus.PENDING.value)
+                .single()
+                .execute()
+            )
 
             if result.data:
                 referral_id = result.data["id"]
@@ -657,8 +697,11 @@ class ReferralManager:
             return None
 
         # Skip if already completed or expired
-        if referral.status in [ReferralStatus.COMPLETED, ReferralStatus.EXPIRED,
-                               ReferralStatus.REJECTED]:
+        if referral.status in [
+            ReferralStatus.COMPLETED,
+            ReferralStatus.EXPIRED,
+            ReferralStatus.REJECTED,
+        ]:
             return referral
 
         # Check for expiration
@@ -675,11 +718,13 @@ class ReferralManager:
         if task_id:
             if "completed_tasks" not in referral.metadata:
                 referral.metadata["completed_tasks"] = []
-            referral.metadata["completed_tasks"].append({
-                "task_id": task_id,
-                "completed_at": datetime.now(timezone.utc).isoformat(),
-                "rating": task_rating,
-            })
+            referral.metadata["completed_tasks"].append(
+                {
+                    "task_id": task_id,
+                    "completed_at": datetime.now(timezone.utc).isoformat(),
+                    "rating": task_rating,
+                }
+            )
 
         # Update status
         if referral.tasks_completed > 0:
@@ -720,9 +765,13 @@ class ReferralManager:
             if self.x402_client:
                 # Get referrer's wallet address
                 if self.db_client:
-                    result = self.db_client.table("workers").select(
-                        "wallet_address"
-                    ).eq("id", referral.referrer_id).single().execute()
+                    result = (
+                        self.db_client.table("workers")
+                        .select("wallet_address")
+                        .eq("id", referral.referrer_id)
+                        .single()
+                        .execute()
+                    )
 
                     if not result.data or not result.data.get("wallet_address"):
                         logger.error(
@@ -768,24 +817,34 @@ class ReferralManager:
     async def _persist_referral(self, referral: Referral) -> None:
         """Persist referral state to database."""
         if self.db_client:
-            self.db_client.table("referrals").update({
-                "status": referral.status.value,
-                "tasks_completed": referral.tasks_completed,
-                "bonus_paid": referral.bonus_paid,
-                "completed_at": referral.completed_at.isoformat() if referral.completed_at else None,
-                "paid_at": referral.paid_at.isoformat() if referral.paid_at else None,
-                "tx_hash": referral.tx_hash,
-                "metadata": referral.metadata,
-            }).eq("id", referral.id).execute()
+            self.db_client.table("referrals").update(
+                {
+                    "status": referral.status.value,
+                    "tasks_completed": referral.tasks_completed,
+                    "bonus_paid": referral.bonus_paid,
+                    "completed_at": referral.completed_at.isoformat()
+                    if referral.completed_at
+                    else None,
+                    "paid_at": referral.paid_at.isoformat()
+                    if referral.paid_at
+                    else None,
+                    "tx_hash": referral.tx_hash,
+                    "metadata": referral.metadata,
+                }
+            ).eq("id", referral.id).execute()
 
     async def _load_referral(self, referral_id: str) -> Optional[Referral]:
         """Load a referral from database."""
         if not self.db_client:
             return None
 
-        result = self.db_client.table("referrals").select(
-            "*"
-        ).eq("id", referral_id).single().execute()
+        result = (
+            self.db_client.table("referrals")
+            .select("*")
+            .eq("id", referral_id)
+            .single()
+            .execute()
+        )
 
         if not result.data:
             return None
@@ -802,12 +861,19 @@ class ReferralManager:
             bonus_amount=data["bonus_amount"],
             bonus_paid=data["bonus_paid"],
             created_at=datetime.fromisoformat(data["created_at"]),
-            completed_at=(datetime.fromisoformat(data["completed_at"])
-                         if data.get("completed_at") else None),
-            paid_at=(datetime.fromisoformat(data["paid_at"])
-                    if data.get("paid_at") else None),
-            expires_at=(datetime.fromisoformat(data["expires_at"])
-                       if data.get("expires_at") else None),
+            completed_at=(
+                datetime.fromisoformat(data["completed_at"])
+                if data.get("completed_at")
+                else None
+            ),
+            paid_at=(
+                datetime.fromisoformat(data["paid_at"]) if data.get("paid_at") else None
+            ),
+            expires_at=(
+                datetime.fromisoformat(data["expires_at"])
+                if data.get("expires_at")
+                else None
+            ),
             tx_hash=data.get("tx_hash"),
             metadata=data.get("metadata", {}),
         )
@@ -847,9 +913,13 @@ class ReferralManager:
 
         # Try database
         if self.db_client:
-            result = self.db_client.table("referrals").select(
-                "id"
-            ).eq("referee_id", referee_id).single().execute()
+            result = (
+                self.db_client.table("referrals")
+                .select("id")
+                .eq("referee_id", referee_id)
+                .single()
+                .execute()
+            )
 
             if result.data:
                 return await self._load_referral(result.data["id"])
@@ -872,37 +942,50 @@ class ReferralManager:
         referrals: List[Referral] = []
 
         if self.db_client:
-            result = self.db_client.table("referrals").select(
-                "*"
-            ).eq("referrer_id", referrer_id).execute()
+            result = (
+                self.db_client.table("referrals")
+                .select("*")
+                .eq("referrer_id", referrer_id)
+                .execute()
+            )
 
             if result.data:
                 for data in result.data:
-                    referrals.append(Referral(
-                        id=data["id"],
-                        code=data["code"],
-                        referrer_id=data["referrer_id"],
-                        referee_id=data["referee_id"],
-                        status=ReferralStatus(data["status"]),
-                        tasks_completed=data["tasks_completed"],
-                        tasks_required=data["tasks_required"],
-                        bonus_amount=data["bonus_amount"],
-                        bonus_paid=data["bonus_paid"],
-                        created_at=datetime.fromisoformat(data["created_at"]),
-                        completed_at=(datetime.fromisoformat(data["completed_at"])
-                                     if data.get("completed_at") else None),
-                        paid_at=(datetime.fromisoformat(data["paid_at"])
-                                if data.get("paid_at") else None),
-                        expires_at=(datetime.fromisoformat(data["expires_at"])
-                                   if data.get("expires_at") else None),
-                        tx_hash=data.get("tx_hash"),
-                        metadata=data.get("metadata", {}),
-                    ))
+                    referrals.append(
+                        Referral(
+                            id=data["id"],
+                            code=data["code"],
+                            referrer_id=data["referrer_id"],
+                            referee_id=data["referee_id"],
+                            status=ReferralStatus(data["status"]),
+                            tasks_completed=data["tasks_completed"],
+                            tasks_required=data["tasks_required"],
+                            bonus_amount=data["bonus_amount"],
+                            bonus_paid=data["bonus_paid"],
+                            created_at=datetime.fromisoformat(data["created_at"]),
+                            completed_at=(
+                                datetime.fromisoformat(data["completed_at"])
+                                if data.get("completed_at")
+                                else None
+                            ),
+                            paid_at=(
+                                datetime.fromisoformat(data["paid_at"])
+                                if data.get("paid_at")
+                                else None
+                            ),
+                            expires_at=(
+                                datetime.fromisoformat(data["expires_at"])
+                                if data.get("expires_at")
+                                else None
+                            ),
+                            tx_hash=data.get("tx_hash"),
+                            metadata=data.get("metadata", {}),
+                        )
+                    )
         else:
             # Use in-memory data
             referrals = [
-                r for r in self._referrals.values()
-                if r.referrer_id == referrer_id
+                r for r in self._referrals.values() if r.referrer_id == referrer_id
             ]
 
         # Calculate statistics
@@ -917,7 +1000,9 @@ class ReferralManager:
 
                 # Calculate completion time
                 if referral.completed_at and referral.created_at:
-                    days = (referral.completed_at - referral.created_at).total_seconds() / 86400
+                    days = (
+                        referral.completed_at - referral.created_at
+                    ).total_seconds() / 86400
                     completion_days.append(days)
 
             elif referral.status in [ReferralStatus.PENDING, ReferralStatus.QUALIFYING]:
@@ -932,17 +1017,24 @@ class ReferralManager:
             stats.avg_completion_days = sum(completion_days) / len(completion_days)
 
         if stats.total_referrals > 0:
-            stats.conversion_rate = (stats.completed_referrals / stats.total_referrals) * 100
+            stats.conversion_rate = (
+                stats.completed_referrals / stats.total_referrals
+            ) * 100
 
         # Count active codes
         if self.db_client:
-            codes_result = self.db_client.table("referral_codes").select(
-                "code", count="exact"
-            ).eq("referrer_id", referrer_id).eq("is_active", True).execute()
+            codes_result = (
+                self.db_client.table("referral_codes")
+                .select("code", count="exact")
+                .eq("referrer_id", referrer_id)
+                .eq("is_active", True)
+                .execute()
+            )
             stats.active_codes = codes_result.count or 0
         else:
             stats.active_codes = sum(
-                1 for code in self._codes.values()
+                1
+                for code in self._codes.values()
                 if code.referrer_id == referrer_id and code.is_valid
             )
 
@@ -968,49 +1060,65 @@ class ReferralManager:
             List of Referral objects
         """
         if self.db_client:
-            query = self.db_client.table("referrals").select(
-                "*"
-            ).eq("referrer_id", referrer_id)
+            query = (
+                self.db_client.table("referrals")
+                .select("*")
+                .eq("referrer_id", referrer_id)
+            )
 
             if status:
                 query = query.eq("status", status.value)
 
-            result = query.order(
-                "created_at", desc=True
-            ).range(offset, offset + limit - 1).execute()
+            result = (
+                query.order("created_at", desc=True)
+                .range(offset, offset + limit - 1)
+                .execute()
+            )
 
             referrals = []
-            for data in (result.data or []):
-                referrals.append(Referral(
-                    id=data["id"],
-                    code=data["code"],
-                    referrer_id=data["referrer_id"],
-                    referee_id=data["referee_id"],
-                    status=ReferralStatus(data["status"]),
-                    tasks_completed=data["tasks_completed"],
-                    tasks_required=data["tasks_required"],
-                    bonus_amount=data["bonus_amount"],
-                    bonus_paid=data["bonus_paid"],
-                    created_at=datetime.fromisoformat(data["created_at"]),
-                    completed_at=(datetime.fromisoformat(data["completed_at"])
-                                 if data.get("completed_at") else None),
-                    paid_at=(datetime.fromisoformat(data["paid_at"])
-                            if data.get("paid_at") else None),
-                    expires_at=(datetime.fromisoformat(data["expires_at"])
-                               if data.get("expires_at") else None),
-                    tx_hash=data.get("tx_hash"),
-                    metadata=data.get("metadata", {}),
-                ))
+            for data in result.data or []:
+                referrals.append(
+                    Referral(
+                        id=data["id"],
+                        code=data["code"],
+                        referrer_id=data["referrer_id"],
+                        referee_id=data["referee_id"],
+                        status=ReferralStatus(data["status"]),
+                        tasks_completed=data["tasks_completed"],
+                        tasks_required=data["tasks_required"],
+                        bonus_amount=data["bonus_amount"],
+                        bonus_paid=data["bonus_paid"],
+                        created_at=datetime.fromisoformat(data["created_at"]),
+                        completed_at=(
+                            datetime.fromisoformat(data["completed_at"])
+                            if data.get("completed_at")
+                            else None
+                        ),
+                        paid_at=(
+                            datetime.fromisoformat(data["paid_at"])
+                            if data.get("paid_at")
+                            else None
+                        ),
+                        expires_at=(
+                            datetime.fromisoformat(data["expires_at"])
+                            if data.get("expires_at")
+                            else None
+                        ),
+                        tx_hash=data.get("tx_hash"),
+                        metadata=data.get("metadata", {}),
+                    )
+                )
             return referrals
         else:
             # In-memory
             referrals = [
-                r for r in self._referrals.values()
+                r
+                for r in self._referrals.values()
                 if r.referrer_id == referrer_id
                 and (status is None or r.status == status)
             ]
             referrals.sort(key=lambda r: r.created_at, reverse=True)
-            return referrals[offset:offset + limit]
+            return referrals[offset : offset + limit]
 
     async def get_referrer_codes(
         self,
@@ -1028,8 +1136,10 @@ class ReferralManager:
             List of ReferralCode objects
         """
         if self.db_client:
-            query = self.db_client.table("referral_codes").select("*").eq(
-                "referrer_id", referrer_id
+            query = (
+                self.db_client.table("referral_codes")
+                .select("*")
+                .eq("referrer_id", referrer_id)
             )
 
             if active_only:
@@ -1038,17 +1148,22 @@ class ReferralManager:
             result = query.order("created_at", desc=True).execute()
 
             codes = []
-            for data in (result.data or []):
+            for data in result.data or []:
                 code = ReferralCode(
                     code=data["code"],
                     referrer_id=data["referrer_id"],
                     created_at=datetime.fromisoformat(data["created_at"]),
                     uses=data.get("uses", 0),
                     max_uses=data.get("max_uses"),
-                    expires_at=(datetime.fromisoformat(data["expires_at"])
-                               if data.get("expires_at") else None),
+                    expires_at=(
+                        datetime.fromisoformat(data["expires_at"])
+                        if data.get("expires_at")
+                        else None
+                    ),
                     is_active=data.get("is_active", True),
-                    bonus_amount=data.get("bonus_amount", self.config.bonus_amount_default),
+                    bonus_amount=data.get(
+                        "bonus_amount", self.config.bonus_amount_default
+                    ),
                     metadata=data.get("metadata", {}),
                 )
                 if not active_only or code.is_valid:
@@ -1056,9 +1171,9 @@ class ReferralManager:
             return codes
         else:
             codes = [
-                c for c in self._codes.values()
-                if c.referrer_id == referrer_id
-                and (not active_only or c.is_valid)
+                c
+                for c in self._codes.values()
+                if c.referrer_id == referrer_id and (not active_only or c.is_valid)
             ]
             codes.sort(key=lambda c: c.created_at, reverse=True)
             return codes
@@ -1083,9 +1198,13 @@ class ReferralManager:
 
         if not referral_code:
             if self.db_client:
-                result = self.db_client.table("referral_codes").select(
-                    "*"
-                ).eq("code", code).single().execute()
+                result = (
+                    self.db_client.table("referral_codes")
+                    .select("*")
+                    .eq("code", code)
+                    .single()
+                    .execute()
+                )
                 if result.data:
                     referral_code = ReferralCode(
                         code=result.data["code"],
@@ -1107,9 +1226,11 @@ class ReferralManager:
         referral_code.is_active = False
 
         if self.db_client:
-            self.db_client.table("referral_codes").update({
-                "is_active": False,
-            }).eq("code", code).execute()
+            self.db_client.table("referral_codes").update(
+                {
+                    "is_active": False,
+                }
+            ).eq("code", code).execute()
 
         logger.info(f"Referral code deactivated: {code}")
         return True
@@ -1128,18 +1249,30 @@ class ReferralManager:
 
         if self.db_client:
             # Update all expired referrals in database
-            result = self.db_client.table("referrals").update({
-                "status": ReferralStatus.EXPIRED.value,
-            }).lt("expires_at", now.isoformat()).in_(
-                "status", [ReferralStatus.PENDING.value, ReferralStatus.QUALIFYING.value]
-            ).execute()
+            result = (
+                self.db_client.table("referrals")
+                .update(
+                    {
+                        "status": ReferralStatus.EXPIRED.value,
+                    }
+                )
+                .lt("expires_at", now.isoformat())
+                .in_(
+                    "status",
+                    [ReferralStatus.PENDING.value, ReferralStatus.QUALIFYING.value],
+                )
+                .execute()
+            )
 
             expired_count = len(result.data) if result.data else 0
         else:
             # Update in-memory
             for referral in self._referrals.values():
-                if (referral.status in [ReferralStatus.PENDING, ReferralStatus.QUALIFYING]
-                    and referral.is_expired):
+                if (
+                    referral.status
+                    in [ReferralStatus.PENDING, ReferralStatus.QUALIFYING]
+                    and referral.is_expired
+                ):
                     referral.status = ReferralStatus.EXPIRED
                     expired_count += 1
 
@@ -1157,34 +1290,44 @@ class ReferralManager:
         """
         if self.db_client:
             # Get counts by status
-            total_result = self.db_client.table("referrals").select(
-                "id", count="exact"
-            ).execute()
-
-            completed_result = self.db_client.table("referrals").select(
-                "id", count="exact"
-            ).eq("status", ReferralStatus.COMPLETED.value).execute()
-
-            pending_result = self.db_client.table("referrals").select(
-                "id", count="exact"
-            ).in_("status", [
-                ReferralStatus.PENDING.value,
-                ReferralStatus.QUALIFYING.value
-            ]).execute()
-
-            # Get total bonuses paid
-            paid_result = self.db_client.table("referrals").select(
-                "bonus_amount"
-            ).eq("bonus_paid", True).execute()
-
-            total_paid = sum(
-                r.get("bonus_amount", 0) for r in (paid_result.data or [])
+            total_result = (
+                self.db_client.table("referrals").select("id", count="exact").execute()
             )
 
+            completed_result = (
+                self.db_client.table("referrals")
+                .select("id", count="exact")
+                .eq("status", ReferralStatus.COMPLETED.value)
+                .execute()
+            )
+
+            pending_result = (
+                self.db_client.table("referrals")
+                .select("id", count="exact")
+                .in_(
+                    "status",
+                    [ReferralStatus.PENDING.value, ReferralStatus.QUALIFYING.value],
+                )
+                .execute()
+            )
+
+            # Get total bonuses paid
+            paid_result = (
+                self.db_client.table("referrals")
+                .select("bonus_amount")
+                .eq("bonus_paid", True)
+                .execute()
+            )
+
+            total_paid = sum(r.get("bonus_amount", 0) for r in (paid_result.data or []))
+
             # Get active codes count
-            codes_result = self.db_client.table("referral_codes").select(
-                "code", count="exact"
-            ).eq("is_active", True).execute()
+            codes_result = (
+                self.db_client.table("referral_codes")
+                .select("code", count="exact")
+                .eq("is_active", True)
+                .execute()
+            )
 
             return {
                 "total_referrals": total_result.count or 0,
@@ -1207,15 +1350,19 @@ class ReferralManager:
             codes = list(self._codes.values())
 
             completed = [r for r in referrals if r.status == ReferralStatus.COMPLETED]
-            pending = [r for r in referrals if r.status in [
-                ReferralStatus.PENDING, ReferralStatus.QUALIFYING
-            ]]
+            pending = [
+                r
+                for r in referrals
+                if r.status in [ReferralStatus.PENDING, ReferralStatus.QUALIFYING]
+            ]
 
             return {
                 "total_referrals": len(referrals),
                 "completed_referrals": len(completed),
                 "pending_referrals": len(pending),
-                "total_bonuses_paid": sum(r.bonus_amount for r in completed if r.bonus_paid),
+                "total_bonuses_paid": sum(
+                    r.bonus_amount for r in completed if r.bonus_paid
+                ),
                 "active_codes": sum(1 for c in codes if c.is_valid),
                 "conversion_rate": (
                     (len(completed) / len(referrals)) * 100 if referrals else 0
@@ -1229,6 +1376,7 @@ class ReferralManager:
 
 
 # Convenience functions
+
 
 async def create_referral_code(
     referrer_id: str,

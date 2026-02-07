@@ -16,7 +16,7 @@ This enables:
 """
 
 import logging
-from typing import Optional, List, Dict, Any, Set
+from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -26,22 +26,25 @@ logger = logging.getLogger(__name__)
 
 class ExpertiseLevel(str, Enum):
     """Levels of expertise in a domain."""
-    NOVICE = "novice"           # Learning, needs guidance
+
+    NOVICE = "novice"  # Learning, needs guidance
     INTERMEDIATE = "intermediate"  # Can work independently
-    ADVANCED = "advanced"       # Expert level
-    SPECIALIST = "specialist"   # Recognized expert, can train others
+    ADVANCED = "advanced"  # Expert level
+    SPECIALIST = "specialist"  # Recognized expert, can train others
 
 
 class Modality(str, Enum):
     """Work modality preferences/capabilities."""
+
     REMOTE_ONLY = "remote_only"
     ON_SITE_ONLY = "on_site_only"
     HYBRID = "hybrid"
-    MOBILE = "mobile"           # Can travel to locations
+    MOBILE = "mobile"  # Can travel to locations
 
 
 class EquipmentType(str, Enum):
     """Types of equipment workers may have."""
+
     SMARTPHONE = "smartphone"
     LAPTOP = "laptop"
     DESKTOP = "desktop"
@@ -62,6 +65,7 @@ class EquipmentType(str, Enum):
 @dataclass
 class ExpertiseArea:
     """Definition of an expertise area with specializations."""
+
     code: str
     name: str
     parent: Optional[str] = None  # For hierarchy
@@ -73,48 +77,138 @@ class ExpertiseArea:
 DEFAULT_EXPERTISE_AREAS = [
     # Technology
     ExpertiseArea("tech", "Technology"),
-    ExpertiseArea("tech_software", "Software Development", "tech", ["web", "mobile", "backend", "devops"]),
-    ExpertiseArea("tech_data", "Data & Analytics", "tech", ["sql", "python", "visualization", "ml"]),
-    ExpertiseArea("tech_support", "Technical Support", "tech", ["hardware", "software", "networking"]),
-
+    ExpertiseArea(
+        "tech_software",
+        "Software Development",
+        "tech",
+        ["web", "mobile", "backend", "devops"],
+    ),
+    ExpertiseArea(
+        "tech_data",
+        "Data & Analytics",
+        "tech",
+        ["sql", "python", "visualization", "ml"],
+    ),
+    ExpertiseArea(
+        "tech_support",
+        "Technical Support",
+        "tech",
+        ["hardware", "software", "networking"],
+    ),
     # Content & Media
     ExpertiseArea("content", "Content Creation"),
-    ExpertiseArea("content_writing", "Writing", "content", ["blog", "technical", "copywriting", "translation"]),
-    ExpertiseArea("content_photo", "Photography", "content", ["product", "real_estate", "portrait", "event"]),
-    ExpertiseArea("content_video", "Video Production", "content", ["editing", "filming", "animation"]),
-    ExpertiseArea("content_audio", "Audio Production", "content", ["podcast", "music", "voiceover"]),
-
+    ExpertiseArea(
+        "content_writing",
+        "Writing",
+        "content",
+        ["blog", "technical", "copywriting", "translation"],
+    ),
+    ExpertiseArea(
+        "content_photo",
+        "Photography",
+        "content",
+        ["product", "real_estate", "portrait", "event"],
+    ),
+    ExpertiseArea(
+        "content_video",
+        "Video Production",
+        "content",
+        ["editing", "filming", "animation"],
+    ),
+    ExpertiseArea(
+        "content_audio",
+        "Audio Production",
+        "content",
+        ["podcast", "music", "voiceover"],
+    ),
     # Field Work
     ExpertiseArea("field", "Field Work"),
-    ExpertiseArea("field_inspection", "Inspections", "field", ["real_estate", "vehicle", "construction"], True),
-    ExpertiseArea("field_delivery", "Delivery & Logistics", "field", ["same_day", "bulk", "fragile"]),
-    ExpertiseArea("field_mystery", "Mystery Shopping", "field", ["retail", "restaurant", "service"]),
-    ExpertiseArea("field_survey", "Surveying & Data Collection", "field", ["street", "door_to_door", "observation"]),
-
+    ExpertiseArea(
+        "field_inspection",
+        "Inspections",
+        "field",
+        ["real_estate", "vehicle", "construction"],
+        True,
+    ),
+    ExpertiseArea(
+        "field_delivery",
+        "Delivery & Logistics",
+        "field",
+        ["same_day", "bulk", "fragile"],
+    ),
+    ExpertiseArea(
+        "field_mystery",
+        "Mystery Shopping",
+        "field",
+        ["retail", "restaurant", "service"],
+    ),
+    ExpertiseArea(
+        "field_survey",
+        "Surveying & Data Collection",
+        "field",
+        ["street", "door_to_door", "observation"],
+    ),
     # Professional Services
     ExpertiseArea("professional", "Professional Services"),
-    ExpertiseArea("professional_legal", "Legal", "professional", ["notary", "witness", "document_review"], True),
-    ExpertiseArea("professional_finance", "Finance", "professional", ["bookkeeping", "tax", "audit"], True),
-    ExpertiseArea("professional_translation", "Translation", "professional", ["certified", "technical", "literary"]),
-
+    ExpertiseArea(
+        "professional_legal",
+        "Legal",
+        "professional",
+        ["notary", "witness", "document_review"],
+        True,
+    ),
+    ExpertiseArea(
+        "professional_finance",
+        "Finance",
+        "professional",
+        ["bookkeeping", "tax", "audit"],
+        True,
+    ),
+    ExpertiseArea(
+        "professional_translation",
+        "Translation",
+        "professional",
+        ["certified", "technical", "literary"],
+    ),
     # Local Services
     ExpertiseArea("local", "Local Services"),
-    ExpertiseArea("local_errands", "Errands", "local", ["shopping", "pickup", "waiting_in_line"]),
-    ExpertiseArea("local_presence", "Physical Presence", "local", ["queue_holding", "attendance", "monitoring"]),
-    ExpertiseArea("local_verification", "Verification", "local", ["address", "business", "person"]),
-
+    ExpertiseArea(
+        "local_errands", "Errands", "local", ["shopping", "pickup", "waiting_in_line"]
+    ),
+    ExpertiseArea(
+        "local_presence",
+        "Physical Presence",
+        "local",
+        ["queue_holding", "attendance", "monitoring"],
+    ),
+    ExpertiseArea(
+        "local_verification", "Verification", "local", ["address", "business", "person"]
+    ),
     # Research & Analysis
     ExpertiseArea("research", "Research & Analysis"),
-    ExpertiseArea("research_market", "Market Research", "research", ["competitor", "pricing", "trends"]),
-    ExpertiseArea("research_academic", "Academic Research", "research", ["literature_review", "data_collection"]),
-    ExpertiseArea("research_ux", "UX Research", "research", ["usability", "interviews", "surveys"]),
+    ExpertiseArea(
+        "research_market",
+        "Market Research",
+        "research",
+        ["competitor", "pricing", "trends"],
+    ),
+    ExpertiseArea(
+        "research_academic",
+        "Academic Research",
+        "research",
+        ["literature_review", "data_collection"],
+    ),
+    ExpertiseArea(
+        "research_ux", "UX Research", "research", ["usability", "interviews", "surveys"]
+    ),
 ]
 
 
 @dataclass
 class GeoLocation:
     """Geographic location with coverage area."""
-    country_code: str           # ISO 3166-1 alpha-2
+
+    country_code: str  # ISO 3166-1 alpha-2
     region: Optional[str] = None  # State/Province
     city: Optional[str] = None
     postal_code: Optional[str] = None
@@ -126,6 +220,7 @@ class GeoLocation:
 @dataclass
 class AgeRange:
     """Age range specification."""
+
     min_age: int = 18
     max_age: int = 999
     requires_verification: bool = False
@@ -134,19 +229,21 @@ class AgeRange:
 @dataclass
 class WorkerCategory:
     """A single category assignment for a worker."""
-    category_type: str          # expertise, modality, equipment, etc.
-    category_code: str          # Specific code
+
+    category_type: str  # expertise, modality, equipment, etc.
+    category_code: str  # Specific code
     level: Optional[ExpertiseLevel] = None
     verified: bool = False
     verified_at: Optional[datetime] = None
     verified_by: Optional[str] = None
-    endorsements: int = 0       # From agents/other workers
-    tasks_completed: int = 0    # In this category
+    endorsements: int = 0  # From agents/other workers
+    tasks_completed: int = 0  # In this category
 
 
 @dataclass
 class WorkerProfile:
     """Complete worker profile with all categorizations."""
+
     worker_id: str
     display_name: str
 
@@ -173,7 +270,9 @@ class WorkerProfile:
     age_range: Optional[AgeRange] = None
 
     # Languages
-    languages: List[Dict[str, str]] = field(default_factory=list)  # [{"code": "es", "level": "native"}]
+    languages: List[Dict[str, str]] = field(
+        default_factory=list
+    )  # [{"code": "es", "level": "native"}]
 
     # Profile metadata
     profile_completeness: float = 0.0
@@ -184,6 +283,7 @@ class WorkerProfile:
 @dataclass
 class CategoryFilter:
     """Filter criteria for finding workers."""
+
     # Location
     country_codes: Optional[List[str]] = None
     regions: Optional[List[str]] = None
@@ -217,8 +317,9 @@ class CategoryFilter:
 @dataclass
 class MatchResult:
     """Result of matching a worker to criteria."""
+
     worker_id: str
-    match_score: float          # 0.0 - 1.0
+    match_score: float  # 0.0 - 1.0
     matching_criteria: List[str]
     missing_criteria: List[str]
     partial_matches: Dict[str, float]
@@ -250,21 +351,15 @@ class CategoryManager:
         ... ))
     """
 
-    def __init__(
-        self,
-        expertise_areas: Optional[List[ExpertiseArea]] = None
-    ):
+    def __init__(self, expertise_areas: Optional[List[ExpertiseArea]] = None):
         """Initialize with optional custom expertise areas."""
         self.expertise_areas = {
-            area.code: area
-            for area in (expertise_areas or DEFAULT_EXPERTISE_AREAS)
+            area.code: area for area in (expertise_areas or DEFAULT_EXPERTISE_AREAS)
         }
         self._profiles: Dict[str, WorkerProfile] = {}
 
     async def get_profile(
-        self,
-        worker_id: str,
-        db_client: Optional[Any] = None
+        self, worker_id: str, db_client: Optional[Any] = None
     ) -> Optional[WorkerProfile]:
         """
         Get worker profile.
@@ -289,7 +384,7 @@ class CategoryManager:
         worker_id: str,
         display_name: str,
         primary_location: Optional[GeoLocation] = None,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> WorkerProfile:
         """
         Create new worker profile.
@@ -322,7 +417,7 @@ class CategoryManager:
         worker_id: str,
         location: GeoLocation,
         is_primary: bool = True,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> WorkerProfile:
         """
         Update worker's location.
@@ -364,7 +459,7 @@ class CategoryManager:
         level: ExpertiseLevel,
         verified: bool = False,
         verified_by: Optional[str] = None,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> WorkerProfile:
         """
         Add expertise to worker profile.
@@ -389,8 +484,7 @@ class CategoryManager:
 
         # Check if already exists
         existing = next(
-            (e for e in profile.expertise if e.category_code == expertise_code),
-            None
+            (e for e in profile.expertise if e.category_code == expertise_code), None
         )
 
         if existing:
@@ -418,16 +512,14 @@ class CategoryManager:
         if db_client:
             await self._save_profile(profile, db_client)
 
-        logger.info(
-            f"Added expertise {expertise_code} ({level.value}) for {worker_id}"
-        )
+        logger.info(f"Added expertise {expertise_code} ({level.value}) for {worker_id}")
         return profile
 
     async def set_equipment(
         self,
         worker_id: str,
         equipment: List[EquipmentType],
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> WorkerProfile:
         """
         Set worker's available equipment.
@@ -460,7 +552,7 @@ class CategoryManager:
         self,
         worker_id: str,
         modalities: List[Modality],
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> WorkerProfile:
         """
         Set worker's work modalities.
@@ -494,7 +586,7 @@ class CategoryManager:
         worker_id: str,
         language_code: str,
         level: str,  # native, fluent, conversational, basic
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> WorkerProfile:
         """
         Add language to worker profile.
@@ -514,8 +606,7 @@ class CategoryManager:
 
         # Check if already exists
         existing = next(
-            (l for l in profile.languages if l["code"] == language_code),
-            None
+            (l for l in profile.languages if l["code"] == language_code), None
         )
 
         if existing:
@@ -537,7 +628,7 @@ class CategoryManager:
         worker_id: str,
         birth_year: int,
         verified_by: str,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> WorkerProfile:
         """
         Verify worker's age.
@@ -574,10 +665,7 @@ class CategoryManager:
         return profile
 
     async def find_workers(
-        self,
-        criteria: CategoryFilter,
-        limit: int = 50,
-        db_client: Optional[Any] = None
+        self, criteria: CategoryFilter, limit: int = 50, db_client: Optional[Any] = None
     ) -> List[MatchResult]:
         """
         Find workers matching criteria.
@@ -614,7 +702,7 @@ class CategoryManager:
         expertise_code: str,
         endorsed_by: str,
         endorser_type: str = "agent",  # agent, worker, admin
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> WorkerProfile:
         """
         Add endorsement to worker's expertise.
@@ -634,8 +722,7 @@ class CategoryManager:
             raise ValueError(f"Worker {worker_id} not found")
 
         expertise = next(
-            (e for e in profile.expertise if e.category_code == expertise_code),
-            None
+            (e for e in profile.expertise if e.category_code == expertise_code), None
         )
 
         if not expertise:
@@ -686,9 +773,7 @@ class CategoryManager:
         return tree
 
     def _evaluate_match(
-        self,
-        profile: WorkerProfile,
-        criteria: CategoryFilter
+        self, profile: WorkerProfile, criteria: CategoryFilter
     ) -> MatchResult:
         """Evaluate how well a profile matches criteria."""
         matching: List[str] = []
@@ -700,7 +785,10 @@ class CategoryManager:
         # Location matching (weight: 3)
         if criteria.country_codes:
             total_weight += 3
-            if profile.primary_location and profile.primary_location.country_code in criteria.country_codes:
+            if (
+                profile.primary_location
+                and profile.primary_location.country_code in criteria.country_codes
+            ):
                 matching.append(f"country:{profile.primary_location.country_code}")
                 matched_weight += 3
             else:
@@ -708,7 +796,10 @@ class CategoryManager:
 
         if criteria.cities:
             total_weight += 2
-            if profile.primary_location and profile.primary_location.city in criteria.cities:
+            if (
+                profile.primary_location
+                and profile.primary_location.city in criteria.cities
+            ):
                 matching.append(f"city:{profile.primary_location.city}")
                 matched_weight += 2
             else:
@@ -720,7 +811,10 @@ class CategoryManager:
             if profile.primary_location and profile.primary_location.latitude:
                 distance = self._calculate_distance(
                     criteria.near_location,
-                    (profile.primary_location.latitude, profile.primary_location.longitude)
+                    (
+                        profile.primary_location.latitude,
+                        profile.primary_location.longitude,
+                    ),
                 )
                 if distance <= criteria.max_distance_km:
                     matching.append(f"distance:{distance:.1f}km")
@@ -734,25 +828,35 @@ class CategoryManager:
             for exp_code in criteria.required_expertise:
                 total_weight += 4
                 worker_exp = next(
-                    (e for e in profile.expertise if e.category_code == exp_code),
-                    None
+                    (e for e in profile.expertise if e.category_code == exp_code), None
                 )
 
                 if worker_exp:
                     # Check level if required
                     if criteria.min_expertise_level:
                         level_order = [e for e in ExpertiseLevel]
-                        worker_level_idx = level_order.index(worker_exp.level) if worker_exp.level else 0
-                        required_level_idx = level_order.index(criteria.min_expertise_level)
+                        worker_level_idx = (
+                            level_order.index(worker_exp.level)
+                            if worker_exp.level
+                            else 0
+                        )
+                        required_level_idx = level_order.index(
+                            criteria.min_expertise_level
+                        )
 
                         if worker_level_idx >= required_level_idx:
                             # Check verification if required
-                            if criteria.verified_expertise_only and not worker_exp.verified:
+                            if (
+                                criteria.verified_expertise_only
+                                and not worker_exp.verified
+                            ):
                                 partial[exp_code] = 0.7
                                 matched_weight += 2.8
                                 missing.append(f"{exp_code}:verification")
                             else:
-                                matching.append(f"expertise:{exp_code}:{worker_exp.level.value}")
+                                matching.append(
+                                    f"expertise:{exp_code}:{worker_exp.level.value}"
+                                )
                                 matched_weight += 4
                         else:
                             partial[exp_code] = worker_level_idx / required_level_idx
@@ -788,8 +892,7 @@ class CategoryManager:
             for lang in criteria.required_languages:
                 total_weight += 3
                 worker_lang = next(
-                    (l for l in profile.languages if l["code"] == lang),
-                    None
+                    (l for l in profile.languages if l["code"] == lang), None
                 )
                 if worker_lang:
                     matching.append(f"language:{lang}:{worker_lang['level']}")
@@ -843,9 +946,7 @@ class CategoryManager:
         )
 
     def _calculate_distance(
-        self,
-        point1: tuple[float, float],
-        point2: tuple[float, float]
+        self, point1: tuple[float, float], point2: tuple[float, float]
     ) -> float:
         """Calculate distance between two points in km (Haversine formula)."""
         import math
@@ -896,11 +997,7 @@ class CategoryManager:
 
         profile.profile_completeness = filled / total_fields
 
-    async def _save_profile(
-        self,
-        profile: WorkerProfile,
-        db_client: Any
-    ):
+    async def _save_profile(self, profile: WorkerProfile, db_client: Any):
         """Save profile to database."""
         data = {
             "worker_id": profile.worker_id,
@@ -915,7 +1012,8 @@ class CategoryManager:
                     "longitude": profile.primary_location.longitude,
                     "coverage_radius_km": profile.primary_location.coverage_radius_km,
                 }
-                if profile.primary_location else None
+                if profile.primary_location
+                else None
             ),
             "expertise": [
                 {
@@ -939,14 +1037,16 @@ class CategoryManager:
         db_client.table("worker_profiles").upsert(data).execute()
 
     async def _load_profile(
-        self,
-        worker_id: str,
-        db_client: Any
+        self, worker_id: str, db_client: Any
     ) -> Optional[WorkerProfile]:
         """Load profile from database."""
-        result = db_client.table("worker_profiles").select("*").eq(
-            "worker_id", worker_id
-        ).single().execute()
+        result = (
+            db_client.table("worker_profiles")
+            .select("*")
+            .eq("worker_id", worker_id)
+            .single()
+            .execute()
+        )
 
         if not result.data:
             return None
@@ -974,14 +1074,16 @@ class CategoryManager:
 
         # Expertise
         for exp in data.get("expertise", []):
-            profile.expertise.append(WorkerCategory(
-                category_type="expertise",
-                category_code=exp["code"],
-                level=ExpertiseLevel(exp["level"]) if exp.get("level") else None,
-                verified=exp.get("verified", False),
-                endorsements=exp.get("endorsements", 0),
-                tasks_completed=exp.get("tasks_completed", 0),
-            ))
+            profile.expertise.append(
+                WorkerCategory(
+                    category_type="expertise",
+                    category_code=exp["code"],
+                    level=ExpertiseLevel(exp["level"]) if exp.get("level") else None,
+                    verified=exp.get("verified", False),
+                    endorsements=exp.get("endorsements", 0),
+                    tasks_completed=exp.get("tasks_completed", 0),
+                )
+            )
 
         # Modalities
         profile.modalities = [Modality(m) for m in data.get("modalities", [])]
@@ -1001,20 +1103,14 @@ class CategoryManager:
         return profile
 
     async def _search_profiles(
-        self,
-        criteria: CategoryFilter,
-        limit: int,
-        db_client: Any
+        self, criteria: CategoryFilter, limit: int, db_client: Any
     ) -> List[WorkerProfile]:
         """Search profiles in database with initial filters."""
         query = db_client.table("worker_profiles").select("*")
 
         # Apply database-level filters
         if criteria.country_codes:
-            query = query.in_(
-                "primary_location->>country_code",
-                criteria.country_codes
-            )
+            query = query.in_("primary_location->>country_code", criteria.country_codes)
 
         result = query.limit(limit).execute()
 

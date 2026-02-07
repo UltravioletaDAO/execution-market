@@ -19,7 +19,7 @@ import logging
 import uuid
 from typing import Dict, Optional, List, Any, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, UTC
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -32,29 +32,32 @@ logger = logging.getLogger(__name__)
 
 class ObstacleType(str, Enum):
     """Types of obstacles that can prevent task completion."""
-    ACCESS_DENIED = "access_denied"           # Couldn't access location
-    LOCATION_CLOSED = "location_closed"       # Business/location closed
+
+    ACCESS_DENIED = "access_denied"  # Couldn't access location
+    LOCATION_CLOSED = "location_closed"  # Business/location closed
     HOSTILE_ENVIRONMENT = "hostile_environment"  # Unsafe/threatening situation
-    WEATHER_BLOCKED = "weather_blocked"       # Weather prevents completion
-    UNSAFE_CONDITIONS = "unsafe_conditions"   # Physical hazards
-    TARGET_NOT_FOUND = "target_not_found"     # Subject of task not present
-    EQUIPMENT_FAILURE = "equipment_failure"   # Camera/phone issues
-    MEDICAL_EMERGENCY = "medical_emergency"   # Worker health issue
-    LEGAL_RESTRICTION = "legal_restriction"   # Police/security intervention
+    WEATHER_BLOCKED = "weather_blocked"  # Weather prevents completion
+    UNSAFE_CONDITIONS = "unsafe_conditions"  # Physical hazards
+    TARGET_NOT_FOUND = "target_not_found"  # Subject of task not present
+    EQUIPMENT_FAILURE = "equipment_failure"  # Camera/phone issues
+    MEDICAL_EMERGENCY = "medical_emergency"  # Worker health issue
+    LEGAL_RESTRICTION = "legal_restriction"  # Police/security intervention
     TRANSPORTATION_ISSUE = "transportation_issue"  # Couldn't reach location
 
 
 class CompensationTier(str, Enum):
     """Tiers of compensation for obstacles."""
-    NONE = "none"           # No compensation (e.g., worker didn't attempt)
-    MINIMAL = "minimal"     # Token compensation (e.g., target not found)
-    PARTIAL = "partial"     # Partial compensation (e.g., access denied)
+
+    NONE = "none"  # No compensation (e.g., worker didn't attempt)
+    MINIMAL = "minimal"  # Token compensation (e.g., target not found)
+    PARTIAL = "partial"  # Partial compensation (e.g., access denied)
     SUBSTANTIAL = "substantial"  # Higher compensation (e.g., hostile environment)
-    FULL = "full"           # Full bounty (e.g., task impossible by design)
+    FULL = "full"  # Full bounty (e.g., task impossible by design)
 
 
 class VerificationStatus(str, Enum):
     """Status of obstacle verification."""
+
     PENDING = "pending"
     UNDER_REVIEW = "under_review"
     VERIFIED = "verified"
@@ -64,6 +67,7 @@ class VerificationStatus(str, Enum):
 
 class EvidenceType(str, Enum):
     """Types of evidence for proof of attempt."""
+
     PHOTO = "photo"
     VIDEO = "video"
     GPS_TRACK = "gps_track"
@@ -82,6 +86,7 @@ class EvidenceType(str, Enum):
 @dataclass
 class ProofOfAttempt:
     """Evidence that worker genuinely attempted the task."""
+
     worker_id: str
     task_id: str
     evidence_type: EvidenceType
@@ -108,6 +113,7 @@ class ProofOfAttempt:
 @dataclass
 class ObstacleReport:
     """Report of an obstacle preventing task completion."""
+
     id: str
     task_id: str
     worker_id: str
@@ -152,6 +158,7 @@ class ObstacleReport:
 @dataclass
 class CompensationDecision:
     """Decision on compensation for an obstacle report."""
+
     report_id: str
     approved: bool
     compensation_tier: CompensationTier
@@ -178,6 +185,7 @@ class CompensationDecision:
 @dataclass
 class SafetyScore:
     """Safety score for a task/location combination."""
+
     task_id: str
     score: float  # 0.0 (unsafe) to 1.0 (safe)
     factors: Dict[str, float]
@@ -193,23 +201,25 @@ class SafetyScore:
 
 # Compensation percentages by obstacle type (% of bounty)
 OBSTACLE_COMPENSATION: Dict[ObstacleType, float] = {
-    ObstacleType.ACCESS_DENIED: 0.20,           # Worker went there but couldn't enter
-    ObstacleType.LOCATION_CLOSED: 0.15,         # Business unexpectedly closed
-    ObstacleType.HOSTILE_ENVIRONMENT: 0.30,     # Unsafe situation, higher compensation
-    ObstacleType.WEATHER_BLOCKED: 0.10,         # Weather is often predictable
-    ObstacleType.UNSAFE_CONDITIONS: 0.30,       # Physical hazards = higher compensation
-    ObstacleType.TARGET_NOT_FOUND: 0.10,        # Subject not present
-    ObstacleType.EQUIPMENT_FAILURE: 0.05,       # Worker's equipment issue
-    ObstacleType.MEDICAL_EMERGENCY: 0.25,       # Health issues
-    ObstacleType.LEGAL_RESTRICTION: 0.25,       # Police/security stopped them
-    ObstacleType.TRANSPORTATION_ISSUE: 0.05,   # Couldn't get there
+    ObstacleType.ACCESS_DENIED: 0.20,  # Worker went there but couldn't enter
+    ObstacleType.LOCATION_CLOSED: 0.15,  # Business unexpectedly closed
+    ObstacleType.HOSTILE_ENVIRONMENT: 0.30,  # Unsafe situation, higher compensation
+    ObstacleType.WEATHER_BLOCKED: 0.10,  # Weather is often predictable
+    ObstacleType.UNSAFE_CONDITIONS: 0.30,  # Physical hazards = higher compensation
+    ObstacleType.TARGET_NOT_FOUND: 0.10,  # Subject not present
+    ObstacleType.EQUIPMENT_FAILURE: 0.05,  # Worker's equipment issue
+    ObstacleType.MEDICAL_EMERGENCY: 0.25,  # Health issues
+    ObstacleType.LEGAL_RESTRICTION: 0.25,  # Police/security stopped them
+    ObstacleType.TRANSPORTATION_ISSUE: 0.05,  # Couldn't get there
 }
 
 # Minimum evidence required by obstacle type
 REQUIRED_EVIDENCE: Dict[ObstacleType, List[EvidenceType]] = {
     ObstacleType.ACCESS_DENIED: [EvidenceType.PHOTO, EvidenceType.GPS_TRACK],
     ObstacleType.LOCATION_CLOSED: [EvidenceType.PHOTO, EvidenceType.TIMESTAMP],
-    ObstacleType.HOSTILE_ENVIRONMENT: [EvidenceType.GPS_TRACK],  # Don't require photos in hostile situations
+    ObstacleType.HOSTILE_ENVIRONMENT: [
+        EvidenceType.GPS_TRACK
+    ],  # Don't require photos in hostile situations
     ObstacleType.WEATHER_BLOCKED: [EvidenceType.PHOTO],
     ObstacleType.UNSAFE_CONDITIONS: [EvidenceType.PHOTO, EvidenceType.GPS_TRACK],
     ObstacleType.TARGET_NOT_FOUND: [EvidenceType.PHOTO, EvidenceType.GPS_TRACK],
@@ -404,10 +414,10 @@ class HostileProtocolManager:
             report.verification_status = VerificationStatus.VERIFIED
             report.verified_at = datetime.now(UTC)
             report.verified_by = "system_auto"
-            report.notes.append(
-                f"Auto-verified with {confidence:.2%} confidence"
+            report.notes.append(f"Auto-verified with {confidence:.2%} confidence")
+            logger.info(
+                f"Report {report_id} auto-verified (confidence: {confidence:.2%})"
             )
-            logger.info(f"Report {report_id} auto-verified (confidence: {confidence:.2%})")
 
         # Low confidence + high bounty = escalate
         elif confidence < 0.5:
@@ -512,7 +522,7 @@ class HostileProtocolManager:
             compensation_amount=round(compensation_amount, 2),
             compensation_percentage=round(adjusted_percentage * 100, 1),
             reason=f"Obstacle type: {report.obstacle_type.value}, "
-                   f"evidence quality: {evidence_quality:.2%}",
+            f"evidence quality: {evidence_quality:.2%}",
             decided_at=datetime.now(UTC),
             decided_by="system",
         )
@@ -561,7 +571,8 @@ class HostileProtocolManager:
 
         if not include_rejected:
             reports = [
-                r for r in reports
+                r
+                for r in reports
                 if r.verification_status != VerificationStatus.REJECTED
             ]
 
@@ -595,14 +606,17 @@ class HostileProtocolManager:
         if location_reports:
             # Calculate factor based on report types
             hostile_count = sum(
-                1 for r in location_reports
-                if r.obstacle_type in [
+                1
+                for r in location_reports
+                if r.obstacle_type
+                in [
                     ObstacleType.HOSTILE_ENVIRONMENT,
                     ObstacleType.UNSAFE_CONDITIONS,
                 ]
             )
             access_issues = sum(
-                1 for r in location_reports
+                1
+                for r in location_reports
                 if r.obstacle_type == ObstacleType.ACCESS_DENIED
             )
 
@@ -657,9 +671,7 @@ class HostileProtocolManager:
 
         missing = set(required) - provided
         if missing:
-            errors.append(
-                f"Missing required evidence: {[e.value for e in missing]}"
-            )
+            errors.append(f"Missing required evidence: {[e.value for e in missing]}")
 
         # Validate evidence timestamps
         now = datetime.now(UTC)
@@ -727,8 +739,10 @@ class HostileProtocolManager:
             if report.location:
                 for e in gps_evidence:
                     distance = self._haversine_distance(
-                        report.location[0], report.location[1],
-                        e.gps_coordinates[0], e.gps_coordinates[1]
+                        report.location[0],
+                        report.location[1],
+                        e.gps_coordinates[0],
+                        e.gps_coordinates[1],
                     )
                     if distance < 100:  # Within 100 meters
                         scores.append(0.9)
@@ -765,7 +779,8 @@ class HostileProtocolManager:
         worker_reports = await self.get_reports_for_worker(report.worker_id)
         verified_count = sum(1 for r in worker_reports if r.verified)
         rejected_count = sum(
-            1 for r in worker_reports
+            1
+            for r in worker_reports
             if r.verification_status == VerificationStatus.REJECTED
         )
 
@@ -844,8 +859,7 @@ class HostileProtocolManager:
         for report in self._reports.values():
             if report.location:
                 distance = self._haversine_distance(
-                    location[0], location[1],
-                    report.location[0], report.location[1]
+                    location[0], location[1], report.location[0], report.location[1]
                 )
                 if distance <= radius_meters:
                     nearby.append(report)
@@ -854,8 +868,10 @@ class HostileProtocolManager:
 
     def _haversine_distance(
         self,
-        lat1: float, lon1: float,
-        lat2: float, lon2: float,
+        lat1: float,
+        lon1: float,
+        lat2: float,
+        lon2: float,
     ) -> float:
         """Calculate distance in meters between two coordinates."""
         import math
@@ -868,8 +884,8 @@ class HostileProtocolManager:
         delta_lambda = math.radians(lon2 - lon1)
 
         a = (
-            math.sin(delta_phi / 2) ** 2 +
-            math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+            math.sin(delta_phi / 2) ** 2
+            + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
         )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
@@ -887,8 +903,10 @@ class HostileProtocolManager:
     def get_all_pending_reports(self) -> List[ObstacleReport]:
         """Get all reports pending review (admin)."""
         return [
-            r for r in self._reports.values()
-            if r.verification_status in [
+            r
+            for r in self._reports.values()
+            if r.verification_status
+            in [
                 VerificationStatus.PENDING,
                 VerificationStatus.UNDER_REVIEW,
                 VerificationStatus.REQUIRES_ESCALATION,
@@ -905,7 +923,9 @@ class HostileProtocolManager:
 
         for r in reports:
             by_type[r.obstacle_type.value] = by_type.get(r.obstacle_type.value, 0) + 1
-            by_status[r.verification_status.value] = by_status.get(r.verification_status.value, 0) + 1
+            by_status[r.verification_status.value] = (
+                by_status.get(r.verification_status.value, 0) + 1
+            )
             total_compensation += r.compensation_awarded
 
         verified_count = sum(1 for r in reports if r.verified)
@@ -961,28 +981,32 @@ async def report_obstacle_quick(
     evidence: List[ProofOfAttempt] = []
 
     if gps:
-        evidence.append(ProofOfAttempt(
-            worker_id=worker_id,
-            task_id=task_id,
-            evidence_type=EvidenceType.GPS_TRACK,
-            evidence_url=None,
-            evidence_data={"coordinates": gps},
-            gps_coordinates=gps,
-            timestamp=datetime.now(UTC),
-            description="GPS location at obstacle",
-        ))
+        evidence.append(
+            ProofOfAttempt(
+                worker_id=worker_id,
+                task_id=task_id,
+                evidence_type=EvidenceType.GPS_TRACK,
+                evidence_url=None,
+                evidence_data={"coordinates": gps},
+                gps_coordinates=gps,
+                timestamp=datetime.now(UTC),
+                description="GPS location at obstacle",
+            )
+        )
 
     if photo_url:
-        evidence.append(ProofOfAttempt(
-            worker_id=worker_id,
-            task_id=task_id,
-            evidence_type=EvidenceType.PHOTO,
-            evidence_url=photo_url,
-            evidence_data={},
-            gps_coordinates=gps,
-            timestamp=datetime.now(UTC),
-            description="Photo evidence",
-        ))
+        evidence.append(
+            ProofOfAttempt(
+                worker_id=worker_id,
+                task_id=task_id,
+                evidence_type=EvidenceType.PHOTO,
+                evidence_url=photo_url,
+                evidence_data={},
+                gps_coordinates=gps,
+                timestamp=datetime.now(UTC),
+                description="Photo evidence",
+            )
+        )
 
     return await manager.report_obstacle(
         task_id=task_id,

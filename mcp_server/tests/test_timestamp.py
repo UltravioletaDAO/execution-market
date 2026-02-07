@@ -2,11 +2,9 @@
 Tests for timestamp verification module.
 """
 
-import pytest
 from datetime import datetime, timedelta, UTC
 from verification.checks.timestamp import (
     check_timestamp,
-    TimestampResult,
 )
 
 
@@ -19,9 +17,7 @@ class TestCheckTimestamp:
         photo_time = now - timedelta(seconds=30)
 
         result = check_timestamp(
-            photo_timestamp=photo_time,
-            submission_timestamp=now,
-            max_age_minutes=5
+            photo_timestamp=photo_time, submission_timestamp=now, max_age_minutes=5
         )
 
         assert result.is_valid
@@ -35,9 +31,7 @@ class TestCheckTimestamp:
         photo_time = now - timedelta(minutes=10)
 
         result = check_timestamp(
-            photo_timestamp=photo_time,
-            submission_timestamp=now,
-            max_age_minutes=5
+            photo_timestamp=photo_time, submission_timestamp=now, max_age_minutes=5
         )
 
         assert not result.is_valid
@@ -45,10 +39,7 @@ class TestCheckTimestamp:
 
     def test_missing_timestamp(self):
         """Missing photo timestamp should fail."""
-        result = check_timestamp(
-            photo_timestamp=None,
-            max_age_minutes=5
-        )
+        result = check_timestamp(photo_timestamp=None, max_age_minutes=5)
 
         assert not result.is_valid
         assert result.photo_timestamp is None
@@ -63,7 +54,7 @@ class TestCheckTimestamp:
             photo_timestamp=photo_time,
             submission_timestamp=now,
             max_age_minutes=5,
-            allow_future=False
+            allow_future=False,
         )
 
         assert not result.is_valid
@@ -78,7 +69,7 @@ class TestCheckTimestamp:
             photo_timestamp=photo_time,
             submission_timestamp=now,
             max_age_minutes=5,
-            allow_future=True
+            allow_future=True,
         )
 
         # 2 minutes is within 5-minute tolerance
@@ -93,7 +84,7 @@ class TestCheckTimestamp:
             photo_timestamp=photo_time,
             submission_timestamp=now,
             max_age_minutes=5,
-            allow_future=True  # Still should fail
+            allow_future=True,  # Still should fail
         )
 
         assert not result.is_valid
@@ -109,7 +100,7 @@ class TestCheckTimestamp:
             photo_timestamp=photo_time,
             submission_timestamp=now,
             task_start=task_start,
-            max_age_minutes=20
+            max_age_minutes=20,
         )
 
         assert not result.is_valid
@@ -125,7 +116,7 @@ class TestCheckTimestamp:
             photo_timestamp=photo_time,
             submission_timestamp=now,
             task_deadline=deadline,
-            max_age_minutes=10
+            max_age_minutes=10,
         )
 
         assert not result.is_valid
@@ -143,7 +134,7 @@ class TestCheckTimestamp:
             submission_timestamp=now,
             task_start=task_start,
             task_deadline=deadline,
-            max_age_minutes=5
+            max_age_minutes=5,
         )
 
         assert result.is_valid
@@ -154,9 +145,7 @@ class TestCheckTimestamp:
         photo_time = now - timedelta(minutes=2)
 
         result = check_timestamp(
-            photo_timestamp=photo_time,
-            submission_timestamp=now,
-            max_age_minutes=5
+            photo_timestamp=photo_time, submission_timestamp=now, max_age_minutes=5
         )
 
         # Should work, timestamps get UTC attached
@@ -169,17 +158,13 @@ class TestCheckTimestamp:
 
         # With 2 minute max, should fail
         result = check_timestamp(
-            photo_timestamp=photo_time,
-            submission_timestamp=now,
-            max_age_minutes=2
+            photo_timestamp=photo_time, submission_timestamp=now, max_age_minutes=2
         )
         assert not result.is_valid
 
         # With 5 minute max, should pass
         result = check_timestamp(
-            photo_timestamp=photo_time,
-            submission_timestamp=now,
-            max_age_minutes=5
+            photo_timestamp=photo_time, submission_timestamp=now, max_age_minutes=5
         )
         assert result.is_valid
 
@@ -195,7 +180,7 @@ class TestCheckTimestamp:
             submission_timestamp=now,
             task_start=task_start,
             task_deadline=deadline,
-            max_age_minutes=5
+            max_age_minutes=5,
         )
 
         assert result.photo_timestamp == photo_time.replace(tzinfo=UTC)

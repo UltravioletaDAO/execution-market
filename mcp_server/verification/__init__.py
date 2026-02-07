@@ -18,7 +18,12 @@ Includes fraud detection for:
 """
 
 from .checks.photo_source import check_photo_source, PhotoSourceResult
-from .ai_review import AIVerifier, VerificationResult, VerificationDecision, verify_with_ai
+from .ai_review import (
+    AIVerifier,
+    VerificationResult,
+    VerificationDecision,
+    verify_with_ai,
+)
 from .providers import (
     VerificationProvider,
     AnthropicProvider,

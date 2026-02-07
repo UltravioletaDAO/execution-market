@@ -24,9 +24,7 @@ from .types import (
     Seal,
     SealBundle,
     SealCategory,
-    SealStatus,
     get_requirement,
-    SEAL_REQUIREMENTS,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DisplayConfig:
     """Configuration for seal display formatting."""
+
     locale: str = "es"  # "es" or "en"
     include_expired: bool = False
     max_seals_per_category: int = 10
@@ -86,11 +85,7 @@ class SealDisplayFormatter:
     # SINGLE SEAL FORMATTING
     # =========================================================================
 
-    def format_seal(
-        self,
-        seal: Seal,
-        context: str = "profile"
-    ) -> Dict[str, Any]:
+    def format_seal(self, seal: Seal, context: str = "profile") -> Dict[str, Any]:
         """
         Format a single seal for display.
 
@@ -107,11 +102,13 @@ class SealDisplayFormatter:
         # Get localized name and description
         if requirement:
             display_name = (
-                requirement.display_name_es if locale == "es"
+                requirement.display_name_es
+                if locale == "es"
                 else requirement.display_name
             )
             description = (
-                requirement.description_es if locale == "es"
+                requirement.description_es
+                if locale == "es"
                 else requirement.description
             )
             icon = requirement.icon
@@ -145,12 +142,16 @@ class SealDisplayFormatter:
         # Context-specific additions
         if context in ("profile", "api"):
             formatted["description"] = description
-            formatted["issued_at"] = seal.issued_at.isoformat() if seal.issued_at else None
+            formatted["issued_at"] = (
+                seal.issued_at.isoformat() if seal.issued_at else None
+            )
 
             if self.config.show_expiration and seal.expires_at:
                 formatted["expires_at"] = seal.expires_at.isoformat()
                 formatted["expires_in_days"] = self._days_until(seal.expires_at)
-                formatted["expiration_warning"] = self._get_expiration_warning(seal.expires_at)
+                formatted["expiration_warning"] = self._get_expiration_warning(
+                    seal.expires_at
+                )
 
         if context == "badge":
             # Minimal format for badge display
@@ -187,12 +188,14 @@ class SealDisplayFormatter:
             return "Expira hoy" if locale == "es" else "Expires today"
         elif days <= 7:
             return (
-                f"Expira en {days} dias" if locale == "es"
+                f"Expira en {days} dias"
+                if locale == "es"
                 else f"Expires in {days} days"
             )
         elif days <= 30:
             return (
-                f"Expira pronto ({days} dias)" if locale == "es"
+                f"Expira pronto ({days} dias)"
+                if locale == "es"
                 else f"Expiring soon ({days} days)"
             )
         return None
@@ -227,8 +230,7 @@ class SealDisplayFormatter:
             "behavior_seals": [],
             "featured_seals": [],
             "category_names": {
-                cat.value: self.CATEGORY_NAMES[cat][locale]
-                for cat in SealCategory
+                cat.value: self.CATEGORY_NAMES[cat][locale] for cat in SealCategory
             },
         }
 
@@ -256,13 +258,17 @@ class SealDisplayFormatter:
         # Sort by tier (descending), then by issued date (most recent)
         seals.sort(
             key=lambda s: (
-                -(get_requirement(s.seal_type).tier if get_requirement(s.seal_type) else 1),
-                -(s.issued_at.timestamp() if s.issued_at else 0)
+                -(
+                    get_requirement(s.seal_type).tier
+                    if get_requirement(s.seal_type)
+                    else 1
+                ),
+                -(s.issued_at.timestamp() if s.issued_at else 0),
             )
         )
 
         # Limit per category
-        return seals[:self.config.max_seals_per_category]
+        return seals[: self.config.max_seals_per_category]
 
     def _select_featured(self, bundle: SealBundle) -> List[Dict[str, Any]]:
         """Select featured seals for prominent display."""
@@ -278,8 +284,10 @@ class SealDisplayFormatter:
             best = max(
                 valid_seals,
                 key=lambda s: (
-                    get_requirement(s.seal_type).tier if get_requirement(s.seal_type) else 1
-                )
+                    get_requirement(s.seal_type).tier
+                    if get_requirement(s.seal_type)
+                    else 1
+                ),
             )
             featured.append(self.format_seal(best, "badge"))
 
@@ -328,31 +336,34 @@ class SealDisplayFormatter:
 
         for seal in display_seals:
             req = get_requirement(seal.seal_type)
-            card["seals"].append({
-                "icon": req.icon if req else "badge",
-                "color": req.color if req else "#78909C",
-                "tier": req.tier if req else 1,
-                "tooltip": (
-                    req.display_name_es if locale == "es" and req
-                    else req.display_name if req
-                    else seal.seal_type
-                ),
-            })
+            card["seals"].append(
+                {
+                    "icon": req.icon if req else "badge",
+                    "color": req.color if req else "#78909C",
+                    "tier": req.tier if req else 1,
+                    "tooltip": (
+                        req.display_name_es
+                        if locale == "es" and req
+                        else req.display_name
+                        if req
+                        else seal.seal_type
+                    ),
+                }
+            )
 
         # Generate summary text
         if bundle.active_count == 0:
             card["summary_text"] = (
-                "Sin sellos verificados" if locale == "es"
-                else "No verified seals"
+                "Sin sellos verificados" if locale == "es" else "No verified seals"
             )
         elif bundle.active_count == 1:
             card["summary_text"] = (
-                "1 sello verificado" if locale == "es"
-                else "1 verified seal"
+                "1 sello verificado" if locale == "es" else "1 verified seal"
             )
         else:
             card["summary_text"] = (
-                f"{bundle.active_count} sellos verificados" if locale == "es"
+                f"{bundle.active_count} sellos verificados"
+                if locale == "es"
                 else f"{bundle.active_count} verified seals"
             )
 
@@ -383,8 +394,10 @@ class SealDisplayFormatter:
         badge = {
             "seal_type": seal.seal_type,
             "name": (
-                req.display_name_es if locale == "es" and req
-                else req.display_name if req
+                req.display_name_es
+                if locale == "es" and req
+                else req.display_name
+                if req
                 else seal.seal_type
             ),
             "icon": req.icon if req else "badge",
@@ -474,9 +487,21 @@ class SealDisplayFormatter:
 
         # Group by category
         for category, seals, category_name in [
-            (SealCategory.SKILL, bundle.skill_seals, "Habilidades" if locale == "es" else "Skills"),
-            (SealCategory.WORK, bundle.work_seals, "Historial" if locale == "es" else "Work History"),
-            (SealCategory.BEHAVIOR, bundle.behavior_seals, "Comportamiento" if locale == "es" else "Behavior"),
+            (
+                SealCategory.SKILL,
+                bundle.skill_seals,
+                "Habilidades" if locale == "es" else "Skills",
+            ),
+            (
+                SealCategory.WORK,
+                bundle.work_seals,
+                "Historial" if locale == "es" else "Work History",
+            ),
+            (
+                SealCategory.BEHAVIOR,
+                bundle.behavior_seals,
+                "Comportamiento" if locale == "es" else "Behavior",
+            ),
         ]:
             valid_seals = [s for s in seals if s.is_valid]
             if not valid_seals:
@@ -487,8 +512,10 @@ class SealDisplayFormatter:
             for seal in valid_seals:
                 req = get_requirement(seal.seal_type)
                 name = (
-                    req.display_name_es if locale == "es" and req
-                    else req.display_name if req
+                    req.display_name_es
+                    if locale == "es" and req
+                    else req.display_name
+                    if req
                     else seal.seal_type
                 )
                 tier = req.tier if req else 1
@@ -519,34 +546,40 @@ class SealDisplayFormatter:
         req = get_requirement(seal.seal_type)
 
         name = (
-            req.display_name_es if locale == "es" and req
-            else req.display_name if req
+            req.display_name_es
+            if locale == "es" and req
+            else req.display_name
+            if req
             else seal.seal_type
         )
 
         if event == "issued":
             title = "Nuevo sello obtenido!" if locale == "es" else "New seal earned!"
             body = (
-                f"Has obtenido el sello: {name}" if locale == "es"
+                f"Has obtenido el sello: {name}"
+                if locale == "es"
                 else f"You earned the seal: {name}"
             )
         elif event == "expired":
             title = "Sello expirado" if locale == "es" else "Seal expired"
             body = (
-                f"Tu sello ha expirado: {name}" if locale == "es"
+                f"Tu sello ha expirado: {name}"
+                if locale == "es"
                 else f"Your seal has expired: {name}"
             )
         elif event == "revoked":
             title = "Sello revocado" if locale == "es" else "Seal revoked"
             body = (
-                f"Tu sello ha sido revocado: {name}" if locale == "es"
+                f"Tu sello ha sido revocado: {name}"
+                if locale == "es"
                 else f"Your seal has been revoked: {name}"
             )
         elif event == "expiring":
             days = self._days_until(seal.expires_at) if seal.expires_at else 0
             title = "Sello por expirar" if locale == "es" else "Seal expiring soon"
             body = (
-                f"Tu sello {name} expira en {days} dias" if locale == "es"
+                f"Tu sello {name} expira en {days} dias"
+                if locale == "es"
                 else f"Your {name} seal expires in {days} days"
             )
         else:
@@ -565,10 +598,8 @@ class SealDisplayFormatter:
 # CONVENIENCE FUNCTIONS
 # =============================================================================
 
-def format_seals_for_profile(
-    bundle: SealBundle,
-    locale: str = "es"
-) -> Dict[str, Any]:
+
+def format_seals_for_profile(bundle: SealBundle, locale: str = "es") -> Dict[str, Any]:
     """
     Convenience function to format seals for profile display.
 
@@ -585,9 +616,7 @@ def format_seals_for_profile(
 
 
 def format_seals_for_card(
-    bundle: SealBundle,
-    locale: str = "es",
-    max_display: int = 3
+    bundle: SealBundle, locale: str = "es", max_display: int = 3
 ) -> Dict[str, Any]:
     """
     Convenience function to format seals for card display.
@@ -605,10 +634,7 @@ def format_seals_for_card(
     return formatter.format_card(bundle, max_display)
 
 
-def get_seal_display_name(
-    seal_type: str,
-    locale: str = "es"
-) -> str:
+def get_seal_display_name(seal_type: str, locale: str = "es") -> str:
     """
     Get display name for a seal type.
 

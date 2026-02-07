@@ -70,7 +70,8 @@ from .rate_limiter import (
 
 # Legacy rate limits (may not exist)
 try:
-    from .rate_limits import TASK_LIMITS
+    from .rate_limits import TASK_LIMITS  # noqa: F401
+
     _HAS_LEGACY_RATE_LIMITS = True
 except ImportError:
     _HAS_LEGACY_RATE_LIMITS = False
@@ -84,7 +85,6 @@ __all__ = [
     "FraudDetectorConfig",
     "RiskLevel",
     "analyze_submission_fraud",
-
     # Core fraud detection
     "CoreFraudDetector",
     "FraudSignal",
@@ -92,7 +92,6 @@ __all__ = [
     "CoreRiskLevel",
     "EntityProfile",
     "FraudConfig",
-
     # GPS anti-spoofing
     "GPSAntiSpoofing",
     "GPSData",
@@ -102,19 +101,16 @@ __all__ = [
     "MockLocationResult",
     "PlausibilityResult",
     "MockLocationIndicator",
-
     # Image analysis
     "ImageAnalyzer",
     "ImageAnalysisResult",
     "MetadataConsistencyResult",
     "SimilarityResult",
-
     # Behavioral analysis
     "BehavioralAnalyzer",
     "BehavioralResult",
     "BehavioralFlag",
     "ExecutorProfile",
-
     # Rate limiting
     "RateLimiter",
     "RateLimitTier",

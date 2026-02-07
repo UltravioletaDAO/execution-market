@@ -22,17 +22,13 @@ Usage:
 
 import asyncio
 import os
-from typing import Optional, Any
 
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 
 
 # Configuration
-MCP_SERVER_URL = os.environ.get(
-    "EM_MCP_URL",
-    "https://api.execution.market/mcp/sse"
-)
+MCP_SERVER_URL = os.environ.get("EM_MCP_URL", "https://api.execution.market/mcp/sse")
 API_KEY = os.environ.get("EM_API_KEY", "")
 
 
@@ -72,10 +68,7 @@ async def main():
             # Example: Get server status
             print("\n=== Server Status ===")
             try:
-                result = await session.call_tool(
-                    "em_server_status",
-                    {}
-                )
+                result = await session.call_tool("em_server_status", {})
                 print(f"Status: {result.content}")
             except Exception as e:
                 print(f"Error getting status: {e}")
@@ -83,10 +76,7 @@ async def main():
             # Example: Get fee structure
             print("\n=== Fee Structure ===")
             try:
-                result = await session.call_tool(
-                    "em_get_fee_structure",
-                    {}
-                )
+                result = await session.call_tool("em_get_fee_structure", {})
                 print(f"Fees: {result.content}")
             except Exception as e:
                 print(f"Error getting fees: {e}")
@@ -111,8 +101,8 @@ async def main():
                             "bounty_usd": 10.00,
                             "deadline_hours": 24,
                             "evidence_required": ["photo_geo", "text_response"],
-                            "location_hint": "San Francisco, CA"
-                        }
+                            "location_hint": "San Francisco, CA",
+                        },
                     )
                     print(f"Task created: {result.content}")
                 except Exception as e:

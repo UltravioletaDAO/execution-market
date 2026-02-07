@@ -11,6 +11,7 @@ from enum import Enum
 
 class EvidenceType(str, Enum):
     """Supported evidence types."""
+
     PHOTO = "photo"
     GPS = "gps"
     TIMESTAMP = "timestamp"
@@ -27,6 +28,7 @@ class EvidenceType(str, Enum):
 @dataclass
 class SchemaValidationResult:
     """Result of schema validation."""
+
     is_valid: bool
     missing_required: List[str]
     invalid_fields: List[Dict[str, str]]
@@ -42,13 +44,13 @@ def validate_evidence_schema(
 ) -> SchemaValidationResult:
     """
     Validate evidence against schema requirements.
-    
+
     Args:
         evidence: Submitted evidence dict
         required: List of required evidence types
         optional: List of optional evidence types
         strict: If True, reject unknown fields
-        
+
     Returns:
         SchemaValidationResult with validation details
     """
@@ -56,50 +58,47 @@ def validate_evidence_schema(
     missing = []
     invalid = []
     warnings = []
-    
+
     # Check required fields
     for req in required:
         if req not in evidence:
             missing.append(req)
         elif not validate_field(req, evidence[req]):
-            invalid.append({
-                "field": req,
-                "error": f"Invalid format for {req}"
-            })
-    
+            invalid.append({"field": req, "error": f"Invalid format for {req}"})
+
     # Check for unknown fields in strict mode
     if strict:
         known_fields = set(required + optional)
         for field in evidence:
             if field not in known_fields:
                 warnings.append(f"Unknown field '{field}' will be ignored")
-    
+
     # Build result
     is_valid = len(missing) == 0 and len(invalid) == 0
-    
+
     reason = None
     if missing:
         reason = f"Missing required evidence: {', '.join(missing)}"
     elif invalid:
         reason = f"Invalid evidence: {invalid[0]['field']} - {invalid[0]['error']}"
-    
+
     return SchemaValidationResult(
         is_valid=is_valid,
         missing_required=missing,
         invalid_fields=invalid,
         warnings=warnings,
-        reason=reason
+        reason=reason,
     )
 
 
 def validate_field(field_type: str, value: Any) -> bool:
     """
     Validate a single evidence field.
-    
+
     Args:
         field_type: Type of evidence field
         value: Field value
-        
+
     Returns:
         True if valid
     """
@@ -116,14 +115,14 @@ def validate_field(field_type: str, value: Any) -> bool:
         EvidenceType.BARCODE: validate_barcode,
         EvidenceType.AUDIO: validate_audio,
     }
-    
+
     # Convert string to enum if needed
     try:
         field_enum = EvidenceType(field_type)
     except ValueError:
         # Unknown type, accept any non-empty value
         return bool(value)
-    
+
     validator = validators.get(field_enum, lambda x: bool(x))
     return validator(value)
 
@@ -132,18 +131,18 @@ def validate_photo(value: Any) -> bool:
     """Validate photo evidence."""
     if isinstance(value, str):
         # URL or IPFS hash
-        return value.startswith(('http', 'ipfs://', 'data:image'))
+        return value.startswith(("http", "ipfs://", "data:image"))
     if isinstance(value, dict):
         # Object with URL and metadata
-        return 'url' in value or 'file' in value or 'ipfs' in value
+        return "url" in value or "file" in value or "ipfs" in value
     return False
 
 
 def validate_gps(value: Any) -> bool:
     """Validate GPS evidence."""
     if isinstance(value, dict):
-        lat = value.get('lat') or value.get('latitude')
-        lng = value.get('lng') or value.get('longitude') or value.get('lon')
+        lat = value.get("lat") or value.get("latitude")
+        lng = value.get("lng") or value.get("longitude") or value.get("lon")
         if lat is not None and lng is not None:
             try:
                 lat = float(lat)
@@ -160,14 +159,15 @@ def validate_timestamp(value: Any) -> bool:
         # ISO format or Unix timestamp
         try:
             from datetime import datetime
-            datetime.fromisoformat(value.replace('Z', '+00:00'))
+
+            datetime.fromisoformat(value.replace("Z", "+00:00"))
             return True
-        except:
+        except Exception:
             pass
         try:
             int(value)
             return True
-        except:
+        except Exception:
             pass
     if isinstance(value, (int, float)):
         # Unix timestamp
@@ -178,18 +178,18 @@ def validate_timestamp(value: Any) -> bool:
 def validate_video(value: Any) -> bool:
     """Validate video evidence."""
     if isinstance(value, str):
-        return value.startswith(('http', 'ipfs://'))
+        return value.startswith(("http", "ipfs://"))
     if isinstance(value, dict):
-        return 'url' in value or 'file' in value
+        return "url" in value or "file" in value
     return False
 
 
 def validate_document(value: Any) -> bool:
     """Validate document evidence."""
     if isinstance(value, str):
-        return value.startswith(('http', 'ipfs://'))
+        return value.startswith(("http", "ipfs://"))
     if isinstance(value, dict):
-        return 'url' in value or 'file' in value
+        return "url" in value or "file" in value
     return False
 
 
@@ -204,7 +204,7 @@ def validate_signature(value: Any) -> bool:
         # Image or base64
         return len(value) > 0
     if isinstance(value, dict):
-        return 'image' in value or 'data' in value
+        return "image" in value or "data" in value
     return False
 
 
@@ -219,7 +219,7 @@ def validate_qr_code(value: Any) -> bool:
     if isinstance(value, str):
         return len(value) > 0  # QR code content
     if isinstance(value, dict):
-        return 'content' in value or 'image' in value
+        return "content" in value or "image" in value
     return False
 
 
@@ -228,14 +228,14 @@ def validate_barcode(value: Any) -> bool:
     if isinstance(value, str):
         return len(value) > 0  # Barcode number/content
     if isinstance(value, dict):
-        return 'code' in value or 'image' in value
+        return "code" in value or "image" in value
     return False
 
 
 def validate_audio(value: Any) -> bool:
     """Validate audio evidence."""
     if isinstance(value, str):
-        return value.startswith(('http', 'ipfs://', 'data:audio'))
+        return value.startswith(("http", "ipfs://", "data:audio"))
     if isinstance(value, dict):
-        return 'url' in value or 'file' in value
+        return "url" in value or "file" in value
     return False

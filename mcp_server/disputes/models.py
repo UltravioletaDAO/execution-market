@@ -21,12 +21,13 @@ class DisputeStatus(str, Enum):
     OPEN -> UNDER_REVIEW -> RESOLVED
                         -> ESCALATED -> RESOLVED
     """
-    OPEN = "open"                    # Newly created, awaiting review
-    UNDER_REVIEW = "under_review"    # Being reviewed by system/arbitrators
-    RESOLVED = "resolved"            # Final decision made
-    ESCALATED = "escalated"          # Escalated to human review
-    WITHDRAWN = "withdrawn"          # Withdrawn by initiator
-    EXPIRED = "expired"              # Timed out without resolution
+
+    OPEN = "open"  # Newly created, awaiting review
+    UNDER_REVIEW = "under_review"  # Being reviewed by system/arbitrators
+    RESOLVED = "resolved"  # Final decision made
+    ESCALATED = "escalated"  # Escalated to human review
+    WITHDRAWN = "withdrawn"  # Withdrawn by initiator
+    EXPIRED = "expired"  # Timed out without resolution
 
 
 class DisputeReason(str, Enum):
@@ -35,31 +36,34 @@ class DisputeReason(str, Enum):
 
     Used for routing and statistics.
     """
-    QUALITY = "quality"              # Work quality not acceptable
-    FRAUD = "fraud"                  # Suspected fraudulent activity
-    INCOMPLETE = "incomplete"        # Work not fully completed
-    NON_DELIVERY = "non_delivery"    # Work not delivered at all
+
+    QUALITY = "quality"  # Work quality not acceptable
+    FRAUD = "fraud"  # Suspected fraudulent activity
+    INCOMPLETE = "incomplete"  # Work not fully completed
+    NON_DELIVERY = "non_delivery"  # Work not delivered at all
     LATE_DELIVERY = "late_delivery"  # Deadline missed
-    WRONG_WORK = "wrong_work"        # Work doesn't match requirements
-    PAYMENT = "payment"              # Payment issues
+    WRONG_WORK = "wrong_work"  # Work doesn't match requirements
+    PAYMENT = "payment"  # Payment issues
     COMMUNICATION = "communication"  # Communication breakdown
-    SAFETY = "safety"                # Safety concerns
-    OTHER = "other"                  # Other reasons
+    SAFETY = "safety"  # Safety concerns
+    OTHER = "other"  # Other reasons
 
 
 class DisputeParty(str, Enum):
     """Party in a dispute."""
+
     WORKER = "worker"
     AGENT = "agent"
 
 
 class ResolutionType(str, Enum):
     """Type of resolution applied."""
-    FULL_WORKER = "full_worker"      # 100% to worker
-    FULL_AGENT = "full_agent"        # 100% refund to agent
-    SPLIT = "split"                  # Split between parties
-    DISMISSED = "dismissed"          # No action needed
-    MUTUAL = "mutual"                # Mutual agreement
+
+    FULL_WORKER = "full_worker"  # 100% to worker
+    FULL_AGENT = "full_agent"  # 100% refund to agent
+    SPLIT = "split"  # Split between parties
+    DISMISSED = "dismissed"  # No action needed
+    MUTUAL = "mutual"  # Mutual agreement
 
 
 @dataclass
@@ -79,6 +83,7 @@ class DisputeEvidence:
         submitted_at: When evidence was submitted
         verified: Whether integrity has been verified
     """
+
     id: str
     dispute_id: str
     submitted_by: str
@@ -113,6 +118,7 @@ class DisputeResponse:
 
     Allows parties to add their side of the story and additional evidence.
     """
+
     id: str
     dispute_id: str
     responder_id: str
@@ -141,12 +147,13 @@ class DisputeResolution:
 
     Records the final decision and payment distribution.
     """
+
     winner: Optional[DisputeParty]
     resolution_type: ResolutionType
-    worker_payout_pct: Decimal         # 0.0 to 1.0
-    agent_refund_pct: Decimal           # 0.0 to 1.0
+    worker_payout_pct: Decimal  # 0.0 to 1.0
+    agent_refund_pct: Decimal  # 0.0 to 1.0
     notes: str
-    resolved_by: str                    # System, arbitrator ID, or "mutual"
+    resolved_by: str  # System, arbitrator ID, or "mutual"
     resolved_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     tx_hashes: List[str] = field(default_factory=list)
 
@@ -197,6 +204,7 @@ class Dispute:
 
         metadata: Additional data
     """
+
     id: str
     task_id: str
     submission_id: Optional[str]
@@ -230,7 +238,11 @@ class Dispute:
     @property
     def is_open(self) -> bool:
         """Check if dispute is still active."""
-        return self.status in (DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW, DisputeStatus.ESCALATED)
+        return self.status in (
+            DisputeStatus.OPEN,
+            DisputeStatus.UNDER_REVIEW,
+            DisputeStatus.ESCALATED,
+        )
 
     @property
     def is_resolved(self) -> bool:
@@ -251,25 +263,20 @@ class Dispute:
             "task_id": self.task_id,
             "submission_id": self.submission_id,
             "escrow_id": self.escrow_id,
-
             "initiator_id": self.initiator_id,
             "initiator_party": self.initiator_party.value,
             "respondent_id": self.respondent_id,
             "respondent_party": self.respondent_party.value,
-
             "reason": self.reason.value,
             "description": self.description,
             "amount_disputed": float(self.amount_disputed),
-
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "deadline": self.deadline.isoformat() if self.deadline else None,
-
             "responses": [r.to_dict() for r in self.responses],
             "evidence": [e.to_dict() for e in self.evidence],
             "resolution": self.resolution.to_dict() if self.resolution else None,
-
             "is_open": self.is_open,
             "days_open": self.days_open,
             "metadata": self.metadata,
@@ -302,8 +309,9 @@ class DisputeConfig:
         max_evidence_per_party: Max evidence items per party
         max_response_length: Max characters in response message
     """
-    response_window_hours: int = 72          # 3 days
-    resolution_sla_hours: int = 168          # 7 days
+
+    response_window_hours: int = 72  # 3 days
+    resolution_sla_hours: int = 168  # 7 days
     escalation_threshold_usd: Decimal = Decimal("100.00")
     auto_resolve_below_usd: Decimal = Decimal("10.00")
     max_evidence_per_party: int = 10

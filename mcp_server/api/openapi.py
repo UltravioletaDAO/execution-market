@@ -11,7 +11,7 @@ Provides comprehensive OpenAPI/Swagger documentation with:
 
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class TaskStatus(str, Enum):
     """Status of a task in the Execution Market system."""
+
     PUBLISHED = "published"
     ACCEPTED = "accepted"
     IN_PROGRESS = "in_progress"
@@ -38,6 +39,7 @@ class TaskStatus(str, Enum):
 
 class TaskCategory(str, Enum):
     """Categories of tasks that humans can execute."""
+
     PHYSICAL_PRESENCE = "physical_presence"
     KNOWLEDGE_ACCESS = "knowledge_access"
     HUMAN_AUTHORITY = "human_authority"
@@ -47,6 +49,7 @@ class TaskCategory(str, Enum):
 
 class EvidenceType(str, Enum):
     """Types of evidence that can be required for task completion."""
+
     PHOTO = "photo"
     PHOTO_GEO = "photo_geo"
     VIDEO = "video"
@@ -62,6 +65,7 @@ class EvidenceType(str, Enum):
 
 class SubmissionVerdict(str, Enum):
     """Agent's verdict on a submission."""
+
     ACCEPTED = "accepted"
     REJECTED = "rejected"
     MORE_INFO = "more_info_requested"
@@ -70,6 +74,7 @@ class SubmissionVerdict(str, Enum):
 
 class WebhookEventType(str, Enum):
     """Webhook event types."""
+
     TASK_CREATED = "task.created"
     TASK_UPDATED = "task.updated"
     TASK_ASSIGNED = "task.assigned"
@@ -96,170 +101,175 @@ class WebhookEventType(str, Enum):
 
 class TaskCreateRequest(BaseModel):
     """Request body for creating a new task."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "title": "Check if Walmart is open",
-            "instructions": "Go to the Walmart at 123 Main St and take a clear photo of the entrance showing if the store is open or closed. Include any posted hours sign.",
-            "category": "physical_presence",
-            "bounty_usd": 2.50,
-            "deadline_hours": 4,
-            "evidence_required": ["photo", "gps"],
-            "evidence_optional": ["text_response"],
-            "location_hint": "Miami, FL 33101",
-            "min_reputation": 0,
-            "payment_token": "USDC"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "title": "Check if Walmart is open",
+                "instructions": "Go to the Walmart at 123 Main St and take a clear photo of the entrance showing if the store is open or closed. Include any posted hours sign.",
+                "category": "physical_presence",
+                "bounty_usd": 2.50,
+                "deadline_hours": 4,
+                "evidence_required": ["photo", "gps"],
+                "evidence_optional": ["text_response"],
+                "location_hint": "Miami, FL 33101",
+                "min_reputation": 0,
+                "payment_token": "USDC",
+            }
         }
-    })
+    )
 
     title: str = Field(
         ...,
         min_length=5,
         max_length=255,
         description="Short, descriptive task title",
-        examples=["Check if store is open", "Verify product availability"]
+        examples=["Check if store is open", "Verify product availability"],
     )
     instructions: str = Field(
         ...,
         min_length=20,
         max_length=5000,
         description="Detailed instructions for the worker. Be specific about what evidence is needed.",
-        examples=["Take a photo of the store entrance showing open/closed status"]
+        examples=["Take a photo of the store entrance showing open/closed status"],
     )
     category: TaskCategory = Field(
         ...,
-        description="Task category determines worker matching and expected completion time"
+        description="Task category determines worker matching and expected completion time",
     )
     bounty_usd: float = Field(
         ...,
         ge=0.50,
         le=10000,
         description="Payment amount in USD. Minimum $0.50, maximum $10,000.",
-        examples=[2.50, 5.00, 10.00]
+        examples=[2.50, 5.00, 10.00],
     )
     deadline_hours: int = Field(
         ...,
         ge=1,
         le=720,
         description="Hours until deadline (1-720, max 30 days)",
-        examples=[4, 24, 48]
+        examples=[4, 24, 48],
     )
     evidence_required: List[EvidenceType] = Field(
         ...,
         min_length=1,
         max_length=5,
         description="Required evidence types. Task cannot be completed without all required evidence.",
-        examples=[["photo", "gps"], ["text_response"]]
+        examples=[["photo", "gps"], ["text_response"]],
     )
     evidence_optional: Optional[List[EvidenceType]] = Field(
         None,
         max_length=5,
-        description="Optional evidence types. Bonus reputation for providing optional evidence."
+        description="Optional evidence types. Bonus reputation for providing optional evidence.",
     )
     location_hint: Optional[str] = Field(
         None,
         max_length=255,
         description="Location hint for workers. Can be city, address, or coordinates.",
-        examples=["Miami, FL", "123 Main St, New York, NY 10001"]
+        examples=["Miami, FL", "123 Main St, New York, NY 10001"],
     )
     min_reputation: int = Field(
         0,
         ge=0,
         le=100,
-        description="Minimum worker reputation score (0-100). Higher requirements may increase completion time."
+        description="Minimum worker reputation score (0-100). Higher requirements may increase completion time.",
     )
     payment_token: str = Field(
-        "USDC",
-        max_length=10,
-        description="Payment token. Supported: USDC, EURC, DAI"
+        "USDC", max_length=10, description="Payment token. Supported: USDC, EURC, DAI"
     )
 
 
 class SubmissionApproveRequest(BaseModel):
     """Request body for approving a submission."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "notes": "Clear photo showing store is open. Good work!",
-            "rating": 5
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "notes": "Clear photo showing store is open. Good work!",
+                "rating": 5,
+            }
         }
-    })
+    )
 
     notes: Optional[str] = Field(
-        None,
-        max_length=1000,
-        description="Optional notes about the approval"
+        None, max_length=1000, description="Optional notes about the approval"
     )
     rating: Optional[int] = Field(
-        None,
-        ge=1,
-        le=5,
-        description="Optional worker rating (1-5 stars)"
+        None, ge=1, le=5, description="Optional worker rating (1-5 stars)"
     )
 
 
 class SubmissionRejectRequest(BaseModel):
     """Request body for rejecting a submission."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "reason": "Photo is blurry and store hours sign is not visible",
-            "allow_retry": True
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "reason": "Photo is blurry and store hours sign is not visible",
+                "allow_retry": True,
+            }
         }
-    })
+    )
 
     reason: str = Field(
         ...,
         min_length=10,
         max_length=1000,
-        description="Required reason for rejection. Be specific to help worker improve."
+        description="Required reason for rejection. Be specific to help worker improve.",
     )
     allow_retry: bool = Field(
         True,
-        description="Allow worker to submit again. If false, task returns to available pool."
+        description="Allow worker to submit again. If false, task returns to available pool.",
     )
 
 
 class TaskCancelRequest(BaseModel):
     """Request body for cancelling a task."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "reason": "No longer needed - store confirmed open via phone call"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "reason": "No longer needed - store confirmed open via phone call"
+            }
         }
-    })
+    )
 
     reason: Optional[str] = Field(
-        None,
-        max_length=500,
-        description="Optional reason for cancellation"
+        None, max_length=500, description="Optional reason for cancellation"
     )
 
 
 class WebhookCreateRequest(BaseModel):
     """Request body for creating a webhook subscription."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "url": "https://your-server.com/em/webhook",
-            "events": ["task.submitted", "task.completed", "payment.released"],
-            "secret": None
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "url": "https://your-server.com/em/webhook",
+                "events": ["task.submitted", "task.completed", "payment.released"],
+                "secret": None,
+            }
         }
-    })
+    )
 
     url: str = Field(
         ...,
         description="HTTPS URL to receive webhook events. Must be publicly accessible.",
-        examples=["https://your-server.com/em/webhook"]
+        examples=["https://your-server.com/em/webhook"],
     )
     events: List[WebhookEventType] = Field(
-        ...,
-        min_length=1,
-        description="Event types to subscribe to"
+        ..., min_length=1, description="Event types to subscribe to"
     )
     secret: Optional[str] = Field(
         None,
-        description="Custom webhook secret. If not provided, one will be generated."
+        description="Custom webhook secret. If not provided, one will be generated.",
     )
 
 
 class BatchTaskDefinition(BaseModel):
     """Single task definition for batch creation."""
+
     title: str = Field(..., min_length=5, max_length=255)
     instructions: str = Field(..., min_length=20, max_length=5000)
     category: TaskCategory
@@ -273,41 +283,43 @@ class BatchTaskDefinition(BaseModel):
 
 class BatchCreateRequest(BaseModel):
     """Request body for batch task creation."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "tasks": [
-                {
-                    "title": "Check store A",
-                    "instructions": "Verify if store at Location A is open",
-                    "category": "physical_presence",
-                    "bounty_usd": 2.00,
-                    "deadline_hours": 4,
-                    "evidence_required": ["photo"],
-                    "location_hint": "Location A"
-                },
-                {
-                    "title": "Check store B",
-                    "instructions": "Verify if store at Location B is open",
-                    "category": "physical_presence",
-                    "bounty_usd": 2.00,
-                    "deadline_hours": 4,
-                    "evidence_required": ["photo"],
-                    "location_hint": "Location B"
-                }
-            ],
-            "payment_token": "USDC"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "tasks": [
+                    {
+                        "title": "Check store A",
+                        "instructions": "Verify if store at Location A is open",
+                        "category": "physical_presence",
+                        "bounty_usd": 2.00,
+                        "deadline_hours": 4,
+                        "evidence_required": ["photo"],
+                        "location_hint": "Location A",
+                    },
+                    {
+                        "title": "Check store B",
+                        "instructions": "Verify if store at Location B is open",
+                        "category": "physical_presence",
+                        "bounty_usd": 2.00,
+                        "deadline_hours": 4,
+                        "evidence_required": ["photo"],
+                        "location_hint": "Location B",
+                    },
+                ],
+                "payment_token": "USDC",
+            }
         }
-    })
+    )
 
     tasks: List[BatchTaskDefinition] = Field(
         ...,
         min_length=1,
         max_length=50,
-        description="List of tasks to create (max 50 per batch)"
+        description="List of tasks to create (max 50 per batch)",
     )
     payment_token: str = Field(
-        "USDC",
-        description="Payment token for all tasks in batch"
+        "USDC", description="Payment token for all tasks in batch"
     )
 
 
@@ -318,24 +330,27 @@ class BatchCreateRequest(BaseModel):
 
 class TaskResponse(BaseModel):
     """Task response model with full details."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "id": "task_abc123def456",
-            "title": "Check if Walmart is open",
-            "instructions": "Take a photo of the store entrance...",
-            "category": "physical_presence",
-            "bounty_usd": 2.50,
-            "status": "published",
-            "deadline": "2026-01-25T20:00:00Z",
-            "evidence_required": ["photo", "gps"],
-            "evidence_optional": ["text_response"],
-            "location_hint": "Miami, FL",
-            "min_reputation": 0,
-            "executor_id": None,
-            "created_at": "2026-01-25T16:00:00Z",
-            "escrow_tx": "0x123abc..."
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "task_abc123def456",
+                "title": "Check if Walmart is open",
+                "instructions": "Take a photo of the store entrance...",
+                "category": "physical_presence",
+                "bounty_usd": 2.50,
+                "status": "published",
+                "deadline": "2026-01-25T20:00:00Z",
+                "evidence_required": ["photo", "gps"],
+                "evidence_optional": ["text_response"],
+                "location_hint": "Miami, FL",
+                "min_reputation": 0,
+                "executor_id": None,
+                "created_at": "2026-01-25T16:00:00Z",
+                "escrow_tx": "0x123abc...",
+            }
         }
-    })
+    )
 
     id: str = Field(..., description="Unique task identifier")
     title: str = Field(..., description="Task title")
@@ -345,17 +360,22 @@ class TaskResponse(BaseModel):
     status: TaskStatus = Field(..., description="Current task status")
     deadline: datetime = Field(..., description="Task deadline")
     evidence_required: List[str] = Field(..., description="Required evidence types")
-    evidence_optional: Optional[List[str]] = Field(None, description="Optional evidence types")
+    evidence_optional: Optional[List[str]] = Field(
+        None, description="Optional evidence types"
+    )
     location_hint: Optional[str] = Field(None, description="Location hint")
     min_reputation: int = Field(0, description="Minimum reputation required")
     executor_id: Optional[str] = Field(None, description="Assigned worker ID")
     created_at: datetime = Field(..., description="Creation timestamp")
     escrow_tx: Optional[str] = Field(None, description="Escrow transaction hash")
-    erc8004_agent_id: Optional[str] = Field(None, description="ERC-8004 on-chain agent ID (if verified)")
+    erc8004_agent_id: Optional[str] = Field(
+        None, description="ERC-8004 on-chain agent ID (if verified)"
+    )
 
 
 class TaskListResponse(BaseModel):
     """Paginated task list response."""
+
     tasks: List[TaskResponse]
     total: int = Field(..., description="Total number of tasks matching filters")
     page: int = Field(..., description="Current page number")
@@ -365,7 +385,10 @@ class TaskListResponse(BaseModel):
 
 class EvidenceMetadata(BaseModel):
     """Metadata for submitted evidence."""
-    timestamp: Optional[datetime] = Field(None, description="Evidence capture timestamp")
+
+    timestamp: Optional[datetime] = Field(
+        None, description="Evidence capture timestamp"
+    )
     device: Optional[str] = Field(None, description="Device model")
     camera_source: Optional[str] = Field(None, description="camera or library")
     dimensions: Optional[str] = Field(None, description="Image dimensions")
@@ -373,6 +396,7 @@ class EvidenceMetadata(BaseModel):
 
 class LocationData(BaseModel):
     """GPS location data."""
+
     lat: float = Field(..., description="Latitude")
     lng: float = Field(..., description="Longitude")
     accuracy_meters: Optional[float] = Field(None, description="GPS accuracy")
@@ -381,28 +405,33 @@ class LocationData(BaseModel):
 
 class SubmissionResponse(BaseModel):
     """Submission response with evidence details."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "id": "sub_xyz789",
-            "task_id": "task_abc123",
-            "executor_id": "worker_456",
-            "status": "pending_review",
-            "evidence": {
-                "photo": "https://storage.execution.market/evidence/photo_123.jpg",
-                "gps": {"lat": 25.7617, "lng": -80.1918, "accuracy_meters": 10}
-            },
-            "pre_check_score": 0.92,
-            "submitted_at": "2026-01-25T17:30:00Z",
-            "notes": "Store confirmed open, hours posted on door"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "sub_xyz789",
+                "task_id": "task_abc123",
+                "executor_id": "worker_456",
+                "status": "pending_review",
+                "evidence": {
+                    "photo": "https://storage.execution.market/evidence/photo_123.jpg",
+                    "gps": {"lat": 25.7617, "lng": -80.1918, "accuracy_meters": 10},
+                },
+                "pre_check_score": 0.92,
+                "submitted_at": "2026-01-25T17:30:00Z",
+                "notes": "Store confirmed open, hours posted on door",
+            }
         }
-    })
+    )
 
     id: str = Field(..., description="Submission ID")
     task_id: str = Field(..., description="Associated task ID")
     executor_id: str = Field(..., description="Worker ID who submitted")
     status: str = Field(..., description="Submission status")
     evidence: Dict[str, Any] = Field(..., description="Submitted evidence")
-    pre_check_score: Optional[float] = Field(None, description="Automated verification score (0-1)")
+    pre_check_score: Optional[float] = Field(
+        None, description="Automated verification score (0-1)"
+    )
     submitted_at: datetime = Field(..., description="Submission timestamp")
     notes: Optional[str] = Field(None, description="Worker notes")
     agent_verdict: Optional[str] = Field(None, description="Agent's decision")
@@ -412,26 +441,30 @@ class SubmissionResponse(BaseModel):
 
 class SubmissionListResponse(BaseModel):
     """List of submissions for a task."""
+
     submissions: List[SubmissionResponse]
     total: int
 
 
 class PaymentResponse(BaseModel):
     """Payment transaction response."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "id": "pay_abc123",
-            "task_id": "task_abc123",
-            "amount_usd": 2.50,
-            "token": "USDC",
-            "chain": "base",
-            "status": "completed",
-            "tx_hash": "0xabc123...",
-            "from_address": "0x...",
-            "to_address": "0x...",
-            "timestamp": "2026-01-25T18:00:00Z"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "pay_abc123",
+                "task_id": "task_abc123",
+                "amount_usd": 2.50,
+                "token": "USDC",
+                "chain": "base",
+                "status": "completed",
+                "tx_hash": "0xabc123...",
+                "from_address": "0x...",
+                "to_address": "0x...",
+                "timestamp": "2026-01-25T18:00:00Z",
+            }
         }
-    })
+    )
 
     id: str = Field(..., description="Payment ID")
     task_id: str = Field(..., description="Associated task ID")
@@ -447,16 +480,19 @@ class PaymentResponse(BaseModel):
 
 class WebhookResponse(BaseModel):
     """Webhook subscription response."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "id": "wh_abc123",
-            "url": "https://your-server.com/webhook",
-            "events": ["task.submitted", "task.completed"],
-            "secret": "whsec_abc123...",
-            "active": True,
-            "created_at": "2026-01-25T16:00:00Z"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "wh_abc123",
+                "url": "https://your-server.com/webhook",
+                "events": ["task.submitted", "task.completed"],
+                "secret": "whsec_abc123...",
+                "active": True,
+                "created_at": "2026-01-25T16:00:00Z",
+            }
         }
-    })
+    )
 
     id: str = Field(..., description="Webhook ID")
     url: str = Field(..., description="Webhook URL")
@@ -468,29 +504,33 @@ class WebhookResponse(BaseModel):
 
 class WebhookListResponse(BaseModel):
     """List of webhook subscriptions."""
+
     webhooks: List[WebhookResponse]
     total: int
 
 
 class WebhookEventPayload(BaseModel):
     """Webhook event payload structure."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "id": "evt_123456",
-            "type": "task.completed",
-            "created_at": "2026-01-25T18:00:00Z",
-            "data": {
-                "task_id": "task_abc123",
-                "executor_id": "worker_456",
-                "bounty_usd": 2.50,
-                "payment_tx": "0xabc..."
-            },
-            "metadata": {
-                "api_version": "2026-01-25",
-                "idempotency_key": "evt_123456"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "evt_123456",
+                "type": "task.completed",
+                "created_at": "2026-01-25T18:00:00Z",
+                "data": {
+                    "task_id": "task_abc123",
+                    "executor_id": "worker_456",
+                    "bounty_usd": 2.50,
+                    "payment_tx": "0xabc...",
+                },
+                "metadata": {
+                    "api_version": "2026-01-25",
+                    "idempotency_key": "evt_123456",
+                },
             }
         }
-    })
+    )
 
     id: str = Field(..., description="Event ID")
     type: str = Field(..., description="Event type")
@@ -501,20 +541,23 @@ class WebhookEventPayload(BaseModel):
 
 class WorkerProfileResponse(BaseModel):
     """Worker profile and reputation."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "id": "worker_456",
-            "wallet_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD6e",
-            "display_name": "Juan M.",
-            "reputation_score": 87,
-            "tasks_completed": 42,
-            "tasks_disputed": 1,
-            "total_earned_usd": 156.50,
-            "available_balance_usd": 12.00,
-            "badges": ["verified", "top_performer"],
-            "joined_at": "2025-06-15T00:00:00Z"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "worker_456",
+                "wallet_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD6e",
+                "display_name": "Juan M.",
+                "reputation_score": 87,
+                "tasks_completed": 42,
+                "tasks_disputed": 1,
+                "total_earned_usd": 156.50,
+                "available_balance_usd": 12.00,
+                "badges": ["verified", "top_performer"],
+                "joined_at": "2025-06-15T00:00:00Z",
+            }
         }
-    })
+    )
 
     id: str
     wallet_address: str
@@ -530,35 +573,38 @@ class WorkerProfileResponse(BaseModel):
 
 class AnalyticsResponse(BaseModel):
     """Analytics and metrics response."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "period": {
-                "start": "2025-12-26T00:00:00Z",
-                "end": "2026-01-25T23:59:59Z",
-                "days": 30
-            },
-            "summary": {
-                "total_tasks": 150,
-                "completed_tasks": 120,
-                "completion_rate": 0.80,
-                "total_spent_usd": 350.00,
-                "avg_bounty_usd": 2.33,
-                "avg_completion_time_hours": 1.5
-            },
-            "by_category": {
-                "physical_presence": 80,
-                "knowledge_access": 40,
-                "human_authority": 30
-            },
-            "by_status": {
-                "completed": 120,
-                "in_progress": 10,
-                "published": 15,
-                "expired": 3,
-                "cancelled": 2
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "period": {
+                    "start": "2025-12-26T00:00:00Z",
+                    "end": "2026-01-25T23:59:59Z",
+                    "days": 30,
+                },
+                "summary": {
+                    "total_tasks": 150,
+                    "completed_tasks": 120,
+                    "completion_rate": 0.80,
+                    "total_spent_usd": 350.00,
+                    "avg_bounty_usd": 2.33,
+                    "avg_completion_time_hours": 1.5,
+                },
+                "by_category": {
+                    "physical_presence": 80,
+                    "knowledge_access": 40,
+                    "human_authority": 30,
+                },
+                "by_status": {
+                    "completed": 120,
+                    "in_progress": 10,
+                    "published": 15,
+                    "expired": 3,
+                    "cancelled": 2,
+                },
             }
         }
-    })
+    )
 
     period: Dict[str, Any]
     summary: Dict[str, Any]
@@ -569,46 +615,62 @@ class AnalyticsResponse(BaseModel):
 
 class BatchCreateResponse(BaseModel):
     """Batch task creation response."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "created": 10,
-            "failed": 0,
-            "tasks": [
-                {"index": 0, "id": "task_abc123", "title": "Check store A", "bounty_usd": 2.00}
-            ],
-            "errors": [],
-            "total_bounty": 20.00
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "created": 10,
+                "failed": 0,
+                "tasks": [
+                    {
+                        "index": 0,
+                        "id": "task_abc123",
+                        "title": "Check store A",
+                        "bounty_usd": 2.00,
+                    }
+                ],
+                "errors": [],
+                "total_bounty": 20.00,
+            }
         }
-    })
+    )
 
     created: int = Field(..., description="Number of tasks created")
     failed: int = Field(..., description="Number of tasks that failed")
     tasks: List[Dict[str, Any]] = Field(..., description="Created task details")
-    errors: List[Dict[str, Any]] = Field(..., description="Error details for failed tasks")
+    errors: List[Dict[str, Any]] = Field(
+        ..., description="Error details for failed tasks"
+    )
     total_bounty: float = Field(..., description="Total bounty for all created tasks")
 
 
 class ErrorResponse(BaseModel):
     """Standard error response."""
-    model_config = ConfigDict(json_schema_extra={
-        "example": {
-            "error": "ValidationError",
-            "message": "bounty_usd must be at least 0.50",
-            "code": "INVALID_BOUNTY",
-            "details": {"field": "bounty_usd", "min": 0.50, "received": 0.25},
-            "request_id": "req_abc123"
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "error": "ValidationError",
+                "message": "bounty_usd must be at least 0.50",
+                "code": "INVALID_BOUNTY",
+                "details": {"field": "bounty_usd", "min": 0.50, "received": 0.25},
+                "request_id": "req_abc123",
+            }
         }
-    })
+    )
 
     error: str = Field(..., description="Error type")
     message: str = Field(..., description="Human-readable error message")
     code: str = Field(..., description="Machine-readable error code")
-    details: Optional[Dict[str, Any]] = Field(None, description="Additional error details")
+    details: Optional[Dict[str, Any]] = Field(
+        None, description="Additional error details"
+    )
     request_id: Optional[str] = Field(None, description="Request ID for support")
 
 
 class HealthResponse(BaseModel):
     """Health check response."""
+
     status: str = Field(..., description="Service status")
     version: str = Field(..., description="API version")
     timestamp: datetime = Field(..., description="Current server time")
@@ -616,11 +678,14 @@ class HealthResponse(BaseModel):
 
 class DetailedHealthResponse(BaseModel):
     """Detailed health check with service status."""
+
     status: str
     version: str
     timestamp: datetime
     services: Dict[str, str] = Field(..., description="Individual service status")
-    latency_ms: Dict[str, int] = Field(..., description="Service latency in milliseconds")
+    latency_ms: Dict[str, int] = Field(
+        ..., description="Service latency in milliseconds"
+    )
 
 
 # =============================================================================
@@ -739,8 +804,8 @@ Official SDKs are available:
                 "description": "Create and manage human execution tasks. Tasks are the core unit of work in Execution Market - each represents a specific action or verification that needs human completion.",
                 "externalDocs": {
                     "description": "Task Creation Guide",
-                    "url": "https://docs.execution.market/guides/creating-tasks"
-                }
+                    "url": "https://docs.execution.market/guides/creating-tasks",
+                },
             },
             {
                 "name": "Submissions",
@@ -766,7 +831,7 @@ Official SDKs are available:
                 "name": "Health",
                 "description": "System health and status endpoints. No authentication required.",
             },
-        ]
+        ],
     )
 
     # Add security schemes
@@ -775,14 +840,14 @@ Official SDKs are available:
             "type": "http",
             "scheme": "bearer",
             "bearerFormat": "API Key",
-            "description": "API key obtained from dashboard. Include in Authorization header."
+            "description": "API key obtained from dashboard. Include in Authorization header.",
         },
         "x402Payment": {
             "type": "apiKey",
             "in": "header",
             "name": "X-402-Payment",
-            "description": "x402 protocol payment header for paid endpoints (if applicable)"
-        }
+            "description": "x402 protocol payment header for paid endpoints (if applicable)",
+        },
     }
 
     # Apply security globally
@@ -790,43 +855,37 @@ Official SDKs are available:
 
     # Add servers
     openapi_schema["servers"] = [
-        {
-            "url": "https://api.execution.market",
-            "description": "Production server"
-        },
+        {"url": "https://api.execution.market", "description": "Production server"},
         {
             "url": "https://sandbox.api.execution.market",
-            "description": "Sandbox server (test mode)"
+            "description": "Sandbox server (test mode)",
         },
-        {
-            "url": "http://localhost:8000",
-            "description": "Local development"
-        }
+        {"url": "http://localhost:8000", "description": "Local development"},
     ]
 
     # Add external documentation
     openapi_schema["externalDocs"] = {
         "description": "Full Documentation",
-        "url": "https://docs.execution.market"
+        "url": "https://docs.execution.market",
     }
 
     # Add logo for ReDoc
     openapi_schema["info"]["x-logo"] = {
         "url": "https://execution.market/logo.png",
-        "altText": "Execution Market Logo"
+        "altText": "Execution Market Logo",
     }
 
     # Add contact info
     openapi_schema["info"]["contact"] = {
         "name": "Execution Market Support",
         "url": "https://execution.market/support",
-        "email": "ultravioletadao@gmail.com"
+        "email": "ultravioletadao@gmail.com",
     }
 
     # Add license
     openapi_schema["info"]["license"] = {
         "name": "Apache 2.0",
-        "url": "https://www.apache.org/licenses/LICENSE-2.0"
+        "url": "https://www.apache.org/licenses/LICENSE-2.0",
     }
 
     # Add comprehensive examples to components
@@ -842,8 +901,8 @@ Official SDKs are available:
                 "deadline_hours": 4,
                 "evidence_required": ["photo", "gps"],
                 "evidence_optional": ["text_response"],
-                "location_hint": "Miami, FL 33101"
-            }
+                "location_hint": "Miami, FL 33101",
+            },
         },
         "TaskCreateKnowledgeAccess": {
             "summary": "Knowledge access task",
@@ -856,8 +915,8 @@ Official SDKs are available:
                 "deadline_hours": 6,
                 "evidence_required": ["photo"],
                 "evidence_optional": ["text_response"],
-                "location_hint": "Austin, TX"
-            }
+                "location_hint": "Austin, TX",
+            },
         },
         "TaskCreateHumanAuthority": {
             "summary": "Human authority task",
@@ -870,8 +929,8 @@ Official SDKs are available:
                 "deadline_hours": 24,
                 "evidence_required": ["text_response"],
                 "evidence_optional": ["screenshot"],
-                "min_reputation": 50
-            }
+                "min_reputation": 50,
+            },
         },
         "SubmissionWithEvidence": {
             "summary": "Submission with photo and GPS",
@@ -886,13 +945,13 @@ Official SDKs are available:
                         "lat": 25.7617,
                         "lng": -80.1918,
                         "accuracy_meters": 10,
-                        "timestamp": "2026-01-25T17:25:00Z"
+                        "timestamp": "2026-01-25T17:25:00Z",
                     },
-                    "text_response": "Store is open. Posted hours: 9am-9pm daily."
+                    "text_response": "Store is open. Posted hours: 9am-9pm daily.",
                 },
                 "pre_check_score": 0.92,
-                "submitted_at": "2026-01-25T17:30:00Z"
-            }
+                "submitted_at": "2026-01-25T17:30:00Z",
+            },
         },
         "WebhookTaskCompleted": {
             "summary": "Task completed webhook event",
@@ -907,14 +966,14 @@ Official SDKs are available:
                     "payment": {
                         "tx_hash": "0xabc...",
                         "chain": "base",
-                        "token": "USDC"
-                    }
+                        "token": "USDC",
+                    },
                 },
                 "metadata": {
                     "api_version": "2026-01-25",
-                    "idempotency_key": "evt_123456"
-                }
-            }
+                    "idempotency_key": "evt_123456",
+                },
+            },
         },
         "ErrorValidation": {
             "summary": "Validation error response",
@@ -926,10 +985,10 @@ Official SDKs are available:
                     "field": "bounty_usd",
                     "constraint": "ge",
                     "min": 0.50,
-                    "received": 0.25
+                    "received": 0.25,
                 },
-                "request_id": "req_abc123"
-            }
+                "request_id": "req_abc123",
+            },
         },
         "ErrorUnauthorized": {
             "summary": "Unauthorized error response",
@@ -937,8 +996,8 @@ Official SDKs are available:
                 "error": "Unauthorized",
                 "message": "Invalid or missing API key",
                 "code": "INVALID_API_KEY",
-                "request_id": "req_abc123"
-            }
+                "request_id": "req_abc123",
+            },
         },
         "ErrorNotFound": {
             "summary": "Not found error response",
@@ -946,11 +1005,9 @@ Official SDKs are available:
                 "error": "NotFound",
                 "message": "Task not found",
                 "code": "TASK_NOT_FOUND",
-                "details": {
-                    "task_id": "task_invalid123"
-                },
-                "request_id": "req_abc123"
-            }
+                "details": {"task_id": "task_invalid123"},
+                "request_id": "req_abc123",
+            },
         },
         "ErrorRateLimit": {
             "summary": "Rate limit error response",
@@ -961,11 +1018,11 @@ Official SDKs are available:
                 "details": {
                     "limit": 60,
                     "remaining": 0,
-                    "reset_at": "2026-01-25T17:01:00Z"
+                    "reset_at": "2026-01-25T17:01:00Z",
                 },
-                "request_id": "req_abc123"
-            }
-        }
+                "request_id": "req_abc123",
+            },
+        },
     }
 
     app.openapi_schema = openapi_schema
@@ -996,7 +1053,7 @@ TASK_EXAMPLE = {
     "location_hint": "Miami, FL",
     "min_reputation": 0,
     "payment_token": "USDC",
-    "created_at": "2026-01-25T16:00:00Z"
+    "created_at": "2026-01-25T16:00:00Z",
 }
 
 SUBMISSION_EXAMPLE = {
@@ -1006,14 +1063,10 @@ SUBMISSION_EXAMPLE = {
     "status": "pending_review",
     "evidence": {
         "photo": "https://storage.execution.market/evidence/photo_abc.jpg",
-        "text_response": "Store is open. Hours posted on door: 9am-9pm daily."
+        "text_response": "Store is open. Hours posted on door: 9am-9pm daily.",
     },
-    "location": {
-        "lat": 25.7617,
-        "lng": -80.1918,
-        "accuracy_meters": 10
-    },
-    "submitted_at": "2026-01-25T17:30:00Z"
+    "location": {"lat": 25.7617, "lng": -80.1918, "accuracy_meters": 10},
+    "submitted_at": "2026-01-25T17:30:00Z",
 }
 
 WEBHOOK_EVENT_EXAMPLE = {
@@ -1023,18 +1076,15 @@ WEBHOOK_EVENT_EXAMPLE = {
     "data": {
         "task_id": "task_abc123",
         "submission_id": "sub_xyz789",
-        "worker_id": "worker_def456"
-    }
+        "worker_id": "worker_def456",
+    },
 }
 
 ERROR_EXAMPLE = {
     "error": {
         "code": "VALIDATION_ERROR",
         "message": "bounty_usd must be at least 0.50",
-        "details": {
-            "field": "bounty_usd",
-            "min": 0.50
-        }
+        "details": {"field": "bounty_usd", "min": 0.50},
     }
 }
 

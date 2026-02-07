@@ -102,7 +102,7 @@ export function useTokenBalance(options: UseTokenBalanceOptions = {}): UseTokenB
 
   // Watch block number for auto-refresh
   const { data: blockNumber } = useBlockNumber({
-    chainId,
+    chainId: chainId as any,
     watch: autoRefresh,
   })
 
@@ -113,7 +113,7 @@ export function useTokenBalance(options: UseTokenBalanceOptions = {}): UseTokenB
     refetch: refetchNative,
   } = useBalance({
     address,
-    chainId,
+    chainId: chainId as any,
     query: {
       enabled: Boolean(address),
     },
@@ -128,7 +128,7 @@ export function useTokenBalance(options: UseTokenBalanceOptions = {}): UseTokenB
       abi: ERC20_BALANCE_ABI,
       functionName: 'balanceOf' as const,
       args: [address] as [Address],
-      chainId,
+      chainId: chainId as any,
     }))
   }, [address, tokens, chainId])
 
@@ -138,7 +138,7 @@ export function useTokenBalance(options: UseTokenBalanceOptions = {}): UseTokenB
     isLoading: tokensLoading,
     refetch: refetchTokens,
   } = useReadContracts({
-    contracts,
+    contracts: contracts as any,
     query: {
       enabled: Boolean(address) && contracts.length > 0,
     },
@@ -174,10 +174,11 @@ export function useTokenBalance(options: UseTokenBalanceOptions = {}): UseTokenB
   const nativeBalance: NativeBalance | null = useMemo(() => {
     if (!nativeData) return null
 
-    const num = parseFloat(nativeData.formatted)
+    const formatted = formatUnits(nativeData.value, nativeData.decimals)
+    const num = parseFloat(formatted)
     return {
       raw: nativeData.value,
-      formatted: nativeData.formatted,
+      formatted,
       display: `${num.toFixed(4)} ${nativeData.symbol}`,
       symbol: nativeData.symbol,
     }
@@ -299,7 +300,7 @@ export function useSingleTokenBalance(
             abi: ERC20_BALANCE_ABI,
             functionName: 'balanceOf',
             args: [address],
-            chainId,
+            chainId: chainId as any,
           },
         ]
       : [],

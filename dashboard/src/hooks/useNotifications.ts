@@ -113,7 +113,7 @@ export function useNotifications(): UseNotificationsReturn {
         task_id: taskId,
         action_url: `/tasks/${taskId}`,
         action_label: 'Ver tarea',
-      } as NotificationInsert)
+      } as any as NotificationInsert)
     },
     [addNotification]
   )
@@ -128,7 +128,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_url: `/tasks/${taskId}`,
         action_label: 'Ver detalles',
         priority: 'high',
-      } as NotificationInsert)
+      } as any as NotificationInsert)
     },
     [addNotification]
   )
@@ -143,7 +143,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_url: `/tasks/${taskId}`,
         action_label: 'Ver motivo',
         priority: 'high',
-      } as NotificationInsert)
+      } as any as NotificationInsert)
     },
     [addNotification]
   )
@@ -159,7 +159,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_label: 'Ver pagos',
         priority: 'high',
         metadata: { amount, currency },
-      } as NotificationInsert)
+      } as any as NotificationInsert)
     },
     [addNotification]
   )
@@ -173,7 +173,7 @@ export function useNotifications(): UseNotificationsReturn {
         task_id: taskId,
         action_url: '/payments',
         action_label: 'Ver estado',
-      } as NotificationInsert)
+      } as any as NotificationInsert)
     },
     [addNotification]
   )
@@ -189,7 +189,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_url: `/disputes/${disputeId}`,
         action_label: 'Ver disputa',
         priority: 'urgent',
-      } as NotificationInsert)
+      } as any as NotificationInsert)
     },
     [addNotification]
   )
@@ -208,7 +208,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_url: `/disputes/${disputeId}`,
         action_label: 'Ver resolucion',
         priority: 'high',
-      } as NotificationInsert)
+      } as any as NotificationInsert)
     },
     [addNotification]
   )
@@ -223,7 +223,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_url: '/profile',
         action_label: 'Ver perfil',
         metadata: { delta, newScore },
-      } as NotificationInsert)
+      } as any as NotificationInsert)
     },
     [addNotification]
   )
@@ -234,7 +234,7 @@ export function useNotifications(): UseNotificationsReturn {
         type: 'system',
         title,
         message,
-      } as NotificationInsert)
+      } as any as NotificationInsert)
     },
     [addNotification]
   )

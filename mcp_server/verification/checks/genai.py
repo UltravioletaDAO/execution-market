@@ -10,20 +10,17 @@ using multiple detection methods:
 5. Statistical analysis
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, List, Tuple, Dict, Any
+from dataclasses import dataclass
+from typing import Optional, List, Dict, Any
 from PIL import Image
 from PIL.ExifTags import TAGS
-import struct
-import hashlib
-import io
-import json
 import re
 
 
 @dataclass
 class GenAIResult:
     """Result of AI-generated image detection."""
+
     is_ai_generated: bool
     confidence: float  # 0.0 to 1.0
     model_hint: Optional[str]  # Detected AI model (e.g., "midjourney", "dall-e")
@@ -91,9 +88,9 @@ AI_SIGNATURES = {
 # C2PA (Content Authenticity Initiative) markers
 C2PA_MARKERS = {
     "jumbf_box_type": b"jumb",  # JUMBF box type
-    "c2pa_manifest": b"c2pa",   # C2PA manifest marker
-    "c2pa_claim": b"c2cl",      # C2PA claim marker
-    "xmp_c2pa": "c2pa:",        # XMP namespace for C2PA
+    "c2pa_manifest": b"c2pa",  # C2PA manifest marker
+    "c2pa_claim": b"c2cl",  # C2PA claim marker
+    "xmp_c2pa": "c2pa:",  # XMP namespace for C2PA
     "ai_generated_claim": "c2pa.ai_generated",
 }
 
@@ -234,7 +231,9 @@ def _check_c2pa_metadata(raw_bytes: bytes, img: Image.Image) -> Dict[str, Any]:
         try:
             claim_idx = raw_bytes.find(C2PA_MARKERS["c2pa_claim"])
             # Look for AI-related claims in nearby bytes
-            context = raw_bytes[max(0, claim_idx-500):min(len(raw_bytes), claim_idx+500)]
+            context = raw_bytes[
+                max(0, claim_idx - 500) : min(len(raw_bytes), claim_idx + 500)
+            ]
             context_str = context.decode("utf-8", errors="ignore").lower()
 
             if "ai_generated" in context_str or "generative" in context_str:
@@ -296,7 +295,9 @@ def _extract_xmp(raw_bytes: bytes) -> Optional[str]:
     return None
 
 
-def _check_steganographic_watermarks(img: Image.Image, raw_bytes: bytes) -> Dict[str, Any]:
+def _check_steganographic_watermarks(
+    img: Image.Image, raw_bytes: bytes
+) -> Dict[str, Any]:
     """
     Detect steganographic AI watermarks.
 
@@ -377,7 +378,7 @@ def _analyze_synthid_patterns(img: Image.Image) -> float:
 
         # Mean absolute difference between consecutive pixels
         def channel_smoothness(vals):
-            diffs = [abs(vals[i] - vals[i-1]) for i in range(1, len(vals))]
+            diffs = [abs(vals[i] - vals[i - 1]) for i in range(1, len(vals))]
             return sum(diffs) / len(diffs)
 
         r_smooth = channel_smoothness(r_vals)
@@ -385,7 +386,9 @@ def _analyze_synthid_patterns(img: Image.Image) -> float:
         b_smooth = channel_smoothness(b_vals)
 
         # AI images often have unnaturally consistent smoothness across channels
-        smoothness_variance = max(r_smooth, g_smooth, b_smooth) - min(r_smooth, g_smooth, b_smooth)
+        smoothness_variance = max(r_smooth, g_smooth, b_smooth) - min(
+            r_smooth, g_smooth, b_smooth
+        )
 
         # Very low variance might indicate AI generation
         if smoothness_variance < 2.0:
@@ -427,9 +430,11 @@ def _analyze_lsb_patterns(img: Image.Image) -> Dict[str, Any]:
         # Very biased ratios might indicate watermarking
         bias_threshold = 0.15  # Deviation from 0.5
 
-        if (abs(r_ratio - 0.5) > bias_threshold or
-            abs(g_ratio - 0.5) > bias_threshold or
-            abs(b_ratio - 0.5) > bias_threshold):
+        if (
+            abs(r_ratio - 0.5) > bias_threshold
+            or abs(g_ratio - 0.5) > bias_threshold
+            or abs(b_ratio - 0.5) > bias_threshold
+        ):
             result["suspicious"] = True
             result["confidence"] = 0.4
 
@@ -457,7 +462,7 @@ def _analyze_quantization_tables(raw_bytes: bytes) -> Dict[str, Any]:
         # Find DQT marker (0xFF, 0xDB)
         dqt_positions = []
         for i in range(len(raw_bytes) - 1):
-            if raw_bytes[i] == 0xFF and raw_bytes[i+1] == 0xDB:
+            if raw_bytes[i] == 0xFF and raw_bytes[i + 1] == 0xDB:
                 dqt_positions.append(i)
 
         if not dqt_positions:
@@ -470,7 +475,7 @@ def _analyze_quantization_tables(raw_bytes: bytes) -> Dict[str, Any]:
                 continue
 
             # Skip marker and length
-            qt_data = raw_bytes[pos+4:pos+68]
+            qt_data = raw_bytes[pos + 4 : pos + 68]
 
             # Check for known AI generator QT patterns
             # (This would need calibration with real AI image samples)
@@ -550,7 +555,7 @@ def _analyze_color_distribution(img: Image.Image) -> Dict[str, Any]:
 
         # AI images often have smoother histograms
         def histogram_smoothness(hist):
-            diffs = [abs(hist[i] - hist[i-1]) for i in range(1, len(hist))]
+            diffs = [abs(hist[i] - hist[i - 1]) for i in range(1, len(hist))]
             return sum(diffs) / sum(hist) if sum(hist) > 0 else 0
 
         r_smooth = histogram_smoothness(r_hist)
@@ -590,7 +595,9 @@ def _analyze_texture_consistency(img: Image.Image) -> Dict[str, Any]:
 
                 # Calculate variance for this block
                 r_vals = [p[0] for p in block_pixels]
-                variance = sum((v - sum(r_vals)/len(r_vals))**2 for v in r_vals) / len(r_vals)
+                variance = sum(
+                    (v - sum(r_vals) / len(r_vals)) ** 2 for v in r_vals
+                ) / len(r_vals)
                 variances.append(variance)
 
         if not variances:
@@ -599,7 +606,7 @@ def _analyze_texture_consistency(img: Image.Image) -> Dict[str, Any]:
         # Check variance of variances
         # AI images tend to have more uniform local variance
         mean_var = sum(variances) / len(variances)
-        var_of_var = sum((v - mean_var)**2 for v in variances) / len(variances)
+        var_of_var = sum((v - mean_var) ** 2 for v in variances) / len(variances)
 
         # Very low variance of variances might indicate AI
         if var_of_var < 100 and mean_var > 100:
@@ -629,15 +636,19 @@ def _analyze_pattern_repetition(img: Image.Image) -> Dict[str, Any]:
         repetition_count = 0
 
         for row_start in range(0, len(pixels), width):
-            row = pixels[row_start:row_start + width]
+            row = pixels[row_start : row_start + width]
             # Check if any pattern repeats
             for pattern_len in range(4, width // 4):
                 pattern = row[:pattern_len]
                 repetitions = 0
                 for i in range(0, len(row) - pattern_len, pattern_len):
-                    segment = row[i:i + pattern_len]
-                    if all(abs(a[0] - b[0]) < 10 and abs(a[1] - b[1]) < 10 and abs(a[2] - b[2]) < 10
-                           for a, b in zip(pattern, segment)):
+                    segment = row[i : i + pattern_len]
+                    if all(
+                        abs(a[0] - b[0]) < 10
+                        and abs(a[1] - b[1]) < 10
+                        and abs(a[2] - b[2]) < 10
+                        for a, b in zip(pattern, segment)
+                    ):
                         repetitions += 1
                 if repetitions > 2:
                     repetition_count += 1
@@ -696,16 +707,31 @@ def _check_exif_anomalies(img: Image.Image, raw_bytes: bytes) -> Dict[str, Any]:
                     return result
 
         # Check for AI-related keywords in any text field
-        text_fields = ["Software", "Artist", "Copyright", "ImageDescription",
-                       "UserComment", "XPComment", "XPAuthor", "XPTitle"]
+        text_fields = [
+            "Software",
+            "Artist",
+            "Copyright",
+            "ImageDescription",
+            "UserComment",
+            "XPComment",
+            "XPAuthor",
+            "XPTitle",
+        ]
 
         for field in text_fields:
             value = str(exif_data.get(field, "")).lower()
 
             # Check for explicit AI indicators
-            ai_keywords = ["ai generated", "ai-generated", "artificial intelligence",
-                          "generated by", "created with ai", "synthetically generated",
-                          "machine generated", "neural network"]
+            ai_keywords = [
+                "ai generated",
+                "ai-generated",
+                "artificial intelligence",
+                "generated by",
+                "created with ai",
+                "synthetically generated",
+                "machine generated",
+                "neural network",
+            ]
 
             for keyword in ai_keywords:
                 if keyword in value:
@@ -824,7 +850,9 @@ def _analyze_entropy(img: Image.Image) -> Dict[str, Any]:
         for count in histogram:
             if count > 0:
                 prob = count / total
-                entropy -= prob * (prob if prob > 0 else 1)  # Simplified log approximation
+                entropy -= prob * (
+                    prob if prob > 0 else 1
+                )  # Simplified log approximation
 
         # AI images often have different entropy characteristics
         # (This would need calibration with real data)
@@ -876,7 +904,9 @@ def _analyze_noise_patterns(img: Image.Image) -> Dict[str, Any]:
             avg_g = sum(n[1] for n in neighbors) / 4
             avg_b = sum(n[2] for n in neighbors) / 4
 
-            noise = abs(center[0] - avg_r) + abs(center[1] - avg_g) + abs(center[2] - avg_b)
+            noise = (
+                abs(center[0] - avg_r) + abs(center[1] - avg_g) + abs(center[2] - avg_b)
+            )
             noise_values.append(noise)
 
         if not noise_values:
@@ -884,7 +914,9 @@ def _analyze_noise_patterns(img: Image.Image) -> Dict[str, Any]:
 
         # AI images often have unnaturally uniform noise
         mean_noise = sum(noise_values) / len(noise_values)
-        noise_variance = sum((n - mean_noise)**2 for n in noise_values) / len(noise_values)
+        noise_variance = sum((n - mean_noise) ** 2 for n in noise_values) / len(
+            noise_values
+        )
 
         # Very low variance in noise might indicate synthetic
         if noise_variance < 10 and mean_noise > 5:
@@ -918,8 +950,16 @@ def _analyze_edge_consistency(img: Image.Image) -> Dict[str, Any]:
             right = pixels[i + 1]
             below = pixels[i + width]
 
-            grad_h = abs(curr[0] - right[0]) + abs(curr[1] - right[1]) + abs(curr[2] - right[2])
-            grad_v = abs(curr[0] - below[0]) + abs(curr[1] - below[1]) + abs(curr[2] - below[2])
+            grad_h = (
+                abs(curr[0] - right[0])
+                + abs(curr[1] - right[1])
+                + abs(curr[2] - right[2])
+            )
+            grad_v = (
+                abs(curr[0] - below[0])
+                + abs(curr[1] - below[1])
+                + abs(curr[2] - below[2])
+            )
 
             edge_strength = (grad_h + grad_v) / 2
             if edge_strength > 20:  # Only count significant edges
@@ -930,7 +970,9 @@ def _analyze_edge_consistency(img: Image.Image) -> Dict[str, Any]:
 
         # Calculate variance of edge strengths
         mean_edge = sum(edge_strengths) / len(edge_strengths)
-        edge_variance = sum((e - mean_edge)**2 for e in edge_strengths) / len(edge_strengths)
+        edge_variance = sum((e - mean_edge) ** 2 for e in edge_strengths) / len(
+            edge_strengths
+        )
 
         # AI images often have unnaturally consistent edge sharpness
         if edge_variance < 100:

@@ -44,6 +44,7 @@ import secrets
 try:
     import websockets
     from websockets.client import WebSocketClientProtocol
+
     WEBSOCKETS_AVAILABLE = True
 except ImportError:
     WEBSOCKETS_AVAILABLE = False
@@ -54,6 +55,7 @@ logger = logging.getLogger(__name__)
 
 class ConnectionState(str, Enum):
     """Client connection state."""
+
     DISCONNECTED = "disconnected"
     CONNECTING = "connecting"
     CONNECTED = "connected"
@@ -64,6 +66,7 @@ class ConnectionState(str, Enum):
 @dataclass
 class ClientConfig:
     """WebSocket client configuration."""
+
     url: str = "ws://localhost:8000/ws"
     user_id: Optional[str] = None
     user_type: str = "agent"  # "agent" or "worker"
@@ -80,6 +83,7 @@ class ClientConfig:
 @dataclass
 class ReceivedMessage:
     """Represents a message received from the server."""
+
     type: str
     payload: Dict[str, Any]
     id: str
@@ -127,7 +131,9 @@ class EMWebSocketClient:
             **kwargs: Additional configuration options
         """
         if not WEBSOCKETS_AVAILABLE:
-            raise ImportError("websockets library required. Install with: pip install websockets")
+            raise ImportError(
+                "websockets library required. Install with: pip install websockets"
+            )
 
         self.config = ClientConfig(
             url=url,
@@ -284,18 +290,24 @@ class EMWebSocketClient:
         while self._running:
             self._reconnect_attempts += 1
 
-            if (self.config.reconnect_max_attempts > 0 and
-                self._reconnect_attempts > self.config.reconnect_max_attempts):
-                logger.error(f"Max reconnect attempts ({self.config.reconnect_max_attempts}) reached")
+            if (
+                self.config.reconnect_max_attempts > 0
+                and self._reconnect_attempts > self.config.reconnect_max_attempts
+            ):
+                logger.error(
+                    f"Max reconnect attempts ({self.config.reconnect_max_attempts}) reached"
+                )
                 self._state = ConnectionState.DISCONNECTED
                 return False
 
             # Calculate delay with exponential backoff
             delay = min(
                 self.config.reconnect_delay * (2 ** (self._reconnect_attempts - 1)),
-                self.config.reconnect_max_delay
+                self.config.reconnect_max_delay,
             )
-            logger.info(f"Reconnecting in {delay:.1f}s (attempt {self._reconnect_attempts})")
+            logger.info(
+                f"Reconnecting in {delay:.1f}s (attempt {self._reconnect_attempts})"
+            )
             await asyncio.sleep(delay)
 
             if await self.connect():
@@ -482,7 +494,9 @@ class EMWebSocketClient:
 
     # ============== EVENT HANDLING ==============
 
-    def on(self, event_type: str, handler: Callable[[Dict[str, Any]], Awaitable[None]]) -> None:
+    def on(
+        self, event_type: str, handler: Callable[[Dict[str, Any]], Awaitable[None]]
+    ) -> None:
         """
         Register a handler for an event type.
 
@@ -536,7 +550,10 @@ class EMWebSocketClient:
                 message = ReceivedMessage.from_dict(data)
 
                 # Handle correlation (response to request)
-                if message.correlation_id and message.correlation_id in self._pending_responses:
+                if (
+                    message.correlation_id
+                    and message.correlation_id in self._pending_responses
+                ):
                     future = self._pending_responses[message.correlation_id]
                     if not future.done():
                         future.set_result(message)
@@ -659,10 +676,16 @@ async def _main():
 
     # Register handler for all events
     for event_type in [
-        "TaskCreated", "TaskUpdated", "TaskCancelled",
-        "ApplicationReceived", "WorkerAssigned",
-        "SubmissionReceived", "SubmissionApproved", "SubmissionRejected",
-        "PaymentReleased", "PaymentFailed",
+        "TaskCreated",
+        "TaskUpdated",
+        "TaskCancelled",
+        "ApplicationReceived",
+        "WorkerAssigned",
+        "SubmissionReceived",
+        "SubmissionApproved",
+        "SubmissionRejected",
+        "PaymentReleased",
+        "PaymentFailed",
         "NotificationNew",
     ]:
         client.on(event_type, print_event)

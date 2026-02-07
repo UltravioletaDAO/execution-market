@@ -534,7 +534,7 @@ function EvidenceViewer({
               )}
               <div className="mt-4 text-sm text-gray-500">
                 <p>Subido: {formatDate(selectedEvidence.uploadedAt)}</p>
-                {selectedEvidence.metadata?.gps && (
+                {!!selectedEvidence.metadata?.gps && (
                   <p>
                     GPS: {(selectedEvidence.metadata.gps as { lat: number; lng: number }).lat.toFixed(4)},
                     {(selectedEvidence.metadata.gps as { lat: number; lng: number }).lng.toFixed(4)}

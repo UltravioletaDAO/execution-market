@@ -62,10 +62,13 @@ try:
         TIER_TIMINGS,
         BASE_MAINNET_CONTRACTS,
     )
+
     ADVANCED_ESCROW_AVAILABLE = True
 except ImportError:
     ADVANCED_ESCROW_AVAILABLE = False
-    logger.warning("uvd-x402-sdk advanced_escrow not available. Install: pip install uvd-x402-sdk>=0.6.0")
+    logger.warning(
+        "uvd-x402-sdk advanced_escrow not available. Install: pip install uvd-x402-sdk>=0.6.0"
+    )
 
     # Fallback stubs so the module can still be parsed
     class TaskTier(str, Enum):
@@ -108,7 +111,9 @@ def _get_facilitator_url() -> str:
 
 
 def _get_rpc_url() -> str:
-    return os.environ.get("X402_RPC_URL", os.environ.get("RPC_URL_BASE", "https://mainnet.base.org"))
+    return os.environ.get(
+        "X402_RPC_URL", os.environ.get("RPC_URL_BASE", "https://mainnet.base.org")
+    )
 
 
 def _get_private_key() -> Optional[str]:
@@ -122,6 +127,7 @@ def _get_chain_id() -> int:
 # =============================================================================
 # Execution Market Payment Strategy
 # =============================================================================
+
 
 class PaymentStrategy(str, Enum):
     """Payment strategy that an AI agent can choose for an Execution Market task."""
@@ -162,6 +168,7 @@ class TaskPayment:
 # =============================================================================
 # Execution Market Advanced Escrow Wrapper
 # =============================================================================
+
 
 class EMAdvancedEscrow:
     """
@@ -208,11 +215,11 @@ class EMAdvancedEscrow:
 
     def _amount_to_atomic(self, amount_usdc: Decimal) -> int:
         """Convert USDC amount to atomic units (6 decimals)."""
-        return int(amount_usdc * Decimal(10 ** USDC_DECIMALS))
+        return int(amount_usdc * Decimal(10**USDC_DECIMALS))
 
     def _amount_from_atomic(self, amount: int) -> Decimal:
         """Convert atomic units to USDC."""
-        return Decimal(amount) / Decimal(10 ** USDC_DECIMALS)
+        return Decimal(amount) / Decimal(10**USDC_DECIMALS)
 
     def _get_tier(self, amount_usdc: Decimal) -> TaskTier:
         """Determine task tier based on bounty amount."""
@@ -250,7 +257,9 @@ class EMAdvancedEscrow:
                            Query via: mcp_server.integrations.erc8004.facilitator_client
         """
         # Prefer on-chain ERC-8004 reputation when available
-        effective_reputation = erc8004_score if erc8004_score is not None else worker_reputation
+        effective_reputation = (
+            erc8004_score if erc8004_score is not None else worker_reputation
+        )
 
         if effective_reputation >= 0.90 and amount_usdc < 5:
             return PaymentStrategy.INSTANT_PAYMENT
@@ -298,7 +307,9 @@ class EMAdvancedEscrow:
             logger.warning(
                 "Task %s amount %s exceeds contract deposit limit %s USDC. "
                 "Transaction will likely fail on-chain.",
-                task_id, amount_usdc, DEPOSIT_LIMIT_USDC,
+                task_id,
+                amount_usdc,
+                DEPOSIT_LIMIT_USDC,
             )
 
         amount_atomic = self._amount_to_atomic(amount_usdc)
@@ -313,7 +324,11 @@ class EMAdvancedEscrow:
 
         logger.info(
             "Authorizing task %s: %s USDC to %s... (tier=%s, strategy=%s)",
-            task_id, amount_usdc, receiver[:10], task_tier.value, strategy.value,
+            task_id,
+            amount_usdc,
+            receiver[:10],
+            task_tier.value,
+            strategy.value,
         )
 
         result = self.client.authorize(pi)
@@ -329,7 +344,9 @@ class EMAdvancedEscrow:
 
         if result.success:
             payment.tx_hashes.append(result.transaction_hash)
-            logger.info("Task %s authorized: tx=%s", task_id, result.transaction_hash[:20])
+            logger.info(
+                "Task %s authorized: tx=%s", task_id, result.transaction_hash[:20]
+            )
         else:
             logger.error("Task %s authorization failed: %s", task_id, result.error)
 
@@ -360,7 +377,8 @@ class EMAdvancedEscrow:
 
         logger.info(
             "Releasing payment for task %s: %s USDC",
-            task_id, amount_usdc or payment.amount_usdc,
+            task_id,
+            amount_usdc or payment.amount_usdc,
         )
 
         result = self.client.release(payment.payment_info, amount)
@@ -370,7 +388,12 @@ class EMAdvancedEscrow:
             payment.released_usdc += released
             payment.status = "released"
             payment.tx_hashes.append(result.transaction_hash)
-            logger.info("Task %s released: tx=%s, gas=%s", task_id, result.transaction_hash[:20], result.gas_used)
+            logger.info(
+                "Task %s released: tx=%s, gas=%s",
+                task_id,
+                result.transaction_hash[:20],
+                result.gas_used,
+            )
         else:
             logger.error("Task %s release failed: %s", task_id, result.error)
 
@@ -400,7 +423,8 @@ class EMAdvancedEscrow:
 
         logger.info(
             "Refunding task %s: %s USDC",
-            task_id, amount_usdc or payment.amount_usdc,
+            task_id,
+            amount_usdc or payment.amount_usdc,
         )
 
         result = self.client.refund_in_escrow(payment.payment_info, amount)
@@ -410,7 +434,12 @@ class EMAdvancedEscrow:
             payment.refunded_usdc += refunded
             payment.status = "refunded"
             payment.tx_hashes.append(result.transaction_hash)
-            logger.info("Task %s refunded: tx=%s, gas=%s", task_id, result.transaction_hash[:20], result.gas_used)
+            logger.info(
+                "Task %s refunded: tx=%s, gas=%s",
+                task_id,
+                result.transaction_hash[:20],
+                result.gas_used,
+            )
         else:
             logger.error("Task %s refund failed: %s", task_id, result.error)
 
@@ -449,12 +478,16 @@ class EMAdvancedEscrow:
         if amount_usdc > DEPOSIT_LIMIT_USDC:
             logger.warning(
                 "Task %s charge amount %s exceeds contract deposit limit %s USDC.",
-                task_id, amount_usdc, DEPOSIT_LIMIT_USDC,
+                task_id,
+                amount_usdc,
+                DEPOSIT_LIMIT_USDC,
             )
 
         logger.info(
             "Charging instant payment for task %s: %s USDC to %s...",
-            task_id, amount_usdc, receiver[:10],
+            task_id,
+            amount_usdc,
+            receiver[:10],
         )
 
         result = self.client.charge(pi)
@@ -470,7 +503,12 @@ class EMAdvancedEscrow:
 
         if result.success:
             payment.tx_hashes.append(result.transaction_hash)
-            logger.info("Task %s charged: tx=%s, gas=%s", task_id, result.transaction_hash[:20], result.gas_used)
+            logger.info(
+                "Task %s charged: tx=%s, gas=%s",
+                task_id,
+                result.transaction_hash[:20],
+                result.gas_used,
+            )
         else:
             logger.error("Task %s charge failed: %s", task_id, result.error)
 
@@ -503,7 +541,8 @@ class EMAdvancedEscrow:
 
         logger.info(
             "Partial release for task %s: %d%% release (%s), %d%% refund (%s)",
-            task_id, release_percent,
+            task_id,
+            release_percent,
             self._amount_from_atomic(release_amount),
             100 - release_percent,
             self._amount_from_atomic(refund_amount),
@@ -522,7 +561,9 @@ class EMAdvancedEscrow:
         payment.tx_hashes.append(release_result.transaction_hash)
 
         # Step 2: Refund remainder to agent
-        refund_result = self.client.refund_in_escrow(payment.payment_info, refund_amount)
+        refund_result = self.client.refund_in_escrow(
+            payment.payment_info, refund_amount
+        )
         if not refund_result.success:
             return {
                 "success": True,  # Partial success
@@ -586,16 +627,28 @@ class EMAdvancedEscrow:
 
         amount = self._amount_to_atomic(amount_usdc) if amount_usdc else None
 
-        logger.info("Initiating dispute for task %s: %s USDC", task_id, amount_usdc or payment.amount_usdc)
+        logger.info(
+            "Initiating dispute for task %s: %s USDC",
+            task_id,
+            amount_usdc or payment.amount_usdc,
+        )
 
         result = self.client.refund_post_escrow(payment.payment_info, amount)
 
         if result.success:
             payment.status = "disputed"
             payment.tx_hashes.append(result.transaction_hash)
-            logger.info("Task %s dispute initiated: tx=%s", task_id, result.transaction_hash[:20])
+            logger.info(
+                "Task %s dispute initiated: tx=%s",
+                task_id,
+                result.transaction_hash[:20],
+            )
         else:
-            logger.warning("Task %s dispute failed (expected - tokenCollector not implemented): %s", task_id, result.error)
+            logger.warning(
+                "Task %s dispute failed (expected - tokenCollector not implemented): %s",
+                task_id,
+                result.error,
+            )
 
         return result
 
@@ -637,6 +690,7 @@ def get_advanced_escrow() -> EMAdvancedEscrow:
 # =============================================================================
 # Convenience Functions
 # =============================================================================
+
 
 def authorize_task_bounty(
     task_id: str,

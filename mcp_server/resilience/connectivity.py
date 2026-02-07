@@ -23,15 +23,17 @@ logger = logging.getLogger(__name__)
 
 class ConnectionState(str, Enum):
     """Worker connection states."""
-    CONNECTED = "connected"       # Active, heartbeat recent
-    DISCONNECTED = "disconnected" # No heartbeat, within grace period
-    GRACE_PERIOD = "grace_period" # Explicitly in grace period
-    EXPIRED = "expired"           # Grace period ended, tasks reassigned
-    RECONNECTING = "reconnecting" # Attempting to reconnect
+
+    CONNECTED = "connected"  # Active, heartbeat recent
+    DISCONNECTED = "disconnected"  # No heartbeat, within grace period
+    GRACE_PERIOD = "grace_period"  # Explicitly in grace period
+    EXPIRED = "expired"  # Grace period ended, tasks reassigned
+    RECONNECTING = "reconnecting"  # Attempting to reconnect
 
 
 class GracePeriodExpired(Exception):
     """Raised when grace period has expired."""
+
     def __init__(self, worker_id: str, offline_duration: timedelta):
         self.worker_id = worker_id
         self.offline_duration = offline_duration
@@ -43,12 +45,12 @@ class GracePeriodExpired(Exception):
 
 class ConnectionLost(Exception):
     """Raised when connection is lost."""
+
     def __init__(self, worker_id: str, last_seen: datetime):
         self.worker_id = worker_id
         self.last_seen = last_seen
         super().__init__(
-            f"Connection lost for worker {worker_id}. "
-            f"Last seen: {last_seen}"
+            f"Connection lost for worker {worker_id}. Last seen: {last_seen}"
         )
 
 
@@ -66,6 +68,7 @@ class WorkerConnection:
         reconnect_attempts: Number of reconnection attempts
         metadata: Additional connection metadata
     """
+
     worker_id: str
     last_seen: datetime
     state: ConnectionState = ConnectionState.CONNECTED
@@ -76,10 +79,7 @@ class WorkerConnection:
 
     def is_online(self) -> bool:
         """Check if worker is considered online."""
-        return self.state in (
-            ConnectionState.CONNECTED,
-            ConnectionState.RECONNECTING
-        )
+        return self.state in (ConnectionState.CONNECTED, ConnectionState.RECONNECTING)
 
     def is_in_grace_period(self) -> bool:
         """Check if worker is in grace period."""
@@ -104,6 +104,7 @@ class WorkerConnection:
 @dataclass
 class ConnectivityConfig:
     """Configuration for connectivity management."""
+
     # Grace period settings
     grace_period_minutes: int = 30
     heartbeat_interval_seconds: int = 30
@@ -190,9 +191,7 @@ class ConnectivityManager:
         logger.info("Connectivity manager stopped")
 
     async def register_worker(
-        self,
-        worker_id: str,
-        metadata: Optional[Dict] = None
+        self, worker_id: str, metadata: Optional[Dict] = None
     ) -> WorkerConnection:
         """
         Register a new worker.
@@ -208,7 +207,7 @@ class ConnectivityManager:
             worker_id=worker_id,
             last_seen=datetime.utcnow(),
             state=ConnectionState.CONNECTED,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
         self._connections[worker_id] = connection
 
@@ -231,9 +230,7 @@ class ConnectivityManager:
         return connection
 
     async def heartbeat(
-        self,
-        worker_id: str,
-        metadata: Optional[Dict] = None
+        self, worker_id: str, metadata: Optional[Dict] = None
     ) -> WorkerConnection:
         """
         Record a heartbeat from a worker.
@@ -256,7 +253,7 @@ class ConnectivityManager:
         now = datetime.utcnow()
         was_disconnected = connection.state in (
             ConnectionState.DISCONNECTED,
-            ConnectionState.GRACE_PERIOD
+            ConnectionState.GRACE_PERIOD,
         )
 
         connection.last_seen = now
@@ -288,9 +285,7 @@ class ConnectivityManager:
         return connection
 
     async def handle_disconnection(
-        self,
-        worker_id: str,
-        reason: Optional[str] = None
+        self, worker_id: str, reason: Optional[str] = None
     ) -> WorkerConnection:
         """
         Handle worker disconnection.
@@ -332,10 +327,7 @@ class ConnectivityManager:
 
         return connection
 
-    async def expire_grace_period(
-        self,
-        worker_id: str
-    ) -> WorkerConnection:
+    async def expire_grace_period(self, worker_id: str) -> WorkerConnection:
         """
         Expire a worker's grace period.
 
@@ -387,7 +379,7 @@ class ConnectivityManager:
 
         return connection.state in (
             ConnectionState.CONNECTED,
-            ConnectionState.GRACE_PERIOD
+            ConnectionState.GRACE_PERIOD,
         )
 
     def assign_task(self, worker_id: str, task_id: str) -> bool:
@@ -433,44 +425,34 @@ class ConnectivityManager:
     def get_workers_in_grace_period(self) -> List[WorkerConnection]:
         """Get all workers currently in grace period."""
         return [
-            conn for conn in self._connections.values()
+            conn
+            for conn in self._connections.values()
             if conn.state == ConnectionState.GRACE_PERIOD
         ]
 
     def get_online_workers(self) -> List[WorkerConnection]:
         """Get all online workers."""
-        return [
-            conn for conn in self._connections.values()
-            if conn.is_online()
-        ]
+        return [conn for conn in self._connections.values() if conn.is_online()]
 
     def get_expired_workers(self) -> List[WorkerConnection]:
         """Get all workers with expired grace periods."""
         return [
-            conn for conn in self._connections.values()
+            conn
+            for conn in self._connections.values()
             if conn.state == ConnectionState.EXPIRED
         ]
 
     # Callback registration
 
-    def on_disconnection(
-        self,
-        callback: Callable[[WorkerConnection], Awaitable[None]]
-    ):
+    def on_disconnection(self, callback: Callable[[WorkerConnection], Awaitable[None]]):
         """Register callback for worker disconnection."""
         self._on_disconnection.append(callback)
 
-    def on_reconnection(
-        self,
-        callback: Callable[[WorkerConnection], Awaitable[None]]
-    ):
+    def on_reconnection(self, callback: Callable[[WorkerConnection], Awaitable[None]]):
         """Register callback for worker reconnection."""
         self._on_reconnection.append(callback)
 
-    def on_grace_expired(
-        self,
-        callback: Callable[[WorkerConnection], Awaitable[None]]
-    ):
+    def on_grace_expired(self, callback: Callable[[WorkerConnection], Awaitable[None]]):
         """Register callback for grace period expiry."""
         self._on_grace_expired.append(callback)
 
@@ -498,8 +480,7 @@ class ConnectivityManager:
             if connection.state == ConnectionState.CONNECTED:
                 if now - connection.last_seen > timeout:
                     await self.handle_disconnection(
-                        worker_id,
-                        reason="heartbeat_timeout"
+                        worker_id, reason="heartbeat_timeout"
                     )
 
             # Check for grace period expiry
@@ -514,27 +495,22 @@ class ConnectivityManager:
         states = {}
         for state in ConnectionState:
             states[state.value] = sum(
-                1 for c in self._connections.values()
-                if c.state == state
+                1 for c in self._connections.values() if c.state == state
             )
 
-        total_tasks = sum(
-            len(c.active_tasks) for c in self._connections.values()
-        )
+        total_tasks = sum(len(c.active_tasks) for c in self._connections.values())
 
         grace_period_workers = self.get_workers_in_grace_period()
-        tasks_at_risk = sum(
-            len(c.active_tasks) for c in grace_period_workers
-        )
+        tasks_at_risk = sum(len(c.active_tasks) for c in grace_period_workers)
 
         return {
-            'total_workers': len(self._connections),
-            'states': states,
-            'total_active_tasks': total_tasks,
-            'workers_in_grace_period': len(grace_period_workers),
-            'tasks_at_risk': tasks_at_risk,
-            'config': {
-                'grace_period_minutes': self.config.grace_period_minutes,
-                'heartbeat_timeout_seconds': self.config.heartbeat_timeout_seconds
-            }
+            "total_workers": len(self._connections),
+            "states": states,
+            "total_active_tasks": total_tasks,
+            "workers_in_grace_period": len(grace_period_workers),
+            "tasks_at_risk": tasks_at_risk,
+            "config": {
+                "grace_period_minutes": self.config.grace_period_minutes,
+                "heartbeat_timeout_seconds": self.config.heartbeat_timeout_seconds,
+            },
         }

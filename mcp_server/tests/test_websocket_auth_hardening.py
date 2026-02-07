@@ -34,7 +34,9 @@ async def test_connection_context_accepts_user_type_argument():
     manager = WebSocketManager()
     ws = FakeWebSocket()
 
-    async with manager.connection_context(ws, user_id="agent_1", user_type="agent") as conn:
+    async with manager.connection_context(
+        ws, user_id="agent_1", user_type="agent"
+    ) as conn:
         assert conn.user_id == "agent_1"
         assert conn.user_type == "agent"
         assert conn.state == ConnectionState.AUTHENTICATED

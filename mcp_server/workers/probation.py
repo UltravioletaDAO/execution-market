@@ -32,16 +32,18 @@ logger = logging.getLogger(__name__)
 
 class WorkerTier(str, Enum):
     """Worker trust tiers with progressive access."""
-    PROBATION = "probation"      # First 10 tasks, max $5
-    STANDARD = "standard"        # Normal access
-    TRUSTED = "trusted"          # 50+ tasks, >4.5 rating
-    EXPERT = "expert"            # 200+ tasks, specialized skills
-    SUSPENDED = "suspended"      # Reputation too low or violations
+
+    PROBATION = "probation"  # First 10 tasks, max $5
+    STANDARD = "standard"  # Normal access
+    TRUSTED = "trusted"  # 50+ tasks, >4.5 rating
+    EXPERT = "expert"  # 200+ tasks, specialized skills
+    SUSPENDED = "suspended"  # Reputation too low or violations
 
 
 @dataclass
 class ProbationConfig:
     """Configuration for probation system."""
+
     # Task limits
     probation_task_count: int = 10
     probation_max_value: float = 5.00
@@ -67,6 +69,7 @@ class ProbationConfig:
 @dataclass
 class ProbationStatus:
     """Current probation status for a worker."""
+
     worker_id: str
     tier: WorkerTier
     tasks_completed: int
@@ -105,6 +108,7 @@ class ProbationStatus:
 @dataclass
 class TaskEligibility:
     """Eligibility result for a worker applying to a task."""
+
     eligible: bool
     reason: Optional[str] = None
     warnings: List[str] = field(default_factory=list)
@@ -138,9 +142,7 @@ class ProbationManager:
         self._cache: Dict[str, ProbationStatus] = {}
 
     async def get_status(
-        self,
-        worker_id: str,
-        db_client: Optional[Any] = None
+        self, worker_id: str, db_client: Optional[Any] = None
     ) -> ProbationStatus:
         """
         Get current probation status for a worker.
@@ -181,7 +183,7 @@ class ProbationManager:
         task_value: float,
         task_category: Optional[str] = None,
         requires_trust: bool = False,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> TaskEligibility:
         """
         Check if a worker is eligible for a specific task.
@@ -221,7 +223,7 @@ class ProbationManager:
                 return TaskEligibility(
                     eligible=False,
                     reason=f"Maximum task value during probation: ${status.max_task_value:.2f}. "
-                           f"Complete {status.tasks_until_graduation} more tasks to increase limit.",
+                    f"Complete {status.tasks_until_graduation} more tasks to increase limit.",
                 )
 
             # Add warnings for probation workers
@@ -230,10 +232,12 @@ class ProbationManager:
             )
 
             # Extra verification for probation
-            extra_verification.extend([
-                "photo_selfie",        # Selfie with task evidence
-                "realtime_timestamp",  # Cannot use old photos
-            ])
+            extra_verification.extend(
+                [
+                    "photo_selfie",  # Selfie with task evidence
+                    "realtime_timestamp",  # Cannot use old photos
+                ]
+            )
 
             if not status.identity_verified:
                 extra_verification.append("identity_document")
@@ -259,7 +263,7 @@ class ProbationManager:
         rating: float,
         task_value: float,
         was_disputed: bool = False,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> ProbationStatus:
         """
         Record a completed task and update probation status.
@@ -304,7 +308,7 @@ class ProbationManager:
         worker_id: str,
         verified: bool,
         verification_method: str,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> ProbationStatus:
         """
         Record identity verification result.
@@ -337,7 +341,7 @@ class ProbationManager:
         worker_id: str,
         reason: str,
         suspended_by: str,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> ProbationStatus:
         """
         Suspend a worker account.
@@ -367,9 +371,7 @@ class ProbationManager:
         return status
 
     async def _check_tier_changes(
-        self,
-        status: ProbationStatus,
-        db_client: Optional[Any] = None
+        self, status: ProbationStatus, db_client: Optional[Any] = None
     ) -> ProbationStatus:
         """Check and apply tier upgrades/downgrades."""
         now = datetime.now(timezone.utc)
@@ -389,7 +391,9 @@ class ProbationManager:
             status.tier = WorkerTier.SUSPENDED
             status.suspension_reason = "Too many disputes"
             status.max_task_value = 0.0
-            logger.warning(f"Worker {status.worker_id} auto-suspended: too many disputes")
+            logger.warning(
+                f"Worker {status.worker_id} auto-suspended: too many disputes"
+            )
             return status
 
         # Check for graduation from probation
@@ -425,17 +429,19 @@ class ProbationManager:
 
         return status
 
-    async def _fetch_status(
-        self,
-        worker_id: str,
-        db_client: Any
-    ) -> ProbationStatus:
+    async def _fetch_status(self, worker_id: str, db_client: Any) -> ProbationStatus:
         """Fetch status from database."""
         # Query worker record
-        result = db_client.table("workers").select(
-            "id, tier, tasks_completed, average_rating, total_disputes, "
-            "identity_verified, graduated_at, tier_upgraded_at, suspension_reason"
-        ).eq("id", worker_id).single().execute()
+        result = (
+            db_client.table("workers")
+            .select(
+                "id, tier, tasks_completed, average_rating, total_disputes, "
+                "identity_verified, graduated_at, tier_upgraded_at, suspension_reason"
+            )
+            .eq("id", worker_id)
+            .single()
+            .execute()
+        )
 
         if not result.data:
             # New worker

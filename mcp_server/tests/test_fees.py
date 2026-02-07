@@ -12,12 +12,8 @@ from ..models import TaskCategory
 from ..payments.fees import (
     FeeManager,
     FeeBreakdown,
-    CollectedFee,
-    FeeAnalytics,
-    FeeType,
     FeeStatus,
     FEE_RATES,
-    DEFAULT_FEE_RATE,
     MIN_FEE_AMOUNT,
     MAX_FEE_PERCENT,
     calculate_platform_fee,
@@ -37,15 +33,17 @@ class TestFeeRates:
     def test_rates_within_bounds(self):
         """All rates should be between 0 and MAX_FEE_PERCENT."""
         for category, rate in FEE_RATES.items():
-            assert Decimal("0") <= rate <= MAX_FEE_PERCENT, f"Invalid rate for {category}: {rate}"
+            assert Decimal("0") <= rate <= MAX_FEE_PERCENT, (
+                f"Invalid rate for {category}: {rate}"
+            )
 
     def test_expected_rates(self):
         """Verify specific rates match requirements."""
         assert FEE_RATES[TaskCategory.PHYSICAL_PRESENCE] == Decimal("0.08")  # 8%
-        assert FEE_RATES[TaskCategory.KNOWLEDGE_ACCESS] == Decimal("0.07")   # 7%
-        assert FEE_RATES[TaskCategory.HUMAN_AUTHORITY] == Decimal("0.06")    # 6%
-        assert FEE_RATES[TaskCategory.SIMPLE_ACTION] == Decimal("0.08")      # 8%
-        assert FEE_RATES[TaskCategory.DIGITAL_PHYSICAL] == Decimal("0.07")   # 7%
+        assert FEE_RATES[TaskCategory.KNOWLEDGE_ACCESS] == Decimal("0.07")  # 7%
+        assert FEE_RATES[TaskCategory.HUMAN_AUTHORITY] == Decimal("0.06")  # 6%
+        assert FEE_RATES[TaskCategory.SIMPLE_ACTION] == Decimal("0.08")  # 8%
+        assert FEE_RATES[TaskCategory.DIGITAL_PHYSICAL] == Decimal("0.07")  # 7%
 
 
 class TestFeeManager:
@@ -82,7 +80,9 @@ class TestFeeCalculation:
 
     def test_calculate_fee_physical_presence(self, manager):
         """Test 8% fee for physical presence tasks."""
-        breakdown = manager.calculate_fee(Decimal("100"), TaskCategory.PHYSICAL_PRESENCE)
+        breakdown = manager.calculate_fee(
+            Decimal("100"), TaskCategory.PHYSICAL_PRESENCE
+        )
 
         assert breakdown.gross_amount == Decimal("100")
         assert breakdown.fee_rate == Decimal("0.08")
@@ -128,7 +128,9 @@ class TestFeeCalculation:
     def test_calculate_reverse_fee(self, manager):
         """Test reverse fee calculation."""
         # If worker wants exactly $10, what bounty should agent post?
-        breakdown = manager.calculate_reverse_fee(Decimal("10"), TaskCategory.SIMPLE_ACTION)
+        breakdown = manager.calculate_reverse_fee(
+            Decimal("10"), TaskCategory.SIMPLE_ACTION
+        )
 
         # bounty = 10 / (1 - 0.08) = 10 / 0.92 = 10.87
         assert breakdown.gross_amount == Decimal("10.87")
@@ -209,7 +211,9 @@ class TestFeeCollection:
     @pytest.mark.asyncio
     async def test_collect_fee(self, manager):
         """Test recording a collected fee."""
-        breakdown = manager.calculate_fee(Decimal("100"), TaskCategory.PHYSICAL_PRESENCE)
+        breakdown = manager.calculate_fee(
+            Decimal("100"), TaskCategory.PHYSICAL_PRESENCE
+        )
 
         collected = await manager.collect_fee(
             task_id="task-123",
@@ -318,7 +322,9 @@ class TestFeeAnalytics:
         assert "distribution" in structure
 
         # Check specific rate
-        assert structure["rates_by_category"]["physical_presence"]["rate_percent"] == 8.0
+        assert (
+            structure["rates_by_category"]["physical_presence"]["rate_percent"] == 8.0
+        )
 
 
 class TestConvenienceFunctions:

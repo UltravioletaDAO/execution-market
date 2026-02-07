@@ -14,28 +14,30 @@ a unified FraudScore for each submission.
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Any, Tuple
 
 from .gps_antispoofing import GPSAntiSpoofing, GPSData, DeviceInfo, SensorData
 from .image_analysis import ImageAnalyzer, ImageAnalysisResult
-from .behavioral import BehavioralAnalyzer, BehavioralResult
+from .behavioral import BehavioralAnalyzer
 
 logger = logging.getLogger(__name__)
 
 
 class RiskLevel(str, Enum):
     """Risk levels for fraud detection."""
-    LOW = "low"           # Normal submission, no concerns
-    MEDIUM = "medium"     # Some anomalies, flag for review
-    HIGH = "high"         # Multiple red flags, hold payment
-    CRITICAL = "critical" # Clear fraud, reject submission
+
+    LOW = "low"  # Normal submission, no concerns
+    MEDIUM = "medium"  # Some anomalies, flag for review
+    HIGH = "high"  # Multiple red flags, hold payment
+    CRITICAL = "critical"  # Clear fraud, reject submission
 
 
 @dataclass
 class FraudCheckResult:
     """Result from a single fraud check."""
+
     check_name: str
     passed: bool
     risk_score: float  # 0.0 to 1.0
@@ -52,6 +54,7 @@ class FraudScore:
     Combines results from all fraud detection methods into
     a single actionable score.
     """
+
     submission_id: str
     executor_id: str
     task_id: str
@@ -101,6 +104,7 @@ class FraudScore:
 @dataclass
 class SubmissionData:
     """Data for a submission to be analyzed for fraud."""
+
     submission_id: str
     executor_id: str
     task_id: str
@@ -146,6 +150,7 @@ class SubmissionData:
 @dataclass
 class FraudDetectorConfig:
     """Configuration for fraud detection thresholds."""
+
     # Overall thresholds
     low_risk_threshold: float = 0.25
     medium_risk_threshold: float = 0.5
@@ -237,7 +242,9 @@ class FraudDetector:
         if self.config.enable_gps_check and submission.latitude is not None:
             tasks.append(("gps", self._check_gps(submission)))
 
-        if self.config.enable_image_check and (submission.image_paths or submission.image_bytes):
+        if self.config.enable_image_check and (
+            submission.image_paths or submission.image_bytes
+        ):
             tasks.append(("image", self._check_images(submission)))
 
         if self.config.enable_timing_check:
@@ -246,27 +253,31 @@ class FraudDetector:
         if self.config.enable_behavioral_check:
             tasks.append(("behavioral", self._check_behavioral(submission)))
 
-        if self.config.enable_location_match_check and submission.expected_location_lat is not None:
+        if (
+            self.config.enable_location_match_check
+            and submission.expected_location_lat is not None
+        ):
             tasks.append(("location_match", self._check_location_match(submission)))
 
         # Execute all checks
         if tasks:
             results = await asyncio.gather(
-                *[task for _, task in tasks],
-                return_exceptions=True
+                *[task for _, task in tasks], return_exceptions=True
             )
 
             for (name, _), result in zip(tasks, results):
                 if isinstance(result, Exception):
                     logger.error(f"Fraud check {name} failed: {result}")
-                    checks.append(FraudCheckResult(
-                        check_name=name,
-                        passed=True,  # Don't penalize for check failure
-                        risk_score=0.0,
-                        risk_level=RiskLevel.LOW,
-                        reason=f"Check failed: {str(result)}",
-                        details={"error": str(result)},
-                    ))
+                    checks.append(
+                        FraudCheckResult(
+                            check_name=name,
+                            passed=True,  # Don't penalize for check failure
+                            risk_score=0.0,
+                            risk_level=RiskLevel.LOW,
+                            reason=f"Check failed: {str(result)}",
+                            details={"error": str(result)},
+                        )
+                    )
                 else:
                     checks.append(result)
 
@@ -383,7 +394,7 @@ class FraudDetector:
         reasons = []
         for i, r in enumerate(all_results):
             if r.is_suspicious and r.reason:
-                reasons.append(f"Image {i+1}: {r.reason}")
+                reasons.append(f"Image {i + 1}: {r.reason}")
 
         risk_level = self._score_to_risk_level(max_risk)
 
@@ -411,7 +422,9 @@ class FraudDetector:
                 reason="No timing data available",
             )
 
-        duration = (submission.submitted_at - submission.task_accepted_at).total_seconds()
+        duration = (
+            submission.submitted_at - submission.task_accepted_at
+        ).total_seconds()
 
         # Check for impossibly fast completion
         if duration < self.config.min_task_duration_seconds:
@@ -480,7 +493,9 @@ class FraudDetector:
             details=result.to_dict(),
         )
 
-    async def _check_location_match(self, submission: SubmissionData) -> FraudCheckResult:
+    async def _check_location_match(
+        self, submission: SubmissionData
+    ) -> FraudCheckResult:
         """Check if submission location matches expected task location."""
         if submission.latitude is None or submission.longitude is None:
             return FraudCheckResult(
@@ -493,19 +508,28 @@ class FraudDetector:
 
         expected_lat = submission.expected_location_lat
         expected_lon = submission.expected_location_lon
-        radius = submission.expected_location_radius_m or self.config.default_location_radius_m
+        radius = (
+            submission.expected_location_radius_m
+            or self.config.default_location_radius_m
+        )
 
         # Calculate distance using haversine
         import math
 
-        lat1, lon1 = math.radians(submission.latitude), math.radians(submission.longitude)
+        lat1, lon1 = (
+            math.radians(submission.latitude),
+            math.radians(submission.longitude),
+        )
         lat2, lon2 = math.radians(expected_lat), math.radians(expected_lon)
 
         dlat = lat2 - lat1
         dlon = lon2 - lon1
 
-        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        a = (
+            math.sin(dlat / 2) ** 2
+            + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+        )
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         distance_m = 6_371_000 * c
 
         if distance_m <= radius:
@@ -577,15 +601,12 @@ class FraudDetector:
         return RiskLevel.LOW
 
     def _determine_action(
-        self,
-        overall_score: float,
-        checks: List[FraudCheckResult]
+        self, overall_score: float, checks: List[FraudCheckResult]
     ) -> str:
         """Determine recommended action based on score and checks."""
         # Critical check failures always reject
         critical_failures = [
-            c for c in checks
-            if c.risk_level == RiskLevel.CRITICAL and not c.passed
+            c for c in checks if c.risk_level == RiskLevel.CRITICAL and not c.passed
         ]
         if critical_failures:
             return "reject"

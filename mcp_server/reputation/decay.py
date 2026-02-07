@@ -26,7 +26,7 @@ Example with 30-day half-life:
 """
 
 import math
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, UTC
 from typing import Optional, Tuple, List, Dict, Any
 from dataclasses import dataclass
 
@@ -36,6 +36,7 @@ from .models import ReputationScore, ReputationHistory
 @dataclass
 class DecayConfig:
     """Configuration for reputation decay."""
+
     # Half-life in days (time for score to decay halfway to neutral)
     half_life_days: float = 30.0
 
@@ -253,12 +254,14 @@ class DecayManager:
             projected_score = self.calculate_decayed_score(rep.score, total_inactive)
             decay_factor = self.calculate_decay_factor(total_inactive)
 
-            projections.append({
-                "day": day,
-                "total_inactive_days": total_inactive,
-                "projected_score": round(projected_score, 2),
-                "decay_factor": round(decay_factor, 4),
-            })
+            projections.append(
+                {
+                    "day": day,
+                    "total_inactive_days": total_inactive,
+                    "projected_score": round(projected_score, 2),
+                    "decay_factor": round(decay_factor, 4),
+                }
+            )
 
         return projections
 
@@ -311,9 +314,7 @@ class DecayManager:
 
         tasks_count = 0
         while sim_rep.score < target_score and tasks_count < 1000:
-            sim_rep, _ = calc.update_on_completion(
-                sim_rep, avg_rating, avg_task_value
-            )
+            sim_rep, _ = calc.update_on_completion(sim_rep, avg_rating, avg_task_value)
             tasks_count += 1
 
         # Estimate time (assume 1 task per day average)
@@ -387,12 +388,14 @@ def get_decay_schedule(
     schedule = []
     for day in range(0, max_days + 1, 7):
         factor = manager.calculate_decay_factor(day)
-        schedule.append({
-            "day": day,
-            "factor": round(factor, 4),
-            "percentage_retained": round(factor * 100, 1),
-            "example_80_score": round(50 + 30 * factor, 1),  # 80 -> neutral
-            "example_90_score": round(50 + 40 * factor, 1),  # 90 -> neutral
-        })
+        schedule.append(
+            {
+                "day": day,
+                "factor": round(factor, 4),
+                "percentage_retained": round(factor * 100, 1),
+                "example_80_score": round(50 + 30 * factor, 1),  # 80 -> neutral
+                "example_90_score": round(50 + 40 * factor, 1),  # 90 -> neutral
+            }
+        )
 
     return schedule

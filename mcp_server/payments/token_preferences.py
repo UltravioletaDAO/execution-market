@@ -5,9 +5,7 @@ Allows workers to set preferred payment tokens.
 """
 
 from typing import Optional, List, Dict, Any
-from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
 
 from .multi_token import PaymentToken, MultiTokenPayments, get_multi_token_payments
 
@@ -33,7 +31,7 @@ class TokenPreferenceManager:
         primary_token: str,
         accepted_tokens: Optional[List[str]] = None,
         auto_convert: bool = False,
-        min_amount_for_conversion: float = 10.0
+        min_amount_for_conversion: float = 10.0,
     ) -> Dict[str, Any]:
         """
         Set worker's token preference.
@@ -54,7 +52,7 @@ class TokenPreferenceManager:
             raise ValueError(f"Invalid token: {primary_token}")
 
         accepted = []
-        for t in (accepted_tokens or [primary_token]):
+        for t in accepted_tokens or [primary_token]:
             try:
                 accepted.append(PaymentToken(t.lower()))
             except ValueError:
@@ -68,7 +66,7 @@ class TokenPreferenceManager:
             worker_id=worker_id,
             primary_token=primary,
             accepted_tokens=accepted,
-            auto_convert=auto_convert
+            auto_convert=auto_convert,
         )
 
         # Store extended preferences
@@ -78,7 +76,7 @@ class TokenPreferenceManager:
             "accepted_tokens": [t.value for t in accepted],
             "auto_convert": auto_convert,
             "min_amount_for_conversion": min_amount_for_conversion,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.utcnow().isoformat(),
         }
         self._preferences[worker_id] = pref
 
@@ -94,13 +92,11 @@ class TokenPreferenceManager:
             "primary_token": "usdc",
             "accepted_tokens": ["usdc", "dai", "usdt"],
             "auto_convert": False,
-            "min_amount_for_conversion": 10.0
+            "min_amount_for_conversion": 10.0,
         }
 
     def can_accept_task(
-        self,
-        worker_id: str,
-        task_token: str
+        self, worker_id: str, task_token: str
     ) -> tuple[bool, Optional[str]]:
         """Check if worker can accept task with given token."""
         pref = self._preferences.get(worker_id)
@@ -125,10 +121,7 @@ class TokenPreferenceManager:
         return (False, f"Worker only accepts: {', '.join(pref['accepted_tokens'])}")
 
     def get_payment_info(
-        self,
-        worker_id: str,
-        amount: float,
-        task_token: str
+        self, worker_id: str, amount: float, task_token: str
     ) -> Dict[str, Any]:
         """Get payment info respecting worker preference."""
         pref = self._preferences.get(worker_id) or self.get_default_preference()
@@ -157,11 +150,12 @@ class TokenPreferenceManager:
         final_amount = amount
         if conversion_needed:
             from decimal import Decimal
+
             final_amount = float(
                 self.payments.convert_amount(
                     amount=Decimal(str(amount)),
                     from_token=task_token_enum,
-                    to_token=final_token
+                    to_token=final_token,
                 )
             )
 
@@ -171,12 +165,13 @@ class TokenPreferenceManager:
             "final_amount": final_amount,
             "final_token": final_token.value,
             "conversion_applied": conversion_needed,
-            "worker_preference": pref["primary_token"]
+            "worker_preference": pref["primary_token"],
         }
 
 
 # Singleton
 _manager: Optional[TokenPreferenceManager] = None
+
 
 def get_token_preference_manager() -> TokenPreferenceManager:
     """Get singleton preference manager."""

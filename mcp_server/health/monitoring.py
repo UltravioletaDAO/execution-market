@@ -21,11 +21,13 @@ from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 # Context variable for request correlation
 request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
-trace_context_var: ContextVar[Optional["TracingContext"]] = ContextVar("trace_context", default=None)
+trace_context_var: ContextVar[Optional["TracingContext"]] = ContextVar(
+    "trace_context", default=None
+)
 
 
 # =============================================================================
@@ -94,10 +96,10 @@ class StructuredFormatter(logging.Formatter):
 
         # Add extra fields
         extra_fields = {
-            k: v for k, v in record.__dict__.items()
-            if k not in logging.LogRecord(
-                "", 0, "", 0, "", (), None
-            ).__dict__ and not k.startswith("_")
+            k: v
+            for k, v in record.__dict__.items()
+            if k not in logging.LogRecord("", 0, "", 0, "", (), None).__dict__
+            and not k.startswith("_")
         }
         if extra_fields:
             log_entry["extra"] = extra_fields
@@ -113,11 +115,11 @@ class HumanReadableFormatter(logging.Formatter):
     """
 
     COLORS = {
-        "DEBUG": "\033[36m",    # Cyan
-        "INFO": "\033[32m",     # Green
+        "DEBUG": "\033[36m",  # Cyan
+        "INFO": "\033[32m",  # Green
         "WARNING": "\033[33m",  # Yellow
-        "ERROR": "\033[31m",    # Red
-        "CRITICAL": "\033[35m", # Magenta
+        "ERROR": "\033[31m",  # Red
+        "CRITICAL": "\033[35m",  # Magenta
     }
     RESET = "\033[0m"
 
@@ -197,7 +199,9 @@ def setup_logging(
 
     logging.info(
         "Logging configured: level=%s, structured=%s, service=%s",
-        level, structured, service_name
+        level,
+        structured,
+        service_name,
     )
 
 
@@ -265,8 +269,7 @@ def setup_error_tracking(
         _sentry_sdk = sentry_sdk
 
         logging.info(
-            "Sentry initialized: environment=%s, release=%s",
-            environment, release
+            "Sentry initialized: environment=%s, release=%s", environment, release
         )
         return True
 
@@ -298,7 +301,7 @@ def capture_exception(
         logging.error(
             "Exception captured (Sentry not available): %s",
             str(exception),
-            exc_info=exception
+            exc_info=exception,
         )
         return None
 
@@ -347,7 +350,8 @@ def capture_message(
     if not _error_tracking_initialized or not _sentry_sdk:
         logging.log(
             getattr(logging, level.upper(), logging.INFO),
-            "Message captured (Sentry not available): %s", message
+            "Message captured (Sentry not available): %s",
+            message,
         )
         return None
 
@@ -371,6 +375,7 @@ def capture_message(
 @dataclass
 class Span:
     """Represents a single span in a trace."""
+
     span_id: str
     name: str
     start_time: float
@@ -388,11 +393,13 @@ class Span:
 
     def add_event(self, name: str, attributes: Dict[str, Any] = None) -> None:
         """Add an event to the span."""
-        self.events.append({
-            "name": name,
-            "timestamp": time.time(),
-            "attributes": attributes or {},
-        })
+        self.events.append(
+            {
+                "name": name,
+                "timestamp": time.time(),
+                "attributes": attributes or {},
+            }
+        )
 
     def set_tag(self, key: str, value: str) -> None:
         """Set a tag on the span."""
@@ -419,6 +426,7 @@ class Span:
 @dataclass
 class TracingContext:
     """Context for distributed tracing."""
+
     trace_id: str
     span_id: str
     parent_span_id: Optional[str] = None
@@ -446,7 +454,9 @@ class TracingContext:
             span_id=str(uuid.uuid4())[:16],
             name=name,
             start_time=time.time(),
-            parent_span_id=self._current_span.span_id if self._current_span else self.span_id,
+            parent_span_id=self._current_span.span_id
+            if self._current_span
+            else self.span_id,
             tags=tags or {},
         )
 
@@ -532,20 +542,25 @@ def traced(name: str = None, tags: Dict[str, str] = None):
         async def fetch_user(user_id: str):
             ...
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         operation_name = name or func.__name__
 
         if asyncio.iscoroutinefunction(func):
+
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
                 async with async_trace_operation(operation_name, tags):
                     return await func(*args, **kwargs)
+
             return async_wrapper
         else:
+
             @functools.wraps(func)
             def sync_wrapper(*args, **kwargs):
                 with trace_operation(operation_name, tags):
                     return func(*args, **kwargs)
+
             return sync_wrapper
 
     return decorator

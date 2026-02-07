@@ -36,10 +36,10 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         walletConnectors: [EthereumWalletConnectors],
         cssOverrides: dynamicCssOverrides,
         // Auto-connect previously connected wallet on page load
-        initialAuthenticationMode: 'connect',
+        initialAuthenticationMode: 'connect' as any,
         events: {
           onAuthSuccess: ({ user }) => {
-            console.log('[Dynamic] Auth success:', user?.walletPublicKey || 'unknown wallet')
+            console.log('[Dynamic] Auth success:', (user as any)?.walletPublicKey || 'unknown wallet')
           },
           onLogout: () => {
             console.log('[Dynamic] User logged out')

@@ -105,7 +105,7 @@ export function useEarnings(executorId: string | undefined) {
         .in('status', ['accepted', 'in_progress', 'submitted', 'verifying'])
 
       const pendingEarnings = assignedTasks?.reduce(
-        (sum, t) => sum + (t.bounty_usd || 0), 0
+        (sum: any, t: any) => sum + (t.bounty_usd || 0), 0
       ) || 0
 
       // Calculate this month and last month earnings
@@ -130,11 +130,11 @@ export function useEarnings(executorId: string | undefined) {
         .not('payment_amount', 'is', null)
 
       const thisMonthEarnings = thisMonthSubmissions?.reduce(
-        (sum, s) => sum + (s.payment_amount || 0), 0
+        (sum: any, s: any) => sum + (s.payment_amount || 0), 0
       ) || 0
 
       const lastMonthEarnings = lastMonthSubmissions?.reduce(
-        (sum, s) => sum + (s.payment_amount || 0), 0
+        (sum: any, s: any) => sum + (s.payment_amount || 0), 0
       ) || 0
 
       setEarnings({
@@ -192,11 +192,11 @@ export function useReputation(executorId: string | undefined) {
 
         if (subError) throw subError
 
-        const approved = submissions?.filter(s =>
+        const approved = submissions?.filter((s: any) =>
           s.agent_verdict === 'approved' || s.auto_check_passed === true
         ).length || 0
 
-        const rejected = submissions?.filter(s =>
+        const rejected = submissions?.filter((s: any) =>
           s.agent_verdict === 'rejected' || s.auto_check_passed === false
         ).length || 0
 
@@ -277,7 +277,7 @@ export function useTaskHistory(executorId: string | undefined, limit: number = 1
 
       if (subError) throw subError
 
-      const items: TaskHistoryItem[] = (submissions || []).map(s => {
+      const items: TaskHistoryItem[] = (submissions || []).map((s: any) => {
         const task = s.task as { title: string; category: string; bounty_usd: number; status: string } | null
         let status = 'pending'
         if (s.agent_verdict === 'approved' || s.auto_check_passed === true) {

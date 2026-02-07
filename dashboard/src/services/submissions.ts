@@ -177,7 +177,7 @@ export async function getPendingSubmissions(agentId: string): Promise<Submission
     return []
   }
 
-  const taskIds = tasks.map((t) => t.id)
+  const taskIds = tasks.map((t: any) => t.id)
 
   // Get submissions for those tasks that are pending review
   const { data, error } = await supabase

@@ -36,6 +36,7 @@ class RequesterMetrics:
     These metrics are calculated from task history and used
     to determine if a requester qualifies for seals.
     """
+
     requester_id: str
     total_tasks_posted: int = 0
     tasks_completed: int = 0
@@ -87,18 +88,18 @@ class RequesterMetrics:
     def median_payment_hours(self) -> float:
         """Calculate median time to release payment."""
         if not self.payment_times_hours:
-            return float('inf')
+            return float("inf")
         sorted_times = sorted(self.payment_times_hours)
         n = len(sorted_times)
         if n % 2 == 0:
-            return (sorted_times[n//2 - 1] + sorted_times[n//2]) / 2
-        return sorted_times[n//2]
+            return (sorted_times[n // 2 - 1] + sorted_times[n // 2]) / 2
+        return sorted_times[n // 2]
 
     @property
     def payment_hours_p95(self) -> float:
         """Calculate 95th percentile payment time."""
         if not self.payment_times_hours:
-            return float('inf')
+            return float("inf")
         sorted_times = sorted(self.payment_times_hours)
         idx = int(len(sorted_times) * 0.95)
         return sorted_times[min(idx, len(sorted_times) - 1)]
@@ -108,7 +109,9 @@ class RequesterMetrics:
         """Check if requester has task in last 30 days."""
         if not self.last_task_date:
             return False
-        delta = datetime.now(timezone.utc) - self.last_task_date.replace(tzinfo=timezone.utc)
+        delta = datetime.now(timezone.utc) - self.last_task_date.replace(
+            tzinfo=timezone.utc
+        )
         return delta.days <= 30
 
     def to_dict(self) -> Dict[str, Any]:
@@ -130,8 +133,12 @@ class RequesterMetrics:
             "median_payment_hours": round(self.median_payment_hours, 2),
             "payment_hours_p95": round(self.payment_hours_p95, 2),
             "has_recent_activity": self.has_recent_activity,
-            "first_task_date": self.first_task_date.isoformat() if self.first_task_date else None,
-            "last_task_date": self.last_task_date.isoformat() if self.last_task_date else None,
+            "first_task_date": self.first_task_date.isoformat()
+            if self.first_task_date
+            else None,
+            "last_task_date": self.last_task_date.isoformat()
+            if self.last_task_date
+            else None,
         }
 
 
@@ -208,7 +215,10 @@ class RequesterSealManager:
 
         # Check minimum tasks
         if metrics.total_tasks_posted < criteria.min_tasks:
-            return False, f"Need {criteria.min_tasks} tasks, have {metrics.total_tasks_posted}"
+            return (
+                False,
+                f"Need {criteria.min_tasks} tasks, have {metrics.total_tasks_posted}",
+            )
 
         # Check custom criteria based on seal type
         custom = criteria.custom_criteria or {}
@@ -216,31 +226,49 @@ class RequesterSealManager:
         if seal_type == RequesterSealType.FAIR_EVALUATOR:
             # Check acceptance rate (min_success_rate maps to acceptance)
             if metrics.acceptance_rate < criteria.min_success_rate:
-                return False, f"Acceptance rate {metrics.acceptance_rate:.1%} < {criteria.min_success_rate:.1%}"
+                return (
+                    False,
+                    f"Acceptance rate {metrics.acceptance_rate:.1%} < {criteria.min_success_rate:.1%}",
+                )
             # Check dispute rate
             max_dispute = custom.get("max_dispute_rate", 0.10)
             if metrics.dispute_rate > max_dispute:
-                return False, f"Dispute rate {metrics.dispute_rate:.1%} > {max_dispute:.1%}"
+                return (
+                    False,
+                    f"Dispute rate {metrics.dispute_rate:.1%} > {max_dispute:.1%}",
+                )
 
         elif seal_type == RequesterSealType.CLEAR_INSTRUCTIONS:
             # Check clarification rate
             max_clarification = custom.get("max_clarification_rate", 0.15)
             if metrics.clarification_rate > max_clarification:
-                return False, f"Clarification rate {metrics.clarification_rate:.1%} > {max_clarification:.1%}"
+                return (
+                    False,
+                    f"Clarification rate {metrics.clarification_rate:.1%} > {max_clarification:.1%}",
+                )
             # Check first submission acceptance
             min_first_accept = custom.get("min_first_submission_accept", 0.70)
             if metrics.first_submission_accept_rate < min_first_accept:
-                return False, f"First-try accept rate {metrics.first_submission_accept_rate:.1%} < {min_first_accept:.1%}"
+                return (
+                    False,
+                    f"First-try accept rate {metrics.first_submission_accept_rate:.1%} < {min_first_accept:.1%}",
+                )
 
         elif seal_type == RequesterSealType.FAST_PAYMENT:
             # Check median payment time
             max_median = custom.get("median_payment_hours", 24)
             if metrics.median_payment_hours > max_median:
-                return False, f"Median payment time {metrics.median_payment_hours:.1f}h > {max_median}h"
+                return (
+                    False,
+                    f"Median payment time {metrics.median_payment_hours:.1f}h > {max_median}h",
+                )
             # Check 95th percentile
             max_p95 = custom.get("max_payment_hours_p95", 72)
             if metrics.payment_hours_p95 > max_p95:
-                return False, f"P95 payment time {metrics.payment_hours_p95:.1f}h > {max_p95}h"
+                return (
+                    False,
+                    f"P95 payment time {metrics.payment_hours_p95:.1f}h > {max_p95}h",
+                )
 
         return True, "All criteria met"
 
@@ -279,19 +307,22 @@ class RequesterSealManager:
                 seal = await self.create_seal(requester_id, seal_type, metrics)
                 if seal:
                     seals_earned.append(seal)
-                    logger.info(f"Requester {requester_id} earned seal: {seal_type.value}")
+                    logger.info(
+                        f"Requester {requester_id} earned seal: {seal_type.value}"
+                    )
 
             elif not eligible and has_seal:
                 # Consider revocation
                 existing_seal = next(
-                    (s for s in current_seals if s.seal_type == seal_type.value),
-                    None
+                    (s for s in current_seals if s.seal_type == seal_type.value), None
                 )
                 if existing_seal and self._should_revoke(existing_seal, reason):
                     revoked = await self.revoke_seal(existing_seal, reason)
                     if revoked:
                         seals_revoked.append(existing_seal)
-                        logger.info(f"Requester {requester_id} lost seal: {seal_type.value} - {reason}")
+                        logger.info(
+                            f"Requester {requester_id} lost seal: {seal_type.value} - {reason}"
+                        )
 
         return RequesterSealUpdateResult(
             requester_id=requester_id,
@@ -306,7 +337,9 @@ class RequesterSealManager:
         """Determine if a seal should be revoked."""
         # Grace period for recent seals
         if seal.earned_at:
-            days_since_earned = (datetime.now(timezone.utc) - seal.earned_at.replace(tzinfo=timezone.utc)).days
+            days_since_earned = (
+                datetime.now(timezone.utc) - seal.earned_at.replace(tzinfo=timezone.utc)
+            ).days
             if days_since_earned < 14:
                 return False
         return True
@@ -341,7 +374,9 @@ class RequesterSealManager:
             return seal
 
         except DescribeNetError as e:
-            logger.error(f"Failed to create seal {seal_type.value} for {requester_id}: {e}")
+            logger.error(
+                f"Failed to create seal {seal_type.value} for {requester_id}: {e}"
+            )
             return None
 
     async def revoke_seal(self, seal: Seal, reason: str) -> bool:
@@ -393,8 +428,7 @@ class RequesterSealManager:
         if requester_id not in self._seal_cache:
             self._seal_cache[requester_id] = []
         self._seal_cache[requester_id] = [
-            s for s in self._seal_cache[requester_id]
-            if s.seal_type != seal.seal_type
+            s for s in self._seal_cache[requester_id] if s.seal_type != seal.seal_type
         ]
         self._seal_cache[requester_id].append(seal)
 
@@ -463,7 +497,9 @@ class RequesterSealManager:
             filtered_tasks.append(task_with_seals)
 
         # Sort by requester quality (more seals = higher priority)
-        filtered_tasks.sort(key=lambda t: t.get("_requester_seal_count", 0), reverse=True)
+        filtered_tasks.sort(
+            key=lambda t: t.get("_requester_seal_count", 0), reverse=True
+        )
 
         return filtered_tasks
 
@@ -479,9 +515,9 @@ class RequesterSealManager:
         seals = await self.get_requester_seals(requester_id, active_only=True)
 
         seal_icons = {
-            RequesterSealType.FAIR_EVALUATOR.value: "[F]",      # Scales
+            RequesterSealType.FAIR_EVALUATOR.value: "[F]",  # Scales
             RequesterSealType.CLEAR_INSTRUCTIONS.value: "[I]",  # Document
-            RequesterSealType.FAST_PAYMENT.value: "[P]",        # Lightning
+            RequesterSealType.FAST_PAYMENT.value: "[P]",  # Lightning
         }
 
         seal_descriptions = {
@@ -529,7 +565,9 @@ class RequesterSealManager:
             advice_parts.append("Fair evaluator - your work will be judged reasonably.")
 
         if RequesterSealType.CLEAR_INSTRUCTIONS.value in seal_types:
-            advice_parts.append("Clear instructions - task requirements are well-defined.")
+            advice_parts.append(
+                "Clear instructions - task requirements are well-defined."
+            )
 
         if RequesterSealType.FAST_PAYMENT.value in seal_types:
             advice_parts.append("Fast payment - expect quick payment after approval.")
@@ -537,12 +575,15 @@ class RequesterSealManager:
         if len(seals) == 3:
             return "Excellent requester with all seals. Highly recommended."
 
-        return " ".join(advice_parts) if advice_parts else "Good requester track record."
+        return (
+            " ".join(advice_parts) if advice_parts else "Good requester track record."
+        )
 
 
 @dataclass
 class RequesterSealUpdateResult:
     """Result of requester seal evaluation and update."""
+
     requester_id: str
     seals_earned: List[Seal]
     seals_revoked: List[Seal]
@@ -566,6 +607,7 @@ class RequesterSealUpdateResult:
 
 
 # ============== UTILITY FUNCTIONS ==============
+
 
 def calculate_requester_metrics_from_tasks(
     requester_id: str,
@@ -622,7 +664,9 @@ def calculate_requester_metrics_from_tasks(
             paid_at = task.get("paid_at")
             if completed_at and paid_at:
                 if isinstance(completed_at, str):
-                    completed_at = datetime.fromisoformat(completed_at.replace("Z", "+00:00"))
+                    completed_at = datetime.fromisoformat(
+                        completed_at.replace("Z", "+00:00")
+                    )
                 if isinstance(paid_at, str):
                     paid_at = datetime.fromisoformat(paid_at.replace("Z", "+00:00"))
                 hours = (paid_at - completed_at).total_seconds() / 3600

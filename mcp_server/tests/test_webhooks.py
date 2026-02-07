@@ -3,19 +3,15 @@ Tests for Webhook Notification System (NOW-087)
 """
 
 import pytest
-import asyncio
 import json
 import time
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import patch
 
 from ..webhooks import (
     # Events
     WebhookEventType,
     WebhookEvent,
     TaskPayload,
-    SubmissionPayload,
-    PaymentPayload,
-    DisputePayload,
     WorkerPayload,
     # Sender
     WebhookSender,
@@ -128,8 +124,12 @@ class TestWebhookEvent:
         """Test all factory methods."""
         # task_created
         task = TaskPayload(
-            task_id="t1", title="T", status="s", category="c",
-            bounty_usd=1.0, agent_id="a",
+            task_id="t1",
+            title="T",
+            status="s",
+            category="c",
+            bounty_usd=1.0,
+            agent_id="a",
         )
         event = WebhookEvent.task_created(task)
         assert event.event_type == WebhookEventType.TASK_CREATED

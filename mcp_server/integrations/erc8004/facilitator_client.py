@@ -25,7 +25,6 @@ import os
 import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 
 import httpx
 
@@ -37,8 +36,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 FACILITATOR_URL = os.environ.get(
-    "X402_FACILITATOR_URL",
-    "https://facilitator.ultravioletadao.xyz"
+    "X402_FACILITATOR_URL", "https://facilitator.ultravioletadao.xyz"
 )
 
 # Base-first default for Execution Market runtime
@@ -56,21 +54,83 @@ _TESTNET_VALIDATION = "0x8004Cb1BF31DAf7788923b405b754f57acEB4272"
 
 ERC8004_CONTRACTS = {
     # --- Mainnets ---
-    "ethereum":      {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 1},
-    "base":          {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 8453},
-    "polygon":       {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 137},
-    "arbitrum":      {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 42161},
-    "celo":          {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 42220},
-    "bsc":           {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 56},
-    "monad":         {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 143},
-    "avalanche":     {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 43114},
+    "ethereum": {
+        "identity_registry": _MAINNET_IDENTITY,
+        "reputation_registry": _MAINNET_REPUTATION,
+        "chain_id": 1,
+    },
+    "base": {
+        "identity_registry": _MAINNET_IDENTITY,
+        "reputation_registry": _MAINNET_REPUTATION,
+        "chain_id": 8453,
+    },
+    "polygon": {
+        "identity_registry": _MAINNET_IDENTITY,
+        "reputation_registry": _MAINNET_REPUTATION,
+        "chain_id": 137,
+    },
+    "arbitrum": {
+        "identity_registry": _MAINNET_IDENTITY,
+        "reputation_registry": _MAINNET_REPUTATION,
+        "chain_id": 42161,
+    },
+    "celo": {
+        "identity_registry": _MAINNET_IDENTITY,
+        "reputation_registry": _MAINNET_REPUTATION,
+        "chain_id": 42220,
+    },
+    "bsc": {
+        "identity_registry": _MAINNET_IDENTITY,
+        "reputation_registry": _MAINNET_REPUTATION,
+        "chain_id": 56,
+    },
+    "monad": {
+        "identity_registry": _MAINNET_IDENTITY,
+        "reputation_registry": _MAINNET_REPUTATION,
+        "chain_id": 143,
+    },
+    "avalanche": {
+        "identity_registry": _MAINNET_IDENTITY,
+        "reputation_registry": _MAINNET_REPUTATION,
+        "chain_id": 43114,
+    },
     # --- Testnets ---
-    "ethereum-sepolia":  {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 11155111},
-    "base-sepolia":      {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 84532},
-    "polygon-amoy":      {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 80002},
-    "arbitrum-sepolia":  {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 421614},
-    "celo-sepolia":      {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 44787},
-    "avalanche-fuji":    {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 43113},
+    "ethereum-sepolia": {
+        "identity_registry": _TESTNET_IDENTITY,
+        "reputation_registry": _TESTNET_REPUTATION,
+        "validation_registry": _TESTNET_VALIDATION,
+        "chain_id": 11155111,
+    },
+    "base-sepolia": {
+        "identity_registry": _TESTNET_IDENTITY,
+        "reputation_registry": _TESTNET_REPUTATION,
+        "validation_registry": _TESTNET_VALIDATION,
+        "chain_id": 84532,
+    },
+    "polygon-amoy": {
+        "identity_registry": _TESTNET_IDENTITY,
+        "reputation_registry": _TESTNET_REPUTATION,
+        "validation_registry": _TESTNET_VALIDATION,
+        "chain_id": 80002,
+    },
+    "arbitrum-sepolia": {
+        "identity_registry": _TESTNET_IDENTITY,
+        "reputation_registry": _TESTNET_REPUTATION,
+        "validation_registry": _TESTNET_VALIDATION,
+        "chain_id": 421614,
+    },
+    "celo-sepolia": {
+        "identity_registry": _TESTNET_IDENTITY,
+        "reputation_registry": _TESTNET_REPUTATION,
+        "validation_registry": _TESTNET_VALIDATION,
+        "chain_id": 44787,
+    },
+    "avalanche-fuji": {
+        "identity_registry": _TESTNET_IDENTITY,
+        "reputation_registry": _TESTNET_REPUTATION,
+        "validation_registry": _TESTNET_VALIDATION,
+        "chain_id": 43113,
+    },
 }
 
 # Alias: "base-mainnet" → "base" (SDK uses "base-mainnet", facilitator uses "base")
@@ -84,9 +144,11 @@ ERC8004_SUPPORTED_NETWORKS = list(ERC8004_CONTRACTS.keys())
 # Types
 # =============================================================================
 
+
 @dataclass
 class AgentIdentity:
     """Agent identity from ERC-8004 Identity Registry."""
+
     agent_id: int
     owner: str
     agent_uri: str
@@ -101,6 +163,7 @@ class AgentIdentity:
 @dataclass
 class FeedbackResult:
     """Result of submitting feedback."""
+
     success: bool
     transaction_hash: Optional[str] = None
     feedback_index: Optional[int] = None
@@ -111,6 +174,7 @@ class FeedbackResult:
 @dataclass
 class ReputationSummary:
     """Aggregated reputation for an agent."""
+
     agent_id: int
     count: int
     summary_value: int
@@ -122,12 +186,13 @@ class ReputationSummary:
         """Get score as percentage (0-100)."""
         if self.summary_value_decimals == 0:
             return float(self.summary_value)
-        return float(self.summary_value) / (10 ** self.summary_value_decimals)
+        return float(self.summary_value) / (10**self.summary_value_decimals)
 
 
 # =============================================================================
 # Facilitator Client
 # =============================================================================
+
 
 class ERC8004FacilitatorClient:
     """
@@ -168,7 +233,8 @@ class ERC8004FacilitatorClient:
 
         logger.info(
             "ERC8004FacilitatorClient initialized: facilitator=%s, network=%s",
-            self.facilitator_url, self.network
+            self.facilitator_url,
+            self.network,
         )
 
     async def _get_client(self) -> httpx.AsyncClient:
@@ -218,8 +284,7 @@ class ERC8004FacilitatorClient:
 
             if response.status_code != 200:
                 logger.error(
-                    "Failed to get identity for agent %d: %s",
-                    agent_id, response.text
+                    "Failed to get identity for agent %d: %s", agent_id, response.text
                 )
                 return None
 
@@ -268,7 +333,10 @@ class ERC8004FacilitatorClient:
             dict with success, agentId, transaction, transferTransaction, owner, network
         """
         if network not in ERC8004_CONTRACTS:
-            return {"success": False, "error": f"Unsupported network: {network}. Supported: {ERC8004_SUPPORTED_NETWORKS}"}
+            return {
+                "success": False,
+                "error": f"Unsupported network: {network}. Supported: {ERC8004_SUPPORTED_NETWORKS}",
+            }
 
         client = await self._get_client()
 
@@ -410,8 +478,7 @@ class ERC8004FacilitatorClient:
 
             if response.status_code != 200:
                 logger.error(
-                    "Failed to get reputation for agent %d: %s",
-                    agent_id, response.text
+                    "Failed to get reputation for agent %d: %s", agent_id, response.text
                 )
                 return None
 
@@ -473,7 +540,7 @@ class ERC8004FacilitatorClient:
                     "tag2": tag2,
                     "endpoint": endpoint,
                     "feedbackUri": feedback_uri,
-                }
+                },
             }
 
             if feedback_hash:
@@ -500,7 +567,11 @@ class ERC8004FacilitatorClient:
             if "transaction" in data:
                 tx = data["transaction"]
                 if isinstance(tx, dict) and "Evm" in tx:
-                    tx_hash = "0x" + "".join(f"{b:02x}" for b in tx["Evm"]) if isinstance(tx["Evm"], list) else tx["Evm"]
+                    tx_hash = (
+                        "0x" + "".join(f"{b:02x}" for b in tx["Evm"])
+                        if isinstance(tx["Evm"], list)
+                        else tx["Evm"]
+                    )
                 elif isinstance(tx, str):
                     tx_hash = tx
 

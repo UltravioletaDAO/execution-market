@@ -24,7 +24,6 @@ from .seals import (
     SealCriteria,
     SealStatus,
     WORKER_SEAL_CRITERIA,
-    get_seal_criteria,
 )
 from .client import DescribeNetClient, DescribeNetError
 
@@ -39,6 +38,7 @@ class WorkerMetrics:
     These metrics are calculated from task history and used
     to determine if a worker qualifies for seals.
     """
+
     worker_id: str
     total_tasks: int = 0
     successful_tasks: int = 0
@@ -76,7 +76,9 @@ class WorkerMetrics:
         """Calculate days since first task."""
         if not self.first_task_date:
             return 0
-        delta = datetime.now(timezone.utc) - self.first_task_date.replace(tzinfo=timezone.utc)
+        delta = datetime.now(timezone.utc) - self.first_task_date.replace(
+            tzinfo=timezone.utc
+        )
         return max(0, delta.days)
 
     @property
@@ -84,7 +86,9 @@ class WorkerMetrics:
         """Check if worker has task in last 30 days."""
         if not self.last_task_date:
             return False
-        delta = datetime.now(timezone.utc) - self.last_task_date.replace(tzinfo=timezone.utc)
+        delta = datetime.now(timezone.utc) - self.last_task_date.replace(
+            tzinfo=timezone.utc
+        )
         return delta.days <= 30
 
     def to_dict(self) -> Dict[str, Any]:
@@ -102,8 +106,12 @@ class WorkerMetrics:
             "extra_evidence_rate": round(self.extra_evidence_rate, 3),
             "days_active": self.days_active,
             "has_recent_activity": self.has_recent_activity,
-            "first_task_date": self.first_task_date.isoformat() if self.first_task_date else None,
-            "last_task_date": self.last_task_date.isoformat() if self.last_task_date else None,
+            "first_task_date": self.first_task_date.isoformat()
+            if self.first_task_date
+            else None,
+            "last_task_date": self.last_task_date.isoformat()
+            if self.last_task_date
+            else None,
         }
 
 
@@ -181,7 +189,10 @@ class WorkerSealManager:
 
         # Check success rate
         if metrics.success_rate < criteria.min_success_rate:
-            return False, f"Success rate {metrics.success_rate:.1%} < {criteria.min_success_rate:.1%}"
+            return (
+                False,
+                f"Success rate {metrics.success_rate:.1%} < {criteria.min_success_rate:.1%}",
+            )
 
         # Check rating
         if metrics.average_rating < criteria.min_rating:
@@ -189,18 +200,27 @@ class WorkerSealManager:
 
         # Check on-time rate
         if metrics.on_time_rate < criteria.min_on_time_rate:
-            return False, f"On-time rate {metrics.on_time_rate:.1%} < {criteria.min_on_time_rate:.1%}"
+            return (
+                False,
+                f"On-time rate {metrics.on_time_rate:.1%} < {criteria.min_on_time_rate:.1%}",
+            )
 
         # Check days active
         if metrics.days_active < criteria.min_days_active:
-            return False, f"Active {metrics.days_active} days < {criteria.min_days_active} required"
+            return (
+                False,
+                f"Active {metrics.days_active} days < {criteria.min_days_active} required",
+            )
 
         # Check custom criteria
         if criteria.custom_criteria:
             for key, threshold in criteria.custom_criteria.items():
                 if key == "min_extra_evidence_rate":
                     if metrics.extra_evidence_rate < threshold:
-                        return False, f"Extra evidence rate {metrics.extra_evidence_rate:.1%} < {threshold:.1%}"
+                        return (
+                            False,
+                            f"Extra evidence rate {metrics.extra_evidence_rate:.1%} < {threshold:.1%}",
+                        )
 
         return True, "All criteria met"
 
@@ -244,14 +264,15 @@ class WorkerSealManager:
             elif not eligible and has_seal:
                 # Consider revocation (with grace period)
                 existing_seal = next(
-                    (s for s in current_seals if s.seal_type == seal_type.value),
-                    None
+                    (s for s in current_seals if s.seal_type == seal_type.value), None
                 )
                 if existing_seal and self._should_revoke(existing_seal, reason):
                     revoked = await self.revoke_seal(existing_seal, reason)
                     if revoked:
                         seals_revoked.append(existing_seal)
-                        logger.info(f"Worker {worker_id} lost seal: {seal_type.value} - {reason}")
+                        logger.info(
+                            f"Worker {worker_id} lost seal: {seal_type.value} - {reason}"
+                        )
 
         return SealUpdateResult(
             worker_id=worker_id,
@@ -270,7 +291,9 @@ class WorkerSealManager:
         """
         # If seal was earned recently (< 14 days), don't revoke yet
         if seal.earned_at:
-            days_since_earned = (datetime.now(timezone.utc) - seal.earned_at.replace(tzinfo=timezone.utc)).days
+            days_since_earned = (
+                datetime.now(timezone.utc) - seal.earned_at.replace(tzinfo=timezone.utc)
+            ).days
             if days_since_earned < 14:
                 logger.debug(f"Seal {seal.seal_type} in grace period, not revoking")
                 return False
@@ -325,7 +348,9 @@ class WorkerSealManager:
             return seal
 
         except DescribeNetError as e:
-            logger.error(f"Failed to create seal {seal_type.value} for {worker_id}: {e}")
+            logger.error(
+                f"Failed to create seal {seal_type.value} for {worker_id}: {e}"
+            )
             return None
 
     async def revoke_seal(
@@ -350,7 +375,7 @@ class WorkerSealManager:
             return True
 
         if not seal.describe_net_id:
-            logger.warning(f"Cannot revoke seal without describe_net_id")
+            logger.warning("Cannot revoke seal without describe_net_id")
             return False
 
         try:
@@ -403,8 +428,7 @@ class WorkerSealManager:
 
         # Remove existing seal of same type
         self._seal_cache[worker_id] = [
-            s for s in self._seal_cache[worker_id]
-            if s.seal_type != seal.seal_type
+            s for s in self._seal_cache[worker_id] if s.seal_type != seal.seal_type
         ]
         self._seal_cache[worker_id].append(seal)
 
@@ -423,7 +447,7 @@ class WorkerSealManager:
             WorkerSealType.SKILLFUL.value: "[S]",  # Star
             WorkerSealType.RELIABLE.value: "[R]",  # Shield
             WorkerSealType.THOROUGH.value: "[T]",  # Magnifier
-            WorkerSealType.ON_TIME.value: "[C]",   # Clock
+            WorkerSealType.ON_TIME.value: "[C]",  # Clock
         }
 
         seal_descriptions = {
@@ -445,13 +469,15 @@ class WorkerSealManager:
                 for s in seals
             ],
             "seal_count": len(seals),
-            "reputation_boost": len(seals) * 5,  # Each seal adds +5 to matching priority
+            "reputation_boost": len(seals)
+            * 5,  # Each seal adds +5 to matching priority
         }
 
 
 @dataclass
 class SealUpdateResult:
     """Result of seal evaluation and update."""
+
     worker_id: str
     seals_earned: List[Seal]
     seals_revoked: List[Seal]
@@ -475,6 +501,7 @@ class SealUpdateResult:
 
 
 # ============== UTILITY FUNCTIONS ==============
+
 
 def calculate_worker_metrics_from_tasks(
     worker_id: str,
@@ -506,7 +533,9 @@ def calculate_worker_metrics_from_tasks(
         completed_at = task.get("completed_at")
         if completed_at:
             if isinstance(completed_at, str):
-                completed_at = datetime.fromisoformat(completed_at.replace("Z", "+00:00"))
+                completed_at = datetime.fromisoformat(
+                    completed_at.replace("Z", "+00:00")
+                )
             if completed_at >= lookback_start:
                 relevant_tasks.append(task)
 
@@ -536,9 +565,14 @@ def calculate_worker_metrics_from_tasks(
         completed_at = task.get("completed_at")
         if completed_at:
             if isinstance(completed_at, str):
-                completed_at = datetime.fromisoformat(completed_at.replace("Z", "+00:00"))
+                completed_at = datetime.fromisoformat(
+                    completed_at.replace("Z", "+00:00")
+                )
 
-            if metrics.first_task_date is None or completed_at < metrics.first_task_date:
+            if (
+                metrics.first_task_date is None
+                or completed_at < metrics.first_task_date
+            ):
                 metrics.first_task_date = completed_at
 
             if metrics.last_task_date is None or completed_at > metrics.last_task_date:

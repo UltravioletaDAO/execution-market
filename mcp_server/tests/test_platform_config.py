@@ -10,8 +10,7 @@ Tests the centralized configuration system including:
 
 import pytest
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
-import asyncio
+from unittest.mock import MagicMock
 
 
 class TestPlatformConfigDefaults:
@@ -91,8 +90,7 @@ class TestPlatformConfigCaching:
 
         # Put something in cache
         PlatformConfig._cache["test_key"] = MagicMock(
-            value="test_value",
-            expires_at=float("inf")
+            value="test_value", expires_at=float("inf")
         )
 
         # Invalidate

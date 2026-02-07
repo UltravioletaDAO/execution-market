@@ -116,16 +116,8 @@ from models import (
     CheckSubmissionInput,
     ApproveSubmissionInput,
     CancelTaskInput,
-    ApplyToTaskInput,
-    SubmitWorkInput,
-    GetMyTasksInput,
-    WithdrawEarningsInput,
-    AssignTaskInput,
-    BatchCreateTasksInput,
-    GetTaskAnalyticsInput,
     ResponseFormat,
     TaskCategory,
-    TaskStatus,
 )
 
 # Database client
@@ -147,7 +139,11 @@ logger = logging.getLogger(__name__)
 # Initialize x402 SDK (via facilitator — no direct contract calls)
 x402_sdk: Optional[Any] = None
 try:
-    from integrations.x402.sdk_client import get_sdk, check_sdk_available, SDK_AVAILABLE as X402_SDK_AVAILABLE
+    from integrations.x402.sdk_client import (
+        get_sdk,
+        SDK_AVAILABLE as X402_SDK_AVAILABLE,
+    )
+
     if X402_SDK_AVAILABLE:
         x402_sdk = get_sdk()
         logger.info("x402 SDK initialized (facilitator: %s)", x402_sdk.facilitator_url)
@@ -161,6 +157,7 @@ except ImportError:
 fee_manager: Optional[Any] = None
 try:
     from payments.fees import FeeManager, calculate_platform_fee
+
     fee_manager = FeeManager(
         treasury_wallet=os.environ.get("EM_TREASURY_ADDRESS"),
     )
@@ -176,6 +173,7 @@ task_notifier: Optional[Any] = None  # Legacy compatibility
 try:
     # Try new modular websocket package first
     from websocket import ws_manager as _ws_manager, handlers as _ws_handlers
+
     ws_manager = _ws_manager
     ws_handlers = _ws_handlers
     task_notifier = _ws_handlers  # Alias for backward compatibility
@@ -184,6 +182,7 @@ except ImportError:
     try:
         # Fall back to legacy websocket module
         from websocket import ws_manager as _ws_manager, task_notifier as _task_notifier
+
         ws_manager = _ws_manager
         task_notifier = _task_notifier
         logger.info("WebSocket manager initialized (legacy module)")
@@ -202,6 +201,7 @@ try:
         get_webhook_registry,
         send_webhook,
     )
+
     webhook_registry = get_webhook_registry()
     logger.info("Webhook registry initialized")
 except ImportError:
@@ -317,43 +317,47 @@ def format_task_markdown(task: Dict[str, Any]) -> str:
         f"**Deadline**: {format_datetime(task['deadline'])}",
         "",
         "### Instructions",
-        task['instructions'],
+        task["instructions"],
         "",
         "### Evidence Required",
     ]
 
-    schema = task.get('evidence_schema', {})
-    for ev in schema.get('required', []):
+    schema = task.get("evidence_schema", {})
+    for ev in schema.get("required", []):
         lines.append(f"- {ev.replace('_', ' ').title()} (required)")
-    for ev in schema.get('optional', []):
+    for ev in schema.get("optional", []):
         lines.append(f"- {ev.replace('_', ' ').title()} (optional)")
 
-    if task.get('location_hint'):
+    if task.get("location_hint"):
         lines.extend(["", f"**Location**: {task['location_hint']}"])
 
-    if task.get('min_reputation', 0) > 0:
+    if task.get("min_reputation", 0) > 0:
         lines.append(f"**Min Reputation**: {task['min_reputation']}")
 
-    executor = task.get('executor')
+    executor = task.get("executor")
     if executor:
-        lines.extend([
-            "",
-            "### Executor",
-            f"- **Name**: {executor.get('display_name', 'Unknown')}",
-            f"- **Reputation**: {executor.get('reputation_score', 0)}",
-        ])
+        lines.extend(
+            [
+                "",
+                "### Executor",
+                f"- **Name**: {executor.get('display_name', 'Unknown')}",
+                f"- **Reputation**: {executor.get('reputation_score', 0)}",
+            ]
+        )
 
-    lines.extend([
-        "",
-        f"*Created: {format_datetime(task['created_at'])}*",
-    ])
+    lines.extend(
+        [
+            "",
+            f"*Created: {format_datetime(task['created_at'])}*",
+        ]
+    )
 
     return "\n".join(lines)
 
 
 def format_submission_markdown(submission: Dict[str, Any]) -> str:
     """Format a submission as markdown."""
-    executor = submission.get('executor', {})
+    executor = submission.get("executor", {})
 
     lines = [
         f"## Submission `{submission['id'][:8]}...`",
@@ -368,17 +372,19 @@ def format_submission_markdown(submission: Dict[str, Any]) -> str:
         "### Evidence",
     ]
 
-    evidence = submission.get('evidence', {})
+    evidence = submission.get("evidence", {})
     for key, value in evidence.items():
         if isinstance(value, dict):
-            if 'file' in value:
-                lines.append(f"- **{key}**: File uploaded ({value.get('filename', 'unknown')})")
-            elif 'value' in value:
+            if "file" in value:
+                lines.append(
+                    f"- **{key}**: File uploaded ({value.get('filename', 'unknown')})"
+                )
+            elif "value" in value:
                 lines.append(f"- **{key}**: {value['value']}")
         else:
             lines.append(f"- **{key}**: {value}")
 
-    if submission.get('agent_notes'):
+    if submission.get("agent_notes"):
         lines.extend(["", f"**Agent Notes**: {submission['agent_notes']}"])
 
     return "\n".join(lines)
@@ -408,7 +414,9 @@ async def dispatch_task_webhook(
         event = WebhookEvent(event_type=WebhookEventType(event_type), payload=payload)
 
         # Get webhooks subscribed to this event for this owner
-        webhooks = webhook_registry.get_by_owner_and_event(agent_id, WebhookEventType(event_type))
+        webhooks = webhook_registry.get_by_owner_and_event(
+            agent_id, WebhookEventType(event_type)
+        )
         for webhook in webhooks:
             await send_webhook(
                 url=webhook.url,
@@ -441,7 +449,9 @@ async def dispatch_submission_webhook(
         )
         event = WebhookEvent(event_type=WebhookEventType(event_type), payload=payload)
 
-        webhooks = webhook_registry.get_by_owner_and_event(agent_id, WebhookEventType(event_type))
+        webhooks = webhook_registry.get_by_owner_and_event(
+            agent_id, WebhookEventType(event_type)
+        )
         for webhook in webhooks:
             await send_webhook(
                 url=webhook.url,
@@ -468,7 +478,9 @@ async def notify_task_created(task: Dict[str, Any]) -> None:
             logger.error(f"Failed to notify task created (legacy): {e}")
 
 
-async def notify_task_cancelled(task: Dict[str, Any], reason: Optional[str] = None, refund_initiated: bool = False) -> None:
+async def notify_task_cancelled(
+    task: Dict[str, Any], reason: Optional[str] = None, refund_initiated: bool = False
+) -> None:
     """Notify via WebSocket about task cancellation."""
     if ws_handlers:
         try:
@@ -477,7 +489,9 @@ async def notify_task_cancelled(task: Dict[str, Any], reason: Optional[str] = No
             logger.error(f"Failed to notify task cancelled: {e}")
 
 
-async def notify_application_received(application: Dict[str, Any], task: Dict[str, Any], worker: Dict[str, Any]) -> None:
+async def notify_application_received(
+    application: Dict[str, Any], task: Dict[str, Any], worker: Dict[str, Any]
+) -> None:
     """Notify via WebSocket about new worker application."""
     if ws_handlers:
         try:
@@ -495,7 +509,9 @@ async def notify_worker_assigned(task: Dict[str, Any], worker: Dict[str, Any]) -
             logger.error(f"Failed to notify worker assigned: {e}")
 
 
-async def notify_submission_received(submission: Dict[str, Any], task: Dict[str, Any]) -> None:
+async def notify_submission_received(
+    submission: Dict[str, Any], task: Dict[str, Any]
+) -> None:
     """Notify via WebSocket about new submission."""
     if ws_handlers:
         try:
@@ -504,17 +520,25 @@ async def notify_submission_received(submission: Dict[str, Any], task: Dict[str,
             logger.error(f"Failed to notify submission received: {e}")
 
 
-async def notify_submission_verdict(submission: Dict[str, Any], verdict: str, executor_id: str, task: Optional[Dict[str, Any]] = None) -> None:
+async def notify_submission_verdict(
+    submission: Dict[str, Any],
+    verdict: str,
+    executor_id: str,
+    task: Optional[Dict[str, Any]] = None,
+) -> None:
     """Notify via WebSocket about submission verdict."""
     if ws_handlers and task:
         try:
             if verdict == "accepted":
-                await ws_handlers.submission_approved(submission, task, notes=submission.get("agent_notes"))
+                await ws_handlers.submission_approved(
+                    submission, task, notes=submission.get("agent_notes")
+                )
             else:
                 await ws_handlers.submission_rejected(
-                    submission, task,
+                    submission,
+                    task,
                     reason=submission.get("agent_notes", "Submission rejected"),
-                    can_resubmit=(verdict == "more_info_requested")
+                    can_resubmit=(verdict == "more_info_requested"),
                 )
         except Exception as e:
             logger.error(f"Failed to notify submission verdict: {e}")
@@ -526,7 +550,9 @@ async def notify_submission_verdict(submission: Dict[str, Any], verdict: str, ex
             logger.error(f"Failed to notify submission verdict (legacy): {e}")
 
 
-async def notify_payment_released(payment: Dict[str, Any], task: Dict[str, Any], worker_id: str) -> None:
+async def notify_payment_released(
+    payment: Dict[str, Any], task: Dict[str, Any], worker_id: str
+) -> None:
     """Notify via WebSocket about payment release."""
     if ws_handlers:
         try:
@@ -535,7 +561,9 @@ async def notify_payment_released(payment: Dict[str, Any], task: Dict[str, Any],
             logger.error(f"Failed to notify payment released: {e}")
 
 
-async def notify_payment_failed(task: Dict[str, Any], error_code: str, error_message: str) -> None:
+async def notify_payment_failed(
+    task: Dict[str, Any], error_code: str, error_message: str
+) -> None:
     """Notify via WebSocket about payment failure."""
     if ws_handlers:
         try:
@@ -554,8 +582,8 @@ async def notify_payment_failed(task: Dict[str, Any], error_code: str, error_mes
         "readOnlyHint": False,
         "destructiveHint": False,
         "idempotentHint": False,
-        "openWorldHint": True
-    }
+        "openWorldHint": True,
+    },
 )
 async def em_publish_task(params: PublishTaskInput) -> str:
     """
@@ -609,7 +637,9 @@ async def em_publish_task(params: PublishTaskInput) -> str:
             bounty_usd=params.bounty_usd,
             deadline=deadline,
             evidence_required=[e.value for e in params.evidence_required],
-            evidence_optional=[e.value for e in params.evidence_optional] if params.evidence_optional else None,
+            evidence_optional=[e.value for e in params.evidence_optional]
+            if params.evidence_optional
+            else None,
             location_hint=params.location_hint,
             min_reputation=params.min_reputation or 0,
             payment_token=params.payment_token or "USDC",
@@ -620,7 +650,10 @@ async def em_publish_task(params: PublishTaskInput) -> str:
         escrow_info = None
         if ADVANCED_ESCROW_AVAILABLE:
             try:
-                from integrations.x402.advanced_escrow_integration import authorize_task_bounty
+                from integrations.x402.advanced_escrow_integration import (
+                    authorize_task_bounty,
+                )
+
                 escrow_result = authorize_task_bounty(
                     task_id=task["id"],
                     receiver=params.agent_id,  # Receiver set at release time
@@ -628,8 +661,10 @@ async def em_publish_task(params: PublishTaskInput) -> str:
                 )
                 escrow_info = {
                     "escrow_id": task["id"],
-                    "status": escrow_result.status if hasattr(escrow_result, 'status') else "authorized",
-                    "deposit_tx": getattr(escrow_result, 'tx_hash', '') or '',
+                    "status": escrow_result.status
+                    if hasattr(escrow_result, "status")
+                    else "authorized",
+                    "deposit_tx": getattr(escrow_result, "tx_hash", "") or "",
                 }
                 logger.info(f"Escrow authorized via SDK for task {task['id']}")
             except Exception as e:
@@ -652,9 +687,9 @@ async def em_publish_task(params: PublishTaskInput) -> str:
 
         response = f"""# Task Published Successfully
 
-**Task ID**: `{task['id']}`
-**Title**: {task['title']}
-**Bounty**: {format_bounty(params.bounty_usd)} {params.payment_token or 'USDC'}
+**Task ID**: `{task["id"]}`
+**Title**: {task["title"]}
+**Bounty**: {format_bounty(params.bounty_usd)} {params.payment_token or "USDC"}
 **Deadline**: {format_datetime(deadline.isoformat())}
 **Status**: PUBLISHED
 """
@@ -669,9 +704,9 @@ async def em_publish_task(params: PublishTaskInput) -> str:
         if escrow_info:
             response += f"""
 ## Escrow
-- **Escrow ID**: `{escrow_info.get('escrow_id', 'N/A')}`
-- **Status**: {escrow_info.get('status', 'deposited').upper()}
-- **Tx**: `{escrow_info.get('deposit_tx', 'N/A')[:16]}...`
+- **Escrow ID**: `{escrow_info.get("escrow_id", "N/A")}`
+- **Status**: {escrow_info.get("status", "deposited").upper()}
+- **Tx**: `{escrow_info.get("deposit_tx", "N/A")[:16]}...`
 """
 
         response += """
@@ -690,8 +725,8 @@ The task is now visible to human executors. Use `em_get_task` with the task ID t
         "readOnlyHint": True,
         "destructiveHint": False,
         "idempotentHint": True,
-        "openWorldHint": True
-    }
+        "openWorldHint": True,
+    },
 )
 async def em_get_tasks(params: GetTasksInput) -> str:
     """
@@ -750,10 +785,12 @@ async def em_get_tasks(params: GetTasksInput) -> str:
             output = json.dumps(response, indent=2, default=str)
             if len(output) > CHARACTER_LIMIT:
                 # Truncate tasks and re-serialize
-                tasks = tasks[:len(tasks)//2]
+                tasks = tasks[: len(tasks) // 2]
                 response["tasks"] = tasks
                 response["truncated"] = True
-                response["truncation_message"] = "Response truncated. Use offset parameter for more results."
+                response["truncation_message"] = (
+                    "Response truncated. Use offset parameter for more results."
+                )
                 output = json.dumps(response, indent=2, default=str)
             return output
 
@@ -764,17 +801,21 @@ async def em_get_tasks(params: GetTasksInput) -> str:
         ]
 
         for task in tasks:
-            lines.extend([
-                f"## {task['title']}",
-                f"- **ID**: `{task['id']}`",
-                f"- **Status**: {task['status'].upper()}",
-                f"- **Bounty**: {format_bounty(task['bounty_usd'])}",
-                f"- **Deadline**: {format_datetime(task['deadline'])}",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"## {task['title']}",
+                    f"- **ID**: `{task['id']}`",
+                    f"- **Status**: {task['status'].upper()}",
+                    f"- **Bounty**: {format_bounty(task['bounty_usd'])}",
+                    f"- **Deadline**: {format_datetime(task['deadline'])}",
+                    "",
+                ]
+            )
 
         if result["has_more"]:
-            lines.append(f"*{total - params.offset - len(tasks)} more tasks available. Use offset={params.offset + len(tasks)} to see more.*")
+            lines.append(
+                f"*{total - params.offset - len(tasks)} more tasks available. Use offset={params.offset + len(tasks)} to see more.*"
+            )
 
         output = "\n".join(lines)
         if len(output) > CHARACTER_LIMIT:
@@ -793,8 +834,8 @@ async def em_get_tasks(params: GetTasksInput) -> str:
         "readOnlyHint": True,
         "destructiveHint": False,
         "idempotentHint": True,
-        "openWorldHint": True
-    }
+        "openWorldHint": True,
+    },
 )
 async def em_get_task(params: GetTaskInput) -> str:
     """
@@ -837,8 +878,8 @@ async def em_get_task(params: GetTaskInput) -> str:
         "readOnlyHint": True,
         "destructiveHint": False,
         "idempotentHint": True,
-        "openWorldHint": True
-    }
+        "openWorldHint": True,
+    },
 )
 async def em_check_submission(params: CheckSubmissionInput) -> str:
     """
@@ -869,19 +910,23 @@ async def em_check_submission(params: CheckSubmissionInput) -> str:
         if not submissions:
             return f"""# No Submissions Yet
 
-**Task**: {task['title']}
-**Status**: {task['status'].upper()}
+**Task**: {task["title"]}
+**Status**: {task["status"].upper()}
 
-No human has submitted evidence yet. The task is {'still available' if task['status'] == 'published' else 'being worked on' if task['status'] in ['accepted', 'in_progress'] else 'in status: ' + task['status']}."""
+No human has submitted evidence yet. The task is {"still available" if task["status"] == "published" else "being worked on" if task["status"] in ["accepted", "in_progress"] else "in status: " + task["status"]}."""
 
         if params.response_format == ResponseFormat.JSON:
-            return json.dumps({
-                "task_id": params.task_id,
-                "task_title": task['title'],
-                "task_status": task['status'],
-                "submission_count": len(submissions),
-                "submissions": submissions,
-            }, indent=2, default=str)
+            return json.dumps(
+                {
+                    "task_id": params.task_id,
+                    "task_title": task["title"],
+                    "task_status": task["status"],
+                    "submission_count": len(submissions),
+                    "submissions": submissions,
+                },
+                indent=2,
+                default=str,
+            )
 
         # Markdown format
         lines = [
@@ -908,8 +953,8 @@ No human has submitted evidence yet. The task is {'still available' if task['sta
         "readOnlyHint": False,
         "destructiveHint": False,
         "idempotentHint": False,
-        "openWorldHint": True
-    }
+        "openWorldHint": True,
+    },
 )
 async def em_approve_submission(params: ApproveSubmissionInput) -> str:
     """
@@ -949,14 +994,19 @@ async def em_approve_submission(params: ApproveSubmissionInput) -> str:
                 # Try advanced escrow first (SDK-based), then basic SDK settle
                 if ADVANCED_ESCROW_AVAILABLE:
                     try:
-                        from integrations.x402.advanced_escrow_integration import release_to_worker
+                        from integrations.x402.advanced_escrow_integration import (
+                            release_to_worker,
+                        )
+
                         result = release_to_worker(task_id=task["id"])
                         payment_info = {
-                            "tx_hash": getattr(result, 'transaction_hash', ''),
-                            "success": getattr(result, 'success', False),
+                            "tx_hash": getattr(result, "transaction_hash", ""),
+                            "success": getattr(result, "success", False),
                             "amount": task["bounty_usd"],
                         }
-                        logger.info(f"Payment released via advanced escrow for task {task['id']}")
+                        logger.info(
+                            f"Payment released via advanced escrow for task {task['id']}"
+                        )
                     except Exception as e:
                         logger.error(f"Advanced escrow release failed: {e}")
 
@@ -968,12 +1018,19 @@ async def em_approve_submission(params: ApproveSubmissionInput) -> str:
                             worker_address=worker_wallet,
                             bounty_amount=Decimal(str(task["bounty_usd"])),
                         )
-                        logger.info(f"Payment settled via SDK for task {task['id']}: {payment_info}")
+                        logger.info(
+                            f"Payment settled via SDK for task {task['id']}: {payment_info}"
+                        )
                     except Exception as e:
                         logger.error(f"SDK payment settlement failed: {e}")
 
                 # Dispatch payment webhook
-                if payment_info and webhook_registry and WebhookEventType and PaymentPayload:
+                if (
+                    payment_info
+                    and webhook_registry
+                    and WebhookEventType
+                    and PaymentPayload
+                ):
                     try:
                         tx_hash = payment_info.get("tx_hash", "")
                         payload = PaymentPayload(
@@ -1001,13 +1058,21 @@ async def em_approve_submission(params: ApproveSubmissionInput) -> str:
 
         # Dispatch submission verdict webhook
         if task and WebhookEventType:
-            event_type = "submission_approved" if params.verdict.value == "accepted" else "submission_rejected"
-            await dispatch_submission_webhook(event_type, submission, task, params.agent_id)
+            event_type = (
+                "submission_approved"
+                if params.verdict.value == "accepted"
+                else "submission_rejected"
+            )
+            await dispatch_submission_webhook(
+                event_type, submission, task, params.agent_id
+            )
 
         # Notify via WebSocket
         executor_id = submission.get("executor_id")
         if executor_id and task:
-            await notify_submission_verdict(submission, params.verdict.value, executor_id, task)
+            await notify_submission_verdict(
+                submission, params.verdict.value, executor_id, task
+            )
 
         # Notify payment release if approved
         if params.verdict.value == "accepted" and payment_info and executor_id:
@@ -1016,14 +1081,14 @@ async def em_approve_submission(params: ApproveSubmissionInput) -> str:
         verdict_display = {
             "accepted": "APPROVED",
             "disputed": "DISPUTED",
-            "more_info_requested": "MORE INFO REQUESTED"
+            "more_info_requested": "MORE INFO REQUESTED",
         }
 
         response = f"""# Submission {verdict_display.get(params.verdict.value, params.verdict.value.upper())}
 
 **Submission ID**: `{params.submission_id}`
 **Verdict**: {params.verdict.value}
-{f'**Notes**: {params.notes}' if params.notes else ''}
+{f"**Notes**: {params.notes}" if params.notes else ""}
 """
 
         if params.verdict.value == "accepted":
@@ -1033,9 +1098,9 @@ The task has been marked as completed and the executor will receive payment."""
                 response += f"""
 
 ## Payment Details
-- **Worker Payment**: ${payment_info.get('worker_payment', 0):.2f}
-- **Platform Fee**: ${payment_info.get('platform_fee', 0):.2f}
-- **Transaction**: `{payment_info.get('tx_hashes', ['N/A'])[0][:16]}...`"""
+- **Worker Payment**: ${payment_info.get("worker_payment", 0):.2f}
+- **Platform Fee**: ${payment_info.get("platform_fee", 0):.2f}
+- **Transaction**: `{payment_info.get("tx_hashes", ["N/A"])[0][:16]}...`"""
         else:
             response += "\nThe executor has been notified of your decision."
 
@@ -1052,8 +1117,8 @@ The task has been marked as completed and the executor will receive payment."""
         "readOnlyHint": False,
         "destructiveHint": True,
         "idempotentHint": False,
-        "openWorldHint": True
-    }
+        "openWorldHint": True,
+    },
 )
 async def em_cancel_task(params: CancelTaskInput) -> str:
     """
@@ -1078,12 +1143,15 @@ async def em_cancel_task(params: CancelTaskInput) -> str:
         refund_info = None
         if ADVANCED_ESCROW_AVAILABLE:
             try:
-                from integrations.x402.advanced_escrow_integration import refund_to_agent
+                from integrations.x402.advanced_escrow_integration import (
+                    refund_to_agent,
+                )
+
                 result = refund_to_agent(task_id=params.task_id)
                 refund_info = {
                     "amount_refunded": task.get("bounty_usd", 0),
-                    "tx_hash": getattr(result, 'transaction_hash', ''),
-                    "success": getattr(result, 'success', False),
+                    "tx_hash": getattr(result, "transaction_hash", ""),
+                    "success": getattr(result, "success", False),
                 }
                 logger.info(f"Escrow refunded via SDK for task {params.task_id}")
             except Exception as e:
@@ -1099,9 +1167,9 @@ async def em_cancel_task(params: CancelTaskInput) -> str:
         response = f"""# Task Cancelled
 
 **Task ID**: `{params.task_id}`
-**Title**: {task['title']}
+**Title**: {task["title"]}
 **Status**: CANCELLED
-{f'**Reason**: {params.reason}' if params.reason else ''}
+{f"**Reason**: {params.reason}" if params.reason else ""}
 
 The task is no longer available for human executors."""
 
@@ -1109,8 +1177,8 @@ The task is no longer available for human executors."""
             response += f"""
 
 ## Refund
-- **Amount Refunded**: ${refund_info.get('amount_refunded', 0):.2f}
-- **Transaction**: `{refund_info.get('tx_hash', 'N/A')[:16]}...`"""
+- **Amount Refunded**: ${refund_info.get("amount_refunded", 0):.2f}
+- **Transaction**: `{refund_info.get("tx_hash", "N/A")[:16]}...`"""
 
         return response
 
@@ -1145,8 +1213,8 @@ The task is no longer available for human executors."""
         "readOnlyHint": True,
         "destructiveHint": False,
         "idempotentHint": True,
-        "openWorldHint": False
-    }
+        "openWorldHint": False,
+    },
 )
 async def em_get_fee_structure() -> str:
     """
@@ -1162,7 +1230,9 @@ async def em_get_fee_structure() -> str:
         str: Fee structure details in markdown format.
     """
     if not fee_manager:
-        return "Fee manager not available. Fee structure information cannot be retrieved."
+        return (
+            "Fee manager not available. Fee structure information cannot be retrieved."
+        )
 
     try:
         structure = fee_manager.get_fee_structure()
@@ -1179,19 +1249,23 @@ async def em_get_fee_structure() -> str:
                 f"({info['description']})"
             )
 
-        lines.extend([
-            "",
-            "## Distribution",
-            f"- **Worker Receives**: {structure['distribution']['worker_percent']} of bounty",
-            f"- **Platform Fee**: {structure['distribution']['platform_percent']} of bounty",
-            "",
-            "## Limits",
-            f"- **Minimum Fee**: ${structure['limits']['minimum_fee']:.2f}",
-            f"- **Maximum Rate**: {structure['limits']['maximum_rate_percent']:.1f}%",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Distribution",
+                f"- **Worker Receives**: {structure['distribution']['worker_percent']} of bounty",
+                f"- **Platform Fee**: {structure['distribution']['platform_percent']} of bounty",
+                "",
+                "## Limits",
+                f"- **Minimum Fee**: ${structure['limits']['minimum_fee']:.2f}",
+                f"- **Maximum Rate**: {structure['limits']['maximum_rate_percent']:.1f}%",
+            ]
+        )
 
-        if structure['treasury_wallet']:
-            lines.append(f"\n**Treasury Wallet**: `{structure['treasury_wallet'][:10]}...`")
+        if structure["treasury_wallet"]:
+            lines.append(
+                f"\n**Treasury Wallet**: `{structure['treasury_wallet'][:10]}...`"
+            )
 
         return "\n".join(lines)
 
@@ -1206,8 +1280,8 @@ async def em_get_fee_structure() -> str:
         "readOnlyHint": True,
         "destructiveHint": False,
         "idempotentHint": True,
-        "openWorldHint": False
-    }
+        "openWorldHint": False,
+    },
 )
 async def em_calculate_fee(
     bounty_usd: float,
@@ -1234,13 +1308,13 @@ async def em_calculate_fee(
         return f"""# Fee Calculation
 
 **Bounty**: ${bounty_usd:.2f}
-**Category**: {category.value.replace('_', ' ').title()}
+**Category**: {category.value.replace("_", " ").title()}
 
 ## Breakdown
-- **Worker Receives**: ${breakdown['worker_amount']:.2f} ({breakdown['worker_percent']:.1f}%)
-- **Platform Fee**: ${breakdown['fee_amount']:.2f} ({breakdown['fee_rate_percent']:.1f}%)
+- **Worker Receives**: ${breakdown["worker_amount"]:.2f} ({breakdown["worker_percent"]:.1f}%)
+- **Platform Fee**: ${breakdown["fee_amount"]:.2f} ({breakdown["fee_rate_percent"]:.1f}%)
 
-*Fee rate for {category.value.replace('_', ' ').title()} tasks: {breakdown['fee_rate_percent']:.1f}%*"""
+*Fee rate for {category.value.replace("_", " ").title()} tasks: {breakdown["fee_rate_percent"]:.1f}%*"""
 
     except Exception as e:
         return f"Error: Failed to calculate fee - {str(e)}"
@@ -1253,8 +1327,8 @@ async def em_calculate_fee(
         "readOnlyHint": True,
         "destructiveHint": False,
         "idempotentHint": True,
-        "openWorldHint": False
-    }
+        "openWorldHint": False,
+    },
 )
 async def em_server_status() -> str:
     """

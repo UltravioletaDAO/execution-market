@@ -5,13 +5,17 @@ Handles reward lifecycle: creation, escrow, release, refund.
 """
 
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from datetime import datetime
 import uuid
 
 from .types import (
-    RewardType, RewardConfig, Reward, RewardStatus,
-    PointsBalance, get_default_config
+    RewardType,
+    RewardConfig,
+    Reward,
+    RewardStatus,
+    PointsBalance,
+    get_default_config,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,7 +35,7 @@ class RewardsManager:
     def __init__(
         self,
         default_type: RewardType = RewardType.X402,
-        configs: Optional[Dict[RewardType, RewardConfig]] = None
+        configs: Optional[Dict[RewardType, RewardConfig]] = None,
     ):
         """
         Initialize rewards manager.
@@ -56,7 +60,7 @@ class RewardsManager:
         recipient_id: str,
         reward_type: Optional[RewardType] = None,
         recipient_wallet: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Reward:
         """
         Create a new reward (and escrow if required).
@@ -93,7 +97,7 @@ class RewardsManager:
             recipient_id=recipient_id,
             recipient_wallet=recipient_wallet,
             status=RewardStatus.PENDING,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
         # Handle escrow if required
@@ -107,9 +111,7 @@ class RewardsManager:
         return reward
 
     async def release_reward(
-        self,
-        reward_id: str,
-        partial_amount: Optional[float] = None
+        self, reward_id: str, partial_amount: Optional[float] = None
     ) -> Reward:
         """
         Release reward to recipient.
@@ -151,11 +153,7 @@ class RewardsManager:
         logger.info(f"Reward released: {reward_id} ({amount} {reward.unit})")
         return reward
 
-    async def refund_reward(
-        self,
-        reward_id: str,
-        reason: str
-    ) -> Reward:
+    async def refund_reward(self, reward_id: str, reason: str) -> Reward:
         """
         Refund reward to task creator.
 
@@ -183,7 +181,7 @@ class RewardsManager:
                 await self._refund_token(reward)
 
         reward.status = RewardStatus.REFUNDED
-        reward.metadata['refund_reason'] = reason
+        reward.metadata["refund_reason"] = reason
 
         logger.info(f"Reward refunded: {reward_id} ({reason})")
         return reward
@@ -195,24 +193,19 @@ class RewardsManager:
                 executor_id=executor_id,
                 balance=0.0,
                 lifetime_earned=0.0,
-                last_updated=datetime.utcnow()
+                last_updated=datetime.utcnow(),
             )
         return self._points_balances[executor_id]
 
     async def convert_points_to_usd(
-        self,
-        executor_id: str,
-        points: float,
-        config: Optional[RewardConfig] = None
+        self, executor_id: str, points: float, config: Optional[RewardConfig] = None
     ) -> float:
         """Convert points to USD equivalent."""
         cfg = config or self.get_config(RewardType.POINTS)
         return points / cfg.points_per_usd
 
     async def convert_usd_to_points(
-        self,
-        usd: float,
-        config: Optional[RewardConfig] = None
+        self, usd: float, config: Optional[RewardConfig] = None
     ) -> float:
         """Convert USD to points."""
         cfg = config or self.get_config(RewardType.POINTS)
@@ -263,10 +256,7 @@ class RewardsManager:
         return "0x" + "0" * 64
 
     async def _release_custom(
-        self,
-        reward: Reward,
-        amount: float,
-        config: RewardConfig
+        self, reward: Reward, amount: float, config: RewardConfig
     ):
         """Handle custom reward release."""
         if config.custom_handler:

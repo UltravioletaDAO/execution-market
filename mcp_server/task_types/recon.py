@@ -41,9 +41,10 @@ class TaskTier(Enum):
         - Complex multi-step verification
         - May require credentials or special access
     """
-    SIMPLE = "simple"      # $1-5
+
+    SIMPLE = "simple"  # $1-5
     STANDARD = "standard"  # $10-30
-    PREMIUM = "premium"    # $50-500
+    PREMIUM = "premium"  # $50-500
 
     @property
     def min_bounty(self) -> Decimal:
@@ -79,10 +80,11 @@ class ReconTaskType(Enum):
 
     Each type has specific evidence requirements and bounty ranges.
     """
-    STORE_CHECK = "store_check"          # Is store open? What are hours?
-    CROWD_COUNT = "crowd_count"          # How many people in line/area?
-    PRICE_CHECK = "price_check"          # What's the price of item(s)?
-    AVAILABILITY = "availability"        # Is product X in stock?
+
+    STORE_CHECK = "store_check"  # Is store open? What are hours?
+    CROWD_COUNT = "crowd_count"  # How many people in line/area?
+    PRICE_CHECK = "price_check"  # What's the price of item(s)?
+    AVAILABILITY = "availability"  # Is product X in stock?
     CONDITION_REPORT = "condition_report"  # What's the condition of X?
 
     @property
@@ -110,14 +112,15 @@ class ReconTaskType(Enum):
 
 class EvidenceType(Enum):
     """Types of evidence that can be required or accepted."""
-    PHOTO = "photo"                    # Single photo
-    PHOTO_GEO = "photo_geo"            # Photo with GPS coordinates
+
+    PHOTO = "photo"  # Single photo
+    PHOTO_GEO = "photo_geo"  # Photo with GPS coordinates
     PHOTO_TIMESTAMP = "photo_timestamp"  # Photo with timestamp verification
-    VIDEO = "video"                    # Video recording
-    TEXT_RESPONSE = "text_response"    # Written answer
-    NUMERIC_VALUE = "numeric_value"    # Number (count, price, etc.)
-    SCREENSHOT = "screenshot"          # Screenshot (for online prices)
-    RECEIPT = "receipt"                # Receipt or printed document
+    VIDEO = "video"  # Video recording
+    TEXT_RESPONSE = "text_response"  # Written answer
+    NUMERIC_VALUE = "numeric_value"  # Number (count, price, etc.)
+    SCREENSHOT = "screenshot"  # Screenshot (for online prices)
+    RECEIPT = "receipt"  # Receipt or printed document
 
 
 @dataclass
@@ -131,6 +134,7 @@ class EvidenceRequirement:
         description: Instructions for capturing this evidence
         validation_rules: Rules for validating the evidence
     """
+
     evidence_type: EvidenceType
     required: bool = True
     description: str = ""
@@ -158,6 +162,7 @@ class Location:
         radius_meters: Acceptable radius from coordinates
         place_name: Name of the place (store name, etc.)
     """
+
     latitude: float
     longitude: float
     address: str = ""
@@ -186,6 +191,7 @@ class BountySuggestion:
         reasoning: Explanation of how bounty was calculated
         factors: Individual factors that influenced the bounty
     """
+
     amount: Decimal
     tier: TaskTier
     reasoning: str
@@ -220,6 +226,7 @@ class ReconTask:
         created_at: When task was created
         metadata: Additional task-specific data
     """
+
     id: str
     task_type: ReconTaskType
     tier: TaskTier
@@ -284,11 +291,14 @@ class ReconTask:
 
         # Location required for geo-tagged evidence
         geo_evidence = [
-            e for e in self.evidence_requirements
+            e
+            for e in self.evidence_requirements
             if e.evidence_type == EvidenceType.PHOTO_GEO and e.required
         ]
         if geo_evidence and not self.location:
-            errors.append("Location is required when geo-tagged photo evidence is needed")
+            errors.append(
+                "Location is required when geo-tagged photo evidence is needed"
+            )
 
         return len(errors) == 0, errors
 
@@ -303,20 +313,20 @@ class ReconTaskFactory:
 
     # Location complexity factors for bounty calculation
     LOCATION_FACTORS = {
-        "urban_core": Decimal("1.0"),      # Dense urban area
-        "urban": Decimal("1.1"),           # Regular urban
-        "suburban": Decimal("1.2"),        # Suburban area
-        "rural": Decimal("1.5"),           # Rural/hard to reach
-        "remote": Decimal("2.0"),          # Very remote
+        "urban_core": Decimal("1.0"),  # Dense urban area
+        "urban": Decimal("1.1"),  # Regular urban
+        "suburban": Decimal("1.2"),  # Suburban area
+        "rural": Decimal("1.5"),  # Rural/hard to reach
+        "remote": Decimal("2.0"),  # Very remote
     }
 
     # Time-of-day factors
     TIME_FACTORS = {
-        "business_hours": Decimal("1.0"),   # 9am-5pm weekdays
-        "evening": Decimal("1.1"),          # 5pm-9pm
-        "night": Decimal("1.3"),            # 9pm-6am
-        "weekend": Decimal("1.1"),          # Sat-Sun
-        "holiday": Decimal("1.5"),          # Major holidays
+        "business_hours": Decimal("1.0"),  # 9am-5pm weekdays
+        "evening": Decimal("1.1"),  # 5pm-9pm
+        "night": Decimal("1.3"),  # 9pm-6am
+        "weekend": Decimal("1.1"),  # Sat-Sun
+        "holiday": Decimal("1.5"),  # Major holidays
     }
 
     # Base bounties by task type (in USD)
@@ -368,13 +378,13 @@ class ReconTaskFactory:
                 validation_rules={
                     "max_distance_meters": location.radius_meters,
                     "max_age_minutes": 15,
-                }
+                },
             ),
             EvidenceRequirement(
                 evidence_type=EvidenceType.PHOTO,
                 required=True,
                 description="Photo of posted business hours",
-                validation_rules={"max_age_minutes": 15}
+                validation_rules={"max_age_minutes": 15},
             ),
             EvidenceRequirement(
                 evidence_type=EvidenceType.TEXT_RESPONSE,
@@ -383,11 +393,14 @@ class ReconTaskFactory:
             ),
         ]
 
-        bounty = bounty_override or cls.suggest_bounty(
-            task_type=ReconTaskType.STORE_CHECK,
-            location_type=location_type,
-            question_count=len(questions or default_questions),
-        ).amount
+        bounty = (
+            bounty_override
+            or cls.suggest_bounty(
+                task_type=ReconTaskType.STORE_CHECK,
+                location_type=location_type,
+                question_count=len(questions or default_questions),
+            ).amount
+        )
 
         location.place_name = store_name
 
@@ -416,7 +429,7 @@ Answer all questions based on what you observe.
             metadata={
                 "store_name": store_name,
                 "location_type": location_type,
-            }
+            },
         )
 
     @classmethod
@@ -461,19 +474,19 @@ Answer all questions based on what you observe.
                 validation_rules={
                     "max_distance_meters": location.radius_meters,
                     "max_age_minutes": 10,
-                }
+                },
             ),
             EvidenceRequirement(
                 evidence_type=EvidenceType.PHOTO_TIMESTAMP,
                 required=True,
                 description="Additional photo with visible timestamp context",
-                validation_rules={"max_age_minutes": 10}
+                validation_rules={"max_age_minutes": 10},
             ),
             EvidenceRequirement(
                 evidence_type=EvidenceType.NUMERIC_VALUE,
                 required=True,
                 description=f"The count of {count_what}",
-                validation_rules={"min_value": 0}
+                validation_rules={"min_value": 0},
             ),
             EvidenceRequirement(
                 evidence_type=EvidenceType.TEXT_RESPONSE,
@@ -482,11 +495,14 @@ Answer all questions based on what you observe.
             ),
         ]
 
-        bounty = bounty_override or cls.suggest_bounty(
-            task_type=ReconTaskType.CROWD_COUNT,
-            location_type=location_type,
-            question_count=len(questions),
-        ).amount
+        bounty = (
+            bounty_override
+            or cls.suggest_bounty(
+                task_type=ReconTaskType.CROWD_COUNT,
+                location_type=location_type,
+                question_count=len(questions),
+            ).amount
+        )
 
         return ReconTask(
             id=str(uuid4()),
@@ -517,7 +533,7 @@ Tips for accurate counting:
                 "count_what": count_what,
                 "specific_area": specific_area,
                 "location_type": location_type,
-            }
+            },
         )
 
     @classmethod
@@ -550,18 +566,20 @@ Tips for accurate counting:
         """
         questions = [f"What is the price of {item}?" for item in items]
         if include_sale_prices:
-            questions.append("Are any of these items on sale? If so, what's the sale price?")
+            questions.append(
+                "Are any of these items on sale? If so, what's the sale price?"
+            )
         questions.append("Are all items available?")
 
         evidence_requirements = [
             EvidenceRequirement(
                 evidence_type=EvidenceType.PHOTO_GEO,
                 required=True,
-                description=f"Photo of store entrance or aisle confirming location",
+                description="Photo of store entrance or aisle confirming location",
                 validation_rules={
                     "max_distance_meters": location.radius_meters,
                     "max_age_minutes": 30,
-                }
+                },
             ),
         ]
 
@@ -572,7 +590,7 @@ Tips for accurate counting:
                     evidence_type=EvidenceType.PHOTO,
                     required=True,
                     description=f"Photo of {item} showing the price tag clearly",
-                    validation_rules={"max_age_minutes": 30}
+                    validation_rules={"max_age_minutes": 30},
                 )
             )
 
@@ -592,7 +610,9 @@ Tips for accurate counting:
         ).amount
 
         # Add per-item bonus
-        item_bonus = Decimal("0.50") * (len(items) - 1) if len(items) > 1 else Decimal("0")
+        item_bonus = (
+            Decimal("0.50") * (len(items) - 1) if len(items) > 1 else Decimal("0")
+        )
         bounty = bounty_override or (base_bounty + item_bonus)
 
         location.place_name = store_name
@@ -603,8 +623,8 @@ Tips for accurate counting:
             tier=TaskTier.SIMPLE,
             title=f"Price check at {store_name or location.address}",
             instructions=f"""
-Visit {store_name or 'the store'} and find the prices for the following items:
-{chr(10).join(f'- {item}' for item in items)}
+Visit {store_name or "the store"} and find the prices for the following items:
+{chr(10).join(f"- {item}" for item in items)}
 
 For each item:
 1. Locate the item on the shelf
@@ -626,7 +646,7 @@ If an item is not available:
                 "items": items,
                 "include_sale_prices": include_sale_prices,
                 "location_type": location_type,
-            }
+            },
         )
 
     @classmethod
@@ -679,13 +699,13 @@ If an item is not available:
                 validation_rules={
                     "max_distance_meters": location.radius_meters,
                     "max_age_minutes": 20,
-                }
+                },
             ),
             EvidenceRequirement(
                 evidence_type=EvidenceType.PHOTO,
                 required=True,
                 description=f"Photo of {product} on shelf (or empty shelf if unavailable)",
-                validation_rules={"max_age_minutes": 20}
+                validation_rules={"max_age_minutes": 20},
             ),
             EvidenceRequirement(
                 evidence_type=EvidenceType.TEXT_RESPONSE,
@@ -694,11 +714,14 @@ If an item is not available:
             ),
         ]
 
-        bounty = bounty_override or cls.suggest_bounty(
-            task_type=ReconTaskType.AVAILABILITY,
-            location_type=location_type,
-            question_count=len(questions),
-        ).amount
+        bounty = (
+            bounty_override
+            or cls.suggest_bounty(
+                task_type=ReconTaskType.AVAILABILITY,
+                location_type=location_type,
+                question_count=len(questions),
+            ).amount
+        )
 
         return ReconTask(
             id=str(uuid4()),
@@ -730,7 +753,7 @@ Steps:
                 "product_details": product_details,
                 "check_alternatives": check_alternatives,
                 "location_type": location_type,
-            }
+            },
         )
 
     @classmethod
@@ -781,19 +804,19 @@ Steps:
                 validation_rules={
                     "max_distance_meters": location.radius_meters,
                     "max_age_minutes": 30,
-                }
+                },
             ),
             EvidenceRequirement(
                 evidence_type=EvidenceType.PHOTO,
                 required=True,
-                description=f"Close-up photos of notable conditions (good or bad)",
-                validation_rules={"max_age_minutes": 30, "min_count": 3}
+                description="Close-up photos of notable conditions (good or bad)",
+                validation_rules={"max_age_minutes": 30, "min_count": 3},
             ),
             EvidenceRequirement(
                 evidence_type=EvidenceType.VIDEO,
                 required=False,
                 description="Optional: Short video walkthrough (30-60 seconds)",
-                validation_rules={"max_duration_seconds": 120}
+                validation_rules={"max_duration_seconds": 120},
             ),
             EvidenceRequirement(
                 evidence_type=EvidenceType.TEXT_RESPONSE,
@@ -802,11 +825,14 @@ Steps:
             ),
         ]
 
-        bounty = bounty_override or cls.suggest_bounty(
-            task_type=ReconTaskType.CONDITION_REPORT,
-            location_type=location_type,
-            question_count=len(questions),
-        ).amount
+        bounty = (
+            bounty_override
+            or cls.suggest_bounty(
+                task_type=ReconTaskType.CONDITION_REPORT,
+                location_type=location_type,
+                question_count=len(questions),
+            ).amount
+        )
 
         return ReconTask(
             id=str(uuid4()),
@@ -817,7 +843,7 @@ Steps:
 Conduct a thorough condition inspection of {subject} at the specified location.
 
 Evaluation criteria:
-{chr(10).join(f'- {aspect}' for aspect in aspects)}
+{chr(10).join(f"- {aspect}" for aspect in aspects)}
 
 Documentation requirements:
 1. Take a wide-angle photo showing the overall area
@@ -844,7 +870,7 @@ Rating scale (1-10):
                 "subject": subject,
                 "aspects_to_check": aspects,
                 "location_type": location_type,
-            }
+            },
         )
 
     @classmethod
@@ -922,7 +948,7 @@ Rating scale (1-10):
                 "time_factor": time_factor,
                 "question_bonus": question_bonus,
                 "urgency_factor": Decimal(str(urgency_factor)),
-            }
+            },
         )
 
     @classmethod

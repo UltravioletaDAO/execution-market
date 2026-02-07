@@ -11,11 +11,10 @@ This module provides a Redis-backed alternative to the
 in-memory rate_limits.py for production use.
 """
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple, Any
 
@@ -24,6 +23,7 @@ logger = logging.getLogger(__name__)
 # Try to import Redis (optional)
 try:
     import redis.asyncio as redis
+
     HAS_REDIS = True
 except ImportError:
     HAS_REDIS = False
@@ -34,8 +34,10 @@ except ImportError:
 # CONSTANTS AND CONFIGURATION
 # =============================================================================
 
+
 class RateLimitTier(str, Enum):
     """API rate limit tiers."""
+
     FREE = "free"
     STARTER = "starter"
     GROWTH = "growth"
@@ -95,9 +97,11 @@ DEFAULT_AGENT_LIMIT_PER_HOUR = 100
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class RateLimitResult:
     """Result of a rate limit check."""
+
     allowed: bool
     remaining: int
     limit: int
@@ -119,6 +123,7 @@ class RateLimitResult:
 @dataclass
 class SlidingWindowConfig:
     """Configuration for a sliding window rate limit."""
+
     key_prefix: str
     window_seconds: int
     max_requests: int
@@ -128,6 +133,7 @@ class SlidingWindowConfig:
 # =============================================================================
 # RATE LIMITER CLASS
 # =============================================================================
+
 
 class RateLimiter:
     """
@@ -264,11 +270,7 @@ class RateLimiter:
         return result
 
     async def _check_redis(
-        self,
-        key: str,
-        limit: int,
-        window: int,
-        now: float
+        self, key: str, limit: int, window: int, now: float
     ) -> RateLimitResult:
         """Check rate limit using Redis."""
         window_start = now - window
@@ -337,11 +339,7 @@ class RateLimiter:
             await pipe.execute()
 
     def _check_memory(
-        self,
-        key: str,
-        limit: int,
-        window: int,
-        now: float
+        self, key: str, limit: int, window: int, now: float
     ) -> RateLimitResult:
         """Check rate limit using in-memory storage."""
         window_start = now - window
@@ -398,17 +396,13 @@ class RateLimiter:
         self._memory_store[key].append(now)
 
     def _get_limit_config(
-        self,
-        limit_type: str,
-        tier: RateLimitTier,
-        endpoint: Optional[str]
+        self, limit_type: str, tier: RateLimitTier, endpoint: Optional[str]
     ) -> Tuple[int, int]:
         """Get limit and window for given parameters."""
         # Endpoint-specific limits
         if endpoint and endpoint in ENDPOINT_LIMITS:
             limit = ENDPOINT_LIMITS[endpoint].get(
-                tier,
-                ENDPOINT_LIMITS[endpoint][RateLimitTier.FREE]
+                tier, ENDPOINT_LIMITS[endpoint][RateLimitTier.FREE]
             )
             return limit, WINDOW_MINUTE
 
@@ -428,11 +422,7 @@ class RateLimiter:
         return TIER_LIMITS[RateLimitTier.FREE], WINDOW_MINUTE
 
     async def block_identifier(
-        self,
-        identifier: str,
-        limit_type: str,
-        duration_seconds: int,
-        reason: str = ""
+        self, identifier: str, limit_type: str, duration_seconds: int, reason: str = ""
     ) -> None:
         """
         Manually block an identifier.
@@ -456,11 +446,7 @@ class RateLimiter:
             f"Blocked {limit_type} {identifier} for {duration_seconds}s. Reason: {reason}"
         )
 
-    async def unblock_identifier(
-        self,
-        identifier: str,
-        limit_type: str
-    ) -> None:
+    async def unblock_identifier(self, identifier: str, limit_type: str) -> None:
         """Unblock an identifier."""
         key = f"{self.key_prefix}{limit_type}:{identifier}"
         block_key = f"{key}:blocked"
@@ -511,7 +497,9 @@ class RateLimiter:
             "remaining": max(0, limit - count),
             "window_seconds": window,
             "blocked": blocked_until is not None and float(blocked_until or 0) > now,
-            "blocked_until": datetime.fromtimestamp(float(blocked_until)).isoformat() if blocked_until else None,
+            "blocked_until": datetime.fromtimestamp(float(blocked_until)).isoformat()
+            if blocked_until
+            else None,
         }
 
     async def get_stats(self) -> Dict[str, Any]:
@@ -539,6 +527,7 @@ class RateLimiter:
 # =============================================================================
 # CONVENIENCE FUNCTIONS
 # =============================================================================
+
 
 async def check_all_limits(
     limiter: RateLimiter,

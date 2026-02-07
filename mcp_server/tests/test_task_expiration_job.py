@@ -49,17 +49,24 @@ async def test_submitted_timeout_auto_settles_and_auto_approves(monkeypatch):
     submission_payload = {
         "id": submission_id,
         "task": {"id": task_id, "agent_id": "agent_test", "bounty_usd": 1.0},
-        "executor": {"id": "worker_1", "wallet_address": "0x1234567890abcdef1234567890abcdef12345678"},
+        "executor": {
+            "id": "worker_1",
+            "wallet_address": "0x1234567890abcdef1234567890abcdef12345678",
+        },
         "agent_verdict": "pending",
     }
 
-    monkeypatch.setattr(db, "get_submission", AsyncMock(return_value=submission_payload))
+    monkeypatch.setattr(
+        db, "get_submission", AsyncMock(return_value=submission_payload)
+    )
     monkeypatch.setattr(
         routes,
         "_is_submission_ready_for_instant_payout",
         AsyncMock(return_value={"ready": True, "reason": "ready"}),
     )
-    settle_mock = AsyncMock(return_value={"payment_tx": "0x" + "a" * 64, "payment_error": None})
+    settle_mock = AsyncMock(
+        return_value={"payment_tx": "0x" + "a" * 64, "payment_error": None}
+    )
     monkeypatch.setattr(routes, "_settle_submission_payment", settle_mock)
     auto_approve_mock = AsyncMock(return_value=submission_payload)
     monkeypatch.setattr(routes, "_auto_approve_submission", auto_approve_mock)
@@ -85,7 +92,9 @@ async def test_submitted_timeout_not_ready_keeps_task_for_retry(monkeypatch):
         "agent_verdict": "pending",
     }
 
-    monkeypatch.setattr(db, "get_submission", AsyncMock(return_value=submission_payload))
+    monkeypatch.setattr(
+        db, "get_submission", AsyncMock(return_value=submission_payload)
+    )
     monkeypatch.setattr(
         routes,
         "_is_submission_ready_for_instant_payout",

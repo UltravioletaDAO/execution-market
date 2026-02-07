@@ -12,13 +12,11 @@ Contracts (Base Mainnet):
 
 import os
 import logging
-import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, Dict, Any, List
 from enum import Enum
-import json
 import uuid
 
 import httpx
@@ -96,8 +94,10 @@ DEFAULT_FACILITATOR_URL = "https://facilitator.ultravioletadao.xyz"
 # Enums and Data Classes
 # =============================================================================
 
+
 class PaymentToken(str, Enum):
     """Supported payment tokens."""
+
     USDC = "usdc"
     EURC = "eurc"
     DAI = "dai"
@@ -106,6 +106,7 @@ class PaymentToken(str, Enum):
 
 class EscrowStatus(str, Enum):
     """Escrow lifecycle states."""
+
     PENDING = "pending"
     ACTIVE = "active"
     RELEASED = "released"
@@ -118,7 +119,9 @@ class EscrowStatus(str, Enum):
 class X402Error(Exception):
     """Base exception for x402 operations."""
 
-    def __init__(self, message: str, code: Optional[str] = None, details: Optional[Dict] = None):
+    def __init__(
+        self, message: str, code: Optional[str] = None, details: Optional[Dict] = None
+    ):
         super().__init__(message)
         self.message = message
         self.code = code or "X402_ERROR"
@@ -127,46 +130,65 @@ class X402Error(Exception):
 
 class EscrowCreationError(X402Error):
     """Failed to create escrow."""
+
     def __init__(self, message: str, details: Optional[Dict] = None):
         super().__init__(message, "ESCROW_CREATION_FAILED", details)
 
 
 class EscrowReleaseError(X402Error):
     """Failed to release escrow."""
+
     def __init__(self, message: str, details: Optional[Dict] = None):
         super().__init__(message, "ESCROW_RELEASE_FAILED", details)
 
 
 class EscrowRefundError(X402Error):
     """Failed to refund escrow."""
+
     def __init__(self, message: str, details: Optional[Dict] = None):
         super().__init__(message, "ESCROW_REFUND_FAILED", details)
 
 
 class FacilitatorError(X402Error):
     """Facilitator returned an error."""
-    def __init__(self, message: str, status_code: Optional[int] = None, response: Optional[str] = None):
-        super().__init__(message, "FACILITATOR_ERROR", {
-            "status_code": status_code,
-            "response": response,
-        })
+
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        response: Optional[str] = None,
+    ):
+        super().__init__(
+            message,
+            "FACILITATOR_ERROR",
+            {
+                "status_code": status_code,
+                "response": response,
+            },
+        )
         self.status_code = status_code
         self.response = response
 
 
 class InsufficientFundsError(X402Error):
     """Insufficient funds for operation."""
+
     def __init__(self, required: Decimal, available: Decimal, token: PaymentToken):
         super().__init__(
             f"Insufficient {token.value.upper()}: need {required}, have {available}",
             "INSUFFICIENT_FUNDS",
-            {"required": str(required), "available": str(available), "token": token.value},
+            {
+                "required": str(required),
+                "available": str(available),
+                "token": token.value,
+            },
         )
 
 
 @dataclass
 class PaymentResult:
     """Result of a payment operation."""
+
     success: bool
     tx_hash: Optional[str]
     amount: Decimal
@@ -181,6 +203,7 @@ class PaymentResult:
 @dataclass
 class EscrowDeposit:
     """Represents an escrow deposit."""
+
     escrow_id: str
     task_id: str
     amount: Decimal
@@ -198,6 +221,7 @@ class EscrowDeposit:
 @dataclass
 class EscrowInfo:
     """Current state of an escrow."""
+
     escrow_id: str
     depositor: str
     beneficiary: str
@@ -219,12 +243,12 @@ MERCHANT_ROUTER_ABI = [
             {"name": "token", "type": "address"},
             {"name": "amount", "type": "uint256"},
             {"name": "recipient", "type": "address"},
-            {"name": "memo", "type": "string"}
+            {"name": "memo", "type": "string"},
         ],
         "name": "pay",
         "outputs": [{"name": "", "type": "bool"}],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [{"name": "merchant", "type": "address"}],
@@ -232,21 +256,21 @@ MERCHANT_ROUTER_ABI = [
         "outputs": [
             {"name": "registered", "type": "bool"},
             {"name": "name", "type": "string"},
-            {"name": "webhookUrl", "type": "string"}
+            {"name": "webhookUrl", "type": "string"},
         ],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [
             {"name": "name", "type": "string"},
-            {"name": "webhookUrl", "type": "string"}
+            {"name": "webhookUrl", "type": "string"},
         ],
         "name": "registerMerchant",
         "outputs": [],
         "stateMutability": "nonpayable",
-        "type": "function"
-    }
+        "type": "function",
+    },
 ]
 
 DEPOSIT_RELAY_ABI = [
@@ -256,30 +280,30 @@ DEPOSIT_RELAY_ABI = [
             {"name": "amount", "type": "uint256"},
             {"name": "beneficiary", "type": "address"},
             {"name": "timeout", "type": "uint256"},
-            {"name": "taskId", "type": "bytes32"}
+            {"name": "taskId", "type": "bytes32"},
         ],
         "name": "createEscrow",
         "outputs": [{"name": "escrowId", "type": "bytes32"}],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [
             {"name": "escrowId", "type": "bytes32"},
             {"name": "recipient", "type": "address"},
-            {"name": "amount", "type": "uint256"}
+            {"name": "amount", "type": "uint256"},
         ],
         "name": "releaseEscrow",
         "outputs": [],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [{"name": "escrowId", "type": "bytes32"}],
         "name": "refundEscrow",
         "outputs": [],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [{"name": "escrowId", "type": "bytes32"}],
@@ -290,54 +314,55 @@ DEPOSIT_RELAY_ABI = [
             {"name": "amount", "type": "uint256"},
             {"name": "timeout", "type": "uint256"},
             {"name": "released", "type": "bool"},
-            {"name": "refunded", "type": "bool"}
+            {"name": "refunded", "type": "bool"},
         ],
         "stateMutability": "view",
-        "type": "function"
-    }
+        "type": "function",
+    },
 ]
 
 ERC20_ABI = [
     {
         "inputs": [
             {"name": "spender", "type": "address"},
-            {"name": "amount", "type": "uint256"}
+            {"name": "amount", "type": "uint256"},
         ],
         "name": "approve",
         "outputs": [{"name": "", "type": "bool"}],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [{"name": "account", "type": "address"}],
         "name": "balanceOf",
         "outputs": [{"name": "", "type": "uint256"}],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [
             {"name": "owner", "type": "address"},
-            {"name": "spender", "type": "address"}
+            {"name": "spender", "type": "address"},
         ],
         "name": "allowance",
         "outputs": [{"name": "", "type": "uint256"}],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [],
         "name": "decimals",
         "outputs": [{"name": "", "type": "uint8"}],
         "stateMutability": "view",
-        "type": "function"
-    }
+        "type": "function",
+    },
 ]
 
 
 # =============================================================================
 # X402 Client
 # =============================================================================
+
 
 class X402Client:
     """
@@ -377,7 +402,9 @@ class X402Client:
         self.facilitator_url = facilitator_url or os.environ.get(
             "X402_FACILITATOR_URL", DEFAULT_FACILITATOR_URL
         )
-        self.rpc_url = rpc_url or os.environ.get("X402_RPC_URL", self._get_default_rpc(network))
+        self.rpc_url = rpc_url or os.environ.get(
+            "X402_RPC_URL", self._get_default_rpc(network)
+        )
         self._private_key = private_key or os.environ.get("WALLET_PRIVATE_KEY")
         self.network = network
         self.default_token = default_token
@@ -394,7 +421,9 @@ class X402Client:
         # Contract instances (lazy loaded)
         self._contracts: Dict[str, Any] = {}
 
-        logger.info(f"X402Client initialized: network={network}, facilitator={self.facilitator_url}")
+        logger.info(
+            f"X402Client initialized: network={network}, facilitator={self.facilitator_url}"
+        )
 
     def _get_default_rpc(self, network: str) -> str:
         """Get default RPC URL for network."""
@@ -418,7 +447,9 @@ class X402Client:
 
             if self._private_key:
                 self.account = Account.from_key(self._private_key)
-                logger.info(f"Web3 initialized with account: {self.account.address[:10]}...")
+                logger.info(
+                    f"Web3 initialized with account: {self.account.address[:10]}..."
+                )
             else:
                 logger.info("Web3 initialized in read-only mode (no private key)")
         except Exception as e:
@@ -450,7 +481,9 @@ class X402Client:
     # Token Utilities
     # =========================================================================
 
-    def get_token_address(self, token: PaymentToken, network: Optional[str] = None) -> str:
+    def get_token_address(
+        self, token: PaymentToken, network: Optional[str] = None
+    ) -> str:
         """Get token contract address for network."""
         net = network or self.network
         tokens = TOKEN_ADDRESSES.get(net, TOKEN_ADDRESSES["base"])
@@ -466,12 +499,12 @@ class X402Client:
     def to_token_amount(self, amount: Decimal, token: PaymentToken) -> int:
         """Convert decimal amount to token wei."""
         decimals = self.get_token_decimals(token)
-        return int(amount * Decimal(10 ** decimals))
+        return int(amount * Decimal(10**decimals))
 
     def from_token_amount(self, amount: int, token: PaymentToken) -> Decimal:
         """Convert token wei to decimal amount."""
         decimals = self.get_token_decimals(token)
-        return Decimal(amount) / Decimal(10 ** decimals)
+        return Decimal(amount) / Decimal(10**decimals)
 
     def _get_token_contract(self, token: PaymentToken) -> Any:
         """Get or create token contract instance."""
@@ -558,9 +591,7 @@ class X402Client:
         contract = self._get_token_contract(token)
 
         # Check current allowance
-        current = contract.functions.allowance(
-            self.account.address, spender
-        ).call()
+        current = contract.functions.allowance(self.account.address, spender).call()
 
         if current >= amount_wei:
             logger.debug(f"Already approved {amount} {token.value} for {spender}")
@@ -584,14 +615,16 @@ class X402Client:
 
         chain_id = CHAIN_IDS.get(self.network, 8453)
 
-        tx = func.build_transaction({
-            "from": self.account.address,
-            "value": value,
-            "gas": 200000,
-            "gasPrice": self.w3.eth.gas_price,
-            "nonce": self.w3.eth.get_transaction_count(self.account.address),
-            "chainId": chain_id,
-        })
+        tx = func.build_transaction(
+            {
+                "from": self.account.address,
+                "value": value,
+                "gas": 200000,
+                "gasPrice": self.w3.eth.gas_price,
+                "nonce": self.w3.eth.get_transaction_count(self.account.address),
+                "chainId": chain_id,
+            }
+        )
 
         # Estimate gas
         tx["gas"] = self.w3.eth.estimate_gas(tx)
@@ -613,11 +646,17 @@ class X402Client:
         try:
             # Check health endpoint
             health_resp = await client.get(f"{self.facilitator_url}/health")
-            health = health_resp.json() if health_resp.status_code == 200 else {"status": "unhealthy"}
+            health = (
+                health_resp.json()
+                if health_resp.status_code == 200
+                else {"status": "unhealthy"}
+            )
 
             # Check supported networks
             supported_resp = await client.get(f"{self.facilitator_url}/supported")
-            supported = supported_resp.json() if supported_resp.status_code == 200 else {}
+            supported = (
+                supported_resp.json() if supported_resp.status_code == 200 else {}
+            )
 
             # Check version
             version_resp = await client.get(f"{self.facilitator_url}/version")
@@ -675,8 +714,10 @@ class X402Client:
             raise EscrowCreationError("Private key required to create escrow")
 
         # Generate escrow ID
-        escrow_id = f"escrow_{task_id}_{uuid.uuid4().hex[:8]}"
-        timeout_timestamp = int(datetime.now(timezone.utc).timestamp()) + (timeout_hours * 3600)
+        f"escrow_{task_id}_{uuid.uuid4().hex[:8]}"
+        timeout_timestamp = int(datetime.now(timezone.utc).timestamp()) + (
+            timeout_hours * 3600
+        )
 
         # Check balance first
         balance = await self.check_balance(tokens=[token])
@@ -709,7 +750,9 @@ class X402Client:
                     beneficiary=beneficiary or self.account.address,
                     tx_hash=result["tx_hash"],
                     created_at=datetime.now(timezone.utc),
-                    timeout_at=datetime.fromtimestamp(timeout_timestamp, tz=timezone.utc),
+                    timeout_at=datetime.fromtimestamp(
+                        timeout_timestamp, tz=timezone.utc
+                    ),
                     status=EscrowStatus.ACTIVE,
                     network=self.network,
                     metadata=metadata or {},
@@ -717,7 +760,9 @@ class X402Client:
             except Exception as e:
                 raise EscrowCreationError(f"On-chain escrow creation failed: {e}")
 
-        raise EscrowCreationError("No valid method to create escrow (need Web3 or facilitator)")
+        raise EscrowCreationError(
+            "No valid method to create escrow (need Web3 or facilitator)"
+        )
 
     async def _create_escrow_onchain(
         self,
@@ -793,7 +838,9 @@ class X402Client:
         """
         token = token or self.default_token
 
-        logger.info(f"Releasing escrow: id={escrow_id[:16]}..., recipient={recipient[:10]}...")
+        logger.info(
+            f"Releasing escrow: id={escrow_id[:16]}..., recipient={recipient[:10]}..."
+        )
 
         if self.w3 and self.account:
             try:
@@ -1105,6 +1152,7 @@ class X402Client:
 # =============================================================================
 # Convenience Functions
 # =============================================================================
+
 
 async def create_em_escrow(
     task_id: str,

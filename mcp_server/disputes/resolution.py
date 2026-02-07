@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 class ResolutionError(Exception):
     """Error during resolution execution."""
+
     pass
 
 
@@ -96,12 +97,10 @@ def calculate_refund_split(
 
     # Factor 2: Response completeness
     worker_responses = sum(
-        1 for r in dispute.responses
-        if r.responder_party == DisputeParty.WORKER
+        1 for r in dispute.responses if r.responder_party == DisputeParty.WORKER
     )
     agent_responses = sum(
-        1 for r in dispute.responses
-        if r.responder_party == DisputeParty.AGENT
+        1 for r in dispute.responses if r.responder_party == DisputeParty.AGENT
     )
 
     # If one party didn't respond, penalize them
@@ -203,8 +202,7 @@ async def apply_resolution(
                 tx_hashes.append(tx_hash)
             else:
                 logger.warning(
-                    "No worker wallet for dispute %s, cannot release funds",
-                    dispute.id
+                    "No worker wallet for dispute %s, cannot release funds", dispute.id
                 )
 
         elif resolution.resolution_type == ResolutionType.FULL_AGENT:
@@ -294,10 +292,6 @@ async def notify_parties(
     results = {}
 
     # Build notification message
-    winner_text = (
-        f"in favor of {resolution.winner.value}"
-        if resolution.winner else "with no clear winner"
-    )
 
     worker_amount = float(dispute.amount_disputed * resolution.worker_payout_pct)
     agent_amount = float(dispute.amount_disputed * resolution.agent_refund_pct)
@@ -389,7 +383,7 @@ def determine_auto_resolution(
                 "can_auto_resolve": True,
                 "winner": DisputeParty.WORKER,
                 "worker_payout_pct": split["worker_pct"],
-                "reason": f"Small dispute auto-resolved: worker evidence stronger",
+                "reason": "Small dispute auto-resolved: worker evidence stronger",
                 "details": split["calculation_details"],
             }
         elif split["agent_pct"] >= 0.7:
@@ -397,29 +391,27 @@ def determine_auto_resolution(
                 "can_auto_resolve": True,
                 "winner": DisputeParty.AGENT,
                 "worker_payout_pct": split["worker_pct"],
-                "reason": f"Small dispute auto-resolved: agent position stronger",
+                "reason": "Small dispute auto-resolved: agent position stronger",
                 "details": split["calculation_details"],
             }
 
     # Check for non-responsive party
     worker_responses = sum(
-        1 for r in dispute.responses
-        if r.responder_party == DisputeParty.WORKER
+        1 for r in dispute.responses if r.responder_party == DisputeParty.WORKER
     )
     agent_responses = sum(
-        1 for r in dispute.responses
-        if r.responder_party == DisputeParty.AGENT
+        1 for r in dispute.responses if r.responder_party == DisputeParty.AGENT
     )
 
     # If respondent didn't respond and deadline passed, auto-resolve for initiator
-    if (dispute.initiator_party == DisputeParty.WORKER and agent_responses == 0):
+    if dispute.initiator_party == DisputeParty.WORKER and agent_responses == 0:
         return {
             "can_auto_resolve": True,
             "winner": DisputeParty.WORKER,
             "worker_payout_pct": 1.0,
             "reason": "Agent did not respond to dispute",
         }
-    elif (dispute.initiator_party == DisputeParty.AGENT and worker_responses == 0):
+    elif dispute.initiator_party == DisputeParty.AGENT and worker_responses == 0:
         return {
             "can_auto_resolve": True,
             "winner": DisputeParty.AGENT,
@@ -450,54 +442,64 @@ def get_resolution_recommendations(dispute: Dispute) -> List[Dict[str, Any]]:
     # Check for auto-resolution
     auto = determine_auto_resolution(dispute)
     if auto and auto.get("can_auto_resolve"):
-        recommendations.append({
-            "action": "auto_resolve",
-            "confidence": 0.8,
-            "winner": auto["winner"].value if auto.get("winner") else None,
-            "worker_payout_pct": auto.get("worker_payout_pct", 0.5),
-            "reasoning": auto.get("reason", "Auto-resolution eligible"),
-        })
+        recommendations.append(
+            {
+                "action": "auto_resolve",
+                "confidence": 0.8,
+                "winner": auto["winner"].value if auto.get("winner") else None,
+                "worker_payout_pct": auto.get("worker_payout_pct", 0.5),
+                "reasoning": auto.get("reason", "Auto-resolution eligible"),
+            }
+        )
 
     # Calculate split recommendation
     split = calculate_refund_split(dispute)
 
     if split["worker_pct"] >= 0.6:
-        recommendations.append({
-            "action": "favor_worker",
-            "confidence": min(split["worker_pct"], 0.9),
-            "winner": "worker",
-            "worker_payout_pct": split["worker_pct"],
-            "reasoning": "Evidence and factors favor worker",
-            "details": split["calculation_details"],
-        })
+        recommendations.append(
+            {
+                "action": "favor_worker",
+                "confidence": min(split["worker_pct"], 0.9),
+                "winner": "worker",
+                "worker_payout_pct": split["worker_pct"],
+                "reasoning": "Evidence and factors favor worker",
+                "details": split["calculation_details"],
+            }
+        )
     elif split["agent_pct"] >= 0.6:
-        recommendations.append({
-            "action": "favor_agent",
-            "confidence": min(split["agent_pct"], 0.9),
-            "winner": "agent",
-            "worker_payout_pct": split["worker_pct"],
-            "reasoning": "Evidence and factors favor agent",
-            "details": split["calculation_details"],
-        })
+        recommendations.append(
+            {
+                "action": "favor_agent",
+                "confidence": min(split["agent_pct"], 0.9),
+                "winner": "agent",
+                "worker_payout_pct": split["worker_pct"],
+                "reasoning": "Evidence and factors favor agent",
+                "details": split["calculation_details"],
+            }
+        )
     else:
-        recommendations.append({
-            "action": "split",
-            "confidence": 0.6,
-            "winner": None,
-            "worker_payout_pct": 0.5,
-            "reasoning": "No clear winner, recommend 50/50 split",
-            "details": split["calculation_details"],
-        })
+        recommendations.append(
+            {
+                "action": "split",
+                "confidence": 0.6,
+                "winner": None,
+                "worker_payout_pct": 0.5,
+                "reasoning": "No clear winner, recommend 50/50 split",
+                "details": split["calculation_details"],
+            }
+        )
 
     # Check if escalation is recommended
     if dispute.amount_disputed >= Decimal("100.00"):
-        recommendations.append({
-            "action": "escalate",
-            "confidence": 0.7,
-            "winner": None,
-            "worker_payout_pct": None,
-            "reasoning": f"High-value dispute (${float(dispute.amount_disputed):.2f}) - human review recommended",
-        })
+        recommendations.append(
+            {
+                "action": "escalate",
+                "confidence": 0.7,
+                "winner": None,
+                "worker_payout_pct": None,
+                "reasoning": f"High-value dispute (${float(dispute.amount_disputed):.2f}) - human review recommended",
+            }
+        )
 
     # Sort by confidence
     recommendations.sort(key=lambda x: x["confidence"], reverse=True)

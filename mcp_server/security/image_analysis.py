@@ -10,16 +10,14 @@ Detects fraudulent images through:
 Integrates with existing verification/checks/ modules.
 """
 
-import asyncio
 import hashlib
 import io
 import logging
 import math
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple, Union
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +25,7 @@ logger = logging.getLogger(__name__)
 try:
     from PIL import Image
     from PIL.ExifTags import TAGS, GPSTAGS
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
@@ -37,9 +36,11 @@ except ImportError:
 # DATA CLASSES
 # =============================================================================
 
+
 @dataclass
 class ImageAnalysisResult:
     """Result of image fraud analysis."""
+
     is_suspicious: bool
     risk_score: float  # 0.0 to 1.0
     confidence: float
@@ -73,6 +74,7 @@ class ImageAnalysisResult:
 @dataclass
 class MetadataConsistencyResult:
     """Result of EXIF metadata consistency check."""
+
     is_consistent: bool
     issues: List[str]
     exif_time: Optional[datetime] = None
@@ -84,6 +86,7 @@ class MetadataConsistencyResult:
 @dataclass
 class SimilarityResult:
     """Result of image similarity comparison."""
+
     similarity_score: float  # 0.0 to 1.0
     is_match: bool
     method: str
@@ -97,7 +100,12 @@ class SimilarityResult:
 AI_SOFTWARE_SIGNATURES = {
     "midjourney": [r"midjourney", r"mj\s*v[0-9]"],
     "dall-e": [r"dall[\-\s]?e", r"openai"],
-    "stable_diffusion": [r"stable[\-\s]?diffusion", r"automatic1111", r"comfyui", r"invoke[\-\s]?ai"],
+    "stable_diffusion": [
+        r"stable[\-\s]?diffusion",
+        r"automatic1111",
+        r"comfyui",
+        r"invoke[\-\s]?ai",
+    ],
     "flux": [r"flux", r"black[\-\s]?forest[\-\s]?labs"],
     "firefly": [r"firefly", r"adobe[\-\s]?firefly"],
 }
@@ -113,6 +121,7 @@ EDITING_SOFTWARE = {
 # =============================================================================
 # IMAGE ANALYZER CLASS
 # =============================================================================
+
 
 class ImageAnalyzer:
     """
@@ -169,7 +178,9 @@ class ImageAnalyzer:
                 ai_generated = True
                 ai_model_hint = ai_result.get("model_hint")
                 risk_scores.append(ai_result["confidence"])
-                reasons.append(f"AI-generated image detected ({ai_model_hint or 'unknown model'})")
+                reasons.append(
+                    f"AI-generated image detected ({ai_model_hint or 'unknown model'})"
+                )
                 details["ai_detection"] = ai_result
 
             # 2. Check metadata consistency
@@ -181,7 +192,9 @@ class ImageAnalyzer:
                 reasons.extend(metadata_result.issues)
                 details["metadata"] = {
                     "issues": metadata_result.issues,
-                    "exif_time": metadata_result.exif_time.isoformat() if metadata_result.exif_time else None,
+                    "exif_time": metadata_result.exif_time.isoformat()
+                    if metadata_result.exif_time
+                    else None,
                     "camera_model": metadata_result.camera_model,
                     "software": metadata_result.software,
                 }
@@ -251,7 +264,9 @@ class ImageAnalyzer:
                 ai_generated = True
                 ai_model_hint = ai_result.get("model_hint")
                 risk_scores.append(ai_result["confidence"])
-                reasons.append(f"AI-generated image detected ({ai_model_hint or 'unknown'})")
+                reasons.append(
+                    f"AI-generated image detected ({ai_model_hint or 'unknown'})"
+                )
                 details["ai_detection"] = ai_result
 
             # 2. Check metadata
@@ -322,7 +337,10 @@ class ImageAnalyzer:
             result["confidence"] = max(result["confidence"], 0.6)
 
             # Check for AI generation claim in C2PA
-            if b"ai_generated" in image_bytes.lower() or b"generative" in image_bytes.lower():
+            if (
+                b"ai_generated" in image_bytes.lower()
+                or b"generative" in image_bytes.lower()
+            ):
                 result["detected"] = True
                 result["confidence"] = 0.9
                 result["signals"].append("c2pa_ai_claim")
@@ -345,7 +363,9 @@ class ImageAnalyzer:
                                         result["detected"] = True
                                         result["confidence"] = 0.95
                                         result["model_hint"] = model
-                                        result["signals"].append(f"software_signature_{model}")
+                                        result["signals"].append(
+                                            f"software_signature_{model}"
+                                        )
                                         return result
             except Exception:
                 pass
@@ -355,10 +375,20 @@ class ImageAnalyzer:
         if xmp_start != -1:
             xmp_end = image_bytes.find(b"</x:xmpmeta>", xmp_start)
             if xmp_end != -1:
-                xmp_data = image_bytes[xmp_start:xmp_end + 12].decode("utf-8", errors="ignore").lower()
+                xmp_data = (
+                    image_bytes[xmp_start : xmp_end + 12]
+                    .decode("utf-8", errors="ignore")
+                    .lower()
+                )
 
                 # Check for AI indicators in XMP
-                ai_keywords = ["ai_generated", "ai-generated", "midjourney", "dall-e", "stable diffusion"]
+                ai_keywords = [
+                    "ai_generated",
+                    "ai-generated",
+                    "midjourney",
+                    "dall-e",
+                    "stable diffusion",
+                ]
                 for keyword in ai_keywords:
                     if keyword in xmp_data:
                         result["detected"] = True
@@ -445,11 +475,11 @@ class ImageAnalyzer:
                         if "GPSLatitude" in gps_info and "GPSLongitude" in gps_info:
                             lat = self._convert_gps_to_decimal(
                                 gps_info["GPSLatitude"],
-                                gps_info.get("GPSLatitudeRef", "N")
+                                gps_info.get("GPSLatitudeRef", "N"),
                             )
                             lon = self._convert_gps_to_decimal(
                                 gps_info["GPSLongitude"],
-                                gps_info.get("GPSLongitudeRef", "E")
+                                gps_info.get("GPSLongitudeRef", "E"),
                             )
                             exif_location = (lat, lon)
                     except Exception:
@@ -461,7 +491,9 @@ class ImageAnalyzer:
                 for category, apps in EDITING_SOFTWARE.items():
                     for app in apps:
                         if app in software_lower:
-                            issues.append(f"Editing software detected: {software} ({category})")
+                            issues.append(
+                                f"Editing software detected: {software} ({category})"
+                            )
                             break
 
             # Check timestamp consistency
@@ -470,14 +502,16 @@ class ImageAnalyzer:
                 if time_diff > 3600:  # More than 1 hour difference
                     issues.append(
                         f"EXIF time ({exif_time.isoformat()}) differs from claimed time "
-                        f"by {time_diff/3600:.1f} hours"
+                        f"by {time_diff / 3600:.1f} hours"
                     )
 
             # Check location consistency
             if claimed_location and exif_location:
                 distance_m = self._haversine_distance(
-                    claimed_location[0], claimed_location[1],
-                    exif_location[0], exif_location[1]
+                    claimed_location[0],
+                    claimed_location[1],
+                    exif_location[0],
+                    exif_location[1],
                 )
                 if distance_m > 1000:  # More than 1km difference
                     issues.append(
@@ -533,15 +567,23 @@ class ImageAnalyzer:
             if exif:
                 for tag_id, value in exif.items():
                     tag = TAGS.get(tag_id, tag_id)
-                    if tag in ("Software", "ProcessingSoftware", "HistorySoftwareAgent"):
+                    if tag in (
+                        "Software",
+                        "ProcessingSoftware",
+                        "HistorySoftwareAgent",
+                    ):
                         value_str = str(value).lower() if value else ""
                         for category, apps in EDITING_SOFTWARE.items():
                             for app in apps:
                                 if app in value_str:
                                     result["detected"] = True
-                                    result["confidence"] = max(result["confidence"], 0.7)
+                                    result["confidence"] = max(
+                                        result["confidence"], 0.7
+                                    )
                                     result["signals"].append(f"{category}_software")
-                                    result["reason"] = f"Editing software detected: {value}"
+                                    result["reason"] = (
+                                        f"Editing software detected: {value}"
+                                    )
 
             # Simple double compression check for JPEG
             if img.format == "JPEG":
@@ -564,10 +606,7 @@ class ImageAnalyzer:
         return result
 
     async def compare_to_reference(
-        self,
-        image_bytes: bytes,
-        reference_bytes: bytes,
-        threshold: float = 0.85
+        self, image_bytes: bytes, reference_bytes: bytes, threshold: float = 0.85
     ) -> SimilarityResult:
         """
         Compare image to a reference image for similarity.
@@ -604,7 +643,7 @@ class ImageAnalyzer:
 
             # Calculate mean squared error
             mse = sum(
-                (p1[0] - p2[0])**2 + (p1[1] - p2[1])**2 + (p1[2] - p2[2])**2
+                (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2 + (p1[2] - p2[2]) ** 2
                 for p1, p2 in zip(pixels1, pixels2)
             ) / (len(pixels1) * 3 * 255**2)
 
@@ -649,11 +688,7 @@ class ImageAnalyzer:
         except Exception:
             return hashlib.sha256(image_bytes).hexdigest()[:16]
 
-    def _convert_gps_to_decimal(
-        self,
-        gps_coords: tuple,
-        ref: str
-    ) -> float:
+    def _convert_gps_to_decimal(self, gps_coords: tuple, ref: str) -> float:
         """Convert GPS coordinates from degrees/minutes/seconds to decimal."""
         try:
             degrees = float(gps_coords[0])
@@ -670,9 +705,7 @@ class ImageAnalyzer:
             return 0.0
 
     def _haversine_distance(
-        self,
-        lat1: float, lon1: float,
-        lat2: float, lon2: float
+        self, lat1: float, lon1: float, lat2: float, lon2: float
     ) -> float:
         """Calculate distance in meters using Haversine formula."""
         R = 6_371_000  # Earth radius in meters
@@ -682,8 +715,10 @@ class ImageAnalyzer:
         delta_phi = math.radians(lat2 - lat1)
         delta_lambda = math.radians(lon2 - lon1)
 
-        a = (math.sin(delta_phi / 2) ** 2 +
-             math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2)
+        a = (
+            math.sin(delta_phi / 2) ** 2
+            + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+        )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
         return R * c

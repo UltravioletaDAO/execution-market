@@ -28,24 +28,27 @@ from uuid import uuid4
 
 class InsuranceTier(str, Enum):
     """Insurance tier levels."""
-    NONE = "none"           # No insurance
-    BASIC = "basic"         # 5% fee, up to $50
-    STANDARD = "standard"   # 10% fee, up to $200
-    PREMIUM = "premium"     # 20% fee, up to $1000
+
+    NONE = "none"  # No insurance
+    BASIC = "basic"  # 5% fee, up to $50
+    STANDARD = "standard"  # 10% fee, up to $200
+    PREMIUM = "premium"  # 20% fee, up to $1000
 
 
 class ClaimType(str, Enum):
     """Types of insurance claims."""
+
     NON_COMPLETION = "non_completion"  # Task not completed
-    FRAUD = "fraud"                    # Fake/fraudulent submission
+    FRAUD = "fraud"  # Fake/fraudulent submission
     QUALITY_FAILURE = "quality_failure"  # Quality below standard
-    DAMAGE = "damage"                  # Damage during task
-    THEFT = "theft"                    # Item stolen
-    LATE_DELIVERY = "late_delivery"    # Severe delivery delay
+    DAMAGE = "damage"  # Damage during task
+    THEFT = "theft"  # Item stolen
+    LATE_DELIVERY = "late_delivery"  # Severe delivery delay
 
 
 class ClaimStatus(str, Enum):
     """Status of an insurance claim."""
+
     SUBMITTED = "submitted"
     UNDER_REVIEW = "under_review"
     APPROVED = "approved"
@@ -67,6 +70,7 @@ class InsuranceTierConfig:
         processing_days: Days to process a claim
         description: Tier description
     """
+
     tier: InsuranceTier
     fee_percentage: Decimal
     max_coverage: Decimal
@@ -191,6 +195,7 @@ class TaskInsurance:
         is_active: Whether policy is active
         claims: List of claims against this policy
     """
+
     policy_id: str
     task_id: str
     tier: InsuranceTier
@@ -221,7 +226,10 @@ class TaskInsurance:
         tier_config = INSURANCE_TIERS[self.tier]
 
         if claim_type not in tier_config.eligible_claims:
-            return False, f"Claim type {claim_type.value} not covered by {self.tier.value} tier"
+            return (
+                False,
+                f"Claim type {claim_type.value} not covered by {self.tier.value} tier",
+            )
 
         # Check if there's already an approved claim
         for claim in self.claims:
@@ -234,8 +242,7 @@ class TaskInsurance:
     def remaining_coverage(self) -> Decimal:
         """Calculate remaining coverage after claims."""
         paid_claims = sum(
-            c.payout_amount for c in self.claims
-            if c.status == ClaimStatus.PAID
+            c.payout_amount for c in self.claims if c.status == ClaimStatus.PAID
         )
         return max(Decimal("0"), self.max_payout - paid_claims)
 
@@ -275,6 +282,7 @@ class InsuranceClaim:
         reviewed_at: When claim was reviewed
         reviewer_notes: Notes from reviewer
     """
+
     claim_id: str
     policy_id: str
     task_id: str
@@ -535,17 +543,25 @@ class InsuranceManager:
             }
 
         total = len(claims)
-        approved = sum(1 for c in claims if c.status in [ClaimStatus.APPROVED, ClaimStatus.PAID])
+        approved = sum(
+            1 for c in claims if c.status in [ClaimStatus.APPROVED, ClaimStatus.PAID]
+        )
         denied = sum(1 for c in claims if c.status == ClaimStatus.DENIED)
 
         total_claimed = sum(c.claimed_amount for c in claims)
-        total_paid = sum(c.payout_amount for c in claims if c.status == ClaimStatus.PAID)
+        total_paid = sum(
+            c.payout_amount for c in claims if c.status == ClaimStatus.PAID
+        )
 
         by_type = {}
         for claim in claims:
             ct = claim.claim_type.value
             if ct not in by_type:
-                by_type[ct] = {"count": 0, "claimed": Decimal("0"), "paid": Decimal("0")}
+                by_type[ct] = {
+                    "count": 0,
+                    "claimed": Decimal("0"),
+                    "paid": Decimal("0"),
+                }
             by_type[ct]["count"] += 1
             by_type[ct]["claimed"] += claim.claimed_amount
             if claim.status == ClaimStatus.PAID:

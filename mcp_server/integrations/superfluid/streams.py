@@ -7,16 +7,17 @@ High-level stream management for long-running tasks.
 import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 
-from .client import SuperfluidClient, StreamInfo
+from .client import SuperfluidClient
 
 logger = logging.getLogger(__name__)
 
 
 class StreamStatus(str, Enum):
     """Status of a task stream."""
+
     PENDING = "pending"
     ACTIVE = "active"
     PAUSED = "paused"
@@ -27,6 +28,7 @@ class StreamStatus(str, Enum):
 @dataclass
 class TaskStream:
     """Stream associated with a task."""
+
     task_id: str
     executor_id: str
     executor_wallet: str
@@ -59,9 +61,7 @@ class StreamManager:
     VERIFICATION_INTERVAL_MINUTES = 15
 
     def __init__(
-        self,
-        client: Optional[SuperfluidClient] = None,
-        network: str = "base"
+        self, client: Optional[SuperfluidClient] = None, network: str = "base"
     ):
         """
         Initialize stream manager.
@@ -79,7 +79,7 @@ class StreamManager:
         executor_id: str,
         executor_wallet: str,
         hourly_rate_usd: float = DEFAULT_HOURLY_RATE,
-        auto_start: bool = True
+        auto_start: bool = True,
     ) -> TaskStream:
         """
         Create a stream for a task.
@@ -103,14 +103,12 @@ class StreamManager:
             hourly_rate_usd=hourly_rate_usd,
             flow_rate_wei=flow_rate,
             status=StreamStatus.PENDING,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
 
         if auto_start:
             tx_hash = await self.client.create_stream(
-                receiver=executor_wallet,
-                flow_rate=flow_rate,
-                task_id=task_id
+                receiver=executor_wallet, flow_rate=flow_rate, task_id=task_id
             )
 
             if tx_hash:
@@ -124,11 +122,7 @@ class StreamManager:
         self._active_streams[task_id] = stream
         return stream
 
-    async def pause_stream(
-        self,
-        task_id: str,
-        reason: str = "verification"
-    ) -> bool:
+    async def pause_stream(self, task_id: str, reason: str = "verification") -> bool:
         """
         Pause a task's stream.
 
@@ -148,7 +142,9 @@ class StreamManager:
         if tx_hash:
             # Calculate streamed amount before pause
             if stream.started_at:
-                elapsed_hours = (datetime.utcnow() - stream.started_at).total_seconds() / 3600
+                elapsed_hours = (
+                    datetime.utcnow() - stream.started_at
+                ).total_seconds() / 3600
                 stream.total_streamed_usd += elapsed_hours * stream.hourly_rate_usd
 
             stream.status = StreamStatus.PAUSED
@@ -175,8 +171,7 @@ class StreamManager:
             return False
 
         tx_hash = await self.client.resume_stream(
-            receiver=stream.executor_wallet,
-            flow_rate=stream.flow_rate_wei
+            receiver=stream.executor_wallet, flow_rate=stream.flow_rate_wei
         )
 
         if tx_hash:
@@ -212,7 +207,9 @@ class StreamManager:
 
         # Calculate final streamed amount
         if stream.started_at and stream.status == StreamStatus.ACTIVE:
-            elapsed_hours = (datetime.utcnow() - stream.started_at).total_seconds() / 3600
+            elapsed_hours = (
+                datetime.utcnow() - stream.started_at
+            ).total_seconds() / 3600
             stream.total_streamed_usd += elapsed_hours * stream.hourly_rate_usd
 
         stream.status = StreamStatus.COMPLETED
@@ -265,12 +262,14 @@ class StreamManager:
         # Get live info from chain
         chain_info = await self.client.get_stream_info(
             sender=self.client.account.address if self.client.account else "",
-            receiver=stream.executor_wallet
+            receiver=stream.executor_wallet,
         )
 
         current_streamed = stream.total_streamed_usd
         if stream.status == StreamStatus.ACTIVE and stream.started_at:
-            elapsed_hours = (datetime.utcnow() - stream.started_at).total_seconds() / 3600
+            elapsed_hours = (
+                datetime.utcnow() - stream.started_at
+            ).total_seconds() / 3600
             current_streamed += elapsed_hours * stream.hourly_rate_usd
 
         return {
@@ -280,14 +279,12 @@ class StreamManager:
             "hourly_rate_usd": stream.hourly_rate_usd,
             "total_streamed_usd": round(current_streamed, 4),
             "started_at": stream.started_at.isoformat() if stream.started_at else None,
-            "chain_active": chain_info is not None and chain_info.is_active if chain_info else False
+            "chain_active": chain_info is not None and chain_info.is_active
+            if chain_info
+            else False,
         }
 
-    async def verify_and_adjust(
-        self,
-        task_id: str,
-        verification_score: float
-    ) -> str:
+    async def verify_and_adjust(self, task_id: str, verification_score: float) -> str:
         """
         Verify task progress and adjust stream accordingly.
 
@@ -328,8 +325,7 @@ class StreamManager:
     def get_active_streams(self) -> List[TaskStream]:
         """Get all active streams."""
         return [
-            s for s in self._active_streams.values()
-            if s.status == StreamStatus.ACTIVE
+            s for s in self._active_streams.values() if s.status == StreamStatus.ACTIVE
         ]
 
     def calculate_total_outflow(self) -> float:

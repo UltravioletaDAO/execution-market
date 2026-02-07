@@ -21,21 +21,18 @@ Security Model:
 
 import base64
 import hashlib
-import hmac
-import json
 import logging
 import struct
-import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, UTC
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
 
 # CBOR is used by Apple App Attest
 try:
     import cbor2
+
     CBOR_AVAILABLE = True
 except ImportError:
     CBOR_AVAILABLE = False
@@ -44,11 +41,11 @@ except ImportError:
 try:
     from cryptography import x509
     from cryptography.exceptions import InvalidSignature
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import ec, padding
-    from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import ec
     from cryptography.x509 import load_der_x509_certificate
     from cryptography.hazmat.backends import default_backend
+
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
@@ -80,7 +77,9 @@ oyFraWVIyd/dganmrduC1bmTBGwD
 """
 
 # Google Play Integrity API endpoints
-GOOGLE_PLAY_INTEGRITY_VERIFY_URL = "https://www.googleapis.com/playintegrity/v1/decodeIntegrityToken"
+GOOGLE_PLAY_INTEGRITY_VERIFY_URL = (
+    "https://www.googleapis.com/playintegrity/v1/decodeIntegrityToken"
+)
 
 # Attestation thresholds (NOW-082)
 ATTESTATION_REQUIRED_BOUNTY_USD = 50.0
@@ -99,8 +98,10 @@ DEVICE_SIMILARITY_THRESHOLD = 0.90  # 90% similar = likely same device
 # ENUMS AND DATA CLASSES
 # =============================================================================
 
+
 class DevicePlatform(str, Enum):
     """Supported device platforms."""
+
     IOS = "ios"
     ANDROID = "android"
     UNKNOWN = "unknown"
@@ -108,14 +109,16 @@ class DevicePlatform(str, Enum):
 
 class AttestationLevel(str, Enum):
     """Levels of attestation security."""
-    NONE = "none"              # No attestation
-    BASIC = "basic"            # Software-based attestation
-    STRONG = "strong"          # Hardware-backed (Secure Enclave / StrongBox)
-    VERIFIED = "verified"      # Hardware-backed + certificate chain verified
+
+    NONE = "none"  # No attestation
+    BASIC = "basic"  # Software-based attestation
+    STRONG = "strong"  # Hardware-backed (Secure Enclave / StrongBox)
+    VERIFIED = "verified"  # Hardware-backed + certificate chain verified
 
 
 class AttestationError(str, Enum):
     """Types of attestation errors."""
+
     MISSING_DATA = "missing_data"
     INVALID_SIGNATURE = "invalid_signature"
     INVALID_CERTIFICATE = "invalid_certificate"
@@ -129,6 +132,7 @@ class AttestationError(str, Enum):
 @dataclass
 class AttestationResult:
     """Result of attestation verification."""
+
     is_valid: bool
     platform: DevicePlatform
     level: AttestationLevel
@@ -144,7 +148,7 @@ class AttestationResult:
         platform: DevicePlatform,
         level: AttestationLevel,
         device_id: str,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ) -> "AttestationResult":
         """Create a successful attestation result."""
         return cls(
@@ -155,7 +159,7 @@ class AttestationResult:
             timestamp=datetime.now(UTC),
             errors=[],
             warnings=[],
-            details=details or {}
+            details=details or {},
         )
 
     @classmethod
@@ -164,7 +168,7 @@ class AttestationResult:
         platform: DevicePlatform,
         errors: List[str],
         device_id: str = "",
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ) -> "AttestationResult":
         """Create a failed attestation result."""
         return cls(
@@ -175,36 +179,39 @@ class AttestationResult:
             timestamp=datetime.now(UTC),
             errors=errors,
             warnings=[],
-            details=details or {}
+            details=details or {},
         )
 
 
 @dataclass
 class PhotoSignature:
     """Signed photo data from device."""
-    photo_hash: str           # SHA-256 of photo data
-    signature: str            # Base64-encoded signature
-    public_key: str           # Base64-encoded public key
-    timestamp: datetime       # When the photo was taken
-    nonce: str               # Anti-replay nonce
-    device_id: str           # Device identifier
+
+    photo_hash: str  # SHA-256 of photo data
+    signature: str  # Base64-encoded signature
+    public_key: str  # Base64-encoded public key
+    timestamp: datetime  # When the photo was taken
+    nonce: str  # Anti-replay nonce
+    device_id: str  # Device identifier
     platform: DevicePlatform
 
 
 @dataclass
 class DeviceAttestation:
     """Device attestation data."""
+
     platform: DevicePlatform
-    attestation_object: str   # Base64-encoded attestation
-    challenge: str            # Server-provided challenge
-    key_id: str              # Key identifier
-    app_id: str              # Bundle ID (iOS) or Package name (Android)
+    attestation_object: str  # Base64-encoded attestation
+    challenge: str  # Server-provided challenge
+    key_id: str  # Key identifier
+    app_id: str  # Bundle ID (iOS) or Package name (Android)
     timestamp: datetime
 
 
 @dataclass
 class PhotoMetadata:
     """Preserved photo metadata (EXIF)."""
+
     timestamp: Optional[datetime] = None
     gps_latitude: Optional[float] = None
     gps_longitude: Optional[float] = None
@@ -225,6 +232,7 @@ class PhotoMetadata:
 @dataclass
 class DeviceFingerprint:
     """Device fingerprint for anti-fraud detection."""
+
     device_id: str
     platform: DevicePlatform
     hardware_id: str
@@ -239,6 +247,7 @@ class DeviceFingerprint:
 @dataclass
 class AttestationRequirement:
     """Attestation requirement for a task type."""
+
     required: bool
     recommended: bool
     min_level: AttestationLevel
@@ -248,6 +257,7 @@ class AttestationRequirement:
 # =============================================================================
 # MAIN VERIFIER CLASS
 # =============================================================================
+
 
 class AttestationVerifier:
     """
@@ -308,8 +318,7 @@ class AttestationVerifier:
         if CRYPTO_AVAILABLE:
             try:
                 self._apple_root_cert = x509.load_pem_x509_certificate(
-                    APPLE_APP_ATTEST_ROOT_CA.encode(),
-                    default_backend()
+                    APPLE_APP_ATTEST_ROOT_CA.encode(), default_backend()
                 )
             except Exception as e:
                 logger.warning(f"Failed to load Apple root certificate: {e}")
@@ -319,8 +328,7 @@ class AttestationVerifier:
     # =========================================================================
 
     async def verify_ios_attestation(
-        self,
-        attestation: DeviceAttestation
+        self, attestation: DeviceAttestation
     ) -> AttestationResult:
         """
         Verify iOS App Attest attestation.
@@ -342,14 +350,14 @@ class AttestationVerifier:
             return AttestationResult.failure(
                 DevicePlatform.IOS,
                 ["CBOR library not available for iOS attestation verification"],
-                details={"missing_dependency": "cbor2"}
+                details={"missing_dependency": "cbor2"},
             )
 
         if not CRYPTO_AVAILABLE:
             return AttestationResult.failure(
                 DevicePlatform.IOS,
                 ["Cryptography library not available"],
-                details={"missing_dependency": "cryptography"}
+                details={"missing_dependency": "cryptography"},
             )
 
         try:
@@ -365,15 +373,14 @@ class AttestationVerifier:
             if fmt != "apple-appattest":
                 return AttestationResult.failure(
                     DevicePlatform.IOS,
-                    [f"Invalid attestation format: {fmt}, expected 'apple-appattest'"]
+                    [f"Invalid attestation format: {fmt}, expected 'apple-appattest'"],
                 )
 
             # Parse authenticator data
             parsed_auth = self._parse_ios_auth_data(auth_data)
             if not parsed_auth:
                 return AttestationResult.failure(
-                    DevicePlatform.IOS,
-                    ["Failed to parse authenticator data"]
+                    DevicePlatform.IOS, ["Failed to parse authenticator data"]
                 )
 
             rp_id_hash, flags, counter, aaguid, cred_id, public_key = parsed_auth
@@ -382,23 +389,21 @@ class AttestationVerifier:
             expected_app_id_hash = self._compute_app_id_hash_ios()
             if rp_id_hash != expected_app_id_hash:
                 return AttestationResult.failure(
-                    DevicePlatform.IOS,
-                    ["App ID hash mismatch - possible tampering"]
+                    DevicePlatform.IOS, ["App ID hash mismatch - possible tampering"]
                 )
 
             # Verify certificate chain
             x5c = att_stmt.get("x5c", [])
             if len(x5c) < 2:
                 return AttestationResult.failure(
-                    DevicePlatform.IOS,
-                    ["Invalid certificate chain length"]
+                    DevicePlatform.IOS, ["Invalid certificate chain length"]
                 )
 
             chain_valid, chain_error = self._verify_ios_certificate_chain(x5c)
             if not chain_valid:
                 return AttestationResult.failure(
                     DevicePlatform.IOS,
-                    [f"Certificate chain validation failed: {chain_error}"]
+                    [f"Certificate chain validation failed: {chain_error}"],
                 )
 
             # Verify nonce/challenge
@@ -413,7 +418,7 @@ class AttestationVerifier:
                 return AttestationResult.failure(
                     DevicePlatform.IOS,
                     ["Challenge verification failed - possible replay attack"],
-                    details={"error_type": AttestationError.REPLAY_ATTACK}
+                    details={"error_type": AttestationError.REPLAY_ATTACK},
                 )
 
             # Check replay using counter
@@ -423,14 +428,12 @@ class AttestationVerifier:
                     DevicePlatform.IOS,
                     ["Counter check failed - possible replay attack"],
                     device_id=device_id,
-                    details={"error_type": AttestationError.REPLAY_ATTACK}
+                    details={"error_type": AttestationError.REPLAY_ATTACK},
                 )
 
             # Check for fraud indicators
             fraud_result = await self._check_device_fraud(
-                device_id,
-                attestation.key_id,
-                DevicePlatform.IOS
+                device_id, attestation.key_id, DevicePlatform.IOS
             )
 
             if fraud_result["is_fraud"]:
@@ -438,7 +441,7 @@ class AttestationVerifier:
                     DevicePlatform.IOS,
                     fraud_result["reasons"],
                     device_id=device_id,
-                    details={"error_type": fraud_result["error_type"]}
+                    details={"error_type": fraud_result["error_type"]},
                 )
 
             return AttestationResult.success(
@@ -449,15 +452,14 @@ class AttestationVerifier:
                     "counter": counter,
                     "aaguid": base64.b64encode(aaguid).decode(),
                     "key_id": attestation.key_id,
-                    "certificate_valid_until": leaf_cert.not_valid_after_utc.isoformat()
-                }
+                    "certificate_valid_until": leaf_cert.not_valid_after_utc.isoformat(),
+                },
             )
 
         except Exception as e:
             logger.error(f"iOS attestation verification error: {e}", exc_info=True)
             return AttestationResult.failure(
-                DevicePlatform.IOS,
-                [f"Attestation verification error: {str(e)}"]
+                DevicePlatform.IOS, [f"Attestation verification error: {str(e)}"]
             )
 
     # =========================================================================
@@ -465,8 +467,7 @@ class AttestationVerifier:
     # =========================================================================
 
     async def verify_android_attestation(
-        self,
-        attestation: DeviceAttestation
+        self, attestation: DeviceAttestation
     ) -> AttestationResult:
         """
         Verify Android Play Integrity attestation.
@@ -487,7 +488,7 @@ class AttestationVerifier:
         if not self.google_api_key:
             return AttestationResult.failure(
                 DevicePlatform.ANDROID,
-                ["Google API key not configured for Play Integrity verification"]
+                ["Google API key not configured for Play Integrity verification"],
             )
 
         try:
@@ -501,31 +502,43 @@ class AttestationVerifier:
                         "integrity_token": attestation.attestation_object,
                     },
                     headers={"Content-Type": "application/json"},
-                    timeout=30.0
+                    timeout=30.0,
                 )
 
                 if response.status_code != 200:
                     error_data = response.json() if response.text else {}
                     return AttestationResult.failure(
                         DevicePlatform.ANDROID,
-                        [f"Play Integrity API error: {error_data.get('error', {}).get('message', 'Unknown')}"],
-                        details={"status_code": response.status_code}
+                        [
+                            f"Play Integrity API error: {error_data.get('error', {}).get('message', 'Unknown')}"
+                        ],
+                        details={"status_code": response.status_code},
                     )
 
                 token_payload = response.json()
 
             # Extract verdicts
-            request_details = token_payload.get("tokenPayloadExternal", {}).get("requestDetails", {})
-            app_integrity = token_payload.get("tokenPayloadExternal", {}).get("appIntegrity", {})
-            device_integrity = token_payload.get("tokenPayloadExternal", {}).get("deviceIntegrity", {})
-            account_details = token_payload.get("tokenPayloadExternal", {}).get("accountDetails", {})
+            request_details = token_payload.get("tokenPayloadExternal", {}).get(
+                "requestDetails", {}
+            )
+            app_integrity = token_payload.get("tokenPayloadExternal", {}).get(
+                "appIntegrity", {}
+            )
+            device_integrity = token_payload.get("tokenPayloadExternal", {}).get(
+                "deviceIntegrity", {}
+            )
+            account_details = token_payload.get("tokenPayloadExternal", {}).get(
+                "accountDetails", {}
+            )
 
             errors = []
             warnings = []
 
             # Verify package name
             if app_integrity.get("packageName") != self.android_package_name:
-                errors.append(f"Package name mismatch: expected {self.android_package_name}")
+                errors.append(
+                    f"Package name mismatch: expected {self.android_package_name}"
+                )
 
             # Verify app integrity
             app_recognition = app_integrity.get("appRecognitionVerdict", "")
@@ -567,8 +580,8 @@ class AttestationVerifier:
                     errors,
                     details={
                         "device_verdict": device_verdict,
-                        "app_recognition": app_recognition
-                    }
+                        "app_recognition": app_recognition,
+                    },
                 )
 
             # Generate device ID from package and device identifiers
@@ -578,9 +591,7 @@ class AttestationVerifier:
 
             # Check for fraud
             fraud_result = await self._check_device_fraud(
-                device_id,
-                attestation.key_id,
-                DevicePlatform.ANDROID
+                device_id, attestation.key_id, DevicePlatform.ANDROID
             )
 
             if fraud_result["is_fraud"]:
@@ -588,7 +599,7 @@ class AttestationVerifier:
                     DevicePlatform.ANDROID,
                     fraud_result["reasons"],
                     device_id=device_id,
-                    details={"error_type": fraud_result["error_type"]}
+                    details={"error_type": fraud_result["error_type"]},
                 )
 
             result = AttestationResult.success(
@@ -598,8 +609,9 @@ class AttestationVerifier:
                 details={
                     "device_verdict": device_verdict,
                     "app_recognition": app_recognition,
-                    "account_licensed": account_details.get("appLicensingVerdict") == "LICENSED"
-                }
+                    "account_licensed": account_details.get("appLicensingVerdict")
+                    == "LICENSED",
+                },
             )
             result.warnings = warnings
             return result
@@ -608,13 +620,12 @@ class AttestationVerifier:
             return AttestationResult.failure(
                 DevicePlatform.ANDROID,
                 ["httpx library not available for API calls"],
-                details={"missing_dependency": "httpx"}
+                details={"missing_dependency": "httpx"},
             )
         except Exception as e:
             logger.error(f"Android attestation verification error: {e}", exc_info=True)
             return AttestationResult.failure(
-                DevicePlatform.ANDROID,
-                [f"Attestation verification error: {str(e)}"]
+                DevicePlatform.ANDROID, [f"Attestation verification error: {str(e)}"]
             )
 
     # =========================================================================
@@ -622,10 +633,7 @@ class AttestationVerifier:
     # =========================================================================
 
     async def verify_photo_signature(
-        self,
-        signature: PhotoSignature,
-        photo_data: bytes,
-        worker_id: str
+        self, signature: PhotoSignature, photo_data: bytes, worker_id: str
     ) -> AttestationResult:
         """
         Verify a hardware-signed photo.
@@ -649,7 +657,6 @@ class AttestationVerifier:
         Returns:
             AttestationResult with verification status
         """
-        errors = []
         warnings = []
 
         # Verify photo hash
@@ -658,7 +665,7 @@ class AttestationVerifier:
             return AttestationResult.failure(
                 signature.platform,
                 ["Photo hash mismatch - photo may have been modified"],
-                device_id=signature.device_id
+                device_id=signature.device_id,
             )
 
         # Check timestamp freshness (photos must be recent)
@@ -672,14 +679,14 @@ class AttestationVerifier:
                 signature.platform,
                 [f"Photo signature too old: {age.total_seconds() / 60:.1f} minutes"],
                 device_id=signature.device_id,
-                details={"signature_age_minutes": age.total_seconds() / 60}
+                details={"signature_age_minutes": age.total_seconds() / 60},
             )
 
         if age < timedelta(seconds=-30):  # Allow 30s clock drift
             return AttestationResult.failure(
                 signature.platform,
                 ["Photo signature timestamp is in the future"],
-                device_id=signature.device_id
+                device_id=signature.device_id,
             )
 
         # Check nonce (replay prevention)
@@ -688,7 +695,7 @@ class AttestationVerifier:
                 signature.platform,
                 ["Nonce already used - possible replay attack"],
                 device_id=signature.device_id,
-                details={"error_type": AttestationError.REPLAY_ATTACK}
+                details={"error_type": AttestationError.REPLAY_ATTACK},
             )
 
         # Verify signature
@@ -697,7 +704,7 @@ class AttestationVerifier:
                 sig_valid = self._verify_ecdsa_signature(
                     signature.signature,
                     signature.public_key,
-                    signature.photo_hash.encode()
+                    signature.photo_hash.encode(),
                 )
 
                 if not sig_valid:
@@ -705,22 +712,23 @@ class AttestationVerifier:
                         signature.platform,
                         ["Invalid signature - photo may not be from registered device"],
                         device_id=signature.device_id,
-                        details={"error_type": AttestationError.INVALID_SIGNATURE}
+                        details={"error_type": AttestationError.INVALID_SIGNATURE},
                     )
 
             except Exception as e:
                 return AttestationResult.failure(
                     signature.platform,
                     [f"Signature verification error: {str(e)}"],
-                    device_id=signature.device_id
+                    device_id=signature.device_id,
                 )
         else:
-            warnings.append("Cryptography library not available - signature not fully verified")
+            warnings.append(
+                "Cryptography library not available - signature not fully verified"
+            )
 
         # Check device-worker binding (NOW-081)
         device_check = await self._verify_device_worker_binding(
-            signature.device_id,
-            worker_id
+            signature.device_id, worker_id
         )
 
         if not device_check["valid"]:
@@ -728,7 +736,7 @@ class AttestationVerifier:
                 signature.platform,
                 device_check["errors"],
                 device_id=signature.device_id,
-                details={"error_type": device_check.get("error_type")}
+                details={"error_type": device_check.get("error_type")},
             )
 
         warnings.extend(device_check.get("warnings", []))
@@ -740,7 +748,7 @@ class AttestationVerifier:
             details={
                 "signature_age_seconds": age.total_seconds(),
                 "nonce": signature.nonce[:16] + "...",
-            }
+            },
         )
         result.warnings = warnings
         return result
@@ -770,7 +778,7 @@ class AttestationVerifier:
         try:
             # Try PIL/Pillow first
             from PIL import Image
-            from PIL.ExifTags import TAGS, GPSTAGS
+            from PIL.ExifTags import TAGS
             import io
 
             img = Image.open(io.BytesIO(photo_data))
@@ -782,7 +790,7 @@ class AttestationVerifier:
                     tag = TAGS.get(tag_id, tag_id)
                     if isinstance(value, bytes):
                         try:
-                            value = value.decode('utf-8', errors='replace')
+                            value = value.decode("utf-8", errors="replace")
                         except Exception:
                             value = str(value)
                     metadata.raw_exif[str(tag)] = value
@@ -794,10 +802,14 @@ class AttestationVerifier:
                 metadata.orientation = exif_data.get(274)  # Orientation
 
                 # DateTime
-                date_time = exif_data.get(36867) or exif_data.get(306)  # DateTimeOriginal or DateTime
+                date_time = exif_data.get(36867) or exif_data.get(
+                    306
+                )  # DateTimeOriginal or DateTime
                 if date_time:
                     try:
-                        metadata.timestamp = datetime.strptime(date_time, "%Y:%m:%d %H:%M:%S")
+                        metadata.timestamp = datetime.strptime(
+                            date_time, "%Y:%m:%d %H:%M:%S"
+                        )
                     except ValueError:
                         pass
 
@@ -806,11 +818,11 @@ class AttestationVerifier:
                 if gps_info:
                     metadata.gps_latitude = self._convert_gps_to_decimal(
                         gps_info.get(2),  # GPSLatitude
-                        gps_info.get(1)   # GPSLatitudeRef
+                        gps_info.get(1),  # GPSLatitudeRef
                     )
                     metadata.gps_longitude = self._convert_gps_to_decimal(
                         gps_info.get(4),  # GPSLongitude
-                        gps_info.get(3)   # GPSLongitudeRef
+                        gps_info.get(3),  # GPSLongitudeRef
                     )
                     if 6 in gps_info:  # GPSAltitude
                         metadata.gps_altitude = float(gps_info[6])
@@ -842,7 +854,7 @@ class AttestationVerifier:
         self,
         metadata: PhotoMetadata,
         expected_location: Optional[Tuple[float, float]] = None,
-        max_age_minutes: int = 30
+        max_age_minutes: int = 30,
     ) -> Dict[str, Any]:
         """
         Validate photo metadata for fraud indicators.
@@ -861,12 +873,7 @@ class AttestationVerifier:
         Returns:
             Dict with validation results
         """
-        result = {
-            "valid": True,
-            "issues": [],
-            "warnings": [],
-            "checks": {}
-        }
+        result = {"valid": True, "issues": [], "warnings": [], "checks": {}}
 
         # Check timestamp
         if metadata.timestamp:
@@ -878,7 +885,9 @@ class AttestationVerifier:
 
             if age_minutes > max_age_minutes:
                 result["valid"] = False
-                result["issues"].append(f"Photo too old: {age_minutes:.1f} minutes (max: {max_age_minutes})")
+                result["issues"].append(
+                    f"Photo too old: {age_minutes:.1f} minutes (max: {max_age_minutes})"
+                )
             elif age_minutes < -5:  # Allow 5 min clock drift
                 result["valid"] = False
                 result["issues"].append("Photo timestamp is in the future")
@@ -895,22 +904,31 @@ class AttestationVerifier:
             dlat = lat2 - lat1
             dlon = lon2 - lon1
 
-            a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-            c = 2 * atan2(sqrt(a), sqrt(1-a))
+            a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+            c = 2 * atan2(sqrt(a), sqrt(1 - a))
             distance_m = 6371000 * c  # Earth radius in meters
 
             result["checks"]["gps_distance_meters"] = distance_m
 
             if distance_m > 500:  # More than 500m away
                 result["valid"] = False
-                result["issues"].append(f"Photo location {distance_m:.0f}m from expected")
+                result["issues"].append(
+                    f"Photo location {distance_m:.0f}m from expected"
+                )
         elif expected_location:
             result["warnings"].append("No GPS data in photo for location verification")
 
         # Check for editing software
         editing_software = [
-            "photoshop", "gimp", "lightroom", "snapseed", "vsco",
-            "afterlight", "pixelmator", "capture one", "darktable"
+            "photoshop",
+            "gimp",
+            "lightroom",
+            "snapseed",
+            "vsco",
+            "afterlight",
+            "pixelmator",
+            "capture one",
+            "darktable",
         ]
 
         if metadata.software:
@@ -936,9 +954,7 @@ class AttestationVerifier:
     # =========================================================================
 
     def get_attestation_requirement(
-        self,
-        task_type: str,
-        bounty_usd: float
+        self, task_type: str, bounty_usd: float
     ) -> AttestationRequirement:
         """
         Determine attestation requirement for a task.
@@ -967,7 +983,7 @@ class AttestationVerifier:
             "financial_verification",
             "identity_verification",
             "notarization",
-            "medical_verification"
+            "medical_verification",
         ]
 
         if task_type in high_risk_types:
@@ -975,7 +991,7 @@ class AttestationVerifier:
                 required=True,
                 recommended=True,
                 min_level=AttestationLevel.VERIFIED,
-                reason=f"Task type '{task_type}' requires hardware attestation"
+                reason=f"Task type '{task_type}' requires hardware attestation",
             )
 
         # Bounty-based requirements
@@ -984,7 +1000,7 @@ class AttestationVerifier:
                 required=True,
                 recommended=True,
                 min_level=AttestationLevel.STRONG,
-                reason=f"Bounty ${bounty_usd:.2f} >= ${ATTESTATION_REQUIRED_BOUNTY_USD} requires attestation"
+                reason=f"Bounty ${bounty_usd:.2f} >= ${ATTESTATION_REQUIRED_BOUNTY_USD} requires attestation",
             )
 
         if bounty_usd >= ATTESTATION_RECOMMENDED_BOUNTY_USD:
@@ -992,21 +1008,21 @@ class AttestationVerifier:
                 required=False,
                 recommended=True,
                 min_level=AttestationLevel.BASIC,
-                reason=f"Bounty ${bounty_usd:.2f} >= ${ATTESTATION_RECOMMENDED_BOUNTY_USD} recommends attestation"
+                reason=f"Bounty ${bounty_usd:.2f} >= ${ATTESTATION_RECOMMENDED_BOUNTY_USD} recommends attestation",
             )
 
         return AttestationRequirement(
             required=False,
             recommended=False,
             min_level=AttestationLevel.NONE,
-            reason="Low-value task - attestation optional"
+            reason="Low-value task - attestation optional",
         )
 
     def check_attestation_compliance(
         self,
         task_type: str,
         bounty_usd: float,
-        attestation_result: Optional[AttestationResult]
+        attestation_result: Optional[AttestationResult],
     ) -> Dict[str, Any]:
         """
         Check if submission meets attestation requirements.
@@ -1027,11 +1043,11 @@ class AttestationVerifier:
                 "required": requirement.required,
                 "recommended": requirement.recommended,
                 "min_level": requirement.min_level.value,
-                "reason": requirement.reason
+                "reason": requirement.reason,
             },
             "attestation": None,
             "issues": [],
-            "warnings": []
+            "warnings": [],
         }
 
         if attestation_result:
@@ -1039,25 +1055,35 @@ class AttestationVerifier:
                 "is_valid": attestation_result.is_valid,
                 "level": attestation_result.level.value,
                 "platform": attestation_result.platform.value,
-                "device_id": attestation_result.device_id[:16] + "..." if attestation_result.device_id else None
+                "device_id": attestation_result.device_id[:16] + "..."
+                if attestation_result.device_id
+                else None,
             }
 
         # Check compliance
         if requirement.required:
             if not attestation_result:
                 result["compliant"] = False
-                result["issues"].append("Hardware attestation required but not provided")
+                result["issues"].append(
+                    "Hardware attestation required but not provided"
+                )
             elif not attestation_result.is_valid:
                 result["compliant"] = False
-                result["issues"].append(f"Attestation invalid: {', '.join(attestation_result.errors)}")
-            elif self._level_value(attestation_result.level) < self._level_value(requirement.min_level):
+                result["issues"].append(
+                    f"Attestation invalid: {', '.join(attestation_result.errors)}"
+                )
+            elif self._level_value(attestation_result.level) < self._level_value(
+                requirement.min_level
+            ):
                 result["compliant"] = False
                 result["issues"].append(
                     f"Attestation level {attestation_result.level.value} below required {requirement.min_level.value}"
                 )
         elif requirement.recommended:
             if not attestation_result or not attestation_result.is_valid:
-                result["warnings"].append("Hardware attestation recommended for this task")
+                result["warnings"].append(
+                    "Hardware attestation recommended for this task"
+                )
 
         return result
 
@@ -1071,7 +1097,7 @@ class AttestationVerifier:
         platform: DevicePlatform,
         hardware_id: str,
         worker_id: str,
-        attestation_level: AttestationLevel
+        attestation_level: AttestationLevel,
     ) -> Dict[str, Any]:
         """
         Register a device for a worker.
@@ -1092,24 +1118,21 @@ class AttestationVerifier:
             Dict with registration status
         """
         now = datetime.now(UTC)
-        result = {
-            "registered": False,
-            "errors": [],
-            "warnings": []
-        }
+        result = {"registered": False, "errors": [], "warnings": []}
 
         # Check if device is already registered to another worker
         if device_id in self._device_workers:
             existing_workers = self._device_workers[device_id]
             if existing_workers and existing_workers[0] != worker_id:
-                result["errors"].append(
-                    f"Device already registered to another worker"
-                )
+                result["errors"].append("Device already registered to another worker")
                 return result
 
         # Check worker device limit
         worker_devices = self._worker_devices.get(worker_id, [])
-        if len(worker_devices) >= MAX_DEVICES_PER_WORKER and device_id not in worker_devices:
+        if (
+            len(worker_devices) >= MAX_DEVICES_PER_WORKER
+            and device_id not in worker_devices
+        ):
             result["errors"].append(
                 f"Worker already has {MAX_DEVICES_PER_WORKER} registered devices"
             )
@@ -1121,14 +1144,13 @@ class AttestationVerifier:
                 continue
 
             similarity = self._calculate_device_similarity(
-                hardware_id,
-                fingerprint.hardware_id
+                hardware_id, fingerprint.hardware_id
             )
 
             if similarity >= DEVICE_SIMILARITY_THRESHOLD:
                 if fingerprint.worker_id != worker_id:
                     result["errors"].append(
-                        f"Similar device detected registered to another worker"
+                        "Similar device detected registered to another worker"
                     )
                     return result
                 else:
@@ -1144,7 +1166,7 @@ class AttestationVerifier:
             worker_id=worker_id,
             first_seen=now,
             last_seen=now,
-            attestation_level=attestation_level
+            attestation_level=attestation_level,
         )
 
         self._device_fingerprints[device_id] = fingerprint
@@ -1161,9 +1183,7 @@ class AttestationVerifier:
         return result
 
     async def check_device_fraud(
-        self,
-        device_id: str,
-        worker_id: str
+        self, device_id: str, worker_id: str
     ) -> Dict[str, Any]:
         """
         Check for device-based fraud.
@@ -1180,12 +1200,7 @@ class AttestationVerifier:
         Returns:
             Dict with fraud check results
         """
-        result = {
-            "is_fraud": False,
-            "risk_score": 0.0,
-            "issues": [],
-            "warnings": []
-        }
+        result = {"is_fraud": False, "risk_score": 0.0, "issues": [], "warnings": []}
 
         fingerprint = self._device_fingerprints.get(device_id)
 
@@ -1232,11 +1247,11 @@ class AttestationVerifier:
             if flags & 0x40:
                 aaguid = auth_data[37:53]
                 cred_id_len = struct.unpack(">H", auth_data[53:55])[0]
-                cred_id = auth_data[55:55 + cred_id_len]
-                public_key = auth_data[55 + cred_id_len:]
+                cred_id = auth_data[55 : 55 + cred_id_len]
+                public_key = auth_data[55 + cred_id_len :]
                 return (rp_id_hash, flags, counter, aaguid, cred_id, public_key)
 
-            return (rp_id_hash, flags, counter, b'', b'', b'')
+            return (rp_id_hash, flags, counter, b"", b"", b"")
 
         except Exception:
             return None
@@ -1260,13 +1275,15 @@ class AttestationVerifier:
 
             # Verify chain
             for i in range(len(certs) - 1):
-                issuer_cert = certs[i + 1] if i + 1 < len(certs) else self._apple_root_cert
+                issuer_cert = (
+                    certs[i + 1] if i + 1 < len(certs) else self._apple_root_cert
+                )
 
                 try:
                     issuer_cert.public_key().verify(
                         certs[i].signature,
                         certs[i].tbs_certificate_bytes,
-                        ec.ECDSA(certs[i].signature_hash_algorithm)
+                        ec.ECDSA(certs[i].signature_hash_algorithm),
                     )
                 except InvalidSignature:
                     return (False, f"Certificate {i} signature verification failed")
@@ -1276,7 +1293,7 @@ class AttestationVerifier:
                 self._apple_root_cert.public_key().verify(
                     certs[-1].signature,
                     certs[-1].tbs_certificate_bytes,
-                    ec.ECDSA(certs[-1].signature_hash_algorithm)
+                    ec.ECDSA(certs[-1].signature_hash_algorithm),
                 )
             except InvalidSignature:
                 return (False, "Root certificate verification failed")
@@ -1305,15 +1322,12 @@ class AttestationVerifier:
                     # The extension value contains the nonce
                     return ext.value.value
 
-            return b''
+            return b""
         except Exception:
-            return b''
+            return b""
 
     def _verify_ecdsa_signature(
-        self,
-        signature_b64: str,
-        public_key_b64: str,
-        message: bytes
+        self, signature_b64: str, public_key_b64: str, message: bytes
     ) -> bool:
         """Verify ECDSA signature."""
         if not CRYPTO_AVAILABLE:
@@ -1325,16 +1339,11 @@ class AttestationVerifier:
 
             # Load public key (assuming P-256 curve)
             public_key = ec.EllipticCurvePublicKey.from_encoded_point(
-                ec.SECP256R1(),
-                public_key_bytes
+                ec.SECP256R1(), public_key_bytes
             )
 
             # Verify signature
-            public_key.verify(
-                signature,
-                message,
-                ec.ECDSA(hashes.SHA256())
-            )
+            public_key.verify(signature, message, ec.ECDSA(hashes.SHA256()))
             return True
 
         except Exception as e:
@@ -1360,8 +1369,7 @@ class AttestationVerifier:
         # Clean old nonces
         cutoff = now - timedelta(hours=1)
         self._nonce_cache = {
-            n: ts for n, ts in self._nonce_cache.items()
-            if ts > cutoff
+            n: ts for n, ts in self._nonce_cache.items() if ts > cutoff
         }
 
         # Check if nonce exists
@@ -1373,17 +1381,10 @@ class AttestationVerifier:
         return True
 
     async def _check_device_fraud(
-        self,
-        device_id: str,
-        key_id: str,
-        platform: DevicePlatform
+        self, device_id: str, key_id: str, platform: DevicePlatform
     ) -> Dict[str, Any]:
         """Internal fraud check during attestation."""
-        result = {
-            "is_fraud": False,
-            "reasons": [],
-            "error_type": None
-        }
+        result = {"is_fraud": False, "reasons": [], "error_type": None}
 
         # Check if device is already registered to different key
         fingerprint = self._device_fingerprints.get(device_id)
@@ -1391,22 +1392,18 @@ class AttestationVerifier:
             if fingerprint.fraud_flags:
                 if len(fingerprint.fraud_flags) >= 3:
                     result["is_fraud"] = True
-                    result["reasons"] = [f"Device flagged for fraud: {', '.join(fingerprint.fraud_flags)}"]
+                    result["reasons"] = [
+                        f"Device flagged for fraud: {', '.join(fingerprint.fraud_flags)}"
+                    ]
                     result["error_type"] = AttestationError.DEVICE_COMPROMISED
 
         return result
 
     async def _verify_device_worker_binding(
-        self,
-        device_id: str,
-        worker_id: str
+        self, device_id: str, worker_id: str
     ) -> Dict[str, Any]:
         """Verify device is bound to worker."""
-        result = {
-            "valid": True,
-            "errors": [],
-            "warnings": []
-        }
+        result = {"valid": True, "errors": [], "warnings": []}
 
         # Check device registration
         if device_id in self._device_workers:
@@ -1420,14 +1417,14 @@ class AttestationVerifier:
         # Check worker device count
         worker_devices = self._worker_devices.get(worker_id, [])
         if len(worker_devices) > MAX_DEVICES_PER_WORKER:
-            result["warnings"].append(f"Worker using many devices ({len(worker_devices)})")
+            result["warnings"].append(
+                f"Worker using many devices ({len(worker_devices)})"
+            )
 
         return result
 
     def _calculate_device_similarity(
-        self,
-        hardware_id1: str,
-        hardware_id2: str
+        self, hardware_id1: str, hardware_id2: str
     ) -> float:
         """Calculate similarity between two hardware identifiers."""
         if hardware_id1 == hardware_id2:
@@ -1438,9 +1435,7 @@ class AttestationVerifier:
         return matches / max(len(hardware_id1), len(hardware_id2))
 
     def _convert_gps_to_decimal(
-        self,
-        coords: Optional[Tuple],
-        ref: Optional[str]
+        self, coords: Optional[Tuple], ref: Optional[str]
     ) -> Optional[float]:
         """Convert GPS coordinates from DMS to decimal."""
         if not coords:
@@ -1453,7 +1448,7 @@ class AttestationVerifier:
 
             decimal = degrees + minutes / 60 + seconds / 3600
 
-            if ref in ('S', 'W'):
+            if ref in ("S", "W"):
                 decimal = -decimal
 
             return decimal
@@ -1466,7 +1461,7 @@ class AttestationVerifier:
             AttestationLevel.NONE: 0,
             AttestationLevel.BASIC: 1,
             AttestationLevel.STRONG: 2,
-            AttestationLevel.VERIFIED: 3
+            AttestationLevel.VERIFIED: 3,
         }.get(level, 0)
 
     # =========================================================================
@@ -1496,6 +1491,7 @@ class AttestationVerifier:
 # =============================================================================
 # CONVENIENCE FUNCTIONS
 # =============================================================================
+
 
 async def verify_attestation(
     attestation_object: str,
@@ -1527,32 +1523,29 @@ async def verify_attestation(
         challenge=challenge,
         key_id=key_id,
         app_id=app_id,
-        timestamp=datetime.now(UTC)
+        timestamp=datetime.now(UTC),
     )
 
     if device_platform == DevicePlatform.IOS:
         verifier = AttestationVerifier(
             apple_app_id=app_id.split(".")[-1] if app_id else "",
-            apple_team_id=app_id.split(".")[0] if app_id else ""
+            apple_team_id=app_id.split(".")[0] if app_id else "",
         )
         return await verifier.verify_ios_attestation(attestation)
 
     elif device_platform == DevicePlatform.ANDROID:
         verifier = AttestationVerifier(
-            android_package_name=app_id,
-            google_api_key=google_api_key
+            android_package_name=app_id, google_api_key=google_api_key
         )
         return await verifier.verify_android_attestation(attestation)
 
     return AttestationResult.failure(
-        DevicePlatform.UNKNOWN,
-        [f"Unsupported platform: {platform}"]
+        DevicePlatform.UNKNOWN, [f"Unsupported platform: {platform}"]
     )
 
 
 def get_attestation_requirement(
-    task_type: str,
-    bounty_usd: float
+    task_type: str, bounty_usd: float
 ) -> AttestationRequirement:
     """
     Convenience function for checking attestation requirements.

@@ -22,6 +22,7 @@ import supabase_client as db
 # Platform configuration
 try:
     from config import PlatformConfig, ConfigCategory
+
     CONFIG_AVAILABLE = True
 except ImportError:
     CONFIG_AVAILABLE = False
@@ -36,6 +37,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 # =============================================================================
 # ADMIN AUTHENTICATION
 # =============================================================================
+
 
 async def verify_admin_key(
     authorization: Optional[str] = Header(None, description="Bearer admin key"),
@@ -57,10 +59,7 @@ async def verify_admin_key(
     expected_key = os.environ.get("EM_ADMIN_KEY", "").strip()
 
     if not expected_key:
-        raise HTTPException(
-            status_code=503,
-            detail="Admin access not configured"
-        )
+        raise HTTPException(status_code=503, detail="Admin access not configured")
 
     provided_key = None
     source = None
@@ -96,10 +95,7 @@ async def verify_admin_key(
         )
 
     if not _secrets.compare_digest(provided_key.encode(), expected_key.encode()):
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid admin key"
-        )
+        raise HTTPException(status_code=403, detail="Invalid admin key")
 
     actor_id = ((x_admin_actor or "").strip()[:128]) or "system"
 
@@ -180,20 +176,20 @@ async def verify_admin(admin: dict = Depends(verify_admin_key)) -> Dict[str, Any
 
 
 @router.get("/config", response_model=AllConfigResponse)
-async def get_all_config(
-    admin: dict = Depends(verify_admin_key)
-) -> AllConfigResponse:
+async def get_all_config(admin: dict = Depends(verify_admin_key)) -> AllConfigResponse:
     """Get all platform configuration values grouped by category."""
     if not CONFIG_AVAILABLE:
-        raise HTTPException(status_code=503, detail="Configuration system not available")
+        raise HTTPException(
+            status_code=503, detail="Configuration system not available"
+        )
 
     try:
         supabase = db.get_supabase_client()
 
         # Query all config rows directly from DB
-        result = supabase.table("platform_config").select(
-            "key, value, category"
-        ).execute()
+        result = (
+            supabase.table("platform_config").select("key, value, category").execute()
+        )
 
         # Group by our response categories
         category_map = {
@@ -207,7 +203,7 @@ async def get_all_config(
 
         grouped: Dict[str, Dict[str, Any]] = {k: {} for k in category_map}
 
-        for row in (result.data or []):
+        for row in result.data or []:
             cat = row.get("category", "")
             if cat not in category_map:
                 continue
@@ -245,7 +241,7 @@ async def get_config_audit_log(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     category: Optional[str] = Query(None, description="Filter by category prefix"),
-    admin: dict = Depends(verify_admin_key)
+    admin: dict = Depends(verify_admin_key),
 ) -> AuditLogResponse:
     """Get configuration change audit log."""
     try:
@@ -262,15 +258,17 @@ async def get_config_audit_log(
 
         entries = []
         for row in result.data or []:
-            entries.append(AuditLogEntry(
-                id=row["id"],
-                config_key=row["config_key"],
-                old_value=row.get("old_value"),
-                new_value=row["new_value"],
-                changed_by=row.get("changed_by"),
-                reason=row.get("reason"),
-                changed_at=row["changed_at"],
-            ))
+            entries.append(
+                AuditLogEntry(
+                    id=row["id"],
+                    config_key=row["config_key"],
+                    old_value=row.get("old_value"),
+                    new_value=row["new_value"],
+                    changed_by=row.get("changed_by"),
+                    reason=row.get("reason"),
+                    changed_at=row["changed_at"],
+                )
+            )
 
         return AuditLogResponse(
             entries=entries,
@@ -284,8 +282,7 @@ async def get_config_audit_log(
 
 @router.get("/config/{key}", response_model=ConfigValue)
 async def get_config_value(
-    key: str,
-    admin: dict = Depends(verify_admin_key)
+    key: str, admin: dict = Depends(verify_admin_key)
 ) -> ConfigValue:
     """Get a specific configuration value."""
     try:
@@ -328,16 +325,16 @@ async def get_config_value(
 
 @router.put("/config/{key}", response_model=ConfigUpdateResponse)
 async def update_config_value(
-    key: str,
-    request: ConfigUpdateRequest,
-    admin: dict = Depends(verify_admin_key)
+    key: str, request: ConfigUpdateRequest, admin: dict = Depends(verify_admin_key)
 ) -> ConfigUpdateResponse:
     """Update a configuration value. Changes are logged to the audit table."""
     try:
         supabase = db.get_supabase_client()
 
         # Get current value
-        current = supabase.table("platform_config").select("value").eq("key", key).execute()
+        current = (
+            supabase.table("platform_config").select("value").eq("key", key).execute()
+        )
         if not current.data:
             raise HTTPException(status_code=404, detail=f"Config key '{key}' not found")
 
@@ -348,24 +345,40 @@ async def update_config_value(
         new_value = request.value
 
         # Update directly in DB
-        result = supabase.table("platform_config").update({
-            "value": new_value,
-            "updated_by": admin.get("actor_id"),
-        }).eq("key", key).execute()
+        result = (
+            supabase.table("platform_config")
+            .update(
+                {
+                    "value": new_value,
+                    "updated_by": admin.get("actor_id"),
+                }
+            )
+            .eq("key", key)
+            .execute()
+        )
 
         if not result.data:
-            raise HTTPException(status_code=500, detail="Failed to update configuration")
+            raise HTTPException(
+                status_code=500, detail="Failed to update configuration"
+            )
 
         # Update audit log reason directly (trigger can't capture session vars via REST)
         if request.reason:
             try:
-                latest = supabase.table("config_audit_log").select("id").eq(
-                    "config_key", key
-                ).order("changed_at", desc=True).limit(1).execute()
+                latest = (
+                    supabase.table("config_audit_log")
+                    .select("id")
+                    .eq("config_key", key)
+                    .order("changed_at", desc=True)
+                    .limit(1)
+                    .execute()
+                )
                 if latest.data:
-                    supabase.table("config_audit_log").update({
-                        "reason": request.reason,
-                    }).eq("id", latest.data[0]["id"]).execute()
+                    supabase.table("config_audit_log").update(
+                        {
+                            "reason": request.reason,
+                        }
+                    ).eq("id", latest.data[0]["id"]).execute()
             except Exception:
                 pass  # Non-critical
 
@@ -375,7 +388,10 @@ async def update_config_value(
 
         logger.info(
             "SECURITY_AUDIT action=admin.config_update actor=%s source=%s key=%s reason_provided=%s",
-            admin.get("actor_id"), admin.get("auth_source"), key, bool(request.reason),
+            admin.get("actor_id"),
+            admin.get("auth_source"),
+            key,
+            bool(request.reason),
         )
 
         return ConfigUpdateResponse(
@@ -383,7 +399,7 @@ async def update_config_value(
             key=key,
             old_value=old_value,
             new_value=new_value,
-            message=f"Configuration '{key}' updated successfully"
+            message=f"Configuration '{key}' updated successfully",
         )
     except HTTPException:
         raise
@@ -398,9 +414,7 @@ async def update_config_value(
 
 
 @router.get("/stats")
-async def get_platform_stats(
-    admin: dict = Depends(verify_admin_key)
-) -> Dict[str, Any]:
+async def get_platform_stats(admin: dict = Depends(verify_admin_key)) -> Dict[str, Any]:
     """Get platform-wide statistics."""
     try:
         supabase = db.get_supabase_client()
@@ -431,7 +445,12 @@ async def get_platform_stats(
                     total_volume += amount
                     if task.get("status") == "completed":
                         total_fees += amount * fee_pct
-                    if task.get("status") in ("published", "accepted", "in_progress", "submitted"):
+                    if task.get("status") in (
+                        "published",
+                        "accepted",
+                        "in_progress",
+                        "submitted",
+                    ):
                         active_escrow += amount
         except Exception as e:
             logger.warning(f"Could not compute financial stats: {e}")
@@ -440,13 +459,20 @@ async def get_platform_stats(
         workers_count = 0
         agents_count = 0
         try:
-            workers_result = supabase.table("executors").select("id", count="exact").execute()
+            workers_result = (
+                supabase.table("executors").select("id", count="exact").execute()
+            )
             workers_count = workers_result.count or 0
         except Exception as e:
             logger.warning(f"Could not count executors: {e}")
 
         try:
-            agents_result = supabase.table("api_keys").select("id", count="exact").eq("is_active", True).execute()
+            agents_result = (
+                supabase.table("api_keys")
+                .select("id", count="exact")
+                .eq("is_active", True)
+                .execute()
+            )
             agents_count = agents_result.count or 0
         except Exception as e:
             logger.warning(f"Could not count agents: {e}")
@@ -454,11 +480,13 @@ async def get_platform_stats(
         # Orphaned payments alert: accepted submissions without payment_tx
         orphaned_count = 0
         try:
-            orphaned_result = supabase.table("submissions").select(
-                "id", count="exact"
-            ).in_(
-                "agent_verdict", ["accepted", "approved"]
-            ).is_("payment_tx", "null").execute()
+            orphaned_result = (
+                supabase.table("submissions")
+                .select("id", count="exact")
+                .in_("agent_verdict", ["accepted", "approved"])
+                .is_("payment_tx", "null")
+                .execute()
+            )
             orphaned_count = orphaned_result.count or 0
         except Exception as e:
             logger.warning(f"Could not count orphaned payments: {e}")
@@ -484,7 +512,11 @@ async def get_platform_stats(
         logger.error(f"Error getting platform stats: {e}")
         return {
             "tasks": {"by_status": {}, "total": 0},
-            "payments": {"total_volume_usd": 0, "total_fees_usd": 0, "active_escrow_usd": 0},
+            "payments": {
+                "total_volume_usd": 0,
+                "total_fees_usd": 0,
+                "active_escrow_usd": 0,
+            },
             "users": {"active_workers": 0, "active_agents": 0},
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -501,7 +533,7 @@ async def list_tasks(
     search: Optional[str] = Query(None, description="Search in title/description"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    admin: dict = Depends(verify_admin_key)
+    admin: dict = Depends(verify_admin_key),
 ) -> Dict[str, Any]:
     """List all tasks with optional filters."""
     try:
@@ -539,13 +571,14 @@ async def list_tasks(
 
 @router.get("/tasks/{task_id}")
 async def get_task_detail(
-    task_id: str,
-    admin: dict = Depends(verify_admin_key)
+    task_id: str, admin: dict = Depends(verify_admin_key)
 ) -> Dict[str, Any]:
     """Get detailed task information."""
     try:
         supabase = db.get_supabase_client()
-        result = supabase.table("tasks").select("*").eq("id", task_id).single().execute()
+        result = (
+            supabase.table("tasks").select("*").eq("id", task_id).single().execute()
+        )
 
         if not result.data:
             raise HTTPException(status_code=404, detail="Task not found")
@@ -560,9 +593,7 @@ async def get_task_detail(
 
 @router.put("/tasks/{task_id}")
 async def update_task(
-    task_id: str,
-    updates: Dict[str, Any],
-    admin: dict = Depends(verify_admin_key)
+    task_id: str, updates: Dict[str, Any], admin: dict = Depends(verify_admin_key)
 ) -> Dict[str, Any]:
     """Update task details (admin override)."""
     try:
@@ -586,7 +617,9 @@ async def update_task(
         if not filtered_updates:
             raise HTTPException(status_code=400, detail="No valid fields to update")
 
-        result = supabase.table("tasks").update(filtered_updates).eq("id", task_id).execute()
+        result = (
+            supabase.table("tasks").update(filtered_updates).eq("id", task_id).execute()
+        )
 
         if not result.data:
             raise HTTPException(status_code=404, detail="Task not found")
@@ -601,9 +634,7 @@ async def update_task(
 
 @router.post("/tasks/{task_id}/cancel")
 async def cancel_task(
-    task_id: str,
-    body: Dict[str, Any],
-    admin: dict = Depends(verify_admin_key)
+    task_id: str, body: Dict[str, Any], admin: dict = Depends(verify_admin_key)
 ) -> Dict[str, Any]:
     """Cancel a task (admin action)."""
     try:
@@ -617,19 +648,21 @@ async def cancel_task(
         if task.data["status"] in ["completed", "cancelled"]:
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot cancel task with status '{task.data['status']}'"
+                detail=f"Cannot cancel task with status '{task.data['status']}'",
             )
 
         # Only update columns that exist on the tasks table
-        result = supabase.table("tasks").update({
-            "status": "cancelled",
-            "completion_notes": f"Admin cancel: {reason}",
-        }).eq("id", task_id).execute()
+        supabase.table("tasks").update(
+            {
+                "status": "cancelled",
+                "completion_notes": f"Admin cancel: {reason}",
+            }
+        ).eq("id", task_id).execute()
 
         return {
             "success": True,
             "message": f"Task {task_id} cancelled",
-            "reason": reason
+            "reason": reason,
         }
     except HTTPException:
         raise
@@ -648,7 +681,7 @@ async def list_payments(
     period: str = Query("7d", description="Time period: 24h, 7d, 30d, 90d, all"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    admin: dict = Depends(verify_admin_key)
+    admin: dict = Depends(verify_admin_key),
 ) -> Dict[str, Any]:
     """List payment transactions derived from completed tasks."""
     try:
@@ -656,8 +689,10 @@ async def list_payments(
 
         # Use completed/submitted tasks as the source of truth for payments.
         # escrows table may not exist; tasks table always does.
-        query = supabase.table("tasks").select("*", count="exact").in_(
-            "status", ["completed", "submitted", "accepted", "cancelled"]
+        query = (
+            supabase.table("tasks")
+            .select("*", count="exact")
+            .in_("status", ["completed", "submitted", "accepted", "cancelled"])
         )
 
         if period != "all":
@@ -670,7 +705,7 @@ async def list_payments(
         result = query.execute()
 
         transactions = []
-        for row in (result.data or []):
+        for row in result.data or []:
             status_map = {
                 "completed": "confirmed",
                 "submitted": "pending",
@@ -683,17 +718,19 @@ async def list_payments(
                 "accepted": "deposit",
                 "cancelled": "refund",
             }
-            transactions.append({
-                "id": row["id"],
-                "created_at": row["created_at"],
-                "type": type_map.get(row.get("status", ""), "unknown"),
-                "amount_usd": float(row.get("bounty_usd", 0) or 0),
-                "task_id": row["id"],
-                "wallet_address": row.get("agent_id", ""),
-                "status": status_map.get(row.get("status", ""), "pending"),
-                "tx_hash": row.get("escrow_tx"),
-                "payment_strategy": "x402_escrow",
-            })
+            transactions.append(
+                {
+                    "id": row["id"],
+                    "created_at": row["created_at"],
+                    "type": type_map.get(row.get("status", ""), "unknown"),
+                    "amount_usd": float(row.get("bounty_usd", 0) or 0),
+                    "task_id": row["id"],
+                    "wallet_address": row.get("agent_id", ""),
+                    "status": status_map.get(row.get("status", ""), "pending"),
+                    "tx_hash": row.get("escrow_tx"),
+                    "payment_strategy": "x402_escrow",
+                }
+            )
 
         return {
             "transactions": transactions,
@@ -705,11 +742,10 @@ async def list_payments(
         return {"transactions": [], "count": 0, "offset": offset}
 
 
-
 @router.get("/payments/stats")
 async def get_payment_stats(
     period: str = Query("7d", description="Time period: 24h, 7d, 30d, 90d, all"),
-    admin: dict = Depends(verify_admin_key)
+    admin: dict = Depends(verify_admin_key),
 ) -> Dict[str, Any]:
     """Get payment statistics derived from tasks."""
     try:
@@ -729,9 +765,12 @@ async def get_payment_stats(
 
         fee_pct = 0.08  # Default platform fee
         try:
-            cfg = supabase.table("platform_config").select("value").eq(
-                "key", "fees.platform_fee_pct"
-            ).execute()
+            cfg = (
+                supabase.table("platform_config")
+                .select("value")
+                .eq("key", "fees.platform_fee_pct")
+                .execute()
+            )
             if cfg.data:
                 fee_pct = float(cfg.data[0]["value"])
         except Exception:
@@ -739,12 +778,14 @@ async def get_payment_stats(
 
         total_volume = sum(float(t.get("bounty_usd", 0) or 0) for t in tasks)
         completed_volume = sum(
-            float(t.get("bounty_usd", 0) or 0) for t in tasks
+            float(t.get("bounty_usd", 0) or 0)
+            for t in tasks
             if t.get("status") == "completed"
         )
         total_fees = round(completed_volume * fee_pct, 2)
         active_escrow = sum(
-            float(t.get("bounty_usd", 0) or 0) for t in tasks
+            float(t.get("bounty_usd", 0) or 0)
+            for t in tasks
             if t.get("status") in ("published", "accepted", "in_progress", "submitted")
         )
 
@@ -773,27 +814,34 @@ async def get_payment_stats(
 async def list_agents(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    admin: dict = Depends(verify_admin_key)
+    admin: dict = Depends(verify_admin_key),
 ) -> Dict[str, Any]:
     """List all agents (task creators)."""
     try:
         supabase = db.get_supabase_client()
 
         # Use select("*") to avoid failing on missing columns
-        result = supabase.table("api_keys").select(
-            "*", count="exact"
-        ).order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+        result = (
+            supabase.table("api_keys")
+            .select("*", count="exact")
+            .order("created_at", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
 
         agents = []
-        for agent in (result.data or []):
+        for agent in result.data or []:
             agent_id = agent.get("agent_id") or agent["id"]
 
             # Count tasks — wrapped in try/except for resilience
             task_count = 0
             try:
-                tasks = supabase.table("tasks").select("id", count="exact").eq(
-                    "agent_id", agent_id
-                ).execute()
+                tasks = (
+                    supabase.table("tasks")
+                    .select("id", count="exact")
+                    .eq("agent_id", agent_id)
+                    .execute()
+                )
                 task_count = tasks.count or 0
             except Exception:
                 pass
@@ -801,24 +849,34 @@ async def list_agents(
             # Sum total spent from tasks bounties (escrows table may not exist)
             total_spent = 0.0
             try:
-                spent_tasks = supabase.table("tasks").select("bounty_usd").eq(
-                    "agent_id", agent_id
-                ).in_("status", ["completed", "submitted", "accepted", "in_progress"]).execute()
-                total_spent = sum(float(t.get("bounty_usd", 0) or 0) for t in (spent_tasks.data or []))
+                spent_tasks = (
+                    supabase.table("tasks")
+                    .select("bounty_usd")
+                    .eq("agent_id", agent_id)
+                    .in_(
+                        "status", ["completed", "submitted", "accepted", "in_progress"]
+                    )
+                    .execute()
+                )
+                total_spent = sum(
+                    float(t.get("bounty_usd", 0) or 0) for t in (spent_tasks.data or [])
+                )
             except Exception:
                 pass
 
-            agents.append({
-                "id": agent["id"],
-                "wallet_address": agent.get("agent_id", ""),
-                "name": agent.get("name", agent.get("key_prefix", "")),
-                "tier": agent.get("tier", "free"),
-                "created_at": agent.get("created_at"),
-                "task_count": task_count,
-                "total_spent_usd": round(total_spent, 2),
-                "status": "active" if agent.get("is_active") else "suspended",
-                "usage_count": agent.get("usage_count", 0),
-            })
+            agents.append(
+                {
+                    "id": agent["id"],
+                    "wallet_address": agent.get("agent_id", ""),
+                    "name": agent.get("name", agent.get("key_prefix", "")),
+                    "tier": agent.get("tier", "free"),
+                    "created_at": agent.get("created_at"),
+                    "task_count": task_count,
+                    "total_spent_usd": round(total_spent, 2),
+                    "status": "active" if agent.get("is_active") else "suspended",
+                    "usage_count": agent.get("usage_count", 0),
+                }
+            )
 
         return {
             "users": agents,
@@ -838,7 +896,7 @@ async def list_agents(
 async def list_workers(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    admin: dict = Depends(verify_admin_key)
+    admin: dict = Depends(verify_admin_key),
 ) -> Dict[str, Any]:
     """List all workers (task executors)."""
     try:
@@ -846,33 +904,43 @@ async def list_workers(
 
         # Use select("*") to avoid failing on missing columns.
         # Different DB environments may have different column sets.
-        result = supabase.table("executors").select(
-            "*", count="exact"
-        ).order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+        result = (
+            supabase.table("executors")
+            .select("*", count="exact")
+            .order("created_at", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
 
         workers = []
-        for worker in (result.data or []):
+        for worker in result.data or []:
             # Count completed tasks
             task_count = 0
             try:
-                tasks = supabase.table("tasks").select("id", count="exact").eq(
-                    "executor_id", worker["id"]
-                ).eq("status", "completed").execute()
+                tasks = (
+                    supabase.table("tasks")
+                    .select("id", count="exact")
+                    .eq("executor_id", worker["id"])
+                    .eq("status", "completed")
+                    .execute()
+                )
                 task_count = tasks.count or 0
             except Exception:
                 pass
 
-            workers.append({
-                "id": worker["id"],
-                "wallet_address": worker.get("wallet_address", ""),
-                "name": worker.get("display_name", ""),
-                "created_at": worker.get("created_at"),
-                "task_count": task_count,
-                "total_earned_usd": float(worker.get("total_earned_usdc", 0) or 0),
-                "reputation_score": worker.get("reputation_score", 0),
-                "status": worker.get("status", "active"),
-                "success_rate": None,
-            })
+            workers.append(
+                {
+                    "id": worker["id"],
+                    "wallet_address": worker.get("wallet_address", ""),
+                    "name": worker.get("display_name", ""),
+                    "created_at": worker.get("created_at"),
+                    "task_count": task_count,
+                    "total_earned_usd": float(worker.get("total_earned_usdc", 0) or 0),
+                    "reputation_score": worker.get("reputation_score", 0),
+                    "status": worker.get("status", "active"),
+                    "success_rate": None,
+                }
+            )
 
         return {
             "users": workers,
@@ -890,9 +958,7 @@ async def list_workers(
 
 @router.put("/users/{user_id}/status")
 async def update_user_status(
-    user_id: str,
-    body: Dict[str, Any],
-    admin: dict = Depends(verify_admin_key)
+    user_id: str, body: Dict[str, Any], admin: dict = Depends(verify_admin_key)
 ) -> Dict[str, Any]:
     """Update user status (suspend/activate)."""
     try:
@@ -903,20 +969,36 @@ async def update_user_status(
         supabase = db.get_supabase_client()
 
         # Try agents first (api_keys)
-        result = supabase.table("api_keys").update({
-            "is_active": status == "active"
-        }).eq("id", user_id).execute()
+        result = (
+            supabase.table("api_keys")
+            .update({"is_active": status == "active"})
+            .eq("id", user_id)
+            .execute()
+        )
 
         if result.data:
-            return {"success": True, "user_id": user_id, "status": status, "type": "agent"}
+            return {
+                "success": True,
+                "user_id": user_id,
+                "status": status,
+                "type": "agent",
+            }
 
         # Try workers (executors)
-        result = supabase.table("executors").update({
-            "status": status
-        }).eq("id", user_id).execute()
+        result = (
+            supabase.table("executors")
+            .update({"status": status})
+            .eq("id", user_id)
+            .execute()
+        )
 
         if result.data:
-            return {"success": True, "user_id": user_id, "status": status, "type": "worker"}
+            return {
+                "success": True,
+                "user_id": user_id,
+                "status": status,
+                "type": "worker",
+            }
 
         raise HTTPException(status_code=404, detail="User not found")
     except HTTPException:
@@ -934,7 +1016,7 @@ async def update_user_status(
 @router.get("/analytics")
 async def get_analytics(
     period: str = Query("30d", description="Time period: 7d, 30d, 90d, all"),
-    admin: dict = Depends(verify_admin_key)
+    admin: dict = Depends(verify_admin_key),
 ) -> Dict[str, Any]:
     """Get detailed analytics data for charts."""
     try:
@@ -952,16 +1034,19 @@ async def get_analytics(
         if start_date:
             start_str = start_date.strftime("%Y-%m-%d")
 
-            all_tasks = supabase.table("tasks").select(
-                "created_at, status, updated_at, bounty_usd"
-            ).gte("created_at", start_str).execute()
+            all_tasks = (
+                supabase.table("tasks")
+                .select("created_at, status, updated_at, bounty_usd")
+                .gte("created_at", start_str)
+                .execute()
+            )
 
             # Build daily maps from tasks data
             created_by_day: Dict[str, int] = {}
             completed_by_day: Dict[str, int] = {}
             volume_by_day: Dict[str, float] = {}
 
-            for task in (all_tasks.data or []):
+            for task in all_tasks.data or []:
                 day = task["created_at"][:10]
                 created_by_day[day] = created_by_day.get(day, 0) + 1
                 # Track volume from task bounties
@@ -974,73 +1059,96 @@ async def get_analytics(
             for i in range(days):
                 date = start_date + timedelta(days=i)
                 date_str = date.strftime("%Y-%m-%d")
-                time_series.append({
-                    "date": date.strftime("%b %d"),
-                    "created": created_by_day.get(date_str, 0),
-                    "completed": completed_by_day.get(date_str, 0),
-                    "volume": round(volume_by_day.get(date_str, 0), 2),
-                })
+                time_series.append(
+                    {
+                        "date": date.strftime("%b %d"),
+                        "created": created_by_day.get(date_str, 0),
+                        "completed": completed_by_day.get(date_str, 0),
+                        "volume": round(volume_by_day.get(date_str, 0), 2),
+                    }
+                )
 
         # Top agents (by task count)
         try:
-            agents_result = supabase.table("api_keys").select("*").eq(
-                "is_active", True
-            ).limit(10).execute()
+            agents_result = (
+                supabase.table("api_keys")
+                .select("*")
+                .eq("is_active", True)
+                .limit(10)
+                .execute()
+            )
         except Exception:
             agents_result = type("R", (), {"data": []})()
 
         top_agents = []
-        for agent in (agents_result.data or []):
+        for agent in agents_result.data or []:
             agent_id = agent.get("agent_id") or agent["id"]
 
             task_count = 0
             total_spent = 0.0
             try:
-                tasks = supabase.table("tasks").select("id, bounty_usd", count="exact").eq(
-                    "agent_id", agent_id
-                ).execute()
+                tasks = (
+                    supabase.table("tasks")
+                    .select("id, bounty_usd", count="exact")
+                    .eq("agent_id", agent_id)
+                    .execute()
+                )
                 task_count = tasks.count or 0
-                total_spent = sum(float(t.get("bounty_usd", 0) or 0) for t in (tasks.data or []))
+                total_spent = sum(
+                    float(t.get("bounty_usd", 0) or 0) for t in (tasks.data or [])
+                )
             except Exception:
                 pass
 
-            top_agents.append({
-                "id": agent["id"],
-                "wallet_address": agent_id,
-                "name": agent.get("name", ""),
-                "total_spent_usd": round(total_spent, 2),
-                "task_count": task_count,
-            })
+            top_agents.append(
+                {
+                    "id": agent["id"],
+                    "wallet_address": agent_id,
+                    "name": agent.get("name", ""),
+                    "total_spent_usd": round(total_spent, 2),
+                    "task_count": task_count,
+                }
+            )
 
         top_agents.sort(key=lambda x: x["task_count"], reverse=True)
 
         # Top workers (by reputation)
         try:
-            workers_result = supabase.table("executors").select("*").order(
-                "created_at", desc=True
-            ).limit(10).execute()
+            workers_result = (
+                supabase.table("executors")
+                .select("*")
+                .order("created_at", desc=True)
+                .limit(10)
+                .execute()
+            )
         except Exception:
             workers_result = type("R", (), {"data": []})()
 
         top_workers = []
-        for worker in (workers_result.data or []):
+        for worker in workers_result.data or []:
             task_count = 0
             try:
-                tasks = supabase.table("tasks").select("id", count="exact").eq(
-                    "executor_id", worker["id"]
-                ).eq("status", "completed").execute()
+                tasks = (
+                    supabase.table("tasks")
+                    .select("id", count="exact")
+                    .eq("executor_id", worker["id"])
+                    .eq("status", "completed")
+                    .execute()
+                )
                 task_count = tasks.count or 0
             except Exception:
                 pass
 
-            top_workers.append({
-                "id": worker["id"],
-                "wallet_address": worker.get("wallet_address", ""),
-                "name": worker.get("display_name", ""),
-                "reputation_score": worker.get("reputation_score", 0),
-                "total_earned_usd": float(worker.get("total_earned_usdc", 0) or 0),
-                "task_count": task_count,
-            })
+            top_workers.append(
+                {
+                    "id": worker["id"],
+                    "wallet_address": worker.get("wallet_address", ""),
+                    "name": worker.get("display_name", ""),
+                    "reputation_score": worker.get("reputation_score", 0),
+                    "total_earned_usd": float(worker.get("total_earned_usdc", 0) or 0),
+                    "task_count": task_count,
+                }
+            )
 
         return {
             "time_series": time_series,
@@ -1077,7 +1185,9 @@ async def get_orphaned_payments(
         supabase = db.get_supabase_client()
         result = (
             supabase.table("submissions")
-            .select("id, task_id, executor_id, agent_verdict, payment_tx, updated_at, task:tasks(id, title, bounty_usd, escrow_tx, status), executor:executors(id, wallet_address, display_name)")
+            .select(
+                "id, task_id, executor_id, agent_verdict, payment_tx, updated_at, task:tasks(id, title, bounty_usd, escrow_tx, status), executor:executors(id, wallet_address, display_name)"
+            )
             .in_("agent_verdict", ["accepted", "approved"])
             .is_("payment_tx", "null")
             .order("updated_at", desc=False)
@@ -1108,7 +1218,9 @@ async def retry_submission_payment(
         # Fetch the submission with task/executor joins
         result = (
             supabase.table("submissions")
-            .select("id, task_id, executor_id, agent_verdict, payment_tx, task:tasks(id, bounty_usd, escrow_tx, escrow_id, status), executor:executors(id, wallet_address)")
+            .select(
+                "id, task_id, executor_id, agent_verdict, payment_tx, task:tasks(id, bounty_usd, escrow_tx, escrow_id, status), executor:executors(id, wallet_address)"
+            )
             .eq("id", submission_id)
             .limit(1)
             .execute()
@@ -1137,7 +1249,13 @@ async def retry_submission_payment(
 
         if success:
             # Re-fetch to get the updated payment_tx
-            updated = supabase.table("submissions").select("payment_tx, paid_at, payment_amount").eq("id", submission_id).limit(1).execute()
+            updated = (
+                supabase.table("submissions")
+                .select("payment_tx, paid_at, payment_amount")
+                .eq("id", submission_id)
+                .limit(1)
+                .execute()
+            )
             updated_data = updated.data[0] if updated.data else {}
             return {
                 "status": "settled",

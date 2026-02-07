@@ -9,7 +9,7 @@ Routes disputes to appropriate resolution mechanisms:
 
 import os
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, List
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -19,17 +19,19 @@ logger = logging.getLogger(__name__)
 
 class DisputeType(str, Enum):
     """Types of disputes."""
-    QUALITY = "quality"           # Work quality not acceptable
-    INCOMPLETE = "incomplete"     # Work partially done
-    FRAUD = "fraud"               # Suspected fraud
-    TIMING = "timing"             # Deadline issues
-    PAYMENT = "payment"           # Payment not received
-    SAFETY = "safety"             # Safety concerns
+
+    QUALITY = "quality"  # Work quality not acceptable
+    INCOMPLETE = "incomplete"  # Work partially done
+    FRAUD = "fraud"  # Suspected fraud
+    TIMING = "timing"  # Deadline issues
+    PAYMENT = "payment"  # Payment not received
+    SAFETY = "safety"  # Safety concerns
     COMMUNICATION = "communication"  # Communication breakdown
 
 
 class DisputeStatus(str, Enum):
     """Dispute resolution status."""
+
     OPENED = "opened"
     REVIEWING = "reviewing"
     AWAITING_EVIDENCE = "awaiting_evidence"
@@ -41,20 +43,22 @@ class DisputeStatus(str, Enum):
 
 class ResolutionOutcome(str, Enum):
     """Possible resolution outcomes."""
-    WORKER_WINS = "worker_wins"       # Full payout to worker
-    AGENT_WINS = "agent_wins"         # Refund to agent
-    SPLIT = "split"                   # Partial payout both
-    DISMISSED = "dismissed"           # No action needed
-    ESCALATED = "escalated"           # Needs human review
+
+    WORKER_WINS = "worker_wins"  # Full payout to worker
+    AGENT_WINS = "agent_wins"  # Refund to agent
+    SPLIT = "split"  # Partial payout both
+    DISMISSED = "dismissed"  # No action needed
+    ESCALATED = "escalated"  # Needs human review
 
 
 @dataclass
 class Dispute:
     """Dispute record."""
+
     id: str
     task_id: str
     submission_id: str
-    opened_by: str                    # 'worker' or 'agent'
+    opened_by: str  # 'worker' or 'agent'
     opener_id: str
     dispute_type: DisputeType
     description: str
@@ -72,6 +76,7 @@ class Dispute:
 @dataclass
 class ArbitrationVote:
     """Validator vote in arbitration."""
+
     validator_id: str
     outcome: ResolutionOutcome
     worker_payout_pct: float
@@ -100,7 +105,7 @@ class DisputeRouter:
     def __init__(
         self,
         safe_pool_address: Optional[str] = None,
-        auto_resolution_enabled: bool = True
+        auto_resolution_enabled: bool = True,
     ):
         """
         Initialize dispute router.
@@ -121,7 +126,7 @@ class DisputeRouter:
         opener_id: str,
         dispute_type: DisputeType,
         description: str,
-        evidence_urls: List[str] = None
+        evidence_urls: List[str] = None,
     ) -> Dispute:
         """
         Open a new dispute.
@@ -148,7 +153,7 @@ class DisputeRouter:
             opener_id=opener_id,
             dispute_type=dispute_type,
             description=description,
-            evidence_urls=evidence_urls or []
+            evidence_urls=evidence_urls or [],
         )
 
         # Determine routing
@@ -170,7 +175,7 @@ class DisputeRouter:
         validator_id: str,
         outcome: ResolutionOutcome,
         worker_payout_pct: float,
-        reasoning: str
+        reasoning: str,
     ) -> Optional[Dispute]:
         """
         Submit validator vote for arbitration.
@@ -189,7 +194,7 @@ class DisputeRouter:
             validator_id=validator_id,
             outcome=outcome,
             worker_payout_pct=worker_payout_pct,
-            reasoning=reasoning
+            reasoning=reasoning,
         )
 
         if dispute_id not in self._pending_arbitrations:
@@ -209,7 +214,7 @@ class DisputeRouter:
         dispute_id: str,
         appealer_id: str,
         appeal_reason: str,
-        new_evidence: List[str] = None
+        new_evidence: List[str] = None,
     ) -> Dispute:
         """
         Appeal a dispute resolution.
@@ -238,7 +243,7 @@ class DisputeRouter:
             opener_id=appealer_id,
             dispute_type=DisputeType.QUALITY,
             description=appeal_reason,
-            status=DisputeStatus.APPEALED
+            status=DisputeStatus.APPEALED,
         )
 
     # Private methods
@@ -302,9 +307,7 @@ class DisputeRouter:
         return dispute
 
     async def _finalize_arbitration(
-        self,
-        dispute_id: str,
-        votes: List[ArbitrationVote]
+        self, dispute_id: str, votes: List[ArbitrationVote]
     ) -> Dispute:
         """Finalize arbitration based on validator votes."""
         logger.info(f"Finalizing arbitration for {dispute_id} with {len(votes)} votes")
@@ -335,7 +338,7 @@ class DisputeRouter:
             outcome=winning_outcome,
             worker_payout_pct=avg_worker_payout,
             agent_refund_pct=1.0 - avg_worker_payout,
-            resolution_notes=f"Arbitration resolved with {len(votes)} validator votes"
+            resolution_notes=f"Arbitration resolved with {len(votes)} validator votes",
         )
 
         # Cleanup
@@ -345,6 +348,7 @@ class DisputeRouter:
 
 
 # Utility functions
+
 
 def calculate_validator_reward(dispute_amount: float, num_validators: int) -> float:
     """
@@ -362,9 +366,7 @@ def calculate_validator_reward(dispute_amount: float, num_validators: int) -> fl
 
 
 def is_eligible_validator(
-    tasks_completed: int,
-    avg_rating: float,
-    stake_amount: float
+    tasks_completed: int, avg_rating: float, stake_amount: float
 ) -> bool:
     """
     Check if user is eligible to be a validator.
@@ -383,7 +385,7 @@ def is_eligible_validator(
         True if eligible
     """
     return (
-        tasks_completed >= 100 and
-        avg_rating >= 4.5 and
-        stake_amount >= DisputeRouter.MIN_VALIDATOR_STAKE
+        tasks_completed >= 100
+        and avg_rating >= 4.5
+        and stake_amount >= DisputeRouter.MIN_VALIDATOR_STAKE
     )

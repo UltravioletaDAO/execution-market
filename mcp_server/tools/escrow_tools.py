@@ -17,7 +17,6 @@ These tools wrap EMAdvancedEscrow (from the integration layer),
 which in turn calls the uvd-x402-sdk AdvancedEscrowClient.
 """
 
-import json
 import logging
 from decimal import Decimal
 from typing import Optional
@@ -32,13 +31,12 @@ _escrow_instance = None
 
 try:
     from integrations.x402.advanced_escrow_integration import (
-        EMAdvancedEscrow,
         PaymentStrategy,
-        TaskPayment,
         get_advanced_escrow,
         ADVANCED_ESCROW_AVAILABLE as _SDK_AVAILABLE,
         DEPOSIT_LIMIT_USDC,
     )
+
     ADVANCED_ESCROW_AVAILABLE = _SDK_AVAILABLE
 except ImportError:
     logger.warning("Advanced escrow integration not available")
@@ -51,9 +49,10 @@ except ImportError:
 
 class EscrowRecommendInput(BaseModel):
     """Input for strategy recommendation."""
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
-        extra='forbid',
+        extra="forbid",
     )
 
     amount_usdc: float = Field(
@@ -86,9 +85,10 @@ class EscrowRecommendInput(BaseModel):
 
 class EscrowAuthorizeInput(BaseModel):
     """Input for escrow authorization (lock funds)."""
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
-        extra='forbid',
+        extra="forbid",
     )
 
     task_id: str = Field(
@@ -121,9 +121,10 @@ class EscrowAuthorizeInput(BaseModel):
 
 class EscrowReleaseInput(BaseModel):
     """Input for releasing escrowed funds to worker."""
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
-        extra='forbid',
+        extra="forbid",
     )
 
     task_id: str = Field(
@@ -142,9 +143,10 @@ class EscrowReleaseInput(BaseModel):
 
 class EscrowRefundInput(BaseModel):
     """Input for refunding escrowed funds to agent."""
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
-        extra='forbid',
+        extra="forbid",
     )
 
     task_id: str = Field(
@@ -163,9 +165,10 @@ class EscrowRefundInput(BaseModel):
 
 class EscrowChargeInput(BaseModel):
     """Input for instant payment (no escrow)."""
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
-        extra='forbid',
+        extra="forbid",
     )
 
     task_id: str = Field(
@@ -194,9 +197,10 @@ class EscrowChargeInput(BaseModel):
 
 class EscrowPartialReleaseInput(BaseModel):
     """Input for partial release + refund (proof of attempt)."""
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
-        extra='forbid',
+        extra="forbid",
     )
 
     task_id: str = Field(
@@ -215,9 +219,10 @@ class EscrowPartialReleaseInput(BaseModel):
 
 class EscrowDisputeInput(BaseModel):
     """Input for dispute (post-release refund)."""
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
-        extra='forbid',
+        extra="forbid",
     )
 
     task_id: str = Field(
@@ -236,9 +241,10 @@ class EscrowDisputeInput(BaseModel):
 
 class EscrowStatusInput(BaseModel):
     """Input for querying payment status."""
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
-        extra='forbid',
+        extra="forbid",
     )
 
     task_id: str = Field(
@@ -262,9 +268,21 @@ STRATEGY_DESCRIPTIONS = {
 
 TIER_INFO = {
     "micro": {"range": "$0-$5", "escrow_timeout": "24h", "dispute_window": "48h"},
-    "standard": {"range": "$5-$50", "escrow_timeout": "72h", "dispute_window": "7 days"},
-    "premium": {"range": "$50-$200", "escrow_timeout": "7 days", "dispute_window": "14 days"},
-    "enterprise": {"range": "$200+", "escrow_timeout": "30 days", "dispute_window": "30 days"},
+    "standard": {
+        "range": "$5-$50",
+        "escrow_timeout": "72h",
+        "dispute_window": "7 days",
+    },
+    "premium": {
+        "range": "$50-$200",
+        "escrow_timeout": "7 days",
+        "dispute_window": "14 days",
+    },
+    "enterprise": {
+        "range": "$200+",
+        "escrow_timeout": "30 days",
+        "dispute_window": "30 days",
+    },
 }
 
 
@@ -386,18 +404,22 @@ def register_escrow_tools(mcp):
             ]
 
             if params.erc8004_score is not None:
-                lines.append(f"- **ERC-8004 Score**: {params.erc8004_score:.2f} (on-chain, takes precedence)")
+                lines.append(
+                    f"- **ERC-8004 Score**: {params.erc8004_score:.2f} (on-chain, takes precedence)"
+                )
 
-            lines.extend([
-                f"- **External Dependency**: {'Yes' if params.external_dependency else 'No'}",
-                f"- **Quality Review**: {'Yes' if params.requires_quality_review else 'No'}",
-                "",
-                "## Tier Timings",
-                f"- **Escrow Timeout**: {tier_data['escrow_timeout']}",
-                f"- **Dispute Window**: {tier_data['dispute_window']}",
-                "",
-                "## Available Strategies",
-            ])
+            lines.extend(
+                [
+                    f"- **External Dependency**: {'Yes' if params.external_dependency else 'No'}",
+                    f"- **Quality Review**: {'Yes' if params.requires_quality_review else 'No'}",
+                    "",
+                    "## Tier Timings",
+                    f"- **Escrow Timeout**: {tier_data['escrow_timeout']}",
+                    f"- **Dispute Window**: {tier_data['dispute_window']}",
+                    "",
+                    "## Available Strategies",
+                ]
+            )
 
             for name, desc in STRATEGY_DESCRIPTIONS.items():
                 marker = " **(recommended)**" if name == strategy.value else ""
@@ -405,31 +427,37 @@ def register_escrow_tools(mcp):
 
             # Deposit limit warning
             if params.amount_usdc > float(DEPOSIT_LIMIT_USDC):
-                lines.extend([
-                    "",
-                    f"## Deposit Limit Warning",
-                    f"Amount ${params.amount_usdc:.2f} exceeds the current contract limit of ${DEPOSIT_LIMIT_USDC}.",
-                    "The transaction will fail on-chain. Reduce the bounty or contact the protocol team.",
-                ])
+                lines.extend(
+                    [
+                        "",
+                        "## Deposit Limit Warning",
+                        f"Amount ${params.amount_usdc:.2f} exceeds the current contract limit of ${DEPOSIT_LIMIT_USDC}.",
+                        "The transaction will fail on-chain. Reduce the bounty or contact the protocol team.",
+                    ]
+                )
 
             # Note about dispute_resolution strategy
             if strategy.value == "dispute_resolution":
-                lines.extend([
-                    "",
-                    "## Dispute Resolution Note",
-                    "This strategy keeps funds **in escrow** until an arbiter decides.",
-                    "Do NOT release funds until quality is verified.",
-                    "- If quality OK: `em_escrow_release`",
-                    "- If quality fails: `em_escrow_refund` (funds guaranteed in escrow)",
-                    "",
-                    "Post-release refund (`em_escrow_dispute`) is not available in production.",
-                ])
+                lines.extend(
+                    [
+                        "",
+                        "## Dispute Resolution Note",
+                        "This strategy keeps funds **in escrow** until an arbiter decides.",
+                        "Do NOT release funds until quality is verified.",
+                        "- If quality OK: `em_escrow_release`",
+                        "- If quality fails: `em_escrow_refund` (funds guaranteed in escrow)",
+                        "",
+                        "Post-release refund (`em_escrow_dispute`) is not available in production.",
+                    ]
+                )
 
-            lines.extend([
-                "",
-                "## Next Step",
-                f"Call `em_escrow_authorize` with strategy=`{strategy.value}` to lock the bounty.",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## Next Step",
+                    f"Call `em_escrow_authorize` with strategy=`{strategy.value}` to lock the bounty.",
+                ]
+            )
 
             return "\n".join(lines)
 
@@ -498,7 +526,7 @@ Options:
             if payment.status == "failed":
                 error_msg = ""
                 if payment.authorization:
-                    error_msg = getattr(payment.authorization, 'error', 'Unknown error')
+                    error_msg = getattr(payment.authorization, "error", "Unknown error")
                 return f"""# Escrow Authorization Failed
 
 **Task ID**: `{params.task_id}`
@@ -530,7 +558,9 @@ Check that:
             elif strategy == PaymentStrategy.DISPUTE_RESOLUTION:
                 lines.append("- Arbiter reviews work quality")
                 lines.append("- If approved: call `em_escrow_release`")
-                lines.append("- If rejected: call `em_escrow_refund` (funds still in escrow)")
+                lines.append(
+                    "- If rejected: call `em_escrow_refund` (funds still in escrow)"
+                )
 
             return "\n".join(lines)
 
@@ -589,7 +619,9 @@ Check that:
 3. Facilitator wallet has gas funds"""
 
             payment = escrow.get_task_payment(params.task_id)
-            released = params.amount_usdc or (float(payment.amount_usdc) if payment else 0)
+            released = params.amount_usdc or (
+                float(payment.amount_usdc) if payment else 0
+            )
 
             return f"""# Payment Released to Worker
 
@@ -656,7 +688,9 @@ Check that:
 3. Escrow timeout has not expired"""
 
             payment = escrow.get_task_payment(params.task_id)
-            refunded = params.amount_usdc or (float(payment.amount_usdc) if payment else 0)
+            refunded = params.amount_usdc or (
+                float(payment.amount_usdc) if payment else 0
+            )
 
             return f"""# Escrow Refunded to Agent
 
@@ -748,7 +782,9 @@ Payment was sent directly to the worker without escrow.
 This transaction is final and cannot be reversed through the escrow system."""
 
         except Exception as e:
-            logger.error("Error charging instant payment for task %s: %s", params.task_id, e)
+            logger.error(
+                "Error charging instant payment for task %s: %s", params.task_id, e
+            )
             return f"Error: Failed to send instant payment - {e}"
 
     # ------------------------------------------------------------------
@@ -823,7 +859,9 @@ Check that the task was authorized and escrow is still active."""
                 lines.append(f"- **Amount**: ${result.get('refunded_usdc', '0')} USDC")
                 refund_result = result.get("refund_result")
                 if refund_result:
-                    lines.append(f"- **Transaction**: `{refund_result.transaction_hash}`")
+                    lines.append(
+                        f"- **Transaction**: `{refund_result.transaction_hash}`"
+                    )
                     lines.append(f"- **Gas Used**: {refund_result.gas_used}")
 
             return "\n".join(lines)
@@ -942,7 +980,9 @@ No escrow payment found for this task. Either:
 2. The escrow was created in a different server session
 3. The task uses a different payment method"""
 
-            remaining = payment.amount_usdc - payment.released_usdc - payment.refunded_usdc
+            remaining = (
+                payment.amount_usdc - payment.released_usdc - payment.refunded_usdc
+            )
 
             lines = [
                 "# Escrow Payment Status",
@@ -955,26 +995,32 @@ No escrow payment found for this task. Either:
 
             # Suggest next action based on status
             if payment.status == "authorized":
-                lines.extend([
-                    "",
-                    "## Available Actions",
-                    "- `em_escrow_release` - Pay the worker",
-                    "- `em_escrow_refund` - Cancel and refund",
-                    "- `em_escrow_partial_release` - Partial payment",
-                ])
+                lines.extend(
+                    [
+                        "",
+                        "## Available Actions",
+                        "- `em_escrow_release` - Pay the worker",
+                        "- `em_escrow_refund` - Cancel and refund",
+                        "- `em_escrow_partial_release` - Partial payment",
+                    ]
+                )
             elif payment.status == "released":
-                lines.extend([
-                    "",
-                    "Payment has been released to the worker.",
-                    "Post-release dispute is not available in production (tokenCollector not implemented).",
-                ])
+                lines.extend(
+                    [
+                        "",
+                        "Payment has been released to the worker.",
+                        "Post-release dispute is not available in production (tokenCollector not implemented).",
+                    ]
+                )
             elif payment.status in ("refunded", "charged", "partial_released"):
                 lines.extend(["", "Payment is complete. No further actions available."])
 
             return "\n".join(lines)
 
         except Exception as e:
-            logger.error("Error getting escrow status for task %s: %s", params.task_id, e)
+            logger.error(
+                "Error getting escrow status for task %s: %s", params.task_id, e
+            )
             return f"Error: Failed to get escrow status - {e}"
 
     logger.info(

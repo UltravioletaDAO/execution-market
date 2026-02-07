@@ -30,23 +30,27 @@ logger = logging.getLogger(__name__)
 # Alert Types and Severity
 # =============================================================================
 
+
 class AlertSeverity(str, Enum):
     """Alert severity levels following standard patterns."""
-    CRITICAL = "critical"    # Requires immediate attention, service down
-    WARNING = "warning"      # Degraded service, may escalate
-    INFO = "info"           # Notable event, no immediate action needed
+
+    CRITICAL = "critical"  # Requires immediate attention, service down
+    WARNING = "warning"  # Degraded service, may escalate
+    INFO = "info"  # Notable event, no immediate action needed
 
 
 class AlertState(str, Enum):
     """Alert state machine."""
-    PENDING = "pending"     # Threshold exceeded, waiting for confirmation
-    FIRING = "firing"       # Confirmed alert, notifications sent
-    RESOLVED = "resolved"   # Condition no longer met
+
+    PENDING = "pending"  # Threshold exceeded, waiting for confirmation
+    FIRING = "firing"  # Confirmed alert, notifications sent
+    RESOLVED = "resolved"  # Condition no longer met
 
 
 @dataclass
 class Alert:
     """An active or historical alert instance."""
+
     id: str
     rule_name: str
     severity: AlertSeverity
@@ -80,7 +84,7 @@ class Alert:
             "fired_at": self.fired_at.isoformat() if self.fired_at else None,
             "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
             "duration_seconds": self._duration_seconds(),
-            "notification_count": self.notification_count
+            "notification_count": self.notification_count,
         }
 
     def _duration_seconds(self) -> float:
@@ -100,6 +104,7 @@ class Alert:
 # Alert Rules
 # =============================================================================
 
+
 @dataclass
 class AlertRule:
     """
@@ -110,6 +115,7 @@ class AlertRule:
     - Rate of change alerting
     - Absence detection
     """
+
     name: str
     severity: AlertSeverity
     summary_template: str
@@ -155,7 +161,9 @@ class AlertRuleBuilder:
         self._description = template
         return self
 
-    def condition(self, fn: Callable[[], Awaitable[Optional[Dict[str, Any]]]]) -> "AlertRuleBuilder":
+    def condition(
+        self, fn: Callable[[], Awaitable[Optional[Dict[str, Any]]]]
+    ) -> "AlertRuleBuilder":
         self._condition = fn
         return self
 
@@ -190,13 +198,14 @@ class AlertRuleBuilder:
             for_duration=self._for_duration,
             repeat_interval=self._repeat_interval,
             labels=self._labels,
-            annotations=self._annotations
+            annotations=self._annotations,
         )
 
 
 # =============================================================================
 # Notification Channels
 # =============================================================================
+
 
 class NotificationChannel(ABC):
     """Abstract base for notification delivery."""
@@ -232,9 +241,9 @@ class WebhookChannel(NotificationChannel):
                     json={
                         "type": "alert",
                         "status": "firing",
-                        "alert": alert.to_dict()
+                        "alert": alert.to_dict(),
                     },
-                    headers=self.headers
+                    headers=self.headers,
                 )
                 return response.status_code < 300
         except Exception as e:
@@ -249,9 +258,9 @@ class WebhookChannel(NotificationChannel):
                     json={
                         "type": "alert",
                         "status": "resolved",
-                        "alert": alert.to_dict()
+                        "alert": alert.to_dict(),
                     },
-                    headers=self.headers
+                    headers=self.headers,
                 )
                 return response.status_code < 300
         except Exception as e:
@@ -265,13 +274,13 @@ class SlackChannel(NotificationChannel):
     SEVERITY_COLORS = {
         AlertSeverity.CRITICAL: "#FF0000",
         AlertSeverity.WARNING: "#FFA500",
-        AlertSeverity.INFO: "#0000FF"
+        AlertSeverity.INFO: "#0000FF",
     }
 
     SEVERITY_EMOJI = {
         AlertSeverity.CRITICAL: ":rotating_light:",
         AlertSeverity.WARNING: ":warning:",
-        AlertSeverity.INFO: ":information_source:"
+        AlertSeverity.INFO: ":information_source:",
     }
 
     def __init__(self, webhook_url: str, channel: str = None):
@@ -283,24 +292,36 @@ class SlackChannel(NotificationChannel):
         color = self.SEVERITY_COLORS.get(alert.severity, "#808080")
 
         payload = {
-            "attachments": [{
-                "color": color,
-                "title": f"{emoji} [{alert.severity.value.upper()}] {alert.summary}",
-                "text": alert.description,
-                "fields": [
-                    {"title": "Rule", "value": alert.rule_name, "short": True},
-                    {"title": "State", "value": alert.state.value, "short": True},
-                ],
-                "footer": "Execution Market Alerts",
-                "ts": int(alert.started_at.timestamp())
-            }]
+            "attachments": [
+                {
+                    "color": color,
+                    "title": f"{emoji} [{alert.severity.value.upper()}] {alert.summary}",
+                    "text": alert.description,
+                    "fields": [
+                        {"title": "Rule", "value": alert.rule_name, "short": True},
+                        {"title": "State", "value": alert.state.value, "short": True},
+                    ],
+                    "footer": "Execution Market Alerts",
+                    "ts": int(alert.started_at.timestamp()),
+                }
+            ]
         }
 
         if alert.value is not None and alert.threshold is not None:
-            payload["attachments"][0]["fields"].extend([
-                {"title": "Current Value", "value": f"{alert.value:.2f}", "short": True},
-                {"title": "Threshold", "value": f"{alert.threshold:.2f}", "short": True},
-            ])
+            payload["attachments"][0]["fields"].extend(
+                [
+                    {
+                        "title": "Current Value",
+                        "value": f"{alert.value:.2f}",
+                        "short": True,
+                    },
+                    {
+                        "title": "Threshold",
+                        "value": f"{alert.threshold:.2f}",
+                        "short": True,
+                    },
+                ]
+            )
 
         if self.channel:
             payload["channel"] = self.channel
@@ -318,17 +339,19 @@ class SlackChannel(NotificationChannel):
         duration_str = self._format_duration(duration)
 
         payload = {
-            "attachments": [{
-                "color": "#00FF00",
-                "title": f":white_check_mark: [RESOLVED] {alert.summary}",
-                "text": f"Alert resolved after {duration_str}",
-                "fields": [
-                    {"title": "Rule", "value": alert.rule_name, "short": True},
-                    {"title": "Duration", "value": duration_str, "short": True},
-                ],
-                "footer": "Execution Market Alerts",
-                "ts": int(datetime.now(timezone.utc).timestamp())
-            }]
+            "attachments": [
+                {
+                    "color": "#00FF00",
+                    "title": f":white_check_mark: [RESOLVED] {alert.summary}",
+                    "text": f"Alert resolved after {duration_str}",
+                    "fields": [
+                        {"title": "Rule", "value": alert.rule_name, "short": True},
+                        {"title": "Duration", "value": duration_str, "short": True},
+                    ],
+                    "footer": "Execution Market Alerts",
+                    "ts": int(datetime.now(timezone.utc).timestamp()),
+                }
+            ]
         }
 
         if self.channel:
@@ -346,7 +369,7 @@ class SlackChannel(NotificationChannel):
         if seconds < 60:
             return f"{seconds:.0f}s"
         elif seconds < 3600:
-            return f"{seconds/60:.0f}m"
+            return f"{seconds / 60:.0f}m"
         else:
             hours = seconds / 3600
             return f"{hours:.1f}h"
@@ -358,10 +381,12 @@ class PagerDutyChannel(NotificationChannel):
     SEVERITY_MAP = {
         AlertSeverity.CRITICAL: "critical",
         AlertSeverity.WARNING: "warning",
-        AlertSeverity.INFO: "info"
+        AlertSeverity.INFO: "info",
     }
 
-    def __init__(self, routing_key: str, api_url: str = "https://events.pagerduty.com/v2/enqueue"):
+    def __init__(
+        self, routing_key: str, api_url: str = "https://events.pagerduty.com/v2/enqueue"
+    ):
         self.routing_key = routing_key
         self.api_url = api_url
 
@@ -380,9 +405,9 @@ class PagerDutyChannel(NotificationChannel):
                     "description": alert.description,
                     "value": alert.value,
                     "threshold": alert.threshold,
-                    "labels": alert.labels
-                }
-            }
+                    "labels": alert.labels,
+                },
+            },
         }
 
         try:
@@ -397,7 +422,7 @@ class PagerDutyChannel(NotificationChannel):
         payload = {
             "routing_key": self.routing_key,
             "event_action": "resolve",
-            "dedup_key": alert.id
+            "dedup_key": alert.id,
         }
 
         try:
@@ -419,7 +444,7 @@ class LogChannel(NotificationChannel):
         level = {
             AlertSeverity.CRITICAL: logging.CRITICAL,
             AlertSeverity.WARNING: logging.WARNING,
-            AlertSeverity.INFO: logging.INFO
+            AlertSeverity.INFO: logging.INFO,
         }.get(alert.severity, logging.WARNING)
 
         self._logger.log(
@@ -428,7 +453,7 @@ class LogChannel(NotificationChannel):
             alert.rule_name,
             alert.summary,
             alert.value,
-            alert.threshold
+            alert.threshold,
         )
         return True
 
@@ -437,7 +462,7 @@ class LogChannel(NotificationChannel):
             "[ALERT RESOLVED] %s - %s (duration=%.1fs)",
             alert.rule_name,
             alert.summary,
-            alert._duration_seconds()
+            alert._duration_seconds(),
         )
         return True
 
@@ -445,6 +470,7 @@ class LogChannel(NotificationChannel):
 # =============================================================================
 # Alert Manager
 # =============================================================================
+
 
 class AlertManager:
     """
@@ -582,11 +608,13 @@ class AlertManager:
                     severity=rule.severity,
                     state=AlertState.PENDING,
                     summary=self._render_template(rule.summary_template, result),
-                    description=self._render_template(rule.description_template, result),
+                    description=self._render_template(
+                        rule.description_template, result
+                    ),
                     labels=labels,
                     annotations=rule.annotations,
                     value=value,
-                    threshold=threshold
+                    threshold=threshold,
                 )
                 self._active_alerts[alert_id] = alert
                 logger.debug("Alert pending: %s", rule.name)
@@ -599,8 +627,8 @@ class AlertManager:
 
                 # Check if should transition to firing
                 if (
-                    alert.state == AlertState.PENDING and
-                    now - alert.started_at >= rule.for_duration
+                    alert.state == AlertState.PENDING
+                    and now - alert.started_at >= rule.for_duration
                 ):
                     alert.state = AlertState.FIRING
                     alert.fired_at = now
@@ -609,9 +637,10 @@ class AlertManager:
 
                 # Check for repeat notifications
                 elif (
-                    alert.state == AlertState.FIRING and
-                    alert.fired_at and
-                    now - alert.fired_at >= rule.repeat_interval * (alert.notification_count + 1)
+                    alert.state == AlertState.FIRING
+                    and alert.fired_at
+                    and now - alert.fired_at
+                    >= rule.repeat_interval * (alert.notification_count + 1)
                 ):
                     await self._send_notifications(alert)
 
@@ -689,20 +718,26 @@ class AlertManager:
                 "enabled": rule.enabled,
                 "silenced": self.is_silenced(rule.name),
                 "for_duration_seconds": rule.for_duration.total_seconds(),
-                "last_evaluation": rule.last_evaluation.isoformat() if rule.last_evaluation else None
+                "last_evaluation": rule.last_evaluation.isoformat()
+                if rule.last_evaluation
+                else None,
             }
             for rule in self._rules.values()
         ]
 
     def get_summary(self) -> Dict[str, Any]:
         """Get alert system summary."""
-        firing = [a for a in self._active_alerts.values() if a.state == AlertState.FIRING]
-        pending = [a for a in self._active_alerts.values() if a.state == AlertState.PENDING]
+        firing = [
+            a for a in self._active_alerts.values() if a.state == AlertState.FIRING
+        ]
+        pending = [
+            a for a in self._active_alerts.values() if a.state == AlertState.PENDING
+        ]
 
         return {
-            "status": "critical" if any(a.severity == AlertSeverity.CRITICAL for a in firing) else (
-                "warning" if firing else "ok"
-            ),
+            "status": "critical"
+            if any(a.severity == AlertSeverity.CRITICAL for a in firing)
+            else ("warning" if firing else "ok"),
             "total_rules": len(self._rules),
             "enabled_rules": sum(1 for r in self._rules.values() if r.enabled),
             "silenced_rules": len(self._silences),
@@ -710,19 +745,24 @@ class AlertManager:
                 "firing": len(firing),
                 "pending": len(pending),
                 "firing_by_severity": {
-                    "critical": sum(1 for a in firing if a.severity == AlertSeverity.CRITICAL),
-                    "warning": sum(1 for a in firing if a.severity == AlertSeverity.WARNING),
-                    "info": sum(1 for a in firing if a.severity == AlertSeverity.INFO)
-                }
+                    "critical": sum(
+                        1 for a in firing if a.severity == AlertSeverity.CRITICAL
+                    ),
+                    "warning": sum(
+                        1 for a in firing if a.severity == AlertSeverity.WARNING
+                    ),
+                    "info": sum(1 for a in firing if a.severity == AlertSeverity.INFO),
+                },
             },
             "history_size": len(self._alert_history),
-            "channels": len(self._channels)
+            "channels": len(self._channels),
         }
 
 
 # =============================================================================
 # Default Alert Rules
 # =============================================================================
+
 
 def create_default_rules() -> List[AlertRule]:
     """
@@ -754,7 +794,7 @@ def create_default_rules() -> List[AlertRule]:
                 "value": error_rate,
                 "threshold": 5.0,
                 "total_requests": total,
-                "total_errors": errors
+                "total_errors": errors,
             }
         return None
 
@@ -762,7 +802,9 @@ def create_default_rules() -> List[AlertRule]:
         AlertRuleBuilder("high_error_rate")
         .severity(AlertSeverity.WARNING)
         .summary("High API error rate: {value:.1f}%")
-        .description("API error rate has exceeded 5%. Total requests: {total_requests}, errors: {total_errors}")
+        .description(
+            "API error rate has exceeded 5%. Total requests: {total_requests}, errors: {total_errors}"
+        )
         .condition(high_error_rate_condition)
         .for_duration(timedelta(minutes=2))
         .with_label("component", "api")
@@ -784,7 +826,7 @@ def create_default_rules() -> List[AlertRule]:
                 "value": error_rate,
                 "threshold": 20.0,
                 "total_requests": total,
-                "total_errors": errors
+                "total_errors": errors,
             }
         return None
 
@@ -812,18 +854,16 @@ def create_default_rules() -> List[AlertRule]:
             return None
 
         if p95 > 2.0:
-            return {
-                "value": p95,
-                "threshold": 2.0,
-                "percentile": "p95"
-            }
+            return {"value": p95, "threshold": 2.0, "percentile": "p95"}
         return None
 
     rules.append(
         AlertRuleBuilder("slow_response_time")
         .severity(AlertSeverity.WARNING)
         .summary("Slow API response times: p95 = {value:.2f}s")
-        .description("95th percentile response time exceeds 2 seconds. Users may experience slowness.")
+        .description(
+            "95th percentile response time exceeds 2 seconds. Users may experience slowness."
+        )
         .condition(slow_response_time_condition)
         .for_duration(timedelta(minutes=5))
         .with_label("component", "api")
@@ -849,7 +889,7 @@ def create_default_rules() -> List[AlertRule]:
                 "value": failure_rate,
                 "threshold": 10.0,
                 "total_payments": total,
-                "failures": failures
+                "failures": failures,
             }
         return None
 
@@ -857,7 +897,9 @@ def create_default_rules() -> List[AlertRule]:
         AlertRuleBuilder("high_payment_failure_rate")
         .severity(AlertSeverity.CRITICAL)
         .summary("High payment failure rate: {value:.1f}%")
-        .description("Payment failure rate exceeds 10%. Workers may not be receiving payments.")
+        .description(
+            "Payment failure rate exceeds 10%. Workers may not be receiving payments."
+        )
         .condition(payment_failure_condition)
         .for_duration(timedelta(minutes=5))
         .with_label("component", "payments")
@@ -875,18 +917,16 @@ def create_default_rules() -> List[AlertRule]:
 
         # Threshold: less than 5 active workers
         if active_workers < 5:
-            return {
-                "value": active_workers,
-                "threshold": 5,
-                "metric": "active_workers"
-            }
+            return {"value": active_workers, "threshold": 5, "metric": "active_workers"}
         return None
 
     rules.append(
         AlertRuleBuilder("low_worker_availability")
         .severity(AlertSeverity.WARNING)
         .summary("Low worker availability: {value:.0f} workers")
-        .description("Less than 5 workers are currently active. Task completion may be delayed.")
+        .description(
+            "Less than 5 workers are currently active. Task completion may be delayed."
+        )
         .condition(low_worker_availability_condition)
         .for_duration(timedelta(minutes=10))
         .with_label("component", "workers")
@@ -901,18 +941,20 @@ def create_default_rules() -> List[AlertRule]:
         """Check system health from health checker."""
         try:
             from ..api.health import get_health_checker, HealthStatus
+
             checker = get_health_checker()
             health = await checker.check_all()
 
             if health.status == HealthStatus.DEGRADED:
                 unhealthy = [
-                    name for name, comp in health.components.items()
+                    name
+                    for name, comp in health.components.items()
                     if comp.status != HealthStatus.HEALTHY
                 ]
                 return {
                     "value": len(unhealthy),
                     "threshold": 0,
-                    "unhealthy_components": ", ".join(unhealthy)
+                    "unhealthy_components": ", ".join(unhealthy),
                 }
         except Exception:
             pass
@@ -922,7 +964,9 @@ def create_default_rules() -> List[AlertRule]:
         AlertRuleBuilder("system_health_degraded")
         .severity(AlertSeverity.WARNING)
         .summary("System health degraded: {value:.0f} component(s) affected")
-        .description("System is in degraded state. Affected components: {unhealthy_components}")
+        .description(
+            "System is in degraded state. Affected components: {unhealthy_components}"
+        )
         .condition(health_degraded_condition)
         .for_duration(timedelta(minutes=3))
         .with_label("component", "system")
@@ -933,18 +977,20 @@ def create_default_rules() -> List[AlertRule]:
         """Check if system is unhealthy."""
         try:
             from ..api.health import get_health_checker, HealthStatus
+
             checker = get_health_checker()
             health = await checker.check_all()
 
             if health.status == HealthStatus.UNHEALTHY:
                 critical = [
-                    name for name, comp in health.components.items()
+                    name
+                    for name, comp in health.components.items()
                     if comp.status == HealthStatus.UNHEALTHY
                 ]
                 return {
                     "value": 1,
                     "threshold": 0,
-                    "critical_components": ", ".join(critical)
+                    "critical_components": ", ".join(critical),
                 }
         except Exception:
             pass
@@ -954,7 +1000,9 @@ def create_default_rules() -> List[AlertRule]:
         AlertRuleBuilder("system_health_critical")
         .severity(AlertSeverity.CRITICAL)
         .summary("System health critical")
-        .description("System is in unhealthy state. Critical components: {critical_components}")
+        .description(
+            "System is in unhealthy state. Critical components: {critical_components}"
+        )
         .condition(health_unhealthy_condition)
         .for_duration(timedelta(seconds=30))
         .with_label("component", "system")
@@ -973,18 +1021,18 @@ def create_default_rules() -> List[AlertRule]:
 
         # Alert if there are active tasks but no completions and activity is expected
         if active > 10 and completed == 0:
-            return {
-                "value": active,
-                "threshold": 10,
-                "completed": completed
-            }
+            return {"value": active, "threshold": 10, "completed": completed}
         return None
 
     rules.append(
         AlertRuleBuilder("task_completion_stalled")
         .severity(AlertSeverity.WARNING)
-        .summary("Task completion may be stalled: {value:.0f} active tasks, 0 completed")
-        .description("There are active tasks but no completions recorded. Verify task processing is working.")
+        .summary(
+            "Task completion may be stalled: {value:.0f} active tasks, 0 completed"
+        )
+        .description(
+            "There are active tasks but no completions recorded. Verify task processing is working."
+        )
         .condition(task_completion_stalled_condition)
         .for_duration(timedelta(minutes=30))
         .with_label("component", "tasks")
@@ -1041,7 +1089,7 @@ async def stop_alert_manager() -> None:
 
 
 # FastAPI Router
-from fastapi import APIRouter, Response, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 alerts_router = APIRouter(prefix="/alerts", tags=["alerts"])
@@ -1101,7 +1149,7 @@ async def silence_rule(rule_name: str, request: SilenceRequest) -> Dict[str, Any
         "status": "silenced",
         "rule": rule_name,
         "duration_minutes": request.duration_minutes,
-        "until": (datetime.now(timezone.utc) + duration).isoformat()
+        "until": (datetime.now(timezone.utc) + duration).isoformat(),
     }
 
 
@@ -1134,7 +1182,7 @@ async def test_alert() -> Dict[str, Any]:
         description="This is a test alert to verify notification channels are working.",
         labels={"component": "test"},
         value=100,
-        threshold=50
+        threshold=50,
     )
 
     for channel in manager._channels:
@@ -1146,5 +1194,5 @@ async def test_alert() -> Dict[str, Any]:
     return {
         "status": "sent",
         "channels": len(manager._channels),
-        "alert_id": test_alert.id
+        "alert_id": test_alert.id,
     }

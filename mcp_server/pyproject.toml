@@ -39,5 +39,16 @@ execution-market = "server:mcp.run"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+# Use ruff defaults (E4, E7, E9, F) plus explicit ignores
+ignore = [
+    "E741",  # Ambiguous variable name (l in list comprehensions)
+    "E402",  # Module-level import not at top (conditional imports in monitoring)
+    "F402",  # Import shadowed by loop variable
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["."]

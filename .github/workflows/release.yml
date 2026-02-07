@@ -186,25 +186,22 @@ jobs:
           NEW_VERSION="${{ needs.prepare-release.outputs.new_version }}"
           DATE=$(date +%Y-%m-%d)
 
-          if [ -f CHANGELOG.md ]; then
-            # Insert new version after header
-            sed -i "/^# Changelog/a\\
-\\
-## [$NEW_VERSION] - $DATE\\
-\\
-${{ needs.prepare-release.outputs.changelog }}" CHANGELOG.md
-          else
-            # Create new changelog
-            cat > CHANGELOG.md << EOF
-          # Changelog
-
-          All notable changes to this project will be documented in this file.
-
-          ## [$NEW_VERSION] - $DATE
-
-          ${{ needs.prepare-release.outputs.changelog }}
-          EOF
-          fi
+          # Build new changelog content
+          {
+            echo "# Changelog"
+            echo ""
+            echo "## [$NEW_VERSION] - $DATE"
+            echo ""
+            echo "${{ needs.prepare-release.outputs.changelog }}"
+            echo ""
+            if [ -f CHANGELOG.md ]; then
+              # Skip the first line (old "# Changelog" header) from existing file
+              tail -n +2 CHANGELOG.md
+            else
+              echo "All notable changes to this project will be documented in this file."
+            fi
+          } > CHANGELOG.md.tmp
+          mv CHANGELOG.md.tmp CHANGELOG.md
 
       - name: Create release branch
         run: |

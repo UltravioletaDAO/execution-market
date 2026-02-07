@@ -206,7 +206,7 @@ export function useX402Wallet(): UseX402WalletReturn {
       setError(null)
 
       try {
-        await switchChainAsync({ chainId: targetChainId })
+        await switchChainAsync({ chainId: targetChainId as any })
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to switch chain'
         setError({ code: 'SWITCH_CHAIN_FAILED', message })

@@ -5,15 +5,13 @@ Tests NOW-112 (Safety Pre-Investigation) and NOW-113 (Hostile Meatspace Protocol
 """
 
 import pytest
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, UTC
 from typing import Tuple
 
 from ..safety import (
     SafetyInvestigator,
-    SafetyAssessment,
     SafetyRisk,
     RiskFactor,
-    LocationRiskData,
     HostileProtocolManager,
     ObstacleReport,
     ObstacleType,
@@ -118,9 +116,7 @@ class TestSafetyInvestigator:
         """Test assessment with task ID."""
         lat, lng = sample_location
 
-        assessment = await investigator.assess_location(
-            lat, lng, task_id="task-789"
-        )
+        assessment = await investigator.assess_location(lat, lng, task_id="task-789")
 
         assert assessment.task_id == "task-789"
 
@@ -155,9 +151,7 @@ class TestSafetyInvestigator:
         assessment1 = await investigator.assess_location(lat, lng)
 
         # Force refresh
-        assessment2 = await investigator.assess_location(
-            lat, lng, force_refresh=True
-        )
+        assessment2 = await investigator.assess_location(lat, lng, force_refresh=True)
 
         # Should have different timestamps
         assert assessment1.assessed_at <= assessment2.assessed_at
@@ -194,9 +188,7 @@ class TestSafetyInvestigator:
         assert risk_score > 0.4
         assert len(warnings) > 0
 
-    def test_check_time_risk_industrial_area(
-        self, investigator: SafetyInvestigator
-    ):
+    def test_check_time_risk_industrial_area(self, investigator: SafetyInvestigator):
         """Test time risk in industrial area."""
         # 7 PM in industrial area
         task_time = datetime.now(UTC).replace(hour=19, minute=0)
@@ -217,7 +209,8 @@ class TestSafetyInvestigator:
         lat, lng = sample_location
 
         investigator.record_incident(
-            lat, lng,
+            lat,
+            lng,
             incident_type="hostile_encounter",
             description="Aggressive person encountered",
             worker_id="worker-123",
@@ -240,15 +233,14 @@ class TestSafetyInvestigator:
         # Record multiple incidents
         for i in range(3):
             investigator.record_incident(
-                lat, lng,
+                lat,
+                lng,
                 incident_type="hostile_encounter",
                 description=f"Incident {i}",
             )
 
         # Get assessment
-        assessment = await investigator.assess_location(
-            lat, lng, force_refresh=True
-        )
+        assessment = await investigator.assess_location(lat, lng, force_refresh=True)
 
         # Should have warnings about incidents
         assert any("incident" in w.lower() for w in assessment.warnings)
@@ -306,8 +298,8 @@ class TestSafetyConvenienceFunctions:
     def test_is_safe_time_nighttime(self):
         """Test is_safe_time for nighttime."""
         assert is_safe_time(23) is False  # 11 PM
-        assert is_safe_time(2) is False   # 2 AM
-        assert is_safe_time(4) is False   # 4 AM
+        assert is_safe_time(2) is False  # 2 AM
+        assert is_safe_time(4) is False  # 4 AM
 
 
 # =============================================================================
@@ -447,9 +439,7 @@ class TestHostileProtocolManager:
         )
 
         # Manually verify
-        result = await hostile_manager.verify_obstacle(
-            report.id, verifier_id="admin-1"
-        )
+        result = await hostile_manager.verify_obstacle(report.id, verifier_id="admin-1")
 
         assert result is True
         updated_report = await hostile_manager.get_report(report.id)
@@ -717,9 +707,7 @@ class TestConvenienceFunctions:
 class TestProofOfAttempt:
     """Tests for ProofOfAttempt data class."""
 
-    def test_proof_of_attempt_to_dict(
-        self, sample_evidence: ProofOfAttempt
-    ):
+    def test_proof_of_attempt_to_dict(self, sample_evidence: ProofOfAttempt):
         """Test ProofOfAttempt.to_dict() serialization."""
         data = sample_evidence.to_dict()
 

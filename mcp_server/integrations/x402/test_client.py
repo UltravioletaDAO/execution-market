@@ -6,12 +6,10 @@ Run with: pytest test_client.py -v
 
 import pytest
 from decimal import Decimal
-from datetime import datetime, timezone
 
 from .client import (
     X402Client,
     PaymentToken,
-    EscrowStatus,
     X402Error,
     EscrowCreationError,
     InsufficientFundsError,

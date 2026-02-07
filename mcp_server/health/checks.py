@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class HealthStatus(str, Enum):
     """Health status values following standard patterns."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -33,6 +34,7 @@ class HealthStatus(str, Enum):
 @dataclass
 class ComponentHealth:
     """Health status of a single component."""
+
     name: str
     status: HealthStatus
     latency_ms: Optional[float] = None
@@ -68,6 +70,7 @@ class ComponentHealth:
 @dataclass
 class SystemHealth:
     """Overall system health aggregation."""
+
     status: HealthStatus
     version: str
     uptime_seconds: float
@@ -82,9 +85,8 @@ class SystemHealth:
             "uptime_seconds": round(self.uptime_seconds, 2),
             "timestamp": self.timestamp.isoformat(),
             "components": {
-                name: comp.to_dict()
-                for name, comp in self.components.items()
-            }
+                name: comp.to_dict() for name, comp in self.components.items()
+            },
         }
 
 
@@ -109,6 +111,7 @@ async def check_database(timeout: float = 5.0) -> ComponentHealth:
     start = time.time()
     try:
         import supabase_client
+
         client = supabase_client.get_client()
 
         # Simple query to verify connection
@@ -116,7 +119,7 @@ async def check_database(timeout: float = 5.0) -> ComponentHealth:
             asyncio.to_thread(
                 lambda: client.table("tasks").select("id").limit(1).execute()
             ),
-            timeout=timeout
+            timeout=timeout,
         )
 
         latency = (time.time() - start) * 1000
@@ -127,7 +130,7 @@ async def check_database(timeout: float = 5.0) -> ComponentHealth:
                 name="database",
                 status=HealthStatus.DEGRADED,
                 latency_ms=latency,
-                message=f"High latency: {latency:.1f}ms (threshold: 2000ms)"
+                message=f"High latency: {latency:.1f}ms (threshold: 2000ms)",
             )
 
         return ComponentHealth(
@@ -135,14 +138,14 @@ async def check_database(timeout: float = 5.0) -> ComponentHealth:
             status=HealthStatus.HEALTHY,
             latency_ms=latency,
             message="Connected",
-            details={"rows_returned": len(result.data) if result.data else 0}
+            details={"rows_returned": len(result.data) if result.data else 0},
         )
     except asyncio.TimeoutError:
         return ComponentHealth(
             name="database",
             status=HealthStatus.UNHEALTHY,
             latency_ms=(time.time() - start) * 1000,
-            message=f"Connection timeout (>{timeout}s)"
+            message=f"Connection timeout (>{timeout}s)",
         )
     except Exception as e:
         logger.error("Database health check failed: %s", str(e))
@@ -150,7 +153,7 @@ async def check_database(timeout: float = 5.0) -> ComponentHealth:
             name="database",
             status=HealthStatus.UNHEALTHY,
             latency_ms=(time.time() - start) * 1000,
-            message=f"Connection failed: {str(e)[:100]}"
+            message=f"Connection failed: {str(e)[:100]}",
         )
 
 
@@ -172,12 +175,13 @@ async def check_redis(timeout: float = 2.0) -> ComponentHealth:
         return ComponentHealth(
             name="redis",
             status=HealthStatus.HEALTHY,
-            message="Not configured (optional component)"
+            message="Not configured (optional component)",
         )
 
     start = time.time()
     try:
         import redis.asyncio as aioredis
+
         client = aioredis.from_url(redis_url, decode_responses=True)
 
         await asyncio.wait_for(client.ping(), timeout=timeout)
@@ -197,7 +201,7 @@ async def check_redis(timeout: float = 2.0) -> ComponentHealth:
                 message=f"High latency: {latency:.1f}ms",
                 details={
                     "used_memory_human": info.get("used_memory_human", "unknown"),
-                }
+                },
             )
 
         return ComponentHealth(
@@ -207,21 +211,21 @@ async def check_redis(timeout: float = 2.0) -> ComponentHealth:
             message="Connected",
             details={
                 "used_memory_human": info.get("used_memory_human", "unknown"),
-                "connected_clients": info.get("connected_clients", "unknown")
-            }
+                "connected_clients": info.get("connected_clients", "unknown"),
+            },
         )
     except asyncio.TimeoutError:
         return ComponentHealth(
             name="redis",
             status=HealthStatus.DEGRADED,
             latency_ms=(time.time() - start) * 1000,
-            message="Connection timeout"
+            message="Connection timeout",
         )
     except ImportError:
         return ComponentHealth(
             name="redis",
             status=HealthStatus.HEALTHY,
-            message="Redis client not installed (optional)"
+            message="Redis client not installed (optional)",
         )
     except Exception as e:
         logger.warning("Redis health check failed: %s", str(e))
@@ -229,7 +233,7 @@ async def check_redis(timeout: float = 2.0) -> ComponentHealth:
             name="redis",
             status=HealthStatus.DEGRADED,
             latency_ms=(time.time() - start) * 1000,
-            message=f"Connection issue: {str(e)[:100]}"
+            message=f"Connection issue: {str(e)[:100]}",
         )
 
 
@@ -246,7 +250,10 @@ async def check_x402(timeout: float = 5.0) -> ComponentHealth:
     Returns:
         ComponentHealth with x402 status
     """
-    x402_url = os.getenv("X402_FACILITATOR_URL", os.getenv("X402_URL", "https://facilitator.ultravioletadao.xyz"))
+    x402_url = os.getenv(
+        "X402_FACILITATOR_URL",
+        os.getenv("X402_URL", "https://facilitator.ultravioletadao.xyz"),
+    )
     wallet_key = os.getenv("WALLET_PRIVATE_KEY")
 
     start = time.time()
@@ -268,7 +275,9 @@ async def check_x402(timeout: float = 5.0) -> ComponentHealth:
                     facilitator_status = health_data.get("status", "unknown")
                 except Exception:
                     health_data = {}
-                    facilitator_status = "ok" if response.status_code == 200 else "unknown"
+                    facilitator_status = (
+                        "ok" if response.status_code == 200 else "unknown"
+                    )
 
                 status = HealthStatus.HEALTHY
                 message = "Facilitator operational"
@@ -287,7 +296,7 @@ async def check_x402(timeout: float = 5.0) -> ComponentHealth:
                         "facilitator_url": x402_url,
                         "facilitator_status": facilitator_status,
                         "config_complete": len(config_issues) == 0,
-                    }
+                    },
                 )
             else:
                 return ComponentHealth(
@@ -295,7 +304,7 @@ async def check_x402(timeout: float = 5.0) -> ComponentHealth:
                     status=HealthStatus.DEGRADED,
                     latency_ms=latency,
                     message=f"Facilitator returned HTTP {response.status_code}",
-                    details={"facilitator_url": x402_url}
+                    details={"facilitator_url": x402_url},
                 )
     except httpx.TimeoutException:
         return ComponentHealth(
@@ -303,7 +312,7 @@ async def check_x402(timeout: float = 5.0) -> ComponentHealth:
             status=HealthStatus.DEGRADED,
             latency_ms=(time.time() - start) * 1000,
             message=f"Facilitator timeout (>{timeout}s)",
-            details={"facilitator_url": x402_url}
+            details={"facilitator_url": x402_url},
         )
     except Exception as e:
         logger.warning("x402 health check failed: %s", str(e))
@@ -321,7 +330,7 @@ async def check_x402(timeout: float = 5.0) -> ComponentHealth:
             status=HealthStatus.DEGRADED,
             latency_ms=(time.time() - start) * 1000,
             message=f"Facilitator unreachable: {str(e)[:50]}",
-            details={"facilitator_url": x402_url}
+            details={"facilitator_url": x402_url},
         )
 
 
@@ -341,6 +350,7 @@ async def check_storage(timeout: float = 5.0) -> ComponentHealth:
     start = time.time()
     try:
         import supabase_client
+
         client = supabase_client.get_client()
 
         # Try to access evidence bucket directly (list_buckets can fail with some auth)
@@ -350,11 +360,9 @@ async def check_storage(timeout: float = 5.0) -> ComponentHealth:
 
         try:
             # Try to list files in the evidence bucket (limit 1 to minimize overhead)
-            files = await asyncio.wait_for(
-                asyncio.to_thread(
-                    lambda: client.storage.from_(bucket_name).list()
-                ),
-                timeout=timeout
+            await asyncio.wait_for(
+                asyncio.to_thread(lambda: client.storage.from_(bucket_name).list()),
+                timeout=timeout,
             )
             evidence_bucket_exists = True
         except Exception as e:
@@ -377,14 +385,14 @@ async def check_storage(timeout: float = 5.0) -> ComponentHealth:
             details={
                 "bucket": bucket_name,
                 "accessible": evidence_bucket_exists,
-            }
+            },
         )
     except asyncio.TimeoutError:
         return ComponentHealth(
             name="storage",
             status=HealthStatus.DEGRADED,
             latency_ms=(time.time() - start) * 1000,
-            message=f"Storage timeout (>{timeout}s)"
+            message=f"Storage timeout (>{timeout}s)",
         )
     except Exception as e:
         logger.warning("Storage health check failed: %s", str(e))
@@ -392,7 +400,7 @@ async def check_storage(timeout: float = 5.0) -> ComponentHealth:
             name="storage",
             status=HealthStatus.DEGRADED,
             latency_ms=(time.time() - start) * 1000,
-            message=f"Storage check failed: {str(e)[:100]}"
+            message=f"Storage check failed: {str(e)[:100]}",
         )
 
 
@@ -420,8 +428,8 @@ async def check_blockchain(timeout: float = 10.0) -> ComponentHealth:
                     "jsonrpc": "2.0",
                     "method": "eth_blockNumber",
                     "params": [],
-                    "id": 1
-                }
+                    "id": 1,
+                },
             )
             response.raise_for_status()
             data = response.json()
@@ -450,29 +458,31 @@ async def check_blockchain(timeout: float = 10.0) -> ComponentHealth:
                     details={
                         "block_number": block_number,
                         "network": network,
-                        "rpc_endpoint": rpc_url[:50] + "..." if len(rpc_url) > 50 else rpc_url,
-                    }
+                        "rpc_endpoint": rpc_url[:50] + "..."
+                        if len(rpc_url) > 50
+                        else rpc_url,
+                    },
                 )
             elif "error" in data:
                 return ComponentHealth(
                     name="blockchain",
                     status=HealthStatus.DEGRADED,
                     latency_ms=(time.time() - start) * 1000,
-                    message=f"RPC error: {data['error'].get('message', 'Unknown')}"
+                    message=f"RPC error: {data['error'].get('message', 'Unknown')}",
                 )
             else:
                 return ComponentHealth(
                     name="blockchain",
                     status=HealthStatus.DEGRADED,
                     latency_ms=(time.time() - start) * 1000,
-                    message="Invalid RPC response format"
+                    message="Invalid RPC response format",
                 )
     except httpx.TimeoutException:
         return ComponentHealth(
             name="blockchain",
             status=HealthStatus.DEGRADED,
             latency_ms=(time.time() - start) * 1000,
-            message=f"RPC timeout (>{timeout}s)"
+            message=f"RPC timeout (>{timeout}s)",
         )
     except Exception as e:
         logger.error("Blockchain health check failed: %s", str(e))
@@ -480,7 +490,7 @@ async def check_blockchain(timeout: float = 10.0) -> ComponentHealth:
             name="blockchain",
             status=HealthStatus.UNHEALTHY,
             latency_ms=(time.time() - start) * 1000,
-            message=f"RPC error: {str(e)[:100]}"
+            message=f"RPC error: {str(e)[:100]}",
         )
 
 
@@ -540,7 +550,7 @@ class HealthChecker:
         self,
         name: str,
         check_fn: Callable[[], Awaitable[ComponentHealth]],
-        critical: bool = False
+        critical: bool = False,
     ) -> None:
         """
         Register a custom health check.
@@ -571,11 +581,21 @@ class HealthChecker:
             ComponentHealth for the specified component
         """
         check_map = {
-            "database": lambda: check_database(self.COMPONENT_TIMEOUTS.get("database", self.DEFAULT_TIMEOUT)),
-            "redis": lambda: check_redis(self.COMPONENT_TIMEOUTS.get("redis", self.DEFAULT_TIMEOUT)),
-            "x402": lambda: check_x402(self.COMPONENT_TIMEOUTS.get("x402", self.DEFAULT_TIMEOUT)),
-            "storage": lambda: check_storage(self.COMPONENT_TIMEOUTS.get("storage", self.DEFAULT_TIMEOUT)),
-            "blockchain": lambda: check_blockchain(self.COMPONENT_TIMEOUTS.get("blockchain", self.DEFAULT_TIMEOUT)),
+            "database": lambda: check_database(
+                self.COMPONENT_TIMEOUTS.get("database", self.DEFAULT_TIMEOUT)
+            ),
+            "redis": lambda: check_redis(
+                self.COMPONENT_TIMEOUTS.get("redis", self.DEFAULT_TIMEOUT)
+            ),
+            "x402": lambda: check_x402(
+                self.COMPONENT_TIMEOUTS.get("x402", self.DEFAULT_TIMEOUT)
+            ),
+            "storage": lambda: check_storage(
+                self.COMPONENT_TIMEOUTS.get("storage", self.DEFAULT_TIMEOUT)
+            ),
+            "blockchain": lambda: check_blockchain(
+                self.COMPONENT_TIMEOUTS.get("blockchain", self.DEFAULT_TIMEOUT)
+            ),
         }
 
         # Check custom checks first
@@ -588,7 +608,7 @@ class HealthChecker:
         return ComponentHealth(
             name=name,
             status=HealthStatus.UNHEALTHY,
-            message=f"Unknown component: {name}"
+            message=f"Unknown component: {name}",
         )
 
     async def check_all(self, force_refresh: bool = False) -> SystemHealth:
@@ -605,17 +625,17 @@ class HealthChecker:
 
         # Check cache
         if (
-            not force_refresh and
-            self._last_full_check and
-            now - self._last_full_check < self._cache_ttl and
-            self._cache
+            not force_refresh
+            and self._last_full_check
+            and now - self._last_full_check < self._cache_ttl
+            and self._cache
         ):
             overall = self._determine_overall_status(self._cache)
             return SystemHealth(
                 status=overall,
                 version=self.version,
                 uptime_seconds=self.uptime_seconds,
-                components=self._cache.copy()
+                components=self._cache.copy(),
             )
 
         # Build list of checks
@@ -629,8 +649,7 @@ class HealthChecker:
 
         # Run all checks concurrently
         results = await asyncio.gather(
-            *[check for _, check in checks],
-            return_exceptions=True
+            *[check for _, check in checks], return_exceptions=True
         )
 
         # Process results
@@ -639,11 +658,13 @@ class HealthChecker:
             if isinstance(result, ComponentHealth):
                 components[name] = result
             elif isinstance(result, Exception):
-                logger.error("Health check %s failed with exception: %s", name, str(result))
+                logger.error(
+                    "Health check %s failed with exception: %s", name, str(result)
+                )
                 components[name] = ComponentHealth(
                     name=name,
                     status=HealthStatus.UNHEALTHY,
-                    message=f"Check failed: {str(result)[:100]}"
+                    message=f"Check failed: {str(result)[:100]}",
                 )
 
         # Update cache
@@ -656,7 +677,7 @@ class HealthChecker:
             status=overall,
             version=self.version,
             uptime_seconds=self.uptime_seconds,
-            components=components
+            components=components,
         )
 
         # Store in history
@@ -667,8 +688,7 @@ class HealthChecker:
         return health
 
     def _determine_overall_status(
-        self,
-        components: Dict[str, ComponentHealth]
+        self, components: Dict[str, ComponentHealth]
     ) -> HealthStatus:
         """
         Determine overall system health from components.

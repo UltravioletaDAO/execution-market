@@ -10,13 +10,12 @@ Key features:
 - Validator payment (5-10% of task bounty split among validators)
 - Specialization matching (photography, document, technical, general)
 """
+
 import logging
-import uuid
-from typing import List, Dict, Any, Optional, Set, Tuple
+from typing import List, Dict, Any, Optional, Set
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, UTC
 from enum import Enum
-import asyncio
 import random
 
 logger = logging.getLogger(__name__)
@@ -24,27 +23,30 @@ logger = logging.getLogger(__name__)
 
 class ValidatorSpecialization(str, Enum):
     """Validator specializations for different task types."""
-    PHOTOGRAPHY = "photography"   # Photo verification (EXIF, tampering, GenAI)
-    DOCUMENT = "document"         # Document verification (receipts, forms)
-    TECHNICAL = "technical"       # Technical tasks (code, data, measurements)
-    GENERAL = "general"           # General-purpose validation
+
+    PHOTOGRAPHY = "photography"  # Photo verification (EXIF, tampering, GenAI)
+    DOCUMENT = "document"  # Document verification (receipts, forms)
+    TECHNICAL = "technical"  # Technical tasks (code, data, measurements)
+    GENERAL = "general"  # General-purpose validation
 
 
 class VoteDecision(str, Enum):
     """Possible validator decisions."""
-    APPROVE = "approve"           # Work meets requirements
-    REJECT = "reject"             # Work does not meet requirements
-    PARTIAL = "partial"           # Partial completion (with percentage)
-    ABSTAIN = "abstain"           # Cannot make determination
-    NEEDS_HUMAN = "needs_human"   # Requires human arbitration
+
+    APPROVE = "approve"  # Work meets requirements
+    REJECT = "reject"  # Work does not meet requirements
+    PARTIAL = "partial"  # Partial completion (with percentage)
+    ABSTAIN = "abstain"  # Cannot make determination
+    NEEDS_HUMAN = "needs_human"  # Requires human arbitration
 
 
 class ConsensusStatus(str, Enum):
     """Status of a consensus round."""
-    PENDING = "pending"           # Awaiting votes
-    REACHED = "reached"           # Consensus achieved
-    FAILED = "failed"             # No consensus, escalate to Safe
-    EXPIRED = "expired"           # Voting window expired
+
+    PENDING = "pending"  # Awaiting votes
+    REACHED = "reached"  # Consensus achieved
+    FAILED = "failed"  # No consensus, escalate to Safe
+    EXPIRED = "expired"  # Voting window expired
     SAFE_FALLBACK = "safe_fallback"  # Escalated to Gnosis Safe
 
 
@@ -56,13 +58,14 @@ class Validator:
     Validators are experienced workers who can verify submissions
     and participate in consensus for disputed or high-value tasks.
     """
+
     id: str
     wallet: str
     specializations: Set[ValidatorSpecialization]
-    stake_amount: float             # USDC staked
-    reputation_score: float         # 0-100 Bayesian score
-    total_validations: int          # Lifetime validations
-    accuracy_rate: float            # 0.0-1.0 historical accuracy
+    stake_amount: float  # USDC staked
+    reputation_score: float  # 0-100 Bayesian score
+    total_validations: int  # Lifetime validations
+    accuracy_rate: float  # 0.0-1.0 historical accuracy
     is_active: bool = True
     is_slashed: bool = False
     last_validation_at: Optional[datetime] = None
@@ -91,6 +94,7 @@ class Validator:
 
         # Stake factor (30%) - log scale to prevent whale dominance
         import math
+
         stake_factor = min(1.0, math.log(self.stake_amount + 1) / 10) * 0.3
 
         # Accuracy factor (20%)
@@ -104,11 +108,11 @@ class Validator:
     def can_validate(self, required_specialization: ValidatorSpecialization) -> bool:
         """Check if validator can handle this specialization."""
         return (
-            self.is_active and
-            not self.is_slashed and
-            (
-                required_specialization in self.specializations or
-                ValidatorSpecialization.GENERAL in self.specializations
+            self.is_active
+            and not self.is_slashed
+            and (
+                required_specialization in self.specializations
+                or ValidatorSpecialization.GENERAL in self.specializations
             )
         )
 
@@ -116,11 +120,12 @@ class Validator:
 @dataclass
 class ValidationVote:
     """Individual validator vote on a submission."""
+
     validator_id: str
     submission_id: str
     decision: VoteDecision
     completion_percentage: float = 100.0  # 0-100, used for PARTIAL
-    confidence: float = 1.0               # 0-1, validator confidence
+    confidence: float = 1.0  # 0-1, validator confidence
     reasoning: str = ""
     evidence_notes: str = ""
     voted_at: datetime = field(default_factory=lambda: datetime.now(UTC))
@@ -138,14 +143,15 @@ class ValidationVote:
 @dataclass
 class ConsensusResult:
     """Result of a consensus round."""
+
     submission_id: str
     status: ConsensusStatus
     final_decision: Optional[VoteDecision]
     completion_percentage: float
     votes: List[ValidationVote]
     quorum_reached: bool
-    agreement_ratio: float           # 0-1, how much validators agreed
-    total_validator_payment: float   # USDC to distribute
+    agreement_ratio: float  # 0-1, how much validators agreed
+    total_validator_payment: float  # USDC to distribute
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     resolved_at: Optional[datetime] = None
     safe_tx_hash: Optional[str] = None  # If escalated to Safe
@@ -166,6 +172,7 @@ class ConsensusResult:
 @dataclass
 class ConsensusConfig:
     """Configuration for consensus system."""
+
     # Validator selection
     required_validators: int = 3
     min_stake_usdc: float = 100.0
@@ -174,8 +181,8 @@ class ConsensusConfig:
     min_validations: int = 50
 
     # Consensus rules
-    consensus_threshold: int = 2      # 2 of 3 must agree
-    voting_window_hours: int = 24     # Time to collect votes
+    consensus_threshold: int = 2  # 2 of 3 must agree
+    voting_window_hours: int = 24  # Time to collect votes
 
     # Payments (NOW-182)
     validator_fee_min_pct: float = 0.05  # 5% minimum
@@ -186,11 +193,11 @@ class ConsensusConfig:
 
     # Slashing
     slash_on_wrong_vote: bool = True
-    slash_percentage: float = 0.05   # 5% of stake
+    slash_percentage: float = 0.05  # 5% of stake
 
     # Safe fallback
     safe_address: Optional[str] = None
-    safe_threshold: int = 2          # 2-of-3 Safe signers
+    safe_threshold: int = 2  # 2-of-3 Safe signers
 
 
 class ValidatorPool:
@@ -207,7 +214,9 @@ class ValidatorPool:
     def __init__(self, config: ConsensusConfig):
         self.config = config
         self._validators: Dict[str, Validator] = {}
-        self._recent_assignments: Dict[str, List[str]] = {}  # submission_id -> validator_ids
+        self._recent_assignments: Dict[
+            str, List[str]
+        ] = {}  # submission_id -> validator_ids
 
     def register_validator(self, validator: Validator) -> bool:
         """
@@ -224,10 +233,14 @@ class ValidatorPool:
             return False
 
         self._validators[validator.id] = validator
-        logger.info(f"Registered validator {validator.id} with score {validator.effective_score:.2f}")
+        logger.info(
+            f"Registered validator {validator.id} with score {validator.effective_score:.2f}"
+        )
         return True
 
-    def update_validator(self, validator_id: str, updates: Dict[str, Any]) -> Optional[Validator]:
+    def update_validator(
+        self, validator_id: str, updates: Dict[str, Any]
+    ) -> Optional[Validator]:
         """Update validator attributes."""
         if validator_id not in self._validators:
             return None
@@ -279,7 +292,7 @@ class ValidatorPool:
         submission_id: str,
         specialization: ValidatorSpecialization,
         exclude_ids: Set[str] = None,
-        count: int = None
+        count: int = None,
     ) -> List[Validator]:
         """
         Select validators for a submission.
@@ -300,11 +313,12 @@ class ValidatorPool:
 
         # Get eligible validators
         eligible = [
-            v for v in self._validators.values()
+            v
+            for v in self._validators.values()
             if (
-                v.can_validate(specialization) and
-                v.id not in exclude_ids and
-                self._meets_requirements(v)
+                v.can_validate(specialization)
+                and v.id not in exclude_ids
+                and self._meets_requirements(v)
             )
         ]
 
@@ -346,14 +360,13 @@ class ValidatorPool:
             # Renormalize
             if remaining:
                 total = sum(w for _, w in remaining)
-                remaining = [(v, w/total) for v, w in remaining]
+                remaining = [(v, w / total) for v, w in remaining]
 
         # Track assignment
         self._recent_assignments[submission_id] = [v.id for v in selected]
 
         logger.info(
-            f"Selected validators for {submission_id}: "
-            f"{[v.id for v in selected]}"
+            f"Selected validators for {submission_id}: {[v.id for v in selected]}"
         )
 
         return selected
@@ -364,25 +377,25 @@ class ValidatorPool:
 
     def get_active_validators(self) -> List[Validator]:
         """Get all active validators."""
-        return [v for v in self._validators.values() if v.is_active and not v.is_slashed]
+        return [
+            v for v in self._validators.values() if v.is_active and not v.is_slashed
+        ]
 
     def get_validators_by_specialization(
-        self,
-        specialization: ValidatorSpecialization
+        self, specialization: ValidatorSpecialization
     ) -> List[Validator]:
         """Get validators with specific specialization."""
         return [
-            v for v in self.get_active_validators()
-            if v.can_validate(specialization)
+            v for v in self.get_active_validators() if v.can_validate(specialization)
         ]
 
     def _meets_requirements(self, validator: Validator) -> bool:
         """Check if validator meets minimum requirements."""
         return (
-            validator.stake_amount >= self.config.min_stake_usdc and
-            validator.reputation_score >= self.config.min_reputation and
-            validator.accuracy_rate >= self.config.min_accuracy and
-            validator.total_validations >= self.config.min_validations
+            validator.stake_amount >= self.config.min_stake_usdc
+            and validator.reputation_score >= self.config.min_reputation
+            and validator.accuracy_rate >= self.config.min_accuracy
+            and validator.total_validations >= self.config.min_validations
         )
 
 
@@ -402,7 +415,7 @@ class ConsensusManager:
     def __init__(
         self,
         config: Optional[ConsensusConfig] = None,
-        validator_pool: Optional[ValidatorPool] = None
+        validator_pool: Optional[ValidatorPool] = None,
     ):
         self.config = config or ConsensusConfig()
         self.pool = validator_pool or ValidatorPool(self.config)
@@ -416,7 +429,7 @@ class ConsensusManager:
         submission_id: str,
         task_bounty_usd: float,
         specialization: ValidatorSpecialization,
-        exclude_validator_ids: Set[str] = None
+        exclude_validator_ids: Set[str] = None,
     ) -> ConsensusResult:
         """
         Start a new consensus round for a submission.
@@ -438,7 +451,7 @@ class ConsensusManager:
         validators = self.pool.select_validators(
             submission_id=submission_id,
             specialization=specialization,
-            exclude_ids=exclude_validator_ids
+            exclude_ids=exclude_validator_ids,
         )
 
         if not validators:
@@ -451,7 +464,7 @@ class ConsensusManager:
                 votes=[],
                 quorum_reached=False,
                 agreement_ratio=0,
-                total_validator_payment=total_payment
+                total_validator_payment=total_payment,
             )
 
         # Create consensus round
@@ -463,12 +476,12 @@ class ConsensusManager:
             votes=[],
             quorum_reached=False,
             agreement_ratio=0,
-            total_validator_payment=total_payment
+            total_validator_payment=total_payment,
         )
 
         self._rounds[submission_id] = result
-        self._vote_deadlines[submission_id] = (
-            datetime.now(UTC) + timedelta(hours=self.config.voting_window_hours)
+        self._vote_deadlines[submission_id] = datetime.now(UTC) + timedelta(
+            hours=self.config.voting_window_hours
         )
 
         logger.info(
@@ -486,7 +499,7 @@ class ConsensusManager:
         completion_percentage: float = 100.0,
         confidence: float = 1.0,
         reasoning: str = "",
-        evidence_notes: str = ""
+        evidence_notes: str = "",
     ) -> ConsensusResult:
         """
         Submit a validator vote.
@@ -531,7 +544,7 @@ class ConsensusManager:
             completion_percentage=completion_percentage,
             confidence=confidence,
             reasoning=reasoning,
-            evidence_notes=evidence_notes
+            evidence_notes=evidence_notes,
         )
 
         result.votes.append(vote)
@@ -548,14 +561,14 @@ class ConsensusManager:
         # Check for consensus
         return await self._check_consensus(submission_id)
 
-    async def get_consensus_status(self, submission_id: str) -> Optional[ConsensusResult]:
+    async def get_consensus_status(
+        self, submission_id: str
+    ) -> Optional[ConsensusResult]:
         """Get current status of a consensus round."""
         return self._rounds.get(submission_id)
 
     async def finalize_consensus(
-        self,
-        submission_id: str,
-        force: bool = False
+        self, submission_id: str, force: bool = False
     ) -> ConsensusResult:
         """
         Finalize a consensus round.
@@ -588,10 +601,7 @@ class ConsensusManager:
 
         return result
 
-    async def distribute_payments(
-        self,
-        submission_id: str
-    ) -> Dict[str, float]:
+    async def distribute_payments(self, submission_id: str) -> Dict[str, float]:
         """
         Calculate and return payment distribution for validators.
 
@@ -610,7 +620,10 @@ class ConsensusManager:
 
         result = self._rounds[submission_id]
 
-        if result.status not in (ConsensusStatus.REACHED, ConsensusStatus.SAFE_FALLBACK):
+        if result.status not in (
+            ConsensusStatus.REACHED,
+            ConsensusStatus.SAFE_FALLBACK,
+        ):
             return {}
 
         payments: Dict[str, float] = {}
@@ -625,10 +638,7 @@ class ConsensusManager:
 
         # Determine which votes were "correct"
         correct_decision = result.final_decision
-        correct_voters = [
-            v for v in result.votes
-            if v.decision == correct_decision
-        ]
+        correct_voters = [v for v in result.votes if v.decision == correct_decision]
 
         for vote in result.votes:
             payment = base_share
@@ -663,8 +673,9 @@ class ConsensusManager:
         # Linear interpolation between min and max
         ratio = task_bounty_usd / self.config.high_value_threshold_usd
         return (
-            self.config.validator_fee_max_pct -
-            (self.config.validator_fee_max_pct - self.config.validator_fee_min_pct) * ratio
+            self.config.validator_fee_max_pct
+            - (self.config.validator_fee_max_pct - self.config.validator_fee_min_pct)
+            * ratio
         )
 
     async def _check_consensus(self, submission_id: str) -> ConsensusResult:
@@ -760,8 +771,8 @@ class ConsensusManager:
         # Exponential moving average
         alpha = 0.1  # Learning rate
         validator.accuracy_rate = (
-            alpha * (1.0 if was_correct else 0.0) +
-            (1 - alpha) * validator.accuracy_rate
+            alpha * (1.0 if was_correct else 0.0)
+            + (1 - alpha) * validator.accuracy_rate
         )
 
         if was_correct:
@@ -773,13 +784,12 @@ class ConsensusManager:
             if self.config.slash_on_wrong_vote:
                 slash_amount = validator.stake_amount * self.config.slash_percentage
                 self.pool.slash_validator(
-                    validator.id,
-                    slash_amount,
-                    "Incorrect consensus vote"
+                    validator.id, slash_amount, "Incorrect consensus vote"
                 )
 
 
 # Convenience functions
+
 
 def determine_specialization_from_task_type(task_type: str) -> ValidatorSpecialization:
     """
@@ -792,16 +802,27 @@ def determine_specialization_from_task_type(task_type: str) -> ValidatorSpeciali
         Appropriate ValidatorSpecialization
     """
     photography_tasks = {
-        "photo", "photo_geo", "photo_verification", "visual_inspection",
-        "store_check", "location_verification"
+        "photo",
+        "photo_geo",
+        "photo_verification",
+        "visual_inspection",
+        "store_check",
+        "location_verification",
     }
     document_tasks = {
-        "document", "receipt", "form", "notarized", "signature",
-        "document_verification"
+        "document",
+        "receipt",
+        "form",
+        "notarized",
+        "signature",
+        "document_verification",
     }
     technical_tasks = {
-        "measurement", "data_collection", "technical", "code_review",
-        "quality_check"
+        "measurement",
+        "data_collection",
+        "technical",
+        "code_review",
+        "quality_check",
     }
 
     task_type_lower = task_type.lower()
@@ -821,7 +842,7 @@ async def create_consensus_for_submission(
     task_bounty_usd: float,
     task_type: str,
     worker_id: str,
-    config: Optional[ConsensusConfig] = None
+    config: Optional[ConsensusConfig] = None,
 ) -> ConsensusResult:
     """
     Convenience function to create a consensus round.
@@ -843,5 +864,5 @@ async def create_consensus_for_submission(
         submission_id=submission_id,
         task_bounty_usd=task_bounty_usd,
         specialization=specialization,
-        exclude_validator_ids={worker_id}
+        exclude_validator_ids={worker_id},
     )

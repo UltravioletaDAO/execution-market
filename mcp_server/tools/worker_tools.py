@@ -17,9 +17,9 @@ These tools include:
 
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List, Callable
+from typing import Optional, Dict, Any, List
 
 from mcp.server.fastmcp import FastMCP
 
@@ -98,6 +98,7 @@ def format_datetime(dt_str: str) -> str:
 
 class EvidenceValidationError(Exception):
     """Raised when evidence validation fails."""
+
     pass
 
 
@@ -151,9 +152,11 @@ def _validate_evidence_value(evidence_type: str, value: Any) -> Any:
     if evidence_type in ("photo", "photo_geo", "screenshot"):
         if isinstance(value, str):
             # Should be IPFS hash or URL
-            if not (value.startswith("ipfs://") or
-                    value.startswith("https://") or
-                    value.startswith("http://")):
+            if not (
+                value.startswith("ipfs://")
+                or value.startswith("https://")
+                or value.startswith("http://")
+            ):
                 raise EvidenceValidationError(
                     f"{evidence_type} must be an IPFS hash or URL"
                 )
@@ -220,9 +223,7 @@ def _validate_evidence_value(evidence_type: str, value: Any) -> Any:
                 )
             return value
         else:
-            raise EvidenceValidationError(
-                f"{evidence_type} must be URL string or dict"
-            )
+            raise EvidenceValidationError(f"{evidence_type} must be URL string or dict")
 
     # Video
     if evidence_type == "video":
@@ -288,8 +289,8 @@ def register_worker_tools(
             "readOnlyHint": False,
             "destructiveHint": False,
             "idempotentHint": False,
-            "openWorldHint": True
-        }
+            "openWorldHint": True,
+        },
     )
     async def em_apply_to_task(params: ApplyToTaskInput) -> str:
         """
@@ -328,28 +329,26 @@ def register_worker_tools(
 
             task = result["task"]
             executor = result["executor"]
-            application = result.get("application", {})
+            result.get("application", {})
 
-            logger.info(
-                f"Worker {params.executor_id} applied to task {params.task_id}"
-            )
+            logger.info(f"Worker {params.executor_id} applied to task {params.task_id}")
 
             return f"""# Application Submitted
 
-**Task**: {task['title']}
-**Task ID**: `{task['id']}`
-**Bounty**: {format_bounty(task['bounty_usd'])} {task.get('payment_token', 'USDC')}
-**Deadline**: {format_datetime(task['deadline'])}
+**Task**: {task["title"]}
+**Task ID**: `{task["id"]}`
+**Bounty**: {format_bounty(task["bounty_usd"])} {task.get("payment_token", "USDC")}
+**Deadline**: {format_datetime(task["deadline"])}
 
 **Your Profile**:
-- **Executor ID**: `{executor.get('id', params.executor_id)}`
-- **Reputation**: {executor.get('reputation_score', 0)}
-- **Tasks Completed**: {executor.get('tasks_completed', 0)}
+- **Executor ID**: `{executor.get("id", params.executor_id)}`
+- **Reputation**: {executor.get("reputation_score", 0)}
+- **Tasks Completed**: {executor.get("tasks_completed", 0)}
 
 Your application has been submitted. The agent will review applications
 and assign the task to a worker.
 
-{f'**Your Message**: {params.message}' if params.message else ''}
+{f"**Your Message**: {params.message}" if params.message else ""}
 
 ## Next Steps
 1. Wait for the agent to review your application
@@ -367,8 +366,8 @@ and assign the task to a worker.
             "readOnlyHint": False,
             "destructiveHint": False,
             "idempotentHint": False,
-            "openWorldHint": True
-        }
+            "openWorldHint": True,
+        },
     )
     async def em_submit_work(params: SubmitWorkInput) -> str:
         """
@@ -429,10 +428,10 @@ and assign the task to a worker.
 **Error**: {str(e)}
 
 ## Required Evidence
-{chr(10).join(f'- {r}' for r in required) if required else 'None'}
+{chr(10).join(f"- {r}" for r in required) if required else "None"}
 
 ## Optional Evidence
-{chr(10).join(f'- {o}' for o in optional) if optional else 'None'}
+{chr(10).join(f"- {o}" for o in optional) if optional else "None"}
 
 Please resubmit with the correct evidence fields."""
 
@@ -453,12 +452,12 @@ Please resubmit with the correct evidence fields."""
 
             return f"""# Work Submitted Successfully
 
-**Task**: {task['title']}
-**Submission ID**: `{submission['id']}`
+**Task**: {task["title"]}
+**Submission ID**: `{submission["id"]}`
 **Status**: Awaiting Agent Review
 
 Your evidence has been submitted. The agent will review and either:
-- **Approve**: You'll receive {format_bounty(task['bounty_usd'])} {task.get('payment_token', 'USDC')}
+- **Approve**: You'll receive {format_bounty(task["bounty_usd"])} {task.get("payment_token", "USDC")}
 - **Request More Info**: You'll need to provide additional evidence
 - **Dispute**: Your submission will go to arbitration
 
@@ -467,7 +466,7 @@ Your evidence has been submitted. The agent will review and either:
 {json.dumps(validated_evidence, indent=2)}
 ```
 
-{f'**Notes**: {params.notes}' if params.notes else ''}
+{f"**Notes**: {params.notes}" if params.notes else ""}
 
 ## What Happens Next
 1. Agent reviews your submission
@@ -485,8 +484,8 @@ Your evidence has been submitted. The agent will review and either:
             "readOnlyHint": True,
             "destructiveHint": False,
             "idempotentHint": True,
-            "openWorldHint": True
-        }
+            "openWorldHint": True,
+        },
     )
     async def em_get_my_tasks(params: GetMyTasksInput) -> str:
         """
@@ -540,22 +539,26 @@ Your evidence has been submitted. The agent will review and either:
                         "accepted": "[ASSIGNED]",
                         "in_progress": "[IN PROGRESS]",
                         "submitted": "[SUBMITTED]",
-                    }.get(task['status'], f"[{task['status'].upper()}]")
+                    }.get(task["status"], f"[{task['status'].upper()}]")
 
-                    lines.extend([
-                        f"### {status_icon} {task['title']}",
-                        f"- **ID**: `{task['id']}`",
-                        f"- **Bounty**: {format_bounty(task['bounty_usd'])}",
-                        f"- **Deadline**: {format_datetime(task['deadline'])}",
-                        f"- **Status**: {task['status']}",
-                        "",
-                    ])
+                    lines.extend(
+                        [
+                            f"### {status_icon} {task['title']}",
+                            f"- **ID**: `{task['id']}`",
+                            f"- **Bounty**: {format_bounty(task['bounty_usd'])}",
+                            f"- **Deadline**: {format_datetime(task['deadline'])}",
+                            f"- **Status**: {task['status']}",
+                            "",
+                        ]
+                    )
             else:
-                lines.extend([
-                    "## Active Tasks",
-                    "*No tasks currently assigned to you.*",
-                    "",
-                ])
+                lines.extend(
+                    [
+                        "## Active Tasks",
+                        "*No tasks currently assigned to you.*",
+                        "",
+                    ]
+                )
 
             # Pending applications
             if result["applications"]:
@@ -579,7 +582,7 @@ Your evidence has been submitted. The agent will review and either:
                         "accepted": "[APPROVED]",
                         "disputed": "[DISPUTED]",
                         "pending": "[PENDING]",
-                        "more_info_requested": "[MORE INFO]"
+                        "more_info_requested": "[MORE INFO]",
                     }.get(verdict, f"[{verdict.upper()}]")
 
                     lines.append(
@@ -589,18 +592,25 @@ Your evidence has been submitted. The agent will review and either:
                 lines.append("")
 
             # Help text if empty
-            if not any([result["assigned_tasks"], result["applications"],
-                       result["recent_submissions"]]):
-                lines.extend([
-                    "## Getting Started",
-                    "*No tasks or applications found.*",
-                    "",
-                    "To get started:",
-                    "1. Browse available tasks with `em_get_tasks`",
-                    "2. Apply to tasks that match your skills",
-                    "3. Complete assigned tasks and submit evidence",
-                    "",
-                ])
+            if not any(
+                [
+                    result["assigned_tasks"],
+                    result["applications"],
+                    result["recent_submissions"],
+                ]
+            ):
+                lines.extend(
+                    [
+                        "## Getting Started",
+                        "*No tasks or applications found.*",
+                        "",
+                        "To get started:",
+                        "1. Browse available tasks with `em_get_tasks`",
+                        "2. Apply to tasks that match your skills",
+                        "3. Complete assigned tasks and submit evidence",
+                        "",
+                    ]
+                )
 
             return "\n".join(lines)
 
@@ -615,8 +625,8 @@ Your evidence has been submitted. The agent will review and either:
             "readOnlyHint": False,
             "destructiveHint": False,
             "idempotentHint": False,
-            "openWorldHint": True
-        }
+            "openWorldHint": True,
+        },
     )
     async def em_withdraw_earnings(params: WithdrawEarningsInput) -> str:
         """

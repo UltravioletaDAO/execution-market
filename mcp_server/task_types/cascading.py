@@ -23,20 +23,22 @@ from uuid import uuid4
 
 class TriggerType(str, Enum):
     """Types of cascade triggers."""
-    ON_COMPLETE = "on_complete"           # Any completion
-    ON_SUCCESS = "on_success"             # Successful completion
-    ON_FAILURE = "on_failure"             # Failed/rejected
-    CONDITIONAL = "conditional"            # Based on result data
-    SCHEDULED = "scheduled"               # After time delay
-    PARALLEL = "parallel"                 # Start simultaneously
+
+    ON_COMPLETE = "on_complete"  # Any completion
+    ON_SUCCESS = "on_success"  # Successful completion
+    ON_FAILURE = "on_failure"  # Failed/rejected
+    CONDITIONAL = "conditional"  # Based on result data
+    SCHEDULED = "scheduled"  # After time delay
+    PARALLEL = "parallel"  # Start simultaneously
 
 
 class CascadeStatus(str, Enum):
     """Status of a cascade chain."""
-    PENDING = "pending"          # Not yet started
-    ACTIVE = "active"            # In progress
-    COMPLETED = "completed"      # All stages done
-    FAILED = "failed"            # Chain broken
+
+    PENDING = "pending"  # Not yet started
+    ACTIVE = "active"  # In progress
+    COMPLETED = "completed"  # All stages done
+    FAILED = "failed"  # Chain broken
     CANCELLED = "cancelled"
 
 
@@ -51,6 +53,7 @@ class TriggerCondition:
         value: Value to compare against
         description: Human-readable description
     """
+
     field: str
     operator: str  # "eq", "ne", "gt", "lt", "gte", "lte", "contains", "not_contains"
     value: Any
@@ -127,6 +130,7 @@ class TaskTemplate:
         inherit_location: Whether to inherit parent's location
         metadata_template: Additional metadata
     """
+
     template_id: str
     task_type: str
     title_template: str
@@ -252,6 +256,7 @@ class CascadeRule:
         max_children: Maximum children from this rule
         description: Human-readable description
     """
+
     rule_id: str
     trigger_type: TriggerType
     conditions: List[TriggerCondition]
@@ -331,6 +336,7 @@ class CascadeChain:
         completed_at: When chain completed
         metadata: Additional chain data
     """
+
     chain_id: str
     name: str
     description: str
@@ -376,7 +382,9 @@ class CascadeChain:
             "status": self.status.value,
             "created_tasks": self.created_tasks,
             "created_at": self.created_at.isoformat(),
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "metadata": self.metadata,
         }
 

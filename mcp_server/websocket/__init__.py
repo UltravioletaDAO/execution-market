@@ -95,6 +95,7 @@ try:
         ReceivedMessage,
         connect_and_subscribe,
     )
+
     CLIENT_AVAILABLE = True
 except ImportError:
     CLIENT_AVAILABLE = False

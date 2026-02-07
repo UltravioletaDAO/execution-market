@@ -7,7 +7,6 @@ Manages evidence attachment, retrieval, and integrity verification.
 import hashlib
 import logging
 import uuid
-from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 
 from .models import (
@@ -21,21 +20,25 @@ logger = logging.getLogger(__name__)
 
 class EvidenceError(Exception):
     """Base exception for evidence operations."""
+
     pass
 
 
 class EvidenceLimitError(EvidenceError):
     """Raised when evidence limit is exceeded."""
+
     pass
 
 
 class EvidenceNotFoundError(EvidenceError):
     """Raised when evidence is not found."""
+
     pass
 
 
 class EvidenceIntegrityError(EvidenceError):
     """Raised when evidence integrity check fails."""
+
     pass
 
 
@@ -148,9 +151,7 @@ class EvidenceManager:
 
         # Check limit if dispute provided
         if dispute:
-            party_count = sum(
-                1 for e in dispute.evidence if e.party == party
-            )
+            party_count = sum(1 for e in dispute.evidence if e.party == party)
             if party_count >= self.max_per_party:
                 raise EvidenceLimitError(
                     f"Evidence limit exceeded ({self.max_per_party} max per party)"
@@ -226,10 +227,7 @@ class EvidenceManager:
             List of DisputeEvidence
         """
         evidence_ids = self._by_dispute.get(dispute_id, [])
-        return [
-            self._evidence[eid] for eid in evidence_ids
-            if eid in self._evidence
-        ]
+        return [self._evidence[eid] for eid in evidence_ids if eid in self._evidence]
 
     def get_evidence_by_party(
         self,
@@ -273,9 +271,7 @@ class EvidenceManager:
             raise EvidenceNotFoundError(f"Evidence not found: {evidence_id}")
 
         if not evidence.hash:
-            raise EvidenceIntegrityError(
-                f"No stored hash for evidence {evidence_id}"
-            )
+            raise EvidenceIntegrityError(f"No stored hash for evidence {evidence_id}")
 
         # Calculate current hash
         current_hash = self._calculate_hash(file_content)
@@ -347,7 +343,8 @@ class EvidenceManager:
         # Remove from dispute index
         if evidence.dispute_id in self._by_dispute:
             self._by_dispute[evidence.dispute_id] = [
-                eid for eid in self._by_dispute[evidence.dispute_id]
+                eid
+                for eid in self._by_dispute[evidence.dispute_id]
                 if eid != evidence_id
             ]
 
@@ -428,6 +425,7 @@ def reset_manager() -> None:
 
 
 # Convenience functions
+
 
 async def attach_evidence(
     dispute_id: str,

@@ -24,22 +24,24 @@ import math
 
 class BundleStatus(str, Enum):
     """Status of a task bundle."""
-    DRAFT = "draft"              # Being assembled
-    PUBLISHED = "published"      # Available for workers
-    ASSIGNED = "assigned"        # Worker accepted
+
+    DRAFT = "draft"  # Being assembled
+    PUBLISHED = "published"  # Available for workers
+    ASSIGNED = "assigned"  # Worker accepted
     IN_PROGRESS = "in_progress"  # Worker started
-    COMPLETED = "completed"      # All tasks done
-    PARTIAL = "partial"          # Some tasks done, timed out
+    COMPLETED = "completed"  # All tasks done
+    PARTIAL = "partial"  # Some tasks done, timed out
     CANCELLED = "cancelled"
 
 
 class BundleType(str, Enum):
     """Types of task bundles."""
-    ZONE_RECON = "zone_recon"      # Multiple observations in area
-    PRICE_SWEEP = "price_sweep"    # Price checks at multiple stores
+
+    ZONE_RECON = "zone_recon"  # Multiple observations in area
+    PRICE_SWEEP = "price_sweep"  # Price checks at multiple stores
     DELIVERY_ROUTE = "delivery_route"  # Multi-stop deliveries
-    TRIAL_BATCH = "trial_batch"    # Multiple mystery shops
-    MIXED = "mixed"                # Mixed task types in zone
+    TRIAL_BATCH = "trial_batch"  # Multiple mystery shops
+    MIXED = "mixed"  # Mixed task types in zone
 
 
 @dataclass
@@ -55,6 +57,7 @@ class GeoZone:
         radius_km: Radius in kilometers
         polygon: Optional polygon coordinates for irregular zones
     """
+
     zone_id: str
     name: str
     center_lat: float
@@ -65,13 +68,13 @@ class GeoZone:
     def contains_point(self, lat: float, lon: float) -> bool:
         """Check if a point is within this zone."""
         # Simple circle check
-        distance = self._haversine_distance(
-            self.center_lat, self.center_lon, lat, lon
-        )
+        distance = self._haversine_distance(self.center_lat, self.center_lon, lat, lon)
         return distance <= self.radius_km
 
     @staticmethod
-    def _haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    def _haversine_distance(
+        lat1: float, lon1: float, lat2: float, lon2: float
+    ) -> float:
         """Calculate distance between two points in km."""
         R = 6371  # Earth's radius in km
         lat1_rad = math.radians(lat1)
@@ -79,9 +82,10 @@ class GeoZone:
         delta_lat = math.radians(lat2 - lat1)
         delta_lon = math.radians(lon2 - lon1)
 
-        a = (math.sin(delta_lat / 2) ** 2 +
-             math.cos(lat1_rad) * math.cos(lat2_rad) *
-             math.sin(delta_lon / 2) ** 2)
+        a = (
+            math.sin(delta_lat / 2) ** 2
+            + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+        )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
         return R * c
@@ -113,6 +117,7 @@ class BundleTask:
         completed_at: When completed
         distance_from_prev_km: Distance from previous task
     """
+
     task_id: str
     sequence: int
     latitude: float
@@ -133,7 +138,9 @@ class BundleTask:
             "task_type": self.task_type,
             "bounty_usd": str(self.bounty_usd),
             "status": self.status,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "distance_from_prev_km": round(self.distance_from_prev_km, 2),
         }
 
@@ -149,9 +156,10 @@ class BundleBonus:
         time_bonus_percentage: Extra bonus for early completion
         time_bonus_threshold_hours: Hours early for time bonus
     """
+
     completion_threshold: float = 100.0  # Must complete all for bonus
-    bonus_percentage: float = 10.0       # 10% bonus
-    time_bonus_percentage: float = 5.0   # Extra 5% for early
+    bonus_percentage: float = 10.0  # 10% bonus
+    time_bonus_percentage: float = 5.0  # Extra 5% for early
     time_bonus_threshold_hours: float = 2.0  # 2 hours early
 
     def calculate_bonus(
@@ -173,7 +181,9 @@ class BundleBonus:
         Returns:
             Bonus amount in USD
         """
-        completion_rate = (tasks_completed / total_tasks) * 100 if total_tasks > 0 else 0
+        completion_rate = (
+            (tasks_completed / total_tasks) * 100 if total_tasks > 0 else 0
+        )
 
         if completion_rate < self.completion_threshold:
             return Decimal("0")
@@ -220,6 +230,7 @@ class TaskBundle:
         completed_at: When bundle was completed
         metadata: Additional bundle data
     """
+
     id: str
     bundle_type: BundleType
     zone: GeoZone
@@ -339,7 +350,9 @@ class TaskBundle:
             "completion_progress": round(self.completion_progress, 1),
             "created_at": self.created_at.isoformat(),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "metadata": self.metadata,
         }
 
@@ -372,8 +385,10 @@ class BundleOptimizer:
             else:
                 prev = sorted_tasks[i - 1]
                 task.distance_from_prev_km = GeoZone._haversine_distance(
-                    prev.latitude, prev.longitude,
-                    task.latitude, task.longitude,
+                    prev.latitude,
+                    prev.longitude,
+                    task.latitude,
+                    task.longitude,
                 )
 
         return sorted_tasks
@@ -401,12 +416,14 @@ class BundleOptimizer:
             current = optimized[-1]
             # Find nearest task
             nearest_idx = 0
-            nearest_dist = float('inf')
+            nearest_dist = float("inf")
 
             for i, task in enumerate(remaining):
                 dist = GeoZone._haversine_distance(
-                    current.latitude, current.longitude,
-                    task.latitude, task.longitude,
+                    current.latitude,
+                    current.longitude,
+                    task.latitude,
+                    task.longitude,
                 )
                 if dist < nearest_dist:
                     nearest_dist = dist
@@ -421,7 +438,9 @@ class BundleOptimizer:
         return BundleOptimizer.calculate_distances(optimized)
 
     @staticmethod
-    def estimate_route_time(tasks: List[BundleTask], avg_speed_kmh: float = 20.0) -> int:
+    def estimate_route_time(
+        tasks: List[BundleTask], avg_speed_kmh: float = 20.0
+    ) -> int:
         """
         Estimate total time to complete a route.
 
@@ -484,14 +503,16 @@ class BundleFactory:
 
         bundle_tasks = []
         for i, task in enumerate(tasks):
-            bundle_tasks.append(BundleTask(
-                task_id=task.get("id", str(uuid4())),
-                sequence=i + 1,
-                latitude=task["latitude"],
-                longitude=task["longitude"],
-                task_type=task.get("type", "recon"),
-                bounty_usd=Decimal(str(task.get("bounty", "2.00"))),
-            ))
+            bundle_tasks.append(
+                BundleTask(
+                    task_id=task.get("id", str(uuid4())),
+                    sequence=i + 1,
+                    latitude=task["latitude"],
+                    longitude=task["longitude"],
+                    task_type=task.get("type", "recon"),
+                    bounty_usd=Decimal(str(task.get("bounty", "2.00"))),
+                )
+            )
 
         # Optimize route
         optimized_tasks = BundleOptimizer.optimize_sequence(bundle_tasks)
@@ -513,7 +534,7 @@ class BundleFactory:
             metadata={
                 "original_task_count": len(tasks),
                 "optimized_route": True,
-            }
+            },
         )
 
     @classmethod
@@ -545,14 +566,16 @@ class BundleFactory:
         base_bounty = Decimal("2.50") + Decimal("0.50") * (len(items_to_check) - 1)
 
         for i, store in enumerate(stores):
-            bundle_tasks.append(BundleTask(
-                task_id=str(uuid4()),
-                sequence=i + 1,
-                latitude=store["latitude"],
-                longitude=store["longitude"],
-                task_type="price_check",
-                bounty_usd=base_bounty,
-            ))
+            bundle_tasks.append(
+                BundleTask(
+                    task_id=str(uuid4()),
+                    sequence=i + 1,
+                    latitude=store["latitude"],
+                    longitude=store["longitude"],
+                    task_type="price_check",
+                    bounty_usd=base_bounty,
+                )
+            )
 
         optimized_tasks = BundleOptimizer.optimize_sequence(bundle_tasks)
         estimated_time = BundleOptimizer.estimate_route_time(optimized_tasks)
@@ -573,7 +596,7 @@ class BundleFactory:
             metadata={
                 "items_to_check": items_to_check,
                 "store_count": len(stores),
-            }
+            },
         )
 
     @classmethod
@@ -611,8 +634,10 @@ class BundleFactory:
             # Find nearby tasks
             for task in remaining.copy():
                 distance = GeoZone._haversine_distance(
-                    seed["latitude"], seed["longitude"],
-                    task["latitude"], task["longitude"],
+                    seed["latitude"],
+                    seed["longitude"],
+                    task["latitude"],
+                    task["longitude"],
                 )
                 if distance <= max_radius_km and len(zone_tasks) < max_bundle_size:
                     zone_tasks.append(task)
@@ -659,9 +684,10 @@ def create_bundle(
     """
     if bundle_type == BundleType.PRICE_SWEEP:
         return BundleFactory.create_price_sweep_bundle(
-            zone, tasks,
+            zone,
+            tasks,
             items_to_check=kwargs.get("items_to_check", ["item"]),
-            **{k: v for k, v in kwargs.items() if k != "items_to_check"}
+            **{k: v for k, v in kwargs.items() if k != "items_to_check"},
         )
     else:
         return BundleFactory.create_zone_recon_bundle(zone, tasks, **kwargs)
@@ -686,8 +712,10 @@ def calculate_bundle_bonus(
         Bonus amount in USD
     """
     config = BundleBonus(bonus_percentage=bonus_percentage)
-    return float(config.calculate_bonus(
-        Decimal(str(total_bounty)),
-        tasks_completed,
-        total_tasks,
-    ))
+    return float(
+        config.calculate_bonus(
+            Decimal(str(total_bounty)),
+            tasks_completed,
+            total_tasks,
+        )
+    )

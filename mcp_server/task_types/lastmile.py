@@ -26,36 +26,39 @@ from uuid import uuid4
 
 class DeliveryType(str, Enum):
     """Types of delivery tasks."""
-    STANDARD = "standard"        # Normal delivery, 2-4 hour window
-    EXPRESS = "express"          # Fast delivery, 1 hour
-    SCHEDULED = "scheduled"      # Specific time window
-    MULTI_STOP = "multi_stop"    # Multiple deliveries in one trip
-    RETURN = "return"            # Return/exchange pickup
-    FRAGILE = "fragile"          # Requires special handling
+
+    STANDARD = "standard"  # Normal delivery, 2-4 hour window
+    EXPRESS = "express"  # Fast delivery, 1 hour
+    SCHEDULED = "scheduled"  # Specific time window
+    MULTI_STOP = "multi_stop"  # Multiple deliveries in one trip
+    RETURN = "return"  # Return/exchange pickup
+    FRAGILE = "fragile"  # Requires special handling
     TEMPERATURE = "temperature"  # Temperature-controlled (food, meds)
 
 
 class DeliveryStatus(str, Enum):
     """Status of a delivery task."""
-    PENDING = "pending"          # Awaiting worker assignment
-    ASSIGNED = "assigned"        # Worker assigned
+
+    PENDING = "pending"  # Awaiting worker assignment
+    ASSIGNED = "assigned"  # Worker assigned
     EN_ROUTE_PICKUP = "en_route_pickup"
     AT_PICKUP = "at_pickup"
     PICKED_UP = "picked_up"
     EN_ROUTE_DELIVERY = "en_route_delivery"
     AT_DELIVERY = "at_delivery"
     DELIVERED = "delivered"
-    FAILED = "failed"            # Delivery failed
-    RETURNED = "returned"        # Returned to sender
+    FAILED = "failed"  # Delivery failed
+    RETURNED = "returned"  # Returned to sender
 
 
 class ProofType(str, Enum):
     """Types of delivery proof."""
-    PHOTO = "photo"              # Photo of delivered package
-    SIGNATURE = "signature"      # Recipient signature
-    PIN_CODE = "pin_code"        # Recipient provides PIN
+
+    PHOTO = "photo"  # Photo of delivered package
+    SIGNATURE = "signature"  # Recipient signature
+    PIN_CODE = "pin_code"  # Recipient provides PIN
     ID_VERIFICATION = "id_verification"  # Check recipient ID
-    SAFE_LOCATION = "safe_location"      # Photo of safe drop location
+    SAFE_LOCATION = "safe_location"  # Photo of safe drop location
 
 
 @dataclass
@@ -72,6 +75,7 @@ class Location:
         instructions: Special instructions
         access_code: Building/gate code if needed
     """
+
     address: str
     latitude: float
     longitude: float
@@ -103,6 +107,7 @@ class DeliveryWindow:
         end: Window end time
         is_strict: Whether window is strict (SLA penalty if missed)
     """
+
     start: datetime
     end: datetime
     is_strict: bool = False
@@ -158,6 +163,7 @@ class PackageInfo:
         temperature_requirements: Temp requirements if any
         handling_instructions: Special handling notes
     """
+
     description: str
     weight_kg: float = 0.0
     dimensions: str = ""
@@ -196,6 +202,7 @@ class DeliveryStop:
         proof_url: URL to proof image/signature
         notes: Worker notes about this stop
     """
+
     stop_id: str
     sequence: int
     location: Location
@@ -221,7 +228,9 @@ class DeliveryStop:
             "package": self.package.to_dict(),
             "window": self.window.to_dict() if self.window else None,
             "proof_required": [p.value for p in self.proof_required],
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "proof_url": self.proof_url,
             "notes": self.notes,
         }
@@ -247,6 +256,7 @@ class DeliveryTask:
         completed_at: When delivery completed
         metadata: Additional task data
     """
+
     id: str
     delivery_type: DeliveryType
     stops: List[DeliveryStop]
@@ -289,8 +299,12 @@ class DeliveryTask:
         return {
             "total_stops": len(self.stops),
             "completed_stops": completed,
-            "progress_percent": round((completed / len(self.stops)) * 100, 1) if self.stops else 0,
-            "current_stop": self.get_current_stop().stop_id if self.get_current_stop() else None,
+            "progress_percent": round((completed / len(self.stops)) * 100, 1)
+            if self.stops
+            else 0,
+            "current_stop": self.get_current_stop().stop_id
+            if self.get_current_stop()
+            else None,
         }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -308,7 +322,9 @@ class DeliveryTask:
             "assigned_worker": self.assigned_worker,
             "created_at": self.created_at.isoformat(),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "progress": self.get_progress(),
             "metadata": self.metadata,
         }
@@ -345,20 +361,20 @@ class LastMilePricing:
 
     # Time multipliers
     TIME_MULTIPLIERS = {
-        "rush_hour": Decimal("1.3"),      # 7-9am, 5-7pm weekdays
-        "night": Decimal("1.2"),           # 9pm-6am
-        "weekend": Decimal("1.1"),         # Saturday-Sunday
-        "holiday": Decimal("1.5"),         # Major holidays
+        "rush_hour": Decimal("1.3"),  # 7-9am, 5-7pm weekdays
+        "night": Decimal("1.2"),  # 9pm-6am
+        "weekend": Decimal("1.1"),  # Saturday-Sunday
+        "holiday": Decimal("1.5"),  # Major holidays
         "normal": Decimal("1.0"),
     }
 
     # Special handling fees
     HANDLING_FEES = {
         "fragile": Decimal("2.00"),
-        "oversized": Decimal("3.00"),       # > 20kg or large dimensions
-        "temperature": Decimal("5.00"),     # Temperature controlled
-        "signature": Decimal("1.00"),       # Signature required
-        "id_check": Decimal("2.00"),        # ID verification
+        "oversized": Decimal("3.00"),  # > 20kg or large dimensions
+        "temperature": Decimal("5.00"),  # Temperature controlled
+        "signature": Decimal("1.00"),  # Signature required
+        "id_check": Decimal("2.00"),  # ID verification
     }
 
     @classmethod
@@ -414,23 +430,33 @@ class LastMilePricing:
 
         if is_fragile:
             handling_total += cls.HANDLING_FEES["fragile"]
-            handling_breakdown.append({"type": "fragile", "fee": str(cls.HANDLING_FEES["fragile"])})
+            handling_breakdown.append(
+                {"type": "fragile", "fee": str(cls.HANDLING_FEES["fragile"])}
+            )
 
         if is_oversized:
             handling_total += cls.HANDLING_FEES["oversized"]
-            handling_breakdown.append({"type": "oversized", "fee": str(cls.HANDLING_FEES["oversized"])})
+            handling_breakdown.append(
+                {"type": "oversized", "fee": str(cls.HANDLING_FEES["oversized"])}
+            )
 
         if requires_temperature:
             handling_total += cls.HANDLING_FEES["temperature"]
-            handling_breakdown.append({"type": "temperature", "fee": str(cls.HANDLING_FEES["temperature"])})
+            handling_breakdown.append(
+                {"type": "temperature", "fee": str(cls.HANDLING_FEES["temperature"])}
+            )
 
         if requires_signature:
             handling_total += cls.HANDLING_FEES["signature"]
-            handling_breakdown.append({"type": "signature", "fee": str(cls.HANDLING_FEES["signature"])})
+            handling_breakdown.append(
+                {"type": "signature", "fee": str(cls.HANDLING_FEES["signature"])}
+            )
 
         if requires_id:
             handling_total += cls.HANDLING_FEES["id_check"]
-            handling_breakdown.append({"type": "id_check", "fee": str(cls.HANDLING_FEES["id_check"])})
+            handling_breakdown.append(
+                {"type": "id_check", "fee": str(cls.HANDLING_FEES["id_check"])}
+            )
 
         if handling_breakdown:
             breakdown["handling_fees"] = handling_breakdown
@@ -504,9 +530,12 @@ class LastMileFactory:
         # Estimate distance (in real implementation, use routing API)
         # Placeholder: straight-line distance * 1.3 for road distance
         import math
+
         lat_diff = delivery_location.latitude - pickup_location.latitude
         lon_diff = delivery_location.longitude - pickup_location.longitude
-        straight_line_km = math.sqrt(lat_diff**2 + lon_diff**2) * 111  # Rough km conversion
+        straight_line_km = (
+            math.sqrt(lat_diff**2 + lon_diff**2) * 111
+        )  # Rough km conversion
         estimated_distance = straight_line_km * 1.3
 
         # Calculate bounty
@@ -545,10 +574,12 @@ class LastMileFactory:
             bounty_usd=Decimal(pricing["bounty_usd"]),
             tip_usd=tip_usd,
             distance_km=round(estimated_distance, 2),
-            estimated_duration_minutes=int(30 + estimated_distance * 3),  # 30 min base + 3 min/km
+            estimated_duration_minutes=int(
+                30 + estimated_distance * 3
+            ),  # 30 min base + 3 min/km
             metadata={
                 "pricing_breakdown": pricing["breakdown"],
-            }
+            },
         )
 
     @classmethod
@@ -594,6 +625,7 @@ class LastMileFactory:
 
         # Same distance calculation as standard
         import math
+
         lat_diff = delivery_location.latitude - pickup_location.latitude
         lon_diff = delivery_location.longitude - pickup_location.longitude
         straight_line_km = math.sqrt(lat_diff**2 + lon_diff**2) * 111
@@ -640,7 +672,7 @@ class LastMileFactory:
                 "pricing_breakdown": pricing["breakdown"],
                 "deadline_minutes": deadline_minutes,
                 "is_express": True,
-            }
+            },
         )
 
     @classmethod
@@ -681,27 +713,31 @@ class LastMileFactory:
 
         # Add pickup stops
         for location, package in pickups:
-            stops.append(DeliveryStop(
-                stop_id=str(uuid4()),
-                sequence=sequence,
-                location=location,
-                stop_type="pickup",
-                package=package,
-                proof_required=[ProofType.PHOTO],
-            ))
+            stops.append(
+                DeliveryStop(
+                    stop_id=str(uuid4()),
+                    sequence=sequence,
+                    location=location,
+                    stop_type="pickup",
+                    package=package,
+                    proof_required=[ProofType.PHOTO],
+                )
+            )
             sequence += 1
 
         # Add delivery stops
         for location, package_desc in deliveries:
-            stops.append(DeliveryStop(
-                stop_id=str(uuid4()),
-                sequence=sequence,
-                location=location,
-                stop_type="delivery",
-                package=PackageInfo(description=package_desc),
-                window=overall_window,
-                proof_required=proof_required,
-            ))
+            stops.append(
+                DeliveryStop(
+                    stop_id=str(uuid4()),
+                    sequence=sequence,
+                    location=location,
+                    stop_type="delivery",
+                    package=PackageInfo(description=package_desc),
+                    window=overall_window,
+                    proof_required=proof_required,
+                )
+            )
             sequence += 1
 
         # Estimate total distance (simplified)
@@ -726,7 +762,7 @@ class LastMileFactory:
                 "pricing_breakdown": pricing["breakdown"],
                 "num_pickups": len(pickups),
                 "num_deliveries": len(deliveries),
-            }
+            },
         )
 
 
@@ -802,6 +838,7 @@ class DeliveryTracker:
 
         # Calculate distance to next stop
         import math
+
         lat_diff = current_stop.location.latitude - current_lat
         lon_diff = current_stop.location.longitude - current_lon
         distance_km = math.sqrt(lat_diff**2 + lon_diff**2) * 111 * 1.3

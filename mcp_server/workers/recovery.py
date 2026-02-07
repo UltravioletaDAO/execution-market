@@ -32,17 +32,19 @@ logger = logging.getLogger(__name__)
 
 class RecoveryStatus(str, Enum):
     """Status of a recovery request."""
-    PENDING = "pending"           # Request submitted
-    COOLOFF = "cooloff"           # In cooloff period
-    VERIFICATION = "verification" # Awaiting re-verification
-    APPROVED = "approved"         # Recovery approved, back to probation
-    REJECTED = "rejected"         # Recovery denied
-    EXPIRED = "expired"           # Cooloff not completed
+
+    PENDING = "pending"  # Request submitted
+    COOLOFF = "cooloff"  # In cooloff period
+    VERIFICATION = "verification"  # Awaiting re-verification
+    APPROVED = "approved"  # Recovery approved, back to probation
+    REJECTED = "rejected"  # Recovery denied
+    EXPIRED = "expired"  # Cooloff not completed
 
 
 @dataclass
 class RecoveryConfig:
     """Configuration for recovery system."""
+
     # Cooloff period
     cooloff_days: int = 30
 
@@ -65,6 +67,7 @@ class RecoveryConfig:
 @dataclass
 class RecoveryPath:
     """A recovery attempt record."""
+
     id: str
     worker_id: str
     status: RecoveryStatus
@@ -109,6 +112,7 @@ class RecoveryPath:
 @dataclass
 class RecoveryEligibility:
     """Eligibility check result for recovery."""
+
     eligible: bool
     reason: Optional[str] = None
     requirements: List[str] = field(default_factory=list)
@@ -139,9 +143,7 @@ class RecoveryManager:
         self._active_recoveries: Dict[str, RecoveryPath] = {}
 
     async def check_eligibility(
-        self,
-        worker_id: str,
-        db_client: Optional[Any] = None
+        self, worker_id: str, db_client: Optional[Any] = None
     ) -> RecoveryEligibility:
         """
         Check if worker is eligible to start recovery.
@@ -168,7 +170,8 @@ class RecoveryManager:
         # Check previous attempts
         previous_attempts = await self._get_previous_attempts(worker_id, db_client)
         recent_attempts = [
-            a for a in previous_attempts
+            a
+            for a in previous_attempts
             if a.initiated_at > datetime.now(timezone.utc) - timedelta(days=365)
         ]
 
@@ -180,7 +183,7 @@ class RecoveryManager:
             return RecoveryEligibility(
                 eligible=False,
                 reason=f"Maximum recovery attempts ({self.config.max_recovery_attempts_per_year}) "
-                       "reached this year",
+                "reached this year",
                 estimated_return_date=next_eligible,
             )
 
@@ -193,9 +196,7 @@ class RecoveryManager:
             )
 
         # Build requirements list
-        requirements.append(
-            f"Complete {self.config.cooloff_days}-day cooloff period"
-        )
+        requirements.append(f"Complete {self.config.cooloff_days}-day cooloff period")
 
         if self.config.require_new_identity_verification:
             requirements.append("Submit new identity verification")
@@ -229,7 +230,7 @@ class RecoveryManager:
         worker_id: str,
         suspension_reason: str,
         suspension_date: datetime,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> RecoveryPath:
         """
         Initiate a recovery process.
@@ -249,6 +250,7 @@ class RecoveryManager:
             raise ValueError(f"Not eligible for recovery: {eligibility.reason}")
 
         import uuid
+
         now = datetime.now(timezone.utc)
 
         path = RecoveryPath(
@@ -280,9 +282,7 @@ class RecoveryManager:
         return path
 
     async def check_cooloff_status(
-        self,
-        worker_id: str,
-        db_client: Optional[Any] = None
+        self, worker_id: str, db_client: Optional[Any] = None
     ) -> Optional[RecoveryPath]:
         """
         Check current cooloff status.
@@ -301,8 +301,7 @@ class RecoveryManager:
             if path.status == RecoveryStatus.COOLOFF and path.is_cooloff_complete:
                 path.status = RecoveryStatus.VERIFICATION
                 logger.info(
-                    f"Worker {worker_id} completed cooloff, "
-                    "now awaiting verification"
+                    f"Worker {worker_id} completed cooloff, now awaiting verification"
                 )
 
                 if db_client:
@@ -321,7 +320,7 @@ class RecoveryManager:
         worker_id: str,
         verified: bool,
         verification_method: str,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> RecoveryPath:
         """
         Record identity re-verification result.
@@ -347,7 +346,9 @@ class RecoveryManager:
         path.identity_reverified = verified
 
         if verified:
-            logger.info(f"Identity re-verified for {worker_id} via {verification_method}")
+            logger.info(
+                f"Identity re-verified for {worker_id} via {verification_method}"
+            )
             # Check if can complete recovery
             await self._check_recovery_completion(path, db_client)
         else:
@@ -366,7 +367,7 @@ class RecoveryManager:
         worker_id: str,
         amount_paid: float,
         payment_reference: str,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> RecoveryPath:
         """
         Record recovery fee payment.
@@ -407,7 +408,7 @@ class RecoveryManager:
         agent_id: str,
         consents: bool,
         notes: Optional[str] = None,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> RecoveryPath:
         """
         Record agent consent for worker recovery.
@@ -440,7 +441,9 @@ class RecoveryManager:
             )
             # One denial is enough to reject (configurable)
             path.status = RecoveryStatus.REJECTED
-            path.resolution_notes = f"Agent {agent_id} denied consent: {notes or 'No reason given'}"
+            path.resolution_notes = (
+                f"Agent {agent_id} denied consent: {notes or 'No reason given'}"
+            )
             path.resolved_at = datetime.now(timezone.utc)
 
         # Check if all consents received
@@ -457,7 +460,7 @@ class RecoveryManager:
         worker_id: str,
         approved_by: str,
         notes: Optional[str] = None,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> RecoveryPath:
         """
         Manually complete/approve a recovery (admin action).
@@ -501,7 +504,7 @@ class RecoveryManager:
         worker_id: str,
         rejected_by: str,
         reason: str,
-        db_client: Optional[Any] = None
+        db_client: Optional[Any] = None,
     ) -> RecoveryPath:
         """
         Reject a recovery request (admin action).
@@ -534,9 +537,7 @@ class RecoveryManager:
         return path
 
     async def _check_recovery_completion(
-        self,
-        path: RecoveryPath,
-        db_client: Optional[Any] = None
+        self, path: RecoveryPath, db_client: Optional[Any] = None
     ):
         """Check if recovery requirements are met and auto-complete."""
         if path.status != RecoveryStatus.VERIFICATION:
@@ -546,7 +547,10 @@ class RecoveryManager:
         all_met = True
         missing = []
 
-        if self.config.require_new_identity_verification and not path.identity_reverified:
+        if (
+            self.config.require_new_identity_verification
+            and not path.identity_reverified
+        ):
             all_met = False
             missing.append("identity verification")
 
@@ -575,17 +579,18 @@ class RecoveryManager:
             self._active_recoveries.pop(path.worker_id, None)
 
     async def _get_previous_attempts(
-        self,
-        worker_id: str,
-        db_client: Optional[Any]
+        self, worker_id: str, db_client: Optional[Any]
     ) -> List[RecoveryPath]:
         """Get previous recovery attempts from database."""
         if not db_client:
             return []
 
-        result = db_client.table("recovery_attempts").select("*").eq(
-            "worker_id", worker_id
-        ).execute()
+        result = (
+            db_client.table("recovery_attempts")
+            .select("*")
+            .eq("worker_id", worker_id)
+            .execute()
+        )
 
         if not result.data:
             return []
@@ -604,45 +609,43 @@ class RecoveryManager:
         ]
 
     async def _get_worker_status(
-        self,
-        worker_id: str,
-        db_client: Optional[Any]
+        self, worker_id: str, db_client: Optional[Any]
     ) -> Dict[str, Any]:
         """Get worker status from database."""
         if not db_client:
             return {"tier": "suspended"}  # Assume suspended for testing
 
-        result = db_client.table("workers").select(
-            "tier, suspension_reason"
-        ).eq("id", worker_id).single().execute()
+        result = (
+            db_client.table("workers")
+            .select("tier, suspension_reason")
+            .eq("id", worker_id)
+            .single()
+            .execute()
+        )
 
         return result.data or {"tier": "suspended"}
 
     async def _get_disputed_agents(
-        self,
-        worker_id: str,
-        db_client: Optional[Any]
+        self, worker_id: str, db_client: Optional[Any]
     ) -> List[str]:
         """Get list of agents who had disputes with this worker."""
         if not db_client:
             return []
 
-        result = db_client.table("disputes").select(
-            "agent_id"
-        ).eq("worker_id", worker_id).eq(
-            "outcome", "worker_fault"
-        ).execute()
+        result = (
+            db_client.table("disputes")
+            .select("agent_id")
+            .eq("worker_id", worker_id)
+            .eq("outcome", "worker_fault")
+            .execute()
+        )
 
         if not result.data:
             return []
 
         return list(set(d["agent_id"] for d in result.data))
 
-    async def _save_recovery(
-        self,
-        path: RecoveryPath,
-        db_client: Any
-    ):
+    async def _save_recovery(self, path: RecoveryPath, db_client: Any):
         """Save recovery path to database."""
         data = {
             "id": path.id,
@@ -663,16 +666,20 @@ class RecoveryManager:
         db_client.table("recovery_attempts").upsert(data).execute()
 
     async def _load_active_recovery(
-        self,
-        worker_id: str,
-        db_client: Any
+        self, worker_id: str, db_client: Any
     ) -> Optional[RecoveryPath]:
         """Load active recovery from database."""
-        result = db_client.table("recovery_attempts").select("*").eq(
-            "worker_id", worker_id
-        ).in_(
-            "status", [RecoveryStatus.COOLOFF.value, RecoveryStatus.VERIFICATION.value]
-        ).single().execute()
+        result = (
+            db_client.table("recovery_attempts")
+            .select("*")
+            .eq("worker_id", worker_id)
+            .in_(
+                "status",
+                [RecoveryStatus.COOLOFF.value, RecoveryStatus.VERIFICATION.value],
+            )
+            .single()
+            .execute()
+        )
 
         if not result.data:
             return None
@@ -694,20 +701,18 @@ class RecoveryManager:
         self._active_recoveries[worker_id] = path
         return path
 
-    async def _reset_worker_to_probation(
-        self,
-        worker_id: str,
-        db_client: Any
-    ):
+    async def _reset_worker_to_probation(self, worker_id: str, db_client: Any):
         """Reset worker to probation tier after approved recovery."""
-        db_client.table("workers").update({
-            "tier": "probation",
-            "tasks_completed": 0,
-            "average_rating": 0.0,
-            "total_disputes": 0,
-            "identity_verified": True,  # Already re-verified
-            "suspension_reason": None,
-            "recovered_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", worker_id).execute()
+        db_client.table("workers").update(
+            {
+                "tier": "probation",
+                "tasks_completed": 0,
+                "average_rating": 0.0,
+                "total_disputes": 0,
+                "identity_verified": True,  # Already re-verified
+                "suspension_reason": None,
+                "recovered_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", worker_id).execute()
 
         logger.info(f"Worker {worker_id} reset to probation tier")

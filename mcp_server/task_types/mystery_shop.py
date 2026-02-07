@@ -19,7 +19,7 @@ Validation includes:
 - Logical consistency in responses
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
@@ -38,6 +38,7 @@ from .base import (
 
 class EvaluationCategory(str, Enum):
     """Categories for mystery shop evaluation."""
+
     CLEANLINESS = "cleanliness"
     SERVICE = "service"
     PRODUCT_QUALITY = "product_quality"
@@ -51,6 +52,7 @@ class EvaluationCategory(str, Enum):
 
 class RatingScale(str, Enum):
     """Rating scale options."""
+
     SCALE_1_5 = "1-5"
     SCALE_1_10 = "1-10"
     YES_NO = "yes_no"
@@ -71,6 +73,7 @@ class EvaluationCriterion:
         required: Whether this criterion is required
         description: Detailed description of what to evaluate
     """
+
     name: str
     label: str
     category: EvaluationCategory
@@ -94,6 +97,7 @@ class EvaluationCriterion:
 
 class MysteryShopEvidence(TypedDict, total=False):
     """Evidence structure for mystery shop tasks."""
+
     # Receipt evidence
     receipt_photo_url: str
     receipt_date: str
@@ -108,8 +112,8 @@ class MysteryShopEvidence(TypedDict, total=False):
     visit_timestamp: str
 
     # Questionnaire responses
-    ratings: Dict[str, int]         # criterion_name -> rating value
-    comments: Dict[str, str]        # criterion_name -> text comment
+    ratings: Dict[str, int]  # criterion_name -> rating value
+    comments: Dict[str, str]  # criterion_name -> text comment
     overall_rating: int
     overall_comments: str
 
@@ -122,6 +126,7 @@ class MysteryShopEvidence(TypedDict, total=False):
 @dataclass
 class MysteryShopConfig:
     """Configuration for mystery shop validation."""
+
     # Receipt validation
     require_receipt: bool = True
     max_receipt_age_days: int = 1
@@ -366,7 +371,10 @@ class MysteryShopTask(TaskType[MysteryShopEvidence]):
         # Validate purchase amount
         receipt_amount = evidence.get("receipt_amount")
         if receipt_amount is not None:
-            if self.config.min_purchase_amount and receipt_amount < self.config.min_purchase_amount:
+            if (
+                self.config.min_purchase_amount
+                and receipt_amount < self.config.min_purchase_amount
+            ):
                 return ValidationResult.failure(
                     errors=[
                         f"Purchase amount (${receipt_amount:.2f}) below minimum "
@@ -374,7 +382,10 @@ class MysteryShopTask(TaskType[MysteryShopEvidence]):
                     ],
                 )
 
-            if self.config.max_purchase_amount and receipt_amount > self.config.max_purchase_amount:
+            if (
+                self.config.max_purchase_amount
+                and receipt_amount > self.config.max_purchase_amount
+            ):
                 return ValidationResult.failure(
                     errors=[
                         f"Purchase amount (${receipt_amount:.2f}) exceeds maximum "
@@ -432,8 +443,10 @@ class MysteryShopTask(TaskType[MysteryShopEvidence]):
 
             if context.location_lat and context.location_lng:
                 distance = self._haversine_distance(
-                    lat, lng,
-                    context.location_lat, context.location_lng,
+                    lat,
+                    lng,
+                    context.location_lat,
+                    context.location_lng,
                 )
 
                 if distance > self.config.gps_radius_meters:
@@ -477,9 +490,7 @@ class MysteryShopTask(TaskType[MysteryShopEvidence]):
                     # Validate rating is in valid range
                     rating = ratings[criterion.name]
                     if not self._is_valid_rating(rating, criterion.scale):
-                        errors.append(
-                            f"Invalid rating for {criterion.label}: {rating}"
-                        )
+                        errors.append(f"Invalid rating for {criterion.label}: {rating}")
 
             # Check comments if required
             if self.config.require_comments:
@@ -587,8 +598,8 @@ class MysteryShopTask(TaskType[MysteryShopEvidence]):
         delta_lambda = math.radians(lon2 - lon1)
 
         a = (
-            math.sin(delta_phi / 2) ** 2 +
-            math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+            math.sin(delta_phi / 2) ** 2
+            + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
         )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
@@ -620,8 +631,12 @@ class MysteryShopTask(TaskType[MysteryShopEvidence]):
         }
         urgency_factor = urgency_factors.get(context.urgency, Decimal("1.0"))
 
-        suggested = (base + criteria_bonus) * complexity_factor * urgency_factor + reimbursement
-        suggested = min(suggested, self.MAX_BOUNTY + reimbursement).quantize(Decimal("1.00"))
+        suggested = (
+            base + criteria_bonus
+        ) * complexity_factor * urgency_factor + reimbursement
+        suggested = min(suggested, self.MAX_BOUNTY + reimbursement).quantize(
+            Decimal("1.00")
+        )
 
         return BountyRecommendation(
             min_usd=base + reimbursement,
@@ -734,13 +749,13 @@ Keep your receipt!
 
         # Average by category
         category_averages = {
-            cat: sum(scores) / len(scores)
-            for cat, scores in category_scores.items()
+            cat: sum(scores) / len(scores) for cat, scores in category_scores.items()
         }
 
         return {
             "store_name": evidence.get("receipt_store_name") or self.target_store,
-            "visit_date": evidence.get("visit_timestamp") or evidence.get("receipt_date"),
+            "visit_date": evidence.get("visit_timestamp")
+            or evidence.get("receipt_date"),
             "purchase_amount": evidence.get("receipt_amount"),
             "overall_rating": evidence.get("overall_rating"),
             "category_scores": category_averages,
@@ -770,59 +785,65 @@ def create_retail_mystery_shop(
         ]
 
     if EvaluationCategory.SERVICE in focus_areas:
-        criteria.extend([
-            EvaluationCriterion(
-                name="greeting",
-                label="Initial Greeting",
-                category=EvaluationCategory.SERVICE,
-                description="Were you acknowledged within 30 seconds of entering?",
-            ),
-            EvaluationCriterion(
-                name="assistance",
-                label="Staff Assistance",
-                category=EvaluationCategory.SERVICE,
-                description="Did staff offer help and answer questions?",
-            ),
-            EvaluationCriterion(
-                name="checkout",
-                label="Checkout Experience",
-                category=EvaluationCategory.SERVICE,
-                description="Was checkout efficient and pleasant?",
-            ),
-        ])
+        criteria.extend(
+            [
+                EvaluationCriterion(
+                    name="greeting",
+                    label="Initial Greeting",
+                    category=EvaluationCategory.SERVICE,
+                    description="Were you acknowledged within 30 seconds of entering?",
+                ),
+                EvaluationCriterion(
+                    name="assistance",
+                    label="Staff Assistance",
+                    category=EvaluationCategory.SERVICE,
+                    description="Did staff offer help and answer questions?",
+                ),
+                EvaluationCriterion(
+                    name="checkout",
+                    label="Checkout Experience",
+                    category=EvaluationCategory.SERVICE,
+                    description="Was checkout efficient and pleasant?",
+                ),
+            ]
+        )
 
     if EvaluationCategory.CLEANLINESS in focus_areas:
-        criteria.extend([
-            EvaluationCriterion(
-                name="store_clean",
-                label="Store Cleanliness",
-                category=EvaluationCategory.CLEANLINESS,
-                description="Overall cleanliness of the store",
-            ),
-            EvaluationCriterion(
-                name="restroom",
-                label="Restroom Condition",
-                category=EvaluationCategory.CLEANLINESS,
-                required=False,
-                description="If visited, rate restroom cleanliness",
-            ),
-        ])
+        criteria.extend(
+            [
+                EvaluationCriterion(
+                    name="store_clean",
+                    label="Store Cleanliness",
+                    category=EvaluationCategory.CLEANLINESS,
+                    description="Overall cleanliness of the store",
+                ),
+                EvaluationCriterion(
+                    name="restroom",
+                    label="Restroom Condition",
+                    category=EvaluationCategory.CLEANLINESS,
+                    required=False,
+                    description="If visited, rate restroom cleanliness",
+                ),
+            ]
+        )
 
     if EvaluationCategory.PRODUCT_QUALITY in focus_areas:
-        criteria.extend([
-            EvaluationCriterion(
-                name="product_display",
-                label="Product Display",
-                category=EvaluationCategory.PRODUCT_QUALITY,
-                description="Were products well-organized and displayed?",
-            ),
-            EvaluationCriterion(
-                name="stock_levels",
-                label="Stock Levels",
-                category=EvaluationCategory.PRODUCT_QUALITY,
-                description="Were shelves well-stocked?",
-            ),
-        ])
+        criteria.extend(
+            [
+                EvaluationCriterion(
+                    name="product_display",
+                    label="Product Display",
+                    category=EvaluationCategory.PRODUCT_QUALITY,
+                    description="Were products well-organized and displayed?",
+                ),
+                EvaluationCriterion(
+                    name="stock_levels",
+                    label="Stock Levels",
+                    category=EvaluationCategory.PRODUCT_QUALITY,
+                    description="Were shelves well-stocked?",
+                ),
+            ]
+        )
 
     return MysteryShopTask(
         criteria=criteria,

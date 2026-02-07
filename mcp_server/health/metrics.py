@@ -15,9 +15,7 @@ Compatible with:
 - New Relic
 """
 
-import asyncio
 import logging
-import os
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -37,10 +35,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Counter:
     """A monotonically increasing counter metric."""
+
     name: str
     description: str
     labels: Tuple[str, ...] = ()
-    _values: Dict[Tuple[str, ...], float] = field(default_factory=lambda: defaultdict(float))
+    _values: Dict[Tuple[str, ...], float] = field(
+        default_factory=lambda: defaultdict(float)
+    )
 
     def inc(self, labels: Dict[str, str] = None, value: float = 1.0) -> None:
         """Increment counter by value."""
@@ -79,10 +80,13 @@ class Counter:
 @dataclass
 class Gauge:
     """A metric that can go up or down."""
+
     name: str
     description: str
     labels: Tuple[str, ...] = ()
-    _values: Dict[Tuple[str, ...], float] = field(default_factory=lambda: defaultdict(float))
+    _values: Dict[Tuple[str, ...], float] = field(
+        default_factory=lambda: defaultdict(float)
+    )
 
     def set(self, value: float, labels: Dict[str, str] = None) -> None:
         """Set gauge to a specific value."""
@@ -135,13 +139,33 @@ class Histogram:
 
     Uses pre-defined buckets for latency measurements.
     """
+
     name: str
     description: str
     labels: Tuple[str, ...] = ()
-    buckets: Tuple[float, ...] = (0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0)
+    buckets: Tuple[float, ...] = (
+        0.005,
+        0.01,
+        0.025,
+        0.05,
+        0.075,
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+        2.5,
+        5.0,
+        7.5,
+        10.0,
+    )
     _counts: Dict[Tuple[str, ...], List[int]] = field(default_factory=dict)
-    _sums: Dict[Tuple[str, ...], float] = field(default_factory=lambda: defaultdict(float))
-    _totals: Dict[Tuple[str, ...], int] = field(default_factory=lambda: defaultdict(int))
+    _sums: Dict[Tuple[str, ...], float] = field(
+        default_factory=lambda: defaultdict(float)
+    )
+    _totals: Dict[Tuple[str, ...], int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
 
     def observe(self, value: float, labels: Dict[str, str] = None) -> None:
         """Record an observation."""
@@ -204,28 +228,32 @@ class Histogram:
                 cumulative += self._counts[label_values][i]
                 le_label = f'le="{bucket}"'
                 if label_str:
-                    lines.append(f'{self.name}_bucket{{{label_str},{le_label}}} {cumulative}')
+                    lines.append(
+                        f"{self.name}_bucket{{{label_str},{le_label}}} {cumulative}"
+                    )
                 else:
-                    lines.append(f'{self.name}_bucket{{{le_label}}} {cumulative}')
+                    lines.append(f"{self.name}_bucket{{{le_label}}} {cumulative}")
 
             # +Inf bucket
             total = self._totals[label_values]
             if label_str:
                 lines.append(f'{self.name}_bucket{{{label_str},le="+Inf"}} {total}')
-                lines.append(f'{self.name}_sum{{{label_str}}} {self._sums[label_values]:.6f}')
-                lines.append(f'{self.name}_count{{{label_str}}} {total}')
+                lines.append(
+                    f"{self.name}_sum{{{label_str}}} {self._sums[label_values]:.6f}"
+                )
+                lines.append(f"{self.name}_count{{{label_str}}} {total}")
             else:
                 lines.append(f'{self.name}_bucket{{le="+Inf"}} {total}')
-                lines.append(f'{self.name}_sum {self._sums[label_values]:.6f}')
-                lines.append(f'{self.name}_count {total}')
+                lines.append(f"{self.name}_sum {self._sums[label_values]:.6f}")
+                lines.append(f"{self.name}_count {total}")
 
         if not self._counts:
             # No observations yet
             for bucket in self.buckets:
                 lines.append(f'{self.name}_bucket{{le="{bucket}"}} 0')
             lines.append(f'{self.name}_bucket{{le="+Inf"}} 0')
-            lines.append(f'{self.name}_sum 0')
-            lines.append(f'{self.name}_count 0')
+            lines.append(f"{self.name}_sum 0")
+            lines.append(f"{self.name}_count 0")
 
         return "\n".join(lines)
 
@@ -386,18 +414,33 @@ class MetricsCollector:
         """Refresh task-related metrics from database."""
         try:
             import supabase_client
+
             client = supabase_client.get_client()
 
             # Get task counts by status
-            statuses = ["published", "accepted", "in_progress", "submitted", "completed", "cancelled"]
+            statuses = [
+                "published",
+                "accepted",
+                "in_progress",
+                "submitted",
+                "completed",
+                "cancelled",
+            ]
             categories = [
-                "physical_presence", "knowledge_access", "human_authority",
-                "social_verification", "sensitive_handling"
+                "physical_presence",
+                "knowledge_access",
+                "human_authority",
+                "social_verification",
+                "sensitive_handling",
             ]
 
             for status in statuses:
-                result = client.table("tasks").select("id, category", count="exact").eq("status", status).execute()
-                count = result.count or 0
+                result = (
+                    client.table("tasks")
+                    .select("id, category", count="exact")
+                    .eq("status", status)
+                    .execute()
+                )
 
                 # Group by category if we have data
                 if result.data:
@@ -408,8 +451,7 @@ class MetricsCollector:
 
                     for cat, cat_count in category_counts.items():
                         ACTIVE_TASKS.set(
-                            cat_count,
-                            labels={"status": status, "category": cat}
+                            cat_count, labels={"status": status, "category": cat}
                         )
                 else:
                     # Set zero for all categories in this status
@@ -424,6 +466,7 @@ class MetricsCollector:
         try:
             # Try to get escrow status via SDK health check
             from integrations.x402.sdk_client import get_sdk, check_sdk_available
+
             if check_sdk_available():
                 sdk = get_sdk()
                 health = await sdk.health_check()
@@ -444,6 +487,7 @@ class MetricsCollector:
         """Refresh worker-related metrics."""
         try:
             import supabase_client
+
             client = supabase_client.get_client()
 
             # Count active workers (have completed tasks in last 30 days)
@@ -476,12 +520,14 @@ class MetricsCollector:
         # Add uptime metric
         if hasattr(self, "_start_time"):
             uptime = (datetime.now(timezone.utc) - self._start_time).total_seconds()
-            lines.extend([
-                "# HELP em_uptime_seconds Service uptime in seconds",
-                "# TYPE em_uptime_seconds counter",
-                f"em_uptime_seconds {uptime:.2f}",
-                ""
-            ])
+            lines.extend(
+                [
+                    "# HELP em_uptime_seconds Service uptime in seconds",
+                    "# TYPE em_uptime_seconds counter",
+                    f"em_uptime_seconds {uptime:.2f}",
+                    "",
+                ]
+            )
 
         return "\n".join(lines)
 
@@ -496,7 +542,9 @@ class MetricsCollector:
             "requests_total": REQUEST_COUNT._values,
             "active_tasks": dict(ACTIVE_TASKS._values),
             "escrow_balance": dict(ESCROW_BALANCE._values),
-            "last_refresh": self._last_refresh.isoformat() if self._last_refresh else None,
+            "last_refresh": self._last_refresh.isoformat()
+            if self._last_refresh
+            else None,
         }
 
 
@@ -530,6 +578,7 @@ def track_request(endpoint: str, method: str = "GET"):
         async def create_task():
             ...
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -540,11 +589,12 @@ def track_request(endpoint: str, method: str = "GET"):
                     result = await func(*args, **kwargs)
                     REQUEST_COUNT.inc(labels={**labels, "status": "success"})
                     return result
-                except Exception as e:
+                except Exception:
                     REQUEST_COUNT.inc(labels={**labels, "status": "error"})
                     raise
 
         return wrapper
+
     return decorator
 
 
@@ -557,6 +607,7 @@ def track_task_operation(operation: str):
         async def publish_task():
             ...
     """
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -575,4 +626,5 @@ def track_task_operation(operation: str):
             return result
 
         return wrapper
+
     return decorator

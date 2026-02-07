@@ -38,30 +38,32 @@ logger = logging.getLogger(__name__)
 
 class FeeType(str, Enum):
     """Types of fees that can be collected."""
-    PLATFORM = "platform"           # Standard platform fee
-    EXPEDITED = "expedited"         # Rush/priority task fee
-    DISPUTE = "dispute"             # Dispute resolution fee
-    WITHDRAWAL = "withdrawal"       # Early withdrawal fee
-    PROMOTIONAL = "promotional"     # Promotional/waived fee
+
+    PLATFORM = "platform"  # Standard platform fee
+    EXPEDITED = "expedited"  # Rush/priority task fee
+    DISPUTE = "dispute"  # Dispute resolution fee
+    WITHDRAWAL = "withdrawal"  # Early withdrawal fee
+    PROMOTIONAL = "promotional"  # Promotional/waived fee
 
 
 class FeeStatus(str, Enum):
     """Status of a fee record."""
-    PENDING = "pending"             # Fee calculated but not collected
-    COLLECTED = "collected"         # Fee successfully collected
-    FAILED = "failed"               # Collection attempt failed
-    WAIVED = "waived"               # Fee waived (promotional, etc.)
-    REFUNDED = "refunded"           # Fee refunded to agent
+
+    PENDING = "pending"  # Fee calculated but not collected
+    COLLECTED = "collected"  # Fee successfully collected
+    FAILED = "failed"  # Collection attempt failed
+    WAIVED = "waived"  # Fee waived (promotional, etc.)
+    REFUNDED = "refunded"  # Fee refunded to agent
 
 
 # Fee rates by task category (NOW-025)
 # Rates are designed to balance platform sustainability with worker incentives
 FEE_RATES: Dict[TaskCategory, Decimal] = {
-    TaskCategory.PHYSICAL_PRESENCE: Decimal("0.08"),   # 8% - high effort tasks
-    TaskCategory.KNOWLEDGE_ACCESS: Decimal("0.07"),    # 7% - specialized knowledge
-    TaskCategory.HUMAN_AUTHORITY: Decimal("0.06"),     # 6% - incentivize licensed pros
-    TaskCategory.SIMPLE_ACTION: Decimal("0.08"),       # 8% - standard digital tasks
-    TaskCategory.DIGITAL_PHYSICAL: Decimal("0.07"),    # 7% - hybrid tasks
+    TaskCategory.PHYSICAL_PRESENCE: Decimal("0.08"),  # 8% - high effort tasks
+    TaskCategory.KNOWLEDGE_ACCESS: Decimal("0.07"),  # 7% - specialized knowledge
+    TaskCategory.HUMAN_AUTHORITY: Decimal("0.06"),  # 6% - incentivize licensed pros
+    TaskCategory.SIMPLE_ACTION: Decimal("0.08"),  # 8% - standard digital tasks
+    TaskCategory.DIGITAL_PHYSICAL: Decimal("0.07"),  # 7% - hybrid tasks
 }
 
 # Default fee rate for unknown categories
@@ -94,6 +96,7 @@ class FeeBreakdown:
         is_waived: Whether the fee was waived
         waiver_reason: Reason for fee waiver (if applicable)
     """
+
     gross_amount: Decimal
     fee_rate: Decimal
     fee_amount: Decimal
@@ -111,7 +114,9 @@ class FeeBreakdown:
             "fee_rate_percent": float(self.fee_rate * 100),
             "fee_amount": float(self.fee_amount),
             "worker_amount": float(self.worker_amount),
-            "worker_percent": float((self.worker_amount / self.gross_amount) * 100) if self.gross_amount > 0 else 0,
+            "worker_percent": float((self.worker_amount / self.gross_amount) * 100)
+            if self.gross_amount > 0
+            else 0,
             "treasury_wallet": self.treasury_wallet,
             "category": self.category.value,
             "is_waived": self.is_waived,
@@ -138,6 +143,7 @@ class CollectedFee:
         worker_id: Worker who executed the task
         metadata: Additional context
     """
+
     id: str
     task_id: str
     amount: Decimal
@@ -187,6 +193,7 @@ class FeeAnalytics:
         average_rate: Weighted average fee rate
         top_agents: Top fee-paying agents
     """
+
     start_date: datetime
     end_date: datetime
     total_collected: Decimal
@@ -264,8 +271,7 @@ class FeeManager:
             custom_rates: Override default fee rates (for testing/promotions)
         """
         self.treasury_wallet = treasury_wallet or os.environ.get(
-            "EM_TREASURY_ADDRESS",
-            "0x0000000000000000000000000000000000000000"
+            "EM_TREASURY_ADDRESS", "0x0000000000000000000000000000000000000000"
         )
         self.fee_rates = custom_rates or FEE_RATES.copy()
 
@@ -350,7 +356,7 @@ class FeeManager:
         worker_amount = bounty - fee_amount
 
         logger.debug(
-            f"Fee calculated: bounty=${bounty}, rate={fee_rate*100}%, "
+            f"Fee calculated: bounty=${bounty}, rate={fee_rate * 100}%, "
             f"fee=${fee_amount}, worker=${worker_amount}"
         )
 
@@ -392,7 +398,9 @@ class FeeManager:
             Post bounty of $10.87
         """
         if desired_worker_amount <= 0:
-            raise ValueError(f"Desired amount must be positive, got {desired_worker_amount}")
+            raise ValueError(
+                f"Desired amount must be positive, got {desired_worker_amount}"
+            )
 
         desired = Decimal(str(desired_worker_amount))
         fee_rate = self.get_fee_rate(category)
@@ -443,7 +451,9 @@ class FeeManager:
                 amount=Decimal("0"),
                 rate=breakdown.fee_rate,
                 category=breakdown.category,
-                fee_type=FeeType.PROMOTIONAL if breakdown.is_waived else FeeType.PLATFORM,
+                fee_type=FeeType.PROMOTIONAL
+                if breakdown.is_waived
+                else FeeType.PLATFORM,
                 status=FeeStatus.WAIVED,
                 tx_hash=None,
                 collected_at=datetime.now(timezone.utc),
@@ -483,7 +493,7 @@ class FeeManager:
 
         logger.info(
             f"Fee collected: task={task_id}, amount=${fee_record.amount}, "
-            f"rate={fee_record.rate*100}%, tx={release_tx[:16]}..."
+            f"rate={fee_record.rate * 100}%, tx={release_tx[:16]}..."
         )
 
         return fee_record
@@ -600,7 +610,8 @@ class FeeManager:
 
         # Filter fees by date range
         fees_in_range = [
-            fee for fee in self._collected_fees.values()
+            fee
+            for fee in self._collected_fees.values()
             if start_date <= fee.collected_at <= end_date
         ]
 
@@ -657,7 +668,7 @@ class FeeManager:
                 for aid, total in agent_totals.items()
             ],
             key=lambda x: x["total_fees"],
-            reverse=True
+            reverse=True,
         )[:10]
 
         return FeeAnalytics(
@@ -679,10 +690,7 @@ class FeeManager:
 
     def get_fees_for_task(self, task_id: str) -> List[CollectedFee]:
         """Get all fee records for a task."""
-        return [
-            fee for fee in self._collected_fees.values()
-            if fee.task_id == task_id
-        ]
+        return [fee for fee in self._collected_fees.values() if fee.task_id == task_id]
 
     def get_fees_for_agent(
         self,
@@ -691,8 +699,7 @@ class FeeManager:
     ) -> List[CollectedFee]:
         """Get fee records for an agent."""
         fees = [
-            fee for fee in self._collected_fees.values()
-            if fee.agent_id == agent_id
+            fee for fee in self._collected_fees.values() if fee.agent_id == agent_id
         ]
         # Sort by date descending and limit
         fees.sort(key=lambda f: f.collected_at, reverse=True)
@@ -792,7 +799,4 @@ def get_all_fee_rates() -> Dict[str, float]:
     Returns:
         Dict mapping category names to fee rates
     """
-    return {
-        cat.value: float(rate)
-        for cat, rate in FEE_RATES.items()
-    }
+    return {cat.value: float(rate) for cat, rate in FEE_RATES.items()}
