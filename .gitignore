@@ -80,6 +80,13 @@ mcp_server/terra4mice.state.json
 # Windows artifacts
 nul
 
+# ECS task definition artifacts (generated during deployment)
+*_td*.json
+.deploy_tag
+
+# Auto-generated agent instruction files
+AGENTS.md
+
 # Misc
 .unused/
 .internal/

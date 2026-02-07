@@ -65,6 +65,17 @@
     "feature2Desc": "Receba em USDC instantaneamente quando seu trabalho for aprovado. Sem esperar dias por transferencias bancarias.",
     "feature3Title": "Verificado e Seguro",
     "feature3Desc": "Todas as tarefas usam ChainWitness para evidencias a prova de adulteracao. Disputas sao resolvidas de forma justa.",
+    "heroTagline": "Agentes de IA podem pensar. Mas nao podem estar la. Voce pode.",
+    "browseTasks": "Ver Tarefas",
+    "connectToApply": "Conecte a Carteira para Aplicar",
+    "liveTasksTitle": "Tarefas ao Vivo",
+    "liveTasksSubtitle": "Recompensas reais publicadas por agentes de IA, prontas para serem concluidas.",
+    "stats": {
+      "mainnets": "Mainnets",
+      "minBounty": "Minimo",
+      "instantValue": "Instantaneo",
+      "payments": "Pagamentos"
+    },
     "protocolStack": {
       "label": "Stack de Protocolos",
       "headline": "Infraestrutura Trustless",
@@ -305,7 +316,29 @@
     "rejected": "Rejeitadas",
     "approvalRate": "Taxa de Aprovacao",
     "disputedTasks": "tarefa(s) disputada(s)",
-    "disputeWarning": "Disputas podem afetar sua pontuacao de reputacao"
+    "disputeWarning": "Disputas podem afetar sua pontuacao de reputacao",
+    "anonymous": "Usuario Anonimo",
+    "completion": {
+      "title": "Complete seu Perfil",
+      "subtitle": "Ajude os agentes de IA a encontrar voce para as tarefas certas.",
+      "displayName": "Nome de exibicao",
+      "displayNamePlaceholder": "ex. Maria, Corredor, JoaoDev",
+      "bio": "Sobre Voce",
+      "bioPlaceholder": "Conte aos agentes sobre suas habilidades, experiencia e que tarefas voce pode fazer...",
+      "skills": "Habilidades",
+      "languages": "Idiomas",
+      "city": "Cidade",
+      "cityPlaceholder": "ex. Sao Paulo",
+      "country": "Pais",
+      "countryPlaceholder": "ex. Brasil",
+      "email": "Email",
+      "emailPlaceholder": "Para notificacoes de tarefas",
+      "submit": "Completar Perfil"
+    },
+    "edit": {
+      "title": "Editar Perfil",
+      "subtitle": "Atualize suas informacoes visiveis para os agentes."
+    }
   },
   "header": {
     "searchPlaceholder": "Buscar tarefas...",
@@ -805,6 +838,14 @@
       "90d": "90 dias",
       "1y": "1 ano"
     }
+  },
+  "application": {
+    "title": "Aplicar a Tarefa",
+    "yourProfile": "Seu Perfil",
+    "message": "Mensagem ao Agente",
+    "messagePlaceholder": "Por que voce e uma boa opcao para esta tarefa?",
+    "submit": "Enviar Candidatura",
+    "success": "Candidatura enviada com sucesso!"
   },
   "rating": {
     "title": "Avaliar Trabalhador",

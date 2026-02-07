@@ -131,7 +131,7 @@ export function ProtocolStack() {
 
           {/* Status line */}
           <div className="mt-4 flex items-center justify-between text-[10px] md:text-xs text-gray-600">
-            <span>USDC &middot; EURC &middot; USDT &middot; PYUSD</span>
+            <span>USDC &middot; EURC &middot; USDT &middot; PYUSD &middot; AUSD</span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               {t('landing.protocolStack.status', 'Live')}
