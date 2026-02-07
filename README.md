@@ -211,10 +211,13 @@ execution-market/
 ```bash
 cd dashboard
 npm install
-npm run dev          # http://localhost:5173
+npm run dev          # http://localhost:3000
 npm run build        # Production build
 npm run test         # Vitest unit tests
-npm run e2e          # Playwright E2E tests
+npm run test:run     # Run once (no watch)
+npm run test:coverage # With coverage report
+npm run lint         # ESLint
+npm run typecheck    # TypeScript check
 ```
 
 ### MCP Server
@@ -223,6 +226,43 @@ npm run e2e          # Playwright E2E tests
 cd mcp_server
 pip install -e .
 python server.py
+
+# Linting
+ruff check .         # Lint
+ruff format .        # Format
+mypy . --ignore-missing-imports  # Type check
+
+# Tests
+pytest -v            # Run tests
+pytest --cov=. -v    # With coverage
+```
+
+### E2E Tests (Playwright)
+
+E2E tests are **local-only** (not run in CI) because they need updating for Dynamic.xyz auth.
+
+```bash
+cd e2e
+npm install
+npx playwright install chromium
+
+# Run against local dev server (starts dashboard automatically)
+npx playwright test
+
+# Run against production
+BASE_URL=https://execution.market npx playwright test
+
+# Run with browser visible
+npx playwright test --headed
+
+# Run with Playwright UI
+npx playwright test --ui
+
+# Run specific browser
+npx playwright test --project=chromium
+
+# View HTML report
+npx playwright show-report
 ```
 
 ### Blockchain Scripts
@@ -230,10 +270,59 @@ python server.py
 ```bash
 cd scripts
 npm install
-npm run register:erc8004     # Register agent (Agent #469)
+npm run register:erc8004     # Register agent (Agent #2106 on Base)
 npm run upload:metadata      # Update IPFS metadata
 npm run register:x402r       # Register as x402r merchant
 ```
+
+---
+
+## CI/CD
+
+Three GitHub Actions workflows run on every push to `main`:
+
+| Workflow | File | What it does |
+|----------|------|-------------|
+| **CI** | `ci.yml` | Lint + test backend & frontend, build Docker images |
+| **Execution Market CI/CD** | `deploy.yml` | Test, build, push to ECR, deploy to ECS, health check |
+| **Security** | `security.yml` | CodeQL, Bandit, npm audit, Trivy, Gitleaks, Semgrep |
+
+### CI Pipeline
+
+```
+Lint Backend ──> Test Backend ──┐
+                                ├──> Build Docker Images
+Lint Frontend ─> Test Frontend ─┘
+```
+
+- **Backend**: `ruff check`, `ruff format --check`, `mypy` (non-blocking), `pytest` (non-blocking)
+- **Frontend**: `eslint`, `tsc --noEmit`, `vitest run --coverage`
+- **Docker**: Builds both images with BuildKit cache
+- **E2E**: Disabled in CI (run locally, see above)
+
+### Deploy Pipeline
+
+```
+Test MCP Server ──┐
+                   ├──> Build & Push to ECR ──> Deploy to ECS ──> Health Check
+Test Dashboard ───┘
+```
+
+- Auto-deploys on push to `main` or `production`
+- Uses GitHub environments (`staging` / `production`)
+- Health check verifies `api.execution.market/health` returns 200
+
+### Security Pipeline
+
+All security scans are **non-blocking** (informational). Results are uploaded as artifacts.
+
+| Scan | Tool | What it checks |
+|------|------|---------------|
+| SAST | CodeQL, Semgrep | Code vulnerabilities |
+| Dependencies | npm audit, Safety | Known CVEs |
+| Containers | Trivy | Docker image vulnerabilities |
+| Secrets | Gitleaks, TruffleHog | Leaked credentials |
+| Licenses | pip-licenses, license-checker | GPL/AGPL violations |
 
 ---
 
@@ -301,6 +390,8 @@ aws ecs update-service --cluster em-production-cluster --service em-production-d
 | [CLAUDE.md](./CLAUDE.md) | Detailed development guide, env vars, known bugs |
 | [SPEC.md](./SPEC.md) | Product specification with task categories |
 | [PLAN.md](./PLAN.md) | Technical architecture and implementation |
+| [docs/CI_CD.md](./docs/CI_CD.md) | CI/CD pipeline documentation |
+| [e2e/README.md](./e2e/README.md) | E2E testing guide (Playwright) |
 | [agent-card.json](./agent-card.json) | ERC-8004 agent metadata |
 
 ---
