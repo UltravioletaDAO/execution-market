@@ -68,10 +68,16 @@
     "discord": "https://discord.gg/ultravioletadao"
   },
 
-  "version": "0.1.0",
-  "updated_at": "2026-01-19T23:51:32.297Z",
+  "version": "1.0.0",
+  "updated_at": "2026-02-07T18:00:00.000Z",
 
   "_deployment": {
+    "network": "base",
+    "agent_id": 2106,
+    "registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+    "registration_tx": "0xd28908e1a51ea tried to register agent on Base mainnet"
+  },
+  "_legacy_deployment": {
     "network": "sepolia",
     "agent_id": 469,
     "token_uri": "https://gateway.pinata.cloud/ipfs/QmZJaHCf4u9Wy9hPusKF9bpV69Jr3E6ZAVXHZCinfMrjbL",

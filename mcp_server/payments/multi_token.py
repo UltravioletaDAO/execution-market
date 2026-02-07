@@ -20,6 +20,7 @@ class PaymentToken(str, Enum):
     EURC = "eurc"
     DAI = "dai"
     USDT = "usdt"
+    AUSD = "ausd"
 
 
 @dataclass
@@ -71,6 +72,14 @@ TOKEN_CONFIGS: Dict[PaymentToken, TokenConfig] = {
         is_stablecoin=True,
         min_bounty=0.50,
     ),
+    PaymentToken.AUSD: TokenConfig(
+        symbol="AUSD",
+        name="Agora Dollar",
+        decimals=6,
+        base_address="0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",  # Not on Base — available on Ethereum, Polygon, Arbitrum, Avalanche, Monad
+        is_stablecoin=True,
+        min_bounty=0.50,
+    ),
 }
 
 
@@ -114,6 +123,7 @@ class MultiTokenPayments:
             "DAI/USD": 1.00,
             "USDT/USD": 1.00,
             "USDC/USD": 1.00,
+            "AUSD/USD": 1.00,
         }
 
     def get_token_config(self, token: PaymentToken) -> TokenConfig:

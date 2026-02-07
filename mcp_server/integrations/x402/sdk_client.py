@@ -88,7 +88,7 @@ DEFAULT_NETWORK = os.environ.get("X402_NETWORK", "base")
 # Only these networks accept task creation and settlement.
 # The registry below contains ALL known networks, but only enabled ones are active.
 # To enable more: fund the platform wallet with USDC on that chain, then add to this list.
-_enabled_raw = os.environ.get("EM_ENABLED_NETWORKS", "base,base-sepolia")
+_enabled_raw = os.environ.get("EM_ENABLED_NETWORKS", "base,ethereum,polygon,arbitrum,celo,monad,avalanche")
 ENABLED_NETWORKS = [n.strip() for n in _enabled_raw.split(",") if n.strip()]
 
 # =============================================================================
@@ -157,6 +157,12 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "version": "1",
                 "decimals": 6,
             },
+            "AUSD": {
+                "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+                "name": "Agora Dollar",
+                "version": "1",
+                "decimals": 6,
+            },
         },
         "escrow": "0xc1256Bb3d74E1a3aBe8F16D5bA1F686F25398e35",
         "factory": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
@@ -176,6 +182,12 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "version": "1",
                 "decimals": 6,
             },
+            "AUSD": {
+                "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+                "name": "Agora Dollar",
+                "version": "1",
+                "decimals": 6,
+            },
         },
         "escrow": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
         "factory": "0xb33D6502EdBbC47201cd1E53C49d703EC0a660b8",
@@ -192,6 +204,12 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
             "USDT": {
                 "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
                 "name": "Tether USD",
+                "version": "1",
+                "decimals": 6,
+            },
+            "AUSD": {
+                "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+                "name": "Agora Dollar",
                 "version": "1",
                 "decimals": 6,
             },
@@ -227,6 +245,12 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "version": "1",
                 "decimals": 6,
             },
+            "AUSD": {
+                "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+                "name": "Agora Dollar",
+                "version": "1",
+                "decimals": 6,
+            },
         },
         "escrow": "0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
@@ -243,6 +267,12 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
             "USDT": {
                 "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
                 "name": "Tether USD",
+                "version": "1",
+                "decimals": 6,
+            },
+            "AUSD": {
+                "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+                "name": "Agora Dollar",
                 "version": "1",
                 "decimals": 6,
             },
