@@ -57,16 +57,6 @@ except ImportError:
     setup_x402_for_app = None
     FACILITATOR_URL = None
 
-# x402r Escrow Integration (NOW-220 - Production)
-try:
-    from integrations.x402 import (
-        get_x402r_escrow,
-        X402R_CONTRACTS,
-    )
-    X402R_AVAILABLE = True
-except ImportError:
-    X402R_AVAILABLE = False
-
 # ERC-8004 Integration (Base-first via facilitator)
 try:
     from integrations.erc8004 import (
@@ -395,16 +385,6 @@ async def health_check():
     # MCP Streamable HTTP status
     mcp_status = "healthy" if MCP_HTTP_AVAILABLE else "disabled"
 
-    # x402r Escrow status (Base Mainnet)
-    x402r_status = "disabled"
-    if X402R_AVAILABLE:
-        try:
-            escrow = get_x402r_escrow()
-            config = escrow.get_config()
-            x402r_status = "healthy" if config.get("account") else "read_only"
-        except Exception:
-            x402r_status = "error"
-
     # ERC-8004 status (Base-first via facilitator)
     erc8004_status = "disabled"
     if ERC8004_AVAILABLE:
@@ -425,7 +405,6 @@ async def health_check():
             "mcp_http": mcp_status,  # Streamable HTTP transport
             "websocket": ws_status,
             "x402": x402_status,
-            "x402r_escrow": x402r_status,  # Base Mainnet escrow
             "erc8004": erc8004_status,  # Facilitator-backed reputation
         }
     )
@@ -706,11 +685,9 @@ async def root():
         },
         "payments": {
             "x402_sdk": "enabled" if x402_sdk else "disabled",
-            "x402r_escrow": "enabled" if X402R_AVAILABLE else "disabled",
             "facilitator": FACILITATOR_URL or "https://facilitator.ultravioletadao.xyz",
             "escrow_network": "base",
-            "supported_tokens": ["USDC", "EURC", "DAI", "USDT"],
-            "supported_networks": ["base", "polygon", "optimism", "arbitrum", "ethereum", "avalanche"],
+            "supported_tokens": ["USDC", "EURC", "USDT", "PYUSD"],
         },
         "reputation": {
             "erc8004": "enabled" if ERC8004_AVAILABLE else "disabled",
