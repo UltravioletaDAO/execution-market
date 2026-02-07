@@ -23,6 +23,9 @@ ARG VITE_API_URL
 ARG VITE_WALLET_CONNECT_PROJECT_ID
 ARG VITE_DYNAMIC_ENVIRONMENT_ID
 
+# Increase Node heap for Vite build (default is too low for large bundles)
+ENV NODE_OPTIONS="--max_old_space_size=4096"
+
 # Only set ENV if ARG is non-empty, otherwise let Vite read .env.production
 RUN if [ -n "$VITE_SUPABASE_URL" ]; then export VITE_SUPABASE_URL="$VITE_SUPABASE_URL"; fi && \
     if [ -n "$VITE_SUPABASE_ANON_KEY" ]; then export VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY"; fi && \
