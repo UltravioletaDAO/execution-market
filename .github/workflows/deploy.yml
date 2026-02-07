@@ -19,7 +19,8 @@ env:
   MCP_SERVER_CONTAINER: mcp-server
   DASHBOARD_SERVICE: em-production-dashboard
   DASHBOARD_CONTAINER: dashboard
-  BASE_URL: https://app.execution.market
+  BASE_URL: https://execution.market
+  API_URL: https://api.execution.market
 
 jobs:
   test-mcp-server:
@@ -236,13 +237,21 @@ jobs:
           echo "Waiting for services to stabilize..."
           sleep 30
 
-          # Health check
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.BASE_URL }}/api/health || echo "000")
+          # Health check - API backend
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.API_URL }}/health || echo "000")
           if [ "$HTTP_STATUS" != "200" ]; then
-            echo "Health check failed with status: $HTTP_STATUS"
+            echo "API health check failed with status: $HTTP_STATUS"
             exit 1
           fi
-          echo "Health check passed"
+          echo "API health check passed"
+
+          # Health check - Dashboard
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.BASE_URL }} || echo "000")
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Dashboard health check failed with status: $HTTP_STATUS (non-blocking)"
+          else
+            echo "Dashboard health check passed"
+          fi
 
   e2e-tests:
     name: E2E Tests
