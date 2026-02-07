@@ -1,0 +1,83 @@
+name: Deploy Admin Dashboard
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'admin-dashboard/**'
+
+env:
+  AWS_REGION: us-east-2
+  S3_BUCKET: em-production-admin-dashboard
+  CLOUDFRONT_DISTRIBUTION_ID: E2IUZLTDUFIAQP
+  ADMIN_URL: https://admin.execution.market
+  API_URL: https://mcp.execution.market
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Admin Dashboard
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin-dashboard
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: admin-dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ env.API_URL }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3
+        run: |
+          # Sync all files first (--delete removes old files)
+          aws s3 sync dist/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html"
+
+          # HTML files get short cache (SPA needs fresh index.html on deploy)
+          aws s3 cp dist/index.html s3://${{ env.S3_BUCKET }}/index.html \
+            --cache-control "public, max-age=60" \
+            --content-type "text/html"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+      - name: Health check
+        run: |
+          echo "Waiting for CloudFront propagation..."
+          sleep 15
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.ADMIN_URL }} || echo "000")
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Health check failed with status: $HTTP_STATUS"
+            exit 1
+          fi
+          echo "Admin dashboard deployed successfully ($HTTP_STATUS)"

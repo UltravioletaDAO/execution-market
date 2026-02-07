@@ -553,7 +553,8 @@ When creating test tasks:
 | ACM Cert | `arn:aws:acm:us-east-1:518898403364:certificate/841084f8-b130-4b12-87ee-88ac7d81be24` |
 | OAC | `E3HPQ9VBJWQVDR` |
 | Auth | Admin key via `X-Admin-Key` header (key in `EM_ADMIN_KEY` secret) |
-| Deploy | `cd admin-dashboard && VITE_API_URL=https://mcp.execution.market npm run build && aws s3 sync dist/ s3://em-production-admin-dashboard/ --delete --cache-control "public, max-age=31536000" --exclude "index.html" && aws s3 cp dist/index.html s3://em-production-admin-dashboard/index.html --cache-control "no-cache" --content-type "text/html"` |
+| CI/CD | `.github/workflows/deploy-admin.yml` — auto-deploy on push to `main` when `admin-dashboard/**` changes |
+| Manual Deploy | `cd admin-dashboard && VITE_API_URL=https://mcp.execution.market npm run build && aws s3 sync dist/ s3://em-production-admin-dashboard/ --delete --cache-control "public, max-age=31536000" --exclude "index.html" && aws s3 cp dist/index.html s3://em-production-admin-dashboard/index.html --cache-control "no-cache" --content-type "text/html"` |
 | Terraform | `infrastructure/terraform/admin-dashboard.tf` (resources created via CLI, importable) |
 
 #### Not Yet Deployed
