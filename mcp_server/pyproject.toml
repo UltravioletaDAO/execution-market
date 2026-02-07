@@ -50,5 +50,9 @@ ignore = [
     "F402",  # Import shadowed by loop variable
 ]
 
+[tool.mypy]
+explicit_package_bases = true
+mypy_path = "."
+
 [tool.hatch.build.targets.wheel]
 packages = ["."]

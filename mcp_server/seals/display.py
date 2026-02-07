@@ -325,8 +325,12 @@ class SealDisplayFormatter:
         # Get all valid seals, sorted by tier
         all_seals = [s for s in bundle.all_seals if s.is_valid]
         all_seals.sort(
-            key=lambda s: -(
-                get_requirement(s.seal_type).tier if get_requirement(s.seal_type) else 1
+            key=lambda s: (
+                -(
+                    get_requirement(s.seal_type).tier
+                    if get_requirement(s.seal_type)
+                    else 1
+                )
             )
         )
 
