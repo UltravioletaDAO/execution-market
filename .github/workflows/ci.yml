@@ -170,12 +170,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: e2e/package-lock.json
 
       - name: Install E2E dependencies
         working-directory: e2e
-        run: npm ci
+        run: npm install
 
       - name: Install Playwright browsers
         working-directory: e2e
