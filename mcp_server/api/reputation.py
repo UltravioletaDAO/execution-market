@@ -29,11 +29,13 @@ try:
         EM_AGENT_ID,
         ERC8004_CONTRACTS,
         ERC8004_NETWORK,
+        ERC8004_SUPPORTED_NETWORKS,
         FACILITATOR_URL,
     )
     ERC8004_AVAILABLE = True
 except ImportError:
     ERC8004_AVAILABLE = False
+    ERC8004_SUPPORTED_NETWORKS = []
 
 from .auth import verify_api_key, APIKeyData
 
@@ -148,6 +150,45 @@ class ERC8004InfoResponse(BaseModel):
     facilitator_url: str
     em_agent_id: int
     contracts: Dict[str, str]
+
+
+class MetadataEntry(BaseModel):
+    """Key-value metadata for agent registration."""
+    key: str = Field(..., min_length=1, max_length=64)
+    value: str = Field(..., min_length=1, max_length=256)
+
+
+class RegisterAgentRequest(BaseModel):
+    """Request to register a new agent on ERC-8004 (gasless)."""
+    network: str = Field(
+        default="base-mainnet",
+        description="ERC-8004 network for registration"
+    )
+    agent_uri: str = Field(
+        ...,
+        min_length=1,
+        max_length=2048,
+        description="URI to agent registration file (IPFS or HTTPS)"
+    )
+    metadata: Optional[List[MetadataEntry]] = Field(
+        default=None,
+        description="Optional key-value metadata pairs"
+    )
+    recipient: Optional[str] = Field(
+        default=None,
+        description="Optional address to receive the NFT after minting"
+    )
+
+
+class RegisterAgentResponse(BaseModel):
+    """Response from agent registration."""
+    success: bool
+    agent_id: Optional[int] = Field(default=None, description="Newly assigned ERC-8004 agent ID")
+    transaction: Optional[str] = Field(default=None, description="Registration tx hash")
+    transfer_transaction: Optional[str] = Field(default=None, description="NFT transfer tx hash (if recipient specified)")
+    owner: Optional[str] = None
+    network: str
+    error: Optional[str] = None
 
 
 # =============================================================================
@@ -315,6 +356,102 @@ async def get_agent_identity_endpoint(
         description=identity.description,
         image=identity.image,
         services=identity.services,
+    )
+
+
+# =============================================================================
+# IDENTITY REGISTRATION (Gasless — Facilitator pays gas)
+# =============================================================================
+
+
+@router.get(
+    "/networks",
+    responses={200: {"description": "List of supported ERC-8004 networks"}},
+)
+async def get_supported_networks() -> Dict[str, Any]:
+    """
+    Get all supported ERC-8004 networks for identity, reputation, and registration.
+
+    Returns the 14 networks where agents can be registered and rated.
+    """
+    networks = []
+    for name, contracts in ERC8004_CONTRACTS.items():
+        if name == "base":  # skip legacy alias
+            continue
+        networks.append({
+            "network": name,
+            "chain_id": contracts.get("chain_id"),
+            "identity_registry": contracts.get("identity_registry"),
+            "reputation_registry": contracts.get("reputation_registry"),
+            "testnet": name.endswith(("-sepolia", "-amoy", "-fuji")),
+        })
+    return {
+        "count": len(networks),
+        "networks": networks,
+    }
+
+
+@router.post(
+    "/register",
+    response_model=RegisterAgentResponse,
+    responses={
+        200: {"description": "Agent registered successfully"},
+        400: {"description": "Invalid network or parameters"},
+        503: {"description": "ERC-8004 integration unavailable"},
+    },
+)
+async def register_agent_endpoint(
+    request: RegisterAgentRequest,
+) -> RegisterAgentResponse:
+    """
+    Register a new agent on the ERC-8004 Identity Registry (gasless).
+
+    The Ultravioleta Facilitator pays all gas fees. The caller does not
+    need ETH or any native token on the target chain.
+
+    Supported networks: ethereum, base-mainnet, polygon, arbitrum, celo, bsc,
+    monad, avalanche, and their testnets.
+
+    If `recipient` is specified, the minted ERC-721 NFT is automatically
+    transferred to that address after registration.
+    """
+    if not ERC8004_AVAILABLE:
+        raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
+
+    if request.network not in ERC8004_CONTRACTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported network: {request.network}. Supported: {[n for n in ERC8004_SUPPORTED_NETWORKS if n != 'base']}",
+        )
+
+    client = get_facilitator_client()
+
+    metadata_dicts = None
+    if request.metadata:
+        metadata_dicts = [{"key": m.key, "value": m.value} for m in request.metadata]
+
+    result = await client.register_agent(
+        network=request.network,
+        agent_uri=request.agent_uri,
+        metadata=metadata_dicts,
+        recipient=request.recipient,
+    )
+
+    logger.info(
+        "SECURITY_AUDIT action=identity.register network=%s agent_id=%s success=%s",
+        request.network,
+        result.get("agentId"),
+        result.get("success"),
+    )
+
+    return RegisterAgentResponse(
+        success=result.get("success", False),
+        agent_id=result.get("agentId"),
+        transaction=result.get("transaction"),
+        transfer_transaction=result.get("transferTransaction"),
+        owner=result.get("owner"),
+        network=result.get("network", request.network),
+        error=result.get("error"),
     )
 
 

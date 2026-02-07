@@ -9,9 +9,9 @@ Two approaches available:
 
 Facilitator: https://facilitator.ultravioletadao.xyz
 
-Contracts (Ethereum Mainnet):
-- Identity Registry: 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432
-- Reputation Registry: 0x8004BAa17C55a88189AE136b182e5fdA19dE9b63
+Supported networks (14): All use CREATE2-deployed contracts at deterministic addresses.
+  Mainnets: ethereum, base-mainnet, polygon, arbitrum, celo, bsc, monad, avalanche
+  Testnets: ethereum-sepolia, base-sepolia, polygon-amoy, arbitrum-sepolia, celo-sepolia, avalanche-fuji
 """
 
 # Direct on-chain (for future full control)
@@ -38,6 +38,7 @@ from .facilitator_client import (
     EM_AGENT_ID,
     ERC8004_CONTRACTS,
     ERC8004_NETWORK,
+    ERC8004_SUPPORTED_NETWORKS,
     FACILITATOR_URL,
 )
 
@@ -45,8 +46,9 @@ from .facilitator_client import (
 from .identity import (
     verify_agent_identity,
     clear_identity_cache,
-    # Worker identity check & registration (via Base RPC)
+    # Worker identity check & registration
     check_worker_identity,
+    register_worker_gasless,
     build_worker_registration_tx,
     confirm_worker_registration,
     update_executor_identity,
@@ -78,12 +80,14 @@ __all__ = [
     'EM_AGENT_ID',
     'ERC8004_CONTRACTS',
     'ERC8004_NETWORK',
+    'ERC8004_SUPPORTED_NETWORKS',
     'FACILITATOR_URL',
     # Identity verification
     'verify_agent_identity',
     'clear_identity_cache',
     # Worker identity
     'check_worker_identity',
+    'register_worker_gasless',
     'build_worker_registration_tx',
     'confirm_worker_registration',
     'update_executor_identity',

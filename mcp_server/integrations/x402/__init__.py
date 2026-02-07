@@ -102,24 +102,18 @@ from .sdk_client import (
     get_sdk_info,
 )
 
-# x402r Escrow Integration (PRODUCTION) - direct contract interaction
-# This is the production-ready implementation using the proven x402r system
-from .x402r_escrow import (
-    # Main client
-    X402rEscrow,
-    # Types
-    DepositState,
-    DepositInfo,
-    ReleaseResult,
-    RefundResult,
-    # Convenience functions
-    get_x402r_escrow,
-    release_payment,
-    refund_payment,
-    get_deposit_info,
-    # Contract addresses
-    CONTRACTS as X402R_CONTRACTS,
-)
+# x402r Escrow (DEPRECATED — removed in favor of SDK + Facilitator)
+# These names are kept as None/False for backward-compatible import guards.
+X402rEscrow = None
+DepositState = None
+DepositInfo = None
+ReleaseResult = None
+RefundResult = None
+get_x402r_escrow = None
+release_payment = None
+refund_payment = None
+get_deposit_info = None
+X402R_CONTRACTS = {}
 
 # Advanced Escrow Integration (PaymentOperator via uvd-x402-sdk)
 # Uses the SDK as abstraction layer: EM -> SDK -> Facilitator -> On-chain
@@ -209,16 +203,9 @@ __all__ = [
     "verify_x402_payment",
     "check_sdk_available",
     "get_sdk_info",
-    # x402r Escrow (PRODUCTION)
+    # x402r Escrow (DEPRECATED — backward-compat stubs)
     "X402rEscrow",
-    "DepositState",
-    "DepositInfo",
-    "ReleaseResult",
-    "RefundResult",
     "get_x402r_escrow",
-    "release_payment",
-    "refund_payment",
-    "get_deposit_info",
     "X402R_CONTRACTS",
     # Advanced Escrow (PaymentOperator via SDK) - always available
     "ADVANCED_ESCROW_AVAILABLE",

@@ -1,7 +1,6 @@
 // Execution Market: Evidence Submission Form
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { supabase } from '../lib/supabase'
 import type { Task, EvidenceType, Executor } from '../types/database'
 import {
   uploadEvidenceFile,
@@ -10,9 +9,10 @@ import {
   type EvidenceMetadata,
   type UploadResult,
 } from '../services/evidence'
+import { submitWork } from '../services/submissions'
+import type { Evidence } from '../services/types'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 
 interface SubmissionFormProps {
@@ -227,107 +227,58 @@ export function SubmissionForm({
         throw new Error(t('submission.uploadError'))
       }
 
-      // Build evidence data from already-uploaded files
-      const evidenceData: Record<string, unknown> = {}
-      const uploadedPaths: string[] = []
-      const checksums: string[] = []
-      let storageBackend: 'supabase' | 's3' = 'supabase'
+      // Build evidence in the Evidence format expected by the service layer
+      const evidence: Record<string, Evidence> = {}
 
       for (const [type, evidenceFile] of files) {
         if (evidenceFile.uploadedPath) {
-          uploadedPaths.push(evidenceFile.uploadedPath)
-          const entry: Record<string, unknown> = {
-            file: evidenceFile.uploadedPath,
+          const entry: Evidence = {
+            type,
+            fileUrl: evidenceFile.uploadResult?.public_url || evidenceFile.uploadedPath,
             filename: evidenceFile.file.name,
-            size: evidenceFile.file.size,
-            type: evidenceFile.file.type,
+            mimeType: evidenceFile.file.type,
+            metadata: {
+              size: evidenceFile.file.size,
+              storagePath: evidenceFile.uploadedPath,
+              backend: evidenceFile.uploadResult?.backend,
+              checksum: evidenceFile.uploadResult?.checksum,
+            },
           }
-          // Include upload result details
-          if (evidenceFile.uploadResult) {
-            entry.checksum = evidenceFile.uploadResult.checksum
-            entry.backend = evidenceFile.uploadResult.backend
-            entry.public_url = evidenceFile.uploadResult.public_url
-            if (evidenceFile.uploadResult.nonce) {
-              entry.nonce = evidenceFile.uploadResult.nonce
-            }
-            checksums.push(evidenceFile.uploadResult.checksum)
-            storageBackend = evidenceFile.uploadResult.backend
+          if (evidenceFile.uploadResult?.nonce) {
+            entry.metadata!.nonce = evidenceFile.uploadResult.nonce
           }
-          // Include verification result if available
+          // Include AI verification result if available
           if (evidenceFile.verification) {
-            entry.ai_verification = {
+            entry.metadata!.ai_verification = {
               verified: evidenceFile.verification.verified,
               confidence: evidenceFile.verification.confidence,
               decision: evidenceFile.verification.decision,
             }
           }
-          evidenceData[type] = entry
+          // Include forensic metadata if collected
+          if (forensicMetadata) {
+            entry.metadata!.forensic = forensicMetadata
+          }
+          evidence[type] = entry
         }
       }
 
       // Add text responses
       for (const [type, value] of textResponses) {
         if (value.trim()) {
-          evidenceData[type] = { value: value.trim() }
+          evidence[type] = {
+            type,
+            value: value.trim(),
+          }
         }
       }
 
-      // Compute combined content hash from individual checksums
-      const combinedHash = checksums.length > 0 ? checksums.sort().join(':') : undefined
-
-      // Get fresh session
-      const { data: { session: currentSession } } = await supabase.auth.getSession()
-
-      const headers: Record<string, string> = {
-        apikey: SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      }
-
-      if (currentSession?.access_token) {
-        headers['Authorization'] = `Bearer ${currentSession.access_token}`
-      }
-
-      // Create submission with forensic metadata
-      const submissionBody: Record<string, unknown> = {
-        task_id: task.id,
-        executor_id: executor.id,
-        evidence: evidenceData,
-        evidence_files: uploadedPaths,
-        submitted_at: new Date().toISOString(),
-        storage_backend: storageBackend,
-      }
-      if (forensicMetadata) {
-        submissionBody.evidence_metadata = forensicMetadata
-      }
-      if (combinedHash) {
-        submissionBody.evidence_content_hash = combinedHash
-      }
-
-      const submitResponse = await fetch(`${SUPABASE_URL}/rest/v1/submissions`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(submissionBody),
+      // Use the service layer which handles submission insert + task status update
+      await submitWork({
+        taskId: task.id,
+        executorId: executor.id,
+        evidence,
       })
-
-      if (!submitResponse.ok) {
-        const text = await submitResponse.text()
-        throw new Error(text || `Submission failed: ${submitResponse.status}`)
-      }
-
-      // Update task status
-      const statusResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/tasks?id=eq.${task.id}`,
-        {
-          method: 'PATCH',
-          headers: { ...headers, Prefer: 'return=minimal' },
-          body: JSON.stringify({ status: 'submitted' }),
-        }
-      )
-
-      if (!statusResponse.ok) {
-        console.warn('Could not update task status:', statusResponse.status)
-      }
 
       onSubmit?.()
     } catch (err) {

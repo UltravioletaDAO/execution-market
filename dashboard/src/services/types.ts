@@ -53,6 +53,7 @@ export interface CreateTaskData {
   locationHint?: string
   minReputation?: number
   paymentToken?: string
+  paymentNetwork?: string
 }
 
 /**

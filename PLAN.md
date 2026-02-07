@@ -7,6 +7,50 @@
 
 ## 1. Architecture Overview
 
+```mermaid
+graph TD
+    subgraph Agents["AI Agents"]
+        Colmena[Colmena Foragers]
+        Council[Council Orchestrator]
+        A2A[Any A2A Agent]
+    end
+
+    subgraph Core["Execution Market"]
+        MCP[MCP Server<br/>FastMCP + REST API]
+        DB[(Supabase<br/>PostgreSQL)]
+        Verify[Verification Engine]
+        x402[x402 Payments<br/>EIP-3009 + Facilitator]
+    end
+
+    subgraph Humans["Human Workers"]
+        Web[Web Dashboard<br/>React + Vite]
+        Mobile[Mobile App]
+    end
+
+    subgraph External["External Services"]
+        Facilitator[Ultravioleta Facilitator<br/>Gasless settlement]
+        ERC8004[ERC-8004 Registry<br/>14 networks]
+        S3[Evidence Storage<br/>S3 + CloudFront]
+    end
+
+    Colmena --> MCP
+    Council --> MCP
+    A2A --> MCP
+
+    MCP --> DB
+    MCP --> Verify
+    MCP --> x402
+    MCP --> ERC8004
+
+    Web --> DB
+    Mobile --> DB
+
+    x402 --> Facilitator
+    Verify --> S3
+```
+
+<details><summary>Legacy ASCII diagram</summary>
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                   EXECUTION MARKET ARCHITECTURE                              │
@@ -40,6 +84,8 @@
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+</details>
 
 ---
 
@@ -265,27 +311,23 @@ type TaskStatus =
 
 ### 3.3 Verification Engine
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  VERIFICATION PIPELINE                   │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  SUBMISSION ──► AUTO-CHECK ──► AGENT VERIFY ──► RESULT  │
-│       │              │              │              │     │
-│       ▼              ▼              ▼              ▼     │
-│  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐ │
-│  │ Upload  │   │ Schema  │   │ Request │   │ Accept  │ │
-│  │ Evidence│   │ Valid?  │   │ Agent   │   │   or    │ │
-│  │         │   │ Meta OK?│   │ Review  │   │ Dispute │ │
-│  └─────────┘   └─────────┘   └─────────┘   └─────────┘ │
-│                     │                            │      │
-│                     ▼                            ▼      │
-│              ┌─────────────┐              ┌──────────┐  │
-│              │ ChainWitness│              │  x402    │  │
-│              │ Notarize    │              │ Payment  │  │
-│              └─────────────┘              └──────────┘  │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A[Submission Received] --> B{Auto-Check}
+    B -->|Schema valid<br/>Metadata OK| C{AI Verification}
+    B -->|Invalid schema<br/>Missing metadata| D[REJECTED<br/>Worker retries]
+
+    C -->|Confidence > 70%| E[Auto-APPROVED]
+    C -->|Confidence 30-70%| F{Agent Review}
+    C -->|Confidence < 30%| D
+
+    F -->|Agent accepts| E
+    F -->|Agent disputes| G{Human Arbitration}
+
+    G -->|Worker wins| E
+    G -->|Agent wins| H[REFUNDED]
+
+    E --> I[x402 Settlement<br/>Worker paid instantly]
 ```
 
 **Niveles de verificacion:**
@@ -305,46 +347,39 @@ type TaskStatus =
 
 ### 3.4 Payment Flow
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    PAYMENT FLOW                          │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  1. PUBLISH                     2. ACCEPT                │
-│  ─────────                      ────────                 │
-│  Agent creates task             Executor claims task     │
-│  Funds locked in escrow         Escrow confirmed         │
-│       │                              │                   │
-│       ▼                              ▼                   │
-│  ┌─────────┐                   ┌─────────┐              │
-│  │ x402    │                   │ Escrow  │              │
-│  │ Deposit │──────────────────►│ Active  │              │
-│  └─────────┘                   └─────────┘              │
-│                                      │                   │
-│  3. SUBMIT                           │                   │
-│  ────────                            │                   │
-│  Executor uploads evidence           │                   │
-│       │                              │                   │
-│       ▼                              │                   │
-│  ┌─────────┐                         │                   │
-│  │ Verify  │                         │                   │
-│  │ Engine  │                         │                   │
-│  └─────────┘                         │                   │
-│       │                              │                   │
-│       ▼                              ▼                   │
-│  4. RELEASE                    5. DISPUTE (optional)     │
-│  ──────────                    ─────────────────────     │
-│  ┌─────────┐                   ┌─────────┐              │
-│  │ x402    │                   │ Arbitr. │              │
-│  │ Release │                   │ Panel   │              │
-│  │ to Exec │                   └─────────┘              │
-│  └─────────┘                         │                   │
-│       │                              ▼                   │
-│       │                        Winner gets funds         │
-│       ▼                                                  │
-│  DONE - Instant payment                                  │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant EM as Execution Market
+    participant Fac as Facilitator
+    participant Worker
+
+    Note over Agent,Worker: 1. PUBLISH
+    Agent->>Agent: Sign EIP-3009 auth (USDC)
+    Agent->>EM: Create task + payment header
+    EM->>Fac: Verify signature (no funds move)
+    Fac-->>EM: Valid
+
+    Note over Agent,Worker: 2. ACCEPT + EXECUTE
+    Worker->>EM: Accept task
+    Worker->>Worker: Execute in physical world
+    Worker->>EM: Upload evidence
+
+    Note over Agent,Worker: 3. VERIFY + SETTLE
+    EM->>EM: Auto-verify evidence
+    alt Approved
+        EM->>EM: Sign NEW auth: agent wallet → worker (92%)
+        EM->>Fac: Settle worker payment
+        Fac-->>Worker: USDC received (gasless)
+        EM->>EM: Sign NEW auth: agent wallet → treasury (8%)
+        EM->>Fac: Settle platform fee
+        Note over Worker: Instant payment!
+    else Disputed
+        EM->>EM: Arbitration process
+        Note over Agent,Worker: Winner receives funds
+    else Cancelled / Expired
+        Note over Agent: Auth expires, no funds moved
+    end
 ```
 
 ---

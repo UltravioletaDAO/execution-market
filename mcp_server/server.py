@@ -313,7 +313,7 @@ def format_task_markdown(task: Dict[str, Any]) -> str:
         f"**ID**: `{task['id']}`",
         f"**Status**: {task['status'].upper()}",
         f"**Category**: {task['category'].replace('_', ' ').title()}",
-        f"**Bounty**: {format_bounty(task['bounty_usd'])} {task.get('payment_token', 'USDC')}",
+        f"**Bounty**: {format_bounty(task['bounty_usd'])} {task.get('payment_token', 'USDC')} on {task.get('payment_network', 'base')}",
         f"**Deadline**: {format_datetime(task['deadline'])}",
         "",
         "### Instructions",
@@ -577,6 +577,7 @@ async def em_publish_task(params: PublishTaskInput) -> str:
             - location_hint (str): Location description
             - min_reputation (int): Minimum executor reputation
             - payment_token (str): Payment token symbol (default: USDC)
+            - payment_network (str): Payment network (default: base)
 
     Returns:
         str: Success message with task ID and details, or error message.
@@ -612,6 +613,7 @@ async def em_publish_task(params: PublishTaskInput) -> str:
             location_hint=params.location_hint,
             min_reputation=params.min_reputation or 0,
             payment_token=params.payment_token or "USDC",
+            payment_network=params.payment_network or "base",
         )
 
         # Authorize escrow via SDK (facilitator handles gas)

@@ -1,1207 +1,843 @@
 # terra4mice.spec.yaml — Execution Market
-# Human Execution Layer for AI Agents
-# Agent #469 on ERC-8004 Identity Registry
+# Human Execution Layer for AI Agents — Agent #469
 #
-# Run: cd /mnt/z/ultravioleta/dao/terra4mice && python -m terra4mice plan /mnt/z/ultravioleta/dao/execution-market
+# Granular tracking of all phases, features, and remaining work.
+# Run: terra4mice plan --spec terra4mice.spec.yaml
 
 version: "1"
 
 resources:
 
-  # ─────────────────────────────────────────────
-  # FEATURES — high-level platform capabilities
-  # ─────────────────────────────────────────────
-  feature:
-    task_lifecycle:
-      attributes:
-        description: "Full task lifecycle: publish, accept, submit, approve/reject, cancel, expire"
-        statuses: [published, accepted, in_progress, submitted, verifying, completed, cancelled, expired, disputed]
-        categories: [physical_presence, knowledge_access, human_authority, simple_action, digital_physical]
-      files:
-        - mcp_server/api/routes.py
-        - mcp_server/server.py
-        - mcp_server/models.py
-        - dashboard/src/services/tasks.ts
-        - dashboard/src/pages/Tasks.tsx
-        - dashboard/src/pages/TaskDetail.tsx
-        - dashboard/src/components/TaskBrowser.tsx
-        - dashboard/src/components/TaskCard.tsx
-        - dashboard/src/components/TaskList.tsx
-        - dashboard/src/components/TaskApplicationModal.tsx
-      tests:
-        - mcp_server/tests/test_mcp_tools.py
-        - mcp_server/tests/test_p0_routes_idempotency.py
-        - mcp_server/tests/test_task_expiration_job.py
-        - e2e/tests/tasks.spec.ts
-      depends_on: []
+  # ═══════════════════════════════════════════════════════════════════════
+  # PHASE 1: CORE PLATFORM (Batches 0-2)
+  # ═══════════════════════════════════════════════════════════════════════
 
-    x402_payments:
+  feature:
+
+    # --- Batch 0: Housekeeping ---
+    migration_collision_fix:
       attributes:
-        description: "x402 payment protocol: EIP-3009 verify+settle via Ultravioleta Facilitator"
-        flow: "Agent signs EIP-3009 → SDK → Facilitator → On-chain TX (gasless)"
+        description: "Fix migration 019 collision, rename to 020"
+        batch: 0
+      files:
+        - supabase/migrations/020_tasks_erc8004_agent_id.sql
+
+    # --- Batch 1: Payment UI Wiring ---
+    payment_ui_wiring:
+      attributes:
+        description: "Wire PaymentStatusBadge + TxHashLink into TaskDetail, AgentDashboard, SubmissionReview"
+        batch: 1
+      files:
+        - dashboard/src/components/PaymentStatusBadge.tsx
+        - dashboard/src/components/TxHashLink.tsx
+        - dashboard/src/pages/TaskDetail.tsx
+        - dashboard/src/pages/AgentDashboard.tsx
+
+    # --- Batch 2: Landing & Auth ---
+    public_task_browser:
+      attributes:
+        description: "PublicTaskBrowser fallback for unauthenticated users"
+        batch: 2
+      files:
+        - dashboard/src/components/TaskBrowser.tsx
+        - dashboard/src/pages/Home.tsx
+
+    dynamic_xyz_auth:
+      attributes:
+        description: "Dynamic.xyz wallet auth with session persistence"
+        batch: 2
+      files:
+        - dashboard/src/providers/DynamicProvider.tsx
+        - dashboard/src/context/AuthContext.tsx
+        - dashboard/src/hooks/useAuth.ts
+        - dashboard/src/hooks/useWallet.ts
+        - dashboard/src/hooks/useWalletAuth.ts
+        - dashboard/src/components/DynamicWalletButton.tsx
+        - dashboard/src/components/AuthModal.tsx
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # PHASE 2: PAYMENT HARDENING (Batches 3-5)
+  # ═══════════════════════════════════════════════════════════════════════
+
+    x402_verify_settle:
+      attributes:
+        description: "x402 EIP-3009 verify+settle flow via Ultravioleta Facilitator"
+        batch: 3
+        operations: [verify, settle, refund]
         network: base_mainnet
         token: USDC
-        platform_fee: "8%"
-        operations: [verify, settle, refund]
       files:
         - mcp_server/integrations/x402/sdk_client.py
         - mcp_server/integrations/x402/client.py
         - mcp_server/integrations/x402/escrow.py
         - mcp_server/integrations/x402/merchant.py
-        - mcp_server/api/escrow.py
-        - dashboard/src/hooks/usePayment.ts
-        - dashboard/src/hooks/usePayments.ts
-        - dashboard/src/hooks/useTaskPayment.ts
-        - dashboard/src/hooks/useEscrow.ts
-        - dashboard/src/services/payments.ts
-        - dashboard/src/components/PaymentStatus.tsx
-        - dashboard/src/components/PaymentStatusBadge.tsx
-        - dashboard/src/components/PaymentHistory.tsx
       tests:
-        - mcp_server/integrations/x402/test_client.py
-        - mcp_server/tests/test_escrow.py
-        - mcp_server/tests/test_fees.py
-        - scripts/test-x402-full-flow.ts
-        - scripts/test-x402-e2e.ts
+        - mcp_server/tests/test_x402_client.py
         - scripts/test-x402-rapid-flow.ts
-        - scripts/test-escrow-flow.ts
-      depends_on:
-        - feature.task_lifecycle
-        - datasource.facilitator
 
-    worker_auth:
+    split_payment:
       attributes:
-        description: "Worker authentication via Dynamic.xyz wallet connect"
-        provider: dynamic_xyz
-        flow: "Dynamic verifies wallet → AuthContext fetches executor by wallet_address"
-        environment_id: db513515-7317-46d6-b401-e0695f104481
+        description: "Dual EIP-3009 split payment: agent→worker (92%) + agent→treasury (8%)"
+        batch: 4
+        fix_id: D00
+        evidence_tx: "0xf12878ae320784f4635bc8dfc7dfebb3524d74df63eefb7d47220334002cbe03"
       files:
-        - dashboard/src/context/AuthContext.tsx
-        - dashboard/src/hooks/useAuth.ts
-        - dashboard/src/hooks/useWallet.ts
-        - dashboard/src/hooks/useWalletAuth.ts
-        - dashboard/src/providers/DynamicProvider.tsx
-        - dashboard/src/components/DynamicWalletButton.tsx
-        - dashboard/src/components/AuthModal.tsx
-      tests:
-        - e2e/tests/auth.spec.ts
-        - e2e/tests/auth.setup.ts
-      depends_on:
-        - datasource.dynamic_xyz
+        - mcp_server/integrations/x402/sdk_client.py
 
-    agent_auth:
+    self_payment_check:
       attributes:
-        description: "Agent authentication via API key in X-API-Key header"
-        storage: supabase_api_keys_table
-        hash_algorithm: sha256
+        description: "Block payments where worker wallet == agent wallet"
+        batch: 5
+        fix_id: D01
       files:
-        - mcp_server/api/auth.py
-        - mcp_server/api/middleware.py
-      tests:
-        - mcp_server/tests/test_admin_auth.py
-      depends_on: []
+        - mcp_server/integrations/x402/sdk_client.py
 
-    erc8004_identity:
+    agent_auth_settlement:
       attributes:
-        description: "On-chain agent/worker identity via ERC-8004 registry"
-        agent_id: 469
-        registry_mainnet: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
-        registry_testnet: "0x8004A818BFB912233c491871b3d84c89A494BD9e"
-        operations: [get_identity, register_agent, confirm_registration]
+        description: "Settle agent's original EIP-3009 auth before disbursing"
+        batch: 5
+        fix_id: D14
       files:
-        - mcp_server/integrations/erc8004/identity.py
-        - mcp_server/integrations/erc8004/facilitator_client.py
-        - mcp_server/integrations/erc8004/__init__.py
+        - mcp_server/integrations/x402/sdk_client.py
+
+    settlement_method_tracking:
+      attributes:
+        description: "Track settlement_method (x402_facilitator, manual, etc) in DB"
+        batch: 3
+      files:
+        - supabase/migrations/016_add_settlement_method.sql
+
+    orphaned_payment_alerts:
+      attributes:
+        description: "SQL view for orphaned payment detection"
+        batch: 4
+      files:
+        - supabase/migrations/017_orphaned_payment_alerts.sql
+
+    auto_payment_retry:
+      attributes:
+        description: "Retry logic for failed auto-payments"
+        batch: 4
+      files:
+        - mcp_server/jobs/auto_payment.py
+        - supabase/migrations/018_add_retry_count.sql
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # PHASE 3: IDENTITY & REPUTATION (Batch 6)
+  # ═══════════════════════════════════════════════════════════════════════
+
+    erc8004_worker_identity:
+      attributes:
+        description: "Worker can check ERC-8004 registration from profile"
+        batch: 6
+      files:
         - dashboard/src/hooks/useIdentity.ts
-        - scripts/register_erc8004.ts
-        - scripts/register-erc8004-base.ts
-      tests: []
-      depends_on:
-        - datasource.facilitator
+        - mcp_server/integrations/erc8004/identity.py
 
-    erc8004_reputation:
+    erc8004_agent_verification:
       attributes:
-        description: "On-chain reputation feedback via ERC-8004 reputation registry"
-        reputation_registry: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
-        operations: [submit_feedback, rate_worker, rate_agent, get_reputation]
+        description: "Agent identity verified on task creation (warning if not registered)"
+        batch: 6
       files:
-        - mcp_server/integrations/erc8004/reputation.py
         - mcp_server/integrations/erc8004/facilitator_client.py
+
+    bidirectional_reputation:
+      attributes:
+        description: "Rate workers and agents, on-chain reputation via facilitator"
+        batch: 6
+        evidence_tx: "0x48ddf6252b8265cab8152a35358b29511b790813c6e88d2bf36219729a500581"
+      files:
         - mcp_server/api/reputation.py
-        - dashboard/src/services/reputation.ts
+        - mcp_server/integrations/erc8004/reputation.py
         - dashboard/src/components/WorkerRatingModal.tsx
         - dashboard/src/components/WorkerReputationBadge.tsx
-      tests:
-        - mcp_server/tests/test_reputation.py
-        - mcp_server/tests/test_reputation_ownership.py
-      depends_on:
-        - feature.erc8004_identity
-        - feature.task_lifecycle
+        - dashboard/src/services/reputation.ts
+        - supabase/migrations/021_add_reputation_tx_to_submissions.sql
 
-    evidence_verification:
+    facilitator_health_check:
       attributes:
-        description: "Multi-layer evidence verification: AI review, GPS antispoofing, attestation"
-        ai_model: claude_sonnet_vision
-        evidence_types: [photo, gps, receipt, screenshot, document, video, text]
-        mock_mode: "true when ANTHROPIC_API_KEY not set"
+        description: "Health check for Ultravioleta Facilitator in /health endpoint"
+        batch: 6
       files:
-        - mcp_server/verification/ai_review.py
-        - mcp_server/verification/gps_antispoofing.py
-        - mcp_server/verification/attestation.py
-        - mcp_server/verification/__init__.py
-        - dashboard/src/components/EvidenceUpload.tsx
+        - mcp_server/health/checks.py
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # PHASE 4: EVIDENCE & ANALYTICS (Batches 7-8)
+  # ═══════════════════════════════════════════════════════════════════════
+
+    evidence_pipeline_s3:
+      attributes:
+        description: "S3 + CloudFront + Lambda evidence pipeline with presigned URLs"
+        batch: 7
+        s3_bucket: em-production-evidence-518898403364
+        cloudfront: d3h6yzj24t9k8z.cloudfront.net
+      files:
+        - infrastructure/terraform/evidence.tf
+        - infrastructure/terraform/lambda/evidence_presign.py
+        - dashboard/src/services/evidence.ts
+
+    evidence_forensic_metadata:
+      attributes:
+        description: "GPS, EXIF, SHA-256 checksums, device info stored with evidence"
+        batch: 7
+      files:
+        - supabase/migrations/022_evidence_forensic_metadata.sql
         - dashboard/src/components/SubmissionForm.tsx
-        - dashboard/src/components/CameraCapture.tsx
-        - dashboard/src/services/submissions.ts
-      tests:
-        - mcp_server/tests/test_gps.py
-        - mcp_server/tests/test_gps_antispoofing.py
-        - mcp_server/tests/test_safety.py
-        - e2e/tests/evidence.spec.ts
-      depends_on:
-        - feature.task_lifecycle
 
-    websocket_notifications:
+    evidence_nonce_protection:
       attributes:
-        description: "Real-time task updates via WebSocket"
-        endpoint: "WS /ws"
-        events: [task_created, task_accepted, submission_received, task_completed]
+        description: "Upload nonces for replay protection on presigned URLs"
+        batch: 7
       files:
-        - mcp_server/websocket/server.py
-        - mcp_server/websocket/handlers.py
-        - mcp_server/websocket/events.py
-        - mcp_server/websocket/client.py
-        - mcp_server/websocket/integration.py
-        - mcp_server/websocket/__init__.py
-        - dashboard/src/hooks/useNotifications.ts
-        - dashboard/src/components/NotificationBell.tsx
+        - infrastructure/terraform/lambda/evidence_presign.py
+
+    stats_bar_enhanced:
+      attributes:
+        description: "Dashboard StatsBar: live tasks, users, completed, total paid"
+        batch: 8
+        metrics: [live_tasks, registered_users, completed_tasks, total_paid_usd]
+      files:
+        - dashboard/src/components/landing/StatsBar.tsx
+
+    health_sanity_endpoint:
+      attributes:
+        description: "GET /health/sanity — 6 consistency checks on live data"
+        batch: 8
+        checks: [task_counts, completed_no_payment, active_no_executor, stuck_tasks, orphaned_submissions, zero_bounty]
+      files:
+        - mcp_server/health/endpoints.py
+
+    schema_parity_audit:
+      attributes:
+        description: "Full schema parity audit: 13 tables, 12 RPC functions, 22 migrations"
+        batch: 8
+      files:
+        - docs/planning/SCHEMA_PARITY_AUDIT_2026-02-06.md
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # PHASE 5: TESTING & OPS (Batches 9-10)
+  # ═══════════════════════════════════════════════════════════════════════
+
+    smoke_test_suite:
+      attributes:
+        description: "Production smoke tests: 10 health checks"
+        batch: 9
+        checks: [api_health, sanity, version, mcp_health, dashboard, public_metrics, available_tasks, agent_card, evidence_lambda, route_inventory]
+      files:
+        - scripts/smoke-test.ts
+        - scripts/package.json
+
+    payment_e2e_test:
+      attributes:
+        description: "Playwright E2E for payment visibility (StatsBar, metrics, bounty display)"
+        batch: 9
+      files:
+        - e2e/tests/payment-visibility.spec.ts
+
+    python_unit_tests:
+      attributes:
+        description: "560 Python unit tests passing, TestClient compat fix"
+        batch: 9
+      files:
+        - mcp_server/tests/test_a2a.py
       tests:
-        - mcp_server/tests/test_websocket.py
-        - mcp_server/tests/test_websocket_module.py
-        - mcp_server/tests/test_websocket_auth_hardening.py
-      depends_on: []
+        - mcp_server/tests/test_p0_routes_idempotency.py
+
+    unified_deploy_script:
+      attributes:
+        description: "Single deploy command: build, tag (git SHA + latest), push ECR, update ECS, health checks"
+        batch: 10
+      files:
+        - .claude/scripts/deploy.sh
+
+    release_notes_generator:
+      attributes:
+        description: "Markdown release notes with commit log, URLs, tx evidence"
+        batch: 10
+      files:
+        - .claude/scripts/release-notes.sh
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # PHASE 6: PRODUCTION VALIDATION (Batches 11-12)
+  # ═══════════════════════════════════════════════════════════════════════
+
+    live_task_creation:
+      attributes:
+        description: "T-001: Create task with real USDC via x402 on production"
+        batch: 11
+        task_id: "988e7958-ffd6-46ac-b2cc-8c65455cdd56"
+      files:
+        - scripts/test-x402-rapid-flow.ts
+
+    live_full_lifecycle:
+      attributes:
+        description: "T-002: Full create→apply→submit→approve with on-chain payout"
+        batch: 11
+        payout_tx: "0xf12878ae320784f4635bc8dfc7dfebb3524d74df63eefb7d47220334002cbe03"
+
+    live_refund_flow:
+      attributes:
+        description: "T-003: Create and cancel task, verify auth expiry (no funds moved)"
+        batch: 11
+        refund_task_id: "a8f3dc16-abde-407d-b1a5-6ca3a731fd8e"
+
+    live_reputation:
+      attributes:
+        description: "T-004: Rate worker on-chain, reputation tx recorded"
+        batch: 11
+        reputation_tx: "0x48ddf6252b8265cab8152a35358b29511b790813c6e88d2bf36219729a500581"
+
+    ecs_task_def_fix:
+      attributes:
+        description: "Critical fix: ECS services updated from rev 1 to latest (22/12) with all secrets"
+        batch: 11
+      files:
+        - infrastructure/terraform/ecs.tf
+
+    release_gate_all_passed:
+      attributes:
+        description: "RG-001 to RG-005: All 5 release gates passed"
+        batch: 12
+        gates: [no_orphan_submissions, payout_and_refund_tx, route_parity_89, evidence_pipeline, erc8004_facilitator]
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # CORE MODULES (always-present backbone)
+  # ═══════════════════════════════════════════════════════════════════════
+
+  module:
+    task_lifecycle:
+      attributes:
+        description: "Full task state machine: published→accepted→submitted→completed"
+        functions: [create_task, get_task, list_tasks, cancel_task, apply_to_task, assign_task, submit_work, approve_submission, reject_submission]
+      files:
+        - mcp_server/api/routes.py
+        - mcp_server/server.py
+        - mcp_server/models.py
 
     mcp_transport:
       attributes:
-        description: "MCP Streamable HTTP transport for AI agent tool invocation"
-        endpoint: "POST /mcp/"
-        tools: [em_publish_task, em_get_tasks, em_get_task, em_check_submission, em_approve_submission, em_cancel_task, em_get_fee_structure, em_calculate_fee, em_server_status]
+        description: "MCP Streamable HTTP transport for AI agents"
       files:
         - mcp_server/server.py
         - mcp_server/main.py
-      tests:
-        - mcp_server/tests/test_mcp_tools.py
-      depends_on:
-        - feature.task_lifecycle
-        - feature.agent_auth
 
     a2a_discovery:
       attributes:
-        description: "Agent-to-agent discovery via well-known agent card"
-        endpoints: ["GET /.well-known/agent.json", "GET /v1/card", "GET /discovery/agents"]
+        description: "A2A agent card at /.well-known/agent.json"
       files:
         - mcp_server/a2a/agent_card.py
         - mcp_server/a2a/__init__.py
         - agent-card.json
-      tests:
-        - mcp_server/tests/test_a2a.py
-      depends_on: []
 
     admin_platform:
       attributes:
-        description: "Admin dashboard for platform management, config, audit, analytics"
-        url: admin.execution.market
-        auth: admin_api_key
+        description: "Admin API: stats, tasks, users, payments, config, audit"
+        functions: [admin_stats, admin_tasks, admin_users, admin_payments, admin_config, admin_analytics]
       files:
         - mcp_server/api/admin.py
         - mcp_server/config/platform_config.py
         - admin-dashboard/src/App.tsx
-        - admin-dashboard/src/pages/Tasks.tsx
-        - admin-dashboard/src/pages/Payments.tsx
-        - admin-dashboard/src/pages/Users.tsx
-        - admin-dashboard/src/pages/Settings.tsx
-        - admin-dashboard/src/pages/Analytics.tsx
-        - admin-dashboard/src/pages/AuditLog.tsx
-      tests:
-        - mcp_server/tests/test_admin_auth.py
-        - mcp_server/tests/test_platform_config.py
-      depends_on:
-        - feature.agent_auth
 
-    worker_profile:
+    websocket_notifications:
       attributes:
-        description: "Worker profile management: skills, location, reputation, earnings"
-        fields: [display_name, email, phone, skills, languages, timezone, wallet_address, reputation_score]
-      files:
-        - dashboard/src/pages/Profile.tsx
-        - dashboard/src/hooks/useProfile.ts
-        - dashboard/src/hooks/useProfileUpdate.ts
-        - dashboard/src/components/ProfileCompletionModal.tsx
-        - dashboard/src/components/OnboardingFlow.tsx
-        - dashboard/src/components/SkillSelector.tsx
-      tests: []
-      depends_on:
-        - feature.worker_auth
-
-    agent_dashboard:
-      attributes:
-        description: "Agent analytics dashboard: task management, submissions, payments"
-      files:
-        - dashboard/src/pages/AgentDashboard.tsx
-        - dashboard/src/pages/AgentOnboarding.tsx
-      tests:
-        - e2e/tests/agent.spec.ts
-      depends_on:
-        - feature.task_lifecycle
-        - feature.agent_auth
-
-    monitoring:
-      attributes:
-        description: "Health checks, metrics, alerts for platform observability"
-        probes: [health, live, ready, startup, metrics, version]
-        components: [supabase, x402, erc8004, websocket]
-      files:
-        - mcp_server/api/health.py
-        - mcp_server/monitoring/metrics.py
-        - mcp_server/monitoring/alerts.py
-        - mcp_server/monitoring/__init__.py
-        - mcp_server/health/endpoints.py
-      tests: []
-      depends_on: []
-
-    describenet_seals:
-      attributes:
-        description: "DescribeNet integration for verifiable credential seals"
-        seal_types: [worker, requester, badge]
-      files:
-        - mcp_server/integrations/describenet/client.py
-        - mcp_server/integrations/describenet/seals.py
-        - mcp_server/integrations/describenet/worker_seals.py
-        - mcp_server/integrations/describenet/requester_seals.py
-        - mcp_server/integrations/describenet/badges.py
-        - mcp_server/integrations/describenet/__init__.py
-      tests:
-        - mcp_server/tests/test_seals.py
-      depends_on: []
-
-    superfluid_streaming:
-      attributes:
-        description: "Superfluid integration for streaming payments (future)"
-        status: planned
-      files:
-        - mcp_server/integrations/superfluid/client.py
-        - mcp_server/integrations/superfluid/streams.py
-        - mcp_server/integrations/superfluid/__init__.py
-      tests: []
-      depends_on:
-        - feature.x402_payments
-
-  # ─────────────────────────────────────────────
-  # ENDPOINTS — REST API routes
-  # ─────────────────────────────────────────────
-  endpoint:
-    # --- Agent task CRUD ---
-    create_task:
-      attributes:
-        method: POST
-        path: /api/v1/tasks
-        auth: api_key
-        payment: x402_header
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-        - feature.x402_payments
-
-    list_agent_tasks:
-      attributes:
-        method: GET
-        path: /api/v1/tasks
-        auth: api_key
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-
-    get_task:
-      attributes:
-        method: GET
-        path: /api/v1/tasks/{id}
-        auth: api_key
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-
-    batch_create_tasks:
-      attributes:
-        method: POST
-        path: /api/v1/tasks/batch
-        auth: api_key
-        max_tasks: 50
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - endpoint.create_task
-
-    cancel_task:
-      attributes:
-        method: POST
-        path: /api/v1/tasks/{id}/cancel
-        auth: api_key
-        refund: automatic
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-        - feature.x402_payments
-
-    get_submissions:
-      attributes:
-        method: GET
-        path: /api/v1/tasks/{id}/submissions
-        auth: api_key
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-
-    approve_submission:
-      attributes:
-        method: POST
-        path: /api/v1/submissions/{id}/approve
-        auth: api_key
-        triggers: [payment_settlement, reputation_feedback]
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.x402_payments
-        - feature.erc8004_reputation
-
-    reject_submission:
-      attributes:
-        method: POST
-        path: /api/v1/submissions/{id}/reject
-        auth: api_key
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-
-    agent_analytics:
-      attributes:
-        method: GET
-        path: /api/v1/analytics
-        auth: api_key
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-
-    # --- Worker endpoints ---
-    register_worker:
-      attributes:
-        method: POST
-        path: /api/v1/executors/register
-        auth: none
-      files:
-        - mcp_server/api/routes.py
-      depends_on: []
-
-    browse_available_tasks:
-      attributes:
-        method: GET
-        path: /api/v1/tasks/available
-        auth: none
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-
-    apply_to_task:
-      attributes:
-        method: POST
-        path: /api/v1/tasks/{id}/apply
-        auth: worker_wallet
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-        - feature.worker_auth
-
-    submit_work:
-      attributes:
-        method: POST
-        path: /api/v1/tasks/{id}/submit
-        auth: worker_wallet
-        evidence: multipart
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-        - feature.evidence_verification
-
-    worker_tasks:
-      attributes:
-        method: GET
-        path: /api/v1/executors/{id}/tasks
-        auth: worker_wallet
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-
-    worker_stats:
-      attributes:
-        method: GET
-        path: /api/v1/executors/{id}/stats
-        auth: worker_wallet
-      files:
-        - mcp_server/api/routes.py
-      depends_on:
-        - feature.task_lifecycle
-
-    # --- Evidence ---
-    verify_evidence:
-      attributes:
-        method: POST
-        path: /api/v1/evidence/verify
-        auth: worker_wallet
-        ai_model: claude_sonnet_vision
-      files:
-        - mcp_server/api/routes.py
-        - mcp_server/verification/ai_review.py
-      depends_on:
-        - feature.evidence_verification
-
-    # --- Escrow ---
-    escrow_config:
-      attributes:
-        method: GET
-        path: /api/v1/escrow/config
-      files:
-        - mcp_server/api/escrow.py
-      depends_on:
-        - feature.x402_payments
-
-    escrow_balance:
-      attributes:
-        method: GET
-        path: /api/v1/escrow/balance
-      files:
-        - mcp_server/api/escrow.py
-      depends_on:
-        - feature.x402_payments
-
-    escrow_release:
-      attributes:
-        method: POST
-        path: /api/v1/escrow/release
-        auth: api_key
-      files:
-        - mcp_server/api/escrow.py
-      depends_on:
-        - feature.x402_payments
-
-    escrow_refund:
-      attributes:
-        method: POST
-        path: /api/v1/escrow/refund
-        auth: api_key
-      files:
-        - mcp_server/api/escrow.py
-      depends_on:
-        - feature.x402_payments
-
-    # --- Reputation ---
-    em_reputation:
-      attributes:
-        method: GET
-        path: /api/v1/reputation/em
-      files:
-        - mcp_server/api/reputation.py
-      depends_on:
-        - feature.erc8004_reputation
-
-    agent_reputation:
-      attributes:
-        method: GET
-        path: /api/v1/reputation/agents/{id}
-      files:
-        - mcp_server/api/reputation.py
-      depends_on:
-        - feature.erc8004_reputation
-
-    rate_worker:
-      attributes:
-        method: POST
-        path: /api/v1/reputation/workers/rate
-        auth: api_key
-      files:
-        - mcp_server/api/reputation.py
-      depends_on:
-        - feature.erc8004_reputation
-
-    rate_agent:
-      attributes:
-        method: POST
-        path: /api/v1/reputation/agents/rate
-        auth: worker_wallet
-      files:
-        - mcp_server/api/reputation.py
-      depends_on:
-        - feature.erc8004_reputation
-
-    # --- Admin ---
-    admin_verify:
-      attributes:
-        method: GET
-        path: /api/v1/admin/verify
-        auth: admin_key
-      files:
-        - mcp_server/api/admin.py
-      depends_on:
-        - feature.admin_platform
-
-    admin_stats:
-      attributes:
-        method: GET
-        path: /api/v1/admin/stats
-        auth: admin_key
-      files:
-        - mcp_server/api/admin.py
-      depends_on:
-        - feature.admin_platform
-
-    admin_tasks:
-      attributes:
-        method: GET
-        path: /api/v1/admin/tasks
-        auth: admin_key
-        features: [search, filter, pagination]
-      files:
-        - mcp_server/api/admin.py
-      depends_on:
-        - feature.admin_platform
-
-    admin_payments:
-      attributes:
-        method: GET
-        path: /api/v1/admin/payments
-        auth: admin_key
-      files:
-        - mcp_server/api/admin.py
-      depends_on:
-        - feature.admin_platform
-
-    admin_config:
-      attributes:
-        methods: [GET, PUT]
-        path: /api/v1/admin/config
-        auth: admin_key
-        audit: true
-      files:
-        - mcp_server/api/admin.py
-        - mcp_server/config/platform_config.py
-      depends_on:
-        - feature.admin_platform
-
-    admin_users:
-      attributes:
-        methods: [GET]
-        paths: [/api/v1/admin/users/agents, /api/v1/admin/users/workers]
-        auth: admin_key
-      files:
-        - mcp_server/api/admin.py
-      depends_on:
-        - feature.admin_platform
-
-    admin_analytics:
-      attributes:
-        method: GET
-        path: /api/v1/admin/analytics
-        auth: admin_key
-      files:
-        - mcp_server/api/admin.py
-      depends_on:
-        - feature.admin_platform
-
-    # --- Health ---
-    health_check:
-      attributes:
-        methods: [GET]
-        paths: [/health, /health/, /health/live, /health/ready, /health/startup, /health/metrics, /health/version]
-      files:
-        - mcp_server/api/health.py
-        - mcp_server/health/endpoints.py
-      depends_on:
-        - feature.monitoring
-
-    # --- OpenAPI ---
-    swagger_docs:
-      attributes:
-        paths: [/docs, /redoc]
-      files:
-        - mcp_server/api/openapi.py
-      depends_on: []
-
-  # ─────────────────────────────────────────────
-  # MODULES — backend Python packages
-  # ─────────────────────────────────────────────
-  module:
-    api_routes:
-      attributes:
-        description: "Core REST API: task CRUD, worker registration, submissions"
-        route_count: 72
-      files:
-        - mcp_server/api/routes.py
-        - mcp_server/api/__init__.py
-      tests:
-        - mcp_server/tests/test_p0_routes_idempotency.py
-        - mcp_server/tests/test_schema_alignment_applications.py
-      depends_on: []
-
-    api_admin:
-      attributes:
-        description: "Admin REST API: stats, tasks, payments, config, users"
-      files:
-        - mcp_server/api/admin.py
-      tests:
-        - mcp_server/tests/test_admin_auth.py
-      depends_on:
-        - module.api_routes
-
-    x402_sdk_client:
-      attributes:
-        description: "x402 SDK wrapper using uvd-x402-sdk for gasless payments"
-        class: EMX402Client
-        sdk_version: ">=0.3.0"
-      files:
-        - mcp_server/integrations/x402/sdk_client.py
-      tests:
-        - mcp_server/integrations/x402/test_client.py
-      depends_on: []
-
-    x402_facilitator_client:
-      attributes:
-        description: "Direct HTTP client for Ultravioleta Facilitator (fallback)"
-      files:
-        - mcp_server/integrations/x402/client.py
-      depends_on: []
-
-    x402_escrow_legacy:
-      attributes:
-        description: "Direct contract calls to x402r escrow (DEPRECATED — use SDK)"
-        status: deprecated
-      files:
-        - mcp_server/integrations/x402/x402r_escrow.py
-        - mcp_server/integrations/x402/advanced_escrow_integration.py
-      depends_on: []
-
-    erc8004_facilitator:
-      attributes:
-        description: "ERC-8004 facilitator client: identity, reputation, feedback"
-        class: ERC8004FacilitatorClient
-      files:
-        - mcp_server/integrations/erc8004/facilitator_client.py
-        - mcp_server/integrations/erc8004/__init__.py
-      depends_on: []
-
-    erc8004_identity_module:
-      attributes:
-        description: "Worker identity check, registration tx builder"
-      files:
-        - mcp_server/integrations/erc8004/identity.py
-      depends_on:
-        - module.erc8004_facilitator
-
-    erc8004_reputation_module:
-      attributes:
-        description: "Reputation feedback submission after task approval"
-      files:
-        - mcp_server/integrations/erc8004/reputation.py
-      depends_on:
-        - module.erc8004_facilitator
-
-    verification_ai:
-      attributes:
-        description: "AI-powered evidence verification using Claude Vision"
-        model: claude_sonnet
-        fallback: mock_mode
-      files:
-        - mcp_server/verification/ai_review.py
-      depends_on: []
-
-    verification_gps:
-      attributes:
-        description: "GPS anti-spoofing verification for location-based tasks"
-      files:
-        - mcp_server/verification/gps_antispoofing.py
-      tests:
-        - mcp_server/tests/test_gps.py
-        - mcp_server/tests/test_gps_antispoofing.py
-      depends_on: []
-
-    verification_attestation:
-      attributes:
-        description: "Evidence attestation and tamper-proofing"
-      files:
-        - mcp_server/verification/attestation.py
-      depends_on: []
-
-    websocket_server:
-      attributes:
-        description: "WebSocket server for real-time task notifications"
-        endpoint: "WS /ws"
+        description: "Real-time WebSocket notifications for task events"
       files:
         - mcp_server/websocket/server.py
         - mcp_server/websocket/handlers.py
         - mcp_server/websocket/events.py
-        - mcp_server/websocket/client.py
-        - mcp_server/websocket/integration.py
-      tests:
-        - mcp_server/tests/test_websocket.py
-        - mcp_server/tests/test_websocket_module.py
-        - mcp_server/tests/test_websocket_auth_hardening.py
-      depends_on: []
+        - dashboard/src/hooks/useNotifications.ts
+        - dashboard/src/components/NotificationBell.tsx
 
-    platform_config:
+    monitoring:
       attributes:
-        description: "Dynamic platform configuration with audit logging"
-        storage: supabase_platform_config_table
+        description: "Health endpoints, Prometheus metrics, alert system"
       files:
-        - mcp_server/config/platform_config.py
-        - mcp_server/config/__init__.py
-      tests:
-        - mcp_server/tests/test_platform_config.py
-      depends_on: []
-
-    monitoring_module:
-      attributes:
-        description: "Prometheus metrics, alerts, health endpoints"
-      files:
+        - mcp_server/api/health.py
+        - mcp_server/health/endpoints.py
         - mcp_server/monitoring/metrics.py
         - mcp_server/monitoring/alerts.py
-        - mcp_server/monitoring/__init__.py
-      depends_on: []
 
-    supabase_client:
+    describenet_seals:
       attributes:
-        description: "Supabase database client singleton"
+        description: "DescribeNet integration for worker/requester seals and badges"
       files:
-        - mcp_server/supabase_client.py
-      depends_on: []
+        - mcp_server/integrations/describenet/client.py
+        - mcp_server/integrations/describenet/seals.py
+        - mcp_server/integrations/describenet/worker_seals.py
 
-    models:
+    superfluid_streaming:
       attributes:
-        description: "Pydantic v2 models for tasks, submissions, executors"
+        description: "Superfluid integration for streaming payments (future)"
       files:
-        - mcp_server/models.py
-      depends_on: []
+        - mcp_server/integrations/superfluid/client.py
+        - mcp_server/integrations/superfluid/streams.py
 
-  # ─────────────────────────────────────────────
-  # DATASOURCE — external service integrations
-  # ─────────────────────────────────────────────
-  datasource:
-    supabase:
-      attributes:
-        description: "PostgreSQL database via Supabase"
-        project_ref: puyhpytmtkyevnxffksl
-        tables: [tasks, executors, submissions, disputes, reputation_log, api_keys, platform_config, payments, escrows]
-        rpc_functions: [get_or_create_executor, link_wallet_to_session, apply_to_task, expire_tasks, create_executor_profile, update_executor_profile]
-      files:
-        - mcp_server/supabase_client.py
-      depends_on: []
+  # ═══════════════════════════════════════════════════════════════════════
+  # INFRASTRUCTURE
+  # ═══════════════════════════════════════════════════════════════════════
 
-    facilitator:
-      attributes:
-        description: "Ultravioleta Facilitator for x402 payments and ERC-8004"
-        url: "https://facilitator.ultravioletadao.xyz"
-        endpoints: [POST /verify, POST /settle, POST /feedback, GET /identity, GET /reputation]
-        compliance: [ofac_screening, custom_blacklist]
-      files:
-        - mcp_server/integrations/x402/sdk_client.py
-        - mcp_server/integrations/x402/client.py
-        - mcp_server/integrations/erc8004/facilitator_client.py
-      depends_on: []
-
-    dynamic_xyz:
-      attributes:
-        description: "Dynamic.xyz wallet-based authentication"
-        environment_id: db513515-7317-46d6-b401-e0695f104481
-      files:
-        - dashboard/src/providers/DynamicProvider.tsx
-        - dashboard/src/context/AuthContext.tsx
-      depends_on: []
-
-    pinata_ipfs:
-      attributes:
-        description: "IPFS storage via Pinata for evidence and metadata"
-      files:
-        - scripts/upload_metadata.ts
-        - agent-card.json
-      depends_on: []
-
-  # ─────────────────────────────────────────────
-  # MIGRATION — database schema migrations
-  # ─────────────────────────────────────────────
-  migration:
-    m001_initial_schema:
-      attributes:
-        description: "Core tables: tasks, executors, submissions"
-        idempotent: false
-        tables: [tasks, executors, submissions]
-      files:
-        - supabase/migrations/001_initial_schema.sql
-      depends_on: []
-
-    m002_escrow_and_payments:
-      attributes:
-        description: "Escrow and payments tables"
-        idempotent: false
-        tables: [escrows, payments]
-      files:
-        - supabase/migrations/002_escrow_and_payments.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m003_reputation_system:
-      attributes:
-        description: "Reputation log table and scoring"
-        idempotent: false
-        tables: [reputation_log]
-      files:
-        - supabase/migrations/003_reputation_system.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m004_disputes:
-      attributes:
-        description: "Disputes table for contested submissions"
-        idempotent: false
-        tables: [disputes]
-      files:
-        - supabase/migrations/004_disputes.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m005_rpc_functions:
-      attributes:
-        description: "Core RPC functions"
-        idempotent: false
-        functions: [get_or_create_executor, link_wallet_to_session, apply_to_task, expire_tasks]
-      files:
-        - supabase/migrations/005_rpc_functions.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m006_api_keys:
-      attributes:
-        description: "API keys table for agent authentication"
-        idempotent: false
-        tables: [api_keys]
-      files:
-        - supabase/migrations/006_api_keys.sql
-      depends_on: []
-
-    m007_platform_config:
-      attributes:
-        description: "Platform configuration table (initial)"
-        idempotent: false
-      files:
-        - supabase/migrations/007_platform_config.sql
-      depends_on: []
-
-    m008_fix_session_linking:
-      attributes:
-        description: "Fix wallet-to-session linking RPC"
-        idempotent: true
-      files:
-        - supabase/migrations/008_fix_session_linking.sql
-      depends_on:
-        - migration.m005_rpc_functions
-
-    m009_require_wallet_signature:
-      attributes:
-        description: "Add signature verification to executor registration"
-        idempotent: true
-      files:
-        - supabase/migrations/009_require_wallet_signature.sql
-      depends_on:
-        - migration.m005_rpc_functions
-
-    m010_auto_approve_submissions:
-      attributes:
-        description: "Auto-approve submission policy"
-        idempotent: true
-      files:
-        - supabase/migrations/010_auto_approve_submissions.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m011_update_executor_profile:
-      attributes:
-        description: "SECURITY DEFINER function for profile updates"
-        idempotent: true
-        functions: [update_executor_profile]
-      files:
-        - supabase/migrations/011_update_executor_profile.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m012_fix_executor_overload:
-      attributes:
-        description: "Drop overloaded get_or_create_executor signatures"
-        idempotent: true
-      files:
-        - supabase/migrations/012_fix_executor_overload.sql
-      depends_on:
-        - migration.m005_rpc_functions
-
-    m013_fix_submissions_and_task_release:
-      attributes:
-        description: "Fix submissions insert policy and task release"
-        idempotent: true
-      files:
-        - supabase/migrations/013_fix_submissions_and_task_release.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m014_create_platform_config:
-      attributes:
-        description: "Recreate platform_config with audit trigger"
-        idempotent: true
-        tables: [platform_config, platform_config_audit]
-      files:
-        - supabase/migrations/014_create_platform_config.sql
-      depends_on: []
-
-    m015_payment_ledger_canonical:
-      attributes:
-        description: "Canonical payment ledger columns on tasks"
-        idempotent: true
-        columns: [payment_tx, escrow_tx, escrow_status, escrow_amount_usdc, escrow_created_at, settlement_tx, worker_payment_tx]
-      files:
-        - supabase/migrations/015_payment_ledger_canonical.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m016_add_settlement_method:
-      attributes:
-        description: "Add settlement_method column to tasks"
-        idempotent: true
-      files:
-        - supabase/migrations/016_add_settlement_method.sql
-      depends_on:
-        - migration.m015_payment_ledger_canonical
-
-    m017_orphaned_payment_alerts:
-      attributes:
-        description: "View and function for orphaned payment detection"
-        idempotent: true
-      files:
-        - supabase/migrations/017_orphaned_payment_alerts.sql
-      depends_on:
-        - migration.m015_payment_ledger_canonical
-
-    m018_add_retry_count:
-      attributes:
-        description: "Add retry_count column to tasks"
-        idempotent: true
-      files:
-        - supabase/migrations/018_add_retry_count.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m019_add_refund_tx_to_tasks:
-      attributes:
-        description: "Add refund_tx column to tasks"
-        idempotent: true
-      files:
-        - supabase/migrations/019_add_refund_tx_to_tasks.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m020_tasks_erc8004_agent_id:
-      attributes:
-        description: "Add erc8004_agent_id column to tasks"
-        idempotent: true
-      files:
-        - supabase/migrations/020_tasks_erc8004_agent_id.sql
-      depends_on:
-        - migration.m001_initial_schema
-
-    m021_add_reputation_tx_to_submissions:
-      attributes:
-        description: "Add reputation_tx column to submissions for ERC-8004 feedback audit trail"
-        idempotent: true
-      files:
-        - supabase/migrations/021_add_reputation_tx_to_submissions.sql
-      depends_on:
-        - migration.m001_initial_schema
-        - feature.erc8004_reputation
-
-  # ─────────────────────────────────────────────
-  # INFRA — deployment infrastructure
-  # ─────────────────────────────────────────────
   infra:
     ecs_cluster:
       attributes:
-        description: "ECS Fargate cluster for all services"
-        cluster_name: em-production-cluster
-        region: us-east-2
+        description: "ECS Fargate cluster: em-production-cluster"
         account: "518898403364"
-      depends_on: []
+        region: us-east-2
+      files:
+        - infrastructure/terraform/ecs.tf
 
-    ecr_dashboard:
+    ecr_repos:
       attributes:
-        description: "ECR repository for dashboard container"
-        repo: em-production-dashboard
-        tag: latest
-      depends_on: []
+        description: "ECR repos: em-production-dashboard, em-production-mcp-server"
+      files:
+        - infrastructure/terraform/ecr.tf
 
-    ecr_mcp_server:
+    alb_https:
       attributes:
-        description: "ECR repository for MCP server container"
-        repo: em-production-mcp-server
-        tag: latest
-      depends_on: []
+        description: "ALB with HTTPS via ACM wildcard cert"
+      files:
+        - infrastructure/terraform/alb.tf
 
-    alb:
+    route53_dns:
       attributes:
-        description: "Application Load Balancer with HTTPS termination"
-        rules:
-          - priority: 97
-            host: admin.execution.market
-          - priority: 99
-            host: api.execution.market
-          - priority: 100
-            host: mcp.execution.market
-          - priority: default
-            host: execution.market
-      depends_on:
-        - infra.ecs_cluster
+        description: "Route53: execution.market, mcp.execution.market, api.execution.market"
+      files:
+        - infrastructure/terraform/dns.tf
 
-    route53:
+    github_actions_cicd:
       attributes:
-        description: "DNS zone for execution.market"
-        records: [execution.market, api.execution.market, mcp.execution.market, admin.execution.market]
-      depends_on: []
-
-    acm_cert:
-      attributes:
-        description: "Wildcard ACM certificate for *.execution.market"
-        domain: "*.execution.market"
-      depends_on:
-        - infra.route53
-
-    github_actions:
-      attributes:
-        description: "CI/CD pipeline: auto-deploy on push to main"
-        workflow: deploy.yml
+        description: "GitHub Actions auto-deploy on push to main"
       files:
         - .github/workflows/deploy.yml
-      depends_on:
-        - infra.ecs_cluster
-        - infra.ecr_dashboard
-        - infra.ecr_mcp_server
 
-  # ─────────────────────────────────────────────
-  # CONTRACT — on-chain smart contracts
-  # ─────────────────────────────────────────────
+  # ═══════════════════════════════════════════════════════════════════════
+  # DATABASE MIGRATIONS (all 22 confirmed in production)
+  # ═══════════════════════════════════════════════════════════════════════
+
+  migration:
+    m001_initial_schema:
+      files: [supabase/migrations/001_initial_schema.sql]
+    m002_escrow_and_payments:
+      files: [supabase/migrations/002_escrow_and_payments.sql]
+    m003_reputation_system:
+      files: [supabase/migrations/003_reputation_system.sql]
+    m004_disputes:
+      files: [supabase/migrations/004_disputes.sql]
+    m005_rpc_functions:
+      files: [supabase/migrations/005_rpc_functions.sql]
+    m006_api_keys:
+      files: [supabase/migrations/006_api_keys.sql]
+    m007_platform_config:
+      files: [supabase/migrations/007_platform_config.sql]
+    m008_fix_session_linking:
+      files: [supabase/migrations/008_fix_session_linking.sql]
+    m009_require_wallet_signature:
+      files: [supabase/migrations/009_require_wallet_signature.sql]
+    m010_auto_approve_submissions:
+      files: [supabase/migrations/010_auto_approve_submissions.sql]
+    m011_update_executor_profile:
+      files: [supabase/migrations/011_update_executor_profile.sql]
+    m012_fix_executor_overload:
+      files: [supabase/migrations/012_fix_executor_overload.sql]
+    m013_fix_submissions_and_task_release:
+      files: [supabase/migrations/013_fix_submissions_and_task_release.sql]
+    m014_create_platform_config:
+      files: [supabase/migrations/014_create_platform_config.sql]
+    m015_payment_ledger_canonical:
+      files: [supabase/migrations/015_payment_ledger_canonical.sql]
+    m016_add_settlement_method:
+      files: [supabase/migrations/016_add_settlement_method.sql]
+    m017_orphaned_payment_alerts:
+      files: [supabase/migrations/017_orphaned_payment_alerts.sql]
+    m018_add_retry_count:
+      files: [supabase/migrations/018_add_retry_count.sql]
+    m019_add_refund_tx_to_tasks:
+      files: [supabase/migrations/019_add_refund_tx_to_tasks.sql]
+    m020_tasks_erc8004_agent_id:
+      files: [supabase/migrations/020_tasks_erc8004_agent_id.sql]
+    m021_add_reputation_tx_to_submissions:
+      files: [supabase/migrations/021_add_reputation_tx_to_submissions.sql]
+    m022_evidence_forensic_metadata:
+      files: [supabase/migrations/022_evidence_forensic_metadata.sql]
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # ON-CHAIN CONTRACTS (external, deployed)
+  # ═══════════════════════════════════════════════════════════════════════
+
   contract:
-    erc8004_identity_registry:
-      attributes:
-        description: "ERC-8004 Identity Registry (CREATE2 — same address all EVM chains)"
-        mainnet: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
-        testnet: "0x8004A818BFB912233c491871b3d84c89A494BD9e"
-        agent_id: 469
-        status: registered_on_ethereum_mainnet
-      depends_on: []
-
-    erc8004_reputation_registry:
-      attributes:
-        description: "ERC-8004 Reputation Registry"
-        mainnet: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
-      depends_on:
-        - contract.erc8004_identity_registry
-
-    x402r_escrow:
-      attributes:
-        description: "x402r Escrow contract on Base Mainnet"
-        address: "0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC"
-        network: base
-        deposit_limit: "$100 max per deposit"
-      depends_on: []
-
     usdc_base:
-      attributes:
-        description: "USDC token on Base Mainnet"
-        address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-        network: base
-      depends_on: []
-
+      attributes: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", network: base }
+    x402r_escrow:
+      attributes: { address: "0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC", network: base }
     deposit_relay_factory:
-      attributes:
-        description: "DepositRelayFactory for deterministic relay deployment"
-        address: "0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814"
-        network: base
-      depends_on: []
-
+      attributes: { address: "0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814", network: base }
     deposit_relay:
-      attributes:
-        description: "Our wallet's deposit relay"
-        address: "0xe8CCF8Be24867cf21b4031fB1A5226932483EAF3"
-        network: base
-      depends_on:
-        - contract.deposit_relay_factory
-
+      attributes: { address: "0xe8CCF8Be24867cf21b4031fB1A5226932483EAF3", network: base }
     vault:
-      attributes:
-        description: "x402r Vault contract"
-        address: "0x0b3fC8BA8952C6cA6807F667894b0b7c9c40fc8b"
-        network: base
-      depends_on:
-        - contract.x402r_escrow
+      attributes: { address: "0x0b3fC8BA8952C6cA6807F667894b0b7c9c40fc8b", network: base }
+    erc8004_identity_registry:
+      attributes: { address: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432", network: base_mainnet }
+    erc8004_reputation_registry:
+      attributes: { address: "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63", network: base_mainnet }
 
-    mock_erc20:
-      attributes:
-        description: "Mock ERC20 for testing"
-      files:
-        - contracts/contracts/mocks/MockERC20.sol
-      depends_on: []
+  # ═══════════════════════════════════════════════════════════════════════
+  # OPEN TODOS — things that still need to be done
+  # ═══════════════════════════════════════════════════════════════════════
 
-  # ─────────────────────────────────────────────
-  # CONFIG — configuration files
-  # ─────────────────────────────────────────────
-  config:
-    agent_card:
+  todo:
+    d04_register_agent_on_base:
       attributes:
-        description: "ERC-8004 agent metadata card"
-        format: json
+        description: "Re-register Agent #469 on Base (currently on Sepolia only). Can now use gasless SDK: Erc8004Client.register_agent(network='base-mainnet')"
+        priority: P1
+        method_old: "cd scripts && npm run register:erc8004:base (pays gas)"
+        method_new: "Gasless via facilitator POST /register (SDK 0.8.2+)"
+        cost: "FREE (facilitator pays gas)"
       files:
-        - agent-card.json
-      depends_on:
-        - contract.erc8004_identity_registry
+        - scripts/register-erc8004-base.ts
+        - mcp_server/integrations/erc8004/identity.py
 
-    docker_dashboard:
+    d05_anthropic_api_key_in_ecs:
       attributes:
-        description: "Dashboard container build"
-      files:
-        - dashboard/Dockerfile
-      depends_on: []
+        description: "Add ANTHROPIC_API_KEY to ECS task def from em/anthropic secret"
+        priority: P1
+        impact: "AI evidence verification stuck in mock mode (confidence=0.85)"
 
-    docker_mcp_server:
+    d06_ecs_env_vars:
       attributes:
-        description: "MCP server container build"
-      files:
-        - mcp_server/Dockerfile
-      depends_on: []
+        description: "Add ERC8004_NETWORK and EM_AGENT_ID to ECS task definition"
+        priority: P2
+        impact: "Uses hardcoded defaults, works but not configurable"
 
-    migration_script:
+    d07_deprecate_x402r_escrow:
       attributes:
-        description: "Idempotent migration runner (008-021)"
-        usage: "bash scripts/apply-outstanding-migrations.sh [--from N]"
+        description: "Delete x402r_escrow.py (ABI mismatch, replaced by SDK)"
+        priority: P2
       files:
-        - scripts/apply-outstanding-migrations.sh
-      depends_on: []
+        - mcp_server/integrations/x402/x402r_escrow.py
+
+    d09_advanced_escrow_refund:
+      attributes:
+        description: "Implement funded escrow refund (USDC actually moves back on cancel)"
+        priority: P2
+        current: "Auth expires on cancel — no funds moved"
+        target: "Use AdvancedEscrowClient: authorize → release/refund_in_escrow"
+      files:
+        - mcp_server/integrations/x402/advanced_escrow_integration.py
+
+    d10_stuck_vault_usdc:
+      attributes:
+        description: "$0.10 USDC stuck in vault from direct relay deposit"
+        priority: P3
+        tx: "0xda31cbe..."
+        fix: "EscrowClient.request_refund() or wait for contract expiry"
+
+    d11_submission_form_rls:
+      attributes:
+        description: "SubmissionForm.tsx bypasses service layer, fails silently on RLS"
+        priority: P1
+        current: "Direct Supabase insert"
+        target: "Use services/submissions.ts:submitWork()"
+      files:
+        - dashboard/src/components/SubmissionForm.tsx
+        - dashboard/src/services/submissions.ts
+        - dashboard/src/components/EvidenceUpload.tsx
+
+    d13_payment_splitter_contract:
+      attributes:
+        description: "On-chain PaymentSplitter for automated fee distribution (post-MVP)"
+        priority: P3
+        current: "Dual EIP-3009 auths (MVP-sufficient)"
+        target: "Single on-chain tx, auditable, automated"
+
+    d15_mermaid_diagrams:
+      attributes:
+        description: "Add Mermaid diagrams to SPEC.md, PLAN.md, auth flow, infrastructure"
+        priority: P3
+        standard: "Defined in CLAUDE.md documentation standards"
+
+    session_persistence_manual_test:
+      attributes:
+        description: "T-006: Manual browser test for wallet session persistence across navigation"
+        priority: P2
+        batch: 11
+
+    fee_rounding_fix:
+      attributes:
+        description: "Small bounties ($0.05) → 8% fee rounds to $0.00 with 2-decimal quantization"
+        priority: P2
+        fix: "Use 6-decimal quantization (USDC native) or minimum fee of $0.01"
+      files:
+        - mcp_server/integrations/x402/sdk_client.py
+
+    admin_dashboard_deploy:
+      attributes:
+        description: "Deploy admin-dashboard to admin.execution.market (built, no CI/CD pipeline)"
+        priority: P2
+      files:
+        - admin-dashboard/src/App.tsx
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # PHASE 7: MULTI-CHAIN EXPANSION
+  # SDK: uvd-x402-sdk 0.8.2 (Python) / 2.20.0 (TypeScript)
+  # Facilitator v1.29.0: 21 payment networks, 14 identity networks
+  #
+  # PAYMENT SUPPORT MATRIX (x402 + ERC-8004):
+  # ┌─────────────┬───────┬──────┬──────┬───────┬──────┬─────────┐
+  # │ Network     │ USDC  │ EURC │ AUSD │ PYUSD │ USDT │ ERC8004 │
+  # ├─────────────┼───────┼──────┼──────┼───────┼──────┼─────────┤
+  # │ Base        │ ✓     │ ✓    │      │       │      │ ✓       │
+  # │ Ethereum    │ ✓     │ ✓    │ ✓    │ ✓     │      │ ✓       │
+  # │ Polygon     │ ✓     │      │ ✓    │       │      │ ✓       │
+  # │ Arbitrum    │ ✓     │      │ ✓    │       │ ✓    │ ✓       │
+  # │ Avalanche   │ ✓     │ ✓    │ ✓    │       │      │ ✓       │
+  # │ Celo        │ ✓     │      │      │       │ ✓    │ ✓       │
+  # │ Monad       │ ✓     │      │ ✓    │       │      │ ✓       │
+  # │ BSC         │       │      │      │       │      │ ✓ only  │
+  # │ Optimism    │ ✓     │      │      │       │ ✓    │         │
+  # │ HyperEVM    │ ✓     │      │      │       │      │         │
+  # │ Unichain    │ ✓     │      │      │       │      │         │
+  # │ Scroll      │ ✓     │      │      │       │      │         │
+  # │ SKALE       │ ✓     │      │      │       │      │         │
+  # │ Solana      │ ✓     │      │ ✓    │       │      │         │
+  # │ NEAR        │ ✓     │      │      │       │      │         │
+  # │ Stellar     │ ✓     │      │      │       │      │         │
+  # │ Algorand    │ ✓     │      │      │       │      │         │
+  # │ Sui         │ ✓     │      │ ✓    │       │      │         │
+  # │ Fogo        │ ✓     │      │      │       │      │         │
+  # └─────────────┴───────┴──────┴──────┴───────┴──────┴─────────┘
+  # ═══════════════════════════════════════════════════════════════════════
+
+  expansion:
+
+    # --- Phase 7A: Gasless Identity Registration ---
+
+    gasless_agent_registration:
+      attributes:
+        description: "Agents register on ERC-8004 via facilitator (gasless). MCP API endpoint POST /api/v1/identity/register"
+        phase: "7A"
+        priority: P1
+        sdk_python: "uvd-x402-sdk>=0.8.2 → Erc8004Client.register_agent()"
+        sdk_ts: "uvd-x402-sdk@2.20.0 → Erc8004Client.registerAgent()"
+        networks: "ethereum, base-mainnet, polygon, arbitrum, celo, bsc, monad + 5 testnets"
+        notes: "Facilitator pays gas. Agent gets ERC-721 NFT. Optional recipient delegation."
+      files:
+        - mcp_server/integrations/erc8004/identity.py
+        - mcp_server/api/routes.py
+
+    gasless_worker_registration:
+      attributes:
+        description: "Workers register ERC-8004 identity via dashboard (gasless, no wallet needed for gas)"
+        phase: "7A"
+        priority: P1
+        flow: "Worker clicks Register → Dashboard calls MCP → MCP calls facilitator /register → Worker gets agent ID"
+        networks: "base-mainnet default, user can pick any"
+      files:
+        - dashboard/src/hooks/useIdentity.ts
+        - mcp_server/integrations/erc8004/identity.py
+
+    multichain_identity_verification:
+      attributes:
+        description: "Accept ERC-8004 identity from ANY of 14 supported networks"
+        phase: "7A"
+        priority: P1
+        agent_verification: "ALREADY WORKS — verify_agent_identity() passes network param to facilitator, which handles all 14 networks"
+        worker_check: "BLOCKED — check_worker_identity() does direct RPC only to Base. Needs multi-chain RPC or switch to facilitator-based lookup"
+        contracts_dict: "COSMETIC — ERC8004_CONTRACTS in facilitator_client.py only has 3 entries, used for health/display only"
+        remaining: "1) Expand ERC8004_CONTRACTS dict for display. 2) Switch worker identity check to facilitator-based (no direct RPC). 3) Store network+agentId in executor profile."
+      files:
+        - mcp_server/integrations/erc8004/identity.py
+        - mcp_server/integrations/erc8004/facilitator_client.py
+
+    identity_metadata_api:
+      attributes:
+        description: "Read/write agent metadata via facilitator (name, version, capabilities)"
+        phase: "7A"
+        priority: P2
+        sdk: "Erc8004Client.get_identity_metadata(network, agentId, key)"
+      files:
+        - mcp_server/integrations/erc8004/facilitator_client.py
+
+    # --- Phase 7B: Multi-Chain Payments ---
+
+    multichain_payment_config:
+      attributes:
+        description: "Network-aware USDC address lookup. sdk_client resolves token addresses per network."
+        phase: "7B"
+        priority: P1
+        current: "Hardcoded Base USDC 0x8335... and chain_id 8453"
+        target: "Token address registry keyed by (network, token_symbol). Agent specifies network at task creation."
+        evm_networks_13: "base(8453), ethereum(1), polygon(137), arbitrum(42161), optimism(10), avalanche(43114), celo(42220), hyperevm(999), unichain(130), monad(143), scroll(534352), skale(1187947933)"
+        evm_with_erc8004_7: "base, ethereum, polygon, arbitrum, avalanche, celo, monad (both payments + identity)"
+        evm_payments_only_6: "optimism, hyperevm, unichain, scroll, skale (payments, no identity)"
+      files:
+        - mcp_server/integrations/x402/sdk_client.py
+        - mcp_server/api/routes.py
+        - mcp_server/models.py
+
+    task_network_field:
+      attributes:
+        description: "Add 'network' column to tasks table. Each task specifies which chain its bounty is on."
+        phase: "7B"
+        priority: P1
+        migration: "023_add_network_to_tasks.sql"
+        default: "base"
+      files:
+        - supabase/migrations/023_add_network_to_tasks.sql
+        - mcp_server/models.py
+
+    multichain_settlement:
+      attributes:
+        description: "Settle payments on the same chain the task was created on"
+        phase: "7B"
+        priority: P1
+        flow: "Task has network=polygon → approve uses Polygon USDC → facilitator settles on Polygon"
+      files:
+        - mcp_server/integrations/x402/sdk_client.py
+
+    dashboard_network_selector:
+      attributes:
+        description: "Dashboard shows network badge on tasks. Workers see which chain pays."
+        phase: "7B"
+        priority: P2
+      files:
+        - dashboard/src/components/TaskBrowser.tsx
+        - dashboard/src/pages/TaskDetail.tsx
+
+    # --- Phase 7C: Multi-Token Support ---
+
+    multitoken_config:
+      attributes:
+        description: "Token address registry for 5 stablecoins across all networks"
+        phase: "7C"
+        priority: P2
+        usdc: "ALL networks (21) — primary stablecoin, 6 decimals"
+        eurc: "Base (0x60a3E35C...), Ethereum (0x1aBaEA1f...), Avalanche (0xC891EB4c...) — 6 decimals"
+        ausd: "Ethereum, Polygon, Arbitrum, Avalanche, Monad, Solana, Sui — (0x000000...eFE302) — 6 decimals"
+        pyusd: "Ethereum only (0x6c3ea903...) — 6 decimals"
+        usdt: "Arbitrum (0xFd086bC7...), Optimism (0x01bff417...), Celo (0x48065fBB...) — 6 decimals"
+      files:
+        - mcp_server/integrations/x402/sdk_client.py
+        - mcp_server/models.py
+
+    task_token_field:
+      attributes:
+        description: "payment_token column already exists in tasks table. Agents specify token symbol."
+        phase: "7C"
+        priority: P2
+        notes: "payment_token VARCHAR already in 001_initial_schema.sql. Just need to validate against supported tokens per network."
+      files:
+        - mcp_server/api/routes.py
+
+    # --- Phase 7D: Additional EVM Networks (Payments Only) ---
+
+    optimism_payments:
+      attributes:
+        description: "Accept Optimism USDC/USDT payments (no ERC-8004 identity on Optimism)"
+        phase: "7D"
+        priority: P2
+        chain_id: 10
+        usdc: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85"
+        usdt: "0x01bff41798a0bcf287b996046ca68b395dbc1071"
+
+    hyperevm_payments:
+      attributes:
+        description: "Accept HyperEVM USDC payments"
+        phase: "7D"
+        priority: P3
+        chain_id: 999
+        usdc: "0xb88339CB7199b77E23DB6E890353E22632Ba630f"
+
+    unichain_payments:
+      attributes:
+        description: "Accept Unichain USDC payments"
+        phase: "7D"
+        priority: P3
+        chain_id: 130
+        usdc: "0x078d782b760474a361dda0af3839290b0ef57ad6"
+
+    scroll_payments:
+      attributes:
+        description: "Accept Scroll USDC payments"
+        phase: "7D"
+        priority: P3
+        chain_id: 534352
+        usdc: "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4"
+
+    skale_payments:
+      attributes:
+        description: "Accept SKALE USDC payments"
+        phase: "7D"
+        priority: P3
+        chain_id: 1187947933
+        usdc: "0x85889c8c714505E0c94b30fcfcF64fE3Ac8FCb20"
+
+    # --- Phase 7E: Non-EVM Chains ---
+
+    solana_payments:
+      attributes:
+        description: "Accept Solana USDC/AUSD payments via SVM TransferChecked"
+        phase: "7E"
+        priority: P2
+        notes: "Facilitator already supports Solana. Partially-signed VersionedTransaction."
+        usdc: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        ausd: "AUSD1jCcCyPLybk1YnvPWsHQSrZ46dxwoMniN4N2UEB9"
+        fee_payer: "F742C4VfFLQ9zRQyithoj5229ZgtX2WqKCSFKgH2EThq"
+
+    near_payments:
+      attributes:
+        description: "Accept NEAR USDC payments via NEP-366 meta-transactions"
+        phase: "7E"
+        priority: P3
+        usdc: "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"
+        fee_payer: "uvd-facilitator.near"
+
+    stellar_payments:
+      attributes:
+        description: "Accept Stellar USDC payments via Soroban authorization"
+        phase: "7E"
+        priority: P3
+        usdc: "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+        decimals: 7
+        fee_payer: "GCHPGXJT2WFFRFCA5TV4G4E3PMMXLNIDUH27PKDYA4QJ2XGYZWGFZNHB"
+
+    sui_payments:
+      attributes:
+        description: "Accept Sui USDC/aUSD payments via sponsored transactions"
+        phase: "7E"
+        priority: P3
+        usdc: "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC"
+        ausd: "0x2053d08c1e2bd02791056171aab0fd12bd7cd7efad2ab8f6b9c8902f14df2ff2::ausd::AUSD"
+
+    algorand_payments:
+      attributes:
+        description: "Accept Algorand USDC payments via atomic fee-pooling transactions"
+        phase: "7E"
+        priority: P3
+        usdc_asa_id: 31566704
+        fee_payer: "KIMS5H6QLCUDL65L5UBTOXDPWLMTS7N3AAC3I6B2NCONEI5QIVK7LH2C2I"
+
+    fogo_payments:
+      attributes:
+        description: "Accept Fogo (SVM) USDC payments"
+        phase: "7E"
+        priority: P3
+        usdc: "uSd2czE61Evaf76RNbq4KPpXnkiL3irdzgLFUMe3NoG"
+
+    # --- Phase 7F: Cross-Chain Identity ---
+
+    cross_chain_reputation:
+      attributes:
+        description: "Aggregate reputation across all 8 ERC-8004 mainnet networks"
+        phase: "7F"
+        priority: P3
+        notes: "Facilitator can query reputation per network. EM aggregates client-side."
+        networks: "ethereum, base, polygon, arbitrum, celo, bsc, monad, avalanche"
+      files:
+        - mcp_server/integrations/erc8004/facilitator_client.py
+        - mcp_server/api/reputation.py
+
+    cross_chain_agent_discovery:
+      attributes:
+        description: "Discover agents registered on any ERC-8004 network via Bazaar API"
+        phase: "7F"
+        priority: P3
+        notes: "Facilitator /bazaar endpoint indexes resources across networks"

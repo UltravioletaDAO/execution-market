@@ -101,6 +101,7 @@ async def create_task(
     location_hint: Optional[str] = None,
     min_reputation: int = 0,
     payment_token: str = "USDC",
+    payment_network: str = "base",
 ) -> Dict[str, Any]:
     """Create a new task in the database."""
     client = get_client()
@@ -121,6 +122,7 @@ async def create_task(
         "location_hint": location_hint,
         "min_reputation": min_reputation,
         "payment_token": payment_token,
+        "payment_network": payment_network,
         "status": "published",
     }
 

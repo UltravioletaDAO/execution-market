@@ -452,7 +452,95 @@ async def check_worker_identity(wallet_address: str) -> WorkerIdentityResult:
 
 
 # ---------------------------------------------------------------------------
-# Registration Transaction Builder
+# Gasless Worker Registration (via Facilitator — all 14 networks)
+# ---------------------------------------------------------------------------
+
+async def register_worker_gasless(
+    wallet_address: str,
+    agent_uri: Optional[str] = None,
+    network: str = "base-mainnet",
+    metadata: Optional[list] = None,
+) -> WorkerIdentityResult:
+    """
+    Register a worker on ERC-8004 via the Facilitator (gasless).
+
+    The facilitator pays gas on any of 14 supported networks. The minted
+    NFT is transferred to the worker's wallet address.
+
+    Parameters
+    ----------
+    wallet_address:
+        Worker's Ethereum address — receives the ERC-8004 NFT.
+    agent_uri:
+        Metadata URI. Defaults to ``https://execution.market/workers/{wallet}``.
+    network:
+        ERC-8004 network (default ``"base-mainnet"``). Any of 14 supported.
+    metadata:
+        Optional key-value pairs [{"key": "name", "value": "Worker Name"}].
+
+    Returns
+    -------
+    WorkerIdentityResult with agent_id if successful.
+    """
+    if not agent_uri:
+        agent_uri = DEFAULT_WORKER_URI_TEMPLATE.format(
+            wallet=wallet_address.lower(),
+        )
+
+    try:
+        from .facilitator_client import get_facilitator_client
+
+        client = get_facilitator_client()
+        result = await client.register_agent(
+            network=network,
+            agent_uri=agent_uri,
+            metadata=metadata,
+            recipient=wallet_address,  # transfer NFT to worker
+        )
+
+        if not result.get("success"):
+            return WorkerIdentityResult(
+                status=WorkerIdentityStatus.ERROR,
+                wallet_address=wallet_address.lower(),
+                network=network,
+                error=result.get("error", "Registration failed"),
+            )
+
+        agent_id = result.get("agentId")
+        logger.info(
+            "Worker registered gaslessly: wallet=%s, agent_id=%s, network=%s, tx=%s",
+            wallet_address, agent_id, network, result.get("transaction"),
+        )
+
+        # Invalidate cache
+        for net in (network, "base", "base-mainnet"):
+            key = _cache_key(f"worker:{wallet_address}", net)
+            _identity_cache.pop(key, None)
+            _identity_cache_timestamps.pop(key, None)
+
+        from .facilitator_client import ERC8004_CONTRACTS
+        chain_id = ERC8004_CONTRACTS.get(network, {}).get("chain_id", 0)
+
+        return WorkerIdentityResult(
+            status=WorkerIdentityStatus.REGISTERED,
+            agent_id=agent_id,
+            wallet_address=wallet_address.lower(),
+            network=network,
+            chain_id=chain_id,
+        )
+
+    except Exception as e:
+        logger.error("Gasless worker registration failed: %s", e)
+        return WorkerIdentityResult(
+            status=WorkerIdentityStatus.ERROR,
+            wallet_address=wallet_address.lower(),
+            network=network,
+            error=str(e),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Registration Transaction Builder (Legacy — worker pays gas)
 # ---------------------------------------------------------------------------
 
 def _build_register_calldata(agent_uri: str) -> str:

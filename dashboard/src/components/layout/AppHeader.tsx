@@ -32,9 +32,7 @@ export function AppHeader({ onConnectWallet, onScrollToHowItWorks }: AppHeaderPr
             onClick={() => navigate('/')}
             className="flex items-center gap-2 group"
           >
-            <span className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-black text-sm tracking-tighter">
-              EM
-            </span>
+            <img src="/logo.png" alt="EM" className="w-8 h-8 rounded-lg object-contain" />
             <span className="font-black text-lg text-white tracking-tight">
               Execution Market
             </span>

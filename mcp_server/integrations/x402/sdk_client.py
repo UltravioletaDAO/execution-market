@@ -84,6 +84,151 @@ EM_TREASURY = os.environ.get(
 # Default network for payments
 DEFAULT_NETWORK = os.environ.get("X402_NETWORK", "base")
 
+# Enabled networks for payments (comma-separated env var).
+# Only these networks accept task creation and settlement.
+# The registry below contains ALL known networks, but only enabled ones are active.
+# To enable more: fund the platform wallet with USDC on that chain, then add to this list.
+_enabled_raw = os.environ.get("EM_ENABLED_NETWORKS", "base,base-sepolia")
+ENABLED_NETWORKS = [n.strip() for n in _enabled_raw.split(",") if n.strip()]
+
+# =============================================================================
+# Multichain Token Registry
+# =============================================================================
+# Maps network → token → {address, name, version, decimals}
+# Used for EIP-3009 signing and settlement on each chain.
+# Sources: facilitator v1.29.0 supported networks + on-chain USDC deployments.
+# NOTE: This is the FULL registry. Use get_enabled_networks() for what's actually active.
+
+NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
+    # --- Production Mainnets ---
+    "base": {"chain_id": 8453, "tokens": {
+        "USDC": {"address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "name": "USD Coin", "version": "2", "decimals": 6},
+        "EURC": {"address": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42", "name": "EURC", "version": "1", "decimals": 6},
+        "USDT": {"address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", "name": "Tether USD", "version": "1", "decimals": 6},
+    }},
+    "ethereum": {"chain_id": 1, "tokens": {
+        "USDC": {"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "name": "USD Coin", "version": "2", "decimals": 6},
+        "EURC": {"address": "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c", "name": "EURC", "version": "1", "decimals": 6},
+        "PYUSD": {"address": "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8", "name": "PayPal USD", "version": "1", "decimals": 6},
+        "USDT": {"address": "0xdAC17F958D2ee523a2206206994597C13D831ec7", "name": "Tether USD", "version": "1", "decimals": 6},
+    }},
+    "polygon": {"chain_id": 137, "tokens": {
+        "USDC": {"address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "name": "USD Coin", "version": "2", "decimals": 6},
+        "USDT": {"address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", "name": "Tether USD", "version": "1", "decimals": 6},
+    }},
+    "arbitrum": {"chain_id": 42161, "tokens": {
+        "USDC": {"address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "name": "USD Coin", "version": "2", "decimals": 6},
+        "USDT": {"address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", "name": "Tether USD", "version": "1", "decimals": 6},
+    }},
+    "optimism": {"chain_id": 10, "tokens": {
+        "USDC": {"address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", "name": "USD Coin", "version": "2", "decimals": 6},
+        "USDT": {"address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", "name": "Tether USD", "version": "1", "decimals": 6},
+    }},
+    "hyperevm": {"chain_id": 999, "tokens": {
+        "USDC": {"address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb", "name": "USD Coin", "version": "1", "decimals": 6},
+    }},
+    "unichain": {"chain_id": 130, "tokens": {
+        "USDC": {"address": "0x078D782b760474a361dDA0AF3839290b0EF57AD6", "name": "USD Coin", "version": "2", "decimals": 6},
+    }},
+    "scroll": {"chain_id": 534352, "tokens": {
+        "USDC": {"address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4", "name": "USD Coin", "version": "2", "decimals": 6},
+    }},
+    # --- Testnets ---
+    "base-sepolia": {"chain_id": 84532, "tokens": {
+        "USDC": {"address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e", "name": "USD Coin", "version": "2", "decimals": 6},
+    }},
+    "ethereum-sepolia": {"chain_id": 11155111, "tokens": {
+        "USDC": {"address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", "name": "USD Coin", "version": "2", "decimals": 6},
+    }},
+    "polygon-amoy": {"chain_id": 80002, "tokens": {
+        "USDC": {"address": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582", "name": "USD Coin", "version": "2", "decimals": 6},
+    }},
+    "arbitrum-sepolia": {"chain_id": 421614, "tokens": {
+        "USDC": {"address": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d", "name": "USD Coin", "version": "2", "decimals": 6},
+    }},
+}
+
+
+def get_token_config(network: str, token: str = "USDC") -> Dict[str, Any]:
+    """
+    Get token configuration for a network.
+
+    Args:
+        network: Network name (e.g., 'base', 'ethereum', 'polygon')
+        token: Token symbol (default: 'USDC')
+
+    Returns:
+        Dict with address, name, version, decimals
+
+    Raises:
+        ValueError: If network or token not supported
+    """
+    net_config = NETWORK_CONFIG.get(network)
+    if not net_config:
+        supported = ", ".join(sorted(NETWORK_CONFIG.keys()))
+        raise ValueError(f"Network '{network}' not supported. Supported: {supported}")
+
+    token_config = net_config["tokens"].get(token)
+    if not token_config:
+        supported_tokens = ", ".join(sorted(net_config["tokens"].keys()))
+        raise ValueError(
+            f"Token '{token}' not available on {network}. Available: {supported_tokens}"
+        )
+
+    return {**token_config, "chain_id": net_config["chain_id"]}
+
+
+def get_supported_networks() -> list:
+    """Return list of ALL known payment networks (registry)."""
+    return sorted(NETWORK_CONFIG.keys())
+
+
+def get_enabled_networks() -> list:
+    """Return list of currently ENABLED payment networks (accepting payments)."""
+    return sorted(n for n in ENABLED_NETWORKS if n in NETWORK_CONFIG)
+
+
+def is_network_enabled(network: str) -> bool:
+    """Check if a network is enabled for payments."""
+    return network in ENABLED_NETWORKS and network in NETWORK_CONFIG
+
+
+def validate_payment_network(network: str) -> str:
+    """
+    Validate that a network is enabled for payments.
+
+    Args:
+        network: Network name to validate
+
+    Returns:
+        The network name if valid
+
+    Raises:
+        ValueError: If network is not enabled
+    """
+    if network not in NETWORK_CONFIG:
+        supported = ", ".join(sorted(NETWORK_CONFIG.keys()))
+        raise ValueError(f"Network '{network}' not recognized. Known networks: {supported}")
+
+    if network not in ENABLED_NETWORKS:
+        enabled = ", ".join(sorted(ENABLED_NETWORKS))
+        raise ValueError(
+            f"Network '{network}' is not currently enabled for payments. "
+            f"Enabled networks: {enabled}. "
+            f"To enable: add '{network}' to EM_ENABLED_NETWORKS env var "
+            f"and fund the platform wallet with USDC on that chain."
+        )
+
+    return network
+
+
+def get_supported_tokens(network: str) -> list:
+    """Return list of supported tokens on a network."""
+    net_config = NETWORK_CONFIG.get(network)
+    if not net_config:
+        return []
+    return sorted(net_config["tokens"].keys())
+
 # Escrow service URL (for gasless refunds via facilitator)
 ESCROW_URL = os.environ.get(
     "X402_ESCROW_URL",
@@ -251,14 +396,7 @@ class EMX402SDK:
     # EIP-3009 Signing for Worker Disbursement
     # =========================================================================
 
-    # USDC EIP-712 domain on Base
-    USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-    USDC_DOMAIN = {
-        "name": "USD Coin",
-        "version": "2",
-        "chainId": 8453,
-        "verifyingContract": USDC_ADDRESS,
-    }
+    # EIP-3009 TransferWithAuthorization type structure (same on all chains)
     TRANSFER_WITH_AUTH_TYPES = {
         "TransferWithAuthorization": [
             {"name": "from", "type": "address"},
@@ -269,6 +407,23 @@ class EMX402SDK:
             {"name": "nonce", "type": "bytes32"},
         ],
     }
+
+    def _get_token_domain(self, network: str = None, token: str = "USDC") -> tuple:
+        """
+        Get EIP-712 domain and token address for a given network+token.
+
+        Returns:
+            Tuple of (domain_dict, token_address)
+        """
+        network = network or self.network
+        config = get_token_config(network, token)
+        domain = {
+            "name": config["name"],
+            "version": config["version"],
+            "chainId": config["chain_id"],
+            "verifyingContract": config["address"],
+        }
+        return domain, config["address"]
 
     def _get_agent_account(self) -> Account:
         """Get the agent wallet Account from WALLET_PRIVATE_KEY."""
@@ -282,14 +437,27 @@ class EMX402SDK:
         to_address: str,
         amount_usdc: Decimal,
         valid_for_seconds: int = 3600,
+        network: str = None,
+        token: str = "USDC",
     ) -> Dict[str, Any]:
         """
-        Sign an EIP-3009 TransferWithAuthorization for USDC on Base.
+        Sign an EIP-3009 TransferWithAuthorization for a stablecoin on any network.
 
-        Returns dict with 'authorization' and 'signature' fields.
+        Args:
+            to_address: Recipient wallet address
+            amount_usdc: Amount in token units (e.g., 1.50 = $1.50)
+            valid_for_seconds: Auth validity window
+            network: Payment network (default: self.network)
+            token: Token symbol (default: USDC)
+
+        Returns dict with 'authorization', 'signature', 'network', 'asset' fields.
         """
+        network = network or self.network
+        domain, token_address = self._get_token_domain(network, token)
+        config = get_token_config(network, token)
+
         account = self._get_agent_account()
-        value = int(amount_usdc * Decimal(10 ** 6))
+        value = int(amount_usdc * Decimal(10 ** config["decimals"]))
         now = int(datetime.now(timezone.utc).timestamp())
         nonce = "0x" + secrets.token_hex(32)
 
@@ -304,7 +472,7 @@ class EMX402SDK:
 
         # Sign EIP-712 typed data
         signed = account.sign_typed_data(
-            domain_data=self.USDC_DOMAIN,
+            domain_data=domain,
             message_types=self.TRANSFER_WITH_AUTH_TYPES,
             message_data=message,
         )
@@ -321,6 +489,8 @@ class EMX402SDK:
         return {
             "authorization": authorization,
             "signature": signed.signature.hex() if hasattr(signed.signature, 'hex') else hex(signed.signature),
+            "network": network,
+            "asset": token_address,
         }
 
     def _build_x402_header(self, auth_data: Dict[str, Any]) -> str:
@@ -328,7 +498,7 @@ class EMX402SDK:
         payload = {
             "x402Version": 1,
             "scheme": "exact",
-            "network": "base",
+            "network": auth_data.get("network", self.network),
             "payload": {
                 "signature": auth_data["signature"],
                 "authorization": auth_data["authorization"],
@@ -351,24 +521,30 @@ class EMX402SDK:
         """
         import httpx
 
+        network = auth_data.get("network", self.network)
+        asset_address = auth_data.get("asset")
+        if not asset_address:
+            _, asset_address = self._get_token_domain(network)
+        token_config = get_token_config(network)
+
         header = self._build_x402_header(auth_data)
         payload_data = json.loads(base64.b64decode(header))
 
-        value_wei = int(amount_usdc * Decimal(10 ** 6))
+        value_wei = int(amount_usdc * Decimal(10 ** token_config["decimals"]))
         settle_request = {
             "x402Version": 1,
             "paymentPayload": payload_data,
             "paymentRequirements": {
                 "scheme": "exact",
-                "network": "base",
+                "network": network,
                 "maxAmountRequired": str(value_wei),
                 "resource": "https://api.execution.market/api/v1/tasks",
                 "description": "Execution Market payment",
                 "mimeType": "application/json",
                 "payTo": pay_to,
                 "maxTimeoutSeconds": 300,
-                "asset": self.USDC_ADDRESS,
-                "extra": {"name": "USD Coin", "version": "2"},
+                "asset": asset_address,
+                "extra": {"name": token_config["name"], "version": token_config["version"]},
             },
         }
 
@@ -397,6 +573,8 @@ class EMX402SDK:
         worker_address: str,
         amount_usdc: Decimal,
         task_id: str,
+        network: str = None,
+        token: str = "USDC",
     ) -> Dict[str, Any]:
         """
         Sign a new EIP-3009 auth from agent wallet to worker and settle via facilitator.
@@ -407,6 +585,8 @@ class EMX402SDK:
             auth = self._sign_eip3009_transfer(
                 to_address=worker_address,
                 amount_usdc=amount_usdc,
+                network=network,
+                token=token,
             )
             result = self._settle_signed_auth(auth, amount_usdc, pay_to=worker_address)
 
@@ -438,6 +618,8 @@ class EMX402SDK:
         fee_amount: Decimal,
         task_id: str,
         treasury_address: Optional[str] = None,
+        network: str = None,
+        token: str = "USDC",
     ) -> Dict[str, Any]:
         """
         Sign a new EIP-3009 auth from agent wallet to treasury for the platform fee.
@@ -457,6 +639,8 @@ class EMX402SDK:
             auth = self._sign_eip3009_transfer(
                 to_address=treasury,
                 amount_usdc=fee_amount,
+                network=network,
+                token=token,
             )
             result = self._settle_signed_auth(auth, fee_amount, pay_to=treasury)
 
@@ -587,6 +771,8 @@ class EMX402SDK:
         payment_header: str,
         worker_address: str,
         bounty_amount: Decimal,
+        network: str = None,
+        token: str = "USDC",
     ) -> Dict[str, Any]:
         """
         Settle a task payment: collect from agent, then disburse to worker.
@@ -598,7 +784,20 @@ class EMX402SDK:
 
         Step 0 is skipped when agent wallet == platform wallet (test scenario).
         All settlements are GASLESS via the Ultravioleta facilitator.
+
+        Args:
+            task_id: Task identifier
+            payment_header: Original x402 payment header from agent
+            worker_address: Worker's wallet address
+            bounty_amount: Total bounty amount
+            network: Payment network (default: self.network)
+            token: Payment token (default: USDC)
         """
+        network = network or self.network
+
+        # Validate network is enabled before moving any money
+        validate_payment_network(network)
+
         try:
             # Step 0: Settle agent's original auth to collect USDC
             agent_settle_tx = None
@@ -628,7 +827,10 @@ class EMX402SDK:
                 )
 
             # Calculate fee breakdown
-            platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(Decimal("0.01"))
+            platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(Decimal("0.000001"))
+            # Enforce minimum fee of $0.01 to avoid zero-fee on small bounties
+            if platform_fee > 0 and platform_fee < Decimal("0.01"):
+                platform_fee = Decimal("0.01")
             worker_net = bounty_amount - platform_fee
 
             # Step 1: Pay the worker
@@ -636,6 +838,8 @@ class EMX402SDK:
                 worker_address=worker_address,
                 amount_usdc=worker_net,
                 task_id=task_id,
+                network=network,
+                token=token,
             )
 
             worker_tx = worker_result.get("tx_hash")
@@ -653,6 +857,8 @@ class EMX402SDK:
             fee_result = await self.collect_platform_fee(
                 fee_amount=platform_fee,
                 task_id=task_id,
+                network=network,
+                token=token,
             )
 
             fee_tx = fee_result.get("tx_hash")
@@ -672,7 +878,8 @@ class EMX402SDK:
                 "tx_hash": worker_tx,
                 "fee_tx_hash": fee_tx,
                 "agent_settle_tx": agent_settle_tx,
-                "network": "base",
+                "network": network,
+                "token": token,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
@@ -682,6 +889,7 @@ class EMX402SDK:
                 "success": False,
                 "task_id": task_id,
                 "error": str(e),
+                "network": network,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
@@ -698,8 +906,7 @@ class EMX402SDK:
         escrow service. The facilitator pays gas — the agent recovers USDC
         without spending anything on gas.
 
-        Falls back to direct contract call (x402r_escrow) only if the SDK
-        EscrowClient is not available.
+        Uses the SDK EscrowClient via the facilitator (gasless).
 
         Args:
             task_id: Task identifier
@@ -757,46 +964,15 @@ class EMX402SDK:
                 )
                 # Fall through to legacy path below
 
-        # Legacy fallback: direct contract call (agent pays gas)
-        try:
-            from .x402r_escrow import refund_payment
-        except Exception:
-            return {
-                "success": False,
-                "task_id": task_id,
-                "escrow_id": escrow_id,
-                "error": "Neither EscrowClient nor x402r refund integration available",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-
-        try:
-            logger.warning(
-                "Using legacy direct-contract refund for task %s (agent pays gas)",
-                task_id,
-            )
-            refund_result = await refund_payment(deposit_id=escrow_id)
-            amount = getattr(refund_result, "amount", None)
-            return {
-                "success": bool(getattr(refund_result, "success", False)),
-                "task_id": task_id,
-                "escrow_id": escrow_id,
-                "tx_hash": getattr(refund_result, "tx_hash", None),
-                "payer": getattr(refund_result, "payer", None),
-                "amount": str(amount) if amount is not None else None,
-                "reason": reason,
-                "method": "direct_contract",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-        except Exception as e:
-            logger.error("Task payment refund failed (all paths): %s", str(e))
-            return {
-                "success": False,
-                "task_id": task_id,
-                "escrow_id": escrow_id,
-                "error": str(e),
-                "reason": reason,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
+        # x402r_escrow.py has been deprecated — no legacy fallback available
+        return {
+            "success": False,
+            "task_id": task_id,
+            "escrow_id": escrow_id,
+            "error": "EscrowClient refund not available (x402r_escrow deprecated)",
+            "reason": reason,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
     # =========================================================================
     # Health Check
@@ -935,7 +1111,7 @@ def check_sdk_available() -> bool:
 
 
 def get_sdk_info() -> Dict[str, Any]:
-    """Get information about SDK installation."""
+    """Get information about SDK installation and supported networks."""
     if not SDK_AVAILABLE:
         return {
             "available": False,
@@ -949,6 +1125,9 @@ def get_sdk_info() -> Dict[str, Any]:
             "available": True,
             "version": getattr(uvd_x402_sdk, "__version__", "unknown"),
             "facilitator_url": FACILITATOR_URL,
+            "enabled_networks": get_enabled_networks(),
+            "all_known_networks": get_supported_networks(),
+            "default_network": DEFAULT_NETWORK,
         }
     except Exception as e:
         return {
