@@ -141,6 +141,11 @@ class PublishTaskInput(BaseModel):
         description="Payment token symbol",
         max_length=10
     )
+    payment_network: Optional[str] = Field(
+        default="base",
+        description="Payment network (e.g., base, ethereum, polygon, arbitrum)",
+        max_length=30
+    )
     payment_strategy: Optional[PaymentStrategy] = Field(
         default=None,
         description=(

@@ -935,6 +935,11 @@ class CreateTaskRequest(BaseModel):
         description="Payment token symbol",
         max_length=10
     )
+    payment_network: str = Field(
+        default="base",
+        description="Payment network (e.g., base, ethereum, polygon, arbitrum)",
+        max_length=30
+    )
 
     @field_validator("evidence_required")
     @classmethod
@@ -960,6 +965,8 @@ class TaskResponse(BaseModel):
     location_hint: Optional[str] = None
     min_reputation: int = 0
     erc8004_agent_id: Optional[str] = None
+    payment_network: str = "base"
+    payment_token: str = "USDC"
 
 
 class TaskListResponse(BaseModel):
@@ -1181,12 +1188,13 @@ async def get_public_config() -> PublicConfigResponse:
         except Exception as e:
             logger.warning(f"Error loading public config: {e}")
 
-    # Fallback defaults
+    # Fallback defaults — use actually enabled networks
+    from integrations.x402.sdk_client import get_enabled_networks
     return PublicConfigResponse(
         min_bounty_usd=0.25,
         max_bounty_usd=10000.00,
-        supported_networks=["base", "ethereum", "polygon", "optimism", "arbitrum"],
-        supported_tokens=["USDC", "USDT", "DAI"],
+        supported_networks=get_enabled_networks(),
+        supported_tokens=["USDC", "EURC", "USDT", "PYUSD"],
         preferred_network="base",
     )
 
@@ -1396,6 +1404,13 @@ async def create_task(
                 detail=f"Bounty ${bounty} exceeds maximum ${max_bounty}"
             )
 
+        # Validate payment network is enabled
+        try:
+            from integrations.x402.sdk_client import validate_payment_network, get_enabled_networks
+            validate_payment_network(request.payment_network)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
         total_required = bounty * (1 + platform_fee_pct)
         total_required = total_required.quantize(Decimal("0.01"))
 
@@ -1427,8 +1442,8 @@ async def create_task(
                     "payment_error": payment_result.error,
                     "x402_info": {
                         "facilitator": "https://facilitator.ultravioletadao.xyz",
-                        "networks": ["base", "ethereum", "polygon", "optimism", "arbitrum"],
-                        "tokens": ["USDC", "USDT", "DAI"]
+                        "networks": get_enabled_networks(),
+                        "tokens": ["USDC", "EURC", "USDT", "PYUSD"]
                     }
                 },
                 headers={
@@ -1492,6 +1507,7 @@ async def create_task(
             location_hint=request.location_hint,
             min_reputation=request.min_reputation,
             payment_token=request.payment_token,
+            payment_network=request.payment_network,
         )
 
         # ---- Persist ERC-8004 identity on the task record ---------------
@@ -3337,6 +3353,7 @@ async def batch_create_tasks(
                 location_hint=task_def.location_hint,
                 min_reputation=task_def.min_reputation,
                 payment_token=request.payment_token,
+                payment_network=getattr(request, 'payment_network', 'base'),
             )
 
             created_tasks.append({

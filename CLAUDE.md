@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Execution Market is a **Human Execution Layer for AI Agents** - a marketplace where AI agents publish bounties for physical tasks that humans execute, with instant payment via x402. Registered as **Agent #469** on Sepolia ERC-8004 Identity Registry.
+Execution Market is a **Human Execution Layer for AI Agents** - a marketplace where AI agents publish bounties for physical tasks that humans execute, with instant payment via x402. Registered as **Agent #2106** on Base ERC-8004 Identity Registry (previously #469 on Sepolia).
 
 ## Tech Stack
 
@@ -22,9 +22,10 @@ Execution Market is a **Human Execution Layer for AI Agents** - a marketplace wh
 | Database | Supabase (PostgreSQL) |
 | Dashboard | React 18 + TypeScript + Vite + Tailwind CSS |
 | Blockchain Scripts | TypeScript + viem |
-| Payments | x402r Escrow (Base Mainnet) |
-| Evidence Storage | Supabase Storage + IPFS (Pinata) |
-| Agent Identity | ERC-8004 Registry (Sepolia) |
+| Payments | x402 SDK + Facilitator (Base Mainnet, gasless) |
+| Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
+| Agent Identity | ERC-8004 Registry (14 networks via Facilitator) |
+| SDKs | Python `uvd-x402-sdk>=0.8.2` / TypeScript `uvd-x402-sdk@2.20.0` |
 
 ## Project Structure
 
@@ -97,7 +98,7 @@ Configure Claude Code (`~/.claude/settings.local.json`):
 ```bash
 cd scripts
 npm install
-npm run register:erc8004     # Register agent (already done - Agent #469)
+npm run register:erc8004     # Register agent (Agent #2106 on Base, #469 on Sepolia)
 npm run upload:metadata      # Update IPFS metadata
 npm run register:x402r       # Register as x402r merchant (pending)
 ```
@@ -161,13 +162,22 @@ Required in `.env.local` (project root):
 
 Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
+### Multichain Payment Config
+- `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,base-sepolia`)
+- `X402_NETWORK` - Default payment network (default: `base`)
+- To enable a new chain: fund the platform wallet with USDC on that chain, then add it to `EM_ENABLED_NETWORKS`
+- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — 12 EVM networks, 4 stablecoins)
+
 ## On-Chain Contracts
 
 | Contract | Network | Address |
 |----------|---------|---------|
-| ERC-8004 Identity Registry | Sepolia | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| ERC-8004 Identity Registry | All Mainnets (CREATE2) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+| ERC-8004 Identity Registry | All Testnets (CREATE2) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| ERC-8004 Reputation Registry | All Mainnets (CREATE2) | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
 | x402r Escrow | Base Mainnet | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
-| Execution Market Agent ID | Sepolia | `469` |
+| Execution Market Agent ID | **Base** | `2106` |
+| Execution Market Agent ID | Sepolia (legacy) | `469` |
 
 ## Key Documentation
 
@@ -264,7 +274,7 @@ Memory files live in the auto memory directory (`~/.claude/projects/.../memory/`
 | `frontend.md` | Dynamic.xyz, admin dashboard, UI bugs |
 | `ecosystem.md` | Facilitator, SDKs, ERC-8004 contracts |
 
-## Operational State (as of 2026-02-04)
+## Operational State (as of 2026-02-06)
 
 ### Deployment Details
 
@@ -272,6 +282,10 @@ Memory files live in the auto memory directory (`~/.claude/projects/.../memory/`
 |---------|-----|----------|-------------|
 | Dashboard | `execution.market` | `em-production-dashboard:latest` | `em-production-cluster` / `em-production-dashboard` |
 | MCP Server | `mcp.execution.market` | `em-production-mcp-server:latest` | `em-production-cluster` / `em-production-mcp-server` |
+
+**Current ECS Task Definition Revisions** (as of 2026-02-06):
+- MCP Server: revision 24 (5 env vars + 12 secrets — added EM_ENABLED_NETWORKS=base,base-sepolia)
+- Dashboard: revision 12
 
 **CRITICAL: ECS Image Tag Rules**
 - Always use the `:latest` tag for all images. ECS task definitions MUST reference `:latest`.
@@ -326,11 +340,12 @@ Wrong Flow (DO NOT USE):
 
 | Component | Details |
 |-----------|---------|
-| **SDK** | `uvd-x402-sdk[fastapi]>=0.3.0` (in `mcp_server/requirements.txt`) |
-| **SDK Client** | `mcp_server/integrations/x402/sdk_client.py` — `EMX402Client` class |
+| **SDK** | `uvd-x402-sdk[fastapi]>=0.8.2` (in `mcp_server/requirements.txt`) |
+| **SDK Client** | `mcp_server/integrations/x402/sdk_client.py` — `EMX402SDK` class |
 | **Facilitator URL** | `https://facilitator.ultravioletadao.xyz` |
-| **Facilitator Endpoints** | `POST /verify` (verify payment), `POST /settle` (release payment) |
-| **Network** | Base Mainnet (chain 8453) for production |
+| **Facilitator Endpoints** | `POST /verify`, `POST /settle`, `POST /register`, `POST /feedback` |
+| **Network** | Base Mainnet (chain 8453) for production payments |
+| **ERC-8004 Networks** | 14 total: 8 mainnets + 6 testnets (all via Facilitator) |
 
 **Contract Addresses (Base Mainnet)**:
 
@@ -354,7 +369,7 @@ Wrong Flow (DO NOT USE):
 1. **Deposit** (task creation): Agent signs EIP-3009 auth → MCP verifies via Facilitator → Task created (no funds move yet)
 2. **Release** (task approval): MCP signs TWO new EIP-3009 auths: agent→worker (92%) + agent→treasury (8%) → Facilitator settles both (gasless)
 3. **Refund** (task cancellation): Original auth expires — no funds ever moved, no action needed
-4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 8%). Set to `0.00` for 0% fee.
+4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 8%). Set to `0.00` for 0% fee. Uses 6-decimal USDC precision with $0.01 minimum fee.
 
 **Split Payment Architecture** (current MVP):
 - At approval, `sdk_client.py:settle_task_payment()` signs fresh EIP-3009 auths from the agent wallet
@@ -379,26 +394,32 @@ Wrong Flow (DO NOT USE):
 **Columns added manually** (not in original migration):
 - `executors.email`, `executors.phone`, `executors.skills`, `executors.languages`, `executors.timezone`, `executors.status`, `executors.tier`, `executors.is_verified`, `executors.kyc_completed_at`, `executors.balance_usdc`, `executors.total_earned_usdc`, `executors.total_withdrawn_usdc`, `executors.erc8004_agent_id`
 - `tasks.escrow_amount_usdc`, `tasks.escrow_created_at`
+- `tasks.payment_network` (migration 023, default `'base'`)
 
 **Known RLS issues**:
-- `submissions` INSERT policy requires `executor.user_id = auth.uid()`. If the executor isn't linked to the anonymous session, inserts fail **silently** (no error, just 0 rows). The SubmissionForm.tsx doesn't handle this properly.
+- `submissions` INSERT policy requires `executor.user_id = auth.uid()`. If the executor isn't linked to the anonymous session, inserts fail **silently** (no error, just 0 rows). SubmissionForm.tsx now uses `submitWork()` which handles this with proper error messages.
 
 ### Known Bugs & TODOs
 
 **Dashboard**:
-- [ ] `SubmissionForm.tsx` uses direct Supabase insert (bypasses service layer, fails silently on RLS). Should use `services/submissions.ts` `submitWork()` instead.
-- [ ] Evidence uploads may fail silently if `executor.user_id` is null.
-- [ ] The proper `EvidenceUpload.tsx` component (with camera, GPS, EXIF) is unused — `SubmissionForm.tsx` is a simpler but less reliable version.
+- [x] ~~`SubmissionForm.tsx` uses direct Supabase insert~~ — FIXED: now uses `submitWork()` service
+- [ ] The proper `EvidenceUpload.tsx` component (with camera, GPS, EXIF) is unused — `SubmissionForm.tsx` is a simpler version
 
 **MCP Server / Payments**:
-- [ ] `routes.py` `create_task()` escrow wiring calls contracts directly — must use SDK/facilitator instead.
-- [ ] `routes.py` `approve_submission()` escrow release calls contracts directly — must use `sdk_client.settle_task_payment()`.
-- [ ] `x402r_escrow.py` ABI doesn't match actual contract (e.g., `merchantBalance` doesn't exist on escrow contract).
-- [ ] Task creation should flow: Agent → MCP API (402) → Agent signs x402 payment → MCP verifies via facilitator → Task created.
+- [x] ~~`x402r_escrow.py` ABI mismatch~~ — FIXED: file deleted, SDK + Facilitator used instead
+- [x] ~~Fee rounding to $0.00 on small bounties~~ — FIXED: 6-decimal quantization + $0.01 minimum fee
+- [x] ~~Multichain support~~ — DONE: 12 EVM networks in token registry, `EM_ENABLED_NETWORKS` env var gates active chains
+- [ ] `routes.py` `create_task()` escrow wiring calls contracts directly — must use SDK/facilitator
+- [ ] `routes.py` `approve_submission()` escrow release calls contracts directly — must use `sdk_client.settle_task_payment()`
 
 **Escrow**:
-- [ ] $0.10 USDC stuck in vault from direct relay deposit (tx `0xda31cbe...`). Needs refund via facilitator or contract expiry.
-- [ ] Deposit limit: $100 max per deposit (contract-enforced).
+- [ ] $0.10 USDC stuck in vault from direct relay deposit (tx `0xda31cbe...`). Needs refund or contract expiry
+- [ ] Deposit limit: $100 max per deposit (contract-enforced)
+
+**Infrastructure**:
+- [x] ~~`ANTHROPIC_API_KEY` not in ECS~~ — FIXED: Added to task def rev 23, AI verification now real
+- [x] ~~`ERC8004_NETWORK` / `EM_AGENT_ID` not in ECS~~ — FIXED: `base` / `2106` in task def rev 23
+- [ ] Admin dashboard not deployed (built but no CI/CD)
 
 ### Task Factory Guidelines
 
@@ -412,11 +433,22 @@ When creating test tasks:
 
 | Field | Value |
 |-------|-------|
-| Agent ID | 469 |
-| Registry (Sepolia) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
-| Identity Registry (Mainnet) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
-| Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+| Agent ID (Base) | **2106** (production, tx `0xd28908e1...`) |
+| Agent ID (Sepolia) | 469 (legacy) |
+| Identity Registry (Mainnets) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+| Identity Registry (Testnets) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| Reputation Registry (Mainnets) | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+| Facilitator Registration | `POST /register` (gasless, facilitator pays gas) |
 | Facilitator Reputation API | `POST /feedback`, `GET /reputation/{network}/{agentId}` |
+
+**Supported ERC-8004 Networks (14)**:
+- Mainnets: ethereum, base, polygon, arbitrum, celo, bsc, monad, avalanche
+- Testnets: ethereum-sepolia, base-sepolia, polygon-amoy, arbitrum-sepolia, celo-sepolia, avalanche-fuji
+
+**Facilitator Network Naming** (v1.29.0+):
+- All endpoints now use consistent names derived from the `Network` enum: `"base"`, `"polygon"`, `"ethereum"`, etc.
+- Our code keeps `"base-mainnet"` as alias for backward compatibility: `ERC8004_CONTRACTS["base-mainnet"] = ERC8004_CONTRACTS["base"]`
+- Identity lookups use `ownerOf()` (ERC-721 standard) — non-existent agents return 404
 
 ### Complete URL Map
 
@@ -498,11 +530,13 @@ When creating test tasks:
 - `POST /api/v1/escrow/release` — Release to worker
 - `POST /api/v1/escrow/refund` — Refund to agent
 
-**Reputation (`/api/v1/reputation`):**
+**Reputation & Identity (`/api/v1/reputation`):**
 - `GET /api/v1/reputation/em` — EM reputation score
 - `GET /api/v1/reputation/agents/{id}` — Agent reputation
 - `POST /api/v1/reputation/workers/rate` — Rate worker
 - `POST /api/v1/reputation/agents/rate` — Rate agent
+- `POST /api/v1/reputation/register` — Gasless agent/worker registration (any of 14 networks)
+- `GET /api/v1/reputation/networks` — List supported ERC-8004 networks
 
 **WebSocket:**
 - `WS /ws` — Real-time task notifications
@@ -520,14 +554,15 @@ When creating test tasks:
 
 | File | Purpose |
 |------|---------|
-| `mcp_server/integrations/x402/sdk_client.py` | x402 SDK wrapper — **USE THIS for all payments** |
+| `mcp_server/integrations/x402/sdk_client.py` | x402 SDK wrapper + multichain token registry (12 EVM, 4 stablecoins) — **USE THIS for all payments** |
 | `mcp_server/integrations/x402/client.py` | Direct HTTP facilitator client (fallback) |
-| `mcp_server/integrations/x402/x402r_escrow.py` | Direct contract calls (AVOID — use SDK instead) |
 | `mcp_server/integrations/x402/advanced_escrow_integration.py` | Advanced escrow flows documentation |
-| `mcp_server/integrations/erc8004/facilitator_client.py` | ERC-8004 reputation via facilitator |
+| `mcp_server/integrations/erc8004/facilitator_client.py` | ERC-8004 identity, reputation, registration (14 networks) |
+| `mcp_server/integrations/erc8004/identity.py` | Worker identity check + gasless registration |
 | `mcp_server/api/routes.py` | REST API endpoints (task CRUD, submissions, escrow) |
+| `mcp_server/api/reputation.py` | Reputation + registration endpoints |
 | `mcp_server/server.py` | MCP tools for AI agents |
 | `dashboard/src/components/TaskApplicationModal.tsx` | Task acceptance flow |
-| `dashboard/src/components/SubmissionForm.tsx` | Evidence upload (needs fix) |
+| `dashboard/src/components/SubmissionForm.tsx` | Evidence upload (uses `submitWork()` service) |
 | `dashboard/src/hooks/useProfileUpdate.ts` | Profile update with executor ID resolution |
 | `dashboard/src/context/AuthContext.tsx` | Auth state with wallet-based executor lookup |

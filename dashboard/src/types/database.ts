@@ -89,6 +89,7 @@ export interface Task {
   evidence_schema: EvidenceSchema
   bounty_usd: number
   payment_token: string
+  payment_network: string
   escrow_tx: string | null
   escrow_id: string | null
   deadline: string

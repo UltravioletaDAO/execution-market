@@ -8,15 +8,17 @@ Facilitator: https://facilitator.ultravioletadao.xyz
 
 Endpoints:
 - GET  /identity/{network}/{agentId}     - Get agent identity
+- GET  /identity/{network}/{agentId}/metadata/{key} - Get agent metadata
+- GET  /identity/{network}/total-supply  - Total registered agents
+- POST /register                         - Gasless agent registration
 - GET  /reputation/{network}/{agentId}   - Get reputation summary
 - POST /feedback                         - Submit feedback
 - POST /feedback/revoke                  - Revoke feedback
 - POST /feedback/response                - Agent responds to feedback
 
-Contracts:
-- Base Mainnet (env-configurable)
-- Ethereum Mainnet
-- Ethereum Sepolia
+Supported networks (14): All use CREATE2-deployed contracts at deterministic addresses.
+  Mainnets: ethereum, base-mainnet, polygon, arbitrum, celo, bsc, monad, avalanche
+  Testnets: ethereum-sepolia, base-sepolia, polygon-amoy, arbitrum-sepolia, celo-sepolia, avalanche-fuji
 """
 
 import os
@@ -45,24 +47,37 @@ ERC8004_NETWORK = os.environ.get("ERC8004_NETWORK", "base")
 # Execution Market Agent ID
 EM_AGENT_ID = int(os.environ.get("EM_AGENT_ID", "469"))
 
-# Contract addresses
+# Contract addresses — CREATE2 deterministic deployment (same address on all mainnets/testnets)
+_MAINNET_IDENTITY = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
+_MAINNET_REPUTATION = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
+_TESTNET_IDENTITY = "0x8004A818BFB912233c491871b3d84c89A494BD9e"
+_TESTNET_REPUTATION = "0x8004B663056A597Dffe9eCcC1965A193B7388713"
+_TESTNET_VALIDATION = "0x8004Cb1BF31DAf7788923b405b754f57acEB4272"
+
 ERC8004_CONTRACTS = {
-    "base": {
-        "identity_registry": os.environ.get("ERC8004_IDENTITY_REGISTRY_BASE", ""),
-        "reputation_registry": os.environ.get("ERC8004_REPUTATION_REGISTRY_BASE", ""),
-        "chain_id": 8453,
-    },
-    "ethereum": {
-        "identity_registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
-        "reputation_registry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
-        "chain_id": 1,
-    },
-    "ethereum-sepolia": {
-        "identity_registry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
-        "reputation_registry": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
-        "chain_id": 11155111,
-    },
+    # --- Mainnets ---
+    "ethereum":      {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 1},
+    "base":          {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 8453},
+    "polygon":       {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 137},
+    "arbitrum":      {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 42161},
+    "celo":          {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 42220},
+    "bsc":           {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 56},
+    "monad":         {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 143},
+    "avalanche":     {"identity_registry": _MAINNET_IDENTITY, "reputation_registry": _MAINNET_REPUTATION, "chain_id": 43114},
+    # --- Testnets ---
+    "ethereum-sepolia":  {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 11155111},
+    "base-sepolia":      {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 84532},
+    "polygon-amoy":      {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 80002},
+    "arbitrum-sepolia":  {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 421614},
+    "celo-sepolia":      {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 44787},
+    "avalanche-fuji":    {"identity_registry": _TESTNET_IDENTITY, "reputation_registry": _TESTNET_REPUTATION, "validation_registry": _TESTNET_VALIDATION, "chain_id": 43113},
 }
+
+# Alias: "base-mainnet" → "base" (SDK uses "base-mainnet", facilitator uses "base")
+ERC8004_CONTRACTS["base-mainnet"] = ERC8004_CONTRACTS["base"]
+
+# All supported network names
+ERC8004_SUPPORTED_NETWORKS = list(ERC8004_CONTRACTS.keys())
 
 
 # =============================================================================
@@ -224,6 +239,131 @@ class ERC8004FacilitatorClient:
 
         except Exception as e:
             logger.error("Failed to get identity for agent %d: %s", agent_id, e)
+            return None
+
+    # =========================================================================
+    # Registration (Gasless — Facilitator pays gas)
+    # =========================================================================
+
+    async def register_agent(
+        self,
+        network: str,
+        agent_uri: str,
+        metadata: Optional[List[Dict[str, str]]] = None,
+        recipient: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Register a new agent on the ERC-8004 Identity Registry (gasless).
+
+        The facilitator pays all gas fees. If recipient is specified, the minted
+        NFT is transferred to that address after registration.
+
+        Args:
+            network: ERC-8004 network (e.g. "base-mainnet", "ethereum", "polygon")
+            agent_uri: URI to agent registration file (IPFS or HTTPS)
+            metadata: Optional key-value pairs [{"key": "name", "value": "My Agent"}]
+            recipient: Optional address to receive the NFT after minting
+
+        Returns:
+            dict with success, agentId, transaction, transferTransaction, owner, network
+        """
+        if network not in ERC8004_CONTRACTS:
+            return {"success": False, "error": f"Unsupported network: {network}. Supported: {ERC8004_SUPPORTED_NETWORKS}"}
+
+        client = await self._get_client()
+
+        request_body: Dict[str, Any] = {
+            "x402Version": 1,
+            "network": network,
+            "agentUri": agent_uri,
+        }
+        if metadata:
+            request_body["metadata"] = metadata
+        if recipient:
+            request_body["recipient"] = recipient
+
+        try:
+            response = await client.post(
+                f"{self.facilitator_url}/register",
+                json=request_body,
+            )
+
+            data = response.json()
+
+            if response.status_code != 200 or not data.get("success"):
+                logger.error("Agent registration failed: %s", data)
+                return {
+                    "success": False,
+                    "error": data.get("error", f"HTTP {response.status_code}"),
+                    "network": network,
+                }
+
+            logger.info(
+                "Agent registered: agentId=%s, network=%s, tx=%s",
+                data.get("agentId"),
+                data.get("network"),
+                data.get("transaction"),
+            )
+
+            return {
+                "success": True,
+                "agentId": data.get("agentId"),
+                "transaction": data.get("transaction"),
+                "transferTransaction": data.get("transferTransaction"),
+                "owner": data.get("owner"),
+                "network": data.get("network", network),
+            }
+
+        except Exception as e:
+            logger.error("Agent registration failed: %s", e)
+            return {"success": False, "error": str(e), "network": network}
+
+    async def get_identity_metadata(
+        self,
+        agent_id: int,
+        key: str,
+        network: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Read a metadata key from an agent's ERC-8004 identity.
+
+        Args:
+            agent_id: The agent's token ID
+            key: Metadata key to read
+            network: Network to query (defaults to self.network)
+
+        Returns:
+            dict with agentId, key, valueHex, valueUtf8, network — or None
+        """
+        net = network or self.network
+        client = await self._get_client()
+
+        try:
+            response = await client.get(
+                f"{self.facilitator_url}/identity/{net}/{agent_id}/metadata/{key}"
+            )
+            if response.status_code != 200:
+                return None
+            return response.json()
+        except Exception as e:
+            logger.error("Failed to get identity metadata: %s", e)
+            return None
+
+    async def get_total_supply(self, network: Optional[str] = None) -> Optional[int]:
+        """Get total number of registered agents on a network."""
+        net = network or self.network
+        client = await self._get_client()
+
+        try:
+            response = await client.get(
+                f"{self.facilitator_url}/identity/{net}/total-supply"
+            )
+            if response.status_code != 200:
+                return None
+            data = response.json()
+            return data.get("totalSupply")
+        except Exception as e:
+            logger.error("Failed to get total supply: %s", e)
             return None
 
     # =========================================================================

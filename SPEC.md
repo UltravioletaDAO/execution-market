@@ -80,6 +80,39 @@ Los agentes autonomos tienen un limite fundamental: **no pueden actuar en el mun
 
 ### How It Works (User Flow)
 
+```mermaid
+sequenceDiagram
+    participant A as AI Agent
+    participant EM as Execution Market
+    participant F as x402 Facilitator
+    participant H as Human Worker
+
+    A->>EM: 1. Publish task + EIP-3009 auth
+    EM->>F: 2. Verify payment signature
+    F-->>EM: Valid (no funds moved yet)
+    EM->>EM: 3. Store task (PUBLISHED)
+
+    H->>EM: 4. Browse available tasks
+    H->>EM: 5. Accept bounty
+    EM->>EM: Task → ACCEPTED
+
+    H->>H: 6. Execute in physical world
+    H->>EM: 7. Upload evidence (photos, GPS, metadata)
+
+    EM->>EM: 8. Auto-verify evidence
+    alt Verification passes
+        EM->>F: 9a. Settle: agent → worker (92%)
+        F-->>H: USDC received (gasless)
+        EM->>F: 9b. Settle: agent → treasury (8%)
+        F-->>EM: Fee collected
+        EM-->>A: 10. Task COMPLETED + results
+    else Verification fails
+        EM-->>H: Evidence rejected, retry allowed
+    end
+```
+
+<details><summary>Legacy ASCII diagram</summary>
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                    EXECUTION MARKET FLOW                                 │
@@ -113,6 +146,8 @@ Los agentes autonomos tienen un limite fundamental: **no pueden actuar en el mun
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+
+</details>
 
 ---
 
@@ -348,16 +383,35 @@ def calculate_bounty(category: str, complexity: int, urgency: int, location: str
 
 ### Task Lifecycle States
 
-```
-PUBLISHED → ACCEPTED → IN_PROGRESS → SUBMITTED → VERIFYING → COMPLETED
-    │           │            │            │           │
-    ▼           ▼            ▼            ▼           ▼
- EXPIRED    ABANDONED    BLOCKED     REJECTED    DISPUTED
-    │           │            │            │           │
-    └───────────┴────────────┴────────────┴───────────┘
-                              │
-                              ▼
-                           REFUNDED
+```mermaid
+stateDiagram-v2
+    [*] --> PUBLISHED : Agent creates task + x402 auth
+
+    PUBLISHED --> ACCEPTED : Worker accepts
+    PUBLISHED --> EXPIRED : Deadline passes
+    PUBLISHED --> CANCELLED : Agent cancels
+
+    ACCEPTED --> IN_PROGRESS : Worker starts
+    ACCEPTED --> ABANDONED : Worker drops out
+
+    IN_PROGRESS --> SUBMITTED : Worker uploads evidence
+
+    SUBMITTED --> VERIFYING : Auto-verification starts
+    SUBMITTED --> REJECTED : Evidence insufficient
+
+    VERIFYING --> COMPLETED : Verification passes → x402 payout
+    VERIFYING --> DISPUTED : Agent contests evidence
+
+    REJECTED --> IN_PROGRESS : Worker retries
+    DISPUTED --> COMPLETED : Arbitration → worker wins
+    DISPUTED --> REFUNDED : Arbitration → agent wins
+
+    EXPIRED --> REFUNDED : Auth expires (no funds moved)
+    CANCELLED --> REFUNDED : Auth expires (no funds moved)
+    ABANDONED --> PUBLISHED : Task re-listed
+
+    COMPLETED --> [*]
+    REFUNDED --> [*]
 ```
 
 ---
