@@ -2,6 +2,8 @@
 
 End-to-end tests for the Execution Market application using Playwright.
 
+> **Note**: E2E tests are **disabled in CI** as of 2026-02-07. The auth setup references `[data-testid="login-form"]` which doesn't exist since the app uses Dynamic.xyz for authentication. Tests run fine locally against the dev server. Re-enable in CI after updating `fixtures/auth.ts` for Dynamic.xyz.
+
 ## Setup
 
 ```bash
@@ -206,17 +208,37 @@ Common patterns:
 
 ## CI Integration
 
-The tests are configured to work in CI:
-- Retry failed tests 2 times
-- Run single worker
-- Generate JSON report
+E2E tests are currently **disabled in CI** (`ci.yml` and `deploy.yml`). To re-enable:
 
-Example GitHub Actions:
+1. Update `fixtures/auth.ts` to work with Dynamic.xyz (replace `login-form` selectors)
+2. Add the E2E job back to `.github/workflows/ci.yml`
+3. Ensure dashboard dependencies are installed before E2E (Playwright's `webServer` starts Vite)
+
+When running in CI, the config automatically:
+- Retries failed tests 2 times
+- Uses a single worker
+- Generates JSON + HTML reports
+
+Example GitHub Actions job:
 ```yaml
-- name: Run E2E tests
-  run: |
-    cd e2e
-    npm ci
-    npm run install-browsers
-    npm test
+e2e-tests:
+  name: E2E Tests
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: 'npm'
+        cache-dependency-path: dashboard/package-lock.json
+    - run: npm ci
+      working-directory: dashboard
+    - run: npm install
+      working-directory: e2e
+    - run: npx playwright install --with-deps chromium
+      working-directory: e2e
+    - run: npx playwright test --project=chromium
+      working-directory: e2e
+      env:
+        CI: true
 ```
