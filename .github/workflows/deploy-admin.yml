@@ -12,7 +12,7 @@ env:
   S3_BUCKET: em-production-admin-dashboard
   CLOUDFRONT_DISTRIBUTION_ID: E2IUZLTDUFIAQP
   ADMIN_URL: https://admin.execution.market
-  API_URL: https://mcp.execution.market
+  API_URL: https://api.execution.market
 
 jobs:
   build-and-deploy:

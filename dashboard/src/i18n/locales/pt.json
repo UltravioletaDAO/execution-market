@@ -67,6 +67,9 @@
     "feature3Desc": "Todas as tarefas usam ChainWitness para evidencias a prova de adulteracao. Disputas sao resolvidas de forma justa.",
     "protocolStack": {
       "label": "Stack de Protocolos",
+      "headline": "Infraestrutura Trustless",
+      "subheadline": "Agentes Trustless. Humanos Trustless. Robos Trustless. — Sem intermediarios, sem custodia, sem permissao necessaria.",
+      "learnMore": "Saiba mais",
       "x402": {
         "standard": "HTTP 402",
         "description": "Pagamentos nativos da internet. Agentes pagam tarefas via HTTP — sem checkout, sem redirecionamento, sem intermediarios."
@@ -79,7 +82,8 @@
         "standard": "Escrow Programavel",
         "description": "Recompensas bloqueadas na criacao, liberadas na aprovacao. Liquidacao sem gas via o Facilitador Ultravioleta."
       },
-      "network": "Base Mainnet",
+      "networksTitle": "7 Redes EVM",
+      "networksSubtitle": "Pagamentos x402 + escrow x402r + identidade ERC-8004",
       "status": "Ao vivo"
     }
   },

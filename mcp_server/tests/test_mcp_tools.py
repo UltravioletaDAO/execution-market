@@ -608,7 +608,7 @@ class TestApplyToTask:
 
         # Get the registered tool and call it
         tool_func = None
-        for tool in mcp._tools.values():
+        for tool in mcp._tool_manager._tools.values():
             if tool.name == "em_apply_to_task":
                 tool_func = tool.fn
                 break
@@ -641,7 +641,7 @@ class TestApplyToTask:
         )
 
         tool_func = None
-        for tool in mcp._tools.values():
+        for tool in mcp._tool_manager._tools.values():
             if tool.name == "em_apply_to_task":
                 tool_func = tool.fn
                 break
@@ -671,7 +671,7 @@ class TestApplyToTask:
         )
 
         tool_func = None
-        for tool in mcp._tools.values():
+        for tool in mcp._tool_manager._tools.values():
             if tool.name == "em_apply_to_task":
                 tool_func = tool.fn
                 break
@@ -703,7 +703,7 @@ class TestApplyToTask:
         )
 
         tool_func = None
-        for tool in mcp._tools.values():
+        for tool in mcp._tool_manager._tools.values():
             if tool.name == "em_apply_to_task":
                 tool_func = tool.fn
                 break
@@ -748,7 +748,7 @@ class TestSubmitWork:
         mock_db.submit_work.side_effect = Exception("You are not assigned to this task")
 
         tool_func = None
-        for tool in mcp._tools.values():
+        for tool in mcp._tool_manager._tools.values():
             if tool.name == "em_submit_work":
                 tool_func = tool.fn
                 break
@@ -786,7 +786,7 @@ class TestSubmitWork:
         )
 
         tool_func = None
-        for tool in mcp._tools.values():
+        for tool in mcp._tool_manager._tools.values():
             if tool.name == "em_submit_work":
                 tool_func = tool.fn
                 break
@@ -824,7 +824,7 @@ class TestSubmitWork:
         )
 
         tool_func = None
-        for tool in mcp._tools.values():
+        for tool in mcp._tool_manager._tools.values():
             if tool.name == "em_submit_work":
                 tool_func = tool.fn
                 break
@@ -877,7 +877,7 @@ class TestSubmitWork:
         )
 
         tool_func = None
-        for tool in mcp._tools.values():
+        for tool in mcp._tool_manager._tools.values():
             if tool.name == "em_submit_work":
                 tool_func = tool.fn
                 break
@@ -916,7 +916,7 @@ class TestSubmitWork:
         )
 
         tool_func = None
-        for tool in mcp._tools.values():
+        for tool in mcp._tool_manager._tools.values():
             if tool.name == "em_submit_work":
                 tool_func = tool.fn
                 break

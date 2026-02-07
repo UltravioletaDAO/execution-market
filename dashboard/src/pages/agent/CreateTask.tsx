@@ -13,6 +13,7 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import type { TaskCategory, EvidenceType, EvidenceSchema, Location, TaskInsert } from '../../types/database'
+import { createTask } from '../../services/tasks'
 
 // ============================================================================
 // Types
@@ -744,10 +745,24 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         await onSubmit(taskInsert)
       }
 
-      // Simulate success for demo
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Calculate deadline hours from absolute date
+      const deadlineMs = new Date(formData.deadline).getTime() - Date.now()
+      const deadlineHours = Math.max(1, Math.ceil(deadlineMs / (1000 * 60 * 60)))
 
-      onSuccess?.('new-task-id')
+      const created = await createTask({
+        agentId,
+        title: formData.title.trim(),
+        instructions: formData.instructions.trim(),
+        category: formData.category,
+        bountyUsd: formData.bounty_usd,
+        deadlineHours,
+        evidenceRequired: formData.evidence_required,
+        evidenceOptional: formData.evidence_optional.length > 0 ? formData.evidence_optional : undefined,
+        locationHint: formData.location_hint.trim() || undefined,
+        minReputation: formData.min_reputation,
+      })
+
+      onSuccess?.(created.id)
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Error al crear la tarea')
     } finally {

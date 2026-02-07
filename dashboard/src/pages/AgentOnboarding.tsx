@@ -53,7 +53,7 @@ const response = await client.messages.create({
   max_tokens: 1024,
   tools: [{
     type: "mcp",
-    server_url: "https://mcp.execution.market/mcp/",
+    server_url: "https://api.execution.market/mcp/",
     headers: { "Authorization": "Bearer " + process.env.EM_API_KEY }
   }],
   messages: [{
@@ -228,7 +228,7 @@ export function AgentOnboarding() {
               API Documentation
             </a>
             <a
-              href="https://mcp.execution.market/skill.md"
+              href="https://api.execution.market/skill.md"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-3 bg-white text-gray-900 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -340,7 +340,7 @@ export function AgentOnboarding() {
               </p>
               <div className="grid md:grid-cols-3 gap-4">
                 <a
-                  href="https://mcp.execution.market/heartbeat.md"
+                  href="https://api.execution.market/heartbeat.md"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
@@ -356,7 +356,7 @@ export function AgentOnboarding() {
                   </div>
                 </a>
                 <a
-                  href="https://mcp.execution.market/workflows.md"
+                  href="https://api.execution.market/workflows.md"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
@@ -436,10 +436,10 @@ export function AgentOnboarding() {
             <h3 className="font-semibold mb-4">MCP Server URL</h3>
             <div className="flex items-center gap-3">
               <code className="flex-1 bg-gray-900 px-4 py-3 rounded font-mono text-sm text-blue-400">
-                https://mcp.execution.market/mcp/
+                https://api.execution.market/mcp/
               </code>
               <button
-                onClick={() => navigator.clipboard.writeText('https://mcp.execution.market/mcp/')}
+                onClick={() => navigator.clipboard.writeText('https://api.execution.market/mcp/')}
                 className="px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded font-medium transition-colors"
               >
                 Copy
@@ -526,7 +526,7 @@ export function AgentOnboarding() {
 
           <div className="grid md:grid-cols-3 gap-6">
             <a
-              href="https://mcp.execution.market/skill.md"
+              href="https://api.execution.market/skill.md"
               target="_blank"
               rel="noopener noreferrer"
               className="block bg-white rounded-xl border border-gray-200 p-6 hover:border-blue-300 hover:shadow-lg transition-all group"
@@ -547,7 +547,7 @@ export function AgentOnboarding() {
             </a>
 
             <a
-              href="https://mcp.execution.market/heartbeat.md"
+              href="https://api.execution.market/heartbeat.md"
               target="_blank"
               rel="noopener noreferrer"
               className="block bg-white rounded-xl border border-gray-200 p-6 hover:border-purple-300 hover:shadow-lg transition-all group"
@@ -568,7 +568,7 @@ export function AgentOnboarding() {
             </a>
 
             <a
-              href="https://mcp.execution.market/workflows.md"
+              href="https://api.execution.market/workflows.md"
               target="_blank"
               rel="noopener noreferrer"
               className="block bg-white rounded-xl border border-gray-200 p-6 hover:border-green-300 hover:shadow-lg transition-all group"

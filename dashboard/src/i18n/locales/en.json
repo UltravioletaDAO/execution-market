@@ -78,6 +78,9 @@
     },
     "protocolStack": {
       "label": "Protocol Stack",
+      "headline": "Trustless Infrastructure",
+      "subheadline": "Trustless Agents. Trustless Humans. Trustless Robots. — No intermediaries, no custody, no permission needed.",
+      "learnMore": "Learn more",
       "x402": {
         "standard": "HTTP 402",
         "description": "Native internet payments. Agents pay for tasks over HTTP — no checkout, no redirect, no middleman."
@@ -90,7 +93,8 @@
         "standard": "Programmable Escrow",
         "description": "Bounties locked at creation, released on approval. Gasless settlement via the Ultravioleta Facilitator."
       },
-      "network": "Base Mainnet",
+      "networksTitle": "7 EVM Networks",
+      "networksSubtitle": "x402 payments + x402r escrow + ERC-8004 identity",
       "status": "Live"
     }
   },

@@ -101,6 +101,10 @@ ENABLED_NETWORKS = [n.strip() for n in _enabled_raw.split(",") if n.strip()]
 
 NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     # --- Production Mainnets ---
+    # Networks with x402r escrow contracts are marked with "escrow" and "factory" fields.
+    # x402r escrow = authorize/release/refund lifecycle for task payments.
+    # Factory = deploys PaymentOperator instances per merchant.
+    # BSC is excluded from escrow (no stables deployed on x402r yet).
     "base": {
         "chain_id": 8453,
         "tokens": {
@@ -123,6 +127,8 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
+        "escrow": "0xb9488351eB02Cd956c78cDe1e2f10e3C7B18Af3d",
+        "factory": "0x3D0837fF8Ea36F417261577b9BA568400A840260",
     },
     "ethereum": {
         "chain_id": 1,
@@ -152,6 +158,8 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
+        "escrow": "0xc1256Bb3d74E1a3aBe8F16D5bA1F686F25398e35",
+        "factory": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
     },
     "polygon": {
         "chain_id": 137,
@@ -169,6 +177,8 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
+        "escrow": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+        "factory": "0xb33D6502EdBbC47201cd1E53C49d703EC0a660b8",
     },
     "arbitrum": {
         "chain_id": 42161,
@@ -186,6 +196,59 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
+        "escrow": "0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1",
+        "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+    },
+    "celo": {
+        "chain_id": 42220,
+        "tokens": {
+            "USDC": {
+                "address": "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
+                "name": "USD Coin",
+                "version": "1",
+                "decimals": 6,
+            },
+            "USDT": {
+                "address": "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
+                "name": "Tether USD",
+                "version": "1",
+                "decimals": 6,
+            },
+        },
+        "escrow": "0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1",
+        "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+    },
+    "monad": {
+        "chain_id": 143,
+        "tokens": {
+            "USDC": {
+                "address": "0xf817257fed379853cBe764A74bA9988EEede8c4C",
+                "name": "USD Coin",
+                "version": "1",
+                "decimals": 6,
+            },
+        },
+        "escrow": "0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1",
+        "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+    },
+    "avalanche": {
+        "chain_id": 43114,
+        "tokens": {
+            "USDC": {
+                "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+                "name": "USD Coin",
+                "version": "1",
+                "decimals": 6,
+            },
+            "USDT": {
+                "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+                "name": "Tether USD",
+                "version": "1",
+                "decimals": 6,
+            },
+        },
+        "escrow": "0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1",
+        "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
     },
     "optimism": {
         "chain_id": 10,
@@ -248,6 +311,8 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
+        "escrow": "0x29025c0E22D4ef52e931E8B3Fb74073C32E4e5f2",
+        "factory": "0x97d53e63A9CB97556c00BeFd325AF810c9b267B2",
     },
     "ethereum-sepolia": {
         "chain_id": 11155111,
@@ -259,6 +324,8 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
+        "escrow": "0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1",
+        "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
     },
     "polygon-amoy": {
         "chain_id": 80002,
@@ -322,6 +389,23 @@ def get_supported_networks() -> list:
 def get_enabled_networks() -> list:
     """Return list of currently ENABLED payment networks (accepting payments)."""
     return sorted(n for n in ENABLED_NETWORKS if n in NETWORK_CONFIG)
+
+
+def get_escrow_networks() -> list:
+    """Return list of networks with x402r escrow contracts deployed."""
+    return sorted(n for n, c in NETWORK_CONFIG.items() if c.get("escrow"))
+
+
+def get_escrow_config(network: str) -> Optional[Dict[str, str]]:
+    """Get escrow contract addresses for a network, or None if not supported."""
+    net_config = NETWORK_CONFIG.get(network)
+    if not net_config or not net_config.get("escrow"):
+        return None
+    return {
+        "escrow": net_config["escrow"],
+        "factory": net_config.get("factory", ""),
+        "chain_id": net_config["chain_id"],
+    }
 
 
 def is_network_enabled(network: str) -> bool:

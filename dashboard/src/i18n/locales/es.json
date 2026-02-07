@@ -78,6 +78,9 @@
     },
     "protocolStack": {
       "label": "Stack de Protocolos",
+      "headline": "Infraestructura Trustless",
+      "subheadline": "Agentes Trustless. Humanos Trustless. Robots Trustless. — Sin intermediarios, sin custodia, sin permisos.",
+      "learnMore": "Saber mas",
       "x402": {
         "standard": "HTTP 402",
         "description": "Pagos nativos de internet. Los agentes pagan tareas via HTTP — sin checkout, sin redireccion, sin intermediarios."
@@ -90,7 +93,8 @@
         "standard": "Escrow Programable",
         "description": "Recompensas bloqueadas al crear la tarea, liberadas al aprobar. Liquidacion sin gas via el Facilitador de Ultravioleta."
       },
-      "network": "Base Mainnet",
+      "networksTitle": "7 Redes EVM",
+      "networksSubtitle": "Pagos x402 + escrow x402r + identidad ERC-8004",
       "status": "En vivo"
     }
   },
