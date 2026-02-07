@@ -1,16 +1,21 @@
 // Execution Market: Evidence Submission Form
+// Uses the full EvidenceUpload component (camera, GPS, EXIF) for photo types
+// and file inputs for non-photo types (video, document, etc.)
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Task, EvidenceType, Executor } from '../types/database'
 import {
   uploadEvidenceFile,
   collectForensicMetadata,
-  isS3PipelineEnabled,
   type EvidenceMetadata,
   type UploadResult,
 } from '../services/evidence'
 import { submitWork } from '../services/submissions'
 import type { Evidence } from '../services/types'
+import {
+  EvidenceUpload,
+  type UploadedEvidence,
+} from './evidence/EvidenceUpload'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.execution.market'
@@ -44,9 +49,12 @@ interface EvidenceFile {
   verification?: VerificationResult
 }
 
+// Types that benefit from camera capture + GPS
+const CAMERA_TYPES: EvidenceType[] = ['photo', 'photo_geo']
+
+const isCameraType = (type: EvidenceType) => CAMERA_TYPES.includes(type)
+
 const EVIDENCE_TYPE_CONFIG: Record<string, { accept: string; icon: string }> = {
-  photo: { accept: 'image/*', icon: '📷' },
-  photo_geo: { accept: 'image/*', icon: '📍' },
   video: { accept: 'video/*', icon: '🎥' },
   document: { accept: '.pdf,.doc,.docx', icon: '📄' },
   receipt: { accept: 'image/*,.pdf', icon: '🧾' },
@@ -67,8 +75,13 @@ export function SubmissionForm({
   onCancel,
 }: SubmissionFormProps) {
   const { t } = useTranslation()
+  // File-based evidence (non-camera types)
   const [files, setFiles] = useState<Map<EvidenceType, EvidenceFile>>(new Map())
+  // Text evidence
   const [textResponses, setTextResponses] = useState<Map<string, string>>(new Map())
+  // Camera evidence from EvidenceUpload component
+  const [cameraEvidence, setCameraEvidence] = useState<UploadedEvidence[]>([])
+  const [cameraComplete, setCameraComplete] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
@@ -77,14 +90,44 @@ export function SubmissionForm({
   const allOptional = task.evidence_schema.optional || []
   const [forensicMetadata, setForensicMetadata] = useState<EvidenceMetadata | null>(null)
 
+  // Categorize evidence types
+  const cameraRequired = allRequired.filter(isCameraType)
+  const cameraOptional = allOptional.filter(isCameraType)
+  const fileRequired = allRequired.filter((t) => !isCameraType(t) && !isTextType(t))
+  const fileOptional = allOptional.filter((t) => !isCameraType(t) && !isTextType(t))
+  const textRequired = allRequired.filter(isTextType)
+  const textOptional = allOptional.filter(isTextType)
+
+  const hasCameraTypes = cameraRequired.length > 0 || cameraOptional.length > 0
+
   // Collect forensic metadata once on mount
   useEffect(() => {
     collectForensicMetadata().then(setForensicMetadata).catch(() => {})
   }, [])
 
-  const isTextType = (type: EvidenceType) =>
-    type === 'text_response' || type === 'measurement'
+  // Parse task location hint into coordinates if available
+  const taskLocation = (() => {
+    const hint = task.location_hint
+    if (!hint) return undefined
+    // Try to parse "lat,lng" or "lat, lng" format
+    const match = hint.match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/)
+    if (match) {
+      return { lat: parseFloat(match[1]), lng: parseFloat(match[2]), radiusKm: 1 }
+    }
+    return undefined
+  })()
 
+  // Camera evidence handlers
+  const handleCameraComplete = useCallback((evidence: UploadedEvidence[]) => {
+    setCameraEvidence(evidence)
+    setCameraComplete(true)
+  }, [])
+
+  const handleCameraEvidenceAdded = useCallback((ev: UploadedEvidence) => {
+    setCameraEvidence((prev) => [...prev.filter((e) => e.evidenceType !== ev.evidenceType), ev])
+  }, [])
+
+  // File-based evidence handlers
   const doUpload = async (evidenceFile: EvidenceFile): Promise<UploadResult> => {
     return uploadEvidenceFile({
       file: evidenceFile.file,
@@ -123,7 +166,6 @@ export function SubmissionForm({
     }
   }
 
-  // Upload immediately when file is selected, then verify
   const handleFileSelect = useCallback(
     async (type: EvidenceType, file: File) => {
       let preview: string | undefined
@@ -148,7 +190,6 @@ export function SubmissionForm({
           return next
         })
 
-        // Run AI verification for image types
         if (isImageType(file.type)) {
           setFiles((prev) => {
             const next = new Map(prev)
@@ -175,7 +216,7 @@ export function SubmissionForm({
         })
       }
     },
-    [executor.id, task.id, t]
+    [executor.id, task.id, t],
   )
 
   const handleTextChange = useCallback((type: string, value: string) => {
@@ -196,7 +237,6 @@ export function SubmissionForm({
       next.delete(type)
       return next
     })
-    // Reset the input so the same file can be re-selected
     const input = fileInputRefs.current.get(type)
     if (input) input.value = ''
   }, [])
@@ -206,11 +246,11 @@ export function SubmissionForm({
     setError(null)
 
     try {
-      // Validate required evidence
+      // Validate required evidence across all sources
+      const cameraEvidenceTypes = new Set(cameraEvidence.map((e) => e.evidenceType))
       const missingRequired = allRequired.filter((evType) => {
-        if (isTextType(evType)) {
-          return !textResponses.get(evType)?.trim()
-        }
+        if (isTextType(evType)) return !textResponses.get(evType)?.trim()
+        if (isCameraType(evType)) return !cameraEvidenceTypes.has(evType)
         return !files.has(evType)
       })
 
@@ -221,15 +261,37 @@ export function SubmissionForm({
         throw new Error(t('submission.missingEvidence', { items }))
       }
 
-      // Check all files are uploaded (they should be, since we upload on select)
-      const notUploaded = [...files.values()].filter(f => !f.uploaded)
+      // Check all file-based evidence is uploaded
+      const notUploaded = [...files.values()].filter((f) => !f.uploaded)
       if (notUploaded.length > 0) {
         throw new Error(t('submission.uploadError'))
       }
 
-      // Build evidence in the Evidence format expected by the service layer
+      // Build evidence record from all sources
       const evidence: Record<string, Evidence> = {}
 
+      // 1. Camera evidence (from EvidenceUpload component)
+      for (const uploaded of cameraEvidence) {
+        evidence[uploaded.evidenceType] = {
+          type: uploaded.evidenceType,
+          fileUrl: uploaded.url,
+          filename: uploaded.metadata.filename,
+          mimeType: uploaded.metadata.mimeType,
+          metadata: {
+            size: uploaded.metadata.size,
+            storagePath: uploaded.path,
+            source: uploaded.metadata.source,
+            gps: uploaded.metadata.gps,
+            captureTimestamp: uploaded.metadata.captureTimestamp,
+            deviceInfo: uploaded.metadata.deviceInfo,
+            imageWidth: uploaded.metadata.imageWidth,
+            imageHeight: uploaded.metadata.imageHeight,
+            verification: uploaded.verification,
+          },
+        }
+      }
+
+      // 2. File-based evidence
       for (const [type, evidenceFile] of files) {
         if (evidenceFile.uploadedPath) {
           const entry: Evidence = {
@@ -247,7 +309,6 @@ export function SubmissionForm({
           if (evidenceFile.uploadResult?.nonce) {
             entry.metadata!.nonce = evidenceFile.uploadResult.nonce
           }
-          // Include AI verification result if available
           if (evidenceFile.verification) {
             entry.metadata!.ai_verification = {
               verified: evidenceFile.verification.verified,
@@ -255,7 +316,6 @@ export function SubmissionForm({
               decision: evidenceFile.verification.decision,
             }
           }
-          // Include forensic metadata if collected
           if (forensicMetadata) {
             entry.metadata!.forensic = forensicMetadata
           }
@@ -263,7 +323,7 @@ export function SubmissionForm({
         }
       }
 
-      // Add text responses
+      // 3. Text responses
       for (const [type, value] of textResponses) {
         if (value.trim()) {
           evidence[type] = {
@@ -273,7 +333,6 @@ export function SubmissionForm({
         }
       }
 
-      // Use the service layer which handles submission insert + task status update
       await submitWork({
         taskId: task.id,
         executorId: executor.id,
@@ -315,7 +374,6 @@ export function SubmissionForm({
       )
     }
 
-    // "needs_human" = AI unavailable, don't show warning
     if (v.decision === 'needs_human' && v.confidence === 0) {
       return null
     }
@@ -340,32 +398,10 @@ export function SubmissionForm({
     )
   }
 
-  const renderEvidenceInput = (type: EvidenceType, required: boolean) => {
+  const renderFileInput = (type: EvidenceType, required: boolean) => {
     const config = EVIDENCE_TYPE_CONFIG[type]
     const evidenceFile = files.get(type)
-    const textValue = textResponses.get(type) || ''
     const label = t(`tasks.evidenceTypes.${type}`, type)
-
-    if (isTextType(type)) {
-      return (
-        <div key={type} className="p-4 border border-gray-200 rounded-lg">
-          <label className="block">
-            <span className="flex items-center gap-2 font-medium text-gray-700 mb-2">
-              <span>{config?.icon}</span>
-              <span>{label}</span>
-              {required && <span className="text-red-500">*</span>}
-            </span>
-            <textarea
-              value={textValue}
-              onChange={(e) => handleTextChange(type, e.target.value)}
-              placeholder={type === 'measurement' ? t('submission.measurementPlaceholder') : t('submission.textPlaceholder')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              rows={3}
-            />
-          </label>
-        </div>
-      )
-    }
 
     return (
       <div key={type} className="p-4 border border-gray-200 rounded-lg">
@@ -423,7 +459,6 @@ export function SubmissionForm({
                 <span className="text-sm text-red-600">{evidenceFile.error}</span>
                 <button
                   onClick={() => {
-                    // Re-upload the same file
                     const file = evidenceFile.file
                     removeFile(type)
                     handleFileSelect(type, file)
@@ -453,7 +488,6 @@ export function SubmissionForm({
               </button>
             )}
 
-            {/* AI Verification result */}
             {evidenceFile.uploaded && renderVerificationBadge(evidenceFile)}
           </div>
         ) : (
@@ -490,8 +524,36 @@ export function SubmissionForm({
     )
   }
 
+  const renderTextInput = (type: EvidenceType, required: boolean) => {
+    const config = EVIDENCE_TYPE_CONFIG[type]
+    const textValue = textResponses.get(type) || ''
+    const label = t(`tasks.evidenceTypes.${type}`, type)
+
+    return (
+      <div key={type} className="p-4 border border-gray-200 rounded-lg">
+        <label className="block">
+          <span className="flex items-center gap-2 font-medium text-gray-700 mb-2">
+            <span>{config?.icon}</span>
+            <span>{label}</span>
+            {required && <span className="text-red-500">*</span>}
+          </span>
+          <textarea
+            value={textValue}
+            onChange={(e) => handleTextChange(type, e.target.value)}
+            placeholder={type === 'measurement' ? t('submission.measurementPlaceholder') : t('submission.textPlaceholder')}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            rows={3}
+          />
+        </label>
+      </div>
+    )
+  }
+
   // Check if any file is still uploading or verifying
-  const anyPending = [...files.values()].some(f => f.uploading || f.verifying)
+  const anyFilePending = [...files.values()].some((f) => f.uploading || f.verifying)
+  // Camera types: if there are required camera types but none completed yet
+  const anyCameraPending = cameraRequired.length > 0 && !cameraComplete
+  const anyPending = anyFilePending || anyCameraPending
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -520,26 +582,50 @@ export function SubmissionForm({
           </div>
         )}
 
-        {/* Required evidence */}
-        {allRequired.length > 0 && (
+        {/* Camera evidence (photo, photo_geo) — uses full EvidenceUpload with camera + GPS */}
+        {hasCameraTypes && (
           <section>
             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
-              {t('submission.requiredEvidence')}
+              {t('submission.photoEvidence', 'Photo Evidence')}
+            </h3>
+            <EvidenceUpload
+              taskId={task.id}
+              executorId={executor.id}
+              requiredTypes={cameraRequired}
+              optionalTypes={cameraOptional}
+              onComplete={handleCameraComplete}
+              onEvidenceAdded={handleCameraEvidenceAdded}
+              onError={(err) => setError(err)}
+              requireCamera={false}
+              requireGps={cameraRequired.includes('photo_geo' as EvidenceType)}
+              taskLocation={taskLocation}
+              className="border border-gray-200 rounded-lg p-4"
+            />
+          </section>
+        )}
+
+        {/* File-based evidence (video, document, receipt, etc.) */}
+        {(fileRequired.length > 0 || fileOptional.length > 0) && (
+          <section>
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
+              {t('submission.fileEvidence', 'File Evidence')}
             </h3>
             <div className="space-y-3">
-              {allRequired.map((type) => renderEvidenceInput(type, true))}
+              {fileRequired.map((type) => renderFileInput(type, true))}
+              {fileOptional.map((type) => renderFileInput(type, false))}
             </div>
           </section>
         )}
 
-        {/* Optional evidence */}
-        {allOptional.length > 0 && (
+        {/* Text responses (text_response, measurement) */}
+        {(textRequired.length > 0 || textOptional.length > 0) && (
           <section>
             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
-              {t('submission.optionalEvidence')}
+              {t('submission.textEvidence', 'Text Responses')}
             </h3>
             <div className="space-y-3">
-              {allOptional.map((type) => renderEvidenceInput(type, false))}
+              {textRequired.map((type) => renderTextInput(type, true))}
+              {textOptional.map((type) => renderTextInput(type, false))}
             </div>
           </section>
         )}
@@ -563,4 +649,8 @@ export function SubmissionForm({
       </div>
     </div>
   )
+}
+
+function isTextType(type: EvidenceType): boolean {
+  return type === 'text_response' || type === 'measurement'
 }
