@@ -409,12 +409,12 @@ Wrong Flow (DO NOT USE):
 - [x] ~~`x402r_escrow.py` ABI mismatch~~ — FIXED: file deleted, SDK + Facilitator used instead
 - [x] ~~Fee rounding to $0.00 on small bounties~~ — FIXED: 6-decimal quantization + $0.01 minimum fee
 - [x] ~~Multichain support~~ — DONE: 12 EVM networks in token registry, `EM_ENABLED_NETWORKS` env var gates active chains
-- [ ] `routes.py` `create_task()` escrow wiring calls contracts directly — must use SDK/facilitator
-- [ ] `routes.py` `approve_submission()` escrow release calls contracts directly — must use `sdk_client.settle_task_payment()`
+- [x] ~~`routes.py` escrow wiring called contracts directly~~ — FIXED: `create_task()` uses `verify_x402_payment()`, `approve_submission()` uses `sdk.settle_task_payment()`
+- [x] ~~`escrow.py` endpoints referenced deleted `x402r_escrow.py`~~ — FIXED: dead code removed, endpoints return 410 Gone or use SDK
 
 **Escrow**:
 - [ ] $0.10 USDC stuck in vault from direct relay deposit (tx `0xda31cbe...`). Needs refund or contract expiry
-- [ ] Deposit limit: $100 max per deposit (contract-enforced)
+- [ ] Deposit limit: $100 max per deposit (contract-enforced, only relevant if using direct relay deposits)
 
 **Infrastructure**:
 - [x] ~~`ANTHROPIC_API_KEY` not in ECS~~ — FIXED: Added to task def rev 23, AI verification now real
