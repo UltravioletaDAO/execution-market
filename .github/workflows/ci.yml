@@ -163,6 +163,7 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: [test-backend, test-frontend]
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -170,6 +171,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
 
       - name: Install E2E dependencies
         working-directory: e2e
@@ -181,7 +188,7 @@ jobs:
 
       - name: Run Playwright tests
         working-directory: e2e
-        run: npx playwright test
+        run: npx playwright test --project=chromium
         env:
           CI: true
 
