@@ -16,7 +16,9 @@ env:
   DASHBOARD_ECR_REPO: em-production-dashboard
   ECS_CLUSTER: em-production-cluster
   MCP_SERVER_SERVICE: em-production-mcp-server
+  MCP_SERVER_CONTAINER: mcp-server
   DASHBOARD_SERVICE: em-production-dashboard
+  DASHBOARD_CONTAINER: dashboard
   BASE_URL: https://app.execution.market
 
 jobs:
@@ -196,7 +198,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: mcp-server-task-def.json
-          container-name: ${{ env.MCP_SERVER_SERVICE }}
+          container-name: ${{ env.MCP_SERVER_CONTAINER }}
           image: ${{ env.ECR_REGISTRY }}/${{ env.MCP_SERVER_ECR_REPO }}:${{ github.sha }}
 
       - name: Deploy MCP Server to ECS
@@ -218,7 +220,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: dashboard-task-def.json
-          container-name: ${{ env.DASHBOARD_SERVICE }}
+          container-name: ${{ env.DASHBOARD_CONTAINER }}
           image: ${{ env.ECR_REGISTRY }}/${{ env.DASHBOARD_ECR_REPO }}:${{ github.sha }}
 
       - name: Deploy Dashboard to ECS
