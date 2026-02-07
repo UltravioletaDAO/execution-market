@@ -5,7 +5,7 @@ Tests for applications table schema alignment helper.
 from types import SimpleNamespace
 
 
-from .. import supabase_client as db
+import supabase_client as db
 
 
 class _ProbeQuery:
