@@ -72,6 +72,14 @@ videos/insights-2026/
 .claude/skills/web-design-guidelines
 .claude/skills/skill-creator
 
+# Terra4mice state (local convergence tracking)
+terra4mice.state.json
+terra4mice.state.json.bak
+mcp_server/terra4mice.state.json
+
+# Windows artifacts
+nul
+
 # Misc
 .unused/
 .internal/

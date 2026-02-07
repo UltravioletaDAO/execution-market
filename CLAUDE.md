@@ -193,6 +193,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | Resource | Details |
 |----------|---------|
 | AWS Account | `YOUR_AWS_ACCOUNT_ID` (default profile) |
+| AWS CLI Access | **Full access** — Claude Code can run `aws` commands directly |
 | Region | `us-east-2` (Ohio) |
 | Compute | ECS Fargate (`em-production-cluster`) |
 | Container Registry | ECR `us-east-2`: `em-production-dashboard`, `em-production-mcp-server` |
@@ -419,7 +420,7 @@ Wrong Flow (DO NOT USE):
 **Infrastructure**:
 - [x] ~~`ANTHROPIC_API_KEY` not in ECS~~ — FIXED: Added to task def rev 23, AI verification now real
 - [x] ~~`ERC8004_NETWORK` / `EM_AGENT_ID` not in ECS~~ — FIXED: `base` / `2106` in task def rev 23
-- [ ] Admin dashboard not deployed (built but no CI/CD)
+- [x] ~~Admin dashboard not deployed~~ — DONE: S3 + CloudFront at `admin.execution.market`
 
 ### Task Factory Guidelines
 
@@ -542,11 +543,23 @@ When creating test tasks:
 - `WS /ws` — Real-time task notifications
 - `GET /ws/stats` — WebSocket stats
 
+#### Admin Dashboard (`admin.execution.market`)
+
+| Resource | Details |
+|----------|---------|
+| URL | `https://admin.execution.market` |
+| Hosting | S3 (`em-production-admin-dashboard`) + CloudFront (`E2IUZLTDUFIAQP`) |
+| CDN Domain | `d10ucc05zs1fwn.cloudfront.net` |
+| ACM Cert | `arn:aws:acm:us-east-1:YOUR_AWS_ACCOUNT_ID:certificate/841084f8-b130-4b12-87ee-88ac7d81be24` |
+| OAC | `E3HPQ9VBJWQVDR` |
+| Auth | Admin key via `X-Admin-Key` header (key in `EM_ADMIN_KEY` secret) |
+| Deploy | `cd admin-dashboard && VITE_API_URL=https://mcp.execution.market npm run build && aws s3 sync dist/ s3://em-production-admin-dashboard/ --delete --cache-control "public, max-age=31536000" --exclude "index.html" && aws s3 cp dist/index.html s3://em-production-admin-dashboard/index.html --cache-control "no-cache" --content-type "text/html"` |
+| Terraform | `infrastructure/terraform/admin-dashboard.tf` (resources created via CLI, importable) |
+
 #### Not Yet Deployed
 
 | App | Directory | Intended URL | Status |
 |-----|-----------|-------------|--------|
-| Admin Dashboard | `admin-dashboard/` | `admin.execution.market` | Built, no CI/CD pipeline |
 | Docs Site | `docs-site/` | `docs.execution.market` | VitePress, no pipeline |
 | Landing Pages | `landing/` | N/A | Static HTML, no deployment |
 
