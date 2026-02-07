@@ -365,27 +365,38 @@ class HealthChecker:
             )
 
     async def check_anthropic(self) -> ComponentHealth:
-        """Check Anthropic API access."""
-        api_key = os.getenv("ANTHROPIC_API_KEY")
-        if not api_key:
-            return ComponentHealth(
-                name="anthropic",
-                status=HealthStatus.DEGRADED,
-                message="API key not configured"
-            )
+        """Check AI verification providers."""
+        try:
+            from verification.providers import list_available_providers
+            providers = list_available_providers()
+            available = [p for p in providers if p["available"]]
 
-        # Validate key format without making API call
-        if api_key.startswith("sk-ant-"):
+            if not available:
+                return ComponentHealth(
+                    name="ai_verification",
+                    status=HealthStatus.DEGRADED,
+                    message="No AI provider configured (set ANTHROPIC_API_KEY, OPENAI_API_KEY, or AWS Bedrock)"
+                )
+
+            names = ", ".join(f"{p['name']}({p['model']})" for p in available)
             return ComponentHealth(
-                name="anthropic",
+                name="ai_verification",
                 status=HealthStatus.HEALTHY,
-                message="API key configured (format valid)"
+                message=f"Providers: {names}"
             )
-        else:
+        except Exception as e:
+            # Fallback to legacy check
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+            if api_key and api_key.startswith("sk-ant-"):
+                return ComponentHealth(
+                    name="ai_verification",
+                    status=HealthStatus.HEALTHY,
+                    message="Anthropic API key configured"
+                )
             return ComponentHealth(
-                name="anthropic",
+                name="ai_verification",
                 status=HealthStatus.DEGRADED,
-                message="Invalid API key format"
+                message=f"Check failed: {e}"
             )
 
     async def check_x402(self) -> ComponentHealth:

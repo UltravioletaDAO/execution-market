@@ -1,19 +1,33 @@
 """
-AI-Powered Evidence Verification using Claude Vision
+AI-Powered Evidence Verification (Multi-Provider)
 
-Uses Claude's vision capabilities to verify task completion evidence.
+Uses vision-capable AI models to verify task completion evidence.
 Provides a second layer of verification after auto-checks pass.
+
+Supported providers (configurable via AI_VERIFICATION_PROVIDER env):
+- anthropic: Claude Vision (default)
+- openai: GPT-4o Vision
+- bedrock: AWS Bedrock (Claude via AWS)
 """
 
 import os
 import json
-import base64
+import logging
 from dataclasses import dataclass
 from typing import Optional, List
 from enum import Enum
 
-import anthropic
 import httpx
+
+from .providers import (
+    VerificationProvider,
+    VisionRequest,
+    VisionResponse,
+    get_provider,
+    list_available_providers,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class VerificationDecision(Enum):
@@ -31,30 +45,42 @@ class VerificationResult:
     explanation: str
     issues: List[str]
     task_specific_checks: dict
+    provider: str = "unknown"
+    model: str = "unknown"
 
 
 class AIVerifier:
     """
-    Verifies task evidence using Claude Vision.
+    Verifies task evidence using AI vision models.
 
-    Supports multiple task types with specialized prompts:
-    - store_verification: Verify store/business photos
-    - photo_verification: General photo verification
-    - delivery: Verify delivery completion
-    - presence: Verify physical presence at location
+    Supports multiple providers via the providers.py abstraction.
+    Set AI_VERIFICATION_PROVIDER env to switch providers.
     """
 
-    def __init__(self, api_key: Optional[str] = None):
-        """
-        Initialize AI verifier.
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        provider_name: Optional[str] = None,
+        provider: Optional[VerificationProvider] = None,
+    ):
+        if provider:
+            self._provider = provider
+        else:
+            kwargs = {}
+            if api_key:
+                kwargs["api_key"] = api_key
+            try:
+                self._provider = get_provider(provider_name, **kwargs)
+            except ValueError:
+                self._provider = None
 
-        Args:
-            api_key: Anthropic API key (default: env ANTHROPIC_API_KEY)
-        """
-        self.client = anthropic.Anthropic(
-            api_key=api_key or os.environ.get("ANTHROPIC_API_KEY")
-        )
-        self.model = "claude-sonnet-4-20250514"
+    @property
+    def provider_name(self) -> str:
+        return self._provider.name if self._provider else "none"
+
+    @property
+    def is_available(self) -> bool:
+        return self._provider is not None and self._provider.is_available()
 
     async def verify_evidence(
         self,
@@ -73,22 +99,25 @@ class AIVerifier:
         Returns:
             VerificationResult with decision and explanation
         """
-        # Download and encode images
+        if not self._provider:
+            return VerificationResult(
+                decision=VerificationDecision.NEEDS_HUMAN,
+                confidence=0.0,
+                explanation="No AI verification provider available",
+                issues=["No provider configured"],
+                task_specific_checks={},
+            )
+
+        # Download images
         images = []
+        image_types = []
         for url in photo_urls[:4]:  # Max 4 images
             try:
                 image_data = await self._download_image(url)
-                images.append({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": self._get_media_type(url),
-                        "data": base64.b64encode(image_data).decode()
-                    }
-                })
+                images.append(image_data)
+                image_types.append(self._get_media_type(url))
             except Exception as e:
-                # Log but continue with other images
-                print(f"Failed to download image {url}: {e}")
+                logger.warning("Failed to download image %s: %s", url, e)
 
         if not images:
             return VerificationResult(
@@ -96,47 +125,45 @@ class AIVerifier:
                 confidence=0.0,
                 explanation="No valid images could be downloaded for verification",
                 issues=["Failed to download any images"],
-                task_specific_checks={}
+                task_specific_checks={},
             )
 
-        # Build verification prompt
+        # Build prompt
         prompt = self._build_verification_prompt(task, evidence)
 
         try:
-            # Call Claude Vision
-            message = self.client.messages.create(
-                model=self.model,
+            response = await self._provider.analyze(VisionRequest(
+                prompt=prompt,
+                images=images,
+                image_types=image_types,
                 max_tokens=1024,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            *images,
-                            {
-                                "type": "text",
-                                "text": prompt
-                            }
-                        ]
-                    }
-                ]
+            ))
+
+            result = self._parse_response(response.text)
+            result.provider = response.provider
+            result.model = response.model
+
+            logger.info(
+                "AI verification via %s/%s: decision=%s confidence=%.2f",
+                response.provider, response.model,
+                result.decision.value, result.confidence,
             )
 
-            # Parse response
-            return self._parse_response(message.content[0].text)
+            return result
 
         except Exception as e:
-            # On API error, escalate to human
+            logger.error("AI verification failed (%s): %s", self.provider_name, e)
             return VerificationResult(
                 decision=VerificationDecision.NEEDS_HUMAN,
                 confidence=0.0,
                 explanation=f"AI verification failed: {str(e)}",
                 issues=["AI verification error"],
-                task_specific_checks={}
+                task_specific_checks={},
+                provider=self.provider_name,
             )
 
     def _build_verification_prompt(self, task: dict, evidence: dict) -> str:
-        """Build the verification prompt for Claude."""
-
+        """Build the verification prompt."""
         task_type = task.get("task_type", task.get("category", "general"))
         prompt_template = self._get_prompt_for_task_type(task_type)
 
@@ -181,7 +208,6 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
 
     def _get_prompt_for_task_type(self, task_type: str) -> str:
         """Get specialized prompt additions for task type."""
-
         prompts = {
             "store_verification": """
 ## Store Verification Specific Checks
@@ -243,25 +269,19 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
             return "- No specific requirements listed"
 
         lines = []
-
-        # Handle schema format
         if isinstance(requirements, dict):
             required = requirements.get("required", [])
             optional = requirements.get("optional", [])
-
             if required:
                 for item in required:
                     if isinstance(item, str):
                         lines.append(f"- {item.replace('_', ' ').title()} (required)")
                     elif isinstance(item, dict):
                         lines.append(f"- {item.get('type', 'Unknown').replace('_', ' ').title()} (required)")
-
             if optional:
                 for item in optional:
                     if isinstance(item, str):
                         lines.append(f"- {item.replace('_', ' ').title()} (optional)")
-
-        # Handle list format
         elif isinstance(requirements, list):
             for item in requirements:
                 lines.append(f"- {item.replace('_', ' ').title()}")
@@ -287,10 +307,8 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
         return "image/jpeg"
 
     def _parse_response(self, response_text: str) -> VerificationResult:
-        """Parse Claude's response into VerificationResult."""
-
+        """Parse AI response into VerificationResult."""
         try:
-            # Extract JSON from response
             json_start = response_text.find("{")
             json_end = response_text.rfind("}") + 1
 
@@ -303,7 +321,7 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
             decision_map = {
                 "approved": VerificationDecision.APPROVED,
                 "rejected": VerificationDecision.REJECTED,
-                "needs_human": VerificationDecision.NEEDS_HUMAN
+                "needs_human": VerificationDecision.NEEDS_HUMAN,
             }
 
             return VerificationResult(
@@ -311,17 +329,16 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
                 confidence=float(data.get("confidence", 0.5)),
                 explanation=data.get("explanation", "No explanation provided"),
                 issues=data.get("issues", []),
-                task_specific_checks=data.get("task_checks", {})
+                task_specific_checks=data.get("task_checks", {}),
             )
 
         except Exception as e:
-            # If parsing fails, default to human review
             return VerificationResult(
                 decision=VerificationDecision.NEEDS_HUMAN,
                 confidence=0.0,
                 explanation=f"Failed to parse AI response: {str(e)}",
                 issues=["AI response parsing error"],
-                task_specific_checks={}
+                task_specific_checks={},
             )
 
 
@@ -329,30 +346,22 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
 async def verify_with_ai(
     task: dict,
     evidence: dict,
-    photo_urls: List[str]
+    photo_urls: List[str],
+    provider_name: Optional[str] = None,
 ) -> VerificationResult:
     """
-    Convenience function to verify evidence with AI.
+    Verify evidence with AI using the configured provider.
 
     Args:
         task: Task dict with title, description, evidence_required
         evidence: Submitted evidence metadata
         photo_urls: List of photo URLs
+        provider_name: Override provider (anthropic/openai/bedrock)
 
     Returns:
         VerificationResult
-
-    Example:
-        >>> task = {
-        ...     "title": "Verify store is open",
-        ...     "task_type": "store_verification",
-        ...     "description": "Take photo of Walmart entrance"
-        ... }
-        >>> evidence = {"gps": {"lat": 25.76, "lng": -80.19}}
-        >>> result = await verify_with_ai(task, evidence, ["https://..."])
-        >>> print(result.decision)
     """
-    verifier = AIVerifier()
+    verifier = AIVerifier(provider_name=provider_name)
     return await verifier.verify_evidence(task, evidence, photo_urls)
 
 
@@ -360,7 +369,7 @@ async def verify_with_ai(
 async def process_verification(
     task: dict,
     evidence: dict,
-    auto_checks: dict
+    auto_checks: dict,
 ) -> dict:
     """
     Route to appropriate verification tier based on auto-check score.
@@ -370,34 +379,22 @@ async def process_verification(
     - 0.70+: AI verification (some uncertainty, needs vision review)
     - 0.50+: Agent review (significant issues, agent should decide)
     - <0.50: Human required (major problems or potential fraud)
-
-    Args:
-        task: Task details
-        evidence: Submitted evidence
-        auto_checks: Results of auto-verification checks
-
-    Returns:
-        Dict with tier, decision, and details
     """
-
-    # Calculate auto-check score
     auto_score = calculate_auto_score(auto_checks)
 
     if auto_score >= 0.95:
-        # Tier 1: Auto-approve
         return {
             "tier": "auto",
             "decision": "approved",
             "confidence": auto_score,
-            "explanation": "All auto-checks passed"
+            "explanation": "All auto-checks passed",
         }
 
     elif auto_score >= 0.70:
-        # Tier 2: AI verification
         result = await verify_with_ai(
             task=task,
             evidence=evidence,
-            photo_urls=evidence.get("photos", [])
+            photo_urls=evidence.get("photos", []),
         )
 
         if result.decision == VerificationDecision.APPROVED:
@@ -405,7 +402,9 @@ async def process_verification(
                 "tier": "ai",
                 "decision": "approved",
                 "confidence": result.confidence,
-                "explanation": result.explanation
+                "explanation": result.explanation,
+                "provider": result.provider,
+                "model": result.model,
             }
         elif result.decision == VerificationDecision.REJECTED:
             return {
@@ -413,57 +412,49 @@ async def process_verification(
                 "decision": "rejected",
                 "confidence": result.confidence,
                 "reason": result.explanation,
-                "issues": result.issues
+                "issues": result.issues,
+                "provider": result.provider,
+                "model": result.model,
             }
         else:
-            # Escalate to human
             return {
                 "tier": "human_required",
                 "ai_result": {
                     "confidence": result.confidence,
                     "explanation": result.explanation,
-                    "issues": result.issues
-                }
+                    "issues": result.issues,
+                    "provider": result.provider,
+                },
             }
 
     elif auto_score >= 0.50:
-        # Tier 3: Agent review
         return {
             "tier": "agent",
             "decision": "pending_agent_review",
             "auto_score": auto_score,
-            "checks": auto_checks
+            "checks": auto_checks,
         }
 
     else:
-        # Tier 4: Human required
         return {
             "tier": "human",
             "decision": "pending_human_review",
             "auto_score": auto_score,
-            "checks": auto_checks
+            "checks": auto_checks,
         }
 
 
 def calculate_auto_score(checks: dict) -> float:
-    """
-    Calculate aggregate score from auto-verification checks.
-
-    Args:
-        checks: Dict with check results (each is bool or 0-1 score)
-
-    Returns:
-        Score from 0 to 1
-    """
+    """Calculate aggregate score from auto-verification checks."""
     if not checks:
-        return 0.5  # No checks = moderate confidence
+        return 0.5
 
     weights = {
-        "photo_source": 0.3,    # Gallery/screenshot detection
-        "gps_valid": 0.25,      # GPS within range
-        "timestamp_valid": 0.2,  # Recent timestamp
-        "schema_valid": 0.15,   # All required evidence present
-        "duplicate_check": 0.1,  # Not a duplicate submission
+        "photo_source": 0.3,
+        "gps_valid": 0.25,
+        "timestamp_valid": 0.2,
+        "schema_valid": 0.15,
+        "duplicate_check": 0.1,
     }
 
     total_weight = 0
@@ -473,7 +464,6 @@ def calculate_auto_score(checks: dict) -> float:
         weight = weights.get(check, 0.1)
         total_weight += weight
 
-        # Convert bool to float
         if isinstance(result, bool):
             score = 1.0 if result else 0.0
         elif isinstance(result, dict):

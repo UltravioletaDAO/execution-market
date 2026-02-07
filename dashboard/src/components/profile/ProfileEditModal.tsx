@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { supabase } from '../../lib/supabase'
 import { useProfileUpdate, type ProfileUpdateData } from '../../hooks/useProfileUpdate'
 import type { Executor } from '../../types/database'
 
@@ -43,6 +44,9 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
   const [locationCity, setLocationCity] = useState(executor.location_city || '')
   const [locationCountry, setLocationCountry] = useState(executor.location_country || '')
   const [email, setEmail] = useState(executor.email || '')
+  const [avatarUrl, setAvatarUrl] = useState(executor.avatar_url || '')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const isValid = displayName.trim().length > 0 && bio.trim().length > 0
   const modalRef = useRef<HTMLDivElement>(null)
@@ -110,6 +114,38 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
     )
   }
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type and size
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!validTypes.includes(file.type)) return
+    if (file.size > 2 * 1024 * 1024) return // 2MB max
+
+    setAvatarUploading(true)
+    try {
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `avatars/${executor.id}/profile.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('evidence')
+        .upload(path, file, { upsert: true, contentType: file.type })
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('evidence')
+        .getPublicUrl(path)
+
+      setAvatarUrl(urlData.publicUrl)
+    } catch (err) {
+      console.error('Avatar upload failed:', err)
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!isValid) return
 
@@ -121,6 +157,7 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
       location_city: locationCity.trim(),
       location_country: locationCountry.trim(),
       email: email.trim() || null,
+      avatar_url: avatarUrl || null,
     }
 
     const success = await updateProfile(data)
@@ -165,6 +202,49 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
 
         {/* Scrollable form */}
         <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-5">
+          {/* Avatar */}
+          <div className="flex items-center gap-4">
+            <div
+              className="relative w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xl font-bold cursor-pointer overflow-hidden group"
+              onClick={() => avatarInputRef.current?.click()}
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                (displayName || 'U')[0].toUpperCase()
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              {avatarUploading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                {avatarUploading ? t('common.uploading', 'Uploading...') : t('profile.edit.changePhoto', 'Change photo')}
+              </button>
+              <p className="text-xs text-gray-400 mt-0.5">JPG, PNG, WebP. Max 2MB.</p>
+            </div>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+          </div>
+
           {/* Display Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -204,8 +284,8 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
                 <button
                   key={skill}
                   type="button"
-                  onClick={() => toggleSkill(skill)}
-                  className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                  onClick={(e) => { e.stopPropagation(); toggleSkill(skill) }}
+                  className={`cursor-pointer px-3 py-1.5 text-sm rounded-full border transition-colors ${
                     selectedSkills.includes(skill)
                       ? 'bg-blue-50 border-blue-300 text-blue-700'
                       : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
@@ -266,8 +346,8 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
                 <button
                   key={lang}
                   type="button"
-                  onClick={() => toggleLanguage(lang)}
-                  className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                  onClick={(e) => { e.stopPropagation(); toggleLanguage(lang) }}
+                  className={`cursor-pointer px-3 py-1.5 text-sm rounded-full border transition-colors ${
                     languages.includes(lang)
                       ? 'bg-blue-50 border-blue-300 text-blue-700'
                       : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
