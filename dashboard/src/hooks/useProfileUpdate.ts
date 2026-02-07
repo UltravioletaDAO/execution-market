@@ -10,6 +10,7 @@ export interface ProfileUpdateData {
   location_city: string
   location_country: string
   email: string | null
+  avatar_url?: string | null
 }
 
 export function useProfileUpdate() {
@@ -89,9 +90,7 @@ export function useProfileUpdate() {
 
           // Fallback to direct update when RPC is missing
           if (updateError.code?.startsWith('PGRST') || updateError.message?.includes('update_executor_profile')) {
-            const { error: directError } = await supabase
-              .from('executors')
-              .update({
+            const updateFields: Record<string, unknown> = {
                 display_name: data.display_name,
                 bio: data.bio,
                 skills: data.skills,
@@ -99,7 +98,13 @@ export function useProfileUpdate() {
                 location_city: data.location_city || null,
                 location_country: data.location_country || null,
                 email: data.email || null,
-              })
+            }
+            if (data.avatar_url !== undefined) {
+              updateFields.avatar_url = data.avatar_url
+            }
+            const { error: directError } = await supabase
+              .from('executors')
+              .update(updateFields)
               .eq('id', executorId)
 
             if (directError) {

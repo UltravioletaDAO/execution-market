@@ -53,9 +53,11 @@ imagehash>=4.3.0
 piexif>=1.1.3
 
 # ===================
-# AI (Claude API)
+# AI (Multi-Provider Evidence Verification)
 # ===================
 anthropic>=0.30.0
+openai>=1.0.0
+boto3>=1.34.0
 
 # ===================
 # WebSocket Support

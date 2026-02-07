@@ -19,6 +19,14 @@ Includes fraud detection for:
 
 from .checks.photo_source import check_photo_source, PhotoSourceResult
 from .ai_review import AIVerifier, VerificationResult, VerificationDecision, verify_with_ai
+from .providers import (
+    VerificationProvider,
+    AnthropicProvider,
+    OpenAIProvider,
+    BedrockProvider,
+    get_provider,
+    list_available_providers,
+)
 from .gps_antispoofing import (
     GPSAntiSpoofing,
     SpoofingResult,
@@ -54,6 +62,13 @@ __all__ = [
     "VerificationResult",
     "VerificationDecision",
     "verify_with_ai",
+    # Multi-provider support
+    "VerificationProvider",
+    "AnthropicProvider",
+    "OpenAIProvider",
+    "BedrockProvider",
+    "get_provider",
+    "list_available_providers",
     # GPS anti-spoofing (NOW-108, NOW-109, NOW-111)
     "GPSAntiSpoofing",
     "SpoofingResult",

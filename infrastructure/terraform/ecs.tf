@@ -158,6 +158,8 @@ resource "aws_ecs_task_definition" "mcp_server" {
       environment = [
         { name = "ENVIRONMENT", value = var.environment },
         { name = "PORT", value = "8000" },
+        { name = "ERC8004_NETWORK", value = "base" },
+        { name = "EM_AGENT_ID", value = "2106" },
       ]
 
       secrets = [
@@ -176,6 +178,10 @@ resource "aws_ecs_task_definition" "mcp_server" {
         {
           name      = "EM_ADMIN_KEY"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/admin-key"
+        },
+        {
+          name      = "ANTHROPIC_API_KEY"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/anthropic:ANTHROPIC_API_KEY::"
         },
       ]
 

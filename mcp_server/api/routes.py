@@ -2890,24 +2890,29 @@ async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceRespo
     AI feedback on whether the evidence matches what the task requires.
     This does NOT create a submission - it's a pre-check.
 
-    When ANTHROPIC_API_KEY is not configured, returns a mock approval
-    so the submission flow works end-to-end.
+    Supports multiple AI providers (configurable via AI_VERIFICATION_PROVIDER env):
+    - anthropic (default): Claude Vision
+    - openai: GPT-4o Vision
+    - bedrock: AWS Bedrock (Claude)
+
+    Falls back gracefully if no provider is configured.
     """
-    import os
+    from .verification_helpers import get_verifier
 
     # Get task details
     task = await db.get_task(request.task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Check if Anthropic API key is configured
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        logger.info("AI verification mock mode (no ANTHROPIC_API_KEY): task=%s", request.task_id)
+    verifier = get_verifier()
+
+    if not verifier.is_available:
+        logger.info("AI verification unavailable (no provider configured): task=%s", request.task_id)
         return VerifyEvidenceResponse(
             verified=True,
-            confidence=0.85,
+            confidence=0.5,
             decision="approved",
-            explanation=f"Evidence received for '{task.get('title', 'task')}'. Full AI verification will be enabled soon.",
+            explanation=f"Evidence received for '{task.get('title', 'task')}'. AI verification not configured — accepted for agent review.",
             issues=[],
         )
 
@@ -2935,7 +2940,7 @@ async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceRespo
         )
 
     except Exception as e:
-        logger.warning("AI verification unavailable for task %s: %s", request.task_id, e)
+        logger.warning("AI verification error for task %s: %s", request.task_id, e)
         return VerifyEvidenceResponse(
             verified=True,
             confidence=0.5,

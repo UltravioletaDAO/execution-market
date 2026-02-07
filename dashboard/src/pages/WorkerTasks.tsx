@@ -189,19 +189,19 @@ export function WorkerTasks() {
         <div className="grid grid-cols-2 gap-3 mb-4">
           <MetricCard
             label={t('metrics.registeredUsers', 'Registered Users')}
-            value={metricsLoading || !platformMetrics ? '...' : new Intl.NumberFormat('en-US').format(platformMetrics.users.registered_workers)}
+            value={metricsLoading ? '...' : platformMetrics ? new Intl.NumberFormat('en-US').format(platformMetrics.users.registered_workers) : '0'}
           />
           <MetricCard
             label={t('metrics.activeWorkers', 'Workers Taking Tasks')}
-            value={metricsLoading || !platformMetrics ? '...' : new Intl.NumberFormat('en-US').format(platformMetrics.activity.workers_with_active_tasks)}
+            value={metricsLoading ? '...' : platformMetrics ? new Intl.NumberFormat('en-US').format(platformMetrics.activity.workers_with_active_tasks) : '0'}
           />
           <MetricCard
             label={t('metrics.activeAgents', 'Active Agents')}
-            value={metricsLoading || !platformMetrics ? '...' : new Intl.NumberFormat('en-US').format(platformMetrics.activity.agents_with_live_tasks)}
+            value={metricsLoading ? '...' : platformMetrics ? new Intl.NumberFormat('en-US').format(platformMetrics.activity.agents_with_live_tasks) : '0'}
           />
           <MetricCard
             label={t('metrics.completedTasks', 'Completed Tasks')}
-            value={metricsLoading || !platformMetrics ? '...' : new Intl.NumberFormat('en-US').format(platformMetrics.tasks.completed)}
+            value={metricsLoading ? '...' : platformMetrics ? new Intl.NumberFormat('en-US').format(platformMetrics.tasks.completed) : '0'}
           />
         </div>
 
@@ -266,58 +266,46 @@ export function WorkerTasks() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="flex items-center justify-between h-14">
             <button
               onClick={() => navigate('/')}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               aria-label="Execution Market"
             >
-              <span className="text-2xl">&#128188;</span>
-              <span className="font-bold text-lg text-gray-900">Execution Market</span>
+              <img src="/logo.png" alt="EM" className="w-8 h-8 rounded-lg object-contain" />
+              <span className="font-bold text-lg text-gray-900 hidden sm:inline">Execution Market</span>
             </button>
 
-            <div className="flex items-center gap-3">
-              <LanguageSwitcher />
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:block">
+                <LanguageSwitcher compact />
+              </div>
 
               {authLoading ? (
-                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
+                <div className="w-6 h-6 bg-gray-200 rounded-full animate-pulse" />
               ) : isAuthenticated ? (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => navigate('/profile')}
-                    className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition-colors"
+                    className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-3 py-1.5 transition-colors"
                   >
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900">
-                        {executor?.display_name || t('nav.profile', 'Perfil')}
-                      </div>
-                      {executor?.reputation_score !== undefined && (
-                        <div className="text-xs text-gray-500 flex items-center gap-1">
-                          <svg
-                            className="w-3 h-3 text-amber-500"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                          {executor.reputation_score}
-                        </div>
-                      )}
-                    </div>
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-medium">
+                    <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">
                         {(executor?.display_name || 'U')[0].toUpperCase()}
                       </span>
                     </div>
+                    <span className="text-sm font-medium text-gray-700 hidden sm:inline">
+                      {executor?.display_name || t('nav.profile', 'Profile')}
+                    </span>
                   </button>
                   <button
                     onClick={() => logout()}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     title={t('auth.logout')}
                   >
-                    <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                   </button>
@@ -329,10 +317,10 @@ export function WorkerTasks() {
       </header>
 
       {/* Main content */}
-      <main className="max-w-2xl mx-auto px-4 py-6">{renderContent()}</main>
+      <main className="max-w-3xl mx-auto px-4 py-6">{renderContent()}</main>
 
       {/* Footer */}
-      <footer className="max-w-2xl mx-auto px-4 py-6 text-center text-sm text-gray-400">
+      <footer className="max-w-3xl mx-auto px-4 py-6 text-center text-sm text-gray-400">
         <p>Execution Market - Human Execution Layer for AI Agents</p>
         <p className="mt-1">{t('footer.poweredBy')} Ultravioleta DAO</p>
       </footer>
