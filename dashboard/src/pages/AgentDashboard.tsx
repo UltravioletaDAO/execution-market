@@ -8,6 +8,8 @@ import { usePublicMetrics } from '../hooks/usePublicMetrics'
 import { WorkerRatingModal } from '../components/WorkerRatingModal'
 import { WorkerReputationBadge } from '../components/WorkerReputationBadge'
 import { TxHashLink } from '../components/TxHashLink'
+import { getAgentTasks, getTaskAnalytics } from '../services/tasks'
+import { getPendingSubmissions } from '../services/submissions'
 
 // --------------------------------------------------------------------------
 // Types
@@ -354,276 +356,108 @@ export function AgentDashboard({
 
   const { t } = useTranslation()
 
-  // Mock data load - in production, fetch from API/Supabase
+  // Fetch real data from API/Supabase
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
 
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      try {
+        // Fetch all data in parallel
+        const [tasksResult, analyticsResult, submissionsResult] = await Promise.allSettled([
+          getAgentTasks(agentId, { limit: 50 }),
+          getTaskAnalytics(agentId, 30),
+          getPendingSubmissions(agentId),
+        ])
 
-      // Mock analytics
-      setAnalytics({
-        tasksCreated: 47,
-        tasksCompleted: 38,
-        tasksPending: 9,
-        totalSpent: 1892.50,
-        completionRate: 80.85,
-        avgCompletionTime: 4.2,
-        activeExecutors: 12,
-      })
+        // Map analytics from service shape to component shape
+        if (analyticsResult.status === 'fulfilled') {
+          const a = analyticsResult.value
+          const activeStatuses = ['published', 'accepted', 'in_progress', 'submitted', 'verifying']
+          const pending = Object.entries(a.byStatus)
+            .filter(([s]) => activeStatuses.includes(s))
+            .reduce((sum, [, count]) => sum + count, 0)
 
-      // Mock active tasks
-      setActiveTasks([
-        {
-          id: '1',
-          agent_id: agentId,
-          category: 'physical_presence',
-          title: 'Verificar direccion de entrega en Polanco',
-          instructions: 'Tomar foto del exterior del edificio y confirmar numero',
-          location: { lat: 19.4326, lng: -99.1332 },
-          location_radius_km: 0.5,
-          location_hint: 'Polanco, CDMX',
-          evidence_schema: { required: ['photo_geo'] },
-          bounty_usd: 15.00,
-          payment_token: 'USDC',
-          payment_network: 'base',
-          escrow_tx: null,
-          escrow_id: null,
-          deadline: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          min_reputation: 50,
-          required_roles: [],
-          max_executors: 1,
-          status: 'in_progress',
-          executor_id: 'exec-1',
-          accepted_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          chainwitness_proof: null,
-          completed_at: null,
-          refund_tx: null,
-        },
-        {
-          id: '2',
-          agent_id: agentId,
-          category: 'human_authority',
-          title: 'Firmar documento notarial en notaria 45',
-          instructions: 'Presentarse con INE y firmar contrato de arrendamiento',
-          location: { lat: 19.4284, lng: -99.1676 },
-          location_radius_km: 0.2,
-          location_hint: 'Roma Norte, CDMX',
-          evidence_schema: { required: ['document', 'signature'] },
-          bounty_usd: 45.00,
-          payment_token: 'USDC',
-          payment_network: 'base',
-          escrow_tx: null,
-          escrow_id: null,
-          deadline: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          min_reputation: 75,
-          required_roles: [],
-          max_executors: 1,
-          status: 'published',
-          executor_id: null,
-          accepted_at: null,
-          chainwitness_proof: null,
-          completed_at: null,
-          refund_tx: null,
-        },
-        {
-          id: '3',
-          agent_id: agentId,
-          category: 'simple_action',
-          title: 'Recoger paquete en OXXO Reforma',
-          instructions: 'Mostrar codigo QR y recoger paquete',
-          location: { lat: 19.4352, lng: -99.1537 },
-          location_radius_km: 0.1,
-          location_hint: 'Reforma, CDMX',
-          evidence_schema: { required: ['photo', 'receipt'] },
-          bounty_usd: 8.00,
-          payment_token: 'USDC',
-          payment_network: 'base',
-          escrow_tx: null,
-          escrow_id: null,
-          deadline: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          min_reputation: 30,
-          required_roles: [],
-          max_executors: 1,
-          status: 'submitted',
-          executor_id: 'exec-2',
-          accepted_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          chainwitness_proof: null,
-          completed_at: null,
-          refund_tx: null,
-        },
-      ])
+          setAnalytics({
+            tasksCreated: a.totals.total,
+            tasksCompleted: a.totals.completed,
+            tasksPending: pending,
+            totalSpent: a.totals.totalPaid,
+            completionRate: a.totals.completionRate,
+            avgCompletionTime: 0,
+            activeExecutors: a.topWorkers?.length ?? 0,
+          })
+        } else {
+          setAnalytics(null)
+        }
 
-      // Mock pending submissions
-      setPendingSubmissions([
-        {
-          id: 'sub-1',
-          task_id: '3',
-          executor_id: 'exec-2',
-          evidence: { photo: 'ipfs://...', receipt: 'ipfs://...' },
-          evidence_files: ['photo.jpg', 'receipt.jpg'],
-          evidence_ipfs_cid: 'QmXx...',
-          evidence_hash: '0xabc...',
-          evidence_metadata: null,
-          evidence_content_hash: null,
-          storage_backend: null,
-          chainwitness_proof: null,
-          reputation_tx: null,
-          submitted_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          verified_at: null,
-          auto_check_passed: true,
-          auto_check_details: { gps_verified: true, timestamp_valid: true },
-          agent_verdict: null,
-          agent_notes: null,
-          payment_tx: null,
-          paid_at: null,
-          payment_amount: null,
-          task: {
-            id: '3',
-            agent_id: agentId,
-            category: 'simple_action',
-            title: 'Recoger paquete en OXXO Reforma',
-            instructions: 'Mostrar codigo QR y recoger paquete',
-            location: null,
-            location_radius_km: null,
-            location_hint: 'Reforma, CDMX',
-            evidence_schema: { required: ['photo', 'receipt'] },
-            bounty_usd: 8.00,
-            payment_token: 'USDC',
-            payment_network: 'base',
-            escrow_tx: null,
-            escrow_id: null,
-            deadline: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            min_reputation: 30,
-            required_roles: [],
-            max_executors: 1,
-            status: 'submitted',
-            executor_id: 'exec-2',
-            accepted_at: null,
-            chainwitness_proof: null,
-            completed_at: null,
-            refund_tx: null,
-          },
-          executor: {
-            id: 'exec-2',
-            display_name: 'Maria Garcia',
-            reputation_score: 82,
-            avatar_url: null,
-            wallet_address: '0x1234...5678',
-          },
-        },
-        {
-          id: 'sub-2',
-          task_id: '4',
-          executor_id: 'exec-3',
-          evidence: { photo_geo: 'ipfs://...' },
-          evidence_files: ['verificacion.jpg'],
-          evidence_ipfs_cid: 'QmYy...',
-          evidence_hash: '0xdef...',
-          evidence_metadata: null,
-          evidence_content_hash: null,
-          storage_backend: null,
-          chainwitness_proof: null,
-          reputation_tx: null,
-          submitted_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          verified_at: null,
-          auto_check_passed: false,
-          auto_check_details: { gps_verified: false, reason: 'GPS fuera de rango' },
-          agent_verdict: null,
-          agent_notes: null,
-          payment_tx: null,
-          paid_at: null,
-          payment_amount: null,
-          task: {
-            id: '4',
-            agent_id: agentId,
-            category: 'knowledge_access',
-            title: 'Verificar horarios de farmacia',
-            instructions: 'Confirmar horarios reales de la farmacia',
-            location: null,
-            location_radius_km: null,
-            location_hint: 'Condesa, CDMX',
-            evidence_schema: { required: ['photo_geo'] },
-            bounty_usd: 5.00,
-            payment_token: 'USDC',
-            payment_network: 'base',
-            escrow_tx: null,
-            escrow_id: null,
-            deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            min_reputation: 20,
-            required_roles: [],
-            max_executors: 1,
-            status: 'submitted',
-            executor_id: 'exec-3',
-            accepted_at: null,
-            chainwitness_proof: null,
-            completed_at: null,
-            refund_tx: null,
-          },
-          executor: {
-            id: 'exec-3',
-            display_name: 'Carlos Lopez',
-            reputation_score: 65,
-            avatar_url: null,
-            wallet_address: '0x9876...4321',
-          },
-        },
-      ])
+        // Set active tasks (non-completed, non-cancelled)
+        if (tasksResult.status === 'fulfilled') {
+          const nonTerminal = tasksResult.value.data.filter(
+            (t) => !['completed', 'cancelled', 'expired'].includes(t.status)
+          )
+          setActiveTasks(nonTerminal as Task[])
+        }
 
-      // Mock recent activity
-      setRecentActivity([
-        {
-          id: 'act-1',
-          type: 'submission_received',
-          title: 'Nueva evidencia recibida',
-          description: 'Maria Garcia envio evidencia para "Recoger paquete en OXXO"',
-          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          metadata: { taskId: '3', submissionId: 'sub-1' },
-        },
-        {
-          id: 'act-2',
-          type: 'task_completed',
-          title: 'Tarea completada',
-          description: 'Verificacion de local en Coyoacan finalizada exitosamente',
-          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          metadata: { taskId: '5' },
-        },
-        {
-          id: 'act-3',
-          type: 'payment_sent',
-          title: 'Pago enviado',
-          description: '$12.00 USDC enviados a Juan Perez',
-          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          metadata: { amount: 12.00 },
-        },
-        {
-          id: 'act-4',
-          type: 'task_created',
-          title: 'Tarea publicada',
-          description: 'Nueva tarea "Firmar documento notarial" creada',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          metadata: { taskId: '2' },
-        },
-        {
-          id: 'act-5',
-          type: 'dispute_opened',
-          title: 'Disputa abierta',
-          description: 'Ejecutor disputo el rechazo de evidencia',
-          timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-          metadata: { taskId: '6' },
-        },
-      ])
+        // Set pending submissions
+        if (submissionsResult.status === 'fulfilled') {
+          const mapped = submissionsResult.value.map((s) => ({
+            ...s,
+            executor: s.executor ? {
+              id: s.executor.id,
+              display_name: s.executor.display_name ?? null,
+              reputation_score: s.executor.reputation_score ?? 0,
+              avatar_url: null,
+              wallet_address: s.executor.wallet_address ?? '',
+            } : undefined,
+          }))
+          setPendingSubmissions(mapped as AgentSubmission[])
+        }
+
+        // Build recent activity from real data
+        const activities: ActivityItem[] = []
+
+        if (submissionsResult.status === 'fulfilled') {
+          submissionsResult.value.forEach((s) => {
+            activities.push({
+              id: `sub-${s.id}`,
+              type: 'submission_received',
+              title: 'Nueva evidencia recibida',
+              description: `${s.executor?.display_name ?? 'Worker'} envio evidencia para "${s.task?.title ?? 'tarea'}"`,
+              timestamp: s.submitted_at,
+              metadata: { taskId: s.task_id, submissionId: s.id },
+            })
+          })
+        }
+
+        if (tasksResult.status === 'fulfilled') {
+          tasksResult.value.data.slice(0, 10).forEach((t) => {
+            if (t.status === 'completed' && t.completed_at) {
+              activities.push({
+                id: `comp-${t.id}`,
+                type: 'task_completed',
+                title: 'Tarea completada',
+                description: `"${t.title}" finalizada`,
+                timestamp: t.completed_at,
+                metadata: { taskId: t.id },
+              })
+            }
+            activities.push({
+              id: `created-${t.id}`,
+              type: 'task_created',
+              title: 'Tarea publicada',
+              description: `"${t.title}" creada`,
+              timestamp: t.created_at,
+              metadata: { taskId: t.id },
+            })
+          })
+        }
+
+        // Sort by timestamp descending, take top 10
+        activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        setRecentActivity(activities.slice(0, 10))
+      } catch (err) {
+        console.error('Failed to load agent dashboard data:', err)
+      }
 
       setLoading(false)
     }

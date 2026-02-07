@@ -248,32 +248,35 @@ function WorkerInfoCard({ executor }: { executor: Executor }) {
   )
 }
 
-function EvidenceViewer({ evidence, schema }: { evidence: Record<string, unknown>; schema: { required: EvidenceType[]; optional?: EvidenceType[] } }) {
+function EvidenceViewer({ evidence, evidenceFiles, schema }: { evidence: Record<string, unknown>; evidenceFiles: string[]; schema: { required: EvidenceType[]; optional?: EvidenceType[] } }) {
   const [selectedEvidence, setSelectedEvidence] = useState<string | null>(null)
 
-  // Mock evidence files for demo
-  const mockFiles: EvidenceFile[] = useMemo(() => {
-    const files: EvidenceFile[] = []
+  // Build evidence files from real submission data
+  const files: EvidenceFile[] = useMemo(() => {
+    const result: EvidenceFile[] = []
+    const allTypes = [...schema.required, ...(schema.optional || [])]
 
-    schema.required.forEach((type, index) => {
-      files.push({
-        type,
-        url: `https://picsum.photos/800/600?random=${index}`,
-        filename: `evidence_${type}_${index}.jpg`,
-        metadata: type === 'photo_geo' ? {
-          gps: {
-            latitude: 19.4326 + Math.random() * 0.01,
-            longitude: -99.1332 + Math.random() * 0.01,
-            accuracy: 5 + Math.random() * 10,
-          },
-          timestamp: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-          deviceInfo: 'iPhone 15 Pro',
+    // Map evidence_files URLs to evidence types
+    evidenceFiles.forEach((url, index) => {
+      const type = allTypes[index] || 'photo'
+      const filename = url.split('/').pop() || `evidence_${index}`
+      const meta = evidence as Record<string, Record<string, unknown>>
+      const typeMeta = meta?.[type] as Record<string, unknown> | undefined
+
+      result.push({
+        type: type as EvidenceType,
+        url,
+        filename,
+        metadata: typeMeta?.gps ? {
+          gps: typeMeta.gps as EvidenceFile['metadata'] extends undefined ? never : NonNullable<EvidenceFile['metadata']>['gps'],
+          timestamp: typeMeta.timestamp as string | undefined,
+          deviceInfo: typeMeta.deviceInfo as string | undefined,
         } : undefined,
       })
     })
 
-    return files
-  }, [schema])
+    return result
+  }, [evidence, evidenceFiles, schema])
 
   return (
     <div className="space-y-4">
@@ -281,7 +284,7 @@ function EvidenceViewer({ evidence, schema }: { evidence: Record<string, unknown
 
       {/* Evidence grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {mockFiles.map((file, index) => (
+        {files.map((file, index) => (
           <button
             key={index}
             onClick={() => setSelectedEvidence(file.url)}
@@ -313,7 +316,7 @@ function EvidenceViewer({ evidence, schema }: { evidence: Record<string, unknown
       </div>
 
       {/* Evidence details */}
-      {mockFiles.map((file, index) => (
+      {files.map((file, index) => (
         <div key={index} className="p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-900">
@@ -700,6 +703,7 @@ export function SubmissionReview({
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <EvidenceViewer
               evidence={submission.evidence}
+              evidenceFiles={submission.evidence_files}
               schema={task.evidence_schema}
             />
           </div>

@@ -579,9 +579,14 @@ async def get_agent_card_endpoint(request: Request) -> JSONResponse:
         JSONResponse with the complete Agent Card
     """
     # Build base URL from request if not configured
-    base_url = os.environ.get("EM_BASE_URL", os.environ.get("EM_BASE_URL"))
+    base_url = os.environ.get("EM_BASE_URL")
     if not base_url:
-        base_url = f"{request.url.scheme}://{request.url.netloc}"
+        # Behind ALB/proxy, request.url.scheme is HTTP even when TLS terminates at edge
+        # Use X-Forwarded-Proto header if available, otherwise default to HTTPS in production
+        scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+        if scheme == "http" and request.url.netloc not in ("localhost", "127.0.0.1"):
+            scheme = "https"
+        base_url = f"{scheme}://{request.url.netloc}"
 
     card = get_agent_card(base_url)
 

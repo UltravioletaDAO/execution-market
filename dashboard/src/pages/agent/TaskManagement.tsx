@@ -9,7 +9,9 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import type { Task, TaskStatus, TaskCategory, TaskApplication } from '../../types/database'
+import type { TaskStatus, TaskCategory, TaskApplication } from '../../types/database'
+import type { TaskWithExecutor } from '../../services/types'
+import { getAgentTasks, cancelTask } from '../../services/tasks'
 
 // ============================================================================
 // Types
@@ -18,10 +20,10 @@ import type { Task, TaskStatus, TaskCategory, TaskApplication } from '../../type
 interface TaskManagementProps {
   agentId: string
   onBack?: () => void
-  onViewTask?: (task: Task) => void
-  onEditTask?: (task: Task) => void
+  onViewTask?: (task: TaskWithApplicants) => void
+  onEditTask?: (task: TaskWithApplicants) => void
   onCreateTask?: () => void
-  onViewApplicants?: (task: Task, applicants: TaskApplicationWithExecutor[]) => void
+  onViewApplicants?: (task: TaskWithApplicants, applicants: TaskApplicationWithExecutor[]) => void
 }
 
 interface TaskApplicationWithExecutor extends TaskApplication {
@@ -34,7 +36,7 @@ interface TaskApplicationWithExecutor extends TaskApplication {
   }
 }
 
-interface TaskWithApplicants extends Task {
+interface TaskWithApplicants extends TaskWithExecutor {
   applicants?: TaskApplicationWithExecutor[]
   applicant_count?: number
 }
@@ -433,233 +435,25 @@ export function TaskManagement({
   const [categoryFilter, setCategoryFilter] = useState<TaskCategory | 'all'>('all')
   const [cancellingTaskId, setCancellingTaskId] = useState<string | null>(null)
 
-  // Load tasks
+  // Load tasks from real API
   useEffect(() => {
     const loadTasks = async () => {
       setLoading(true)
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      // Mock tasks
-      const mockTasks: TaskWithApplicants[] = [
-        {
-          id: 'task-1',
-          agent_id: agentId,
-          category: 'physical_presence',
-          title: 'Verificar direccion de entrega en Polanco',
-          instructions: 'Tomar foto del exterior del edificio y confirmar el numero de departamento. Verificar que hay acceso para entregas.',
-          location: { lat: 19.4326, lng: -99.1332 },
-          location_radius_km: 0.5,
-          location_hint: 'Polanco, CDMX',
-          evidence_schema: { required: ['photo_geo'] },
-          bounty_usd: 15.00,
-          payment_token: 'USDC',
-          payment_network: 'base',
-          escrow_tx: null,
-          escrow_id: null,
-          deadline: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          min_reputation: 50,
-          required_roles: [],
-          max_executors: 1,
-          status: 'in_progress',
-          executor_id: 'exec-1',
-          accepted_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          chainwitness_proof: null,
-          completed_at: null,
-          refund_tx: null,
-          executor: {
-            id: 'exec-1',
-            user_id: null,
-            wallet_address: '0x1234',
-            display_name: 'Maria Garcia',
-            bio: null,
-            avatar_url: null,
-            skills: [],
-            languages: [],
-            email: null,
-            phone: null,
-            roles: [],
-            default_location: null,
-            location_city: 'CDMX',
-            location_country: 'MX',
-            reputation_score: 82,
-            tasks_completed: 45,
-            tasks_disputed: 2,
-            tasks_abandoned: 0,
-            avg_rating: 4.8,
-            reputation_contract: null,
-            reputation_token_id: null,
-            erc8004_agent_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            last_active_at: new Date().toISOString(),
-          },
-        },
-        {
-          id: 'task-2',
-          agent_id: agentId,
-          category: 'simple_action',
-          title: 'Recoger paquete en OXXO Reforma',
-          instructions: 'Mostrar codigo QR proporcionado y recoger el paquete. Tomar foto del recibo.',
-          location: { lat: 19.4352, lng: -99.1537 },
-          location_radius_km: 0.1,
-          location_hint: 'Reforma, CDMX',
-          evidence_schema: { required: ['photo', 'receipt'] },
-          bounty_usd: 8.00,
-          payment_token: 'USDC',
-          payment_network: 'base',
-          escrow_tx: null,
-          escrow_id: null,
-          deadline: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          min_reputation: 30,
-          required_roles: [],
-          max_executors: 1,
-          status: 'submitted',
-          executor_id: 'exec-2',
-          accepted_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          chainwitness_proof: null,
-          completed_at: null,
-          refund_tx: null,
-          executor: {
-            id: 'exec-2',
-            user_id: null,
-            wallet_address: '0x5678',
-            display_name: 'Carlos Lopez',
-            bio: null,
-            avatar_url: null,
-            skills: [],
-            languages: [],
-            email: null,
-            phone: null,
-            roles: [],
-            default_location: null,
-            location_city: 'CDMX',
-            location_country: 'MX',
-            reputation_score: 65,
-            tasks_completed: 23,
-            tasks_disputed: 1,
-            tasks_abandoned: 0,
-            avg_rating: 4.5,
-            reputation_contract: null,
-            reputation_token_id: null,
-            erc8004_agent_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            last_active_at: new Date().toISOString(),
-          },
-        },
-        {
-          id: 'task-3',
-          agent_id: agentId,
-          category: 'human_authority',
-          title: 'Firmar documento notarial en notaria 45',
-          instructions: 'Presentarse con INE vigente y firmar el contrato de arrendamiento preparado.',
-          location: { lat: 19.4284, lng: -99.1676 },
-          location_radius_km: 0.2,
-          location_hint: 'Roma Norte, CDMX',
-          evidence_schema: { required: ['document', 'signature'] },
-          bounty_usd: 45.00,
-          payment_token: 'USDC',
-          payment_network: 'base',
-          escrow_tx: null,
-          escrow_id: null,
-          deadline: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          min_reputation: 75,
-          required_roles: [],
-          max_executors: 1,
-          status: 'published',
-          executor_id: null,
-          accepted_at: null,
-          chainwitness_proof: null,
-          completed_at: null,
-          refund_tx: null,
-          applicant_count: 3,
-          applicants: [
-            {
-              id: 'app-1',
-              task_id: 'task-3',
-              executor_id: 'exec-3',
-              message: 'Tengo experiencia con documentos notariales',
-              proposed_deadline: null,
-              status: 'pending',
-              created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-              executor: {
-                id: 'exec-3',
-                display_name: 'Ana Martinez',
-                reputation_score: 88,
-                avatar_url: null,
-                tasks_completed: 67,
-              },
-            },
-          ],
-        },
-        {
-          id: 'task-4',
-          agent_id: agentId,
-          category: 'knowledge_access',
-          title: 'Verificar horarios de farmacia',
-          instructions: 'Confirmar horarios reales de la farmacia del Doctor Simi en la direccion indicada.',
-          location: null,
-          location_radius_km: null,
-          location_hint: 'Condesa, CDMX',
-          evidence_schema: { required: ['photo_geo'] },
-          bounty_usd: 5.00,
-          payment_token: 'USDC',
-          payment_network: 'base',
-          escrow_tx: null,
-          escrow_id: null,
-          deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-          min_reputation: 20,
-          required_roles: [],
-          max_executors: 1,
-          status: 'published',
-          executor_id: null,
-          accepted_at: null,
-          chainwitness_proof: null,
-          completed_at: null,
-          refund_tx: null,
+      try {
+        const result = await getAgentTasks(agentId, { limit: 100 })
+        // Map API response to component's expected shape
+        const mapped: TaskWithApplicants[] = result.data.map((t) => ({
+          ...t,
           applicant_count: 0,
-        },
-        {
-          id: 'task-5',
-          agent_id: agentId,
-          category: 'physical_presence',
-          title: 'Verificacion de local completada',
-          instructions: 'Verificar estado del local comercial en Coyoacan.',
-          location: null,
-          location_radius_km: null,
-          location_hint: 'Coyoacan, CDMX',
-          evidence_schema: { required: ['photo_geo', 'video'] },
-          bounty_usd: 20.00,
-          payment_token: 'USDC',
-          payment_network: 'base',
-          escrow_tx: '0xabc...',
-          escrow_id: 'escrow-5',
-          deadline: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          min_reputation: 40,
-          required_roles: [],
-          max_executors: 1,
-          status: 'completed',
-          executor_id: 'exec-4',
-          accepted_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-          chainwitness_proof: '0xproof...',
-          completed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          refund_tx: null,
-        },
-      ]
+          applicants: [],
+        }))
+        setTasks(mapped)
+      } catch (err) {
+        console.error('Failed to load tasks:', err)
+        setTasks([])
+      }
 
-      setTasks(mockTasks)
       setLoading(false)
     }
 
@@ -724,15 +518,18 @@ export function TaskManagement({
 
     setCancellingTaskId(taskId)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: 'cancelled' as TaskStatus } : t))
-    )
+    try {
+      await cancelTask({ taskId, agentId, reason: 'Cancelled by agent' })
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: 'cancelled' as TaskStatus } : t))
+      )
+    } catch (err) {
+      console.error('Failed to cancel task:', err)
+      alert('Error al cancelar la tarea. Intente de nuevo.')
+    }
 
     setCancellingTaskId(null)
-  }, [])
+  }, [agentId])
 
   // Loading state
   if (loading) {

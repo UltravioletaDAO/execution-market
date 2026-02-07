@@ -17,7 +17,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
     }
 
     const installCommand = 'clawhub install ultravioleta/execution-market'
-    const curlCommand = `curl -s https://mcp.execution.market/skill.md > ~/.openclaw/skills/execution-market/SKILL.md`
+    const curlCommand = `curl -s https://api.execution.market/skill.md > ~/.openclaw/skills/execution-market/SKILL.md`
 
     return (
       <section ref={ref} className="py-16 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
@@ -127,7 +127,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
             </h3>
             <div className="grid md:grid-cols-2 gap-3">
               <a
-                href="https://mcp.execution.market/skill.md"
+                href="https://api.execution.market/skill.md"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 bg-white rounded-lg p-3 hover:bg-purple-100 transition-colors group"
@@ -141,7 +141,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
                 </div>
               </a>
               <a
-                href="https://mcp.execution.market/heartbeat.md"
+                href="https://api.execution.market/heartbeat.md"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 bg-white rounded-lg p-3 hover:bg-purple-100 transition-colors group"
@@ -155,7 +155,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
                 </div>
               </a>
               <a
-                href="https://mcp.execution.market/workflows.md"
+                href="https://api.execution.market/workflows.md"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 bg-white rounded-lg p-3 hover:bg-purple-100 transition-colors group"

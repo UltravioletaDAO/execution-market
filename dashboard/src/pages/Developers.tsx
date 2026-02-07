@@ -65,7 +65,7 @@ const response = await client.messages.create({
   max_tokens: 1024,
   tools: [{
     type: "mcp",
-    server_url: "https://mcp.execution.market/mcp/",
+    server_url: "https://api.execution.market/mcp/",
     headers: { "Authorization": "Bearer " + process.env.EM_API_KEY }
   }],
   messages: [{
@@ -80,7 +80,7 @@ const MCP_CONFIG_CLAUDE_DESKTOP = `{
   "mcpServers": {
     "execution-market": {
       "type": "streamableHttp",
-      "url": "https://mcp.execution.market/mcp/",
+      "url": "https://api.execution.market/mcp/",
       "headers": {
         "Authorization": "Bearer YOUR_API_KEY"
       }
@@ -445,7 +445,7 @@ export function Developers() {
                   </p>
                   <div className="grid sm:grid-cols-3 gap-3">
                     <a
-                      href="https://mcp.execution.market/heartbeat.md"
+                      href="https://api.execution.market/heartbeat.md"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-emerald-300 transition-colors"
@@ -473,7 +473,7 @@ export function Developers() {
                       </div>
                     </a>
                     <a
-                      href="https://mcp.execution.market/workflows.md"
+                      href="https://api.execution.market/workflows.md"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-emerald-300 transition-colors"
@@ -590,11 +590,11 @@ export function Developers() {
                   </h4>
                   <div className="flex items-center gap-3">
                     <code className="flex-1 bg-gray-800 px-4 py-3 rounded-lg font-mono text-sm text-emerald-400 overflow-x-auto">
-                      https://mcp.execution.market/mcp/
+                      https://api.execution.market/mcp/
                     </code>
                     <button
                       onClick={() =>
-                        navigator.clipboard.writeText('https://mcp.execution.market/mcp/')
+                        navigator.clipboard.writeText('https://api.execution.market/mcp/')
                       }
                       className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg font-medium text-sm transition-colors flex-shrink-0"
                     >
@@ -609,12 +609,12 @@ export function Developers() {
                   </h4>
                   <div className="flex items-center gap-3">
                     <code className="flex-1 bg-gray-800 px-4 py-3 rounded-lg font-mono text-sm text-blue-400 overflow-x-auto">
-                      https://mcp.execution.market/.well-known/agent.json
+                      https://api.execution.market/.well-known/agent.json
                     </code>
                     <button
                       onClick={() =>
                         navigator.clipboard.writeText(
-                          'https://mcp.execution.market/.well-known/agent.json'
+                          'https://api.execution.market/.well-known/agent.json'
                         )
                       }
                       className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg font-medium text-sm transition-colors flex-shrink-0"

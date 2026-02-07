@@ -25,7 +25,7 @@ Execution Market is a **Human Execution Layer for AI Agents** - a marketplace wh
 | Payments | x402 SDK + Facilitator (Base Mainnet, gasless) |
 | Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
 | Agent Identity | ERC-8004 Registry (14 networks via Facilitator) |
-| SDKs | Python `uvd-x402-sdk>=0.8.2` / TypeScript `uvd-x402-sdk@2.20.0` |
+| SDKs | Python `uvd-x402-sdk>=0.9.0` / TypeScript `uvd-x402-sdk@2.21.0` |
 
 ## Project Structure
 
@@ -110,7 +110,7 @@ npm run register:x402r       # Register as x402r merchant (pending)
 ```
 AI Agent → MCP Server → Supabase → Dashboard → Human Worker
                 ↓
-           x402r Escrow (Base Mainnet)
+           x402r Escrow (9 networks)
                 ↓
            Payment Release
 ```
@@ -166,7 +166,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,base-sepolia`)
 - `X402_NETWORK` - Default payment network (default: `base`)
 - To enable a new chain: fund the platform wallet with USDC on that chain, then add it to `EM_ENABLED_NETWORKS`
-- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — 12 EVM networks, 4 stablecoins)
+- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — 15 EVM networks, 4 stablecoins, 9 with x402r escrow)
 
 ## On-Chain Contracts
 
@@ -175,7 +175,11 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | ERC-8004 Identity Registry | All Mainnets (CREATE2) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | ERC-8004 Identity Registry | All Testnets (CREATE2) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | ERC-8004 Reputation Registry | All Mainnets (CREATE2) | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
-| x402r Escrow | Base Mainnet | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
+| x402r Escrow | Base | `0xb9488351eB02Cd956c78cDe1e2f10e3C7B18Af3d` |
+| x402r Escrow | Ethereum | `0xc1256Bb3d74E1a3aBe8F16D5bA1F686F25398e35` |
+| x402r Escrow | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
+| x402r Escrow | Arbitrum, Celo, Monad, Avalanche | `0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1` |
+| x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
 | Execution Market Agent ID | **Base** | `2106` |
 | Execution Market Agent ID | Sepolia (legacy) | `469` |
 
@@ -341,7 +345,7 @@ Wrong Flow (DO NOT USE):
 
 | Component | Details |
 |-----------|---------|
-| **SDK** | `uvd-x402-sdk[fastapi]>=0.8.2` (in `mcp_server/requirements.txt`) |
+| **SDK** | `uvd-x402-sdk[fastapi]>=0.9.0` (in `mcp_server/requirements.txt`) |
 | **SDK Client** | `mcp_server/integrations/x402/sdk_client.py` — `EMX402SDK` class |
 | **Facilitator URL** | `https://facilitator.ultravioletadao.xyz` |
 | **Facilitator Endpoints** | `POST /verify`, `POST /settle`, `POST /register`, `POST /feedback` |
@@ -409,7 +413,7 @@ Wrong Flow (DO NOT USE):
 **MCP Server / Payments**:
 - [x] ~~`x402r_escrow.py` ABI mismatch~~ — FIXED: file deleted, SDK + Facilitator used instead
 - [x] ~~Fee rounding to $0.00 on small bounties~~ — FIXED: 6-decimal quantization + $0.01 minimum fee
-- [x] ~~Multichain support~~ — DONE: 12 EVM networks in token registry, `EM_ENABLED_NETWORKS` env var gates active chains
+- [x] ~~Multichain support~~ — DONE: 15 EVM networks in token registry (9 with x402r escrow), `EM_ENABLED_NETWORKS` env var gates active chains
 - [x] ~~`routes.py` escrow wiring called contracts directly~~ — FIXED: `create_task()` uses `verify_x402_payment()`, `approve_submission()` uses `sdk.settle_task_payment()`
 - [x] ~~`escrow.py` endpoints referenced deleted `x402r_escrow.py`~~ — FIXED: dead code removed, endpoints return 410 Gone or use SDK
 
