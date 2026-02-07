@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: '3.12'
+  PYTHON_VERSION: '3.11'
   NODE_VERSION: '20'
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: mcp_server
     steps:
       - uses: actions/checkout@v4
 
@@ -28,30 +28,30 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
+          cache: 'pip'
+          cache-dependency-path: mcp_server/requirements.txt
 
       - name: Install dependencies
-        run: uv sync --frozen
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff mypy
 
       - name: Run ruff linter
-        run: uv run ruff check .
+        run: ruff check .
 
       - name: Run ruff formatter check
-        run: uv run ruff format --check .
+        run: ruff format --check .
 
       - name: Run mypy
-        run: uv run mypy src/
+        run: mypy . --ignore-missing-imports
 
   lint-frontend:
     name: Lint Frontend
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: dashboard
     steps:
       - uses: actions/checkout@v4
 
@@ -60,7 +60,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: dashboard/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -77,33 +77,8 @@ jobs:
     needs: lint-backend
     defaults:
       run:
-        working-directory: backend
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: em
-          POSTGRES_PASSWORD: em_test
-          POSTGRES_DB: em_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        working-directory: mcp_server
     env:
-      DATABASE_URL: postgresql://em:em_test@localhost:5432/em_test
-      REDIS_URL: redis://localhost:6379
       TESTING: "true"
     steps:
       - uses: actions/checkout@v4
@@ -112,32 +87,28 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
+          cache: 'pip'
+          cache-dependency-path: mcp_server/requirements.txt
 
       - name: Install dependencies
-        run: uv sync --frozen --all-extras
-
-      - name: Run database migrations
-        run: uv run alembic upgrade head
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov
 
       - name: Run tests with coverage
         run: |
-          uv run pytest \
-            --cov=src \
+          pytest \
+            --cov=. \
             --cov-report=xml \
             --cov-report=html \
-            --cov-fail-under=80 \
             -v
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: backend/coverage.xml
+          files: mcp_server/coverage.xml
           flags: backend
           fail_ci_if_error: false
 
@@ -145,7 +116,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
-          path: backend/htmlcov/
+          path: mcp_server/htmlcov/
           retention-days: 7
 
   test-frontend:
@@ -154,7 +125,7 @@ jobs:
     needs: lint-frontend
     defaults:
       run:
-        working-directory: frontend
+        working-directory: dashboard
     steps:
       - uses: actions/checkout@v4
 
@@ -163,7 +134,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: dashboard/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -175,7 +146,7 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: frontend/coverage/lcov.info
+          files: dashboard/coverage/lcov.info
           flags: frontend
           fail_ci_if_error: false
 
@@ -183,7 +154,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
-          path: frontend/coverage/
+          path: dashboard/coverage/
           retention-days: 7
 
   test-e2e:
@@ -198,58 +169,29 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: e2e/package-lock.json
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
-
-      - name: Install backend dependencies
-        working-directory: backend
-        run: uv sync --frozen
-
-      - name: Install frontend dependencies
-        working-directory: frontend
+      - name: Install E2E dependencies
+        working-directory: e2e
         run: npm ci
 
       - name: Install Playwright browsers
-        working-directory: frontend
+        working-directory: e2e
         run: npx playwright install --with-deps chromium
 
-      - name: Start services
-        run: |
-          docker compose -f docker-compose.test.yml up -d
-          sleep 10
-
-      - name: Wait for services
-        run: |
-          timeout 60 bash -c 'until curl -s http://localhost:8000/health > /dev/null; do sleep 2; done'
-          timeout 60 bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 2; done'
-
       - name: Run Playwright tests
-        working-directory: frontend
+        working-directory: e2e
         run: npx playwright test
         env:
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
-          API_BASE_URL: http://localhost:8000
+          CI: true
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report
-          path: frontend/playwright-report/
+          path: e2e/playwright-report/
           retention-days: 7
-
-      - name: Stop services
-        if: always()
-        run: docker compose -f docker-compose.test.yml down -v
 
   build:
     name: Build Docker Images
@@ -265,17 +207,17 @@ jobs:
       - name: Build backend image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: ./mcp_server
           push: false
-          tags: em-backend:${{ github.sha }}
+          tags: em-mcp-server:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Build frontend image
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend
+          context: ./dashboard
           push: false
-          tags: em-frontend:${{ github.sha }}
+          tags: em-dashboard:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

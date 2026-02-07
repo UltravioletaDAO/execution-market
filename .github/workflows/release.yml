@@ -22,7 +22,7 @@ permissions:
   pull-requests: write
 
 env:
-  PYTHON_VERSION: '3.12'
+  PYTHON_VERSION: '3.11'
   NODE_VERSION: '20'
 
 jobs:
@@ -51,11 +51,11 @@ jobs:
       - name: Get current version
         id: current
         run: |
-          # Try to get version from backend pyproject.toml
-          if [ -f backend/pyproject.toml ]; then
-            CURRENT=$(grep -m1 'version = ' backend/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
-          elif [ -f frontend/package.json ]; then
-            CURRENT=$(jq -r '.version' frontend/package.json)
+          # Try to get version from mcp_server pyproject.toml
+          if [ -f mcp_server/pyproject.toml ]; then
+            CURRENT=$(grep -m1 'version = ' mcp_server/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          elif [ -f dashboard/package.json ]; then
+            CURRENT=$(jq -r '.version' dashboard/package.json)
           else
             CURRENT="0.0.0"
           fi
@@ -166,19 +166,19 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Update backend version
-        working-directory: backend
+        working-directory: mcp_server
         run: |
           if [ -f pyproject.toml ]; then
             sed -i "s/^version = .*/version = \"${{ needs.prepare-release.outputs.new_version }}\"/" pyproject.toml
-            echo "Updated backend/pyproject.toml"
+            echo "Updated mcp_server/pyproject.toml"
           fi
 
       - name: Update frontend version
-        working-directory: frontend
+        working-directory: dashboard
         run: |
           if [ -f package.json ]; then
             npm version ${{ needs.prepare-release.outputs.new_version }} --no-git-tag-version
-            echo "Updated frontend/package.json"
+            echo "Updated dashboard/package.json"
           fi
 
       - name: Update CHANGELOG.md
