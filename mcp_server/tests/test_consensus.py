@@ -6,16 +6,14 @@ Tests NOW-180, NOW-181, NOW-182 requirements:
 - Validator specialization
 - Validator payments
 """
+
 import pytest
-from datetime import datetime, timedelta, UTC
-import asyncio
 
 from ..validation.consensus import (
     ValidatorSpecialization,
     Validator,
     ValidationVote,
     VoteDecision,
-    ConsensusResult,
     ConsensusStatus,
     ConsensusConfig,
     ConsensusManager,
@@ -26,6 +24,7 @@ from ..validation.consensus import (
 
 
 # ============== Fixtures ==============
+
 
 @pytest.fixture
 def config():
@@ -51,7 +50,10 @@ def sample_validators():
         Validator(
             id="validator_1",
             wallet="0xaaa",
-            specializations={ValidatorSpecialization.PHOTOGRAPHY, ValidatorSpecialization.GENERAL},
+            specializations={
+                ValidatorSpecialization.PHOTOGRAPHY,
+                ValidatorSpecialization.GENERAL,
+            },
             stake_amount=500.0,
             reputation_score=85.0,
             total_validations=200,
@@ -69,7 +71,10 @@ def sample_validators():
         Validator(
             id="validator_3",
             wallet="0xccc",
-            specializations={ValidatorSpecialization.DOCUMENT, ValidatorSpecialization.GENERAL},
+            specializations={
+                ValidatorSpecialization.DOCUMENT,
+                ValidatorSpecialization.GENERAL,
+            },
             stake_amount=200.0,
             reputation_score=70.0,
             total_validations=100,
@@ -113,6 +118,7 @@ def consensus_manager(config, validator_pool):
 
 # ============== Validator Tests ==============
 
+
 class TestValidator:
     """Tests for the Validator class."""
 
@@ -143,8 +149,8 @@ class TestValidator:
     def test_can_validate_specialization(self, sample_validators):
         """Test specialization matching."""
         photo_validator = sample_validators[0]  # Has PHOTOGRAPHY + GENERAL
-        doc_validator = sample_validators[2]    # Has DOCUMENT + GENERAL
-        tech_validator = sample_validators[3]   # Has TECHNICAL only
+        doc_validator = sample_validators[2]  # Has DOCUMENT + GENERAL
+        tech_validator = sample_validators[3]  # Has TECHNICAL only
 
         # Direct match
         assert photo_validator.can_validate(ValidatorSpecialization.PHOTOGRAPHY)
@@ -161,6 +167,7 @@ class TestValidator:
 
 
 # ============== ValidatorPool Tests ==============
+
 
 class TestValidatorPool:
     """Tests for the ValidatorPool class."""
@@ -206,7 +213,7 @@ class TestValidatorPool:
         selected = validator_pool.select_validators(
             submission_id="sub_1",
             specialization=ValidatorSpecialization.PHOTOGRAPHY,
-            count=2
+            count=2,
         )
 
         assert len(selected) == 2
@@ -220,7 +227,7 @@ class TestValidatorPool:
             submission_id="sub_2",
             specialization=ValidatorSpecialization.GENERAL,
             exclude_ids={"validator_1", "validator_2"},
-            count=3
+            count=3,
         )
 
         selected_ids = {v.id for v in selected}
@@ -231,11 +238,7 @@ class TestValidatorPool:
         """Test validator slashing."""
         initial_stake = validator_pool.get_validator("validator_1").stake_amount
 
-        validator_pool.slash_validator(
-            "validator_1",
-            50.0,
-            "Test slashing"
-        )
+        validator_pool.slash_validator("validator_1", 50.0, "Test slashing")
 
         validator = validator_pool.get_validator("validator_1")
         assert validator.stake_amount == initial_stake - 50.0
@@ -251,6 +254,7 @@ class TestValidatorPool:
 
 
 # ============== ConsensusManager Tests ==============
+
 
 class TestConsensusManager:
     """Tests for the ConsensusManager class."""
@@ -284,7 +288,7 @@ class TestConsensusManager:
             submission_id="sub_vote_1",
             validator_id="validator_1",
             decision=VoteDecision.APPROVE,
-            reasoning="Good quality work"
+            reasoning="Good quality work",
         )
 
         assert len(result.votes) == 1
@@ -318,7 +322,7 @@ class TestConsensusManager:
         assert result.status == ConsensusStatus.REACHED
         assert result.final_decision == VoteDecision.APPROVE
         assert result.quorum_reached is True
-        assert result.agreement_ratio >= 2/3
+        assert result.agreement_ratio >= 2 / 3
 
     @pytest.mark.asyncio
     async def test_no_consensus_escalates_to_safe(self, consensus_manager):
@@ -411,33 +415,65 @@ class TestConsensusManager:
 
 # ============== Specialization Tests ==============
 
+
 class TestSpecializationMapping:
     """Tests for task type to specialization mapping."""
 
     def test_photography_tasks(self):
         """Test photography task types."""
-        assert determine_specialization_from_task_type("photo") == ValidatorSpecialization.PHOTOGRAPHY
-        assert determine_specialization_from_task_type("photo_geo") == ValidatorSpecialization.PHOTOGRAPHY
-        assert determine_specialization_from_task_type("store_check") == ValidatorSpecialization.PHOTOGRAPHY
+        assert (
+            determine_specialization_from_task_type("photo")
+            == ValidatorSpecialization.PHOTOGRAPHY
+        )
+        assert (
+            determine_specialization_from_task_type("photo_geo")
+            == ValidatorSpecialization.PHOTOGRAPHY
+        )
+        assert (
+            determine_specialization_from_task_type("store_check")
+            == ValidatorSpecialization.PHOTOGRAPHY
+        )
 
     def test_document_tasks(self):
         """Test document task types."""
-        assert determine_specialization_from_task_type("document") == ValidatorSpecialization.DOCUMENT
-        assert determine_specialization_from_task_type("receipt") == ValidatorSpecialization.DOCUMENT
-        assert determine_specialization_from_task_type("notarized") == ValidatorSpecialization.DOCUMENT
+        assert (
+            determine_specialization_from_task_type("document")
+            == ValidatorSpecialization.DOCUMENT
+        )
+        assert (
+            determine_specialization_from_task_type("receipt")
+            == ValidatorSpecialization.DOCUMENT
+        )
+        assert (
+            determine_specialization_from_task_type("notarized")
+            == ValidatorSpecialization.DOCUMENT
+        )
 
     def test_technical_tasks(self):
         """Test technical task types."""
-        assert determine_specialization_from_task_type("measurement") == ValidatorSpecialization.TECHNICAL
-        assert determine_specialization_from_task_type("code_review") == ValidatorSpecialization.TECHNICAL
+        assert (
+            determine_specialization_from_task_type("measurement")
+            == ValidatorSpecialization.TECHNICAL
+        )
+        assert (
+            determine_specialization_from_task_type("code_review")
+            == ValidatorSpecialization.TECHNICAL
+        )
 
     def test_general_fallback(self):
         """Test that unknown types fall back to GENERAL."""
-        assert determine_specialization_from_task_type("unknown") == ValidatorSpecialization.GENERAL
-        assert determine_specialization_from_task_type("random_task") == ValidatorSpecialization.GENERAL
+        assert (
+            determine_specialization_from_task_type("unknown")
+            == ValidatorSpecialization.GENERAL
+        )
+        assert (
+            determine_specialization_from_task_type("random_task")
+            == ValidatorSpecialization.GENERAL
+        )
 
 
 # ============== ValidationVote Tests ==============
+
 
 class TestValidationVote:
     """Tests for ValidationVote class."""
@@ -493,6 +529,7 @@ class TestValidationVote:
 
 # ============== Integration Tests ==============
 
+
 class TestConsensusIntegration:
     """Integration tests for the full consensus flow."""
 
@@ -506,7 +543,7 @@ class TestConsensusIntegration:
             submission_id=submission_id,
             task_bounty_usd=75.0,
             specialization=ValidatorSpecialization.PHOTOGRAPHY,
-            exclude_validator_ids={"worker_123"}
+            exclude_validator_ids={"worker_123"},
         )
         assert result.status == ConsensusStatus.PENDING
 
@@ -515,14 +552,14 @@ class TestConsensusIntegration:
             submission_id=submission_id,
             validator_id="validator_1",
             decision=VoteDecision.APPROVE,
-            reasoning="Photo quality excellent"
+            reasoning="Photo quality excellent",
         )
 
         result = await consensus_manager.submit_vote(
             submission_id=submission_id,
             validator_id="validator_2",
             decision=VoteDecision.APPROVE,
-            reasoning="All requirements met"
+            reasoning="All requirements met",
         )
 
         # 3. Verify consensus
@@ -574,7 +611,7 @@ class TestConsensusIntegration:
             task_bounty_usd=50.0,
             task_type="photo_verification",
             worker_id="worker_456",
-            config=config
+            config=config,
         )
 
         # Should fail gracefully with no registered validators in new manager

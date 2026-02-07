@@ -29,15 +29,17 @@ from ..integrations.x402.client import X402Client, X402Error
 
 class TaskType(str, Enum):
     """Types of tasks with different minimum payout requirements."""
-    SIMPLE = "simple"           # Digital tasks, data entry
-    PHYSICAL = "physical"       # Requires physical presence
-    AUTHORITY = "authority"     # Requires licensed professional
-    SENSORY = "sensory"         # Taste tests, inspections
-    EMERGENCY = "emergency"     # Time-critical tasks
+
+    SIMPLE = "simple"  # Digital tasks, data entry
+    PHYSICAL = "physical"  # Requires physical presence
+    AUTHORITY = "authority"  # Requires licensed professional
+    SENSORY = "sensory"  # Taste tests, inspections
+    EMERGENCY = "emergency"  # Time-critical tasks
 
 
 class BondStatus(str, Enum):
     """Status of a locked bond."""
+
     LOCKED = "locked"
     RELEASED = "released"
     PARTIALLY_RELEASED = "partially_released"
@@ -58,12 +60,13 @@ class BondConfig:
         min_net_payout_usd: Global minimum net payout after fees ($0.50)
         platform_fee_percent: Platform fee deducted from bounty
     """
+
     default_bond_percent: Decimal = Decimal("0.15")  # 15% default
-    min_bond_percent: Decimal = Decimal("0.10")      # 10% minimum
-    max_bond_percent: Decimal = Decimal("0.20")      # 20% maximum
+    min_bond_percent: Decimal = Decimal("0.10")  # 10% minimum
+    max_bond_percent: Decimal = Decimal("0.20")  # 20% maximum
     proof_of_attempt_percent: Decimal = Decimal("0.15")  # 15% for valid attempt
     min_proof_of_attempt_usd: Decimal = Decimal("0.50")  # Minimum $0.50
-    min_net_payout_usd: Decimal = Decimal("0.50")    # Global minimum
+    min_net_payout_usd: Decimal = Decimal("0.50")  # Global minimum
     platform_fee_percent: Decimal = Decimal("0.08")  # 8% platform fee
 
 
@@ -75,6 +78,7 @@ class TaskTypeConfig:
     NOW-099: Different task types have different minimum payouts to ensure
     workers are fairly compensated for different effort levels.
     """
+
     task_type: TaskType
     min_bounty_usd: Decimal
     min_net_payout_usd: Decimal
@@ -85,33 +89,33 @@ class TaskTypeConfig:
 TASK_TYPE_MINIMUMS: Dict[TaskType, TaskTypeConfig] = {
     TaskType.SIMPLE: TaskTypeConfig(
         task_type=TaskType.SIMPLE,
-        min_bounty_usd=Decimal("0.75"),   # To achieve $0.50 net after 8% fee
+        min_bounty_usd=Decimal("0.75"),  # To achieve $0.50 net after 8% fee
         min_net_payout_usd=Decimal("0.50"),
-        description="Simple digital tasks (data entry, screenshots)"
+        description="Simple digital tasks (data entry, screenshots)",
     ),
     TaskType.PHYSICAL: TaskTypeConfig(
         task_type=TaskType.PHYSICAL,
-        min_bounty_usd=Decimal("1.50"),   # To achieve $1.00 net after fees
+        min_bounty_usd=Decimal("1.50"),  # To achieve $1.00 net after fees
         min_net_payout_usd=Decimal("1.00"),
-        description="Tasks requiring physical presence"
+        description="Tasks requiring physical presence",
     ),
     TaskType.AUTHORITY: TaskTypeConfig(
         task_type=TaskType.AUTHORITY,
-        min_bounty_usd=Decimal("7.00"),   # To achieve $5.00 net after fees
+        min_bounty_usd=Decimal("7.00"),  # To achieve $5.00 net after fees
         min_net_payout_usd=Decimal("5.00"),
-        description="Tasks requiring licensed professionals"
+        description="Tasks requiring licensed professionals",
     ),
     TaskType.SENSORY: TaskTypeConfig(
         task_type=TaskType.SENSORY,
-        min_bounty_usd=Decimal("2.00"),   # To achieve $1.50 net after fees
+        min_bounty_usd=Decimal("2.00"),  # To achieve $1.50 net after fees
         min_net_payout_usd=Decimal("1.50"),
-        description="Taste tests, quality inspections"
+        description="Taste tests, quality inspections",
     ),
     TaskType.EMERGENCY: TaskTypeConfig(
         task_type=TaskType.EMERGENCY,
-        min_bounty_usd=Decimal("3.00"),   # To achieve $2.50 net after fees
+        min_bounty_usd=Decimal("3.00"),  # To achieve $2.50 net after fees
         min_net_payout_usd=Decimal("2.50"),
-        description="Time-critical tasks"
+        description="Time-critical tasks",
     ),
 }
 
@@ -135,6 +139,7 @@ class LockedBond:
         slash_reason: Reason for slashing (if applicable)
         slash_amount: Amount slashed (if partially slashed)
     """
+
     bond_id: str
     agent_id: str
     task_id: str
@@ -157,6 +162,7 @@ class BondCalculation:
 
     Shows the complete breakdown of what an agent needs to deposit.
     """
+
     bounty_usd: Decimal
     bond_percent: Decimal
     bond_amount_usd: Decimal
@@ -177,6 +183,7 @@ class ProofOfAttemptResult:
     When a worker documents a valid obstacle (guard, closed location, etc.),
     they receive a portion of the bounty for their effort.
     """
+
     task_id: str
     executor_id: str
     attempt_score: float  # 0.0 to 1.0, how valid the attempt was
@@ -230,14 +237,12 @@ class AgentBondManager:
 
         # Treasury address for slashed bonds
         self.treasury_address = os.environ.get(
-            "EM_TREASURY_ADDRESS",
-            "0x0000000000000000000000000000000000000000"
+            "EM_TREASURY_ADDRESS", "0x0000000000000000000000000000000000000000"
         )
 
         # Worker Protection Fund address (receives slashed bonds)
         self.protection_fund_address = os.environ.get(
-            "EM_PROTECTION_FUND_ADDRESS",
-            "0x0000000000000000000000000000000000000000"
+            "EM_PROTECTION_FUND_ADDRESS", "0x0000000000000000000000000000000000000000"
         )
 
     # -------------------------------------------------------------------------
@@ -294,7 +299,7 @@ class AgentBondManager:
         # Calculate proof of attempt amount
         proof_of_attempt = max(
             bounty * self.config.proof_of_attempt_percent,
-            self.config.min_proof_of_attempt_usd
+            self.config.min_proof_of_attempt_usd,
         )
 
         # Validate minimum payouts (NOW-098, NOW-099)
@@ -433,7 +438,7 @@ class AgentBondManager:
                 "task_type": task_type.value,
                 "tx_hash": result.tx_hash,
                 "timeout_timestamp": result.timeout_timestamp,
-            }
+            },
         )
 
         # Store bond
@@ -533,7 +538,9 @@ class AgentBondManager:
             raise ValueError(f"Bond cannot be slashed (status: {bond.status})")
 
         # Determine slash amount
-        amount_to_slash = Decimal(str(slash_amount)) if slash_amount else bond.amount_usd
+        amount_to_slash = (
+            Decimal(str(slash_amount)) if slash_amount else bond.amount_usd
+        )
         if amount_to_slash > bond.amount_usd:
             amount_to_slash = bond.amount_usd
 
@@ -627,7 +634,7 @@ class AgentBondManager:
         # Calculate base proof of attempt payout
         base_payout = max(
             bounty * self.config.proof_of_attempt_percent,
-            self.config.min_proof_of_attempt_usd
+            self.config.min_proof_of_attempt_usd,
         )
 
         # Scale by attempt score
@@ -710,9 +717,11 @@ class AgentBondManager:
 
         base_payout = max(
             bounty * self.config.proof_of_attempt_percent,
-            self.config.min_proof_of_attempt_usd
+            self.config.min_proof_of_attempt_usd,
         )
-        actual_payout = base_payout * Decimal(str(score)) if score >= 0.3 else Decimal("0")
+        actual_payout = (
+            base_payout * Decimal(str(score)) if score >= 0.3 else Decimal("0")
+        )
 
         return {
             "bounty_usd": float(bounty),
@@ -726,7 +735,7 @@ class AgentBondManager:
                 "0.7-0.9": "Good documentation - 70-90% of base",
                 "0.3-0.7": "Partial documentation - 30-70% of base",
                 "0.0-0.3": "Insufficient proof - no payout",
-            }
+            },
         }
 
     # -------------------------------------------------------------------------
@@ -739,10 +748,7 @@ class AgentBondManager:
 
     def get_bonds_for_agent(self, agent_id: str) -> List[LockedBond]:
         """Get all bonds for an agent."""
-        return [
-            bond for bond in self._bonds.values()
-            if bond.agent_id == agent_id
-        ]
+        return [bond for bond in self._bonds.values() if bond.agent_id == agent_id]
 
     def get_bond_for_task(self, task_id: str) -> Optional[LockedBond]:
         """Get the bond associated with a task."""
@@ -818,7 +824,9 @@ async def validate_bounty(
         "errors": errors,
         "bounty_usd": bounty_usd,
         "task_type": task_type.value,
-        "minimum_bounty_for_type": float(manager.get_minimum_bounty_for_type(task_type)),
+        "minimum_bounty_for_type": float(
+            manager.get_minimum_bounty_for_type(task_type)
+        ),
     }
 
 

@@ -14,47 +14,48 @@ class Badge(str, Enum):
     """Achievement badges that workers can earn."""
 
     # Milestone badges
-    NEWCOMER = "newcomer"           # Completed first task
-    RELIABLE = "reliable"           # 10 tasks completed
-    VETERAN = "veteran"             # 50 tasks completed
-    MASTER = "master"               # 100 tasks completed
-    LEGEND = "legend"               # 500 tasks completed
+    NEWCOMER = "newcomer"  # Completed first task
+    RELIABLE = "reliable"  # 10 tasks completed
+    VETERAN = "veteran"  # 50 tasks completed
+    MASTER = "master"  # 100 tasks completed
+    LEGEND = "legend"  # 500 tasks completed
 
     # Quality badges
-    QUALITY_STAR = "quality_star"   # 95%+ approval rate (min 10 tasks)
-    PERFECTIONIST = "perfectionist" # 100% approval rate (min 25 tasks)
+    QUALITY_STAR = "quality_star"  # 95%+ approval rate (min 10 tasks)
+    PERFECTIONIST = "perfectionist"  # 100% approval rate (min 25 tasks)
 
     # Speed badges
-    FAST_WORKER = "fast_worker"     # Avg completion < 50% of deadline
-    LIGHTNING = "lightning"         # 10 tasks completed in < 25% of deadline
+    FAST_WORKER = "fast_worker"  # Avg completion < 50% of deadline
+    LIGHTNING = "lightning"  # 10 tasks completed in < 25% of deadline
 
     # Trust badges
-    VERIFIED = "verified"           # ID verification completed
-    TRUSTED = "trusted"             # 25+ tasks with 0 disputes
-    EXPERT = "expert"               # Score > 85 for 30+ days
+    VERIFIED = "verified"  # ID verification completed
+    TRUSTED = "trusted"  # 25+ tasks with 0 disputes
+    EXPERT = "expert"  # Score > 85 for 30+ days
 
     # Specialty badges
-    PHOTOGRAPHER = "photographer"   # 20+ photo tasks completed
-    DELIVERY_PRO = "delivery_pro"   # 20+ delivery tasks completed
-    SURVEYOR = "surveyor"           # 20+ data collection tasks
-    INSPECTOR = "inspector"         # 20+ verification tasks
+    PHOTOGRAPHER = "photographer"  # 20+ photo tasks completed
+    DELIVERY_PRO = "delivery_pro"  # 20+ delivery tasks completed
+    SURVEYOR = "surveyor"  # 20+ data collection tasks
+    INSPECTOR = "inspector"  # 20+ verification tasks
 
     # Community badges
-    EARLY_ADOPTER = "early_adopter" # Joined in first month
-    STREAK_7 = "streak_7"           # 7 day activity streak
-    STREAK_30 = "streak_30"         # 30 day activity streak
-    TOP_10 = "top_10"               # Reached top 10 in location
-    TOP_100 = "top_100"             # Reached top 100 globally
+    EARLY_ADOPTER = "early_adopter"  # Joined in first month
+    STREAK_7 = "streak_7"  # 7 day activity streak
+    STREAK_30 = "streak_30"  # 30 day activity streak
+    TOP_10 = "top_10"  # Reached top 10 in location
+    TOP_100 = "top_100"  # Reached top 100 globally
 
     # Special badges
-    DISPUTE_WINNER = "dispute_winner"   # Won a dispute
-    COMEBACK = "comeback"               # Recovered from <30 to >70 score
-    MENTOR = "mentor"                   # Referred 5+ active workers
+    DISPUTE_WINNER = "dispute_winner"  # Won a dispute
+    COMEBACK = "comeback"  # Recovered from <30 to >70 score
+    MENTOR = "mentor"  # Referred 5+ active workers
 
 
 @dataclass
 class BadgeDefinition:
     """Complete definition of a badge with display info."""
+
     badge: Badge
     name: str
     description: str
@@ -74,7 +75,7 @@ class BadgeDefinition:
                 icon="seedling",
                 category="milestone",
                 points=5,
-                rarity="common"
+                rarity="common",
             ),
             Badge.RELIABLE: cls(
                 badge=Badge.RELIABLE,
@@ -83,7 +84,7 @@ class BadgeDefinition:
                 icon="check-circle",
                 category="milestone",
                 points=10,
-                rarity="common"
+                rarity="common",
             ),
             Badge.VETERAN: cls(
                 badge=Badge.VETERAN,
@@ -92,7 +93,7 @@ class BadgeDefinition:
                 icon="star",
                 category="milestone",
                 points=25,
-                rarity="uncommon"
+                rarity="uncommon",
             ),
             Badge.MASTER: cls(
                 badge=Badge.MASTER,
@@ -101,7 +102,7 @@ class BadgeDefinition:
                 icon="crown",
                 category="milestone",
                 points=50,
-                rarity="rare"
+                rarity="rare",
             ),
             Badge.LEGEND: cls(
                 badge=Badge.LEGEND,
@@ -110,7 +111,7 @@ class BadgeDefinition:
                 icon="trophy",
                 category="milestone",
                 points=100,
-                rarity="legendary"
+                rarity="legendary",
             ),
             Badge.QUALITY_STAR: cls(
                 badge=Badge.QUALITY_STAR,
@@ -119,7 +120,7 @@ class BadgeDefinition:
                 icon="star-quality",
                 category="quality",
                 points=15,
-                rarity="uncommon"
+                rarity="uncommon",
             ),
             Badge.PERFECTIONIST: cls(
                 badge=Badge.PERFECTIONIST,
@@ -128,7 +129,7 @@ class BadgeDefinition:
                 icon="diamond",
                 category="quality",
                 points=30,
-                rarity="rare"
+                rarity="rare",
             ),
             Badge.FAST_WORKER: cls(
                 badge=Badge.FAST_WORKER,
@@ -137,7 +138,7 @@ class BadgeDefinition:
                 icon="clock-fast",
                 category="speed",
                 points=10,
-                rarity="common"
+                rarity="common",
             ),
             Badge.LIGHTNING: cls(
                 badge=Badge.LIGHTNING,
@@ -146,7 +147,7 @@ class BadgeDefinition:
                 icon="lightning",
                 category="speed",
                 points=20,
-                rarity="rare"
+                rarity="rare",
             ),
             Badge.VERIFIED: cls(
                 badge=Badge.VERIFIED,
@@ -155,7 +156,7 @@ class BadgeDefinition:
                 icon="shield-check",
                 category="trust",
                 points=20,
-                rarity="common"
+                rarity="common",
             ),
             Badge.TRUSTED: cls(
                 badge=Badge.TRUSTED,
@@ -164,7 +165,7 @@ class BadgeDefinition:
                 icon="handshake",
                 category="trust",
                 points=25,
-                rarity="uncommon"
+                rarity="uncommon",
             ),
             Badge.EXPERT: cls(
                 badge=Badge.EXPERT,
@@ -173,7 +174,7 @@ class BadgeDefinition:
                 icon="graduation-cap",
                 category="trust",
                 points=35,
-                rarity="rare"
+                rarity="rare",
             ),
             Badge.PHOTOGRAPHER: cls(
                 badge=Badge.PHOTOGRAPHER,
@@ -182,7 +183,7 @@ class BadgeDefinition:
                 icon="camera",
                 category="specialty",
                 points=15,
-                rarity="uncommon"
+                rarity="uncommon",
             ),
             Badge.DELIVERY_PRO: cls(
                 badge=Badge.DELIVERY_PRO,
@@ -191,7 +192,7 @@ class BadgeDefinition:
                 icon="package",
                 category="specialty",
                 points=15,
-                rarity="uncommon"
+                rarity="uncommon",
             ),
             Badge.SURVEYOR: cls(
                 badge=Badge.SURVEYOR,
@@ -200,7 +201,7 @@ class BadgeDefinition:
                 icon="clipboard",
                 category="specialty",
                 points=15,
-                rarity="uncommon"
+                rarity="uncommon",
             ),
             Badge.INSPECTOR: cls(
                 badge=Badge.INSPECTOR,
@@ -209,7 +210,7 @@ class BadgeDefinition:
                 icon="magnifying-glass",
                 category="specialty",
                 points=15,
-                rarity="uncommon"
+                rarity="uncommon",
             ),
             Badge.EARLY_ADOPTER: cls(
                 badge=Badge.EARLY_ADOPTER,
@@ -218,7 +219,7 @@ class BadgeDefinition:
                 icon="rocket",
                 category="community",
                 points=25,
-                rarity="epic"
+                rarity="epic",
             ),
             Badge.STREAK_7: cls(
                 badge=Badge.STREAK_7,
@@ -227,7 +228,7 @@ class BadgeDefinition:
                 icon="fire",
                 category="community",
                 points=5,
-                rarity="common"
+                rarity="common",
             ),
             Badge.STREAK_30: cls(
                 badge=Badge.STREAK_30,
@@ -236,7 +237,7 @@ class BadgeDefinition:
                 icon="fire-alt",
                 category="community",
                 points=20,
-                rarity="uncommon"
+                rarity="uncommon",
             ),
             Badge.TOP_10: cls(
                 badge=Badge.TOP_10,
@@ -245,7 +246,7 @@ class BadgeDefinition:
                 icon="medal",
                 category="community",
                 points=30,
-                rarity="rare"
+                rarity="rare",
             ),
             Badge.TOP_100: cls(
                 badge=Badge.TOP_100,
@@ -254,7 +255,7 @@ class BadgeDefinition:
                 icon="globe",
                 category="community",
                 points=40,
-                rarity="epic"
+                rarity="epic",
             ),
             Badge.DISPUTE_WINNER: cls(
                 badge=Badge.DISPUTE_WINNER,
@@ -263,7 +264,7 @@ class BadgeDefinition:
                 icon="gavel",
                 category="special",
                 points=10,
-                rarity="uncommon"
+                rarity="uncommon",
             ),
             Badge.COMEBACK: cls(
                 badge=Badge.COMEBACK,
@@ -272,7 +273,7 @@ class BadgeDefinition:
                 icon="phoenix",
                 category="special",
                 points=25,
-                rarity="rare"
+                rarity="rare",
             ),
             Badge.MENTOR: cls(
                 badge=Badge.MENTOR,
@@ -281,7 +282,7 @@ class BadgeDefinition:
                 icon="users",
                 category="special",
                 points=20,
-                rarity="uncommon"
+                rarity="uncommon",
             ),
         }
 
@@ -289,6 +290,7 @@ class BadgeDefinition:
 @dataclass
 class EarnedBadge:
     """A badge earned by a specific executor."""
+
     executor_id: str
     badge: Badge
     earned_at: datetime
@@ -307,11 +309,12 @@ class EarnedBadge:
 @dataclass
 class ReputationScore:
     """Complete reputation profile for an executor."""
+
     executor_id: str
 
     # Beta distribution parameters (Bayesian prior)
     alpha: float = 2.0  # Successes + prior
-    beta: float = 2.0   # Failures + prior
+    beta: float = 2.0  # Failures + prior
 
     # Computed scores
     score: float = 50.0  # 0-100 normalized score
@@ -325,7 +328,7 @@ class ReputationScore:
 
     # Value-weighted stats
     total_value_completed: float = 0.0  # Sum of bounty values for completed tasks
-    total_value_failed: float = 0.0     # Sum of bounty values for failed tasks
+    total_value_failed: float = 0.0  # Sum of bounty values for failed tasks
 
     # Ratings received
     total_ratings: int = 0
@@ -362,7 +365,9 @@ class ReputationScore:
             "avg_rating": round(self.avg_rating, 2) if self.avg_rating else None,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-            "last_activity_at": self.last_activity_at.isoformat() if self.last_activity_at else None,
+            "last_activity_at": self.last_activity_at.isoformat()
+            if self.last_activity_at
+            else None,
             "badges": [b.value for b in self.badges],
             "category_scores": self.category_scores,
         }
@@ -385,9 +390,15 @@ class ReputationScore:
             total_ratings=data.get("total_ratings", 0),
             sum_ratings=data.get("sum_ratings", 0.0),
             avg_rating=data.get("avg_rating"),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(UTC),
-            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else datetime.now(UTC),
-            last_activity_at=datetime.fromisoformat(data["last_activity_at"]) if data.get("last_activity_at") else None,
+            created_at=datetime.fromisoformat(data["created_at"])
+            if data.get("created_at")
+            else datetime.now(UTC),
+            updated_at=datetime.fromisoformat(data["updated_at"])
+            if data.get("updated_at")
+            else datetime.now(UTC),
+            last_activity_at=datetime.fromisoformat(data["last_activity_at"])
+            if data.get("last_activity_at")
+            else None,
             badges=[Badge(b) for b in data.get("badges", [])],
             category_scores=data.get("category_scores", {}),
         )
@@ -396,6 +407,7 @@ class ReputationScore:
 @dataclass
 class ReputationHistory:
     """Historical record of reputation changes."""
+
     id: str
     executor_id: str
 
@@ -438,10 +450,11 @@ class ReputationHistory:
 @dataclass
 class ConfidenceInterval:
     """Statistical confidence interval for a reputation score."""
+
     lower: float  # Lower bound (e.g., 5th percentile)
     upper: float  # Upper bound (e.g., 95th percentile)
-    mean: float   # Expected value
-    mode: float   # Most likely value
+    mean: float  # Expected value
+    mode: float  # Most likely value
     confidence_level: float = 0.90  # Default 90% CI
 
     def to_dict(self) -> Dict[str, Any]:

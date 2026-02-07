@@ -48,6 +48,7 @@ class TaskTypeInfo:
         task_class: The TaskType class
         default_config: Default configuration for the type
     """
+
     type_name: str
     display_name: str
     description: str
@@ -98,7 +99,8 @@ class TaskTypeRegistry:
         """Register all built-in task types."""
         # Import and register each type
         try:
-            from .photo_verification import PhotoVerificationTask, PhotoValidationConfig
+            from .photo_verification import PhotoVerificationTask
+
             self.register(
                 task_class=PhotoVerificationTask,
                 default_config={
@@ -113,7 +115,8 @@ class TaskTypeRegistry:
             logger.warning(f"Could not import PhotoVerificationTask: {e}")
 
         try:
-            from .delivery import DeliveryTask, DeliveryValidationConfig
+            from .delivery import DeliveryTask
+
             self.register(
                 task_class=DeliveryTask,
                 default_config={
@@ -128,7 +131,8 @@ class TaskTypeRegistry:
             logger.warning(f"Could not import DeliveryTask: {e}")
 
         try:
-            from .survey import SurveyTask, SurveyValidationConfig
+            from .survey import SurveyTask
+
             self.register(
                 task_class=SurveyTask,
                 default_config={
@@ -141,7 +145,8 @@ class TaskTypeRegistry:
             logger.warning(f"Could not import SurveyTask: {e}")
 
         try:
-            from .mystery_shop import MysteryShopTask, MysteryShopConfig
+            from .mystery_shop import MysteryShopTask
+
             self.register(
                 task_class=MysteryShopTask,
                 default_config={
@@ -156,7 +161,8 @@ class TaskTypeRegistry:
             logger.warning(f"Could not import MysteryShopTask: {e}")
 
         try:
-            from .price_check import PriceCheckTask, PriceCheckConfig
+            from .price_check import PriceCheckTask
+
             self.register(
                 task_class=PriceCheckTask,
                 default_config={
@@ -310,10 +316,7 @@ class TaskTypeRegistry:
         Returns:
             List of TaskTypeInfo in the category
         """
-        return [
-            info for info in self._types.values()
-            if info.category == category
-        ]
+        return [info for info in self._types.values() if info.category == category]
 
     def get_info(self, type_name: str) -> Optional[TaskTypeInfo]:
         """
@@ -424,8 +427,7 @@ def _init_task_types_dict() -> None:
     global TASK_TYPES
     registry = get_registry()
     TASK_TYPES = {
-        info.type_name: info.task_class
-        for info in registry.list_task_types()
+        info.type_name: info.task_class for info in registry.list_task_types()
     }
 
 

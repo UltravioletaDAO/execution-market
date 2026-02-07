@@ -27,6 +27,7 @@ from uuid import uuid4
 
 class EvidenceCategory(str, Enum):
     """Categories of evidence that can be required."""
+
     PHOTO = "photo"
     PHOTO_GEO = "photo_geo"
     PHOTO_TIMESTAMP = "photo_timestamp"
@@ -43,9 +44,10 @@ class EvidenceCategory(str, Enum):
 
 class ValidationSeverity(str, Enum):
     """Severity of validation failures."""
-    ERROR = "error"       # Task cannot be accepted
-    WARNING = "warning"   # Task can be accepted with notes
-    INFO = "info"         # Informational only
+
+    ERROR = "error"  # Task cannot be accepted
+    WARNING = "warning"  # Task can be accepted with notes
+    INFO = "info"  # Informational only
 
 
 @dataclass
@@ -62,6 +64,7 @@ class EvidenceSpec:
         min_count: Minimum number required (e.g., multiple photos)
         max_count: Maximum number allowed
     """
+
     category: EvidenceCategory
     required: bool = True
     description: str = ""
@@ -95,6 +98,7 @@ class ValidationResult:
         warnings: List of warning messages
         details: Additional validation details
     """
+
     is_valid: bool
     severity: ValidationSeverity = ValidationSeverity.INFO
     errors: List[str] = field(default_factory=list)
@@ -111,7 +115,9 @@ class ValidationResult:
         )
 
     @classmethod
-    def failure(cls, errors: List[str], details: Optional[Dict[str, Any]] = None) -> "ValidationResult":
+    def failure(
+        cls, errors: List[str], details: Optional[Dict[str, Any]] = None
+    ) -> "ValidationResult":
         """Create a failed validation result."""
         return cls(
             is_valid=False,
@@ -121,7 +127,9 @@ class ValidationResult:
         )
 
     @classmethod
-    def warning(cls, warnings: List[str], details: Optional[Dict[str, Any]] = None) -> "ValidationResult":
+    def warning(
+        cls, warnings: List[str], details: Optional[Dict[str, Any]] = None
+    ) -> "ValidationResult":
         """Create a validation result with warnings but still valid."""
         return cls(
             is_valid=True,
@@ -134,7 +142,11 @@ class ValidationResult:
         """Merge with another validation result."""
         return ValidationResult(
             is_valid=self.is_valid and other.is_valid,
-            severity=max(self.severity, other.severity, key=lambda x: ["info", "warning", "error"].index(x.value)),
+            severity=max(
+                self.severity,
+                other.severity,
+                key=lambda x: ["info", "warning", "error"].index(x.value),
+            ),
             errors=self.errors + other.errors,
             warnings=self.warnings + other.warnings,
             details={**self.details, **other.details},
@@ -163,6 +175,7 @@ class BountyRecommendation:
         factors: Factors that influenced the recommendation
         reasoning: Human-readable explanation
     """
+
     min_usd: Decimal
     max_usd: Decimal
     suggested_usd: Decimal
@@ -191,6 +204,7 @@ class TimeEstimate:
         typical_minutes: Typical/average time
         factors: Factors that influenced the estimate
     """
+
     min_minutes: int
     max_minutes: int
     typical_minutes: int
@@ -218,6 +232,7 @@ class TaskContext:
     Contains information about the task, location, and requirements
     that task types use for validation and processing.
     """
+
     task_id: str
     location_lat: Optional[float] = None
     location_lng: Optional[float] = None
@@ -494,7 +509,9 @@ Deadline: {deadline}
         Returns:
             ValidationResult
         """
-        missing = [f for f in required_fields if f not in evidence or evidence[f] is None]
+        missing = [
+            f for f in required_fields if f not in evidence or evidence[f] is None
+        ]
 
         if missing:
             return ValidationResult.failure(

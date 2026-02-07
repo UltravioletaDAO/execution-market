@@ -14,7 +14,6 @@ Addresses TODO items:
 - NOW-095: Partial completion scenarios (0-30% no pago, 30-70% proof of attempt, 70-90% prorated)
 """
 
-import os
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -22,7 +21,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Optional, Dict, Any, List
 
-from ..integrations.x402.escrow import EscrowManager, FeeBreakdown, EscrowStatus
+from ..integrations.x402.escrow import EscrowManager
 from ..integrations.x402.client import X402Error
 
 
@@ -32,19 +31,21 @@ logger = logging.getLogger(__name__)
 
 class CompletionTier(str, Enum):
     """Completion percentage tiers for prorated payouts."""
-    NO_PAYMENT = "no_payment"           # 0-30%: No payout (insufficient attempt)
+
+    NO_PAYMENT = "no_payment"  # 0-30%: No payout (insufficient attempt)
     PROOF_OF_ATTEMPT = "proof_of_attempt"  # 30-70%: Proof of attempt payment
-    PRORATED = "prorated"               # 70-90%: Prorated based on completion
-    FULL = "full"                       # 90-100%: Full payment
+    PRORATED = "prorated"  # 70-90%: Prorated based on completion
+    FULL = "full"  # 90-100%: Full payment
 
 
 class PartialReleaseType(str, Enum):
     """Types of partial release operations."""
-    SUBMISSION = "submission"       # Released when worker submits evidence
-    COMPLETION = "completion"       # Released when agent approves
+
+    SUBMISSION = "submission"  # Released when worker submits evidence
+    COMPLETION = "completion"  # Released when agent approves
     PROOF_OF_ATTEMPT = "proof_of_attempt"  # Released for valid attempt
-    PRORATED = "prorated"           # Released for partial completion
-    ROLLBACK = "rollback"           # Clawed back on valid rejection
+    PRORATED = "prorated"  # Released for partial completion
+    ROLLBACK = "rollback"  # Clawed back on valid rejection
 
 
 @dataclass
@@ -60,6 +61,7 @@ class PartialReleaseConfig:
         rollback_enabled: Whether to allow rollback on valid rejection
         tier_thresholds: Completion percentage thresholds for each tier
     """
+
     submission_percent: float = 0.30  # 30% on submission
     min_submission_percent: float = 0.30
     max_submission_percent: float = 0.50
@@ -67,12 +69,14 @@ class PartialReleaseConfig:
     rollback_enabled: bool = True
 
     # Completion tier thresholds
-    tier_thresholds: Dict[str, float] = field(default_factory=lambda: {
-        "no_payment_max": 0.30,      # 0-30% = no payment
-        "proof_of_attempt_max": 0.70,  # 30-70% = proof of attempt
-        "prorated_max": 0.90,        # 70-90% = prorated
-        # 90-100% = full payment
-    })
+    tier_thresholds: Dict[str, float] = field(
+        default_factory=lambda: {
+            "no_payment_max": 0.30,  # 0-30% = no payment
+            "proof_of_attempt_max": 0.70,  # 30-70% = proof of attempt
+            "prorated_max": 0.90,  # 70-90% = prorated
+            # 90-100% = full payment
+        }
+    )
 
 
 @dataclass
@@ -91,6 +95,7 @@ class PartialReleaseRecord:
         notes: Optional notes about the release
         metadata: Additional data for audit purposes
     """
+
     task_id: str
     executor_id: str
     release_type: PartialReleaseType
@@ -109,11 +114,12 @@ class EscrowSplitState:
 
     Addresses NOW-092: Escrow split tracking with partial_released and partial_amount.
     """
+
     task_id: str
     escrow_id: str
     total_bounty: float
     partial_released: bool  # Whether any partial has been released
-    partial_amount: float   # Total amount released as partial
+    partial_amount: float  # Total amount released as partial
     remaining_amount: float
     release_records: List[PartialReleaseRecord] = field(default_factory=list)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -224,7 +230,10 @@ class PartialReleaseManager:
         pct = percentage or self.config.submission_percent
 
         # Clamp to configured min/max
-        pct = max(self.config.min_submission_percent, min(self.config.max_submission_percent, pct))
+        pct = max(
+            self.config.min_submission_percent,
+            min(self.config.max_submission_percent, pct),
+        )
 
         # Calculate fees on full bounty
         fees = self.escrow_manager.calculate_fees(total_bounty)
@@ -241,7 +250,7 @@ class PartialReleaseManager:
             "fees": {
                 "platform_fee": fees.platform_fee,
                 "fee_percent": fees.fee_percent,
-            }
+            },
         }
 
     def calculate_prorated_release(
@@ -350,7 +359,7 @@ class PartialReleaseManager:
 
         # Calculate release amount
         calc = self.calculate_submission_amount(total_bounty, percentage)
-        release_amount = calc["release_amount"]
+        calc["release_amount"]
 
         # Execute release via escrow manager
         result = await self.escrow_manager.release_partial(
@@ -377,7 +386,7 @@ class PartialReleaseManager:
                 "escrow_id": escrow_id,
                 "worker_address": worker_address,
                 "total_bounty": total_bounty,
-            }
+            },
         )
 
         # Update state and log
@@ -440,7 +449,9 @@ class PartialReleaseManager:
 
         # Validate required parameters
         if not escrow_id or not total_bounty or not worker_address:
-            raise ValueError("Missing required parameters: escrow_id, total_bounty, worker_address")
+            raise ValueError(
+                "Missing required parameters: escrow_id, total_bounty, worker_address"
+            )
 
         # Execute final release
         result = await self.escrow_manager.release_final(
@@ -460,7 +471,9 @@ class PartialReleaseManager:
             executor_id=executor_id,
             release_type=PartialReleaseType.COMPLETION,
             amount_usdc=result["worker_payment"],
-            percentage=1.0 - (partial_released / total_bounty) if partial_released else 1.0,
+            percentage=1.0 - (partial_released / total_bounty)
+            if partial_released
+            else 1.0,
             tx_hash=result["tx_hashes"][0] if result.get("tx_hashes") else None,
             timestamp=datetime.now(timezone.utc),
             notes="Final release on task approval",
@@ -470,7 +483,7 @@ class PartialReleaseManager:
                 "total_bounty": total_bounty,
                 "partial_already_released": partial_released,
                 "platform_fee": result.get("platform_fee"),
-            }
+            },
         )
 
         # Update state and log
@@ -550,7 +563,7 @@ class PartialReleaseManager:
                 "agent_id": agent_id,
                 "original_partial_amount": rollback_amount,
                 "reason": reason,
-            }
+            },
         )
 
         # Update state to reflect rollback
@@ -623,7 +636,7 @@ class PartialReleaseManager:
                 metadata={
                     "completion_percentage": completion_percentage,
                     "tier": calc["tier"],
-                }
+                },
             )
             self._log_audit(record)
 
@@ -671,7 +684,6 @@ class PartialReleaseManager:
         # Execute release
         # For prorated, we release the calculated amount instead of using release_final
         # which would release the full remaining amount
-        from ..integrations.x402.client import X402Client
         client = self.escrow_manager.client
 
         result = await client.release_escrow(
@@ -700,7 +712,7 @@ class PartialReleaseManager:
                 "tier": calc["tier"],
                 "target_release": target_release,
                 "partial_already_released": partial_already_released,
-            }
+            },
         )
 
         # Update state and log
@@ -811,6 +823,7 @@ class PartialReleaseManager:
 
 
 # Convenience functions for common operations
+
 
 async def release_partial_on_submission(
     task_id: str,

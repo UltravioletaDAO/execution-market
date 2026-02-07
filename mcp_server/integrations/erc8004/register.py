@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class RegistrationStatus(str, Enum):
     """Worker registration status."""
+
     NOT_REGISTERED = "not_registered"
     PENDING = "pending"
     REGISTERED = "registered"
@@ -27,6 +28,7 @@ class RegistrationStatus(str, Enum):
 @dataclass
 class WorkerIdentity:
     """Worker identity from ERC-8004."""
+
     token_id: int
     wallet_address: str
     registration_timestamp: int
@@ -44,55 +46,53 @@ ERC8004_ABI = [
             {"name": "owner", "type": "address"},
             {"name": "registrationTime", "type": "uint256"},
             {"name": "isActive", "type": "bool"},
-            {"name": "metadataURI", "type": "string"}
+            {"name": "metadataURI", "type": "string"},
         ],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     {
-        "inputs": [
-            {"name": "metadataURI", "type": "string"}
-        ],
+        "inputs": [{"name": "metadataURI", "type": "string"}],
         "name": "registerAgent",
         "outputs": [{"name": "tokenId", "type": "uint256"}],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [{"name": "tokenId", "type": "uint256"}],
         "name": "isAgentActive",
         "outputs": [{"name": "", "type": "bool"}],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [{"name": "wallet", "type": "address"}],
         "name": "hasAgent",
         "outputs": [{"name": "", "type": "bool"}],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [
             {"name": "tokenId", "type": "uint256"},
             {"name": "key", "type": "string"},
-            {"name": "value", "type": "bytes"}
+            {"name": "value", "type": "bytes"},
         ],
         "name": "setMetadata",
         "outputs": [],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [
             {"name": "tokenId", "type": "uint256"},
-            {"name": "key", "type": "string"}
+            {"name": "key", "type": "string"},
         ],
         "name": "getMetadata",
         "outputs": [{"name": "", "type": "bytes"}],
         "stateMutability": "view",
-        "type": "function"
-    }
+        "type": "function",
+    },
 ]
 
 
@@ -107,22 +107,22 @@ class ERC8004Registry:
     # Contract addresses by network
     CONTRACTS = {
         "sepolia": "0x1234567890123456789012345678901234567890",  # Testnet
-        "base": "0x0987654321098765432109876543210987654321",      # Production
-        "base-sepolia": "0xabcdef0123456789abcdef0123456789abcdef01"
+        "base": "0x0987654321098765432109876543210987654321",  # Production
+        "base-sepolia": "0xabcdef0123456789abcdef0123456789abcdef01",
     }
 
     # RPC endpoints
     RPC_URLS = {
         "sepolia": "https://rpc.sepolia.org",
         "base": "https://mainnet.base.org",
-        "base-sepolia": "https://sepolia.base.org"
+        "base-sepolia": "https://sepolia.base.org",
     }
 
     def __init__(
         self,
         network: str = "sepolia",
         private_key: Optional[str] = None,
-        rpc_url: Optional[str] = None
+        rpc_url: Optional[str] = None,
     ):
         """
         Initialize ERC-8004 Registry client.
@@ -152,8 +152,7 @@ class ERC8004Registry:
             raise ValueError(f"No contract address for network: {network}")
 
         self.contract = self.w3.eth.contract(
-            address=Web3.to_checksum_address(contract_address),
-            abi=ERC8004_ABI
+            address=Web3.to_checksum_address(contract_address), abi=ERC8004_ABI
         )
 
         # Setup account if private key provided
@@ -206,7 +205,7 @@ class ERC8004Registry:
                 wallet_address=owner,
                 registration_timestamp=reg_time,
                 is_active=is_active,
-                metadata_uri=metadata_uri if metadata_uri else None
+                metadata_uri=metadata_uri if metadata_uri else None,
             )
 
         except Exception as e:
@@ -214,9 +213,7 @@ class ERC8004Registry:
             return None
 
     async def register_worker(
-        self,
-        metadata_uri: str = "",
-        gas_limit: int = 200000
+        self, metadata_uri: str = "", gas_limit: int = 200000
     ) -> Optional[int]:
         """
         Register a new worker identity.
@@ -233,12 +230,14 @@ class ERC8004Registry:
 
         try:
             # Build transaction
-            tx = self.contract.functions.registerAgent(metadata_uri).build_transaction({
-                'from': self.account.address,
-                'gas': gas_limit,
-                'gasPrice': self.w3.eth.gas_price,
-                'nonce': self.w3.eth.get_transaction_count(self.account.address)
-            })
+            tx = self.contract.functions.registerAgent(metadata_uri).build_transaction(
+                {
+                    "from": self.account.address,
+                    "gas": gas_limit,
+                    "gasPrice": self.w3.eth.gas_price,
+                    "nonce": self.w3.eth.get_transaction_count(self.account.address),
+                }
+            )
 
             # Sign and send
             signed = self.w3.eth.account.sign_transaction(tx, self.private_key)
@@ -247,7 +246,7 @@ class ERC8004Registry:
             # Wait for receipt
             receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
-            if receipt['status'] == 1:
+            if receipt["status"] == 1:
                 # Get token ID from logs (simplified)
                 logger.info(f"Worker registered, tx: {tx_hash.hex()}")
 
@@ -263,11 +262,7 @@ class ERC8004Registry:
             return None
 
     async def set_metadata(
-        self,
-        token_id: int,
-        key: str,
-        value: bytes,
-        gas_limit: int = 100000
+        self, token_id: int, key: str, value: bytes, gas_limit: int = 100000
     ) -> bool:
         """
         Set metadata on worker identity.
@@ -287,19 +282,21 @@ class ERC8004Registry:
         try:
             tx = self.contract.functions.setMetadata(
                 token_id, key, value
-            ).build_transaction({
-                'from': self.account.address,
-                'gas': gas_limit,
-                'gasPrice': self.w3.eth.gas_price,
-                'nonce': self.w3.eth.get_transaction_count(self.account.address)
-            })
+            ).build_transaction(
+                {
+                    "from": self.account.address,
+                    "gas": gas_limit,
+                    "gasPrice": self.w3.eth.gas_price,
+                    "nonce": self.w3.eth.get_transaction_count(self.account.address),
+                }
+            )
 
             signed = self.w3.eth.account.sign_transaction(tx, self.private_key)
             tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
 
             receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
-            return receipt['status'] == 1
+            return receipt["status"] == 1
 
         except Exception as e:
             logger.error(f"Error setting metadata: {e}")
@@ -366,11 +363,12 @@ class ERC8004Registry:
 
 # Utility functions
 
+
 def create_worker_metadata(
     name: str,
     skills: list[str],
     location_hint: Optional[str] = None,
-    bio: Optional[str] = None
+    bio: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Create metadata JSON for worker registration.
@@ -391,7 +389,7 @@ def create_worker_metadata(
         "attributes": [
             {"trait_type": "skills", "value": ",".join(skills)},
             {"trait_type": "location", "value": location_hint or "Global"},
-            {"trait_type": "platform", "value": "Execution Market"}
+            {"trait_type": "platform", "value": "Execution Market"},
         ],
-        "external_url": f"https://execution.market/worker/{name}"
+        "external_url": f"https://execution.market/worker/{name}",
     }

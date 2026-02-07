@@ -10,20 +10,21 @@ Features:
 - Sliding window algorithm for accurate rate limiting
 - Automatic cleanup of stale entries
 """
+
 import logging
 import time
 import threading
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
 
 class RateLimitTier(str, Enum):
     """API rate limit tiers for different subscription levels."""
+
     FREE = "free"
     STARTER = "starter"
     GROWTH = "growth"
@@ -40,9 +41,9 @@ TIER_LIMITS: Dict[RateLimitTier, int] = {
 
 # Burst allowance multiplier (allows short bursts above limit)
 TIER_BURST_MULTIPLIER: Dict[RateLimitTier, float] = {
-    RateLimitTier.FREE: 1.0,        # No burst for free tier
-    RateLimitTier.STARTER: 1.5,     # 50% burst allowance
-    RateLimitTier.GROWTH: 2.0,      # 100% burst allowance
+    RateLimitTier.FREE: 1.0,  # No burst for free tier
+    RateLimitTier.STARTER: 1.5,  # 50% burst allowance
+    RateLimitTier.GROWTH: 2.0,  # 100% burst allowance
     RateLimitTier.ENTERPRISE: 3.0,  # 200% burst allowance
 }
 
@@ -55,9 +56,9 @@ TASK_LIMITS = {
 
 # Window sizes
 WINDOW_SIZES = {
-    "minute": 60,           # 1 minute in seconds
-    "hour": 3600,           # 1 hour in seconds
-    "day": 86400,           # 24 hours in seconds
+    "minute": 60,  # 1 minute in seconds
+    "hour": 3600,  # 1 hour in seconds
+    "day": 86400,  # 24 hours in seconds
 }
 
 # Cleanup interval (seconds)
@@ -67,6 +68,7 @@ CLEANUP_INTERVAL = 300  # 5 minutes
 @dataclass
 class SlidingWindowState:
     """State for sliding window rate limiting."""
+
     identifier: str
     window_size: int  # seconds
     max_requests: int
@@ -104,6 +106,7 @@ class SlidingWindowState:
 @dataclass
 class TaskLimitState:
     """State for task creation limits."""
+
     identifier: str
     daily_count: int = 0
     hourly_count: int = 0
@@ -153,7 +156,9 @@ class RateLimiter:
         self._cleanup_interval = cleanup_interval
         self._last_cleanup = time.time()
 
-        logger.info("RateLimiter initialized with cleanup_interval=%d", cleanup_interval)
+        logger.info(
+            "RateLimiter initialized with cleanup_interval=%d", cleanup_interval
+        )
 
     def _maybe_cleanup(self) -> None:
         """Run periodic cleanup if enough time has passed."""
@@ -166,7 +171,8 @@ class RateLimiter:
 
         # Cleanup stale IP limits
         stale_ips = [
-            ip for ip, state in self._ip_limits.items()
+            ip
+            for ip, state in self._ip_limits.items()
             if state.get_request_count(now) == 0 and not state.is_blocked(now)
         ]
         for ip in stale_ips:
@@ -175,7 +181,8 @@ class RateLimiter:
 
         # Cleanup stale API limits
         stale_apis = [
-            key for key, state in self._api_limits.items()
+            key
+            for key, state in self._api_limits.items()
             if state.get_request_count(now) == 0 and not state.is_blocked(now)
         ]
         for key in stale_apis:
@@ -206,7 +213,9 @@ class RateLimiter:
                 self._ip_limits[ip] = SlidingWindowState(
                     identifier=ip,
                     window_size=WINDOW_SIZES["minute"],
-                    max_requests=TIER_LIMITS[RateLimitTier.FREE],  # Default to free tier
+                    max_requests=TIER_LIMITS[
+                        RateLimitTier.FREE
+                    ],  # Default to free tier
                 )
 
             state = self._ip_limits[ip]
@@ -214,7 +223,9 @@ class RateLimiter:
             # Check if blocked
             if state.is_blocked(now):
                 retry_after = int(state.blocked_until - now) + 1
-                logger.warning("IP %s is blocked, retry after %d seconds", ip, retry_after)
+                logger.warning(
+                    "IP %s is blocked, retry after %d seconds", ip, retry_after
+                )
                 return False, retry_after
 
             # Check current request count
@@ -230,7 +241,9 @@ class RateLimiter:
 
                 logger.info(
                     "IP %s rate limited: %d/%d requests in window",
-                    ip, current_count, state.max_requests
+                    ip,
+                    current_count,
+                    state.max_requests,
                 )
                 return False, max(1, retry_after)
 
@@ -267,16 +280,16 @@ class RateLimiter:
                 retry_after = int(state.daily_reset - now) + 1
                 logger.info(
                     "Device %s rate limited: %d/%d tasks today",
-                    device_id[:16], state.daily_count, limit
+                    device_id[:16],
+                    state.daily_count,
+                    limit,
                 )
                 return False, retry_after
 
             return True, None
 
     def check_api_limit(
-        self,
-        api_key: str,
-        tier: RateLimitTier = RateLimitTier.FREE
+        self, api_key: str, tier: RateLimitTier = RateLimitTier.FREE
     ) -> Tuple[bool, Optional[int]]:
         """
         Check API tier rate limit.
@@ -324,7 +337,10 @@ class RateLimiter:
 
                 logger.info(
                     "API key %s... rate limited (tier=%s): %d/%d requests",
-                    api_key[:8], tier.value, current_count, state.max_requests
+                    api_key[:8],
+                    tier.value,
+                    current_count,
+                    state.max_requests,
                 )
                 return False, max(1, retry_after)
 
@@ -360,17 +376,16 @@ class RateLimiter:
                 retry_after = int(state.hourly_reset - now) + 1
                 logger.info(
                     "Agent %s rate limited: %d/%d tasks this hour",
-                    agent_id[:16], state.hourly_count, limit
+                    agent_id[:16],
+                    state.hourly_count,
+                    limit,
                 )
                 return False, retry_after
 
             return True, None
 
     def record_task_creation(
-        self,
-        ip: str,
-        device_id: Optional[str],
-        agent_id: str
+        self, ip: str, device_id: Optional[str], agent_id: str
     ) -> None:
         """
         Record task creation for all relevant limits.
@@ -415,7 +430,9 @@ class RateLimiter:
 
             logger.debug(
                 "Recorded task creation: ip=%s, device=%s, agent=%s",
-                ip, device_id[:16] if device_id else None, agent_id[:16]
+                ip,
+                device_id[:16] if device_id else None,
+                agent_id[:16],
             )
 
     def check_ip_task_limit(self, ip: str) -> Tuple[bool, Optional[int]]:
@@ -443,7 +460,9 @@ class RateLimiter:
                 retry_after = int(state.daily_reset - now) + 1
                 logger.info(
                     "IP %s task limited: %d/%d tasks today",
-                    ip, state.daily_count, limit
+                    ip,
+                    state.daily_count,
+                    limit,
                 )
                 return False, retry_after
 
@@ -558,11 +577,7 @@ class RateLimiter:
             return result
 
     def block_identifier(
-        self,
-        identifier: str,
-        limit_type: str,
-        duration_seconds: int,
-        reason: str = ""
+        self, identifier: str, limit_type: str, duration_seconds: int, reason: str = ""
     ) -> None:
         """
         Manually block an identifier for a duration.
@@ -598,7 +613,10 @@ class RateLimiter:
 
             logger.warning(
                 "Blocked %s %s for %d seconds. Reason: %s",
-                limit_type, identifier, duration_seconds, reason or "manual block"
+                limit_type,
+                identifier,
+                duration_seconds,
+                reason or "manual block",
             )
 
     def reset_identifier(self, identifier: str, limit_type: str) -> None:

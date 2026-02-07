@@ -14,17 +14,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, Optional, List, Any, Tuple
+from typing import Dict, Optional, List, Any
 
 from .fund import (
     get_fund,
-    FundConfig,
-    FundContribution,
     FundClaim,
     ClaimStatus,
     ClaimType,
     ContributionSource,
-    WorkerClaimHistory,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 class ReportPeriod(str, Enum):
     """Time periods for reporting."""
+
     DAY = "day"
     WEEK = "week"
     MONTH = "month"
@@ -60,7 +58,9 @@ def _get_period_start(period: ReportPeriod) -> datetime:
         return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     elif period == ReportPeriod.QUARTER:
         quarter_month = ((now.month - 1) // 3) * 3 + 1
-        return now.replace(month=quarter_month, day=1, hour=0, minute=0, second=0, microsecond=0)
+        return now.replace(
+            month=quarter_month, day=1, hour=0, minute=0, second=0, microsecond=0
+        )
     elif period == ReportPeriod.YEAR:
         return now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
     else:  # ALL_TIME
@@ -87,6 +87,7 @@ class FundStats:
         average_claim_amount: Average claim amount
         approval_rate: Percentage of claims approved
     """
+
     balance: Decimal
     total_contributions: Decimal
     total_payouts: Decimal
@@ -154,9 +155,13 @@ def get_fund_stats() -> FundStats:
         average_claim = Decimal("0")
 
     # Approval rate
-    decided_claims = [c for c in claims if c.status in (ClaimStatus.PAID, ClaimStatus.REJECTED)]
+    decided_claims = [
+        c for c in claims if c.status in (ClaimStatus.PAID, ClaimStatus.REJECTED)
+    ]
     if decided_claims:
-        approved_count = len([c for c in decided_claims if c.status == ClaimStatus.PAID])
+        approved_count = len(
+            [c for c in decided_claims if c.status == ClaimStatus.PAID]
+        )
         approval_rate = approved_count / len(decided_claims)
     else:
         approval_rate = 0.0
@@ -194,6 +199,7 @@ class ClaimsSummary:
         total_paid: Total amount paid
         average_processing_time: Average time to process (hours)
     """
+
     period: str
     period_start: datetime
     total_claims: int
@@ -237,10 +243,7 @@ def get_claims_summary(period: ReportPeriod = ReportPeriod.MONTH) -> ClaimsSumma
     period_start = _get_period_start(period)
 
     # Filter claims by period
-    claims = [
-        c for c in fund._claims.values()
-        if c.created_at >= period_start
-    ]
+    claims = [c for c in fund._claims.values() if c.created_at >= period_start]
 
     # Count by type
     claims_by_type: Dict[str, int] = {}
@@ -258,14 +261,15 @@ def get_claims_summary(period: ReportPeriod = ReportPeriod.MONTH) -> ClaimsSumma
 
     # Totals
     total_requested = sum(c.amount_requested for c in claims)
-    total_approved = sum(c.amount_approved for c in claims if c.status in (ClaimStatus.APPROVED, ClaimStatus.PAID))
+    total_approved = sum(
+        c.amount_approved
+        for c in claims
+        if c.status in (ClaimStatus.APPROVED, ClaimStatus.PAID)
+    )
     total_paid = sum(c.amount_approved for c in claims if c.status == ClaimStatus.PAID)
 
     # Average processing time
-    processed_claims = [
-        c for c in claims
-        if c.reviewed_at and c.created_at
-    ]
+    processed_claims = [c for c in claims if c.reviewed_at and c.created_at]
     if processed_claims:
         total_hours = sum(
             (c.reviewed_at - c.created_at).total_seconds() / 3600
@@ -307,6 +311,7 @@ class SustainabilityForecast:
         health_status: "healthy", "warning", "critical"
         recommendations: List of recommendations
     """
+
     current_balance: Decimal
     avg_monthly_inflow: Decimal
     avg_monthly_outflow: Decimal
@@ -322,7 +327,9 @@ class SustainabilityForecast:
             "avg_monthly_inflow": float(self.avg_monthly_inflow),
             "avg_monthly_outflow": float(self.avg_monthly_outflow),
             "net_monthly_flow": float(self.net_monthly_flow),
-            "months_runway": round(self.months_runway, 1) if self.months_runway < float('inf') else "unlimited",
+            "months_runway": round(self.months_runway, 1)
+            if self.months_runway < float("inf")
+            else "unlimited",
             "health_status": self.health_status,
             "recommendations": self.recommendations,
         }
@@ -354,19 +361,23 @@ def forecast_sustainability(months_lookback: int = 3) -> SustainabilityForecast:
 
     # Calculate average monthly inflow
     contributions_in_period = [
-        c for c in fund._contributions
-        if c.contributed_at >= lookback_start
+        c for c in fund._contributions if c.contributed_at >= lookback_start
     ]
     total_inflow = sum(c.amount for c in contributions_in_period)
-    avg_monthly_inflow = total_inflow / months_lookback if months_lookback > 0 else Decimal("0")
+    avg_monthly_inflow = (
+        total_inflow / months_lookback if months_lookback > 0 else Decimal("0")
+    )
 
     # Calculate average monthly outflow
     paid_claims_in_period = [
-        c for c in fund._claims.values()
+        c
+        for c in fund._claims.values()
         if c.status == ClaimStatus.PAID and c.paid_at and c.paid_at >= lookback_start
     ]
     total_outflow = sum(c.amount_approved for c in paid_claims_in_period)
-    avg_monthly_outflow = total_outflow / months_lookback if months_lookback > 0 else Decimal("0")
+    avg_monthly_outflow = (
+        total_outflow / months_lookback if months_lookback > 0 else Decimal("0")
+    )
 
     # Net monthly flow
     net_monthly_flow = avg_monthly_inflow - avg_monthly_outflow
@@ -374,14 +385,14 @@ def forecast_sustainability(months_lookback: int = 3) -> SustainabilityForecast:
     # Calculate runway
     current_balance = fund.balance
     if net_monthly_flow >= 0:
-        months_runway = float('inf')  # Growing or stable
+        months_runway = float("inf")  # Growing or stable
     elif avg_monthly_outflow > 0:
         months_runway = float(current_balance / avg_monthly_outflow)
     else:
-        months_runway = float('inf')
+        months_runway = float("inf")
 
     # Determine health status
-    if months_runway == float('inf') or months_runway > 6:
+    if months_runway == float("inf") or months_runway > 6:
         health_status = "healthy"
     elif months_runway > 3:
         health_status = "warning"
@@ -395,7 +406,9 @@ def forecast_sustainability(months_lookback: int = 3) -> SustainabilityForecast:
         recommendations.append("URGENT: Increase fund contributions immediately")
         recommendations.append("Consider reducing maximum claim amounts temporarily")
     elif health_status == "warning":
-        recommendations.append("Review contribution rates - consider increasing from 1%")
+        recommendations.append(
+            "Review contribution rates - consider increasing from 1%"
+        )
         recommendations.append("Monitor claim patterns for unusual activity")
 
     if avg_monthly_outflow > avg_monthly_inflow:
@@ -443,6 +456,7 @@ class WorkerAnalytics:
         average_claim: Average claim amount
         last_claim_at: When last claim was submitted
     """
+
     worker_id: str
     total_claims: int
     approved_claims: int
@@ -458,10 +472,14 @@ class WorkerAnalytics:
             "total_claims": self.total_claims,
             "approved_claims": self.approved_claims,
             "rejected_claims": self.rejected_claims,
-            "approval_rate": round(self.approved_claims / self.total_claims * 100, 1) if self.total_claims > 0 else 0,
+            "approval_rate": round(self.approved_claims / self.total_claims * 100, 1)
+            if self.total_claims > 0
+            else 0,
             "total_received": float(self.total_received),
             "average_claim": float(self.average_claim),
-            "last_claim_at": self.last_claim_at.isoformat() if self.last_claim_at else None,
+            "last_claim_at": self.last_claim_at.isoformat()
+            if self.last_claim_at
+            else None,
         }
 
 
@@ -481,7 +499,9 @@ def get_worker_analytics(worker_id: str) -> WorkerAnalytics:
     total_claims = len(claims)
     approved_claims = len([c for c in claims if c.status == ClaimStatus.PAID])
     rejected_claims = len([c for c in claims if c.status == ClaimStatus.REJECTED])
-    total_received = sum(c.amount_approved for c in claims if c.status == ClaimStatus.PAID)
+    total_received = sum(
+        c.amount_approved for c in claims if c.status == ClaimStatus.PAID
+    )
 
     if claims:
         average_claim = sum(c.amount_requested for c in claims) / len(claims)
@@ -521,10 +541,7 @@ def get_top_claimants(limit: int = 10) -> List[WorkerAnalytics]:
         worker_claims[claim.worker_id].append(claim)
 
     # Get analytics for each
-    analytics = [
-        get_worker_analytics(worker_id)
-        for worker_id in worker_claims.keys()
-    ]
+    analytics = [get_worker_analytics(worker_id) for worker_id in worker_claims.keys()]
 
     # Sort by total claims descending
     analytics.sort(key=lambda a: a.total_claims, reverse=True)

@@ -10,6 +10,7 @@ Lifecycle:
 4. cancel_task -> refund_on_cancel (full refund to agent)
 5. dispute -> handle_dispute (lock escrow pending resolution)
 """
+
 import logging
 import os
 from typing import Optional, Dict, Any, List
@@ -21,8 +22,6 @@ from enum import Enum
 from .client import (
     X402Client,
     X402Error,
-    PaymentResult as ClientPaymentResult,
-    EscrowDeposit as ClientEscrowDeposit,
     PaymentToken as ClientPaymentToken,
 )
 
@@ -45,6 +44,7 @@ async def get_platform_fee_pct() -> Decimal:
     """Get platform fee from config system."""
     try:
         from config import PlatformConfig
+
         return await PlatformConfig.get_fee_pct()
     except Exception:
         return DEFAULT_PLATFORM_FEE_PERCENT
@@ -54,6 +54,7 @@ async def get_partial_release_pct() -> Decimal:
     """Get partial release percentage from config system."""
     try:
         from config import PlatformConfig
+
         return await PlatformConfig.get_partial_release_pct()
     except Exception:
         return DEFAULT_PARTIAL_RELEASE_PERCENT
@@ -63,6 +64,7 @@ async def get_min_bounty() -> Decimal:
     """Get minimum bounty from config system."""
     try:
         from config import PlatformConfig
+
         return await PlatformConfig.get_min_bounty()
     except Exception:
         return DEFAULT_MINIMUM_PAYOUT
@@ -70,6 +72,7 @@ async def get_min_bounty() -> Decimal:
 
 class PaymentToken(str, Enum):
     """Supported payment tokens."""
+
     USDC = "USDC"
     EURC = "EURC"
     DAI = "DAI"
@@ -78,6 +81,7 @@ class PaymentToken(str, Enum):
 
 class EscrowStatus(str, Enum):
     """Status of an escrow in the lifecycle."""
+
     PENDING = "pending"  # Awaiting deposit transaction
     DEPOSITED = "deposited"  # Funds locked in escrow
     PARTIAL_RELEASED = "partial_released"  # Some funds released on submission
@@ -90,6 +94,7 @@ class EscrowStatus(str, Enum):
 @dataclass
 class FeeBreakdown:
     """Breakdown of fees for a payment."""
+
     gross_amount: Decimal
     platform_fee: Decimal
     net_to_worker: Decimal
@@ -107,6 +112,7 @@ class FeeBreakdown:
 @dataclass
 class ReleaseRecord:
     """Record of a release transaction."""
+
     tx_hash: str
     amount: Decimal
     recipient: str
@@ -117,6 +123,7 @@ class ReleaseRecord:
 @dataclass
 class TaskEscrow:
     """Complete state of a task's escrow."""
+
     task_id: str
     escrow_id: str
     total_amount: Decimal
@@ -182,6 +189,7 @@ class TaskEscrow:
 
 class EscrowStateError(Exception):
     """Raised when escrow operation is invalid for current state."""
+
     pass
 
 
@@ -207,14 +215,13 @@ class EscrowManager:
         """
         self.client = x402_client or X402Client()
         self.treasury_address = treasury_address or os.environ.get(
-            "EM_TREASURY_ADDRESS",
-            "0x0000000000000000000000000000000000000000"
+            "EM_TREASURY_ADDRESS", "0x0000000000000000000000000000000000000000"
         )
         # In-memory cache of escrow states (should be backed by DB in production)
         self._escrows: Dict[str, TaskEscrow] = {}
         logger.info(
             "EscrowManager initialized with treasury: %s",
-            self.treasury_address[:10] + "..." if self.treasury_address else "None"
+            self.treasury_address[:10] + "..." if self.treasury_address else "None",
         )
 
     def calculate_fees(self, bounty_usd: Decimal) -> FeeBreakdown:
@@ -431,9 +438,7 @@ class EscrowManager:
             return escrow
 
         except Exception as e:
-            logger.error(
-                "Failed partial release for task %s: %s", task_id, str(e)
-            )
+            logger.error("Failed partial release for task %s: %s", task_id, str(e))
             raise
 
     async def release_on_approval(
@@ -481,7 +486,9 @@ class EscrowManager:
         # Calculate amounts
         already_released = escrow.released_amount
         total_to_worker = escrow.fees.net_to_worker * Decimal(str(partial_pct))
-        worker_remaining = (total_to_worker - already_released).quantize(Decimal("0.01"))
+        worker_remaining = (total_to_worker - already_released).quantize(
+            Decimal("0.01")
+        )
 
         # Ensure non-negative
         worker_remaining = max(worker_remaining, Decimal("0"))
@@ -532,7 +539,8 @@ class EscrowManager:
             if (
                 escrow.fees.platform_fee > 0
                 and self.treasury_address
-                and self.treasury_address != "0x0000000000000000000000000000000000000000"
+                and self.treasury_address
+                != "0x0000000000000000000000000000000000000000"
             ):
                 fee_result = await self.client.release_escrow(
                     escrow_id=escrow.escrow_id,
@@ -580,9 +588,7 @@ class EscrowManager:
             return tx_hashes[0] if tx_hashes else ""
 
         except Exception as e:
-            logger.error(
-                "Failed to release escrow for task %s: %s", task_id, str(e)
-            )
+            logger.error("Failed to release escrow for task %s: %s", task_id, str(e))
             raise
 
     async def refund_on_cancel(
@@ -619,8 +625,8 @@ class EscrowManager:
         # Check if partial payments made
         if escrow.released_amount > 0:
             raise EscrowStateError(
-                f"Cannot fully refund: $%.2f already released. "
-                f"Use partial refund instead." % float(escrow.released_amount)
+                "Cannot fully refund: $%.2f already released. "
+                "Use partial refund instead." % float(escrow.released_amount)
             )
 
         logger.info(
@@ -881,7 +887,9 @@ async def release_partial_on_submission(
     return {
         "success": True,
         "tx_hash": escrow.release_txs[-1].tx_hash if escrow.release_txs else "",
-        "amount_released": float(escrow.release_txs[-1].amount) if escrow.release_txs else 0,
+        "amount_released": float(escrow.release_txs[-1].amount)
+        if escrow.release_txs
+        else 0,
         "percent_released": float(PARTIAL_RELEASE_PERCENT * 100),
         "remaining": float(escrow.remaining_amount),
         "type": "partial",
@@ -911,7 +919,7 @@ async def release_on_approval(
         Dict with release details
     """
     manager = get_manager()
-    tx_hash = await manager.release_on_approval(
+    await manager.release_on_approval(
         task_id=task_id,
         worker_wallet=worker_address,
     )
@@ -920,8 +928,12 @@ async def release_on_approval(
     return {
         "success": True,
         "tx_hashes": [r.tx_hash for r in escrow.release_txs] if escrow else [],
-        "worker_payment": float(escrow.fees.net_to_worker) if escrow and escrow.fees else 0,
-        "platform_fee": float(escrow.fees.platform_fee) if escrow and escrow.fees else 0,
+        "worker_payment": float(escrow.fees.net_to_worker)
+        if escrow and escrow.fees
+        else 0,
+        "platform_fee": float(escrow.fees.platform_fee)
+        if escrow and escrow.fees
+        else 0,
         "total_released": float(escrow.released_amount) if escrow else 0,
         "type": "final",
     }

@@ -4,7 +4,6 @@ Tests for applications table schema alignment helper.
 
 from types import SimpleNamespace
 
-import pytest
 
 from .. import supabase_client as db
 

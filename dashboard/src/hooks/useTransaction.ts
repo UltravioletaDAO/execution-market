@@ -93,7 +93,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   const [notifications, setNotifications] = useState<TransactionNotification[]>([])
   const [watchingHash, setWatchingHash] = useState<Hash | null>(null)
 
-  const publicClient = usePublicClient({ chainId })
+  const publicClient = usePublicClient({ chainId: chainId as any })
 
   // Track callbacks to avoid stale closures
   const callbacksRef = useRef({ onPending, onConfirmed, onFailed })
@@ -104,7 +104,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   // Watch for transaction receipt
   const { data: receipt, isLoading: isWaiting, isError } = useWaitForTransactionReceipt({
     hash: watchingHash || undefined,
-    chainId,
+    chainId: chainId as any,
     confirmations,
     query: {
       enabled: Boolean(watchingHash),

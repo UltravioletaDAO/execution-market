@@ -13,7 +13,7 @@ Each tier has:
 - Insurance requirements
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 from typing import Dict, List, Optional, Any
@@ -41,6 +41,7 @@ class TaskTier(str, Enum):
         - May require credentials or special access
         - Insurance required
     """
+
     TIER_1 = "tier_1"
     TIER_2 = "tier_2"
     TIER_3 = "tier_3"
@@ -62,6 +63,7 @@ class TierConfig:
         default_deadline_hours: Default deadline for this tier
         escrow_hold_hours: How long to hold escrow after completion
     """
+
     tier: TaskTier
     min_bounty: Decimal
     max_bounty: Decimal
@@ -192,9 +194,17 @@ class TierManager:
             )
 
         # Bounty falls in a gap - assign to lower tier
-        if self.configs[TaskTier.TIER_1].max_bounty < bounty < self.configs[TaskTier.TIER_2].min_bounty:
+        if (
+            self.configs[TaskTier.TIER_1].max_bounty
+            < bounty
+            < self.configs[TaskTier.TIER_2].min_bounty
+        ):
             return TaskTier.TIER_1  # Round down to Tier 1 max
-        if self.configs[TaskTier.TIER_2].max_bounty < bounty < self.configs[TaskTier.TIER_3].min_bounty:
+        if (
+            self.configs[TaskTier.TIER_2].max_bounty
+            < bounty
+            < self.configs[TaskTier.TIER_3].min_bounty
+        ):
             return TaskTier.TIER_2  # Round down to Tier 2 max
 
         return TaskTier.TIER_1  # Fallback

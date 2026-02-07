@@ -256,9 +256,9 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
     const menuContent = (
       <div
         ref={(node) => {
-          menuRef.current = node;
+          (menuRef as any).current = node;
           if (typeof ref === 'function') ref(node);
-          else if (ref && 'current' in ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          else if (ref && 'current' in ref) (ref as any).current = node;
         }}
         role="menu"
         tabIndex={-1}

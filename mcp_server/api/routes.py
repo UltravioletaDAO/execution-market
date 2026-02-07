@@ -18,13 +18,17 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 import supabase_client as db
 from models import TaskCategory, EvidenceType, TaskStatus
-from verification.ai_review import process_verification, calculate_auto_score, verify_with_ai, VerificationDecision
+from verification.ai_review import (
+    calculate_auto_score,
+    verify_with_ai,
+    VerificationDecision,
+)
 from .auth import (
     verify_api_key,
     verify_api_key_optional,
     APIKeyData,
     verify_agent_owns_task,
-    verify_agent_owns_submission
+    verify_agent_owns_submission,
 )
 
 # x402 SDK payment verification and settlement
@@ -32,7 +36,6 @@ try:
     from integrations.x402.sdk_client import (
         verify_x402_payment,
         get_sdk,
-        check_sdk_available,
         SDK_AVAILABLE as X402_AVAILABLE,
     )
 except ImportError:
@@ -41,6 +44,7 @@ except ImportError:
 # ERC-8004 reputation integration
 try:
     from integrations.erc8004 import rate_worker, EM_AGENT_ID
+
     ERC8004_AVAILABLE = True
 except ImportError:
     ERC8004_AVAILABLE = False
@@ -50,6 +54,7 @@ except ImportError:
 # ERC-8004 identity verification (non-blocking, cached)
 try:
     from integrations.erc8004 import verify_agent_identity
+
     ERC8004_IDENTITY_AVAILABLE = True
 except ImportError:
     ERC8004_IDENTITY_AVAILABLE = False
@@ -58,6 +63,7 @@ except ImportError:
 # Platform configuration
 try:
     from config import PlatformConfig
+
     CONFIG_AVAILABLE = True
 except ImportError:
     CONFIG_AVAILABLE = False
@@ -95,6 +101,7 @@ async def get_max_bounty() -> Decimal:
             pass
     return Decimal("10000.00")
 
+
 logger = logging.getLogger(__name__)
 X402_AUTH_REF_PREFIX = "x402_auth_"
 
@@ -107,7 +114,14 @@ NON_REFUNDABLE_ESCROW_STATUSES = {"released"}
 AUTHORIZE_ONLY_ESCROW_STATUSES = {"authorized", "pending"}
 LIVE_TASK_STATUSES = {"published", "accepted", "in_progress", "submitted", "verifying"}
 ACTIVE_WORKER_TASK_STATUSES = {"accepted", "in_progress", "submitted", "verifying"}
-TASK_PAYMENT_SETTLED_STATUSES = {"confirmed", "completed", "settled", "released", "success", "available"}
+TASK_PAYMENT_SETTLED_STATUSES = {
+    "confirmed",
+    "completed",
+    "settled",
+    "released",
+    "success",
+    "available",
+}
 
 
 def _normalize_status(value: Optional[str]) -> str:
@@ -241,10 +255,17 @@ def _extract_payment_tx(payment_row: Dict[str, Any]) -> Optional[str]:
 
 
 def _is_release_payment(payment_row: Dict[str, Any]) -> bool:
-    payment_type = _normalize_status(payment_row.get("type") or payment_row.get("payment_type"))
+    payment_type = _normalize_status(
+        payment_row.get("type") or payment_row.get("payment_type")
+    )
     if not payment_type:
         return True
-    return payment_type in {"release", "full_release", "final_release", "partial_release"}
+    return payment_type in {
+        "release",
+        "full_release",
+        "final_release",
+        "partial_release",
+    }
 
 
 def _is_payment_finalized(payment_row: Dict[str, Any]) -> bool:
@@ -316,21 +337,23 @@ def _record_refund_payment(
     try:
         client = db.get_client()
         amount = float(task.get("escrow_amount_usdc") or task.get("bounty_usd") or 0)
-        client.table("payments").insert({
-            "task_id": task.get("id"),
-            "type": "refund",
-            "payment_type": "refund",
-            "status": "confirmed" if refund_tx else "pending",
-            "tx_hash": refund_tx,
-            "transaction_hash": refund_tx,
-            "amount_usdc": amount,
-            "escrow_id": task.get("escrow_id"),
-            "network": "base",
-            "to_address": task.get("agent_id") or agent_id,
-            "settlement_method": settlement_method or "unknown",
-            "note": f"Task cancellation refund. reason={reason or 'not_provided'}",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }).execute()
+        client.table("payments").insert(
+            {
+                "task_id": task.get("id"),
+                "type": "refund",
+                "payment_type": "refund",
+                "status": "confirmed" if refund_tx else "pending",
+                "tx_hash": refund_tx,
+                "transaction_hash": refund_tx,
+                "amount_usdc": amount,
+                "escrow_id": task.get("escrow_id"),
+                "network": "base",
+                "to_address": task.get("agent_id") or agent_id,
+                "settlement_method": settlement_method or "unknown",
+                "note": f"Task cancellation refund. reason={reason or 'not_provided'}",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).execute()
     except Exception as payment_err:
         logger.warning(
             "Could not persist refund payment audit row for task %s: %s",
@@ -374,7 +397,9 @@ def _extract_x402_header_from_metadata(metadata: Any) -> Optional[str]:
     return None
 
 
-def _resolve_task_payment_header(task_id: Optional[str], task_escrow_tx: Optional[str]) -> Optional[str]:
+def _resolve_task_payment_header(
+    task_id: Optional[str], task_escrow_tx: Optional[str]
+) -> Optional[str]:
     """
     Resolve the original x402 X-Payment header for settlement.
 
@@ -403,7 +428,9 @@ def _resolve_task_payment_header(task_id: Optional[str], task_escrow_tx: Optiona
             return None
         return _extract_x402_header_from_metadata(rows[0].get("metadata"))
     except Exception as err:
-        logger.warning("Could not resolve x402 payment header for task %s: %s", task_id, err)
+        logger.warning(
+            "Could not resolve x402 payment header for task %s: %s", task_id, err
+        )
         return None
 
 
@@ -412,7 +439,9 @@ def _extract_agent_wallet_from_header(payment_header: Optional[str]) -> Optional
     if not payment_header:
         return None
     try:
-        import base64, json
+        import base64
+        import json
+
         decoded = json.loads(base64.b64decode(payment_header))
         auth = (decoded.get("payload") or {}).get("authorization") or {}
         return auth.get("from")
@@ -446,11 +475,13 @@ def _record_submission_paid_fields(
 
     try:
         client = db.get_client()
-        client.table("submissions").update({
-            "payment_tx": tx_hash,
-            "payment_amount": round(float(amount_usdc or 0), 6),
-            "paid_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", submission_id).execute()
+        client.table("submissions").update(
+            {
+                "payment_tx": tx_hash,
+                "payment_amount": round(float(amount_usdc or 0), 6),
+                "paid_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", submission_id).execute()
     except Exception as err:
         logger.warning(
             "Could not update submission paid fields for %s: %s",
@@ -577,7 +608,9 @@ async def _settle_submission_payment(
     if existing_payment and _is_payment_finalized(existing_payment):
         release_tx = _extract_payment_tx(existing_payment)
         if release_tx:
-            existing_amount = _extract_payment_amount(existing_payment) or float(worker_payout)
+            existing_amount = _extract_payment_amount(existing_payment) or float(
+                worker_payout
+            )
             _record_submission_paid_fields(
                 submission_id=submission_id,
                 tx_hash=release_tx,
@@ -612,7 +645,9 @@ async def _settle_submission_payment(
     if agent_wallet and worker_address.lower() == agent_wallet.lower():
         logger.error(
             "BLOCKED: Self-payment attempt for task %s — worker wallet %s matches agent wallet %s",
-            task_id, worker_address[:10], agent_wallet[:10],
+            task_id,
+            worker_address[:10],
+            agent_wallet[:10],
         )
         return {
             "payment_tx": None,
@@ -649,9 +684,7 @@ async def _settle_submission_payment(
             payment_status = "confirmed" if release_tx else "pending"
 
             if not release_tx:
-                release_error = (
-                    f"Settlement response for task {task_id} did not include tx hash; retry required"
-                )
+                release_error = f"Settlement response for task {task_id} did not include tx hash; retry required"
                 logger.error(release_error)
 
             client = db.get_client()
@@ -670,7 +703,9 @@ async def _settle_submission_payment(
                 "network": "base",
                 "to_address": worker_address,
                 "settlement_method": "facilitator",
-                "note": f"{note} | fee_tx={result.get('fee_tx_hash', 'n/a')}" if release_tx else f"{note} (awaiting tx hash)",
+                "note": f"{note} | fee_tx={result.get('fee_tx_hash', 'n/a')}"
+                if release_tx
+                else f"{note} (awaiting tx hash)",
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
 
@@ -691,10 +726,12 @@ async def _settle_submission_payment(
 
             if release_tx:
                 try:
-                    client.table("escrows").update({
-                        "status": "released",
-                        "released_at": datetime.now(timezone.utc).isoformat(),
-                    }).eq("task_id", task_id).execute()
+                    client.table("escrows").update(
+                        {
+                            "status": "released",
+                            "released_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    ).eq("task_id", task_id).execute()
                 except Exception as escrow_update_err:
                     logger.warning(
                         "Could not update escrow release status for task %s: %s",
@@ -730,7 +767,9 @@ async def _settle_submission_payment(
             )
     except Exception as err:
         release_error = str(err)
-        logger.error("Failed to settle payment for submission %s: %s", submission_id, err)
+        logger.error(
+            "Failed to settle payment for submission %s: %s", submission_id, err
+        )
 
     return {"payment_tx": release_tx, "payment_error": release_error}
 
@@ -766,9 +805,7 @@ async def _auto_approve_submission(
 def _is_missing_table_error(error: Exception, table_name: str) -> bool:
     payload = str(error).lower()
     table_ref = f"public.{table_name.lower()}"
-    return (
-        "pgrst205" in payload and table_ref in payload
-    ) or (
+    return ("pgrst205" in payload and table_ref in payload) or (
         "does not exist" in payload and table_name.lower() in payload
     )
 
@@ -776,12 +813,13 @@ def _is_missing_table_error(error: Exception, table_name: str) -> bool:
 def _is_not_found_error(error: Exception) -> bool:
     payload = str(error).lower()
     return any(
-        marker in payload
-        for marker in ("pgrst116", "0 rows", "no rows", "not found")
+        marker in payload for marker in ("pgrst116", "0 rows", "no rows", "not found")
     )
 
 
-def _normalize_payment_network(payment_row: Dict[str, Any], fallback: str = "base") -> str:
+def _normalize_payment_network(
+    payment_row: Dict[str, Any], fallback: str = "base"
+) -> str:
     network = str(payment_row.get("network") or "").strip().lower()
     if network:
         return network
@@ -805,19 +843,30 @@ def _event_type_from_payment_row(payment_row: Dict[str, Any]) -> str:
 
     if status == "disputed":
         return "dispute_hold"
-    if payment_type in {"refund", "partial_refund"} or status in {"refunded", "cancelled"}:
+    if payment_type in {"refund", "partial_refund"} or status in {
+        "refunded",
+        "cancelled",
+    }:
         return "refund"
     if payment_type == "partial_release" or status == "partial_released":
         return "partial_release"
     if payment_type in {"final_release", "full_release", "release"}:
         return "final_release"
     if payment_type == "task_payment":
-        return "final_release" if status in TASK_PAYMENT_SETTLED_STATUSES else "escrow_created"
+        return (
+            "final_release"
+            if status in TASK_PAYMENT_SETTLED_STATUSES
+            else "escrow_created"
+        )
     if payment_type in {"escrow_create", "deposit"}:
         return "escrow_created"
     if status in {"funded", "deposited", "authorized"}:
         return "escrow_created"
-    return "escrow_created" if status not in TASK_PAYMENT_SETTLED_STATUSES else "final_release"
+    return (
+        "escrow_created"
+        if status not in TASK_PAYMENT_SETTLED_STATUSES
+        else "final_release"
+    )
 
 
 def _actor_from_event_type(event_type: str) -> str:
@@ -844,7 +893,11 @@ def _derive_payment_status(
         return "completed"
     if "partial_release" in event_set:
         return "partial_released"
-    if has_escrow_context or "escrow_created" in event_set or "escrow_funded" in event_set:
+    if (
+        has_escrow_context
+        or "escrow_created" in event_set
+        or "escrow_funded" in event_set
+    ):
         return "escrowed"
 
     if task_status_normalized == "completed":
@@ -852,6 +905,7 @@ def _derive_payment_status(
     if task_status_normalized in {"cancelled", "expired"}:
         return "refunded"
     return "pending"
+
 
 # UUID validation pattern for path parameters
 UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
@@ -866,6 +920,7 @@ router = APIRouter(prefix="/api/v1", tags=["Execution Market API"])
 
 class CreateTaskRequest(BaseModel):
     """Request model for creating a new task."""
+
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
 
     title: str = Field(
@@ -873,72 +928,55 @@ class CreateTaskRequest(BaseModel):
         description="Short, descriptive title for the task",
         min_length=5,
         max_length=255,
-        examples=["Verify store is open", "Take photo of product display"]
+        examples=["Verify store is open", "Take photo of product display"],
     )
     instructions: str = Field(
         ...,
         description="Detailed instructions for the human executor",
         min_length=20,
-        max_length=5000
+        max_length=5000,
     )
-    category: TaskCategory = Field(
-        ...,
-        description="Category of the task"
-    )
-    bounty_usd: float = Field(
-        ...,
-        description="Bounty amount in USD",
-        gt=0,
-        le=10000
-    )
+    category: TaskCategory = Field(..., description="Category of the task")
+    bounty_usd: float = Field(..., description="Bounty amount in USD", gt=0, le=10000)
     deadline_hours: int = Field(
         ...,
         description="Hours from now until deadline",
         ge=1,
-        le=720  # Max 30 days
+        le=720,  # Max 30 days
     )
     evidence_required: List[EvidenceType] = Field(
-        ...,
-        description="List of required evidence types",
-        min_length=1,
-        max_length=5
+        ..., description="List of required evidence types", min_length=1, max_length=5
     )
     evidence_optional: Optional[List[EvidenceType]] = Field(
-        default=None,
-        description="List of optional evidence types",
-        max_length=5
+        default=None, description="List of optional evidence types", max_length=5
     )
     location_hint: Optional[str] = Field(
         default=None,
         description="Human-readable location hint (e.g., 'Mexico City downtown')",
-        max_length=255
+        max_length=255,
     )
     location_lat: Optional[float] = Field(
         default=None,
         description="Expected latitude for GPS verification",
         ge=-90,
-        le=90
+        le=90,
     )
     location_lng: Optional[float] = Field(
         default=None,
         description="Expected longitude for GPS verification",
         ge=-180,
-        le=180
+        le=180,
     )
     min_reputation: int = Field(
-        default=0,
-        description="Minimum reputation score required to apply",
-        ge=0
+        default=0, description="Minimum reputation score required to apply", ge=0
     )
     payment_token: str = Field(
-        default="USDC",
-        description="Payment token symbol",
-        max_length=10
+        default="USDC", description="Payment token symbol", max_length=10
     )
     payment_network: str = Field(
         default="base",
         description="Payment network (e.g., base, ethereum, polygon, arbitrum)",
-        max_length=30
+        max_length=30,
     )
 
     @field_validator("evidence_required")
@@ -951,6 +989,7 @@ class CreateTaskRequest(BaseModel):
 
 class TaskResponse(BaseModel):
     """Response model for task data."""
+
     id: str
     title: str
     status: str
@@ -971,6 +1010,7 @@ class TaskResponse(BaseModel):
 
 class TaskListResponse(BaseModel):
     """Response model for paginated task list."""
+
     tasks: List[TaskResponse]
     total: int
     count: int
@@ -980,6 +1020,7 @@ class TaskListResponse(BaseModel):
 
 class SubmissionResponse(BaseModel):
     """Response model for submission data."""
+
     id: str
     task_id: str
     executor_id: str
@@ -994,40 +1035,38 @@ class SubmissionResponse(BaseModel):
 
 class SubmissionListResponse(BaseModel):
     """Response model for submission list."""
+
     submissions: List[SubmissionResponse]
     count: int
 
 
 class ApprovalRequest(BaseModel):
     """Request model for approving a submission."""
+
     notes: Optional[str] = Field(
-        default=None,
-        description="Optional notes about the approval",
-        max_length=1000
+        default=None, description="Optional notes about the approval", max_length=1000
     )
 
 
 class RejectionRequest(BaseModel):
     """Request model for rejecting a submission."""
+
     notes: str = Field(
-        ...,
-        description="Required reason for rejection",
-        min_length=10,
-        max_length=1000
+        ..., description="Required reason for rejection", min_length=10, max_length=1000
     )
 
 
 class CancelRequest(BaseModel):
     """Request model for cancelling a task."""
+
     reason: Optional[str] = Field(
-        default=None,
-        description="Optional reason for cancellation",
-        max_length=500
+        default=None, description="Optional reason for cancellation", max_length=500
     )
 
 
 class AnalyticsResponse(BaseModel):
     """Response model for agent analytics."""
+
     totals: Dict[str, Any]
     by_status: Dict[str, int]
     by_category: Dict[str, int]
@@ -1038,52 +1077,51 @@ class AnalyticsResponse(BaseModel):
 
 class WorkerApplicationRequest(BaseModel):
     """Request model for worker applying to a task."""
+
     executor_id: str = Field(
         ...,
         description="Worker's executor ID",
-        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     )
     message: Optional[str] = Field(
-        default=None,
-        description="Optional message to the agent",
-        max_length=500
+        default=None, description="Optional message to the agent", max_length=500
     )
 
 
 class WorkerAssignRequest(BaseModel):
     """Request model for assigning a task to a worker."""
+
     executor_id: str = Field(
         ...,
         description="Worker's executor ID",
-        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     )
     notes: Optional[str] = Field(
         default=None,
         description="Optional assignment notes for the worker",
-        max_length=500
+        max_length=500,
     )
 
 
 class WorkerSubmissionRequest(BaseModel):
     """Request model for worker submitting work."""
+
     executor_id: str = Field(
         ...,
         description="Worker's executor ID",
-        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     )
     evidence: Dict[str, Any] = Field(
-        ...,
-        description="Evidence dictionary with required fields"
+        ..., description="Evidence dictionary with required fields"
     )
     notes: Optional[str] = Field(
-        default=None,
-        description="Optional notes about the submission",
-        max_length=1000
+        default=None, description="Optional notes about the submission", max_length=1000
     )
 
 
 class AvailableTasksResponse(BaseModel):
     """Response model for available tasks (worker view)."""
+
     tasks: List[Dict[str, Any]]
     count: int
     offset: int
@@ -1092,6 +1130,7 @@ class AvailableTasksResponse(BaseModel):
 
 class SuccessResponse(BaseModel):
     """Generic success response."""
+
     success: bool = True
     message: str
     data: Optional[Dict[str, Any]] = None
@@ -1099,6 +1138,7 @@ class SuccessResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     """Error response model."""
+
     error: str
     message: str
     details: Optional[Dict[str, Any]] = None
@@ -1106,6 +1146,7 @@ class ErrorResponse(BaseModel):
 
 class PublicConfigResponse(BaseModel):
     """Public platform configuration (readable by anyone)."""
+
     min_bounty_usd: float
     max_bounty_usd: float
     supported_networks: List[str]
@@ -1115,6 +1156,7 @@ class PublicConfigResponse(BaseModel):
 
 class PublicPlatformMetricsResponse(BaseModel):
     """Public high-level platform metrics for landing/dashboard surfaces."""
+
     users: Dict[str, int]
     tasks: Dict[str, int]
     activity: Dict[str, int]
@@ -1124,6 +1166,7 @@ class PublicPlatformMetricsResponse(BaseModel):
 
 class TaskPaymentEventResponse(BaseModel):
     """Canonical payment timeline event for a task."""
+
     id: str
     type: str
     actor: str
@@ -1136,6 +1179,7 @@ class TaskPaymentEventResponse(BaseModel):
 
 class TaskPaymentResponse(BaseModel):
     """Canonical payment timeline and status for a task."""
+
     task_id: str
     status: str
     total_amount: float
@@ -1151,6 +1195,7 @@ class TaskPaymentResponse(BaseModel):
 
 class ConfigUpdateRequest(BaseModel):
     """Request to update a config value (admin only)."""
+
     value: Any = Field(..., description="New value for the config key")
     reason: Optional[str] = Field(None, description="Reason for the change (for audit)")
 
@@ -1165,7 +1210,7 @@ class ConfigUpdateRequest(BaseModel):
     response_model=PublicConfigResponse,
     responses={
         200: {"description": "Public platform configuration"},
-    }
+    },
 )
 async def get_public_config() -> PublicConfigResponse:
     """
@@ -1190,6 +1235,7 @@ async def get_public_config() -> PublicConfigResponse:
 
     # Fallback defaults — use actually enabled networks
     from integrations.x402.sdk_client import get_enabled_networks
+
     return PublicConfigResponse(
         min_bounty_usd=0.25,
         max_bounty_usd=10000.00,
@@ -1267,7 +1313,11 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
 
     # Task and activity aggregates
     try:
-        tasks_result = client.table("tasks").select("status, executor_id, agent_id, bounty_usd").execute()
+        tasks_result = (
+            client.table("tasks")
+            .select("status, executor_id, agent_id, bounty_usd")
+            .execute()
+        )
         task_rows = tasks_result.data or []
         fee_pct = float(await get_platform_fee_percent())
 
@@ -1319,7 +1369,9 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
     # If registry tables drift or fail, derive from task/submission activity.
     if users["registered_workers"] == 0:
         try:
-            submissions_result = client.table("submissions").select("executor_id").execute()
+            submissions_result = (
+                client.table("submissions").select("executor_id").execute()
+            )
             worker_ids = {
                 row.get("executor_id")
                 for row in (submissions_result.data or [])
@@ -1327,7 +1379,9 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
             }
             users["registered_workers"] = len(worker_ids)
         except Exception as e:
-            logger.warning("Could not derive registered_workers from submissions fallback: %s", e)
+            logger.warning(
+                "Could not derive registered_workers from submissions fallback: %s", e
+            )
 
     if users["registered_agents"] == 0:
         try:
@@ -1339,7 +1393,9 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
             }
             users["registered_agents"] = len(agent_ids)
         except Exception as e:
-            logger.warning("Could not derive registered_agents from tasks fallback: %s", e)
+            logger.warning(
+                "Could not derive registered_agents from tasks fallback: %s", e
+            )
 
     return PublicPlatformMetricsResponse(
         users=users,
@@ -1363,14 +1419,16 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
         201: {"description": "Task created successfully"},
         400: {"model": ErrorResponse, "description": "Invalid request"},
         401: {"model": ErrorResponse, "description": "Unauthorized"},
-        402: {"description": "Payment required. Include X-Payment header with x402 payment."},
+        402: {
+            "description": "Payment required. Include X-Payment header with x402 payment."
+        },
         429: {"model": ErrorResponse, "description": "Rate limit exceeded"},
-    }
+    },
 )
 async def create_task(
     http_request: Request,
     request: CreateTaskRequest,
-    api_key: APIKeyData = Depends(verify_api_key)
+    api_key: APIKeyData = Depends(verify_api_key),
 ) -> TaskResponse:
     """
     Create a new task.
@@ -1396,17 +1454,21 @@ async def create_task(
         if bounty < min_bounty:
             raise HTTPException(
                 status_code=400,
-                detail=f"Bounty ${bounty} is below minimum ${min_bounty}"
+                detail=f"Bounty ${bounty} is below minimum ${min_bounty}",
             )
         if bounty > max_bounty:
             raise HTTPException(
                 status_code=400,
-                detail=f"Bounty ${bounty} exceeds maximum ${max_bounty}"
+                detail=f"Bounty ${bounty} exceeds maximum ${max_bounty}",
             )
 
         # Validate payment network is enabled
         try:
-            from integrations.x402.sdk_client import validate_payment_network, get_enabled_networks
+            from integrations.x402.sdk_client import (
+                validate_payment_network,
+                get_enabled_networks,
+            )
+
             validate_payment_network(request.payment_network)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -1424,7 +1486,9 @@ async def create_task(
             )
 
         # Get the original X-Payment header before verification
-        x_payment_header = http_request.headers.get("X-Payment") or http_request.headers.get("x-payment")
+        x_payment_header = http_request.headers.get(
+            "X-Payment"
+        ) or http_request.headers.get("x-payment")
 
         payment_result = await verify_x402_payment(http_request, total_required)
 
@@ -1443,21 +1507,21 @@ async def create_task(
                     "x402_info": {
                         "facilitator": "https://facilitator.ultravioletadao.xyz",
                         "networks": get_enabled_networks(),
-                        "tokens": ["USDC", "EURC", "USDT", "PYUSD"]
-                    }
+                        "tokens": ["USDC", "EURC", "USDT", "PYUSD"],
+                    },
                 },
                 headers={
                     "X-402-Price": str(total_required),
                     "X-402-Currency": "USD",
                     "X-402-Description": f"Create task: {request.title[:50]}",
-                }
+                },
             )
 
         logger.info(
             "x402 payment verified: payer=%s, amount=%.2f, tx=%s",
             payment_result.payer_address,
             payment_result.amount_usd,
-            payment_result.tx_hash
+            payment_result.tx_hash,
         )
 
         # ---- ERC-8004 Agent Identity Verification (non-blocking) --------
@@ -1557,6 +1621,7 @@ async def create_task(
             try:
                 # Generate a unique escrow reference (not a tx hash - no tx happened yet)
                 import uuid
+
                 escrow_ref = f"escrow_{task['id'][:8]}_{uuid.uuid4().hex[:8]}"
                 payment_reference = f"{X402_AUTH_REF_PREFIX}{uuid.uuid4().hex[:16]}"
 
@@ -1575,26 +1640,31 @@ async def create_task(
 
                 # Persist escrow metadata for later settlement.
                 # Critical: include x_payment_header somewhere recoverable.
-                _insert_escrow_record({
-                    "task_id": task["id"],
-                    "agent_id": api_key.agent_id,
-                    "escrow_id": escrow_ref,
-                    "funding_tx": None,  # populated when settlement occurs
-                    "status": "authorized",
-                    "total_amount_usdc": float(total_required),
-                    "platform_fee_usdc": float(total_required - bounty),
-                    "beneficiary_address": payment_result.payer_address,
-                    "network": payment_result.network,
-                    "metadata": {
-                        "x_payment_header": x_payment_header,
-                        "payment_reference": payment_reference,
-                    },
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                })
+                _insert_escrow_record(
+                    {
+                        "task_id": task["id"],
+                        "agent_id": api_key.agent_id,
+                        "escrow_id": escrow_ref,
+                        "funding_tx": None,  # populated when settlement occurs
+                        "status": "authorized",
+                        "total_amount_usdc": float(total_required),
+                        "platform_fee_usdc": float(total_required - bounty),
+                        "beneficiary_address": payment_result.payer_address,
+                        "network": payment_result.network,
+                        "metadata": {
+                            "x_payment_header": x_payment_header,
+                            "payment_reference": payment_reference,
+                        },
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
 
                 logger.info(
                     "x402 payment authorized: task=%s, escrow=%s, amount=%.2f, payer=%s",
-                    task["id"], escrow_ref, float(total_required), payment_result.payer_address[:10] + "..."
+                    task["id"],
+                    escrow_ref,
+                    float(total_required),
+                    payment_result.payer_address[:10] + "...",
                 )
             except Exception as e:
                 # Non-fatal: task was created, escrow recording failed
@@ -1602,7 +1672,10 @@ async def create_task(
 
         logger.info(
             "Task created: id=%s, agent=%s, bounty=%.2f, paid_via_x402=%s",
-            task["id"], api_key.agent_id, request.bounty_usd, X402_AVAILABLE
+            task["id"],
+            api_key.agent_id,
+            request.bounty_usd,
+            X402_AVAILABLE,
         )
 
         return TaskResponse(
@@ -1612,7 +1685,9 @@ async def create_task(
             category=task["category"],
             bounty_usd=task["bounty_usd"],
             deadline=datetime.fromisoformat(task["deadline"].replace("Z", "+00:00")),
-            created_at=datetime.fromisoformat(task["created_at"].replace("Z", "+00:00")),
+            created_at=datetime.fromisoformat(
+                task["created_at"].replace("Z", "+00:00")
+            ),
             agent_id=task["agent_id"],
             instructions=task["instructions"],
             evidence_schema=task.get("evidence_schema"),
@@ -1625,7 +1700,9 @@ async def create_task(
         raise
     except Exception as e:
         logger.error("Failed to create task: %s", str(e), exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal error while creating task")
+        raise HTTPException(
+            status_code=500, detail="Internal error while creating task"
+        )
 
 
 @router.get(
@@ -1633,15 +1710,21 @@ async def create_task(
     response_model=AvailableTasksResponse,
     responses={
         200: {"description": "Available tasks retrieved"},
-    }
+    },
 )
 async def get_available_tasks(
-    lat: Optional[float] = Query(None, ge=-90, le=90, description="Latitude for location filtering"),
-    lng: Optional[float] = Query(None, ge=-180, le=180, description="Longitude for location filtering"),
+    lat: Optional[float] = Query(
+        None, ge=-90, le=90, description="Latitude for location filtering"
+    ),
+    lng: Optional[float] = Query(
+        None, ge=-180, le=180, description="Longitude for location filtering"
+    ),
     radius_km: int = Query(50, ge=1, le=500, description="Search radius in kilometers"),
     category: Optional[TaskCategory] = Query(None, description="Filter by category"),
     min_bounty: Optional[float] = Query(None, ge=0, description="Minimum bounty USD"),
-    max_bounty: Optional[float] = Query(None, le=10000, description="Maximum bounty USD"),
+    max_bounty: Optional[float] = Query(
+        None, le=10000, description="Maximum bounty USD"
+    ),
     include_expired: bool = Query(
         False,
         description="Include expired tasks in response. Useful as landing fallback when there are no active tasks.",
@@ -1679,9 +1762,17 @@ async def get_available_tasks(
 
         # Execute query
         if include_expired:
-            result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+            result = (
+                query.order("created_at", desc=True)
+                .range(offset, offset + limit - 1)
+                .execute()
+            )
         else:
-            result = query.order("bounty_usd", desc=True).range(offset, offset + limit - 1).execute()
+            result = (
+                query.order("bounty_usd", desc=True)
+                .range(offset, offset + limit - 1)
+                .execute()
+            )
 
         tasks = result.data or []
 
@@ -1691,7 +1782,9 @@ async def get_available_tasks(
             "min_bounty": min_bounty,
             "max_bounty": max_bounty,
             "include_expired": include_expired,
-            "location": {"lat": lat, "lng": lng, "radius_km": radius_km} if lat and lng else None,
+            "location": {"lat": lat, "lng": lng, "radius_km": radius_km}
+            if lat and lng
+            else None,
         }
 
         return AvailableTasksResponse(
@@ -1712,13 +1805,16 @@ async def get_available_tasks(
     responses={
         200: {"description": "Task found"},
         401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Not authorized to view this task"},
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized to view this task",
+        },
         404: {"model": ErrorResponse, "description": "Task not found"},
-    }
+    },
 )
 async def get_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    api_key: APIKeyData = Depends(verify_api_key)
+    api_key: APIKeyData = Depends(verify_api_key),
 ) -> TaskResponse:
     """
     Get task by ID.
@@ -1756,9 +1852,12 @@ async def get_task(
     response_model=TaskPaymentResponse,
     responses={
         200: {"description": "Canonical task payment timeline"},
-        403: {"model": ErrorResponse, "description": "Not authorized to view payment details"},
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized to view payment details",
+        },
         404: {"model": ErrorResponse, "description": "Task not found"},
-    }
+    },
 )
 async def get_task_payment(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
@@ -1777,8 +1876,12 @@ async def get_task_payment(
         if _is_not_found_error(task_err):
             task = None
         else:
-            logger.warning("Failed to load task %s for payment endpoint: %s", task_id, task_err)
-            raise HTTPException(status_code=500, detail="Failed to resolve task payment")
+            logger.warning(
+                "Failed to load task %s for payment endpoint: %s", task_id, task_err
+            )
+            raise HTTPException(
+                status_code=500, detail="Failed to resolve task payment"
+            )
 
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -1807,7 +1910,9 @@ async def get_task_payment(
         payment_rows = payment_result.data or []
     except Exception as payment_err:
         if not _is_missing_table_error(payment_err, "payments"):
-            logger.warning("Failed to query payments for task %s: %s", task_id, payment_err)
+            logger.warning(
+                "Failed to query payments for task %s: %s", task_id, payment_err
+            )
 
     try:
         escrows_result = (
@@ -1823,7 +1928,9 @@ async def get_task_payment(
             escrows_row = escrows_rows[0]
     except Exception as escrow_err:
         if not _is_missing_table_error(escrow_err, "escrows"):
-            logger.warning("Failed to query escrows for task %s: %s", task_id, escrow_err)
+            logger.warning(
+                "Failed to query escrows for task %s: %s", task_id, escrow_err
+            )
 
     try:
         submission_result = (
@@ -1840,7 +1947,11 @@ async def get_task_payment(
             submission_payment_row = submission_rows[0]
     except Exception as submission_err:
         if not _is_missing_table_error(submission_err, "submissions"):
-            logger.warning("Failed to query submission payment fallback for task %s: %s", task_id, submission_err)
+            logger.warning(
+                "Failed to query submission payment fallback for task %s: %s",
+                task_id,
+                submission_err,
+            )
 
     default_network = "base"
     created_at = str(task.get("created_at") or datetime.now(timezone.utc).isoformat())
@@ -1862,7 +1973,10 @@ async def get_task_payment(
         status = _normalize_status(row.get("status"))
         if event_type == "escrow_created":
             total_amount = max(total_amount, amount)
-        if event_type in {"partial_release", "final_release"} and status in TASK_PAYMENT_SETTLED_STATUSES:
+        if (
+            event_type in {"partial_release", "final_release"}
+            and status in TASK_PAYMENT_SETTLED_STATUSES
+        ):
             released_amount += amount
 
         event_timestamp = str(
@@ -1890,19 +2004,25 @@ async def get_task_payment(
             or row.get("funding_tx")
         )
 
-        events.append({
-            "id": f"{row.get('id') or task_id}-{event_type}-{index}",
-            "type": event_type,
-            "actor": _actor_from_event_type(event_type),
-            "amount": amount if amount > 0 else None,
-            "tx_hash": tx_hash,
-            "network": network,
-            "timestamp": event_timestamp,
-            "note": note,
-        })
+        events.append(
+            {
+                "id": f"{row.get('id') or task_id}-{event_type}-{index}",
+                "type": event_type,
+                "actor": _actor_from_event_type(event_type),
+                "amount": amount if amount > 0 else None,
+                "tx_hash": tx_hash,
+                "network": network,
+                "timestamp": event_timestamp,
+                "note": note,
+            }
+        )
 
-    has_escrow_context = bool(task.get("escrow_id") or task.get("escrow_tx") or escrows_row)
-    if has_escrow_context and not any(event["type"] in {"escrow_created", "escrow_funded"} for event in events):
+    has_escrow_context = bool(
+        task.get("escrow_id") or task.get("escrow_tx") or escrows_row
+    )
+    if has_escrow_context and not any(
+        event["type"] in {"escrow_created", "escrow_funded"} for event in events
+    ):
         escrow_amount = _as_amount(
             (escrows_row or {}).get("total_amount_usdc")
             or (escrows_row or {}).get("amount_usdc")
@@ -1922,23 +2042,29 @@ async def get_task_payment(
             task.get("escrow_tx"),
         )
         escrow_reference = _sanitize_reference(task.get("escrow_tx"))
-        events.append({
-            "id": f"{task_id}-escrow-created-fallback",
-            "type": "escrow_created",
-            "actor": "agent",
-            "amount": escrow_amount if escrow_amount > 0 else None,
-            "tx_hash": escrow_tx_hash,
-            "network": default_network,
-            "timestamp": escrow_timestamp,
-            "note": escrow_reference,
-        })
+        events.append(
+            {
+                "id": f"{task_id}-escrow-created-fallback",
+                "type": "escrow_created",
+                "actor": "agent",
+                "amount": escrow_amount if escrow_amount > 0 else None,
+                "tx_hash": escrow_tx_hash,
+                "network": default_network,
+                "timestamp": escrow_timestamp,
+                "note": escrow_reference,
+            }
+        )
 
-    submission_tx = _pick_first_tx_hash((submission_payment_row or {}).get("payment_tx"))
+    submission_tx = _pick_first_tx_hash(
+        (submission_payment_row or {}).get("payment_tx")
+    )
     if submission_tx and not any(
         event["type"] == "final_release" and event.get("tx_hash") == submission_tx
         for event in events
     ):
-        submission_amount = _as_amount((submission_payment_row or {}).get("payment_amount"))
+        submission_amount = _as_amount(
+            (submission_payment_row or {}).get("payment_amount")
+        )
         if submission_amount <= 0:
             submission_amount = total_amount
         released_amount = max(released_amount, submission_amount)
@@ -1951,16 +2077,18 @@ async def get_task_payment(
             or updated_at
         )
         updated_at = max(updated_at, payout_timestamp)
-        events.append({
-            "id": f"{task_id}-submission-payout-{(submission_payment_row or {}).get('id') or 'latest'}",
-            "type": "final_release",
-            "actor": "system",
-            "amount": submission_amount if submission_amount > 0 else None,
-            "tx_hash": submission_tx,
-            "network": default_network,
-            "timestamp": payout_timestamp,
-            "note": "Payment settled via x402 facilitator",
-        })
+        events.append(
+            {
+                "id": f"{task_id}-submission-payout-{(submission_payment_row or {}).get('id') or 'latest'}",
+                "type": "final_release",
+                "actor": "system",
+                "amount": submission_amount if submission_amount > 0 else None,
+                "tx_hash": submission_tx,
+                "network": default_network,
+                "timestamp": payout_timestamp,
+                "note": "Payment settled via x402 facilitator",
+            }
+        )
 
     # Inject refund event if task has a refund_tx (funded escrow that was refunded)
     refund_tx_from_task = _pick_first_tx_hash(task.get("refund_tx"))
@@ -1969,39 +2097,49 @@ async def get_task_payment(
         for event in events
     ):
         refund_timestamp = str(task.get("updated_at") or updated_at)
-        events.append({
-            "id": f"{task_id}-refund-task",
-            "type": "refund",
-            "actor": "system",
-            "amount": total_amount if total_amount > 0 else None,
-            "tx_hash": refund_tx_from_task,
-            "network": default_network,
-            "timestamp": refund_timestamp,
-            "note": "Escrow refunded to agent via facilitator",
-        })
+        events.append(
+            {
+                "id": f"{task_id}-refund-task",
+                "type": "refund",
+                "actor": "system",
+                "amount": total_amount if total_amount > 0 else None,
+                "tx_hash": refund_tx_from_task,
+                "network": default_network,
+                "timestamp": refund_timestamp,
+                "note": "Escrow refunded to agent via facilitator",
+            }
+        )
 
     # For cancelled tasks without refund_tx, inject authorization_expired event
     if (
         task_status == "cancelled"
         and has_escrow_context
         and not refund_tx_from_task
-        and not any(event["type"] in {"refund", "authorization_expired"} for event in events)
+        and not any(
+            event["type"] in {"refund", "authorization_expired"} for event in events
+        )
     ):
         cancel_timestamp = str(task.get("updated_at") or updated_at)
-        events.append({
-            "id": f"{task_id}-auth-expired",
-            "type": "authorization_expired",
-            "actor": "system",
-            "amount": None,
-            "tx_hash": None,
-            "network": default_network,
-            "timestamp": cancel_timestamp,
-            "note": "Payment authorization expired. No funds were moved.",
-        })
+        events.append(
+            {
+                "id": f"{task_id}-auth-expired",
+                "type": "authorization_expired",
+                "actor": "system",
+                "amount": None,
+                "tx_hash": None,
+                "network": default_network,
+                "timestamp": cancel_timestamp,
+                "note": "Payment authorization expired. No funds were moved.",
+            }
+        )
 
     events.sort(key=lambda event: event.get("timestamp") or "")
 
-    if _normalize_status(task.get("status")) == "completed" and released_amount <= 0 and total_amount > 0:
+    if (
+        _normalize_status(task.get("status")) == "completed"
+        and released_amount <= 0
+        and total_amount > 0
+    ):
         released_amount = total_amount
 
     derived_status = _derive_payment_status(
@@ -2038,14 +2176,14 @@ async def get_task_payment(
     responses={
         200: {"description": "Tasks retrieved"},
         401: {"model": ErrorResponse, "description": "Unauthorized"},
-    }
+    },
 )
 async def list_tasks(
     status: Optional[TaskStatus] = Query(None, description="Filter by task status"),
     category: Optional[TaskCategory] = Query(None, description="Filter by category"),
     limit: int = Query(20, ge=1, le=100, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    api_key: APIKeyData = Depends(verify_api_key)
+    api_key: APIKeyData = Depends(verify_api_key),
 ) -> TaskListResponse:
     """
     List tasks for the authenticated agent.
@@ -2062,19 +2200,25 @@ async def list_tasks(
 
     tasks = []
     for task in result.get("tasks", []):
-        tasks.append(TaskResponse(
-            id=task["id"],
-            title=task["title"],
-            status=task["status"],
-            category=task["category"],
-            bounty_usd=task["bounty_usd"],
-            deadline=datetime.fromisoformat(task["deadline"].replace("Z", "+00:00")),
-            created_at=datetime.fromisoformat(task["created_at"].replace("Z", "+00:00")),
-            agent_id=task["agent_id"],
-            executor_id=task.get("executor_id"),
-            min_reputation=task.get("min_reputation", 0),
-            erc8004_agent_id=task.get("erc8004_agent_id"),
-        ))
+        tasks.append(
+            TaskResponse(
+                id=task["id"],
+                title=task["title"],
+                status=task["status"],
+                category=task["category"],
+                bounty_usd=task["bounty_usd"],
+                deadline=datetime.fromisoformat(
+                    task["deadline"].replace("Z", "+00:00")
+                ),
+                created_at=datetime.fromisoformat(
+                    task["created_at"].replace("Z", "+00:00")
+                ),
+                agent_id=task["agent_id"],
+                executor_id=task.get("executor_id"),
+                min_reputation=task.get("min_reputation", 0),
+                erc8004_agent_id=task.get("erc8004_agent_id"),
+            )
+        )
 
     return TaskListResponse(
         tasks=tasks,
@@ -2093,11 +2237,11 @@ async def list_tasks(
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Not authorized"},
         404: {"model": ErrorResponse, "description": "Task not found"},
-    }
+    },
 )
 async def get_submissions(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    api_key: APIKeyData = Depends(verify_api_key)
+    api_key: APIKeyData = Depends(verify_api_key),
 ) -> SubmissionListResponse:
     """
     Get submissions for a task.
@@ -2109,7 +2253,9 @@ async def get_submissions(
         task = await db.get_task(task_id)
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
-        raise HTTPException(status_code=403, detail="Not authorized to view submissions")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to view submissions"
+        )
 
     submissions = await db.get_submissions_for_task(task_id)
 
@@ -2123,18 +2269,26 @@ async def get_submissions(
             if auto_checks:
                 pre_check_score = calculate_auto_score(auto_checks)
 
-        result.append(SubmissionResponse(
-            id=sub["id"],
-            task_id=sub["task_id"],
-            executor_id=sub["executor_id"],
-            status=sub.get("agent_verdict", "pending"),
-            pre_check_score=pre_check_score,
-            submitted_at=datetime.fromisoformat(sub["submitted_at"].replace("Z", "+00:00")),
-            evidence=sub.get("evidence"),
-            agent_verdict=sub.get("agent_verdict"),
-            agent_notes=sub.get("agent_notes"),
-            verified_at=datetime.fromisoformat(sub["verified_at"].replace("Z", "+00:00")) if sub.get("verified_at") else None,
-        ))
+        result.append(
+            SubmissionResponse(
+                id=sub["id"],
+                task_id=sub["task_id"],
+                executor_id=sub["executor_id"],
+                status=sub.get("agent_verdict", "pending"),
+                pre_check_score=pre_check_score,
+                submitted_at=datetime.fromisoformat(
+                    sub["submitted_at"].replace("Z", "+00:00")
+                ),
+                evidence=sub.get("evidence"),
+                agent_verdict=sub.get("agent_verdict"),
+                agent_notes=sub.get("agent_notes"),
+                verified_at=datetime.fromisoformat(
+                    sub["verified_at"].replace("Z", "+00:00")
+                )
+                if sub.get("verified_at")
+                else None,
+            )
+        )
 
     return SubmissionListResponse(
         submissions=result,
@@ -2151,12 +2305,14 @@ async def get_submissions(
         403: {"model": ErrorResponse, "description": "Not authorized"},
         404: {"model": ErrorResponse, "description": "Submission not found"},
         409: {"model": ErrorResponse, "description": "Submission already processed"},
-    }
+    },
 )
 async def approve_submission(
-    submission_id: str = Path(..., description="UUID of the submission", pattern=UUID_PATTERN),
+    submission_id: str = Path(
+        ..., description="UUID of the submission", pattern=UUID_PATTERN
+    ),
     request: ApprovalRequest = None,
-    api_key: APIKeyData = Depends(verify_api_key)
+    api_key: APIKeyData = Depends(verify_api_key),
 ) -> SuccessResponse:
     """
     Approve a submission.
@@ -2168,7 +2324,9 @@ async def approve_submission(
         submission = await db.get_submission(submission_id)
         if not submission:
             raise HTTPException(status_code=404, detail="Submission not found")
-        raise HTTPException(status_code=403, detail="Not authorized to approve this submission")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to approve this submission"
+        )
 
     # Check if already processed.
     # If already accepted, return idempotent success for safe client retries.
@@ -2200,7 +2358,7 @@ async def approve_submission(
     if existing_verdict not in {"", "pending"}:
         raise HTTPException(
             status_code=409,
-            detail=f"Submission already processed with verdict: {submission.get('agent_verdict')}"
+            detail=f"Submission already processed with verdict: {submission.get('agent_verdict')}",
         )
 
     task = submission.get("task") or {}
@@ -2257,7 +2415,9 @@ async def approve_submission(
 
     logger.info(
         "Submission approved and paid: id=%s, agent=%s, tx=%s",
-        submission_id, api_key.agent_id, release_tx
+        submission_id,
+        api_key.agent_id,
+        release_tx,
     )
 
     response_data = {
@@ -2269,8 +2429,7 @@ async def approve_submission(
         response_data["payment_error"] = release_error
 
     return SuccessResponse(
-        message="Submission approved. Payment released to worker.",
-        data=response_data
+        message="Submission approved. Payment released to worker.", data=response_data
     )
 
 
@@ -2283,12 +2442,14 @@ async def approve_submission(
         403: {"model": ErrorResponse, "description": "Not authorized"},
         404: {"model": ErrorResponse, "description": "Submission not found"},
         409: {"model": ErrorResponse, "description": "Submission already processed"},
-    }
+    },
 )
 async def reject_submission(
-    submission_id: str = Path(..., description="UUID of the submission", pattern=UUID_PATTERN),
+    submission_id: str = Path(
+        ..., description="UUID of the submission", pattern=UUID_PATTERN
+    ),
     request: RejectionRequest = ...,
-    api_key: APIKeyData = Depends(verify_api_key)
+    api_key: APIKeyData = Depends(verify_api_key),
 ) -> SuccessResponse:
     """
     Reject a submission.
@@ -2300,14 +2461,16 @@ async def reject_submission(
         submission = await db.get_submission(submission_id)
         if not submission:
             raise HTTPException(status_code=404, detail="Submission not found")
-        raise HTTPException(status_code=403, detail="Not authorized to reject this submission")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to reject this submission"
+        )
 
     # Check if already processed
     submission = await db.get_submission(submission_id)
     if submission.get("agent_verdict") not in [None, "pending"]:
         raise HTTPException(
             status_code=409,
-            detail=f"Submission already processed with verdict: {submission.get('agent_verdict')}"
+            detail=f"Submission already processed with verdict: {submission.get('agent_verdict')}",
         )
 
     # Update submission
@@ -2320,12 +2483,14 @@ async def reject_submission(
 
     logger.info(
         "Submission rejected: id=%s, agent=%s, reason=%s",
-        submission_id, api_key.agent_id, request.notes[:50]
+        submission_id,
+        api_key.agent_id,
+        request.notes[:50],
     )
 
     return SuccessResponse(
         message="Submission rejected. Task returned to available pool.",
-        data={"submission_id": submission_id, "verdict": "rejected"}
+        data={"submission_id": submission_id, "verdict": "rejected"},
     )
 
 
@@ -2338,12 +2503,12 @@ async def reject_submission(
         403: {"model": ErrorResponse, "description": "Not authorized"},
         404: {"model": ErrorResponse, "description": "Task not found"},
         409: {"model": ErrorResponse, "description": "Task cannot be cancelled"},
-    }
+    },
 )
 async def cancel_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: CancelRequest = None,
-    api_key: APIKeyData = Depends(verify_api_key)
+    api_key: APIKeyData = Depends(verify_api_key),
 ) -> SuccessResponse:
     """
     Cancel a task.
@@ -2364,7 +2529,9 @@ async def cancel_task(
             raise HTTPException(status_code=404, detail="Task not found")
 
         if task.get("agent_id") != api_key.agent_id:
-            raise HTTPException(status_code=403, detail="Not authorized to cancel this task")
+            raise HTTPException(
+                status_code=403, detail="Not authorized to cancel this task"
+            )
 
         # Idempotency for client retries: cancelling an already-cancelled task
         # should return success.
@@ -2394,7 +2561,9 @@ async def cancel_task(
                 except Exception:
                     escrow_row = None
 
-                escrow_status = _normalize_status((escrow_row or {}).get("status") or "authorized")
+                escrow_status = _normalize_status(
+                    (escrow_row or {}).get("status") or "authorized"
+                )
                 effective_escrow_id = (escrow_row or {}).get("escrow_id") or escrow_id
 
                 if escrow_status in ALREADY_REFUNDED_ESCROW_STATUSES:
@@ -2427,20 +2596,27 @@ async def cancel_task(
                             # Store refund tx on the task itself
                             if refund_tx_hash:
                                 try:
-                                    client.table("tasks").update({
-                                        "refund_tx": refund_tx_hash,
-                                    }).eq("id", task_id).execute()
+                                    client.table("tasks").update(
+                                        {
+                                            "refund_tx": refund_tx_hash,
+                                        }
+                                    ).eq("id", task_id).execute()
                                 except Exception as task_update_err:
                                     logger.warning(
                                         "Could not store refund_tx on task %s: %s",
-                                        task_id, task_update_err,
+                                        task_id,
+                                        task_update_err,
                                     )
                             try:
-                                client.table("escrows").update({
-                                    "status": "refunded",
-                                    "refund_tx": refund_tx_hash,
-                                    "refunded_at": datetime.now(timezone.utc).isoformat(),
-                                }).eq("task_id", task_id).execute()
+                                client.table("escrows").update(
+                                    {
+                                        "status": "refunded",
+                                        "refund_tx": refund_tx_hash,
+                                        "refunded_at": datetime.now(
+                                            timezone.utc
+                                        ).isoformat(),
+                                    }
+                                ).eq("task_id", task_id).execute()
                             except Exception as escrow_update_err:
                                 logger.warning(
                                     "Could not mark escrow refunded for task %s: %s",
@@ -2458,7 +2634,9 @@ async def cancel_task(
                             refund_info = {
                                 "status": "refund_manual_required",
                                 "escrow_id": effective_escrow_id,
-                                "error": refund_result.get("error", "Refund attempt failed"),
+                                "error": refund_result.get(
+                                    "error", "Refund attempt failed"
+                                ),
                             }
                     else:
                         refund_info = {
@@ -2476,7 +2654,8 @@ async def cancel_task(
                     # Unknown escrow status — attempt refund if SDK is available
                     logger.warning(
                         "Unknown escrow status '%s' for task %s, attempting refund",
-                        escrow_status, task_id,
+                        escrow_status,
+                        task_id,
                     )
                     if X402_AVAILABLE:
                         try:
@@ -2496,9 +2675,11 @@ async def cancel_task(
                                 }
                                 if refund_tx_hash:
                                     try:
-                                        client.table("tasks").update({
-                                            "refund_tx": refund_tx_hash,
-                                        }).eq("id", task_id).execute()
+                                        client.table("tasks").update(
+                                            {
+                                                "refund_tx": refund_tx_hash,
+                                            }
+                                        ).eq("id", task_id).execute()
                                     except Exception:
                                         pass
                                 _record_refund_payment(
@@ -2512,10 +2693,16 @@ async def cancel_task(
                                 refund_info = {
                                     "status": "refund_manual_required",
                                     "escrow_id": effective_escrow_id,
-                                    "error": refund_result.get("error", "Unknown status, refund failed"),
+                                    "error": refund_result.get(
+                                        "error", "Unknown status, refund failed"
+                                    ),
                                 }
                         except Exception as refund_err:
-                            logger.warning("Refund attempt failed for task %s: %s", task_id, refund_err)
+                            logger.warning(
+                                "Refund attempt failed for task %s: %s",
+                                task_id,
+                                refund_err,
+                            )
                             refund_info = {
                                 "status": "authorization_expired",
                                 "message": "Could not determine escrow state. Authorization will expire.",
@@ -2529,19 +2716,27 @@ async def cancel_task(
             except HTTPException:
                 raise
             except Exception as escrow_err:
-                logger.warning("Could not check/update escrow for task %s: %s", task_id, escrow_err)
+                logger.warning(
+                    "Could not check/update escrow for task %s: %s", task_id, escrow_err
+                )
 
         # Cancel the task in database
         try:
             await db.cancel_task(task_id, api_key.agent_id)
         except Exception as cancel_err:
             cancel_error = str(cancel_err).lower()
-            if "status: cancelled" not in cancel_error and "already cancelled" not in cancel_error:
+            if (
+                "status: cancelled" not in cancel_error
+                and "already cancelled" not in cancel_error
+            ):
                 raise
 
         logger.info(
             "Task cancelled: id=%s, agent=%s, reason=%s, escrow=%s",
-            task_id, api_key.agent_id, reason, refund_info
+            task_id,
+            api_key.agent_id,
+            reason,
+            refund_info,
         )
 
         response_data = {"task_id": task_id, "reason": reason}
@@ -2562,8 +2757,7 @@ async def cancel_task(
             message_suffix = " Escrow refund requires manual intervention."
 
         return SuccessResponse(
-            message=f"Task cancelled successfully.{message_suffix}",
-            data=response_data
+            message=f"Task cancelled successfully.{message_suffix}", data=response_data
         )
 
     except HTTPException:
@@ -2577,7 +2771,9 @@ async def cancel_task(
         elif "cannot cancel" in error_msg.lower() or "status" in error_msg.lower():
             raise HTTPException(status_code=409, detail=error_msg)
         logger.error("Unexpected error cancelling task %s: %s", task_id, error_msg)
-        raise HTTPException(status_code=500, detail="Internal error while cancelling task")
+        raise HTTPException(
+            status_code=500, detail="Internal error while cancelling task"
+        )
 
 
 @router.get(
@@ -2586,11 +2782,11 @@ async def cancel_task(
     responses={
         200: {"description": "Analytics retrieved"},
         401: {"model": ErrorResponse, "description": "Unauthorized"},
-    }
+    },
 )
 async def get_analytics(
     days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
-    api_key: APIKeyData = Depends(verify_api_key)
+    api_key: APIKeyData = Depends(verify_api_key),
 ) -> AnalyticsResponse:
     """
     Get agent analytics.
@@ -2620,8 +2816,11 @@ async def get_analytics(
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Not authorized or ineligible"},
         404: {"model": ErrorResponse, "description": "Task or executor not found"},
-        409: {"model": ErrorResponse, "description": "Task not assignable in current status"},
-    }
+        409: {
+            "model": ErrorResponse,
+            "description": "Task not assignable in current status",
+        },
+    },
 )
 async def assign_task_to_worker(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
@@ -2659,7 +2858,7 @@ async def assign_task_to_worker(
                 "status": task.get("status", "accepted"),
                 "assigned_at": task.get("assigned_at"),
                 "worker_wallet": executor.get("wallet_address"),
-            }
+            },
         )
 
     except Exception as e:
@@ -2670,13 +2869,17 @@ async def assign_task_to_worker(
                 raise HTTPException(status_code=404, detail="Executor not found")
             raise HTTPException(status_code=404, detail="Task not found")
         elif "not authorized" in lowered:
-            raise HTTPException(status_code=403, detail="Not authorized to assign this task")
+            raise HTTPException(
+                status_code=403, detail="Not authorized to assign this task"
+            )
         elif "cannot be assigned" in lowered or "status" in lowered:
             raise HTTPException(status_code=409, detail=error_msg)
         elif "insufficient reputation" in lowered:
             raise HTTPException(status_code=403, detail=error_msg)
         logger.error("Unexpected error assigning task %s: %s", task_id, error_msg)
-        raise HTTPException(status_code=500, detail="Internal error while assigning task")
+        raise HTTPException(
+            status_code=500, detail="Internal error while assigning task"
+        )
 
 
 # =============================================================================
@@ -2693,7 +2896,7 @@ async def assign_task_to_worker(
         403: {"model": ErrorResponse, "description": "Not eligible"},
         404: {"model": ErrorResponse, "description": "Task not found"},
         409: {"model": ErrorResponse, "description": "Already applied"},
-    }
+    },
 )
 async def apply_to_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
@@ -2713,7 +2916,8 @@ async def apply_to_task(
 
         logger.info(
             "Application submitted: task=%s, executor=%s",
-            task_id, request.executor_id[:8]
+            task_id,
+            request.executor_id[:8],
         )
 
         return SuccessResponse(
@@ -2721,8 +2925,8 @@ async def apply_to_task(
             data={
                 "application_id": result["application"]["id"],
                 "task_id": task_id,
-                "status": "pending"
-            }
+                "status": "pending",
+            },
         )
 
     except Exception as e:
@@ -2732,13 +2936,17 @@ async def apply_to_task(
                 raise HTTPException(status_code=404, detail="Executor not found")
             raise HTTPException(status_code=404, detail="Task not found")
         elif "not available" in error_msg.lower():
-            raise HTTPException(status_code=409, detail="Task is not available for applications")
+            raise HTTPException(
+                status_code=409, detail="Task is not available for applications"
+            )
         elif "insufficient reputation" in error_msg.lower():
             raise HTTPException(status_code=403, detail=error_msg)
         elif "already applied" in error_msg.lower():
             raise HTTPException(status_code=409, detail="Already applied to this task")
         logger.error("Unexpected error applying to task %s: %s", task_id, error_msg)
-        raise HTTPException(status_code=500, detail="Internal error while applying to task")
+        raise HTTPException(
+            status_code=500, detail="Internal error while applying to task"
+        )
 
 
 @router.post(
@@ -2746,11 +2954,14 @@ async def apply_to_task(
     response_model=SuccessResponse,
     responses={
         200: {"description": "Work submitted"},
-        400: {"model": ErrorResponse, "description": "Invalid request or missing evidence"},
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid request or missing evidence",
+        },
         403: {"model": ErrorResponse, "description": "Not assigned to this task"},
         404: {"model": ErrorResponse, "description": "Task not found"},
         409: {"model": ErrorResponse, "description": "Task not in submittable state"},
-    }
+    },
 )
 async def submit_work(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
@@ -2773,7 +2984,9 @@ async def submit_work(
         submission_id = result["submission"]["id"]
         logger.info(
             "Work submitted: task=%s, executor=%s, submission=%s",
-            task_id, request.executor_id[:8], submission_id
+            task_id,
+            request.executor_id[:8],
+            submission_id,
         )
 
         response_data: Dict[str, Any] = {
@@ -2843,13 +3056,19 @@ async def submit_work(
         if "not found" in error_msg.lower():
             raise HTTPException(status_code=404, detail="Task not found")
         elif "not assigned" in error_msg.lower():
-            raise HTTPException(status_code=403, detail="You are not assigned to this task")
+            raise HTTPException(
+                status_code=403, detail="You are not assigned to this task"
+            )
         elif "not in a submittable state" in error_msg.lower():
             raise HTTPException(status_code=409, detail=error_msg)
         elif "missing required evidence" in error_msg.lower():
             raise HTTPException(status_code=400, detail=error_msg)
-        logger.error("Unexpected error submitting work for task %s: %s", task_id, error_msg)
-        raise HTTPException(status_code=500, detail="Internal error while submitting work")
+        logger.error(
+            "Unexpected error submitting work for task %s: %s", task_id, error_msg
+        )
+        raise HTTPException(
+            status_code=500, detail="Internal error while submitting work"
+        )
 
 
 # =============================================================================
@@ -2859,13 +3078,19 @@ async def submit_work(
 
 class VerifyEvidenceRequest(BaseModel):
     """Request to verify evidence against task requirements."""
+
     task_id: str = Field(..., description="UUID of the task")
-    evidence_url: str = Field(..., description="Public URL of the uploaded evidence file")
-    evidence_type: str = Field(default="photo", description="Type of evidence being verified")
+    evidence_url: str = Field(
+        ..., description="Public URL of the uploaded evidence file"
+    )
+    evidence_type: str = Field(
+        default="photo", description="Type of evidence being verified"
+    )
 
 
 class VerifyEvidenceResponse(BaseModel):
     """Result of AI evidence verification."""
+
     verified: bool
     confidence: float = Field(..., ge=0, le=1)
     decision: str  # approved, rejected, needs_human
@@ -2880,7 +3105,7 @@ class VerifyEvidenceResponse(BaseModel):
         200: {"description": "Verification result"},
         404: {"model": ErrorResponse, "description": "Task not found"},
         503: {"model": ErrorResponse, "description": "AI verification unavailable"},
-    }
+    },
 )
 async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceResponse:
     """
@@ -2907,7 +3132,10 @@ async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceRespo
     verifier = get_verifier()
 
     if not verifier.is_available:
-        logger.info("AI verification unavailable (no provider configured): task=%s", request.task_id)
+        logger.info(
+            "AI verification unavailable (no provider configured): task=%s",
+            request.task_id,
+        )
         return VerifyEvidenceResponse(
             verified=True,
             confidence=0.5,
@@ -2963,6 +3191,7 @@ try:
         update_executor_identity,
         WorkerIdentityStatus,
     )
+
     WORKER_IDENTITY_AVAILABLE = True
 except ImportError:
     WORKER_IDENTITY_AVAILABLE = False
@@ -2970,6 +3199,7 @@ except ImportError:
 
 class IdentityCheckResponse(BaseModel):
     """Response for worker identity check."""
+
     status: str = Field(..., description="registered, not_registered, or error")
     agent_id: Optional[int] = Field(None, description="ERC-8004 token ID if registered")
     wallet_address: Optional[str] = None
@@ -2981,6 +3211,7 @@ class IdentityCheckResponse(BaseModel):
 
 class RegisterIdentityRequest(BaseModel):
     """Request to prepare an identity registration transaction."""
+
     agent_uri: Optional[str] = Field(
         None,
         description="Metadata URI for the identity (defaults to execution.market profile URL)",
@@ -2990,8 +3221,11 @@ class RegisterIdentityRequest(BaseModel):
 
 class RegisterIdentityResponse(BaseModel):
     """Response with unsigned transaction data for identity registration."""
+
     status: str = Field(..., description="Current identity status before registration")
-    agent_id: Optional[int] = Field(None, description="Existing agent ID if already registered")
+    agent_id: Optional[int] = Field(
+        None, description="Existing agent ID if already registered"
+    )
     transaction: Optional[Dict[str, Any]] = Field(
         None,
         description="Unsigned transaction data (to, data, chainId, value, estimated_gas)",
@@ -3001,6 +3235,7 @@ class RegisterIdentityResponse(BaseModel):
 
 class ConfirmIdentityRequest(BaseModel):
     """Request to confirm a registration transaction."""
+
     tx_hash: str = Field(
         ...,
         description="Transaction hash of the registration tx",
@@ -3020,7 +3255,9 @@ class ConfirmIdentityRequest(BaseModel):
     tags=["Workers", "Identity"],
 )
 async def get_worker_identity(
-    executor_id: str = Path(..., description="UUID of the executor", pattern=UUID_PATTERN),
+    executor_id: str = Path(
+        ..., description="UUID of the executor", pattern=UUID_PATTERN
+    ),
 ) -> IdentityCheckResponse:
     """
     Check a worker's ERC-8004 on-chain identity status.
@@ -3037,9 +3274,12 @@ async def get_worker_identity(
     # Look up executor
     try:
         client = db.get_client()
-        result = client.table("executors").select(
-            "id, wallet_address, erc8004_agent_id"
-        ).eq("id", executor_id).execute()
+        result = (
+            client.table("executors")
+            .select("id, wallet_address, erc8004_agent_id")
+            .eq("id", executor_id)
+            .execute()
+        )
     except Exception as e:
         logger.error("Failed to look up executor %s: %s", executor_id, e)
         raise HTTPException(status_code=500, detail="Database error")
@@ -3081,7 +3321,9 @@ async def get_worker_identity(
         try:
             await update_executor_identity(executor_id, identity.agent_id)
         except Exception as e:
-            logger.warning("Failed to persist agent_id for executor %s: %s", executor_id, e)
+            logger.warning(
+                "Failed to persist agent_id for executor %s: %s", executor_id, e
+            )
 
     return IdentityCheckResponse(
         status=identity.status.value,
@@ -3105,7 +3347,9 @@ async def get_worker_identity(
     tags=["Workers", "Identity"],
 )
 async def register_worker_identity(
-    executor_id: str = Path(..., description="UUID of the executor", pattern=UUID_PATTERN),
+    executor_id: str = Path(
+        ..., description="UUID of the executor", pattern=UUID_PATTERN
+    ),
     request: RegisterIdentityRequest = RegisterIdentityRequest(),
 ) -> RegisterIdentityResponse:
     """
@@ -3126,9 +3370,12 @@ async def register_worker_identity(
     # Look up executor
     try:
         client = db.get_client()
-        result = client.table("executors").select(
-            "id, wallet_address, erc8004_agent_id"
-        ).eq("id", executor_id).execute()
+        result = (
+            client.table("executors")
+            .select("id, wallet_address, erc8004_agent_id")
+            .eq("id", executor_id)
+            .execute()
+        )
     except Exception as e:
         logger.error("Failed to look up executor %s: %s", executor_id, e)
         raise HTTPException(status_code=500, detail="Database error")
@@ -3186,7 +3433,10 @@ async def register_worker_identity(
 
     logger.info(
         "Registration tx prepared: executor=%s, wallet=%s, chain=%d, gas=%s",
-        executor_id, wallet[:10], tx_data.chain_id, tx_data.estimated_gas,
+        executor_id,
+        wallet[:10],
+        tx_data.chain_id,
+        tx_data.estimated_gas,
     )
 
     return RegisterIdentityResponse(
@@ -3208,7 +3458,9 @@ async def register_worker_identity(
     tags=["Workers", "Identity"],
 )
 async def confirm_identity_registration(
-    executor_id: str = Path(..., description="UUID of the executor", pattern=UUID_PATTERN),
+    executor_id: str = Path(
+        ..., description="UUID of the executor", pattern=UUID_PATTERN
+    ),
     request: ConfirmIdentityRequest = ...,
 ) -> IdentityCheckResponse:
     """
@@ -3227,9 +3479,12 @@ async def confirm_identity_registration(
     # Look up executor
     try:
         client = db.get_client()
-        result = client.table("executors").select(
-            "id, wallet_address"
-        ).eq("id", executor_id).execute()
+        result = (
+            client.table("executors")
+            .select("id, wallet_address")
+            .eq("id", executor_id)
+            .execute()
+        )
     except Exception as e:
         logger.error("Failed to look up executor %s: %s", executor_id, e)
         raise HTTPException(status_code=500, detail="Database error")
@@ -3266,7 +3521,10 @@ async def confirm_identity_registration(
 
     logger.info(
         "Identity confirmation: executor=%s, status=%s, agent_id=%s, tx=%s",
-        executor_id, identity.status.value, identity.agent_id, request.tx_hash,
+        executor_id,
+        identity.status.value,
+        identity.agent_id,
+        request.tx_hash,
     )
 
     return IdentityCheckResponse(
@@ -3287,6 +3545,7 @@ async def confirm_identity_registration(
 
 class BatchTaskDefinition(BaseModel):
     """Single task definition for batch creation."""
+
     title: str = Field(..., min_length=5, max_length=255)
     instructions: str = Field(..., min_length=20, max_length=5000)
     category: TaskCategory
@@ -3300,17 +3559,18 @@ class BatchTaskDefinition(BaseModel):
 
 class BatchCreateRequest(BaseModel):
     """Request model for batch task creation."""
+
     tasks: List[BatchTaskDefinition] = Field(
-        ...,
-        description="List of tasks to create",
-        min_length=1,
-        max_length=50
+        ..., description="List of tasks to create", min_length=1, max_length=50
     )
-    payment_token: str = Field(default="USDC", description="Payment token for all tasks")
+    payment_token: str = Field(
+        default="USDC", description="Payment token for all tasks"
+    )
 
 
 class BatchCreateResponse(BaseModel):
     """Response model for batch task creation."""
+
     created: int
     failed: int
     tasks: List[Dict[str, Any]]
@@ -3326,11 +3586,10 @@ class BatchCreateResponse(BaseModel):
         201: {"description": "Batch created"},
         400: {"model": ErrorResponse, "description": "Invalid request"},
         401: {"model": ErrorResponse, "description": "Unauthorized"},
-    }
+    },
 )
 async def batch_create_tasks(
-    request: BatchCreateRequest,
-    api_key: APIKeyData = Depends(verify_api_key)
+    request: BatchCreateRequest, api_key: APIKeyData = Depends(verify_api_key)
 ) -> BatchCreateResponse:
     """
     Create multiple tasks in a single request.
@@ -3344,7 +3603,9 @@ async def batch_create_tasks(
 
     for i, task_def in enumerate(request.tasks):
         try:
-            deadline = datetime.now(timezone.utc) + timedelta(hours=task_def.deadline_hours)
+            deadline = datetime.now(timezone.utc) + timedelta(
+                hours=task_def.deadline_hours
+            )
 
             task = await db.create_task(
                 agent_id=api_key.agent_id,
@@ -3358,27 +3619,34 @@ async def batch_create_tasks(
                 location_hint=task_def.location_hint,
                 min_reputation=task_def.min_reputation,
                 payment_token=request.payment_token,
-                payment_network=getattr(request, 'payment_network', 'base'),
+                payment_network=getattr(request, "payment_network", "base"),
             )
 
-            created_tasks.append({
-                "index": i,
-                "id": task["id"],
-                "title": task["title"],
-                "bounty_usd": task["bounty_usd"],
-            })
+            created_tasks.append(
+                {
+                    "index": i,
+                    "id": task["id"],
+                    "title": task["title"],
+                    "bounty_usd": task["bounty_usd"],
+                }
+            )
             total_bounty += task_def.bounty_usd
 
         except Exception as e:
-            errors.append({
-                "index": i,
-                "title": task_def.title,
-                "error": str(e),
-            })
+            errors.append(
+                {
+                    "index": i,
+                    "title": task_def.title,
+                    "error": str(e),
+                }
+            )
 
     logger.info(
         "Batch create: agent=%s, created=%d, failed=%d, total_bounty=%.2f",
-        api_key.agent_id, len(created_tasks), len(errors), total_bounty
+        api_key.agent_id,
+        len(created_tasks),
+        len(errors),
+        total_bounty,
     )
 
     return BatchCreateResponse(
@@ -3401,5 +3669,5 @@ async def api_health():
     return {
         "status": "healthy",
         "api_version": "v1",
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }

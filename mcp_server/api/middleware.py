@@ -47,7 +47,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             request_id,
             request.method,
             request.url.path,
-            client_ip
+            client_ip,
         )
 
         # Process request
@@ -62,7 +62,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 request.method,
                 request.url.path,
                 response.status_code,
-                duration_ms
+                duration_ms,
             )
 
             # Add request ID to response headers
@@ -79,7 +79,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 request.method,
                 request.url.path,
                 str(e),
-                duration_ms
+                duration_ms,
             )
             raise
 
@@ -133,13 +133,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             ip=client_ip,
             device_id=device_id,
             api_key=api_key,
-            api_tier=tier
+            api_tier=tier,
         )
 
         if not allowed:
             logger.warning(
                 "Rate limited: ip=%s, type=%s, retry_after=%s",
-                client_ip, limit_type, retry_after
+                client_ip,
+                limit_type,
+                retry_after,
             )
 
             return JSONResponse(
@@ -152,7 +154,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 headers={
                     "Retry-After": str(retry_after),
                     "X-RateLimit-Type": limit_type,
-                }
+                },
             )
 
         # Add rate limit info to request state
@@ -164,8 +166,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Add rate limit headers to response
         remaining = limiter.get_remaining(
-            api_key or client_ip,
-            "api" if api_key else "ip"
+            api_key or client_ip, "api" if api_key else "ip"
         )
         response.headers["X-RateLimit-Remaining"] = str(remaining)
         response.headers["X-RateLimit-Tier"] = tier.value
@@ -187,8 +188,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                 content={
                     "error": "validation_error",
                     "message": str(e),
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                }
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
             )
 
         except PermissionError as e:
@@ -198,8 +199,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                 content={
                     "error": "forbidden",
                     "message": str(e),
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                }
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
             )
 
         except Exception as e:
@@ -211,8 +212,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
                     "error": "internal_error",
                     "message": "An unexpected error occurred",
                     "request_id": request_id,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                }
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
             )
 
 

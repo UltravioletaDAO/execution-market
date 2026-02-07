@@ -19,8 +19,8 @@ Badge categories:
 - Special: Unique achievements
 """
 
-from datetime import datetime, timedelta, UTC
-from typing import List, Dict, Any, Optional, Set, Tuple
+from datetime import datetime, UTC
+from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
 from .models import Badge, BadgeDefinition, EarnedBadge, ReputationScore
@@ -29,6 +29,7 @@ from .models import Badge, BadgeDefinition, EarnedBadge, ReputationScore
 @dataclass
 class BadgeContext:
     """Context data for badge eligibility checks."""
+
     # Task counts
     tasks_completed: int = 0
     tasks_failed: int = 0
@@ -37,7 +38,7 @@ class BadgeContext:
 
     # Quality metrics
     approval_rate: float = 0.0  # 0-100%
-    avg_rating: float = 0.0     # 1-5 stars
+    avg_rating: float = 0.0  # 1-5 stars
 
     # Speed metrics
     avg_completion_percentage: float = 100.0  # % of deadline used
@@ -46,7 +47,7 @@ class BadgeContext:
     # Trust metrics
     is_verified: bool = False
     dispute_free_tasks: int = 0  # Consecutive tasks without dispute
-    days_above_85: int = 0       # Days with score > 85
+    days_above_85: int = 0  # Days with score > 85
 
     # Category tasks
     category_counts: Dict[str, int] = None  # {"photo": 25, "delivery": 10, ...}
@@ -96,7 +97,6 @@ class BadgeManager:
             Badge.VETERAN: lambda ctx: ctx.tasks_completed >= 50,
             Badge.MASTER: lambda ctx: ctx.tasks_completed >= 100,
             Badge.LEGEND: lambda ctx: ctx.tasks_completed >= 500,
-
             # Quality badges
             Badge.QUALITY_STAR: lambda ctx: (
                 ctx.tasks_completed >= 10 and ctx.approval_rate >= 95.0
@@ -104,42 +104,42 @@ class BadgeManager:
             Badge.PERFECTIONIST: lambda ctx: (
                 ctx.tasks_completed >= 25 and ctx.approval_rate >= 100.0
             ),
-
             # Speed badges
             Badge.FAST_WORKER: lambda ctx: (
                 ctx.tasks_completed >= 5 and ctx.avg_completion_percentage < 50.0
             ),
             Badge.LIGHTNING: lambda ctx: ctx.fast_completions >= 10,
-
             # Trust badges
             Badge.VERIFIED: lambda ctx: ctx.is_verified,
             Badge.TRUSTED: lambda ctx: (
                 ctx.dispute_free_tasks >= 25 and ctx.tasks_disputed == 0
             ),
             Badge.EXPERT: lambda ctx: ctx.days_above_85 >= 30,
-
             # Specialty badges
             Badge.PHOTOGRAPHER: lambda ctx: (
-                ctx.category_counts.get("photo", 0) +
-                ctx.category_counts.get("photo_geo", 0) >= 20
+                ctx.category_counts.get("photo", 0)
+                + ctx.category_counts.get("photo_geo", 0)
+                >= 20
             ),
             Badge.DELIVERY_PRO: lambda ctx: (
-                ctx.category_counts.get("delivery", 0) +
-                ctx.category_counts.get("physical_presence", 0) >= 20
+                ctx.category_counts.get("delivery", 0)
+                + ctx.category_counts.get("physical_presence", 0)
+                >= 20
             ),
             Badge.SURVEYOR: lambda ctx: (
-                ctx.category_counts.get("data_collection", 0) +
-                ctx.category_counts.get("knowledge_access", 0) >= 20
+                ctx.category_counts.get("data_collection", 0)
+                + ctx.category_counts.get("knowledge_access", 0)
+                >= 20
             ),
             Badge.INSPECTOR: lambda ctx: (
-                ctx.category_counts.get("verification", 0) +
-                ctx.category_counts.get("inspection", 0) >= 20
+                ctx.category_counts.get("verification", 0)
+                + ctx.category_counts.get("inspection", 0)
+                >= 20
             ),
-
             # Community badges
             Badge.EARLY_ADOPTER: lambda ctx: (
-                ctx.joined_at is not None and
-                ctx.joined_at <= datetime(2026, 3, 1, tzinfo=UTC)  # First month
+                ctx.joined_at is not None
+                and ctx.joined_at <= datetime(2026, 3, 1, tzinfo=UTC)  # First month
             ),
             Badge.STREAK_7: lambda ctx: ctx.current_streak_days >= 7,
             Badge.STREAK_30: lambda ctx: ctx.current_streak_days >= 30,
@@ -149,7 +149,6 @@ class BadgeManager:
             Badge.TOP_100: lambda ctx: (
                 ctx.global_rank is not None and ctx.global_rank <= 100
             ),
-
             # Special badges
             Badge.DISPUTE_WINNER: lambda ctx: ctx.disputes_won >= 1,
             Badge.COMEBACK: lambda ctx: (
@@ -257,18 +256,26 @@ class BadgeManager:
             if category and defn.category != category:
                 continue
 
-            badges.append({
-                "badge": badge.value,
-                "name": defn.name,
-                "description": defn.description,
-                "icon": defn.icon,
-                "category": defn.category,
-                "points": defn.points,
-                "rarity": defn.rarity,
-            })
+            badges.append(
+                {
+                    "badge": badge.value,
+                    "name": defn.name,
+                    "description": defn.description,
+                    "icon": defn.icon,
+                    "category": defn.category,
+                    "points": defn.points,
+                    "rarity": defn.rarity,
+                }
+            )
 
         # Sort by category, then rarity (legendary first)
-        rarity_order = {"legendary": 0, "epic": 1, "rare": 2, "uncommon": 3, "common": 4}
+        rarity_order = {
+            "legendary": 0,
+            "epic": 1,
+            "rare": 2,
+            "uncommon": 3,
+            "common": 4,
+        }
         badges.sort(key=lambda b: (b["category"], rarity_order.get(b["rarity"], 5)))
 
         return badges
@@ -300,39 +307,36 @@ class BadgeManager:
             Badge.VETERAN: lambda: (context.tasks_completed, 50),
             Badge.MASTER: lambda: (context.tasks_completed, 100),
             Badge.LEGEND: lambda: (context.tasks_completed, 500),
-
             Badge.QUALITY_STAR: lambda: (
-                (context.tasks_completed, 10) if context.tasks_completed < 10
+                (context.tasks_completed, 10)
+                if context.tasks_completed < 10
                 else (context.approval_rate, 95)
             ),
             Badge.PERFECTIONIST: lambda: (
-                (context.tasks_completed, 25) if context.tasks_completed < 25
+                (context.tasks_completed, 25)
+                if context.tasks_completed < 25
                 else (context.approval_rate, 100)
             ),
-
             Badge.FAST_WORKER: lambda: (
-                (context.tasks_completed, 5) if context.tasks_completed < 5
+                (context.tasks_completed, 5)
+                if context.tasks_completed < 5
                 else (100 - context.avg_completion_percentage, 50)
             ),
             Badge.LIGHTNING: lambda: (context.fast_completions, 10),
-
             Badge.TRUSTED: lambda: (context.dispute_free_tasks, 25),
             Badge.EXPERT: lambda: (context.days_above_85, 30),
-
             Badge.PHOTOGRAPHER: lambda: (
-                context.category_counts.get("photo", 0) +
-                context.category_counts.get("photo_geo", 0),
-                20
+                context.category_counts.get("photo", 0)
+                + context.category_counts.get("photo_geo", 0),
+                20,
             ),
             Badge.DELIVERY_PRO: lambda: (
-                context.category_counts.get("delivery", 0) +
-                context.category_counts.get("physical_presence", 0),
-                20
+                context.category_counts.get("delivery", 0)
+                + context.category_counts.get("physical_presence", 0),
+                20,
             ),
-
             Badge.STREAK_7: lambda: (context.current_streak_days, 7),
             Badge.STREAK_30: lambda: (context.current_streak_days, 30),
-
             Badge.MENTOR: lambda: (context.referrals_active, 5),
         }
 
@@ -349,16 +353,18 @@ class BadgeManager:
                 remaining = max(0, target - current_val)
 
                 defn = self.definitions.get(badge)
-                progress_list.append({
-                    "badge": badge.value,
-                    "name": defn.name if defn else badge.value,
-                    "current": current_val,
-                    "target": target,
-                    "percentage": round(percentage, 1),
-                    "remaining": remaining,
-                    "category": defn.category if defn else "unknown",
-                    "rarity": defn.rarity if defn else "common",
-                })
+                progress_list.append(
+                    {
+                        "badge": badge.value,
+                        "name": defn.name if defn else badge.value,
+                        "current": current_val,
+                        "target": target,
+                        "percentage": round(percentage, 1),
+                        "remaining": remaining,
+                        "category": defn.category if defn else "unknown",
+                        "rarity": defn.rarity if defn else "common",
+                    }
+                )
             except Exception:
                 continue
 
@@ -454,9 +460,7 @@ def check_and_award_badges(
 
     # Update score with badge points if any new badges
     if earned:
-        bonus_points = sum(
-            manager.definitions[b.badge].points for b in earned
-        )
+        bonus_points = sum(manager.definitions[b.badge].points for b in earned)
         # Add to alpha (good thing)
         rep.alpha += bonus_points * 0.1
 

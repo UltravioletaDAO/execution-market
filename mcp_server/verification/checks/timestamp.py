@@ -6,12 +6,13 @@ Validates that evidence was created within acceptable time windows.
 
 from datetime import datetime, timedelta, UTC
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 
 @dataclass
 class TimestampResult:
     """Result of timestamp verification."""
+
     is_valid: bool
     photo_timestamp: Optional[datetime]
     submission_timestamp: datetime
@@ -71,7 +72,7 @@ def check_timestamp(
             task_start=task_start,
             task_deadline=task_deadline,
             age_seconds=None,
-            reason="Photo does not contain timestamp metadata"
+            reason="Photo does not contain timestamp metadata",
         )
 
     # Calculate age
@@ -89,7 +90,7 @@ def check_timestamp(
                 task_start=task_start,
                 task_deadline=task_deadline,
                 age_seconds=age_seconds,
-                reason=f"Photo timestamp is in the future by {abs(age_seconds):.0f} seconds"
+                reason=f"Photo timestamp is in the future by {abs(age_seconds):.0f} seconds",
             )
 
     # Check maximum age
@@ -102,7 +103,7 @@ def check_timestamp(
             task_start=task_start,
             task_deadline=task_deadline,
             age_seconds=age_seconds,
-            reason=f"Photo is too old ({age_seconds / 60:.1f} minutes). Maximum allowed: {max_age_minutes} minutes"
+            reason=f"Photo is too old ({age_seconds / 60:.1f} minutes). Maximum allowed: {max_age_minutes} minutes",
         )
 
     # Check if photo was taken before task started
@@ -114,7 +115,7 @@ def check_timestamp(
             task_start=task_start,
             task_deadline=task_deadline,
             age_seconds=age_seconds,
-            reason="Photo was taken before task was assigned"
+            reason="Photo was taken before task was assigned",
         )
 
     # Check if photo was taken after deadline
@@ -126,7 +127,7 @@ def check_timestamp(
             task_start=task_start,
             task_deadline=task_deadline,
             age_seconds=age_seconds,
-            reason="Photo was taken after task deadline"
+            reason="Photo was taken after task deadline",
         )
 
     return TimestampResult(
@@ -136,7 +137,7 @@ def check_timestamp(
         task_start=task_start,
         task_deadline=task_deadline,
         age_seconds=age_seconds,
-        reason=None
+        reason=None,
     )
 
 
@@ -173,6 +174,9 @@ def validate_submission_window(
     # Check deadline with grace period
     deadline_with_grace = task_deadline + timedelta(minutes=grace_period_minutes)
     if submission_timestamp > deadline_with_grace:
-        return False, f"Submission is past deadline (including {grace_period_minutes} minute grace period)"
+        return (
+            False,
+            f"Submission is past deadline (including {grace_period_minutes} minute grace period)",
+        )
 
     return True, "Submission is within valid time window"

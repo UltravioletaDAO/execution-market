@@ -2,7 +2,6 @@
 Tests for Bayesian reputation module.
 """
 
-import pytest
 from datetime import datetime, timedelta, UTC
 from reputation.bayesian import (
     BayesianCalculator,
@@ -47,10 +46,7 @@ class TestBayesianCalculator:
         """Single high rating should pull score above prior."""
         ratings = [
             Rating(
-                score=100,
-                task_value_usdc=50.0,
-                created_at=self.now,
-                task_id="task-1"
+                score=100, task_value_usdc=50.0, created_at=self.now, task_id="task-1"
             )
         ]
         score = self.calculator.calculate_score(ratings)
@@ -60,12 +56,7 @@ class TestBayesianCalculator:
     def test_single_low_rating(self):
         """Single low rating should pull score below prior."""
         ratings = [
-            Rating(
-                score=0,
-                task_value_usdc=50.0,
-                created_at=self.now,
-                task_id="task-1"
-            )
+            Rating(score=0, task_value_usdc=50.0, created_at=self.now, task_id="task-1")
         ]
         score = self.calculator.calculate_score(ratings)
         # Should be below prior (50) but not 0 due to confidence
@@ -76,10 +67,7 @@ class TestBayesianCalculator:
         # 20 ratings of 80
         ratings = [
             Rating(
-                score=80,
-                task_value_usdc=50.0,
-                created_at=self.now,
-                task_id=f"task-{i}"
+                score=80, task_value_usdc=50.0, created_at=self.now, task_id=f"task-{i}"
             )
             for i in range(20)
         ]
@@ -110,16 +98,10 @@ class TestBayesianCalculator:
         old_time = self.now - timedelta(days=180)  # 6 months ago
 
         recent_rating = Rating(
-            score=80,
-            task_value_usdc=50.0,
-            created_at=self.now,
-            task_id="recent"
+            score=80, task_value_usdc=50.0, created_at=self.now, task_id="recent"
         )
         old_rating = Rating(
-            score=20,
-            task_value_usdc=50.0,
-            created_at=old_time,
-            task_id="old"
+            score=20, task_value_usdc=50.0, created_at=old_time, task_id="old"
         )
 
         score = self.calculator.calculate_score([recent_rating, old_rating])
@@ -161,9 +143,7 @@ class TestCalculateBayesianScore:
     def test_convenience_function(self):
         """Convenience function should work like calculator."""
         now = datetime.now(UTC)
-        ratings = [
-            Rating(score=80, task_value_usdc=50.0, created_at=now, task_id="t1")
-        ]
+        ratings = [Rating(score=80, task_value_usdc=50.0, created_at=now, task_id="t1")]
 
         score = calculate_bayesian_score(ratings)
         assert isinstance(score, float)
@@ -172,9 +152,7 @@ class TestCalculateBayesianScore:
     def test_with_custom_config(self):
         """Should accept custom config parameters."""
         now = datetime.now(UTC)
-        ratings = [
-            Rating(score=80, task_value_usdc=50.0, created_at=now, task_id="t1")
-        ]
+        ratings = [Rating(score=80, task_value_usdc=50.0, created_at=now, task_id="t1")]
 
         # Lower confidence (C=5), higher prior (m=70)
         score = calculate_bayesian_score(ratings, C=5, m=70)

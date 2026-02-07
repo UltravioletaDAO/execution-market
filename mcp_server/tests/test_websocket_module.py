@@ -11,23 +11,16 @@ Tests the websocket/ directory components:
 Run with: pytest mcp_server/tests/test_websocket_module.py -v
 """
 
-import asyncio
 import json
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 # Import from the new websocket module
 from websocket import (
     # Server
     WebSocketManager,
-    Connection,
-    ConnectionState,
     ServerMessage,
     ServerMessageType,
-    ClientMessageType,
-    ws_manager,
-    # Events
     WebSocketEventType,
     WebSocketEvent,
     TaskCreatedPayload,
@@ -41,11 +34,7 @@ from websocket import (
     # Handlers
     EventHandlers,
     EventRateLimiter,
-    handlers,
-    rate_limiter,
-    # Integration
     EventEmitter,
-    events,
     emit_event,
     is_websocket_available,
 )
@@ -200,7 +189,9 @@ class TestWebSocketManager:
         mock_websocket.send_text.assert_called_once()  # Welcome message
 
     @pytest.mark.asyncio
-    async def test_connect_auto_subscribes_to_user_room(self, ws_manager_instance, mock_websocket):
+    async def test_connect_auto_subscribes_to_user_room(
+        self, ws_manager_instance, mock_websocket
+    ):
         """Test that authenticated connections auto-subscribe to user room."""
         connection = await ws_manager_instance.connect(
             mock_websocket, user_id="agent-123", user_type="agent"
@@ -218,7 +209,10 @@ class TestWebSocketManager:
         await ws_manager_instance.subscribe(connection.connection_id, "task:456")
 
         assert "task:456" in connection.subscriptions
-        assert connection.connection_id in ws_manager_instance._room_connections["task:456"]
+        assert (
+            connection.connection_id
+            in ws_manager_instance._room_connections["task:456"]
+        )
 
     @pytest.mark.asyncio
     async def test_broadcast_to_room(self, ws_manager_instance):
@@ -287,15 +281,13 @@ class TestWebSocketManager:
         # Should allow first few messages
         for i in range(3):
             await ws_manager_instance.handle_message(
-                connection.connection_id,
-                json.dumps({"type": "ping", "payload": {}})
+                connection.connection_id, json.dumps({"type": "ping", "payload": {}})
             )
 
         # Next message should be rate limited
         mock_websocket.send_text.reset_mock()
         await ws_manager_instance.handle_message(
-            connection.connection_id,
-            json.dumps({"type": "ping", "payload": {}})
+            connection.connection_id, json.dumps({"type": "ping", "payload": {}})
         )
 
         # Should receive error message about rate limiting
@@ -318,7 +310,9 @@ class TestWebSocketManager:
 
         assert conn_id not in ws_manager_instance._connections
         assert "agent-123" not in ws_manager_instance._user_connections
-        assert conn_id not in ws_manager_instance._room_connections.get("task:456", set())
+        assert conn_id not in ws_manager_instance._room_connections.get(
+            "task:456", set()
+        )
 
 
 # ============== HANDLER TESTS ==============
@@ -333,10 +327,12 @@ class TestEventHandlers:
         return EventHandlers()
 
     @pytest.mark.asyncio
-    async def test_task_created_handler(self, handlers_instance, sample_task, ws_manager_instance, mock_websocket):
+    async def test_task_created_handler(
+        self, handlers_instance, sample_task, ws_manager_instance, mock_websocket
+    ):
         """Test task_created handler broadcasts correctly."""
         # Need to patch the global ws_manager
-        with patch('websocket.handlers.ws_manager', ws_manager_instance):
+        with patch("websocket.handlers.ws_manager", ws_manager_instance):
             # Connect a user
             await ws_manager_instance.connect(
                 mock_websocket, user_id=sample_task["agent_id"]

@@ -16,15 +16,16 @@ Seals differ from reputation scores:
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, UTC
 import hashlib
 
 
 class SealCategory(str, Enum):
     """Categories of seals that workers can earn."""
-    SKILL = "skill"      # Verified abilities (NOW-184)
-    WORK = "work"        # Work history milestones (NOW-185)
-    BEHAVIOR = "behavior" # Behavioral patterns
+
+    SKILL = "skill"  # Verified abilities (NOW-184)
+    WORK = "work"  # Work history milestones (NOW-185)
+    BEHAVIOR = "behavior"  # Behavioral patterns
 
 
 class SkillSealType(str, Enum):
@@ -36,6 +37,7 @@ class SkillSealType(str, Enum):
     - Test task completion
     - External certification
     """
+
     # Visual documentation skills
     PHOTOGRAPHY_VERIFIED = "photography_verified"
     PHOTOGRAPHY_PROFESSIONAL = "photography_professional"
@@ -70,6 +72,7 @@ class WorkSealType(str, Enum):
     Automatically issued when milestones are reached.
     These are non-revocable and permanent.
     """
+
     # Task completion milestones
     TASKS_10 = "tasks_10_completed"
     TASKS_25 = "tasks_25_completed"
@@ -109,6 +112,7 @@ class BehaviorSealType(str, Enum):
     Awarded based on patterns over time.
     Some can be revoked if behavior changes.
     """
+
     # Response time
     FAST_RESPONDER = "fast_responder"  # Avg response < 1 hour
     INSTANT_RESPONDER = "instant_responder"  # Avg response < 15 min
@@ -131,6 +135,7 @@ class BehaviorSealType(str, Enum):
 
 class SealStatus(str, Enum):
     """Status of a seal."""
+
     ACTIVE = "active"
     EXPIRED = "expired"
     REVOKED = "revoked"
@@ -139,6 +144,7 @@ class SealStatus(str, Enum):
 
 class VerificationMethod(str, Enum):
     """How a seal was verified before issuance."""
+
     AUTOMATIC = "automatic"  # System-verified (milestones)
     PORTFOLIO = "portfolio"  # Portfolio review
     TEST_TASK = "test_task"  # Completed test task
@@ -155,6 +161,7 @@ class SealRequirement:
     Defines what a worker must achieve or demonstrate
     to earn a specific seal.
     """
+
     seal_type: str
     category: SealCategory
     display_name: str
@@ -191,6 +198,7 @@ class Seal:
 
     Represents an on-chain seal with all metadata.
     """
+
     id: str  # Unique seal instance ID (hash of holder + type + issued_at)
     category: SealCategory
     seal_type: str  # SkillSealType, WorkSealType, or BehaviorSealType value
@@ -263,6 +271,7 @@ class SealBundle:
 
     Groups seals by category for profile display.
     """
+
     holder_id: str
     skill_seals: List[Seal] = field(default_factory=list)
     work_seals: List[Seal] = field(default_factory=list)
@@ -276,10 +285,7 @@ class SealBundle:
     @property
     def active_count(self) -> int:
         """Count of currently active seals."""
-        return sum(
-            1 for seal in self.all_seals
-            if seal.is_valid
-        )
+        return sum(1 for seal in self.all_seals if seal.is_valid)
 
     @property
     def all_seals(self) -> List[Seal]:
@@ -321,7 +327,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#2196F3",
         tier=1,
     ),
-
     SkillSealType.PHOTOGRAPHY_PROFESSIONAL.value: SealRequirement(
         seal_type=SkillSealType.PHOTOGRAPHY_PROFESSIONAL.value,
         category=SealCategory.SKILL,
@@ -338,7 +343,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#1565C0",
         tier=3,
     ),
-
     SkillSealType.DELIVERY_CERTIFIED.value: SealRequirement(
         seal_type=SkillSealType.DELIVERY_CERTIFIED.value,
         category=SealCategory.SKILL,
@@ -352,7 +356,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#4CAF50",
         tier=1,
     ),
-
     SkillSealType.DOCUMENT_HANDLING.value: SealRequirement(
         seal_type=SkillSealType.DOCUMENT_HANDLING.value,
         category=SealCategory.SKILL,
@@ -366,7 +369,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#FF9800",
         tier=2,
     ),
-
     SkillSealType.BILINGUAL_EN_ES.value: SealRequirement(
         seal_type=SkillSealType.BILINGUAL_EN_ES.value,
         category=SealCategory.SKILL,
@@ -380,7 +382,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#9C27B0",
         tier=2,
     ),
-
     # =========================================================================
     # WORK SEALS (NOW-185)
     # =========================================================================
@@ -397,7 +398,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#78909C",
         tier=1,
     ),
-
     WorkSealType.TASKS_50.value: SealRequirement(
         seal_type=WorkSealType.TASKS_50.value,
         category=SealCategory.WORK,
@@ -411,7 +411,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#607D8B",
         tier=2,
     ),
-
     WorkSealType.TASKS_100.value: SealRequirement(
         seal_type=WorkSealType.TASKS_100.value,
         category=SealCategory.WORK,
@@ -425,7 +424,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#455A64",
         tier=3,
     ),
-
     WorkSealType.TASKS_500.value: SealRequirement(
         seal_type=WorkSealType.TASKS_500.value,
         category=SealCategory.WORK,
@@ -439,7 +437,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#263238",
         tier=5,
     ),
-
     WorkSealType.EARNED_1000_USD.value: SealRequirement(
         seal_type=WorkSealType.EARNED_1000_USD.value,
         category=SealCategory.WORK,
@@ -453,7 +450,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#FFD700",
         tier=3,
     ),
-
     WorkSealType.DELIVERY_100.value: SealRequirement(
         seal_type=WorkSealType.DELIVERY_100.value,
         category=SealCategory.WORK,
@@ -468,7 +464,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#4CAF50",
         tier=3,
     ),
-
     WorkSealType.ACTIVE_90_DAYS.value: SealRequirement(
         seal_type=WorkSealType.ACTIVE_90_DAYS.value,
         category=SealCategory.WORK,
@@ -482,7 +477,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#00BCD4",
         tier=2,
     ),
-
     # =========================================================================
     # BEHAVIOR SEALS
     # =========================================================================
@@ -501,7 +495,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#FFC107",
         tier=2,
     ),
-
     BehaviorSealType.HIGH_QUALITY.value: SealRequirement(
         seal_type=BehaviorSealType.HIGH_QUALITY.value,
         category=SealCategory.BEHAVIOR,
@@ -518,7 +511,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#FFD700",
         tier=3,
     ),
-
     BehaviorSealType.NEVER_CANCELLED.value: SealRequirement(
         seal_type=BehaviorSealType.NEVER_CANCELLED.value,
         category=SealCategory.BEHAVIOR,
@@ -532,7 +524,6 @@ SEAL_REQUIREMENTS: Dict[str, SealRequirement] = {
         color="#4CAF50",
         tier=3,
     ),
-
     BehaviorSealType.EXCEPTIONAL_QUALITY.value: SealRequirement(
         seal_type=BehaviorSealType.EXCEPTIONAL_QUALITY.value,
         category=SealCategory.BEHAVIOR,
@@ -559,15 +550,13 @@ def get_requirement(seal_type: str) -> Optional[SealRequirement]:
 
 def get_requirements_by_category(category: SealCategory) -> List[SealRequirement]:
     """Get all requirements for a category."""
-    return [
-        req for req in SEAL_REQUIREMENTS.values()
-        if req.category == category
-    ]
+    return [req for req in SEAL_REQUIREMENTS.values() if req.category == category]
 
 
 def get_automatic_seals() -> List[SealRequirement]:
     """Get all seals that can be automatically issued."""
     return [
-        req for req in SEAL_REQUIREMENTS.values()
+        req
+        for req in SEAL_REQUIREMENTS.values()
         if req.verification_method == VerificationMethod.AUTOMATIC
     ]

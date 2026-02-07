@@ -20,8 +20,6 @@ from .fund import (
     get_fund,
     FundClaim,
     ClaimStatus,
-    FundError,
-    InsufficientFundsError,
     ClaimNotFoundError,
     InvalidClaimStateError,
 )
@@ -38,10 +36,7 @@ MAX_SINGLE_PAYOUT = Decimal("50.00")  # Maximum single payout
 MIN_PAYOUT_AMOUNT = Decimal("0.50")  # Minimum payout (below this, accumulate)
 
 # x402 integration
-X402_FACILITATOR_URL = os.environ.get(
-    "X402_FACILITATOR_URL",
-    "http://localhost:4020"
-)
+X402_FACILITATOR_URL = os.environ.get("X402_FACILITATOR_URL", "http://localhost:4020")
 PAYOUT_TOKEN = os.environ.get("PAYOUT_TOKEN", "USDC")
 
 
@@ -63,6 +58,7 @@ class PayoutBreakdown:
         final_amount: Amount to actually pay
         reason: Explanation of calculation
     """
+
     claim_id: str
     requested_amount: Decimal
     approved_amount: Decimal
@@ -125,7 +121,9 @@ def calculate_payout(claim: FundClaim) -> PayoutBreakdown:
         amount = MAX_SINGLE_PAYOUT
         logger.info(
             "Claim %s capped at max: $%.2f -> $%.2f",
-            claim.id, float(claim.amount_approved), float(amount)
+            claim.id,
+            float(claim.amount_approved),
+            float(amount),
         )
 
     # Deduction 2: Fund balance protection (if balance is low)
@@ -137,17 +135,17 @@ def calculate_payout(claim: FundClaim) -> PayoutBreakdown:
         amount = fund_balance
         logger.warning(
             "Claim %s reduced due to low fund balance: $%.2f available",
-            claim.id, float(fund_balance)
+            claim.id,
+            float(fund_balance),
         )
 
     # Check minimum payout
     if amount < MIN_PAYOUT_AMOUNT:
         breakdown.final_amount = Decimal("0")
-        breakdown.reason = f"Amount ${float(amount):.2f} below minimum ${float(MIN_PAYOUT_AMOUNT):.2f}"
-        logger.info(
-            "Claim %s payout below minimum, will accumulate",
-            claim.id
+        breakdown.reason = (
+            f"Amount ${float(amount):.2f} below minimum ${float(MIN_PAYOUT_AMOUNT):.2f}"
         )
+        logger.info("Claim %s payout below minimum, will accumulate", claim.id)
         return breakdown
 
     # Round to 2 decimal places
@@ -175,6 +173,7 @@ class PayoutResult:
         error: Error message (if failed)
         timestamp: When payout was executed
     """
+
     claim_id: str
     success: bool
     tx_hash: Optional[str] = None
@@ -284,10 +283,7 @@ async def execute_payout(
         )
 
     except Exception as e:
-        logger.error(
-            "Payout failed for claim %s: %s",
-            claim_id, str(e)
-        )
+        logger.error("Payout failed for claim %s: %s", claim_id, str(e))
         return PayoutResult(
             claim_id=claim_id,
             success=False,
@@ -330,7 +326,7 @@ async def _send_x402_payment(
             metadata={
                 "type": "protection_fund_payout",
                 "claim_id": claim_id,
-            }
+            },
         )
 
         if not result.success:
@@ -341,10 +337,10 @@ async def _send_x402_payment(
     except ImportError:
         # Fallback to simulated payment if x402 client not available
         logger.warning(
-            "x402 client not available, simulating payment for claim %s",
-            claim_id
+            "x402 client not available, simulating payment for claim %s", claim_id
         )
         import uuid
+
         return f"sim_payout_{uuid.uuid4().hex[:12]}"
 
 
@@ -420,8 +416,7 @@ async def process_pending_payouts() -> List[PayoutResult]:
 
     # Get all approved claims
     approved = [
-        claim for claim in fund._claims.values()
-        if claim.status == ClaimStatus.APPROVED
+        claim for claim in fund._claims.values() if claim.status == ClaimStatus.APPROVED
     ]
 
     results = []
@@ -431,11 +426,13 @@ async def process_pending_payouts() -> List[PayoutResult]:
             results.append(result)
         except Exception as e:
             logger.error("Error processing payout for %s: %s", claim.id, str(e))
-            results.append(PayoutResult(
-                claim_id=claim.id,
-                success=False,
-                error=str(e),
-            ))
+            results.append(
+                PayoutResult(
+                    claim_id=claim.id,
+                    success=False,
+                    error=str(e),
+                )
+            )
 
     return results
 
@@ -458,8 +455,7 @@ def get_payout_history(
 
     # Get paid claims
     paid_claims = [
-        claim for claim in fund._claims.values()
-        if claim.status == ClaimStatus.PAID
+        claim for claim in fund._claims.values() if claim.status == ClaimStatus.PAID
     ]
 
     # Filter by worker if specified
@@ -467,7 +463,10 @@ def get_payout_history(
         paid_claims = [c for c in paid_claims if c.worker_id == worker_id]
 
     # Sort by paid_at descending
-    paid_claims.sort(key=lambda c: c.paid_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+    paid_claims.sort(
+        key=lambda c: c.paid_at or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )
 
     # Limit results
     paid_claims = paid_claims[:limit]

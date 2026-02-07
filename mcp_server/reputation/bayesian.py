@@ -25,9 +25,8 @@ Weighting by task value:
 
 import math
 from datetime import datetime, UTC
-from decimal import Decimal
 from typing import List, Optional, Dict, Any, Tuple
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .models import ReputationScore, ConfidenceInterval, ReputationHistory
 
@@ -35,6 +34,7 @@ from .models import ReputationScore, ConfidenceInterval, ReputationHistory
 @dataclass
 class Rating:
     """Individual rating record."""
+
     score: int  # 1-100 or 1-5 stars (will be normalized)
     task_value_usdc: float
     created_at: datetime
@@ -46,18 +46,19 @@ class Rating:
 @dataclass
 class BayesianConfig:
     """Configuration for Bayesian calculation."""
+
     # Beta prior parameters (Beta(2,2) = neutral, mildly informative)
     prior_alpha: float = 2.0  # Prior successes
-    prior_beta: float = 2.0   # Prior failures
+    prior_beta: float = 2.0  # Prior failures
 
     # Score normalization
     min_score: float = 0.0
     max_score: float = 100.0
 
     # Value weighting
-    base_weight: float = 1.0      # Weight for a $10 task
-    min_weight: float = 0.1       # Minimum weight for very small tasks
-    max_weight: float = 5.0       # Maximum weight cap
+    base_weight: float = 1.0  # Weight for a $10 task
+    min_weight: float = 0.1  # Minimum weight for very small tasks
+    max_weight: float = 5.0  # Maximum weight cap
 
     # Confidence interval
     confidence_level: float = 0.90  # 90% CI by default
@@ -415,8 +416,8 @@ class BayesianCalculator:
         Returns:
             Confidence percentage (0-100)
         """
-        total_observations = rep.alpha + rep.beta - (
-            self.config.prior_alpha + self.config.prior_beta
+        total_observations = (
+            rep.alpha + rep.beta - (self.config.prior_alpha + self.config.prior_beta)
         )
 
         # Confidence grows logarithmically
@@ -451,8 +452,8 @@ class BayesianCalculator:
 
         # Weighted average update
         cat["score"] = (
-            (cat["score"] * old_weight + normalized_rating * 100 * weight) / new_weight
-        )
+            cat["score"] * old_weight + normalized_rating * 100 * weight
+        ) / new_weight
         cat["weight_sum"] = new_weight
         cat["count"] = cat.get("count", 0) + 1
 
@@ -487,9 +488,7 @@ class BayesianCalculator:
         current_score = self.calculate_from_reputation_score(rep)
 
         # Simulate completion
-        sim_rep, _ = self.update_on_completion(
-            sim_rep, rating, task_value, None, None
-        )
+        sim_rep, _ = self.update_on_completion(sim_rep, rating, task_value, None, None)
 
         projected_score = sim_rep.score
         new_ci = self.get_confidence_interval(sim_rep)
@@ -504,6 +503,7 @@ class BayesianCalculator:
 
 
 # Convenience functions for simple use cases
+
 
 def calculate_bayesian_score(
     ratings: List[Dict[str, Any]],
@@ -540,7 +540,9 @@ def calculate_bayesian_score(
         r.get("task_value_usdc", 0) for r in ratings if r.get("outcome") == "success"
     )
     total_value_failed = sum(
-        r.get("task_value_usdc", 0) for r in ratings if r.get("outcome") in ("failure", "dispute_loss")
+        r.get("task_value_usdc", 0)
+        for r in ratings
+        if r.get("outcome") in ("failure", "dispute_loss")
     )
 
     return calc.calculate_score(

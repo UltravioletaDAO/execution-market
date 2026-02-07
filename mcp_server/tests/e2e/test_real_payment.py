@@ -30,7 +30,7 @@ import os
 import pytest
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Dict, Any, Optional
+from typing import Dict
 
 # Configure logging for test output
 logging.basicConfig(level=logging.INFO)
@@ -45,10 +45,7 @@ REAL_PAYMENTS_ENABLED = os.environ.get("EM_E2E_REAL_PAYMENTS", "").lower() == "t
 DRY_RUN = os.environ.get("EM_E2E_DRY_RUN", "").lower() == "true"
 
 # API configuration
-API_BASE = os.environ.get(
-    "EM_API_URL",
-    "https://api.execution.market"
-)
+API_BASE = os.environ.get("EM_API_URL", "https://api.execution.market")
 SECRETS_NAME = os.environ.get("EM_SECRETS_NAME", "em/test-agent")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 
@@ -96,7 +93,7 @@ def aws_secrets(check_enabled) -> Dict[str, str]:
     if DRY_RUN:
         return {
             "PRIVATE_KEY": "0x" + "0" * 64,  # Dummy key for dry run
-            "API_KEY": "em_test_dry_run"
+            "API_KEY": "em_test_dry_run",
         }
 
     try:
@@ -213,7 +210,7 @@ async def test_402_payment_required(http_client, aws_secrets, check_enabled):
         f"{API_BASE}/api/v1/tasks",
         headers={
             "Authorization": f"Bearer {aws_secrets['API_KEY']}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         },
         json={
             "title": "Test task",
@@ -221,8 +218,8 @@ async def test_402_payment_required(http_client, aws_secrets, check_enabled):
             "category": "simple_action",
             "bounty_usd": 0.25,
             "deadline_hours": 1,
-            "evidence_required": ["text_response"]
-        }
+            "evidence_required": ["text_response"],
+        },
     )
 
     # Without X-Payment header, should return 402
@@ -247,10 +244,7 @@ async def test_402_payment_required(http_client, aws_secrets, check_enabled):
 
 @pytest.mark.asyncio
 async def test_create_task_with_real_payment(
-    http_client,
-    aws_secrets,
-    wallet_address,
-    check_enabled
+    http_client, aws_secrets, wallet_address, check_enabled
 ):
     """
     Test creating a task with real x402 payment.
@@ -278,7 +272,7 @@ async def test_create_task_with_real_payment(
     fee = bounty * PLATFORM_FEE_PCT
     total = bounty + fee
 
-    logger.info(f"Creating task with real payment:")
+    logger.info("Creating task with real payment:")
     logger.info(f"  Bounty: ${bounty}")
     logger.info(f"  Fee ({PLATFORM_FEE_PCT * 100}%): ${fee}")
     logger.info(f"  Total: ${total}")
@@ -287,13 +281,11 @@ async def test_create_task_with_real_payment(
     x402 = X402Client(
         private_key=aws_secrets["PRIVATE_KEY"],  # Never logged
         network="base",
-        facilitator_url="https://facilitator.ultravioletadao.xyz"
+        facilitator_url="https://facilitator.ultravioletadao.xyz",
     )
 
     payment_header = await x402.create_payment(
-        amount_usd=float(total),
-        token="USDC",
-        description="E2E test task payment"
+        amount_usd=float(total), token="USDC", description="E2E test task payment"
     )
 
     logger.info(f"Payment header generated (length: {len(payment_header)})")
@@ -304,7 +296,7 @@ async def test_create_task_with_real_payment(
         headers={
             "Authorization": f"Bearer {aws_secrets['API_KEY']}",
             "X-Payment": payment_header,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         },
         json={
             "title": f"[E2E TEST] Real payment test - {datetime.now(timezone.utc).isoformat()}",
@@ -312,8 +304,8 @@ async def test_create_task_with_real_payment(
             "category": "simple_action",
             "bounty_usd": float(bounty),
             "deadline_hours": 1,
-            "evidence_required": ["text_response"]
-        }
+            "evidence_required": ["text_response"],
+        },
     )
 
     assert response.status_code == 201, f"Task creation failed: {response.text}"
@@ -348,8 +340,12 @@ async def test_fee_calculation_accuracy(check_enabled):
         fee = (bounty * PLATFORM_FEE_PCT).quantize(Decimal("0.01"))
         payout = bounty - fee
 
-        assert fee == expected_fee, f"Fee mismatch for ${bounty}: got ${fee}, expected ${expected_fee}"
-        assert payout == expected_payout, f"Payout mismatch for ${bounty}: got ${payout}, expected ${expected_payout}"
+        assert fee == expected_fee, (
+            f"Fee mismatch for ${bounty}: got ${fee}, expected ${expected_fee}"
+        )
+        assert payout == expected_payout, (
+            f"Payout mismatch for ${bounty}: got ${payout}, expected ${expected_payout}"
+        )
 
         logger.info(f"Bounty ${bounty}: Fee ${fee}, Worker payout ${payout}")
 
@@ -394,18 +390,13 @@ async def test_escrow_state_transitions(check_enabled):
     """Verify escrow state machine transitions."""
     # This test validates the expected state transitions without real payments
     states = [
-        "pending",       # Awaiting deposit
-        "deposited",     # Funds locked
+        "pending",  # Awaiting deposit
+        "deposited",  # Funds locked
         "partial_released",  # 30% released on submission
-        "released",      # All funds released on approval
+        "released",  # All funds released on approval
     ]
 
     # Alternative paths
-    alternative_states = {
-        "deposited": ["refunded", "disputed"],  # Can be refunded or disputed
-        "partial_released": ["released", "disputed"],  # Final release or dispute
-        "disputed": ["released", "refunded"],  # Resolution
-    }
 
     logger.info("Escrow state machine:")
     logger.info("  Normal flow: pending -> deposited -> partial_released -> released")

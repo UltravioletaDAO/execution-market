@@ -135,7 +135,7 @@ test.describe('Production Debug', () => {
 
     // Test Supabase connection from browser
     const result = await page.evaluate(async () => {
-      // @ts-ignore - accessing global supabase client
+      // @ts-expect-error - accessing global supabase client
       const supabaseUrl = 'https://puyhpytmtkyevnxffksl.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1eWhweXRtdGt5ZXZueGZma3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2NzgzOTMsImV4cCI6MjA4NDI1NDM5M30.R4Sf4SwDo-5yRhRMOazQ-4Jn972YLT7lYunjdqiGjaU';
 

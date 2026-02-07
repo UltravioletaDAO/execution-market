@@ -5,16 +5,13 @@ On-chain reputation storage and queries for Execution Market workers.
 Uses ERC-8004 metadata for raw score storage and events emission.
 """
 
-import os
 import json
 import struct
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, List
 from dataclasses import dataclass
 from datetime import datetime
 
-from web3 import Web3
-from web3.middleware import ExtraDataToPOAMiddleware
 
 from .register import ERC8004Registry
 
@@ -30,18 +27,20 @@ TASK_COUNT_KEY = "em_task_count"
 @dataclass
 class ReputationScore:
     """Worker reputation score."""
-    raw_score: float          # 0-100 scale
-    bayesian_score: float     # Adjusted with Bayesian average
+
+    raw_score: float  # 0-100 scale
+    bayesian_score: float  # Adjusted with Bayesian average
     total_tasks: int
     successful_tasks: int
     disputed_tasks: int
     last_updated: datetime
-    on_chain: bool            # Whether stored on-chain
+    on_chain: bool  # Whether stored on-chain
 
 
 @dataclass
 class ReputationEvent:
     """Reputation change event."""
+
     timestamp: datetime
     task_id: str
     score_delta: float
@@ -57,23 +56,23 @@ REPUTATION_EVENTS_ABI = [
             {"indexed": True, "name": "tokenId", "type": "uint256"},
             {"indexed": False, "name": "newScore", "type": "uint256"},
             {"indexed": False, "name": "taskId", "type": "bytes32"},
-            {"indexed": False, "name": "reason", "type": "string"}
+            {"indexed": False, "name": "reason", "type": "string"},
         ],
         "name": "ReputationUpdated",
-        "type": "event"
+        "type": "event",
     },
     {
         "inputs": [
             {"name": "tokenId", "type": "uint256"},
             {"name": "newScore", "type": "uint256"},
             {"name": "taskId", "type": "bytes32"},
-            {"name": "reason", "type": "string"}
+            {"name": "reason", "type": "string"},
         ],
         "name": "emitReputationUpdate",
         "outputs": [],
         "stateMutability": "nonpayable",
-        "type": "function"
-    }
+        "type": "function",
+    },
 ]
 
 
@@ -89,15 +88,15 @@ class ReputationManager:
     """
 
     # Bayesian average parameters (from TODO_NOW.md)
-    BAYESIAN_C = 15       # Prior weight
-    BAYESIAN_M = 50       # Prior mean (neutral)
-    DECAY_FACTOR = 0.9    # Monthly decay
+    BAYESIAN_C = 15  # Prior weight
+    BAYESIAN_M = 50  # Prior mean (neutral)
+    DECAY_FACTOR = 0.9  # Monthly decay
 
     def __init__(
         self,
         registry: Optional[ERC8004Registry] = None,
         network: str = "sepolia",
-        private_key: Optional[str] = None
+        private_key: Optional[str] = None,
     ):
         """
         Initialize Reputation Manager.
@@ -108,16 +107,13 @@ class ReputationManager:
             private_key: Private key for write operations
         """
         self.registry = registry or ERC8004Registry(
-            network=network,
-            private_key=private_key
+            network=network, private_key=private_key
         )
         self.network = network
         self._cache: Dict[str, ReputationScore] = {}
 
     async def get_reputation(
-        self,
-        wallet_address: str,
-        use_cache: bool = True
+        self, wallet_address: str, use_cache: bool = True
     ) -> Optional[ReputationScore]:
         """
         Get worker's reputation score.
@@ -159,7 +155,7 @@ class ReputationManager:
             successful_tasks=0,
             disputed_tasks=0,
             last_updated=datetime.utcnow(),
-            on_chain=False
+            on_chain=False,
         )
 
     async def update_reputation(
@@ -168,7 +164,7 @@ class ReputationManager:
         task_id: str,
         success: bool,
         disputed: bool = False,
-        rating: Optional[float] = None
+        rating: Optional[float] = None,
     ) -> Optional[ReputationScore]:
         """
         Update worker reputation after task completion.
@@ -198,7 +194,7 @@ class ReputationManager:
                 successful_tasks=0,
                 disputed_tasks=0,
                 last_updated=datetime.utcnow(),
-                on_chain=False
+                on_chain=False,
             )
 
         # Calculate new score
@@ -209,7 +205,9 @@ class ReputationManager:
             identity.token_id,
             new_score,
             task_id,
-            "task_completed" if success else ("disputed" if disputed else "task_failed")
+            "task_completed"
+            if success
+            else ("disputed" if disputed else "task_failed"),
         )
 
         new_score.on_chain = stored
@@ -223,15 +221,13 @@ class ReputationManager:
                 identity.token_id,
                 new_score.raw_score,
                 task_id,
-                "task_completed" if success else "task_outcome"
+                "task_completed" if success else "task_outcome",
             )
 
         return new_score
 
     async def get_reputation_history(
-        self,
-        wallet_address: str,
-        limit: int = 20
+        self, wallet_address: str, limit: int = 20
     ) -> List[ReputationEvent]:
         """
         Get reputation change history.
@@ -249,34 +245,31 @@ class ReputationManager:
 
         # Get history from metadata
         history_data = await self.registry.get_metadata(
-            identity.token_id,
-            REPUTATION_HISTORY_KEY
+            identity.token_id, REPUTATION_HISTORY_KEY
         )
 
         if not history_data:
             return []
 
         try:
-            events_json = json.loads(history_data.decode('utf-8'))
+            events_json = json.loads(history_data.decode("utf-8"))
             events = []
             for e in events_json[-limit:]:
-                events.append(ReputationEvent(
-                    timestamp=datetime.fromisoformat(e['timestamp']),
-                    task_id=e['task_id'],
-                    score_delta=e['delta'],
-                    reason=e['reason'],
-                    tx_hash=e.get('tx_hash')
-                ))
+                events.append(
+                    ReputationEvent(
+                        timestamp=datetime.fromisoformat(e["timestamp"]),
+                        task_id=e["task_id"],
+                        score_delta=e["delta"],
+                        reason=e["reason"],
+                        tx_hash=e.get("tx_hash"),
+                    )
+                )
             return events
         except Exception as e:
             logger.error(f"Error parsing history: {e}")
             return []
 
-    def calculate_bayesian_score(
-        self,
-        raw_score: float,
-        total_tasks: int
-    ) -> float:
+    def calculate_bayesian_score(self, raw_score: float, total_tasks: int) -> float:
         """
         Calculate Bayesian-adjusted score.
 
@@ -295,9 +288,8 @@ class ReputationManager:
             Bayesian-adjusted score
         """
         n = total_tasks
-        adjusted = (
-            (self.BAYESIAN_C * self.BAYESIAN_M + n * raw_score) /
-            (self.BAYESIAN_C + n)
+        adjusted = (self.BAYESIAN_C * self.BAYESIAN_M + n * raw_score) / (
+            self.BAYESIAN_C + n
         )
         return round(adjusted, 2)
 
@@ -308,11 +300,7 @@ class ReputationManager:
         return await self.registry.get_metadata(token_id, REPUTATION_KEY)
 
     async def _store_onchain_reputation(
-        self,
-        token_id: int,
-        score: ReputationScore,
-        task_id: str,
-        reason: str
+        self, token_id: int, score: ReputationScore, task_id: str, reason: str
     ) -> bool:
         """Store reputation on-chain."""
         try:
@@ -320,11 +308,7 @@ class ReputationManager:
             data = self._pack_reputation(score)
 
             # Store in metadata
-            success = await self.registry.set_metadata(
-                token_id,
-                REPUTATION_KEY,
-                data
-            )
+            success = await self.registry.set_metadata(token_id, REPUTATION_KEY, data)
 
             if success:
                 # Update history
@@ -337,41 +321,36 @@ class ReputationManager:
             return False
 
     async def _append_history(
-        self,
-        token_id: int,
-        task_id: str,
-        score: ReputationScore,
-        reason: str
+        self, token_id: int, task_id: str, score: ReputationScore, reason: str
     ) -> bool:
         """Append to reputation history."""
         try:
             # Get current history
             history_data = await self.registry.get_metadata(
-                token_id,
-                REPUTATION_HISTORY_KEY
+                token_id, REPUTATION_HISTORY_KEY
             )
 
             if history_data:
-                history = json.loads(history_data.decode('utf-8'))
+                history = json.loads(history_data.decode("utf-8"))
             else:
                 history = []
 
             # Append new event
-            history.append({
-                'timestamp': datetime.utcnow().isoformat(),
-                'task_id': task_id,
-                'delta': score.raw_score - 50,  # Delta from neutral
-                'reason': reason
-            })
+            history.append(
+                {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "task_id": task_id,
+                    "delta": score.raw_score - 50,  # Delta from neutral
+                    "reason": reason,
+                }
+            )
 
             # Keep last 100 events
             history = history[-100:]
 
             # Store
             return await self.registry.set_metadata(
-                token_id,
-                REPUTATION_HISTORY_KEY,
-                json.dumps(history).encode('utf-8')
+                token_id, REPUTATION_HISTORY_KEY, json.dumps(history).encode("utf-8")
             )
 
         except Exception as e:
@@ -379,11 +358,7 @@ class ReputationManager:
             return False
 
     async def _emit_reputation_event(
-        self,
-        token_id: int,
-        score: float,
-        task_id: str,
-        reason: str
+        self, token_id: int, score: float, task_id: str, reason: str
     ) -> Optional[str]:
         """Emit reputation update event (NOW-052)."""
         # This would call a separate events contract
@@ -399,7 +374,7 @@ class ReputationManager:
         current: ReputationScore,
         success: bool,
         disputed: bool,
-        rating: Optional[float]
+        rating: Optional[float],
     ) -> ReputationScore:
         """Calculate new reputation score."""
         # Update counters
@@ -433,26 +408,26 @@ class ReputationManager:
             successful_tasks=successful,
             disputed_tasks=disputes,
             last_updated=datetime.utcnow(),
-            on_chain=False  # Set by caller after storage
+            on_chain=False,  # Set by caller after storage
         )
 
     def _pack_reputation(self, score: ReputationScore) -> bytes:
         """Pack reputation into bytes for on-chain storage."""
         # Format: raw(f32) + bayesian(f32) + total(u32) + success(u32) + disputes(u32) + timestamp(u64)
         return struct.pack(
-            '<ffIIIQ',
+            "<ffIIIQ",
             score.raw_score,
             score.bayesian_score,
             score.total_tasks,
             score.successful_tasks,
             score.disputed_tasks,
-            int(score.last_updated.timestamp())
+            int(score.last_updated.timestamp()),
         )
 
     def _parse_reputation(self, data: bytes) -> ReputationScore:
         """Parse reputation from on-chain bytes."""
         try:
-            raw, bayesian, total, success, disputes, ts = struct.unpack('<ffIIIQ', data)
+            raw, bayesian, total, success, disputes, ts = struct.unpack("<ffIIIQ", data)
             return ReputationScore(
                 raw_score=raw,
                 bayesian_score=bayesian,
@@ -460,7 +435,7 @@ class ReputationManager:
                 successful_tasks=success,
                 disputed_tasks=disputes,
                 last_updated=datetime.fromtimestamp(ts),
-                on_chain=True
+                on_chain=True,
             )
         except Exception as e:
             logger.error(f"Error parsing reputation: {e}")
@@ -471,11 +446,12 @@ class ReputationManager:
                 successful_tasks=0,
                 disputed_tasks=0,
                 last_updated=datetime.utcnow(),
-                on_chain=False
+                on_chain=False,
             )
 
 
 # Utility functions
+
 
 def reputation_tier(score: float) -> str:
     """

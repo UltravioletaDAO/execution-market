@@ -20,9 +20,6 @@ from datetime import datetime, UTC
 from dataclasses import dataclass
 
 from .types import (
-    Seal,
-    SealBundle,
-    SealCategory,
     SealStatus,
     get_requirement,
 )
@@ -34,6 +31,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class VerificationContext:
     """Context for seal verification request."""
+
     purpose: str  # e.g., "task_acceptance", "profile_view"
     requester_id: Optional[str] = None
     task_id: Optional[str] = None
@@ -47,6 +45,7 @@ class VerificationContext:
 @dataclass
 class SealVerificationResult:
     """Result of verifying a single seal."""
+
     seal_type: str
     is_valid: bool
     status: SealStatus
@@ -62,6 +61,7 @@ class SealVerificationResult:
 @dataclass
 class TaskSealRequirement:
     """Seal requirements for a task."""
+
     required_seals: List[str]  # Must have all of these
     preferred_seals: List[str]  # Nice to have (affects ranking)
     any_of_seals: List[str]  # Must have at least one of these
@@ -70,6 +70,7 @@ class TaskSealRequirement:
 @dataclass
 class TaskEligibilityResult:
     """Result of checking worker eligibility for a task."""
+
     is_eligible: bool
     missing_required: List[str]
     has_preferred: List[str]
@@ -140,7 +141,7 @@ class SealVerificationService:
                     verification_details={
                         "reason": "Seal not found",
                         "checked_at": datetime.now(UTC).isoformat(),
-                    }
+                    },
                 )
 
             # Get full details
@@ -151,15 +152,15 @@ class SealVerificationService:
                     seal_type=seal_type,
                     is_valid=False,
                     status=SealStatus.PENDING,
-                    verification_details={"reason": "Could not retrieve details"}
+                    verification_details={"reason": "Could not retrieve details"},
                 )
 
             # Determine status
-            if not details['is_active']:
+            if not details["is_active"]:
                 status = SealStatus.REVOKED
                 is_valid = False
-            elif details['expires_at']:
-                expires_at = datetime.fromisoformat(details['expires_at'])
+            elif details["expires_at"]:
+                expires_at = datetime.fromisoformat(details["expires_at"])
                 if datetime.now(UTC) > expires_at:
                     status = SealStatus.EXPIRED
                     is_valid = False
@@ -174,14 +175,18 @@ class SealVerificationService:
                 seal_type=seal_type,
                 is_valid=is_valid,
                 status=status,
-                issued_at=datetime.fromisoformat(details['issued_at']) if details.get('issued_at') else None,
-                expires_at=datetime.fromisoformat(details['expires_at']) if details.get('expires_at') else None,
+                issued_at=datetime.fromisoformat(details["issued_at"])
+                if details.get("issued_at")
+                else None,
+                expires_at=datetime.fromisoformat(details["expires_at"])
+                if details.get("expires_at")
+                else None,
                 verification_details={
-                    "issuer": details.get('issuer'),
-                    "metadata_hash": details.get('metadata_hash'),
+                    "issuer": details.get("issuer"),
+                    "metadata_hash": details.get("metadata_hash"),
                     "checked_at": datetime.now(UTC).isoformat(),
                     "context": context.purpose if context else None,
-                }
+                },
             )
 
         except Exception as e:
@@ -190,7 +195,7 @@ class SealVerificationService:
                 seal_type=seal_type,
                 is_valid=False,
                 status=SealStatus.PENDING,
-                verification_details={"error": str(e)}
+                verification_details={"error": str(e)},
             )
 
     async def verify_multiple_seals(
@@ -240,8 +245,7 @@ class SealVerificationService:
         # Get all worker's seals
         bundle = await self.registry.get_seal_bundle(holder_address)
         worker_seals: Set[str] = {
-            seal.seal_type for seal in bundle.all_seals
-            if seal.is_valid
+            seal.seal_type for seal in bundle.all_seals if seal.is_valid
         }
 
         # Check required seals
@@ -256,15 +260,12 @@ class SealVerificationService:
         # Check any_of seals
         any_of_set = set(requirements.any_of_seals)
         satisfied_any_of = (
-            len(any_of_set) == 0 or  # No any_of requirement
-            len(any_of_set & worker_seals) > 0
+            len(any_of_set) == 0  # No any_of requirement
+            or len(any_of_set & worker_seals) > 0
         )
 
         # Determine overall eligibility
-        is_eligible = (
-            len(missing_required) == 0 and
-            satisfied_any_of
-        )
+        is_eligible = len(missing_required) == 0 and satisfied_any_of
 
         # Calculate eligibility score for ranking
         score = 0.0
@@ -309,13 +310,15 @@ class SealVerificationService:
             eligibility = await self.check_task_eligibility(address, requirements)
 
             if eligibility.is_eligible:
-                results.append({
-                    'address': address,
-                    'eligibility': eligibility,
-                })
+                results.append(
+                    {
+                        "address": address,
+                        "eligibility": eligibility,
+                    }
+                )
 
         # Sort by score descending
-        results.sort(key=lambda x: x['eligibility'].eligibility_score, reverse=True)
+        results.sort(key=lambda x: x["eligibility"].eligibility_score, reverse=True)
 
         return results
 
@@ -344,9 +347,7 @@ class SealVerificationService:
             Dict with proof data
         """
         verifications = await self.verify_multiple_seals(
-            holder_address,
-            seal_types,
-            VerificationContext(purpose=purpose)
+            holder_address, seal_types, VerificationContext(purpose=purpose)
         )
 
         # Build proof
@@ -360,7 +361,7 @@ class SealVerificationService:
                 "total_requested": len(seal_types),
                 "total_valid": 0,
                 "total_invalid": 0,
-            }
+            },
         }
 
         for seal_type, result in verifications.items():
@@ -372,8 +373,12 @@ class SealVerificationService:
 
             if result.is_valid:
                 proof["summary"]["total_valid"] += 1
-                seal_data["issued_at"] = result.issued_at.isoformat() if result.issued_at else None
-                seal_data["expires_at"] = result.expires_at.isoformat() if result.expires_at else None
+                seal_data["issued_at"] = (
+                    result.issued_at.isoformat() if result.issued_at else None
+                )
+                seal_data["expires_at"] = (
+                    result.expires_at.isoformat() if result.expires_at else None
+                )
             else:
                 proof["summary"]["total_invalid"] += 1
 
@@ -417,14 +422,10 @@ class SealVerificationService:
         """
         bundle = await self.registry.get_seal_bundle(holder_address)
         worker_seals: Set[str] = {
-            seal.seal_type for seal in bundle.all_seals
-            if seal.is_valid
+            seal.seal_type for seal in bundle.all_seals if seal.is_valid
         }
 
-        result = {
-            "passed": True,
-            "checks": []
-        }
+        result = {"passed": True, "checks": []}
 
         # Check "all" condition
         if "all" in gate_config:
@@ -432,12 +433,14 @@ class SealVerificationService:
             missing = required - worker_seals
             passed = len(missing) == 0
 
-            result["checks"].append({
-                "type": "all",
-                "required": list(required),
-                "missing": list(missing),
-                "passed": passed
-            })
+            result["checks"].append(
+                {
+                    "type": "all",
+                    "required": list(required),
+                    "missing": list(missing),
+                    "passed": passed,
+                }
+            )
 
             if not passed:
                 result["passed"] = False
@@ -448,12 +451,14 @@ class SealVerificationService:
             has_any = len(any_of & worker_seals) > 0
             matched = list(any_of & worker_seals)
 
-            result["checks"].append({
-                "type": "any",
-                "required": list(any_of),
-                "matched": matched,
-                "passed": has_any
-            })
+            result["checks"].append(
+                {
+                    "type": "any",
+                    "required": list(any_of),
+                    "matched": matched,
+                    "passed": has_any,
+                }
+            )
 
             if not has_any:
                 result["passed"] = False
@@ -464,12 +469,14 @@ class SealVerificationService:
             has_forbidden = forbidden & worker_seals
             passed = len(has_forbidden) == 0
 
-            result["checks"].append({
-                "type": "none",
-                "forbidden": list(forbidden),
-                "has_forbidden": list(has_forbidden),
-                "passed": passed
-            })
+            result["checks"].append(
+                {
+                    "type": "none",
+                    "forbidden": list(forbidden),
+                    "has_forbidden": list(has_forbidden),
+                    "passed": passed,
+                }
+            )
 
             if not passed:
                 result["passed"] = False
@@ -498,19 +505,20 @@ class SealVerificationService:
         results = []
 
         for verification in verifications:
-            address = verification['address']
-            seal_types = verification.get('seal_types', [])
+            address = verification["address"]
+            seal_types = verification.get("seal_types", [])
 
             worker_results = await self.verify_multiple_seals(address, seal_types)
 
-            results.append({
-                'address': address,
-                'verifications': {
-                    st: result.is_valid
-                    for st, result in worker_results.items()
-                },
-                'all_valid': all(r.is_valid for r in worker_results.values()),
-            })
+            results.append(
+                {
+                    "address": address,
+                    "verifications": {
+                        st: result.is_valid for st, result in worker_results.items()
+                    },
+                    "all_valid": all(r.is_valid for r in worker_results.values()),
+                }
+            )
 
         return results
 
@@ -560,19 +568,23 @@ class SealVerificationService:
             if seal.expires_at and seal.is_valid:
                 days_until = (seal.expires_at - datetime.now(UTC)).days
                 if 0 < days_until <= 30:
-                    stats["expiring_soon"].append({
-                        "seal_type": seal.seal_type,
-                        "expires_in_days": days_until,
-                    })
+                    stats["expiring_soon"].append(
+                        {
+                            "seal_type": seal.seal_type,
+                            "expires_in_days": days_until,
+                        }
+                    )
 
             # Add to seal list
             req = get_requirement(seal.seal_type)
-            stats["seal_list"].append({
-                "type": seal.seal_type,
-                "category": seal.category.value,
-                "display_name": req.display_name if req else seal.seal_type,
-                "status": seal.status.value,
-                "tier": req.tier if req else 1,
-            })
+            stats["seal_list"].append(
+                {
+                    "type": seal.seal_type,
+                    "category": seal.category.value,
+                    "display_name": req.display_name if req else seal.seal_type,
+                    "status": seal.status.value,
+                    "tier": req.tier if req else 1,
+                }
+            )
 
         return stats

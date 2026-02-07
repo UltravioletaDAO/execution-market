@@ -14,7 +14,6 @@ from ..verification.gps_antispoofing import (
     GPSAntiSpoofing,
     GPSData,
     DeviceInfo,
-    SensorData,
     SpoofingResult,
     SpoofingRisk,
     check_gps_spoofing,
@@ -26,6 +25,7 @@ from ..verification.gps_antispoofing import (
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def detector():
@@ -61,6 +61,7 @@ def sample_device_info():
 # =============================================================================
 # MOVEMENT PATTERN TESTS (NOW-108)
 # =============================================================================
+
 
 class TestMovementPattern:
     """Tests for movement pattern detection."""
@@ -149,6 +150,7 @@ class TestMovementPattern:
 # SENSOR CONSISTENCY TESTS (NOW-108)
 # =============================================================================
 
+
 class TestSensorConsistency:
     """Tests for sensor fusion detection."""
 
@@ -200,6 +202,7 @@ class TestSensorConsistency:
 # MULTI-DEVICE DETECTION TESTS (NOW-109)
 # =============================================================================
 
+
 class TestMultiDeviceDetection:
     """Tests for multi-device detection."""
 
@@ -247,6 +250,7 @@ class TestMultiDeviceDetection:
 # =============================================================================
 # RATE LIMIT TESTS (NOW-111)
 # =============================================================================
+
 
 class TestRateLimits:
     """Tests for rate limiting (NOW-111)."""
@@ -323,11 +327,14 @@ class TestRateLimits:
 # INTEGRATION TESTS
 # =============================================================================
 
+
 class TestFullSpoofingDetection:
     """Integration tests for complete spoofing detection."""
 
     @pytest.mark.asyncio
-    async def test_normal_submission_passes(self, detector, sample_gps_data, sample_device_info):
+    async def test_normal_submission_passes(
+        self, detector, sample_gps_data, sample_device_info
+    ):
         """Normal submission should pass all checks."""
         result = await detector.detect_spoofing(
             gps_data=sample_gps_data,
@@ -357,6 +364,7 @@ class TestFullSpoofingDetection:
 # HELPER FUNCTION TESTS
 # =============================================================================
 
+
 class TestHelperFunctions:
     """Tests for internal helper functions."""
 
@@ -364,8 +372,10 @@ class TestHelperFunctions:
         """Test distance calculation."""
         # Mexico City to Guadalajara (~470km)
         distance = detector._haversine_distance(
-            19.4326, -99.1332,  # Mexico City
-            20.6597, -103.3496,  # Guadalajara
+            19.4326,
+            -99.1332,  # Mexico City
+            20.6597,
+            -103.3496,  # Guadalajara
         )
 
         # Should be approximately 470km
@@ -415,6 +425,7 @@ class TestHelperFunctions:
 # =============================================================================
 # CLEANUP TESTS
 # =============================================================================
+
 
 class TestCleanup:
     """Tests for cleanup methods."""

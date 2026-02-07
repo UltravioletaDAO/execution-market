@@ -4,7 +4,7 @@ Reward Types and Configuration
 Defines flexible reward types for enterprise customers.
 """
 
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -12,15 +12,17 @@ from enum import Enum
 
 class RewardType(str, Enum):
     """Supported reward types (NOW-157)."""
-    X402 = "x402"           # USDC via x402 protocol
-    POINTS = "points"       # Internal points system
-    TOKEN = "token"         # Custom ERC-20 token
-    NONE = "none"           # Volunteer/research (no reward)
-    CUSTOM = "custom"       # Arbitrary custom reward
+
+    X402 = "x402"  # USDC via x402 protocol
+    POINTS = "points"  # Internal points system
+    TOKEN = "token"  # Custom ERC-20 token
+    NONE = "none"  # Volunteer/research (no reward)
+    CUSTOM = "custom"  # Arbitrary custom reward
 
 
 class RewardStatus(str, Enum):
     """Status of a reward."""
+
     PENDING = "pending"
     ESCROWED = "escrowed"
     RELEASED = "released"
@@ -31,6 +33,7 @@ class RewardStatus(str, Enum):
 @dataclass
 class RewardConfig:
     """Configuration for a reward type."""
+
     reward_type: RewardType
     # For x402/token
     token_address: Optional[str] = None
@@ -52,6 +55,7 @@ class RewardConfig:
 @dataclass
 class Reward:
     """A reward for task completion."""
+
     id: str
     task_id: str
     reward_type: RewardType
@@ -69,6 +73,7 @@ class Reward:
 @dataclass
 class PointsBalance:
     """Worker's points balance."""
+
     executor_id: str
     balance: float
     lifetime_earned: float
@@ -79,6 +84,7 @@ class PointsBalance:
 @dataclass
 class TokenReward:
     """Token-specific reward details."""
+
     token_address: str
     token_symbol: str
     amount: float
@@ -95,7 +101,7 @@ DEFAULT_X402_CONFIG = RewardConfig(
     token_decimals=6,
     min_amount=0.50,
     max_amount=10000.0,
-    requires_escrow=True
+    requires_escrow=True,
 )
 
 DEFAULT_POINTS_CONFIG = RewardConfig(
@@ -105,13 +111,11 @@ DEFAULT_POINTS_CONFIG = RewardConfig(
     min_amount=1.0,
     max_amount=100000.0,
     requires_escrow=False,
-    instant_release=True
+    instant_release=True,
 )
 
 DEFAULT_NONE_CONFIG = RewardConfig(
-    reward_type=RewardType.NONE,
-    requires_escrow=False,
-    instant_release=True
+    reward_type=RewardType.NONE, requires_escrow=False, instant_release=True
 )
 
 
@@ -120,6 +124,6 @@ def get_default_config(reward_type: RewardType) -> RewardConfig:
     configs = {
         RewardType.X402: DEFAULT_X402_CONFIG,
         RewardType.POINTS: DEFAULT_POINTS_CONFIG,
-        RewardType.NONE: DEFAULT_NONE_CONFIG
+        RewardType.NONE: DEFAULT_NONE_CONFIG,
     }
     return configs.get(reward_type, DEFAULT_X402_CONFIG)

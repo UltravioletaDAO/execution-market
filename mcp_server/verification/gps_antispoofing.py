@@ -14,7 +14,6 @@ Detection methods:
 5. Rate limiting - prevent abuse by limiting submissions per IP/device
 """
 
-import asyncio
 import hashlib
 import math
 from collections import defaultdict
@@ -57,8 +56,10 @@ EARTH_RADIUS_METERS = 6_371_000
 # DATA CLASSES
 # =============================================================================
 
+
 class SpoofingRisk(str, Enum):
     """Risk levels for GPS spoofing detection."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -68,6 +69,7 @@ class SpoofingRisk(str, Enum):
 @dataclass
 class SpoofingResult:
     """Result of GPS spoofing detection analysis."""
+
     is_spoofed: bool
     confidence: float  # 0.0 to 1.0
     reasons: List[str]
@@ -86,7 +88,7 @@ class SpoofingResult:
             risk_score=0.1,
             risk_level=SpoofingRisk.LOW,
             checks_performed=checks_performed,
-            details={}
+            details={},
         )
 
     @classmethod
@@ -96,7 +98,7 @@ class SpoofingResult:
         risk_score: float,
         confidence: float,
         checks_performed: List[str],
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ) -> "SpoofingResult":
         """Create a spoofed result."""
         risk_level = cls._calculate_risk_level(risk_score)
@@ -107,7 +109,7 @@ class SpoofingResult:
             risk_score=risk_score,
             risk_level=risk_level,
             checks_performed=checks_performed,
-            details=details or {}
+            details=details or {},
         )
 
     @staticmethod
@@ -125,6 +127,7 @@ class SpoofingResult:
 @dataclass
 class GPSData:
     """GPS location data from a submission."""
+
     latitude: float
     longitude: float
     altitude: Optional[float] = None
@@ -137,6 +140,7 @@ class GPSData:
 @dataclass
 class DeviceInfo:
     """Device information for fingerprinting."""
+
     device_id: Optional[str] = None
     user_agent: Optional[str] = None
     screen_width: Optional[int] = None
@@ -155,6 +159,7 @@ class DeviceInfo:
 @dataclass
 class SensorData:
     """Sensor data from device (accelerometer, gyroscope)."""
+
     accelerometer: Optional[Tuple[float, float, float]] = None  # x, y, z in m/s^2
     gyroscope: Optional[Tuple[float, float, float]] = None  # x, y, z in rad/s
     magnetometer: Optional[Tuple[float, float, float]] = None  # x, y, z in microtesla
@@ -164,6 +169,7 @@ class SensorData:
 @dataclass
 class LocationHistory:
     """Historical location data for an executor."""
+
     executor_id: str
     locations: List[Tuple[GPSData, datetime]] = field(default_factory=list)
     devices: List[str] = field(default_factory=list)
@@ -172,6 +178,7 @@ class LocationHistory:
 @dataclass
 class RateLimitResult:
     """Result of rate limit check."""
+
     allowed: bool
     reason: Optional[str]
     ip_count_today: int
@@ -183,6 +190,7 @@ class RateLimitResult:
 @dataclass
 class MultiDeviceResult:
     """Result of multi-device detection."""
+
     is_multi_device: bool
     device_count: int
     devices: List[str]
@@ -193,6 +201,7 @@ class MultiDeviceResult:
 # =============================================================================
 # GPS ANTI-SPOOFING CLASS
 # =============================================================================
+
 
 class GPSAntiSpoofing:
     """
@@ -270,9 +279,7 @@ class GPSAntiSpoofing:
         # 2. Check sensor consistency (NOW-108)
         if sensor_data:
             sensor_result = await self.check_sensor_consistency(
-                sensor_data.accelerometer,
-                sensor_data.gyroscope,
-                gps_data
+                sensor_data.accelerometer, sensor_data.gyroscope, gps_data
             )
             checks_performed.append("sensor_consistency")
             if sensor_result["suspicious"]:
@@ -291,7 +298,9 @@ class GPSAntiSpoofing:
 
         # 4. Check multi-device (NOW-109)
         device_fingerprint = self._generate_device_fingerprint(device_info)
-        multi_device_result = await self.detect_multi_device(executor_id, device_fingerprint)
+        multi_device_result = await self.detect_multi_device(
+            executor_id, device_fingerprint
+        )
         checks_performed.append("multi_device")
         if multi_device_result.is_multi_device:
             reasons.append(multi_device_result.reason or "Multiple devices detected")
@@ -303,8 +312,7 @@ class GPSAntiSpoofing:
 
         # 5. Check rate limits (NOW-111)
         rate_limit_result = await self.check_rate_limits(
-            ip_address or "unknown",
-            device_fingerprint
+            ip_address or "unknown", device_fingerprint
         )
         checks_performed.append("rate_limits")
         if not rate_limit_result.allowed:
@@ -335,7 +343,7 @@ class GPSAntiSpoofing:
             risk_score=aggregated_risk,
             confidence=confidence,
             checks_performed=checks_performed,
-            details=details
+            details=details,
         )
 
     async def check_movement_pattern(
@@ -395,8 +403,10 @@ class GPSAntiSpoofing:
 
         # Calculate distance
         distance_m = self._haversine_distance(
-            last_location.latitude, last_location.longitude,
-            new_location.latitude, new_location.longitude
+            last_location.latitude,
+            last_location.longitude,
+            new_location.latitude,
+            new_location.longitude,
         )
 
         # Calculate speed
@@ -475,7 +485,11 @@ class GPSAntiSpoofing:
             is_stationary = accel_minus_gravity < 0.5  # Less than 0.5 m/s^2 variance
 
             # If GPS shows significant speed but device is stationary
-            if gps.speed_mps and gps.speed_mps > MAX_WALKING_SPEED_MPS and is_stationary:
+            if (
+                gps.speed_mps
+                and gps.speed_mps > MAX_WALKING_SPEED_MPS
+                and is_stationary
+            ):
                 suspicious_flags.append(
                     f"GPS shows {gps.speed_mps:.1f} m/s but accelerometer indicates stationary device"
                 )
@@ -523,7 +537,7 @@ class GPSAntiSpoofing:
                 "accelerometer": accelerometer,
                 "gyroscope": gyroscope,
                 "gps_speed_mps": gps.speed_mps,
-            }
+            },
         }
 
     async def check_network_location(
@@ -563,10 +577,15 @@ class GPSAntiSpoofing:
             }
 
         # Calculate distance between IP location and claimed GPS
-        distance_km = self._haversine_distance(
-            ip_location.latitude, ip_location.longitude,
-            claimed_gps.latitude, claimed_gps.longitude
-        ) / 1000  # Convert to km
+        distance_km = (
+            self._haversine_distance(
+                ip_location.latitude,
+                ip_location.longitude,
+                claimed_gps.latitude,
+                claimed_gps.longitude,
+            )
+            / 1000
+        )  # Convert to km
 
         # Check for major discrepancy
         if distance_km > MAX_IP_GPS_DISTANCE_KM:
@@ -574,14 +593,14 @@ class GPSAntiSpoofing:
             return {
                 "suspicious": True,
                 "reason": f"IP geolocation ({ip_location.latitude:.4f}, {ip_location.longitude:.4f}) "
-                         f"is {distance_km:.0f}km from claimed GPS (max: {MAX_IP_GPS_DISTANCE_KM}km). "
-                         f"Possible VPN or GPS spoofing.",
+                f"is {distance_km:.0f}km from claimed GPS (max: {MAX_IP_GPS_DISTANCE_KM}km). "
+                f"Possible VPN or GPS spoofing.",
                 "risk_score": min(0.9, 0.5 + (distance_km / 1000) * 0.1),
                 "details": {
                     "ip_location": (ip_location.latitude, ip_location.longitude),
                     "claimed_location": (claimed_gps.latitude, claimed_gps.longitude),
                     "distance_km": distance_km,
-                }
+                },
             }
 
         return {
@@ -621,38 +640,44 @@ class GPSAntiSpoofing:
                     device_count=len(known_devices),
                     devices=[d.get("fingerprint", "unknown") for d in known_devices],
                     similarity_scores={},
-                    reason=None
+                    reason=None,
                 )
 
         # New device detected
         if not known_devices:
             # First device for this executor, register it
-            self._device_fingerprints[executor_id].append({
-                "fingerprint": device_fingerprint,
-                "first_seen": datetime.now(UTC).isoformat(),
-            })
+            self._device_fingerprints[executor_id].append(
+                {
+                    "fingerprint": device_fingerprint,
+                    "first_seen": datetime.now(UTC).isoformat(),
+                }
+            )
             return MultiDeviceResult(
                 is_multi_device=False,
                 device_count=1,
                 devices=[device_fingerprint],
                 similarity_scores={},
-                reason=None
+                reason=None,
             )
 
         # Multiple devices detected
         device_count = len(known_devices) + 1
 
         # Register the new device
-        self._device_fingerprints[executor_id].append({
-            "fingerprint": device_fingerprint,
-            "first_seen": datetime.now(UTC).isoformat(),
-        })
+        self._device_fingerprints[executor_id].append(
+            {
+                "fingerprint": device_fingerprint,
+                "first_seen": datetime.now(UTC).isoformat(),
+            }
+        )
 
         # Calculate similarity with existing devices
         similarity_scores = {}
         for known in known_devices:
             known_fp = known.get("fingerprint", "")
-            similarity = self._calculate_fingerprint_similarity(device_fingerprint, known_fp)
+            similarity = self._calculate_fingerprint_similarity(
+                device_fingerprint, known_fp
+            )
             similarity_scores[known_fp[:16]] = similarity
 
         # Flag if more than 2 devices
@@ -660,17 +685,23 @@ class GPSAntiSpoofing:
             return MultiDeviceResult(
                 is_multi_device=True,
                 device_count=device_count,
-                devices=[d.get("fingerprint", "unknown")[:16] for d in self._device_fingerprints[executor_id]],
+                devices=[
+                    d.get("fingerprint", "unknown")[:16]
+                    for d in self._device_fingerprints[executor_id]
+                ],
                 similarity_scores=similarity_scores,
-                reason=f"Worker using {device_count} different devices (suspicious pattern)"
+                reason=f"Worker using {device_count} different devices (suspicious pattern)",
             )
 
         return MultiDeviceResult(
             is_multi_device=False,
             device_count=device_count,
-            devices=[d.get("fingerprint", "unknown")[:16] for d in self._device_fingerprints[executor_id]],
+            devices=[
+                d.get("fingerprint", "unknown")[:16]
+                for d in self._device_fingerprints[executor_id]
+            ],
             similarity_scores=similarity_scores,
-            reason=None
+            reason=None,
         )
 
     async def check_rate_limits(
@@ -749,7 +780,9 @@ class GPSAntiSpoofing:
     ) -> None:
         """Store location in history for pattern analysis."""
         if executor_id not in self._location_history:
-            self._location_history[executor_id] = LocationHistory(executor_id=executor_id)
+            self._location_history[executor_id] = LocationHistory(
+                executor_id=executor_id
+            )
 
         history = self._location_history[executor_id]
         history.locations.append((location, timestamp))
@@ -778,18 +811,20 @@ class GPSAntiSpoofing:
     def _generate_device_fingerprint(self, device_info: DeviceInfo) -> str:
         """Generate a unique fingerprint hash from device information."""
         # Combine device characteristics
-        fingerprint_data = "|".join([
-            str(device_info.screen_width or ""),
-            str(device_info.screen_height or ""),
-            str(device_info.device_memory_gb or ""),
-            str(device_info.hardware_concurrency or ""),
-            str(device_info.platform or ""),
-            str(device_info.vendor or ""),
-            str(device_info.timezone or ""),
-            str(device_info.language or ""),
-            str(device_info.webgl_vendor or ""),
-            str(device_info.webgl_renderer or ""),
-        ])
+        fingerprint_data = "|".join(
+            [
+                str(device_info.screen_width or ""),
+                str(device_info.screen_height or ""),
+                str(device_info.device_memory_gb or ""),
+                str(device_info.hardware_concurrency or ""),
+                str(device_info.platform or ""),
+                str(device_info.vendor or ""),
+                str(device_info.timezone or ""),
+                str(device_info.language or ""),
+                str(device_info.webgl_vendor or ""),
+                str(device_info.webgl_renderer or ""),
+            ]
+        )
 
         # Hash the fingerprint
         return hashlib.sha256(fingerprint_data.encode()).hexdigest()
@@ -808,10 +843,22 @@ class GPSAntiSpoofing:
         """Check if IP address is private/local."""
         private_prefixes = [
             "10.",
-            "172.16.", "172.17.", "172.18.", "172.19.",
-            "172.20.", "172.21.", "172.22.", "172.23.",
-            "172.24.", "172.25.", "172.26.", "172.27.",
-            "172.28.", "172.29.", "172.30.", "172.31.",
+            "172.16.",
+            "172.17.",
+            "172.18.",
+            "172.19.",
+            "172.20.",
+            "172.21.",
+            "172.22.",
+            "172.23.",
+            "172.24.",
+            "172.25.",
+            "172.26.",
+            "172.27.",
+            "172.28.",
+            "172.29.",
+            "172.30.",
+            "172.31.",
             "192.168.",
             "127.",
             "localhost",
@@ -845,8 +892,8 @@ class GPSAntiSpoofing:
 
         # Haversine formula
         a = (
-            math.sin(delta_phi / 2) ** 2 +
-            math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+            math.sin(delta_phi / 2) ** 2
+            + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
         )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
@@ -884,7 +931,9 @@ class GPSAntiSpoofing:
         self._location_history.pop(executor_id, None)
         self._device_fingerprints.pop(executor_id, None)
 
-    def clear_rate_limit_data(self, ip_address: Optional[str] = None, device_id: Optional[str] = None) -> None:
+    def clear_rate_limit_data(
+        self, ip_address: Optional[str] = None, device_id: Optional[str] = None
+    ) -> None:
         """Clear rate limit data (for testing)."""
         if ip_address:
             self._ip_submissions.pop(ip_address, None)
@@ -895,6 +944,7 @@ class GPSAntiSpoofing:
 # =============================================================================
 # CONVENIENCE FUNCTIONS
 # =============================================================================
+
 
 async def check_gps_spoofing(
     latitude: float,

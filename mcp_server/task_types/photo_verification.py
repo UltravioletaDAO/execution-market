@@ -20,7 +20,7 @@ Validation includes:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, TypedDict
 
@@ -30,7 +30,6 @@ from .base import (
     EvidenceSpec,
     EvidenceCategory,
     ValidationResult,
-    ValidationSeverity,
     BountyRecommendation,
     TimeEstimate,
 )
@@ -38,25 +37,29 @@ from .base import (
 
 class PhotoEvidence(TypedDict, total=False):
     """Evidence structure for photo verification tasks."""
-    photo_url: str              # URL or CID of the photo
+
+    photo_url: str  # URL or CID of the photo
     photo_gps_lat: Optional[float]
     photo_gps_lng: Optional[float]
     photo_timestamp: Optional[str]  # ISO format timestamp
-    photo_device: Optional[str]     # Device info from EXIF
-    text_response: Optional[str]    # Worker's text response
+    photo_device: Optional[str]  # Device info from EXIF
+    text_response: Optional[str]  # Worker's text response
     additional_photos: Optional[List[str]]  # URLs of additional photos
 
 
 @dataclass
 class PhotoValidationConfig:
     """Configuration for photo validation."""
+
     max_gps_distance_meters: float = 500.0
     max_photo_age_minutes: int = 60
     require_gps: bool = True
     require_recent_timestamp: bool = True
     check_ai_generated: bool = True
     min_photo_quality: int = 300  # Min dimension in pixels
-    allowed_formats: List[str] = field(default_factory=lambda: ["jpeg", "jpg", "png", "heic", "webp"])
+    allowed_formats: List[str] = field(
+        default_factory=lambda: ["jpeg", "jpg", "png", "heic", "webp"]
+    )
 
 
 class PhotoVerificationTask(TaskType[PhotoEvidence]):
@@ -282,7 +285,9 @@ class PhotoVerificationTask(TaskType[PhotoEvidence]):
             # Check for future timestamps (possible clock manipulation)
             if age_minutes < -5:  # Allow 5 min clock skew
                 return ValidationResult.failure(
-                    errors=["Photo timestamp is in the future (possible clock manipulation)"],
+                    errors=[
+                        "Photo timestamp is in the future (possible clock manipulation)"
+                    ],
                     details={
                         "timestamp_check": "future_timestamp",
                         "photo_time": photo_time.isoformat(),
@@ -341,8 +346,8 @@ class PhotoVerificationTask(TaskType[PhotoEvidence]):
         delta_lambda = math.radians(lon2 - lon1)
 
         a = (
-            math.sin(delta_phi / 2) ** 2 +
-            math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+            math.sin(delta_phi / 2) ** 2
+            + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
         )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
@@ -469,7 +474,8 @@ Coordinates: {location_lat}, {location_lng}
             "photo_url": evidence.get("photo_url"),
             "location_verified": validation_result.details.get("gps_check") == "valid",
             "distance_meters": validation_result.details.get("distance_meters"),
-            "timestamp_verified": validation_result.details.get("timestamp_check") == "valid",
+            "timestamp_verified": validation_result.details.get("timestamp_check")
+            == "valid",
             "ai_check_passed": validation_result.details.get("ai_check") == "passed",
             "worker_notes": evidence.get("text_response"),
             "additional_photos_count": len(evidence.get("additional_photos", [])),

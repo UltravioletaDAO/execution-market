@@ -27,7 +27,7 @@ import logging
 import hashlib
 from typing import Dict, List, Optional, Set, Tuple, Any
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from collections import defaultdict
 import uuid
@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 class FraudSignal(str, Enum):
     """Types of fraud signals that can be detected."""
+
     # Multi-device fraud (NOW-109)
     MULTI_DEVICE = "multi_device"
     DEVICE_SPOOFING = "device_spoofing"
@@ -60,15 +61,17 @@ class FraudSignal(str, Enum):
 
 class RiskLevel(str, Enum):
     """Risk severity levels for fraud alerts."""
-    LOW = "low"           # Monitor only
-    MEDIUM = "medium"     # Flag for review
-    HIGH = "high"         # Hold payment, require review
-    CRITICAL = "critical" # Block immediately, freeze funds
+
+    LOW = "low"  # Monitor only
+    MEDIUM = "medium"  # Flag for review
+    HIGH = "high"  # Hold payment, require review
+    CRITICAL = "critical"  # Block immediately, freeze funds
 
 
 @dataclass
 class FraudConfig:
     """Configuration for fraud detection thresholds."""
+
     # Multi-device thresholds
     max_devices_per_worker: int = 3
     device_switch_cooldown_hours: int = 24
@@ -102,6 +105,7 @@ class FraudConfig:
 @dataclass
 class FraudAlert:
     """A detected fraud signal with evidence."""
+
     id: str
     signal: FraudSignal
     risk_level: RiskLevel
@@ -134,6 +138,7 @@ class FraudAlert:
 @dataclass
 class DeviceRecord:
     """Record of a device seen for an entity."""
+
     device_id: str
     device_fingerprint: str
     first_seen: datetime
@@ -145,6 +150,7 @@ class DeviceRecord:
 @dataclass
 class TaskRecord:
     """Minimal task record for pattern analysis."""
+
     task_id: str
     agent_id: str
     worker_id: Optional[str]
@@ -160,6 +166,7 @@ class TaskRecord:
 @dataclass
 class EntityProfile:
     """Profile tracking an entity's behavior patterns."""
+
     entity_id: str
     entity_type: str  # 'worker' or 'agent'
     created_at: datetime
@@ -230,9 +237,7 @@ class FraudDetector:
         self._device_to_workers: Dict[str, Set[str]] = defaultdict(set)
 
     def _get_or_create_profile(
-        self,
-        entity_id: str,
-        entity_type: str = "worker"
+        self, entity_id: str, entity_type: str = "worker"
     ) -> EntityProfile:
         """Get existing profile or create new one."""
         if entity_id not in self._profiles:
@@ -323,7 +328,9 @@ class FraudDetector:
             FraudAlert if suspicious, None otherwise
         """
         profile = self._get_or_create_profile(worker_id, "worker")
-        fingerprint = self._generate_device_fingerprint(device_id, user_agent, screen_res)
+        fingerprint = self._generate_device_fingerprint(
+            device_id, user_agent, screen_res
+        )
         now = datetime.now(timezone.utc)
 
         # Track device
@@ -367,7 +374,8 @@ class FraudDetector:
 
         # Check 2: Rapid device switching
         recent_devices = [
-            d for d in profile.devices.values()
+            d
+            for d in profile.devices.values()
             if (now - d.last_seen).total_seconds() < 24 * 3600
         ]
         if len(recent_devices) >= self.config.suspicious_device_switches:
@@ -468,69 +476,84 @@ class FraudDetector:
 
         # Signal 1: Same IP for agent and worker
         if agent_ip and worker_ip and agent_ip == worker_ip:
-            alerts.append(self._create_alert(
-                signal=FraudSignal.SAME_IP_AGENT_WORKER,
-                risk_level=RiskLevel.CRITICAL,
-                entities=[agent_id, worker_id],
-                evidence={
-                    "shared_ip": agent_ip,
-                    "agent_id": agent_id,
-                    "worker_id": worker_id,
-                    "task_id": task_id,
-                },
-                task_id=task_id,
-            ))
+            alerts.append(
+                self._create_alert(
+                    signal=FraudSignal.SAME_IP_AGENT_WORKER,
+                    risk_level=RiskLevel.CRITICAL,
+                    entities=[agent_id, worker_id],
+                    evidence={
+                        "shared_ip": agent_ip,
+                        "agent_id": agent_id,
+                        "worker_id": worker_id,
+                        "task_id": task_id,
+                    },
+                    task_id=task_id,
+                )
+            )
 
         # Signal 2: Instant approval
         if approval_time_seconds < self.config.instant_approval_seconds:
             # More suspicious if less than minimum review time
-            risk = RiskLevel.HIGH if approval_time_seconds < self.config.min_review_time_seconds else RiskLevel.MEDIUM
+            risk = (
+                RiskLevel.HIGH
+                if approval_time_seconds < self.config.min_review_time_seconds
+                else RiskLevel.MEDIUM
+            )
 
-            alerts.append(self._create_alert(
-                signal=FraudSignal.INSTANT_APPROVAL,
-                risk_level=risk,
-                entities=[agent_id, worker_id],
-                evidence={
-                    "approval_time_seconds": approval_time_seconds,
-                    "threshold_seconds": self.config.instant_approval_seconds,
-                    "task_id": task_id,
-                    "bounty": bounty,
-                },
-                task_id=task_id,
-            ))
+            alerts.append(
+                self._create_alert(
+                    signal=FraudSignal.INSTANT_APPROVAL,
+                    risk_level=risk,
+                    entities=[agent_id, worker_id],
+                    evidence={
+                        "approval_time_seconds": approval_time_seconds,
+                        "threshold_seconds": self.config.instant_approval_seconds,
+                        "task_id": task_id,
+                        "bounty": bounty,
+                    },
+                    task_id=task_id,
+                )
+            )
 
         # Signal 3: Inflated bounty
-        if avg_bounty > 0 and bounty > avg_bounty * self.config.inflated_bounty_multiplier:
-            alerts.append(self._create_alert(
-                signal=FraudSignal.INFLATED_BOUNTY,
-                risk_level=RiskLevel.HIGH,
-                entities=[agent_id],
-                evidence={
-                    "bounty": bounty,
-                    "avg_bounty": avg_bounty,
-                    "multiplier": bounty / avg_bounty,
-                    "threshold_multiplier": self.config.inflated_bounty_multiplier,
-                    "task_id": task_id,
-                },
-                task_id=task_id,
-            ))
+        if (
+            avg_bounty > 0
+            and bounty > avg_bounty * self.config.inflated_bounty_multiplier
+        ):
+            alerts.append(
+                self._create_alert(
+                    signal=FraudSignal.INFLATED_BOUNTY,
+                    risk_level=RiskLevel.HIGH,
+                    entities=[agent_id],
+                    evidence={
+                        "bounty": bounty,
+                        "avg_bounty": avg_bounty,
+                        "multiplier": bounty / avg_bounty,
+                        "threshold_multiplier": self.config.inflated_bounty_multiplier,
+                        "task_id": task_id,
+                    },
+                    task_id=task_id,
+                )
+            )
 
         # Signal 4: Rapid completion
         if (
             completion_time_minutes is not None
             and completion_time_minutes < self.config.rapid_completion_minutes
         ):
-            alerts.append(self._create_alert(
-                signal=FraudSignal.RAPID_COMPLETION,
-                risk_level=RiskLevel.MEDIUM,
-                entities=[worker_id],
-                evidence={
-                    "completion_time_minutes": completion_time_minutes,
-                    "threshold_minutes": self.config.rapid_completion_minutes,
-                    "task_id": task_id,
-                },
-                task_id=task_id,
-            ))
+            alerts.append(
+                self._create_alert(
+                    signal=FraudSignal.RAPID_COMPLETION,
+                    risk_level=RiskLevel.MEDIUM,
+                    entities=[worker_id],
+                    evidence={
+                        "completion_time_minutes": completion_time_minutes,
+                        "threshold_minutes": self.config.rapid_completion_minutes,
+                        "task_id": task_id,
+                    },
+                    task_id=task_id,
+                )
+            )
 
         return alerts
 
@@ -581,7 +604,9 @@ class FraudDetector:
             )
 
         # Check 2: Wallet clustering
-        shared_wallets = agent_profile.wallet_addresses & worker_profile.wallet_addresses
+        shared_wallets = (
+            agent_profile.wallet_addresses & worker_profile.wallet_addresses
+        )
         if shared_wallets:
             return self._create_alert(
                 signal=FraudSignal.WALLET_CLUSTERING,
@@ -744,8 +769,7 @@ class FraudDetector:
         # Factor 2: Multi-device
         if profile.device_count > 1:
             device_risk = min(
-                (profile.device_count - 1) / self.config.max_devices_per_worker,
-                1.0
+                (profile.device_count - 1) / self.config.max_devices_per_worker, 1.0
             )
             score += device_risk * self.config.weight_multi_device
             if device_risk > 0.5:
@@ -756,8 +780,7 @@ class FraudDetector:
             max_connection = max(profile.connected_entities.values())
             if max_connection >= self.config.suspicious_pairing_count:
                 connection_risk = min(
-                    max_connection / (self.config.suspicious_pairing_count * 2),
-                    1.0
+                    max_connection / (self.config.suspicious_pairing_count * 2), 1.0
                 )
                 score += connection_risk * self.config.weight_collusion
                 reasons.append(f"High connection concentration ({max_connection})")
@@ -862,9 +885,7 @@ class FraudDetector:
         alert.resolved_at = datetime.now(timezone.utc)
         alert.resolved_by = resolved_by
 
-        logger.info(
-            f"Alert {alert_id} resolved by {resolved_by}: {resolution}"
-        )
+        logger.info(f"Alert {alert_id} resolved by {resolved_by}: {resolution}")
 
         return True
 
@@ -895,7 +916,12 @@ class FraudDetector:
 
         # Filter by risk level
         if risk_level:
-            level_order = [RiskLevel.LOW, RiskLevel.MEDIUM, RiskLevel.HIGH, RiskLevel.CRITICAL]
+            level_order = [
+                RiskLevel.LOW,
+                RiskLevel.MEDIUM,
+                RiskLevel.HIGH,
+                RiskLevel.CRITICAL,
+            ]
             min_idx = level_order.index(risk_level)
             alerts = [a for a in alerts if level_order.index(a.risk_level) >= min_idx]
 
@@ -906,7 +932,12 @@ class FraudDetector:
         # Sort by severity and time
         alerts.sort(
             key=lambda a: (
-                -[RiskLevel.LOW, RiskLevel.MEDIUM, RiskLevel.HIGH, RiskLevel.CRITICAL].index(a.risk_level),
+                -[
+                    RiskLevel.LOW,
+                    RiskLevel.MEDIUM,
+                    RiskLevel.HIGH,
+                    RiskLevel.CRITICAL,
+                ].index(a.risk_level),
                 -a.detected_at.timestamp(),
             )
         )
@@ -926,7 +957,9 @@ class FraudDetector:
             "total_alerts": len(self._alerts),
             "unresolved_alerts": len(unresolved_alerts),
             "alerts_by_level": {
-                level.value: len([a for a in unresolved_alerts if a.risk_level == level])
+                level.value: len(
+                    [a for a in unresolved_alerts if a.risk_level == level]
+                )
                 for level in RiskLevel
             },
             "alerts_by_signal": {
@@ -970,7 +1003,7 @@ class FraudDetector:
             if len(agent_tasks) >= 3:
                 sorted_tasks = sorted(agent_tasks, key=lambda t: t.created_at)
                 for i in range(len(sorted_tasks) - 2):
-                    t1, t2, t3 = sorted_tasks[i:i+3]
+                    t1, t2, t3 = sorted_tasks[i : i + 3]
                     gap1 = (t2.created_at - t1.created_at).total_seconds()
                     gap2 = (t3.created_at - t2.created_at).total_seconds()
 
@@ -978,16 +1011,18 @@ class FraudDetector:
                         gap1 < self.config.coordinated_timing_window_seconds
                         and gap2 < self.config.coordinated_timing_window_seconds
                     ):
-                        alerts.append(self._create_alert(
-                            signal=FraudSignal.COORDINATED_TIMING,
-                            risk_level=RiskLevel.MEDIUM,
-                            entities=[agent_id],
-                            evidence={
-                                "task_ids": [t1.task_id, t2.task_id, t3.task_id],
-                                "time_gaps_seconds": [gap1, gap2],
-                                "threshold_seconds": self.config.coordinated_timing_window_seconds,
-                            },
-                        ))
+                        alerts.append(
+                            self._create_alert(
+                                signal=FraudSignal.COORDINATED_TIMING,
+                                risk_level=RiskLevel.MEDIUM,
+                                entities=[agent_id],
+                                evidence={
+                                    "task_ids": [t1.task_id, t2.task_id, t3.task_id],
+                                    "time_gaps_seconds": [gap1, gap2],
+                                    "threshold_seconds": self.config.coordinated_timing_window_seconds,
+                                },
+                            )
+                        )
                         break
 
         return alerts

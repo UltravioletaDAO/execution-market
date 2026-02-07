@@ -16,7 +16,6 @@ Usage:
 import asyncio
 import json
 import os
-from typing import Optional
 
 # Simulated MCP client for demonstration
 # In production, use the actual MCP client library
@@ -136,9 +135,7 @@ async def publish_task(client: MockMCPClient, agent_id: str) -> dict:
     return result
 
 
-async def check_task_status(
-    client: MockMCPClient, task_id: str, agent_id: str
-) -> dict:
+async def check_task_status(client: MockMCPClient, task_id: str, agent_id: str) -> dict:
     """
     Check the current status of a task and any submissions.
 
@@ -217,7 +214,10 @@ def analyze_evidence(evidence: dict) -> tuple[bool, str]:
     if not any(keyword in text_response.lower() for keyword in required_keywords):
         return False, "Text response doesn't mention shop hours or status"
 
-    return True, "Evidence appears valid: GPS matches location, photo provided, hours reported"
+    return (
+        True,
+        "Evidence appears valid: GPS matches location, photo provided, hours reported",
+    )
 
 
 async def review_submission(
@@ -273,9 +273,7 @@ async def main():
     3. Review and approve submission
     """
     # Configuration
-    agent_id = os.environ.get(
-        "AGENT_ID", "0x1234567890abcdef1234567890abcdef12345678"
-    )
+    agent_id = os.environ.get("AGENT_ID", "0x1234567890abcdef1234567890abcdef12345678")
 
     # Initialize client
     client = MockMCPClient()
@@ -289,7 +287,7 @@ async def main():
     task_result = await publish_task(client, agent_id)
     task_id = task_result["task_id"]
 
-    print(f"\nTask published successfully!")
+    print("\nTask published successfully!")
     print(f"  Task ID: {task_id}")
     print(f"  Bounty: ${task_result['bounty_usd']:.2f}")
     print(f"  Status: {task_result['status']}")
@@ -316,7 +314,7 @@ async def main():
         print(f"\nSubmission ID: {submission['id']}")
         print(f"Executor: {submission['executor']['display_name']}")
         print(f"Reputation: {submission['executor']['reputation_score']}")
-        print(f"\nEvidence submitted:")
+        print("\nEvidence submitted:")
         print(json.dumps(submission["evidence"], indent=2))
 
         # Review and approve
@@ -333,7 +331,7 @@ async def main():
 
         print(f"\nVerdict: {review_result['verdict']}")
         if review_result.get("payment_released"):
-            print(f"Payment released!")
+            print("Payment released!")
             print(f"  Worker payment: ${review_result['worker_payment']:.2f}")
             print(f"  Platform fee: ${review_result['platform_fee']:.2f}")
     else:

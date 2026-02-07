@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class TimelineEventType(str, Enum):
     """Types of timeline events."""
+
     # Lifecycle events
     DISPUTE_OPENED = "dispute_opened"
     DISPUTE_UPDATED = "dispute_updated"
@@ -49,6 +50,7 @@ class TimelineEventType(str, Enum):
 
 class SLAStatus(str, Enum):
     """SLA status levels."""
+
     ON_TRACK = "on_track"
     WARNING = "warning"
     BREACHED = "breached"
@@ -70,6 +72,7 @@ class TimelineEvent:
         data: Additional event-specific data
         is_system: Whether this is a system-generated event
     """
+
     id: str
     dispute_id: str
     event_type: TimelineEventType
@@ -107,6 +110,7 @@ class SLAInfo:
         response_remaining: Time remaining for response
         warnings: List of active warnings
     """
+
     status: SLAStatus
     deadline: Optional[datetime]
     time_remaining: Optional[timedelta]
@@ -122,16 +126,17 @@ class SLAInfo:
             "deadline": self.deadline.isoformat() if self.deadline else None,
             "time_remaining_hours": (
                 self.time_remaining.total_seconds() / 3600
-                if self.time_remaining else None
+                if self.time_remaining
+                else None
             ),
             "time_elapsed_hours": self.time_elapsed.total_seconds() / 3600,
             "response_deadline": (
-                self.response_deadline.isoformat()
-                if self.response_deadline else None
+                self.response_deadline.isoformat() if self.response_deadline else None
             ),
             "response_remaining_hours": (
                 self.response_remaining.total_seconds() / 3600
-                if self.response_remaining else None
+                if self.response_remaining
+                else None
             ),
             "warnings": self.warnings,
         }
@@ -321,8 +326,7 @@ class TimelineManager:
 
         # Check if respondent has responded
         has_respondent_response = any(
-            r.responder_id == dispute.respondent_id
-            for r in dispute.responses
+            r.responder_id == dispute.respondent_id for r in dispute.responses
         )
 
         # Determine SLA status
@@ -330,10 +334,14 @@ class TimelineManager:
             status = SLAStatus.BREACHED
             warnings.append("Resolution SLA has been breached")
             self._log_sla_event(dispute.id, TimelineEventType.SLA_BREACH)
-        elif time_remaining.total_seconds() < (self.sla_hours * 3600 * self.sla_warning_threshold):
+        elif time_remaining.total_seconds() < (
+            self.sla_hours * 3600 * self.sla_warning_threshold
+        ):
             status = SLAStatus.WARNING
             hours_left = time_remaining.total_seconds() / 3600
-            warnings.append(f"Resolution deadline approaching: {hours_left:.1f}h remaining")
+            warnings.append(
+                f"Resolution deadline approaching: {hours_left:.1f}h remaining"
+            )
         else:
             status = SLAStatus.ON_TRACK
 
@@ -342,12 +350,15 @@ class TimelineManager:
             if response_remaining.total_seconds() < 0:
                 warnings.append("Response deadline has expired")
                 self._log_sla_event(
-                    dispute.id,
-                    TimelineEventType.RESPONSE_DEADLINE_EXPIRED
+                    dispute.id, TimelineEventType.RESPONSE_DEADLINE_EXPIRED
                 )
-            elif response_remaining.total_seconds() < (self.response_hours * 3600 * 0.25):
+            elif response_remaining.total_seconds() < (
+                self.response_hours * 3600 * 0.25
+            ):
                 hours_left = response_remaining.total_seconds() / 3600
-                warnings.append(f"Response deadline approaching: {hours_left:.1f}h remaining")
+                warnings.append(
+                    f"Response deadline approaching: {hours_left:.1f}h remaining"
+                )
         else:
             response_deadline = None
             response_remaining = None
@@ -355,10 +366,14 @@ class TimelineManager:
         return SLAInfo(
             status=status,
             deadline=resolution_deadline,
-            time_remaining=time_remaining if time_remaining.total_seconds() > 0 else None,
+            time_remaining=time_remaining
+            if time_remaining.total_seconds() > 0
+            else None,
             time_elapsed=time_elapsed,
             response_deadline=response_deadline,
-            response_remaining=response_remaining if response_remaining and response_remaining.total_seconds() > 0 else None,
+            response_remaining=response_remaining
+            if response_remaining and response_remaining.total_seconds() > 0
+            else None,
             warnings=warnings,
         )
 
@@ -529,8 +544,12 @@ class TimelineManager:
             actor_id=resolved_by,
             data={
                 "winner": winner,
-                "worker_payout_pct": float(resolution.worker_payout_pct) if resolution else 0,
-                "resolution_type": resolution.resolution_type.value if resolution else None,
+                "worker_payout_pct": float(resolution.worker_payout_pct)
+                if resolution
+                else 0,
+                "resolution_type": resolution.resolution_type.value
+                if resolution
+                else None,
             },
         )
 
@@ -598,6 +617,7 @@ def reset_manager() -> None:
 
 
 # Convenience functions
+
 
 def add_event(
     dispute_id: str,

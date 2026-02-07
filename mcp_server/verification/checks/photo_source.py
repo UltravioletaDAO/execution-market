@@ -16,6 +16,7 @@ import piexif
 @dataclass
 class PhotoSourceResult:
     """Result of photo source verification."""
+
     is_valid: bool
     source: str  # "camera" | "gallery" | "screenshot" | "unknown"
     timestamp: Optional[datetime]
@@ -61,7 +62,7 @@ def check_photo_source(image_path: str, max_age_minutes: int = 5) -> PhotoSource
                     source=source,
                     timestamp=timestamp,
                     reason=f"Photo too old ({age.total_seconds() / 60:.1f} minutes). Max allowed: {max_age_minutes} minutes.",
-                    details={"age_minutes": age.total_seconds() / 60}
+                    details={"age_minutes": age.total_seconds() / 60},
                 )
 
         # Check source
@@ -71,7 +72,7 @@ def check_photo_source(image_path: str, max_age_minutes: int = 5) -> PhotoSource
                 source=source,
                 timestamp=timestamp,
                 reason=f"Photo source is '{source}'. Only live camera photos are accepted.",
-                details=exif_data
+                details=exif_data,
             )
 
         if source == "unknown":
@@ -81,7 +82,7 @@ def check_photo_source(image_path: str, max_age_minutes: int = 5) -> PhotoSource
                 source=source,
                 timestamp=timestamp,
                 reason="Cannot verify photo source. Missing camera metadata.",
-                details={}
+                details={},
             )
 
         # Valid camera photo
@@ -93,8 +94,8 @@ def check_photo_source(image_path: str, max_age_minutes: int = 5) -> PhotoSource
             details={
                 "camera_make": exif_data.get("Make"),
                 "camera_model": exif_data.get("Model"),
-                "software": exif_data.get("Software")
-            }
+                "software": exif_data.get("Software"),
+            },
         )
 
     except Exception as e:
@@ -103,7 +104,7 @@ def check_photo_source(image_path: str, max_age_minutes: int = 5) -> PhotoSource
             source="error",
             timestamp=None,
             reason=f"Failed to analyze photo: {str(e)}",
-            details={}
+            details={},
         )
 
 
@@ -120,10 +121,10 @@ def get_exif_data(img: Image.Image) -> dict:
                 if isinstance(value, bytes):
                     try:
                         value = value.decode("utf-8", errors="ignore")
-                    except:
+                    except Exception:
                         value = str(value)
                 exif_data[tag] = value
-    except:
+    except Exception:
         pass
 
     # Also try piexif for more detailed data
@@ -139,10 +140,10 @@ def get_exif_data(img: Image.Image) -> dict:
                         if isinstance(value, bytes):
                             try:
                                 value = value.decode("utf-8", errors="ignore")
-                            except:
+                            except Exception:
                                 value = str(value)
                         exif_data[tag_name] = value
-    except:
+    except Exception:
         pass
 
     return exif_data
@@ -175,7 +176,9 @@ def is_screenshot(exif_data: dict, img: Image.Image) -> bool:
     # - Software field indicating screenshot tool
 
     software = str(exif_data.get("Software", "")).lower()
-    if any(x in software for x in ["screenshot", "snipping", "grab", "capture", "screen"]):
+    if any(
+        x in software for x in ["screenshot", "snipping", "grab", "capture", "screen"]
+    ):
         return True
 
     # Check for exact phone screen dimensions (common screenshot sizes)
@@ -212,9 +215,22 @@ def is_from_gallery(exif_data: dict) -> bool:
     # Check for editing software
     software = str(exif_data.get("Software", "")).lower()
     editing_apps = [
-        "photoshop", "lightroom", "snapseed", "vsco", "instagram",
-        "gimp", "pixlr", "canva", "pics art", "picsart", "afterlight",
-        "facetune", "retouch", "airbrush", "beautycam", "snow"
+        "photoshop",
+        "lightroom",
+        "snapseed",
+        "vsco",
+        "instagram",
+        "gimp",
+        "pixlr",
+        "canva",
+        "pics art",
+        "picsart",
+        "afterlight",
+        "facetune",
+        "retouch",
+        "airbrush",
+        "beautycam",
+        "snow",
     ]
     if any(app in software for app in editing_apps):
         return True
@@ -240,19 +256,35 @@ def is_from_camera(exif_data: dict) -> bool:
         return False
 
     # Should have capture timestamp
-    has_timestamp = any([
-        exif_data.get("DateTimeOriginal"),
-        exif_data.get("DateTime"),
-        exif_data.get("DateTimeDigitized")
-    ])
+    has_timestamp = any(
+        [
+            exif_data.get("DateTimeOriginal"),
+            exif_data.get("DateTime"),
+            exif_data.get("DateTimeDigitized"),
+        ]
+    )
     if not has_timestamp:
         return False
 
     # Known camera/phone manufacturers
     known_makes = [
-        "apple", "samsung", "google", "huawei", "xiaomi", "oppo",
-        "oneplus", "sony", "lg", "motorola", "nokia", "realme",
-        "vivo", "poco", "nothing", "asus", "pixel"
+        "apple",
+        "samsung",
+        "google",
+        "huawei",
+        "xiaomi",
+        "oppo",
+        "oneplus",
+        "sony",
+        "lg",
+        "motorola",
+        "nokia",
+        "realme",
+        "vivo",
+        "poco",
+        "nothing",
+        "asus",
+        "pixel",
     ]
     make = str(exif_data.get("Make", "")).lower()
     if any(m in make for m in known_makes):

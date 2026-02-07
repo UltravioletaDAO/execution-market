@@ -9,9 +9,8 @@ Network: configurable via `ERC8004_NETWORK` (Base-first default).
 
 import logging
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Path
+from fastapi import APIRouter, HTTPException, Depends, Path
 from pydantic import BaseModel, Field
 
 import supabase_client as db
@@ -32,6 +31,7 @@ try:
         ERC8004_SUPPORTED_NETWORKS,
         FACILITATOR_URL,
     )
+
     ERC8004_AVAILABLE = True
 except ImportError:
     ERC8004_AVAILABLE = False
@@ -67,6 +67,7 @@ async def _get_task_or_404(task_id: str) -> Dict[str, Any]:
 
 class IdentityResponse(BaseModel):
     """Agent identity from ERC-8004 registry."""
+
     agent_id: int
     owner: str
     agent_uri: str
@@ -80,6 +81,7 @@ class IdentityResponse(BaseModel):
 
 class ReputationResponse(BaseModel):
     """Reputation summary for an agent."""
+
     agent_id: int
     count: int
     score: float = Field(description="Reputation score (0-100)")
@@ -88,54 +90,43 @@ class ReputationResponse(BaseModel):
 
 class FeedbackRequest(BaseModel):
     """Request to submit feedback."""
+
     score: int = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Rating score from 0 (worst) to 100 (best)"
+        ..., ge=0, le=100, description="Rating score from 0 (worst) to 100 (best)"
     )
     comment: Optional[str] = Field(
         default=None,
         max_length=1000,
-        description="Optional comment about the interaction"
+        description="Optional comment about the interaction",
     )
     proof_tx: Optional[str] = Field(
-        default=None,
-        description="Transaction hash of payment (for verified feedback)"
+        default=None, description="Transaction hash of payment (for verified feedback)"
     )
 
 
 class WorkerFeedbackRequest(FeedbackRequest):
     """Request to rate a worker after task completion."""
+
     task_id: str = Field(
-        ...,
-        min_length=36,
-        max_length=36,
-        description="Task ID for context"
+        ..., min_length=36, max_length=36, description="Task ID for context"
     )
     worker_address: Optional[str] = Field(
-        default=None,
-        description="Worker's wallet address"
+        default=None, description="Worker's wallet address"
     )
 
 
 class AgentFeedbackRequest(FeedbackRequest):
     """Request for a worker to rate an agent."""
-    agent_id: int = Field(
-        ...,
-        ge=1,
-        description="Agent's ERC-8004 token ID"
-    )
+
+    agent_id: int = Field(..., ge=1, description="Agent's ERC-8004 token ID")
     task_id: str = Field(
-        ...,
-        min_length=36,
-        max_length=36,
-        description="Task ID for context"
+        ..., min_length=36, max_length=36, description="Task ID for context"
     )
 
 
 class FeedbackResponse(BaseModel):
     """Response after submitting feedback."""
+
     success: bool
     transaction_hash: Optional[str] = None
     feedback_index: Optional[int] = None
@@ -145,6 +136,7 @@ class FeedbackResponse(BaseModel):
 
 class ERC8004InfoResponse(BaseModel):
     """ERC-8004 integration status and info."""
+
     available: bool
     network: str
     facilitator_url: str
@@ -154,38 +146,42 @@ class ERC8004InfoResponse(BaseModel):
 
 class MetadataEntry(BaseModel):
     """Key-value metadata for agent registration."""
+
     key: str = Field(..., min_length=1, max_length=64)
     value: str = Field(..., min_length=1, max_length=256)
 
 
 class RegisterAgentRequest(BaseModel):
     """Request to register a new agent on ERC-8004 (gasless)."""
+
     network: str = Field(
-        default="base-mainnet",
-        description="ERC-8004 network for registration"
+        default="base-mainnet", description="ERC-8004 network for registration"
     )
     agent_uri: str = Field(
         ...,
         min_length=1,
         max_length=2048,
-        description="URI to agent registration file (IPFS or HTTPS)"
+        description="URI to agent registration file (IPFS or HTTPS)",
     )
     metadata: Optional[List[MetadataEntry]] = Field(
-        default=None,
-        description="Optional key-value metadata pairs"
+        default=None, description="Optional key-value metadata pairs"
     )
     recipient: Optional[str] = Field(
-        default=None,
-        description="Optional address to receive the NFT after minting"
+        default=None, description="Optional address to receive the NFT after minting"
     )
 
 
 class RegisterAgentResponse(BaseModel):
     """Response from agent registration."""
+
     success: bool
-    agent_id: Optional[int] = Field(default=None, description="Newly assigned ERC-8004 agent ID")
+    agent_id: Optional[int] = Field(
+        default=None, description="Newly assigned ERC-8004 agent ID"
+    )
     transaction: Optional[str] = Field(default=None, description="Registration tx hash")
-    transfer_transaction: Optional[str] = Field(default=None, description="NFT transfer tx hash (if recipient specified)")
+    transfer_transaction: Optional[str] = Field(
+        default=None, description="NFT transfer tx hash (if recipient specified)"
+    )
     owner: Optional[str] = None
     network: str
     error: Optional[str] = None
@@ -201,7 +197,7 @@ class RegisterAgentResponse(BaseModel):
     response_model=ERC8004InfoResponse,
     responses={
         200: {"description": "ERC-8004 integration info"},
-    }
+    },
 )
 async def get_erc8004_info() -> ERC8004InfoResponse:
     """
@@ -238,7 +234,7 @@ async def get_erc8004_info() -> ERC8004InfoResponse:
     responses={
         200: {"description": "Execution Market's reputation"},
         503: {"description": "ERC-8004 integration unavailable"},
-    }
+    },
 )
 async def get_em_reputation_endpoint() -> ReputationResponse:
     """
@@ -248,7 +244,9 @@ async def get_em_reputation_endpoint() -> ReputationResponse:
     on the configured facilitator network.
     """
     if not ERC8004_AVAILABLE:
-        raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
+        raise HTTPException(
+            status_code=503, detail="ERC-8004 integration not available"
+        )
 
     reputation = await get_em_reputation()
     if not reputation:
@@ -268,14 +266,16 @@ async def get_em_reputation_endpoint() -> ReputationResponse:
     responses={
         200: {"description": "Execution Market's identity"},
         503: {"description": "ERC-8004 integration unavailable"},
-    }
+    },
 )
 async def get_em_identity_endpoint() -> IdentityResponse:
     """
     Get Execution Market's on-chain identity from ERC-8004 Identity Registry.
     """
     if not ERC8004_AVAILABLE:
-        raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
+        raise HTTPException(
+            status_code=503, detail="ERC-8004 integration not available"
+        )
 
     identity = await get_em_identity()
     if not identity:
@@ -301,16 +301,18 @@ async def get_em_identity_endpoint() -> IdentityResponse:
         200: {"description": "Agent reputation"},
         404: {"description": "Agent not found"},
         503: {"description": "ERC-8004 integration unavailable"},
-    }
+    },
 )
 async def get_agent_reputation_endpoint(
-    agent_id: int = Path(..., ge=1, description="Agent's ERC-8004 token ID")
+    agent_id: int = Path(..., ge=1, description="Agent's ERC-8004 token ID"),
 ) -> ReputationResponse:
     """
     Get reputation for any registered agent by their ERC-8004 token ID.
     """
     if not ERC8004_AVAILABLE:
-        raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
+        raise HTTPException(
+            status_code=503, detail="ERC-8004 integration not available"
+        )
 
     reputation = await get_agent_reputation(agent_id)
     if not reputation:
@@ -331,16 +333,18 @@ async def get_agent_reputation_endpoint(
         200: {"description": "Agent identity"},
         404: {"description": "Agent not found"},
         503: {"description": "ERC-8004 integration unavailable"},
-    }
+    },
 )
 async def get_agent_identity_endpoint(
-    agent_id: int = Path(..., ge=1, description="Agent's ERC-8004 token ID")
+    agent_id: int = Path(..., ge=1, description="Agent's ERC-8004 token ID"),
 ) -> IdentityResponse:
     """
     Get identity for any registered agent by their ERC-8004 token ID.
     """
     if not ERC8004_AVAILABLE:
-        raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
+        raise HTTPException(
+            status_code=503, detail="ERC-8004 integration not available"
+        )
 
     identity = await get_agent_info(agent_id)
     if not identity:
@@ -378,13 +382,15 @@ async def get_supported_networks() -> Dict[str, Any]:
     for name, contracts in ERC8004_CONTRACTS.items():
         if name == "base":  # skip legacy alias
             continue
-        networks.append({
-            "network": name,
-            "chain_id": contracts.get("chain_id"),
-            "identity_registry": contracts.get("identity_registry"),
-            "reputation_registry": contracts.get("reputation_registry"),
-            "testnet": name.endswith(("-sepolia", "-amoy", "-fuji")),
-        })
+        networks.append(
+            {
+                "network": name,
+                "chain_id": contracts.get("chain_id"),
+                "identity_registry": contracts.get("identity_registry"),
+                "reputation_registry": contracts.get("reputation_registry"),
+                "testnet": name.endswith(("-sepolia", "-amoy", "-fuji")),
+            }
+        )
     return {
         "count": len(networks),
         "networks": networks,
@@ -416,7 +422,9 @@ async def register_agent_endpoint(
     transferred to that address after registration.
     """
     if not ERC8004_AVAILABLE:
-        raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
+        raise HTTPException(
+            status_code=503, detail="ERC-8004 integration not available"
+        )
 
     if request.network not in ERC8004_CONTRACTS:
         raise HTTPException(
@@ -467,11 +475,10 @@ async def register_agent_endpoint(
         200: {"description": "Feedback submitted"},
         401: {"description": "Unauthorized"},
         503: {"description": "ERC-8004 integration unavailable"},
-    }
+    },
 )
 async def rate_worker_endpoint(
-    request: WorkerFeedbackRequest,
-    api_key: APIKeyData = Depends(verify_api_key)
+    request: WorkerFeedbackRequest, api_key: APIKeyData = Depends(verify_api_key)
 ) -> FeedbackResponse:
     """
     Rate a worker after task completion (agent → worker).
@@ -483,26 +490,40 @@ async def rate_worker_endpoint(
     **Requires authentication**: Agent must own the task.
     """
     if not ERC8004_AVAILABLE:
-        raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
+        raise HTTPException(
+            status_code=503, detail="ERC-8004 integration not available"
+        )
 
     task = await _get_task_or_404(request.task_id)
     if task.get("agent_id") != api_key.agent_id:
-        raise HTTPException(status_code=403, detail="Not authorized to rate worker for this task")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to rate worker for this task"
+        )
 
     task_status = str(task.get("status", "")).lower()
     if task_status in {"published", "cancelled", "expired"}:
-        raise HTTPException(status_code=409, detail=f"Task status {task_status} cannot be rated yet")
+        raise HTTPException(
+            status_code=409, detail=f"Task status {task_status} cannot be rated yet"
+        )
 
     task_executor_wallet = _normalize_address(
         (task.get("executor") or {}).get("wallet_address")
     )
     requested_worker_wallet = _normalize_address(request.worker_address)
-    if requested_worker_wallet and task_executor_wallet and requested_worker_wallet != task_executor_wallet:
-        raise HTTPException(status_code=403, detail="Worker address does not match assigned executor")
+    if (
+        requested_worker_wallet
+        and task_executor_wallet
+        and requested_worker_wallet != task_executor_wallet
+    ):
+        raise HTTPException(
+            status_code=403, detail="Worker address does not match assigned executor"
+        )
 
     worker_address = requested_worker_wallet or task_executor_wallet
     if not worker_address:
-        raise HTTPException(status_code=409, detail="Task has no assigned worker to rate")
+        raise HTTPException(
+            status_code=409, detail="Task has no assigned worker to rate"
+        )
 
     result = await rate_worker(
         task_id=request.task_id,
@@ -514,7 +535,10 @@ async def rate_worker_endpoint(
 
     logger.info(
         "Agent %s rated worker for task %s: score=%d, success=%s",
-        api_key.agent_id, request.task_id, request.score, result.success
+        api_key.agent_id,
+        request.task_id,
+        request.score,
+        result.success,
     )
     logger.info(
         "SECURITY_AUDIT action=reputation.rate_worker actor=%s task=%s worker=%s score=%d success=%s",
@@ -531,15 +555,16 @@ async def rate_worker_endpoint(
             client = db.get_client()
             client.table("submissions").update(
                 {"reputation_tx": result.transaction_hash}
-            ).eq("task_id", request.task_id).eq(
-                "status", "approved"
-            ).execute()
+            ).eq("task_id", request.task_id).eq("status", "approved").execute()
             logger.info(
                 "Stored reputation_tx=%s for task %s",
-                result.transaction_hash[:16], request.task_id,
+                result.transaction_hash[:16],
+                request.task_id,
             )
         except Exception as e:
-            logger.warning("Failed to store reputation_tx for task %s: %s", request.task_id, e)
+            logger.warning(
+                "Failed to store reputation_tx for task %s: %s", request.task_id, e
+            )
 
     return FeedbackResponse(
         success=result.success,
@@ -561,7 +586,7 @@ async def rate_worker_endpoint(
     responses={
         200: {"description": "Feedback submitted"},
         503: {"description": "ERC-8004 integration unavailable"},
-    }
+    },
 )
 async def rate_agent_endpoint(
     request: AgentFeedbackRequest,
@@ -576,14 +601,20 @@ async def rate_agent_endpoint(
     **Public endpoint**: Any worker can rate agents they've worked with.
     """
     if not ERC8004_AVAILABLE:
-        raise HTTPException(status_code=503, detail="ERC-8004 integration not available")
+        raise HTTPException(
+            status_code=503, detail="ERC-8004 integration not available"
+        )
 
     task = await _get_task_or_404(request.task_id)
     task_status = str(task.get("status", "")).lower()
     if task_status in {"published", "cancelled", "expired"}:
-        raise HTTPException(status_code=409, detail=f"Task status {task_status} cannot be rated yet")
+        raise HTTPException(
+            status_code=409, detail=f"Task status {task_status} cannot be rated yet"
+        )
 
-    task_executor_wallet = _normalize_address((task.get("executor") or {}).get("wallet_address"))
+    task_executor_wallet = _normalize_address(
+        (task.get("executor") or {}).get("wallet_address")
+    )
     if not task.get("executor_id") and not task_executor_wallet:
         raise HTTPException(status_code=409, detail="Task has no assigned worker")
 
@@ -591,12 +622,16 @@ async def rate_agent_endpoint(
     # This blocks mismatched task/agent feedback injection.
     agent_identity = await get_agent_info(request.agent_id)
     if not agent_identity:
-        raise HTTPException(status_code=404, detail=f"Agent {request.agent_id} not found")
+        raise HTTPException(
+            status_code=404, detail=f"Agent {request.agent_id} not found"
+        )
 
     task_agent = _normalize_address(task.get("agent_id"))
     identity_owner = _normalize_address(agent_identity.owner)
     if task_agent and identity_owner and task_agent != identity_owner:
-        raise HTTPException(status_code=403, detail="Task agent does not match rated agent identity")
+        raise HTTPException(
+            status_code=403, detail="Task agent does not match rated agent identity"
+        )
 
     result = await rate_agent(
         agent_id=request.agent_id,
@@ -608,7 +643,10 @@ async def rate_agent_endpoint(
 
     logger.info(
         "Worker rated agent %d for task %s: score=%d, success=%s",
-        request.agent_id, request.task_id, request.score, result.success
+        request.agent_id,
+        request.task_id,
+        request.score,
+        result.success,
     )
     logger.info(
         "SECURITY_AUDIT action=reputation.rate_agent task=%s agent_id=%d score=%d success=%s",

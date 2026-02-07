@@ -11,7 +11,7 @@ Detects signs of image manipulation, editing, or fraud using:
 
 import io
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 from PIL import Image
 from PIL.ExifTags import TAGS
@@ -21,6 +21,7 @@ import piexif
 @dataclass
 class TamperingResult:
     """Result of tampering detection analysis."""
+
     is_suspicious: bool
     confidence: float  # 0.0 to 1.0
     signals: list[str]  # List of detected tampering signals
@@ -58,7 +59,7 @@ def check_tampering(image_path: str) -> TamperingResult:
         details["software_analysis"] = {
             "signals": software_signals,
             "software_tag": exif_data.get("Software"),
-            "processing_software": exif_data.get("ProcessingSoftware")
+            "processing_software": exif_data.get("ProcessingSoftware"),
         }
 
         compression_result = _check_compression_artifacts(img, image_path)
@@ -98,7 +99,7 @@ def check_tampering(image_path: str) -> TamperingResult:
             confidence=confidence,
             signals=signals,
             details=details,
-            reason=reason
+            reason=reason,
         )
 
     except Exception as e:
@@ -107,7 +108,7 @@ def check_tampering(image_path: str) -> TamperingResult:
             confidence=0.8,
             signals=["analysis_failed"],
             details={"error": str(e)},
-            reason=f"Failed to analyze image: {str(e)}"
+            reason=f"Failed to analyze image: {str(e)}",
         )
 
 
@@ -123,10 +124,10 @@ def _get_exif_data(img: Image.Image) -> dict:
                 if isinstance(value, bytes):
                     try:
                         value = value.decode("utf-8", errors="ignore")
-                    except:
+                    except Exception:
                         value = str(value)
                 exif_data[tag] = value
-    except:
+    except Exception:
         pass
 
     # Also try piexif for more detailed data
@@ -142,10 +143,10 @@ def _get_exif_data(img: Image.Image) -> dict:
                         if isinstance(value, bytes):
                             try:
                                 value = value.decode("utf-8", errors="ignore")
-                            except:
+                            except Exception:
                                 value = str(value)
                         exif_data[tag_name] = value
-    except:
+    except Exception:
         pass
 
     return exif_data
@@ -172,7 +173,6 @@ def _check_software_tags(exif_data: dict) -> list[str]:
         "capture one": "professional_editor",
         "darktable": "professional_editor",
         "rawtherapee": "professional_editor",
-
         # Mobile editors
         "snapseed": "mobile_editor",
         "vsco": "mobile_editor",
@@ -189,7 +189,6 @@ def _check_software_tags(exif_data: dict) -> list[str]:
         "b612": "face_editor",
         "meitu": "face_editor",
         "faceapp": "ai_manipulation",
-
         # AI tools
         "midjourney": "ai_generated",
         "dall-e": "ai_generated",
@@ -197,7 +196,6 @@ def _check_software_tags(exif_data: dict) -> list[str]:
         "stablediffusion": "ai_generated",
         "comfyui": "ai_generated",
         "automatic1111": "ai_generated",
-
         # Screenshot tools
         "screenshot": "screenshot_tool",
         "snipping": "screenshot_tool",
@@ -206,7 +204,6 @@ def _check_software_tags(exif_data: dict) -> list[str]:
         "greenshot": "screenshot_tool",
         "snagit": "screenshot_tool",
         "sharex": "screenshot_tool",
-
         # Social media (indicates re-save)
         "instagram": "social_media_resave",
         "facebook": "social_media_resave",
@@ -253,7 +250,7 @@ def _check_compression_artifacts(img: Image.Image, image_path: str) -> dict:
         "signals": [],
         "format": img.format,
         "estimated_quality": None,
-        "double_compression_suspected": False
+        "double_compression_suspected": False,
     }
 
     # Only applicable to JPEG
@@ -335,7 +332,7 @@ def _perform_ela_analysis(img: Image.Image) -> dict:
         "signals": [],
         "max_ela_value": 0,
         "ela_variance": 0,
-        "suspicious_regions": 0
+        "suspicious_regions": 0,
     }
 
     try:
@@ -408,7 +405,7 @@ def _check_resolution_anomalies(img: Image.Image, exif_data: dict) -> dict:
         "signals": [],
         "width": img.width,
         "height": img.height,
-        "aspect_ratio": img.width / img.height if img.height > 0 else 0
+        "aspect_ratio": img.width / img.height if img.height > 0 else 0,
     }
 
     # Check EXIF dimensions vs actual
@@ -423,7 +420,7 @@ def _check_resolution_anomalies(img: Image.Image, exif_data: dict) -> dict:
             result["exif_height"] = exif_height
 
             # Check for dimension mismatch
-            if (exif_width != img.width or exif_height != img.height):
+            if exif_width != img.width or exif_height != img.height:
                 # Allow small differences (some apps round)
                 width_diff = abs(exif_width - img.width)
                 height_diff = abs(exif_height - img.height)
@@ -432,9 +429,9 @@ def _check_resolution_anomalies(img: Image.Image, exif_data: dict) -> dict:
                     result["signals"].append("exif_dimension_mismatch")
                     result["dimension_mismatch"] = {
                         "exif": (exif_width, exif_height),
-                        "actual": (img.width, img.height)
+                        "actual": (img.width, img.height),
                     }
-        except:
+        except Exception:
             pass
 
     # Check for suspicious aspect ratios
@@ -442,13 +439,13 @@ def _check_resolution_anomalies(img: Image.Image, exif_data: dict) -> dict:
 
     # Common photo aspect ratios
     standard_aspects = [
-        4/3,    # Most phone cameras
-        3/4,    # Portrait
-        16/9,   # Wide
-        9/16,   # Vertical video/stories
-        1.0,    # Square (social media)
-        3/2,    # DSLR default
-        2/3,    # Portrait DSLR
+        4 / 3,  # Most phone cameras
+        3 / 4,  # Portrait
+        16 / 9,  # Wide
+        9 / 16,  # Vertical video/stories
+        1.0,  # Square (social media)
+        3 / 2,  # DSLR default
+        2 / 3,  # Portrait DSLR
     ]
 
     min_diff = min(abs(aspect - std) for std in standard_aspects)
@@ -462,11 +459,16 @@ def _check_resolution_anomalies(img: Image.Image, exif_data: dict) -> dict:
     if img.width % 100 == 0 and img.height % 100 == 0:
         # Round hundreds are suspicious unless common resolution
         common_sizes = [
-            (1920, 1080), (1080, 1920),
-            (1280, 720), (720, 1280),
-            (3840, 2160), (2160, 3840),
-            (1200, 1200), (1000, 1000),
-            (800, 800), (600, 600),
+            (1920, 1080),
+            (1080, 1920),
+            (1280, 720),
+            (720, 1280),
+            (3840, 2160),
+            (2160, 3840),
+            (1200, 1200),
+            (1000, 1000),
+            (800, 800),
+            (600, 600),
         ]
         if (img.width, img.height) not in common_sizes:
             result["signals"].append("suspiciously_round_dimensions")
@@ -477,12 +479,18 @@ def _check_resolution_anomalies(img: Image.Image, exif_data: dict) -> dict:
 
     # Check for typical screenshot dimensions without camera metadata
     screenshot_sizes = [
-        (1170, 2532), (2532, 1170),  # iPhone
-        (1284, 2778), (2778, 1284),  # iPhone Pro Max
-        (1179, 2556), (2556, 1179),  # iPhone 14 Pro
-        (1290, 2796), (2796, 1290),  # iPhone 14 Pro Max
-        (1080, 2400), (2400, 1080),  # Common Android
-        (1440, 3200), (3200, 1440),  # Samsung
+        (1170, 2532),
+        (2532, 1170),  # iPhone
+        (1284, 2778),
+        (2778, 1284),  # iPhone Pro Max
+        (1179, 2556),
+        (2556, 1179),  # iPhone 14 Pro
+        (1290, 2796),
+        (2796, 1290),  # iPhone 14 Pro Max
+        (1080, 2400),
+        (2400, 1080),  # Common Android
+        (1440, 3200),
+        (3200, 1440),  # Samsung
     ]
 
     if (img.width, img.height) in screenshot_sizes:
@@ -506,7 +514,7 @@ def _check_metadata_consistency(exif_data: dict, img: Image.Image) -> dict:
         "signals": [],
         "has_camera_info": bool(exif_data.get("Make") or exif_data.get("Model")),
         "has_timestamp": bool(exif_data.get("DateTimeOriginal")),
-        "has_gps": bool(exif_data.get("GPSLatitude"))
+        "has_gps": bool(exif_data.get("GPSLatitude")),
     }
 
     # Check for stripped metadata (common in edited images)
@@ -525,7 +533,7 @@ def _check_metadata_consistency(exif_data: dict, img: Image.Image) -> dict:
     timestamps = {
         "original": datetime_original,
         "digitized": datetime_digitized,
-        "modified": datetime_modified
+        "modified": datetime_modified,
     }
     result["timestamps"] = timestamps
 
@@ -544,8 +552,15 @@ def _check_metadata_consistency(exif_data: dict, img: Image.Image) -> dict:
     if user_comment:
         result["user_comment"] = user_comment[:200]
         suspicious_comments = [
-            "edited", "modified", "cropped", "resized", "filtered",
-            "screenshot", "saved from", "downloaded", "imported"
+            "edited",
+            "modified",
+            "cropped",
+            "resized",
+            "filtered",
+            "screenshot",
+            "saved from",
+            "downloaded",
+            "imported",
         ]
         for word in suspicious_comments:
             if word in user_comment.lower():
@@ -555,7 +570,9 @@ def _check_metadata_consistency(exif_data: dict, img: Image.Image) -> dict:
     # Check for thumbnail inconsistency
     if "1st" in str(exif_data.keys()):
         # Has thumbnail - check if dimensions match (roughly)
-        thumb_width = exif_data.get("ThumbnailWidth") or exif_data.get("1st", {}).get(256)
+        thumb_width = exif_data.get("ThumbnailWidth") or exif_data.get("1st", {}).get(
+            256
+        )
         if thumb_width:
             result["has_thumbnail"] = True
             # Thumbnail dimension ratio should match image ratio
@@ -597,7 +614,6 @@ def _calculate_confidence(signals: list[str], details: dict) -> float:
         "ela_anomaly_detected": 0.7,
         "double_compression_suspected": 0.6,
         "exif_dimension_mismatch": 0.7,
-
         # Medium weight
         "mobile_editor": 0.5,
         "face_editor": 0.6,
@@ -609,7 +625,6 @@ def _calculate_confidence(signals: list[str], details: dict) -> float:
         "no_exif_data_in_jpeg": 0.5,
         "missing_makernote_from_known_brand": 0.4,
         "unusual_aspect_ratio": 0.3,
-
         # Low weight
         "very_low_jpeg_quality": 0.3,
         "ela_too_uniform_possible_ai": 0.4,
@@ -619,7 +634,6 @@ def _calculate_confidence(signals: list[str], details: dict) -> float:
         "edited_flag_in_software": 0.6,
         "image_history_shows_edits": 0.5,
         "xmp_indicates_photoshop": 0.7,
-
         # Very low weight - circumstantial
         "suspicious_user_comment": 0.2,
         "history_software_agent_present": 0.3,

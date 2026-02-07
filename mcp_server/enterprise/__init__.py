@@ -14,9 +14,9 @@ from .branding import BrandingConfig
 from .access import AccessControl, Role
 
 __all__ = [
-    'EnterpriseConfig',
-    'EnterpriseManager',
-    'BrandingConfig',
-    'AccessControl',
-    'Role'
+    "EnterpriseConfig",
+    "EnterpriseManager",
+    "BrandingConfig",
+    "AccessControl",
+    "Role",
 ]

@@ -15,8 +15,8 @@ Progression Gates:
 - Master: 500 tasks + 1500 XP + 80 rep + manual review
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta, UTC
+from dataclasses import dataclass
+from datetime import datetime, UTC
 from decimal import Decimal
 from enum import Enum
 from typing import Dict, List, Optional, Any, Set
@@ -28,11 +28,12 @@ class WorkerLevel(str, Enum):
 
     Each level unlocks new capabilities and earns better rates.
     """
-    NOVICE = "novice"           # Starting level
-    APPRENTICE = "apprentice"   # Proven basics
-    JOURNEYMAN = "journeyman"   # Reliable worker
-    EXPERT = "expert"           # High performer
-    MASTER = "master"           # Elite status
+
+    NOVICE = "novice"  # Starting level
+    APPRENTICE = "apprentice"  # Proven basics
+    JOURNEYMAN = "journeyman"  # Reliable worker
+    EXPERT = "expert"  # High performer
+    MASTER = "master"  # Elite status
 
 
 @dataclass
@@ -48,6 +49,7 @@ class LevelRequirements:
         requires_review: Whether manual review is needed
         min_account_age_days: Minimum account age
     """
+
     level: WorkerLevel
     min_tasks_completed: int
     min_xp: int
@@ -77,9 +79,7 @@ class LevelRequirements:
             )
 
         if xp < self.min_xp:
-            unmet.append(
-                f"Need {self.min_xp - xp} more XP ({xp}/{self.min_xp})"
-            )
+            unmet.append(f"Need {self.min_xp - xp} more XP ({xp}/{self.min_xp})")
 
         if reputation < self.min_reputation:
             unmet.append(
@@ -125,6 +125,7 @@ class LevelPerks:
         reduced_fees: Platform fee reduction percentage
         badge_emoji: Visual badge (for display)
     """
+
     level: WorkerLevel
     bounty_multiplier: Decimal
     max_concurrent_tasks: int
@@ -235,6 +236,7 @@ LEVEL_PERKS: Dict[WorkerLevel, LevelPerks] = {
 
 class AchievementType(str, Enum):
     """Types of achievements workers can earn."""
+
     FIRST_TASK = "first_task"
     STREAK_7 = "streak_7_days"
     STREAK_30 = "streak_30_days"
@@ -263,6 +265,7 @@ class Achievement:
         badge_emoji: Visual badge
         secret: Whether achievement is hidden until earned
     """
+
     achievement_type: AchievementType
     name: str
     description: str
@@ -392,6 +395,7 @@ class XPEvent:
         description: Human-readable description
         multiplier: Applied multiplier (for bonuses)
     """
+
     event_type: str
     xp_amount: int
     timestamp: datetime
@@ -420,16 +424,16 @@ class XPEvent:
 # XP awards for different actions
 XP_AWARDS = {
     "task_completed": 3,  # Base XP for completing any task
-    "tier_1_bonus": 0,    # No extra for Tier 1
-    "tier_2_bonus": 2,    # +2 for Tier 2 tasks
-    "tier_3_bonus": 5,    # +5 for Tier 3 tasks
-    "perfect_rating": 2,   # Bonus for 100% rating
-    "on_time": 1,         # Bonus for completing before deadline
-    "early_completion": 2, # Bonus for completing >50% early
-    "bundle_bonus": 5,     # Bonus for completing a bundle
-    "first_of_day": 1,     # First task of the day bonus
-    "streak_daily": 2,     # Daily streak bonus
-    "achievement": 0,      # Achievements give their own XP
+    "tier_1_bonus": 0,  # No extra for Tier 1
+    "tier_2_bonus": 2,  # +2 for Tier 2 tasks
+    "tier_3_bonus": 5,  # +5 for Tier 3 tasks
+    "perfect_rating": 2,  # Bonus for 100% rating
+    "on_time": 1,  # Bonus for completing before deadline
+    "early_completion": 2,  # Bonus for completing >50% early
+    "bundle_bonus": 5,  # Bonus for completing a bundle
+    "first_of_day": 1,  # First task of the day bonus
+    "streak_daily": 2,  # Daily streak bonus
+    "achievement": 0,  # Achievements give their own XP
 }
 
 
@@ -538,9 +542,15 @@ class ProgressionManager:
         next_reqs = self.requirements[next_level]
 
         # Calculate progress percentages
-        task_progress = min(100, (tasks_completed / next_reqs.min_tasks_completed) * 100)
+        task_progress = min(
+            100, (tasks_completed / next_reqs.min_tasks_completed) * 100
+        )
         xp_progress = min(100, (xp / next_reqs.min_xp) * 100)
-        rep_progress = min(100, (reputation / next_reqs.min_reputation) * 100) if next_reqs.min_reputation > 0 else 100
+        rep_progress = (
+            min(100, (reputation / next_reqs.min_reputation) * 100)
+            if next_reqs.min_reputation > 0
+            else 100
+        )
 
         overall_progress = (task_progress + xp_progress + rep_progress) / 3
 
@@ -611,7 +621,9 @@ class ProgressionManager:
         # Perfect rating bonus
         if rating >= 95:
             xp += XP_AWARDS["perfect_rating"]
-            description_parts.append(f"Excellent rating (+{XP_AWARDS['perfect_rating']} XP)")
+            description_parts.append(
+                f"Excellent rating (+{XP_AWARDS['perfect_rating']} XP)"
+            )
 
         # On-time bonus
         if completion_hours <= deadline_hours:
@@ -621,7 +633,9 @@ class ProgressionManager:
             # Early completion bonus (more than 50% of time remaining)
             if completion_hours <= deadline_hours * 0.5:
                 xp += XP_AWARDS["early_completion"]
-                description_parts.append(f"Early completion (+{XP_AWARDS['early_completion']} XP)")
+                description_parts.append(
+                    f"Early completion (+{XP_AWARDS['early_completion']} XP)"
+                )
 
         # Bundle bonus
         if is_bundle:
@@ -668,26 +682,32 @@ class ProgressionManager:
         newly_earned = []
 
         # First task
-        if (AchievementType.FIRST_TASK not in earned_achievements
-                and worker_stats.get("tasks_completed", 0) >= 1):
+        if (
+            AchievementType.FIRST_TASK not in earned_achievements
+            and worker_stats.get("tasks_completed", 0) >= 1
+        ):
             newly_earned.append(self.achievements[AchievementType.FIRST_TASK])
 
         # Streaks
         streak = worker_stats.get("current_streak_days", 0)
-        if (AchievementType.STREAK_7 not in earned_achievements and streak >= 7):
+        if AchievementType.STREAK_7 not in earned_achievements and streak >= 7:
             newly_earned.append(self.achievements[AchievementType.STREAK_7])
-        if (AchievementType.STREAK_30 not in earned_achievements and streak >= 30):
+        if AchievementType.STREAK_30 not in earned_achievements and streak >= 30:
             newly_earned.append(self.achievements[AchievementType.STREAK_30])
 
         # Perfect ratings
-        if (AchievementType.PERFECT_10 not in earned_achievements
-                and worker_stats.get("consecutive_perfect_ratings", 0) >= 10):
+        if (
+            AchievementType.PERFECT_10 not in earned_achievements
+            and worker_stats.get("consecutive_perfect_ratings", 0) >= 10
+        ):
             newly_earned.append(self.achievements[AchievementType.PERFECT_10])
 
         # Task count milestones
         total_tasks = worker_stats.get("tasks_completed", 0)
-        if (AchievementType.THOUSAND_CLUB not in earned_achievements
-                and total_tasks >= 1000):
+        if (
+            AchievementType.THOUSAND_CLUB not in earned_achievements
+            and total_tasks >= 1000
+        ):
             newly_earned.append(self.achievements[AchievementType.THOUSAND_CLUB])
 
         # Specialist
@@ -699,18 +719,24 @@ class ProgressionManager:
                     break
 
         # Explorer
-        if (AchievementType.EXPLORER not in earned_achievements
-                and worker_stats.get("unique_zones", 0) >= 10):
+        if (
+            AchievementType.EXPLORER not in earned_achievements
+            and worker_stats.get("unique_zones", 0) >= 10
+        ):
             newly_earned.append(self.achievements[AchievementType.EXPLORER])
 
         # Bundle Master
-        if (AchievementType.BUNDLE_MASTER not in earned_achievements
-                and worker_stats.get("bundles_completed", 0) >= 10):
+        if (
+            AchievementType.BUNDLE_MASTER not in earned_achievements
+            and worker_stats.get("bundles_completed", 0) >= 10
+        ):
             newly_earned.append(self.achievements[AchievementType.BUNDLE_MASTER])
 
         # High Roller
-        if (AchievementType.HIGH_ROLLER not in earned_achievements
-                and worker_stats.get("max_task_value", 0) >= 500):
+        if (
+            AchievementType.HIGH_ROLLER not in earned_achievements
+            and worker_stats.get("max_task_value", 0) >= 500
+        ):
             newly_earned.append(self.achievements[AchievementType.HIGH_ROLLER])
 
         return newly_earned
@@ -747,11 +773,13 @@ class ProgressionManager:
         for level in WorkerLevel:
             reqs = self.requirements[level]
             perks = self.perks[level]
-            roadmap.append({
-                "level": level.value,
-                "requirements": reqs.to_dict(),
-                "perks": perks.to_dict(),
-            })
+            roadmap.append(
+                {
+                    "level": level.value,
+                    "requirements": reqs.to_dict(),
+                    "perks": perks.to_dict(),
+                }
+            )
         return roadmap
 
 
@@ -764,9 +792,7 @@ def get_worker_level(
 ) -> WorkerLevel:
     """Quick function to determine worker level."""
     manager = ProgressionManager()
-    return manager.get_current_level(
-        tasks_completed, xp, reputation, account_age_days
-    )
+    return manager.get_current_level(tasks_completed, xp, reputation, account_age_days)
 
 
 def calculate_bounty_with_level(
@@ -775,7 +801,5 @@ def calculate_bounty_with_level(
 ) -> float:
     """Quick function to apply level bonus to bounty."""
     manager = ProgressionManager()
-    result = manager.calculate_effective_bounty(
-        Decimal(str(bounty_usd)), level
-    )
+    result = manager.calculate_effective_bounty(Decimal(str(bounty_usd)), level)
     return float(result)

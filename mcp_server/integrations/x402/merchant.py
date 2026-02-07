@@ -22,49 +22,50 @@ MERCHANT_ROUTER_ABI = [
     {
         "inputs": [
             {"name": "merchant", "type": "address"},
-            {"name": "tokens", "type": "address[]"}
+            {"name": "tokens", "type": "address[]"},
         ],
         "name": "registerMerchant",
         "outputs": [],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [{"name": "merchant", "type": "address"}],
         "name": "isMerchant",
         "outputs": [{"name": "", "type": "bool"}],
         "stateMutability": "view",
-        "type": "function"
-    }
+        "type": "function",
+    },
 ]
 
 RELAY_FACTORY_ABI = [
     {
         "inputs": [
             {"name": "merchant", "type": "address"},
-            {"name": "token", "type": "address"}
+            {"name": "token", "type": "address"},
         ],
         "name": "createRelay",
         "outputs": [{"name": "relay", "type": "address"}],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [
             {"name": "merchant", "type": "address"},
-            {"name": "token", "type": "address"}
+            {"name": "token", "type": "address"},
         ],
         "name": "getRelay",
         "outputs": [{"name": "", "type": "address"}],
         "stateMutability": "view",
-        "type": "function"
-    }
+        "type": "function",
+    },
 ]
 
 
 @dataclass
 class MerchantConfig:
     """Merchant configuration."""
+
     address: str
     relay_address: Optional[str] = None
     is_registered: bool = False
@@ -86,10 +87,7 @@ class X402Merchant:
     """
 
     def __init__(
-        self,
-        rpc_url: str,
-        private_key: str,
-        merchant_address: Optional[str] = None
+        self, rpc_url: str, private_key: str, merchant_address: Optional[str] = None
     ):
         self.w3 = Web3(Web3.HTTPProvider(rpc_url))
         self.account = Account.from_key(private_key)
@@ -97,12 +95,11 @@ class X402Merchant:
 
         # Initialize contracts
         self.router = self.w3.eth.contract(
-            address=Web3.to_checksum_address(MERCHANT_ROUTER),
-            abi=MERCHANT_ROUTER_ABI
+            address=Web3.to_checksum_address(MERCHANT_ROUTER), abi=MERCHANT_ROUTER_ABI
         )
         self.factory = self.w3.eth.contract(
             address=Web3.to_checksum_address(DEPOSIT_RELAY_FACTORY),
-            abi=RELAY_FACTORY_ABI
+            abi=RELAY_FACTORY_ABI,
         )
 
         self._relay_cache: Dict[str, str] = {}
@@ -114,8 +111,7 @@ class X402Merchant:
         ).call()
 
     async def register_merchant(
-        self,
-        tokens: Optional[List[str]] = None
+        self, tokens: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Register Execution Market as x402 merchant (NOW-019).
@@ -135,15 +131,16 @@ class X402Merchant:
 
         # Build transaction
         tx = self.router.functions.registerMerchant(
-            Web3.to_checksum_address(self.merchant_address),
-            token_addresses
-        ).build_transaction({
-            "from": self.account.address,
-            "nonce": self.w3.eth.get_transaction_count(self.account.address),
-            "gas": 200000,
-            "maxFeePerGas": self.w3.eth.gas_price * 2,
-            "maxPriorityFeePerGas": self.w3.to_wei(0.001, "gwei")
-        })
+            Web3.to_checksum_address(self.merchant_address), token_addresses
+        ).build_transaction(
+            {
+                "from": self.account.address,
+                "nonce": self.w3.eth.get_transaction_count(self.account.address),
+                "gas": 200000,
+                "maxFeePerGas": self.w3.eth.gas_price * 2,
+                "maxPriorityFeePerGas": self.w3.to_wei(0.001, "gwei"),
+            }
+        )
 
         # Sign and send
         signed = self.account.sign_transaction(tx)
@@ -154,7 +151,7 @@ class X402Merchant:
         return {
             "status": "registered",
             "tx_hash": tx_hash.hex(),
-            "block": receipt.blockNumber
+            "block": receipt.blockNumber,
         }
 
     async def get_relay(self, token: str = USDC_BASE) -> Optional[str]:
@@ -165,8 +162,7 @@ class X402Merchant:
             return self._relay_cache[token_checksum]
 
         relay = self.factory.functions.getRelay(
-            Web3.to_checksum_address(self.merchant_address),
-            token_checksum
+            Web3.to_checksum_address(self.merchant_address), token_checksum
         ).call()
 
         if relay != "0x0000000000000000000000000000000000000000":
@@ -175,10 +171,7 @@ class X402Merchant:
 
         return None
 
-    async def deploy_relay(
-        self,
-        token: str = USDC_BASE
-    ) -> Dict[str, Any]:
+    async def deploy_relay(self, token: str = USDC_BASE) -> Dict[str, Any]:
         """
         Deploy relay proxy via DepositRelayFactory (NOW-020).
 
@@ -198,15 +191,16 @@ class X402Merchant:
 
         # Deploy new relay
         tx = self.factory.functions.createRelay(
-            Web3.to_checksum_address(self.merchant_address),
-            token_checksum
-        ).build_transaction({
-            "from": self.account.address,
-            "nonce": self.w3.eth.get_transaction_count(self.account.address),
-            "gas": 500000,
-            "maxFeePerGas": self.w3.eth.gas_price * 2,
-            "maxPriorityFeePerGas": self.w3.to_wei(0.001, "gwei")
-        })
+            Web3.to_checksum_address(self.merchant_address), token_checksum
+        ).build_transaction(
+            {
+                "from": self.account.address,
+                "nonce": self.w3.eth.get_transaction_count(self.account.address),
+                "gas": 500000,
+                "maxFeePerGas": self.w3.eth.gas_price * 2,
+                "maxPriorityFeePerGas": self.w3.to_wei(0.001, "gwei"),
+            }
+        )
 
         signed = self.account.sign_transaction(tx)
         tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
@@ -221,12 +215,11 @@ class X402Merchant:
             "status": "deployed",
             "relay": relay_address,
             "tx_hash": tx_hash.hex(),
-            "block": receipt.blockNumber
+            "block": receipt.blockNumber,
         }
 
     async def setup_complete(
-        self,
-        tokens: Optional[List[str]] = None
+        self, tokens: Optional[List[str]] = None
     ) -> MerchantConfig:
         """
         Complete merchant setup (register + deploy relay).
@@ -246,7 +239,7 @@ class X402Merchant:
             address=self.merchant_address,
             relay_address=relay_result.get("relay"),
             is_registered=True,
-            tokens=tokens
+            tokens=tokens,
         )
 
 
@@ -264,7 +257,7 @@ async def setup_em_merchant():
     merchant = X402Merchant(rpc_url, private_key)
     config = await merchant.setup_complete()
 
-    print(f"Merchant setup complete!")
+    print("Merchant setup complete!")
     print(f"  Address: {config.address}")
     print(f"  Relay: {config.relay_address}")
     print(f"  Registered: {config.is_registered}")
@@ -274,4 +267,5 @@ async def setup_em_merchant():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(setup_em_merchant())

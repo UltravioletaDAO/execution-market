@@ -21,7 +21,6 @@ from ..seals import (
     WorkSealType,
     BehaviorSealType,
     Seal,
-    SealBundle,
     get_requirement,
     get_automatic_seals,
     SEAL_REQUIREMENTS,
@@ -38,8 +37,6 @@ from ..seals import (
     # Display
     SealDisplayFormatter,
     DisplayConfig,
-    format_seals_for_profile,
-    format_seals_for_card,
     get_seal_display_name,
 )
 
@@ -47,6 +44,7 @@ from ..seals import (
 # =============================================================================
 # FIXTURES
 # =============================================================================
+
 
 @pytest.fixture
 def mock_registry():
@@ -120,7 +118,7 @@ async def populated_registry(mock_registry):
     await mock_registry.issue_seal(
         address,
         BehaviorSealType.FAST_RESPONDER.value,
-        expires_at=datetime.now(UTC) + timedelta(days=10)
+        expires_at=datetime.now(UTC) + timedelta(days=10),
     )
 
     return mock_registry
@@ -129,6 +127,7 @@ async def populated_registry(mock_registry):
 # =============================================================================
 # TYPE TESTS
 # =============================================================================
+
 
 class TestSealTypes:
     """Tests for seal type definitions."""
@@ -238,6 +237,7 @@ class TestSealModel:
 # REGISTRY TESTS
 # =============================================================================
 
+
 class TestSealTypeIds:
     """Tests for seal type ID mapping."""
 
@@ -341,6 +341,7 @@ class TestMockRegistry:
 # ISSUANCE TESTS
 # =============================================================================
 
+
 class TestEligibilityChecking:
     """Tests for eligibility checking."""
 
@@ -398,10 +399,7 @@ class TestSealIssuance:
         """Test issuing a single seal."""
         address = "0x1234567890123456789012345678901234567890"
 
-        result = await issuance_service.issue_seal(
-            address,
-            WorkSealType.TASKS_10.value
-        )
+        result = await issuance_service.issue_seal(address, WorkSealType.TASKS_10.value)
 
         assert result.success is True
         assert result.tx_hash is not None
@@ -423,7 +421,9 @@ class TestSealIssuance:
         assert "already has" in result2.error
 
     @pytest.mark.asyncio
-    async def test_check_and_issue_automatic(self, issuance_service, sample_worker_stats):
+    async def test_check_and_issue_automatic(
+        self, issuance_service, sample_worker_stats
+    ):
         """Test automatic seal issuance based on stats."""
         results = await issuance_service.check_and_issue_automatic(sample_worker_stats)
 
@@ -440,8 +440,7 @@ class TestSealIssuance:
     async def test_dry_run_no_issuance(self, issuance_service, sample_worker_stats):
         """Test dry run mode doesn't actually issue."""
         results = await issuance_service.check_and_issue_automatic(
-            sample_worker_stats,
-            dry_run=True
+            sample_worker_stats, dry_run=True
         )
 
         # Should have results
@@ -457,6 +456,7 @@ class TestSealIssuance:
 # VERIFICATION TESTS
 # =============================================================================
 
+
 class TestSealVerification:
     """Tests for seal verification."""
 
@@ -466,8 +466,7 @@ class TestSealVerification:
         address = "0x1234567890123456789012345678901234567890"
 
         result = await verification_service.verify_seal(
-            address,
-            WorkSealType.TASKS_100.value
+            address, WorkSealType.TASKS_100.value
         )
 
         assert result.is_valid is True
@@ -479,8 +478,7 @@ class TestSealVerification:
         address = "0x1234567890123456789012345678901234567890"
 
         result = await verification_service.verify_seal(
-            address,
-            WorkSealType.TASKS_1000.value
+            address, WorkSealType.TASKS_1000.value
         )
 
         assert result.is_valid is False
@@ -494,7 +492,7 @@ class TestSealVerification:
         requirements = TaskSealRequirement(
             required_seals=[SkillSealType.DELIVERY_CERTIFIED.value],
             preferred_seals=[WorkSealType.TASKS_100.value],
-            any_of_seals=[]
+            any_of_seals=[],
         )
 
         result = await verification_service.check_task_eligibility(
@@ -513,7 +511,7 @@ class TestSealVerification:
         requirements = TaskSealRequirement(
             required_seals=[SkillSealType.PHOTOGRAPHY_PROFESSIONAL.value],
             preferred_seals=[],
-            any_of_seals=[]
+            any_of_seals=[],
         )
 
         result = await verification_service.check_task_eligibility(
@@ -530,7 +528,10 @@ class TestSealVerification:
 
         gate_config = {
             "all": [WorkSealType.TASKS_100.value],
-            "any": [SkillSealType.DELIVERY_CERTIFIED.value, SkillSealType.PHOTOGRAPHY_VERIFIED.value],
+            "any": [
+                SkillSealType.DELIVERY_CERTIFIED.value,
+                SkillSealType.PHOTOGRAPHY_VERIFIED.value,
+            ],
         }
 
         result = await verification_service.check_seal_gate(address, gate_config)
@@ -541,6 +542,7 @@ class TestSealVerification:
 # =============================================================================
 # DISPLAY TESTS
 # =============================================================================
+
 
 class TestSealDisplay:
     """Tests for seal display formatting."""
@@ -614,6 +616,7 @@ class TestSealDisplay:
 # INTEGRATION TESTS
 # =============================================================================
 
+
 class TestIntegration:
     """Integration tests across modules."""
 
@@ -648,7 +651,7 @@ class TestIntegration:
         requirements = TaskSealRequirement(
             required_seals=[WorkSealType.TASKS_100.value],
             preferred_seals=[WorkSealType.EARNED_1000_USD.value],
-            any_of_seals=[]
+            any_of_seals=[],
         )
         eligibility = await verification.check_task_eligibility(address, requirements)
         assert eligibility.is_eligible is True
@@ -666,7 +669,7 @@ class TestIntegration:
         await mock_registry.issue_seal(
             address,
             BehaviorSealType.FAST_RESPONDER.value,
-            expires_at=datetime.now(UTC) + timedelta(days=5)
+            expires_at=datetime.now(UTC) + timedelta(days=5),
         )
 
         # Get statistics
@@ -675,4 +678,7 @@ class TestIntegration:
 
         # Should show expiring seal
         assert len(stats["expiring_soon"]) == 1
-        assert stats["expiring_soon"][0]["seal_type"] == BehaviorSealType.FAST_RESPONDER.value
+        assert (
+            stats["expiring_soon"][0]["seal_type"]
+            == BehaviorSealType.FAST_RESPONDER.value
+        )

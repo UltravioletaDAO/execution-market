@@ -231,7 +231,6 @@ __all__ = [
     "ValidationSeverity",
     "BaseBountyRecommendation",
     "TimeEstimate",
-
     # Tiers (NOW-131)
     "TaskTier",
     "TierConfig",
@@ -239,7 +238,6 @@ __all__ = [
     "TIER_CONFIGS",
     "get_tier_for_bounty",
     "get_tier_config",
-
     # Recon
     "ReconTaskType",
     "ReconTask",
@@ -248,7 +246,6 @@ __all__ = [
     "EvidenceType",
     "BountySuggestion",
     "Location",
-
     # Trials (NOW-132)
     "TrialType",
     "EvaluationCriteria",
@@ -260,7 +257,6 @@ __all__ = [
     "TRIAL_CRITERIA",
     "create_trial",
     "get_criteria_for_type",
-
     # LastMile (NOW-133)
     "DeliveryType",
     "DeliveryStatus",
@@ -275,7 +271,6 @@ __all__ = [
     "DeliveryTracker",
     "create_delivery",
     "estimate_delivery_price",
-
     # Prime (NOW-134)
     "PrimeStatus",
     "BackgroundCheckStatus",
@@ -292,7 +287,6 @@ __all__ = [
     "check_prime_eligibility",
     "get_sla_config",
     "get_prime_requirements",
-
     # Progression (NOW-135)
     "WorkerLevel",
     "LevelRequirements",
@@ -307,7 +301,6 @@ __all__ = [
     "ProgressionManager",
     "get_worker_level",
     "calculate_bounty_with_level",
-
     # Bundles (NOW-136, NOW-137)
     "BundleStatus",
     "BundleType",
@@ -319,7 +312,6 @@ __all__ = [
     "BundleFactory",
     "create_bundle",
     "calculate_bundle_bonus",
-
     # Cascading (NOW-138)
     "TriggerType",
     "CascadeStatus",
@@ -331,7 +323,6 @@ __all__ = [
     "CascadeTemplates",
     "create_cascade_chain",
     "get_template",
-
     # Insurance (NOW-139, NOW-140)
     "InsuranceTier",
     "ClaimType",
@@ -345,18 +336,15 @@ __all__ = [
     "get_max_coverage",
     "recommend_tier",
     "get_tier_comparison",
-
     # Photo Verification
     "PhotoVerificationTask",
     "PhotoValidationConfig",
     "PhotoEvidence",
-
     # Delivery (pluggable)
     "PluggableDeliveryTask",
     "DeliveryValidationConfig",
     "DeliveryEvidence",
     "PluggableDeliveryLocation",
-
     # Survey
     "SurveyTask",
     "SurveyValidationConfig",
@@ -365,7 +353,6 @@ __all__ = [
     "FieldType",
     "create_price_survey",
     "create_customer_feedback_survey",
-
     # Mystery Shop
     "MysteryShopTask",
     "MysteryShopConfig",
@@ -375,7 +362,6 @@ __all__ = [
     "RatingScale",
     "create_retail_mystery_shop",
     "create_restaurant_mystery_shop",
-
     # Price Check
     "PriceCheckTask",
     "PriceCheckConfig",
@@ -384,7 +370,6 @@ __all__ = [
     "PriceType",
     "create_competitive_price_check",
     "create_sale_verification_task",
-
     # Registry
     "TaskTypeRegistry",
     "TaskTypeInfo",

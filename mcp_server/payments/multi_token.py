@@ -6,7 +6,7 @@ Supports USDC, EURC, DAI, USDT and worker token preferences.
 
 import logging
 from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from decimal import Decimal
 
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 class PaymentToken(str, Enum):
     """Supported payment tokens."""
+
     USDC = "usdc"
     EURC = "eurc"
     DAI = "dai"
@@ -24,6 +25,7 @@ class PaymentToken(str, Enum):
 @dataclass
 class TokenConfig:
     """Configuration for a payment token."""
+
     symbol: str
     name: str
     decimals: int
@@ -42,7 +44,7 @@ TOKEN_CONFIGS: Dict[PaymentToken, TokenConfig] = {
         decimals=6,
         base_address="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         is_stablecoin=True,
-        min_bounty=0.50
+        min_bounty=0.50,
     ),
     PaymentToken.EURC: TokenConfig(
         symbol="EURC",
@@ -51,7 +53,7 @@ TOKEN_CONFIGS: Dict[PaymentToken, TokenConfig] = {
         base_address="0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
         is_stablecoin=True,
         oracle_feed="EUR/USD",  # Would need price conversion
-        min_bounty=0.50
+        min_bounty=0.50,
     ),
     PaymentToken.DAI: TokenConfig(
         symbol="DAI",
@@ -59,7 +61,7 @@ TOKEN_CONFIGS: Dict[PaymentToken, TokenConfig] = {
         decimals=18,
         base_address="0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
         is_stablecoin=True,
-        min_bounty=0.50
+        min_bounty=0.50,
     ),
     PaymentToken.USDT: TokenConfig(
         symbol="USDT",
@@ -67,7 +69,7 @@ TOKEN_CONFIGS: Dict[PaymentToken, TokenConfig] = {
         decimals=6,
         base_address="0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
         is_stablecoin=True,
-        min_bounty=0.50
+        min_bounty=0.50,
     ),
 }
 
@@ -75,6 +77,7 @@ TOKEN_CONFIGS: Dict[PaymentToken, TokenConfig] = {
 @dataclass
 class WorkerTokenPreference:
     """Worker's token preferences (NOW-028)."""
+
     worker_id: str
     primary_token: PaymentToken
     accepted_tokens: List[PaymentToken]
@@ -85,6 +88,7 @@ class WorkerTokenPreference:
 @dataclass
 class PaymentRequest:
     """A payment request with token info."""
+
     amount: Decimal
     token: PaymentToken
     recipient: str
@@ -125,30 +129,25 @@ class MultiTokenPayments:
         worker_id: str,
         primary_token: PaymentToken,
         accepted_tokens: Optional[List[PaymentToken]] = None,
-        auto_convert: bool = False
+        auto_convert: bool = False,
     ) -> WorkerTokenPreference:
         """Set worker's token preferences (NOW-028)."""
         pref = WorkerTokenPreference(
             worker_id=worker_id,
             primary_token=primary_token,
             accepted_tokens=accepted_tokens or [primary_token],
-            auto_convert=auto_convert
+            auto_convert=auto_convert,
         )
         self._worker_preferences[worker_id] = pref
         logger.info(f"Worker {worker_id} preference set: {primary_token.value}")
         return pref
 
-    def get_worker_preference(
-        self,
-        worker_id: str
-    ) -> Optional[WorkerTokenPreference]:
+    def get_worker_preference(self, worker_id: str) -> Optional[WorkerTokenPreference]:
         """Get worker's token preference."""
         return self._worker_preferences.get(worker_id)
 
     def match_payment_token(
-        self,
-        agent_token: PaymentToken,
-        worker_id: str
+        self, agent_token: PaymentToken, worker_id: str
     ) -> tuple[PaymentToken, bool]:
         """
         Match agent's payment token with worker's preference.
@@ -174,10 +173,7 @@ class MultiTokenPayments:
         return (agent_token, False)
 
     def convert_amount(
-        self,
-        amount: Decimal,
-        from_token: PaymentToken,
-        to_token: PaymentToken
+        self, amount: Decimal, from_token: PaymentToken, to_token: PaymentToken
     ) -> Decimal:
         """Convert amount between tokens."""
         if from_token == to_token:
@@ -196,7 +192,7 @@ class MultiTokenPayments:
 
     def _get_usd_rate(self, token: PaymentToken) -> float:
         """Get USD rate for token."""
-        config = TOKEN_CONFIGS[token]
+        TOKEN_CONFIGS[token]
 
         if token == PaymentToken.EURC:
             return self._exchange_rates.get("EUR/USD", 1.08)
@@ -204,9 +200,7 @@ class MultiTokenPayments:
         return 1.0  # USD stablecoins
 
     def validate_bounty(
-        self,
-        amount: float,
-        token: PaymentToken
+        self, amount: float, token: PaymentToken
     ) -> tuple[bool, Optional[str]]:
         """Validate bounty amount for token."""
         config = TOKEN_CONFIGS[token]
@@ -225,7 +219,7 @@ class MultiTokenPayments:
         bounty_usd: float,
         agent_token: PaymentToken,
         worker_id: str,
-        platform_fee_pct: float = 0.08
+        platform_fee_pct: float = 0.08,
     ) -> Dict[str, Any]:
         """Generate payment summary for a task."""
         payment_token, needs_conversion = self.match_payment_token(
@@ -256,11 +250,7 @@ class MultiTokenPayments:
             "conversion_applied": needs_conversion,
         }
 
-    def format_amount(
-        self,
-        amount: float,
-        token: PaymentToken
-    ) -> str:
+    def format_amount(self, amount: float, token: PaymentToken) -> str:
         """Format amount for display."""
         config = TOKEN_CONFIGS[token]
         return f"{amount:.2f} {config.symbol}"
@@ -268,6 +258,7 @@ class MultiTokenPayments:
 
 # Singleton
 _payments: Optional[MultiTokenPayments] = None
+
 
 def get_multi_token_payments() -> MultiTokenPayments:
     """Get singleton multi-token payments instance."""

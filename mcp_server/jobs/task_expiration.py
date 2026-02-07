@@ -13,7 +13,6 @@ import asyncio
 import logging
 import os
 from datetime import datetime, timezone
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +43,11 @@ async def _process_expired_task(client, task: dict) -> None:
 
     # 1. Mark the task as expired
     try:
-        client.table("tasks").update({
-            "status": "expired",
-        }).eq("id", task_id).execute()
+        client.table("tasks").update(
+            {
+                "status": "expired",
+            }
+        ).eq("id", task_id).execute()
         logger.info("[expiration] Task %s status set to 'expired'", task_id)
     except Exception as exc:
         logger.error("[expiration] Failed to update task %s: %s", task_id, exc)
@@ -54,9 +55,7 @@ async def _process_expired_task(client, task: dict) -> None:
 
     # 2. Refund escrow if applicable
     if not escrow_id:
-        logger.info(
-            "[expiration] Task %s has no escrow_id, skipping refund", task_id
-        )
+        logger.info("[expiration] Task %s has no escrow_id, skipping refund", task_id)
         return
 
     try:
@@ -66,7 +65,10 @@ async def _process_expired_task(client, task: dict) -> None:
         )
 
         if not ADVANCED_ESCROW_AVAILABLE:
-            logger.warning("[expiration] Advanced escrow SDK not available, cannot refund task %s", task_id)
+            logger.warning(
+                "[expiration] Advanced escrow SDK not available, cannot refund task %s",
+                task_id,
+            )
             return
 
         result = refund_to_agent(task_id=task_id)
@@ -75,21 +77,23 @@ async def _process_expired_task(client, task: dict) -> None:
             logger.info(
                 "[expiration] Refund successful for task %s: tx=%s",
                 task_id,
-                getattr(result, 'transaction_hash', 'N/A'),
+                getattr(result, "transaction_hash", "N/A"),
             )
 
             # 3. Record the refund as a payment entry
             try:
-                client.table("payments").insert({
-                    "task_id": task_id,
-                    "agent_id": agent_id,
-                    "type": "refund",
-                    "status": "confirmed",
-                    "tx_hash": getattr(result, 'transaction_hash', ''),
-                    "escrow_id": escrow_id,
-                    "note": "Auto-refund: task expired past deadline (via SDK)",
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                }).execute()
+                client.table("payments").insert(
+                    {
+                        "task_id": task_id,
+                        "agent_id": agent_id,
+                        "type": "refund",
+                        "status": "confirmed",
+                        "tx_hash": getattr(result, "transaction_hash", ""),
+                        "escrow_id": escrow_id,
+                        "note": "Auto-refund: task expired past deadline (via SDK)",
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                ).execute()
                 logger.info(
                     "[expiration] Payment record created for task %s refund",
                     task_id,
@@ -130,7 +134,10 @@ async def _process_submitted_timeout_task(client, task: dict) -> bool:
         False when caller should fall back to normal expiration/refund flow.
     """
     task_id = task["id"]
-    logger.info("[expiration] Submitted task %s reached deadline; attempting auto-settlement", task_id)
+    logger.info(
+        "[expiration] Submitted task %s reached deadline; attempting auto-settlement",
+        task_id,
+    )
 
     try:
         submission_result = (
@@ -142,17 +149,24 @@ async def _process_submitted_timeout_task(client, task: dict) -> bool:
             .execute()
         )
     except Exception as exc:
-        logger.error("[expiration] Could not query submissions for task %s: %s", task_id, exc)
+        logger.error(
+            "[expiration] Could not query submissions for task %s: %s", task_id, exc
+        )
         return False
 
     rows = submission_result.data or []
     if not rows:
-        logger.warning("[expiration] Task %s is submitted but has no submission row; expiring task", task_id)
+        logger.warning(
+            "[expiration] Task %s is submitted but has no submission row; expiring task",
+            task_id,
+        )
         return False
 
     submission_id = rows[0].get("id")
     if not submission_id:
-        logger.warning("[expiration] Task %s submission row missing id; expiring task", task_id)
+        logger.warning(
+            "[expiration] Task %s submission row missing id; expiring task", task_id
+        )
         return False
 
     try:

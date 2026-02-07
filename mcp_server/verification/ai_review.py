@@ -10,7 +10,6 @@ Supported providers (configurable via AI_VERIFICATION_PROVIDER env):
 - bedrock: AWS Bedrock (Claude via AWS)
 """
 
-import os
 import json
 import logging
 from dataclasses import dataclass
@@ -22,9 +21,7 @@ import httpx
 from .providers import (
     VerificationProvider,
     VisionRequest,
-    VisionResponse,
     get_provider,
-    list_available_providers,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class VerificationDecision(Enum):
     """Possible verification outcomes."""
+
     APPROVED = "approved"
     REJECTED = "rejected"
     NEEDS_HUMAN = "needs_human"
@@ -40,6 +38,7 @@ class VerificationDecision(Enum):
 @dataclass
 class VerificationResult:
     """Result of AI verification."""
+
     decision: VerificationDecision
     confidence: float  # 0-1
     explanation: str
@@ -83,10 +82,7 @@ class AIVerifier:
         return self._provider is not None and self._provider.is_available()
 
     async def verify_evidence(
-        self,
-        task: dict,
-        evidence: dict,
-        photo_urls: List[str]
+        self, task: dict, evidence: dict, photo_urls: List[str]
     ) -> VerificationResult:
         """
         Verify evidence against task requirements.
@@ -132,12 +128,14 @@ class AIVerifier:
         prompt = self._build_verification_prompt(task, evidence)
 
         try:
-            response = await self._provider.analyze(VisionRequest(
-                prompt=prompt,
-                images=images,
-                image_types=image_types,
-                max_tokens=1024,
-            ))
+            response = await self._provider.analyze(
+                VisionRequest(
+                    prompt=prompt,
+                    images=images,
+                    image_types=image_types,
+                    max_tokens=1024,
+                )
+            )
 
             result = self._parse_response(response.text)
             result.provider = response.provider
@@ -145,8 +143,10 @@ class AIVerifier:
 
             logger.info(
                 "AI verification via %s/%s: decision=%s confidence=%.2f",
-                response.provider, response.model,
-                result.decision.value, result.confidence,
+                response.provider,
+                response.model,
+                result.decision.value,
+                result.confidence,
             )
 
             return result
@@ -170,17 +170,17 @@ class AIVerifier:
         return f"""You are a task verification system for Execution Market, a platform where humans complete physical tasks for AI agents.
 
 ## Task Details
-- **Title**: {task.get('title', 'Unknown')}
+- **Title**: {task.get("title", "Unknown")}
 - **Type**: {task_type}
-- **Description**: {task.get('instructions', task.get('description', 'No description'))}
+- **Description**: {task.get("instructions", task.get("description", "No description"))}
 
 ## Evidence Requirements
-{self._format_requirements(task.get('evidence_schema', task.get('evidence_required', {})))}
+{self._format_requirements(task.get("evidence_schema", task.get("evidence_required", {})))}
 
 ## Submitted Evidence Metadata
-- GPS: {evidence.get('gps', 'Not provided')}
-- Timestamp: {evidence.get('timestamp', 'Not provided')}
-- Notes: {evidence.get('notes', 'None')}
+- GPS: {evidence.get("gps", "Not provided")}
+- Timestamp: {evidence.get("timestamp", "Not provided")}
+- Notes: {evidence.get("notes", "None")}
 
 ## Your Task
 Analyze the submitted photo(s) and determine if the task was completed correctly.
@@ -255,13 +255,16 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
 """,
         }
 
-        return prompts.get(task_type, """
+        return prompts.get(
+            task_type,
+            """
 ## General Checks
 - Does the photo match the task description?
 - Is the photo authentic (not manipulated)?
 - Is sufficient detail visible to verify completion?
 - Are there any red flags or fraud indicators?
-""")
+""",
+        )
 
     def _format_requirements(self, requirements: dict) -> str:
         """Format evidence requirements for prompt."""
@@ -277,7 +280,9 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
                     if isinstance(item, str):
                         lines.append(f"- {item.replace('_', ' ').title()} (required)")
                     elif isinstance(item, dict):
-                        lines.append(f"- {item.get('type', 'Unknown').replace('_', ' ').title()} (required)")
+                        lines.append(
+                            f"- {item.get('type', 'Unknown').replace('_', ' ').title()} (required)"
+                        )
             if optional:
                 for item in optional:
                     if isinstance(item, str):
@@ -325,7 +330,9 @@ Be strict but fair. If something is slightly off but clearly a good-faith attemp
             }
 
             return VerificationResult(
-                decision=decision_map.get(data.get("decision"), VerificationDecision.NEEDS_HUMAN),
+                decision=decision_map.get(
+                    data.get("decision"), VerificationDecision.NEEDS_HUMAN
+                ),
                 confidence=float(data.get("confidence", 0.5)),
                 explanation=data.get("explanation", "No explanation provided"),
                 issues=data.get("issues", []),

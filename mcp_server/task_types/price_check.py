@@ -20,7 +20,6 @@ Validation includes:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from enum import Enum
 from typing import Any, Dict, List, Optional, TypedDict, Tuple
@@ -39,6 +38,7 @@ from .base import (
 
 class PriceType(str, Enum):
     """Types of prices to capture."""
+
     REGULAR = "regular"
     SALE = "sale"
     MEMBER = "member"
@@ -58,6 +58,7 @@ class ProductSpec:
         require_photo: Whether photo is required for this product
         notes: Additional notes about the product
     """
+
     name: str
     sku: Optional[str] = None
     expected_price_range: Optional[Tuple[Decimal, Decimal]] = None
@@ -71,7 +72,8 @@ class ProductSpec:
             "sku": self.sku,
             "expected_price_range": (
                 [str(self.expected_price_range[0]), str(self.expected_price_range[1])]
-                if self.expected_price_range else None
+                if self.expected_price_range
+                else None
             ),
             "require_photo": self.require_photo,
             "notes": self.notes,
@@ -80,8 +82,11 @@ class ProductSpec:
 
 class PriceCheckEvidence(TypedDict, total=False):
     """Evidence structure for price check tasks."""
+
     # Product prices
-    prices: Dict[str, Dict[str, Any]]  # product_name -> {price, sale_price, photo_url, etc.}
+    prices: Dict[
+        str, Dict[str, Any]
+    ]  # product_name -> {price, sale_price, photo_url, etc.}
 
     # Location evidence
     store_name: str
@@ -101,6 +106,7 @@ class PriceCheckEvidence(TypedDict, total=False):
 @dataclass
 class PriceCheckConfig:
     """Configuration for price check validation."""
+
     # Location validation
     require_gps: bool = True
     gps_radius_meters: float = 200.0
@@ -109,7 +115,9 @@ class PriceCheckConfig:
     require_photos: bool = True
     validate_price_format: bool = True
     currency_symbol: str = "$"
-    allowed_currencies: List[str] = field(default_factory=lambda: ["$", "USD", "MXN", "EUR"])
+    allowed_currencies: List[str] = field(
+        default_factory=lambda: ["$", "USD", "MXN", "EUR"]
+    )
 
     # OCR settings
     require_ocr_verification: bool = False
@@ -286,8 +294,10 @@ class PriceCheckTask(TaskType[PriceCheckEvidence]):
 
         if context.location_lat and context.location_lng:
             distance = self._haversine_distance(
-                lat, lng,
-                context.location_lat, context.location_lng,
+                lat,
+                lng,
+                context.location_lat,
+                context.location_lng,
             )
 
             if distance > self.config.gps_radius_meters:
@@ -324,7 +334,9 @@ class PriceCheckTask(TaskType[PriceCheckEvidence]):
             # Check if product is reported as unavailable
             if product_name in unavailable:
                 if not self.config.allow_unavailable:
-                    errors.append(f"Product '{product_name}' reported unavailable but must be found")
+                    errors.append(
+                        f"Product '{product_name}' reported unavailable but must be found"
+                    )
                 continue
 
             # Check price data exists
@@ -396,7 +408,9 @@ class PriceCheckTask(TaskType[PriceCheckEvidence]):
                 if price_decimal < 0:
                     warnings.append(f"Negative price for '{product_name}'")
                 elif price_decimal > 100000:
-                    warnings.append(f"Unusually high price for '{product_name}': {price}")
+                    warnings.append(
+                        f"Unusually high price for '{product_name}': {price}"
+                    )
 
             except (InvalidOperation, ValueError):
                 warnings.append(f"Invalid price format for '{product_name}': {price}")
@@ -458,18 +472,18 @@ class PriceCheckTask(TaskType[PriceCheckEvidence]):
             return None
 
         # Remove currency symbols and whitespace
-        cleaned = re.sub(r'[^\d.,]', '', price_str)
+        cleaned = re.sub(r"[^\d.,]", "", price_str)
 
         # Handle different decimal separators
         # If comma is last, treat as decimal separator
-        if ',' in cleaned and '.' not in cleaned:
-            cleaned = cleaned.replace(',', '.')
-        elif ',' in cleaned and '.' in cleaned:
+        if "," in cleaned and "." not in cleaned:
+            cleaned = cleaned.replace(",", ".")
+        elif "," in cleaned and "." in cleaned:
             # Remove thousands separator (whichever comes first)
-            if cleaned.index(',') < cleaned.index('.'):
-                cleaned = cleaned.replace(',', '')
+            if cleaned.index(",") < cleaned.index("."):
+                cleaned = cleaned.replace(",", "")
             else:
-                cleaned = cleaned.replace('.', '').replace(',', '.')
+                cleaned = cleaned.replace(".", "").replace(",", ".")
 
         try:
             return float(cleaned)
@@ -494,8 +508,8 @@ class PriceCheckTask(TaskType[PriceCheckEvidence]):
         delta_lambda = math.radians(lon2 - lon1)
 
         a = (
-            math.sin(delta_phi / 2) ** 2 +
-            math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+            math.sin(delta_phi / 2) ** 2
+            + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
         )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
@@ -529,7 +543,12 @@ class PriceCheckTask(TaskType[PriceCheckEvidence]):
         if context.metadata.get("location_type") == "rural":
             location_factor = Decimal("1.2")
 
-        suggested = (base + product_bonus) * complexity_factor * urgency_factor * location_factor
+        suggested = (
+            (base + product_bonus)
+            * complexity_factor
+            * urgency_factor
+            * location_factor
+        )
         suggested = min(suggested, self.MAX_BOUNTY).quantize(Decimal("0.25"))
 
         return BountyRecommendation(
@@ -656,10 +675,7 @@ Visit {store_name} and check the prices of the following products.
             "visit_timestamp": evidence.get("visit_timestamp"),
             "products_checked": len(prices),
             "products_unavailable": unavailable,
-            "prices": {
-                name: data.get("price")
-                for name, data in prices.items()
-            },
+            "prices": {name: data.get("price") for name, data in prices.items()},
             "sale_prices": {
                 name: data.get("sale_price")
                 for name, data in prices.items()
@@ -670,7 +686,9 @@ Visit {store_name} and check the prices of the following products.
                 "min_price": min_price,
                 "max_price": max_price,
             },
-            "location_verified": validation_result.details.get("location_verified", False),
+            "location_verified": validation_result.details.get(
+                "location_verified", False
+            ),
             "notes": evidence.get("notes"),
         }
 
@@ -709,7 +727,9 @@ def create_competitive_price_check(
 
 
 def create_sale_verification_task(
-    products: List[Tuple[str, Decimal, Decimal]],  # (name, regular_price, expected_sale_price)
+    products: List[
+        Tuple[str, Decimal, Decimal]
+    ],  # (name, regular_price, expected_sale_price)
     store_name: str,
 ) -> PriceCheckTask:
     """
@@ -725,7 +745,10 @@ def create_sale_verification_task(
     product_specs = [
         ProductSpec(
             name=name,
-            expected_price_range=(sale_price * Decimal("0.9"), sale_price * Decimal("1.1")),
+            expected_price_range=(
+                sale_price * Decimal("0.9"),
+                sale_price * Decimal("1.1"),
+            ),
             require_photo=True,
             notes=f"Regular price: ${regular_price}, Expected sale: ${sale_price}",
         )

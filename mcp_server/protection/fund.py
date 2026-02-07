@@ -22,10 +22,10 @@ Use cases:
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from enum import Enum
-from typing import Dict, Optional, List, Any, Tuple
+from typing import Dict, Optional, List, Any
 
 logger = logging.getLogger(__name__)
 
@@ -43,26 +43,31 @@ FUND_CONTRIBUTION_PERCENT = Decimal("0.01")  # 1% of each task bounty
 
 class FundError(Exception):
     """Base exception for Protection Fund operations."""
+
     pass
 
 
 class InsufficientFundsError(FundError):
     """Raised when fund balance is insufficient for a claim."""
+
     pass
 
 
 class ClaimLimitExceededError(FundError):
     """Raised when worker has exceeded their claim limits."""
+
     pass
 
 
 class ClaimNotFoundError(FundError):
     """Raised when a claim is not found."""
+
     pass
 
 
 class InvalidClaimStateError(FundError):
     """Raised when claim operation is invalid for current state."""
+
     pass
 
 
@@ -73,14 +78,18 @@ class InvalidClaimStateError(FundError):
 
 class ClaimType(str, Enum):
     """Types of protection fund claims."""
+
     AGENT_DISAPPEARED = "agent_disappeared"  # Agent stopped responding
     PAYMENT_FAILURE = "payment_failure"  # x402/escrow system failure
-    UNJUST_REJECTION = "unjust_rejection"  # Arbitration found for worker but payment failed
+    UNJUST_REJECTION = (
+        "unjust_rejection"  # Arbitration found for worker but payment failed
+    )
     EMERGENCY_HARDSHIP = "emergency_hardship"  # Case-by-case emergency
 
 
 class ClaimStatus(str, Enum):
     """Status of a protection fund claim."""
+
     PENDING = "pending"  # Awaiting review
     APPROVED = "approved"  # Approved, awaiting payment
     REJECTED = "rejected"  # Claim denied
@@ -90,6 +99,7 @@ class ClaimStatus(str, Enum):
 
 class ContributionSource(str, Enum):
     """Source of fund contributions."""
+
     PLATFORM_FEE = "platform_fee"  # 0.5% of platform fees
     SLASHED_BOND = "slashed_bond"  # Agent bond slashed for unfair rejection
     MANUAL_DEPOSIT = "manual_deposit"  # Manual top-up by treasury
@@ -115,6 +125,7 @@ class FundConfig:
         max_claim_percent: Maximum claim as percentage of original bounty (80%)
         claim_cooldown_days: Days between claims for same worker (30)
     """
+
     contribution_rate: Decimal = FUND_CONTRIBUTION_PERCENT  # 1% of bounty
     max_claim_amount: Decimal = Decimal("50.00")  # $50 max per claim
     max_monthly_per_worker: Decimal = Decimal("200.00")  # $200/month/worker
@@ -144,6 +155,7 @@ class FundContribution:
         description: Human-readable description
         contributed_at: Timestamp of contribution
     """
+
     id: str
     source: ContributionSource
     amount: Decimal
@@ -159,7 +171,9 @@ class FundContribution:
             "source": self.source.value,
             "amount": float(self.amount),
             "task_id": self.task_id,
-            "original_amount": float(self.original_amount) if self.original_amount else None,
+            "original_amount": float(self.original_amount)
+            if self.original_amount
+            else None,
             "description": self.description,
             "contributed_at": self.contributed_at.isoformat(),
         }
@@ -187,6 +201,7 @@ class FundClaim:
         paid_at: When payment was sent
         tx_hash: Transaction hash of payment
     """
+
     id: str
     worker_id: str
     claim_type: ClaimType
@@ -238,6 +253,7 @@ class WorkerClaimHistory:
         claim_count: Total number of claims
         last_claim_at: When last claim was submitted
     """
+
     worker_id: str
     total_claimed: Decimal = Decimal("0")
     total_paid: Decimal = Decimal("0")
@@ -255,7 +271,9 @@ class WorkerClaimHistory:
             "claims_this_month": float(self.claims_this_month),
             "paid_this_month": float(self.paid_this_month),
             "claim_count": self.claim_count,
-            "last_claim_at": self.last_claim_at.isoformat() if self.last_claim_at else None,
+            "last_claim_at": self.last_claim_at.isoformat()
+            if self.last_claim_at
+            else None,
         }
 
 
@@ -356,7 +374,8 @@ class ProtectionFund:
         if contribution_amount <= Decimal("0"):
             logger.debug(
                 "Bounty contribution too small for task %s: $%.4f",
-                task_id, float(bounty_amount * self.config.contribution_rate)
+                task_id,
+                float(bounty_amount * self.config.contribution_rate),
             )
             contribution_amount = Decimal("0")
 
@@ -796,21 +815,23 @@ class ProtectionFund:
 
         # Contribution stats
         total_from_fees = sum(
-            c.amount for c in self._contributions
+            c.amount
+            for c in self._contributions
             if c.source == ContributionSource.PLATFORM_FEE
         )
         total_from_slashes = sum(
-            c.amount for c in self._contributions
+            c.amount
+            for c in self._contributions
             if c.source == ContributionSource.SLASHED_BOND
         )
         total_manual = sum(
-            c.amount for c in self._contributions
+            c.amount
+            for c in self._contributions
             if c.source == ContributionSource.MANUAL_DEPOSIT
         )
 
         contributions_this_month = [
-            c for c in self._contributions
-            if c.contributed_at >= month_start
+            c for c in self._contributions if c.contributed_at >= month_start
         ]
 
         # Claim stats
@@ -823,19 +844,14 @@ class ProtectionFund:
         total_paid = sum(c.amount_approved for c in paid_claims)
         total_requested = sum(c.amount_requested for c in all_claims)
 
-        claims_this_month = [
-            c for c in all_claims
-            if c.created_at >= month_start
-        ]
+        claims_this_month = [c for c in all_claims if c.created_at >= month_start]
         paid_this_month = sum(
-            c.amount_approved for c in claims_this_month
-            if c.status == ClaimStatus.PAID
+            c.amount_approved for c in claims_this_month if c.status == ClaimStatus.PAID
         )
 
         return {
             "balance": float(self._balance),
             "balance_warning": self._balance < self.config.min_fund_balance_warning,
-
             "contributions": {
                 "total": float(total_from_fees + total_from_slashes + total_manual),
                 "from_fees": float(total_from_fees),
@@ -844,7 +860,6 @@ class ProtectionFund:
                 "count": len(self._contributions),
                 "this_month": float(sum(c.amount for c in contributions_this_month)),
             },
-
             "claims": {
                 "total_count": len(all_claims),
                 "pending_count": len(pending_claims),
@@ -858,7 +873,6 @@ class ProtectionFund:
                     "paid": float(paid_this_month),
                 },
             },
-
             "config": {
                 "contribution_rate": float(self.config.contribution_rate * 100),
                 "max_claim_amount": float(self.config.max_claim_amount),
@@ -866,7 +880,6 @@ class ProtectionFund:
                 "max_claim_percent": float(self.config.max_claim_percent * 100),
                 "claim_cooldown_days": self.config.claim_cooldown_days,
             },
-
             "unique_workers_claimed": len(self._worker_claims),
         }
 
@@ -888,17 +901,12 @@ class ProtectionFund:
 
     def get_pending_claims(self) -> List[FundClaim]:
         """Get all pending claims awaiting review."""
-        return [
-            c for c in self._claims.values()
-            if c.status == ClaimStatus.PENDING
-        ]
+        return [c for c in self._claims.values() if c.status == ClaimStatus.PENDING]
 
     def get_recent_contributions(self, limit: int = 20) -> List[FundContribution]:
         """Get recent contributions."""
         return sorted(
-            self._contributions,
-            key=lambda c: c.contributed_at,
-            reverse=True
+            self._contributions, key=lambda c: c.contributed_at, reverse=True
         )[:limit]
 
     @property
@@ -935,7 +943,7 @@ class ProtectionFund:
         if last_claim_month != current_month:
             logger.debug(
                 "Resetting monthly counters for worker %s",
-                history.worker_id[:8] + "..."
+                history.worker_id[:8] + "...",
             )
             history.claims_this_month = Decimal("0")
             history.paid_this_month = Decimal("0")

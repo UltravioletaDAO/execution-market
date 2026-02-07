@@ -33,7 +33,7 @@ interface AgentStats {
   activeWorkers: number
 }
 
-interface SubmissionWithContext extends Submission {
+interface SubmissionWithContext extends Omit<Submission, 'executor'> {
   task?: Task
   executor?: {
     id: string
@@ -437,7 +437,11 @@ export function Dashboard({
           evidence_files: ['photo.jpg'],
           evidence_ipfs_cid: null,
           evidence_hash: null,
+          evidence_metadata: null,
+          evidence_content_hash: null,
+          storage_backend: null,
           chainwitness_proof: null,
+          reputation_tx: null,
           submitted_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
           verified_at: null,
           auto_check_passed: true,
@@ -459,6 +463,7 @@ export function Dashboard({
             evidence_schema: { required: ['photo_geo'] },
             bounty_usd: 15.00,
             payment_token: 'USDC',
+            payment_network: 'base',
             escrow_tx: null,
             escrow_id: null,
             deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -472,6 +477,7 @@ export function Dashboard({
             accepted_at: null,
             chainwitness_proof: null,
             completed_at: null,
+            refund_tx: null,
           },
           executor: {
             id: 'exec-1',
@@ -489,7 +495,11 @@ export function Dashboard({
           evidence_files: ['photo.jpg'],
           evidence_ipfs_cid: null,
           evidence_hash: null,
+          evidence_metadata: null,
+          evidence_content_hash: null,
+          storage_backend: null,
           chainwitness_proof: null,
+          reputation_tx: null,
           submitted_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
           verified_at: null,
           auto_check_passed: false,
@@ -511,6 +521,7 @@ export function Dashboard({
             evidence_schema: { required: ['photo', 'receipt'] },
             bounty_usd: 8.00,
             payment_token: 'USDC',
+            payment_network: 'base',
             escrow_tx: null,
             escrow_id: null,
             deadline: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
@@ -524,6 +535,7 @@ export function Dashboard({
             accepted_at: null,
             chainwitness_proof: null,
             completed_at: null,
+            refund_tx: null,
           },
           executor: {
             id: 'exec-2',

@@ -39,7 +39,9 @@ def mock_websocket():
 
 
 @pytest.mark.asyncio
-async def test_connect_establishes_authenticated_state(manager: WebSocketManager, mock_websocket):
+async def test_connect_establishes_authenticated_state(
+    manager: WebSocketManager, mock_websocket
+):
     conn = await manager.connect(mock_websocket, user_id="agent-123", user_type="agent")
 
     assert conn.state == ConnectionState.AUTHENTICATED
@@ -73,7 +75,9 @@ async def test_subscribe_task_room_and_broadcast(manager: WebSocketManager):
 
 
 @pytest.mark.asyncio
-async def test_handle_ping_message_sends_pong(manager: WebSocketManager, mock_websocket):
+async def test_handle_ping_message_sends_pong(
+    manager: WebSocketManager, mock_websocket
+):
     conn = await manager.connect(mock_websocket)
     mock_websocket.send_text.reset_mock()
 
@@ -86,4 +90,3 @@ async def test_handle_ping_message_sends_pong(manager: WebSocketManager, mock_we
     body = json.loads(mock_websocket.send_text.call_args[0][0])
     assert body["type"] == "pong"
     assert body["correlation_id"] == "ping-1"
-

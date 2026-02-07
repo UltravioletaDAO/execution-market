@@ -11,7 +11,6 @@ Handles reliable delivery of webhook events with:
 import asyncio
 import hashlib
 import hmac
-import json
 import logging
 import time
 from dataclasses import dataclass, field
@@ -22,7 +21,7 @@ import uuid
 
 import aiohttp
 
-from .events import WebhookEvent, WebhookEventType
+from .events import WebhookEvent
 
 
 logger = logging.getLogger(__name__)
@@ -30,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class DeliveryStatus(str, Enum):
     """Status of a webhook delivery attempt."""
+
     PENDING = "pending"
     DELIVERED = "delivered"
     FAILED = "failed"
@@ -40,6 +40,7 @@ class DeliveryStatus(str, Enum):
 @dataclass
 class DeliveryAttempt:
     """Record of a single delivery attempt."""
+
     attempt_number: int
     timestamp: str
     status_code: Optional[int] = None
@@ -51,13 +52,16 @@ class DeliveryAttempt:
 @dataclass
 class DeliveryResult:
     """Result of webhook delivery (possibly after retries)."""
+
     delivery_id: str
     webhook_id: str
     endpoint_url: str
     event_type: str
     status: DeliveryStatus
     attempts: List[DeliveryAttempt] = field(default_factory=list)
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     completed_at: Optional[str] = None
     next_retry_at: Optional[str] = None
 
@@ -87,6 +91,7 @@ class DeliveryResult:
 @dataclass
 class WebhookConfig:
     """Configuration for webhook delivery."""
+
     # Retry settings
     max_retries: int = 5
     initial_delay_seconds: float = 1.0
@@ -100,16 +105,19 @@ class WebhookConfig:
 
     # Validation settings
     require_2xx_response: bool = True
-    allowed_status_codes: List[int] = field(default_factory=lambda: [200, 201, 202, 204])
+    allowed_status_codes: List[int] = field(
+        default_factory=lambda: [200, 201, 202, 204]
+    )
 
     def calculate_delay(self, attempt: int) -> float:
         """Calculate delay for given retry attempt with exponential backoff."""
         delay = min(
-            self.initial_delay_seconds * (self.backoff_multiplier ** attempt),
+            self.initial_delay_seconds * (self.backoff_multiplier**attempt),
             self.max_delay_seconds,
         )
         # Add jitter
         import random
+
         jitter = delay * self.jitter_factor * random.random()
         return delay + jitter
 
@@ -193,7 +201,9 @@ class WebhookSignature:
         # Check timestamp freshness
         current_time = int(time.time())
         if abs(current_time - timestamp) > tolerance_seconds:
-            raise ValueError(f"Signature timestamp too old: {current_time - timestamp}s")
+            raise ValueError(
+                f"Signature timestamp too old: {current_time - timestamp}s"
+            )
 
         # Verify signature
         expected_payload = f"{timestamp}.{payload}"
@@ -214,7 +224,9 @@ class WebhookSender:
     def __init__(
         self,
         config: Optional[WebhookConfig] = None,
-        dead_letter_callback: Optional[Callable[[DeliveryResult, WebhookEvent], None]] = None,
+        dead_letter_callback: Optional[
+            Callable[[DeliveryResult, WebhookEvent], None]
+        ] = None,
     ):
         """
         Initialize webhook sender.

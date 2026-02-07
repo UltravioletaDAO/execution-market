@@ -59,7 +59,7 @@ export function useTranslation() {
    */
   const translate = useCallback(
     (key: TranslationKey, options?: Record<string, unknown>): string => {
-      return t(key, options as never) as string
+      return t(key, options as never) as unknown as string
     },
     [t]
   )
@@ -273,6 +273,7 @@ export function useTranslation() {
    */
   const formatList = useCallback(
     (items: string[], type: 'conjunction' | 'disjunction' | 'unit' = 'conjunction'): string => {
+      // @ts-expect-error ListFormat not in all TS lib versions
       return new Intl.ListFormat(locale, { style: 'long', type }).format(items)
     },
     [locale]

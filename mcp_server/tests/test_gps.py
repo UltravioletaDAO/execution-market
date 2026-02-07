@@ -2,11 +2,9 @@
 Tests for GPS verification module.
 """
 
-import pytest
 from verification.checks.gps import (
     check_gps_location,
     haversine_distance,
-    GPSResult,
 )
 
 
@@ -51,7 +49,7 @@ class TestCheckGPSLocation:
             photo_lng=-74.0060,
             task_lat=40.7130,
             task_lng=-74.0065,
-            max_distance_meters=500
+            max_distance_meters=500,
         )
         assert result.is_valid
         assert result.distance_meters is not None
@@ -65,7 +63,7 @@ class TestCheckGPSLocation:
             photo_lng=-74.0060,
             task_lat=40.7528,  # ~4km north
             task_lng=-74.0060,
-            max_distance_meters=500
+            max_distance_meters=500,
         )
         assert not result.is_valid
         assert result.distance_meters is not None
@@ -75,10 +73,7 @@ class TestCheckGPSLocation:
     def test_missing_photo_lat(self):
         """Missing photo latitude should fail."""
         result = check_gps_location(
-            photo_lat=None,
-            photo_lng=-74.0060,
-            task_lat=40.7128,
-            task_lng=-74.0060
+            photo_lat=None, photo_lng=-74.0060, task_lat=40.7128, task_lng=-74.0060
         )
         assert not result.is_valid
         assert result.photo_coords is None
@@ -87,10 +82,7 @@ class TestCheckGPSLocation:
     def test_missing_photo_lng(self):
         """Missing photo longitude should fail."""
         result = check_gps_location(
-            photo_lat=40.7128,
-            photo_lng=None,
-            task_lat=40.7128,
-            task_lng=-74.0060
+            photo_lat=40.7128, photo_lng=None, task_lat=40.7128, task_lng=-74.0060
         )
         assert not result.is_valid
         assert result.photo_coords is None
@@ -103,7 +95,7 @@ class TestCheckGPSLocation:
             photo_lng=-74.0060,
             task_lat=40.7129,
             task_lng=-74.0061,
-            max_distance_meters=50  # Very strict
+            max_distance_meters=50,  # Very strict
         )
         # Might pass or fail depending on exact distance
         assert result.max_distance == 50
@@ -115,7 +107,7 @@ class TestCheckGPSLocation:
             photo_lng=-74.0060,
             task_lat=40.7130,
             task_lng=-74.0065,
-            max_distance_meters=500
+            max_distance_meters=500,
         )
         assert result.photo_coords == (40.7128, -74.0060)
         assert result.task_coords == (40.7130, -74.0065)
@@ -129,7 +121,7 @@ class TestCheckGPSLocation:
             photo_lng=-74.0060,
             task_lat=40.7173,  # ~500m north
             task_lng=-74.0060,
-            max_distance_meters=500
+            max_distance_meters=500,
         )
         # Should be right at the boundary (may pass or fail)
         assert result.distance_meters is not None

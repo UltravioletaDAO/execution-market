@@ -20,8 +20,8 @@ Validation includes:
 - Signature verification (when required)
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Optional, TypedDict
@@ -39,6 +39,7 @@ from .base import (
 
 class DeliveryEvidenceType(str, Enum):
     """Types of delivery evidence."""
+
     PICKUP_PHOTO = "pickup_photo"
     DELIVERY_PHOTO = "delivery_photo"
     SIGNATURE = "signature"
@@ -48,6 +49,7 @@ class DeliveryEvidenceType(str, Enum):
 
 class DeliveryEvidence(TypedDict, total=False):
     """Evidence structure for delivery tasks."""
+
     # Pickup evidence
     pickup_photo_url: str
     pickup_gps_lat: float
@@ -74,6 +76,7 @@ class DeliveryEvidence(TypedDict, total=False):
 @dataclass
 class DeliveryValidationConfig:
     """Configuration for delivery validation."""
+
     # GPS settings
     pickup_gps_radius_meters: float = 200.0
     delivery_gps_radius_meters: float = 200.0
@@ -95,6 +98,7 @@ class DeliveryValidationConfig:
 @dataclass
 class DeliveryLocation:
     """Location information for pickup/delivery."""
+
     lat: float
     lng: float
     address: str = ""
@@ -356,8 +360,10 @@ class DeliveryTask(TaskType[DeliveryEvidence]):
             )
 
         distance = self._haversine_distance(
-            evidence_lat, evidence_lng,
-            target_lat, target_lng,
+            evidence_lat,
+            evidence_lng,
+            target_lat,
+            target_lng,
         )
 
         if distance > max_distance:
@@ -528,8 +534,8 @@ class DeliveryTask(TaskType[DeliveryEvidence]):
         delta_lambda = math.radians(lon2 - lon1)
 
         a = (
-            math.sin(delta_phi / 2) ** 2 +
-            math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+            math.sin(delta_phi / 2) ** 2
+            + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
         )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
@@ -560,9 +566,15 @@ class DeliveryTask(TaskType[DeliveryEvidence]):
         urgency_factor = urgency_factors.get(context.urgency, Decimal("1.0"))
 
         # Signature requirement adds premium
-        signature_premium = Decimal("2.00") if self.config.require_signature else Decimal("0")
+        signature_premium = (
+            Decimal("2.00") if self.config.require_signature else Decimal("0")
+        )
 
-        suggested = (base + distance_bonus + signature_premium) * complexity_factor * urgency_factor
+        suggested = (
+            (base + distance_bonus + signature_premium)
+            * complexity_factor
+            * urgency_factor
+        )
         suggested = min(suggested, self.MAX_BOUNTY).quantize(Decimal("0.50"))
 
         return BountyRecommendation(

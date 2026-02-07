@@ -15,7 +15,6 @@ Compatible with:
 - Status page integrations
 """
 
-import json
 import logging
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -24,7 +23,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Query, Request, Response, status
 from starlette.routing import Mount, Route
 
-from .checks import HealthChecker, HealthStatus, SystemHealth
+from .checks import HealthChecker, HealthStatus
 
 logger = logging.getLogger(__name__)
 
@@ -133,8 +132,10 @@ async def readiness_probe(response: Response) -> Dict[str, Any]:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         # Add reason for not being ready
         unhealthy = [
-            name for name, comp in health.components.items()
-            if comp.status == HealthStatus.UNHEALTHY and name in checker.CRITICAL_COMPONENTS
+            name
+            for name, comp in health.components.items()
+            if comp.status == HealthStatus.UNHEALTHY
+            and name in checker.CRITICAL_COMPONENTS
         ]
         result["reason"] = f"Critical components unhealthy: {', '.join(unhealthy)}"
 
@@ -159,7 +160,7 @@ async def liveness_probe() -> Dict[str, Any]:
     return {
         "status": "alive",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "uptime_seconds": round(checker.uptime_seconds, 2)
+        "uptime_seconds": round(checker.uptime_seconds, 2),
     }
 
 
@@ -185,15 +186,15 @@ async def startup_probe(response: Response) -> Dict[str, Any]:
 
         # Consider started if both critical components are at least reachable
         started = (
-            db_health.status != HealthStatus.UNHEALTHY and
-            blockchain_health.status != HealthStatus.UNHEALTHY
+            db_health.status != HealthStatus.UNHEALTHY
+            and blockchain_health.status != HealthStatus.UNHEALTHY
         )
 
         result = {
             "status": "started" if started else "starting",
             "database": db_health.status.value,
             "blockchain": blockchain_health.status.value,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         if not started:
@@ -212,7 +213,7 @@ async def startup_probe(response: Response) -> Dict[str, Any]:
         return {
             "status": "starting",
             "message": str(e)[:100],
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
@@ -256,14 +257,25 @@ async def detailed_health(
         "uptime_seconds": round(health.uptime_seconds, 2),
         "timestamp": health.timestamp.isoformat(),
         "components": {
-            name: comp.to_dict()
-            for name, comp in health.components.items()
+            name: comp.to_dict() for name, comp in health.components.items()
         },
         "summary": {
             "total_components": len(health.components),
-            "healthy": sum(1 for c in health.components.values() if c.status == HealthStatus.HEALTHY),
-            "degraded": sum(1 for c in health.components.values() if c.status == HealthStatus.DEGRADED),
-            "unhealthy": sum(1 for c in health.components.values() if c.status == HealthStatus.UNHEALTHY),
+            "healthy": sum(
+                1
+                for c in health.components.values()
+                if c.status == HealthStatus.HEALTHY
+            ),
+            "degraded": sum(
+                1
+                for c in health.components.values()
+                if c.status == HealthStatus.DEGRADED
+            ),
+            "unhealthy": sum(
+                1
+                for c in health.components.values()
+                if c.status == HealthStatus.UNHEALTHY
+            ),
         },
         "critical_components": list(checker.CRITICAL_COMPONENTS),
     }
@@ -302,7 +314,7 @@ async def check_component(
         response.status_code = status.HTTP_404_NOT_FOUND
         return {
             "error": f"Unknown component: {component_name}",
-            "valid_components": valid_components
+            "valid_components": valid_components,
         }
 
     health = await checker.check_component(component_name)
@@ -310,10 +322,7 @@ async def check_component(
     if health.status == HealthStatus.UNHEALTHY:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
-    return {
-        "component": component_name,
-        **health.to_dict()
-    }
+    return {"component": component_name, **health.to_dict()}
 
 
 # =============================================================================
@@ -323,7 +332,7 @@ async def check_component(
 
 @router.get("/history")
 async def health_history(
-    limit: int = Query(10, ge=1, le=100, description="Number of history entries")
+    limit: int = Query(10, ge=1, le=100, description="Number of history entries"),
 ) -> Dict[str, Any]:
     """
     Get recent health check history.
@@ -355,7 +364,7 @@ async def invalidate_cache() -> Dict[str, Any]:
     checker.invalidate_cache()
     return {
         "status": "cache_invalidated",
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -367,6 +376,7 @@ async def version_info() -> Dict[str, Any]:
     Returns version, environment, and build metadata.
     """
     import os
+
     checker = get_health_checker()
 
     return {
@@ -374,8 +384,10 @@ async def version_info() -> Dict[str, Any]:
         "version": checker.version,
         "environment": checker.environment,
         "build_date": os.getenv("BUILD_DATE", "unknown"),
-        "git_commit": os.getenv("GIT_COMMIT", "unknown")[:8] if os.getenv("GIT_COMMIT") else "unknown",
-        "uptime_seconds": round(checker.uptime_seconds, 2)
+        "git_commit": os.getenv("GIT_COMMIT", "unknown")[:8]
+        if os.getenv("GIT_COMMIT")
+        else "unknown",
+        "uptime_seconds": round(checker.uptime_seconds, 2),
     }
 
 
@@ -390,12 +402,16 @@ def _collect_routes(routes, prefix: str = "") -> List[Dict[str, Any]]:
     for route in routes:
         if isinstance(route, Route):
             path = prefix + route.path
-            collected.append({
-                "path": path,
-                "methods": sorted(route.methods - {"HEAD"}) if route.methods else [],
-                "name": route.name or "",
-                "tags": getattr(route, "tags", None) or [],
-            })
+            collected.append(
+                {
+                    "path": path,
+                    "methods": sorted(route.methods - {"HEAD"})
+                    if route.methods
+                    else [],
+                    "name": route.name or "",
+                    "tags": getattr(route, "tags", None) or [],
+                }
+            )
         elif isinstance(route, Mount):
             mount_path = prefix + route.path
             # Recurse into mounted sub-applications
@@ -404,12 +420,14 @@ def _collect_routes(routes, prefix: str = "") -> List[Dict[str, Any]]:
                 collected.extend(_collect_routes(sub_routes, mount_path))
             else:
                 # Opaque mount (e.g. MCP ASGI app) — record the mount point itself
-                collected.append({
-                    "path": mount_path,
-                    "methods": ["MOUNT"],
-                    "name": route.name or "",
-                    "tags": [],
-                })
+                collected.append(
+                    {
+                        "path": mount_path,
+                        "methods": ["MOUNT"],
+                        "name": route.name or "",
+                        "tags": [],
+                    }
+                )
     return collected
 
 
@@ -489,6 +507,7 @@ async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
     Returns a list of warnings for any inconsistencies found.
     """
     import supabase_client
+
     client = supabase_client.get_client()
     warnings: List[Dict[str, str]] = []
     checks_passed = 0
@@ -498,9 +517,11 @@ async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
         # Check 1: Task status distribution
         checks_total += 1
         try:
-            tasks_result = client.table("tasks").select(
-                "id, status, bounty_usd, executor_id, created_at, updated_at"
-            ).execute()
+            tasks_result = (
+                client.table("tasks")
+                .select("id, status, bounty_usd, executor_id, created_at, updated_at")
+                .execute()
+            )
             tasks = tasks_result.data or []
             status_counts: Dict[str, int] = {}
             for t in tasks:
@@ -508,57 +529,70 @@ async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
                 status_counts[s] = status_counts.get(s, 0) + 1
             checks_passed += 1
         except Exception as e:
-            warnings.append({"check": "task_counts", "message": f"Failed to query tasks: {e}"})
+            warnings.append(
+                {"check": "task_counts", "message": f"Failed to query tasks: {e}"}
+            )
             tasks = []
             status_counts = {}
 
         # Check 2: Completed tasks should have payment_tx or escrow_tx
         checks_total += 1
         completed_no_payment = [
-            t["id"] for t in tasks
+            t["id"]
+            for t in tasks
             if t.get("status") == "completed"
-            and not t.get("payment_tx") and not t.get("escrow_tx")
+            and not t.get("payment_tx")
+            and not t.get("escrow_tx")
         ]
         if completed_no_payment:
-            warnings.append({
-                "check": "completed_no_payment",
-                "message": f"{len(completed_no_payment)} completed task(s) have no payment evidence",
-                "task_ids": completed_no_payment[:10],
-            })
+            warnings.append(
+                {
+                    "check": "completed_no_payment",
+                    "message": f"{len(completed_no_payment)} completed task(s) have no payment evidence",
+                    "task_ids": completed_no_payment[:10],
+                }
+            )
         else:
             checks_passed += 1
 
         # Check 3: Accepted/in_progress tasks should have an executor
         checks_total += 1
         active_no_executor = [
-            t["id"] for t in tasks
+            t["id"]
+            for t in tasks
             if t.get("status") in ("accepted", "in_progress", "submitted")
             and not t.get("executor_id")
         ]
         if active_no_executor:
-            warnings.append({
-                "check": "active_no_executor",
-                "message": f"{len(active_no_executor)} active task(s) have no executor assigned",
-                "task_ids": active_no_executor[:10],
-            })
+            warnings.append(
+                {
+                    "check": "active_no_executor",
+                    "message": f"{len(active_no_executor)} active task(s) have no executor assigned",
+                    "task_ids": active_no_executor[:10],
+                }
+            )
         else:
             checks_passed += 1
 
         # Check 4: Stuck tasks (accepted >24h ago, no update)
         checks_total += 1
         from datetime import datetime as dt, timezone as tz, timedelta as td
+
         cutoff = (dt.now(tz.utc) - td(hours=24)).isoformat()
         stuck_tasks = [
-            t["id"] for t in tasks
+            t["id"]
+            for t in tasks
             if t.get("status") in ("accepted", "in_progress")
             and (t.get("updated_at") or t.get("created_at", "")) < cutoff
         ]
         if stuck_tasks:
-            warnings.append({
-                "check": "stuck_tasks",
-                "message": f"{len(stuck_tasks)} task(s) stuck in active state >24h",
-                "task_ids": stuck_tasks[:10],
-            })
+            warnings.append(
+                {
+                    "check": "stuck_tasks",
+                    "message": f"{len(stuck_tasks)} task(s) stuck in active state >24h",
+                    "task_ids": stuck_tasks[:10],
+                }
+            )
         else:
             checks_passed += 1
 
@@ -570,39 +604,50 @@ async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
             task_ids = {t["id"] for t in tasks}
             orphaned = [s["id"] for s in subs if s.get("task_id") not in task_ids]
             if orphaned:
-                warnings.append({
-                    "check": "orphaned_submissions",
-                    "message": f"{len(orphaned)} submission(s) reference non-existent tasks",
-                    "submission_ids": orphaned[:10],
-                })
+                warnings.append(
+                    {
+                        "check": "orphaned_submissions",
+                        "message": f"{len(orphaned)} submission(s) reference non-existent tasks",
+                        "submission_ids": orphaned[:10],
+                    }
+                )
             else:
                 checks_passed += 1
         except Exception as e:
-            warnings.append({"check": "orphaned_submissions", "message": f"Failed: {e}"})
+            warnings.append(
+                {"check": "orphaned_submissions", "message": f"Failed: {e}"}
+            )
 
         # Check 6: Financial consistency — total bounties vs task count
         checks_total += 1
         total_bounty = sum(float(t.get("bounty_usd", 0) or 0) for t in tasks)
         zero_bounty_active = [
-            t["id"] for t in tasks
+            t["id"]
+            for t in tasks
             if t.get("status") in ("published", "accepted", "in_progress", "submitted")
             and float(t.get("bounty_usd", 0) or 0) == 0
         ]
         if zero_bounty_active:
-            warnings.append({
-                "check": "zero_bounty_active",
-                "message": f"{len(zero_bounty_active)} active task(s) have $0 bounty",
-                "task_ids": zero_bounty_active[:10],
-            })
+            warnings.append(
+                {
+                    "check": "zero_bounty_active",
+                    "message": f"{len(zero_bounty_active)} active task(s) have $0 bounty",
+                    "task_ids": zero_bounty_active[:10],
+                }
+            )
         else:
             checks_passed += 1
 
     except Exception as e:
-        warnings.append({"check": "sanity_check", "message": f"Sanity check failed: {e}"})
+        warnings.append(
+            {"check": "sanity_check", "message": f"Sanity check failed: {e}"}
+        )
 
     all_ok = checks_passed == checks_total
     if not all_ok:
-        response.status_code = status.HTTP_200_OK  # Warnings are informational, not failures
+        response.status_code = (
+            status.HTTP_200_OK
+        )  # Warnings are informational, not failures
 
     return {
         "status": "ok" if all_ok else "warnings",
@@ -625,7 +670,9 @@ async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
 
 @router.get("/metrics")
 async def prometheus_metrics(
-    refresh: bool = Query(False, description="Refresh expensive metrics before scraping")
+    refresh: bool = Query(
+        False, description="Refresh expensive metrics before scraping"
+    ),
 ) -> Response:
     """
     Prometheus metrics endpoint.
@@ -659,12 +706,11 @@ async def prometheus_metrics(
             health_value = {
                 HealthStatus.HEALTHY: 1.0,
                 HealthStatus.DEGRADED: 0.5,
-                HealthStatus.UNHEALTHY: 0.0
+                HealthStatus.UNHEALTHY: 0.0,
             }.get(comp.status, 0.0)
             COMPONENT_HEALTH.set(health_value, labels={"component": name})
 
     # Export in Prometheus format
     return Response(
-        content=collector.export_prometheus(),
-        media_type="text/plain; charset=utf-8"
+        content=collector.export_prometheus(), media_type="text/plain; charset=utf-8"
     )

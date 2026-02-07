@@ -27,14 +27,9 @@ from models import (
     PublishTaskInput,
     GetTasksInput,
     GetTaskInput,
-    CheckSubmissionInput,
     ApproveSubmissionInput,
-    CancelTaskInput,
     ApplyToTaskInput,
     SubmitWorkInput,
-    GetMyTasksInput,
-    WithdrawEarningsInput,
-    AssignTaskInput,
     TaskCategory,
     TaskStatus,
     EvidenceType,
@@ -135,7 +130,9 @@ def sample_executor(sample_executor_id):
 
 
 @pytest.fixture
-def sample_submission(sample_submission_id, sample_task_id, sample_executor_id, sample_executor):
+def sample_submission(
+    sample_submission_id, sample_task_id, sample_executor_id, sample_executor
+):
     """Sample submission returned from database."""
     return {
         "id": sample_submission_id,
@@ -404,7 +401,7 @@ class TestGetTasks:
         )
 
         with patch("server.db", mock_db):
-            result = await em_get_tasks(params)
+            await em_get_tasks(params)
 
         call_kwargs = mock_db.get_tasks.call_args
         assert call_kwargs.kwargs.get("limit") == 10
@@ -493,7 +490,9 @@ class TestApproveSubmission:
         assert "APPROVED" in result
 
     @pytest.mark.asyncio
-    async def test_approve_requires_ownership(self, mock_db, sample_submission, sample_task):
+    async def test_approve_requires_ownership(
+        self, mock_db, sample_submission, sample_task
+    ):
         """Only task owner can approve submissions."""
         sample_task["agent_id"] = "different_agent_id"
         sample_submission["task"] = sample_task
@@ -621,7 +620,9 @@ class TestApplyToTask:
         assert "Application Submitted" in result
 
     @pytest.mark.asyncio
-    async def test_apply_validates_executor(self, mock_db, sample_task_id, sample_executor_id):
+    async def test_apply_validates_executor(
+        self, mock_db, sample_task_id, sample_executor_id
+    ):
         """Executor must exist in the system."""
         mock_db.apply_to_task.side_effect = Exception(
             f"Executor {sample_executor_id} not found"
@@ -651,11 +652,11 @@ class TestApplyToTask:
         assert "not found" in result
 
     @pytest.mark.asyncio
-    async def test_apply_prevents_duplicate(self, mock_db, sample_task_id, sample_executor_id):
+    async def test_apply_prevents_duplicate(
+        self, mock_db, sample_task_id, sample_executor_id
+    ):
         """Cannot apply to the same task twice."""
-        mock_db.apply_to_task.side_effect = Exception(
-            "Already applied to this task"
-        )
+        mock_db.apply_to_task.side_effect = Exception("Already applied to this task")
 
         from tools.worker_tools import register_worker_tools, WorkerToolsConfig
         from mcp.server.fastmcp import FastMCP
@@ -681,7 +682,9 @@ class TestApplyToTask:
         assert "Already applied" in result
 
     @pytest.mark.asyncio
-    async def test_apply_checks_reputation(self, mock_db, sample_task_id, sample_executor_id):
+    async def test_apply_checks_reputation(
+        self, mock_db, sample_task_id, sample_executor_id
+    ):
         """Task minimum reputation requirement must be met."""
         mock_db.apply_to_task.side_effect = Exception(
             "Insufficient reputation. Required: 100, yours: 50"
@@ -718,7 +721,9 @@ class TestSubmitWork:
     """Tests for em_submit_work tool."""
 
     @pytest.mark.asyncio
-    async def test_submit_requires_assignment(self, mock_db, sample_task_id, sample_executor_id):
+    async def test_submit_requires_assignment(
+        self, mock_db, sample_task_id, sample_executor_id
+    ):
         """Only assigned worker can submit work."""
         mock_db.get_task.return_value = {
             "id": sample_task_id,
@@ -740,9 +745,7 @@ class TestSubmitWork:
             evidence={"photo": "ipfs://QmTest123"},
         )
 
-        mock_db.submit_work.side_effect = Exception(
-            "You are not assigned to this task"
-        )
+        mock_db.submit_work.side_effect = Exception("You are not assigned to this task")
 
         tool_func = None
         for tool in mcp._tools.values():
@@ -755,7 +758,9 @@ class TestSubmitWork:
         assert "Error" in result or "not assigned" in result
 
     @pytest.mark.asyncio
-    async def test_submit_validates_evidence_required(self, mock_db, sample_task_id, sample_executor_id):
+    async def test_submit_validates_evidence_required(
+        self, mock_db, sample_task_id, sample_executor_id
+    ):
         """Required evidence fields must be provided."""
         mock_db.get_task.return_value = {
             "id": sample_task_id,
@@ -791,7 +796,9 @@ class TestSubmitWork:
         assert "Missing required evidence" in result or "Validation Failed" in result
 
     @pytest.mark.asyncio
-    async def test_submit_validates_evidence_format(self, mock_db, sample_task_id, sample_executor_id):
+    async def test_submit_validates_evidence_format(
+        self, mock_db, sample_task_id, sample_executor_id
+    ):
         """Evidence fields must have correct format."""
         mock_db.get_task.return_value = {
             "id": sample_task_id,
@@ -881,7 +888,9 @@ class TestSubmitWork:
         mock_db.submit_work.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_submit_validates_task_status(self, mock_db, sample_task_id, sample_executor_id):
+    async def test_submit_validates_task_status(
+        self, mock_db, sample_task_id, sample_executor_id
+    ):
         """Can only submit work for tasks in submittable status."""
         mock_db.get_task.return_value = {
             "id": sample_task_id,
@@ -927,7 +936,7 @@ class TestTaskLifecycle:
     async def test_task_status_transitions(self, mock_db, sample_agent_id):
         """Test that task status transitions follow correct flow."""
         task_id = str(uuid4())
-        executor_id = str(uuid4())
+        str(uuid4())
 
         # 1. Create task (published)
         published_task = {
@@ -946,13 +955,10 @@ class TestTaskLifecycle:
         mock_db.create_task.return_value = published_task
 
         # 2. After assignment (accepted)
-        accepted_task = {**published_task, "status": "accepted", "executor_id": executor_id}
 
         # 3. After submission (submitted)
-        submitted_task = {**accepted_task, "status": "submitted"}
 
         # 4. After approval (completed)
-        completed_task = {**submitted_task, "status": "completed"}
 
         # Verify valid transitions
         from tools.worker_tools import can_transition
@@ -964,7 +970,9 @@ class TestTaskLifecycle:
 
         # Verify invalid transitions
         assert not can_transition("published", "completed")  # Can't skip to completed
-        assert not can_transition("completed", "published")  # Can't go back from terminal
+        assert not can_transition(
+            "completed", "published"
+        )  # Can't go back from terminal
         assert not can_transition("cancelled", "published")  # Cancelled is terminal
 
 

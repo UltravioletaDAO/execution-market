@@ -14,10 +14,10 @@ from .manager import RewardsManager
 from .converters import PointsConverter, TokenConverter
 
 __all__ = [
-    'RewardType',
-    'RewardConfig',
-    'Reward',
-    'RewardsManager',
-    'PointsConverter',
-    'TokenConverter'
+    "RewardType",
+    "RewardConfig",
+    "Reward",
+    "RewardsManager",
+    "PointsConverter",
+    "TokenConverter",
 ]

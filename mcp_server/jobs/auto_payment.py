@@ -16,7 +16,7 @@ import logging
 import os
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional, Dict, Any
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,9 @@ def _is_probable_x402_header(value: Optional[str]) -> bool:
     return len(v) > 64 and (v.startswith("eyJ") or v.startswith("{"))
 
 
-def _resolve_payment_header(task_id: Optional[str], task_escrow_tx: Optional[str]) -> Optional[str]:
+def _resolve_payment_header(
+    task_id: Optional[str], task_escrow_tx: Optional[str]
+) -> Optional[str]:
     """
     Resolve the original x402 X-Payment header for settlement retry.
 
@@ -57,6 +59,7 @@ def _resolve_payment_header(task_id: Optional[str], task_escrow_tx: Optional[str
 
     try:
         from supabase_client import get_client
+
         client = get_client()
         escrow_result = (
             client.table("escrows")
@@ -86,7 +89,9 @@ async def _fetch_orphaned_submissions(client) -> list:
     try:
         result = (
             client.table("submissions")
-            .select("id, task_id, executor_id, agent_verdict, payment_tx, retry_count, task:tasks(id, bounty_usd, escrow_tx, escrow_id, status), executor:executors(id, wallet_address)")
+            .select(
+                "id, task_id, executor_id, agent_verdict, payment_tx, retry_count, task:tasks(id, bounty_usd, escrow_tx, escrow_id, status), executor:executors(id, wallet_address)"
+            )
             .in_("agent_verdict", ["accepted", "approved"])
             .is_("payment_tx", "null")
             .order("updated_at", desc=False)
@@ -100,7 +105,9 @@ async def _fetch_orphaned_submissions(client) -> list:
             try:
                 result = (
                     client.table("submissions")
-                    .select("id, task_id, executor_id, agent_verdict, payment_tx, task:tasks(id, bounty_usd, escrow_tx, escrow_id, status), executor:executors(id, wallet_address)")
+                    .select(
+                        "id, task_id, executor_id, agent_verdict, payment_tx, task:tasks(id, bounty_usd, escrow_tx, escrow_id, status), executor:executors(id, wallet_address)"
+                    )
                     .in_("agent_verdict", ["accepted", "approved"])
                     .is_("payment_tx", "null")
                     .order("updated_at", desc=False)
@@ -109,7 +116,9 @@ async def _fetch_orphaned_submissions(client) -> list:
                 )
                 return result.data or []
             except Exception as fallback_err:
-                logger.error("[payment-retry] Fallback query also failed: %s", fallback_err)
+                logger.error(
+                    "[payment-retry] Fallback query also failed: %s", fallback_err
+                )
                 return []
         logger.error("[payment-retry] Failed to fetch orphaned submissions: %s", err)
         return []
@@ -143,11 +152,16 @@ async def _retry_settlement(client, submission: dict) -> bool:
     bounty = Decimal(str(task.get("bounty_usd", 0)))
 
     if bounty <= 0:
-        logger.warning("[payment-retry] Submission %s has zero bounty, skipping", submission_id)
+        logger.warning(
+            "[payment-retry] Submission %s has zero bounty, skipping", submission_id
+        )
         return False
 
     if not worker_address:
-        logger.warning("[payment-retry] Submission %s has no worker wallet, skipping", submission_id)
+        logger.warning(
+            "[payment-retry] Submission %s has no worker wallet, skipping",
+            submission_id,
+        )
         return False
 
     # Resolve X-Payment header
@@ -155,13 +169,15 @@ async def _retry_settlement(client, submission: dict) -> bool:
     if not payment_header:
         logger.warning(
             "[payment-retry] No x402 payment header for submission %s (task %s), skipping",
-            submission_id, task_id,
+            submission_id,
+            task_id,
         )
         return False
 
     # Attempt settlement via SDK
     try:
         from integrations.x402.sdk_client import get_sdk, SDK_AVAILABLE
+
         if not SDK_AVAILABLE:
             logger.warning("[payment-retry] x402 SDK not available, skipping")
             return False
@@ -178,7 +194,8 @@ async def _retry_settlement(client, submission: dict) -> bool:
             error = result.get("error", "unknown")
             logger.warning(
                 "[payment-retry] Settlement failed for submission %s: %s",
-                submission_id, error,
+                submission_id,
+                error,
             )
             # Increment retry count if column exists
             _increment_retry_count(client, submission_id)
@@ -208,15 +225,18 @@ async def _retry_settlement(client, submission: dict) -> bool:
         # Update submission with payment data
         now = datetime.now(timezone.utc).isoformat()
         try:
-            client.table("submissions").update({
-                "payment_tx": tx_hash,
-                "payment_amount": round(worker_payout, 6),
-                "paid_at": now,
-            }).eq("id", submission_id).execute()
+            client.table("submissions").update(
+                {
+                    "payment_tx": tx_hash,
+                    "payment_amount": round(worker_payout, 6),
+                    "paid_at": now,
+                }
+            ).eq("id", submission_id).execute()
         except Exception as update_err:
             logger.warning(
                 "[payment-retry] Could not update submission %s paid fields: %s",
-                submission_id, update_err,
+                submission_id,
+                update_err,
             )
 
         # Try to persist payment record (best effort, table may not exist)
@@ -234,7 +254,10 @@ async def _retry_settlement(client, submission: dict) -> bool:
 
         logger.info(
             "[payment-retry] Settlement OK: submission=%s, task=%s, tx=%s, net=%.2f",
-            submission_id, task_id, tx_hash, worker_payout,
+            submission_id,
+            task_id,
+            tx_hash,
+            worker_payout,
         )
         return True
 
@@ -244,7 +267,8 @@ async def _retry_settlement(client, submission: dict) -> bool:
     except Exception as exc:
         logger.error(
             "[payment-retry] Unexpected error settling submission %s: %s",
-            submission_id, exc,
+            submission_id,
+            exc,
         )
         _increment_retry_count(client, submission_id)
         return False
@@ -254,13 +278,21 @@ def _increment_retry_count(client, submission_id: str) -> None:
     """Best-effort increment of retry_count on submissions (column may not exist)."""
     try:
         # Fetch current count
-        result = client.table("submissions").select("retry_count").eq("id", submission_id).limit(1).execute()
+        result = (
+            client.table("submissions")
+            .select("retry_count")
+            .eq("id", submission_id)
+            .limit(1)
+            .execute()
+        )
         current = 0
         if result.data:
             current = result.data[0].get("retry_count") or 0
-        client.table("submissions").update({
-            "retry_count": current + 1,
-        }).eq("id", submission_id).execute()
+        client.table("submissions").update(
+            {
+                "retry_count": current + 1,
+            }
+        ).eq("id", submission_id).execute()
     except Exception:
         pass  # Column may not exist yet
 
@@ -311,7 +343,8 @@ async def run_auto_payment_loop() -> None:
     """
     logger.info(
         "[payment-retry] Payment retry job started (interval=%ds, batch=%d)",
-        RETRY_INTERVAL, MAX_BATCH,
+        RETRY_INTERVAL,
+        MAX_BATCH,
     )
 
     from supabase_client import get_client
@@ -348,7 +381,8 @@ async def run_auto_payment_loop() -> None:
                 if settled > 0:
                     logger.info(
                         "[payment-retry] Settled %d/%d orphaned submissions",
-                        settled, len(orphaned),
+                        settled,
+                        len(orphaned),
                     )
             else:
                 logger.debug("[payment-retry] No orphaned submissions")

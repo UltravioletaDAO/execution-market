@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 # x402 SDK (facilitator-backed, gasless)
 try:
     from integrations.x402.sdk_client import get_sdk, SDK_AVAILABLE
+
     X402_SDK_AVAILABLE = SDK_AVAILABLE
 except ImportError:
     X402_SDK_AVAILABLE = False
@@ -34,6 +35,7 @@ router = APIRouter(prefix="/api/v1/escrow", tags=["Escrow"])
 
 class EscrowConfigResponse(BaseModel):
     """x402r escrow configuration."""
+
     available: bool
     network: str
     chain_id: int
@@ -47,6 +49,7 @@ class EscrowConfigResponse(BaseModel):
 
 class DepositResponse(BaseModel):
     """Information about a deposit in escrow."""
+
     deposit_id: str
     payer: str
     merchant: str
@@ -58,6 +61,7 @@ class DepositResponse(BaseModel):
 
 class BalanceResponse(BaseModel):
     """Merchant balance in escrow."""
+
     merchant: str
     balance_usdc: str
     network: str
@@ -65,36 +69,33 @@ class BalanceResponse(BaseModel):
 
 class ReleaseRequest(BaseModel):
     """Request to release funds from escrow."""
+
     deposit_id: str = Field(
         ...,
         min_length=64,
         max_length=66,
-        description="Deposit ID (bytes32 hex, with or without 0x prefix)"
+        description="Deposit ID (bytes32 hex, with or without 0x prefix)",
     )
     worker_address: str = Field(
-        ...,
-        min_length=40,
-        max_length=42,
-        description="Worker's wallet address"
+        ..., min_length=40, max_length=42, description="Worker's wallet address"
     )
-    amount: str = Field(
-        ...,
-        description="Amount to release in USDC (e.g., '10.00')"
-    )
+    amount: str = Field(..., description="Amount to release in USDC (e.g., '10.00')")
 
 
 class RefundRequest(BaseModel):
     """Request to refund funds to original payer."""
+
     deposit_id: str = Field(
         ...,
         min_length=64,
         max_length=66,
-        description="Deposit ID (bytes32 hex, with or without 0x prefix)"
+        description="Deposit ID (bytes32 hex, with or without 0x prefix)",
     )
 
 
 class ReleaseResponse(BaseModel):
     """Result of release operation."""
+
     success: bool
     tx_hash: Optional[str] = None
     deposit_id: str
@@ -105,6 +106,7 @@ class ReleaseResponse(BaseModel):
 
 class RefundResponse(BaseModel):
     """Result of refund operation."""
+
     success: bool
     tx_hash: Optional[str] = None
     deposit_id: str
@@ -115,6 +117,7 @@ class RefundResponse(BaseModel):
 
 class PaymentExtensionResponse(BaseModel):
     """x402r payment extension for agents."""
+
     refund: Dict[str, Any]
 
 
@@ -128,7 +131,7 @@ class PaymentExtensionResponse(BaseModel):
     response_model=EscrowConfigResponse,
     responses={
         200: {"description": "Escrow configuration"},
-    }
+    },
 )
 async def get_escrow_config() -> EscrowConfigResponse:
     """
@@ -154,7 +157,7 @@ async def get_escrow_config() -> EscrowConfigResponse:
     responses={
         200: {"description": "Payment extension for x402"},
         503: {"description": "Escrow not configured"},
-    }
+    },
 )
 async def get_payment_extension() -> PaymentExtensionResponse:
     """
@@ -191,15 +194,12 @@ async def get_payment_extension() -> PaymentExtensionResponse:
         200: {"description": "Deposit info"},
         404: {"description": "Deposit not found"},
         503: {"description": "Escrow not available"},
-    }
+    },
 )
 async def get_deposit(
     deposit_id: str = Path(
-        ...,
-        min_length=64,
-        max_length=66,
-        description="Deposit ID (bytes32 hex)"
-    )
+        ..., min_length=64, max_length=66, description="Deposit ID (bytes32 hex)"
+    ),
 ) -> DepositResponse:
     """
     Get information about a deposit in escrow.
@@ -219,13 +219,12 @@ async def get_deposit(
     responses={
         200: {"description": "Merchant balance"},
         503: {"description": "Escrow not available"},
-    }
+    },
 )
 async def get_merchant_balance(
     merchant: Optional[str] = Query(
-        None,
-        description="Merchant address (defaults to Execution Market's address)"
-    )
+        None, description="Merchant address (defaults to Execution Market's address)"
+    ),
 ) -> BalanceResponse:
     """
     Get the USDC balance held in escrow for a merchant.
@@ -256,8 +255,7 @@ async def get_merchant_balance(
     deprecated=True,
 )
 async def release_to_worker(
-    request: ReleaseRequest,
-    api_key: APIKeyData = Depends(verify_api_key)
+    request: ReleaseRequest, api_key: APIKeyData = Depends(verify_api_key)
 ) -> ReleaseResponse:
     """
     Release escrowed funds to a worker.
@@ -280,11 +278,10 @@ async def release_to_worker(
         200: {"description": "Refund executed"},
         401: {"description": "Unauthorized"},
         503: {"description": "Escrow not available"},
-    }
+    },
 )
 async def refund_to_agent(
-    request: RefundRequest,
-    api_key: APIKeyData = Depends(verify_api_key)
+    request: RefundRequest, api_key: APIKeyData = Depends(verify_api_key)
 ) -> RefundResponse:
     """
     Refund escrowed funds to the original payer (agent).
@@ -316,8 +313,11 @@ async def refund_to_agent(
 
         logger.info(
             "Refund via %s by %s: deposit=%s, success=%s, tx=%s",
-            method, api_key.agent_id, request.deposit_id[:16],
-            success, tx_hash,
+            method,
+            api_key.agent_id,
+            request.deposit_id[:16],
+            success,
+            tx_hash,
         )
 
         return RefundResponse(
@@ -331,6 +331,7 @@ async def refund_to_agent(
     except Exception as sdk_err:
         logger.error(
             "SDK refund failed for deposit %s: %s",
-            request.deposit_id[:16], sdk_err,
+            request.deposit_id[:16],
+            sdk_err,
         )
         raise HTTPException(status_code=500, detail=f"Refund failed: {sdk_err}")

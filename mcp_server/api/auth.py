@@ -12,8 +12,7 @@ from typing import Optional
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, Header, Request, Depends
-from pydantic import BaseModel
+from fastapi import HTTPException, Header
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class APIKeyData:
     """Validated API key data."""
+
     key_hash: str
     agent_id: str
     tier: str
@@ -32,6 +32,7 @@ class APIKeyData:
 
 class APITier:
     """API tier constants."""
+
     FREE = "free"
     STARTER = "starter"
     GROWTH = "growth"
@@ -47,6 +48,7 @@ _api_key_cache_timestamps: dict[str, float] = {}
 def _is_cache_entry_valid(key_hash: str) -> bool:
     """Check if a cache entry is still within its TTL."""
     import time
+
     cached_at = _api_key_cache_timestamps.get(key_hash)
     if cached_at is None:
         return False
@@ -54,7 +56,7 @@ def _is_cache_entry_valid(key_hash: str) -> bool:
 
 
 async def verify_api_key(
-    authorization: str = Header(..., description="Bearer token with API key")
+    authorization: str = Header(..., description="Bearer token with API key"),
 ) -> APIKeyData:
     """
     Verify API key from Authorization header.
@@ -72,14 +74,14 @@ async def verify_api_key(
         raise HTTPException(
             status_code=401,
             detail="Authorization header required",
-            headers={"WWW-Authenticate": "Bearer"}
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     if not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=401,
             detail="Invalid authorization header format. Use: Bearer <api_key>",
-            headers={"WWW-Authenticate": "Bearer"}
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     api_key = authorization[7:].strip()
@@ -88,15 +90,12 @@ async def verify_api_key(
         raise HTTPException(
             status_code=401,
             detail="API key is empty",
-            headers={"WWW-Authenticate": "Bearer"}
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # Validate key format (should be em_<tier>_<random>)
     if not _is_valid_key_format(api_key):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid API key format"
-        )
+        raise HTTPException(status_code=401, detail="Invalid API key format")
 
     # Check cache first (with TTL)
     key_hash = _hash_key(api_key)
@@ -106,10 +105,7 @@ async def verify_api_key(
             cached.last_used = datetime.now(timezone.utc)
             return cached
         else:
-            raise HTTPException(
-                status_code=401,
-                detail="API key has been revoked"
-            )
+            raise HTTPException(status_code=401, detail="API key has been revoked")
     elif key_hash in _api_key_cache and not _is_cache_entry_valid(key_hash):
         # TTL expired, remove stale entry
         del _api_key_cache[key_hash]
@@ -119,13 +115,11 @@ async def verify_api_key(
     key_data = await _validate_key_from_db(api_key, key_hash)
 
     if not key_data or not key_data.is_valid:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired API key"
-        )
+        raise HTTPException(status_code=401, detail="Invalid or expired API key")
 
     # Cache the validated key with TTL
     import time
+
     _api_key_cache[key_hash] = key_data
     _api_key_cache_timestamps[key_hash] = time.time()
 
@@ -133,7 +127,7 @@ async def verify_api_key(
 
 
 async def verify_api_key_optional(
-    authorization: Optional[str] = Header(None, description="Optional Bearer token")
+    authorization: Optional[str] = Header(None, description="Optional Bearer token"),
 ) -> Optional[APIKeyData]:
     """
     Optionally verify API key (for public endpoints with optional auth).
@@ -185,7 +179,7 @@ def _is_valid_key_format(api_key: str) -> bool:
 
     for prefix in valid_prefixes:
         if api_key.startswith(prefix):
-            suffix = api_key[len(prefix):]
+            suffix = api_key[len(prefix) :]
             return len(suffix) >= 32
 
     return False
@@ -209,9 +203,15 @@ async def _validate_key_from_db(api_key: str, key_hash: str) -> Optional[APIKeyD
         client = get_client()
 
         # Query by hash for security
-        result = client.table("api_keys").select(
-            "id, agent_id, tier, organization_id, is_active, created_at, last_used_at"
-        ).eq("key_hash", key_hash).single().execute()
+        result = (
+            client.table("api_keys")
+            .select(
+                "id, agent_id, tier, organization_id, is_active, created_at, last_used_at"
+            )
+            .eq("key_hash", key_hash)
+            .single()
+            .execute()
+        )
 
         if not result.data:
             logger.warning("API key not found in database")
@@ -224,9 +224,9 @@ async def _validate_key_from_db(api_key: str, key_hash: str) -> Optional[APIKeyD
             return None
 
         # Update last_used_at
-        client.table("api_keys").update({
-            "last_used_at": datetime.now(timezone.utc).isoformat()
-        }).eq("id", data["id"]).execute()
+        client.table("api_keys").update(
+            {"last_used_at": datetime.now(timezone.utc).isoformat()}
+        ).eq("id", data["id"]).execute()
 
         return APIKeyData(
             key_hash=key_hash,
@@ -234,16 +234,20 @@ async def _validate_key_from_db(api_key: str, key_hash: str) -> Optional[APIKeyD
             tier=data.get("tier", APITier.FREE),
             organization_id=data.get("organization_id"),
             is_valid=True,
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
-            last_used=datetime.now(timezone.utc)
+            created_at=datetime.fromisoformat(data["created_at"])
+            if data.get("created_at")
+            else None,
+            last_used=datetime.now(timezone.utc),
         )
 
     except Exception as e:
         logger.error("Error validating API key: %s", str(e))
 
         # In development, allow keys matching pattern without DB (requires explicit opt-in)
-        if (os.environ.get("ENVIRONMENT") == "development"
-                and os.environ.get("DEV_ALLOW_FAKE_KEYS") == "true"):
+        if (
+            os.environ.get("ENVIRONMENT") == "development"
+            and os.environ.get("DEV_ALLOW_FAKE_KEYS") == "true"
+        ):
             logger.warning("Dev mode: using fake key validation (DB unavailable)")
             return _dev_validate_key(api_key, key_hash)
 
@@ -281,7 +285,7 @@ def _dev_validate_key(api_key: str, key_hash: str) -> Optional[APIKeyData]:
         tier=tier,
         is_valid=True,
         created_at=datetime.now(timezone.utc),
-        last_used=datetime.now(timezone.utc)
+        last_used=datetime.now(timezone.utc),
     )
 
 

@@ -37,7 +37,7 @@ from typing import Optional, Dict, Any
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger(__name__)
 
@@ -87,10 +87,7 @@ class Config:
     """Configuration with environment variable support."""
 
     # API endpoint (production by default)
-    API_BASE = os.environ.get(
-        "EM_API_URL",
-        "https://api.execution.market"
-    )
+    API_BASE = os.environ.get("EM_API_URL", "https://api.execution.market")
 
     # AWS Secrets Manager
     SECRETS_NAME = os.environ.get("EM_SECRETS_NAME", "em/test-agent")
@@ -98,8 +95,7 @@ class Config:
 
     # x402 facilitator
     FACILITATOR_URL = os.environ.get(
-        "X402_FACILITATOR_URL",
-        "https://facilitator.ultravioletadao.xyz"
+        "X402_FACILITATOR_URL", "https://facilitator.ultravioletadao.xyz"
     )
 
     # Supported networks
@@ -193,12 +189,12 @@ async def discover_em(client) -> Dict[str, Any]:
         agent_card = response.json()
         logger.info(f"[DISCOVERY] Found: {agent_card['name']}")
 
-        description = agent_card.get('description', '')
+        description = agent_card.get("description", "")
         if len(description) > 100:
             description = description[:100] + "..."
         logger.info(f"[DISCOVERY] Description: {description}")
 
-        capabilities = agent_card.get('capabilities', [])
+        capabilities = agent_card.get("capabilities", [])
         logger.info(f"[DISCOVERY] Capabilities: {len(capabilities)}")
 
         for cap in capabilities[:3]:
@@ -214,10 +210,7 @@ async def discover_em(client) -> Dict[str, Any]:
 
 
 async def generate_payment_header(
-    private_key: str,
-    amount_usd: Decimal,
-    network: str = "base",
-    token: str = "USDC"
+    private_key: str, amount_usd: Decimal, network: str = "base", token: str = "USDC"
 ) -> str:
     """
     Generate x402 payment header.
@@ -234,12 +227,12 @@ async def generate_payment_header(
     Returns:
         x402 payment header string
     """
-    logger.info(f"[PAYMENT] Generating x402 payment...")
+    logger.info("[PAYMENT] Generating x402 payment...")
     logger.info(f"[PAYMENT] Amount: ${amount_usd}")
     logger.info(f"[PAYMENT] Network: {network}, Token: {token}")
 
     try:
-        from uvd_x402_sdk import X402Client, PaymentParams
+        from uvd_x402_sdk import X402Client
     except ImportError:
         logger.warning("[PAYMENT] uvd-x402-sdk not installed, using mock payment")
         return "mock_payment_header_for_testing"
@@ -248,13 +241,13 @@ async def generate_payment_header(
         x402 = X402Client(
             private_key=private_key,  # Never logged
             network=network,
-            facilitator_url=Config.FACILITATOR_URL
+            facilitator_url=Config.FACILITATOR_URL,
         )
 
         payment_header = await x402.create_payment(
             amount_usd=float(amount_usd),
             token=token,
-            description=f"Execution Market task payment: ${amount_usd}"
+            description=f"Execution Market task payment: ${amount_usd}",
         )
 
         logger.info(f"[PAYMENT] Header generated (length: {len(payment_header)})")
@@ -272,7 +265,7 @@ async def create_task(
     api_key: str,
     bounty_usd: Decimal,
     payment_header: str,
-    deadline_hours: int = 1
+    deadline_hours: int = 1,
 ) -> Dict[str, Any]:
     """
     Create a task with real payment.
@@ -309,7 +302,7 @@ upon successful verification of the response.
         "category": "simple_action",
         "bounty_usd": float(bounty_usd),
         "deadline_hours": deadline_hours,
-        "evidence_required": ["text_response"]
+        "evidence_required": ["text_response"],
     }
 
     try:
@@ -318,22 +311,24 @@ upon successful verification of the response.
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "X-Payment": payment_header,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
-            json=task_data
+            json=task_data,
         )
 
         if response.status_code == 402:
             error_data = response.json()
-            logger.error(f"[CREATE] Payment Required (402)")
+            logger.error("[CREATE] Payment Required (402)")
             logger.error(f"[CREATE] Error: {error_data.get('message', 'Unknown')}")
-            logger.error(f"[CREATE] Required: ${error_data.get('required_amount_usd', '?')}")
+            logger.error(
+                f"[CREATE] Required: ${error_data.get('required_amount_usd', '?')}"
+            )
             raise ValueError("Payment not accepted - check balance and amount")
 
         response.raise_for_status()
         task = response.json()
 
-        logger.info(f"[CREATE] Task created successfully!")
+        logger.info("[CREATE] Task created successfully!")
         logger.info(f"[CREATE] Task ID: {task['id']}")
         logger.info(f"[CREATE] Status: {task.get('status', 'unknown')}")
         logger.info(f"[CREATE] Escrow ID: {task.get('escrow_id', 'N/A')}")
@@ -349,7 +344,7 @@ async def monitor_task(
     api_key: str,
     task_id: str,
     timeout_minutes: int = 65,
-    poll_interval: int = 10
+    poll_interval: int = 10,
 ) -> Optional[Dict[str, Any]]:
     """
     Monitor task until submission or timeout.
@@ -379,7 +374,7 @@ async def monitor_task(
         try:
             response = await client.get(
                 f"{Config.API_BASE}/api/v1/tasks/{task_id}",
-                headers={"Authorization": f"Bearer {api_key}"}
+                headers={"Authorization": f"Bearer {api_key}"},
             )
             response.raise_for_status()
             task = response.json()
@@ -388,7 +383,7 @@ async def monitor_task(
             logger.info(f"[MONITOR] {elapsed:.1f}m - Status: {status}")
 
             if status == "submitted":
-                logger.info(f"[MONITOR] Submission received!")
+                logger.info("[MONITOR] Submission received!")
                 return task
 
             if status in ["completed", "expired", "cancelled"]:
@@ -402,15 +397,13 @@ async def monitor_task(
 
 
 async def get_submissions(
-    client,
-    api_key: str,
-    task_id: str
+    client, api_key: str, task_id: str
 ) -> Optional[Dict[str, Any]]:
     """Get submissions for a task."""
     try:
         response = await client.get(
             f"{Config.API_BASE}/api/v1/tasks/{task_id}/submissions",
-            headers={"Authorization": f"Bearer {api_key}"}
+            headers={"Authorization": f"Bearer {api_key}"},
         )
         response.raise_for_status()
         return response.json()
@@ -424,7 +417,7 @@ async def approve_submission(
     api_key: str,
     task_id: str,
     submission_id: str,
-    notes: str = "Automated test approval"
+    notes: str = "Automated test approval",
 ) -> Optional[Dict[str, Any]]:
     """
     Approve a submission and release payment.
@@ -446,14 +439,14 @@ async def approve_submission(
             f"{Config.API_BASE}/api/v1/submissions/{submission_id}/approve",
             headers={
                 "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
-            json={"notes": notes}
+            json={"notes": notes},
         )
         response.raise_for_status()
         result = response.json()
 
-        logger.info(f"[APPROVE] Approved successfully!")
+        logger.info("[APPROVE] Approved successfully!")
         if "worker_payment" in result:
             logger.info(f"[APPROVE] Worker payment: ${result['worker_payment']}")
         if "platform_fee" in result:
@@ -469,11 +462,7 @@ async def approve_submission(
 
 
 async def run_simulation(
-    bounty: float,
-    network: str,
-    token: str,
-    wait_for_submission: bool,
-    dry_run: bool
+    bounty: float, network: str, token: str, wait_for_submission: bool, dry_run: bool
 ) -> None:
     """
     Run the full agent simulation.
@@ -512,7 +501,7 @@ async def run_simulation(
     async with httpx.AsyncClient(timeout=30.0) as client:
         # 1. Discovery
         try:
-            agent_card = await discover_em(client)
+            await discover_em(client)
         except Exception as e:
             logger.error(f"Discovery failed: {e}")
             return
@@ -531,7 +520,7 @@ async def run_simulation(
                     private_key=private_key,
                     amount_usd=total,
                     network=network,
-                    token=token
+                    token=token,
                 )
             except Exception as e:
                 logger.error(f"Payment generation failed: {e}")
@@ -544,7 +533,7 @@ async def run_simulation(
                 api_key=api_key,
                 bounty_usd=Decimal(str(bounty)),
                 payment_header=payment_header,
-                deadline_hours=1
+                deadline_hours=1,
             )
             task_id = task["id"]
         except Exception as e:
@@ -552,16 +541,13 @@ async def run_simulation(
             return
 
         # 4. Output task URL
-        logger.info(f"\n[INFO] Task created successfully!")
+        logger.info("\n[INFO] Task created successfully!")
         logger.info(f"[INFO] Task URL: {Config.API_BASE}/api/v1/tasks/{task_id}")
 
         if wait_for_submission:
             # 5. Monitor for submission
             task = await monitor_task(
-                client=client,
-                api_key=api_key,
-                task_id=task_id,
-                timeout_minutes=65
+                client=client, api_key=api_key, task_id=task_id, timeout_minutes=65
             )
 
             if task and task.get("status") == "submitted":
@@ -574,14 +560,16 @@ async def run_simulation(
 
                     # Log evidence (sanitized)
                     evidence = submission.get("evidence", {})
-                    logger.info(f"[EVIDENCE] Text response: {evidence.get('text_response', 'N/A')[:100]}")
+                    logger.info(
+                        f"[EVIDENCE] Text response: {evidence.get('text_response', 'N/A')[:100]}"
+                    )
 
                     # 7. Approve
-                    result = await approve_submission(
+                    await approve_submission(
                         client=client,
                         api_key=api_key,
                         task_id=task_id,
-                        submission_id=submission_id
+                        submission_id=submission_id,
                     )
         else:
             logger.info("\n[INFO] --wait-for-submission not set")
@@ -617,44 +605,39 @@ Environment Variables:
 Security:
     Private keys are loaded from AWS Secrets Manager and NEVER logged.
     All sensitive data is masked in output.
-        """
+        """,
     )
 
     parser.add_argument(
         "--bounty",
         type=float,
         default=0.25,
-        help="Bounty amount in USD (default: 0.25, minimum)"
+        help="Bounty amount in USD (default: 0.25, minimum)",
     )
     parser.add_argument(
         "--network",
         type=str,
         default="base",
         choices=Config.SUPPORTED_NETWORKS,
-        help="Payment network (default: base)"
+        help="Payment network (default: base)",
     )
     parser.add_argument(
         "--token",
         type=str,
         default="USDC",
         choices=Config.SUPPORTED_TOKENS,
-        help="Payment token (default: USDC)"
+        help="Payment token (default: USDC)",
     )
     parser.add_argument(
         "--wait-for-submission",
         action="store_true",
-        help="Wait for worker submission before exiting"
+        help="Wait for worker submission before exiting",
     )
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Run without real payments (test mode)"
+        "--dry-run", action="store_true", help="Run without real payments (test mode)"
     )
     parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Enable verbose logging"
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
 
     args = parser.parse_args()
@@ -670,17 +653,19 @@ Security:
     if args.bounty > 100 and not args.dry_run:
         logger.warning(f"Large bounty (${args.bounty}). Use --dry-run for testing.")
         response = input("Continue? [y/N] ")
-        if response.lower() != 'y':
+        if response.lower() != "y":
             sys.exit(0)
 
     # Run simulation
-    asyncio.run(run_simulation(
-        bounty=args.bounty,
-        network=args.network,
-        token=args.token,
-        wait_for_submission=args.wait_for_submission,
-        dry_run=args.dry_run
-    ))
+    asyncio.run(
+        run_simulation(
+            bounty=args.bounty,
+            network=args.network,
+            token=args.token,
+            wait_for_submission=args.wait_for_submission,
+            dry_run=args.dry_run,
+        )
+    )
 
 
 if __name__ == "__main__":

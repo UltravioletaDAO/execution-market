@@ -10,10 +10,8 @@ from datetime import datetime, timezone, timedelta
 from ..security.fraud_detection import (
     FraudDetector,
     FraudSignal,
-    FraudAlert,
     RiskLevel,
     FraudConfig,
-    EntityProfile,
     TaskRecord,
 )
 
@@ -356,9 +354,7 @@ class TestRiskScoring:
         detector.check_multi_device("worker_1", "device_b")  # Alert
 
         detector.check_new_account_risk(
-            "worker_1",
-            100.0,
-            datetime.now(timezone.utc) - timedelta(days=2)
+            "worker_1", 100.0, datetime.now(timezone.utc) - timedelta(days=2)
         )  # Another alert
 
         level, reasons, score = detector.get_risk_score("worker_1")
@@ -402,9 +398,7 @@ class TestAlertManagement:
         alert = detector.check_multi_device("worker_1", "device_b")
 
         success = detector.resolve_alert(
-            alert.id,
-            "Legitimate use - user has multiple phones",
-            "admin_123"
+            alert.id, "Legitimate use - user has multiple phones", "admin_123"
         )
 
         assert success is True

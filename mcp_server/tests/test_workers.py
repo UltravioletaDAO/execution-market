@@ -10,23 +10,18 @@ Tests covering:
 
 import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock
 
 from workers.probation import (
     WorkerTier,
-    ProbationStatus,
     ProbationConfig,
     ProbationManager,
 )
 from workers.recovery import (
     RecoveryStatus,
-    RecoveryPath,
     RecoveryConfig,
     RecoveryManager,
 )
 from workers.premiums import (
-    PremiumType,
-    PremiumConfig,
     PremiumCalculator,
     calculate_task_premium,
 )
@@ -34,7 +29,6 @@ from workers.categories import (
     ExpertiseLevel,
     Modality,
     EquipmentType,
-    WorkerProfile,
     GeoLocation,
     CategoryFilter,
     CategoryManager,
@@ -76,15 +70,13 @@ class TestProbationManager:
         """Probation workers cannot accept high-value tasks."""
         # Should be eligible for low-value task
         eligibility = await manager.check_task_eligibility(
-            "probation_worker",
-            task_value=3.00
+            "probation_worker", task_value=3.00
         )
         assert eligibility.eligible is True
 
         # Should not be eligible for high-value task
         eligibility = await manager.check_task_eligibility(
-            "probation_worker",
-            task_value=50.00
+            "probation_worker", task_value=50.00
         )
         assert eligibility.eligible is False
         assert "Maximum task value" in eligibility.reason
@@ -93,8 +85,7 @@ class TestProbationManager:
     async def test_probation_extra_verification(self, manager):
         """Probation workers should have extra verification requirements."""
         eligibility = await manager.check_task_eligibility(
-            "probation_worker",
-            task_value=3.00
+            "probation_worker", task_value=3.00
         )
 
         assert eligibility.eligible is True
@@ -108,10 +99,7 @@ class TestProbationManager:
 
         # Complete a task
         status = await manager.record_task_completion(
-            worker_id=worker_id,
-            task_id="task_1",
-            rating=4.5,
-            task_value=3.00
+            worker_id=worker_id, task_id="task_1", rating=4.5, task_value=3.00
         )
 
         assert status.tasks_completed == 1
@@ -121,9 +109,9 @@ class TestProbationManager:
         for i in range(9):
             status = await manager.record_task_completion(
                 worker_id=worker_id,
-                task_id=f"task_{i+2}",
+                task_id=f"task_{i + 2}",
                 rating=4.0,
-                task_value=4.00
+                task_value=4.00,
             )
 
         # Should now have 10 tasks
@@ -137,10 +125,7 @@ class TestProbationManager:
         # Complete 10 tasks with good ratings
         for i in range(10):
             await manager.record_task_completion(
-                worker_id=worker_id,
-                task_id=f"task_{i}",
-                rating=4.5,
-                task_value=4.00
+                worker_id=worker_id, task_id=f"task_{i}", rating=4.5, task_value=4.00
             )
 
         status = await manager.get_status(worker_id)
@@ -151,9 +136,7 @@ class TestProbationManager:
 
         # Verify identity
         status = await manager.record_identity_verification(
-            worker_id=worker_id,
-            verified=True,
-            verification_method="passport"
+            worker_id=worker_id, verified=True, verification_method="passport"
         )
 
         # Should now graduate to standard
@@ -168,10 +151,7 @@ class TestProbationManager:
         # Complete 5 tasks with terrible ratings
         for i in range(5):
             await manager.record_task_completion(
-                worker_id=worker_id,
-                task_id=f"task_{i}",
-                rating=1.5,
-                task_value=3.00
+                worker_id=worker_id, task_id=f"task_{i}", rating=1.5, task_value=3.00
             )
 
         status = await manager.get_status(worker_id)
@@ -226,7 +206,7 @@ class TestRecoveryManager:
         path = await manager.initiate_recovery(
             worker_id="suspended_worker",
             suspension_reason="Too many disputes",
-            suspension_date=datetime.now(timezone.utc) - timedelta(days=7)
+            suspension_date=datetime.now(timezone.utc) - timedelta(days=7),
         )
 
         assert path.status == RecoveryStatus.COOLOFF
@@ -240,7 +220,7 @@ class TestRecoveryManager:
         await manager.initiate_recovery(
             worker_id="double_recovery",
             suspension_reason="Test",
-            suspension_date=datetime.now(timezone.utc)
+            suspension_date=datetime.now(timezone.utc),
         )
 
         # Second attempt should check eligibility and fail
@@ -254,7 +234,7 @@ class TestRecoveryManager:
         path = await fast_manager.initiate_recovery(
             worker_id="cooloff_worker",
             suspension_reason="Test",
-            suspension_date=datetime.now(timezone.utc)
+            suspension_date=datetime.now(timezone.utc),
         )
 
         # Initially in cooloff
@@ -275,7 +255,7 @@ class TestRecoveryManager:
         path = await manager.initiate_recovery(
             worker_id="verify_worker",
             suspension_reason="Test",
-            suspension_date=datetime.now(timezone.utc)
+            suspension_date=datetime.now(timezone.utc),
         )
 
         # Advance past cooloff
@@ -286,7 +266,7 @@ class TestRecoveryManager:
         updated = await manager.record_identity_verification(
             worker_id="verify_worker",
             verified=True,
-            verification_method="drivers_license"
+            verification_method="drivers_license",
         )
 
         assert updated.identity_reverified is True
@@ -298,14 +278,14 @@ class TestRecoveryManager:
         await manager.initiate_recovery(
             worker_id="reject_worker",
             suspension_reason="Fraud",
-            suspension_date=datetime.now(timezone.utc)
+            suspension_date=datetime.now(timezone.utc),
         )
 
         # Reject
         path = await manager.reject_recovery(
             worker_id="reject_worker",
             rejected_by="admin_1",
-            reason="Evidence of repeated fraud"
+            reason="Evidence of repeated fraud",
         )
 
         assert path.status == RecoveryStatus.REJECTED
@@ -329,9 +309,7 @@ class TestPremiumCalculator:
         work_time = datetime(2026, 1, 27, 14, 0, tzinfo=timezone.utc)
 
         premium = calculator.calculate_premium(
-            base_amount=100.0,
-            work_time=work_time,
-            worker_timezone="UTC"
+            base_amount=100.0, work_time=work_time, worker_timezone="UTC"
         )
 
         assert premium.premium_percentage == 0
@@ -343,9 +321,7 @@ class TestPremiumCalculator:
         work_time = datetime(2026, 1, 24, 14, 0, tzinfo=timezone.utc)
 
         premium = calculator.calculate_premium(
-            base_amount=100.0,
-            work_time=work_time,
-            worker_timezone="UTC"
+            base_amount=100.0, work_time=work_time, worker_timezone="UTC"
         )
 
         assert premium.premium_percentage == 15.0
@@ -358,9 +334,7 @@ class TestPremiumCalculator:
         work_time = datetime(2026, 1, 28, 22, 0, tzinfo=timezone.utc)
 
         premium = calculator.calculate_premium(
-            base_amount=100.0,
-            work_time=work_time,
-            worker_timezone="UTC"
+            base_amount=100.0, work_time=work_time, worker_timezone="UTC"
         )
 
         assert premium.premium_percentage == 25.0
@@ -373,9 +347,7 @@ class TestPremiumCalculator:
         work_time = datetime(2026, 1, 24, 22, 0, tzinfo=timezone.utc)
 
         premium = calculator.calculate_premium(
-            base_amount=100.0,
-            work_time=work_time,
-            worker_timezone="UTC"
+            base_amount=100.0, work_time=work_time, worker_timezone="UTC"
         )
 
         # 15% weekend + 25% night = 40%
@@ -388,9 +360,7 @@ class TestPremiumCalculator:
         work_time = datetime(2026, 12, 25, 14, 0, tzinfo=timezone.utc)
 
         premium = calculator.calculate_premium(
-            base_amount=100.0,
-            work_time=work_time,
-            worker_timezone="UTC"
+            base_amount=100.0, work_time=work_time, worker_timezone="UTC"
         )
 
         assert premium.premium_percentage >= 50.0
@@ -406,7 +376,7 @@ class TestPremiumCalculator:
             base_amount=100.0,
             work_time=work_time,
             worker_timezone="America/Mexico_City",
-            worker_country="MX"
+            worker_country="MX",
         )
 
         # For US worker (not a holiday)
@@ -414,7 +384,7 @@ class TestPremiumCalculator:
             base_amount=100.0,
             work_time=work_time,
             worker_timezone="America/New_York",
-            worker_country="US"
+            worker_country="US",
         )
 
         assert premium_mx.premium_percentage > premium_us.premium_percentage
@@ -423,7 +393,7 @@ class TestPremiumCalculator:
         """Urgent tasks (short deadline) should add premium."""
         premium = calculator.calculate_premium(
             base_amount=100.0,
-            deadline_hours=2  # Very urgent
+            deadline_hours=2,  # Very urgent
         )
 
         assert premium.premium_percentage >= 20.0
@@ -438,7 +408,7 @@ class TestPremiumCalculator:
             base_amount=100.0,
             work_time=work_time,
             deadline_hours=2,
-            demand_multiplier=3.0  # High surge
+            demand_multiplier=3.0,  # High surge
         )
 
         # Should be capped at 100%
@@ -453,13 +423,11 @@ class TestPremiumCalculator:
         premium_mexico = calculator.calculate_premium(
             base_amount=100.0,
             work_time=work_time,
-            worker_timezone="America/Mexico_City"
+            worker_timezone="America/Mexico_City",
         )
 
         premium_utc = calculator.calculate_premium(
-            base_amount=100.0,
-            work_time=work_time,
-            worker_timezone="UTC"
+            base_amount=100.0, work_time=work_time, worker_timezone="UTC"
         )
 
         # UTC should have night premium, Mexico should not
@@ -491,16 +459,11 @@ class TestCategoryManager:
     async def test_create_profile(self, manager):
         """Should create worker profile."""
         location = GeoLocation(
-            country_code="MX",
-            city="Mexico City",
-            latitude=19.4326,
-            longitude=-99.1332
+            country_code="MX", city="Mexico City", latitude=19.4326, longitude=-99.1332
         )
 
         profile = await manager.create_profile(
-            worker_id="new_worker",
-            display_name="Juan Perez",
-            primary_location=location
+            worker_id="new_worker", display_name="Juan Perez", primary_location=location
         )
 
         assert profile.worker_id == "new_worker"
@@ -511,10 +474,7 @@ class TestCategoryManager:
     async def test_add_expertise(self, manager):
         """Should add expertise to profile."""
         # Create profile first
-        await manager.create_profile(
-            worker_id="expert_worker",
-            display_name="Expert"
-        )
+        await manager.create_profile(worker_id="expert_worker", display_name="Expert")
 
         # Add expertise
         profile = await manager.add_expertise(
@@ -522,7 +482,7 @@ class TestCategoryManager:
             expertise_code="content_photo",
             level=ExpertiseLevel.ADVANCED,
             verified=True,
-            verified_by="admin"
+            verified_by="admin",
         )
 
         assert len(profile.expertise) == 1
@@ -540,8 +500,8 @@ class TestCategoryManager:
             equipment=[
                 EquipmentType.SMARTPHONE,
                 EquipmentType.CAMERA_DSLR,
-                EquipmentType.VEHICLE_CAR
-            ]
+                EquipmentType.VEHICLE_CAR,
+            ],
         )
 
         assert len(profile.equipment) == 3
@@ -553,8 +513,7 @@ class TestCategoryManager:
         await manager.create_profile("modal_worker", "Modal Worker")
 
         profile = await manager.set_modalities(
-            worker_id="modal_worker",
-            modalities=[Modality.HYBRID, Modality.MOBILE]
+            worker_id="modal_worker", modalities=[Modality.HYBRID, Modality.MOBILE]
         )
 
         assert Modality.HYBRID in profile.modalities
@@ -566,23 +525,21 @@ class TestCategoryManager:
         # Create workers with different expertise
         await manager.create_profile("photo_worker", "Photographer")
         await manager.add_expertise(
-            "photo_worker",
-            "content_photo",
-            ExpertiseLevel.ADVANCED
+            "photo_worker", "content_photo", ExpertiseLevel.ADVANCED
         )
 
         await manager.create_profile("writer_worker", "Writer")
         await manager.add_expertise(
-            "writer_worker",
-            "content_writing",
-            ExpertiseLevel.INTERMEDIATE
+            "writer_worker", "content_writing", ExpertiseLevel.INTERMEDIATE
         )
 
         # Search for photographers
-        matches = await manager.find_workers(CategoryFilter(
-            required_expertise=["content_photo"],
-            min_expertise_level=ExpertiseLevel.INTERMEDIATE
-        ))
+        matches = await manager.find_workers(
+            CategoryFilter(
+                required_expertise=["content_photo"],
+                min_expertise_level=ExpertiseLevel.INTERMEDIATE,
+            )
+        )
 
         assert len(matches) >= 1
         assert any(m.worker_id == "photo_worker" for m in matches)
@@ -594,20 +551,16 @@ class TestCategoryManager:
         # Create workers in different locations
         await manager.create_profile("mx_worker", "Mexico Worker")
         await manager.update_location(
-            "mx_worker",
-            GeoLocation(country_code="MX", city="Guadalajara")
+            "mx_worker", GeoLocation(country_code="MX", city="Guadalajara")
         )
 
         await manager.create_profile("us_worker", "US Worker")
         await manager.update_location(
-            "us_worker",
-            GeoLocation(country_code="US", city="Los Angeles")
+            "us_worker", GeoLocation(country_code="US", city="Los Angeles")
         )
 
         # Search for Mexican workers
-        matches = await manager.find_workers(CategoryFilter(
-            country_codes=["MX"]
-        ))
+        matches = await manager.find_workers(CategoryFilter(country_codes=["MX"]))
 
         assert len(matches) >= 1
         assert any(m.worker_id == "mx_worker" for m in matches)
@@ -616,21 +569,19 @@ class TestCategoryManager:
     async def test_find_workers_by_equipment(self, manager):
         """Should find workers with required equipment."""
         await manager.create_profile("car_worker", "Driver")
-        await manager.set_equipment("car_worker", [
-            EquipmentType.VEHICLE_CAR,
-            EquipmentType.SMARTPHONE
-        ])
+        await manager.set_equipment(
+            "car_worker", [EquipmentType.VEHICLE_CAR, EquipmentType.SMARTPHONE]
+        )
 
         await manager.create_profile("bike_worker", "Cyclist")
-        await manager.set_equipment("bike_worker", [
-            EquipmentType.VEHICLE_BICYCLE,
-            EquipmentType.SMARTPHONE
-        ])
+        await manager.set_equipment(
+            "bike_worker", [EquipmentType.VEHICLE_BICYCLE, EquipmentType.SMARTPHONE]
+        )
 
         # Search for workers with cars
-        matches = await manager.find_workers(CategoryFilter(
-            required_equipment=[EquipmentType.VEHICLE_CAR]
-        ))
+        matches = await manager.find_workers(
+            CategoryFilter(required_equipment=[EquipmentType.VEHICLE_CAR])
+        )
 
         assert any(m.worker_id == "car_worker" for m in matches)
         assert not any(m.worker_id == "bike_worker" for m in matches)
@@ -641,39 +592,36 @@ class TestCategoryManager:
         # Create a worker with many qualifications
         await manager.create_profile("perfect_worker", "Perfect Match")
         await manager.update_location(
-            "perfect_worker",
-            GeoLocation(country_code="MX", city="Mexico City")
+            "perfect_worker", GeoLocation(country_code="MX", city="Mexico City")
         )
         await manager.add_expertise(
-            "perfect_worker",
-            "content_photo",
-            ExpertiseLevel.ADVANCED
+            "perfect_worker", "content_photo", ExpertiseLevel.ADVANCED
         )
-        await manager.set_equipment("perfect_worker", [
-            EquipmentType.CAMERA_DSLR,
-            EquipmentType.SMARTPHONE
-        ])
+        await manager.set_equipment(
+            "perfect_worker", [EquipmentType.CAMERA_DSLR, EquipmentType.SMARTPHONE]
+        )
 
         # Create a partial match
         await manager.create_profile("partial_worker", "Partial Match")
         await manager.update_location(
-            "partial_worker",
-            GeoLocation(country_code="MX", city="Monterrey")
+            "partial_worker", GeoLocation(country_code="MX", city="Monterrey")
         )
         await manager.add_expertise(
             "partial_worker",
             "content_photo",
-            ExpertiseLevel.NOVICE  # Lower level
+            ExpertiseLevel.NOVICE,  # Lower level
         )
 
         # Search with specific criteria
-        matches = await manager.find_workers(CategoryFilter(
-            country_codes=["MX"],
-            cities=["Mexico City"],
-            required_expertise=["content_photo"],
-            min_expertise_level=ExpertiseLevel.INTERMEDIATE,
-            required_equipment=[EquipmentType.CAMERA_DSLR]
-        ))
+        matches = await manager.find_workers(
+            CategoryFilter(
+                country_codes=["MX"],
+                cities=["Mexico City"],
+                required_expertise=["content_photo"],
+                min_expertise_level=ExpertiseLevel.INTERMEDIATE,
+                required_equipment=[EquipmentType.CAMERA_DSLR],
+            )
+        )
 
         # Perfect worker should score higher
         perfect = next((m for m in matches if m.worker_id == "perfect_worker"), None)
@@ -695,9 +643,7 @@ class TestCategoryManager:
         await manager.add_language("english_worker", "en", "native")
 
         # Search for Spanish speakers
-        matches = await manager.find_workers(CategoryFilter(
-            required_languages=["es"]
-        ))
+        matches = await manager.find_workers(CategoryFilter(required_languages=["es"]))
 
         assert any(m.worker_id == "spanish_worker" for m in matches)
 
@@ -722,15 +668,12 @@ class TestCategoryManager:
 
         # Add location
         await manager.update_location(
-            "complete_worker",
-            GeoLocation(country_code="MX", city="Mexico City")
+            "complete_worker", GeoLocation(country_code="MX", city="Mexico City")
         )
 
         # Add expertise
         await manager.add_expertise(
-            "complete_worker",
-            "content_photo",
-            ExpertiseLevel.INTERMEDIATE
+            "complete_worker", "content_photo", ExpertiseLevel.INTERMEDIATE
         )
 
         # Add language

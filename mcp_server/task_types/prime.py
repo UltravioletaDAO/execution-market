@@ -24,34 +24,38 @@ from typing import Dict, List, Optional, Any
 
 class PrimeStatus(str, Enum):
     """Status of a worker's Prime membership."""
-    NONE = "none"                # Not a Prime worker
-    PENDING = "pending"          # Application in review
-    ACTIVE = "active"            # Active Prime member
-    SUSPENDED = "suspended"      # Temporarily suspended
-    REVOKED = "revoked"          # Permanently revoked
+
+    NONE = "none"  # Not a Prime worker
+    PENDING = "pending"  # Application in review
+    ACTIVE = "active"  # Active Prime member
+    SUSPENDED = "suspended"  # Temporarily suspended
+    REVOKED = "revoked"  # Permanently revoked
 
 
 class BackgroundCheckStatus(str, Enum):
     """Status of background check."""
+
     NOT_STARTED = "not_started"
     IN_PROGRESS = "in_progress"
     PASSED = "passed"
     FAILED = "failed"
-    EXPIRED = "expired"          # Needs renewal
+    EXPIRED = "expired"  # Needs renewal
 
 
 class InsuranceType(str, Enum):
     """Types of insurance coverage."""
-    LIABILITY = "liability"       # General liability
-    PROPERTY = "property"         # Property damage
-    PROFESSIONAL = "professional" # Professional liability/E&O
-    ACCIDENT = "accident"         # Personal accident
+
+    LIABILITY = "liability"  # General liability
+    PROPERTY = "property"  # Property damage
+    PROFESSIONAL = "professional"  # Professional liability/E&O
+    ACCIDENT = "accident"  # Personal accident
 
 
 class SLALevel(str, Enum):
     """SLA commitment levels."""
-    STANDARD = "standard"   # 95% on-time, 4-hour response
-    PREMIUM = "premium"     # 98% on-time, 2-hour response
+
+    STANDARD = "standard"  # 95% on-time, 4-hour response
+    PREMIUM = "premium"  # 98% on-time, 2-hour response
     ENTERPRISE = "enterprise"  # 99.5% on-time, 1-hour response
 
 
@@ -70,6 +74,7 @@ class BackgroundCheck:
         expires_at: When check expires
         result_details: Details of results (redacted)
     """
+
     check_id: str
     check_type: str
     status: BackgroundCheckStatus
@@ -95,7 +100,9 @@ class BackgroundCheck:
             "status": self.status.value,
             "provider": self.provider,
             "submitted_at": self.submitted_at.isoformat(),
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
             "is_valid": self.is_valid(),
         }
@@ -116,6 +123,7 @@ class InsuranceCoverage:
         expiration_date: When coverage ends
         is_verified: Whether coverage has been verified
     """
+
     insurance_type: InsuranceType
     coverage_amount: Decimal
     deductible: Decimal
@@ -128,10 +136,7 @@ class InsuranceCoverage:
     def is_active(self) -> bool:
         """Check if coverage is currently active."""
         now = datetime.now(UTC)
-        return (
-            self.is_verified and
-            self.effective_date <= now <= self.expiration_date
-        )
+        return self.is_verified and self.effective_date <= now <= self.expiration_date
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dictionary."""
@@ -140,7 +145,9 @@ class InsuranceCoverage:
             "coverage_amount": str(self.coverage_amount),
             "deductible": str(self.deductible),
             "provider": self.provider,
-            "policy_number_last4": self.policy_number[-4:] if len(self.policy_number) >= 4 else "****",
+            "policy_number_last4": self.policy_number[-4:]
+            if len(self.policy_number) >= 4
+            else "****",
             "effective_date": self.effective_date.isoformat(),
             "expiration_date": self.expiration_date.isoformat(),
             "is_verified": self.is_verified,
@@ -162,6 +169,7 @@ class SLAConfig:
         penalty_per_violation: Fee deducted per SLA miss
         bonus_for_perfect: Bonus for perfect monthly SLA
     """
+
     level: SLALevel
     on_time_target: float
     response_time_minutes: int
@@ -229,6 +237,7 @@ class PrimeRequirements:
         insurance_required: Whether insurance is needed
         insurance_min_coverage: Minimum insurance coverage if required
     """
+
     min_tasks_completed: int = 100
     min_reputation: int = 70
     min_account_age_days: int = 30
@@ -262,9 +271,7 @@ class PrimeRequirements:
             )
 
         if reputation < self.min_reputation:
-            unmet.append(
-                f"Reputation {reputation} below minimum {self.min_reputation}"
-            )
+            unmet.append(f"Reputation {reputation} below minimum {self.min_reputation}")
 
         if account_age_days < self.min_account_age_days:
             unmet.append(
@@ -321,6 +328,7 @@ class PrimeMembership:
         earnings_multiplier: Bonus multiplier on earnings
         sla_performance: Current month's SLA metrics
     """
+
     worker_id: str
     status: PrimeStatus
     sla_level: SLALevel
@@ -369,7 +377,9 @@ class PrimeMembership:
             "is_active": self.is_active(),
             "sla_level": self.sla_level.value,
             "sla_config": self.get_sla_config().to_dict(),
-            "activated_at": self.activated_at.isoformat() if self.activated_at else None,
+            "activated_at": self.activated_at.isoformat()
+            if self.activated_at
+            else None,
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
             "has_valid_background_check": self.has_valid_background_check(),
             "has_valid_insurance": self.has_valid_insurance(),
@@ -394,6 +404,7 @@ class SLAMetrics:
         quality_score_average: Average quality score
         violations: List of SLA violations
     """
+
     period_start: datetime
     period_end: datetime
     tasks_completed: int = 0
@@ -437,17 +448,19 @@ class SLAMetrics:
             "response_time": {
                 "target_minutes": sla_config.response_time_minutes,
                 "actual_minutes": round(self.average_response_minutes, 1),
-                "compliant": self.average_response_minutes <= sla_config.response_time_minutes,
+                "compliant": self.average_response_minutes
+                <= sla_config.response_time_minutes,
             },
             "quality_score": {
                 "target": sla_config.quality_score_target,
                 "actual": round(self.quality_score_average, 1),
-                "compliant": self.quality_score_average >= sla_config.quality_score_target,
+                "compliant": self.quality_score_average
+                >= sla_config.quality_score_target,
             },
             "overall_compliant": (
-                self.on_time_rate >= sla_config.on_time_target and
-                self.average_response_minutes <= sla_config.response_time_minutes and
-                self.quality_score_average >= sla_config.quality_score_target
+                self.on_time_rate >= sla_config.on_time_target
+                and self.average_response_minutes <= sla_config.response_time_minutes
+                and self.quality_score_average >= sla_config.quality_score_target
             ),
             "violations_count": len(self.violations),
         }
@@ -625,7 +638,7 @@ class PrimeManager:
                 "penalties": str(penalty_total),
                 "fee": str(membership.monthly_fee),
                 "total": str(net_adjustment),
-            }
+            },
         }
 
     def recommend_sla_upgrade(
@@ -654,8 +667,12 @@ class PrimeManager:
 
         # Check if worker exceeds next level requirements
         exceeds_on_time = metrics.on_time_rate >= next_config.on_time_target
-        exceeds_response = metrics.average_response_minutes <= next_config.response_time_minutes
-        exceeds_quality = metrics.quality_score_average >= next_config.quality_score_target
+        exceeds_response = (
+            metrics.average_response_minutes <= next_config.response_time_minutes
+        )
+        exceeds_quality = (
+            metrics.quality_score_average >= next_config.quality_score_target
+        )
 
         if exceeds_on_time and exceeds_response and exceeds_quality:
             return {
@@ -669,7 +686,7 @@ class PrimeManager:
                 "additional_benefits": {
                     "higher_bonus": str(next_config.bonus_for_perfect),
                     "faster_response_expected": f"{next_config.response_time_minutes} minutes",
-                }
+                },
             }
 
         return None

@@ -21,7 +21,6 @@ import json
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime, UTC
-from dataclasses import dataclass, field
 
 from web3 import Web3
 
@@ -38,11 +37,9 @@ from .types import (
     Seal,
     SealBundle,
     SealCategory,
-    SealStatus,
     SkillSealType,
     WorkSealType,
     BehaviorSealType,
-    VerificationMethod,
     get_requirement,
 )
 
@@ -58,12 +55,12 @@ SEAL_REGISTRY_ABI = [
     {
         "inputs": [
             {"name": "holder", "type": "address"},
-            {"name": "sealTypeId", "type": "uint256"}
+            {"name": "sealTypeId", "type": "uint256"},
         ],
         "name": "hasSeal",
         "outputs": [{"name": "", "type": "bool"}],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [{"name": "holder", "type": "address"}],
@@ -72,15 +69,15 @@ SEAL_REGISTRY_ABI = [
             {"name": "sealTypeIds", "type": "uint256[]"},
             {"name": "issuedAts", "type": "uint256[]"},
             {"name": "expiresAts", "type": "uint256[]"},
-            {"name": "isActives", "type": "bool[]"}
+            {"name": "isActives", "type": "bool[]"},
         ],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [
             {"name": "holder", "type": "address"},
-            {"name": "sealTypeId", "type": "uint256"}
+            {"name": "sealTypeId", "type": "uint256"},
         ],
         "name": "getSealDetails",
         "outputs": [
@@ -88,10 +85,10 @@ SEAL_REGISTRY_ABI = [
             {"name": "expiresAt", "type": "uint256"},
             {"name": "isActive", "type": "bool"},
             {"name": "issuer", "type": "address"},
-            {"name": "metadataHash", "type": "bytes32"}
+            {"name": "metadataHash", "type": "bytes32"},
         ],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [{"name": "sealTypeId", "type": "uint256"}],
@@ -100,17 +97,17 @@ SEAL_REGISTRY_ABI = [
             {"name": "name", "type": "string"},
             {"name": "category", "type": "uint8"},
             {"name": "totalIssued", "type": "uint256"},
-            {"name": "metadataURI", "type": "string"}
+            {"name": "metadataURI", "type": "string"},
         ],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [{"name": "holder", "type": "address"}],
         "name": "getSealCount",
         "outputs": [{"name": "", "type": "uint256"}],
         "stateMutability": "view",
-        "type": "function"
+        "type": "function",
     },
     # Write functions
     {
@@ -118,46 +115,46 @@ SEAL_REGISTRY_ABI = [
             {"name": "holder", "type": "address"},
             {"name": "sealTypeId", "type": "uint256"},
             {"name": "expiresAt", "type": "uint256"},
-            {"name": "metadataHash", "type": "bytes32"}
+            {"name": "metadataHash", "type": "bytes32"},
         ],
         "name": "issueSeal",
         "outputs": [{"name": "success", "type": "bool"}],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [
             {"name": "holders", "type": "address[]"},
             {"name": "sealTypeIds", "type": "uint256[]"},
             {"name": "expiresAts", "type": "uint256[]"},
-            {"name": "metadataHashes", "type": "bytes32[]"}
+            {"name": "metadataHashes", "type": "bytes32[]"},
         ],
         "name": "batchIssueSeal",
         "outputs": [{"name": "successCount", "type": "uint256"}],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [
             {"name": "holder", "type": "address"},
             {"name": "sealTypeId", "type": "uint256"},
-            {"name": "reason", "type": "string"}
+            {"name": "reason", "type": "string"},
         ],
         "name": "revokeSeal",
         "outputs": [],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     {
         "inputs": [
             {"name": "holder", "type": "address"},
             {"name": "sealTypeId", "type": "uint256"},
-            {"name": "newExpiresAt", "type": "uint256"}
+            {"name": "newExpiresAt", "type": "uint256"},
         ],
         "name": "renewSeal",
         "outputs": [],
         "stateMutability": "nonpayable",
-        "type": "function"
+        "type": "function",
     },
     # Events
     {
@@ -166,20 +163,20 @@ SEAL_REGISTRY_ABI = [
             {"indexed": True, "name": "holder", "type": "address"},
             {"indexed": True, "name": "sealTypeId", "type": "uint256"},
             {"indexed": False, "name": "issuer", "type": "address"},
-            {"indexed": False, "name": "expiresAt", "type": "uint256"}
+            {"indexed": False, "name": "expiresAt", "type": "uint256"},
         ],
         "name": "SealIssued",
-        "type": "event"
+        "type": "event",
     },
     {
         "anonymous": False,
         "inputs": [
             {"indexed": True, "name": "holder", "type": "address"},
             {"indexed": True, "name": "sealTypeId", "type": "uint256"},
-            {"indexed": False, "name": "reason", "type": "string"}
+            {"indexed": False, "name": "reason", "type": "string"},
         ],
         "name": "SealRevoked",
-        "type": "event"
+        "type": "event",
     },
 ]
 
@@ -205,7 +202,6 @@ SEAL_TYPE_IDS: Dict[str, int] = {
     SkillSealType.MEDICAL_CERTIFIED.value: 50,
     SkillSealType.LEGAL_CERTIFIED.value: 51,
     SkillSealType.FINANCIAL_CERTIFIED.value: 52,
-
     # Work seals: 100-199
     WorkSealType.TASKS_10.value: 100,
     WorkSealType.TASKS_25.value: 101,
@@ -229,7 +225,6 @@ SEAL_TYPE_IDS: Dict[str, int] = {
     WorkSealType.ACTIVE_90_DAYS.value: 141,
     WorkSealType.ACTIVE_180_DAYS.value: 142,
     WorkSealType.ACTIVE_365_DAYS.value: 143,
-
     # Behavior seals: 200-299
     BehaviorSealType.FAST_RESPONDER.value: 200,
     BehaviorSealType.INSTANT_RESPONDER.value: 201,
@@ -260,6 +255,7 @@ def get_seal_type_from_id(seal_id: int) -> Optional[str]:
 # SEAL REGISTRY CLIENT
 # =============================================================================
 
+
 class SealRegistry:
     """
     On-chain Seal Registry client.
@@ -280,14 +276,14 @@ class SealRegistry:
     CONTRACTS = {
         "sepolia": "0x2345678901234567890123456789012345678901",
         "base": "0x3456789012345678901234567890123456789012",
-        "base-sepolia": "0x4567890123456789012345678901234567890123"
+        "base-sepolia": "0x4567890123456789012345678901234567890123",
     }
 
     # RPC endpoints
     RPC_URLS = {
         "sepolia": "https://rpc.sepolia.org",
         "base": "https://mainnet.base.org",
-        "base-sepolia": "https://sepolia.base.org"
+        "base-sepolia": "https://sepolia.base.org",
     }
 
     def __init__(
@@ -310,7 +306,9 @@ class SealRegistry:
         self.private_key = private_key or os.getenv("SEAL_REGISTRY_PRIVATE_KEY")
 
         # Setup Web3
-        rpc = rpc_url or os.getenv("SEAL_REGISTRY_RPC_URL") or self.RPC_URLS.get(network)
+        rpc = (
+            rpc_url or os.getenv("SEAL_REGISTRY_RPC_URL") or self.RPC_URLS.get(network)
+        )
         if not rpc:
             raise ValueError(f"No RPC URL for network: {network}")
 
@@ -321,13 +319,16 @@ class SealRegistry:
             self.w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
 
         # Setup contract
-        addr = contract_address or os.getenv("SEAL_REGISTRY_CONTRACT") or self.CONTRACTS.get(network)
+        addr = (
+            contract_address
+            or os.getenv("SEAL_REGISTRY_CONTRACT")
+            or self.CONTRACTS.get(network)
+        )
         if not addr:
             raise ValueError(f"No contract address for network: {network}")
 
         self.contract = self.w3.eth.contract(
-            address=Web3.to_checksum_address(addr),
-            abi=SEAL_REGISTRY_ABI
+            address=Web3.to_checksum_address(addr), abi=SEAL_REGISTRY_ABI
         )
 
         # Setup account for write operations
@@ -441,9 +442,7 @@ class SealRegistry:
         return bundle
 
     async def get_seal_details(
-        self,
-        holder_address: str,
-        seal_type: str
+        self, holder_address: str, seal_type: str
     ) -> Optional[Dict[str, Any]]:
         """
         Get detailed information about a specific seal.
@@ -473,7 +472,9 @@ class SealRegistry:
                 "seal_id": seal_id,
                 "holder": holder_address,
                 "issued_at": datetime.fromtimestamp(issued_at, tz=UTC).isoformat(),
-                "expires_at": datetime.fromtimestamp(expires_at, tz=UTC).isoformat() if expires_at > 0 else None,
+                "expires_at": datetime.fromtimestamp(expires_at, tz=UTC).isoformat()
+                if expires_at > 0
+                else None,
                 "is_active": is_active,
                 "issuer": issuer,
                 "metadata_hash": metadata_hash.hex() if metadata_hash else None,
@@ -540,16 +541,15 @@ class SealRegistry:
 
             # Build transaction
             tx = self.contract.functions.issueSeal(
-                checksum_addr,
-                seal_id,
-                expires_timestamp,
-                metadata_hash
-            ).build_transaction({
-                'from': self.account.address,
-                'gas': gas_limit,
-                'gasPrice': self.w3.eth.gas_price,
-                'nonce': self.w3.eth.get_transaction_count(self.account.address)
-            })
+                checksum_addr, seal_id, expires_timestamp, metadata_hash
+            ).build_transaction(
+                {
+                    "from": self.account.address,
+                    "gas": gas_limit,
+                    "gasPrice": self.w3.eth.gas_price,
+                    "nonce": self.w3.eth.get_transaction_count(self.account.address),
+                }
+            )
 
             # Sign and send
             signed = self.w3.eth.account.sign_transaction(tx, self.private_key)
@@ -558,7 +558,7 @@ class SealRegistry:
             # Wait for receipt
             receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
-            if receipt['status'] == 1:
+            if receipt["status"] == 1:
                 logger.info(f"Seal issued: {seal_type} to {holder_address}")
                 return tx_hash.hex()
             else:
@@ -594,14 +594,16 @@ class SealRegistry:
             metadata_hashes = []
 
             for issuance in issuances:
-                holder = Web3.to_checksum_address(issuance['holder'])
-                seal_id = get_seal_type_id(issuance['seal_type'])
+                holder = Web3.to_checksum_address(issuance["holder"])
+                seal_id = get_seal_type_id(issuance["seal_type"])
 
                 if seal_id is None:
-                    logger.warning(f"Skipping unknown seal type: {issuance['seal_type']}")
+                    logger.warning(
+                        f"Skipping unknown seal type: {issuance['seal_type']}"
+                    )
                     continue
 
-                expires_at = issuance.get('expires_at')
+                expires_at = issuance.get("expires_at")
                 expires_timestamp = int(expires_at.timestamp()) if expires_at else 0
 
                 holders.append(holder)
@@ -615,12 +617,14 @@ class SealRegistry:
             # Build transaction
             tx = self.contract.functions.batchIssueSeal(
                 holders, seal_ids, expires_ats, metadata_hashes
-            ).build_transaction({
-                'from': self.account.address,
-                'gas': gas_limit,
-                'gasPrice': self.w3.eth.gas_price,
-                'nonce': self.w3.eth.get_transaction_count(self.account.address)
-            })
+            ).build_transaction(
+                {
+                    "from": self.account.address,
+                    "gas": gas_limit,
+                    "gasPrice": self.w3.eth.gas_price,
+                    "nonce": self.w3.eth.get_transaction_count(self.account.address),
+                }
+            )
 
             # Sign and send
             signed = self.w3.eth.account.sign_transaction(tx, self.private_key)
@@ -628,7 +632,7 @@ class SealRegistry:
 
             receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=180)
 
-            if receipt['status'] == 1:
+            if receipt["status"] == 1:
                 logger.info(f"Batch issued {len(holders)} seals")
                 return tx_hash.hex()
             else:
@@ -670,19 +674,21 @@ class SealRegistry:
 
             tx = self.contract.functions.revokeSeal(
                 checksum_addr, seal_id, reason
-            ).build_transaction({
-                'from': self.account.address,
-                'gas': gas_limit,
-                'gasPrice': self.w3.eth.gas_price,
-                'nonce': self.w3.eth.get_transaction_count(self.account.address)
-            })
+            ).build_transaction(
+                {
+                    "from": self.account.address,
+                    "gas": gas_limit,
+                    "gasPrice": self.w3.eth.gas_price,
+                    "nonce": self.w3.eth.get_transaction_count(self.account.address),
+                }
+            )
 
             signed = self.w3.eth.account.sign_transaction(tx, self.private_key)
             tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
 
             receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
-            if receipt['status'] == 1:
+            if receipt["status"] == 1:
                 logger.info(f"Seal revoked: {seal_type} from {holder_address}")
                 return tx_hash.hex()
             else:
@@ -724,19 +730,21 @@ class SealRegistry:
 
             tx = self.contract.functions.renewSeal(
                 checksum_addr, seal_id, int(new_expires_at.timestamp())
-            ).build_transaction({
-                'from': self.account.address,
-                'gas': gas_limit,
-                'gasPrice': self.w3.eth.gas_price,
-                'nonce': self.w3.eth.get_transaction_count(self.account.address)
-            })
+            ).build_transaction(
+                {
+                    "from": self.account.address,
+                    "gas": gas_limit,
+                    "gasPrice": self.w3.eth.gas_price,
+                    "nonce": self.w3.eth.get_transaction_count(self.account.address),
+                }
+            )
 
             signed = self.w3.eth.account.sign_transaction(tx, self.private_key)
             tx_hash = self.w3.eth.send_raw_transaction(signed.raw_transaction)
 
             receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
-            if receipt['status'] == 1:
+            if receipt["status"] == 1:
                 logger.info(f"Seal renewed: {seal_type} for {holder_address}")
                 return tx_hash.hex()
             else:
@@ -751,6 +759,7 @@ class SealRegistry:
 # =============================================================================
 # MOCK REGISTRY FOR TESTING
 # =============================================================================
+
 
 class MockSealRegistry:
     """
@@ -790,9 +799,7 @@ class MockSealRegistry:
         return bundle
 
     async def get_seal_details(
-        self,
-        holder_address: str,
-        seal_type: str
+        self, holder_address: str, seal_type: str
     ) -> Optional[Dict[str, Any]]:
         """Get detailed information about a specific seal (mock implementation)."""
         holder_key = holder_address.lower()
@@ -804,7 +811,9 @@ class MockSealRegistry:
                     "seal_type": seal_type,
                     "holder": holder_address,
                     "issued_at": seal.issued_at.isoformat(),
-                    "expires_at": seal.expires_at.isoformat() if seal.expires_at else None,
+                    "expires_at": seal.expires_at.isoformat()
+                    if seal.expires_at
+                    else None,
                     "is_active": seal.is_valid,
                     "issuer": "0x0000000000000000000000000000000000000000",
                     "metadata_hash": None,
@@ -818,7 +827,7 @@ class MockSealRegistry:
         seal_type: str,
         expires_at: Optional[datetime] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        **kwargs
+        **kwargs,
     ) -> Optional[str]:
         holder_key = holder_address.lower()
 
@@ -850,11 +859,7 @@ class MockSealRegistry:
         return seal.tx_hash
 
     async def revoke_seal(
-        self,
-        holder_address: str,
-        seal_type: str,
-        reason: str = "",
-        **kwargs
+        self, holder_address: str, seal_type: str, reason: str = "", **kwargs
     ) -> Optional[str]:
         holder_key = holder_address.lower()
         holder_seals = self._seals.get(holder_key, [])

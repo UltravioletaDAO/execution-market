@@ -125,7 +125,6 @@ __all__ = [
     "DisputeResolution",
     "Dispute",
     "DisputeConfig",
-
     # Manager
     "DisputeManager",
     "DisputeError",
@@ -135,7 +134,6 @@ __all__ = [
     "reset_dispute_manager",
     "create_dispute",
     "resolve_dispute",
-
     # Resolution
     "ResolutionError",
     "calculate_refund_split",
@@ -143,7 +141,6 @@ __all__ = [
     "notify_parties",
     "determine_auto_resolution",
     "get_resolution_recommendations",
-
     # Evidence
     "EvidenceManager",
     "EvidenceError",
@@ -155,7 +152,6 @@ __all__ = [
     "attach_evidence",
     "get_dispute_evidence",
     "verify_integrity",
-
     # Timeline
     "TimelineEventType",
     "SLAStatus",
@@ -167,7 +163,6 @@ __all__ = [
     "add_event",
     "get_timeline",
     "calculate_sla_status",
-
     # Router
     "DisputeRouter",
 ]

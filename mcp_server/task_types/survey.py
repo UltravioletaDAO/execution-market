@@ -38,18 +38,19 @@ from .base import (
 
 class FieldType(str, Enum):
     """Types of form fields."""
+
     TEXT = "text"
     NUMBER = "number"
     EMAIL = "email"
     PHONE = "phone"
     DATE = "date"
     TIME = "time"
-    SELECT = "select"          # Single choice
+    SELECT = "select"  # Single choice
     MULTISELECT = "multiselect"  # Multiple choice
-    BOOLEAN = "boolean"        # Yes/No
-    SCALE = "scale"            # 1-5, 1-10, etc.
-    LOCATION = "location"      # GPS coordinates
-    PHOTO = "photo"            # Photo upload
+    BOOLEAN = "boolean"  # Yes/No
+    SCALE = "scale"  # 1-5, 1-10, etc.
+    LOCATION = "location"  # GPS coordinates
+    PHOTO = "photo"  # Photo upload
 
 
 @dataclass
@@ -69,6 +70,7 @@ class FormField:
         placeholder: Placeholder text
         help_text: Help text for the field
     """
+
     name: str
     label: str
     field_type: FieldType
@@ -98,23 +100,25 @@ class FormField:
 
 class SurveyEvidence(TypedDict, total=False):
     """Evidence structure for survey tasks."""
-    responses: Dict[str, Any]       # Field name -> response value
-    photos: Optional[List[str]]     # Supporting photo URLs
-    location_lat: Optional[float]   # Location where survey was completed
+
+    responses: Dict[str, Any]  # Field name -> response value
+    photos: Optional[List[str]]  # Supporting photo URLs
+    location_lat: Optional[float]  # Location where survey was completed
     location_lng: Optional[float]
-    completion_timestamp: str       # When survey was completed
+    completion_timestamp: str  # When survey was completed
     duration_seconds: Optional[int]  # How long it took
-    notes: Optional[str]            # Worker notes
+    notes: Optional[str]  # Worker notes
 
 
 @dataclass
 class SurveyValidationConfig:
     """Configuration for survey validation."""
+
     require_all_fields: bool = True
     require_location: bool = False
     location_radius_meters: float = 1000.0
-    min_duration_seconds: int = 60      # Minimum time to complete (anti-bot)
-    max_duration_seconds: int = 7200    # Maximum time (2 hours)
+    min_duration_seconds: int = 60  # Minimum time to complete (anti-bot)
+    max_duration_seconds: int = 7200  # Maximum time (2 hours)
     allow_partial_responses: bool = False
     validate_field_formats: bool = True
 
@@ -240,7 +244,9 @@ class SurveyTask(TaskType[SurveyEvidence]):
         # 2. Validate field values
         for field_def in self.fields:
             if field_def.name in responses:
-                field_result = self._validate_field(field_def, responses[field_def.name])
+                field_result = self._validate_field(
+                    field_def, responses[field_def.name]
+                )
                 result = result.merge(field_result)
 
         # 3. Validate location if required
@@ -325,8 +331,11 @@ class SurveyTask(TaskType[SurveyEvidence]):
         # Pattern validation (if specified)
         if field_def.pattern and isinstance(value, str):
             import re
+
             if not re.match(field_def.pattern, value):
-                errors.append(f"{field_def.label}: Value does not match required format")
+                errors.append(
+                    f"{field_def.label}: Value does not match required format"
+                )
 
         if errors:
             return ValidationResult.failure(errors=errors)
@@ -360,6 +369,7 @@ class SurveyTask(TaskType[SurveyEvidence]):
     def _validate_email(self, value: Any) -> List[str]:
         """Validate email field."""
         import re
+
         if not isinstance(value, str):
             return ["Email must be a string"]
 
@@ -404,7 +414,9 @@ class SurveyTask(TaskType[SurveyEvidence]):
             return []
 
         if value not in field_def.options:
-            return [f"{field_def.label}: Invalid option. Must be one of: {', '.join(field_def.options)}"]
+            return [
+                f"{field_def.label}: Invalid option. Must be one of: {', '.join(field_def.options)}"
+            ]
 
         return []
 
@@ -460,8 +472,10 @@ class SurveyTask(TaskType[SurveyEvidence]):
             return ValidationResult.success()
 
         distance = self._haversine_distance(
-            evidence_lat, evidence_lng,
-            task_lat, task_lng,
+            evidence_lat,
+            evidence_lng,
+            task_lat,
+            task_lng,
         )
 
         if distance > self.config.location_radius_meters:
@@ -500,9 +514,7 @@ class SurveyTask(TaskType[SurveyEvidence]):
 
         if duration_seconds > self.config.max_duration_seconds:
             return ValidationResult.warning(
-                warnings=[
-                    f"Survey took unusually long ({duration_seconds}s)"
-                ],
+                warnings=[f"Survey took unusually long ({duration_seconds}s)"],
                 details={"duration_check": "very_slow"},
             )
 
@@ -531,8 +543,8 @@ class SurveyTask(TaskType[SurveyEvidence]):
         delta_lambda = math.radians(lon2 - lon1)
 
         a = (
-            math.sin(delta_phi / 2) ** 2 +
-            math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+            math.sin(delta_phi / 2) ** 2
+            + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
         )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
@@ -548,13 +560,17 @@ class SurveyTask(TaskType[SurveyEvidence]):
 
         # Per-question bonus
         question_count = len(self.fields)
-        question_bonus = self.PER_QUESTION_RATE * Decimal(str(max(0, question_count - 5)))
+        question_bonus = self.PER_QUESTION_RATE * Decimal(
+            str(max(0, question_count - 5))
+        )
 
         # Complexity factor
         complexity_factor = Decimal(str(1 + (complexity - 1) * 0.2))
 
         # Location requirement adds premium
-        location_premium = Decimal("2.00") if self.config.require_location else Decimal("0")
+        location_premium = (
+            Decimal("2.00") if self.config.require_location else Decimal("0")
+        )
 
         # Urgency factor
         urgency_factors = {
@@ -564,7 +580,11 @@ class SurveyTask(TaskType[SurveyEvidence]):
         }
         urgency_factor = urgency_factors.get(context.urgency, Decimal("1.0"))
 
-        suggested = (base + question_bonus + location_premium) * complexity_factor * urgency_factor
+        suggested = (
+            (base + question_bonus + location_premium)
+            * complexity_factor
+            * urgency_factor
+        )
         suggested = min(suggested, self.MAX_BOUNTY).quantize(Decimal("0.50"))
 
         return BountyRecommendation(
@@ -650,17 +670,22 @@ Complete the following survey with accurate information.
         # Calculate completion statistics
         total_fields = len(self.fields)
         completed_fields = sum(
-            1 for f in self.fields
+            1
+            for f in self.fields
             if f.name in responses and responses[f.name] is not None
         )
 
         return {
             "responses": responses,
-            "completion_rate": completed_fields / total_fields if total_fields > 0 else 0,
+            "completion_rate": completed_fields / total_fields
+            if total_fields > 0
+            else 0,
             "completed_fields": completed_fields,
             "total_fields": total_fields,
             "duration_seconds": evidence.get("duration_seconds"),
-            "location_verified": validation_result.details.get("location_verified", False),
+            "location_verified": validation_result.details.get(
+                "location_verified", False
+            ),
             "supporting_photos_count": len(evidence.get("photos", [])),
             "worker_notes": evidence.get("notes"),
         }
@@ -684,44 +709,48 @@ def create_price_survey(
     fields = []
 
     for product in products:
-        fields.extend([
-            FormField(
-                name=f"{product}_price",
-                label=f"Price of {product}",
-                field_type=FieldType.NUMBER,
-                required=True,
-                min_value=0,
-                help_text="Enter the price in local currency",
-            ),
-            FormField(
-                name=f"{product}_available",
-                label=f"Is {product} available?",
-                field_type=FieldType.BOOLEAN,
-                required=True,
-            ),
-            FormField(
-                name=f"{product}_on_sale",
-                label=f"Is {product} on sale?",
-                field_type=FieldType.BOOLEAN,
-                required=False,
-            ),
-        ])
+        fields.extend(
+            [
+                FormField(
+                    name=f"{product}_price",
+                    label=f"Price of {product}",
+                    field_type=FieldType.NUMBER,
+                    required=True,
+                    min_value=0,
+                    help_text="Enter the price in local currency",
+                ),
+                FormField(
+                    name=f"{product}_available",
+                    label=f"Is {product} available?",
+                    field_type=FieldType.BOOLEAN,
+                    required=True,
+                ),
+                FormField(
+                    name=f"{product}_on_sale",
+                    label=f"Is {product} on sale?",
+                    field_type=FieldType.BOOLEAN,
+                    required=False,
+                ),
+            ]
+        )
 
     # Add store information
-    fields.extend([
-        FormField(
-            name="store_name",
-            label="Store Name",
-            field_type=FieldType.TEXT,
-            required=True,
-        ),
-        FormField(
-            name="visit_date",
-            label="Date of Visit",
-            field_type=FieldType.DATE,
-            required=True,
-        ),
-    ])
+    fields.extend(
+        [
+            FormField(
+                name="store_name",
+                label="Store Name",
+                field_type=FieldType.TEXT,
+                required=True,
+            ),
+            FormField(
+                name="visit_date",
+                label="Date of Visit",
+                field_type=FieldType.DATE,
+                required=True,
+            ),
+        ]
+    )
 
     return SurveyTask(
         fields=fields,

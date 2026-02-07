@@ -45,7 +45,9 @@ class _FakePaymentsTable:
         return self
 
     def execute(self):
-        return SimpleNamespace(data=self.inserted_rows[-1] if self.inserted_rows else None)
+        return SimpleNamespace(
+            data=self.inserted_rows[-1] if self.inserted_rows else None
+        )
 
 
 class _FakeTasksTable:
@@ -174,7 +176,9 @@ class _TaskPaymentQuery:
 
 
 class _TaskPaymentClient:
-    def __init__(self, payments=None, escrows=None, submissions=None, missing_tables=None):
+    def __init__(
+        self, payments=None, escrows=None, submissions=None, missing_tables=None
+    ):
         self._payments = payments or []
         self._escrows = escrows or []
         self._submissions = submissions or []
@@ -183,7 +187,7 @@ class _TaskPaymentClient:
     def table(self, name: str):
         if name in self._missing_tables:
             return _TaskPaymentQuery(
-                fail_message=f"PGRST205: relation \"public.{name}\" does not exist"
+                fail_message=f'PGRST205: relation "public.{name}" does not exist'
             )
         if name == "payments":
             return _TaskPaymentQuery(rows=self._payments)
@@ -205,12 +209,20 @@ async def test_approve_submission_returns_idempotent_success(monkeypatch):
     monkeypatch.setattr(
         routes.db,
         "get_submission",
-        AsyncMock(return_value={"id": submission_id, "agent_verdict": "accepted", "task": {"id": "task_1"}}),
+        AsyncMock(
+            return_value={
+                "id": submission_id,
+                "agent_verdict": "accepted",
+                "task": {"id": "task_1"},
+            }
+        ),
     )
     monkeypatch.setattr(
         routes,
         "_settle_submission_payment",
-        AsyncMock(return_value={"payment_tx": "0xalreadysettled", "payment_error": None}),
+        AsyncMock(
+            return_value={"payment_tx": "0xalreadysettled", "payment_error": None}
+        ),
     )
 
     update_submission = AsyncMock()
@@ -252,7 +264,9 @@ async def test_approve_submission_requires_tx_before_marking_accepted(monkeypatc
     monkeypatch.setattr(
         routes,
         "_settle_submission_payment",
-        AsyncMock(return_value={"payment_tx": None, "payment_error": "missing tx hash"}),
+        AsyncMock(
+            return_value={"payment_tx": None, "payment_error": "missing tx hash"}
+        ),
     )
 
     update_submission = AsyncMock()
@@ -293,7 +307,9 @@ async def test_submit_work_auto_pays_and_marks_completed(monkeypatch):
     monkeypatch.setattr(
         routes.db,
         "submit_work",
-        AsyncMock(return_value={"submission": {"id": submission_id}, "task": {"id": task_id}}),
+        AsyncMock(
+            return_value={"submission": {"id": submission_id}, "task": {"id": task_id}}
+        ),
     )
     monkeypatch.setattr(
         routes.db,
@@ -349,7 +365,9 @@ async def test_submit_work_keeps_review_flow_when_instant_payout_not_ready(monke
     monkeypatch.setattr(
         routes.db,
         "submit_work",
-        AsyncMock(return_value={"submission": {"id": submission_id}, "task": {"id": task_id}}),
+        AsyncMock(
+            return_value={"submission": {"id": submission_id}, "task": {"id": task_id}}
+        ),
     )
     monkeypatch.setattr(
         routes.db,
@@ -409,7 +427,9 @@ async def test_approve_submission_rejects_when_task_is_cancelled(monkeypatch):
     monkeypatch.setattr(
         routes.db,
         "get_submission",
-        AsyncMock(return_value={"agent_verdict": "pending", "task": {"status": "cancelled"}}),
+        AsyncMock(
+            return_value={"agent_verdict": "pending", "task": {"status": "cancelled"}}
+        ),
     )
 
     update_submission = AsyncMock()
@@ -434,7 +454,13 @@ async def test_cancel_task_returns_idempotent_when_already_cancelled(monkeypatch
     monkeypatch.setattr(
         routes.db,
         "get_task",
-        AsyncMock(return_value={"id": task_id, "agent_id": "agent_test", "status": "cancelled"}),
+        AsyncMock(
+            return_value={
+                "id": task_id,
+                "agent_id": "agent_test",
+                "status": "cancelled",
+            }
+        ),
     )
 
     cancel_task_mock = AsyncMock()
@@ -656,7 +682,11 @@ async def test_cancel_task_unknown_status_attempts_refund(monkeypatch):
     monkeypatch.setattr(routes.db, "cancel_task", cancel_task_mock)
 
     refund_task_payment = AsyncMock(
-        return_value={"success": True, "tx_hash": "0xunknownrefund", "method": "facilitator"}
+        return_value={
+            "success": True,
+            "tx_hash": "0xunknownrefund",
+            "method": "facilitator",
+        }
     )
     monkeypatch.setattr(
         routes,
@@ -760,7 +790,9 @@ async def test_payment_timeline_shows_refund_event(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_payment_timeline_shows_auth_expired_for_cancelled_without_refund(monkeypatch):
+async def test_payment_timeline_shows_auth_expired_for_cancelled_without_refund(
+    monkeypatch,
+):
     task_id = "55555555-5555-5555-5555-555555555557"
     monkeypatch.setattr(
         routes.db,
@@ -793,7 +825,9 @@ async def test_payment_timeline_shows_auth_expired_for_cancelled_without_refund(
     result = await routes.get_task_payment(task_id=task_id, api_key=None)
 
     assert result.status == "refunded"
-    auth_expired_events = [e for e in result.events if e.type == "authorization_expired"]
+    auth_expired_events = [
+        e for e in result.events if e.type == "authorization_expired"
+    ]
     assert len(auth_expired_events) == 1
     assert auth_expired_events[0].tx_hash is None
 
@@ -837,7 +871,9 @@ def test_resolve_task_payment_header_prefers_full_header_in_task():
 
 
 def test_resolve_task_payment_header_reads_from_escrow_metadata(monkeypatch):
-    stored_header = "eyJ4NDAyVmVyc2lvbiI6MSwicGF5bG9hZCI6eyJzaWduYXR1cmUiOiJ0ZXN0In19" * 3
+    stored_header = (
+        "eyJ4NDAyVmVyc2lvbiI6MSwicGF5bG9hZCI6eyJzaWduYXR1cmUiOiJ0ZXN0In19" * 3
+    )
     monkeypatch.setattr(
         routes.db,
         "get_client",
@@ -855,11 +891,36 @@ def test_resolve_task_payment_header_reads_from_escrow_metadata(monkeypatch):
 async def test_get_public_platform_metrics_aggregates_counts(monkeypatch):
     fake_client = _MetricsClient(
         tasks_rows=[
-            {"status": "published", "executor_id": None, "agent_id": "agent_1", "bounty_usd": 0},
-            {"status": "accepted", "executor_id": "worker_1", "agent_id": "agent_1", "bounty_usd": 0},
-            {"status": "submitted", "executor_id": "worker_1", "agent_id": "agent_1", "bounty_usd": 0},
-            {"status": "completed", "executor_id": "worker_2", "agent_id": "agent_2", "bounty_usd": 10.5},
-            {"status": "completed", "executor_id": "worker_1", "agent_id": "agent_1", "bounty_usd": 5.25},
+            {
+                "status": "published",
+                "executor_id": None,
+                "agent_id": "agent_1",
+                "bounty_usd": 0,
+            },
+            {
+                "status": "accepted",
+                "executor_id": "worker_1",
+                "agent_id": "agent_1",
+                "bounty_usd": 0,
+            },
+            {
+                "status": "submitted",
+                "executor_id": "worker_1",
+                "agent_id": "agent_1",
+                "bounty_usd": 0,
+            },
+            {
+                "status": "completed",
+                "executor_id": "worker_2",
+                "agent_id": "agent_2",
+                "bounty_usd": 10.5,
+            },
+            {
+                "status": "completed",
+                "executor_id": "worker_1",
+                "agent_id": "agent_1",
+                "bounty_usd": 5.25,
+            },
         ],
         escrow_rows=[
             {"total_amount_usdc": 10.5, "platform_fee_usdc": 0.8},
@@ -928,7 +989,13 @@ async def test_get_task_payment_returns_canonical_timeline(monkeypatch):
                     "network": "base",
                 }
             ],
-            escrows=[{"task_id": task_id, "status": "released", "created_at": "2026-02-06T10:01:00+00:00"}],
+            escrows=[
+                {
+                    "task_id": task_id,
+                    "status": "released",
+                    "created_at": "2026-02-06T10:01:00+00:00",
+                }
+            ],
             submissions=[],
         ),
     )
@@ -995,7 +1062,11 @@ async def test_get_task_payment_returns_404_when_task_is_missing(monkeypatch):
     monkeypatch.setattr(
         routes.db,
         "get_task",
-        AsyncMock(side_effect=Exception("PGRST116: JSON object requested, multiple (or no) rows returned")),
+        AsyncMock(
+            side_effect=Exception(
+                "PGRST116: JSON object requested, multiple (or no) rows returned"
+            )
+        ),
     )
 
     with pytest.raises(HTTPException) as exc:

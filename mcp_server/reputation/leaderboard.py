@@ -15,15 +15,14 @@ Why leaderboards?
 """
 
 from datetime import datetime, timedelta, UTC
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
-
-from .models import ReputationScore, Badge
 
 
 class LeaderboardPeriod(str, Enum):
     """Time periods for leaderboards."""
+
     ALL_TIME = "all_time"
     THIS_MONTH = "this_month"
     THIS_WEEK = "this_week"
@@ -33,6 +32,7 @@ class LeaderboardPeriod(str, Enum):
 @dataclass
 class LeaderboardEntry:
     """A single entry in a leaderboard."""
+
     rank: int
     executor_id: str
     display_name: Optional[str]
@@ -67,6 +67,7 @@ class LeaderboardEntry:
 @dataclass
 class LeaderboardResult:
     """Complete leaderboard result."""
+
     title: str
     period: LeaderboardPeriod
     entries: List[LeaderboardEntry]
@@ -140,9 +141,13 @@ class LeaderboardManager:
             return self._mock_top_workers(limit, location, period)
 
         # Build query
-        query = self.db_client.table("executors").select(
-            "id, display_name, reputation_score, tasks_completed, location_city, location_country"
-        ).gte("tasks_completed", min_tasks)
+        query = (
+            self.db_client.table("executors")
+            .select(
+                "id, display_name, reputation_score, tasks_completed, location_city, location_country"
+            )
+            .gte("tasks_completed", min_tasks)
+        )
 
         # Apply location filter
         if location:
@@ -159,16 +164,18 @@ class LeaderboardManager:
         # Build entries
         entries = []
         for idx, executor in enumerate(executors, 1):
-            entries.append(LeaderboardEntry(
-                rank=idx,
-                executor_id=executor["id"],
-                display_name=executor.get("display_name", "Anonymous"),
-                score=executor.get("reputation_score", 50),
-                confidence=50.0,  # Would need to query reputation table
-                tasks_completed=executor.get("tasks_completed", 0),
-                badges=[],  # Would need to query badges
-                location=executor.get("location_city"),
-            ))
+            entries.append(
+                LeaderboardEntry(
+                    rank=idx,
+                    executor_id=executor["id"],
+                    display_name=executor.get("display_name", "Anonymous"),
+                    score=executor.get("reputation_score", 50),
+                    confidence=50.0,  # Would need to query reputation table
+                    tasks_completed=executor.get("tasks_completed", 0),
+                    badges=[],  # Would need to query badges
+                    location=executor.get("location_city"),
+                )
+            )
 
         title = "Top Workers"
         if location:
@@ -206,7 +213,7 @@ class LeaderboardManager:
         # This would query reputation_log to calculate score changes
         # For now, we query executors and would need to join with history
 
-        cutoff = datetime.now(UTC) - timedelta(days=days)
+        datetime.now(UTC) - timedelta(days=days)
 
         # In production: query reputation_log for score changes
         # SELECT executor_id,
@@ -271,7 +278,7 @@ class LeaderboardManager:
         if not self.db_client:
             return self._mock_weekly_leaders(limit, location)
 
-        week_start = datetime.now(UTC) - timedelta(days=7)
+        datetime.now(UTC) - timedelta(days=7)
 
         # Query completions this week
         # ...
@@ -324,19 +331,21 @@ class LeaderboardManager:
         """Generate mock top workers data."""
         entries = []
         for i in range(1, min(limit + 1, 11)):
-            entries.append(LeaderboardEntry(
-                rank=i,
-                executor_id=f"worker_{i:03d}",
-                display_name=f"Worker {i}",
-                score=95 - (i * 3),
-                confidence=80 + (10 - i),
-                tasks_completed=100 - (i * 5),
-                badges=["reliable", "quality_star"] if i <= 3 else ["reliable"],
-                location=location or "Mexico City",
-            ))
+            entries.append(
+                LeaderboardEntry(
+                    rank=i,
+                    executor_id=f"worker_{i:03d}",
+                    display_name=f"Worker {i}",
+                    score=95 - (i * 3),
+                    confidence=80 + (10 - i),
+                    tasks_completed=100 - (i * 5),
+                    badges=["reliable", "quality_star"] if i <= 3 else ["reliable"],
+                    location=location or "Mexico City",
+                )
+            )
 
         return LeaderboardResult(
-            title=f"Top Workers" + (f" in {location}" if location else ""),
+            title="Top Workers" + (f" in {location}" if location else ""),
             period=period,
             entries=entries,
             total_participants=100,
@@ -351,17 +360,19 @@ class LeaderboardManager:
         """Generate mock rising stars data."""
         entries = []
         for i in range(1, min(limit + 1, 11)):
-            entries.append(LeaderboardEntry(
-                rank=i,
-                executor_id=f"star_{i:03d}",
-                display_name=f"Rising Star {i}",
-                score=65 + (10 - i),
-                confidence=40 + (i * 5),
-                tasks_completed=15 - i,
-                badges=["newcomer"],
-                score_change=20 - (i * 2),  # How much they improved
-                period_tasks=10 - i,
-            ))
+            entries.append(
+                LeaderboardEntry(
+                    rank=i,
+                    executor_id=f"star_{i:03d}",
+                    display_name=f"Rising Star {i}",
+                    score=65 + (10 - i),
+                    confidence=40 + (i * 5),
+                    tasks_completed=15 - i,
+                    badges=["newcomer"],
+                    score_change=20 - (i * 2),  # How much they improved
+                    period_tasks=10 - i,
+                )
+            )
 
         return LeaderboardResult(
             title=f"Rising Stars (Last {days} Days)",
@@ -386,15 +397,17 @@ class LeaderboardManager:
         specialty_badge = badge_map.get(category, "reliable")
 
         for i in range(1, min(limit + 1, 11)):
-            entries.append(LeaderboardEntry(
-                rank=i,
-                executor_id=f"specialist_{category}_{i:03d}",
-                display_name=f"{category.title()} Expert {i}",
-                score=90 - (i * 2),
-                confidence=75 + (10 - i),
-                tasks_completed=50 - (i * 3),
-                badges=[specialty_badge, "reliable"],
-            ))
+            entries.append(
+                LeaderboardEntry(
+                    rank=i,
+                    executor_id=f"specialist_{category}_{i:03d}",
+                    display_name=f"{category.title()} Expert {i}",
+                    score=90 - (i * 2),
+                    confidence=75 + (10 - i),
+                    tasks_completed=50 - (i * 3),
+                    badges=[specialty_badge, "reliable"],
+                )
+            )
 
         return LeaderboardResult(
             title=f"Top {category.replace('_', ' ').title()} Specialists",
@@ -412,17 +425,19 @@ class LeaderboardManager:
         """Generate mock weekly leaders data."""
         entries = []
         for i in range(1, min(limit + 1, 11)):
-            entries.append(LeaderboardEntry(
-                rank=i,
-                executor_id=f"weekly_{i:03d}",
-                display_name=f"Active Worker {i}",
-                score=80 - (i * 2),
-                confidence=70,
-                tasks_completed=30 - (i * 2),
-                badges=["streak_7"],
-                period_tasks=8 - i,
-                period_earnings=(8 - i) * 15.0,
-            ))
+            entries.append(
+                LeaderboardEntry(
+                    rank=i,
+                    executor_id=f"weekly_{i:03d}",
+                    display_name=f"Active Worker {i}",
+                    score=80 - (i * 2),
+                    confidence=70,
+                    tasks_completed=30 - (i * 2),
+                    badges=["streak_7"],
+                    period_tasks=8 - i,
+                    period_earnings=(8 - i) * 15.0,
+                )
+            )
 
         return LeaderboardResult(
             title="This Week's Leaders" + (f" in {location}" if location else ""),
@@ -434,6 +449,7 @@ class LeaderboardManager:
 
 
 # Convenience functions
+
 
 async def get_top_workers(
     limit: int = 10,

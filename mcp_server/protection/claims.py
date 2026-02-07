@@ -15,22 +15,17 @@ Flow:
 """
 
 import logging
-import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, Optional, List, Any, Tuple
+from typing import Dict, Optional, List, Any
 
 from .fund import (
     get_fund,
     FundClaim,
     ClaimStatus,
     ClaimType as BaseClaimType,
-    FundError,
-    ClaimLimitExceededError,
     ClaimNotFoundError,
-    InvalidClaimStateError,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,6 +42,7 @@ class ClaimType(str, Enum):
 
     These map to different review rules and payout limits.
     """
+
     UNPAID = "unpaid"  # Work completed but payment not received
     DISPUTE_LOSS = "dispute_loss"  # Worker lost dispute but deserves compensation
     PLATFORM_ERROR = "platform_error"  # Technical failure caused loss
@@ -87,6 +83,7 @@ class ReviewRule:
         max_payout_percent: Max percentage of original bounty
         priority: Higher priority rules checked first
     """
+
     claim_type: ClaimType
     auto_approve_threshold: Decimal = Decimal("10.00")
     required_evidence: List[str] = field(default_factory=list)
@@ -140,6 +137,7 @@ class ReviewResult:
         missing_evidence: List of missing required evidence
         rule_applied: Name of the rule that was applied
     """
+
     claim_id: str
     decision: str  # "approve", "reject", "manual_review"
     amount: Decimal
@@ -269,7 +267,9 @@ def review_claim(claim_id: str) -> ReviewResult:
     # Get extended claim type from evidence
     extended_type_str = claim.evidence.get("claim_type_extended")
     try:
-        claim_type = ClaimType(extended_type_str) if extended_type_str else ClaimType.UNPAID
+        claim_type = (
+            ClaimType(extended_type_str) if extended_type_str else ClaimType.UNPAID
+        )
     except ValueError:
         # Fall back to mapping from base type
         claim_type = ClaimType.UNPAID
@@ -330,7 +330,7 @@ def review_claim(claim_id: str) -> ReviewResult:
         decision="manual_review",
         amount=min(claim.amount_requested, max_amount),
         reason=f"Amount ${float(claim.amount_requested):.2f} exceeds auto-approve threshold "
-               f"of ${float(rule.auto_approve_threshold):.2f}",
+        f"of ${float(rule.auto_approve_threshold):.2f}",
         rule_applied=f"rule_{claim_type.value}",
     )
 
@@ -474,12 +474,14 @@ async def auto_review_pending_claims() -> List[ReviewResult]:
                 )
         except Exception as e:
             logger.error("Error reviewing claim %s: %s", claim.id, str(e))
-            results.append(ReviewResult(
-                claim_id=claim.id,
-                decision="error",
-                amount=Decimal("0"),
-                reason=str(e),
-            ))
+            results.append(
+                ReviewResult(
+                    claim_id=claim.id,
+                    decision="error",
+                    amount=Decimal("0"),
+                    reason=str(e),
+                )
+            )
 
     return results
 
@@ -495,10 +497,7 @@ def get_claims_by_status(status: ClaimStatus) -> List[FundClaim]:
         List of matching claims
     """
     fund = get_fund()
-    return [
-        claim for claim in fund._claims.values()
-        if claim.status == status
-    ]
+    return [claim for claim in fund._claims.values() if claim.status == status]
 
 
 def get_claims_for_worker(worker_id: str) -> List[FundClaim]:

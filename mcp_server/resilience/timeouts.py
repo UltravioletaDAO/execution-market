@@ -23,21 +23,18 @@ logger = logging.getLogger(__name__)
 
 class TimeoutType(str, Enum):
     """Types of timeouts in the system."""
-    SUBMISSION = "submission"      # Time to submit work after accepting
-    REVIEW = "review"              # Time for agent to review submission
-    DISPUTE = "dispute"            # Time to respond to dispute
-    EXTENSION = "extension"        # Extension request validity
-    PAYMENT = "payment"            # Payment processing timeout
+
+    SUBMISSION = "submission"  # Time to submit work after accepting
+    REVIEW = "review"  # Time for agent to review submission
+    DISPUTE = "dispute"  # Time to respond to dispute
+    EXTENSION = "extension"  # Extension request validity
+    PAYMENT = "payment"  # Payment processing timeout
 
 
 class TimeoutExpired(Exception):
     """Raised when a timeout has expired."""
-    def __init__(
-        self,
-        task_id: str,
-        timeout_type: TimeoutType,
-        expired_at: datetime
-    ):
+
+    def __init__(self, task_id: str, timeout_type: TimeoutType, expired_at: datetime):
         self.task_id = task_id
         self.timeout_type = timeout_type
         self.expired_at = expired_at
@@ -49,11 +46,9 @@ class TimeoutExpired(Exception):
 
 class TimeoutWarning(Exception):
     """Raised when a timeout warning threshold is reached."""
+
     def __init__(
-        self,
-        task_id: str,
-        timeout_type: TimeoutType,
-        time_remaining: timedelta
+        self, task_id: str, timeout_type: TimeoutType, time_remaining: timedelta
     ):
         self.task_id = task_id
         self.timeout_type = timeout_type
@@ -78,6 +73,7 @@ class TimeoutConfig:
         auto_extend_on_progress: Auto-extend if worker shows progress
         max_extensions: Maximum number of extensions allowed
     """
+
     submission_hours: float = 4.0
     review_hours: float = 24.0
     dispute_hours: float = 48.0
@@ -104,6 +100,7 @@ class TaskTimeout:
         extension_reasons: Reasons for each extension
         metadata: Additional timeout metadata
     """
+
     task_id: str
     timeout_type: TimeoutType
     started_at: datetime
@@ -136,6 +133,7 @@ class TaskTimeout:
 @dataclass
 class ExtensionRequest:
     """Request for timeout extension."""
+
     task_id: str
     requested_by: str  # worker_id or agent_id
     reason: str
@@ -196,7 +194,9 @@ class TimeoutManager:
         # Callbacks
         self._on_warning: List[Callable[[TaskTimeout, float], Awaitable[None]]] = []
         self._on_expired: List[Callable[[TaskTimeout], Awaitable[None]]] = []
-        self._on_extension_requested: List[Callable[[ExtensionRequest], Awaitable[None]]] = []
+        self._on_extension_requested: List[
+            Callable[[ExtensionRequest], Awaitable[None]]
+        ] = []
 
     async def start(self):
         """Start the timeout monitor."""
@@ -225,7 +225,7 @@ class TimeoutManager:
             TimeoutType.REVIEW: self.config.review_hours,
             TimeoutType.DISPUTE: self.config.dispute_hours,
             TimeoutType.EXTENSION: 1.0,  # Extension requests valid for 1 hour
-            TimeoutType.PAYMENT: 1.0,    # Payment should complete in 1 hour
+            TimeoutType.PAYMENT: 1.0,  # Payment should complete in 1 hour
         }
         return timedelta(hours=hours.get(timeout_type, 4.0))
 
@@ -235,7 +235,7 @@ class TimeoutManager:
         timeout_type: TimeoutType,
         worker_id: Optional[str] = None,
         custom_duration: Optional[timedelta] = None,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
     ) -> TaskTimeout:
         """
         Start a new timeout for a task.
@@ -258,10 +258,7 @@ class TimeoutManager:
             timeout_type=timeout_type,
             started_at=now,
             expires_at=now + duration,
-            metadata={
-                'worker_id': worker_id,
-                **(metadata or {})
-            }
+            metadata={"worker_id": worker_id, **(metadata or {})},
         )
 
         # Use composite key for different timeout types on same task
@@ -276,9 +273,7 @@ class TimeoutManager:
         return timeout
 
     async def cancel_timeout(
-        self,
-        task_id: str,
-        timeout_type: TimeoutType
+        self, task_id: str, timeout_type: TimeoutType
     ) -> Optional[TaskTimeout]:
         """
         Cancel an active timeout.
@@ -299,11 +294,7 @@ class TimeoutManager:
         return timeout
 
     async def extend_timeout(
-        self,
-        task_id: str,
-        timeout_type: TimeoutType,
-        hours: float,
-        reason: str
+        self, task_id: str, timeout_type: TimeoutType, hours: float, reason: str
     ) -> Optional[TaskTimeout]:
         """
         Extend an active timeout.
@@ -340,18 +331,13 @@ class TimeoutManager:
         timeout.extension_reasons.append(reason)
 
         logger.info(
-            f"Timeout extended: {task_id}, +{hours}h, "
-            f"new expiry: {timeout.expires_at}"
+            f"Timeout extended: {task_id}, +{hours}h, new expiry: {timeout.expires_at}"
         )
 
         return timeout
 
     async def request_extension(
-        self,
-        task_id: str,
-        requested_by: str,
-        reason: str,
-        hours: float
+        self, task_id: str, requested_by: str, reason: str, hours: float
     ) -> ExtensionRequest:
         """
         Request a timeout extension.
@@ -372,7 +358,7 @@ class TimeoutManager:
             task_id=task_id,
             requested_by=requested_by,
             reason=reason,
-            requested_hours=hours
+            requested_hours=hours,
         )
 
         self._extension_requests[task_id] = request
@@ -392,10 +378,7 @@ class TimeoutManager:
         return request
 
     async def approve_extension(
-        self,
-        task_id: str,
-        approved_by: str,
-        approved_hours: Optional[float] = None
+        self, task_id: str, approved_by: str, approved_hours: Optional[float] = None
     ) -> Optional[TaskTimeout]:
         """
         Approve a pending extension request.
@@ -423,22 +406,18 @@ class TimeoutManager:
             task_id=task_id,
             timeout_type=TimeoutType.SUBMISSION,
             hours=hours,
-            reason=f"Extension approved: {request.reason}"
+            reason=f"Extension approved: {request.reason}",
         )
 
         if timeout:
             logger.info(
-                f"Extension approved: {task_id}, by: {approved_by}, "
-                f"hours: {hours}"
+                f"Extension approved: {task_id}, by: {approved_by}, hours: {hours}"
             )
 
         return timeout
 
     async def deny_extension(
-        self,
-        task_id: str,
-        denied_by: str,
-        reason: Optional[str] = None
+        self, task_id: str, denied_by: str, reason: Optional[str] = None
     ) -> Optional[ExtensionRequest]:
         """
         Deny a pending extension request.
@@ -459,17 +438,12 @@ class TimeoutManager:
         request.approved_at = datetime.utcnow()
         request.approved_by = denied_by
 
-        logger.info(
-            f"Extension denied: {task_id}, by: {denied_by}, "
-            f"reason: {reason}"
-        )
+        logger.info(f"Extension denied: {task_id}, by: {denied_by}, reason: {reason}")
 
         return request
 
     def get_timeout(
-        self,
-        task_id: str,
-        timeout_type: TimeoutType
+        self, task_id: str, timeout_type: TimeoutType
     ) -> Optional[TaskTimeout]:
         """Get active timeout for a task."""
         key = f"{task_id}:{timeout_type.value}"
@@ -479,47 +453,34 @@ class TimeoutManager:
         """Get all active timeouts for a task."""
         prefix = f"{task_id}:"
         return [
-            timeout for key, timeout in self._timeouts.items()
-            if key.startswith(prefix)
+            timeout for key, timeout in self._timeouts.items() if key.startswith(prefix)
         ]
 
-    def get_expiring_soon(
-        self,
-        within_hours: float = 1.0
-    ) -> List[TaskTimeout]:
+    def get_expiring_soon(self, within_hours: float = 1.0) -> List[TaskTimeout]:
         """Get timeouts expiring within specified hours."""
         threshold = datetime.utcnow() + timedelta(hours=within_hours)
         return [
-            timeout for timeout in self._timeouts.values()
+            timeout
+            for timeout in self._timeouts.values()
             if timeout.expires_at <= threshold and not timeout.is_expired()
         ]
 
     def get_expired(self) -> List[TaskTimeout]:
         """Get all expired timeouts (not yet processed)."""
-        return [
-            timeout for timeout in self._timeouts.values()
-            if timeout.is_expired()
-        ]
+        return [timeout for timeout in self._timeouts.values() if timeout.is_expired()]
 
     # Callback registration
 
-    def on_warning(
-        self,
-        callback: Callable[[TaskTimeout, float], Awaitable[None]]
-    ):
+    def on_warning(self, callback: Callable[[TaskTimeout, float], Awaitable[None]]):
         """Register callback for timeout warnings."""
         self._on_warning.append(callback)
 
-    def on_expired(
-        self,
-        callback: Callable[[TaskTimeout], Awaitable[None]]
-    ):
+    def on_expired(self, callback: Callable[[TaskTimeout], Awaitable[None]]):
         """Register callback for timeout expiry."""
         self._on_expired.append(callback)
 
     def on_extension_requested(
-        self,
-        callback: Callable[[ExtensionRequest], Awaitable[None]]
+        self, callback: Callable[[ExtensionRequest], Awaitable[None]]
     ):
         """Register callback for extension requests."""
         self._on_extension_requested.append(callback)
@@ -540,7 +501,7 @@ class TimeoutManager:
 
     async def _check_timeouts(self):
         """Check all timeouts for warnings and expiries."""
-        now = datetime.utcnow()
+        datetime.utcnow()
 
         for key, timeout in list(self._timeouts.items()):
             # Check for expiry
@@ -565,7 +526,10 @@ class TimeoutManager:
             remaining_hours = timeout.time_remaining().total_seconds() / 3600
 
             for threshold in self.config.warning_thresholds:
-                if remaining_hours <= threshold and threshold not in timeout.warning_sent:
+                if (
+                    remaining_hours <= threshold
+                    and threshold not in timeout.warning_sent
+                ):
                     timeout.warning_sent.append(threshold)
 
                     logger.info(
@@ -588,27 +552,25 @@ class TimeoutManager:
         by_type = {}
         for timeout_type in TimeoutType:
             by_type[timeout_type.value] = sum(
-                1 for t in self._timeouts.values()
-                if t.timeout_type == timeout_type
+                1 for t in self._timeouts.values() if t.timeout_type == timeout_type
             )
 
         expiring_soon = self.get_expiring_soon(within_hours=1.0)
         expired = self.get_expired()
 
         pending_extensions = sum(
-            1 for r in self._extension_requests.values()
-            if r.approved is None
+            1 for r in self._extension_requests.values() if r.approved is None
         )
 
         return {
-            'active_timeouts': len(self._timeouts),
-            'by_type': by_type,
-            'expiring_within_1h': len(expiring_soon),
-            'expired_pending': len(expired),
-            'pending_extensions': pending_extensions,
-            'config': {
-                'submission_hours': self.config.submission_hours,
-                'review_hours': self.config.review_hours,
-                'max_extensions': self.config.max_extensions
-            }
+            "active_timeouts": len(self._timeouts),
+            "by_type": by_type,
+            "expiring_within_1h": len(expiring_soon),
+            "expired_pending": len(expired),
+            "pending_extensions": pending_extensions,
+            "config": {
+                "submission_hours": self.config.submission_hours,
+                "review_hours": self.config.review_hours,
+                "max_extensions": self.config.max_extensions,
+            },
         }

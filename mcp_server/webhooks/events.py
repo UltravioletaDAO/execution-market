@@ -19,6 +19,7 @@ class WebhookEventType(str, Enum):
 
     Naming convention: <resource>.<action>
     """
+
     # Task lifecycle events
     TASK_CREATED = "task.created"
     TASK_UPDATED = "task.updated"
@@ -65,9 +66,12 @@ class WebhookEventMetadata:
     """
     Standard metadata included in every webhook event.
     """
+
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     event_type: str = ""
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     api_version: str = "2026-01-25"
     idempotency_key: str = field(default_factory=lambda: str(uuid.uuid4()))
 
@@ -78,6 +82,7 @@ class WebhookEventMetadata:
 @dataclass
 class TaskPayload:
     """Payload for task-related events."""
+
     task_id: str
     title: str
     status: str
@@ -98,6 +103,7 @@ class TaskPayload:
 @dataclass
 class SubmissionPayload:
     """Payload for submission-related events."""
+
     submission_id: str
     task_id: str
     executor_id: str
@@ -116,6 +122,7 @@ class SubmissionPayload:
 @dataclass
 class PaymentPayload:
     """Payload for payment-related events."""
+
     payment_id: str
     task_id: str
     amount_usd: float
@@ -136,6 +143,7 @@ class PaymentPayload:
 @dataclass
 class DisputePayload:
     """Payload for dispute-related events."""
+
     dispute_id: str
     task_id: str
     submission_id: str
@@ -156,6 +164,7 @@ class DisputePayload:
 @dataclass
 class WorkerPayload:
     """Payload for worker-related events."""
+
     worker_id: str
     task_id: str
     wallet_address: Optional[str] = None
@@ -170,6 +179,7 @@ class WorkerPayload:
 @dataclass
 class ReputationPayload:
     """Payload for reputation update events."""
+
     entity_id: str
     entity_type: str  # "worker" or "agent"
     old_score: float
@@ -188,6 +198,7 @@ class WebhookEvent:
 
     This is the structure that gets sent to webhook endpoints.
     """
+
     event_type: WebhookEventType
     payload: Dict[str, Any]
     metadata: WebhookEventMetadata = field(default_factory=WebhookEventMetadata)
@@ -227,7 +238,9 @@ class WebhookEvent:
         )
 
     @classmethod
-    def submission_received(cls, submission: SubmissionPayload, task: TaskPayload) -> "WebhookEvent":
+    def submission_received(
+        cls, submission: SubmissionPayload, task: TaskPayload
+    ) -> "WebhookEvent":
         """Factory for submission.received event."""
         return cls(
             event_type=WebhookEventType.SUBMISSION_RECEIVED,
@@ -238,7 +251,9 @@ class WebhookEvent:
         )
 
     @classmethod
-    def payment_released(cls, payment: PaymentPayload, task: TaskPayload) -> "WebhookEvent":
+    def payment_released(
+        cls, payment: PaymentPayload, task: TaskPayload
+    ) -> "WebhookEvent":
         """Factory for payment.released event."""
         return cls(
             event_type=WebhookEventType.PAYMENT_RELEASED,

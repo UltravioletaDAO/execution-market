@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 class WorkerEligibilityStatus(str, Enum):
     """Status of worker eligibility check."""
+
     ELIGIBLE = "eligible"
     INELIGIBLE_REPUTATION = "ineligible_reputation"
     INELIGIBLE_LOCATION = "ineligible_location"
@@ -36,12 +37,14 @@ class WorkerEligibilityStatus(str, Enum):
 
 class BatchOperationMode(str, Enum):
     """Mode for batch operations."""
+
     ALL_OR_NONE = "all_or_none"  # Atomic: all succeed or all fail
     BEST_EFFORT = "best_effort"  # Create as many as possible
 
 
 class AnalyticsTimeframe(str, Enum):
     """Timeframe for analytics queries."""
+
     DAY = "day"
     WEEK = "week"
     MONTH = "month"
@@ -55,6 +58,7 @@ class AnalyticsTimeframe(str, Enum):
 @dataclass
 class WorkerEligibility:
     """Result of worker eligibility check."""
+
     worker_id: str
     status: WorkerEligibilityStatus
     reputation_score: float = 0.0
@@ -68,6 +72,7 @@ class WorkerEligibility:
 @dataclass
 class BatchTaskResult:
     """Result for a single task in batch creation."""
+
     index: int
     task_id: Optional[str] = None
     title: str = ""
@@ -79,6 +84,7 @@ class BatchTaskResult:
 @dataclass
 class TaskAnalytics:
     """Comprehensive task analytics."""
+
     # Overview
     total_tasks: int = 0
     completed_tasks: int = 0
@@ -113,6 +119,7 @@ class TaskAnalytics:
 
 class TaskCategory(str, Enum):
     """Categories of tasks that humans can execute."""
+
     PHYSICAL_PRESENCE = "physical_presence"
     KNOWLEDGE_ACCESS = "knowledge_access"
     HUMAN_AUTHORITY = "human_authority"
@@ -122,6 +129,7 @@ class TaskCategory(str, Enum):
 
 class EvidenceType(str, Enum):
     """Types of evidence that can be required for task completion."""
+
     PHOTO = "photo"
     PHOTO_GEO = "photo_geo"
     VIDEO = "video"
@@ -137,53 +145,39 @@ class EvidenceType(str, Enum):
 
 class ResponseFormat(str, Enum):
     """Output format for tool responses."""
+
     MARKDOWN = "markdown"
     JSON = "json"
 
 
 class AssignTaskInput(BaseModel):
     """Input model for assigning a task to a specific worker."""
+
     model_config = ConfigDict(
-        str_strip_whitespace=True,
-        validate_assignment=True,
-        extra='forbid'
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
     )
 
     task_id: str = Field(
-        ...,
-        description="UUID of the task to assign",
-        min_length=36,
-        max_length=36
+        ..., description="UUID of the task to assign", min_length=36, max_length=36
     )
     agent_id: str = Field(
-        ...,
-        description="Agent ID (for authorization)",
-        min_length=1,
-        max_length=255
+        ..., description="Agent ID (for authorization)", min_length=1, max_length=255
     )
     executor_id: str = Field(
-        ...,
-        description="Worker's executor ID to assign",
-        min_length=36,
-        max_length=36
+        ..., description="Worker's executor ID to assign", min_length=36, max_length=36
     )
     notes: Optional[str] = Field(
-        default=None,
-        description="Notes for the worker",
-        max_length=500
+        default=None, description="Notes for the worker", max_length=500
     )
     skip_eligibility_check: bool = Field(
-        default=False,
-        description="Skip reputation/location checks (use with caution)"
+        default=False, description="Skip reputation/location checks (use with caution)"
     )
-    notify_worker: bool = Field(
-        default=True,
-        description="Send notification to worker"
-    )
+    notify_worker: bool = Field(default=True, description="Send notification to worker")
 
 
 class BatchTaskDefinition(BaseModel):
     """Single task definition for batch creation."""
+
     title: str = Field(..., min_length=5, max_length=255)
     instructions: str = Field(..., min_length=20, max_length=5000)
     category: TaskCategory
@@ -195,7 +189,7 @@ class BatchTaskDefinition(BaseModel):
     min_reputation: Optional[int] = 0
     tags: Optional[List[str]] = Field(default=None, max_length=10)
 
-    @field_validator('evidence_required')
+    @field_validator("evidence_required")
     @classmethod
     def validate_evidence(cls, v: List[EvidenceType]) -> List[EvidenceType]:
         if len(v) != len(set(v)):
@@ -205,75 +199,54 @@ class BatchTaskDefinition(BaseModel):
 
 class BatchCreateTasksInput(BaseModel):
     """Input model for batch task creation."""
+
     model_config = ConfigDict(
-        str_strip_whitespace=True,
-        validate_assignment=True,
-        extra='forbid'
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
     )
 
     agent_id: str = Field(
-        ...,
-        description="Agent's identifier",
-        min_length=1,
-        max_length=255
+        ..., description="Agent's identifier", min_length=1, max_length=255
     )
     tasks: List[BatchTaskDefinition] = Field(
-        ...,
-        description="List of tasks to create",
-        min_length=1,
-        max_length=50
+        ..., description="List of tasks to create", min_length=1, max_length=50
     )
     payment_token: Optional[str] = Field(
-        default="USDC",
-        description="Payment token for all tasks"
+        default="USDC", description="Payment token for all tasks"
     )
     operation_mode: BatchOperationMode = Field(
         default=BatchOperationMode.BEST_EFFORT,
-        description="Atomic (all-or-none) or best-effort creation"
+        description="Atomic (all-or-none) or best-effort creation",
     )
     escrow_wallet: Optional[str] = Field(
         default=None,
         description="Custom escrow wallet address (optional)",
         min_length=42,
-        max_length=42
+        max_length=42,
     )
 
 
 class GetTaskAnalyticsInput(BaseModel):
     """Input model for task analytics."""
+
     model_config = ConfigDict(
-        str_strip_whitespace=True,
-        validate_assignment=True,
-        extra='forbid'
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
     )
 
     agent_id: str = Field(
-        ...,
-        description="Agent ID to get analytics for",
-        min_length=1,
-        max_length=255
+        ..., description="Agent ID to get analytics for", min_length=1, max_length=255
     )
-    days: int = Field(
-        default=30,
-        description="Number of days to analyze",
-        ge=1,
-        le=365
-    )
+    days: int = Field(default=30, description="Number of days to analyze", ge=1, le=365)
     include_worker_details: bool = Field(
-        default=True,
-        description="Include top worker breakdown"
+        default=True, description="Include top worker breakdown"
     )
     include_geographic: bool = Field(
-        default=True,
-        description="Include geographic distribution"
+        default=True, description="Include geographic distribution"
     )
     category_filter: Optional[TaskCategory] = Field(
-        default=None,
-        description="Filter analytics to specific category"
+        default=None, description="Filter analytics to specific category"
     )
     response_format: ResponseFormat = Field(
-        default=ResponseFormat.MARKDOWN,
-        description="Output format"
+        default=ResponseFormat.MARKDOWN, description="Output format"
     )
 
 
@@ -322,15 +295,21 @@ async def check_worker_eligibility(
     """
     try:
         # Get executor details
-        executor_result = db_client.table("executors").select(
-            "id, display_name, reputation_score, status, location, active_tasks_count"
-        ).eq("id", executor_id).single().execute()
+        executor_result = (
+            db_client.table("executors")
+            .select(
+                "id, display_name, reputation_score, status, location, active_tasks_count"
+            )
+            .eq("id", executor_id)
+            .single()
+            .execute()
+        )
 
         if not executor_result.data:
             return WorkerEligibility(
                 worker_id=executor_id,
                 status=WorkerEligibilityStatus.NOT_FOUND,
-                reason="Worker not found in database"
+                reason="Worker not found in database",
             )
 
         executor = executor_result.data
@@ -341,7 +320,7 @@ async def check_worker_eligibility(
                 worker_id=executor_id,
                 status=WorkerEligibilityStatus.INELIGIBLE_STATUS,
                 reputation_score=executor.get("reputation_score", 0),
-                reason=f"Worker status is '{executor.get('status')}', must be 'active'"
+                reason=f"Worker status is '{executor.get('status')}', must be 'active'",
             )
 
         # Check reputation
@@ -354,7 +333,7 @@ async def check_worker_eligibility(
                 status=WorkerEligibilityStatus.INELIGIBLE_REPUTATION,
                 reputation_score=worker_rep,
                 required_reputation=min_rep,
-                reason=f"Reputation {worker_rep} below minimum {min_rep}"
+                reason=f"Reputation {worker_rep} below minimum {min_rep}",
             )
 
         # Check concurrent tasks
@@ -368,7 +347,7 @@ async def check_worker_eligibility(
                 reputation_score=worker_rep,
                 active_tasks_count=active_tasks,
                 max_concurrent_tasks=max_concurrent,
-                reason=f"Worker at concurrent task limit ({active_tasks}/{max_concurrent})"
+                reason=f"Worker at concurrent task limit ({active_tasks}/{max_concurrent})",
             )
 
         # All checks passed
@@ -379,7 +358,7 @@ async def check_worker_eligibility(
             required_reputation=min_rep,
             active_tasks_count=active_tasks,
             max_concurrent_tasks=max_concurrent,
-            location_verified=True
+            location_verified=True,
         )
 
     except Exception as e:
@@ -387,7 +366,7 @@ async def check_worker_eligibility(
         return WorkerEligibility(
             worker_id=executor_id,
             status=WorkerEligibilityStatus.NOT_FOUND,
-            reason=f"Error checking eligibility: {str(e)}"
+            reason=f"Error checking eligibility: {str(e)}",
         )
 
 
@@ -459,7 +438,9 @@ def format_analytics_markdown(analytics: TaskAnalytics, days: int) -> str:
     # Geographic Distribution
     if analytics.by_location:
         lines.extend(["", "## Geographic Distribution"])
-        for location, count in sorted(analytics.by_location.items(), key=lambda x: x[1], reverse=True)[:10]:
+        for location, count in sorted(
+            analytics.by_location.items(), key=lambda x: x[1], reverse=True
+        )[:10]:
             lines.append(f"- {location}: {count}")
 
     # Top Workers
@@ -494,8 +475,8 @@ def register_agent_tools(mcp, db):
             "readOnlyHint": False,
             "destructiveHint": False,
             "idempotentHint": False,
-            "openWorldHint": True
-        }
+            "openWorldHint": True,
+        },
     )
     async def em_assign_task(params: AssignTaskInput) -> str:
         """
@@ -567,24 +548,26 @@ Use `skip_eligibility_check=True` to override (not recommended)."""
             # Format response
             response = f"""# Task Assigned Successfully
 
-**Task**: {task_data['title']}
+**Task**: {task_data["title"]}
 **Task ID**: `{params.task_id}`
 
 ## Worker Details
-- **Name**: {executor.get('display_name', 'Unknown')}
-- **Wallet**: `{executor.get('wallet_address', 'N/A')[:10]}...`
-- **Reputation**: {executor.get('reputation_score', 0)}
-- **Tasks Completed**: {executor.get('tasks_completed', 0)}
+- **Name**: {executor.get("display_name", "Unknown")}
+- **Wallet**: `{executor.get("wallet_address", "N/A")[:10]}...`
+- **Reputation**: {executor.get("reputation_score", 0)}
+- **Tasks Completed**: {executor.get("tasks_completed", 0)}
 
 ## Assignment
 - **Status**: ACCEPTED
 - **Assigned At**: {format_datetime(datetime.now(timezone.utc).isoformat())}
-{f'- **Notes**: {params.notes}' if params.notes else ''}
-{f'- **Worker Notified**: Yes' if params.notify_worker else '- **Worker Notified**: No'}
+{f"- **Notes**: {params.notes}" if params.notes else ""}
+{"- **Worker Notified**: Yes" if params.notify_worker else "- **Worker Notified**: No"}
 
 Use `em_check_submission` to monitor for submitted work."""
 
-            logger.info(f"Task {params.task_id} assigned to worker {params.executor_id}")
+            logger.info(
+                f"Task {params.task_id} assigned to worker {params.executor_id}"
+            )
             return response
 
         except Exception as e:
@@ -598,8 +581,8 @@ Use `em_check_submission` to monitor for submitted work."""
             "readOnlyHint": False,
             "destructiveHint": False,
             "idempotentHint": False,
-            "openWorldHint": True
-        }
+            "openWorldHint": True,
+        },
     )
     async def em_batch_create_tasks(params: BatchCreateTasksInput) -> str:
         """
@@ -638,13 +621,13 @@ Use `em_check_submission` to monitor for submitted work."""
                 for i, task_def in enumerate(params.tasks):
                     # Additional validation could go here
                     if task_def.bounty_usd <= 0:
-                        validation_errors.append(f"Task #{i+1}: Invalid bounty")
+                        validation_errors.append(f"Task #{i + 1}: Invalid bounty")
 
                 if validation_errors:
                     return f"""# Batch Validation Failed (ALL_OR_NONE mode)
 
 The following validation errors were found:
-{chr(10).join(f'- {e}' for e in validation_errors)}
+{chr(10).join(f"- {e}" for e in validation_errors)}
 
 No tasks were created. Fix errors and retry."""
 
@@ -667,19 +650,23 @@ No tasks were created. Fix errors and retry."""
                         bounty_usd=task_def.bounty_usd,
                         deadline=deadline,
                         evidence_required=[e.value for e in task_def.evidence_required],
-                        evidence_optional=[e.value for e in task_def.evidence_optional] if task_def.evidence_optional else None,
+                        evidence_optional=[e.value for e in task_def.evidence_optional]
+                        if task_def.evidence_optional
+                        else None,
                         location_hint=task_def.location_hint,
                         min_reputation=task_def.min_reputation or 0,
                         payment_token=params.payment_token or "USDC",
                     )
 
-                    created_tasks.append(BatchTaskResult(
-                        index=i,
-                        task_id=task["id"],
-                        title=task_def.title,
-                        bounty_usd=task_def.bounty_usd,
-                        success=True,
-                    ))
+                    created_tasks.append(
+                        BatchTaskResult(
+                            index=i,
+                            task_id=task["id"],
+                            title=task_def.title,
+                            bounty_usd=task_def.bounty_usd,
+                            success=True,
+                        )
+                    )
                     total_created_bounty += task_def.bounty_usd
 
                 except Exception as e:
@@ -697,7 +684,7 @@ No tasks were created. Fix errors and retry."""
                         # TODO: Implement rollback of created tasks
                         return f"""# Batch Creation Failed (ALL_OR_NONE mode)
 
-Task #{i+1} ({task_def.title}) failed: {str(e)}
+Task #{i + 1} ({task_def.title}) failed: {str(e)}
 
 No tasks were created due to atomic mode.
 Previously created tasks were rolled back."""
@@ -730,10 +717,12 @@ Previously created tasks were rolled back."""
                 lines.append("")
 
             if failed_tasks:
-                lines.extend([
-                    "## Failed Tasks",
-                    "*The following tasks could not be created:*",
-                ])
+                lines.extend(
+                    [
+                        "## Failed Tasks",
+                        "*The following tasks could not be created:*",
+                    ]
+                )
                 for result in failed_tasks[:10]:
                     lines.append(
                         f"- #{result.index + 1} ({result.title[:30]}): {result.error}"
@@ -743,12 +732,14 @@ Previously created tasks were rolled back."""
             # Add task IDs as JSON for programmatic access
             if created_tasks:
                 task_ids = [r.task_id for r in created_tasks if r.task_id]
-                lines.extend([
-                    "## Task IDs (JSON)",
-                    "```json",
-                    json.dumps(task_ids, indent=2),
-                    "```",
-                ])
+                lines.extend(
+                    [
+                        "## Task IDs (JSON)",
+                        "```json",
+                        json.dumps(task_ids, indent=2),
+                        "```",
+                    ]
+                )
 
             logger.info(
                 f"Batch created {len(created_tasks)}/{len(params.tasks)} tasks "
@@ -767,8 +758,8 @@ Previously created tasks were rolled back."""
             "readOnlyHint": True,
             "destructiveHint": False,
             "idempotentHint": True,
-            "openWorldHint": True
-        }
+            "openWorldHint": True,
+        },
     )
     async def em_get_task_analytics(params: GetTaskAnalyticsInput) -> str:
         """
@@ -801,9 +792,12 @@ Previously created tasks were rolled back."""
             start_date = datetime.now(timezone.utc) - timedelta(days=params.days)
 
             # Get all tasks for agent in date range
-            query = client.table("tasks").select("*").eq(
-                "agent_id", params.agent_id
-            ).gte("created_at", start_date.isoformat())
+            query = (
+                client.table("tasks")
+                .select("*")
+                .eq("agent_id", params.agent_id)
+                .gte("created_at", start_date.isoformat())
+            )
 
             if params.category_filter:
                 query = query.eq("category", params.category_filter.value)
@@ -826,7 +820,6 @@ Previously created tasks were rolled back."""
             # Time tracking
             accept_times = []
             complete_times = []
-            verify_times = []
 
             for task in tasks:
                 # Count by status
@@ -857,16 +850,24 @@ Previously created tasks were rolled back."""
 
                     if created_at and assigned_at:
                         try:
-                            t1 = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                            t2 = datetime.fromisoformat(assigned_at.replace("Z", "+00:00"))
+                            t1 = datetime.fromisoformat(
+                                created_at.replace("Z", "+00:00")
+                            )
+                            t2 = datetime.fromisoformat(
+                                assigned_at.replace("Z", "+00:00")
+                            )
                             accept_times.append((t2 - t1).total_seconds() / 3600)
                         except Exception:
                             pass
 
                     if assigned_at and completed_at:
                         try:
-                            t1 = datetime.fromisoformat(assigned_at.replace("Z", "+00:00"))
-                            t2 = datetime.fromisoformat(completed_at.replace("Z", "+00:00"))
+                            t1 = datetime.fromisoformat(
+                                assigned_at.replace("Z", "+00:00")
+                            )
+                            t2 = datetime.fromisoformat(
+                                completed_at.replace("Z", "+00:00")
+                            )
                             complete_times.append((t2 - t1).total_seconds() / 3600)
                         except Exception:
                             pass
@@ -883,13 +884,15 @@ Previously created tasks were rolled back."""
             analytics.completed_tasks = by_status.get("completed", 0)
             analytics.completion_rate = (
                 (analytics.completed_tasks / analytics.total_tasks * 100)
-                if analytics.total_tasks > 0 else 0
+                if analytics.total_tasks > 0
+                else 0
             )
 
             analytics.total_bounty_paid = total_paid
             analytics.average_bounty = (
                 sum(completed_task_values) / len(completed_task_values)
-                if completed_task_values else 0
+                if completed_task_values
+                else 0
             )
 
             # Calculate pending escrow
@@ -913,7 +916,8 @@ Previously created tasks were rolled back."""
             # Quality metrics
             analytics.dispute_rate = (
                 (dispute_count / analytics.total_tasks * 100)
-                if analytics.total_tasks > 0 else 0
+                if analytics.total_tasks > 0
+                else 0
             )
             analytics.resubmission_rate = 5.0  # TODO: Calculate from submissions
             analytics.worker_satisfaction_score = 4.2  # TODO: Calculate from ratings
@@ -921,14 +925,21 @@ Previously created tasks were rolled back."""
             # Get top workers
             if params.include_worker_details and analytics.completed_tasks > 0:
                 completed_tasks = [t for t in tasks if t.get("status") == "completed"]
-                executor_ids = list(set(
-                    t.get("executor_id") for t in completed_tasks if t.get("executor_id")
-                ))
+                executor_ids = list(
+                    set(
+                        t.get("executor_id")
+                        for t in completed_tasks
+                        if t.get("executor_id")
+                    )
+                )
 
                 if executor_ids:
-                    workers_result = client.table("executors").select(
-                        "id, display_name, reputation_score"
-                    ).in_("id", executor_ids[:10]).execute()
+                    workers_result = (
+                        client.table("executors")
+                        .select("id, display_name, reputation_score")
+                        .in_("id", executor_ids[:10])
+                        .execute()
+                    )
 
                     if workers_result.data:
                         worker_counts = {}
@@ -938,7 +949,9 @@ Previously created tasks were rolled back."""
                                 worker_counts[eid] = worker_counts.get(eid, 0) + 1
 
                         for worker in workers_result.data:
-                            worker["tasks_completed"] = worker_counts.get(worker["id"], 0)
+                            worker["tasks_completed"] = worker_counts.get(
+                                worker["id"], 0
+                            )
                             worker["reputation"] = worker.get("reputation_score", 0)
                             analytics.top_workers.append(worker)
 
@@ -948,31 +961,39 @@ Previously created tasks were rolled back."""
 
             # Format response
             if params.response_format == ResponseFormat.JSON:
-                return json.dumps({
-                    "period_days": params.days,
-                    "totals": {
-                        "total": analytics.total_tasks,
-                        "completed": analytics.completed_tasks,
-                        "completion_rate": analytics.completion_rate,
-                        "total_paid": analytics.total_bounty_paid,
-                        "avg_bounty": analytics.average_bounty,
-                        "escrow_held": analytics.total_escrow_held,
+                return json.dumps(
+                    {
+                        "period_days": params.days,
+                        "totals": {
+                            "total": analytics.total_tasks,
+                            "completed": analytics.completed_tasks,
+                            "completion_rate": analytics.completion_rate,
+                            "total_paid": analytics.total_bounty_paid,
+                            "avg_bounty": analytics.average_bounty,
+                            "escrow_held": analytics.total_escrow_held,
+                        },
+                        "performance": {
+                            "avg_time_to_accept_hours": analytics.average_time_to_accept_hours,
+                            "avg_time_to_complete_hours": analytics.average_time_to_complete_hours,
+                            "avg_time_to_verify_hours": analytics.average_time_to_verify_hours,
+                        },
+                        "quality": {
+                            "dispute_rate": analytics.dispute_rate,
+                            "resubmission_rate": analytics.resubmission_rate,
+                            "worker_satisfaction": analytics.worker_satisfaction_score,
+                        },
+                        "by_status": analytics.by_status,
+                        "by_category": analytics.by_category,
+                        "by_location": analytics.by_location
+                        if params.include_geographic
+                        else {},
+                        "top_workers": analytics.top_workers[:5]
+                        if params.include_worker_details
+                        else [],
                     },
-                    "performance": {
-                        "avg_time_to_accept_hours": analytics.average_time_to_accept_hours,
-                        "avg_time_to_complete_hours": analytics.average_time_to_complete_hours,
-                        "avg_time_to_verify_hours": analytics.average_time_to_verify_hours,
-                    },
-                    "quality": {
-                        "dispute_rate": analytics.dispute_rate,
-                        "resubmission_rate": analytics.resubmission_rate,
-                        "worker_satisfaction": analytics.worker_satisfaction_score,
-                    },
-                    "by_status": analytics.by_status,
-                    "by_category": analytics.by_category,
-                    "by_location": analytics.by_location if params.include_geographic else {},
-                    "top_workers": analytics.top_workers[:5] if params.include_worker_details else [],
-                }, indent=2, default=str)
+                    indent=2,
+                    default=str,
+                )
 
             # Markdown format
             return format_analytics_markdown(analytics, params.days)
@@ -981,7 +1002,9 @@ Previously created tasks were rolled back."""
             logger.error(f"Error getting analytics: {e}")
             return f"Error: Failed to get analytics - {str(e)}"
 
-    logger.info("Enhanced agent tools registered: em_assign_task, em_batch_create_tasks, em_get_task_analytics")
+    logger.info(
+        "Enhanced agent tools registered: em_assign_task, em_batch_create_tasks, em_get_task_analytics"
+    )
 
 
 # ============== CONFIG ==============
@@ -990,6 +1013,7 @@ Previously created tasks were rolled back."""
 @dataclass
 class AgentToolsConfig:
     """Configuration for agent tools."""
+
     enable_eligibility_checks: bool = True
     max_batch_size: int = 50
     default_operation_mode: BatchOperationMode = BatchOperationMode.BEST_EFFORT

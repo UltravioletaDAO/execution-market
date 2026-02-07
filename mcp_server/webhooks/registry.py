@@ -8,7 +8,7 @@ Supports filtering webhooks by event type and owner.
 import secrets
 import hashlib
 import logging
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List, Set
 from enum import Enum
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class WebhookStatus(str, Enum):
     """Status of a registered webhook."""
+
     ACTIVE = "active"
     PAUSED = "paused"
     DISABLED = "disabled"
@@ -49,6 +50,7 @@ class WebhookEndpoint:
         total_deliveries: Total delivery attempts
         successful_deliveries: Successful deliveries
     """
+
     webhook_id: str
     owner_id: str
     url: str
@@ -57,8 +59,12 @@ class WebhookEndpoint:
     description: str = ""
     status: WebhookStatus = WebhookStatus.ACTIVE
     metadata: Dict[str, Any] = field(default_factory=dict)
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    updated_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     last_triggered_at: Optional[str] = None
     failure_count: int = 0
     total_deliveries: int = 0
@@ -100,6 +106,7 @@ class WebhookEndpoint:
 @dataclass
 class WebhookRegistration:
     """Result of webhook registration with the plain secret."""
+
     webhook: WebhookEndpoint
     secret: str  # Plain secret, only available at registration time
 
@@ -126,9 +133,13 @@ class WebhookRegistry:
             supabase_client: Optional Supabase client for persistence
         """
         self._webhooks: Dict[str, WebhookEndpoint] = {}
-        self._secrets: Dict[str, str] = {}  # webhook_id -> plain secret (in-memory only)
+        self._secrets: Dict[
+            str, str
+        ] = {}  # webhook_id -> plain secret (in-memory only)
         self._by_owner: Dict[str, Set[str]] = {}  # owner_id -> set of webhook_ids
-        self._by_event: Dict[WebhookEventType, Set[str]] = {}  # event -> set of webhook_ids
+        self._by_event: Dict[
+            WebhookEventType, Set[str]
+        ] = {}  # event -> set of webhook_ids
         self._supabase = supabase_client
 
     def _generate_secret(self) -> tuple[str, str]:
@@ -236,7 +247,9 @@ class WebhookRegistry:
     def get_by_owner(self, owner_id: str) -> List[WebhookEndpoint]:
         """Get all webhooks for an owner."""
         webhook_ids = self._by_owner.get(owner_id, set())
-        return [self._webhooks[wh_id] for wh_id in webhook_ids if wh_id in self._webhooks]
+        return [
+            self._webhooks[wh_id] for wh_id in webhook_ids if wh_id in self._webhooks
+        ]
 
     def get_by_event(self, event_type: WebhookEventType) -> List[WebhookEndpoint]:
         """Get all active webhooks subscribed to an event type."""
@@ -244,7 +257,8 @@ class WebhookRegistry:
         return [
             self._webhooks[wh_id]
             for wh_id in webhook_ids
-            if wh_id in self._webhooks and self._webhooks[wh_id].status == WebhookStatus.ACTIVE
+            if wh_id in self._webhooks
+            and self._webhooks[wh_id].status == WebhookStatus.ACTIVE
         ]
 
     def update(
@@ -432,7 +446,9 @@ class WebhookRegistry:
 
     def pause(self, webhook_id: str, owner_id: str) -> bool:
         """Pause a webhook (stop receiving events)."""
-        return self.update(webhook_id, owner_id, status=WebhookStatus.PAUSED) is not None
+        return (
+            self.update(webhook_id, owner_id, status=WebhookStatus.PAUSED) is not None
+        )
 
     def resume(self, webhook_id: str, owner_id: str) -> bool:
         """Resume a paused webhook."""
@@ -441,7 +457,10 @@ class WebhookRegistry:
             return False
 
         if webhook.status == WebhookStatus.PAUSED:
-            return self.update(webhook_id, owner_id, status=WebhookStatus.ACTIVE) is not None
+            return (
+                self.update(webhook_id, owner_id, status=WebhookStatus.ACTIVE)
+                is not None
+            )
 
         return False
 
@@ -469,7 +488,9 @@ class WebhookRegistry:
             return
 
         try:
-            self._supabase.table("webhooks").delete().eq("webhook_id", webhook_id).execute()
+            self._supabase.table("webhooks").delete().eq(
+                "webhook_id", webhook_id
+            ).execute()
         except Exception as e:
             logger.error(f"Failed to delete webhook {webhook_id}: {e}")
 

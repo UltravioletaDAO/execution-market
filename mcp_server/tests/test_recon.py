@@ -13,11 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from task_types.recon import (
     TaskTier,
     ReconTaskType,
-    ReconTask,
     ReconTaskFactory,
-    EvidenceRequirement,
-    EvidenceType,
-    BountySuggestion,
     Location,
 )
 from decimal import Decimal
@@ -27,7 +23,9 @@ def test_task_tier():
     """Test TaskTier enum."""
     print("TaskTier Tests:")
     print(f"  SIMPLE: ${TaskTier.SIMPLE.min_bounty}-${TaskTier.SIMPLE.max_bounty}")
-    print(f"  STANDARD: ${TaskTier.STANDARD.min_bounty}-${TaskTier.STANDARD.max_bounty}")
+    print(
+        f"  STANDARD: ${TaskTier.STANDARD.min_bounty}-${TaskTier.STANDARD.max_bounty}"
+    )
     print(f"  PREMIUM: ${TaskTier.PREMIUM.min_bounty}-${TaskTier.PREMIUM.max_bounty}")
 
     assert TaskTier.SIMPLE.min_bounty == Decimal("1.00")
@@ -118,7 +116,9 @@ def test_availability_check():
     """Test availability check task creation."""
     print("\nAvailability Check Test:")
     loc = Location(40.7128, -74.0060, "Best Buy", 200, "Best Buy")
-    task = ReconTaskFactory.create_availability_check(loc, "PlayStation 5", "Digital Edition")
+    task = ReconTaskFactory.create_availability_check(
+        loc, "PlayStation 5", "Digital Edition"
+    )
 
     print(f"  Title: {task.title}")
     print(f"  Bounty: ${task.bounty_usd}")

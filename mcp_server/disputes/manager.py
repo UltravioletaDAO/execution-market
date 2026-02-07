@@ -28,16 +28,19 @@ logger = logging.getLogger(__name__)
 
 class DisputeError(Exception):
     """Base exception for dispute operations."""
+
     pass
 
 
 class DisputeNotFoundError(DisputeError):
     """Raised when a dispute is not found."""
+
     pass
 
 
 class InvalidDisputeStateError(DisputeError):
     """Raised when an operation is invalid for the current state."""
+
     pass
 
 
@@ -153,7 +156,8 @@ class DisputeManager:
 
         # Determine respondent party
         respondent_party = (
-            DisputeParty.AGENT if initiator_party == DisputeParty.WORKER
+            DisputeParty.AGENT
+            if initiator_party == DisputeParty.WORKER
             else DisputeParty.WORKER
         )
 
@@ -211,17 +215,14 @@ class DisputeManager:
         if self.escrow_manager and escrow_id:
             try:
                 await self.escrow_manager.handle_dispute(
-                    task_id=task_id,
-                    dispute_reason=f"Dispute opened: {reason.value}"
+                    task_id=task_id, dispute_reason=f"Dispute opened: {reason.value}"
                 )
                 logger.info(
-                    "Escrow locked for dispute %s, task %s",
-                    dispute.id, task_id
+                    "Escrow locked for dispute %s, task %s", dispute.id, task_id
                 )
             except Exception as e:
                 logger.warning(
-                    "Failed to lock escrow for dispute %s: %s",
-                    dispute.id, str(e)
+                    "Failed to lock escrow for dispute %s: %s", dispute.id, str(e)
                 )
 
         logger.info(
@@ -301,7 +302,8 @@ class DisputeManager:
 
         # Determine responder party
         responder_party = (
-            dispute.initiator_party if responder_id == dispute.initiator_id
+            dispute.initiator_party
+            if responder_id == dispute.initiator_id
             else dispute.respondent_party
         )
 
@@ -324,9 +326,7 @@ class DisputeManager:
         evidence_ids = []
         if evidence:
             # Check evidence limit
-            party_evidence = [
-                e for e in dispute.evidence if e.party == responder_party
-            ]
+            party_evidence = [e for e in dispute.evidence if e.party == responder_party]
             if len(party_evidence) + len(evidence) > self.config.max_evidence_per_party:
                 raise DisputeError(
                     f"Evidence limit exceeded ({self.config.max_evidence_per_party} max)"
@@ -427,6 +427,7 @@ class DisputeManager:
         if self.escrow_manager and dispute.escrow_id:
             try:
                 from .resolution import apply_resolution
+
                 tx_hashes = await apply_resolution(
                     dispute=dispute,
                     resolution=resolution,
@@ -436,7 +437,8 @@ class DisputeManager:
             except Exception as e:
                 logger.error(
                     "Failed to apply resolution to escrow for dispute %s: %s",
-                    dispute_id, str(e)
+                    dispute_id,
+                    str(e),
                 )
                 # Continue with resolution record even if escrow fails
                 resolution.notes += f" [Escrow update failed: {str(e)}]"
@@ -544,9 +546,7 @@ class DisputeManager:
                     winner=winner.value,
                 )
             except Exception as e:
-                logger.warning(
-                    "Failed to unlock escrow after withdrawal: %s", str(e)
-                )
+                logger.warning("Failed to unlock escrow after withdrawal: %s", str(e))
 
         logger.info(
             "Dispute withdrawn: id=%s, by=%s, reason=%s",
@@ -566,19 +566,24 @@ class DisputeManager:
         """
         all_disputes = list(self._disputes.values())
         open_disputes = [d for d in all_disputes if d.is_open]
-        resolved_disputes = [d for d in all_disputes if d.status == DisputeStatus.RESOLVED]
+        resolved_disputes = [
+            d for d in all_disputes if d.status == DisputeStatus.RESOLVED
+        ]
 
         # Calculate resolution stats
         worker_wins = sum(
-            1 for d in resolved_disputes
+            1
+            for d in resolved_disputes
             if d.resolution and d.resolution.winner == DisputeParty.WORKER
         )
         agent_wins = sum(
-            1 for d in resolved_disputes
+            1
+            for d in resolved_disputes
             if d.resolution and d.resolution.winner == DisputeParty.AGENT
         )
         splits = sum(
-            1 for d in resolved_disputes
+            1
+            for d in resolved_disputes
             if d.resolution and d.resolution.resolution_type == ResolutionType.SPLIT
         )
 
@@ -590,8 +595,7 @@ class DisputeManager:
                 resolution_times.append(delta.total_seconds() / 3600)  # hours
 
         avg_resolution_hours = (
-            sum(resolution_times) / len(resolution_times)
-            if resolution_times else 0
+            sum(resolution_times) / len(resolution_times) if resolution_times else 0
         )
 
         # Count by reason
@@ -604,8 +608,12 @@ class DisputeManager:
             "total": len(all_disputes),
             "open": len(open_disputes),
             "resolved": len(resolved_disputes),
-            "escalated": sum(1 for d in all_disputes if d.status == DisputeStatus.ESCALATED),
-            "withdrawn": sum(1 for d in all_disputes if d.status == DisputeStatus.WITHDRAWN),
+            "escalated": sum(
+                1 for d in all_disputes if d.status == DisputeStatus.ESCALATED
+            ),
+            "withdrawn": sum(
+                1 for d in all_disputes if d.status == DisputeStatus.WITHDRAWN
+            ),
             "outcomes": {
                 "worker_wins": worker_wins,
                 "agent_wins": agent_wins,
@@ -613,7 +621,9 @@ class DisputeManager:
             },
             "avg_resolution_hours": round(avg_resolution_hours, 1),
             "by_reason": by_reason,
-            "total_amount_disputed": float(sum(d.amount_disputed for d in all_disputes)),
+            "total_amount_disputed": float(
+                sum(d.amount_disputed for d in all_disputes)
+            ),
         }
 
     def _get_dispute(self, dispute_id: str) -> Dispute:
@@ -655,6 +665,7 @@ def reset_manager() -> None:
 
 
 # Convenience functions
+
 
 async def create_dispute(
     task_id: str,

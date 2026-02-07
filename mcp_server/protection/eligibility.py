@@ -16,7 +16,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Dict, Optional, List, Any, Tuple
 
-from .fund import get_fund, FundConfig, WorkerClaimHistory
+from .fund import get_fund
 from .claims import ClaimType
 
 logger = logging.getLogger(__name__)
@@ -39,6 +39,7 @@ class EligibilityRequirements:
         max_claim_percent: Maximum claim as % of original bounty (80%)
         fraud_flag_blocks: Whether fraud flags block eligibility
     """
+
     min_completed_tasks: int = 5
     require_verified_identity: bool = True
     cooldown_days: int = 30
@@ -57,6 +58,7 @@ DEFAULT_REQUIREMENTS = EligibilityRequirements()
 
 class EligibilityStatus(str, Enum):
     """Status of eligibility check."""
+
     ELIGIBLE = "eligible"
     INELIGIBLE = "ineligible"
     PENDING_VERIFICATION = "pending_verification"
@@ -78,6 +80,7 @@ class EligibilityResult:
         cooldown_ends: When cooldown period ends (if applicable)
         missing_requirements: List of unmet requirements
     """
+
     executor_id: str
     status: EligibilityStatus
     eligible: bool
@@ -94,7 +97,9 @@ class EligibilityResult:
             "eligible": self.eligible,
             "reason": self.reason,
             "max_claimable": float(self.max_claimable),
-            "cooldown_ends": self.cooldown_ends.isoformat() if self.cooldown_ends else None,
+            "cooldown_ends": self.cooldown_ends.isoformat()
+            if self.cooldown_ends
+            else None,
             "missing_requirements": self.missing_requirements,
         }
 
@@ -111,6 +116,7 @@ class WorkerProfile:
 
     In production, this would come from the workers module.
     """
+
     executor_id: str
     completed_tasks: int = 0
     identity_verified: bool = False
@@ -310,7 +316,7 @@ def check_eligibility(
             status=EligibilityStatus.INELIGIBLE,
             eligible=False,
             reason=f"Requested amount ${float(amount):.2f} exceeds maximum "
-                   f"${float(max_claimable):.2f} (80% of bounty or per-claim limit)",
+            f"${float(max_claimable):.2f} (80% of bounty or per-claim limit)",
             max_claimable=max_claimable,
             missing_requirements=["amount_within_limit"],
         )
@@ -326,14 +332,18 @@ def check_eligibility(
                 status=EligibilityStatus.INELIGIBLE,
                 eligible=False,
                 reason=f"Monthly limit exceeded. Already claimed "
-                       f"${float(history.paid_this_month):.2f} this month.",
+                f"${float(history.paid_this_month):.2f} this month.",
                 max_claimable=Decimal("0"),
                 missing_requirements=["monthly_limit_available"],
             )
 
     # If missing requirements, return pending/ineligible
     if missing:
-        status = EligibilityStatus.PENDING_VERIFICATION if "verified_identity" in missing else EligibilityStatus.INELIGIBLE
+        status = (
+            EligibilityStatus.PENDING_VERIFICATION
+            if "verified_identity" in missing
+            else EligibilityStatus.INELIGIBLE
+        )
         return EligibilityResult(
             executor_id=executor_id,
             status=status,

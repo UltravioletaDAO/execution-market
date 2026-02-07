@@ -26,14 +26,22 @@ from enum import Enum
 from contextlib import asynccontextmanager
 from collections import defaultdict
 
-from fastapi import WebSocket, WebSocketDisconnect, APIRouter, Query, HTTPException, status
-from pydantic import BaseModel
+from fastapi import (
+    WebSocket,
+    WebSocketDisconnect,
+    APIRouter,
+    Query,
+    HTTPException,
+    status,
+)
 
-from .events import WebSocketEvent, WebSocketEventType, get_user_room, get_task_room
+from .events import WebSocketEvent, get_user_room
 
 # Configure logging
 logger = logging.getLogger(__name__)
-UUID_PATTERN = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+UUID_PATTERN = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
 
 
 # ============== ENUMS & TYPES ==============
@@ -41,6 +49,7 @@ UUID_PATTERN = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-
 
 class ConnectionState(str, Enum):
     """State of a WebSocket connection."""
+
     CONNECTING = "connecting"
     CONNECTED = "connected"
     AUTHENTICATED = "authenticated"
@@ -50,6 +59,7 @@ class ConnectionState(str, Enum):
 
 class ClientMessageType(str, Enum):
     """Types of messages clients can send."""
+
     SUBSCRIBE = "subscribe"
     UNSUBSCRIBE = "unsubscribe"
     PING = "ping"
@@ -59,6 +69,7 @@ class ClientMessageType(str, Enum):
 
 class ServerMessageType(str, Enum):
     """Types of messages server sends."""
+
     WELCOME = "welcome"
     SUBSCRIBED = "subscribed"
     UNSUBSCRIBED = "unsubscribed"
@@ -76,6 +87,7 @@ class ServerMessageType(str, Enum):
 @dataclass
 class Connection:
     """Represents a single WebSocket connection."""
+
     websocket: WebSocket
     connection_id: str
     user_id: Optional[str] = None
@@ -88,7 +100,9 @@ class Connection:
     subscriptions: Set[str] = field(default_factory=set)
     metadata: Dict[str, Any] = field(default_factory=dict)
     message_count: int = 0
-    rate_limit_window_start: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    rate_limit_window_start: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
     messages_in_window: int = 0
 
     @property
@@ -109,10 +123,13 @@ class Connection:
 @dataclass
 class ServerMessage:
     """Standard server message format."""
+
     type: ServerMessageType
     payload: Dict[str, Any] = field(default_factory=dict)
     id: str = field(default_factory=lambda: secrets.token_hex(8))
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     correlation_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -178,7 +195,9 @@ class WebSocketManager:
         self.max_subscriptions_per_connection = max_subscriptions_per_connection
         self.rate_limit_messages = rate_limit_messages
         self.rate_limit_window_seconds = rate_limit_window_seconds
-        self.require_auth_token = os.environ.get("WS_REQUIRE_AUTH_TOKEN", "false").lower() == "true"
+        self.require_auth_token = (
+            os.environ.get("WS_REQUIRE_AUTH_TOKEN", "false").lower() == "true"
+        )
 
         # Background tasks
         self._heartbeat_task: Optional[asyncio.Task] = None
@@ -266,7 +285,7 @@ class WebSocketManager:
                 await websocket.close(code=4002, reason="Too many connections")
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail=f"Max {self.max_connections_per_user} connections per user"
+                    detail=f"Max {self.max_connections_per_user} connections per user",
                 )
 
         # Accept the WebSocket connection
@@ -278,7 +297,9 @@ class WebSocketManager:
             connection_id=connection_id,
             user_id=user_id,
             user_type=user_type,
-            state=ConnectionState.CONNECTED if not user_id else ConnectionState.AUTHENTICATED,
+            state=ConnectionState.CONNECTED
+            if not user_id
+            else ConnectionState.AUTHENTICATED,
             metadata=metadata or {},
         )
 
@@ -290,16 +311,19 @@ class WebSocketManager:
             await self._subscribe_internal(connection_id, get_user_room(user_id))
 
         # Send welcome message
-        await self._send(connection_id, ServerMessage(
-            type=ServerMessageType.WELCOME,
-            payload={
-                "connection_id": connection_id,
-                "user_id": user_id,
-                "server_time": datetime.now(timezone.utc).isoformat(),
-                "heartbeat_interval": self.heartbeat_interval,
-                "max_subscriptions": self.max_subscriptions_per_connection,
-            }
-        ))
+        await self._send(
+            connection_id,
+            ServerMessage(
+                type=ServerMessageType.WELCOME,
+                payload={
+                    "connection_id": connection_id,
+                    "user_id": user_id,
+                    "server_time": datetime.now(timezone.utc).isoformat(),
+                    "heartbeat_interval": self.heartbeat_interval,
+                    "max_subscriptions": self.max_subscriptions_per_connection,
+                },
+            ),
+        )
 
         logger.info(f"Connection established: {connection_id} (user: {user_id})")
         return connection
@@ -372,6 +396,7 @@ class WebSocketManager:
         try:
             # Lazy import to avoid module-level coupling.
             from api.auth import verify_api_key
+
             key_data = await verify_api_key(f"Bearer {normalized}")
         except Exception as e:
             logger.warning("WebSocket API token validation failed: %s", e)
@@ -385,7 +410,11 @@ class WebSocketManager:
             )
             return None
 
-        return {"user_id": key_data.agent_id, "user_type": "agent", "tier": key_data.tier}
+        return {
+            "user_id": key_data.agent_id,
+            "user_type": "agent",
+            "tier": key_data.tier,
+        }
 
     async def authenticate(
         self,
@@ -412,37 +441,51 @@ class WebSocketManager:
 
         requested_user_type = (user_type or "agent").strip().lower()
         if requested_user_type not in {"agent", "worker"}:
-            await self._send(connection_id, ServerMessage(
-                type=ServerMessageType.AUTH_FAILED,
-                payload={"error": "Invalid user_type. Expected 'agent' or 'worker'"}
-            ))
+            await self._send(
+                connection_id,
+                ServerMessage(
+                    type=ServerMessageType.AUTH_FAILED,
+                    payload={
+                        "error": "Invalid user_type. Expected 'agent' or 'worker'"
+                    },
+                ),
+            )
             return False
 
         auth_user_id = user_id
         if token:
             token_data = await self._validate_api_token(token, expected_user_id=user_id)
             if not token_data:
-                await self._send(connection_id, ServerMessage(
-                    type=ServerMessageType.AUTH_FAILED,
-                    payload={"error": "Invalid authentication token"}
-                ))
+                await self._send(
+                    connection_id,
+                    ServerMessage(
+                        type=ServerMessageType.AUTH_FAILED,
+                        payload={"error": "Invalid authentication token"},
+                    ),
+                )
                 return False
             auth_user_id = token_data["user_id"]
             requested_user_type = token_data.get("user_type", requested_user_type)
         elif self.require_auth_token and requested_user_type == "agent":
-            await self._send(connection_id, ServerMessage(
-                type=ServerMessageType.AUTH_FAILED,
-                payload={"error": "Authentication token required"}
-            ))
+            await self._send(
+                connection_id,
+                ServerMessage(
+                    type=ServerMessageType.AUTH_FAILED,
+                    payload={"error": "Authentication token required"},
+                ),
+            )
             return False
 
         # Check connection limits
         existing = self._user_connections.get(auth_user_id, set())
         if len(existing) >= self.max_connections_per_user:
-            await self._send(connection_id, ServerMessage(
-                type=ServerMessageType.AUTH_FAILED,
-                payload={"error": "Too many connections for this user"}
-            ))
+            await self._send(
+                connection_id,
+                ServerMessage(
+                    type=ServerMessageType.AUTH_FAILED,
+                    payload={"error": "Too many connections for this user"},
+                ),
+            )
             return False
 
         # Cleanup previous user mapping if connection is being re-authenticated.
@@ -464,10 +507,13 @@ class WebSocketManager:
         await self._subscribe_internal(connection_id, get_user_room(auth_user_id))
 
         # Send acknowledgment
-        await self._send(connection_id, ServerMessage(
-            type=ServerMessageType.AUTH_SUCCESS,
-            payload={"user_id": auth_user_id, "user_type": requested_user_type}
-        ))
+        await self._send(
+            connection_id,
+            ServerMessage(
+                type=ServerMessageType.AUTH_SUCCESS,
+                payload={"user_id": auth_user_id, "user_type": requested_user_type},
+            ),
+        )
 
         logger.info(
             "Connection authenticated: %s -> %s (%s, token=%s)",
@@ -521,26 +567,40 @@ class WebSocketManager:
 
         # Check subscription limit
         if len(connection.subscriptions) >= self.max_subscriptions_per_connection:
-            await self._send(connection_id, ServerMessage(
-                type=ServerMessageType.ERROR,
-                payload={"error": f"Max {self.max_subscriptions_per_connection} subscriptions reached"}
-            ))
+            await self._send(
+                connection_id,
+                ServerMessage(
+                    type=ServerMessageType.ERROR,
+                    payload={
+                        "error": f"Max {self.max_subscriptions_per_connection} subscriptions reached"
+                    },
+                ),
+            )
             return False
 
         # Validate room access (e.g., check if user can subscribe to task room)
         if not await self._validate_room_access(connection, room):
-            await self._send(connection_id, ServerMessage(
-                type=ServerMessageType.ERROR,
-                payload={"error": f"Access denied to room: {room}"}
-            ))
+            await self._send(
+                connection_id,
+                ServerMessage(
+                    type=ServerMessageType.ERROR,
+                    payload={"error": f"Access denied to room: {room}"},
+                ),
+            )
             return False
 
         await self._subscribe_internal(connection_id, room)
 
-        await self._send(connection_id, ServerMessage(
-            type=ServerMessageType.SUBSCRIBED,
-            payload={"room": room, "total_subscriptions": len(connection.subscriptions)}
-        ))
+        await self._send(
+            connection_id,
+            ServerMessage(
+                type=ServerMessageType.SUBSCRIBED,
+                payload={
+                    "room": room,
+                    "total_subscriptions": len(connection.subscriptions),
+                },
+            ),
+        )
 
         logger.debug(f"Connection {connection_id} subscribed to {room}")
         return True
@@ -562,10 +622,16 @@ class WebSocketManager:
 
         await self._unsubscribe_internal(connection_id, room)
 
-        await self._send(connection_id, ServerMessage(
-            type=ServerMessageType.UNSUBSCRIBED,
-            payload={"room": room, "total_subscriptions": len(connection.subscriptions)}
-        ))
+        await self._send(
+            connection_id,
+            ServerMessage(
+                type=ServerMessageType.UNSUBSCRIBED,
+                payload={
+                    "room": room,
+                    "total_subscriptions": len(connection.subscriptions),
+                },
+            ),
+        )
 
         logger.debug(f"Connection {connection_id} unsubscribed from {room}")
         return True
@@ -642,7 +708,9 @@ class WebSocketManager:
             )
             task = task_result.data or None
         except Exception as e:
-            logger.warning("WebSocket task ACL lookup failed for task %s: %s", task_id, e)
+            logger.warning(
+                "WebSocket task ACL lookup failed for task %s: %s", task_id, e
+            )
             return False
 
         if not task:
@@ -749,7 +817,9 @@ class WebSocketManager:
             if await self._send(conn_id, message):
                 sent += 1
 
-        logger.debug(f"Broadcast {event.event_type.value} to room {room}: {sent} recipients")
+        logger.debug(
+            f"Broadcast {event.event_type.value} to room {room}: {sent} recipients"
+        )
         return sent
 
     async def broadcast(
@@ -804,10 +874,13 @@ class WebSocketManager:
 
         # Rate limiting
         if not self._check_rate_limit(connection):
-            await self._send(connection_id, ServerMessage(
-                type=ServerMessageType.ERROR,
-                payload={"error": "Rate limit exceeded", "code": "RATE_LIMITED"}
-            ))
+            await self._send(
+                connection_id,
+                ServerMessage(
+                    type=ServerMessageType.ERROR,
+                    payload={"error": "Rate limit exceeded", "code": "RATE_LIMITED"},
+                ),
+            )
             return
 
         connection.update_activity()
@@ -818,19 +891,24 @@ class WebSocketManager:
             payload = data.get("payload", {})
             msg_id = data.get("id")
         except json.JSONDecodeError:
-            await self._send(connection_id, ServerMessage(
-                type=ServerMessageType.ERROR,
-                payload={"error": "Invalid JSON"}
-            ))
+            await self._send(
+                connection_id,
+                ServerMessage(
+                    type=ServerMessageType.ERROR, payload={"error": "Invalid JSON"}
+                ),
+            )
             return
 
         # Handle different message types
         if msg_type == ClientMessageType.PING.value:
             connection.last_ping = datetime.now(timezone.utc)
-            await self._send(connection_id, ServerMessage(
-                type=ServerMessageType.PONG,
-                correlation_id=msg_id,
-            ))
+            await self._send(
+                connection_id,
+                ServerMessage(
+                    type=ServerMessageType.PONG,
+                    correlation_id=msg_id,
+                ),
+            )
 
         elif msg_type == ClientMessageType.PONG.value:
             connection.last_pong = datetime.now(timezone.utc)
@@ -860,13 +938,18 @@ class WebSocketManager:
                     await handler(connection, data)
                 except Exception as e:
                     logger.error(f"Handler error for {msg_type}: {e}")
-                    await self._send(connection_id, ServerMessage(
-                        type=ServerMessageType.ERROR,
-                        payload={"error": str(e)},
-                        correlation_id=msg_id,
-                    ))
+                    await self._send(
+                        connection_id,
+                        ServerMessage(
+                            type=ServerMessageType.ERROR,
+                            payload={"error": str(e)},
+                            correlation_id=msg_id,
+                        ),
+                    )
 
-    def on(self, message_type: str, handler: Callable[[Connection, Dict], Awaitable[None]]) -> None:
+    def on(
+        self, message_type: str, handler: Callable[[Connection, Dict], Awaitable[None]]
+    ) -> None:
         """
         Register a handler for a message type.
 
@@ -911,7 +994,9 @@ class WebSocketManager:
             # Check for timeout
             time_since_activity = (now - connection.last_activity).total_seconds()
             if time_since_activity > self.heartbeat_timeout:
-                logger.warning(f"Connection {conn_id} timed out ({time_since_activity:.1f}s inactive)")
+                logger.warning(
+                    f"Connection {conn_id} timed out ({time_since_activity:.1f}s inactive)"
+                )
                 await self.disconnect(conn_id, code=4000, reason="Heartbeat timeout")
                 continue
 
@@ -931,7 +1016,9 @@ class WebSocketManager:
 
     def _cleanup_empty_rooms(self) -> None:
         """Remove empty rooms."""
-        empty_rooms = [room for room, conns in self._room_connections.items() if not conns]
+        empty_rooms = [
+            room for room, conns in self._room_connections.items() if not conns
+        ]
         for room in empty_rooms:
             self._room_connections.pop(room, None)
         if empty_rooms:
@@ -946,13 +1033,21 @@ class WebSocketManager:
             "unique_users": self.user_count,
             "active_rooms": self.room_count,
             "connections_by_state": {
-                state.value: sum(1 for c in self._connections.values() if c.state == state)
+                state.value: sum(
+                    1 for c in self._connections.values() if c.state == state
+                )
                 for state in ConnectionState
             },
             "connections_by_type": {
-                "agent": sum(1 for c in self._connections.values() if c.user_type == "agent"),
-                "worker": sum(1 for c in self._connections.values() if c.user_type == "worker"),
-                "unknown": sum(1 for c in self._connections.values() if c.user_type is None),
+                "agent": sum(
+                    1 for c in self._connections.values() if c.user_type == "agent"
+                ),
+                "worker": sum(
+                    1 for c in self._connections.values() if c.user_type == "worker"
+                ),
+                "unknown": sum(
+                    1 for c in self._connections.values() if c.user_type is None
+                ),
             },
             "running": self._running,
         }
@@ -1029,11 +1124,15 @@ async def websocket_endpoint(
         return
 
     try:
-        async with ws_manager.connection_context(websocket, authenticated_user, authenticated_type) as connection:
+        async with ws_manager.connection_context(
+            websocket, authenticated_user, authenticated_type
+        ) as connection:
             while True:
                 try:
                     raw_message = await websocket.receive_text()
-                    await ws_manager.handle_message(connection.connection_id, raw_message)
+                    await ws_manager.handle_message(
+                        connection.connection_id, raw_message
+                    )
                 except WebSocketDisconnect:
                     break
                 except Exception as e:
@@ -1041,9 +1140,8 @@ async def websocket_endpoint(
                     await ws_manager._send(
                         connection.connection_id,
                         ServerMessage(
-                            type=ServerMessageType.ERROR,
-                            payload={"error": str(e)}
-                        )
+                            type=ServerMessageType.ERROR, payload={"error": str(e)}
+                        ),
                     )
     except Exception as e:
         logger.error(f"WebSocket connection error: {e}")
@@ -1058,10 +1156,7 @@ async def websocket_stats():
 @ws_router.get("/ws/rooms")
 async def websocket_rooms():
     """Get list of active rooms and their subscriber counts."""
-    return {
-        room: len(conns)
-        for room, conns in ws_manager._room_connections.items()
-    }
+    return {room: len(conns) for room, conns in ws_manager._room_connections.items()}
 
 
 # ============== EXPORTS ==============

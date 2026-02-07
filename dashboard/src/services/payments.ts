@@ -38,7 +38,7 @@ export async function getEarnings(executorId: string): Promise<EarningsSummary> 
   let available = 0
   let taskCount = 0
 
-  ;(payments || []).forEach((p) => {
+  ;(payments || []).forEach((p: any) => {
     const amount = p.amount || 0
 
     if (p.status === 'confirmed') {
@@ -118,7 +118,7 @@ export async function getPaymentHistory(
   }
 
   // Format payments
-  const payments: Payment[] = (data || []).map((p) => ({
+  const payments: Payment[] = (data || []).map((p: any) => ({
     id: p.id,
     type: p.type,
     status: p.status,
@@ -293,7 +293,7 @@ export async function getWithdrawalHistory(
     throw new Error(`Failed to fetch withdrawal history: ${error.message}`)
   }
 
-  return (data || []).map((w) => ({
+  return (data || []).map((w: any) => ({
     id: w.id,
     amountUsdc: w.amount_usdc,
     destinationAddress: w.destination_address,
@@ -329,7 +329,7 @@ export async function getAgentPaymentStats(agentId: string): Promise<{
   let tasksPaid = 0
   let pendingEscrow = 0
 
-  ;(tasks || []).forEach((t) => {
+  ;(tasks || []).forEach((t: any) => {
     if (t.status === 'completed') {
       totalSpent += t.bounty_usd || 0
       tasksPaid++

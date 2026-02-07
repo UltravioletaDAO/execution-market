@@ -11,9 +11,9 @@ Seal Philosophy:
 """
 
 from enum import Enum
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from typing import Optional, Dict, Any
+from datetime import datetime
 
 
 class WorkerSealType(str, Enum):
@@ -23,10 +23,11 @@ class WorkerSealType(str, Enum):
     These seals are visible to agents when selecting workers,
     and influence matching priority.
     """
-    SKILLFUL = "skillful"           # High quality work consistently
-    RELIABLE = "reliable"           # Shows up, completes tasks
-    THOROUGH = "thorough"           # Goes above minimum requirements
-    ON_TIME = "on_time"             # Consistently meets deadlines
+
+    SKILLFUL = "skillful"  # High quality work consistently
+    RELIABLE = "reliable"  # Shows up, completes tasks
+    THOROUGH = "thorough"  # Goes above minimum requirements
+    ON_TIME = "on_time"  # Consistently meets deadlines
 
 
 class RequesterSealType(str, Enum):
@@ -36,9 +37,10 @@ class RequesterSealType(str, Enum):
     Workers can filter tasks by requester seals to avoid bad actors.
     This creates bidirectional accountability.
     """
-    FAIR_EVALUATOR = "fair_evaluator"         # Accepts reasonable work
+
+    FAIR_EVALUATOR = "fair_evaluator"  # Accepts reasonable work
     CLEAR_INSTRUCTIONS = "clear_instructions"  # Writes good task specs
-    FAST_PAYMENT = "fast_payment"              # Releases payment quickly
+    FAST_PAYMENT = "fast_payment"  # Releases payment quickly
 
 
 class BadgeType(str, Enum):
@@ -47,18 +49,20 @@ class BadgeType(str, Enum):
 
     These are harder to earn and represent sustained performance.
     """
-    MASTER_WORKER = "master_worker"     # 50+ tasks, 6+ months, high rep
+
+    MASTER_WORKER = "master_worker"  # 50+ tasks, 6+ months, high rep
     TRUSTED_REQUESTER = "trusted_requester"  # 100+ tasks posted, good ratings
-    EARLY_ADOPTER = "early_adopter"     # First 1000 users
-    SPECIALIST = "specialist"           # 20+ tasks in single category
+    EARLY_ADOPTER = "early_adopter"  # First 1000 users
+    SPECIALIST = "specialist"  # 20+ tasks in single category
 
 
 class SealStatus(str, Enum):
     """Status of a seal."""
-    ACTIVE = "active"           # Seal is valid and displayed
-    PENDING = "pending"         # Criteria met, awaiting confirmation
-    REVOKED = "revoked"         # Seal was removed due to behavior change
-    EXPIRED = "expired"         # Seal expired (if time-limited)
+
+    ACTIVE = "active"  # Seal is valid and displayed
+    PENDING = "pending"  # Criteria met, awaiting confirmation
+    REVOKED = "revoked"  # Seal was removed due to behavior change
+    EXPIRED = "expired"  # Seal expired (if time-limited)
 
 
 @dataclass
@@ -69,13 +73,14 @@ class SealCriteria:
     All conditions must be met to earn the seal.
     If conditions are no longer met, seal may be revoked.
     """
-    min_tasks: int = 0                      # Minimum completed tasks
-    min_success_rate: float = 0.0           # 0-1 success rate
-    min_rating: float = 0.0                 # 0-100 minimum rating
-    min_on_time_rate: float = 0.0           # 0-1 on-time completion rate
-    min_days_active: int = 0                # Minimum days since first task
-    lookback_days: int = 90                 # Window for calculating metrics
-    require_recent_activity: bool = True    # Must have task in last 30 days
+
+    min_tasks: int = 0  # Minimum completed tasks
+    min_success_rate: float = 0.0  # 0-1 success rate
+    min_rating: float = 0.0  # 0-100 minimum rating
+    min_on_time_rate: float = 0.0  # 0-1 on-time completion rate
+    min_days_active: int = 0  # Minimum days since first task
+    lookback_days: int = 90  # Window for calculating metrics
+    require_recent_activity: bool = True  # Must have task in last 30 days
     custom_criteria: Optional[Dict[str, Any]] = None  # For special cases
 
     def to_dict(self) -> Dict[str, Any]:
@@ -99,14 +104,15 @@ class Seal:
 
     Seals are stored on describe.net and synced to Execution Market.
     """
-    seal_type: str                          # WorkerSealType or RequesterSealType value
-    user_id: str                            # Execution Market user ID (worker or agent)
-    user_type: str                          # "worker" or "requester"
+
+    seal_type: str  # WorkerSealType or RequesterSealType value
+    user_id: str  # Execution Market user ID (worker or agent)
+    user_type: str  # "worker" or "requester"
     status: SealStatus = SealStatus.ACTIVE
     earned_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
     criteria_snapshot: Optional[Dict[str, Any]] = None  # Metrics when earned
-    describe_net_id: Optional[str] = None   # ID on describe.net
+    describe_net_id: Optional[str] = None  # ID on describe.net
     revoked_at: Optional[datetime] = None
     revocation_reason: Optional[str] = None
 
@@ -146,11 +152,17 @@ class Seal:
             user_id=data["user_id"],
             user_type=data["user_type"],
             status=SealStatus(data.get("status", "active")),
-            earned_at=datetime.fromisoformat(data["earned_at"]) if data.get("earned_at") else None,
-            expires_at=datetime.fromisoformat(data["expires_at"]) if data.get("expires_at") else None,
+            earned_at=datetime.fromisoformat(data["earned_at"])
+            if data.get("earned_at")
+            else None,
+            expires_at=datetime.fromisoformat(data["expires_at"])
+            if data.get("expires_at")
+            else None,
             criteria_snapshot=data.get("criteria_snapshot"),
             describe_net_id=data.get("describe_net_id"),
-            revoked_at=datetime.fromisoformat(data["revoked_at"]) if data.get("revoked_at") else None,
+            revoked_at=datetime.fromisoformat(data["revoked_at"])
+            if data.get("revoked_at")
+            else None,
             revocation_reason=data.get("revocation_reason"),
         )
 
@@ -162,14 +174,15 @@ class Badge:
 
     Badges are harder to earn than seals and represent long-term commitment.
     """
+
     badge_type: BadgeType
     user_id: str
-    user_type: str                          # "worker" or "requester"
+    user_type: str  # "worker" or "requester"
     status: SealStatus = SealStatus.ACTIVE
     earned_at: Optional[datetime] = None
     criteria_snapshot: Optional[Dict[str, Any]] = None
     describe_net_id: Optional[str] = None
-    level: int = 1                          # For tiered badges (bronze/silver/gold)
+    level: int = 1  # For tiered badges (bronze/silver/gold)
 
     def __post_init__(self):
         if self.earned_at is None:
@@ -191,7 +204,9 @@ class Badge:
             BadgeType.EARLY_ADOPTER: "Early Adopter",
             BadgeType.SPECIALIST: "Specialist",
         }
-        return f"{badge_names.get(self.badge_type, self.badge_type.value)} ({level_str})"
+        return (
+            f"{badge_names.get(self.badge_type, self.badge_type.value)} ({level_str})"
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API/storage."""
@@ -214,7 +229,9 @@ class Badge:
             user_id=data["user_id"],
             user_type=data["user_type"],
             status=SealStatus(data.get("status", "active")),
-            earned_at=datetime.fromisoformat(data["earned_at"]) if data.get("earned_at") else None,
+            earned_at=datetime.fromisoformat(data["earned_at"])
+            if data.get("earned_at")
+            else None,
             criteria_snapshot=data.get("criteria_snapshot"),
             describe_net_id=data.get("describe_net_id"),
             level=data.get("level", 1),
@@ -282,7 +299,7 @@ REQUESTER_SEAL_CRITERIA: Dict[RequesterSealType, SealCriteria] = {
 
 
 def get_seal_criteria(
-    seal_type: WorkerSealType | RequesterSealType
+    seal_type: WorkerSealType | RequesterSealType,
 ) -> Optional[SealCriteria]:
     """Get criteria for a seal type."""
     if isinstance(seal_type, WorkerSealType):

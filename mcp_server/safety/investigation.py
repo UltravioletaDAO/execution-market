@@ -21,7 +21,7 @@ This module helps protect workers by:
 import logging
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
-from datetime import datetime, time, timedelta, UTC
+from datetime import datetime, timedelta, UTC
 from enum import Enum
 import hashlib
 
@@ -35,27 +35,30 @@ logger = logging.getLogger(__name__)
 
 class SafetyRisk(str, Enum):
     """Overall safety risk level for a location/task."""
-    LOW = "low"           # Safe to proceed
-    MEDIUM = "medium"     # Proceed with caution
-    HIGH = "high"         # Additional precautions required
+
+    LOW = "low"  # Safe to proceed
+    MEDIUM = "medium"  # Proceed with caution
+    HIGH = "high"  # Additional precautions required
     RESTRICTED = "restricted"  # Do not proceed without special approval
 
 
 class RiskFactor(str, Enum):
     """Individual risk factors that contribute to safety assessment."""
-    CRIME_RATE = "crime_rate"              # Local crime statistics
-    TIME_OF_DAY = "time_of_day"            # Night/early morning risks
+
+    CRIME_RATE = "crime_rate"  # Local crime statistics
+    TIME_OF_DAY = "time_of_day"  # Night/early morning risks
     PRIVATE_PROPERTY = "private_property"  # Access restrictions
-    WEATHER = "weather"                    # Weather hazards
-    ACCESSIBILITY = "accessibility"        # Physical access challenges
+    WEATHER = "weather"  # Weather hazards
+    ACCESSIBILITY = "accessibility"  # Physical access challenges
     INCIDENT_HISTORY = "incident_history"  # Previous incidents at location
-    AREA_TYPE = "area_type"                # Industrial, residential, etc.
-    LIGHTING = "lighting"                  # Street lighting conditions
+    AREA_TYPE = "area_type"  # Industrial, residential, etc.
+    LIGHTING = "lighting"  # Street lighting conditions
     EMERGENCY_ACCESS = "emergency_access"  # Distance to emergency services
 
 
 class AreaType(str, Enum):
     """Type of area for the location."""
+
     RESIDENTIAL = "residential"
     COMMERCIAL = "commercial"
     INDUSTRIAL = "industrial"
@@ -67,6 +70,7 @@ class AreaType(str, Enum):
 
 class WeatherRisk(str, Enum):
     """Weather-related risk levels."""
+
     NONE = "none"
     RAIN = "rain"
     STORM = "storm"
@@ -84,6 +88,7 @@ class WeatherRisk(str, Enum):
 @dataclass
 class LocationRiskData:
     """Risk data for a specific location."""
+
     latitude: float
     longitude: float
     crime_index: float = 0.0  # 0.0 (safest) to 1.0 (most dangerous)
@@ -102,6 +107,7 @@ class LocationRiskData:
 @dataclass
 class SafetyAssessment:
     """Complete safety assessment for a task location."""
+
     task_id: str
     location: Tuple[float, float]
     overall_risk: SafetyRisk
@@ -143,7 +149,7 @@ class SafetyAssessment:
 # Time windows considered higher risk
 HIGH_RISK_HOURS: List[Tuple[int, int]] = [
     (22, 24),  # 10pm - midnight
-    (0, 6),    # Midnight - 6am
+    (0, 6),  # Midnight - 6am
 ]
 
 # Risk thresholds
@@ -396,11 +402,7 @@ class SafetyInvestigator:
             start <= hour or hour < end
             for start, end in HIGH_RISK_HOURS
             if start > end  # Handles overnight windows
-        ) or any(
-            start <= hour < end
-            for start, end in HIGH_RISK_HOURS
-            if start <= end
-        )
+        ) or any(start <= hour < end for start, end in HIGH_RISK_HOURS if start <= end)
 
         # Calculate base time risk
         if is_high_risk:
@@ -496,9 +498,7 @@ class SafetyInvestigator:
         )
 
         if location_data.access_requirements:
-            warnings.append(
-                f"Access requirements: {location_data.access_requirements}"
-            )
+            warnings.append(f"Access requirements: {location_data.access_requirements}")
             risk_score += 0.1
 
         if location_data.property_owner:
@@ -588,7 +588,8 @@ class SafetyInvestigator:
 
         # Count recent incidents (last 90 days)
         recent = [
-            i for i in incidents
+            i
+            for i in incidents
             if (datetime.now(UTC) - i.get("timestamp", datetime.now(UTC))).days <= 90
         ]
 
@@ -664,8 +665,7 @@ class SafetyInvestigator:
         }
 
         weighted_sum = sum(
-            factors.get(factor, 0.0) * weight
-            for factor, weight in weights.items()
+            factors.get(factor, 0.0) * weight for factor, weight in weights.items()
         )
 
         return min(1.0, weighted_sum)
@@ -708,9 +708,7 @@ class SafetyInvestigator:
 
         # Lighting recommendations
         if factors.get(RiskFactor.LIGHTING, 0) > 0.3:
-            recommendations.append(
-                "Bring a flashlight or headlamp for visibility."
-            )
+            recommendations.append("Bring a flashlight or headlamp for visibility.")
 
         # Crime-area recommendations
         if factors.get(RiskFactor.CRIME_RATE, 0) > 0.5:
@@ -735,9 +733,7 @@ class SafetyInvestigator:
             recommendations.append(
                 "Ensure your device is fully charged and you have offline access to task details."
             )
-            recommendations.append(
-                "Check cell coverage in the area beforehand."
-            )
+            recommendations.append("Check cell coverage in the area beforehand.")
 
         # Weather recommendations
         if factors.get(RiskFactor.WEATHER, 0) > 0.3:
@@ -754,8 +750,7 @@ class SafetyInvestigator:
     ) -> str:
         """Get reason why approval is required."""
         high_factors = [
-            f.value for f, score in factors.items()
-            if score >= RISK_THRESHOLD_HIGH
+            f.value for f, score in factors.items() if score >= RISK_THRESHOLD_HIGH
         ]
 
         if high_factors:
@@ -806,16 +801,16 @@ class SafetyInvestigator:
         if location_key not in self._incident_history:
             self._incident_history[location_key] = []
 
-        self._incident_history[location_key].append({
-            "timestamp": datetime.now(UTC),
-            "type": incident_type,
-            "description": description,
-            "worker_id": worker_id,
-        })
-
-        logger.info(
-            f"Incident recorded at ({lat}, {lng}): {incident_type}"
+        self._incident_history[location_key].append(
+            {
+                "timestamp": datetime.now(UTC),
+                "type": incident_type,
+                "description": description,
+                "worker_id": worker_id,
+            }
         )
+
+        logger.info(f"Incident recorded at ({lat}, {lng}): {incident_type}")
 
     def clear_cache(self) -> None:
         """Clear assessment cache."""

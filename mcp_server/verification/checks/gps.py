@@ -12,6 +12,7 @@ from typing import Optional, Tuple
 @dataclass
 class GPSResult:
     """Result of GPS verification."""
+
     is_valid: bool
     distance_meters: Optional[float]
     photo_coords: Optional[Tuple[float, float]]
@@ -48,7 +49,7 @@ def check_gps_location(
             photo_coords=None,
             task_coords=(task_lat, task_lng),
             max_distance=max_distance_meters,
-            reason="Photo does not contain GPS coordinates"
+            reason="Photo does not contain GPS coordinates",
         )
 
     # Calculate distance
@@ -61,7 +62,7 @@ def check_gps_location(
             photo_coords=(photo_lat, photo_lng),
             task_coords=(task_lat, task_lng),
             max_distance=max_distance_meters,
-            reason=f"Photo location is {distance:.0f}m from task location (max: {max_distance_meters}m)"
+            reason=f"Photo location is {distance:.0f}m from task location (max: {max_distance_meters}m)",
         )
 
     return GPSResult(
@@ -70,7 +71,7 @@ def check_gps_location(
         photo_coords=(photo_lat, photo_lng),
         task_coords=(task_lat, task_lng),
         max_distance=max_distance_meters,
-        reason=None
+        reason=None,
     )
 
 
@@ -93,8 +94,8 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     delta_lambda = math.radians(lon2 - lon1)
 
     a = (
-        math.sin(delta_phi / 2) ** 2 +
-        math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+        math.sin(delta_phi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
     )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
@@ -142,6 +143,7 @@ def convert_to_decimal(dms: tuple, ref: str) -> float:
     Returns:
         Decimal degrees
     """
+
     def to_float(value):
         if isinstance(value, tuple):
             return value[0] / value[1]

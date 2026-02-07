@@ -12,7 +12,7 @@ This module provides:
 """
 
 import os
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from enum import Enum
@@ -38,6 +38,7 @@ DEFAULT_BASE_URL = "https://api.execution.market"
 
 class TransportType(str, Enum):
     """Supported transport protocols for A2A communication."""
+
     JSONRPC = "JSONRPC"
     GRPC = "GRPC"
     HTTP_JSON = "HTTP+JSON"
@@ -47,6 +48,7 @@ class TransportType(str, Enum):
 
 class SecurityType(str, Enum):
     """Security scheme types per A2A spec."""
+
     OAUTH2 = "oauth2"
     OPENID_CONNECT = "openIdConnect"
     API_KEY = "apiKey"
@@ -55,6 +57,7 @@ class SecurityType(str, Enum):
 
 class InputOutputMode(str, Enum):
     """Supported input/output MIME types."""
+
     JSON = "application/json"
     TEXT_PLAIN = "text/plain"
     FORM_URLENCODED = "application/x-www-form-urlencoded"
@@ -74,6 +77,7 @@ class AgentProvider:
         url: Website URL of the provider
         contact_email: Optional contact email for support
     """
+
     organization: str
     url: str
     contact_email: Optional[str] = None
@@ -100,6 +104,7 @@ class AgentCapabilities:
         state_transition_history: Whether task state history is available
         supports_authenticated_extended_card: Whether extended card is available after auth
     """
+
     streaming: bool = False
     push_notifications: bool = False
     state_transition_history: bool = True
@@ -129,13 +134,18 @@ class AgentSkill:
         input_modes: Supported input MIME types
         output_modes: Supported output MIME types
     """
+
     id: str
     name: str
     description: str
     tags: List[str] = field(default_factory=list)
     examples: List[str] = field(default_factory=list)
-    input_modes: List[str] = field(default_factory=lambda: ["application/json", "text/plain"])
-    output_modes: List[str] = field(default_factory=lambda: ["application/json", "text/plain"])
+    input_modes: List[str] = field(
+        default_factory=lambda: ["application/json", "text/plain"]
+    )
+    output_modes: List[str] = field(
+        default_factory=lambda: ["application/json", "text/plain"]
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to camelCase dictionary."""
@@ -159,6 +169,7 @@ class AgentInterface:
         url: Full URL for this interface
         transport: Transport protocol type
     """
+
     url: str
     transport: TransportType
 
@@ -186,6 +197,7 @@ class SecurityScheme:
         in_header: Header name for API key
         in_query: Query parameter name for API key
     """
+
     name: str
     type: SecurityType
     scheme: Optional[str] = None
@@ -244,6 +256,7 @@ class AgentCard:
         default_output_modes: Default output types
         preferred_transport: Preferred communication protocol
     """
+
     name: str
     description: str
     url: str
@@ -255,8 +268,12 @@ class AgentCard:
     additional_interfaces: List[AgentInterface] = field(default_factory=list)
     security_schemes: Dict[str, SecurityScheme] = field(default_factory=dict)
     security: List[Dict[str, List[str]]] = field(default_factory=list)
-    default_input_modes: List[str] = field(default_factory=lambda: ["application/json", "text/plain"])
-    default_output_modes: List[str] = field(default_factory=lambda: ["application/json", "text/plain"])
+    default_input_modes: List[str] = field(
+        default_factory=lambda: ["application/json", "text/plain"]
+    )
+    default_output_modes: List[str] = field(
+        default_factory=lambda: ["application/json", "text/plain"]
+    )
     preferred_transport: TransportType = TransportType.JSONRPC
 
     def to_dict(self) -> Dict[str, Any]:
@@ -284,12 +301,13 @@ class AgentCard:
             result["skills"] = [s.to_dict() for s in self.skills]
 
         if self.additional_interfaces:
-            result["additionalInterfaces"] = [i.to_dict() for i in self.additional_interfaces]
+            result["additionalInterfaces"] = [
+                i.to_dict() for i in self.additional_interfaces
+            ]
 
         if self.security_schemes:
             result["securitySchemes"] = {
-                name: scheme.to_dict()
-                for name, scheme in self.security_schemes.items()
+                name: scheme.to_dict() for name, scheme in self.security_schemes.items()
             }
 
         if self.security:
@@ -300,6 +318,7 @@ class AgentCard:
     def to_json(self) -> str:
         """Serialize to JSON string."""
         import json
+
         return json.dumps(self.to_dict(), indent=2)
 
 
@@ -449,7 +468,9 @@ def get_agent_card(base_url: Optional[str] = None) -> AgentCard:
     Returns:
         AgentCard configured for Execution Market
     """
-    url = base_url or os.environ.get("EM_BASE_URL", os.environ.get("EM_BASE_URL", DEFAULT_BASE_URL))
+    url = base_url or os.environ.get(
+        "EM_BASE_URL", os.environ.get("EM_BASE_URL", DEFAULT_BASE_URL)
+    )
 
     return AgentCard(
         name="Execution Market",
@@ -543,9 +564,9 @@ router = APIRouter(tags=["A2A Discovery"])
                         "url": "https://api.execution.market/a2a/v1",
                     }
                 }
-            }
+            },
         }
-    }
+    },
 )
 async def get_agent_card_endpoint(request: Request) -> JSONResponse:
     """
@@ -569,7 +590,7 @@ async def get_agent_card_endpoint(request: Request) -> JSONResponse:
         headers={
             "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
             "X-A2A-Protocol-Version": A2A_PROTOCOL_VERSION,
-        }
+        },
     )
 
 
@@ -618,7 +639,7 @@ async def discover_agents(request: Request) -> JSONResponse:
         },
         headers={
             "Cache-Control": "public, max-age=300",  # Cache for 5 minutes
-        }
+        },
     )
 
 

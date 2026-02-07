@@ -5,7 +5,7 @@ Role-based access control for enterprise organizations.
 """
 
 import logging
-from typing import Optional, Dict, Any, List, Set
+from typing import Optional, Dict, List, Set
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -15,16 +15,18 @@ logger = logging.getLogger(__name__)
 
 class Role(str, Enum):
     """User roles within an organization."""
-    OWNER = "owner"             # Full access, billing
-    ADMIN = "admin"             # Manage users, settings
-    MANAGER = "manager"         # Create tasks, approve
-    OPERATOR = "operator"       # Create tasks
-    VIEWER = "viewer"           # Read-only
-    API_KEY = "api_key"         # Programmatic access
+
+    OWNER = "owner"  # Full access, billing
+    ADMIN = "admin"  # Manage users, settings
+    MANAGER = "manager"  # Create tasks, approve
+    OPERATOR = "operator"  # Create tasks
+    VIEWER = "viewer"  # Read-only
+    API_KEY = "api_key"  # Programmatic access
 
 
 class Permission(str, Enum):
     """Granular permissions."""
+
     # Tasks
     TASK_CREATE = "task:create"
     TASK_READ = "task:read"
@@ -67,53 +69,68 @@ class Permission(str, Enum):
 # Role to permissions mapping
 ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
     Role.OWNER: set(Permission),  # All permissions
-
     Role.ADMIN: {
-        Permission.TASK_CREATE, Permission.TASK_READ, Permission.TASK_UPDATE,
-        Permission.TASK_DELETE, Permission.TASK_APPROVE,
-        Permission.WORKER_VIEW, Permission.WORKER_MANAGE, Permission.WORKER_BLOCK,
-        Permission.PAYMENT_VIEW, Permission.PAYMENT_APPROVE, Permission.PAYMENT_REFUND,
-        Permission.ANALYTICS_VIEW, Permission.ANALYTICS_EXPORT,
-        Permission.SETTINGS_VIEW, Permission.SETTINGS_UPDATE,
-        Permission.USER_INVITE, Permission.USER_MANAGE,
-        Permission.API_KEY_CREATE, Permission.API_KEY_REVOKE,
-        Permission.BILLING_VIEW
-    },
-
-    Role.MANAGER: {
-        Permission.TASK_CREATE, Permission.TASK_READ, Permission.TASK_UPDATE,
+        Permission.TASK_CREATE,
+        Permission.TASK_READ,
+        Permission.TASK_UPDATE,
+        Permission.TASK_DELETE,
         Permission.TASK_APPROVE,
-        Permission.WORKER_VIEW, Permission.WORKER_MANAGE,
-        Permission.PAYMENT_VIEW, Permission.PAYMENT_APPROVE,
+        Permission.WORKER_VIEW,
+        Permission.WORKER_MANAGE,
+        Permission.WORKER_BLOCK,
+        Permission.PAYMENT_VIEW,
+        Permission.PAYMENT_APPROVE,
+        Permission.PAYMENT_REFUND,
         Permission.ANALYTICS_VIEW,
-        Permission.SETTINGS_VIEW
+        Permission.ANALYTICS_EXPORT,
+        Permission.SETTINGS_VIEW,
+        Permission.SETTINGS_UPDATE,
+        Permission.USER_INVITE,
+        Permission.USER_MANAGE,
+        Permission.API_KEY_CREATE,
+        Permission.API_KEY_REVOKE,
+        Permission.BILLING_VIEW,
     },
-
+    Role.MANAGER: {
+        Permission.TASK_CREATE,
+        Permission.TASK_READ,
+        Permission.TASK_UPDATE,
+        Permission.TASK_APPROVE,
+        Permission.WORKER_VIEW,
+        Permission.WORKER_MANAGE,
+        Permission.PAYMENT_VIEW,
+        Permission.PAYMENT_APPROVE,
+        Permission.ANALYTICS_VIEW,
+        Permission.SETTINGS_VIEW,
+    },
     Role.OPERATOR: {
-        Permission.TASK_CREATE, Permission.TASK_READ, Permission.TASK_UPDATE,
+        Permission.TASK_CREATE,
+        Permission.TASK_READ,
+        Permission.TASK_UPDATE,
         Permission.WORKER_VIEW,
         Permission.PAYMENT_VIEW,
-        Permission.ANALYTICS_VIEW
+        Permission.ANALYTICS_VIEW,
     },
-
     Role.VIEWER: {
         Permission.TASK_READ,
         Permission.WORKER_VIEW,
         Permission.PAYMENT_VIEW,
-        Permission.ANALYTICS_VIEW
+        Permission.ANALYTICS_VIEW,
     },
-
     Role.API_KEY: {
-        Permission.TASK_CREATE, Permission.TASK_READ, Permission.TASK_UPDATE,
+        Permission.TASK_CREATE,
+        Permission.TASK_READ,
+        Permission.TASK_UPDATE,
         Permission.WORKER_VIEW,
-        Permission.PAYMENT_VIEW
-    }
+        Permission.PAYMENT_VIEW,
+    },
 }
 
 
 @dataclass
 class OrgMember:
     """Organization member."""
+
     user_id: str
     org_id: str
     role: Role
@@ -131,11 +148,12 @@ class OrgMember:
 @dataclass
 class APIKey:
     """API key for programmatic access."""
+
     key_id: str
     org_id: str
     name: str
     key_hash: str  # Never store actual key
-    prefix: str    # First 8 chars for identification
+    prefix: str  # First 8 chars for identification
     permissions: Set[Permission] = field(default_factory=set)
     rate_limit_override: Optional[int] = None
     created_by: str = ""
@@ -158,8 +176,10 @@ class AccessControl:
 
     def __init__(self):
         """Initialize access control."""
-        self._members: Dict[str, Dict[str, OrgMember]] = {}  # org_id -> user_id -> member
-        self._api_keys: Dict[str, Dict[str, APIKey]] = {}    # org_id -> key_id -> key
+        self._members: Dict[
+            str, Dict[str, OrgMember]
+        ] = {}  # org_id -> user_id -> member
+        self._api_keys: Dict[str, Dict[str, APIKey]] = {}  # org_id -> key_id -> key
 
     async def add_member(
         self,
@@ -168,7 +188,7 @@ class AccessControl:
         email: str,
         role: Role,
         invited_by: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> OrgMember:
         """
         Add member to organization.
@@ -191,7 +211,7 @@ class AccessControl:
             email=email,
             invited_by=invited_by,
             invited_at=datetime.utcnow(),
-            **kwargs
+            **kwargs,
         )
 
         if org_id not in self._members:
@@ -202,11 +222,7 @@ class AccessControl:
         return member
 
     async def update_role(
-        self,
-        org_id: str,
-        user_id: str,
-        new_role: Role,
-        updated_by: str
+        self, org_id: str, user_id: str, new_role: Role, updated_by: str
     ) -> OrgMember:
         """Update member's role."""
         member = self._get_member(org_id, user_id)
@@ -215,15 +231,12 @@ class AccessControl:
 
         old_role = member.role
         member.role = new_role
-        logger.info(f"Role updated: {user_id} from {old_role.value} to {new_role.value}")
+        logger.info(
+            f"Role updated: {user_id} from {old_role.value} to {new_role.value}"
+        )
         return member
 
-    async def remove_member(
-        self,
-        org_id: str,
-        user_id: str,
-        removed_by: str
-    ) -> bool:
+    async def remove_member(self, org_id: str, user_id: str, removed_by: str) -> bool:
         """Remove member from organization."""
         if org_id in self._members and user_id in self._members[org_id]:
             del self._members[org_id][user_id]
@@ -231,12 +244,7 @@ class AccessControl:
             return True
         return False
 
-    def has_permission(
-        self,
-        org_id: str,
-        user_id: str,
-        permission: Permission
-    ) -> bool:
+    def has_permission(self, org_id: str, user_id: str, permission: Permission) -> bool:
         """
         Check if user has a specific permission.
 
@@ -264,11 +272,7 @@ class AccessControl:
         role_perms = ROLE_PERMISSIONS.get(member.role, set())
         return permission in role_perms
 
-    def get_permissions(
-        self,
-        org_id: str,
-        user_id: str
-    ) -> Set[Permission]:
+    def get_permissions(self, org_id: str, user_id: str) -> Set[Permission]:
         """Get all permissions for a user."""
         member = self._get_member(org_id, user_id)
         if not member or not member.is_active:
@@ -286,11 +290,7 @@ class AccessControl:
         return perms
 
     async def grant_permission(
-        self,
-        org_id: str,
-        user_id: str,
-        permission: Permission,
-        granted_by: str
+        self, org_id: str, user_id: str, permission: Permission, granted_by: str
     ):
         """Grant additional permission to user."""
         member = self._get_member(org_id, user_id)
@@ -301,11 +301,7 @@ class AccessControl:
         logger.info(f"Permission granted: {permission.value} to {user_id}")
 
     async def deny_permission(
-        self,
-        org_id: str,
-        user_id: str,
-        permission: Permission,
-        denied_by: str
+        self, org_id: str, user_id: str, permission: Permission, denied_by: str
     ):
         """Explicitly deny permission for user."""
         member = self._get_member(org_id, user_id)
@@ -323,7 +319,7 @@ class AccessControl:
         name: str,
         created_by: str,
         permissions: Optional[Set[Permission]] = None,
-        expires_at: Optional[datetime] = None
+        expires_at: Optional[datetime] = None,
     ) -> tuple[APIKey, str]:
         """
         Create new API key.
@@ -347,7 +343,7 @@ class AccessControl:
             prefix=key_string[:12],
             permissions=permissions or ROLE_PERMISSIONS[Role.API_KEY].copy(),
             created_by=created_by,
-            expires_at=expires_at
+            expires_at=expires_at,
         )
 
         if org_id not in self._api_keys:
@@ -359,10 +355,7 @@ class AccessControl:
         # Return metadata and actual key (key shown only once)
         return key, key_string
 
-    async def verify_api_key(
-        self,
-        key_string: str
-    ) -> Optional[APIKey]:
+    async def verify_api_key(self, key_string: str) -> Optional[APIKey]:
         """Verify API key and return metadata."""
         import hashlib
 
@@ -380,12 +373,7 @@ class AccessControl:
 
         return None
 
-    async def revoke_api_key(
-        self,
-        org_id: str,
-        key_id: str,
-        revoked_by: str
-    ) -> bool:
+    async def revoke_api_key(self, org_id: str, key_id: str, revoked_by: str) -> bool:
         """Revoke API key."""
         if org_id in self._api_keys and key_id in self._api_keys[org_id]:
             self._api_keys[org_id][key_id].is_active = False
@@ -395,11 +383,7 @@ class AccessControl:
 
     # Private methods
 
-    def _get_member(
-        self,
-        org_id: str,
-        user_id: str
-    ) -> Optional[OrgMember]:
+    def _get_member(self, org_id: str, user_id: str) -> Optional[OrgMember]:
         """Get member by org and user ID."""
         if org_id not in self._members:
             return None
