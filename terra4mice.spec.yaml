@@ -575,6 +575,110 @@ resources:
       files:
         - admin-dashboard/src/App.tsx
 
+    launch_20260207_dashboard_typecheck:
+      attributes:
+        description: "Reduce dashboard TypeScript errors to 0 before production release gate"
+        priority: P0
+        evidence: "2026-02-07 local run: npm --prefix dashboard run typecheck -> 100 errors"
+      files:
+        - dashboard/src/hooks/useProfile.ts
+        - dashboard/src/hooks/useTokenBalance.ts
+        - dashboard/src/hooks/useTransaction.ts
+        - dashboard/src/pages/agent/Dashboard.tsx
+        - dashboard/src/pages/AgentDashboard.tsx
+
+    launch_20260207_dashboard_eslint_config:
+      attributes:
+        description: "Add ESLint config for dashboard so npm run lint is enforceable"
+        priority: P0
+        evidence: "2026-02-07 local run: ESLint couldn't find a configuration file"
+      files:
+        - dashboard/package.json
+
+    launch_20260207_admin_lint_tooling:
+      attributes:
+        description: "Install/configure ESLint in admin-dashboard or remove lint gate"
+        priority: P1
+        evidence: "2026-02-07 local run: 'eslint' is not recognized"
+      files:
+        - admin-dashboard/package.json
+
+    launch_20260207_agent_routes_unmock:
+      attributes:
+        description: "Replace mock/demo data in active agent routes with real API/Supabase data"
+        priority: P0
+        routes: "/agent/dashboard, /agent/tasks, /agent/tasks/new"
+      files:
+        - dashboard/src/pages/AgentDashboard.tsx
+        - dashboard/src/pages/agent/TaskManagement.tsx
+        - dashboard/src/pages/agent/CreateTask.tsx
+        - dashboard/src/pages/agent/SubmissionReview.tsx
+
+    launch_20260207_agent_create_task_api:
+      attributes:
+        description: "Wire CreateTask page to real publish endpoint with escrow creation evidence"
+        priority: P0
+        evidence: "Current flow waits 1s and returns synthetic id (demo)"
+      files:
+        - dashboard/src/pages/agent/CreateTask.tsx
+        - dashboard/src/pages/AgentOnboarding.tsx
+
+    launch_20260207_payment_path_consistency:
+      attributes:
+        description: "Decide canonical public API domain and remove /api-on-SPA ambiguity"
+        priority: P0
+        evidence: "https://execution.market/api/v1/* currently returns SPA HTML, not API JSON"
+      files:
+        - docs-site/docs/api/reference.md
+        - README.md
+        - dashboard/src/hooks/useTasks.ts
+        - dashboard/src/hooks/useTaskPayment.ts
+
+    launch_20260207_agent_card_https:
+      attributes:
+        description: "Force HTTPS URLs in agent card when served behind ALB/Proxy"
+        priority: P0
+        evidence: "Live agent card currently reports http://mcp.execution.market/a2a/v1"
+      files:
+        - mcp_server/a2a/agent_card.py
+
+    launch_20260207_backend_test_alignment_mcp_tools:
+      attributes:
+        description: "Align legacy MCP tools tests with current FastMCP registration contract"
+        priority: P1
+        evidence: "test_mcp_tools.py failing cluster: Mock object has no attribute tool"
+      files:
+        - mcp_server/tests/test_mcp_tools.py
+        - mcp_server/tools/worker_tools.py
+        - mcp_server/server.py
+
+    launch_20260207_backend_test_alignment_reputation:
+      attributes:
+        description: "Align reputation tests with current Bayesian API signatures/config naming"
+        priority: P1
+        evidence: "test_reputation.py failing on outdated C/calculate_weight/calculate_decay expectations"
+      files:
+        - mcp_server/tests/test_reputation.py
+        - mcp_server/reputation/bayesian.py
+
+    launch_20260207_backend_config_defaults_decision:
+      attributes:
+        description: "Make an explicit decision on min bounty default (0.01 vs 0.25) and update tests/docs"
+        priority: P1
+      files:
+        - mcp_server/config/platform_config.py
+        - mcp_server/tests/test_platform_config.py
+
+    launch_20260207_funded_refund_live_evidence:
+      attributes:
+        description: "Capture at least one live refund tx hash from a truly funded escrow path"
+        priority: P0
+        evidence: "Current live refund checks show authorization_expired without refund tx hash"
+      files:
+        - scripts/test-x402-full-flow.ts
+        - scripts/test-x402-rapid-flow.ts
+        - docs/planning/PENDING_WORK_MATRIX_2026-02-06.md
+
   # ═══════════════════════════════════════════════════════════════════════
   # PHASE 7: MULTI-CHAIN EXPANSION
   # SDK: uvd-x402-sdk 0.8.2 (Python) / 2.20.0 (TypeScript)
