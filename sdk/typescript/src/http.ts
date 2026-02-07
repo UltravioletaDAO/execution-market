@@ -8,13 +8,11 @@
 import {
   ExecutionMarketSDKError,
   AuthenticationError,
-  RateLimitError,
   ValidationFailedError,
   NetworkError,
   TimeoutError,
   createErrorFromResponse,
 } from './errors';
-import type { ValidationError } from './types';
 
 interface HttpConfig {
   baseUrl: string;
@@ -76,7 +74,7 @@ export class HttpClient {
           throw createErrorFromResponse(response.status, errorData);
         }
 
-        return await response.json();
+        return await response.json() as T;
       } catch (error) {
         lastError = error as Error;
 

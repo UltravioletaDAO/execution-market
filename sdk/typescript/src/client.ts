@@ -22,7 +22,6 @@ import type {
   ListResponse,
 } from './types';
 import {
-  ExecutionMarketSDKError,
   AuthenticationError,
   NetworkError,
   TimeoutError,
