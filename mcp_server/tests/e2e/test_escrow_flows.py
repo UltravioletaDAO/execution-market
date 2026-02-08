@@ -17,7 +17,6 @@ AdvancedEscrowClient so we validate the full tool → integration → SDK stack
 without requiring on-chain transactions.
 """
 
-import sys
 import pytest
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -25,14 +24,6 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
-
-# Mock the mcp module before any tools import triggers it
-if "mcp" not in sys.modules:
-    _mock_mcp = MagicMock()
-    sys.modules["mcp"] = _mock_mcp
-    sys.modules["mcp.server"] = _mock_mcp.server
-    sys.modules["mcp.server.fastmcp"] = _mock_mcp.server.fastmcp
-    sys.modules["mcp.server.fastmcp"].FastMCP = MagicMock
 
 from ..e2e.conftest import (
     MockAgent,
