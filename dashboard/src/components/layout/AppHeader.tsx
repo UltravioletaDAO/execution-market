@@ -6,10 +6,9 @@ import { LanguageSwitcher } from '../LanguageSwitcher'
 
 interface AppHeaderProps {
   onConnectWallet: () => void
-  onScrollToHowItWorks?: () => void
 }
 
-export function AppHeader({ onConnectWallet, onScrollToHowItWorks }: AppHeaderProps) {
+export function AppHeader({ onConnectWallet }: AppHeaderProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { isAuthenticated, userType, executor, loading } = useAuth()
@@ -49,14 +48,6 @@ export function AppHeader({ onConnectWallet, onScrollToHowItWorks }: AppHeaderPr
                 {link.label}
               </button>
             ))}
-            {onScrollToHowItWorks && (
-              <button
-                onClick={onScrollToHowItWorks}
-                className="px-3 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
-              >
-                {t('landing.howItWorks', 'How it Works')}
-              </button>
-            )}
           </nav>
 
           {/* Right side */}
@@ -129,17 +120,6 @@ export function AppHeader({ onConnectWallet, onScrollToHowItWorks }: AppHeaderPr
                 {link.label}
               </button>
             ))}
-            {onScrollToHowItWorks && (
-              <button
-                onClick={() => {
-                  onScrollToHowItWorks()
-                  setMobileMenuOpen(false)
-                }}
-                className="block w-full text-left px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
-              >
-                {t('landing.howItWorks', 'How it Works')}
-              </button>
-            )}
             <div className="pt-2 px-3">
               <LanguageSwitcher />
             </div>
