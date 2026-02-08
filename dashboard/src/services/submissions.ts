@@ -17,6 +17,7 @@ import type {
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
 const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'
+const REQUIRE_AGENT_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
 const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined
 
 function buildWorkerSubmitUrl(taskId: string): string {
@@ -386,6 +387,9 @@ export async function approveSubmission(data: ApproveSubmissionData): Promise<Su
 
   // This endpoint only supports approve/accepted flow.
   if (verdict !== 'accepted' || rating !== undefined || !hasAgentApiKey()) {
+    if (!hasAgentApiKey() && REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error('VITE_API_KEY is required for submission approval when VITE_REQUIRE_AGENT_API_KEY=true')
+    }
     return approveSubmissionDirect(data)
   }
 
@@ -472,6 +476,9 @@ export async function rejectSubmission(data: RejectSubmissionData): Promise<Subm
   const { submissionId, feedback } = data
 
   if (!hasAgentApiKey()) {
+    if (REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error('VITE_API_KEY is required for submission rejection when VITE_REQUIRE_AGENT_API_KEY=true')
+    }
     return rejectSubmissionDirect(data)
   }
 
@@ -554,6 +561,9 @@ async function requestMoreInfoDirect(submissionId: string, agentId: string, note
 
 export async function requestMoreInfo(submissionId: string, agentId: string, notes: string): Promise<Submission> {
   if (!hasAgentApiKey()) {
+    if (REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error('VITE_API_KEY is required for request-more-info when VITE_REQUIRE_AGENT_API_KEY=true')
+    }
     return requestMoreInfoDirect(submissionId, agentId, notes)
   }
 
