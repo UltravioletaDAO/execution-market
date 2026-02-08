@@ -17,12 +17,39 @@ import type {
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
 const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'
+const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined
 
 function buildWorkerSubmitUrl(taskId: string): string {
   if (API_BASE_URL.endsWith('/api')) {
     return `${API_BASE_URL}/v1/tasks/${taskId}/submit`
   }
   return `${API_BASE_URL}/api/v1/tasks/${taskId}/submit`
+}
+
+function buildApproveSubmissionUrl(submissionId: string): string {
+  if (API_BASE_URL.endsWith('/api')) {
+    return `${API_BASE_URL}/v1/submissions/${submissionId}/approve`
+  }
+  return `${API_BASE_URL}/api/v1/submissions/${submissionId}/approve`
+}
+
+function buildRejectSubmissionUrl(submissionId: string): string {
+  if (API_BASE_URL.endsWith('/api')) {
+    return `${API_BASE_URL}/v1/submissions/${submissionId}/reject`
+  }
+  return `${API_BASE_URL}/api/v1/submissions/${submissionId}/reject`
+}
+
+function hasAgentApiKey(): boolean {
+  return Boolean(AGENT_API_KEY)
+}
+
+function buildAgentJsonHeaders(): HeadersInit {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (AGENT_API_KEY) {
+    headers['X-API-Key'] = AGENT_API_KEY
+  }
+  return headers
 }
 
 async function parseApiError(response: Response, fallback: string): Promise<string> {
@@ -285,7 +312,7 @@ export async function getPendingSubmissions(agentId: string): Promise<Submission
 /**
  * Approve a submission
  */
-export async function approveSubmission(data: ApproveSubmissionData): Promise<Submission> {
+async function approveSubmissionDirect(data: ApproveSubmissionData): Promise<Submission> {
   const { submissionId, agentId, verdict, notes, rating } = data
 
   // Get submission with task
@@ -347,10 +374,55 @@ export async function approveSubmission(data: ApproveSubmissionData): Promise<Su
   return updatedSubmission
 }
 
+export async function approveSubmission(data: ApproveSubmissionData): Promise<Submission> {
+  const { submissionId, verdict, notes, rating } = data
+
+  // This endpoint only supports approve/accepted flow.
+  if (verdict !== 'accepted' || rating !== undefined || !hasAgentApiKey()) {
+    return approveSubmissionDirect(data)
+  }
+
+  try {
+    const response = await fetch(buildApproveSubmissionUrl(submissionId), {
+      method: 'POST',
+      headers: buildAgentJsonHeaders(),
+      body: JSON.stringify({ notes }),
+    })
+
+    if (!response.ok) {
+      const fallback = `Failed to approve submission via API (${response.status})`
+      throw new Error(await parseApiError(response, fallback))
+    }
+
+    const payload = await response.json() as { data?: { submission_id?: string } }
+    const approvedSubmissionId = payload?.data?.submission_id || submissionId
+
+    const { data: submission, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', approvedSubmissionId)
+      .single()
+
+    if (error || !submission) {
+      throw new Error(
+        `Submission approved via API but could not load row: ${error?.message || 'unknown error'}`
+      )
+    }
+
+    return submission
+  } catch (error) {
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw error instanceof Error ? error : new Error('Failed to approve submission via API')
+    }
+    // Explicit fallback for local/dev troubleshooting only.
+    return approveSubmissionDirect(data)
+  }
+}
+
 /**
  * Reject a submission
  */
-export async function rejectSubmission(data: RejectSubmissionData): Promise<Submission> {
+async function rejectSubmissionDirect(data: RejectSubmissionData): Promise<Submission> {
   const { submissionId, agentId, feedback } = data
 
   // Get submission with task
@@ -387,6 +459,50 @@ export async function rejectSubmission(data: RejectSubmissionData): Promise<Subm
     .eq('id', task.id)
 
   return updatedSubmission
+}
+
+export async function rejectSubmission(data: RejectSubmissionData): Promise<Submission> {
+  const { submissionId, feedback } = data
+
+  if (!hasAgentApiKey()) {
+    return rejectSubmissionDirect(data)
+  }
+
+  try {
+    const response = await fetch(buildRejectSubmissionUrl(submissionId), {
+      method: 'POST',
+      headers: buildAgentJsonHeaders(),
+      body: JSON.stringify({ notes: feedback }),
+    })
+
+    if (!response.ok) {
+      const fallback = `Failed to reject submission via API (${response.status})`
+      throw new Error(await parseApiError(response, fallback))
+    }
+
+    const payload = await response.json() as { data?: { submission_id?: string } }
+    const rejectedSubmissionId = payload?.data?.submission_id || submissionId
+
+    const { data: submission, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', rejectedSubmissionId)
+      .single()
+
+    if (error || !submission) {
+      throw new Error(
+        `Submission rejected via API but could not load row: ${error?.message || 'unknown error'}`
+      )
+    }
+
+    return submission
+  } catch (error) {
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw error instanceof Error ? error : new Error('Failed to reject submission via API')
+    }
+    // Explicit fallback for local/dev troubleshooting only.
+    return rejectSubmissionDirect(data)
+  }
 }
 
 /**
