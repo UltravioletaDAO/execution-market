@@ -8,7 +8,7 @@ For backend integrations and automated agents.
 
 ```bash
 curl -H "X-API-Key: em_sk_live_abc123" \
-  https://execution.market/api/v1/tasks
+  https://api.execution.market/api/v1/tasks
 ```
 
 ### API Key Format
@@ -34,7 +34,7 @@ For the React dashboard and user-facing applications.
 
 ```bash
 curl -H "Authorization: Bearer eyJhbG..." \
-  https://execution.market/api/v1/tasks
+  https://api.execution.market/api/v1/tasks
 ```
 
 JWTs are issued by Supabase Auth and contain:
@@ -77,3 +77,4 @@ The wallet address (`0x...`) serves as both identity and payment address.
 | Enterprise | API Key (enterprise) | 1,000 | Unlimited |
 | Dashboard | JWT | 120 | 5,000 |
 | Agent | ERC-8004 | 300 | 10,000 |
+
