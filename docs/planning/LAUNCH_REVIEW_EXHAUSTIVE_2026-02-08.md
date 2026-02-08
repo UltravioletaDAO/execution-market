@@ -5,6 +5,9 @@ Update (2026-02-08, late session):
 - Revalidated quick compile gates after auth fix:
   - `cd mcp_server && python -m mypy api/auth.py api/middleware.py --ignore-missing-imports --follow-imports=skip` -> success
   - `cd dashboard && npm run typecheck` -> success
+- Auth header compatibility check (live API) with intentionally invalid payload:
+  - `POST /api/v1/tasks` using only `X-API-Key` -> `422` (auth accepted; payload invalid as expected)
+  - `POST /api/v1/tasks` using only `Authorization: Bearer` -> `422` (same behavior)
 - Strict x402 creation run executed (`--strict-api`) with task `a0edf1b6-ae46-49eb-81fe-bf8661c33c64` in `published`.
 - Long monitor runs (`--monitor`, `--auto-approve`) intentionally deferred to final validation block.
 
