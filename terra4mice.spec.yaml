@@ -696,7 +696,7 @@ resources:
         description: "Migrate dashboard business mutations from direct Supabase writes to backend API endpoints"
         priority: P0
         status: in_progress
-        evidence: "2026-02-08: apply+submit switched to API-first (be7afda, 6cfd07e); create/cancel/assign/approve/reject/request-more-info now API-first when VITE_API_KEY is configured"
+        evidence: "2026-02-08: apply+submit (be7afda, 6cfd07e) plus create/cancel/assign/approve/reject/request-more-info (aa237c4, ec791a6) are API-first; direct fallback remains transitional"
       files:
         - dashboard/src/services/tasks.ts
         - dashboard/src/services/submissions.ts
@@ -718,8 +718,8 @@ resources:
       attributes:
         description: "Ensure agent card always publishes HTTPS URLs in production runtime"
         priority: P0
-        status: pending_deploy
-        evidence: "Code fixed in commit 8b55674 and deploy hardening in 1d66952; live runtime still reports http until rollout"
+        status: done
+        evidence: "2026-02-08 live check: https://api.execution.market/.well-known/agent.json now returns url=https://api.execution.market/a2a/v1 after deploy/runtime hardening"
       files:
         - mcp_server/a2a/agent_card.py
         - infrastructure/terraform/ecs.tf
@@ -762,7 +762,7 @@ resources:
         description: "Roll out latest backend/frontend revisions and verify runtime behavior matches hardened config"
         priority: P0
         status: in_progress
-        evidence: "Production still serves agent card url=http://api.execution.market/a2a/v1"
+        evidence: "Agent card runtime now HTTPS and sanity is green; remaining rollout blocker is edge API ambiguity where execution.market/api/* still serves HTML"
       files:
         - .github/workflows/deploy.yml
         - .github/workflows/deploy-prod.yml
@@ -775,7 +775,7 @@ resources:
         description: "Resolve completed tasks with missing payment evidence and reduce health/sanity warnings"
         priority: P0
         status: monitor
-        evidence: "2026-02-08 latest live sanity check returned status=ok, warnings=0; keep monitoring and capture strict live payment evidence"
+        evidence: "2026-02-08 recheck via report:sanity:strict and smoke-test shows status=ok, checks=6/6, warnings=0; keep monitoring and capture strict live payment evidence"
       files:
         - mcp_server/health/endpoints.py
         - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
@@ -785,7 +785,7 @@ resources:
         description: "Define and implement auth contract for dashboard agent mutations to use backend endpoints safely"
         priority: P0
         status: in_progress
-        evidence: "API-first paths now exist for create/cancel/assign/approve/reject/request-more-info; added VITE_REQUIRE_AGENT_API_KEY guardrail and auth contract doc, but wallet/JWT-native contract is still unresolved"
+        evidence: "API-first paths now exist for create/cancel/assign/approve/reject/request-more-info; VITE_REQUIRE_AGENT_API_KEY guardrail + contract doc added (7f5fe3a, 9826d02), wallet/JWT-native contract still unresolved"
       files:
         - dashboard/src/services/tasks.ts
         - dashboard/src/services/submissions.ts
@@ -820,6 +820,15 @@ resources:
       files:
         - scripts/report-sanity-warnings.ts
         - scripts/package.json
+
+    launch_20260208_improvement_scenarios_board:
+      attributes:
+        description: "Track improvement backlog and non-obvious scenario drills in one launch-focused board"
+        priority: P1
+        status: done
+        evidence: "2026-02-08: added docs/planning/IMPROVEMENT_SCENARIOS_BOARD_2026-02-08.md with granular pending/done tracking"
+      files:
+        - docs/planning/IMPROVEMENT_SCENARIOS_BOARD_2026-02-08.md
 
   # ═══════════════════════════════════════════════════════════════════════
   # PHASE 7: MULTI-CHAIN EXPANSION
