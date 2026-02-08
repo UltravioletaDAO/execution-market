@@ -17,6 +17,50 @@ const ESCROW = '0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC' as const
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const
 const VAULT = '0x0b3fC8BA8952C6cA6807F667894b0b7c9C40FC8b' as const
 
+type CliOptions = {
+  minUsdc: number
+  minEth: number
+  strict: boolean
+}
+
+function parseCliArgs(): CliOptions {
+  const args = process.argv.slice(2)
+  const options: CliOptions = {
+    minUsdc: 0.05,
+    minEth: 0.0002,
+    strict: false,
+  }
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+    const next = args[i + 1]
+
+    if (arg === '--strict') {
+      options.strict = true
+      continue
+    }
+
+    if (arg === '--min-usdc' && next) {
+      const parsed = Number(next)
+      if (!Number.isNaN(parsed) && parsed >= 0) {
+        options.minUsdc = parsed
+      }
+      i++
+      continue
+    }
+
+    if (arg === '--min-eth' && next) {
+      const parsed = Number(next)
+      if (!Number.isNaN(parsed) && parsed >= 0) {
+        options.minEth = parsed
+      }
+      i++
+    }
+  }
+
+  return options
+}
+
 async function bal(addr: `0x${string}`) {
   return client.readContract({
     address: USDC,
@@ -27,6 +71,8 @@ async function bal(addr: `0x${string}`) {
 }
 
 async function main() {
+  const opts = parseCliArgs()
+
   console.log('=== Post-Deposit State ===')
   console.log('Wallet:', account.address)
 
@@ -79,7 +125,25 @@ async function main() {
   }
 
   const eth = await client.getBalance({ address: account.address })
+  const walletUsdc = Number(formatUnits(walletBal, 6))
+  const walletEth = Number(formatUnits(eth, 18))
+
   console.log('\nETH remaining:', formatUnits(eth, 18))
+  console.log('\nThreshold checks:')
+  console.log(`  min USDC required: ${opts.minUsdc}`)
+  console.log(`  min ETH required: ${opts.minEth}`)
+  console.log(`  strict mode: ${opts.strict ? 'ON' : 'OFF'}`)
+
+  const usdcOk = walletUsdc >= opts.minUsdc
+  const ethOk = walletEth >= opts.minEth
+
+  console.log(`  USDC check: ${usdcOk ? 'PASS' : 'FAIL'} (${walletUsdc} >= ${opts.minUsdc})`)
+  console.log(`  ETH check: ${ethOk ? 'PASS' : 'FAIL'} (${walletEth} >= ${opts.minEth})`)
+
+  if (opts.strict && (!usdcOk || !ethOk)) {
+    console.error('\nInsufficient funds for strict live validation.')
+    process.exitCode = 1
+  }
 }
 
 main().catch(console.error)

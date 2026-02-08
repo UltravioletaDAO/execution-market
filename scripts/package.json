@@ -18,6 +18,8 @@
     "test:x402:rapid": "tsx test-x402-rapid-flow.ts --count 1 --deadline 2 --auto-approve --strict",
     "test:smoke": "tsx smoke-test.ts",
     "test:smoke:live": "tsx smoke-test.ts --live",
+    "check:funds": "tsx check-deposit-state.ts",
+    "check:funds:strict": "tsx check-deposit-state.ts --strict",
     "report:sanity": "tsx report-sanity-warnings.ts",
     "report:sanity:strict": "tsx report-sanity-warnings.ts --fail-on-warning"
   },
