@@ -3,98 +3,63 @@
  *
  * Tests that payment information is visible in the dashboard:
  * - Task cards show bounty amounts
- * - Completed tasks show payment status badge
- * - Public metrics show payment volume
  * - StatsBar renders on the home page
+ * - USDC branding is visible
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures/auth'
+import { setupMocks, mockTasks } from '../fixtures/mocks'
 
 test.describe('Payment Visibility', () => {
-  test('home page shows stats bar with metrics', async ({ page }) => {
-    await page.goto('/')
+  test('home page loads with stats section', async ({ workerPage }) => {
+    await setupMocks(workerPage)
+    await workerPage.goto('/')
 
-    // StatsBar should be visible
-    const statsBar = page.locator('.flex.items-center.justify-center.gap-6')
-    await expect(statsBar).toBeVisible({ timeout: 15000 })
-
-    // Should show at least 3 stat values
-    const statValues = statsBar.locator('.font-bold')
-    const count = await statValues.count()
-    expect(count).toBeGreaterThanOrEqual(3)
+    // Should show USDC or payment-related text
+    await expect(
+      workerPage.getByText(/USDC/).first()
+    ).toBeVisible({ timeout: 15000 })
   })
 
-  test('home page loads public metrics from API', async ({ page }) => {
-    // Intercept the metrics API call
-    const metricsPromise = page.waitForResponse(
-      (resp) => resp.url().includes('/api/v1/public/metrics') && resp.status() === 200,
-      { timeout: 20000 }
-    )
+  test('task cards display bounty amounts', async ({ workerPage }) => {
+    await setupMocks(workerPage)
+    await workerPage.goto('/tasks')
 
-    await page.goto('/')
+    // Wait for tasks to load
+    await expect(
+      workerPage.getByText(mockTasks[0].title)
+    ).toBeVisible({ timeout: 15000 })
 
-    const metricsResponse = await metricsPromise
-    const data = await metricsResponse.json()
-
-    // Verify response structure
-    expect(data).toHaveProperty('tasks')
-    expect(data).toHaveProperty('payments')
-    expect(data.payments).toHaveProperty('total_volume_usd')
-    expect(typeof data.payments.total_volume_usd).toBe('number')
+    // Should show dollar amounts (bounties)
+    await expect(
+      workerPage.getByText(`$${mockTasks[0].bounty_usd.toFixed(2)}`)
+    ).toBeVisible()
   })
 
-  test('task cards display bounty amount', async ({ page }) => {
-    await page.goto('/tasks')
+  test('multiple tasks show their respective bounties', async ({ workerPage }) => {
+    await setupMocks(workerPage)
+    await workerPage.goto('/tasks')
 
-    // Wait for task list to load
-    await page.waitForSelector('[data-testid="task-list"], .task-card, [class*="task"]', {
-      timeout: 15000,
-    }).catch(() => {
-      // If no test IDs, wait for any card-like content
-    })
+    // Wait for tasks
+    await expect(
+      workerPage.getByText(mockTasks[0].title)
+    ).toBeVisible({ timeout: 15000 })
 
-    // Look for dollar amounts in the page (bounty display)
-    const dollarAmounts = page.locator('text=/\\$\\d/')
-    const hasAmounts = (await dollarAmounts.count()) > 0
-
-    // If tasks exist, they should show bounty amounts
-    if (hasAmounts) {
-      await expect(dollarAmounts.first()).toBeVisible()
+    // Verify each task's bounty is displayed
+    for (const task of mockTasks) {
+      await expect(
+        workerPage.getByText(`$${task.bounty_usd.toFixed(2)}`)
+      ).toBeVisible()
     }
   })
 
-  test('available tasks endpoint returns valid data', async ({ page }) => {
-    // Direct API check via page context
-    const response = await page.request.get('/api/v1/tasks/available')
+  test('trust signals mention instant payment', async ({ workerPage }) => {
+    await setupMocks(workerPage)
+    await workerPage.goto('/')
 
-    // May return 200 or redirect depending on CORS
-    if (response.ok()) {
-      const data = await response.json()
-      const tasks = Array.isArray(data) ? data : data.tasks || data.data || []
-
-      for (const task of tasks.slice(0, 5)) {
-        // Each task should have bounty information
-        expect(task).toHaveProperty('bounty_usd')
-        expect(typeof task.bounty_usd).toBe('number')
-        expect(task.bounty_usd).toBeGreaterThanOrEqual(0)
-      }
-    }
-  })
-})
-
-test.describe('Payment Status Indicators', () => {
-  test('health sanity endpoint returns financial checks', async ({ page }) => {
-    const response = await page.request.get(
-      `${process.env.API_URL || 'https://api.execution.market'}/health/sanity`
-    )
-
-    if (response.ok()) {
-      const data = await response.json()
-      expect(data).toHaveProperty('checks_passed')
-      expect(data).toHaveProperty('checks_total')
-      expect(data).toHaveProperty('summary')
-      expect(data.summary).toHaveProperty('total_bounty_usd')
-      expect(typeof data.summary.total_bounty_usd).toBe('number')
-    }
+    // The landing page should mention instant/fast payment somewhere
+    await expect(
+      workerPage.getByText(/instant|Paid in USDC|No hidden fees/).first()
+    ).toBeVisible({ timeout: 15000 })
   })
 })

@@ -1,210 +1,96 @@
 /**
  * Execution Market E2E Authentication Fixtures
  *
- * Helpers for authentication in E2E tests.
+ * Uses the E2E escape hatch: injects window.__E2E_AUTH__ via page.addInitScript()
+ * so AuthContext picks up mock auth state instead of Dynamic.xyz.
+ *
+ * Requires the dashboard to be started with VITE_E2E_MODE=true.
  */
 
 import { test as base, type Page, expect } from '@playwright/test'
-import { mockWalletConnection, mockExecutor, mockAgent } from './mocks'
+
+// Declare the E2E auth state type (mirrors dashboard's AuthContext declaration)
+declare global {
+  interface Window {
+    __E2E_AUTH__?: {
+      isAuthenticated: boolean
+      walletAddress: string
+      userId: string
+      role: 'worker' | 'agent' | null
+      displayName?: string
+    }
+  }
+}
 
 // ============================================================================
-// Test User Types
+// Mock Users
 // ============================================================================
 
-export interface TestUser {
-  id: string
-  email: string
-  password: string
-  displayName: string
+export interface MockUser {
+  userId: string
   walletAddress: string
-  role: 'executor' | 'agent'
+  role: 'worker' | 'agent'
+  displayName: string
 }
 
-export const TEST_EXECUTOR: TestUser = {
-  id: 'user-001',
-  email: 'executor@execution.market',
-  password: 'test-password-123',
-  displayName: 'Test Executor',
-  walletAddress: mockExecutor.wallet_address,
-  role: 'executor',
+export const MOCK_WORKER: MockUser = {
+  userId: 'e2e-worker-001',
+  walletAddress: '0xe2e0000000000000000000000000000000000001',
+  role: 'worker',
+  displayName: 'E2E Worker',
 }
 
-export const TEST_AGENT: TestUser = {
-  id: 'user-agent-001',
-  email: 'agent@execution.market',
-  password: 'agent-password-123',
-  displayName: 'Test Agent',
-  walletAddress: mockAgent.wallet_address,
+export const MOCK_AGENT: MockUser = {
+  userId: 'e2e-agent-001',
+  walletAddress: '0xe2e0000000000000000000000000000000000002',
   role: 'agent',
+  displayName: 'E2E Agent',
 }
 
 // ============================================================================
-// Authentication Helpers
+// Auth Injection
 // ============================================================================
 
 /**
- * Login via email/password
+ * Inject E2E auth state into the page via window.__E2E_AUTH__.
+ * Must be called BEFORE page.goto() so the script runs before React hydrates.
  */
-export async function loginWithEmail(
-  page: Page,
-  user: TestUser = TEST_EXECUTOR
-): Promise<void> {
-  await page.goto('/login')
-
-  // Wait for login form
-  await page.waitForSelector('[data-testid="login-form"]', { timeout: 10000 })
-
-  // Fill email
-  await page.fill('[data-testid="email-input"]', user.email)
-
-  // Fill password
-  await page.fill('[data-testid="password-input"]', user.password)
-
-  // Click login button
-  await page.click('[data-testid="login-button"]')
-
-  // Wait for redirect to dashboard
-  await page.waitForURL(/\/(dashboard|tasks)/, { timeout: 15000 })
-}
-
-/**
- * Login via wallet (MetaMask mock)
- */
-export async function loginWithWallet(page: Page): Promise<void> {
-  // Setup wallet mock
-  await mockWalletConnection(page)
-
-  await page.goto('/login')
-
-  // Wait for login options
-  await page.waitForSelector('[data-testid="wallet-login-button"]', {
-    timeout: 10000,
-  })
-
-  // Click wallet login
-  await page.click('[data-testid="wallet-login-button"]')
-
-  // Wait for wallet connection modal
-  await page.waitForSelector('[data-testid="wallet-connect-modal"]', {
-    timeout: 5000,
-  })
-
-  // Select MetaMask (or first wallet option)
-  await page.click('[data-testid="metamask-option"]')
-
-  // Wait for signature request handling (mocked)
-  await page.waitForTimeout(500)
-
-  // Wait for redirect to dashboard
-  await page.waitForURL(/\/(dashboard|tasks)/, { timeout: 15000 })
-}
-
-/**
- * Logout the current user
- */
-export async function logout(page: Page): Promise<void> {
-  // Click user menu
-  await page.click('[data-testid="user-menu"]')
-
-  // Click logout
-  await page.click('[data-testid="logout-button"]')
-
-  // Wait for redirect to landing/login
-  await page.waitForURL(/\/(login)?$/, { timeout: 10000 })
-}
-
-/**
- * Check if user is logged in
- */
-export async function isLoggedIn(page: Page): Promise<boolean> {
-  try {
-    await page.waitForSelector('[data-testid="user-menu"]', { timeout: 3000 })
-    return true
-  } catch {
-    return false
-  }
-}
-
-/**
- * Get current user info from page
- */
-export async function getCurrentUser(
-  page: Page
-): Promise<{ email: string; displayName: string } | null> {
-  const loggedIn = await isLoggedIn(page)
-  if (!loggedIn) return null
-
-  // Click user menu to show info
-  await page.click('[data-testid="user-menu"]')
-
-  const email = await page
-    .locator('[data-testid="user-email"]')
-    .textContent()
-  const displayName = await page
-    .locator('[data-testid="user-display-name"]')
-    .textContent()
-
-  // Close menu
-  await page.keyboard.press('Escape')
-
-  return {
-    email: email || '',
-    displayName: displayName || '',
-  }
+export async function injectAuth(page: Page, user: MockUser): Promise<void> {
+  await page.addInitScript((authState) => {
+    window.__E2E_AUTH__ = {
+      isAuthenticated: true,
+      walletAddress: authState.walletAddress,
+      userId: authState.userId,
+      role: authState.role,
+      displayName: authState.displayName,
+    }
+  }, user)
 }
 
 // ============================================================================
 // Extended Test Fixtures
 // ============================================================================
 
-/**
- * Test fixture type with authentication helpers
- */
 export type AuthFixtures = {
-  authenticatedPage: Page
-  executorPage: Page
+  workerPage: Page
   agentPage: Page
 }
 
 /**
- * Extended test with authentication
+ * Extended test with pre-authenticated page fixtures.
+ * workerPage: Page with worker auth injected
+ * agentPage: Page with agent auth injected
  */
 export const test = base.extend<AuthFixtures>({
-  authenticatedPage: async ({ page }, use) => {
-    await loginWithEmail(page, TEST_EXECUTOR)
+  workerPage: async ({ page }, use) => {
+    await injectAuth(page, MOCK_WORKER)
     await use(page)
-    await logout(page)
-  },
-
-  executorPage: async ({ page }, use) => {
-    await loginWithEmail(page, TEST_EXECUTOR)
-    await use(page)
-    await logout(page)
   },
 
   agentPage: async ({ page }, use) => {
-    await loginWithEmail(page, TEST_AGENT)
+    await injectAuth(page, MOCK_AGENT)
     await use(page)
-    await logout(page)
   },
 })
 
 export { expect }
-
-// ============================================================================
-// Auth Setup for Playwright Projects
-// ============================================================================
-
-/**
- * Save authentication state for reuse
- * Use in auth.setup.ts
- */
-export async function saveAuthState(
-  page: Page,
-  path: string
-): Promise<void> {
-  await loginWithEmail(page, TEST_EXECUTOR)
-
-  // Save signed-in state
-  await page.context().storageState({ path })
-}

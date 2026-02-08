@@ -24,6 +24,24 @@ import type { Executor } from '../types/database'
 
 export type UserType = 'worker' | 'agent' | null
 
+// --------------------------------------------------------------------------
+// E2E Test Escape Hatch
+// --------------------------------------------------------------------------
+
+interface E2EAuthState {
+  isAuthenticated: boolean
+  walletAddress: string
+  userId: string
+  role: UserType
+  displayName?: string
+}
+
+declare global {
+  interface Window {
+    __E2E_AUTH__?: E2EAuthState
+  }
+}
+
 interface AuthContextValue {
   // State
   walletAddress: string | null
@@ -420,7 +438,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // --------------------------------------------------------------------------
   // Context Value
   // --------------------------------------------------------------------------
-  const value: AuthContextValue = {
+  let value: AuthContextValue = {
     walletAddress,
     executor,
     userType,
@@ -432,6 +450,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUserType,
     refreshExecutor,
     openAuthModal,
+  }
+
+  // --------------------------------------------------------------------------
+  // E2E Escape Hatch: Override auth state when running in E2E mode
+  // All hooks have already been called above, so this is safe.
+  // --------------------------------------------------------------------------
+  if (import.meta.env.VITE_E2E_MODE === 'true' && typeof window !== 'undefined' && window.__E2E_AUTH__) {
+    const e2e = window.__E2E_AUTH__
+    value = {
+      ...value,
+      walletAddress: e2e.walletAddress,
+      isAuthenticated: e2e.isAuthenticated,
+      userType: e2e.role,
+      isProfileComplete: true,
+      loading: false,
+      error: null,
+      executor: {
+        id: e2e.userId,
+        user_id: e2e.userId,
+        wallet_address: e2e.walletAddress,
+        display_name: e2e.displayName || 'E2E Test User',
+        bio: null,
+        avatar_url: null,
+        skills: [],
+        languages: [],
+        roles: [],
+        email: null,
+        phone: null,
+        default_location: null,
+        location_city: null,
+        location_country: null,
+        reputation_score: 85,
+        tasks_completed: 10,
+        tasks_disputed: 0,
+        tasks_abandoned: 0,
+        avg_rating: null,
+        reputation_contract: null,
+        reputation_token_id: null,
+        erc8004_agent_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_active_at: null,
+      } as Executor,
+    }
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
