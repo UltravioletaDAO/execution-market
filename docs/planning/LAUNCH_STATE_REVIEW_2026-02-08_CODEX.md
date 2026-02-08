@@ -1,5 +1,17 @@
 # Launch State Review - 2026-02-08 (Codex)
 
+## Update de ejecución (2026-02-08, noche)
+
+- Scope MVP confirmado: `execution-market + x402r`; `chambaescrow/contracts` queda fuera de evidencia de launch.
+- Cerrado bug crítico de auth header:
+  - Frontend ahora envía `Authorization: Bearer <VITE_API_KEY>` en mutaciones/reputación.
+  - Backend ahora acepta `Authorization` y `X-API-Key` (compatibilidad backward).
+- Cerrados gates de calidad que antes estaban blandos:
+  - E2E smoke bloqueante en CI/deploy.
+  - `mypy` bloqueante en scope backend estable (sin `continue-on-error`).
+- Corrida strict API realizada (sin monitor largo): creación confirmada de task `a0edf1b6-ae46-49eb-81fe-bf8661c33c64` en estado `published`.
+- Tests largos `--monitor/--auto-approve` difieren al final por instrucción del usuario.
+
 ## 1) Executive Snapshot
 
 Decision:
@@ -12,10 +24,9 @@ Qué está sólido hoy:
 - Smoke de producción pasa (`10/10`) y `health/sanity` está en `ok` con `6/6`.
 
 Qué te frena hoy:
-- Falta evidencia strict live x402 con tx hash en esta misma sesión para claim final de pagos production-ready.
-- Gates blandos en CI/deploy (checks clave no bloquean todo lo que deberían).
-- Tipado backend (`mypy`) muy lejos de ser gate útil (`578` errores).
-- Deuda de reproducibilidad en SDK/contracts (drift TS + tests hardhat bloqueados por key).
+- Falta evidencia strict live x402 completa con `--monitor --auto-approve` y hash de payout/refund en esta misma sesión.
+- Falta cerrar contrato de auth único de mutaciones agent (ya mitigado con compatibilidad de headers).
+- Queda deuda de frontend (warnings lint + tamaño de bundle), pero no bloquea beta controlada inmediata.
 
 ---
 
@@ -88,30 +99,25 @@ Qué te frena hoy:
 
 ## P1
 
-4. Gates de CI/deploy siguen blandos en chequeos importantes.
+4. [CERRADO 2026-02-08] Gates de CI/deploy reforzados en smoke E2E y mypy core.
 - Evidence:
-  - `.github/workflows/ci.yml:48`
-  - `.github/workflows/deploy.yml:57`
-  - `.github/workflows/ci.yml:161`
-  - `.github/workflows/deploy.yml:259`
-- Riesgo: regresiones pasan pipeline sin freno fuerte.
+  - `.github/workflows/ci.yml`
+  - `.github/workflows/deploy.yml`
+  - commits `5328cc8`, `ef4bba1`
 
-5. Typing debt backend alta (`mypy`) y no utilizable como gate aún.
+5. Typing debt backend sigue alta fuera del scope gateado.
 - Evidence:
   - `mcp_server` -> `578 errors in 85 files`.
-- Riesgo: baja señal preventiva en cambios complejos.
+- Riesgo: el gate actual cubre módulos core, pero aún hay deuda amplia.
 
-6. SDK TypeScript no instala por drift de versión.
+6. [CERRADO 2026-02-08] SDK TypeScript ya no tiene drift de versión.
 - Evidence:
-  - `sdk/typescript/package.json:64` (`^2.21.0`)
-  - `sdk/typescript/package-lock.json:14` (`^2.20.0`)
-- Riesgo: bloquea validación/publicación de SDK y rompe onboarding de integradores.
+  - commit `e3440a9`
 
-7. Tests de contratos bloqueados por configuración de keys.
+7. [CERRADO 2026-02-08] Tests locales de contratos desbloqueados sin deploy key.
 - Evidence:
-  - `contracts/hardhat.config.ts:17`
-  - `contracts/hardhat.config.ts:58`
-- Riesgo: no hay feedback automático de contratos en entornos sin keys de deploy.
+  - commit `7503694`
+- Nota: no forma parte del scope MVP de launch `x402r`.
 
 ## P2
 
@@ -151,19 +157,20 @@ Formato:
 ### Track A - Bloqueadores 0-24h
 
 - [x] `COD-260208-A01 | P0 | Frontend+DevOps | Desactivar fallback directo Supabase en producción` | Build prod con `VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false` y política estricta | deploy workflows actualizados (`deploy.yml`, `deploy-prod.yml`)
-- [ ] `COD-260208-A02 | P0 | Frontend+Backend | Definir auth contract único para mutaciones agent` | una sola vía soportada en prod (API key o token wallet-bound) | matriz create/cancel/assign/approve/reject
+- [~] `COD-260208-A02 | P0 | Frontend+Backend | Definir auth contract único para mutaciones agent` | una sola vía soportada en prod (API key o token wallet-bound) | compatibilidad `Authorization`+`X-API-Key` cerrada; falta decisión final wallet-bound
 - [x] `COD-260208-A03 | P0 | QA | Reescribir fixtures E2E para API-first (`/api/v1/*`)` | tests dejan de depender de `rest/v1/*` legacy | `cd e2e && npm run test -- --project=chromium --reporter=list` => `36 passed`
 - [x] `COD-260208-A04 | P0 | QA | Hacer E2E resiliente a i18n` | selectors por role/testid, no texto fijo ES | specs actualizados (EN/ES regex + roles)
-- [ ] `COD-260208-A05 | P0 | QA/Ops | Ejecutar 1 strict live x402 y guardar evidencia completa` | comando + task_id + escrow_id + tx hashes + estados finales | `cd scripts && npm exec -- tsx test-x402-full-flow.ts -- --count 1 --strict-api --monitor --auto-approve`
+- [~] `COD-260208-A05 | P0 | QA/Ops | Ejecutar 1 strict live x402 y guardar evidencia completa` | comando + task_id + escrow_id + tx hashes + estados finales | strict-api run ejecutado; pendiente corrida final `--monitor --auto-approve`
 - [ ] `COD-260208-A06 | P0 | Ops | Definir umbral mínimo fondos ETH/USDC para runs live` | abort temprano con mensaje claro | `check-deposit-state.ts`
 - [x] `COD-260208-A07 | P0 | Docs | Actualizar estado maestro con snapshot real de hoy` | un documento canónico vigente | `docs/planning/TODO_NOW/STATUS_SUMMARY.md` refrescado 2026-02-08
+- [x] `COD-260208-A08 | P0 | Frontend+Backend | Corregir mismatch Authorization vs X-API-Key` | mutaciones agent no fallan por header inválido | `mcp_server/api/auth.py` + `dashboard/src/services/*.ts`
 
 ### Track B - Estabilidad 24-72h
 
-- [ ] `COD-260208-B01 | P1 | CI | Rehabilitar E2E mínimo bloqueante en CI` | al menos 1 suite smoke E2E bloquea merge | workflow CI
-- [ ] `COD-260208-B02 | P1 | Backend | Definir scope mypy gateable (módulos core)` | mypy bloqueante solo en scope limpio | CI passing
-- [ ] `COD-260208-B03 | P1 | SDK | Corregir drift de `uvd-x402-sdk` en SDK TS` | `npm ci` + `npm test` en `sdk/typescript` pasa | pipeline SDK
-- [ ] `COD-260208-B04 | P1 | Contracts | Permitir tests local hardhat sin private key` | `cd contracts && npm test` corre en hardhat local | test output
+- [x] `COD-260208-B01 | P1 | CI | Rehabilitar E2E mínimo bloqueante en CI` | al menos 1 suite smoke E2E bloquea merge | commit `5328cc8`
+- [x] `COD-260208-B02 | P1 | Backend | Definir scope mypy gateable (módulos core)` | mypy bloqueante solo en scope limpio | commit `ef4bba1`
+- [x] `COD-260208-B03 | P1 | SDK | Corregir drift de `uvd-x402-sdk` en SDK TS` | `npm ci` + `npm test` en `sdk/typescript` pasa | commit `e3440a9`
+- [x] `COD-260208-B04 | P1 | Contracts | Permitir tests local hardhat sin private key` | `cd contracts && npm test` corre en hardhat local | commit `7503694` (fuera de scope MVP actual)
 - [ ] `COD-260208-B05 | P1 | Frontend | Reducir lint dashboard <= 100 warnings` | warning budget inicial | `npm --prefix dashboard run lint`
 - [ ] `COD-260208-B06 | P1 | Frontend | Reducir lint admin <= 10 warnings` | warning budget inicial | `npm --prefix admin-dashboard run lint`
 - [ ] `COD-260208-B07 | P1 | Frontend | Bajar chunk principal efectivo < 3 MB` | strategy de code splitting real | `npm --prefix dashboard run build`

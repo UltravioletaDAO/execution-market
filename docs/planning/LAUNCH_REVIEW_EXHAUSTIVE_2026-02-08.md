@@ -1,5 +1,13 @@
 # Launch Review Exhaustive - 2026-02-08
 
+Update (2026-02-08, late session):
+- Fixed critical auth-header mismatch (`Authorization` vs `X-API-Key`) across backend + dashboard services.
+- Revalidated quick compile gates after auth fix:
+  - `cd mcp_server && python -m mypy api/auth.py api/middleware.py --ignore-missing-imports --follow-imports=skip` -> success
+  - `cd dashboard && npm run typecheck` -> success
+- Strict x402 creation run executed (`--strict-api`) with task `a0edf1b6-ae46-49eb-81fe-bf8661c33c64` in `published`.
+- Long monitor runs (`--monitor`, `--auto-approve`) intentionally deferred to final validation block.
+
 Update (2026-02-08, latest revalidation):
 - Revalidated production runtime with fresh endpoint checks.
 - Agent card now publishes HTTPS canonical URL in production runtime.

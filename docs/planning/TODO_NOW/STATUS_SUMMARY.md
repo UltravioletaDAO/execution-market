@@ -1,188 +1,48 @@
-# Estado de Tareas NOW-202 a NOW-211
+# Estado Ship-Now (Execution Market) — 2026-02-08
 
-> Resumen ejecutivo actualizado: 2026-02-08 19:45 UTC
+## Snapshot Actual
 
-## Actualizacion Ship-Now (2026-02-08)
+- Scope MVP activo: `execution-market` + `x402r`.
+- Scope fuera de launch MVP: `contracts/chambaescrow` (solo diagnóstico, no evidencia de producción).
+- Decisión operativa: `GO` para beta controlada; `NO-GO` para claim full production-ready hasta cerrar evidencia live final.
 
-- E2E realineado al frontend actual (API-first + i18n): `36/36` tests Playwright pasando en Chromium.
-- Mocking E2E corregido para `api/v1`:
-  - `GET /api/v1/tasks/available`
-  - `GET /api/v1/public/metrics`
-- Hardening de deploy aplicado para dashboard:
+## Lo Ya Cerrado (Esta Racha de Trabajo)
+
+- Deploy hardening para mutaciones agent:
   - `VITE_REQUIRE_AGENT_API_KEY=true`
   - `VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false`
-  - Archivos: `.github/workflows/deploy.yml`, `.github/workflows/deploy-prod.yml`
-- Estado backend (local): `pytest` en `mcp_server` sigue estable (`658 passed, 8 skipped` en la corrida de auditoria del 2026-02-08).
-- Riesgos abiertos para launch:
-  - `mcp_server` mypy con deuda alta (578 errores reportados en auditoria).
-  - `sdk/typescript` con drift entre `package.json` y `package-lock.json`.
-  - `contracts` tests bloqueados por `DEPLOYER_PRIVATE_KEY` en carga de configuración.
+- E2E smoke bloqueante reactivado en CI/deploy.
+- `mypy` bloqueante en scope backend estable (sin `continue-on-error`).
+- Drift SDK TypeScript corregido (`uvd-x402-sdk` alineado a `2.20.0`).
+- Header auth mismatch corregido (`Authorization: Bearer` + compatibilidad `X-API-Key`):
+  - backend: `mcp_server/api/auth.py`, `mcp_server/api/middleware.py`
+  - frontend: `dashboard/src/services/tasks.ts`, `dashboard/src/services/submissions.ts`, `dashboard/src/services/reputation.ts`, `dashboard/src/services/api.ts`
 
-## Nota de Historial
+## Evidencia x402 Ejecutada Hoy
 
-El contenido siguiente corresponde al snapshot anterior (2026-01-27) y se mantiene como referencia historica.
+- Comando:
+  - `cd scripts && npm exec -- tsx test-x402-full-flow.ts -- --count 1 --strict-api`
+- Resultado:
+  - Task creada: `a0edf1b6-ae46-49eb-81fe-bf8661c33c64`
+  - Estado: `published`
+  - Wallet: `0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd`
+  - Modo: strict API (sin monitor/auto-approve)
+- Nota:
+  - No hay `escrow_tx`/`payment_tx` final porque no se corrió la fase larga de monitoreo/aprobación en esta tanda.
 
-## 🚀 PRODUCCIÓN EN VIVO
+## Bloqueadores Reales Pendientes
 
-**API URL**: https://api.execution.market
+1. Ejecutar corrida strict live final con `--monitor --auto-approve` y capturar evidencia completa:
+   - task IDs
+   - `escrow_id` / `escrow_tx`
+   - `payment_tx`
+   - estados finales
+2. Definir cierre final del contrato de auth para mutaciones agent (decisión producto: solo API key vs wallet-bound token).
+3. Reducir deuda frontend no-bloqueante pero relevante de operación (`lint warnings` y tamaño de bundle).
 
-| Endpoint | Estado | Notas |
-|----------|--------|-------|
-| `/health` | ✅ 200 | Status: degraded (storage/x402 no configurados) |
-| `/docs` | ✅ 200 | Swagger UI funcionando |
-| `/openapi.json` | ✅ 200 | OpenAPI spec completo |
-| `/.well-known/agent.json` | ✅ 200 | A2A Agent Card |
-| `/api/v1/x402/info` | ✅ 200 | SDK info |
-| `/api/v1/x402/networks` | ✅ 200 | 19 mainnets soportados |
-| `/ws/stats` | ✅ 200 | WebSocket stats |
-| `/ws/rooms` | ✅ 200 | WebSocket rooms |
+## Pruebas Largas Diferidas (Por Instrucción de Usuario)
 
----
+- `cd scripts && npm exec -- tsx test-x402-full-flow.ts -- --count 1 --strict-api --monitor`
+- `cd scripts && npm exec -- tsx test-x402-full-flow.ts -- --count 1 --strict-api --monitor --auto-approve`
 
-## Resumen Rápido
-
-| Task | Descripción | Estado | Acción Requerida |
-|------|-------------|--------|------------------|
-| NOW-202 | x402 SDK Integration | ✅ COMPLETADO | Ninguna |
-| NOW-203 | Supabase Real Setup | ✅ CONECTADO | Bucket storage pendiente |
-| NOW-204 | Deploy a api.execution.market | ✅ COMPLETADO | Ninguna |
-| NOW-205 | Ethereum Mainnet Contracts | ⏸️ BLOQUEADO | Usuario: wallet fondeada |
-| NOW-206 | Swagger UI | ✅ COMPLETADO | Ninguna |
-| NOW-207 | Integration Tests | ⏸️ PARCIAL | Unit tests pasan |
-| NOW-208 | CLAWDBOT Credentials | ⏸️ BLOQUEADO | Usuario: cloud creds |
-| NOW-209 | Guía Tests MCP | ✅ COMPLETADO | Ninguna |
-| NOW-210 | Supabase Schema Docs | ✅ COMPLETADO | Ninguna |
-| NOW-211 | Code Quality Review | ✅ COMPLETADO | Ninguna |
-
----
-
-## ✅ COMPLETADOS (7/10)
-
-### NOW-202: x402 SDK Integration
-- SDK wrapper creado: `integrations/x402/sdk_client.py`
-- FastAPI integration habilitada
-- Endpoints: `/api/v1/x402/info`, `/api/v1/x402/networks`
-- Health check incluye status del SDK
-
-### NOW-203: Supabase Real Setup ✅
-- Proyecto conectado: `puyhpytmtkyevnxffksl`
-- Database healthy (200ms latency)
-- Migraciones aplicadas
-- **Pendiente**: Crear bucket `chamba-evidence` en Storage (requiere service_role key)
-
-### NOW-204: Deploy a Producción ✅
-**COMPLETADO - En producción:**
-- ✅ ECS Fargate corriendo
-- ✅ ECR con imagen `sha256:48a40929...`
-- ✅ ALB con SSL
-- ✅ DNS: `api.execution.market`
-- ✅ Health checks pasando
-
-### NOW-206: Swagger UI ✅
-- FastAPI metadata completa (título, descripción, contacto, licencia)
-- 7 tags definidos para organización
-- Accesible en https://api.execution.market/docs
-
-### NOW-209: Guía Tests MCP ✅
-- Documentación completa de 20 archivos de test
-- Comandos para correr tests
-- Output esperado: 120+ tests
-
-### NOW-210: Supabase Schema Docs ✅
-- Todas las tablas documentadas
-- Relaciones y estados claros
-- Migraciones listas para ejecutar
-
-### NOW-211: Code Quality Review ✅
-- Todos los imports arreglados
-- Conflicto `api.py` vs `api/` resuelto (renombrado a `main.py`)
-- Imports relativos → absolutos
-- Dockerfile actualizado
-
----
-
-## ⏸️ PENDIENTES (3/10)
-
-### NOW-205: Ethereum Contracts
-**Requiere wallet fondeada con ~0.1 ETH**
-- Contratos listos en `contracts/`
-- Hardhat configurado
-- Plan B: usar x402 contracts existentes en Base (recomendado)
-
-### NOW-207: Integration Tests
-- Unit tests funcionan
-- Integration tests requieren Supabase storage bucket
-
-### NOW-208: CLAWDBOT Credentials
-**Requiere credenciales cloud del usuario**
-- AWS, GCP, o Azure credentials
-- Para skill de deployment automatizado
-
----
-
-## 🔧 Para Status "healthy" (opcional)
-
-El servidor funciona con status "degraded". Para llegar a "healthy":
-
-### 1. Crear Storage Bucket
-**Ir a Supabase Dashboard:**
-1. https://supabase.com/dashboard/project/puyhpytmtkyevnxffksl/storage
-2. Click "New bucket"
-3. Name: `chamba-evidence`
-4. Public: No
-
-### 2. Configurar X402 Private Key
-**En AWS Secrets Manager:**
-```bash
-aws secretsmanager update-secret \
-  --secret-id chamba/supabase \
-  --secret-string '{"SUPABASE_URL":"...","SUPABASE_ANON_KEY":"...","X402_PRIVATE_KEY":"0x..."}'
-```
-O agregar la key en el dashboard de Secrets Manager.
-
----
-
----
-
-## 🆕 Actualizaciones 2026-01-27
-
-### Fixes Aplicados
-- ✅ Documentación MCP corregida (SSE/HTTP, no WebSocket)
-- ✅ Ejemplos de cliente MCP actualizados
-- ✅ 402 Payment Required verificado funcionando
-- ✅ E2E tests pasando (15/15 mock tests, API tests OK)
-
-### Notas de Infraestructura
-- ⚠️ **ECS Service sin load balancer config**: Después de cada redeployment, hay que registrar manualmente el target IP en el Target Group
-  - Workaround: `aws elbv2 register-targets --target-group-arn <arn> --targets Id=<task-ip>,Port=8000`
-- ⚠️ **MCP SSE endpoint** no implementado en producción (no hay `/mcp/sse` route)
-
----
-
-## Qué ya funciona
-
-### En Producción
-```bash
-# Health check
-curl https://api.execution.market/health
-
-# Swagger UI (abrir en browser)
-https://api.execution.market/docs
-
-# A2A Agent Card
-curl https://api.execution.market/.well-known/agent.json
-```
-
-### Local
-```bash
-# Correr servidor local
-cd ideas/chamba/mcp_server
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-
-# Ver Swagger UI
-open http://localhost:8000/docs
-
-# Correr tests
-pytest tests/test_a2a.py tests/test_gps.py -v
-```
+Estas corridas quedan explícitamente para el bloque final de validación.

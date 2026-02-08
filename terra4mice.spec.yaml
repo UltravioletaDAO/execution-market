@@ -808,7 +808,7 @@ resources:
         description: "Define and implement auth contract for dashboard agent mutations to use backend endpoints safely"
         priority: P0
         status: in_progress
-        evidence: "API-first paths now exist for create/cancel/assign/approve/reject/request-more-info; VITE_REQUIRE_AGENT_API_KEY guardrail + contract doc added (7f5fe3a, 9826d02), wallet/JWT-native contract still unresolved"
+        evidence: "API-first paths now exist for create/cancel/assign/approve/reject/request-more-info; VITE_REQUIRE_AGENT_API_KEY guardrail + contract doc added (7f5fe3a, 9826d02), plus Authorization/X-API-Key compatibility fix (auth.py + dashboard services). Final wallet-bound contract decision still unresolved"
       files:
         - dashboard/src/services/tasks.ts
         - dashboard/src/services/submissions.ts
@@ -819,7 +819,8 @@ resources:
       attributes:
         description: "Capture one strict live x402 run with task ids, escrow ids, tx hashes, and final statuses"
         priority: P0
-        status: todo
+        status: in_progress
+        evidence: "2026-02-08 codex: strict-api run executed, created task a0edf1b6-ae46-49eb-81fe-bf8661c33c64 (published). Monitor/auto-approve run deferred intentionally to final validation block."
       files:
         - scripts/test-x402-full-flow.ts
         - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
@@ -930,8 +931,8 @@ resources:
       attributes:
         description: "Fix SDK TypeScript dependency drift for uvd-x402-sdk so npm ci/test is reproducible"
         priority: P1
-        status: todo
-        evidence: "2026-02-08 codex: sdk/typescript npm ci fails because package.json requests ^2.21.0 while lockfile pins ^2.20.0"
+        status: done
+        evidence: "2026-02-08 codex: commit e3440a9 aligned package.json to published uvd-x402-sdk ^2.20.0; npm ci/test/typecheck/build passing in sdk/typescript"
       files:
         - sdk/typescript/package.json
         - sdk/typescript/package-lock.json
@@ -940,8 +941,8 @@ resources:
       attributes:
         description: "Allow hardhat local tests to run without requiring deploy private key for non-local networks"
         priority: P1
-        status: todo
-        evidence: "2026-02-08 codex: contracts npm test fails at config load with DEPLOYER_PRIVATE_KEY required"
+        status: done
+        evidence: "2026-02-08 codex: commit 7503694 removed fail-fast key requirement for local test flows and added anvil network/scripts; marked out-of-scope for MVP payment evidence"
       files:
         - contracts/hardhat.config.ts
         - contracts/package.json
@@ -950,12 +951,26 @@ resources:
       attributes:
         description: "Define a realistic mypy gating scope for backend and make it enforceable"
         priority: P1
-        status: todo
-        evidence: "2026-02-08 codex: mypy reports 578 errors in 85 files; currently continue-on-error in CI/deploy"
+        status: done
+        evidence: "2026-02-08 codex: commit ef4bba1 made scoped mypy checks blocking in CI/deploy for models.py, api/admin.py, api/reputation.py, websocket/server.py"
       files:
         - mcp_server/pyproject.toml
         - .github/workflows/ci.yml
         - .github/workflows/deploy.yml
+
+    launch_20260208_agent_auth_header_alignment:
+      attributes:
+        description: "Align dashboard and backend auth headers so agent mutations use Bearer API key consistently"
+        priority: P0
+        status: done
+        evidence: "2026-02-08 codex: backend auth accepts Authorization and X-API-Key; dashboard services now send Authorization: Bearer <VITE_API_KEY> (plus compatibility header)"
+      files:
+        - mcp_server/api/auth.py
+        - mcp_server/api/middleware.py
+        - dashboard/src/services/tasks.ts
+        - dashboard/src/services/submissions.ts
+        - dashboard/src/services/reputation.ts
+        - dashboard/src/services/api.ts
 
     launch_20260208_status_summary_refresh:
       attributes:
