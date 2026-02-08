@@ -348,9 +348,7 @@ def _base_url_from_request(request: Request) -> str:
     """Build a normalized base URL from request/proxy headers."""
     forwarded_proto = request.headers.get("x-forwarded-proto")
     scheme = (
-        forwarded_proto.split(",")[0].strip()
-        if forwarded_proto
-        else request.url.scheme
+        forwarded_proto.split(",")[0].strip() if forwarded_proto else request.url.scheme
     )
     if scheme == "http" and request.url.hostname not in ("localhost", "127.0.0.1"):
         scheme = "https"
@@ -610,9 +608,9 @@ async def get_agent_card_endpoint(request: Request) -> JSONResponse:
         JSONResponse with the complete Agent Card
     """
     # Use env override if present, but normalize to avoid leaking insecure URLs.
-    base_url = _normalize_base_url(os.environ.get("EM_BASE_URL", "")) or _base_url_from_request(
-        request
-    )
+    base_url = _normalize_base_url(
+        os.environ.get("EM_BASE_URL", "")
+    ) or _base_url_from_request(request)
 
     card = get_agent_card(base_url)
 
@@ -656,9 +654,9 @@ async def discover_agents(request: Request) -> JSONResponse:
     Returns:
         JSONResponse with list of discoverable agent cards
     """
-    base_url = _normalize_base_url(os.environ.get("EM_BASE_URL", "")) or _base_url_from_request(
-        request
-    )
+    base_url = _normalize_base_url(
+        os.environ.get("EM_BASE_URL", "")
+    ) or _base_url_from_request(request)
 
     card = get_agent_card(base_url)
 
