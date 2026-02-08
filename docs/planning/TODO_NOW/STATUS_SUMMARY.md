@@ -17,6 +17,9 @@
 - Header auth mismatch corregido (`Authorization: Bearer` + compatibilidad `X-API-Key`):
   - backend: `mcp_server/api/auth.py`, `mcp_server/api/middleware.py`
   - frontend: `dashboard/src/services/tasks.ts`, `dashboard/src/services/submissions.ts`, `dashboard/src/services/reputation.ts`, `dashboard/src/services/api.ts`
+- Lógica de fallback endurecida a `fail-closed`:
+  - si `VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false`, no hay mutación directa aunque falte `VITE_REQUIRE_AGENT_API_KEY`.
+  - aplicado en create/cancel/assign/approve/reject/request-more-info.
 
 ## Evidencia x402 Ejecutada Hoy
 

@@ -6,6 +6,8 @@
 - Cerrado bug crítico de auth header:
   - Frontend ahora envía `Authorization: Bearer <VITE_API_KEY>` en mutaciones/reputación.
   - Backend ahora acepta `Authorization` y `X-API-Key` (compatibilidad backward).
+- Cerrado bug de configuración `fail-open` en fallback:
+  - mutaciones directas quedan bloqueadas siempre que `VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false`.
 - Cerrados gates de calidad que antes estaban blandos:
   - E2E smoke bloqueante en CI/deploy.
   - `mypy` bloqueante en scope backend estable (sin `continue-on-error`).

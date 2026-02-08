@@ -8,6 +8,8 @@ Update (2026-02-08, late session):
 - Auth header compatibility check (live API) with intentionally invalid payload:
   - `POST /api/v1/tasks` using only `X-API-Key` -> `422` (auth accepted; payload invalid as expected)
   - `POST /api/v1/tasks` using only `Authorization: Bearer` -> `422` (same behavior)
+- Dashboard mutation fallback hardened to fail-closed:
+  - if `VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false`, direct Supabase mutations are blocked even when `VITE_REQUIRE_AGENT_API_KEY` is missing.
 - Strict x402 creation run executed (`--strict-api`) with task `a0edf1b6-ae46-49eb-81fe-bf8661c33c64` in `published`.
 - Long monitor runs (`--monitor`, `--auto-approve`) intentionally deferred to final validation block.
 
