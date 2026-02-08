@@ -3,7 +3,7 @@
 Update (2026-02-08, after additional implementation):
 - Added deploy/runtime hardening so backend runtime is forced to canonical API base URL.
 - Added CI/staging smoke assertions to fail if Agent Card advertises non-HTTPS interface URLs.
-- Expanded dashboard API-first coverage for agent mutations (create/cancel/assign/approve/reject) with transitional fallback.
+- Expanded dashboard API-first coverage for agent mutations (create/cancel/assign/approve/reject/request-more-info) with transitional fallback.
 - Added automated sanity warning reporting script (`scripts/report-sanity-warnings.ts`).
 - Live sanity re-check is currently green (`6/6`, `warnings=0`).
 
@@ -81,10 +81,9 @@ Recent commits (this session block):
 - Integrators can silently hit wrong surface and think API is healthy due HTTP 200.
 
 3. Agent mutation path is only partially API-first
-- API-first done for `apply`, `submit`, `create`, `cancel`, `assign`, `approve`, and `reject`.
+- API-first done for `apply`, `submit`, `create`, `cancel`, `assign`, `approve`, `reject`, and `request-more-info`.
 - Still direct Supabase writes in:
   - transitional fallback paths when no `VITE_API_KEY` is available.
-  - `dashboard/src/services/submissions.ts:395` (`requestMoreInfo`) still has no backend endpoint parity.
 
 4. Payment data integrity debt in production data
 - Current sanity check is green (`warnings=0`).
@@ -145,14 +144,14 @@ Format:
 - [ ] `LCH-260208-B04 | P0 | Frontend | Migrate assign-task UI to backend `/tasks/{id}/assign` | assign flow uses backend response source of truth | task assignment test`
 - [ ] `LCH-260208-B05 | P0 | Frontend | Migrate approve-submission to backend `/submissions/{id}/approve` | approval path yields tx evidence from backend | approve flow test`
 - [ ] `LCH-260208-B06 | P0 | Frontend | Migrate reject-submission to backend `/submissions/{id}/reject` | rejection uses backend status transition | reject flow test`
-- [ ] `LCH-260208-B07 | P1 | Frontend | Migrate request-more-info to backend route (or add route if missing) | no direct submission/task updates from client path | route + UI test`
+- [x] `LCH-260208-B07 | P1 | Frontend | Migrate request-more-info to backend route (or add route if missing) | no direct submission/task updates from client path | route + UI test`
 - [ ] `LCH-260208-B08 | P1 | Frontend | Add explicit non-prod escape hatch documentation for direct Supabase fallback | fallback is only possible with explicit env flag | runtime logs + docs`
 - [ ] `LCH-260208-B09 | P1 | Backend | Add server-side idempotency keys for create/cancel/approve endpoints | duplicate requests become deterministic no-op responses | API test`
 - [ ] `LCH-260208-B10 | P1 | QA | Build one end-to-end dashboard mutation matrix | matrix covers create/apply/assign/submit/review/cancel transitions | test report`
 
 Progress note:
-- Implemented API-first paths for create/cancel/assign/approve/reject with transitional fallback when `VITE_API_KEY` is not configured.
-- Remaining blocker is auth contract consolidation and backend parity for `requestMoreInfo`.
+- Implemented API-first paths for create/cancel/assign/approve/reject/request-more-info with transitional fallback when `VITE_API_KEY` is not configured.
+- Remaining blocker is auth contract consolidation to remove direct fallback in production.
 
 ## Track C - Payment integrity and evidence
 

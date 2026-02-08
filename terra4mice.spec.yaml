@@ -696,10 +696,11 @@ resources:
         description: "Migrate dashboard business mutations from direct Supabase writes to backend API endpoints"
         priority: P0
         status: in_progress
-        evidence: "2026-02-08: apply+submit switched to API-first (be7afda, 6cfd07e); create/cancel/assign/approve/reject now API-first when VITE_API_KEY is configured; requestMoreInfo parity still pending"
+        evidence: "2026-02-08: apply+submit switched to API-first (be7afda, 6cfd07e); create/cancel/assign/approve/reject/request-more-info now API-first when VITE_API_KEY is configured"
       files:
         - dashboard/src/services/tasks.ts
         - dashboard/src/services/submissions.ts
+        - mcp_server/api/routes.py
         - dashboard/src/pages/agent/CreateTask.tsx
         - dashboard/src/pages/agent/TaskManagement.tsx
         - dashboard/src/components/SubmissionForm.tsx
