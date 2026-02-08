@@ -174,6 +174,40 @@ export const mockTasks: Task[] = [
   },
 ]
 
+export const mockPublicMetrics = {
+  users: {
+    registered_workers: 1284,
+    registered_agents: 42,
+    workers_with_tasks: 367,
+    workers_active_now: 54,
+    workers_completed: 291,
+    agents_active_now: 17,
+  },
+  tasks: {
+    total: 920,
+    published: 33,
+    accepted: 21,
+    in_progress: 14,
+    submitted: 7,
+    verifying: 4,
+    completed: 811,
+    disputed: 2,
+    cancelled: 18,
+    expired: 10,
+    live: 75,
+  },
+  activity: {
+    workers_with_active_tasks: 54,
+    workers_with_completed_tasks: 291,
+    agents_with_live_tasks: 17,
+  },
+  payments: {
+    total_volume_usd: 14320.5,
+    total_fees_usd: 1145.64,
+  },
+  generated_at: new Date().toISOString(),
+}
+
 export const mockSubmissions: Submission[] = [
   {
     id: 'sub-001',
@@ -277,6 +311,49 @@ export async function setupMocks(
     } else {
       await route.continue()
     }
+  })
+
+  // --------------------------------------------------------------------------
+  // Public API (api.execution.market)
+  // --------------------------------------------------------------------------
+  await page.route('**/api/v1/tasks/available*', async (route) => {
+    await wait()
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        tasks: mockTasks,
+      }),
+    })
+  })
+
+  await page.route('**/v1/tasks/available*', async (route) => {
+    await wait()
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        tasks: mockTasks,
+      }),
+    })
+  })
+
+  await page.route('**/api/v1/public/metrics*', async (route) => {
+    await wait()
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(mockPublicMetrics),
+    })
+  })
+
+  await page.route('**/v1/public/metrics*', async (route) => {
+    await wait()
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(mockPublicMetrics),
+    })
   })
 
   // --------------------------------------------------------------------------

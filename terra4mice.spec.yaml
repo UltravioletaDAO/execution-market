@@ -593,7 +593,8 @@ resources:
       attributes:
         description: "Add ESLint config for dashboard so npm run lint is enforceable"
         priority: P0
-        evidence: "2026-02-07 local run: ESLint couldn't find a configuration file"
+        status: done
+        evidence: "2026-02-08 codex: npm run lint executes successfully on dashboard (161 warnings, 0 errors)"
       files:
         - dashboard/package.json
 
@@ -601,7 +602,8 @@ resources:
       attributes:
         description: "Install/configure ESLint in admin-dashboard or remove lint gate"
         priority: P1
-        evidence: "2026-02-07 local run: 'eslint' is not recognized"
+        status: done
+        evidence: "2026-02-08 codex: npm run lint executes successfully on admin-dashboard (17 warnings, 0 errors)"
       files:
         - admin-dashboard/package.json
 
@@ -622,7 +624,8 @@ resources:
       attributes:
         description: "Wire CreateTask page to real publish endpoint with escrow creation evidence"
         priority: P0
-        evidence: "Current flow waits 1s and returns synthetic id (demo)"
+        status: in_progress
+        evidence: "2026-02-08 codex: API-first service path exists, but production build still allows direct Supabase mutation fallback"
       files:
         - dashboard/src/pages/agent/CreateTask.tsx
         - dashboard/src/pages/AgentOnboarding.tsx
@@ -652,7 +655,8 @@ resources:
       attributes:
         description: "Align legacy MCP tools tests with current FastMCP registration contract"
         priority: P1
-        evidence: "test_mcp_tools.py failing cluster: Mock object has no attribute tool"
+        status: done
+        evidence: "2026-02-08 codex: full backend suite passes (658 passed, 8 skipped)"
       files:
         - mcp_server/tests/test_mcp_tools.py
         - mcp_server/tools/worker_tools.py
@@ -662,7 +666,8 @@ resources:
       attributes:
         description: "Align reputation tests with current Bayesian API signatures/config naming"
         priority: P1
-        evidence: "test_reputation.py failing on outdated C/calculate_weight/calculate_decay expectations"
+        status: done
+        evidence: "2026-02-08 codex: full backend suite passes (658 passed, 8 skipped)"
       files:
         - mcp_server/tests/test_reputation.py
         - mcp_server/reputation/bayesian.py
@@ -679,7 +684,8 @@ resources:
       attributes:
         description: "Capture at least one live refund tx hash from a truly funded escrow path"
         priority: P0
-        evidence: "Current live refund checks show authorization_expired without refund tx hash"
+        status: todo
+        evidence: "2026-02-08 codex: strict live x402 evidence run still pending in this session"
       files:
         - scripts/test-x402-full-flow.ts
         - scripts/test-x402-rapid-flow.ts
@@ -894,6 +900,73 @@ resources:
         evidence: "2026-02-08: commit 0f04b23 adds nginx redirect for agent.json to api.execution.market"
       files:
         - dashboard/nginx.conf
+
+    launch_20260208_prod_disable_direct_supabase_mutations:
+      attributes:
+        description: "Disable direct Supabase mutation fallback in production builds and enforce backend mutation path"
+        priority: P0
+        status: done
+        evidence: "2026-02-08 codex: .github/workflows/deploy.yml and deploy-prod.yml now set VITE_REQUIRE_AGENT_API_KEY=true and VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false"
+      files:
+        - .github/workflows/deploy.yml
+        - .github/workflows/deploy-prod.yml
+        - dashboard/src/services/tasks.ts
+        - dashboard/src/services/submissions.ts
+
+    launch_20260208_e2e_api_first_realignment:
+      attributes:
+        description: "Realign E2E suite with API-first frontend and language-agnostic selectors"
+        priority: P0
+        status: done
+        evidence: "2026-02-08 codex: updated e2e API mocks (api/v1/tasks/available + public/metrics) and modernized specs; Playwright result 36 passed / 0 failed"
+      files:
+        - e2e/fixtures/mocks.ts
+        - e2e/tests/agent.spec.ts
+        - e2e/tests/tasks.spec.ts
+        - dashboard/src/hooks/useTasks.ts
+        - dashboard/src/hooks/usePublicMetrics.ts
+
+    launch_20260208_sdk_typescript_dependency_parity:
+      attributes:
+        description: "Fix SDK TypeScript dependency drift for uvd-x402-sdk so npm ci/test is reproducible"
+        priority: P1
+        status: todo
+        evidence: "2026-02-08 codex: sdk/typescript npm ci fails because package.json requests ^2.21.0 while lockfile pins ^2.20.0"
+      files:
+        - sdk/typescript/package.json
+        - sdk/typescript/package-lock.json
+
+    launch_20260208_contracts_local_test_unblock:
+      attributes:
+        description: "Allow hardhat local tests to run without requiring deploy private key for non-local networks"
+        priority: P1
+        status: todo
+        evidence: "2026-02-08 codex: contracts npm test fails at config load with DEPLOYER_PRIVATE_KEY required"
+      files:
+        - contracts/hardhat.config.ts
+        - contracts/package.json
+
+    launch_20260208_backend_mypy_scope_gate:
+      attributes:
+        description: "Define a realistic mypy gating scope for backend and make it enforceable"
+        priority: P1
+        status: todo
+        evidence: "2026-02-08 codex: mypy reports 578 errors in 85 files; currently continue-on-error in CI/deploy"
+      files:
+        - mcp_server/pyproject.toml
+        - .github/workflows/ci.yml
+        - .github/workflows/deploy.yml
+
+    launch_20260208_status_summary_refresh:
+      attributes:
+        description: "Refresh stale launch status docs so the board reflects current runtime/testing reality"
+        priority: P1
+        status: done
+        evidence: "2026-02-08 codex: docs/planning/TODO_NOW/STATUS_SUMMARY.md refreshed with 2026-02-08 ship-now snapshot and latest validation evidence"
+      files:
+        - docs/planning/TODO_NOW/STATUS_SUMMARY.md
+        - docs/planning/LAUNCH_STATE_REVIEW_2026-02-08_CODEX.md
+        - docs/planning/IMPROVEMENT_SCENARIOS_BOARD_2026-02-08_CODEX.md
 
   # ═══════════════════════════════════════════════════════════════════════
   # PHASE 7: MULTI-CHAIN EXPANSION

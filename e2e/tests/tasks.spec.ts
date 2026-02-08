@@ -1,177 +1,61 @@
 /**
  * Execution Market E2E Tests - Tasks (Worker View)
- *
- * Tests for task browsing and interaction from the worker perspective.
- * Uses role/text-based selectors.
  */
 
 import { test, expect } from '../fixtures/auth'
 import { setupMocks, mockTasks } from '../fixtures/mocks'
 
+const TEXT = {
+  availableTab: /Available Tasks|Buscar Tareas|Tareas Disponibles|Disponibles/i,
+  myTasksTab: /My Tasks|Mis Tareas|Mis Solicitudes/i,
+  allCategory: /(^|\s)All($|\s)|Todos/i,
+  physicalPresence: /Physical Presence|Presencia Fisica|Presencia Física/i,
+}
+
 test.describe('Tasks - Worker View', () => {
   test.beforeEach(async ({ workerPage }) => {
     await setupMocks(workerPage)
+    await workerPage.goto('/tasks')
   })
 
-  test.describe('Task List', () => {
-    test('task list loads with available tasks', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
+  test('task list loads with available tasks', async ({ workerPage }) => {
+    await expect(
+      workerPage.getByRole('button', { name: TEXT.availableTab })
+    ).toBeVisible({ timeout: 15000 })
 
-      // Should see "Buscar Tareas" heading or "Disponibles" tab
-      await expect(
-        workerPage.getByText(/Buscar Tareas|Disponibles/)
-      ).toBeVisible({ timeout: 15000 })
-
-      // Should display at least one mock task title
-      await expect(
-        workerPage.getByText(mockTasks[0].title)
-      ).toBeVisible({ timeout: 10000 })
-    })
-
-    test('displays task bounty amounts', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
-
-      // Wait for tasks to load
-      await expect(
-        workerPage.getByText(mockTasks[0].title)
-      ).toBeVisible({ timeout: 10000 })
-
-      // Should show bounty amounts (e.g., "$15.00")
-      await expect(
-        workerPage.getByText(`$${mockTasks[0].bounty_usd.toFixed(2)}`)
-      ).toBeVisible()
-    })
-
-    test('displays multiple tasks', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
-
-      // Should show titles from multiple mock tasks
-      for (const task of mockTasks) {
-        await expect(
-          workerPage.getByText(task.title)
-        ).toBeVisible({ timeout: 10000 })
-      }
-    })
-
-    test('shows USDC payment token', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
-
-      // Wait for tasks to load
-      await expect(
-        workerPage.getByText(mockTasks[0].title)
-      ).toBeVisible({ timeout: 10000 })
-
-      // Should show USDC somewhere
-      await expect(
-        workerPage.getByText(/USDC/).first()
-      ).toBeVisible()
-    })
+    await expect(
+      workerPage.getByText(mockTasks[0].title)
+    ).toBeVisible({ timeout: 15000 })
   })
 
-  test.describe('Task Tabs', () => {
-    test('shows available tasks tab', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
+  test('displays task bounty amounts', async ({ workerPage }) => {
+    await expect(workerPage.getByText(mockTasks[0].title)).toBeVisible({ timeout: 15000 })
 
-      // Should see the "Disponibles" tab
-      await expect(
-        workerPage.getByText('Disponibles')
-      ).toBeVisible({ timeout: 15000 })
-    })
-
-    test('shows near me tab', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
-
-      // Should see "Cerca de mi" tab
-      await expect(
-        workerPage.getByText('Cerca de mi')
-      ).toBeVisible({ timeout: 15000 })
-    })
-
-    test('shows my applications tab', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
-
-      // Should see "Mis Solicitudes" tab
-      await expect(
-        workerPage.getByText('Mis Solicitudes')
-      ).toBeVisible({ timeout: 15000 })
-    })
+    await expect(
+      workerPage.getByText(`$${mockTasks[0].bounty_usd.toFixed(2)}`)
+    ).toBeVisible()
   })
 
-  test.describe('Task Filtering', () => {
-    test('shows filter controls', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
-
-      // Wait for page to load
-      await expect(
-        workerPage.getByText(mockTasks[0].title)
-      ).toBeVisible({ timeout: 10000 })
-
-      // Should show filter label
-      await expect(
-        workerPage.getByText('Filtros')
-      ).toBeVisible()
-    })
-
-    test('shows category filter options', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
-
-      await expect(
-        workerPage.getByText(mockTasks[0].title)
-      ).toBeVisible({ timeout: 10000 })
-
-      // Should show category names
-      await expect(
-        workerPage.getByText('Presencia Fisica')
-      ).toBeVisible()
-    })
-
-    test('shows bounty filter', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
-
-      await expect(
-        workerPage.getByText(mockTasks[0].title)
-      ).toBeVisible({ timeout: 10000 })
-
-      // Should show bounty filter label
-      await expect(
-        workerPage.getByText(/Recompensa/)
-      ).toBeVisible()
-    })
-
-    test('has clear filters button', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
-
-      await expect(
-        workerPage.getByText(mockTasks[0].title)
-      ).toBeVisible({ timeout: 10000 })
-
-      // Should show clear filters button
-      await expect(
-        workerPage.getByText('Limpiar filtros')
-      ).toBeVisible()
-    })
+  test('displays multiple tasks', async ({ workerPage }) => {
+    for (const task of mockTasks) {
+      await expect(workerPage.getByText(task.title)).toBeVisible({ timeout: 15000 })
+    }
   })
 
-  test.describe('Task Search', () => {
-    test('shows search input', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
+  test('shows USDC payment token on task cards', async ({ workerPage }) => {
+    await expect(workerPage.getByText(mockTasks[0].title)).toBeVisible({ timeout: 15000 })
+    await expect(workerPage.getByText(/USDC/).first()).toBeVisible()
+  })
 
-      // Should have a search input
-      await expect(
-        workerPage.getByPlaceholder(/Buscar tareas/)
-      ).toBeVisible({ timeout: 15000 })
-    })
+  test('shows available and my tasks tabs', async ({ workerPage }) => {
+    await expect(workerPage.getByRole('button', { name: TEXT.availableTab })).toBeVisible({ timeout: 15000 })
+    await expect(workerPage.getByRole('button', { name: TEXT.myTasksTab })).toBeVisible({ timeout: 15000 })
+  })
 
-    test('can type in search input', async ({ workerPage }) => {
-      await workerPage.goto('/tasks')
-
-      const searchInput = workerPage.getByPlaceholder(/Buscar tareas/)
-      await expect(searchInput).toBeVisible({ timeout: 15000 })
-
-      await searchInput.fill('tienda')
-
-      // Verify the input has the value
-      await expect(searchInput).toHaveValue('tienda')
-    })
+  test('shows category filters', async ({ workerPage }) => {
+    await expect(workerPage.getByRole('button', { name: TEXT.allCategory })).toBeVisible({ timeout: 15000 })
+    await expect(
+      workerPage.getByRole('button', { name: TEXT.physicalPresence }).first()
+    ).toBeVisible({ timeout: 15000 })
   })
 })

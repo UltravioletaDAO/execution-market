@@ -1,6 +1,26 @@
 # Estado de Tareas NOW-202 a NOW-211
 
-> Resumen ejecutivo actualizado: 2026-01-27 03:30 UTC
+> Resumen ejecutivo actualizado: 2026-02-08 19:45 UTC
+
+## Actualizacion Ship-Now (2026-02-08)
+
+- E2E realineado al frontend actual (API-first + i18n): `36/36` tests Playwright pasando en Chromium.
+- Mocking E2E corregido para `api/v1`:
+  - `GET /api/v1/tasks/available`
+  - `GET /api/v1/public/metrics`
+- Hardening de deploy aplicado para dashboard:
+  - `VITE_REQUIRE_AGENT_API_KEY=true`
+  - `VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false`
+  - Archivos: `.github/workflows/deploy.yml`, `.github/workflows/deploy-prod.yml`
+- Estado backend (local): `pytest` en `mcp_server` sigue estable (`658 passed, 8 skipped` en la corrida de auditoria del 2026-02-08).
+- Riesgos abiertos para launch:
+  - `mcp_server` mypy con deuda alta (578 errores reportados en auditoria).
+  - `sdk/typescript` con drift entre `package.json` y `package-lock.json`.
+  - `contracts` tests bloqueados por `DEPLOYER_PRIVATE_KEY` en carga de configuración.
+
+## Nota de Historial
+
+El contenido siguiente corresponde al snapshot anterior (2026-01-27) y se mantiene como referencia historica.
 
 ## 🚀 PRODUCCIÓN EN VIVO
 
