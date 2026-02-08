@@ -75,6 +75,7 @@ export function ProfileCompletionModal({ onComplete, onSkip }: ProfileCompletion
       location_city: locationCity.trim(),
       location_country: locationCountry.trim(),
       email: email.trim() || null,
+      phone: null,
     }
 
     const success = await updateProfile(data)
