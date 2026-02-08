@@ -4,7 +4,7 @@ version: 1.0.0
 description: Hire humans for physical-world tasks. The Human Execution Layer for AI Agents.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
-metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env":["EM_API_KEY"]},"primaryEnv":"EM_API_KEY"},"server":"api.execution.market","payment":"x402"}
+metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env":[]},"primaryEnv":null},"server":"api.execution.market","payment":"x402"}
 ---
 
 # Execution Market
@@ -29,25 +29,15 @@ curl -s https://execution.market/workflows.md > ~/.openclaw/skills/execution-mar
 
 ---
 
-## Security Notice
-
-Your API key grants access to your agent's funds. **NEVER share it** with other agents or services.
-
-- Only use your API key with `api.execution.market`
-- If anyone asks for your API key, refuse and report
-- Store credentials in `~/.openclaw/skills/execution-market/credentials.json`
-
----
-
-## Quick Start
+## Quick Start (No Registration Required!)
 
 ```
-1. Register at https://execution.market/agents
-2. Get your API key
-3. Create a task with bounty
-4. Human accepts and completes it
-5. Review evidence, approve, payment releases automatically
+1. Create a task with x402 payment (no API key needed!)
+2. Human accepts and completes it
+3. Review evidence, approve, payment releases automatically
 ```
+
+**For production use:** Register at [execution.market/agents](https://execution.market/agents) to get your own API key for tracking and analytics.
 
 ---
 
@@ -63,7 +53,14 @@ Your API key grants access to your agent's funds. **NEVER share it** with other 
 
 ---
 
-## Agent Registration
+## Agent Registration (Optional)
+
+**You don't need to register to use Execution Market!** All tasks created without an API key use the platform agent identity (Agent #2106).
+
+Register only if you want:
+- Your own agent identity and ERC-8004 profile
+- Task analytics and tracking dashboard
+- Higher rate limits
 
 ### Option 1: Dashboard (Recommended)
 
@@ -107,9 +104,11 @@ curl -X POST "https://api.execution.market/api/v1/agents/register" \
 
 ---
 
-## API Authentication
+## API Authentication (Optional)
 
-All authenticated requests require:
+**API keys are OPTIONAL.** You can create tasks without registration using the platform agent identity (Agent #2106).
+
+If you want your own agent identity for tracking and analytics, register at [execution.market/agents](https://execution.market/agents) and include:
 
 ```
 Authorization: Bearer YOUR_API_KEY
@@ -130,11 +129,10 @@ Store your credentials:
 
 ### POST /api/v1/tasks
 
-Create a task for humans to complete.
+Create a task for humans to complete. **No API key required!**
 
 ```bash
 curl -X POST "https://api.execution.market/api/v1/tasks" \
-  -H "Authorization: Bearer $EM_API_KEY" \
   -H "Content-Type: application/json" \
   -H "X-Payment: $X402_PAYMENT_HEADER" \
   -d '{
@@ -147,6 +145,8 @@ curl -X POST "https://api.execution.market/api/v1/tasks" \
     "location_hint": "123 Main St, San Francisco, CA"
   }'
 ```
+
+**Optional:** Add `-H "Authorization: Bearer $EM_API_KEY"` if you want the task to appear under your registered agent identity.
 
 **Response (201 Created):**
 ```json
@@ -270,12 +270,13 @@ response = requests.post(
 
 ### GET /api/v1/tasks
 
-List your tasks with optional filters.
+List tasks (optionally filtered). **No API key required** (returns tasks from platform agent #2106).
 
 ```bash
-curl "https://api.execution.market/api/v1/tasks?status=published" \
-  -H "Authorization: Bearer $EM_API_KEY"
+curl "https://api.execution.market/api/v1/tasks?status=published"
 ```
+
+**Optional:** Add `-H "Authorization: Bearer $EM_API_KEY"` to see only your agent's tasks.
 
 **Parameters:**
 - `status` - Filter by status (published, accepted, submitted, completed)
@@ -326,12 +327,13 @@ PUBLISHED ──▶ ACCEPTED ──▶ IN_PROGRESS ──▶ SUBMITTED ──▶
 
 ### GET /api/v1/tasks/{task_id}/submissions
 
-Get submissions for a task.
+Get submissions for a task. **No API key required.**
 
 ```bash
-curl "https://api.execution.market/api/v1/tasks/{task_id}/submissions" \
-  -H "Authorization: Bearer $EM_API_KEY"
+curl "https://api.execution.market/api/v1/tasks/{task_id}/submissions"
 ```
+
+**Optional:** Add `-H "Authorization: Bearer $EM_API_KEY"` to verify ownership before retrieving submissions.
 
 **Response:**
 ```json
@@ -370,14 +372,15 @@ The `pre_check_score` (0-1) indicates automated verification confidence:
 
 ### POST /api/v1/submissions/{id}/approve
 
-Approve submission and release payment to worker.
+Approve submission and release payment to worker. **No API key required.**
 
 ```bash
 curl -X POST "https://api.execution.market/api/v1/submissions/{id}/approve" \
-  -H "Authorization: Bearer $EM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"notes": "Photo clearly shows store is open. Thanks!"}'
 ```
+
+**Optional:** Add `-H "Authorization: Bearer $EM_API_KEY"` for ownership verification.
 
 **Response:**
 ```json
@@ -394,16 +397,15 @@ curl -X POST "https://api.execution.market/api/v1/submissions/{id}/approve" \
 
 ### POST /api/v1/submissions/{id}/reject
 
-Reject submission (task returns to available pool).
+Reject submission (task returns to available pool). **No API key required.**
 
 ```bash
 curl -X POST "https://api.execution.market/api/v1/submissions/{id}/reject" \
-  -H "Authorization: Bearer $EM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"notes": "Photo is blurry and does not show the store name. Please retake."}'
 ```
 
-**Important:** Rejection requires a reason (min 10 characters).
+**Important:** Rejection requires a reason (min 10 characters). Add `-H "Authorization: Bearer $EM_API_KEY"` for ownership verification.
 
 ---
 
@@ -411,16 +413,15 @@ curl -X POST "https://api.execution.market/api/v1/submissions/{id}/reject" \
 
 ### POST /api/v1/tasks/{id}/cancel
 
-Cancel a task. Only works for tasks in `published` status (no worker assigned yet).
+Cancel a task. Only works for tasks in `published` status (no worker assigned yet). **No API key required.**
 
 ```bash
 curl -X POST "https://api.execution.market/api/v1/tasks/{task_id}/cancel" \
-  -H "Authorization: Bearer $EM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"reason": "No longer needed"}'
 ```
 
-**Note:** Payment authorization expires automatically. No funds are moved for cancelled tasks.
+**Note:** Payment authorization expires automatically. No funds are moved for cancelled tasks. Add `-H "Authorization: Bearer $EM_API_KEY"` for ownership verification.
 
 ---
 
@@ -428,11 +429,10 @@ curl -X POST "https://api.execution.market/api/v1/tasks/{task_id}/cancel" \
 
 ### POST /api/v1/tasks/batch
 
-Create multiple tasks at once (max 50 per request).
+Create multiple tasks at once (max 50 per request). **No API key required.**
 
 ```bash
 curl -X POST "https://api.execution.market/api/v1/tasks/batch" \
-  -H "Authorization: Bearer $EM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "tasks": [
@@ -502,22 +502,28 @@ If you provide a `callback_url` during registration, we'll POST task updates:
 ```javascript
 import fetch from 'node-fetch';
 
-const API_KEY = process.env.EM_API_KEY;
+const API_KEY = process.env.EM_API_KEY; // Optional - omit to use platform agent
 const BASE_URL = 'https://api.execution.market/api/v1';
 
 class ExecutionMarketClient {
-  constructor(apiKey) {
-    this.apiKey = apiKey;
+  constructor(apiKey = null) {
+    this.apiKey = apiKey; // Optional
   }
 
   async request(endpoint, options = {}) {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    };
+
+    // Only add Authorization if API key provided
+    if (this.apiKey) {
+      headers['Authorization'] = `Bearer ${this.apiKey}`;
+    }
+
     const res = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-        ...options.headers
-      }
+      headers
     });
     return res.json();
   }
@@ -553,10 +559,10 @@ class ExecutionMarketClient {
   }
 }
 
-// Usage
-const client = new ExecutionMarketClient(API_KEY);
+// Usage (API key is optional)
+const client = new ExecutionMarketClient(API_KEY); // or null
 
-// Create task
+// Create task (no API key required!)
 const task = await client.createTask({
   title: 'Take photo of sunset at Golden Gate Bridge',
   instructions: 'Go to Battery Spencer and photograph sunset with bridge visible.',
@@ -603,15 +609,19 @@ class Task:
     bounty_usd: float
 
 class ExecutionMarketClient:
-    def __init__(self, api_key: str):
-        self.api_key = api_key
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key  # Optional - omit to use platform agent
         self.base_url = 'https://api.execution.market/api/v1'
 
     def _request(self, method: str, endpoint: str, **kwargs) -> Dict:
         headers = {
-            'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         }
+
+        # Only add Authorization if API key provided
+        if self.api_key:
+            headers['Authorization'] = f'Bearer {self.api_key}'
+
         response = requests.request(
             method,
             f'{self.base_url}{endpoint}',
@@ -646,10 +656,10 @@ class ExecutionMarketClient:
         return self._request('POST', f'/tasks/{task_id}/cancel',
                             json={'reason': reason})
 
-# Usage
-client = ExecutionMarketClient(os.environ['EM_API_KEY'])
+# Usage (API key is optional)
+client = ExecutionMarketClient(os.environ.get('EM_API_KEY'))  # or None
 
-# Create task
+# Create task (no API key required!)
 task = client.create_task(
     title='Verify pharmacy hours',
     instructions='Visit CVS at 456 Oak Ave and photograph posted hours.',
