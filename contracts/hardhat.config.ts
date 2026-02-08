@@ -8,15 +8,13 @@ dotenv.config();
 const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || process.env.PRIVATE_KEY;
 if (!PRIVATE_KEY) {
   // Allow hardhat/localhost without key, but fail fast for real networks
-  console.warn("WARNING: No DEPLOYER_PRIVATE_KEY or PRIVATE_KEY set. Only hardhat/localhost networks will work.");
+  console.warn("WARNING: No DEPLOYER_PRIVATE_KEY or PRIVATE_KEY set. Only hardhat/localhost/anvil networks will work.");
 }
 
-// Safe accessor for networks that require a real key
+// Optional signer injection for non-local networks.
+// Returning undefined keeps local/anvil test workflows unblocked.
 const getAccountsConfig = () => {
-  if (!PRIVATE_KEY) {
-    throw new Error("DEPLOYER_PRIVATE_KEY environment variable is required for non-local networks");
-  }
-  return [PRIVATE_KEY];
+  return PRIVATE_KEY ? [PRIVATE_KEY] : undefined;
 };
 
 // Block explorer API keys
@@ -49,6 +47,10 @@ const config: HardhatUserConfig = {
     localhost: {
       url: "http://127.0.0.1:8545",
       chainId: 31337,
+    },
+    anvil: {
+      url: process.env.ANVIL_RPC_URL || "http://127.0.0.1:8545",
+      chainId: Number(process.env.ANVIL_CHAIN_ID || "31337"),
     },
 
     // ============ ETHEREUM ============

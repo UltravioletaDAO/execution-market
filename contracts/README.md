@@ -40,6 +40,10 @@ npm run node
 
 # Deploy to localhost (in another terminal)
 npm run deploy:localhost
+
+# Optional: use Anvil instead of Hardhat node
+npm run node:anvil
+npm run deploy:anvil
 ```
 
 ## Deployment
@@ -52,6 +56,16 @@ npm run node
 
 # Terminal 2: Deploy
 npm run deploy:localhost
+```
+
+Using Foundry Anvil (optional):
+
+```bash
+# Terminal 1
+npm run node:anvil
+
+# Terminal 2
+npm run deploy:anvil
 ```
 
 ### Base Sepolia (Testnet)
@@ -135,6 +149,9 @@ escrow.releaseEscrow(escrowId, recipient, amount, "operator release");
 ```bash
 # Run all tests
 npm test
+
+# Run tests against external Anvil node
+npm run test:anvil
 
 # Run with gas reporting
 REPORT_GAS=true npm test
