@@ -325,6 +325,38 @@ class AgentCard:
 # ============== EXECUTION MARKET SKILLS DEFINITION ==============
 
 
+def _normalize_base_url(base_url: str) -> str:
+    """
+    Normalize base URL and enforce HTTPS for non-local environments.
+
+    This prevents emitting insecure `http://` agent card URLs when running
+    behind TLS-terminating proxies (ALB/CloudFront) with misconfigured env vars.
+    """
+    normalized = (base_url or "").strip().rstrip("/")
+    if not normalized:
+        return DEFAULT_BASE_URL
+
+    if normalized.startswith("http://"):
+        host = normalized[len("http://") :].lower()
+        if not host.startswith("localhost") and not host.startswith("127.0.0.1"):
+            return f"https://{host}"
+
+    return normalized
+
+
+def _base_url_from_request(request: Request) -> str:
+    """Build a normalized base URL from request/proxy headers."""
+    forwarded_proto = request.headers.get("x-forwarded-proto")
+    scheme = (
+        forwarded_proto.split(",")[0].strip()
+        if forwarded_proto
+        else request.url.scheme
+    )
+    if scheme == "http" and request.url.hostname not in ("localhost", "127.0.0.1"):
+        scheme = "https"
+    return _normalize_base_url(f"{scheme}://{request.url.netloc}")
+
+
 def get_em_skills() -> List[AgentSkill]:
     """
     Define Execution Market's available skills for A2A discovery.
@@ -468,9 +500,8 @@ def get_agent_card(base_url: Optional[str] = None) -> AgentCard:
     Returns:
         AgentCard configured for Execution Market
     """
-    url = base_url or os.environ.get(
-        "EM_BASE_URL", os.environ.get("EM_BASE_URL", DEFAULT_BASE_URL)
-    )
+    configured_url = base_url or os.environ.get("EM_BASE_URL", DEFAULT_BASE_URL)
+    url = _normalize_base_url(configured_url)
 
     return AgentCard(
         name="Execution Market",
@@ -578,15 +609,10 @@ async def get_agent_card_endpoint(request: Request) -> JSONResponse:
     Returns:
         JSONResponse with the complete Agent Card
     """
-    # Build base URL from request if not configured
-    base_url = os.environ.get("EM_BASE_URL")
-    if not base_url:
-        # Behind ALB/proxy, request.url.scheme is HTTP even when TLS terminates at edge
-        # Use X-Forwarded-Proto header if available, otherwise default to HTTPS in production
-        scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
-        if scheme == "http" and request.url.netloc not in ("localhost", "127.0.0.1"):
-            scheme = "https"
-        base_url = f"{scheme}://{request.url.netloc}"
+    # Use env override if present, but normalize to avoid leaking insecure URLs.
+    base_url = _normalize_base_url(os.environ.get("EM_BASE_URL", "")) or _base_url_from_request(
+        request
+    )
 
     card = get_agent_card(base_url)
 
@@ -630,9 +656,9 @@ async def discover_agents(request: Request) -> JSONResponse:
     Returns:
         JSONResponse with list of discoverable agent cards
     """
-    base_url = os.environ.get("EM_BASE_URL", os.environ.get("EM_BASE_URL"))
-    if not base_url:
-        base_url = f"{request.url.scheme}://{request.url.netloc}"
+    base_url = _normalize_base_url(os.environ.get("EM_BASE_URL", "")) or _base_url_from_request(
+        request
+    )
 
     card = get_agent_card(base_url)
 
