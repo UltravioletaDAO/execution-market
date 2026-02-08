@@ -56,6 +56,7 @@ export async function rateWorker(
 
   const apiKey = import.meta.env.VITE_API_KEY
   if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`
     headers['X-API-Key'] = apiKey
   }
 

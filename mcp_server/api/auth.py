@@ -56,7 +56,10 @@ def _is_cache_entry_valid(key_hash: str) -> bool:
 
 
 async def verify_api_key(
-    authorization: str = Header(..., description="Bearer token with API key"),
+    authorization: Optional[str] = Header(
+        None, description="Bearer token with API key"
+    ),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> APIKeyData:
     """
     Verify API key from Authorization header.
@@ -70,26 +73,23 @@ async def verify_api_key(
     Raises:
         HTTPException: If key is invalid or missing
     """
-    if not authorization:
-        raise HTTPException(
-            status_code=401,
-            detail="Authorization header required",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    api_key: Optional[str] = None
 
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid authorization header format. Use: Bearer <api_key>",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    api_key = authorization[7:].strip()
+    if authorization:
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid authorization header format. Use: Bearer <api_key>",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        api_key = authorization[7:].strip()
+    elif x_api_key:
+        api_key = x_api_key.strip()
 
     if not api_key:
         raise HTTPException(
             status_code=401,
-            detail="API key is empty",
+            detail="API key required (Authorization Bearer or X-API-Key)",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -128,17 +128,18 @@ async def verify_api_key(
 
 async def verify_api_key_optional(
     authorization: Optional[str] = Header(None, description="Optional Bearer token"),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> Optional[APIKeyData]:
     """
     Optionally verify API key (for public endpoints with optional auth).
 
     Returns None if no authorization header provided.
     """
-    if not authorization:
+    if not authorization and not x_api_key:
         return None
 
     try:
-        return await verify_api_key(authorization)
+        return await verify_api_key(authorization, x_api_key)
     except HTTPException:
         return None
 
@@ -166,6 +167,7 @@ def _anonymous_agent_data() -> APIKeyData:
 
 async def verify_api_key_if_required(
     authorization: Optional[str] = Header(None, description="Bearer token with API key"),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> APIKeyData:
     """
     Verify API key only when EM_REQUIRE_API_KEY=true.
@@ -173,9 +175,9 @@ async def verify_api_key_if_required(
     When disabled, returns anonymous agent data (platform agent identity).
     If a valid key IS provided even when not required, it will be used.
     """
-    if authorization and authorization.startswith("Bearer "):
+    if authorization or x_api_key:
         try:
-            return await verify_api_key(authorization)
+            return await verify_api_key(authorization, x_api_key)
         except HTTPException:
             if _REQUIRE_API_KEY:
                 raise

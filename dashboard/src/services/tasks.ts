@@ -61,6 +61,7 @@ function hasAgentApiKey(): boolean {
 function buildAgentJsonHeaders(): HeadersInit {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (AGENT_API_KEY) {
+    headers['Authorization'] = `Bearer ${AGENT_API_KEY}`
     headers['X-API-Key'] = AGENT_API_KEY
   }
   return headers

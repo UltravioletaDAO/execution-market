@@ -264,6 +264,9 @@ def _extract_api_key(request: Request) -> Optional[str]:
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         return auth_header[7:].strip()
+    x_api_key = request.headers.get("X-API-Key") or request.headers.get("x-api-key")
+    if x_api_key:
+        return x_api_key.strip()
     return None
 
 
