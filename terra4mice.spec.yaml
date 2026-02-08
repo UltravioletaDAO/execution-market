@@ -825,6 +825,17 @@ resources:
         - scripts/test-x402-full-flow.ts
         - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
 
+    launch_20260208_live_funds_threshold_gate:
+      attributes:
+        description: "Add strict ETH/USDC threshold checks before live payment runs to fail fast on insufficient balance"
+        priority: P0
+        status: done
+        evidence: "2026-02-08 codex: check-deposit-state.ts now supports --min-usdc/--min-eth/--strict and returns non-zero on strict failure; npm scripts check:funds and check:funds:strict added"
+      files:
+        - scripts/check-deposit-state.ts
+        - scripts/package.json
+        - docs/planning/TODO_NOW/STATUS_SUMMARY.md
+
     launch_20260208_agent_card_https_ci_assertion:
       attributes:
         description: "Fail deploy/smoke pipelines when agent card advertises non-HTTPS endpoint URLs"
