@@ -696,7 +696,7 @@ resources:
         description: "Migrate dashboard business mutations from direct Supabase writes to backend API endpoints"
         priority: P0
         status: in_progress
-        evidence: "2026-02-08: apply+submit switched to API-first (commits be7afda, 6cfd07e); create/cancel/assign/review still pending"
+        evidence: "2026-02-08: apply+submit switched to API-first (be7afda, 6cfd07e); create/cancel/assign/approve/reject now API-first when VITE_API_KEY is configured; requestMoreInfo parity still pending"
       files:
         - dashboard/src/services/tasks.ts
         - dashboard/src/services/submissions.ts
@@ -759,7 +759,7 @@ resources:
       attributes:
         description: "Roll out latest backend/frontend revisions and verify runtime behavior matches hardened config"
         priority: P0
-        status: todo
+        status: in_progress
         evidence: "Production still serves agent card url=http://api.execution.market/a2a/v1"
       files:
         - .github/workflows/deploy.yml
@@ -772,8 +772,8 @@ resources:
       attributes:
         description: "Resolve completed tasks with missing payment evidence and reduce health/sanity warnings"
         priority: P0
-        status: todo
-        evidence: "2026-02-08 live sanity reports 15 completed tasks with no payment evidence"
+        status: monitor
+        evidence: "2026-02-08 latest live sanity check returned status=ok, warnings=0; keep monitoring and capture strict live payment evidence"
       files:
         - mcp_server/health/endpoints.py
         - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
@@ -782,8 +782,8 @@ resources:
       attributes:
         description: "Define and implement auth contract for dashboard agent mutations to use backend endpoints safely"
         priority: P0
-        status: todo
-        evidence: "create/cancel/assign/approve/reject still direct DB writes in dashboard services"
+        status: in_progress
+        evidence: "API-first paths now exist for create/cancel/assign/approve/reject with transitional fallback when VITE_API_KEY is missing; wallet/JWT vs API key contract still unresolved"
       files:
         - dashboard/src/services/tasks.ts
         - dashboard/src/services/submissions.ts
@@ -797,6 +797,26 @@ resources:
       files:
         - scripts/test-x402-full-flow.ts
         - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
+
+    launch_20260208_agent_card_https_ci_assertion:
+      attributes:
+        description: "Fail deploy/smoke pipelines when agent card advertises non-HTTPS endpoint URLs"
+        priority: P1
+        status: done
+        evidence: "2026-02-08: added HTTPS assertions in deploy-prod and deploy-staging workflows"
+      files:
+        - .github/workflows/deploy-prod.yml
+        - .github/workflows/deploy-staging.yml
+
+    launch_20260208_sanity_warning_reporting:
+      attributes:
+        description: "Add repeatable sanity warning reporting command for launch operations"
+        priority: P1
+        status: done
+        evidence: "2026-02-08: scripts/report-sanity-warnings.ts + npm scripts report:sanity/report:sanity:strict"
+      files:
+        - scripts/report-sanity-warnings.ts
+        - scripts/package.json
 
   # ═══════════════════════════════════════════════════════════════════════
   # PHASE 7: MULTI-CHAIN EXPANSION

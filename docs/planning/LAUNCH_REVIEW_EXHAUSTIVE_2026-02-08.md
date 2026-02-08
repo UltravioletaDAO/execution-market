@@ -1,5 +1,12 @@
 # Launch Review Exhaustive - 2026-02-08
 
+Update (2026-02-08, after additional implementation):
+- Added deploy/runtime hardening so backend runtime is forced to canonical API base URL.
+- Added CI/staging smoke assertions to fail if Agent Card advertises non-HTTPS interface URLs.
+- Expanded dashboard API-first coverage for agent mutations (create/cancel/assign/approve/reject) with transitional fallback.
+- Added automated sanity warning reporting script (`scripts/report-sanity-warnings.ts`).
+- Live sanity re-check is currently green (`6/6`, `warnings=0`).
+
 ## 1) Executive status (real state now)
 
 Decision:
@@ -10,7 +17,7 @@ Why still NO-GO:
 1. Production runtime still serves `http://` in agent card URL.
 2. `execution.market/api/*` still returns SPA HTML instead of API JSON.
 3. Agent critical dashboard flows are still mixed: API-first is partial, direct Supabase mutations remain.
-4. Live sanity reports `completed_no_payment` warnings (15 completed tasks without payment evidence).
+4. Payment consistency warnings are currently clear, but need sustained monitoring and strict live evidence after latest changes.
 5. No fresh end-to-end live payment evidence was generated in this cycle after the latest hardening commits.
 
 ## 2) Evidence executed in this review
@@ -38,8 +45,8 @@ Environment date: `2026-02-08` (local execution)
   - `url=http://api.execution.market/a2a/v1`
 
 ### 2.5 Production sanity checks
-- `https://api.execution.market/health/sanity` -> `status=warnings`, `checks=5/6`
-- Warning: `completed_no_payment` with 15 completed tasks lacking payment evidence.
+- Latest re-check: `https://api.execution.market/health/sanity` -> `status=ok`, `checks=6/6`, `warnings=0`
+- Note: keep continuous monitoring to ensure this does not regress.
 
 ### 2.6 Tracking state
 - `docs/planning/TODO_NOW.md`: `205 total` (`18 done`, `187 pending`)
@@ -59,6 +66,7 @@ Recent commits (this session block):
 - `6cfd07e`: worker submission switched to API-first with explicit guarded fallback.
 - `be7afda`: worker apply switched to API-first with explicit guarded fallback.
 - `1d66952`: deploy/infra hardened so runtime uses canonical API URL in ECS/workflows.
+- `345c72c`: exhaustive launch review + terra4mice sync.
 
 ## 4) Critical gap map (ordered by launch risk)
 
@@ -73,18 +81,14 @@ Recent commits (this session block):
 - Integrators can silently hit wrong surface and think API is healthy due HTTP 200.
 
 3. Agent mutation path is only partially API-first
-- API-first done for `apply` and `submit`.
+- API-first done for `apply`, `submit`, `create`, `cancel`, `assign`, `approve`, and `reject`.
 - Still direct Supabase writes in:
-  - `dashboard/src/services/tasks.ts:145` (`createTask`)
-  - `dashboard/src/services/tasks.ts:327` (`cancelTask`)
-  - `dashboard/src/services/tasks.ts:367` (`assignTask`)
-  - `dashboard/src/services/submissions.ts:288` (`approveSubmission`)
-  - `dashboard/src/services/submissions.ts:353` (`rejectSubmission`)
-  - `dashboard/src/services/submissions.ts:395` (`requestMoreInfo`)
+  - transitional fallback paths when no `VITE_API_KEY` is available.
+  - `dashboard/src/services/submissions.ts:395` (`requestMoreInfo`) still has no backend endpoint parity.
 
 4. Payment data integrity debt in production data
-- Sanity warning is now likely real data debt, not a query false-positive.
-- 15 completed tasks do not currently show payment evidence.
+- Current sanity check is green (`warnings=0`).
+- Risk moved from active warning to monitoring and regression prevention.
 
 5. No fresh strict live x402 end-to-end evidence after latest changes
 - Launch confidence is still incomplete without one strict live run with tx hash evidence and final states.
@@ -130,7 +134,7 @@ Format:
 - [ ] `LCH-260208-A02 | P0 | DevOps | Deploy latest CI/CD workflow updates | New deploy run shows API checks against api.execution.market | workflow run logs`
 - [ ] `LCH-260208-A03 | P0 | DevOps | Verify ECS running revisions after deploy | backend/frontend rollout=COMPLETED with expected revision | aws ecs describe-services ...`
 - [ ] `LCH-260208-A04 | P0 | Infra | Decide and enforce `execution.market/api/*` behavior (proxy or explicit block) | No ambiguous HTML 200 for API paths | curl -i https://execution.market/api/v1/tasks/available?limit=1`
-- [ ] `LCH-260208-A05 | P1 | Infra | Add post-deploy assertion for agent card URL scheme | pipeline fails if URL starts with http:// | CI step assertion`
+- [x] `LCH-260208-A05 | P1 | Infra | Add post-deploy assertion for agent card URL scheme | pipeline fails if URL starts with http:// | CI step assertion`
 - [ ] `LCH-260208-A06 | P1 | Infra | Ensure staging has same canonical EM_BASE_URL behavior | staging agent card uses HTTPS canonical URL | curl staging agent card endpoint`
 
 ## Track B - API-first business mutations
@@ -146,6 +150,10 @@ Format:
 - [ ] `LCH-260208-B09 | P1 | Backend | Add server-side idempotency keys for create/cancel/approve endpoints | duplicate requests become deterministic no-op responses | API test`
 - [ ] `LCH-260208-B10 | P1 | QA | Build one end-to-end dashboard mutation matrix | matrix covers create/apply/assign/submit/review/cancel transitions | test report`
 
+Progress note:
+- Implemented API-first paths for create/cancel/assign/approve/reject with transitional fallback when `VITE_API_KEY` is not configured.
+- Remaining blocker is auth contract consolidation and backend parity for `requestMoreInfo`.
+
 ## Track C - Payment integrity and evidence
 
 - [ ] `LCH-260208-C01 | P0 | Data+Backend | Audit 15 completed_no_payment tasks and classify cause (legacy/manual/bug) | each task has category and remediation plan | audit sheet`
@@ -155,6 +163,7 @@ Format:
 - [ ] `LCH-260208-C05 | P0 | QA | Execute strict live cancel/refund run with tx evidence or explicit authorization-expired evidence | refund path evidence documented | script artifact`
 - [ ] `LCH-260208-C06 | P1 | Backend | Expose per-task payment consistency endpoint/flag | UI and ops can detect payout mismatch quickly | endpoint test`
 - [ ] `LCH-260208-C07 | P1 | Backend | Add DB query/script to flag completed tasks missing payment evidence daily | recurring report available | cron/report output`
+- Status: script added (`scripts/report-sanity-warnings.ts` + `npm run report:sanity:strict`) using `/health/sanity`; DB-level daily job still pending.
 - [ ] `LCH-260208-C08 | P1 | Ops | Define launch claim policy: no payout claim without tx evidence | release notes gate blocks unsupported claims | release checklist`
 
 ## Track D - Quality gates and CI
@@ -214,4 +223,3 @@ Work is not done unless all four exist:
 2. machine-readable evidence,
 3. tracking state updated,
 4. user-visible behavior verified in production runtime.
-
