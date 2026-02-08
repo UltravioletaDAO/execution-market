@@ -5,20 +5,19 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 
+// When true, show API key instructions; when false, show open-access messaging
+const REQUIRE_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
+
 // --------------------------------------------------------------------------
 // Code Examples
 // --------------------------------------------------------------------------
 
-const PYTHON_EXAMPLE = `import httpx
-import os
+const PYTHON_EXAMPLE = REQUIRE_API_KEY
+  ? `import httpx, os
 
 API_KEY = os.environ["EM_API_KEY"]
 BASE_URL = "https://api.execution.market/api/v1"
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
-}
+headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 # Create a task for a human to complete
 task = httpx.post(f"{BASE_URL}/tasks", headers=headers, json={
@@ -34,16 +33,44 @@ task = httpx.post(f"{BASE_URL}/tasks", headers=headers, json={
 print(f"Task created: {task['id']}")
 
 # Monitor for completion
+import time
 while True:
     status = httpx.get(f"{BASE_URL}/tasks/{task['id']}", headers=headers).json()
     if status["status"] == "submitted":
-        # Review and approve the submission
         httpx.post(f"{BASE_URL}/submissions/{status['submission_id']}/approve",
                    headers=headers, json={"reason": "Evidence verified"})
         break
+    time.sleep(60)`
+  : `import httpx
+
+BASE_URL = "https://api.execution.market/api/v1"
+
+# Create a task for a human to complete
+task = httpx.post(f"{BASE_URL}/tasks", json={
+    "title": "Verify store hours at downtown location",
+    "instructions": "Visit the store and photograph the posted hours",
+    "category": "physical_presence",
+    "bounty_usd": 5.00,
+    "deadline_hours": 24,
+    "evidence_required": ["photo"],
+    "location_hint": "123 Main St, Downtown"
+}).json()
+
+print(f"Task created: {task['id']}")
+
+# Monitor for completion
+import time
+while True:
+    status = httpx.get(f"{BASE_URL}/tasks/{task['id']}").json()
+    if status["status"] == "submitted":
+        # Review and approve the submission
+        httpx.post(f"{BASE_URL}/submissions/{status['submission_id']}/approve",
+                   json={"reason": "Evidence verified"})
+        break
     time.sleep(60)  # Poll every minute`
 
-const NODEJS_EXAMPLE = `import Anthropic from "@anthropic-ai/sdk";
+const NODEJS_EXAMPLE = REQUIRE_API_KEY
+  ? `import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
@@ -63,8 +90,28 @@ const response = await client.messages.create({
 });
 
 // Claude will use the em_publish_task MCP tool automatically`
+  : `import Anthropic from "@anthropic-ai/sdk";
 
-const CURL_EXAMPLE = `# Create a task
+const client = new Anthropic();
+
+// Use Execution Market as an MCP tool
+const response = await client.messages.create({
+  model: "claude-sonnet-4-20250514",
+  max_tokens: 1024,
+  tools: [{
+    type: "mcp",
+    server_url: "https://api.execution.market/mcp/"
+  }],
+  messages: [{
+    role: "user",
+    content: "Create a task to verify if the pharmacy at 456 Oak Ave is open"
+  }]
+});
+
+// Claude will use the em_publish_task MCP tool automatically`
+
+const CURL_EXAMPLE = REQUIRE_API_KEY
+  ? `# Create a task
 curl -X POST https://api.execution.market/api/v1/tasks \\
   -H "Authorization: Bearer $EM_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -80,6 +127,20 @@ curl -X POST https://api.execution.market/api/v1/tasks \\
 # Check task status
 curl https://api.execution.market/api/v1/tasks/{task_id} \\
   -H "Authorization: Bearer $EM_API_KEY"`
+  : `# Create a task (no auth required)
+curl -X POST https://api.execution.market/api/v1/tasks \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "title": "Photo verification needed",
+    "instructions": "Take a photo of the storefront",
+    "category": "physical_presence",
+    "bounty_usd": 5.00,
+    "deadline_hours": 12,
+    "evidence_required": ["photo"]
+  }'
+
+# Check task status
+curl https://api.execution.market/api/v1/tasks/{task_id}`
 
 // --------------------------------------------------------------------------
 // Components
@@ -298,15 +359,30 @@ export function AgentOnboarding() {
           </h2>
 
           <div className="space-y-8">
-            <StepCard step={1} title="Get Your API Key">
-              <p className="mb-4">
-                Contact us to get your API key. Each key has an associated USDC balance for
-                paying task bounties via the x402 payment protocol.
-              </p>
-              <div className="bg-gray-100 rounded-lg p-4 font-mono text-sm">
-                <span className="text-gray-500"># Set your environment variable</span><br />
-                <span className="text-green-600">export</span> EM_API_KEY=<span className="text-blue-600">"em_your_api_key_here"</span>
-              </div>
+            <StepCard step={1} title={REQUIRE_API_KEY ? 'Get Your API Key' : 'Connect via MCP'}>
+              {REQUIRE_API_KEY ? (
+                <>
+                  <p className="mb-4">
+                    Contact us to get your API key. Each key has an associated USDC balance for
+                    paying task bounties via the x402 payment protocol.
+                  </p>
+                  <div className="bg-gray-100 rounded-lg p-4 font-mono text-sm">
+                    <span className="text-gray-500"># Set your environment variable</span><br />
+                    <span className="text-green-600">export</span> EM_API_KEY=<span className="text-blue-600">"em_your_api_key_here"</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="mb-4">
+                    Point your AI agent to the Execution Market MCP server. No API key needed --
+                    just connect and start creating tasks.
+                  </p>
+                  <div className="bg-gray-100 rounded-lg p-4 font-mono text-sm">
+                    <span className="text-gray-500"># MCP Server URL</span><br />
+                    <span className="text-blue-600">https://api.execution.market/mcp/</span>
+                  </div>
+                </>
+              )}
             </StepCard>
 
             <StepCard step={2} title="Choose Your Integration Method">
@@ -489,8 +565,10 @@ export function AgentOnboarding() {
             <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">x402 Payment Protocol</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Tasks are paid via x402, a gasless payment protocol on Base. Your API key
-                includes a USDC balance that's used automatically when creating tasks.
+                {REQUIRE_API_KEY
+                  ? 'Tasks are paid via x402, a gasless payment protocol on Base. Your API key includes a USDC balance that\'s used automatically when creating tasks.'
+                  : 'Tasks are paid via x402, a gasless payment protocol on Base. Agents sign EIP-3009 authorizations and the facilitator handles all gas fees.'
+                }
               </p>
               <ul className="text-sm text-gray-600 space-y-2">
                 <li className="flex items-center gap-2">
@@ -632,15 +710,29 @@ export function AgentOnboarding() {
             Ready to Get Started?
           </h2>
           <p className="text-gray-600 mb-8">
-            Request an API key and start hiring humans for your agent's physical-world tasks.
+            {REQUIRE_API_KEY
+              ? 'Request an API key and start hiring humans for your agent\'s physical-world tasks.'
+              : 'Connect your agent and start hiring humans for physical-world tasks. No API key needed.'
+            }
           </p>
           <div className="flex justify-center gap-4">
-            <a
-              href="mailto:UltravioletaDAO@gmail.com?subject=Execution Market API Key Request"
-              className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Request API Key
-            </a>
+            {REQUIRE_API_KEY ? (
+              <a
+                href="mailto:UltravioletaDAO@gmail.com?subject=Execution Market API Key Request"
+                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Request API Key
+              </a>
+            ) : (
+              <a
+                href="https://api.execution.market/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Explore API Docs
+              </a>
+            )}
             <a
               href="https://github.com/ultravioletadao"
               target="_blank"

@@ -4,11 +4,15 @@ import { useAuth } from '../context/AuthContext'
 import { AppHeader } from '../components/layout/AppHeader'
 import { AppFooter } from '../components/layout/AppFooter'
 
+// When true, show API key instructions; when false, show open-access messaging
+const REQUIRE_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
+
 // ---------------------------------------------------------------------------
 // Code examples
 // ---------------------------------------------------------------------------
 
-const CREATE_TASK_CURL = `curl -X POST https://api.execution.market/api/v1/tasks \\
+const CREATE_TASK_CURL = REQUIRE_API_KEY
+  ? `curl -X POST https://api.execution.market/api/v1/tasks \\
   -H "Authorization: Bearer $EM_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -20,8 +24,20 @@ const CREATE_TASK_CURL = `curl -X POST https://api.execution.market/api/v1/tasks
     "evidence_required": ["photo"],
     "location_hint": "123 Main St, Downtown"
   }'`
+  : `curl -X POST https://api.execution.market/api/v1/tasks \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "title": "Verify store hours at downtown location",
+    "instructions": "Visit the store and photograph the posted hours on the door.",
+    "category": "physical_presence",
+    "bounty_usd": 5.00,
+    "deadline_hours": 24,
+    "evidence_required": ["photo"],
+    "location_hint": "123 Main St, Downtown"
+  }'`
 
-const CREATE_TASK_PYTHON = `import httpx, os
+const CREATE_TASK_PYTHON = REQUIRE_API_KEY
+  ? `import httpx, os
 
 API_KEY = os.environ["EM_API_KEY"]
 BASE    = "https://api.execution.market/api/v1"
@@ -54,8 +70,39 @@ while True:
         print("Submission approved, worker paid!")
         break
     time.sleep(60)`
+  : `import httpx
 
-const CREATE_TASK_NODE = `import Anthropic from "@anthropic-ai/sdk";
+BASE = "https://api.execution.market/api/v1"
+
+# 1. Create a task
+task = httpx.post(f"{BASE}/tasks", json={
+    "title": "Verify store hours at downtown location",
+    "instructions": "Visit the store and photograph the posted hours.",
+    "category": "physical_presence",
+    "bounty_usd": 5.00,
+    "deadline_hours": 24,
+    "evidence_required": ["photo"],
+    "location_hint": "123 Main St, Downtown"
+}).json()
+
+print(f"Task created: {task['id']}")
+
+# 2. Poll for a submission
+import time
+while True:
+    status = httpx.get(f"{BASE}/tasks/{task['id']}").json()
+    if status["status"] == "submitted":
+        # 3. Approve and pay
+        httpx.post(
+            f"{BASE}/submissions/{status['submission_id']}/approve",
+            json={"reason": "Evidence verified"}
+        )
+        print("Submission approved, worker paid!")
+        break
+    time.sleep(60)`
+
+const CREATE_TASK_NODE = REQUIRE_API_KEY
+  ? `import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
@@ -75,8 +122,28 @@ const response = await client.messages.create({
 });
 
 // Claude automatically calls em_publish_task and returns the result`
+  : `import Anthropic from "@anthropic-ai/sdk";
 
-const MCP_CONFIG_CLAUDE_DESKTOP = `{
+const client = new Anthropic();
+
+// Use Execution Market as an MCP tool inside Claude
+const response = await client.messages.create({
+  model: "claude-sonnet-4-20250514",
+  max_tokens: 1024,
+  tools: [{
+    type: "mcp",
+    server_url: "https://api.execution.market/mcp/"
+  }],
+  messages: [{
+    role: "user",
+    content: "Create a task to verify if the pharmacy at 456 Oak Ave is open"
+  }]
+});
+
+// Claude automatically calls em_publish_task and returns the result`
+
+const MCP_CONFIG_CLAUDE_DESKTOP = REQUIRE_API_KEY
+  ? `{
   "mcpServers": {
     "execution-market": {
       "type": "streamableHttp",
@@ -84,6 +151,14 @@ const MCP_CONFIG_CLAUDE_DESKTOP = `{
       "headers": {
         "Authorization": "Bearer YOUR_API_KEY"
       }
+    }
+  }
+}`
+  : `{
+  "mcpServers": {
+    "execution-market": {
+      "type": "streamableHttp",
+      "url": "https://api.execution.market/mcp/"
     }
   }
 }`
@@ -179,6 +254,10 @@ export function Developers() {
   const { t } = useTranslation()
   const { openAuthModal } = useAuth()
   const [activeTab, setActiveTab] = useState<'curl' | 'python' | 'node'>('curl')
+
+  // Pick the API-key variant of an i18n key when REQUIRE_API_KEY is true
+  const tk = (key: string, fallback: string) =>
+    REQUIRE_API_KEY ? t(`dev.${key}_apiKey`, t(`dev.${key}`, fallback)) : t(`dev.${key}`, fallback)
 
   const mcpTools = [
     {
@@ -337,9 +416,9 @@ export function Developers() {
             <SectionHeading
               badge={t('dev.quickStartBadge', 'Quick Start')}
               title={t('dev.quickStartTitle', 'From Zero to First Task in 3 Steps')}
-              subtitle={t(
-                'dev.quickStartSubtitle',
-                'Get an API key, create a task, approve the result. That is the entire flow.'
+              subtitle={tk(
+                'quickStartSubtitle',
+                'Connect via MCP, create a task, approve the result. That is the entire flow.'
               )}
             />
 
@@ -351,27 +430,34 @@ export function Developers() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">
-                    {t('dev.step1Title', 'Get Your API Key')}
+                    {tk('step1Title', 'Connect via MCP')}
                   </h3>
                   <p className="text-gray-600 mb-4">
-                    {t(
-                      'dev.step1Desc',
-                      'Contact us to receive an API key linked to your funded USDC wallet on Base. The key authenticates all requests and ties payments to your account.'
-                    )}
+                    {tk('step1Desc', 'Point your AI agent to the Execution Market MCP server. No API key needed -- just connect and start creating tasks.')}
                   </p>
-                  <div className="bg-gray-100 rounded-lg p-4 font-mono text-sm">
-                    <span className="text-gray-500"># Set your environment variable</span>
-                    <br />
-                    <span className="text-emerald-600">export</span> EM_API_KEY=
-                    <span className="text-blue-600">"em_your_api_key_here"</span>
-                  </div>
+                  {REQUIRE_API_KEY ? (
+                    <div className="bg-gray-100 rounded-lg p-4 font-mono text-sm">
+                      <span className="text-gray-500"># Set your environment variable</span>
+                      <br />
+                      <span className="text-emerald-600">export</span> EM_API_KEY=
+                      <span className="text-blue-600">"em_your_api_key_here"</span>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-100 rounded-lg p-4 font-mono text-sm">
+                      <span className="text-gray-500"># MCP Server URL</span>
+                      <br />
+                      <span className="text-blue-600">https://api.execution.market/mcp/</span>
+                    </div>
+                  )}
                   <p className="text-sm text-gray-500 mt-3">
-                    {t('dev.step1Cta', 'Need an API key?')}{' '}
+                    {tk('step1Cta', 'Works with Claude, OpenClaw, and any MCP-compatible agent.')}{' '}
                     <a
-                      href="mailto:UltravioletaDAO@gmail.com?subject=Execution Market API Key Request"
+                      href={REQUIRE_API_KEY ? 'mailto:UltravioletaDAO@gmail.com?subject=Execution Market API Key Request' : 'https://api.execution.market/docs'}
+                      target={REQUIRE_API_KEY ? undefined : '_blank'}
+                      rel={REQUIRE_API_KEY ? undefined : 'noopener noreferrer'}
                       className="text-emerald-600 hover:underline font-medium"
                     >
-                      {t('dev.step1CtaLink', 'Request one here')}
+                      {tk('step1CtaLink', 'See full API docs')}
                     </a>
                   </p>
                 </div>
@@ -636,9 +722,9 @@ export function Developers() {
             <SectionHeading
               badge={t('dev.apiBadge', 'REST API')}
               title={t('dev.apiTitle', 'API Reference')}
-              subtitle={t(
-                'dev.apiSubtitle',
-                'All endpoints live at api.execution.market. Authenticate with your API key in the Authorization header.'
+              subtitle={tk(
+                'apiSubtitle',
+                'All endpoints live at api.execution.market. No authentication required -- just call the API directly.'
               )}
             />
 
@@ -1103,41 +1189,42 @@ export function Developers() {
               {t('dev.ctaTitle', 'Ready to Integrate?')}
             </h2>
             <p className="text-gray-500 mb-8 max-w-xl mx-auto">
-              {t(
-                'dev.ctaDesc',
-                'Get your API key and start giving your AI agent physical-world capabilities today.'
-              )}
+              {tk('ctaDesc', 'Connect your AI agent and start giving it physical-world capabilities today. No API key needed.')}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              {REQUIRE_API_KEY ? (
+                <a
+                  href="mailto:UltravioletaDAO@gmail.com?subject=Execution Market API Key Request"
+                  className="w-full sm:w-auto px-8 py-3 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-400 transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {t('dev.ctaRequestKey', 'Request API Key')}
+                </a>
+              ) : (
+                <a
+                  href="https://api.execution.market/docs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto px-8 py-3 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-400 transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  {t('dev.ctaExploreDocs', 'Explore API Docs')}
+                </a>
+              )}
               <a
-                href="mailto:UltravioletaDAO@gmail.com?subject=Execution Market API Key Request"
-                className="w-full sm:w-auto px-8 py-3 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-400 transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-                {t('dev.ctaRequestKey', 'Request API Key')}
-              </a>
-              <a
-                href="https://api.execution.market/docs"
-                target="_blank"
-                rel="noopener noreferrer"
+                href={REQUIRE_API_KEY ? 'https://api.execution.market/docs' : 'mailto:UltravioletaDAO@gmail.com?subject=Execution Market Integration'}
+                target={REQUIRE_API_KEY ? '_blank' : undefined}
+                rel={REQUIRE_API_KEY ? 'noopener noreferrer' : undefined}
                 className="w-full sm:w-auto px-8 py-3 bg-gray-900 text-white font-bold rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                  />
-                </svg>
-                {t('dev.ctaExploreDocs', 'Explore API Docs')}
+                {REQUIRE_API_KEY
+                  ? t('dev.ctaExploreDocs', 'Explore API Docs')
+                  : t('dev.ctaContact', 'Contact Us')
+                }
               </a>
             </div>
           </div>

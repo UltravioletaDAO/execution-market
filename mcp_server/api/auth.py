@@ -143,6 +143,55 @@ async def verify_api_key_optional(
         return None
 
 
+# ---------------------------------------------------------------------------
+# Configurable auth: when EM_REQUIRE_API_KEY=false, agent endpoints accept
+# unauthenticated requests and fall back to the platform agent identity.
+# ---------------------------------------------------------------------------
+
+_REQUIRE_API_KEY = os.environ.get("EM_REQUIRE_API_KEY", "false").lower() == "true"
+
+
+def _anonymous_agent_data() -> APIKeyData:
+    """Return a default APIKeyData for unauthenticated requests."""
+    _agent_id = os.environ.get("EM_AGENT_ID", "2106")
+    return APIKeyData(
+        key_hash="anonymous",
+        agent_id=str(_agent_id),
+        tier=APITier.FREE,
+        is_valid=True,
+        created_at=datetime.now(timezone.utc),
+        last_used=datetime.now(timezone.utc),
+    )
+
+
+async def verify_api_key_if_required(
+    authorization: Optional[str] = Header(None, description="Bearer token with API key"),
+) -> APIKeyData:
+    """
+    Verify API key only when EM_REQUIRE_API_KEY=true.
+
+    When disabled, returns anonymous agent data (platform agent identity).
+    If a valid key IS provided even when not required, it will be used.
+    """
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            return await verify_api_key(authorization)
+        except HTTPException:
+            if _REQUIRE_API_KEY:
+                raise
+            # Key was provided but invalid — when auth not required, fall through
+            logger.warning("Invalid API key provided (auth not required, ignoring)")
+
+    if _REQUIRE_API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Authorization header required. Set EM_REQUIRE_API_KEY=false to disable.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return _anonymous_agent_data()
+
+
 def get_api_tier(api_key_data: Optional[APIKeyData]) -> str:
     """Get the tier from API key data, defaulting to FREE."""
     if not api_key_data:
