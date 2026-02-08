@@ -812,6 +812,12 @@ describe("ChambaEscrow", function () {
       expect(await escrow.canCancel(escrowId)).to.be.false;
 
       await escrow.connect(worker).consentToCancellation(escrowId);
+
+      // v1.4.0: lock period is anchored to max(createdAt, acceptedAt),
+      // so consent alone is not enough immediately after acceptance.
+      expect(await escrow.canCancel(escrowId)).to.be.false;
+
+      await time.increase(MIN_LOCK_PERIOD + 1);
       expect(await escrow.canCancel(escrowId)).to.be.true;
     });
 
@@ -954,6 +960,12 @@ describe("ChambaEscrow", function () {
 
       // Try to refund - should fail because timeout hasn't passed
       // Even though 3 days passed since creation, timeout is fresh from acceptance
+      await expect(
+        escrow.connect(depositor).refundEscrow(1)
+      ).to.be.revertedWithCustomError(escrow, "MinLockPeriodNotReached");
+
+      // After lock period, timeout/dispute checks should become active
+      await time.increase(MIN_LOCK_PERIOD + 1);
       await expect(
         escrow.connect(depositor).refundEscrow(1)
       ).to.be.revertedWithCustomError(escrow, "TimeoutNotReached");
