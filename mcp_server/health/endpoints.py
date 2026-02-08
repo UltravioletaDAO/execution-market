@@ -519,7 +519,9 @@ async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
         try:
             tasks_result = (
                 client.table("tasks")
-                .select("id, status, bounty_usd, executor_id, created_at, updated_at")
+                .select(
+                    "id, status, bounty_usd, executor_id, created_at, updated_at, escrow_tx"
+                )
                 .execute()
             )
             tasks = tasks_result.data or []
@@ -535,13 +537,47 @@ async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
             tasks = []
             status_counts = {}
 
-        # Check 2: Completed tasks should have payment_tx or escrow_tx
+        # Build payment evidence index for completed tasks.
+        # Canonical source: payments table release/final_release tx hashes.
+        # Legacy source: submissions.payment_tx.
+        payment_task_ids = set()
+        try:
+            payments_result = (
+                client.table("payments")
+                .select("task_id,type,tx_hash,transaction_hash,status")
+                .in_("type", ["release", "final_release", "partial_release"])
+                .execute()
+            )
+            for row in payments_result.data or []:
+                tx_hash = row.get("tx_hash") or row.get("transaction_hash")
+                if row.get("task_id") and tx_hash:
+                    payment_task_ids.add(row["task_id"])
+        except Exception:
+            # Keep backward compatibility with legacy schemas where payments may not exist.
+            pass
+
+        submission_payment_task_ids = set()
+        try:
+            submissions_result = (
+                client.table("submissions")
+                .select("task_id,payment_tx")
+                .not_("payment_tx", "is", "null")
+                .execute()
+            )
+            for row in submissions_result.data or []:
+                if row.get("task_id") and row.get("payment_tx"):
+                    submission_payment_task_ids.add(row["task_id"])
+        except Exception:
+            pass
+
+        # Check 2: Completed tasks should have payment evidence.
         checks_total += 1
         completed_no_payment = [
             t["id"]
             for t in tasks
             if t.get("status") == "completed"
-            and not t.get("payment_tx")
+            and t.get("id") not in payment_task_ids
+            and t.get("id") not in submission_payment_task_ids
             and not t.get("escrow_tx")
         ]
         if completed_no_payment:
