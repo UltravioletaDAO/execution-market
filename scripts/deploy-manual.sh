@@ -44,7 +44,7 @@ echo ""
 echo "4. Building Dashboard..."
 cd "$PROJECT_ROOT/dashboard"
 docker build --platform linux/amd64 -t $DASHBOARD_REPO:latest \
-  --build-arg NEXT_PUBLIC_API_URL=https://api.execution.market .
+  --build-arg VITE_API_URL=https://api.execution.market .
 docker tag $DASHBOARD_REPO:latest $ECR_REGISTRY/$DASHBOARD_REPO:latest
 
 # Push to ECR

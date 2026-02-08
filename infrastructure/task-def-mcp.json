@@ -18,7 +18,7 @@
       "environment": [
         {"name": "PORT", "value": "8000"},
         {"name": "ENVIRONMENT", "value": "production"},
-        {"name": "EM_BASE_URL", "value": "https://execution.market"}
+        {"name": "EM_BASE_URL", "value": "https://api.execution.market"}
       ],
       "secrets": [
         {

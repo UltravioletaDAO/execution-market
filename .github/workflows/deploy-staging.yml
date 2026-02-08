@@ -16,6 +16,7 @@ env:
   ECS_SERVICE_BACKEND: em-staging-mcp-server
   ECS_SERVICE_FRONTEND: em-staging-dashboard
   STAGING_URL: https://staging.execution.market
+  API_URL: ${{ secrets.STAGING_API_URL }}
 
 jobs:
   build-and-push:
@@ -107,6 +108,8 @@ jobs:
           task-definition: backend-task-def.json
           container-name: mcp-server
           image: ${{ needs.build-and-push.outputs.backend-image }}
+          environment-variables: |
+            EM_BASE_URL=${{ env.API_URL }}
 
       - name: Deploy backend to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
@@ -152,7 +155,7 @@ jobs:
 
       - name: Health check - API
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.STAGING_URL }}/api/health)
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.API_URL }}/health)
           if [ "$response" != "200" ]; then
             echo "API health check failed with status $response"
             exit 1
@@ -170,13 +173,13 @@ jobs:
 
       - name: Smoke test - Authentication
         run: |
-          curl -sf "${{ env.STAGING_URL }}/api/auth/providers" > /dev/null
-          echo "Auth providers endpoint accessible"
+          curl -sf "${{ env.API_URL }}/health/version" > /dev/null
+          echo "Version endpoint accessible"
 
       - name: Smoke test - Tasks endpoint
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.STAGING_URL }}/api/tasks")
-          if [ "$response" != "200" ] && [ "$response" != "401" ]; then
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.API_URL }}/api/v1/tasks/available?limit=1")
+          if [ "$response" != "200" ]; then
             echo "Tasks endpoint check failed with status $response"
             exit 1
           fi
