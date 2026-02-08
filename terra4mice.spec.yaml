@@ -579,13 +579,15 @@ resources:
       attributes:
         description: "Reduce dashboard TypeScript errors to 0 before production release gate"
         priority: P0
-        evidence: "2026-02-07 local run: npm --prefix dashboard run typecheck -> 100 errors"
+        status: done
+        evidence: "2026-02-08 dream-8: 0 errors after removing premature pt locale entries and prior fixes; was 100 errors on 2026-02-07, then 2 after dream-5/7 work"
       files:
         - dashboard/src/hooks/useProfile.ts
         - dashboard/src/hooks/useTokenBalance.ts
         - dashboard/src/hooks/useTransaction.ts
         - dashboard/src/pages/agent/Dashboard.tsx
         - dashboard/src/pages/AgentDashboard.tsx
+        - dashboard/src/i18n/hooks/useTranslation.ts
 
     launch_20260207_dashboard_eslint_config:
       attributes:
@@ -607,7 +609,9 @@ resources:
       attributes:
         description: "Replace mock/demo data in active agent routes with real API/Supabase data"
         priority: P0
+        status: in_progress
         routes: "/agent/dashboard, /agent/tasks, /agent/tasks/new"
+        evidence: "2026-02-08: commit 9d3ad56 removed fake data from AgentDashboard, added code splitting; remaining: CreateTask still demo, TaskManagement still uses mock filters"
       files:
         - dashboard/src/pages/AgentDashboard.tsx
         - dashboard/src/pages/agent/TaskManagement.tsx
@@ -627,7 +631,8 @@ resources:
       attributes:
         description: "Decide canonical public API domain and remove /api-on-SPA ambiguity"
         priority: P0
-        evidence: "https://execution.market/api/v1/* currently returns SPA HTML, not API JSON"
+        status: done
+        evidence: "2026-02-08: commit 4e05afd redirects execution.market/api to canonical api.execution.market; commit 35a734c switches public docs to api.execution.market"
       files:
         - docs-site/docs/api/reference.md
         - README.md
@@ -638,7 +643,8 @@ resources:
       attributes:
         description: "Force HTTPS URLs in agent card when served behind ALB/Proxy"
         priority: P0
-        evidence: "Live agent card currently reports http://mcp.execution.market/a2a/v1"
+        status: done
+        evidence: "2026-02-08: commit 0f04b23 redirects /.well-known/agent.json to API backend; commit 8b55674 enforces HTTPS in agent card runtime"
       files:
         - mcp_server/a2a/agent_card.py
 
@@ -840,6 +846,54 @@ resources:
         evidence: "2026-02-08: added docs/planning/IMPROVEMENT_SCENARIOS_BOARD_2026-02-08.md with granular pending/done tracking"
       files:
         - docs/planning/IMPROVEMENT_SCENARIOS_BOARD_2026-02-08.md
+
+    launch_20260208_i18n_en_es_sync:
+      attributes:
+        description: "Sync EN and ES i18n locale files — EN was missing 200 keys that ES had (landing v2, evidence, profile, notifications)"
+        priority: P1
+        status: done
+        evidence: "2026-02-08 dream-8: added 200 missing EN translations; both files now 1281 keys in perfect sync"
+      files:
+        - dashboard/src/i18n/locales/en.json
+        - dashboard/src/i18n/locales/es.json
+
+    launch_20260208_dynamic_auth_connect_only:
+      attributes:
+        description: "Fix Dynamic.xyz SDK authMode to use valid 'connect-only' mode"
+        priority: P0
+        status: done
+        evidence: "2026-02-08: commit c741adc fixes authMode to connect-only for Dynamic SDK"
+      files:
+        - dashboard/src/providers/DynamicProvider.tsx
+
+    launch_20260208_beta_bugfixes:
+      attributes:
+        description: "6 beta launch bugfixes from audit handoff including routing, auth, and UI issues"
+        priority: P0
+        status: done
+        evidence: "2026-02-08: commit c405a3f applies 6 bugfixes from audit handoff"
+      files:
+        - dashboard/src/App.tsx
+        - dashboard/src/pages/Home.tsx
+
+    launch_20260208_seed_task_templates:
+      attributes:
+        description: "Add seed task templates for demo/testing and fix hardcoded Spanish in loading state"
+        priority: P1
+        status: done
+        evidence: "2026-02-08: commit da9056c adds seed templates, fixes hardcoded Spanish"
+      files:
+        - mcp_server/seeds/task_templates.py
+        - dashboard/src/components/LoadingState.tsx
+
+    launch_20260208_agent_wellknown_redirect:
+      attributes:
+        description: "Redirect /.well-known/agent.json to API backend for A2A discovery"
+        priority: P0
+        status: done
+        evidence: "2026-02-08: commit 0f04b23 adds nginx redirect for agent.json to api.execution.market"
+      files:
+        - dashboard/nginx.conf
 
   # ═══════════════════════════════════════════════════════════════════════
   # PHASE 7: MULTI-CHAIN EXPANSION

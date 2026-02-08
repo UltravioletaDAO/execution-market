@@ -35,14 +35,12 @@ export type TranslationKey = NestedKeyOf<typeof en>
 const LOCALE_MAP: Record<SupportedLanguage, string> = {
   en: 'en-US',
   es: 'es-MX', // Latin American Spanish
-  pt: 'pt-BR', // Brazilian Portuguese
 }
 
 // Currency options by region
 const CURRENCY_BY_LOCALE: Record<SupportedLanguage, string> = {
   en: 'USD',
   es: 'USD', // Most LATAM uses USD for crypto
-  pt: 'USD', // Brazil also uses USD for crypto
 }
 
 /**
