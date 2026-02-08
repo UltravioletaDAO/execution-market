@@ -88,7 +88,9 @@ DEFAULT_NETWORK = os.environ.get("X402_NETWORK", "base")
 # Only these networks accept task creation and settlement.
 # The registry below contains ALL known networks, but only enabled ones are active.
 # To enable more: fund the platform wallet with USDC on that chain, then add to this list.
-_enabled_raw = os.environ.get("EM_ENABLED_NETWORKS", "base,ethereum,polygon,arbitrum,celo,monad,avalanche")
+_enabled_raw = os.environ.get(
+    "EM_ENABLED_NETWORKS", "base,ethereum,polygon,arbitrum,celo,monad,avalanche"
+)
 ENABLED_NETWORKS = [n.strip() for n in _enabled_raw.split(",") if n.strip()]
 
 # =============================================================================
