@@ -1,137 +1,79 @@
 /**
  * Execution Market E2E Tests - Agent Dashboard
  *
- * Tests for the agent dashboard view.
- * Uses role/text-based selectors.
+ * These tests validate the current Agent Dashboard UX while keeping selectors
+ * resilient to i18n changes (English/Spanish).
  */
 
 import { test, expect } from '../fixtures/auth'
 import { setupMocks } from '../fixtures/mocks'
 
+const TEXT = {
+  dashboardTitle: /Agent Dashboard|Panel de Agente/i,
+  subtitle: /Manage your tasks and review submissions|Gestiona tus tareas y revisa entregas/i,
+  createTask: /Create Task|Crear Tarea/i,
+  platformPulse: /Platform Pulse|Pulso de la Plataforma/i,
+  activitySummary: /Activity Summary|Resumen de Actividad/i,
+  tasksCreated: /Tasks Created|Tareas Creadas/i,
+  completionRate: /Completion Rate|Tasa de Completado/i,
+  activeTasks: /Active Tasks|Tareas Activas/i,
+  all: /All|Todas/i,
+  pending: /Pending|Pendientes|pending/i,
+  pendingReview: /Pending Review|Entregas por Revisar/i,
+  quickActions: /Quick Actions|Acciones Rapidas|Acciones R[aá]pidas/i,
+  newTask: /New Task|Nueva Tarea/i,
+  reviewNext: /Review Next|Revisar Siguiente/i,
+  recentActivity: /Recent Activity|Actividad Reciente/i,
+}
+
 test.describe('Agent Dashboard', () => {
   test.beforeEach(async ({ agentPage }) => {
     await setupMocks(agentPage)
+    await agentPage.goto('/agent/dashboard')
   })
 
-  test.describe('Dashboard Overview', () => {
-    test('dashboard loads with correct heading', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
+  test('dashboard loads with heading and subtitle', async ({ agentPage }) => {
+    await expect(
+      agentPage.getByRole('heading', { name: TEXT.dashboardTitle })
+    ).toBeVisible({ timeout: 15000 })
 
-      // Should show "Panel de Agente"
-      await expect(
-        agentPage.getByText('Panel de Agente')
-      ).toBeVisible({ timeout: 15000 })
-    })
-
-    test('dashboard shows subtitle', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
-
-      await expect(
-        agentPage.getByText('Gestiona tus tareas y revisa entregas')
-      ).toBeVisible({ timeout: 15000 })
-    })
-
-    test('shows create task button', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
-
-      await expect(
-        agentPage.getByText('Crear Tarea')
-      ).toBeVisible({ timeout: 15000 })
-    })
-
-    test('shows platform pulse section', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
-
-      // Should show Platform Pulse heading
-      await expect(
-        agentPage.getByText('Platform Pulse')
-      ).toBeVisible({ timeout: 15000 })
-    })
-
-    test('shows activity summary section', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
-
-      await expect(
-        agentPage.getByText('Resumen de Actividad')
-      ).toBeVisible({ timeout: 15000 })
-    })
-
-    test('shows stat cards', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
-
-      // Should show various stat labels
-      await expect(
-        agentPage.getByText('Tareas Creadas')
-      ).toBeVisible({ timeout: 15000 })
-
-      await expect(
-        agentPage.getByText('Tasa de Completado')
-      ).toBeVisible()
-    })
+    await expect(agentPage.getByText(TEXT.subtitle)).toBeVisible()
   })
 
-  test.describe('Active Tasks Section', () => {
-    test('shows active tasks section', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
-
-      await expect(
-        agentPage.getByText('Tareas Activas')
-      ).toBeVisible({ timeout: 15000 })
-    })
-
-    test('shows task filter buttons', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
-
-      // Task filter buttons
-      await expect(
-        agentPage.getByText('Todas')
-      ).toBeVisible({ timeout: 15000 })
-
-      await expect(
-        agentPage.getByText('Pendientes')
-      ).toBeVisible()
-    })
+  test('shows create task button', async ({ agentPage }) => {
+    await expect(
+      agentPage.getByRole('button', { name: TEXT.createTask }).first()
+    ).toBeVisible({ timeout: 15000 })
   })
 
-  test.describe('Submissions Section', () => {
-    test('shows pending submissions section', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
-
-      await expect(
-        agentPage.getByText('Entregas por Revisar')
-      ).toBeVisible({ timeout: 15000 })
-    })
+  test('shows analytics sections and stat labels', async ({ agentPage }) => {
+    await expect(agentPage.getByText(TEXT.platformPulse)).toBeVisible({ timeout: 15000 })
+    await expect(agentPage.getByText(TEXT.activitySummary)).toBeVisible({ timeout: 15000 })
+    await expect(agentPage.getByText(TEXT.tasksCreated)).toBeVisible({ timeout: 15000 })
+    await expect(agentPage.getByText(TEXT.completionRate)).toBeVisible({ timeout: 15000 })
   })
 
-  test.describe('Quick Actions', () => {
-    test('shows quick actions section', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
-
-      await expect(
-        agentPage.getByText('Acciones Rapidas')
-      ).toBeVisible({ timeout: 15000 })
-    })
-
-    test('shows quick action buttons', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
-
-      await expect(
-        agentPage.getByText('Nueva Tarea')
-      ).toBeVisible({ timeout: 15000 })
-
-      await expect(
-        agentPage.getByText('Revisar Siguiente')
-      ).toBeVisible()
-    })
+  test('shows active tasks section with filters', async ({ agentPage }) => {
+    await expect(agentPage.getByText(TEXT.activeTasks)).toBeVisible({ timeout: 15000 })
+    await expect(agentPage.getByRole('button', { name: TEXT.all })).toBeVisible({ timeout: 15000 })
+    await expect(agentPage.getByRole('button', { name: TEXT.pending })).toBeVisible({ timeout: 15000 })
   })
 
-  test.describe('Recent Activity', () => {
-    test('shows recent activity section', async ({ agentPage }) => {
-      await agentPage.goto('/agent/dashboard')
+  test('shows pending review section', async ({ agentPage }) => {
+    await expect(agentPage.getByText(TEXT.pendingReview)).toBeVisible({ timeout: 15000 })
+  })
 
-      await expect(
-        agentPage.getByText('Actividad Reciente')
-      ).toBeVisible({ timeout: 15000 })
-    })
+  test('shows quick actions and action buttons', async ({ agentPage }) => {
+    await expect(agentPage.getByText(TEXT.quickActions)).toBeVisible({ timeout: 15000 })
+    await expect(
+      agentPage.getByRole('button', { name: TEXT.newTask }).first()
+    ).toBeVisible({ timeout: 15000 })
+    await expect(agentPage.getByRole('button', { name: TEXT.reviewNext })).toBeVisible({ timeout: 15000 })
+  })
+
+  test('shows recent activity section', async ({ agentPage }) => {
+    await expect(
+      agentPage.getByRole('heading', { name: TEXT.recentActivity })
+    ).toBeVisible({ timeout: 15000 })
   })
 })

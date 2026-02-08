@@ -105,8 +105,8 @@ jobs:
           build-args: |
             VITE_API_URL=${{ secrets.PRODUCTION_API_URL }}
             VITE_BUILD_VERSION=${{ steps.version.outputs.version }}
-            VITE_REQUIRE_AGENT_API_KEY=false
-            VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true
+            VITE_REQUIRE_AGENT_API_KEY=true
+            VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false
 
       - name: Output image URIs
         id: output

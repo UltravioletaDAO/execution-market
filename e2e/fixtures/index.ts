@@ -22,6 +22,7 @@ export {
   mockCamera,
   mockTasks,
   mockSubmissions,
+  mockPublicMetrics,
   mockExecutor,
   mockAgent,
   type Task,
