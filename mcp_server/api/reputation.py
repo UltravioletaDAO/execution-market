@@ -37,7 +37,7 @@ except ImportError:
     ERC8004_AVAILABLE = False
     ERC8004_SUPPORTED_NETWORKS = []
 
-from .auth import verify_api_key, verify_api_key_if_required, APIKeyData
+from .auth import verify_api_key_if_required, APIKeyData
 
 logger = logging.getLogger(__name__)
 
