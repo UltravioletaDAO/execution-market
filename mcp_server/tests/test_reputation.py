@@ -9,7 +9,6 @@ Tests the Beta-Binomial reputation system:
 - Edge cases (zero values, negatives, extremes)
 """
 
-import math
 from datetime import datetime, UTC
 
 from reputation.bayesian import (
