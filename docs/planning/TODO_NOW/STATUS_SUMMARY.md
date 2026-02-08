@@ -20,6 +20,9 @@
 - Lógica de fallback endurecida a `fail-closed`:
   - si `VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false`, no hay mutación directa aunque falte `VITE_REQUIRE_AGENT_API_KEY`.
   - aplicado en create/cancel/assign/approve/reject/request-more-info.
+- Gate de fondos live agregado:
+  - `npm run check:funds:strict` valida umbrales mínimos de ETH/USDC y retorna exit code `1` si no alcanza.
+  - parámetros: `--min-usdc`, `--min-eth`, `--strict`.
 
 ## Evidencia x402 Ejecutada Hoy
 

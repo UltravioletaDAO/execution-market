@@ -163,7 +163,7 @@ Formato:
 - [x] `COD-260208-A03 | P0 | QA | Reescribir fixtures E2E para API-first (`/api/v1/*`)` | tests dejan de depender de `rest/v1/*` legacy | `cd e2e && npm run test -- --project=chromium --reporter=list` => `36 passed`
 - [x] `COD-260208-A04 | P0 | QA | Hacer E2E resiliente a i18n` | selectors por role/testid, no texto fijo ES | specs actualizados (EN/ES regex + roles)
 - [~] `COD-260208-A05 | P0 | QA/Ops | Ejecutar 1 strict live x402 y guardar evidencia completa` | comando + task_id + escrow_id + tx hashes + estados finales | strict-api run ejecutado; pendiente corrida final `--monitor --auto-approve`
-- [ ] `COD-260208-A06 | P0 | Ops | Definir umbral mínimo fondos ETH/USDC para runs live` | abort temprano con mensaje claro | `check-deposit-state.ts`
+- [x] `COD-260208-A06 | P0 | Ops | Definir umbral mínimo fondos ETH/USDC para runs live` | abort temprano con mensaje claro | `cd scripts && npm run check:funds:strict` (soporta `--min-usdc` y `--min-eth`)
 - [x] `COD-260208-A07 | P0 | Docs | Actualizar estado maestro con snapshot real de hoy` | un documento canónico vigente | `docs/planning/TODO_NOW/STATUS_SUMMARY.md` refrescado 2026-02-08
 - [x] `COD-260208-A08 | P0 | Frontend+Backend | Corregir mismatch Authorization vs X-API-Key` | mutaciones agent no fallan por header inválido | `mcp_server/api/auth.py` + `dashboard/src/services/*.ts`
 

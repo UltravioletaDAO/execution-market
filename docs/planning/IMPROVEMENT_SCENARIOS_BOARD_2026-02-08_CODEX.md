@@ -21,6 +21,7 @@ Status legend:
 - [ ] `IMP-COD-012 | P1 | Estabilizar rate-limit para métricas públicas`
 - [~] `IMP-COD-013 | P1 | Unificar docs de estado (retirar snapshot desactualizados)`
 - [x] `IMP-COD-014 | P0 | Alinear Authorization Bearer vs X-API-Key en backend+frontend`
+- [x] `IMP-COD-015 | P0 | Gate de fondos live (ETH/USDC) con fail-fast en modo strict`
 
 ## 2) Escenarios Nuevos De Validación
 
