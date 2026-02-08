@@ -1056,6 +1056,14 @@ class RejectionRequest(BaseModel):
     )
 
 
+class RequestMoreInfoRequest(BaseModel):
+    """Request model for requesting more info on a submission."""
+
+    notes: str = Field(
+        ..., description="Required clarification request", min_length=5, max_length=1000
+    )
+
+
 class CancelRequest(BaseModel):
     """Request model for cancelling a task."""
 
@@ -2491,6 +2499,77 @@ async def reject_submission(
     return SuccessResponse(
         message="Submission rejected. Task returned to available pool.",
         data={"submission_id": submission_id, "verdict": "rejected"},
+    )
+
+
+@router.post(
+    "/submissions/{submission_id}/request-more-info",
+    response_model=SuccessResponse,
+    responses={
+        200: {"description": "More information requested"},
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Not authorized"},
+        404: {"model": ErrorResponse, "description": "Submission not found"},
+        409: {"model": ErrorResponse, "description": "Submission already processed"},
+    },
+)
+async def request_more_info_submission(
+    submission_id: str = Path(
+        ..., description="UUID of the submission", pattern=UUID_PATTERN
+    ),
+    request: RequestMoreInfoRequest = ...,
+    api_key: APIKeyData = Depends(verify_api_key),
+) -> SuccessResponse:
+    """
+    Request additional evidence/clarification from the worker.
+
+    Sets submission verdict to `more_info_requested` and moves task back to
+    `in_progress` so the assigned worker can resubmit.
+    """
+    if not await verify_agent_owns_submission(api_key.agent_id, submission_id):
+        submission = await db.get_submission(submission_id)
+        if not submission:
+            raise HTTPException(status_code=404, detail="Submission not found")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to update this submission"
+        )
+
+    submission = await db.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+
+    existing_verdict = _normalize_status(submission.get("agent_verdict"))
+    if existing_verdict in {"accepted", "approved", "rejected", "disputed"}:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Submission already processed with verdict: {submission.get('agent_verdict')}",
+        )
+
+    task = submission.get("task") or {}
+    task_id = task.get("id")
+    if not task_id:
+        raise HTTPException(
+            status_code=500, detail="Submission is missing task context"
+        )
+
+    await db.update_submission(
+        submission_id=submission_id,
+        agent_id=api_key.agent_id,
+        verdict="more_info_requested",
+        notes=request.notes,
+    )
+    await db.update_task(task_id, {"status": "in_progress"})
+
+    logger.info(
+        "More info requested: submission=%s, task=%s, agent=%s",
+        submission_id,
+        task_id,
+        api_key.agent_id,
+    )
+
+    return SuccessResponse(
+        message="More information requested from worker.",
+        data={"submission_id": submission_id, "task_id": task_id, "verdict": "more_info_requested"},
     )
 
 
