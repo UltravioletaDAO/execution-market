@@ -95,9 +95,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const lastWalletRef = useRef<string | null>(null)
   const linkedWalletRef = useRef<string | null>(null)
   const linkingRef = useRef(false)
+  const logoutDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Ref for dynamicWalletAddress — avoids it being an effect dependency
+  // which caused unnecessary re-fetches when Dynamic SDK transitions wallet state
+  const dynamicWalletRef = useRef<string | null>(null)
 
   // Derived state
   const dynamicWalletAddress = primaryWallet?.address?.toLowerCase() || null
+  dynamicWalletRef.current = dynamicWalletAddress
   const walletAddress = dynamicWalletAddress || persistedWalletAddress || null
   // Only consider authenticated when Dynamic SDK says user is logged in.
   // persistedWalletAddress is a hint for executor lookup, NOT an auth signal.
@@ -348,6 +353,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // --------------------------------------------------------------------------
   // Effect: Fetch executor when wallet changes
+  // Note: dynamicWalletAddress is read via ref (not a dep) to prevent
+  // unnecessary re-fetches when Dynamic SDK transitions wallet state
+  // (e.g. null → address) while walletAddress stays the same via persisted fallback.
   // --------------------------------------------------------------------------
   useEffect(() => {
     if (!dynamicInitialized) {
@@ -356,6 +364,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     if (walletAddress) {
+      // Cancel any pending logout debounce — wallet is back
+      if (logoutDebounceRef.current) {
+        clearTimeout(logoutDebounceRef.current)
+        logoutDebounceRef.current = null
+      }
+
       localStorage.setItem(WALLET_STORAGE_KEY, walletAddress)
       setPersistedWalletAddress(walletAddress)
       lastWalletRef.current = walletAddress
@@ -365,7 +379,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         .then((data) => {
           // If we can't recover executor data for a persisted-only wallet,
           // clear persisted session and require explicit re-auth.
-          if (!dynamicWalletAddress && !data) {
+          if (!dynamicWalletRef.current && !data) {
             localStorage.removeItem(WALLET_STORAGE_KEY)
             setPersistedWalletAddress(null)
             setUserType(null)
@@ -379,17 +393,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setLoading(false)
         })
     } else {
-      setExecutor(null)
-      setLoading(false)
-      if (lastWalletRef.current) {
-        lastWalletRef.current = null
-        linkedWalletRef.current = null
-        supabase.auth.signOut().catch((err: unknown) => {
-          console.warn('[Auth] Failed to clear Supabase session:', err)
-        })
+      // Debounce wallet removal — Dynamic SDK may briefly null the wallet
+      // during session restoration or wallet provisioning transitions.
+      // The 300ms delay prevents a flash of unauthenticated state.
+      logoutDebounceRef.current = setTimeout(() => {
+        logoutDebounceRef.current = null
+        setExecutor(null)
+        setLoading(false)
+        if (lastWalletRef.current) {
+          lastWalletRef.current = null
+          linkedWalletRef.current = null
+          supabase.auth.signOut().catch((err: unknown) => {
+            console.warn('[Auth] Failed to clear Supabase session:', err)
+          })
+        }
+      }, 300)
+    }
+
+    return () => {
+      if (logoutDebounceRef.current) {
+        clearTimeout(logoutDebounceRef.current)
       }
     }
-  }, [dynamicInitialized, dynamicWalletAddress, walletAddress, fetchExecutor, linkWalletToSession, setUserType])
+  }, [dynamicInitialized, walletAddress, fetchExecutor, linkWalletToSession, setUserType])
 
   // --------------------------------------------------------------------------
   // Context Value
