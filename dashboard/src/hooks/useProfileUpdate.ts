@@ -10,6 +10,7 @@ export interface ProfileUpdateData {
   location_city: string
   location_country: string
   email: string | null
+  phone: string | null
   avatar_url?: string | null
 }
 
@@ -80,6 +81,8 @@ export function useProfileUpdate() {
           p_location_city: data.location_city || null,
           p_location_country: data.location_country || null,
           p_email: data.email || null,
+          p_avatar_url: data.avatar_url || null,
+          p_phone: data.phone || null,
         }
 
         // Use RPC function to update profile (bypasses RLS)
@@ -98,9 +101,8 @@ export function useProfileUpdate() {
                 location_city: data.location_city || null,
                 location_country: data.location_country || null,
                 email: data.email || null,
-            }
-            if (data.avatar_url !== undefined) {
-              updateFields.avatar_url = data.avatar_url
+                phone: data.phone || null,
+                avatar_url: data.avatar_url || null,
             }
             const { error: directError } = await supabase
               .from('executors')

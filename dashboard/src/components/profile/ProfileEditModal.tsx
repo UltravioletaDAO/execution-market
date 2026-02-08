@@ -44,6 +44,7 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
   const [locationCity, setLocationCity] = useState(executor.location_city || '')
   const [locationCountry, setLocationCountry] = useState(executor.location_country || '')
   const [email, setEmail] = useState(executor.email || '')
+  const [phone, setPhone] = useState(executor.phone || '')
   const [avatarUrl, setAvatarUrl] = useState(executor.avatar_url || '')
   const [avatarUploading, setAvatarUploading] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -157,6 +158,7 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
       location_city: locationCity.trim(),
       location_country: locationCountry.trim(),
       email: email.trim() || null,
+      phone: phone.trim() || null,
       avatar_url: avatarUrl || null,
     }
 
@@ -280,20 +282,28 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
               {t('profile.completion.skills', 'Skills')}
             </label>
             <div className="flex flex-wrap gap-2">
-              {PREDEFINED_SKILLS.map((skill) => (
-                <button
-                  key={skill}
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); toggleSkill(skill) }}
-                  className={`cursor-pointer px-3 py-1.5 text-sm rounded-full border transition-colors ${
-                    selectedSkills.includes(skill)
-                      ? 'bg-blue-50 border-blue-300 text-blue-700'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-                  }`}
-                >
-                  {skill.replace(/_/g, ' ')}
-                </button>
-              ))}
+              {PREDEFINED_SKILLS.map((skill) => {
+                const isSelected = selectedSkills.includes(skill)
+                return (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleSkill(skill) }}
+                    className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border transition-all ${
+                      isSelected
+                        ? 'bg-blue-100 border-blue-400 text-blue-800 shadow-sm'
+                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300'
+                    }`}
+                  >
+                    {isSelected && (
+                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    {skill.replace(/_/g, ' ')}
+                  </button>
+                )
+              })}
             </div>
             <div className="flex gap-2 mt-2">
               <input
@@ -320,8 +330,11 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
                   .map((skill) => (
                     <span
                       key={skill}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-green-50 border border-green-200 text-green-700 rounded-full"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-100 border border-green-400 text-green-800 rounded-full shadow-sm"
                     >
+                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
                       {skill}
                       <button
                         type="button"
@@ -342,20 +355,28 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
               {t('profile.completion.languages', 'Languages')}
             </label>
             <div className="flex flex-wrap gap-2">
-              {LANGUAGE_OPTIONS.map((lang) => (
-                <button
-                  key={lang}
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); toggleLanguage(lang) }}
-                  className={`cursor-pointer px-3 py-1.5 text-sm rounded-full border transition-colors ${
-                    languages.includes(lang)
-                      ? 'bg-blue-50 border-blue-300 text-blue-700'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-                  }`}
-                >
-                  {lang}
-                </button>
-              ))}
+              {LANGUAGE_OPTIONS.map((lang) => {
+                const isSelected = languages.includes(lang)
+                return (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleLanguage(lang) }}
+                    className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full border transition-all ${
+                      isSelected
+                        ? 'bg-blue-100 border-blue-400 text-blue-800 shadow-sm'
+                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300'
+                    }`}
+                  >
+                    {isSelected && (
+                      <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    {lang}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -395,6 +416,21 @@ export function ProfileEditModal({ executor, onClose, onSaved }: ProfileEditModa
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            />
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('profile.completion.phone', 'Phone')}{' '}
+              <span className="text-gray-400 font-normal">({t('common.optional', 'optional')})</span>
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+1 555 123 4567"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
