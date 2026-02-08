@@ -4,7 +4,6 @@
  * Supports:
  * - English (en)
  * - Spanish (es) - Latin American
- * - Portuguese (pt) - Brazilian
  *
  * Features:
  * - Browser language detection
@@ -20,10 +19,9 @@ import { initReactI18next } from 'react-i18next'
 // These are relatively small JSON files, so static import is acceptable
 import en from './locales/en.json'
 import es from './locales/es.json'
-import pt from './locales/pt.json'
 
-// Supported languages
-export const SUPPORTED_LANGUAGES = ['en', 'es', 'pt'] as const
+// Supported languages (Portuguese removed - incomplete translations)
+export const SUPPORTED_LANGUAGES = ['en', 'es'] as const
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
 
 // Language metadata for UI
@@ -50,13 +48,6 @@ export const LANGUAGE_CONFIG: Record<
     fullName: 'Spanish',
     flag: '🇲🇽',
     nativeName: 'Espanol',
-  },
-  pt: {
-    code: 'pt',
-    label: 'PT',
-    fullName: 'Portuguese',
-    flag: '🇧🇷',
-    nativeName: 'Portugues',
   },
 }
 
@@ -103,7 +94,6 @@ i18n.use(initReactI18next).init({
   resources: {
     en: { translation: en },
     es: { translation: es },
-    pt: { translation: pt },
   },
   lng: getInitialLanguage(),
   fallbackLng: 'en',
