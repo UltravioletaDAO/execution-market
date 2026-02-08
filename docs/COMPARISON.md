@@ -69,9 +69,9 @@ Competitor Comparison (on $100 task):
 | **Partial Payouts** | Yes | No | No | No | No |
 | **Worker Protection Fund** | Yes | No | No | No | No |
 | **Global (no banking)** | Yes | No | No | No | No |
-| **Streaming Payments** | Yes | No | No | No | No |
-| **Hardware Attestation** | Yes | No | No | No | No |
-| **Decentralized Arbitration** | Yes | Yes | Yes | No | Yes |
+| **Streaming Payments** | Planned 🚧 | No | No | No | No |
+| **Hardware Attestation** | Planned 🚧 | No | No | No | No |
+| **Decentralized Arbitration** | Planned 🚧 | Yes | Yes | No | Yes |
 | **Physical Tasks** | Yes | Yes | No | No | No |
 | **Digital Tasks** | Yes | No | Yes | Yes | Yes |
 | **Micropayments (<$1)** | Yes | No | No | Yes | No |
@@ -102,14 +102,14 @@ Competitor Comparison (on $100 task):
 | **Bank Transfer** | Via ramp | Yes | Yes | Yes | Yes |
 | **Escrow** | Yes (on-chain) | Yes | Yes | No | Yes |
 | **x402 Protocol** | Yes | No | No | No | No |
-| **Superfluid Streaming** | Yes | No | No | No | No |
+| **Superfluid Streaming** | Planned 🚧 | No | No | No | No |
 
 ### Worker Protections
 
 | Protection | Execution Market | TaskRabbit | Fiverr | MTurk |
 |------------|:------:|:----------:|:------:|:-----:|
 | **Insurance Fund** | Yes (2%) | No | No | No |
-| **Dispute Arbitration** | Decentralized | Platform | Platform | None |
+| **Dispute Arbitration** | Programmatic (decentralized planned 🚧) | Platform | Platform | None |
 | **Rating Transparency** | On-chain | Hidden | Visible | Hidden |
 | **Non-payment Protection** | Escrow | Partial | Escrow | None |
 | **Portable Reputation** | Yes | No | No | No |
@@ -171,9 +171,9 @@ Competitor Comparison (on $100 task):
    - Crypto-native from day one
 
 4. **Fair Disputes**
-   - Decentralized arbitration panel
-   - Not platform-biased decisions
-   - Stake-weighted voting by peers
+   - Programmatic verification (auto-check + AI review)
+   - Decentralized arbitration panel (planned 🚧)
+   - Payer-approves model with transparent on-chain records
 
 5. **Portable Reputation**
    - On-chain reputation follows you
@@ -190,12 +190,12 @@ Competitor Comparison (on $100 task):
 2. **Programmatic Control**
    - Full API for task lifecycle
    - Batch creation and management
-   - Streaming payment support
+   - Streaming payment support (planned 🚧)
 
 3. **Verified Execution**
-   - Hardware attestation (GPS, device)
+   - Hardware attestation (planned 🚧)
    - AI-powered verification layer
-   - ChainWitness notarization
+   - On-chain evidence records
 
 4. **Scalable**
    - Batch task creation
@@ -222,7 +222,7 @@ Competitor Comparison (on $100 task):
 4. **Compliance & Audit**
    - On-chain audit trail
    - Immutable task records
-   - ChainWitness proof of work
+   - Verifiable payment history
 
 5. **AI-Ready**
    - Deploy agents that hire humans
@@ -282,20 +282,20 @@ Built for agents from day one:
 - Other platforms retrofitting AI features
 - Execution Market native: A2A protocol, MCP server, programmatic APIs
 
-### 3. Decentralization
+### 3. Trustless Architecture
 
-- Federated IRC communication (no central point of failure)
-- On-chain escrow (trustless)
-- Decentralized arbitration (fair)
-- Self-hostable (sovereignty)
+- On-chain escrow via x402r (trustless)
+- Portable reputation via ERC-8004 (on-chain)
+- Decentralized arbitration (planned 🚧)
+- Open protocol design
 
 ### 4. Ecosystem Synergies
 
 Part of Ultravioleta DAO ecosystem:
-- **ChainWitness**: Proof verification
-- **Colmena**: Agent orchestration
-- **EnclaveOps**: Privacy layer
-- **x402**: Payment rails
+- **x402**: Payment rails (live ✅)
+- **ERC-8004**: On-chain identity and reputation (live ✅)
+- **Describe.net**: Categorical reputation seals (integrated)
+- **Terra4mice**: Infrastructure-as-code tracking
 
 ---
 
@@ -305,7 +305,7 @@ Part of Ultravioleta DAO ecosystem:
 
 1. **Crypto rails** - No credit card 2-3% fees
 2. **Automated verification** - AI reduces human review costs
-3. **Decentralized** - No central infrastructure to maintain
+3. **Lean infrastructure** - Minimal overhead
 4. **Protocol economics** - x402 adds marginal fee (<1%)
 
 ### "Why would workers switch?"
@@ -356,7 +356,7 @@ Traditional platforms:
 Execution Market:
 - Anyone posts → Anyone executes → Payment flows instantly
 - Humans, AI Agents, Robots - all first-class citizens
-- Built on open protocols (x402, ERC-8004, IRC)
+- Built on open protocols (x402, ERC-8004, MCP)
 
 **For workers**: More money, faster payment, global access.
 **For agents**: Finally, a way to hire humans programmatically.

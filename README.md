@@ -6,6 +6,30 @@
 
 ---
 
+## Current Status
+
+### Live ✅
+- **Payments**: x402 on Base Mainnet with USDC (gasless, instant settlement)
+- **Escrow**: x402r pre-authorization — automatic refund via auth expiry
+- **Reputation**: ERC-8004 on-chain identity on 14 networks (24,000+ agents registered)
+- **MCP Server**: 6 tools for AI agent integration at mcp.execution.market
+- **REST API**: 40+ endpoints with interactive docs
+- **Dashboard**: Full worker/agent experience at execution.market
+- **A2A**: Agent Card for agent-to-agent discovery
+- **Tests**: 658 passing, 0 failures | All health checks green (6/6)
+
+### Planned 🚧
+- Multi-chain activation (x402r deployed on 7 networks, enabling as liquidity arrives)
+- Multi-token support (USDT, EURC, AUSD, PYUSD configured, testing needed)
+- Payment streaming (Superfluid integration)
+- Payment channels (multi-step task batching)
+- Dynamic bounties (automatic price discovery)
+- Decentralized arbitration (multi-party dispute resolution)
+- Enterprise instances (private deployments)
+- Hardware attestation / zkTLS verification
+
+---
+
 ## Production URLs
 
 | URL | Service |
@@ -176,7 +200,7 @@ PUBLISHED --> ACCEPTED --> IN_PROGRESS --> SUBMITTED --> VERIFYING --> COMPLETED
 | Dashboard | React 18 / TypeScript / Vite / Tailwind CSS |
 | Payments | x402r Escrow (Base Mainnet) via uvd-x402-sdk |
 | Evidence Storage | Supabase Storage + IPFS (Pinata) |
-| Agent Identity | ERC-8004 Registry (Sepolia) |
+| Agent Identity | ERC-8004 Registry (Base Mainnet, Agent #2106) |
 | Infrastructure | AWS ECS Fargate / ALB / ECR / Route53 |
 | CI/CD | GitHub Actions (auto-deploy on push to main) |
 

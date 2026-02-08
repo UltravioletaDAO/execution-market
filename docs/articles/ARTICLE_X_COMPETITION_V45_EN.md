@@ -257,7 +257,7 @@ A nearby executor takes it — human or robot.
 Completes it.
 The system verifies.
 Payment settles on-chain. In seconds.
-If it fails, the refund is automatic.
+If it fails, the payment authorization simply expires — funds were never moved from the agent's wallet.
 
 The agent never knew if it was a human or a robot. It only cared that the work got done — and that the payment was trustless.
 
@@ -324,11 +324,11 @@ No.
 |--|-------------------|----------------------|------------------|
 | **Client** | Humans | AI Agents | AI Agents |
 | **Executors** | Humans only | Humans only | **Humans + Robots + Drones** |
-| **Escrow** | Platform-held | Platform-held (custodial) | **Smart contract (x402r)** |
-| **Refunds** | Manual review | 48-hour human review | **Automatic (trustless)** |
+| **Escrow** | Platform-held | Platform-held (custodial) | **x402r pre-authorization escrow** |
+| **Refunds** | Manual review | 48-hour human review | **Automatic (auth expiry — funds never leave until approved)** |
 | **Payments** | Centralized, delayed | Crypto + Stripe | **Gasless, instant (x402)** |
 | **Reputation** | Platform-locked | Platform-locked | **On-chain, portable (ERC-8004)** |
-| **Dispute resolution** | Human team | Human team | **Programmatic + arbitration** |
+| **Dispute resolution** | Human team | Human team | **Programmatic (arbitration planned 🚧)** |
 | **Minimum** | $5-15+ | $50/hr | **$0.25** |
 | **If platform dies** | You lose everything | You lose everything | **Your reputation survives** |
 | **Trust model** | Trust the platform | Trust the platform | **Trust the math** |
@@ -367,7 +367,7 @@ There's another code that almost nobody knows: **402 - Payment Required**. Reser
 
 Here's the trustless part: **the facilitator is replaceable.** Anyone can run an x402 facilitator. If ours goes down, another one takes over. The protocol doesn't depend on us. It depends on the standard.
 
-Execution Market accepts payments on **7 EVM mainnets today** — Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Monad — each with x402r escrow contracts deployed. Supporting **USDC, USDT, AUSD, EURC, and PYUSD**. Gasless payments where the worker never needs native tokens.
+Execution Market currently processes payments on **Base Mainnet** with USDC. The x402 facilitator supports **7 EVM mainnets** — Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Monad — with x402r escrow contracts deployed on each. Token support includes **USDC, USDT, AUSD, EURC, and PYUSD** (configured, with USDC live and tested on Base). Additional networks activate as stablecoin liquidity arrives. Gasless payments where the worker never needs native tokens.
 
 And the facilitator itself supports even more networks — including non-EVM chains. As more stablecoins deploy on new L2s, we add them. No rewrite. Just configuration.
 
@@ -379,29 +379,33 @@ This is where the competition fundamentally breaks.
 
 Current platforms resolve refunds with a human team reviewing disputes in 48 hours. That's not infrastructure. That's customer support. And customer support doesn't scale to millions of micro-transactions.
 
-**x402r changes everything: automatic, trustless refunds.**
+**x402r changes everything: trustless escrow with automatic refunds.**
 
-If the work doesn't verify, the money comes back automatically. No disputes. No waiting. No middlemen. No human reviewing your case. Smart contract logic.
+Here's how it works: the agent signs an EIP-3009 payment authorization. The funds don't move until the work is verified and approved. If the work doesn't pass verification, the authorization simply expires — the money never left the agent's wallet. No disputes. No waiting. No middlemen. No human reviewing your case. Math.
 
-**Without this refund system, a trustless execution market is impossible.** An agent can't risk its money without a programmatic guarantee of getting it back if the work fails.
+**Without this escrow model, a trustless execution market is impossible.** An agent can't risk its money without a programmatic guarantee of getting it back if the work fails.
 
-**An agent can hire without risk.** If it fails, it gets its money back automatically. Not because a support team approved it. Because the protocol guarantees it.
+**An agent can hire without risk.** If it fails, the authorization expires and funds stay put. Not because a support team approved it. Because the protocol guarantees it.
 
 This is the single most important differentiator. Every other platform requires you to trust their dispute team. We require you to trust math.
 
-### Payment channels
+### Payment channels 🚧
 
-They work like opening a tab at a bar. You deposit once, make multiple transactions, settle at the end.
+> *Coming soon — in development*
 
-A market research agent needs to verify 20 stores in an area. Instead of 20 separate transactions with 20 fees, it opens a channel, the human executes all 20 verifications, and at the end everything settles in a single transaction.
+The vision: opening a tab at a bar. You deposit once, make multiple transactions, settle at the end.
 
-### Payment streaming (Superfluid)
+A market research agent needs to verify 20 stores in an area. Instead of 20 separate transactions with 20 fees, it opens a channel, the human executes all 20 verifications, and at the end everything settles in a single transaction. We're designing this now.
 
-Money flows per second. Literally.
+### Payment streaming (Superfluid) 🚧
+
+> *Coming soon — integration in progress*
+
+The vision: money flows per second. Literally.
 
 A human monitors a location for 2 hours. Their camera streams. The agent verifies in real time. Money flows while the work is being done. If the human leaves at 47 minutes, they get paid for 47 minutes.
 
-$0.005 per second = $18/hour. Fully automatic. No waiting for approval.
+$0.005 per second = $18/hour. Fully automatic. We're integrating with Superfluid to make this real.
 
 ### Transparent, merit-based reputation (ERC-8004)
 
@@ -439,18 +443,16 @@ But there's a problem: spoofing GPS is trivial, and generative AIs can create hy
 
 Some thieves bring a crowbar, others just need Midjourney.
 
-**For camera-based evidence**, the verification roadmap includes hardware attestation — using the device's Secure Enclave to cryptographically sign photos at capture, proving they were taken by that specific device, at that moment, at those coordinates.
+**For camera-based evidence**, our verification roadmap includes hardware attestation — using the device's Secure Enclave to cryptographically sign photos at capture, proving they were taken by that specific device, at that moment, at those coordinates. This is planned, not yet implemented.
 
-**For web-based evidence** — screenshots, trending topics, price checks — we're integrating with **TLSNotary** and the emerging zkTLS ecosystem. Instead of trusting a screenshot (which can be trivially edited), TLSNotary cryptographically proves what data a server actually returned.
+**For web-based evidence** — screenshots, trending topics, price checks — we plan to integrate with **TLSNotary** and the emerging zkTLS ecosystem. Instead of trusting a screenshot (which can be trivially edited), TLSNotary cryptographically proves what data a server actually returned. This integration is on our roadmap.
 
 For more complex cases, the system scales gradually:
 
-1. **Payer approves** (variable): The task publisher reviews and approves directly.
-2. **Auto-check** (80% of tasks with verification): Instant automatic verification.
-3. **AI Review** (15%): A model analyzes the evidence.
-4. **Human Arbitration** (5%): Arbitrator panel. 2-of-3 consensus via Safe multisig.
-
-And the best part: **validating is paid work**. 5-15% of the bounty goes to validators. A marketplace within the marketplace.
+1. **Payer approves** (live ✅): The task publisher reviews and approves directly.
+2. **Auto-check** (live ✅): Instant automatic verification for structured evidence.
+3. **AI Review** (live ✅): A model analyzes the evidence.
+4. **Human Arbitration** (🚧 planned): Arbitrator panel with multi-party consensus. We're designing a decentralized arbitration system for disputed cases.
 
 ---
 
@@ -590,11 +592,13 @@ Our platform is the first implementation. The protocol allows others to build th
 
 ---
 
-## Enterprise: Trustless, but private
+## Enterprise: Trustless, but private 🚧
+
+> *Planned — on our roadmap*
 
 Companies with internal AI agents need physical tasks done. But they don't want a public marketplace. They don't want to lose control.
 
-**Execution Market Enterprise:**
+**Execution Market Enterprise (planned):**
 - Their own instance of the protocol
 - Internal points system or fiat payments
 - Workers limited to employees or approved contractors
@@ -607,15 +611,17 @@ When your contributions are on-chain, nobody can pretend they didn't see them.
 
 ---
 
-## Dynamic bounties
+## Dynamic bounties 🚧
 
-Nobody taking a task? The bounty goes up automatically.
+> *Planned — coming soon*
 
-You posted at $5 and nobody took it in 2 hours. The system raises it to $6.25. Then to $7.81. Maximum 2-3x.
+Nobody taking a task? The bounty will go up automatically.
+
+The concept: you post at $5 and nobody takes it in 2 hours. The system raises it to $6.25. Then to $7.81. Maximum 2-3x.
 
 The agent deposits the maximum upfront. If someone takes it early, the excess is returned — automatically. No manual refund process.
 
-**Market price discovered in real time.** Trustlessly.
+**Market price discovered in real time.** We're building this.
 
 ---
 
@@ -712,18 +718,18 @@ We don't have all the answers. But we're looking for them in public. Trustlessly
 
 We're **Ultravioleta DAO**. We've been building the trustless pieces that make this possible.
 
-**x402 Facilitator** — live with x402r escrow contracts on **7 EVM mainnets**: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Monad. Supporting USDC, USDT, AUSD, EURC, and PYUSD across chains. Gasless payments. We worked directly with the x402r team to integrate automatic refunds. Additional networks (Optimism, Scroll, Unichain, HyperEVM) are in the config and ready to enable as stablecoin liquidity arrives.
+**x402 Facilitator** — live on **Base Mainnet** with USDC. x402r escrow contracts deployed on **7 EVM mainnets** (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad) with support for USDC, USDT, AUSD, EURC, and PYUSD configured per chain. Currently processing payments on Base; additional networks activate as stablecoin liquidity and demand arrives. Gasless payments. We worked directly with the x402r team to integrate automatic refunds. More networks (Optimism, Scroll, Unichain, HyperEVM) are in the config and ready to enable.
 
 **ERC-8004** — deployed on **14 networks** via our facilitator. On-chain identity and reputation for every agent and worker. Over 24,000 agents registered since the January 29 mainnet launch.
 
 **Execution Market** — deployed and running:
 - **Dashboard**: [execution.market](https://execution.market) — connect your wallet, browse tasks, apply
-- **REST API**: [api.execution.market/docs](https://api.execution.market/docs) — full documentation, 50+ endpoints
+- **REST API**: [api.execution.market/docs](https://api.execution.market/docs) — full documentation, 40+ endpoints
 - **MCP Server**: [mcp.execution.market](https://mcp.execution.market) — any MCP-compatible agent can connect
 - **Agent Card**: [mcp.execution.market/.well-known/agent.json](https://mcp.execution.market/.well-known/agent.json) — A2A discovery
 - **X**: [@executi0nmarket](https://x.com/executi0nmarket)
 
-Worker payouts have settled on mainnet. On-chain. Verifiable. Trustless. And that same flow works on any of the 7 supported networks — same escrow, same refunds, same guarantees.
+Worker payouts have settled on Base Mainnet. On-chain. Verifiable. Trustless. The same escrow and refund flow is deployed on all 7 supported networks — ready to activate as demand grows.
 
 ---
 
@@ -745,7 +751,7 @@ If you're a **human looking for flexible income**: connect your wallet at [execu
 
 If you have a **robot, drone, or autonomous hardware**: we're designing executor integration from day one. The protocol doesn't care if you're carbon or silicon.
 
-If you want to **help define the protocol**: the base technologies are there (x402, x402r, Superfluid, ERC-8004), but the open standard is still being shaped. If you have ideas, we want to hear them.
+If you want to **help define the protocol**: the base technologies are live (x402, x402r, ERC-8004) and planned integrations (Superfluid, Payment Channels, Safe) are being shaped. If you have ideas, we want to hear them.
 
 Follow us at [@executi0nmarket](https://x.com/executi0nmarket). We're building in public.
 
@@ -755,15 +761,48 @@ Follow us at [@executi0nmarket](https://x.com/executi0nmarket). We're building i
 
 ---
 
+## What's live today ✅
+
+- **x402 payments** on Base Mainnet with USDC — gasless, instant settlement
+- **x402r escrow** with automatic refunds (authorization expiry model)
+- **ERC-8004 reputation** on 14 networks — portable, on-chain, permanent
+- **MCP Server** at mcp.execution.market — any MCP-compatible agent can connect
+- **REST API** with 40+ endpoints and interactive docs
+- **Dashboard** at execution.market — connect wallet, browse tasks, apply
+- **A2A Agent Card** for agent-to-agent discovery
+- **658 passing tests**, all health checks green, live mainnet payment evidence
+- **6-8% transparent fee** — on-chain, auditable
+
+## Building next 🚧
+
+- **Multi-chain activation** — x402r contracts deployed on 7 networks, enabling as liquidity arrives
+- **Multi-token support** — USDT, EURC, AUSD, PYUSD configured, testing in progress
+- **Payment streaming** — Superfluid integration for per-second payments
+- **Payment channels** — multi-step task batching (deposit once, execute many)
+- **Dynamic bounties** — automatic price discovery for unclaimed tasks
+- **Decentralized arbitration** — multi-party dispute resolution
+- **Enterprise instances** — private deployments with internal token support
+- **Hardware attestation** — Secure Enclave photo verification
+- **zkTLS / TLSNotary** — cryptographic web evidence verification
+
+---
+
 ## Tech stack
+
+### Live ✅
 
 | Technology | Purpose | Credit |
 |------------|---------|--------|
 | x402 Protocol | HTTP-native payments (code 402) | @x402Foundation |
-| x402r Refunds | Automatic trustless refunds | @x402r team |
+| x402r Refunds | Trustless escrow with automatic refunds | @x402r team |
+| ERC-8004 | On-chain identity + portable reputation | @marco_de_rossi / @DavideCrapis |
+
+### Planned integrations 🚧
+
+| Technology | Purpose | Credit |
+|------------|---------|--------|
 | Payment Channels | Multi-step task batching | Community contribution |
 | Superfluid x402-sf | Payment streaming | @Superfluid_HQ |
-| ERC-8004 | On-chain identity + portable reputation | @marco_de_rossi / @DavideCrapis |
 | Safe Multisig | Consensus-based arbitration | @safe |
 
 ---
