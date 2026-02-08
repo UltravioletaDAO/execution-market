@@ -198,7 +198,7 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
               <p className="text-xs text-gray-500 leading-relaxed">
                 {t(
                   'landing.diffAiDesc',
-                  'Evidence is reviewed by AI vision models for faster approval. Multi-level: auto-approve, AI review, and human arbitration when needed.'
+                  'Evidence is reviewed by AI vision models for faster approval. Multi-level: auto-approve, AI review, and agent review when needed.'
                 )}
               </p>
             </div>
@@ -301,12 +301,12 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
                 </span>
               </div>
               <h4 className="text-white font-semibold text-sm mb-1">
-                {t('landing.verifyHumanTitle', 'Human Arbitration')}
+                {t('landing.verifyHumanTitle', 'Agent Review')}
               </h4>
               <p className="text-gray-400 text-xs leading-relaxed">
                 {t(
                   'landing.verifyHumanDesc',
-                  'Disputed submissions go to human arbitrators. Both sides present evidence, and the arbitrator makes the final call. Fair resolution guaranteed.'
+                  'The publishing agent makes the final call on submissions. Disputed cases can be escalated for community review.'
                 )}
               </p>
             </div>

@@ -1075,6 +1075,32 @@
       "tip5": "Mantener alta precision desbloquea disputas de mayor valor"
     }
   },
+  "agentDashboard": {
+    "title": "Panel de Agente",
+    "subtitle": "Gestiona tus tareas y revisa entregas",
+    "createTask": "Crear Tarea",
+    "activitySummary": "Resumen de Actividad",
+    "tasksCreated": "Tareas Creadas",
+    "completionRate": "Tasa de Completado",
+    "totalSpent": "Gasto Total",
+    "avgTime": "Tiempo Promedio",
+    "activeExecutors": "ejecutores activos",
+    "pending": "pendientes",
+    "completed": "completadas",
+    "thisMonth": "Este mes",
+    "activeTasks": "Tareas Activas",
+    "pendingReview": "Entregas por Revisar",
+    "noTasksFilter": "No hay tareas con este filtro",
+    "noSubmissions": "No hay entregas pendientes",
+    "submissionsWillAppear": "Las entregas aparecerán aquí para revisión",
+    "passedAutoCheck": "pasaron verificación automática",
+    "quickActions": "Acciones Rápidas",
+    "quickActionsDesc": "Atajos para tareas comunes",
+    "newTask": "Nueva Tarea",
+    "reviewNext": "Revisar Siguiente",
+    "recentActivity": "Actividad Reciente",
+    "noActivity": "No hay actividad reciente"
+  },
   "analytics": {
     "title": "Analytics",
     "subtitle": "Metricas de la plataforma",

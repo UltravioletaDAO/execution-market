@@ -1,9 +1,9 @@
 // Execution Market: Agent Dashboard Page (NOW-034)
 // Dashboard for AI agents managing tasks, reviewing submissions, and viewing analytics
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Task, TaskStatus, TaskCategory, Submission } from '../types/database'
+import type { Task, TaskStatus, Submission } from '../types/database'
 import { usePublicMetrics } from '../hooks/usePublicMetrics'
 import { WorkerRatingModal } from '../components/WorkerRatingModal'
 import { WorkerReputationBadge } from '../components/WorkerReputationBadge'
@@ -62,7 +62,7 @@ interface ActivityItem {
 // --------------------------------------------------------------------------
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('es-MX', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
@@ -77,12 +77,12 @@ function formatRelativeTime(dateStr: string): string {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffMins < 1) return 'Ahora'
-  if (diffMins < 60) return `Hace ${diffMins} min`
-  if (diffHours < 24) return `Hace ${diffHours}h`
-  if (diffDays === 1) return 'Ayer'
-  if (diffDays < 7) return `Hace ${diffDays} dias`
-  return date.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 function formatDeadline(deadline: string): string {
@@ -92,35 +92,27 @@ function formatDeadline(deadline: string): string {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
   const diffDays = Math.floor(diffHours / 24)
 
-  if (diffMs < 0) return 'Expirada'
-  if (diffHours < 1) return 'Menos de 1h'
-  if (diffHours < 24) return `${diffHours}h restantes`
-  if (diffDays === 1) return '1 dia'
-  return `${diffDays} dias`
+  if (diffMs < 0) return 'Expired'
+  if (diffHours < 1) return '< 1h left'
+  if (diffHours < 24) return `${diffHours}h left`
+  if (diffDays === 1) return '1 day'
+  return `${diffDays} days`
 }
 
 // --------------------------------------------------------------------------
 // Status Configuration
 // --------------------------------------------------------------------------
 
-const STATUS_CONFIG: Record<TaskStatus, { label: string; className: string; dotColor: string }> = {
-  published: { label: 'Publicada', className: 'bg-green-100 text-green-800', dotColor: 'bg-green-500' },
-  accepted: { label: 'Aceptada', className: 'bg-blue-100 text-blue-800', dotColor: 'bg-blue-500' },
-  in_progress: { label: 'En Progreso', className: 'bg-yellow-100 text-yellow-800', dotColor: 'bg-yellow-500' },
-  submitted: { label: 'Por Revisar', className: 'bg-purple-100 text-purple-800', dotColor: 'bg-purple-500' },
-  verifying: { label: 'Verificando', className: 'bg-indigo-100 text-indigo-800', dotColor: 'bg-indigo-500' },
-  completed: { label: 'Completada', className: 'bg-gray-100 text-gray-800', dotColor: 'bg-gray-500' },
-  disputed: { label: 'En Disputa', className: 'bg-red-100 text-red-800', dotColor: 'bg-red-500' },
-  expired: { label: 'Expirada', className: 'bg-gray-100 text-gray-500', dotColor: 'bg-gray-400' },
-  cancelled: { label: 'Cancelada', className: 'bg-gray-100 text-gray-400', dotColor: 'bg-gray-300' },
-}
-
-const CATEGORY_LABELS: Record<TaskCategory, string> = {
-  physical_presence: 'Presencia Fisica',
-  knowledge_access: 'Acceso a Conocimiento',
-  human_authority: 'Autoridad Humana',
-  simple_action: 'Accion Simple',
-  digital_physical: 'Digital-Fisico',
+const STATUS_STYLES: Record<TaskStatus, { className: string; dotColor: string }> = {
+  published: { className: 'bg-green-100 text-green-800', dotColor: 'bg-green-500' },
+  accepted: { className: 'bg-blue-100 text-blue-800', dotColor: 'bg-blue-500' },
+  in_progress: { className: 'bg-yellow-100 text-yellow-800', dotColor: 'bg-yellow-500' },
+  submitted: { className: 'bg-purple-100 text-purple-800', dotColor: 'bg-purple-500' },
+  verifying: { className: 'bg-indigo-100 text-indigo-800', dotColor: 'bg-indigo-500' },
+  completed: { className: 'bg-gray-100 text-gray-800', dotColor: 'bg-gray-500' },
+  disputed: { className: 'bg-red-100 text-red-800', dotColor: 'bg-red-500' },
+  expired: { className: 'bg-gray-100 text-gray-500', dotColor: 'bg-gray-400' },
+  cancelled: { className: 'bg-gray-100 text-gray-400', dotColor: 'bg-gray-300' },
 }
 
 const ACTIVITY_ICONS: Record<ActivityItem['type'], string> = {
@@ -144,11 +136,13 @@ const ACTIVITY_COLORS: Record<ActivityItem['type'], string> = {
 // --------------------------------------------------------------------------
 
 function StatusBadge({ status }: { status: TaskStatus }) {
-  const config = STATUS_CONFIG[status]
+  const { t } = useTranslation()
+  const styles = STATUS_STYLES[status]
+  const label = t(`tasks.statuses.${status}`, status)
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full ${config.className}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
-      {config.label}
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full ${styles.className}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${styles.dotColor}`} />
+      {label}
     </span>
   )
 }
@@ -192,8 +186,9 @@ function ActiveTaskItem({
   task: Task
   onClick?: () => void
 }) {
+  const { t } = useTranslation()
   const isExpiringSoon = new Date(task.deadline).getTime() - Date.now() < 24 * 60 * 60 * 1000
-  const statusConfig = STATUS_CONFIG[task.status]
+  const statusStyles = STATUS_STYLES[task.status]
 
   return (
     <div
@@ -201,13 +196,13 @@ function ActiveTaskItem({
       className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
     >
       {/* Status indicator */}
-      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusConfig.dotColor}`} />
+      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusStyles.dotColor}`} />
 
       {/* Task info */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs text-gray-500">{CATEGORY_LABELS[task.category]}</span>
+          <span className="text-xs text-gray-500">{t(`tasks.categories.${task.category}`, task.category)}</span>
           <span className="text-xs text-gray-300">|</span>
           <span className={`text-xs ${isExpiringSoon ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>
             {formatDeadline(task.deadline)}
@@ -243,7 +238,7 @@ function PendingSubmissionItem({
         {executor?.avatar_url ? (
           <img
             src={executor.avatar_url}
-            alt={executor.display_name || 'Ejecutor'}
+            alt={executor.display_name || 'Worker'}
             className="w-full h-full rounded-full object-cover"
           />
         ) : (
@@ -257,15 +252,15 @@ function PendingSubmissionItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-gray-900">
-            {executor?.display_name || 'Ejecutor Anonimo'}
+            {executor?.display_name || 'Anonymous Worker'}
           </p>
           {executor && (
             <WorkerReputationBadge score={executor.reputation_score ?? 50} />
           )}
         </div>
-        <p className="text-sm text-gray-600 truncate mt-0.5">{task?.title || 'Tarea'}</p>
+        <p className="text-sm text-gray-600 truncate mt-0.5">{task?.title || 'Task'}</p>
         <p className="text-xs text-gray-400 mt-1">
-          Enviado {formatRelativeTime(submission.submitted_at)}
+          Submitted {formatRelativeTime(submission.submitted_at)}
         </p>
         {submission.reputation_tx && (
           <div className="flex items-center gap-1.5 mt-1">
@@ -286,7 +281,7 @@ function PendingSubmissionItem({
           onClick={onReview}
           className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors"
         >
-          Revisar
+          Review
         </button>
         {submission.auto_check_passed && onApproveAndRate && (
           <button
@@ -296,7 +291,7 @@ function PendingSubmissionItem({
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
-            Aprobar
+            Approve
           </button>
         )}
       </div>
@@ -421,8 +416,8 @@ export function AgentDashboard({
             activities.push({
               id: `sub-${s.id}`,
               type: 'submission_received',
-              title: 'Nueva evidencia recibida',
-              description: `${s.executor?.display_name ?? 'Worker'} envio evidencia para "${s.task?.title ?? 'tarea'}"`,
+              title: 'New evidence received',
+              description: `${s.executor?.display_name ?? 'Worker'} submitted evidence for "${s.task?.title ?? 'task'}"`,
               timestamp: s.submitted_at,
               metadata: { taskId: s.task_id, submissionId: s.id },
             })
@@ -435,8 +430,8 @@ export function AgentDashboard({
               activities.push({
                 id: `comp-${t.id}`,
                 type: 'task_completed',
-                title: 'Tarea completada',
-                description: `"${t.title}" finalizada`,
+                title: 'Task completed',
+                description: `"${t.title}" finished`,
                 timestamp: t.completed_at,
                 metadata: { taskId: t.id },
               })
@@ -444,8 +439,8 @@ export function AgentDashboard({
             activities.push({
               id: `created-${t.id}`,
               type: 'task_created',
-              title: 'Tarea publicada',
-              description: `"${t.title}" creada`,
+              title: 'Task published',
+              description: `"${t.title}" created`,
               timestamp: t.created_at,
               metadata: { taskId: t.id },
             })
@@ -517,8 +512,8 @@ export function AgentDashboard({
             </button>
           )}
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Panel de Agente</h1>
-            <p className="text-sm text-gray-500">Gestiona tus tareas y revisa entregas</p>
+            <h1 className="text-xl font-bold text-gray-900">{t('agentDashboard.title', 'Agent Dashboard')}</h1>
+            <p className="text-sm text-gray-500">{t('agentDashboard.subtitle', 'Manage your tasks and review submissions')}</p>
           </div>
         </div>
 
@@ -531,7 +526,7 @@ export function AgentDashboard({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Crear Tarea
+            {t('agentDashboard.createTask', 'Create Task')}
           </button>
         </div>
       </div>
@@ -545,7 +540,7 @@ export function AgentDashboard({
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            label="Usuarios Registrados"
+            label={t('metrics.registeredUsers', 'Registered Users')}
             value={
               platformMetricsLoading || !platformMetrics
                 ? '...'
@@ -558,7 +553,7 @@ export function AgentDashboard({
             }
           />
           <StatCard
-            label="Workers Activos"
+            label={t('metrics.activeWorkers', 'Active Workers')}
             value={
               platformMetricsLoading || !platformMetrics
                 ? '...'
@@ -571,7 +566,7 @@ export function AgentDashboard({
             }
           />
           <StatCard
-            label="Agentes Activos"
+            label={t('metrics.activeAgents', 'Active Agents')}
             value={
               platformMetricsLoading || !platformMetrics
                 ? '...'
@@ -584,7 +579,7 @@ export function AgentDashboard({
             }
           />
           <StatCard
-            label="Tareas Completadas"
+            label={t('metrics.completedTasks', 'Completed Tasks')}
             value={
               platformMetricsLoading || !platformMetrics
                 ? '...'
@@ -602,13 +597,13 @@ export function AgentDashboard({
       {analytics && (
         <section>
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
-            Resumen de Actividad
+            {t('agentDashboard.activitySummary', 'Activity Summary')}
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
-              label="Tareas Creadas"
+              label={t('agentDashboard.tasksCreated', 'Tasks Created')}
               value={analytics.tasksCreated}
-              subValue={`${analytics.tasksPending} pendientes`}
+              subValue={`${analytics.tasksPending} ${t('agentDashboard.pending', 'pending')}`}
               icon={
                 <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -616,10 +611,10 @@ export function AgentDashboard({
               }
             />
             <StatCard
-              label="Tasa de Completado"
+              label={t('agentDashboard.completionRate', 'Completion Rate')}
               value={`${analytics.completionRate.toFixed(1)}%`}
-              subValue={`${analytics.tasksCompleted} completadas`}
-              trend={{ value: 5.2, isPositive: true }}
+              subValue={`${analytics.tasksCompleted} ${t('agentDashboard.completed', 'completed')}`}
+              /* trend removed — no real historical data to compare */
               icon={
                 <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -627,9 +622,9 @@ export function AgentDashboard({
               }
             />
             <StatCard
-              label="Gasto Total"
+              label={t('agentDashboard.totalSpent', 'Total Spent')}
               value={formatCurrency(analytics.totalSpent)}
-              subValue="Este mes"
+              subValue={t('agentDashboard.thisMonth', 'This month')}
               icon={
                 <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -637,9 +632,9 @@ export function AgentDashboard({
               }
             />
             <StatCard
-              label="Tiempo Promedio"
-              value={`${analytics.avgCompletionTime}h`}
-              subValue={`${analytics.activeExecutors} ejecutores activos`}
+              label={t('agentDashboard.avgTime', 'Avg. Completion Time')}
+              value={analytics.avgCompletionTime > 0 ? `${analytics.avgCompletionTime}h` : 'N/A'}
+              subValue={`${analytics.activeExecutors} ${t('agentDashboard.activeExecutors', 'active workers')}`}
               icon={
                 <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -657,7 +652,7 @@ export function AgentDashboard({
         {/* Active Tasks */}
         <section className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Tareas Activas</h2>
+            <h2 className="font-semibold text-gray-900">{t('agentDashboard.activeTasks', 'Active Tasks')}</h2>
             <div className="flex items-center gap-1">
               {(['all', 'pending', 'in_progress'] as const).map((filter) => (
                 <button
@@ -669,7 +664,7 @@ export function AgentDashboard({
                       : 'text-gray-500 hover:bg-gray-100'
                   }`}
                 >
-                  {filter === 'all' ? 'Todas' : filter === 'pending' ? 'Pendientes' : 'En Progreso'}
+                  {filter === 'all' ? t('common.all', 'All') : filter === 'pending' ? t('agentDashboard.pending', 'Pending') : t('tasks.inProgress', 'In Progress')}
                 </button>
               ))}
             </div>
@@ -683,7 +678,7 @@ export function AgentDashboard({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-500">No hay tareas con este filtro</p>
+                <p className="text-sm text-gray-500">{t('agentDashboard.noTasksFilter', 'No tasks match this filter')}</p>
               </div>
             ) : (
               filteredTasks.map((task) => (
@@ -696,20 +691,14 @@ export function AgentDashboard({
             )}
           </div>
 
-          {filteredTasks.length > 0 && (
-            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
-              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                Ver todas las tareas
-              </button>
-            </div>
-          )}
+          {/* "View all tasks" footer removed — no separate tasks list page for agents yet */}
         </section>
 
         {/* Pending Submissions */}
         <section className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h2 className="font-semibold text-gray-900">Entregas por Revisar</h2>
+              <h2 className="font-semibold text-gray-900">{t('agentDashboard.pendingReview', 'Pending Review')}</h2>
               {pendingSubmissions.length > 0 && (
                 <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
                   {pendingSubmissions.length}
@@ -726,8 +715,8 @@ export function AgentDashboard({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-500">No hay entregas pendientes</p>
-                <p className="text-xs text-gray-400 mt-1">Las entregas apareceran aqui para revision</p>
+                <p className="text-sm text-gray-500">{t('agentDashboard.noSubmissions', 'No pending submissions')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('agentDashboard.submissionsWillAppear', 'Submissions will appear here for review')}</p>
               </div>
             ) : (
               pendingSubmissions.map((submission) => (
@@ -744,11 +733,8 @@ export function AgentDashboard({
           {pendingSubmissions.length > 0 && (
             <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
               <span className="text-xs text-gray-500">
-                {pendingSubmissions.filter((s) => s.auto_check_passed).length} pasaron verificacion automatica
+                {pendingSubmissions.filter((s) => s.auto_check_passed).length} {t('agentDashboard.passedAutoCheck', 'passed auto-check')}
               </span>
-              <button className="text-sm text-purple-600 hover:text-purple-700 font-medium">
-                Revisar todas
-              </button>
             </div>
           )}
         </section>
@@ -760,8 +746,8 @@ export function AgentDashboard({
       <section className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-white font-medium">Acciones Rapidas</h3>
-            <p className="text-blue-100 text-sm">Atajos para tareas comunes</p>
+            <h3 className="text-white font-medium">{t('agentDashboard.quickActions', 'Quick Actions')}</h3>
+            <p className="text-blue-100 text-sm">{t('agentDashboard.quickActionsDesc', 'Shortcuts for common tasks')}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -771,7 +757,7 @@ export function AgentDashboard({
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Nueva Tarea
+              {t('agentDashboard.newTask', 'New Task')}
             </button>
             <button
               onClick={() => pendingSubmissions[0] && onReviewSubmission?.(pendingSubmissions[0])}
@@ -781,14 +767,9 @@ export function AgentDashboard({
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
-              Revisar Siguiente
+              {t('agentDashboard.reviewNext', 'Review Next')}
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-400 transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Ver Reportes
-            </button>
+            {/* Reports button removed — no reports page exists yet */}
           </div>
         </div>
       </section>
@@ -798,13 +779,13 @@ export function AgentDashboard({
       {/* ------------------------------------------------------------------ */}
       <section className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Actividad Reciente</h2>
+          <h2 className="font-semibold text-gray-900">{t('agentDashboard.recentActivity', 'Recent Activity')}</h2>
         </div>
 
         <div className="divide-y divide-gray-100 px-4">
           {recentActivity.length === 0 ? (
             <div className="py-6 text-center">
-              <p className="text-sm text-gray-500">No hay actividad reciente</p>
+              <p className="text-sm text-gray-500">{t('agentDashboard.noActivity', 'No recent activity')}</p>
             </div>
           ) : (
             recentActivity.map((activity) => (
@@ -813,13 +794,7 @@ export function AgentDashboard({
           )}
         </div>
 
-        {recentActivity.length > 5 && (
-          <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Ver toda la actividad
-            </button>
-          </div>
-        )}
+        {/* "View all activity" footer removed — no separate activity page exists yet */}
       </section>
 
       {/* ------------------------------------------------------------------ */}
