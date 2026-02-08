@@ -26,6 +26,7 @@ from verification.ai_review import (
 from .auth import (
     verify_api_key,
     verify_api_key_optional,
+    verify_api_key_if_required,
     APIKeyData,
     verify_agent_owns_task,
     verify_agent_owns_submission,
@@ -1436,7 +1437,7 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
 async def create_task(
     http_request: Request,
     request: CreateTaskRequest,
-    api_key: APIKeyData = Depends(verify_api_key),
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> TaskResponse:
     """
     Create a new task.
@@ -1822,7 +1823,7 @@ async def get_available_tasks(
 )
 async def get_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    api_key: APIKeyData = Depends(verify_api_key),
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> TaskResponse:
     """
     Get task by ID.
@@ -2191,7 +2192,7 @@ async def list_tasks(
     category: Optional[TaskCategory] = Query(None, description="Filter by category"),
     limit: int = Query(20, ge=1, le=100, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    api_key: APIKeyData = Depends(verify_api_key),
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> TaskListResponse:
     """
     List tasks for the authenticated agent.
@@ -2249,7 +2250,7 @@ async def list_tasks(
 )
 async def get_submissions(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    api_key: APIKeyData = Depends(verify_api_key),
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SubmissionListResponse:
     """
     Get submissions for a task.
@@ -2320,7 +2321,7 @@ async def approve_submission(
         ..., description="UUID of the submission", pattern=UUID_PATTERN
     ),
     request: ApprovalRequest = None,
-    api_key: APIKeyData = Depends(verify_api_key),
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SuccessResponse:
     """
     Approve a submission.
@@ -2457,7 +2458,7 @@ async def reject_submission(
         ..., description="UUID of the submission", pattern=UUID_PATTERN
     ),
     request: RejectionRequest = ...,
-    api_key: APIKeyData = Depends(verify_api_key),
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SuccessResponse:
     """
     Reject a submission.
@@ -2518,7 +2519,7 @@ async def request_more_info_submission(
         ..., description="UUID of the submission", pattern=UUID_PATTERN
     ),
     request: RequestMoreInfoRequest = ...,
-    api_key: APIKeyData = Depends(verify_api_key),
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SuccessResponse:
     """
     Request additional evidence/clarification from the worker.
@@ -2587,7 +2588,7 @@ async def request_more_info_submission(
 async def cancel_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: CancelRequest = None,
-    api_key: APIKeyData = Depends(verify_api_key),
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SuccessResponse:
     """
     Cancel a task.
@@ -2865,7 +2866,7 @@ async def cancel_task(
 )
 async def get_analytics(
     days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
-    api_key: APIKeyData = Depends(verify_api_key),
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> AnalyticsResponse:
     """
     Get agent analytics.
@@ -2904,7 +2905,7 @@ async def get_analytics(
 async def assign_task_to_worker(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: WorkerAssignRequest = ...,
-    api_key: APIKeyData = Depends(verify_api_key),
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SuccessResponse:
     """
     Assign a published task to a worker.
@@ -3668,7 +3669,7 @@ class BatchCreateResponse(BaseModel):
     },
 )
 async def batch_create_tasks(
-    request: BatchCreateRequest, api_key: APIKeyData = Depends(verify_api_key)
+    request: BatchCreateRequest, api_key: APIKeyData = Depends(verify_api_key_if_required)
 ) -> BatchCreateResponse:
     """
     Create multiple tasks in a single request.

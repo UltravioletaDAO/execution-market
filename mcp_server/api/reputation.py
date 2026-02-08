@@ -37,7 +37,7 @@ except ImportError:
     ERC8004_AVAILABLE = False
     ERC8004_SUPPORTED_NETWORKS = []
 
-from .auth import verify_api_key, APIKeyData
+from .auth import verify_api_key, verify_api_key_if_required, APIKeyData
 
 logger = logging.getLogger(__name__)
 
@@ -478,7 +478,7 @@ async def register_agent_endpoint(
     },
 )
 async def rate_worker_endpoint(
-    request: WorkerFeedbackRequest, api_key: APIKeyData = Depends(verify_api_key)
+    request: WorkerFeedbackRequest, api_key: APIKeyData = Depends(verify_api_key_if_required)
 ) -> FeedbackResponse:
     """
     Rate a worker after task completion (agent → worker).

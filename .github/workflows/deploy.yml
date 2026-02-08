@@ -161,6 +161,8 @@ jobs:
           platforms: linux/amd64
           build-args: |
             VITE_API_URL=${{ env.API_URL }}
+            VITE_REQUIRE_AGENT_API_KEY=false
+            VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true
 
       - name: Output image tags
         run: |
