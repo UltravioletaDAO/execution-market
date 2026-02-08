@@ -13,7 +13,8 @@
  *
  * Usage:
  *   npx tsx test-x402-full-flow.ts                  # Full x402 via MCP API
- *   npx tsx test-x402-full-flow.ts --direct         # Fallback: direct Supabase insert
+ *   npx tsx test-x402-full-flow.ts --direct --allow-direct-wallet
+ *                                                   # Debug-only: direct Supabase path (non-facilitator)
  *   npx tsx test-x402-full-flow.ts --strict-api     # Fail fast on any non-facilitator fallback (default)
  *   npx tsx test-x402-full-flow.ts --strict-api false
  *   npx tsx test-x402-full-flow.ts --count 3        # Only first N Fibonacci tasks
@@ -119,7 +120,15 @@ function parseArgs(): Record<string, string> {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i].startsWith('--')) {
       const key = argv[i].slice(2);
-      if (['direct', 'monitor', 'auto-approve', 'strict-api'].includes(key)) {
+      if (
+        [
+          'direct',
+          'monitor',
+          'auto-approve',
+          'strict-api',
+          'allow-direct-wallet',
+        ].includes(key)
+      ) {
         args[key] = 'true';
       } else if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
         args[key] = argv[i + 1];
@@ -137,9 +146,18 @@ const DIRECT_MODE = CLI_ARGS['direct'] === 'true';
 const MONITOR_MODE = CLI_ARGS['monitor'] === 'true';
 const AUTO_APPROVE = CLI_ARGS['auto-approve'] === 'true';
 const STRICT_API = CLI_ARGS['strict-api'] !== 'false';
+const ALLOW_DIRECT_WALLET = CLI_ARGS['allow-direct-wallet'] === 'true';
 const TASK_COUNT = Math.min(parseInt(CLI_ARGS['count'] || '5', 10), FIBONACCI_BOUNTIES.length);
 const DEADLINE_MINUTES = parseInt(CLI_ARGS['deadline'] || '15', 10);
 const MONITOR_TIMEOUT_MINUTES = Math.max(1, parseInt(CLI_ARGS['monitor-timeout'] || '20', 10));
+
+if (DIRECT_MODE && !ALLOW_DIRECT_WALLET) {
+  console.error('ERROR: --direct mode is debug-only and requires --allow-direct-wallet.');
+  console.error(
+    'Use strict facilitator flow (`--strict-api`) for production evidence runs.'
+  );
+  process.exit(1);
+}
 
 // =============================================================================
 // Helpers
@@ -798,6 +816,12 @@ async function main(): Promise<void> {
       } else {
         if (STRICT_API) {
           throw new Error(`Task creation via MCP API failed for Fib #${i + 1} and strict mode is enabled.`);
+        }
+        if (!ALLOW_DIRECT_WALLET) {
+          throw new Error(
+            `Task creation via MCP API failed for Fib #${i + 1}. ` +
+              `Non-facilitator fallback requires --allow-direct-wallet.`
+          );
         }
         // Fallback to direct Supabase insert
         console.log(`  API failed, falling back to direct Supabase insert...`);
