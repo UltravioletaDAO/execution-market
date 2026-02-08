@@ -23,12 +23,46 @@ import type {
 const db = supabase as any
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
 const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'
+const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined
 
 function buildApplyTaskUrl(taskId: string): string {
   if (API_BASE_URL.endsWith('/api')) {
     return `${API_BASE_URL}/v1/tasks/${taskId}/apply`
   }
   return `${API_BASE_URL}/api/v1/tasks/${taskId}/apply`
+}
+
+function buildAgentCreateTaskUrl(): string {
+  if (API_BASE_URL.endsWith('/api')) {
+    return `${API_BASE_URL}/v1/tasks`
+  }
+  return `${API_BASE_URL}/api/v1/tasks`
+}
+
+function buildAgentCancelTaskUrl(taskId: string): string {
+  if (API_BASE_URL.endsWith('/api')) {
+    return `${API_BASE_URL}/v1/tasks/${taskId}/cancel`
+  }
+  return `${API_BASE_URL}/api/v1/tasks/${taskId}/cancel`
+}
+
+function buildAgentAssignTaskUrl(taskId: string): string {
+  if (API_BASE_URL.endsWith('/api')) {
+    return `${API_BASE_URL}/v1/tasks/${taskId}/assign`
+  }
+  return `${API_BASE_URL}/api/v1/tasks/${taskId}/assign`
+}
+
+function hasAgentApiKey(): boolean {
+  return Boolean(AGENT_API_KEY)
+}
+
+function buildAgentJsonHeaders(): HeadersInit {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (AGENT_API_KEY) {
+    headers['X-API-Key'] = AGENT_API_KEY
+  }
+  return headers
 }
 
 async function parseApiError(response: Response, fallback: string): Promise<string> {
@@ -142,7 +176,7 @@ export async function getAvailableTasks(filters: Omit<TaskFilters, 'status'> = {
 /**
  * Create a new task
  */
-export async function createTask(data: CreateTaskData): Promise<Task> {
+async function createTaskDirect(data: CreateTaskData): Promise<Task> {
   const deadline = new Date()
   deadline.setHours(deadline.getHours() + data.deadlineHours)
 
@@ -174,6 +208,63 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
   }
 
   return task
+}
+
+export async function createTask(data: CreateTaskData): Promise<Task> {
+  if (!hasAgentApiKey()) {
+    // Transitional mode: dashboard session does not yet carry per-agent API keys.
+    return createTaskDirect(data)
+  }
+
+  try {
+    const response = await fetch(buildAgentCreateTaskUrl(), {
+      method: 'POST',
+      headers: buildAgentJsonHeaders(),
+      body: JSON.stringify({
+        title: data.title,
+        instructions: data.instructions,
+        category: data.category,
+        bounty_usd: data.bountyUsd,
+        deadline_hours: data.deadlineHours,
+        evidence_required: data.evidenceRequired,
+        evidence_optional: data.evidenceOptional || [],
+        location_hint: data.locationHint,
+        min_reputation: data.minReputation || 0,
+        payment_token: data.paymentToken || 'USDC',
+        payment_network: data.paymentNetwork || 'base',
+      }),
+    })
+
+    if (!response.ok) {
+      const fallback = `Failed to create task via API (${response.status})`
+      throw new Error(await parseApiError(response, fallback))
+    }
+
+    const payload = await response.json() as { id?: string }
+    if (!payload?.id) {
+      throw new Error('Task created via API but response did not include task id')
+    }
+
+    const { data: task, error } = await db
+      .from('tasks')
+      .select('*')
+      .eq('id', payload.id)
+      .single()
+
+    if (error || !task) {
+      throw new Error(
+        `Task created via API but could not load row: ${error?.message || 'unknown error'}`
+      )
+    }
+
+    return task
+  } catch (error) {
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw error instanceof Error ? error : new Error('Failed to create task via API')
+    }
+    // Explicit fallback for local/dev troubleshooting only.
+    return createTaskDirect(data)
+  }
 }
 
 // ============== TASK APPLICATION (WORKER) ==============
@@ -324,7 +415,7 @@ export async function cancelApplication(applicationId: string, executorId: strin
 /**
  * Cancel a published task
  */
-export async function cancelTask(data: CancelTaskData): Promise<Task> {
+async function cancelTaskDirect(data: CancelTaskData): Promise<Task> {
   const { taskId, agentId, reason: _reason } = data
 
   // Get task to verify ownership and status
@@ -359,12 +450,54 @@ export async function cancelTask(data: CancelTaskData): Promise<Task> {
   return updatedTask
 }
 
+export async function cancelTask(data: CancelTaskData): Promise<Task> {
+  const { taskId, reason } = data
+
+  if (!hasAgentApiKey()) {
+    // Transitional mode: dashboard session does not yet carry per-agent API keys.
+    return cancelTaskDirect(data)
+  }
+
+  try {
+    const response = await fetch(buildAgentCancelTaskUrl(taskId), {
+      method: 'POST',
+      headers: buildAgentJsonHeaders(),
+      body: JSON.stringify({ reason }),
+    })
+
+    if (!response.ok) {
+      const fallback = `Failed to cancel task via API (${response.status})`
+      throw new Error(await parseApiError(response, fallback))
+    }
+
+    const { data: task, error } = await db
+      .from('tasks')
+      .select('*')
+      .eq('id', taskId)
+      .single()
+
+    if (error || !task) {
+      throw new Error(
+        `Task cancelled via API but row could not be reloaded: ${error?.message || 'unknown error'}`
+      )
+    }
+
+    return task
+  } catch (error) {
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw error instanceof Error ? error : new Error('Failed to cancel task via API')
+    }
+    // Explicit fallback for local/dev troubleshooting only.
+    return cancelTaskDirect(data)
+  }
+}
+
 // ============== TASK ASSIGNMENT (AGENT) ==============
 
 /**
  * Assign a task to a specific executor
  */
-export async function assignTask(data: AssignTaskData): Promise<{ task: Task; executor: { id: string; display_name: string | null } }> {
+async function assignTaskDirect(data: AssignTaskData): Promise<{ task: Task; executor: { id: string; display_name: string | null } }> {
   const { taskId, agentId, executorId, notes: _notes } = data
 
   // Get task to verify ownership
@@ -435,6 +568,67 @@ export async function assignTask(data: AssignTaskData): Promise<{ task: Task; ex
       id: executor.id,
       display_name: executor.display_name,
     },
+  }
+}
+
+export async function assignTask(data: AssignTaskData): Promise<{ task: Task; executor: { id: string; display_name: string | null } }> {
+  const { taskId, executorId, notes } = data
+
+  if (!hasAgentApiKey()) {
+    // Transitional mode: dashboard session does not yet carry per-agent API keys.
+    return assignTaskDirect(data)
+  }
+
+  try {
+    const response = await fetch(buildAgentAssignTaskUrl(taskId), {
+      method: 'POST',
+      headers: buildAgentJsonHeaders(),
+      body: JSON.stringify({
+        executor_id: executorId,
+        notes,
+      }),
+    })
+
+    if (!response.ok) {
+      const fallback = `Failed to assign task via API (${response.status})`
+      throw new Error(await parseApiError(response, fallback))
+    }
+
+    const [{ data: task, error: taskError }, { data: executor, error: executorError }] = await Promise.all([
+      db
+        .from('tasks')
+        .select('*')
+        .eq('id', taskId)
+        .single(),
+      db
+        .from('executors')
+        .select('id, display_name')
+        .eq('id', executorId)
+        .single(),
+    ])
+
+    if (taskError || !task) {
+      throw new Error(
+        `Task assigned via API but task could not be reloaded: ${taskError?.message || 'unknown error'}`
+      )
+    }
+
+    if (executorError || !executor) {
+      throw new Error(
+        `Task assigned via API but executor could not be loaded: ${executorError?.message || 'unknown error'}`
+      )
+    }
+
+    return {
+      task,
+      executor,
+    }
+  } catch (error) {
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw error instanceof Error ? error : new Error('Failed to assign task via API')
+    }
+    // Explicit fallback for local/dev troubleshooting only.
+    return assignTaskDirect(data)
   }
 }
 
