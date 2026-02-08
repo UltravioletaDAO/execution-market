@@ -440,7 +440,7 @@ async def check_blockchain(timeout: float = 10.0) -> ComponentHealth:
 
                 # Determine network from URL
                 if "base.org" in rpc_url:
-                    network = "base-mainnet"
+                    network = "base"
                 elif "quicknode" in rpc_url.lower():
                     network = "base-quicknode"
                 else:

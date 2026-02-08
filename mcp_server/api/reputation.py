@@ -155,7 +155,7 @@ class RegisterAgentRequest(BaseModel):
     """Request to register a new agent on ERC-8004 (gasless)."""
 
     network: str = Field(
-        default="base-mainnet", description="ERC-8004 network for registration"
+        default="base", description="ERC-8004 network for registration"
     )
     agent_uri: str = Field(
         ...,
@@ -415,7 +415,7 @@ async def register_agent_endpoint(
     The Ultravioleta Facilitator pays all gas fees. The caller does not
     need ETH or any native token on the target chain.
 
-    Supported networks: ethereum, base-mainnet, polygon, arbitrum, celo, bsc,
+    Supported networks: ethereum, base, polygon, arbitrum, celo, bsc,
     monad, avalanche, and their testnets.
 
     If `recipient` is specified, the minted ERC-721 NFT is automatically
