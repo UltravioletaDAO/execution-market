@@ -151,7 +151,8 @@ Format:
 
 Progress note:
 - Implemented API-first paths for create/cancel/assign/approve/reject/request-more-info with transitional fallback when `VITE_API_KEY` is not configured.
-- Remaining blocker is auth contract consolidation to remove direct fallback in production.
+- Added auth contract and guardrail flag (`VITE_REQUIRE_AGENT_API_KEY`) in `docs/planning/AGENT_MUTATION_AUTH_CONTRACT_2026-02-08.md`.
+- Remaining blocker is full contract consolidation to remove direct fallback in production.
 
 ## Track C - Payment integrity and evidence
 

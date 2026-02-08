@@ -754,6 +754,7 @@ resources:
       files:
         - docs/planning/LAUNCH_EXECUTIVE_REVIEW_2026-02-08.md
         - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
+        - docs/planning/AGENT_MUTATION_AUTH_CONTRACT_2026-02-08.md
         - docs/planning/TODO_NOW.md
 
     launch_20260208_deploy_runtime_rollout:
@@ -784,11 +785,12 @@ resources:
         description: "Define and implement auth contract for dashboard agent mutations to use backend endpoints safely"
         priority: P0
         status: in_progress
-        evidence: "API-first paths now exist for create/cancel/assign/approve/reject with transitional fallback when VITE_API_KEY is missing; wallet/JWT vs API key contract still unresolved"
+        evidence: "API-first paths now exist for create/cancel/assign/approve/reject/request-more-info; added VITE_REQUIRE_AGENT_API_KEY guardrail and auth contract doc, but wallet/JWT-native contract is still unresolved"
       files:
         - dashboard/src/services/tasks.ts
         - dashboard/src/services/submissions.ts
         - mcp_server/api/routes.py
+        - docs/planning/AGENT_MUTATION_AUTH_CONTRACT_2026-02-08.md
 
     launch_20260208_strict_live_x402_evidence:
       attributes:
