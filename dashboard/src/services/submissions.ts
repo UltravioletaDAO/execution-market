@@ -15,13 +15,37 @@ import type {
   Evidence,
 } from './types'
 
-// ============== SUBMIT WORK ==============
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
+const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'
 
-/**
- * Submit work evidence for a task
- */
-export async function submitWork(data: SubmitWorkData): Promise<{ submission: Submission; task: { id: string; title: string } }> {
-  const { taskId, executorId, evidence, notes } = data
+function buildWorkerSubmitUrl(taskId: string): string {
+  if (API_BASE_URL.endsWith('/api')) {
+    return `${API_BASE_URL}/v1/tasks/${taskId}/submit`
+  }
+  return `${API_BASE_URL}/api/v1/tasks/${taskId}/submit`
+}
+
+async function parseApiError(response: Response, fallback: string): Promise<string> {
+  try {
+    const data = await response.json() as { detail?: string; message?: string; error?: string }
+    return data.detail || data.message || data.error || fallback
+  } catch {
+    return fallback
+  }
+}
+
+async function getTaskTitle(taskId: string): Promise<string> {
+  const { data } = await supabase
+    .from('tasks')
+    .select('title')
+    .eq('id', taskId)
+    .single()
+
+  return data?.title || 'Task'
+}
+
+async function submitWorkDirect(data: SubmitWorkData): Promise<{ submission: Submission; task: { id: string; title: string } }> {
+  const { taskId, executorId, evidence } = data
 
   // Get task to verify assignment and status
   const { data: task, error: taskError } = await supabase
@@ -94,6 +118,64 @@ export async function submitWork(data: SubmitWorkData): Promise<{ submission: Su
       id: task.id,
       title: task.title,
     },
+  }
+}
+
+// ============== SUBMIT WORK ==============
+
+/**
+ * Submit work evidence for a task
+ */
+export async function submitWork(data: SubmitWorkData): Promise<{ submission: Submission; task: { id: string; title: string } }> {
+  const { taskId, executorId, evidence, notes } = data
+  try {
+    const response = await fetch(buildWorkerSubmitUrl(taskId), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        executor_id: executorId,
+        evidence,
+        notes,
+      }),
+    })
+
+    if (!response.ok) {
+      const fallback = `Failed to submit work via API (${response.status})`
+      const detail = await parseApiError(response, fallback)
+      throw new Error(detail)
+    }
+
+    const payload = await response.json() as { data?: { submission_id?: string } }
+    const submissionId = payload?.data?.submission_id
+    if (!submissionId) {
+      throw new Error('Submission succeeded but no submission_id was returned by API')
+    }
+
+    const { data: submission, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', submissionId)
+      .single()
+
+    if (error || !submission) {
+      throw new Error(
+        `Submission created via API but could not load submission row: ${error?.message || 'unknown error'}`
+      )
+    }
+
+    return {
+      submission,
+      task: {
+        id: taskId,
+        title: await getTaskTitle(taskId),
+      },
+    }
+  } catch (error) {
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw error instanceof Error ? error : new Error('Failed to submit work via API')
+    }
+    // Explicit fallback for local/dev troubleshooting only.
+    return submitWorkDirect(data)
   }
 }
 
