@@ -708,7 +708,7 @@ resources:
         description: "Migrate dashboard business mutations from direct Supabase writes to backend API endpoints"
         priority: P0
         status: in_progress
-        evidence: "2026-02-08: apply+submit (be7afda, 6cfd07e) plus create/cancel/assign/approve/reject/request-more-info (aa237c4, ec791a6) are API-first; direct fallback remains transitional"
+        evidence: "2026-02-08: apply+submit (be7afda, 6cfd07e) plus create/cancel/assign/approve/reject/request-more-info (aa237c4, ec791a6) are API-first; fallback path hardened to fail-closed when VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false"
       files:
         - dashboard/src/services/tasks.ts
         - dashboard/src/services/submissions.ts
@@ -963,7 +963,7 @@ resources:
         description: "Align dashboard and backend auth headers so agent mutations use Bearer API key consistently"
         priority: P0
         status: done
-        evidence: "2026-02-08 codex: backend auth accepts Authorization and X-API-Key; dashboard services now send Authorization: Bearer <VITE_API_KEY> (plus compatibility header)"
+        evidence: "2026-02-08 codex: backend auth accepts Authorization and X-API-Key; dashboard services now send Authorization: Bearer <VITE_API_KEY> (plus compatibility header), and mutation fallback is fail-closed when ALLOW_DIRECT=false"
       files:
         - mcp_server/api/auth.py
         - mcp_server/api/middleware.py
