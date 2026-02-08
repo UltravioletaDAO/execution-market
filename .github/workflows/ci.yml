@@ -44,8 +44,14 @@ jobs:
         run: ruff format --check .
 
       - name: Run mypy
-        run: mypy . --ignore-missing-imports
-        continue-on-error: true
+        run: |
+          mypy \
+            models.py \
+            api/admin.py \
+            api/reputation.py \
+            websocket/server.py \
+            --ignore-missing-imports \
+            --follow-imports=skip
 
   lint-frontend:
     name: Lint Frontend

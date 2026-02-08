@@ -52,9 +52,13 @@ jobs:
 
       - name: Run type checking
         run: |
-          pip install mypy
-          mypy . --ignore-missing-imports
-        continue-on-error: true
+          mypy \
+            models.py \
+            api/admin.py \
+            api/reputation.py \
+            websocket/server.py \
+            --ignore-missing-imports \
+            --follow-imports=skip
 
       - name: Run tests
         run: |
