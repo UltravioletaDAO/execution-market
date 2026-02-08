@@ -81,6 +81,22 @@ export function Home() {
   const shouldShowProfileCompletion =
     showProfileCompletion && isAuthenticated && !isProfileComplete
 
+  // Show transition screen when authenticated but still loading executor data
+  // Prevents showing the full landing page (with "Start Earning" hero) after login
+  if (isAuthenticated && loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-12 h-12 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-gray-200 rounded-full" />
+            <div className="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin" />
+          </div>
+          <p className="text-gray-500 text-sm">Preparando tu sesion...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <AppHeader
