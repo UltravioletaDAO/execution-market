@@ -729,12 +729,23 @@ resources:
         description: "Enforce canonical API contract and remove execution.market/api ambiguity across docs and runtime"
         priority: P0
         status: in_progress
-        evidence: "Docs/api base URL migrated and deploy workflows hardened; execution.market/api ambiguity still unresolved at edge"
+        evidence: "Docs/api base URL migrated and deploy workflows hardened; dashboard nginx now redirects /api and /api/* to https://api.execution.market (pending production deploy verification)"
       files:
         - docs-site/docs/api/reference.md
         - README.md
         - dashboard/src/hooks/useTasks.ts
         - dashboard/src/hooks/useTaskPayment.ts
+
+    launch_20260208_execution_market_api_redirect_guard:
+      attributes:
+        description: "Add dashboard runtime guardrail to redirect execution.market/api* to canonical api.execution.market"
+        priority: P0
+        status: in_progress
+        evidence: "2026-02-08: dashboard/nginx.conf updated with 308 redirects for /api and /api/*; pending deploy/runtime validation"
+      files:
+        - dashboard/nginx.conf
+        - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
+        - docs/planning/IMPROVEMENT_SCENARIOS_BOARD_2026-02-08.md
 
     launch_20260208_ci_hard_gate_backend:
       attributes:
