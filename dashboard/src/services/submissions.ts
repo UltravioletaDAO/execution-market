@@ -40,6 +40,13 @@ function buildRejectSubmissionUrl(submissionId: string): string {
   return `${API_BASE_URL}/api/v1/submissions/${submissionId}/reject`
 }
 
+function buildRequestMoreInfoUrl(submissionId: string): string {
+  if (API_BASE_URL.endsWith('/api')) {
+    return `${API_BASE_URL}/v1/submissions/${submissionId}/request-more-info`
+  }
+  return `${API_BASE_URL}/api/v1/submissions/${submissionId}/request-more-info`
+}
+
 function hasAgentApiKey(): boolean {
   return Boolean(AGENT_API_KEY)
 }
@@ -508,7 +515,7 @@ export async function rejectSubmission(data: RejectSubmissionData): Promise<Subm
 /**
  * Request more information on a submission
  */
-export async function requestMoreInfo(submissionId: string, agentId: string, notes: string): Promise<Submission> {
+async function requestMoreInfoDirect(submissionId: string, agentId: string, notes: string): Promise<Submission> {
   // Get submission with task
   const submission = await getSubmission(submissionId)
   if (!submission) {
@@ -543,6 +550,48 @@ export async function requestMoreInfo(submissionId: string, agentId: string, not
     .eq('id', task.id)
 
   return updatedSubmission
+}
+
+export async function requestMoreInfo(submissionId: string, agentId: string, notes: string): Promise<Submission> {
+  if (!hasAgentApiKey()) {
+    return requestMoreInfoDirect(submissionId, agentId, notes)
+  }
+
+  try {
+    const response = await fetch(buildRequestMoreInfoUrl(submissionId), {
+      method: 'POST',
+      headers: buildAgentJsonHeaders(),
+      body: JSON.stringify({ notes }),
+    })
+
+    if (!response.ok) {
+      const fallback = `Failed to request more info via API (${response.status})`
+      throw new Error(await parseApiError(response, fallback))
+    }
+
+    const payload = await response.json() as { data?: { submission_id?: string } }
+    const updatedSubmissionId = payload?.data?.submission_id || submissionId
+
+    const { data: updatedSubmission, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', updatedSubmissionId)
+      .single()
+
+    if (error || !updatedSubmission) {
+      throw new Error(
+        `More-info request succeeded via API but submission could not be reloaded: ${error?.message || 'unknown error'}`
+      )
+    }
+
+    return updatedSubmission
+  } catch (error) {
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw error instanceof Error ? error : new Error('Failed to request more info via API')
+    }
+    // Explicit fallback for local/dev troubleshooting only.
+    return requestMoreInfoDirect(submissionId, agentId, notes)
+  }
 }
 
 // ============== HELPER FUNCTIONS ==============
