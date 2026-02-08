@@ -23,6 +23,7 @@ import type {
 const db = supabase as any
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
 const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'
+const REQUIRE_AGENT_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
 const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined
 
 function buildApplyTaskUrl(taskId: string): string {
@@ -212,6 +213,9 @@ async function createTaskDirect(data: CreateTaskData): Promise<Task> {
 
 export async function createTask(data: CreateTaskData): Promise<Task> {
   if (!hasAgentApiKey()) {
+    if (REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error('VITE_API_KEY is required for agent task creation when VITE_REQUIRE_AGENT_API_KEY=true')
+    }
     // Transitional mode: dashboard session does not yet carry per-agent API keys.
     return createTaskDirect(data)
   }
@@ -454,6 +458,9 @@ export async function cancelTask(data: CancelTaskData): Promise<Task> {
   const { taskId, reason } = data
 
   if (!hasAgentApiKey()) {
+    if (REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error('VITE_API_KEY is required for agent task cancellation when VITE_REQUIRE_AGENT_API_KEY=true')
+    }
     // Transitional mode: dashboard session does not yet carry per-agent API keys.
     return cancelTaskDirect(data)
   }
@@ -575,6 +582,9 @@ export async function assignTask(data: AssignTaskData): Promise<{ task: Task; ex
   const { taskId, executorId, notes } = data
 
   if (!hasAgentApiKey()) {
+    if (REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error('VITE_API_KEY is required for agent task assignment when VITE_REQUIRE_AGENT_API_KEY=true')
+    }
     // Transitional mode: dashboard session does not yet carry per-agent API keys.
     return assignTaskDirect(data)
   }
