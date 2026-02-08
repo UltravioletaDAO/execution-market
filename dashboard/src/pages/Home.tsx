@@ -27,7 +27,6 @@ export function Home() {
   const [showProfileCompletion, setShowProfileCompletion] = useState(false)
   const [wasAuthenticated, setWasAuthenticated] = useState(false)
   const taskSectionRef = useRef<HTMLElement>(null)
-  const howItWorksRef = useRef<HTMLElement>(null)
   const agentSectionRef = useRef<HTMLElement>(null)
 
   // Handle auth state changes - wait for loading to complete before making navigation decisions
@@ -65,10 +64,6 @@ export function Home() {
     taskSectionRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  const handleScrollToHowItWorks = useCallback(() => {
-    howItWorksRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
-
   const handleProfileComplete = useCallback(() => {
     setShowProfileCompletion(false)
     refreshExecutor()
@@ -103,7 +98,6 @@ export function Home() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <AppHeader
         onConnectWallet={handleConnectWallet}
-        onScrollToHowItWorks={handleScrollToHowItWorks}
       />
 
       <main className="flex-1 max-w-6xl mx-auto px-4 w-full">
@@ -123,7 +117,6 @@ export function Home() {
         />
 
         <HowItWorks
-          ref={howItWorksRef}
           onConnectWallet={handleConnectWallet}
         />
 
