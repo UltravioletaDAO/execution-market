@@ -470,7 +470,7 @@ async def check_worker_identity(wallet_address: str) -> WorkerIdentityResult:
 async def register_worker_gasless(
     wallet_address: str,
     agent_uri: Optional[str] = None,
-    network: str = "base-mainnet",
+    network: str = "base",
     metadata: Optional[list] = None,
 ) -> WorkerIdentityResult:
     """
@@ -486,7 +486,7 @@ async def register_worker_gasless(
     agent_uri:
         Metadata URI. Defaults to ``https://execution.market/workers/{wallet}``.
     network:
-        ERC-8004 network (default ``"base-mainnet"``). Any of 14 supported.
+        ERC-8004 network (default ``"base"``). Any of 14 supported.
     metadata:
         Optional key-value pairs [{"key": "name", "value": "Worker Name"}].
 

@@ -129,7 +129,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
-        "escrow": "0xb9488351eB02Cd956c78cDe1e2f10e3C7B18Af3d",
+        "escrow": "0xb9488351E48b23D798f24e8174514F28B741Eb4f",
         "factory": "0x3D0837fF8Ea36F417261577b9BA568400A840260",
     },
     "ethereum": {
@@ -166,7 +166,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
-        "escrow": "0xc1256Bb3d74E1a3aBe8F16D5bA1F686F25398e35",
+        "escrow": "0xc1256Bb30bd0cdDa07D8C8Cf67a59105f2EA1b98",
         "factory": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
     },
     "polygon": {
@@ -216,7 +216,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
-        "escrow": "0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1",
+        "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
     },
     "celo": {
@@ -235,14 +235,14 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
-        "escrow": "0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1",
+        "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
     },
     "monad": {
         "chain_id": 143,
         "tokens": {
             "USDC": {
-                "address": "0xf817257fed379853cBe764A74bA9988EEede8c4C",
+                "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
                 "name": "USD Coin",
                 "version": "1",
                 "decimals": 6,
@@ -254,7 +254,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
-        "escrow": "0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1",
+        "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
     },
     "avalanche": {
@@ -279,7 +279,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
         },
-        "escrow": "0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1",
+        "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
     },
     "optimism": {

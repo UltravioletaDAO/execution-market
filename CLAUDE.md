@@ -175,10 +175,10 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | ERC-8004 Identity Registry | All Mainnets (CREATE2) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | ERC-8004 Identity Registry | All Testnets (CREATE2) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | ERC-8004 Reputation Registry | All Mainnets (CREATE2) | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
-| x402r Escrow | Base | `0xb9488351eB02Cd956c78cDe1e2f10e3C7B18Af3d` |
-| x402r Escrow | Ethereum | `0xc1256Bb3d74E1a3aBe8F16D5bA1F686F25398e35` |
-| x402r Escrow | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
-| x402r Escrow | Arbitrum, Celo, Monad, Avalanche | `0x320a3c35dC6Ae4FF3ac05bB56D67C6f7f7e2b3c1` |
+| x402r Escrow (AuthCaptureEscrow) | Base | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` |
+| x402r Escrow (AuthCaptureEscrow) | Ethereum | `0xc1256Bb30bd0cdDa07D8C8Cf67a59105f2EA1b98` |
+| x402r Escrow (AuthCaptureEscrow) | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
+| x402r Escrow (AuthCaptureEscrow) | Arbitrum, Celo, Monad, Avalanche | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
 | Execution Market Agent ID | **Base** | `2106` |
 | Execution Market Agent ID | Sepolia (legacy) | `469` |
