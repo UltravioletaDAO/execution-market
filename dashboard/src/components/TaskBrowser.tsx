@@ -34,17 +34,14 @@ interface TaskBrowserProps {
   onTaskSelect: (taskId: string) => void
 }
 
-// Categories
+// Categories — must match DB task categories exactly
 const TASK_CATEGORIES = [
   { id: 'all', label: 'Todas', icon: '📋' },
-  { id: 'verification', label: 'Verificacion', icon: '✓' },
-  { id: 'data_collection', label: 'Recoleccion', icon: '📊' },
-  { id: 'delivery', label: 'Entregas', icon: '📦' },
-  { id: 'survey', label: 'Encuestas', icon: '📝' },
-  { id: 'photo', label: 'Fotos', icon: '📷' },
-  { id: 'mystery_shop', label: 'Mystery Shop', icon: '🕵️' },
-  { id: 'translation', label: 'Traduccion', icon: '🌐' },
-  { id: 'transcription', label: 'Transcripcion', icon: '🎧' },
+  { id: 'physical_presence', label: 'Presencia Fisica', icon: '📍' },
+  { id: 'knowledge_access', label: 'Acceso a Info', icon: '📚' },
+  { id: 'human_authority', label: 'Autoridad Humana', icon: '📜' },
+  { id: 'simple_action', label: 'Accion Simple', icon: '✅' },
+  { id: 'digital_physical', label: 'Digital-Fisico', icon: '🔗' },
 ]
 
 // Pay ranges
@@ -79,6 +76,7 @@ export function TaskBrowser({
     skills: [],
     sortBy: 'newest',
   })
+  const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [showLocationFilter, setShowLocationFilter] = useState(false)
 
@@ -94,6 +92,15 @@ export function TaskBrowser({
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
     let result = [...tasks]
+
+    // Filter by search query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter((task) =>
+        task.title?.toLowerCase().includes(q) ||
+        task.instructions?.toLowerCase().includes(q)
+      )
+    }
 
     // Filter by pay range
     if (filters.minPay !== null) {
@@ -134,7 +141,7 @@ export function TaskBrowser({
     }
 
     return result
-  }, [tasks, filters])
+  }, [tasks, filters, searchQuery])
 
   // Count matching skills for each task
   const getSkillMatch = useCallback((taskSkills: string[]) => {
@@ -233,6 +240,8 @@ export function TaskBrowser({
           <div className="flex-1 relative">
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('tasks.search', 'Buscar tareas...')}
               className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
             />

@@ -572,6 +572,45 @@ async def notify_payment_failed(
             logger.error(f"Failed to notify payment failed: {e}")
 
 
+# ============== PAYMENT HELPERS ==============
+
+
+def _resolve_mcp_payment_header(
+    task_id: Optional[str], escrow_tx: Optional[str] = None
+) -> Optional[str]:
+    """Resolve the x402 payment header for a task.
+
+    Checks tasks.escrow_tx first, then falls back to escrows.metadata.
+    """
+    # If escrow_tx already looks like a valid x402 header, use it
+    if escrow_tx and (escrow_tx.startswith("x402:") or escrow_tx.startswith("eyJ")):
+        return escrow_tx
+
+    if not task_id:
+        return None
+
+    try:
+        result = (
+            db.client.table("escrows")
+            .select("metadata")
+            .eq("task_id", task_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if result.data:
+            metadata = result.data[0].get("metadata", {})
+            header = metadata.get("x_payment_header") or metadata.get(
+                "payment_header"
+            )
+            if header:
+                return header
+    except Exception as e:
+        logger.warning(f"Could not resolve payment header for task {task_id}: {e}")
+
+    return escrow_tx
+
+
 # ============== MCP TOOLS ==============
 
 
@@ -1012,9 +1051,13 @@ async def em_approve_submission(params: ApproveSubmissionInput) -> str:
 
                 if not payment_info and x402_sdk:
                     try:
+                        # Resolve the x402 payment header from escrows table
+                        payment_header = _resolve_mcp_payment_header(
+                            task["id"], task.get("escrow_tx")
+                        )
                         payment_info = await x402_sdk.settle_task_payment(
                             task_id=task["id"],
-                            payment_header=task.get("escrow_tx", ""),
+                            payment_header=payment_header or "",
                             worker_address=worker_wallet,
                             bounty_amount=Decimal(str(task["bounty_usd"])),
                         )
@@ -1095,12 +1138,15 @@ async def em_approve_submission(params: ApproveSubmissionInput) -> str:
             response += """
 The task has been marked as completed and the executor will receive payment."""
             if payment_info:
+                tx_hash = payment_info.get("tx_hash", "N/A")
+                if isinstance(tx_hash, list):
+                    tx_hash = tx_hash[0] if tx_hash else "N/A"
                 response += f"""
 
 ## Payment Details
-- **Worker Payment**: ${payment_info.get("worker_payment", 0):.2f}
+- **Worker Payment**: ${payment_info.get("net_to_worker", payment_info.get("amount", 0)):.2f}
 - **Platform Fee**: ${payment_info.get("platform_fee", 0):.2f}
-- **Transaction**: `{payment_info.get("tx_hashes", ["N/A"])[0][:16]}...`"""
+- **Transaction**: `{str(tx_hash)[:16]}...`"""
         else:
             response += "\nThe executor has been notified of your decision."
 
