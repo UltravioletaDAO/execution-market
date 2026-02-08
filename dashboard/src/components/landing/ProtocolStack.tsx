@@ -37,13 +37,13 @@ const protocols = [
 ]
 
 const networks = [
-  { name: 'Base', logo: '/base.png' },
-  { name: 'Ethereum', logo: '/ethereum.png' },
-  { name: 'Polygon', logo: '/polygon.png' },
-  { name: 'Arbitrum', logo: '/arbitrum.png' },
-  { name: 'Celo', logo: '/celo.png' },
-  { name: 'Monad', logo: '/monad.png' },
-  { name: 'Avalanche', logo: '/avalanche.png' },
+  { name: 'Base', logo: '/base.png', live: true },
+  { name: 'Ethereum', logo: '/ethereum.png', live: false },
+  { name: 'Polygon', logo: '/polygon.png', live: false },
+  { name: 'Arbitrum', logo: '/arbitrum.png', live: false },
+  { name: 'Celo', logo: '/celo.png', live: false },
+  { name: 'Monad', logo: '/monad.png', live: false },
+  { name: 'Avalanche', logo: '/avalanche.png', live: false },
 ]
 
 export function ProtocolStack() {
@@ -110,7 +110,7 @@ export function ProtocolStack() {
                 {t('landing.protocolStack.networksTitle', '7 EVM Networks')}
               </p>
               <p className="text-[10px] md:text-xs text-gray-500">
-                {t('landing.protocolStack.networksSubtitle', 'x402 payments + x402r escrow + ERC-8004 identity')}
+                {t('landing.protocolStack.networksSubtitle', 'Currently live on Base Mainnet · 6 more networks ready to activate')}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -119,10 +119,14 @@ export function ProtocolStack() {
                   <img
                     src={net.logo}
                     alt={net.name}
-                    className="w-6 h-6 md:w-7 md:h-7 rounded-full ring-1 ring-gray-700 group-hover/net:ring-emerald-500/50 transition-all opacity-70 group-hover/net:opacity-100"
+                    className={`w-6 h-6 md:w-7 md:h-7 rounded-full ring-1 transition-all ${
+                      net.live
+                        ? 'ring-emerald-500/50 opacity-100 group-hover/net:ring-emerald-400'
+                        : 'ring-gray-700 opacity-40 group-hover/net:opacity-70 group-hover/net:ring-gray-600'
+                    }`}
                   />
                   <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] text-gray-500 opacity-0 group-hover/net:opacity-100 transition-opacity whitespace-nowrap">
-                    {net.name}
+                    {net.name} {net.live ? '✓' : '(soon)'}
                   </span>
                 </div>
               ))}
@@ -131,10 +135,10 @@ export function ProtocolStack() {
 
           {/* Status line */}
           <div className="mt-4 flex items-center justify-between text-[10px] md:text-xs text-gray-600">
-            <span>USDC &middot; EURC &middot; USDT &middot; PYUSD &middot; AUSD</span>
+            <span>USDC {t('landing.protocolStack.liveToken', '(live)')} &middot; EURC &middot; USDT &middot; PYUSD &middot; AUSD {t('landing.protocolStack.configuredTokens', '(configured)')}</span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {t('landing.protocolStack.status', 'Live')}
+              {t('landing.protocolStack.status', 'Base Mainnet')}
             </span>
           </div>
         </div>
