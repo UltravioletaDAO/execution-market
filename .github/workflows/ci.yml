@@ -158,13 +158,42 @@ jobs:
           path: dashboard/coverage/
           retention-days: 7
 
-  # E2E tests disabled in CI - tests need updating for Dynamic.xyz auth
-  # Run locally: cd e2e && npm install && npx playwright test
+  e2e-smoke:
+    name: E2E Smoke (Chromium)
+    runs-on: ubuntu-latest
+    needs: test-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            dashboard/package-lock.json
+            e2e/package-lock.json
+
+      - name: Install dashboard dependencies
+        run: npm ci
+        working-directory: dashboard
+
+      - name: Install e2e dependencies
+        run: npm ci
+        working-directory: e2e
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: e2e
+
+      - name: Run smoke suite
+        run: npx playwright test tests/auth.spec.ts tests/tasks.spec.ts --project=chromium --reporter=list
+        working-directory: e2e
 
   build:
     name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, e2e-smoke]
     if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
