@@ -214,8 +214,12 @@ async function createTaskDirect(data: CreateTaskData): Promise<Task> {
 
 export async function createTask(data: CreateTaskData): Promise<Task> {
   if (!hasAgentApiKey()) {
-    if (REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error('VITE_API_KEY is required for agent task creation when VITE_REQUIRE_AGENT_API_KEY=true')
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error(
+        REQUIRE_AGENT_API_KEY
+          ? 'VITE_API_KEY is required for agent task creation when VITE_REQUIRE_AGENT_API_KEY=true'
+          : 'Direct Supabase task creation is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
+      )
     }
     // Transitional mode: dashboard session does not yet carry per-agent API keys.
     return createTaskDirect(data)
@@ -459,8 +463,12 @@ export async function cancelTask(data: CancelTaskData): Promise<Task> {
   const { taskId, reason } = data
 
   if (!hasAgentApiKey()) {
-    if (REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error('VITE_API_KEY is required for agent task cancellation when VITE_REQUIRE_AGENT_API_KEY=true')
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error(
+        REQUIRE_AGENT_API_KEY
+          ? 'VITE_API_KEY is required for agent task cancellation when VITE_REQUIRE_AGENT_API_KEY=true'
+          : 'Direct Supabase task cancellation is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
+      )
     }
     // Transitional mode: dashboard session does not yet carry per-agent API keys.
     return cancelTaskDirect(data)
@@ -583,8 +591,12 @@ export async function assignTask(data: AssignTaskData): Promise<{ task: Task; ex
   const { taskId, executorId, notes } = data
 
   if (!hasAgentApiKey()) {
-    if (REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error('VITE_API_KEY is required for agent task assignment when VITE_REQUIRE_AGENT_API_KEY=true')
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error(
+        REQUIRE_AGENT_API_KEY
+          ? 'VITE_API_KEY is required for agent task assignment when VITE_REQUIRE_AGENT_API_KEY=true'
+          : 'Direct Supabase task assignment is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
+      )
     }
     // Transitional mode: dashboard session does not yet carry per-agent API keys.
     return assignTaskDirect(data)

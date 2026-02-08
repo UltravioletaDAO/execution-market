@@ -386,10 +386,23 @@ async function approveSubmissionDirect(data: ApproveSubmissionData): Promise<Sub
 export async function approveSubmission(data: ApproveSubmissionData): Promise<Submission> {
   const { submissionId, verdict, notes, rating } = data
 
-  // This endpoint only supports approve/accepted flow.
-  if (verdict !== 'accepted' || rating !== undefined || !hasAgentApiKey()) {
-    if (!hasAgentApiKey() && REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error('VITE_API_KEY is required for submission approval when VITE_REQUIRE_AGENT_API_KEY=true')
+  // API endpoint currently supports accepted verdict without custom rating payload.
+  if (verdict !== 'accepted' || rating !== undefined) {
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error(
+        'Submission approval is API-only in this environment (accepted verdict without custom rating). Enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true only for local debugging.'
+      )
+    }
+    return approveSubmissionDirect(data)
+  }
+
+  if (!hasAgentApiKey()) {
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error(
+        REQUIRE_AGENT_API_KEY
+          ? 'VITE_API_KEY is required for submission approval when VITE_REQUIRE_AGENT_API_KEY=true'
+          : 'Direct Supabase submission approval is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
+      )
     }
     return approveSubmissionDirect(data)
   }
@@ -477,8 +490,12 @@ export async function rejectSubmission(data: RejectSubmissionData): Promise<Subm
   const { submissionId, feedback } = data
 
   if (!hasAgentApiKey()) {
-    if (REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error('VITE_API_KEY is required for submission rejection when VITE_REQUIRE_AGENT_API_KEY=true')
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error(
+        REQUIRE_AGENT_API_KEY
+          ? 'VITE_API_KEY is required for submission rejection when VITE_REQUIRE_AGENT_API_KEY=true'
+          : 'Direct Supabase submission rejection is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
+      )
     }
     return rejectSubmissionDirect(data)
   }
@@ -562,8 +579,12 @@ async function requestMoreInfoDirect(submissionId: string, agentId: string, note
 
 export async function requestMoreInfo(submissionId: string, agentId: string, notes: string): Promise<Submission> {
   if (!hasAgentApiKey()) {
-    if (REQUIRE_AGENT_API_KEY && !ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error('VITE_API_KEY is required for request-more-info when VITE_REQUIRE_AGENT_API_KEY=true')
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw new Error(
+        REQUIRE_AGENT_API_KEY
+          ? 'VITE_API_KEY is required for request-more-info when VITE_REQUIRE_AGENT_API_KEY=true'
+          : 'Direct Supabase request-more-info is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
+      )
     }
     return requestMoreInfoDirect(submissionId, agentId, notes)
   }
