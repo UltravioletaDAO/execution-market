@@ -21,7 +21,7 @@ except ImportError:
 
 # x402r direct escrow (REMOVED — all payments go through SDK + facilitator now)
 
-from .auth import verify_api_key, verify_api_key_if_required, APIKeyData
+from .auth import verify_api_key_if_required, APIKeyData
 
 logger = logging.getLogger(__name__)
 

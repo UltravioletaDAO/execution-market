@@ -24,7 +24,6 @@ from verification.ai_review import (
     VerificationDecision,
 )
 from .auth import (
-    verify_api_key,
     verify_api_key_optional,
     verify_api_key_if_required,
     APIKeyData,
