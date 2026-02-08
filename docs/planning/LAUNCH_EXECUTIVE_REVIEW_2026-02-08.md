@@ -1,5 +1,9 @@
 # Launch Executive Review - 2026-02-08 (Exhaustivo)
 
+> Update: this snapshot was captured earlier in the day.
+> For the latest consolidated state after subsequent fixes/commits, use:
+> `docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md`.
+
 ## 1) Estado Ejecutivo (hoy)
 
 **Decision:**

@@ -683,7 +683,9 @@ resources:
       attributes:
         description: "Fix pytest full-suite order dependency caused by global FastMCP mocking in escrow e2e tests"
         priority: P0
-        evidence: "2026-02-08: full suite 21 fails; excluding test_escrow_flows => 636 passed / 8 skipped"
+        status: done
+        evidence: "2026-02-08: commit f5ec308; full suite now 658 passed / 8 skipped"
+        validation: "cd mcp_server && python -m pytest -q"
       files:
         - mcp_server/tests/e2e/test_escrow_flows.py
         - mcp_server/tests/test_mcp_tools.py
@@ -691,9 +693,10 @@ resources:
 
     launch_20260208_dashboard_api_first_mutations:
       attributes:
-        description: "Migrate create/cancel/submit dashboard flows from direct Supabase writes to backend API endpoints"
+        description: "Migrate dashboard business mutations from direct Supabase writes to backend API endpoints"
         priority: P0
-        evidence: "Direct writes currently bypass x402/refund/idempotency policy enforcement"
+        status: in_progress
+        evidence: "2026-02-08: apply+submit switched to API-first (commits be7afda, 6cfd07e); create/cancel/assign/review still pending"
       files:
         - dashboard/src/services/tasks.ts
         - dashboard/src/services/submissions.ts
@@ -705,7 +708,8 @@ resources:
       attributes:
         description: "Fix /health/sanity completed_no_payment check to use real payment evidence fields"
         priority: P0
-        evidence: "Current check inspects payment_tx/escrow_tx without selecting those columns"
+        status: done_code_data_followup
+        evidence: "2026-02-08: commit 3cb889a; check now queries canonical payments + legacy fallback, warning now reflects real data debt"
       files:
         - mcp_server/health/endpoints.py
 
@@ -713,7 +717,8 @@ resources:
       attributes:
         description: "Ensure agent card always publishes HTTPS URLs in production runtime"
         priority: P0
-        evidence: "Live /.well-known/agent.json still reports http://api.execution.market/a2a/v1"
+        status: pending_deploy
+        evidence: "Code fixed in commit 8b55674 and deploy hardening in 1d66952; live runtime still reports http until rollout"
       files:
         - mcp_server/a2a/agent_card.py
         - infrastructure/terraform/ecs.tf
@@ -722,7 +727,8 @@ resources:
       attributes:
         description: "Enforce canonical API contract and remove execution.market/api ambiguity across docs and runtime"
         priority: P0
-        evidence: "execution.market/api/v1 returns SPA HTML while api.execution.market returns JSON"
+        status: in_progress
+        evidence: "Docs/api base URL migrated and deploy workflows hardened; execution.market/api ambiguity still unresolved at edge"
       files:
         - docs-site/docs/api/reference.md
         - README.md
@@ -733,7 +739,8 @@ resources:
       attributes:
         description: "Make backend test failures block CI/deploy (remove continue-on-error for core test jobs)"
         priority: P1
-        evidence: "Current workflows permit backend test failures without blocking shipping"
+        status: done
+        evidence: "2026-02-08: commit e9b6a10 removed continue-on-error from backend test gates in CI/deploy"
       files:
         - .github/workflows/ci.yml
         - .github/workflows/deploy.yml
@@ -742,9 +749,54 @@ resources:
       attributes:
         description: "Sync launch board with latest exhaustive audit and keep a single execution source of truth"
         priority: P1
+        status: done
       files:
         - docs/planning/LAUNCH_EXECUTIVE_REVIEW_2026-02-08.md
+        - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
         - docs/planning/TODO_NOW.md
+
+    launch_20260208_deploy_runtime_rollout:
+      attributes:
+        description: "Roll out latest backend/frontend revisions and verify runtime behavior matches hardened config"
+        priority: P0
+        status: todo
+        evidence: "Production still serves agent card url=http://api.execution.market/a2a/v1"
+      files:
+        - .github/workflows/deploy.yml
+        - .github/workflows/deploy-prod.yml
+        - .github/workflows/deploy-staging.yml
+        - infrastructure/task-def-mcp.json
+        - infrastructure/terraform/ecs.tf
+
+    launch_20260208_completed_no_payment_data_repair:
+      attributes:
+        description: "Resolve completed tasks with missing payment evidence and reduce health/sanity warnings"
+        priority: P0
+        status: todo
+        evidence: "2026-02-08 live sanity reports 15 completed tasks with no payment evidence"
+      files:
+        - mcp_server/health/endpoints.py
+        - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
+
+    launch_20260208_dashboard_agent_mutation_auth_contract:
+      attributes:
+        description: "Define and implement auth contract for dashboard agent mutations to use backend endpoints safely"
+        priority: P0
+        status: todo
+        evidence: "create/cancel/assign/approve/reject still direct DB writes in dashboard services"
+      files:
+        - dashboard/src/services/tasks.ts
+        - dashboard/src/services/submissions.ts
+        - mcp_server/api/routes.py
+
+    launch_20260208_strict_live_x402_evidence:
+      attributes:
+        description: "Capture one strict live x402 run with task ids, escrow ids, tx hashes, and final statuses"
+        priority: P0
+        status: todo
+      files:
+        - scripts/test-x402-full-flow.ts
+        - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
 
   # ═══════════════════════════════════════════════════════════════════════
   # PHASE 7: MULTI-CHAIN EXPANSION
