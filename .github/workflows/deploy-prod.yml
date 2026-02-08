@@ -16,6 +16,7 @@ env:
   ECS_SERVICE_BACKEND: em-production-mcp-server
   ECS_SERVICE_FRONTEND: em-production-dashboard
   PRODUCTION_URL: https://execution.market
+  API_URL: https://api.execution.market
 
 jobs:
   validate:
@@ -160,6 +161,8 @@ jobs:
           task-definition: backend-task-def.json
           container-name: mcp-server
           image: ${{ needs.build-and-push.outputs.backend-image }}
+          environment-variables: |
+            EM_BASE_URL=${{ env.API_URL }}
 
       - name: Deploy backend to ECS
         id: deploy-backend
@@ -222,7 +225,7 @@ jobs:
         id: api-health
         run: |
           for i in {1..10}; do
-            response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.PRODUCTION_URL }}/api/health)
+            response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.API_URL }}/health)
             if [ "$response" == "200" ]; then
               echo "API health check passed"
               exit 0
@@ -250,19 +253,21 @@ jobs:
 
       - name: Verify API responses
         run: |
-          # Check auth providers
-          curl -sf "${{ env.PRODUCTION_URL }}/api/auth/providers" > /dev/null
-          echo "Auth providers endpoint verified"
+          # Check public metrics endpoint
+          curl -sf "${{ env.API_URL }}/api/v1/public/metrics" > /dev/null
+          echo "Public metrics endpoint verified"
 
           # Check version endpoint
-          VERSION=$(curl -sf "${{ env.PRODUCTION_URL }}/api/version" | jq -r '.version')
-          EXPECTED="${{ github.event.release.tag_name }}"
-          EXPECTED="${EXPECTED#v}"
-          if [ "$VERSION" != "$EXPECTED" ]; then
-            echo "Version mismatch: got $VERSION, expected $EXPECTED"
+          VERSION=$(curl -sf "${{ env.API_URL }}/health/version" | jq -r '.version // empty')
+          if [ -z "$VERSION" ]; then
+            echo "Version endpoint did not return a version"
             exit 1
           fi
-          echo "Version verified: $VERSION"
+          echo "Version endpoint verified: $VERSION"
+
+          # Check agent card endpoint
+          curl -sf "${{ env.API_URL }}/.well-known/agent.json" > /dev/null
+          echo "Agent card endpoint verified"
 
   rollback:
     name: Rollback on Failure

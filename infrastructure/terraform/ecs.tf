@@ -158,6 +158,7 @@ resource "aws_ecs_task_definition" "mcp_server" {
       environment = [
         { name = "ENVIRONMENT", value = var.environment },
         { name = "PORT", value = "8000" },
+        { name = "EM_BASE_URL", value = "https://api.execution.market" },
         { name = "ERC8004_NETWORK", value = "base" },
         { name = "EM_AGENT_ID", value = "2106" },
       ]

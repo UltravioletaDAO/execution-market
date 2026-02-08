@@ -160,7 +160,7 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ env.BASE_URL }}/api
+            VITE_API_URL=${{ env.API_URL }}
 
       - name: Output image tags
         run: |
@@ -200,6 +200,8 @@ jobs:
           task-definition: mcp-server-task-def.json
           container-name: ${{ env.MCP_SERVER_CONTAINER }}
           image: ${{ env.ECR_REGISTRY }}/${{ env.MCP_SERVER_ECR_REPO }}:${{ github.sha }}
+          environment-variables: |
+            EM_BASE_URL=${{ env.API_URL }}
 
       - name: Deploy MCP Server to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
