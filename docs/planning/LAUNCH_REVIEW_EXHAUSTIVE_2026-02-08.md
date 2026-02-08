@@ -1,24 +1,23 @@
 # Launch Review Exhaustive - 2026-02-08
 
-Update (2026-02-08, after additional implementation):
-- Added deploy/runtime hardening so backend runtime is forced to canonical API base URL.
-- Added CI/staging smoke assertions to fail if Agent Card advertises non-HTTPS interface URLs.
-- Expanded dashboard API-first coverage for agent mutations (create/cancel/assign/approve/reject/request-more-info) with transitional fallback.
-- Added automated sanity warning reporting script (`scripts/report-sanity-warnings.ts`).
-- Live sanity re-check is currently green (`6/6`, `warnings=0`).
+Update (2026-02-08, latest revalidation):
+- Revalidated production runtime with fresh endpoint checks.
+- Agent card now publishes HTTPS canonical URL in production runtime.
+- Sanity report remains green (`6/6`, `warnings=0`).
+- Smoke suite remains green (`10/10`).
+- Local quality gates were re-run (backend pytest + dashboard typecheck/test/lint/build).
 
 ## 1) Executive status (real state now)
 
 Decision:
-- GO for controlled beta launch.
+- GO for controlled launch candidate now.
 - NO-GO for claiming full production readiness.
 
 Why still NO-GO:
-1. Production runtime still serves `http://` in agent card URL.
-2. `execution.market/api/*` still returns SPA HTML instead of API JSON.
-3. Agent critical dashboard flows are still mixed: API-first is partial, direct Supabase mutations remain.
-4. Payment consistency warnings are currently clear, but need sustained monitoring and strict live evidence after latest changes.
-5. No fresh end-to-end live payment evidence was generated in this cycle after the latest hardening commits.
+1. `execution.market/api/*` still returns SPA HTML instead of API JSON.
+2. Agent critical dashboard flows are still mixed: API-first exists but direct Supabase fallback remains.
+3. No fresh strict live x402 end-to-end evidence was generated after the latest hardening commits.
+4. Payment consistency warnings are currently clear, but still require sustained monitoring + strict evidence gate.
 
 ## 2) Evidence executed in this review
 
@@ -34,15 +33,23 @@ Environment date: `2026-02-08` (local execution)
 - Notes: API health, MCP health, dashboard reachability, agent card endpoint, and evidence lambda all reachable.
 
 ### 2.3 Dashboard build/runtime quality
-- Command: `cd dashboard && npm run build`
-- Result: build OK
+- Commands:
+  - `cd dashboard && npm run typecheck`
+  - `cd dashboard && npm run test:run`
+  - `cd dashboard && npm run lint`
+  - `cd dashboard && npm run build`
+- Results:
+  - typecheck: OK
+  - tests: `13 passed`
+  - lint: `0 errors`, `155 warnings`
+  - build: OK
 - Risk signal: main JS chunk is still large (`~5.24 MB`), plus rollup dependency warnings.
 
 ### 2.4 Production topology checks
 - `https://execution.market/api/v1/tasks/available?limit=1` -> `200 text/html`
 - `https://api.execution.market/api/v1/tasks/available?limit=1` -> `200 application/json`
 - `https://api.execution.market/.well-known/agent.json` currently returns:
-  - `url=http://api.execution.market/a2a/v1`
+  - `url=https://api.execution.market/a2a/v1`
 
 ### 2.5 Production sanity checks
 - Latest re-check: `https://api.execution.market/health/sanity` -> `status=ok`, `checks=6/6`, `warnings=0`
@@ -67,29 +74,30 @@ Recent commits (this session block):
 - `be7afda`: worker apply switched to API-first with explicit guarded fallback.
 - `1d66952`: deploy/infra hardened so runtime uses canonical API URL in ECS/workflows.
 - `345c72c`: exhaustive launch review + terra4mice sync.
+- `aa237c4`: dashboard agent mutations (create/cancel/assign) moved to API-first with transitional fallback.
+- `2c708c2`: deploy staging/prod checks now fail when agent card is not HTTPS + sanity warning reporting command.
+- `ec791a6`: backend route `request-more-info` added and wired from dashboard API-first flow.
+- `7f5fe3a`: `VITE_REQUIRE_AGENT_API_KEY` guardrail added for dashboard agent mutations.
+- `9826d02`: agent mutation auth contract documented and synced into launch tracking.
 
 ## 4) Critical gap map (ordered by launch risk)
 
 ## P0
 
-1. Runtime drift not deployed yet
-- Code hardening exists, but production still publishes `http://api.execution.market/a2a/v1`.
-- Likely cause: task definition/runtime env still running older revision.
-
-2. Canonical API contract still ambiguous at public domain edge
+1. Canonical API contract still ambiguous at public domain edge
 - `execution.market/api/*` serves HTML while `api.execution.market/api/*` serves JSON.
 - Integrators can silently hit wrong surface and think API is healthy due HTTP 200.
 
-3. Agent mutation path is only partially API-first
+2. Agent mutation path is only partially API-first
 - API-first done for `apply`, `submit`, `create`, `cancel`, `assign`, `approve`, `reject`, and `request-more-info`.
 - Still direct Supabase writes in:
   - transitional fallback paths when no `VITE_API_KEY` is available.
 
-4. Payment data integrity debt in production data
+3. Payment data integrity debt in production data
 - Current sanity check is green (`warnings=0`).
 - Risk moved from active warning to monitoring and regression prevention.
 
-5. No fresh strict live x402 end-to-end evidence after latest changes
+4. No fresh strict live x402 end-to-end evidence after latest changes
 - Launch confidence is still incomplete without one strict live run with tx hash evidence and final states.
 
 ## P1
@@ -129,7 +137,7 @@ Format:
 
 ## Track A - Runtime and deployment hardening
 
-- [ ] `LCH-260208-A01 | P0 | DevOps | Deploy latest backend task definition with EM_BASE_URL canonicalized | Agent card URL is HTTPS on production | curl https://api.execution.market/.well-known/agent.json`
+- [x] `LCH-260208-A01 | P0 | DevOps | Deploy latest backend task definition with EM_BASE_URL canonicalized | Agent card URL is HTTPS on production | curl https://api.execution.market/.well-known/agent.json`
 - [ ] `LCH-260208-A02 | P0 | DevOps | Deploy latest CI/CD workflow updates | New deploy run shows API checks against api.execution.market | workflow run logs`
 - [ ] `LCH-260208-A03 | P0 | DevOps | Verify ECS running revisions after deploy | backend/frontend rollout=COMPLETED with expected revision | aws ecs describe-services ...`
 - [ ] `LCH-260208-A04 | P0 | Infra | Decide and enforce `execution.market/api/*` behavior (proxy or explicit block) | No ambiguous HTML 200 for API paths | curl -i https://execution.market/api/v1/tasks/available?limit=1`
@@ -145,7 +153,7 @@ Format:
 - [ ] `LCH-260208-B05 | P0 | Frontend | Migrate approve-submission to backend `/submissions/{id}/approve` | approval path yields tx evidence from backend | approve flow test`
 - [ ] `LCH-260208-B06 | P0 | Frontend | Migrate reject-submission to backend `/submissions/{id}/reject` | rejection uses backend status transition | reject flow test`
 - [x] `LCH-260208-B07 | P1 | Frontend | Migrate request-more-info to backend route (or add route if missing) | no direct submission/task updates from client path | route + UI test`
-- [ ] `LCH-260208-B08 | P1 | Frontend | Add explicit non-prod escape hatch documentation for direct Supabase fallback | fallback is only possible with explicit env flag | runtime logs + docs`
+- [x] `LCH-260208-B08 | P1 | Frontend | Add explicit non-prod escape hatch documentation for direct Supabase fallback | fallback is only possible with explicit env flag | runtime logs + docs`
 - [ ] `LCH-260208-B09 | P1 | Backend | Add server-side idempotency keys for create/cancel/approve endpoints | duplicate requests become deterministic no-op responses | API test`
 - [ ] `LCH-260208-B10 | P1 | QA | Build one end-to-end dashboard mutation matrix | matrix covers create/apply/assign/submit/review/cancel transitions | test report`
 
@@ -204,7 +212,7 @@ Progress note:
 ## 8) Immediate execution plan
 
 ### 0-12h (launch-critical)
-- Close `A01-A04`, `C01-C05`, `B01`.
+- Close `A02-A04`, `C04-C05`, `B01`.
 - Produce one strict live evidence bundle.
 - Do not ship new features.
 
