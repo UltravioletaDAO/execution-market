@@ -96,12 +96,14 @@ function getHeaders(): HeadersInit {
   // Add API key if configured
   const apiKey = import.meta.env.VITE_API_KEY
   if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`
     headers['X-API-Key'] = apiKey
   }
 
-  // Add JWT token if available
+  // Add JWT token if available and no API key is configured.
+  // Agent mutation endpoints expect API-key bearer auth.
   const token = getAuthToken()
-  if (token) {
+  if (token && !apiKey) {
     headers['Authorization'] = `Bearer ${token}`
   }
 
