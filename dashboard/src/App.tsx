@@ -1,6 +1,6 @@
 // Execution Market Dashboard - Main App Component with Routing
 import { useState, useCallback, useMemo } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useSearchParams } from 'react-router-dom'
 
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -18,6 +18,8 @@ import { About } from './pages/About'
 import { FAQ } from './pages/FAQ'
 import { AgentDashboard } from './pages/AgentDashboard'
 import { AgentOnboarding } from './pages/AgentOnboarding'
+import { SubmissionReviewModal } from './components/SubmissionReviewModal'
+import { TaskDetailModal } from './components/TaskDetailModal'
 import { Developers } from './pages/Developers'
 import { Earnings, type ChartPeriod } from './pages/Earnings'
 import { TaskManagement } from './pages/agent/TaskManagement'
@@ -225,7 +227,18 @@ function EarningsPage() {
 
 function AgentDashboardPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { executor } = useAuth()
+
+  const reviewSubmissionId = searchParams.get('review')
+
+  const closeReview = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('review')
+      return next
+    })
+  }, [setSearchParams])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -248,10 +261,17 @@ function AgentDashboardPage() {
           agentId={executor?.id ?? ''}
           onBack={() => navigate('/')}
           onCreateTask={() => navigate('/agent/tasks/new')}
-          onViewTask={(task) => console.log('View task:', task.id)}
-          onReviewSubmission={(submission) => console.log('Review submission:', submission.id)}
+          onViewTask={(task) => navigate(`/agent/tasks?view=${task.id}`)}
+          onReviewSubmission={(submission) => setSearchParams({ review: submission.id })}
         />
       </main>
+      {reviewSubmissionId && (
+        <SubmissionReviewModal
+          submissionId={reviewSubmissionId}
+          onClose={closeReview}
+          onSuccess={closeReview}
+        />
+      )}
     </div>
   )
 }
@@ -262,7 +282,20 @@ function AgentDashboardPage() {
 
 function AgentTasksPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { executor } = useAuth()
+
+  const viewTaskId = searchParams.get('view')
+  const reviewSubmissionId = searchParams.get('review')
+
+  const closeModal = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('view')
+      next.delete('review')
+      return next
+    })
+  }, [setSearchParams])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -271,11 +304,25 @@ function AgentTasksPage() {
           agentId={executor?.id ?? ''}
           onBack={() => navigate('/agent/dashboard')}
           onCreateTask={() => navigate('/agent/tasks/new')}
-          onViewTask={(task) => console.log('View task:', task.id)}
-          onEditTask={(task) => console.log('Edit task:', task.id)}
-          onViewApplicants={(task) => console.log('View applicants for task:', task.id)}
+          onViewTask={(task) => setSearchParams({ view: task.id })}
+          onEditTask={(task) => navigate(`/agent/tasks/new?edit=${task.id}`)}
+          onViewApplicants={(task) => setSearchParams({ view: task.id })}
         />
       </main>
+      {viewTaskId && (
+        <TaskDetailModal
+          taskId={viewTaskId}
+          onClose={closeModal}
+          onReviewSubmission={(subId) => setSearchParams({ review: subId })}
+        />
+      )}
+      {reviewSubmissionId && (
+        <SubmissionReviewModal
+          submissionId={reviewSubmissionId}
+          onClose={closeModal}
+          onSuccess={closeModal}
+        />
+      )}
     </div>
   )
 }
