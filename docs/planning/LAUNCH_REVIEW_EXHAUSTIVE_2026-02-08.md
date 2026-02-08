@@ -3,6 +3,7 @@
 Update (2026-02-08, latest revalidation):
 - Revalidated production runtime with fresh endpoint checks.
 - Agent card now publishes HTTPS canonical URL in production runtime.
+- `execution.market/api/*` now redirects (`308`) to canonical `api.execution.market` API routes.
 - Sanity report remains green (`6/6`, `warnings=0`).
 - Smoke suite remains green (`10/10`).
 - Local quality gates were re-run (backend pytest + dashboard typecheck/test/lint/build).
@@ -14,10 +15,9 @@ Decision:
 - NO-GO for claiming full production readiness.
 
 Why still NO-GO:
-1. `execution.market/api/*` still returns SPA HTML instead of API JSON.
-2. Agent critical dashboard flows are still mixed: API-first exists but direct Supabase fallback remains.
-3. No fresh strict live x402 end-to-end evidence was generated after the latest hardening commits.
-4. Payment consistency warnings are currently clear, but still require sustained monitoring + strict evidence gate.
+1. Agent critical dashboard flows are still mixed: API-first exists but direct Supabase fallback remains.
+2. No fresh strict live x402 end-to-end evidence was generated after the latest hardening commits.
+3. Payment consistency warnings are currently clear, but still require sustained monitoring + strict evidence gate.
 
 ## 2) Evidence executed in this review
 
@@ -46,7 +46,8 @@ Environment date: `2026-02-08` (local execution)
 - Risk signal: main JS chunk is still large (`~5.24 MB`), plus rollup dependency warnings.
 
 ### 2.4 Production topology checks
-- `https://execution.market/api/v1/tasks/available?limit=1` -> `200 text/html`
+- `https://execution.market/api/v1/tasks/available?limit=1` -> `308` -> redirects to `https://api.execution.market/api/v1/tasks/available?limit=1`
+- `https://execution.market/api/v1/tasks/available?limit=1` with follow redirect -> final `200 application/json`
 - `https://api.execution.market/api/v1/tasks/available?limit=1` -> `200 application/json`
 - `https://api.execution.market/.well-known/agent.json` currently returns:
   - `url=https://api.execution.market/a2a/v1`
@@ -84,20 +85,16 @@ Recent commits (this session block):
 
 ## P0
 
-1. Canonical API contract still ambiguous at public domain edge
-- `execution.market/api/*` serves HTML while `api.execution.market/api/*` serves JSON.
-- Integrators can silently hit wrong surface and think API is healthy due HTTP 200.
-
-2. Agent mutation path is only partially API-first
+1. Agent mutation path is only partially API-first
 - API-first done for `apply`, `submit`, `create`, `cancel`, `assign`, `approve`, `reject`, and `request-more-info`.
 - Still direct Supabase writes in:
   - transitional fallback paths when no `VITE_API_KEY` is available.
 
-3. Payment data integrity debt in production data
+2. Payment data integrity debt in production data
 - Current sanity check is green (`warnings=0`).
 - Risk moved from active warning to monitoring and regression prevention.
 
-4. No fresh strict live x402 end-to-end evidence after latest changes
+3. No fresh strict live x402 end-to-end evidence after latest changes
 - Launch confidence is still incomplete without one strict live run with tx hash evidence and final states.
 
 ## P1
@@ -119,13 +116,13 @@ Recent commits (this session block):
 - You can launch beta now if scope is strictly controlled and marketing claims are limited.
 
 2. SRE/operations view:
-- System uptime is acceptable, but routing/API contract ambiguity is still a support and incident magnet.
+- System uptime is acceptable; remaining ops risk is payout evidence discipline, not API routing at the edge.
 
 3. Payment/audit view:
 - Main risk is not endpoint availability; it is proving payout correctness per completed task.
 
 4. Integrator trust view:
-- Wrong docs/domain behavior causes silent integration failures that look like client bugs.
+- Runtime now redirects to canonical API; remaining trust risk is stale docs/examples that still point to ambiguous paths.
 
 5. Product focus view:
 - New features should pause until mutation path is fully coherent and payout evidence is clean.
@@ -139,13 +136,14 @@ Format:
 
 - [x] `LCH-260208-A01 | P0 | DevOps | Deploy latest backend task definition with EM_BASE_URL canonicalized | Agent card URL is HTTPS on production | curl https://api.execution.market/.well-known/agent.json`
 - [ ] `LCH-260208-A02 | P0 | DevOps | Deploy latest CI/CD workflow updates | New deploy run shows API checks against api.execution.market | workflow run logs`
-- [ ] `LCH-260208-A03 | P0 | DevOps | Verify ECS running revisions after deploy | backend/frontend rollout=COMPLETED with expected revision | aws ecs describe-services ...`
-- [ ] `LCH-260208-A04 | P0 | Infra | Decide and enforce `execution.market/api/*` behavior (proxy or explicit block) | No ambiguous HTML 200 for API paths | curl -i https://execution.market/api/v1/tasks/available?limit=1`
+- [x] `LCH-260208-A03 | P0 | DevOps | Verify ECS running revisions after deploy | backend/frontend rollout=COMPLETED with expected revision | aws ecs describe-services ...`
+- [x] `LCH-260208-A04 | P0 | Infra | Decide and enforce `execution.market/api/*` behavior (proxy or explicit block) | No ambiguous HTML 200 for API paths | curl -i https://execution.market/api/v1/tasks/available?limit=1`
 - [x] `LCH-260208-A05 | P1 | Infra | Add post-deploy assertion for agent card URL scheme | pipeline fails if URL starts with http:// | CI step assertion`
 - [ ] `LCH-260208-A06 | P1 | Infra | Ensure staging has same canonical EM_BASE_URL behavior | staging agent card uses HTTPS canonical URL | curl staging agent card endpoint`
 
 Progress note:
-- `LCH-260208-A04` code-level guardrail now exists in `dashboard/nginx.conf` (`/api` and `/api/*` redirect to `https://api.execution.market...`), but production deploy and runtime verification are still pending.
+- `LCH-260208-A04` is now active in production runtime: `execution.market/api/*` returns `308` to canonical `api.execution.market` and resolves to JSON.
+- Verified ECS runtime state: backend `em-production-mcp-server:32` rollout `COMPLETED`, dashboard `em-production-dashboard:21` rollout `COMPLETED`.
 
 ## Track B - API-first business mutations
 
@@ -196,7 +194,7 @@ Progress note:
 ## 7) Scenario matrix (brainstorm, non-obvious, high impact)
 
 - [ ] `SCN-260208-001` Deployment succeeds but agent card still publishes http due stale task definition.
-- [ ] `SCN-260208-002` Integrator uses `execution.market/api/*`, gets HTML 200, parses fails silently.
+- [ ] `SCN-260208-002` Integrator uses `execution.market/api/*` but client refuses redirects, causing integration failure.
 - [ ] `SCN-260208-003` Dashboard approve path goes direct and marks completed even when facilitator payout failed.
 - [ ] `SCN-260208-004` Retry storm: 10 approve retries in 3s, payout must remain single-settlement.
 - [ ] `SCN-260208-005` Retry storm: 10 cancel retries in 3s, refund/authorization state remains consistent.
@@ -215,7 +213,7 @@ Progress note:
 ## 8) Immediate execution plan
 
 ### 0-12h (launch-critical)
-- Close `A02-A04`, `C04-C05`, `B01`.
+- Close `A02`, `C04-C05`, `B01`.
 - Produce one strict live evidence bundle.
 - Do not ship new features.
 
