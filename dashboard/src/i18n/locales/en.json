@@ -800,6 +800,32 @@
       "tip5": "Maintaining high accuracy unlocks higher-value disputes"
     }
   },
+  "agentDashboard": {
+    "title": "Agent Dashboard",
+    "subtitle": "Manage your tasks and review submissions",
+    "createTask": "Create Task",
+    "activitySummary": "Activity Summary",
+    "tasksCreated": "Tasks Created",
+    "completionRate": "Completion Rate",
+    "totalSpent": "Total Spent",
+    "avgTime": "Avg. Completion Time",
+    "activeExecutors": "active workers",
+    "pending": "pending",
+    "completed": "completed",
+    "thisMonth": "This month",
+    "activeTasks": "Active Tasks",
+    "pendingReview": "Pending Review",
+    "noTasksFilter": "No tasks match this filter",
+    "noSubmissions": "No pending submissions",
+    "submissionsWillAppear": "Submissions will appear here for review",
+    "passedAutoCheck": "passed auto-check",
+    "quickActions": "Quick Actions",
+    "quickActionsDesc": "Shortcuts for common tasks",
+    "newTask": "New Task",
+    "reviewNext": "Review Next",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No recent activity"
+  },
   "analytics": {
     "title": "Analytics",
     "subtitle": "Platform metrics",
