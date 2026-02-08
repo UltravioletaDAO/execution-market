@@ -265,9 +265,20 @@ jobs:
           fi
           echo "Version endpoint verified: $VERSION"
 
-          # Check agent card endpoint
-          curl -sf "${{ env.API_URL }}/.well-known/agent.json" > /dev/null
-          echo "Agent card endpoint verified"
+          # Check agent card endpoint and enforce HTTPS URLs
+          CARD_JSON=$(curl -sf "${{ env.API_URL }}/.well-known/agent.json")
+          CARD_URL=$(echo "$CARD_JSON" | jq -r '.url // empty')
+          if [[ -z "$CARD_URL" || ! "$CARD_URL" =~ ^https:// ]]; then
+            echo "Agent card primary URL is not HTTPS: $CARD_URL"
+            exit 1
+          fi
+          NON_HTTPS_INTERFACES=$(echo "$CARD_JSON" | jq -r '.additionalInterfaces[]?.url // empty' | grep -v '^https://' || true)
+          if [[ -n "$NON_HTTPS_INTERFACES" ]]; then
+            echo "Agent card has non-HTTPS additional interface URLs:"
+            echo "$NON_HTTPS_INTERFACES"
+            exit 1
+          fi
+          echo "Agent card endpoint verified with HTTPS URLs"
 
   rollback:
     name: Rollback on Failure
