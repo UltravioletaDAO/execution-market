@@ -729,7 +729,7 @@ resources:
         description: "Enforce canonical API contract and remove execution.market/api ambiguity across docs and runtime"
         priority: P0
         status: in_progress
-        evidence: "Docs/api base URL migrated and deploy workflows hardened; dashboard nginx now redirects /api and /api/* to https://api.execution.market (pending production deploy verification)"
+        evidence: "Runtime now redirects execution.market/api* to canonical api.execution.market with 308; remaining work is doc/example sweep to prevent redirect-dependent clients"
       files:
         - docs-site/docs/api/reference.md
         - README.md
@@ -740,8 +740,8 @@ resources:
       attributes:
         description: "Add dashboard runtime guardrail to redirect execution.market/api* to canonical api.execution.market"
         priority: P0
-        status: in_progress
-        evidence: "2026-02-08: dashboard/nginx.conf updated with 308 redirects for /api and /api/*; pending deploy/runtime validation"
+        status: done
+        evidence: "2026-02-08: deployed dashboard task definition rev 21; execution.market/api/v1/tasks/available now returns 308 Location=https://api.execution.market/api/v1/tasks/available?limit=1"
       files:
         - dashboard/nginx.conf
         - docs/planning/LAUNCH_REVIEW_EXHAUSTIVE_2026-02-08.md
@@ -772,8 +772,8 @@ resources:
       attributes:
         description: "Roll out latest backend/frontend revisions and verify runtime behavior matches hardened config"
         priority: P0
-        status: in_progress
-        evidence: "Agent card runtime now HTTPS and sanity is green; remaining rollout blocker is edge API ambiguity where execution.market/api/* still serves HTML"
+        status: done
+        evidence: "2026-02-08 runtime verified: backend task def rev 32 completed, dashboard rev 21 completed, agent card HTTPS, sanity 6/6 warnings=0, execution.market/api* redirects to canonical API"
       files:
         - .github/workflows/deploy.yml
         - .github/workflows/deploy-prod.yml
