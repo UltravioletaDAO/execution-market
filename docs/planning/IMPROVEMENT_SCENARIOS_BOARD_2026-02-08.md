@@ -12,7 +12,7 @@ Status legend:
 ## 1) Launch-critical improvements (next 72h)
 
 - [x] `IMP-260208-001 | P0 | Runtime HTTPS contract enforced for agent card | DoD: production publishes HTTPS interfaces | Validation: curl https://api.execution.market/.well-known/agent.json`
-- [ ] `IMP-260208-002 | P0 | Edge API contract fix for execution.market/api/* | DoD: API paths no longer return SPA HTML 200 | Validation: curl -i https://execution.market/api/v1/tasks/available?limit=1`
+- [~] `IMP-260208-002 | P0 | Edge API contract fix for execution.market/api/* | DoD: API paths no longer return SPA HTML 200 | Validation: curl -i https://execution.market/api/v1/tasks/available?limit=1`
 - [~] `IMP-260208-003 | P0 | Agent mutation auth contract consolidation | DoD: one production-safe mutation auth path, fallback disabled in prod policy | Validation: dashboard mutation matrix`
 - [ ] `IMP-260208-004 | P0 | Strict live x402 evidence bundle | DoD: one full strict run with task_id + escrow_id + tx hashes + final statuses | Validation: scripts/test-x402-full-flow.ts -- --count 1 --strict-api --monitor --auto-approve`
 - [ ] `IMP-260208-005 | P0 | Canonical API domain communication lock | DoD: docs, SDK examples, runbooks point to api.execution.market consistently | Validation: rg -n "execution.market/api/v1" docs README.md docs-site`

@@ -144,6 +144,9 @@ Format:
 - [x] `LCH-260208-A05 | P1 | Infra | Add post-deploy assertion for agent card URL scheme | pipeline fails if URL starts with http:// | CI step assertion`
 - [ ] `LCH-260208-A06 | P1 | Infra | Ensure staging has same canonical EM_BASE_URL behavior | staging agent card uses HTTPS canonical URL | curl staging agent card endpoint`
 
+Progress note:
+- `LCH-260208-A04` code-level guardrail now exists in `dashboard/nginx.conf` (`/api` and `/api/*` redirect to `https://api.execution.market...`), but production deploy and runtime verification are still pending.
+
 ## Track B - API-first business mutations
 
 - [ ] `LCH-260208-B01 | P0 | Frontend+Backend | Define agent auth strategy for dashboard API mutations (API key vs wallet-bound token) | single supported auth path documented and implemented | doc + working mutation call`
