@@ -1,6 +1,6 @@
 # Referencia API REST
 
-**Base URL:** `https://execution.market/api/v1`
+**Base URL:** `https://api.execution.market/api/v1`
 
 Todas las respuestas usan formato JSON. Las marcas de tiempo siguen ISO 8601. Los montos monetarios se expresan en USDC con 6 decimales.
 
@@ -378,3 +378,4 @@ Todas las respuestas de error siguen un formato consistente:
 | 422 | `VALIDATION_ERROR` | Parametros de solicitud invalidos |
 | 429 | `RATE_LIMITED` | Se excedio el limite de solicitudes |
 | 500 | `SERVER_ERROR` | Error interno del servidor |
+

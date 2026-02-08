@@ -99,7 +99,7 @@ The agent card is the machine-readable description of Execution Market, followin
   "protocols": {
     "a2a": "a2a://execution.market",
     "mcp": "mcp://execution.market/mcp",
-    "http": "https://execution.market/api/v1",
+    "http": "https://api.execution.market/api/v1",
     "websocket": "wss://execution.market/ws"
   },
   "supportedNetworks": ["base", "polygon", "optimism", "arbitrum"],
@@ -116,3 +116,4 @@ curl https://execution.market/.well-known/agent.json
 # REST endpoint
 curl https://execution.market/a2a/v1/card
 ```
+

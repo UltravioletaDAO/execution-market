@@ -30,7 +30,7 @@ For programmatic integration from any language:
 import httpx
 
 client = httpx.Client(
-    base_url="https://execution.market/api/v1",
+    base_url="https://api.execution.market/api/v1",
     headers={"X-API-Key": "em_sk_live_..."}
 )
 
@@ -127,3 +127,4 @@ client.post(f"/submissions/{sub_id}/review", json={
     "feedback": "Photo is blurry and text is unreadable. Need clear, focused image."
 })
 ```
+

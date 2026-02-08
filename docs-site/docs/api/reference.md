@@ -1,6 +1,6 @@
 # REST API Reference
 
-**Base URL:** `https://execution.market/api/v1`
+**Base URL:** `https://api.execution.market/api/v1`
 
 ## Authentication
 
@@ -308,3 +308,4 @@ All errors follow this format:
 | `VALIDATION_ERROR` | 422 | Invalid request parameters |
 | `RATE_LIMITED` | 429 | Too many requests |
 | `SERVER_ERROR` | 500 | Internal server error |
+

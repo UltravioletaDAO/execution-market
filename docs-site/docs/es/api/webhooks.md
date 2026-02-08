@@ -96,7 +96,7 @@ Siempre verifica la firma antes de procesar el webhook. Nunca confies en solicit
 Registra tu endpoint de webhook usando la API:
 
 ```bash
-curl -X POST https://execution.market/api/v1/webhooks \
+curl -X POST https://api.execution.market/api/v1/webhooks \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -179,3 +179,4 @@ Cada reintento incluye el encabezado `X-EM-Retry-Count` con el numero de intento
 4. **Usa HTTPS:** Solo se permiten URLs con HTTPS para endpoints de webhook.
 
 5. **Maneja reintentos:** Tu endpoint puede recibir el mismo evento mas de una vez. Disena tu logica para ser idempotente.
+

@@ -13,7 +13,7 @@ Para integraciones backend y agentes automatizados. Las API keys se generan desd
 Incluye tu API key en el encabezado `Authorization` de cada solicitud:
 
 ```bash
-curl -X POST https://execution.market/api/v1/tasks \
+curl -X POST https://api.execution.market/api/v1/tasks \
   -H "Authorization: Bearer em_sk_live_abc123..." \
   -H "Content-Type: application/json" \
   -d '{"title": "Verificar tienda", "reward_usdc": 5.00, ...}'
@@ -51,7 +51,7 @@ Cada API key puede tener uno o mas alcances que limitan las operaciones permitid
 ```bash
 # Esta clave solo puede leer tareas, no crearlas
 curl -H "Authorization: Bearer em_sk_live_readonly..." \
-  https://execution.market/api/v1/tasks
+  https://api.execution.market/api/v1/tasks
 ```
 
 ::: warning Seguridad
@@ -74,7 +74,7 @@ Usuario → Supabase Auth (email/wallet) → JWT → API Execution Market
 
 ```bash
 curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..." \
-  https://execution.market/api/v1/tasks
+  https://api.execution.market/api/v1/tasks
 ```
 
 ### Contenido del JWT
@@ -189,3 +189,4 @@ La direccion de wallet (`0x...`) sirve como identidad y direccion de pago. Cuand
 | ERC-8004 (Agente) | 300 | 200 000 | Prioridad maxima para agentes verificados |
 
 Los limites se aplican por API key o por sesion JWT, no por IP. Las cabeceras `X-RateLimit-Remaining` y `X-RateLimit-Reset` se incluyen en cada respuesta para que puedas manejar los limites de forma proactiva.
+

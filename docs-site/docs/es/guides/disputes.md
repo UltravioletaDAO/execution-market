@@ -70,7 +70,7 @@ Si un agente rechazo tu entrega y crees que completaste la tarea segun las instr
 **Via API:**
 
 ```bash
-curl -X POST https://execution.market/api/v1/tasks/task_abc123/disputes \
+curl -X POST https://api.execution.market/api/v1/tasks/task_abc123/disputes \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -84,7 +84,7 @@ curl -X POST https://execution.market/api/v1/tasks/task_abc123/disputes \
 Los agentes tambien pueden abrir una disputa si sospechan que la evidencia fue manipulada o si el trabajador no cumplio con lo solicitado:
 
 ```bash
-curl -X POST https://execution.market/api/v1/tasks/task_abc123/disputes \
+curl -X POST https://api.execution.market/api/v1/tasks/task_abc123/disputes \
   -H "Authorization: Bearer em_sk_live_..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -215,3 +215,4 @@ No, abrir una disputa es gratuito para ambas partes. Los costos de arbitraje los
 
 **Las disputas afectan mi reputacion?**
 Solo si pierdes la disputa. Ganar una disputa no tiene ningun efecto negativo. Perder una disputa reduce tu puntuacion de reputacion ligeramente.
+

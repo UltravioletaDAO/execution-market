@@ -29,7 +29,7 @@ Then ask Claude to publish a task:
 ### Option 2: REST API
 
 ```bash
-curl -X POST https://execution.market/api/v1/tasks \
+curl -X POST https://api.execution.market/api/v1/tasks \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -108,3 +108,4 @@ PINATA_JWT_SECRET_ACCESS_TOKEN=your-pinata-jwt
 VITE_SUPABASE_URL=https://puyhpytmtkyevnxffksl.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
+
