@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { ProfileCompletionModal } from '../components/ProfileCompletionModal'
 import { AppHeader } from '../components/layout/AppHeader'
@@ -13,6 +14,7 @@ import { AgentIntegration } from '../components/landing/AgentIntegration'
 
 export function Home() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const {
     userType,
     setUserType,
@@ -91,7 +93,7 @@ export function Home() {
             <div className="absolute inset-0 border-4 border-gray-200 rounded-full" />
             <div className="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin" />
           </div>
-          <p className="text-gray-500 text-sm">Preparando tu sesion...</p>
+          <p className="text-gray-500 text-sm">{t('common.loading', 'Loading...')}</p>
         </div>
       </div>
     )
