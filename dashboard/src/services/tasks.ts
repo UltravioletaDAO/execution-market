@@ -21,6 +21,24 @@ import type {
 } from './types'
 
 const db = supabase as any
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
+const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'
+
+function buildApplyTaskUrl(taskId: string): string {
+  if (API_BASE_URL.endsWith('/api')) {
+    return `${API_BASE_URL}/v1/tasks/${taskId}/apply`
+  }
+  return `${API_BASE_URL}/api/v1/tasks/${taskId}/apply`
+}
+
+async function parseApiError(response: Response, fallback: string): Promise<string> {
+  try {
+    const data = await response.json() as { detail?: string; message?: string; error?: string }
+    return data.detail || data.message || data.error || fallback
+  } catch {
+    return fallback
+  }
+}
 
 // ============== TASK LISTING ==============
 
@@ -163,7 +181,7 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
 /**
  * Apply to a task as a worker
  */
-export async function applyToTask(data: ApplyToTaskData): Promise<{ application: ApplicationWithTask; task: TaskWithExecutor }> {
+async function applyToTaskDirect(data: ApplyToTaskData): Promise<{ application: ApplicationWithTask; task: TaskWithExecutor }> {
   const { taskId, executorId, message, proposedDeadline } = data
 
   // Get task to verify availability
@@ -226,6 +244,62 @@ export async function applyToTask(data: ApplyToTaskData): Promise<{ application:
   return {
     application,
     task,
+  }
+}
+
+export async function applyToTask(data: ApplyToTaskData): Promise<{ application: ApplicationWithTask; task: TaskWithExecutor }> {
+  const { taskId, executorId, message } = data
+
+  try {
+    const response = await fetch(buildApplyTaskUrl(taskId), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        executor_id: executorId,
+        message,
+      }),
+    })
+
+    if (!response.ok) {
+      const fallback = `Failed to apply to task via API (${response.status})`
+      throw new Error(await parseApiError(response, fallback))
+    }
+
+    const payload = await response.json() as { data?: { application_id?: string } }
+    const applicationId = payload?.data?.application_id
+    if (!applicationId) {
+      throw new Error('Application succeeded but no application_id was returned by API')
+    }
+
+    const [{ data: application, error: applicationError }, task] = await Promise.all([
+      db
+        .from('task_applications')
+        .select('*, task:tasks(*)')
+        .eq('id', applicationId)
+        .single(),
+      getTask(taskId),
+    ])
+
+    if (applicationError || !application) {
+      throw new Error(
+        `Application created via API but could not load row: ${applicationError?.message || 'unknown error'}`
+      )
+    }
+
+    if (!task) {
+      throw new Error('Task not found after successful application')
+    }
+
+    return {
+      application,
+      task,
+    }
+  } catch (error) {
+    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
+      throw error instanceof Error ? error : new Error('Failed to apply to task via API')
+    }
+    // Explicit fallback for local/dev troubleshooting only.
+    return applyToTaskDirect(data)
   }
 }
 
