@@ -4,16 +4,24 @@
  * Central export for all test fixtures and helpers.
  */
 
+// Auth
+export {
+  test,
+  expect,
+  injectAuth,
+  MOCK_WORKER,
+  MOCK_AGENT,
+  type MockUser,
+  type AuthFixtures,
+} from './auth'
+
 // Mocks
 export {
   setupMocks,
-  mockWalletConnection,
   mockGeolocation,
   mockCamera,
-  mockFileUpload,
   mockTasks,
   mockSubmissions,
-  mockApplications,
   mockExecutor,
   mockAgent,
   type Task,
@@ -21,42 +29,14 @@ export {
   type TaskStatus,
   type Executor,
   type Submission,
-  type TaskApplication,
-  type Location,
   type MockOptions,
 } from './mocks'
 
-// Auth
-export {
-  test,
-  expect,
-  loginWithEmail,
-  loginWithWallet,
-  logout,
-  isLoggedIn,
-  getCurrentUser,
-  saveAuthState,
-  TEST_EXECUTOR,
-  TEST_AGENT,
-  type TestUser,
-  type AuthFixtures,
-} from './auth'
-
 // Tasks
 export {
-  createTaskViaUI,
   getTaskById,
   getTasksByStatus,
   getTasksByCategory,
-  applyToTask,
-  acceptTaskApplication,
-  rejectTaskApplication,
-  approveSubmission,
-  rejectSubmission,
-  filterByCategory,
-  filterByStatus,
-  searchTasks,
-  assertTaskCardVisible,
-  assertTaskCount,
-  type CreateTaskInput,
+  waitForTasks,
+  getVisibleTaskCount,
 } from './tasks'

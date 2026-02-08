@@ -2,13 +2,13 @@
  * Execution Market E2E Test Mocks
  *
  * API mocks and test data for E2E testing.
- * Uses Playwright's route interception for API mocking.
+ * Uses Playwright's route interception for Supabase API mocking.
  */
 
-import type { Page, Route } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 // ============================================================================
-// Type Definitions (matching dashboard/src/types/database.ts)
+// Types
 // ============================================================================
 
 export type TaskCategory =
@@ -29,24 +29,16 @@ export type TaskStatus =
   | 'expired'
   | 'cancelled'
 
-export interface Location {
-  lat: number
-  lng: number
-}
-
 export interface Task {
   id: string
   agent_id: string
   category: TaskCategory
   title: string
   instructions: string
-  location: Location | null
+  location: { lat: number; lng: number } | null
   location_radius_km: number | null
   location_hint: string | null
-  evidence_schema: {
-    required: string[]
-    optional?: string[]
-  }
+  evidence_schema: { required: string[]; optional?: string[] }
   bounty_usd: number
   payment_token: string
   deadline: string
@@ -83,25 +75,16 @@ export interface Submission {
   agent_notes: string | null
 }
 
-export interface TaskApplication {
-  id: string
-  task_id: string
-  executor_id: string
-  message: string | null
-  status: 'pending' | 'accepted' | 'rejected'
-  created_at: string
-}
-
 // ============================================================================
 // Mock Data
 // ============================================================================
 
 export const mockExecutor: Executor = {
   id: 'exec-001',
-  user_id: 'user-001',
-  wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
-  display_name: 'Test Executor',
-  bio: 'Experienced executor for Execution Market tasks',
+  user_id: 'e2e-worker-001',
+  wallet_address: '0xe2e0000000000000000000000000000000000001',
+  display_name: 'E2E Worker',
+  bio: 'Experienced executor for testing',
   avatar_url: null,
   roles: ['general', 'photography'],
   reputation_score: 85,
@@ -111,9 +94,9 @@ export const mockExecutor: Executor = {
 
 export const mockAgent: Executor = {
   id: 'agent-001',
-  user_id: 'user-agent-001',
-  wallet_address: '0xagent1234567890abcdef1234567890abcdef',
-  display_name: 'Test Agent',
+  user_id: 'e2e-agent-001',
+  wallet_address: '0xe2e0000000000000000000000000000000000002',
+  display_name: 'E2E Agent',
   bio: 'AI Agent for task coordination',
   avatar_url: null,
   roles: ['agent'],
@@ -133,10 +116,7 @@ export const mockTasks: Task[] = [
     location: { lat: -12.0219, lng: -77.0593 },
     location_radius_km: 0.5,
     location_hint: 'Plaza Norte, Lima',
-    evidence_schema: {
-      required: ['photo_geo', 'photo'],
-      optional: ['video'],
-    },
+    evidence_schema: { required: ['photo_geo', 'photo'], optional: ['video'] },
     bounty_usd: 15.0,
     payment_token: 'USDC',
     deadline: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
@@ -154,13 +134,11 @@ export const mockTasks: Task[] = [
     category: 'knowledge_access',
     title: 'Transcribir menu de restaurante local',
     instructions:
-      'Visitar el restaurante "El Buen Sabor" y transcribir el menu completo incluyendo precios. Tomar fotos del menu como respaldo.',
+      'Visitar el restaurante "El Buen Sabor" y transcribir el menu completo incluyendo precios.',
     location: { lat: -12.0464, lng: -77.0428 },
     location_radius_km: 1.0,
     location_hint: 'Miraflores, Lima',
-    evidence_schema: {
-      required: ['text_response', 'photo'],
-    },
+    evidence_schema: { required: ['text_response', 'photo'] },
     bounty_usd: 8.0,
     payment_token: 'USDC',
     deadline: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
@@ -178,13 +156,11 @@ export const mockTasks: Task[] = [
     category: 'simple_action',
     title: 'Comprar y enviar recibo de producto',
     instructions:
-      'Comprar un paquete de cafe marca "X" en cualquier supermercado y subir foto del recibo mostrando precio y fecha.',
+      'Comprar un paquete de cafe marca "X" en cualquier supermercado y subir foto del recibo.',
     location: null,
     location_radius_km: null,
     location_hint: 'Cualquier ubicacion',
-    evidence_schema: {
-      required: ['receipt', 'photo'],
-    },
+    evidence_schema: { required: ['receipt', 'photo'] },
     bounty_usd: 5.0,
     payment_token: 'USDC',
     deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -193,54 +169,6 @@ export const mockTasks: Task[] = [
     min_reputation: 0,
     required_roles: [],
     max_executors: 5,
-    status: 'published',
-    executor_id: null,
-  },
-  {
-    id: 'task-004',
-    agent_id: 'agent-001',
-    category: 'human_authority',
-    title: 'Firmar documento de conformidad',
-    instructions:
-      'Recibir paquete en direccion indicada, verificar contenido y firmar documento de conformidad. Subir foto de firma.',
-    location: { lat: -12.0897, lng: -77.0251 },
-    location_radius_km: 0.1,
-    location_hint: 'San Isidro, Lima',
-    evidence_schema: {
-      required: ['signature', 'photo'],
-    },
-    bounty_usd: 20.0,
-    payment_token: 'USDC',
-    deadline: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    min_reputation: 70,
-    required_roles: ['verified'],
-    max_executors: 1,
-    status: 'published',
-    executor_id: null,
-  },
-  {
-    id: 'task-005',
-    agent_id: 'agent-001',
-    category: 'digital_physical',
-    title: 'Escanear codigo QR en evento',
-    instructions:
-      'Asistir al evento Tech Summit, encontrar el stand de Execution Market y escanear el codigo QR. Subir screenshot del resultado.',
-    location: { lat: -12.1191, lng: -77.0313 },
-    location_radius_km: 0.2,
-    location_hint: 'Centro de Convenciones, Lima',
-    evidence_schema: {
-      required: ['screenshot', 'photo_geo'],
-    },
-    bounty_usd: 10.0,
-    payment_token: 'USDC',
-    deadline: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    min_reputation: 40,
-    required_roles: [],
-    max_executors: 10,
     status: 'published',
     executor_id: null,
   },
@@ -263,118 +191,100 @@ export const mockSubmissions: Submission[] = [
   },
 ]
 
-export const mockApplications: TaskApplication[] = [
-  {
-    id: 'app-001',
-    task_id: 'task-002',
-    executor_id: 'exec-001',
-    message: 'Estoy cerca del restaurante y puedo hacerlo hoy',
-    status: 'pending',
-    created_at: new Date().toISOString(),
-  },
-]
-
 // ============================================================================
-// API Mock Handlers
+// API Mock Setup
 // ============================================================================
 
 export interface MockOptions {
   delay?: number
-  errorRate?: number
 }
 
 /**
- * Set up all API mocks for the Execution Market application
+ * Set up Supabase API mocks for the dashboard.
+ * Intercepts REST and RPC calls to return mock data.
  */
 export async function setupMocks(
   page: Page,
   options: MockOptions = {}
 ): Promise<void> {
-  const { delay = 100, errorRate = 0 } = options
+  const { delay = 50 } = options
 
-  // Helper to potentially throw errors for testing error states
-  const maybeError = (route: Route): boolean => {
-    if (errorRate > 0 && Math.random() < errorRate) {
-      route.fulfill({
-        status: 500,
-        body: JSON.stringify({ error: 'Internal Server Error' }),
-      })
-      return true
-    }
-    return false
-  }
+  const wait = () => new Promise((r) => setTimeout(r, delay))
 
-  // Mock Supabase REST API - Tasks
-  await page.route('**/rest/v1/tasks*', async (route) => {
-    if (maybeError(route)) return
-
-    const method = route.request().method()
+  // --------------------------------------------------------------------------
+  // Supabase RPC calls (get_or_create_executor, link_wallet_to_session, etc.)
+  // --------------------------------------------------------------------------
+  await page.route('**/rest/v1/rpc/*', async (route) => {
+    await wait()
     const url = route.request().url()
 
-    await new Promise((r) => setTimeout(r, delay))
-
-    if (method === 'GET') {
-      // Parse query params for filtering
-      const urlObj = new URL(url)
-      const status = urlObj.searchParams.get('status')
-      const category = urlObj.searchParams.get('category')
-
-      let tasks = [...mockTasks]
-
-      if (status) {
-        tasks = tasks.filter((t) => t.status === status)
-      }
-      if (category) {
-        tasks = tasks.filter((t) => t.category === category)
-      }
-
+    if (url.includes('get_or_create_executor')) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(tasks),
+        body: JSON.stringify([{
+          id: mockExecutor.id,
+          wallet_address: mockExecutor.wallet_address,
+          display_name: mockExecutor.display_name,
+          email: null,
+          reputation_score: mockExecutor.reputation_score,
+          tasks_completed: mockExecutor.tasks_completed,
+          is_new: false,
+          created_at: new Date().toISOString(),
+        }]),
+      })
+    } else if (url.includes('link_wallet_to_session')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(null),
+      })
+    } else if (url.includes('apply_to_task')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      })
+    } else {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(null),
+      })
+    }
+  })
+
+  // --------------------------------------------------------------------------
+  // Tasks REST
+  // --------------------------------------------------------------------------
+  await page.route('**/rest/v1/tasks*', async (route) => {
+    await wait()
+    const method = route.request().method()
+
+    if (method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockTasks),
       })
     } else if (method === 'POST') {
       const body = await route.request().postDataJSON()
-      const newTask: Task = {
-        id: `task-${Date.now()}`,
-        ...body,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        status: 'published',
-        executor_id: null,
-      }
-      mockTasks.push(newTask)
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify(newTask),
+        body: JSON.stringify({ id: `task-${Date.now()}`, ...body, status: 'published' }),
       })
-    } else if (method === 'PATCH') {
-      const body = await route.request().postDataJSON()
-      const taskId = url.match(/id=eq\.([^&]+)/)?.[1]
-      const taskIndex = mockTasks.findIndex((t) => t.id === taskId)
-      if (taskIndex >= 0) {
-        mockTasks[taskIndex] = { ...mockTasks[taskIndex], ...body }
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(mockTasks[taskIndex]),
-        })
-      } else {
-        await route.fulfill({ status: 404 })
-      }
     } else {
       await route.continue()
     }
   })
 
-  // Mock Supabase REST API - Submissions
+  // --------------------------------------------------------------------------
+  // Submissions REST
+  // --------------------------------------------------------------------------
   await page.route('**/rest/v1/submissions*', async (route) => {
-    if (maybeError(route)) return
-
+    await wait()
     const method = route.request().method()
-
-    await new Promise((r) => setTimeout(r, delay))
 
     if (method === 'GET') {
       await route.fulfill({
@@ -384,77 +294,25 @@ export async function setupMocks(
       })
     } else if (method === 'POST') {
       const body = await route.request().postDataJSON()
-      const newSubmission: Submission = {
-        id: `sub-${Date.now()}`,
-        ...body,
-        submitted_at: new Date().toISOString(),
-        agent_verdict: null,
-        agent_notes: null,
-      }
-      mockSubmissions.push(newSubmission)
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify(newSubmission),
-      })
-    } else if (method === 'PATCH') {
-      const body = await route.request().postDataJSON()
-      const subId = route.request().url().match(/id=eq\.([^&]+)/)?.[1]
-      const subIndex = mockSubmissions.findIndex((s) => s.id === subId)
-      if (subIndex >= 0) {
-        mockSubmissions[subIndex] = { ...mockSubmissions[subIndex], ...body }
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(mockSubmissions[subIndex]),
-        })
-      } else {
-        await route.fulfill({ status: 404 })
-      }
-    } else {
-      await route.continue()
-    }
-  })
-
-  // Mock Supabase REST API - Task Applications
-  await page.route('**/rest/v1/task_applications*', async (route) => {
-    if (maybeError(route)) return
-
-    const method = route.request().method()
-
-    await new Promise((r) => setTimeout(r, delay))
-
-    if (method === 'GET') {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockApplications),
-      })
-    } else if (method === 'POST') {
-      const body = await route.request().postDataJSON()
-      const newApp: TaskApplication = {
-        id: `app-${Date.now()}`,
-        ...body,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-      }
-      mockApplications.push(newApp)
-      await route.fulfill({
-        status: 201,
-        contentType: 'application/json',
-        body: JSON.stringify(newApp),
+        body: JSON.stringify({
+          id: `sub-${Date.now()}`,
+          ...body,
+          submitted_at: new Date().toISOString(),
+        }),
       })
     } else {
       await route.continue()
     }
   })
 
-  // Mock Supabase REST API - Executors
+  // --------------------------------------------------------------------------
+  // Executors REST
+  // --------------------------------------------------------------------------
   await page.route('**/rest/v1/executors*', async (route) => {
-    if (maybeError(route)) return
-
-    await new Promise((r) => setTimeout(r, delay))
-
+    await wait()
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -462,39 +320,58 @@ export async function setupMocks(
     })
   })
 
-  // Mock Supabase Auth
-  await page.route('**/auth/v1/**', async (route) => {
-    if (maybeError(route)) return
+  // --------------------------------------------------------------------------
+  // Task Applications REST
+  // --------------------------------------------------------------------------
+  await page.route('**/rest/v1/task_applications*', async (route) => {
+    await wait()
+    const method = route.request().method()
 
+    if (method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      })
+    } else if (method === 'POST') {
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: `app-${Date.now()}`,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+        }),
+      })
+    } else {
+      await route.continue()
+    }
+  })
+
+  // --------------------------------------------------------------------------
+  // Supabase Auth (anonymous sign-in, session)
+  // --------------------------------------------------------------------------
+  await page.route('**/auth/v1/**', async (route) => {
+    await wait()
     const url = route.request().url()
 
-    await new Promise((r) => setTimeout(r, delay))
-
-    if (url.includes('/token')) {
+    if (url.includes('/token') || url.includes('/signup')) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          access_token: 'mock-access-token',
+          access_token: 'e2e-mock-token',
           token_type: 'bearer',
           expires_in: 3600,
-          refresh_token: 'mock-refresh-token',
-          user: {
-            id: 'user-001',
-            email: 'test@execution.market',
-            role: 'authenticated',
-          },
+          refresh_token: 'e2e-mock-refresh',
+          user: { id: 'e2e-anon-user', role: 'anon' },
         }),
       })
     } else if (url.includes('/user')) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'user-001',
-          email: 'test@execution.market',
-          role: 'authenticated',
-        }),
+        body: JSON.stringify({ id: 'e2e-anon-user', role: 'anon' }),
       })
     } else if (url.includes('/logout')) {
       await route.fulfill({
@@ -505,64 +382,6 @@ export async function setupMocks(
     } else {
       await route.continue()
     }
-  })
-}
-
-/**
- * Mock wallet connection (MetaMask, WalletConnect, etc.)
- */
-export async function mockWalletConnection(page: Page): Promise<void> {
-  // Inject mock ethereum provider
-  await page.addInitScript(() => {
-    const mockEthereum = {
-      isMetaMask: true,
-      isConnected: () => true,
-      selectedAddress: '0x1234567890abcdef1234567890abcdef12345678',
-      chainId: '0x1', // Ethereum mainnet
-      networkVersion: '1',
-
-      request: async ({ method, params }: { method: string; params?: unknown[] }) => {
-        switch (method) {
-          case 'eth_requestAccounts':
-          case 'eth_accounts':
-            return ['0x1234567890abcdef1234567890abcdef12345678']
-
-          case 'eth_chainId':
-            return '0x1'
-
-          case 'wallet_switchEthereumChain':
-            return null
-
-          case 'personal_sign':
-            // Return mock signature
-            return '0x' + '00'.repeat(65)
-
-          case 'eth_sendTransaction':
-            // Return mock transaction hash
-            return '0x' + '00'.repeat(32)
-
-          default:
-            console.log('[Mock Wallet] Unhandled method:', method, params)
-            return null
-        }
-      },
-
-      on: (event: string, callback: (...args: unknown[]) => void) => {
-        console.log('[Mock Wallet] Event listener added:', event)
-        if (event === 'accountsChanged') {
-          // Immediately fire with mock account
-          setTimeout(
-            () => callback(['0x1234567890abcdef1234567890abcdef12345678']),
-            100
-          )
-        }
-      },
-
-      removeListener: () => {},
-    }
-
-    // @ts-expect-error - Injecting mock provider
-    window.ethereum = mockEthereum
   })
 }
 
@@ -587,12 +406,8 @@ export async function mockCamera(page: Page): Promise<void> {
   await page.context().grantPermissions(['camera'])
 
   await page.addInitScript(() => {
-    // Mock MediaDevices API
     const mockMediaDevices = {
-      getUserMedia: async (constraints: MediaStreamConstraints) => {
-        console.log('[Mock Camera] getUserMedia called:', constraints)
-
-        // Create a mock MediaStream
+      getUserMedia: async () => {
         const canvas = document.createElement('canvas')
         canvas.width = 640
         canvas.height = 480
@@ -605,25 +420,10 @@ export async function mockCamera(page: Page): Promise<void> {
           ctx.textAlign = 'center'
           ctx.fillText('Mock Camera Feed', 320, 240)
         }
-
-        // @ts-expect-error - captureStream is not in TypeScript types
-        const stream = canvas.captureStream(30)
-        return stream
+        return (canvas as any).captureStream(30)
       },
-
       enumerateDevices: async () => [
-        {
-          deviceId: 'mock-camera-1',
-          kind: 'videoinput',
-          label: 'Mock Camera',
-          groupId: 'mock-group',
-        },
-        {
-          deviceId: 'mock-mic-1',
-          kind: 'audioinput',
-          label: 'Mock Microphone',
-          groupId: 'mock-group',
-        },
+        { deviceId: 'mock-cam', kind: 'videoinput', label: 'Mock Camera', groupId: 'g' },
       ],
     }
 
@@ -631,23 +431,5 @@ export async function mockCamera(page: Page): Promise<void> {
       value: mockMediaDevices,
       writable: true,
     })
-  })
-}
-
-/**
- * Mock file upload dialog
- */
-export async function mockFileUpload(
-  page: Page,
-  filePath: string,
-  fileName: string
-): Promise<void> {
-  // Create a test file
-  const fileContent = Buffer.from('mock file content')
-
-  await page.setInputFiles('input[type="file"]', {
-    name: fileName,
-    mimeType: 'image/jpeg',
-    buffer: fileContent,
   })
 }
