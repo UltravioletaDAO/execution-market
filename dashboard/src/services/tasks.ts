@@ -425,7 +425,7 @@ export async function cancelApplication(applicationId: string, executorId: strin
  * Cancel a published task
  */
 async function cancelTaskDirect(data: CancelTaskData): Promise<Task> {
-  const { taskId, agentId, reason: _reason } = data
+  const { taskId, agentId } = data
 
   // Get task to verify ownership and status
   const task = await getTask(taskId)
@@ -514,7 +514,7 @@ export async function cancelTask(data: CancelTaskData): Promise<Task> {
  * Assign a task to a specific executor
  */
 async function assignTaskDirect(data: AssignTaskData): Promise<{ task: Task; executor: { id: string; display_name: string | null } }> {
-  const { taskId, agentId, executorId, notes: _notes } = data
+  const { taskId, agentId, executorId } = data
 
   // Get task to verify ownership
   const task = await getTask(taskId)

@@ -102,7 +102,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   }, [onPending, onConfirmed, onFailed])
 
   // Watch for transaction receipt
-  const { data: receipt, isLoading: isWaiting, isError } = useWaitForTransactionReceipt({
+  const { data: receipt, isError } = useWaitForTransactionReceipt({
     hash: watchingHash || undefined,
     chainId: chainId as any,
     confirmations,
@@ -356,12 +356,12 @@ export interface UseTransactionHistoryReturn {
 }
 
 export function useTransactionHistory(
-  options: UseTransactionHistoryOptions = {}
+  _options: UseTransactionHistoryOptions = {}
 ): UseTransactionHistoryReturn {
-  const [history, setHistory] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-  const [hasMore, setHasMore] = useState(true)
+  const [history] = useState<Transaction[]>([])
+  const [loading] = useState(false)
+  const [error] = useState<Error | null>(null)
+  const [hasMore] = useState(true)
 
   // In production, this would fetch from an indexer or backend
   // For now, return empty state
