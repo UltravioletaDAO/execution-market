@@ -196,7 +196,7 @@ export function useAvailableTasks(options: UseAvailableTasksOptions = {}): UseTa
     return `${path}?${params.toString()}`
   }, [options.category, options.limit])
 
-  const normalizeTask = useCallback((raw: any): Task => {
+  const normalizeTask = useCallback((raw: Partial<Task> & { id: string; agent_id: string; category: TaskCategory; title: string; instructions: string; bounty_usd: number; deadline: string; created_at: string }): Task => {
     const normalizedStatus = (raw?.status || 'published') as TaskStatus
     return {
       ...raw,
@@ -204,14 +204,17 @@ export function useAvailableTasks(options: UseAvailableTasksOptions = {}): UseTa
       evidence_schema: raw?.evidence_schema || { required: [], optional: [] },
       required_roles: raw?.required_roles || [],
       payment_token: raw?.payment_token || 'USDC',
+      payment_network: raw?.payment_network || 'base',
       min_reputation: raw?.min_reputation || 0,
       max_executors: raw?.max_executors || 1,
       updated_at: raw?.updated_at || raw?.created_at || new Date().toISOString(),
       location: raw?.location || null,
       location_radius_km: raw?.location_radius_km ?? null,
+      location_hint: raw?.location_hint ?? null,
       accepted_at: raw?.accepted_at ?? null,
       chainwitness_proof: raw?.chainwitness_proof ?? null,
       completed_at: raw?.completed_at ?? null,
+      refund_tx: raw?.refund_tx ?? null,
       executor_id: raw?.executor_id ?? null,
       escrow_tx: raw?.escrow_tx ?? null,
       escrow_id: raw?.escrow_id ?? null,

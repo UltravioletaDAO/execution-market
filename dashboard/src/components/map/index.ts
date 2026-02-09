@@ -6,10 +6,14 @@
 
 // Main components
 export { TaskMap } from './TaskMap';
-export { LocationPicker, geocodeAddress, reverseGeocode } from './LocationPicker';
-export { TaskMarker, createTaskIcon, STATUS_COLORS } from './TaskMarker';
+export { LocationPicker } from './LocationPicker';
+export { TaskMarker } from './TaskMarker';
 export { TaskCluster } from './TaskCluster';
 export { NearbyTasks } from './NearbyTasks';
+
+// Utilities
+export { geocodeAddress, reverseGeocode } from './geocoding';
+export { createTaskIcon, STATUS_COLORS } from './marker-utils';
 
 // Hook and utilities
 export {
