@@ -401,7 +401,7 @@ Delta:   dev=-0.050000     | prod=0.000000       | treasury=+0.050000
 ```
 
 ### Known issue discovered
-- When worker wallet == platform wallet (0x3403), disbursement is a self-transfer (no-op). This only affects testing when the worker IS the production wallet. Real workers will have different addresses.
+- When worker wallet == platform wallet (0xD386), disbursement is a self-transfer (no-op). This only affects testing when the worker IS the production wallet. Real workers will have different addresses.
 - $0.05 bounty at 8% fee = $0.004 fee, which rounds to $0.00 with 2-decimal quantization. Use larger bounties ($1+) for fee testing.
 
 ---

@@ -119,13 +119,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
             "EURC": {
                 "address": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
                 "name": "EURC",
-                "version": "1",
-                "decimals": 6,
-            },
-            "USDT": {
-                "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
-                "name": "Tether USD",
-                "version": "1",
+                "version": "2",
                 "decimals": 6,
             },
         },
@@ -143,19 +137,13 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
             },
             "EURC": {
                 "address": "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c",
-                "name": "EURC",
-                "version": "1",
+                "name": "Euro Coin",
+                "version": "2",
                 "decimals": 6,
             },
             "PYUSD": {
                 "address": "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
                 "name": "PayPal USD",
-                "version": "1",
-                "decimals": 6,
-            },
-            "USDT": {
-                "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-                "name": "Tether USD",
                 "version": "1",
                 "decimals": 6,
             },
@@ -176,12 +164,6 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
                 "name": "USD Coin",
                 "version": "2",
-                "decimals": 6,
-            },
-            "USDT": {
-                "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-                "name": "Tether USD",
-                "version": "1",
                 "decimals": 6,
             },
             "AUSD": {
@@ -205,7 +187,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
             },
             "USDT": {
                 "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-                "name": "Tether USD",
+                "name": "USD\u20ae0",
                 "version": "1",
                 "decimals": 6,
             },
@@ -266,10 +248,10 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "version": "1",
                 "decimals": 6,
             },
-            "USDT": {
-                "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
-                "name": "Tether USD",
-                "version": "1",
+            "EURC": {
+                "address": "0xC891EB4cbdEFf6e073e859e987815Ed1505c2ACD",
+                "name": "Euro Coin",
+                "version": "2",
                 "decimals": 6,
             },
             "AUSD": {

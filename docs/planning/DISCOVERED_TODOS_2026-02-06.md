@@ -133,7 +133,7 @@ Added `pay_to: Optional[str] = None` parameter to `verify_payment()`, `settle_pa
 **Status**: FIXED (Batch 5, 2026-02-06)
 **Discovered during**: Architecture review after TODO-D00 fix (2026-02-06)
 
-**The Problem**: When a task is approved, `settle_task_payment()` signs TWO NEW EIP-3009 auths from the **platform wallet** (`0x3403...`). The agent's original auth (stored in `task.escrow_tx`) is **never settled**. This means:
+**The Problem**: When a task is approved, `settle_task_payment()` signs TWO NEW EIP-3009 auths from the **platform wallet** (`0xD386...`). The agent's original auth (stored in `task.escrow_tx`) is **never settled**. This means:
 - The agent never actually pays USDC
 - The platform wallet pays workers from its own balance ($29.97)
 - When the platform wallet runs out, all payments stop
@@ -158,7 +158,7 @@ settle_resp = self.client.settle_payment(payload, bounty_amount)
 ```
 
 **Prerequisites**:
-- Agent's auth.to must point to the platform wallet (`0x3403...`), NOT the treasury
+- Agent's auth.to must point to the platform wallet (`0xD386...`), NOT the treasury
 - Test scripts need to sign auths to platform wallet address
 - SDK v0.8.1 with `pay_to` ✅ (for cases where auth.to differs from config)
 

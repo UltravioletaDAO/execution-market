@@ -45,7 +45,7 @@ graph LR
 ### Key Infrastructure Findings
 
 1. **Base is the only fully operational network** — funded wallet, deployed contracts, verified settlement.
-2. **5 networks (Ethereum, Polygon, Arbitrum, Celo, Avalanche)** have all contracts deployed but the production wallet (`0x3403...`) has $0 USDC. Fund these to enable multi-network payment tests.
+2. **6 networks already funded** — new wallet (`0xD386...`) has USDC on Base ($5.48), Polygon ($1.80), Arbitrum ($0.60), Celo ($0.60), Monad ($0.40), Avalanche ($3.00). Only Ethereum has $0.
 3. **Monad USDC contract** — our codebase previously pointed to a wrong address (`0xf817...`). The correct address from the x402r-sdk is `0x754704Bc059F8C67012fEd69BC8A327a5aafb603` (1798 bytes deployed). **Fixed** in `sdk_client.py`.
 4. **Facilitator** (`facilitator.ultravioletadao.xyz`) is reachable and healthy. ERC-8004 operations (registration, reputation feedback) are gasless via facilitator.
 5. **Escrow addresses were stale in `sdk_client.py`**: 6 of 7 addresses pointed to wrong contracts (same first 4 bytes, different suffix). **Fixed** — all addresses now match the x402r-sdk source of truth (`BackTrackCo/x402r-sdk`). All 7 contracts verified deployed with 8247 bytes each.

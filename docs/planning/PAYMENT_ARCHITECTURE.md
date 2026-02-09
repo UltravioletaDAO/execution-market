@@ -13,7 +13,7 @@ sequenceDiagram
     participant Agent as AI Agent
     participant MCP as MCP Server
     participant Fac as Facilitator
-    participant PW as Platform Wallet<br/>0x3403...
+    participant PW as Platform Wallet<br/>0xD386...
     participant Worker as Worker Wallet
     participant Treasury as EM Treasury<br/>0xae07...
 
@@ -49,7 +49,7 @@ sequenceDiagram
     participant Agent as AI Agent
     participant MCP as MCP Server
     participant Fac as Facilitator
-    participant PW as Platform Wallet<br/>0x3403...
+    participant PW as Platform Wallet<br/>0xD386...
     participant Worker as Worker Wallet
 
     Note over Agent,Worker: Task Creation (same as current)
@@ -99,7 +99,7 @@ sequenceDiagram
 ```mermaid
 graph LR
     subgraph "Execution Market Wallets"
-        PW["Platform Wallet<br/>0x3403...<br/>(signs disbursements)"]
+        PW["Platform Wallet<br/>0xD386...<br/>(signs disbursements)"]
         TR["EM Treasury<br/>0xae07...<br/>(fee collection)"]
     end
 
@@ -120,7 +120,7 @@ graph LR
 
 | Wallet | Address | Purpose | Env Var |
 |--------|---------|---------|---------|
-| Platform (prod) | `0x34033041a5944B8F10f8E4D8496Bfb84f1A293A8` | Signs worker payouts & fee collection | `em/x402:PRIVATE_KEY` |
+| Platform (prod) | `0xD3868E1eD738CED6945A574a7c769433BeD5d474` | Signs worker payouts & fee collection | `em/x402:PRIVATE_KEY` |
 | Platform (dev) | `0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd` | Local testing | `.env.local:WALLET_PRIVATE_KEY` |
 | EM Treasury | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` | Fee accumulation | `em/commission:wallet_address` |
 
@@ -189,7 +189,7 @@ For MVP launch, commission can be set to 0% via `EM_PLATFORM_FEE=0.00`.
 ```python
 from uvd_x402_sdk import X402Client
 
-client = X402Client(recipient_address="0x3403...")
+client = X402Client(recipient_address="0xD386...")
 
 # Verify (task creation) — no funds move
 payload = client.extract_payload(x_payment_header)

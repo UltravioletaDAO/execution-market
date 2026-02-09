@@ -114,7 +114,7 @@ These came from the original prompt and are now answered by code analysis:
 | A4 | Confirm x402r escrow contract per network | [MODIFIED] | See contract table in CLAUDE.md. Base/Ethereum/Polygon have unique addresses; Arbitrum/Celo/Monad/Avalanche share one. | These contracts exist but EM uses EIP-3009 auth, not direct escrow deposits |
 | A5 | Confirm facilitator reachability | [VALID] | `POST /verify` returns 200 with valid signature | `https://facilitator.ultravioletadao.xyz` |
 | A6 | Confirm USDC token address per network | [VALID] | Check `NETWORK_CONFIG` in `sdk_client.py` | Each network has a different USDC address |
-| A7 | Confirm platform wallet has USDC on each enabled network | [MODIFIED] | Only need USDC on networks where tasks will be created. Production wallet `0x3403` has ~$30 on Base. | **Other networks may not be funded yet** — this test will surface funding gaps |
+| A7 | Confirm platform wallet has USDC on each enabled network | [MODIFIED] | Only need USDC on networks where tasks will be created. Production wallet `0xD386` has ~$12 USDC across 6 networks. | **Other networks may not be funded yet** — this test will surface funding gaps |
 
 **Evidence**: Table of `network → RPC status → ERC-8004 verified → USDC address → facilitator response`
 
@@ -256,7 +256,7 @@ The system has no cron job or trigger to expire tasks. The `expire_tasks()` RPC 
 
 | Wallet | Address | Source | Roles |
 |---|---|---|---|
-| **Wallet A** (Production) | `0x34033041a5944B8F10f8E4D8496Bfb84f1A293A8` | AWS Secrets Manager `em/x402:PRIVATE_KEY` | Agent (creates tasks, approves submissions) |
+| **Wallet A** (Production) | `0xD3868E1eD738CED6945A574a7c769433BeD5d474` | AWS Secrets Manager `em/x402:PRIVATE_KEY` | Agent (creates tasks, approves submissions) |
 | **Wallet B** (Dev) | `0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd` | `.env.local:WALLET_PRIVATE_KEY` | Worker (accepts tasks, submits evidence) |
 
 ### Per-Network Test Execution

@@ -25,7 +25,7 @@ Execution Market is a **Human Execution Layer for AI Agents** - a marketplace wh
 | Payments | x402 SDK + Facilitator (Base Mainnet, gasless) |
 | Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
 | Agent Identity | ERC-8004 Registry (14 networks via Facilitator) |
-| SDKs | Python `uvd-x402-sdk>=0.8.1` / TypeScript `uvd-x402-sdk@2.20.0` |
+| SDKs | Python `uvd-x402-sdk>=0.9.1` / TypeScript `uvd-x402-sdk@2.21.1` |
 
 ## Project Structure
 
@@ -345,7 +345,7 @@ Wrong Flow (DO NOT USE):
 
 | Component | Details |
 |-----------|---------|
-| **SDK** | `uvd-x402-sdk[fastapi]>=0.8.1` (in `mcp_server/requirements.txt`) |
+| **SDK** | `uvd-x402-sdk[fastapi]>=0.9.1` (in `mcp_server/requirements.txt`) |
 | **SDK Client** | `mcp_server/integrations/x402/sdk_client.py` — `EMX402SDK` class |
 | **Facilitator URL** | `https://facilitator.ultravioletadao.xyz` |
 | **Facilitator Endpoints** | `POST /verify`, `POST /settle`, `POST /register`, `POST /feedback` |
@@ -362,13 +362,13 @@ Wrong Flow (DO NOT USE):
 | Deposit Relay (our wallet) | `0xe8CCF8Be24867cf21b4031fB1A5226932483EAF3` |
 | Vault | `0x0b3fC8BA8952C6cA6807F667894b0b7c9c40fc8b` |
 | Agent Wallet (dev) | `0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd` |
-| Agent Wallet (production/ECS) | `0x34033041a5944B8F10f8E4D8496Bfb84f1A293A8` |
+| Agent Wallet (production/ECS) | `0xD3868E1eD738CED6945A574a7c769433BeD5d474` |
 | Execution Market Treasury | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` |
 
 **Wallet Notes**:
 - **Dev wallet** (`0x857f`): Used by local scripts and tests. Key in `.env.local`.
-- **Production wallet** (`0x3403`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`.
-- These are currently different keys. Production wallet has ~$30 USDC for live payments.
+- **Production wallet** (`0xD386`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`.
+- These are currently different keys. Production wallet has ~$12 USDC across 6 networks.
 
 **Payment Flow for Tasks** (as of 2026-02-06):
 1. **Deposit** (task creation): Agent signs EIP-3009 auth → MCP verifies via Facilitator → Task created (no funds move yet)
