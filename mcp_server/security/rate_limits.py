@@ -33,25 +33,25 @@ class RateLimitTier(str, Enum):
 
 # Rate limits by tier (requests per minute)
 TIER_LIMITS: Dict[RateLimitTier, int] = {
-    RateLimitTier.FREE: 10,
-    RateLimitTier.STARTER: 60,
-    RateLimitTier.GROWTH: 300,
-    RateLimitTier.ENTERPRISE: 1000,
+    RateLimitTier.FREE: 60,
+    RateLimitTier.STARTER: 300,
+    RateLimitTier.GROWTH: 3000,
+    RateLimitTier.ENTERPRISE: 10000,
 }
 
 # Burst allowance multiplier (allows short bursts above limit)
 TIER_BURST_MULTIPLIER: Dict[RateLimitTier, float] = {
-    RateLimitTier.FREE: 1.0,  # No burst for free tier
-    RateLimitTier.STARTER: 1.5,  # 50% burst allowance
-    RateLimitTier.GROWTH: 2.0,  # 100% burst allowance
-    RateLimitTier.ENTERPRISE: 3.0,  # 200% burst allowance
+    RateLimitTier.FREE: 1.5,  # 50% burst for free tier
+    RateLimitTier.STARTER: 2.0,  # 100% burst allowance
+    RateLimitTier.GROWTH: 3.0,  # 200% burst allowance
+    RateLimitTier.ENTERPRISE: 5.0,  # 400% burst allowance
 }
 
 # Task creation limits
 TASK_LIMITS = {
-    "per_ip_daily": 50,
-    "per_device_daily": 20,
-    "per_agent_hourly": 100,
+    "per_ip_daily": 500,
+    "per_device_daily": 200,
+    "per_agent_hourly": 1000,
 }
 
 # Window sizes
