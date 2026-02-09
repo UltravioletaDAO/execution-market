@@ -600,9 +600,7 @@ def _resolve_mcp_payment_header(
         )
         if result.data:
             metadata = result.data[0].get("metadata", {})
-            header = metadata.get("x_payment_header") or metadata.get(
-                "payment_header"
-            )
+            header = metadata.get("x_payment_header") or metadata.get("payment_header")
             if header:
                 return header
     except Exception as e:

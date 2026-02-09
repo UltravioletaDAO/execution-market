@@ -22,24 +22,20 @@ Covers test plan IDs: A1, C1, C2, D2, E1, E2, E5, F1-F8, F13, G1, G6, G7, H1, H2
 import json
 import logging
 import os
-import re
 import pytest
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Dict, Optional
+from typing import Dict
 
 from .shared import (
-    API_BASE,
     FACILITATOR_URL,
     PLATFORM_FEE_PCT,
     WALLET_A_ADDRESS,
     WALLET_B_ADDRESS,
-    TREASURY_ADDRESS,
     ENABLED_NETWORKS,
     EMApiClient,
     get_usdc_balance,
     mask_key,
-    mask_address,
 )
 
 logger = logging.getLogger(__name__)
@@ -122,9 +118,7 @@ def worker_key(check_enabled) -> str:
         pass
 
     # Try .env.local
-    env_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", ".env.local"
-    )
+    env_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", ".env.local")
     if os.path.exists(env_path):
         with open(env_path) as f:
             for line in f:
@@ -205,9 +199,11 @@ class TestTaskCreation:
         """C2: Task creation without X-Payment returns 402."""
         result = await api.create_task(bounty_usd=0.10, payment_header=None)
         assert result["status_code"] == 402
-        assert "payment" in result["data"].get("error", "").lower() or \
-               "payment" in result["data"].get("detail", "").lower() or \
-               result["data"].get("error") == "Payment required"
+        assert (
+            "payment" in result["data"].get("error", "").lower()
+            or "payment" in result["data"].get("detail", "").lower()
+            or result["data"].get("error") == "Payment required"
+        )
 
     @pytest.mark.asyncio
     async def test_c8_unsupported_network_fails(self, api, check_enabled):
@@ -403,10 +399,9 @@ class TestGoldenPath:
             )
 
             approve_data = approve_result["data"]
-            payment_tx = (
-                approve_data.get("data", {}).get("payment_tx")
-                or approve_data.get("payment_tx")
-            )
+            payment_tx = approve_data.get("data", {}).get(
+                "payment_tx"
+            ) or approve_data.get("payment_tx")
             logger.info(f"Payment TX: {payment_tx}")
 
             # F7: Verify tx hash format (real on-chain hash)
@@ -492,7 +487,7 @@ class TestGoldenPath:
             pytest.skip("Dry run")
 
         # Register the agent's own address as a worker
-        reg = await api.register_worker(
+        _ = await api.register_worker(
             wallet_address=agent_address,
             display_name="Self-payment test",
         )
@@ -563,9 +558,7 @@ class TestCancellation:
         logger.info(f"Double-cancel: {cancel2['status_code']}")
 
     @pytest.mark.asyncio
-    async def test_g7_cannot_cancel_after_release(
-        self, api, check_enabled
-    ):
+    async def test_g7_cannot_cancel_after_release(self, api, check_enabled):
         """G7: Cancel after approval/release should return 409.
 
         Note: This requires a completed task. We test the API response

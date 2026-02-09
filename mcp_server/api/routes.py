@@ -2569,7 +2569,11 @@ async def request_more_info_submission(
 
     return SuccessResponse(
         message="More information requested from worker.",
-        data={"submission_id": submission_id, "task_id": task_id, "verdict": "more_info_requested"},
+        data={
+            "submission_id": submission_id,
+            "task_id": task_id,
+            "verdict": "more_info_requested",
+        },
     )
 
 
@@ -3668,7 +3672,8 @@ class BatchCreateResponse(BaseModel):
     },
 )
 async def batch_create_tasks(
-    request: BatchCreateRequest, api_key: APIKeyData = Depends(verify_api_key_if_required)
+    request: BatchCreateRequest,
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> BatchCreateResponse:
     """
     Create multiple tasks in a single request.

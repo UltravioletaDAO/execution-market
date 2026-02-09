@@ -8,7 +8,6 @@ Provides:
 - Masking helpers for secure logging
 """
 
-import json
 import logging
 import os
 from decimal import Decimal
@@ -67,7 +66,15 @@ NETWORKS = {
     },
 }
 
-ENABLED_NETWORKS = ["base", "ethereum", "polygon", "arbitrum", "celo", "monad", "avalanche"]
+ENABLED_NETWORKS = [
+    "base",
+    "ethereum",
+    "polygon",
+    "arbitrum",
+    "celo",
+    "monad",
+    "avalanche",
+]
 
 
 # ============== SECURITY HELPERS ==============
@@ -187,7 +194,9 @@ class EMApiClient:
         )
         return {"status_code": resp.status_code, "data": resp.json()}
 
-    async def cancel_task(self, task_id: str, reason: str = "E2E test cleanup") -> Dict[str, Any]:
+    async def cancel_task(
+        self, task_id: str, reason: str = "E2E test cleanup"
+    ) -> Dict[str, Any]:
         resp = await self.client.post(
             f"{self.base}/api/v1/tasks/{task_id}/cancel",
             headers=self._headers(),
@@ -227,9 +236,8 @@ class EMApiClient:
     ) -> Dict[str, Any]:
         body = {
             "executor_id": executor_id,
-            "evidence": evidence or [
-                {"type": "text_response", "content": "test_complete"}
-            ],
+            "evidence": evidence
+            or [{"type": "text_response", "content": "test_complete"}],
             "notes": "E2E automated submission",
         }
         resp = await self.client.post(
@@ -239,7 +247,10 @@ class EMApiClient:
         return {"status_code": resp.status_code, "data": resp.json()}
 
     async def approve_submission(
-        self, submission_id: str, verdict: str = "accepted", notes: str = "E2E auto-approve"
+        self,
+        submission_id: str,
+        verdict: str = "accepted",
+        notes: str = "E2E auto-approve",
     ) -> Dict[str, Any]:
         resp = await self.client.post(
             f"{self.base}/api/v1/submissions/{submission_id}/approve",
@@ -308,9 +319,7 @@ class EMApiClient:
         return {"status_code": resp.status_code, "data": resp.json()}
 
     async def get_agent_reputation(self, agent_id: int) -> Dict[str, Any]:
-        resp = await self.client.get(
-            f"{self.base}/api/v1/reputation/agents/{agent_id}"
-        )
+        resp = await self.client.get(f"{self.base}/api/v1/reputation/agents/{agent_id}")
         return {"status_code": resp.status_code, "data": resp.json()}
 
     async def get_agent_identity(self, agent_id: int) -> Dict[str, Any]:
@@ -350,9 +359,7 @@ async def check_facilitator_health(http_client) -> Optional[Dict]:
         return None
 
 
-async def check_contract_code(
-    http_client, network: str, contract_address: str
-) -> bool:
+async def check_contract_code(http_client, network: str, contract_address: str) -> bool:
     """Check if a contract address has code deployed (not an EOA)."""
     net_config = NETWORKS.get(network)
     if not net_config:

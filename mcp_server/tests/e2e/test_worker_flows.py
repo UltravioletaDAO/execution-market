@@ -32,13 +32,10 @@ from decimal import Decimal
 from typing import Dict
 
 from .shared import (
-    API_BASE,
     FACILITATOR_URL,
     PLATFORM_FEE_PCT,
-    WALLET_A_ADDRESS,
     WALLET_B_ADDRESS,
     EMApiClient,
-    mask_key,
 )
 
 logger = logging.getLogger(__name__)
@@ -239,9 +236,7 @@ class TestWorkerAcceptance:
                 task_id=task_id,
                 executor_id=executor_id,
             )
-            assert apply2["status_code"] != 200, (
-                "Second apply should be rejected"
-            )
+            assert apply2["status_code"] != 200, "Second apply should be rejected"
             logger.info(f"Double-apply rejected: {apply2['status_code']}")
 
         finally:
@@ -307,9 +302,7 @@ class TestWorkerAcceptance:
                 task_list = tasks
 
             task_ids = [t.get("id") for t in task_list]
-            assert task_id in task_ids, (
-                f"Task {task_id} not in available tasks"
-            )
+            assert task_id in task_ids, f"Task {task_id} not in available tasks"
             logger.info(f"Task {task_id} visible in available tasks")
 
         finally:

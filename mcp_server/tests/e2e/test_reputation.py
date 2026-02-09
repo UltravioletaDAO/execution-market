@@ -25,15 +25,11 @@ import logging
 import os
 import uuid
 import pytest
-from decimal import Decimal
 from typing import Dict
 
 from .shared import (
-    API_BASE,
-    WALLET_A_ADDRESS,
     WALLET_B_ADDRESS,
     EMApiClient,
-    get_usdc_balance,
     mask_address,
 )
 
@@ -192,8 +188,7 @@ class TestReputationQueries:
         if result["status_code"] == 200:
             data = result["data"]
             logger.info(
-                f"EM reputation: score={data.get('score')}, "
-                f"count={data.get('count')}"
+                f"EM reputation: score={data.get('score')}, count={data.get('count')}"
             )
             assert data.get("agent_id") == EM_AGENT_ID
         else:
@@ -212,9 +207,7 @@ class TestReputationQueries:
             data = result["data"]
             assert data.get("agent_id") == EM_AGENT_ID
             assert data.get("owner"), "Should have owner"
-            logger.info(
-                f"EM identity: owner={mask_address(data.get('owner', ''))}"
-            )
+            logger.info(f"EM identity: owner={mask_address(data.get('owner', ''))}")
         else:
             # 404/503 acceptable if not registered
             assert result["status_code"] in (404, 503)

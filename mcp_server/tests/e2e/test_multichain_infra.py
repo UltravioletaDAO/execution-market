@@ -22,10 +22,7 @@ import pytest
 from decimal import Decimal
 
 from .shared import (
-    API_BASE,
-    FACILITATOR_URL,
     WALLET_A_ADDRESS,
-    NETWORKS,
     ENABLED_NETWORKS,
     EMApiClient,
     get_usdc_balance,
@@ -115,9 +112,7 @@ class TestEscrowContracts:
             pytest.skip(f"No escrow address configured for {network}")
 
         has_code = await check_contract_code(http_client, network, escrow_addr)
-        logger.info(
-            f"[{network}] Escrow {escrow_addr[:10]}... deployed: {has_code}"
-        )
+        logger.info(f"[{network}] Escrow {escrow_addr[:10]}... deployed: {has_code}")
         if not has_code:
             pytest.xfail(f"Escrow contract not deployed on {network}")
 
@@ -192,29 +187,22 @@ class TestWalletFunding:
     @pytest.mark.asyncio
     async def test_a7_production_wallet_funded_base(self, http_client):
         """A7: Production wallet has USDC on Base (primary network)."""
-        balance = await get_usdc_balance(
-            http_client, "base", WALLET_A_ADDRESS
-        )
+        balance = await get_usdc_balance(http_client, "base", WALLET_A_ADDRESS)
         assert balance is not None, "Could not query wallet balance on Base"
         logger.info(f"Production wallet on Base: ${balance} USDC")
         # Should have some funds for testing
-        assert balance > Decimal("0"), (
-            f"Production wallet has $0 USDC on Base"
-        )
+        assert balance > Decimal("0"), "Production wallet has $0 USDC on Base"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("network", ENABLED_NETWORKS)
     async def test_a7_production_wallet_balance(self, http_client, network):
         """A7: Check production wallet USDC balance on each network."""
-        balance = await get_usdc_balance(
-            http_client, network, WALLET_A_ADDRESS
-        )
+        balance = await get_usdc_balance(http_client, network, WALLET_A_ADDRESS)
         if balance is None:
             pytest.xfail(f"Could not query balance on {network}")
 
         logger.info(
-            f"[{network}] Wallet {mask_address(WALLET_A_ADDRESS)}: "
-            f"${balance} USDC"
+            f"[{network}] Wallet {mask_address(WALLET_A_ADDRESS)}: ${balance} USDC"
         )
         # Don't fail on unfunded networks, just report
         if balance == Decimal("0"):

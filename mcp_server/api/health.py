@@ -283,9 +283,7 @@ class HealthChecker:
                         message=f"Connected, block: {block_number:,}",
                         details={
                             "block_number": block_number,
-                            "network": "base"
-                            if "base.org" in rpc_url
-                            else "custom",
+                            "network": "base" if "base.org" in rpc_url else "custom",
                         },
                     )
                 elif "error" in data:
