@@ -884,6 +884,7 @@ export function TaxReports({ executor, onBack }: TaxReportsProps) {
     if (preset !== 'custom') {
       setCustomRange(getDateRange(preset))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset])
 
   // Fetch data
