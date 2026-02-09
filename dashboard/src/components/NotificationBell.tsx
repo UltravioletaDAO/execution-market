@@ -224,7 +224,7 @@ export function NotificationBell({
     } finally {
       setLoading(false)
     }
-  }, [executorId])
+  }, [executorId, db])
 
   // Initial fetch
   useEffect(() => {
@@ -257,7 +257,7 @@ export function NotificationBell({
     return () => {
       db.removeChannel(channel)
     }
-  }, [executorId])
+  }, [executorId, db])
 
   // Mark notification as read
   const markAsRead = useCallback(async (notificationId: string) => {

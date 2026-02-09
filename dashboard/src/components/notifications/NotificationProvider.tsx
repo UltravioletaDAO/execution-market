@@ -18,6 +18,7 @@ import {
   type ReactNode,
 } from 'react'
 import { supabase } from '../../lib/supabase'
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import type {
   Notification,
   NotificationInsert,
@@ -140,7 +141,7 @@ export function NotificationProvider({
         setLoading(false)
       }
     },
-    [executorId, filter]
+    [executorId, filter, db]
   )
 
   // --------------------------------------------------------------------------
@@ -166,7 +167,7 @@ export function NotificationProvider({
     } catch (err) {
       console.error('[NotificationProvider] Count error:', err)
     }
-  }, [executorId])
+  }, [executorId, db])
 
   // --------------------------------------------------------------------------
   // WebSocket Subscription
@@ -261,7 +262,7 @@ export function NotificationProvider({
       }
       setWsStatus('disconnected')
     }
-  }, [executorId, enableWebSocket])
+  }, [executorId, enableWebSocket, db])
 
   // --------------------------------------------------------------------------
   // Initial Fetch
@@ -295,7 +296,7 @@ export function NotificationProvider({
         throw err
       }
     },
-    [executorId]
+    [executorId, db]
   )
 
   const removeNotification = useCallback(async (id: string) => {
@@ -312,7 +313,7 @@ export function NotificationProvider({
       console.error('[NotificationProvider] Remove error:', err)
       throw err
     }
-  }, [])
+  }, [db])
 
   const markAsRead = useCallback(async (id: string) => {
     try {
@@ -332,7 +333,7 @@ export function NotificationProvider({
       console.error('[NotificationProvider] Mark as read error:', err)
       throw err
     }
-  }, [])
+  }, [db])
 
   const markAllAsRead = useCallback(async () => {
     if (!executorId) return
@@ -353,7 +354,7 @@ export function NotificationProvider({
       console.error('[NotificationProvider] Mark all as read error:', err)
       throw err
     }
-  }, [executorId])
+  }, [executorId, db])
 
   // --------------------------------------------------------------------------
   // Toast Actions

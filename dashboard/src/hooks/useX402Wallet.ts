@@ -110,7 +110,7 @@ export interface UseX402WalletReturn {
 
 export function useX402Wallet(): UseX402WalletReturn {
   // Wagmi hooks
-  const { address, isConnected, connector } = useAccount()
+  const { address, isConnected } = useAccount()
   const { connectors, connectAsync, isPending: isConnecting } = useConnect()
   const { disconnectAsync } = useDisconnect()
   const chainId = useChainId()

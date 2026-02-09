@@ -8,7 +8,7 @@
  * - Task status breakdown chart
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import type { Task, TaskStatus, Submission } from '../../types/database'
 
 // ============================================================================
@@ -387,7 +387,7 @@ function QuickActionButton({
 export function Dashboard({
   agentId,
   onNavigate,
-  onViewTask,
+  onViewTask: _onViewTask,
   onReviewSubmission,
 }: AgentDashboardProps) {
   const [stats, setStats] = useState<AgentStats | null>(null)
@@ -752,7 +752,7 @@ export function Dashboard({
                 <p className="text-sm text-gray-500">No hay entregas pendientes</p>
               </div>
             ) : (
-              pendingSubmissions.map((submission) => (
+              pendingSubmissions.map((submission, _index) => (
                 <PendingSubmissionCard
                   key={submission.id}
                   submission={submission}

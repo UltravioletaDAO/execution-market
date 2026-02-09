@@ -35,7 +35,6 @@ export async function getEarnings(executorId: string): Promise<EarningsSummary> 
   let totalEarned = 0
   let totalWithdrawn = 0
   let pending = 0
-  let available = 0
   let taskCount = 0
 
   ;(payments || []).forEach((p: any) => {
@@ -52,8 +51,6 @@ export async function getEarnings(executorId: string): Promise<EarningsSummary> 
       if (p.type === 'task_payment' || p.type === 'bonus') {
         pending += amount
       }
-    } else if (p.status === 'available') {
-      available += amount
     }
   })
 

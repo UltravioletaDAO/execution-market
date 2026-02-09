@@ -105,7 +105,7 @@ export function useEarnings(executorId: string | undefined) {
         .in('status', ['accepted', 'in_progress', 'submitted', 'verifying'])
 
       const pendingEarnings = assignedTasks?.reduce(
-        (sum: any, t: any) => sum + (t.bounty_usd || 0), 0
+        (sum: number, t: { bounty_usd?: number }) => sum + (t.bounty_usd || 0), 0
       ) || 0
 
       // Calculate this month and last month earnings
@@ -130,11 +130,11 @@ export function useEarnings(executorId: string | undefined) {
         .not('payment_amount', 'is', null)
 
       const thisMonthEarnings = thisMonthSubmissions?.reduce(
-        (sum: any, s: any) => sum + (s.payment_amount || 0), 0
+        (sum: number, s: { payment_amount?: number | null }) => sum + (s.payment_amount || 0), 0
       ) || 0
 
       const lastMonthEarnings = lastMonthSubmissions?.reduce(
-        (sum: any, s: any) => sum + (s.payment_amount || 0), 0
+        (sum: number, s: { payment_amount?: number | null }) => sum + (s.payment_amount || 0), 0
       ) || 0
 
       setEarnings({
@@ -192,11 +192,11 @@ export function useReputation(executorId: string | undefined) {
 
         if (subError) throw subError
 
-        const approved = submissions?.filter((s: any) =>
+        const approved = submissions?.filter((s: { agent_verdict?: string; auto_check_passed?: boolean | null }) =>
           s.agent_verdict === 'approved' || s.auto_check_passed === true
         ).length || 0
 
-        const rejected = submissions?.filter((s: any) =>
+        const rejected = submissions?.filter((s: { agent_verdict?: string; auto_check_passed?: boolean | null }) =>
           s.agent_verdict === 'rejected' || s.auto_check_passed === false
         ).length || 0
 
@@ -277,7 +277,18 @@ export function useTaskHistory(executorId: string | undefined, limit: number = 1
 
       if (subError) throw subError
 
-      const items: TaskHistoryItem[] = (submissions || []).map((s: any) => {
+      interface SubmissionWithTask {
+        id: string
+        task_id: string
+        submitted_at: string
+        verified_at: string | null
+        payment_amount: number | null
+        auto_check_passed?: boolean | null
+        agent_verdict?: string | null
+        task: { title: string; category: string; bounty_usd: number; status: string } | null
+      }
+
+      const items: TaskHistoryItem[] = (submissions || []).map((s: SubmissionWithTask) => {
         const task = s.task as { title: string; category: string; bounty_usd: number; status: string } | null
         let status = 'pending'
         if (s.agent_verdict === 'approved' || s.auto_check_passed === true) {
