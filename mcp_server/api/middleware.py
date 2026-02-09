@@ -100,6 +100,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     # Path prefixes exempt from rate limiting (have their own auth)
     EXEMPT_PREFIXES = (
         "/api/v1/admin/",
+        "/api/v1/reputation/info",
+        "/api/v1/reputation/networks",
+        "/api/v1/escrow/config",
+        "/api/v1/config",
         "/health/",
     )
 
