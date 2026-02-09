@@ -51,6 +51,11 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
+    env: {
+      VITE_DYNAMIC_ENVIRONMENT_ID: 'e2e-mock-env-id',
+      VITE_SUPABASE_URL: 'http://localhost:54321',
+      VITE_SUPABASE_ANON_KEY: 'e2e-mock-anon-key',
+    },
   },
 
   timeout: 60000,
