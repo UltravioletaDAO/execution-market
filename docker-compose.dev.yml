@@ -1,103 +1,125 @@
-# Execution Market Docker Compose - Development Overrides
-# Extends docker-compose.yml with development-specific configuration
+# =============================================================================
+# Execution Market - Simplified Dev Stack
+# =============================================================================
+# Stack simplificado para desarrollo rápido sin complejidad de Supabase.
+# Usa Supabase Cloud para la base de datos (más confiable y rápido).
+#
+# Servicios incluidos:
+#   - mcp-server (FastAPI backend)
+#   - dashboard (React frontend)
+#   - redis (cache)
+#   - anvil (blockchain local)
+#
+# Usa Supabase Cloud para base de datos:
+#   - Configurar SUPABASE_URL y keys en .env
+#   - O usar Supabase local con: supabase start
 #
 # Usage:
-#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-#   make dev  # (shortcut)
-#
-# Features enabled:
-#   - Hot reload for Python and React
-#   - Debug logging
-#   - Source code mounts
-#   - Test database seeding
-#   - Additional debugging tools
+#   docker compose -f docker-compose.dev.yml up -d
+# =============================================================================
 
 version: "3.8"
 
 services:
   # ===================
-  # MCP Server (Development Mode)
+  # MCP Server (Python + FastAPI)
   # ===================
   mcp-server:
+    container_name: em-mcp-server
     build:
-      target: development
+      context: ./mcp_server
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
     environment:
-      - ENVIRONMENT=development
-      - LOG_LEVEL=DEBUG
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONUNBUFFERED=1
-      # Enable test mode for easier development
-      - TEST_MODE=true
-      # Hot reload
-      - WATCHFILES_FORCE_POLLING=true
+      - PORT=8000
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      # Supabase (Cloud)
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      # Blockchain
+      - X402_PRIVATE_KEY=${X402_PRIVATE_KEY}
+      - X402_RPC_URL=http://anvil:8545
+      - X402_FACILITATOR_URL=https://facilitator.ultravioletadao.xyz
+      - CHAIN_ID=31337
+      - X402_NETWORK=base
+      # AI
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Storage
+      - PINATA_JWT=${PINATA_JWT}
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      # Feature Flags
+      - ENABLE_AI_VERIFICATION=true
+      - ENABLE_ERC8004_INTEGRATION=true
+      - EM_ENABLED_NETWORKS=base,base-sepolia
+      - EM_PLATFORM_FEE=0.08
+      # ERC-8004
+      - ERC8004_NETWORK=base
+      - EM_AGENT_ID=2106
     volumes:
-      - ./mcp_server:/app
-      - mcp-server-cache:/app/.cache
-      # Exclude these from sync for performance
-      - /app/__pycache__
-      - /app/.pytest_cache
-      - /app/.mypy_cache
-    # Override command to enable hot reload
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app"]
+      - ./mcp_server:/app:cached
+    depends_on:
+      - redis
+      - anvil
+    networks:
+      - em-network
+    restart: unless-stopped
 
   # ===================
-  # Dashboard (Development Mode)
+  # Dashboard (React + Vite)
   # ===================
   dashboard:
-    build:
-      target: development
+    container_name: em-dashboard
+    image: node:20-slim
+    working_dir: /app
+    ports:
+      - "5173:5173"
     environment:
       - NODE_ENV=development
-      - VITE_DEBUG=true
-      # Enable HMR (Hot Module Replacement)
-      - CHOKIDAR_USEPOLLING=true
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - VITE_API_URL=http://localhost:8000
+      - VITE_DYNAMIC_ENVIRONMENT_ID=${VITE_DYNAMIC_ENVIRONMENT_ID}
+      - VITE_WALLET_CONNECT_PROJECT_ID=${VITE_WALLET_CONNECT_PROJECT_ID}
+      - VITE_CHAIN_ID=31337
+      - VITE_REQUIRE_AGENT_API_KEY=false
+      - VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true
     volumes:
-      - ./dashboard:/app
-      - /app/node_modules
-      - /app/.vite
-    # Vite dev server with HMR
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
-    stdin_open: true
-    tty: true
+      - ./dashboard:/app:cached
+      - dashboard-node-modules:/app/node_modules
+    depends_on:
+      - mcp-server
+    networks:
+      - em-network
+    restart: unless-stopped
+    command: sh -c "npm install --legacy-peer-deps && npm run dev -- --host 0.0.0.0 --port 5173"
 
   # ===================
-  # Supabase Database (Development)
+  # Redis (Cache & Rate Limiting)
   # ===================
-  supabase-db:
-    environment:
-      # More verbose logging for development
-      POSTGRES_INITDB_ARGS: "--data-checksums"
-    # Mount seed file for development data
-    volumes:
-      - supabase-db-data:/var/lib/postgresql/data
-      # Migrations disabled - run manually via Supabase Studio or psql after init
-      # - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
-      # - ./supabase/seed.sql:/docker-entrypoint-initdb.d/99_seed.sql
+  redis:
+    container_name: em-redis
+    image: redis:7.2-alpine
     ports:
-      - "54320:5432"
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb
+    volumes:
+      - redis-data:/data
+    networks:
+      - em-network
+    restart: unless-stopped
 
   # ===================
-  # Supabase Auth (Development)
-  # ===================
-  supabase-auth:
-    environment:
-      # Auto-confirm emails in development
-      GOTRUE_MAILER_AUTOCONFIRM: "true"
-      # Shorter token expiry for testing
-      GOTRUE_JWT_EXP: 3600
-      # Enable all external auth providers for testing
-      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "true"
-
-  # ===================
-  # Supabase Studio (Always enabled in dev)
-  # ===================
-  supabase-studio:
-    profiles: []  # No profile restriction - always enabled
-
-  # ===================
-  # Anvil (Extended Configuration)
+  # Anvil (Local Blockchain)
   # ===================
   anvil:
+    container_name: em-anvil
+    image: ghcr.io/foundry-rs/foundry:latest
+    entrypoint: ["anvil"]
     command:
       - "--host"
       - "0.0.0.0"
@@ -111,72 +133,16 @@ services:
       - "10"
       - "--balance"
       - "10000"
-      - "--gas-limit"
-      - "30000000"
-      - "--code-size-limit"
-      - "30000"
-      # Additional dev flags
-      - "--steps-tracing"
-      - "--auto-impersonate"
+    ports:
+      - "8545:8545"
+    networks:
+      - em-network
+    restart: unless-stopped
 
-  # ===================
-  # Redis (Development)
-  # ===================
-  redis:
-    command: >
-      redis-server
-      --appendonly yes
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-      --loglevel debug
+networks:
+  em-network:
+    driver: bridge
 
-  # ===================
-  # Mailhog (Alternative to Inbucket)
-  # ===================
-  # mailhog:
-  #   container_name: execution-market-mailhog
-  #   image: mailhog/mailhog:latest
-  #   ports:
-  #     - "54333:8025"  # Web UI
-  #     - "54334:1025"  # SMTP
-  #   networks:
-  #     - execution-market-network
-
-  # ===================
-  # PGAdmin (Optional Database UI)
-  # ===================
-  # pgadmin:
-  #   container_name: execution-market-pgadmin
-  #   image: dpage/pgadmin4:latest
-  #   ports:
-  #     - "54340:80"
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: admin@execution-market.local
-  #     PGADMIN_DEFAULT_PASSWORD: admin
-  #     PGADMIN_CONFIG_SERVER_MODE: "False"
-  #   volumes:
-  #     - pgadmin-data:/var/lib/pgadmin
-  #   depends_on:
-  #     supabase-db:
-  #       condition: service_healthy
-  #   networks:
-  #     - execution-market-network
-
-  # ===================
-  # Redis Commander (Optional Redis UI)
-  # ===================
-  # redis-commander:
-  #   container_name: execution-market-redis-commander
-  #   image: rediscommander/redis-commander:latest
-  #   ports:
-  #     - "54341:8081"
-  #   environment:
-  #     REDIS_HOSTS: local:redis:6379
-  #   depends_on:
-  #     - redis
-  #   networks:
-  #     - execution-market-network
-
-# volumes:
-#   pgadmin-data:
-#     name: execution-market-pgadmin-data
+volumes:
+  redis-data:
+  dashboard-node-modules:

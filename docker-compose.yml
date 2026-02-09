@@ -289,46 +289,48 @@ services:
   # ===================
   # Supabase Studio (Admin UI)
   # ===================
-  supabase-studio:
-    container_name: execution-market-supabase-studio
-    image: supabase/studio:20240101-ce42139
-    ports:
-      - "54322:3000"
-    environment:
-      STUDIO_PG_META_URL: http://supabase-meta:8080
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      DEFAULT_ORGANIZATION_NAME: Execution Market Local
-      DEFAULT_PROJECT_NAME: Execution Market Development
-      SUPABASE_URL: http://supabase-kong:8000
-      SUPABASE_PUBLIC_URL: http://localhost:54321
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
-    depends_on:
-      - supabase-kong
-      - supabase-meta
-    networks:
-      - execution-market-network
-    restart: unless-stopped
+  # Supabase Studio temporalmente deshabilitado - usar directamente psql o Supabase Cloud
+  # supabase-studio:
+  #   container_name: execution-market-supabase-studio
+  #   image: supabase/studio:latest
+  #   ports:
+  #     - "54322:3000"
+  #   environment:
+  #     STUDIO_PG_META_URL: http://supabase-meta:8080
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  #     DEFAULT_ORGANIZATION_NAME: Execution Market Local
+  #     DEFAULT_PROJECT_NAME: Execution Market Development
+  #     SUPABASE_URL: http://supabase-kong:8000
+  #     SUPABASE_PUBLIC_URL: http://localhost:54321
+  #     SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+  #     SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+  #   depends_on:
+  #     - supabase-kong
+  #     - supabase-meta
+  #   networks:
+  #     - execution-market-network
+  #   restart: unless-stopped
 
   # ===================
   # Supabase Meta (pg_meta for Studio)
+  # Temporalmente deshabilitado junto con Studio
   # ===================
-  supabase-meta:
-    container_name: execution-market-supabase-meta
-    image: supabase/postgres-meta:v0.75.0
-    environment:
-      PG_META_PORT: 8080
-      PG_META_DB_HOST: supabase-db
-      PG_META_DB_PORT: 5432
-      PG_META_DB_NAME: postgres
-      PG_META_DB_USER: postgres
-      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    depends_on:
-      supabase-db:
-        condition: service_healthy
-    networks:
-      - execution-market-network
-    restart: unless-stopped
+  # supabase-meta:
+  #   container_name: execution-market-supabase-meta
+  #   image: supabase/postgres-meta:v0.75.0
+  #   environment:
+  #     PG_META_PORT: 8080
+  #     PG_META_DB_HOST: supabase-db
+  #     PG_META_DB_PORT: 5432
+  #     PG_META_DB_NAME: postgres
+  #     PG_META_DB_USER: postgres
+  #     PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  #   depends_on:
+  #     supabase-db:
+  #       condition: service_healthy
+  #   networks:
+  #     - execution-market-network
+  #   restart: unless-stopped
 
   # ===================
   # Supabase Inbucket (Email Testing)
