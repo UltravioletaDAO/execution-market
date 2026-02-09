@@ -87,7 +87,7 @@ export function TaskBrowser({
 
   // Pagination not implemented yet in useTasks
   const hasMore = false
-  const loadMore = () => {}
+  const loadMore = useCallback(() => {}, [])
 
   // Filter and sort tasks
   const filteredTasks = useMemo(() => {
