@@ -52,7 +52,7 @@ export function useEarnings(executorId: string | undefined) {
 
     try {
       // Fetch executor balance info
-      const { data: executor, error: execError } = await supabase
+      const { error: execError } = await supabase
         .from('executors')
         .select('reputation_score, tasks_completed')
         .eq('id', executorId)
