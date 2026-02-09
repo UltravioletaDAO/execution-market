@@ -216,7 +216,7 @@ export function SubmissionForm({
         })
       }
     },
-    [executor.id, task.id, t],
+    [executor.id, task.id, t, doUpload, verifyEvidence],
   )
 
   const handleTextChange = useCallback((type: string, value: string) => {
