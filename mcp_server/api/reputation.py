@@ -478,7 +478,8 @@ async def register_agent_endpoint(
     },
 )
 async def rate_worker_endpoint(
-    request: WorkerFeedbackRequest, api_key: APIKeyData = Depends(verify_api_key_if_required)
+    request: WorkerFeedbackRequest,
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> FeedbackResponse:
     """
     Rate a worker after task completion (agent → worker).

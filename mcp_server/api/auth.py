@@ -166,7 +166,9 @@ def _anonymous_agent_data() -> APIKeyData:
 
 
 async def verify_api_key_if_required(
-    authorization: Optional[str] = Header(None, description="Bearer token with API key"),
+    authorization: Optional[str] = Header(
+        None, description="Bearer token with API key"
+    ),
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> APIKeyData:
     """
