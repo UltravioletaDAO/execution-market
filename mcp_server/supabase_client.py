@@ -192,17 +192,20 @@ async def get_task(task_id: str) -> Optional[Dict[str, Any]]:
     """Get a single task by ID."""
     client = get_client()
 
-    result = (
-        client.table("tasks")
-        .select(
-            "*, executor:executors(id, display_name, wallet_address, reputation_score)"
+    try:
+        result = (
+            client.table("tasks")
+            .select(
+                "*, executor:executors(id, display_name, wallet_address, reputation_score)"
+            )
+            .eq("id", task_id)
+            .single()
+            .execute()
         )
-        .eq("id", task_id)
-        .single()
-        .execute()
-    )
-
-    return result.data
+        return result.data
+    except Exception:
+        # .single() throws when 0 rows match
+        return None
 
 
 async def update_task(task_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
@@ -428,9 +431,12 @@ async def apply_to_task(
         raise Exception(f"Task is not available (status: {task['status']})")
 
     # Get executor to check reputation
-    executor = (
-        client.table("executors").select("*").eq("id", executor_id).single().execute()
-    )
+    try:
+        executor = (
+            client.table("executors").select("*").eq("id", executor_id).single().execute()
+        )
+    except Exception:
+        raise Exception(f"Executor {executor_id} not found")
     if not executor.data:
         raise Exception(f"Executor {executor_id} not found")
 
