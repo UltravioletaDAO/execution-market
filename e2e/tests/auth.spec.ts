@@ -15,10 +15,27 @@ const TEXT = {
 
 test.describe('Authentication - Escape Hatch', () => {
   test('worker page loads authenticated', async ({ workerPage }) => {
+    // Capture console messages
+    const consoleLogs: string[] = []
+    workerPage.on('console', msg => {
+      consoleLogs.push(`[${msg.type()}] ${msg.text()}`)
+    })
+
     await setupMocks(workerPage)
     await workerPage.goto('/tasks')
 
-    await expect(workerPage).toHaveURL(/\/tasks$/)
+    // Debug: Log page HTML and console if first check fails
+    try {
+      await expect(workerPage).toHaveURL(/\/tasks$/, { timeout: 5000 })
+    } catch (e) {
+      const html = await workerPage.content()
+      console.log('=== PAGE HTML ===')
+      console.log(html.substring(0, 2000))
+      console.log('=== CONSOLE LOGS ===')
+      console.log(consoleLogs.join('\n'))
+      throw e
+    }
+
     await expect(workerPage.getByRole('button', { name: /Execution Market/i })).toBeVisible()
     await expect(workerPage.getByRole('button', { name: TEXT.workerTab })).toBeVisible()
   })
