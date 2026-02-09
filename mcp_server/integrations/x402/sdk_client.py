@@ -15,6 +15,7 @@ Facilitator: https://facilitator.ultravioletadao.xyz
 
 import os
 import json
+import asyncio
 import logging
 import secrets
 import base64
@@ -838,7 +839,11 @@ class EMX402SDK:
                 network=network,
                 token=token,
             )
-            result = self._settle_signed_auth(auth, amount_usdc, pay_to=worker_address)
+            # _settle_signed_auth uses sync httpx.post — run in thread to
+            # avoid blocking the event loop (can take up to 30s)
+            result = await asyncio.to_thread(
+                self._settle_signed_auth, auth, amount_usdc, pay_to=worker_address
+            )
 
             if result.get("success"):
                 logger.info(
@@ -908,7 +913,11 @@ class EMX402SDK:
                 network=network,
                 token=token,
             )
-            result = self._settle_signed_auth(auth, fee_amount, pay_to=treasury)
+            # _settle_signed_auth uses sync httpx.post — run in thread to
+            # avoid blocking the event loop (can take up to 30s)
+            result = await asyncio.to_thread(
+                self._settle_signed_auth, auth, fee_amount, pay_to=treasury
+            )
 
             if result.get("success"):
                 logger.info(
@@ -1050,8 +1059,8 @@ class EMX402SDK:
 
         Three-step flow:
         0. Settle agent's original EIP-3009 auth (agent → platform wallet)
-        1. Sign new auth: platform wallet → worker (bounty minus fee)
-        2. Sign new auth: platform wallet → treasury (platform fee)
+        1. Sign new auth: platform wallet → worker (full bounty, NO fee deduction)
+        2. Sign new auth: platform wallet → treasury (platform fee from surplus)
 
         Step 0 is skipped when agent wallet == platform wallet (test scenario).
         All settlements are GASLESS via the Ultravioleta facilitator.
@@ -1100,16 +1109,20 @@ class EMX402SDK:
                     e,
                 )
 
-            # Calculate fee breakdown
+            # Calculate fee breakdown.
+            # IMPORTANT: Worker gets the FULL bounty_amount — no fee deduction.
+            # The agent paid total_required (bounty + fee) at task creation.
+            # The surplus (total_required - bounty) IS the fee.
+            # This matches x402r mode behavior for consistency across modes.
             platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(
                 Decimal("0.000001")
             )
             # Enforce minimum fee of $0.01 to avoid zero-fee on small bounties
             if platform_fee > 0 and platform_fee < Decimal("0.01"):
                 platform_fee = Decimal("0.01")
-            worker_net = bounty_amount - platform_fee
+            worker_net = bounty_amount  # Full bounty to worker (fee from surplus)
 
-            # Step 1: Pay the worker
+            # Step 1: Pay the worker (full bounty, no fee deduction)
             worker_result = await self.disburse_to_worker(
                 worker_address=worker_address,
                 amount_usdc=worker_net,

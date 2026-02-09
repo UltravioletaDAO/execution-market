@@ -256,8 +256,10 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
     const menuContent = (
       <div
         ref={(node) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (menuRef as any).current = node;
           if (typeof ref === 'function') ref(node);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           else if (ref && 'current' in ref) (ref as any).current = node;
         }}
         role="menu"

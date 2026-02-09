@@ -20,6 +20,7 @@ import type {
   AgentAnalytics,
 } from './types'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
 const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'

@@ -180,6 +180,7 @@ export function usePayment(options: UsePaymentOptions = {}): UsePaymentReturn {
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chainId: chainId as any,
     query: {
       enabled: Boolean(address),
@@ -286,7 +287,8 @@ export function usePayment(options: UsePaymentOptions = {}): UsePaymentReturn {
           abi: ERC20_ABI,
           functionName: 'approve',
           args: [MERCHANT_ROUTER as Address, amountWei],
-          chainId: chainId as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    chainId: chainId as any,
         })
 
         setPendingTx(hash)
@@ -329,7 +331,8 @@ export function usePayment(options: UsePaymentOptions = {}): UsePaymentReturn {
           abi: MERCHANT_ROUTER_ABI,
           functionName: 'pay',
           args: [tokenAddress, amountWei, recipient as Address, memo],
-          chainId: chainId as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    chainId: chainId as any,
         })
 
         setPendingTx(hash)

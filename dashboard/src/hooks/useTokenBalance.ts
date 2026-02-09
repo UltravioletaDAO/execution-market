@@ -102,6 +102,7 @@ export function useTokenBalance(options: UseTokenBalanceOptions = {}): UseTokenB
 
   // Watch block number for auto-refresh
   const { data: blockNumber } = useBlockNumber({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chainId: chainId as any,
     watch: autoRefresh,
   })
@@ -113,6 +114,7 @@ export function useTokenBalance(options: UseTokenBalanceOptions = {}): UseTokenB
     refetch: refetchNative,
   } = useBalance({
     address,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chainId: chainId as any,
     query: {
       enabled: Boolean(address),
@@ -128,7 +130,8 @@ export function useTokenBalance(options: UseTokenBalanceOptions = {}): UseTokenB
       abi: ERC20_BALANCE_ABI,
       functionName: 'balanceOf' as const,
       args: [address] as [Address],
-      chainId: chainId as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    chainId: chainId as any,
     }))
   }, [address, tokens, chainId])
 
@@ -138,6 +141,7 @@ export function useTokenBalance(options: UseTokenBalanceOptions = {}): UseTokenB
     isLoading: tokensLoading,
     refetch: refetchTokens,
   } = useReadContracts({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     contracts: contracts as any,
     query: {
       enabled: Boolean(address) && contracts.length > 0,
@@ -300,7 +304,8 @@ export function useSingleTokenBalance(
             abi: ERC20_BALANCE_ABI,
             functionName: 'balanceOf',
             args: [address],
-            chainId: chainId as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    chainId: chainId as any,
           },
         ]
       : [],

@@ -93,6 +93,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   const [notifications, setNotifications] = useState<TransactionNotification[]>([])
   const [watchingHash, setWatchingHash] = useState<Hash | null>(null)
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const publicClient = usePublicClient({ chainId: chainId as any })
 
   // Track callbacks to avoid stale closures
@@ -104,6 +105,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   // Watch for transaction receipt
   const { data: receipt, isError } = useWaitForTransactionReceipt({
     hash: watchingHash || undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chainId: chainId as any,
     confirmations,
     query: {

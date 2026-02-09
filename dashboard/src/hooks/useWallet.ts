@@ -358,7 +358,8 @@ export function useWallet(): WalletState {
         )
         if (linkError && signature && verificationMessage) {
           // Fallback for older RPC signatures (no signature params)
-          const retry = await (supabase.rpc as any)(
+          const retry = // eslint-disable-next-line @typescript-eslint/no-explicit-any
+await (supabase.rpc as any)(
             'link_wallet_to_session',
             {
               p_user_id: authData.user.id,
@@ -390,7 +391,8 @@ export function useWallet(): WalletState {
           )
 
           if (rpcError && signature && verificationMessage) {
-            const retry = await (supabase.rpc as any)(
+            const retry = // eslint-disable-next-line @typescript-eslint/no-explicit-any
+await (supabase.rpc as any)(
               'get_or_create_executor',
               {
                 p_wallet_address: normalizedWallet,
@@ -427,7 +429,8 @@ export function useWallet(): WalletState {
         )
         if (rpcError && signature && verificationMessage) {
           // Fallback for older RPC signatures (no signature params)
-          const retry = await (supabase.rpc as any)(
+          const retry = // eslint-disable-next-line @typescript-eslint/no-explicit-any
+await (supabase.rpc as any)(
             'get_or_create_executor',
             {
               p_wallet_address: normalizedWallet,

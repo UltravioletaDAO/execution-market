@@ -14,6 +14,7 @@ import os
 import json
 import asyncio
 import logging
+import threading
 from decimal import Decimal
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
@@ -96,8 +97,15 @@ def _extract_tx_hash(response: Any) -> Optional[str]:
     return None
 
 
+_cached_platform_address: Optional[str] = None
+
+
 def _get_platform_address() -> str:
-    """Get the platform wallet address from WALLET_PRIVATE_KEY env var."""
+    """Get the platform wallet address from WALLET_PRIVATE_KEY env var (cached)."""
+    global _cached_platform_address
+    if _cached_platform_address is not None:
+        return _cached_platform_address
+
     pk = os.environ.get("WALLET_PRIVATE_KEY")
     if not pk:
         raise RuntimeError(
@@ -105,7 +113,8 @@ def _get_platform_address() -> str:
         )
     from eth_account import Account
 
-    return Account.from_key(pk).address
+    _cached_platform_address = Account.from_key(pk).address
+    return _cached_platform_address
 
 
 # =============================================================================
@@ -136,6 +145,15 @@ class PaymentDispatcher:
             logger.warning(
                 "x402r mode requested but advanced escrow SDK not available. "
                 "Falling back to preauth mode."
+            )
+            self.mode = "preauth"
+
+        # x402r mode also requires the SDK for disbursement (disburse_to_worker,
+        # collect_platform_fee, settle agent auth). Fall back if unavailable.
+        if self.mode == "x402r" and not SDK_AVAILABLE:
+            logger.warning(
+                "x402r mode requested but uvd-x402-sdk not available for "
+                "disbursement operations. Falling back to preauth mode."
             )
             self.mode = "preauth"
 
@@ -513,6 +531,7 @@ class PaymentDispatcher:
             platform_fee = Decimal("0.01")
 
         fee_tx = None
+        fee_error = None
         try:
             fee_result = await sdk.collect_platform_fee(
                 fee_amount=platform_fee,
@@ -522,12 +541,14 @@ class PaymentDispatcher:
             )
             fee_tx = fee_result.get("tx_hash")
             if not fee_result.get("success"):
+                fee_error = fee_result.get("error", "Fee collection failed")
                 logger.warning(
                     "x402r: Worker paid but fee collection failed for task %s: %s",
                     task_id,
-                    fee_result.get("error"),
+                    fee_error,
                 )
         except Exception as fee_err:
+            fee_error = str(fee_err)
             logger.warning(
                 "x402r: Fee collection error for task %s: %s", task_id, fee_err
             )
@@ -537,6 +558,7 @@ class PaymentDispatcher:
             "tx_hash": worker_tx,
             "escrow_release_tx": escrow_tx,
             "fee_tx_hash": fee_tx,
+            "fee_collection_error": fee_error,
             "mode": "x402r",
             "gross_amount": float(bounty_amount + platform_fee),
             "platform_fee": float(platform_fee),
@@ -673,6 +695,7 @@ class PaymentDispatcher:
         # Step 2: Disburse from platform back to agent (if address known)
         # The refund amount is the full escrowed amount (bounty + fee)
         agent_refund_tx = None
+        disbursement_error = None
         if agent_address:
             try:
                 sdk = self._get_sdk()
@@ -684,6 +707,9 @@ class PaymentDispatcher:
                     refund_amount = await self._get_escrow_amount_from_db(task_id)
 
                 if refund_amount > 0:
+                    # NOTE: disburse_to_worker is a generic EIP-3009 transfer.
+                    # Here we use it to send funds back to the agent (refund).
+                    # The task_id suffix _refund distinguishes from worker payouts.
                     refund_result = await sdk.disburse_to_worker(
                         worker_address=agent_address,
                         amount_usdc=refund_amount,
@@ -691,23 +717,42 @@ class PaymentDispatcher:
                     )
                     agent_refund_tx = refund_result.get("tx_hash")
                     if not refund_result.get("success"):
-                        logger.warning(
-                            "x402r: Escrow refunded to platform but agent disbursement "
-                            "failed for task %s: %s",
-                            task_id,
-                            refund_result.get("error"),
+                        disbursement_error = (
+                            f"Escrow refunded to platform but agent disbursement "
+                            f"failed: {refund_result.get('error')}. "
+                            f"Funds ({refund_amount} USDC) are in the platform wallet "
+                            f"and need manual transfer to {agent_address}."
                         )
+                        logger.error("x402r: %s (task=%s)", disbursement_error, task_id)
                 else:
-                    logger.warning(
-                        "x402r: Refund amount is 0 for task %s — cannot disburse to agent",
-                        task_id,
+                    disbursement_error = (
+                        f"Refund amount is 0 for task {task_id} — cannot disburse to agent. "
+                        "Escrow was released to platform but amount is unknown."
                     )
+                    logger.error("x402r: %s", disbursement_error)
             except Exception as e:
-                logger.warning(
-                    "x402r: Agent refund disbursement failed for task %s: %s",
-                    task_id,
-                    e,
+                disbursement_error = (
+                    f"Agent refund disbursement exception: {e}. "
+                    f"Funds may be stuck in platform wallet for task {task_id}."
                 )
+                logger.error("x402r: %s", disbursement_error)
+        else:
+            disbursement_error = (
+                f"No agent_address provided for task {task_id} — "
+                "escrow refunded to platform but cannot disburse to agent."
+            )
+            logger.warning("x402r: %s", disbursement_error)
+
+        # Only report full success if agent actually received the funds
+        if disbursement_error:
+            return {
+                "success": False,
+                "tx_hash": tx_hash,
+                "agent_refund_tx": agent_refund_tx,
+                "mode": "x402r",
+                "status": "partial_refund",
+                "error": disbursement_error,
+            }
 
         return {
             "success": True,
@@ -789,6 +834,25 @@ class PaymentDispatcher:
                 return False
 
             row = rows[0]
+            escrow_status = (row.get("status") or "").lower()
+
+            # Prevent reconstructing state for already-completed escrows.
+            # This blocks re-release or re-refund of already-settled escrows.
+            terminal_statuses = {
+                "released",
+                "refunded",
+                "completed",
+                "authorization_expired",
+            }
+            if escrow_status in terminal_statuses:
+                logger.warning(
+                    "Escrow for task %s is already in terminal state '%s' — "
+                    "refusing to reconstruct state to prevent duplicate operations.",
+                    task_id,
+                    escrow_status,
+                )
+                return False
+
             metadata = row.get("metadata") or {}
             if isinstance(metadata, str):
                 metadata = json.loads(metadata)
@@ -906,11 +970,15 @@ class PaymentDispatcher:
 # =============================================================================
 
 _dispatcher: Optional[PaymentDispatcher] = None
+_dispatcher_lock = threading.Lock()
 
 
 def get_dispatcher() -> PaymentDispatcher:
-    """Get or create the default PaymentDispatcher singleton."""
+    """Get or create the default PaymentDispatcher singleton (thread-safe)."""
     global _dispatcher
     if _dispatcher is None:
-        _dispatcher = PaymentDispatcher()
+        with _dispatcher_lock:
+            # Double-check pattern: another thread may have created it
+            if _dispatcher is None:
+                _dispatcher = PaymentDispatcher()
     return _dispatcher
