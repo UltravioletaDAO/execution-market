@@ -351,6 +351,23 @@ bash scripts/test-local.sh
 
 See `TEST_WORKFLOW.md` for detailed testing guide.
 
+**Quick Commands Summary:**
+
+```powershell
+# === TESTING ===
+/test                                    # Todo (5-7 min)
+/test-quick                              # Solo unit (2-3 min)
+.\scripts\test-local.ps1 -SkipUnit      # Solo E2E (3-5 min)
+.\scripts\test-local.ps1 -KeepRunning   # Test + dejar corriendo
+
+# === DESARROLLO ===
+/dev-start                               # Iniciar stack
+/dev-logs                                # Ver logs
+/dev-stop                                # Detener stack
+```
+
+See `COMMANDS.md` for complete command reference.
+
 ---
 
 ### Blockchain Scripts
