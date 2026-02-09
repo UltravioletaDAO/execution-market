@@ -14,7 +14,7 @@ const TEXT = {
 }
 
 test.describe('Authentication - Escape Hatch', () => {
-  test('worker page loads authenticated', async ({ workerPage }) => {
+  test('worker page loads authenticated', async ({ workerPage }, testInfo) => {
     // Capture console messages
     const consoleLogs: string[] = []
     workerPage.on('console', msg => {
@@ -22,20 +22,14 @@ test.describe('Authentication - Escape Hatch', () => {
     })
 
     await setupMocks(workerPage)
-    await workerPage.goto('/tasks')
+    await workerPage.goto('/tasks', { waitUntil: 'networkidle' })
 
-    // Debug: Log page HTML and console if first check fails
-    try {
-      await expect(workerPage).toHaveURL(/\/tasks$/, { timeout: 5000 })
-    } catch (e) {
-      const html = await workerPage.content()
-      console.log('=== PAGE HTML ===')
-      console.log(html.substring(0, 2000))
-      console.log('=== CONSOLE LOGS ===')
-      console.log(consoleLogs.join('\n'))
-      throw e
-    }
+    // Debug: Attach page HTML and console logs
+    const html = await workerPage.content()
+    await testInfo.attach('page-html', { body: html, contentType: 'text/html' })
+    await testInfo.attach('console-logs', { body: consoleLogs.join('\n'), contentType: 'text/plain' })
 
+    await expect(workerPage).toHaveURL(/\/tasks$/)
     await expect(workerPage.getByRole('button', { name: /Execution Market/i })).toBeVisible()
     await expect(workerPage.getByRole('button', { name: TEXT.workerTab })).toBeVisible()
   })
