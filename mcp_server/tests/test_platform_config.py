@@ -29,10 +29,10 @@ class TestPlatformConfigDefaults:
         assert PlatformConfig._defaults["fees.partial_release_pct"] == Decimal("0.30")
 
     def test_default_min_bounty(self):
-        """Default minimum bounty should be $0.01."""
+        """Default minimum bounty should be $0.50."""
         from config.platform_config import PlatformConfig
 
-        assert PlatformConfig._defaults["bounty.min_usd"] == Decimal("0.01")
+        assert PlatformConfig._defaults["bounty.min_usd"] == Decimal("0.50")
 
     def test_default_max_bounty(self):
         """Default maximum bounty should be $10,000."""
