@@ -953,7 +953,6 @@ function DisputeDetail({
   onVote: (side: 'worker' | 'agent', reason: string) => void
   onAppeal: () => void
 }) {
-  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'evidence' | 'timeline' | 'votes'>('evidence')
 
   const hasVoted = useMemo(() => {
@@ -1145,13 +1144,12 @@ export function Disputes({
   validatorStake = 0,
   onBack,
 }: DisputesPageProps) {
-  const { t } = useTranslation()
   const [selectedDisputeId, setSelectedDisputeId] = useState<string | null>(null)
   const [filter, setFilter] = useState<Dispute['status'] | 'all'>('all')
 
   // In production, replace with actual data fetching hook
   const [disputes, setDisputes] = useState<Dispute[]>(MOCK_DISPUTES)
-  const [loading, setLoading] = useState(false)
+  const [loading] = useState(false)
 
   // Filter disputes
   const filteredDisputes = useMemo(() => {
