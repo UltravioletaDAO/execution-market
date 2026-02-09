@@ -45,7 +45,6 @@ export interface UseThemeReturn {
 }
 
 const STORAGE_KEY = 'em-theme';
-const THEME_ATTRIBUTE = 'class';
 const DARK_CLASS = 'dark';
 
 /**
@@ -128,16 +127,6 @@ function applyTheme(theme: 'light' | 'dark', disableTransition: boolean): void {
 
   // Update color-scheme property
   root.style.colorScheme = theme;
-}
-
-/**
- * Resolve theme mode to actual theme
- */
-function resolveTheme(mode: ThemeMode): 'light' | 'dark' {
-  if (mode === 'system') {
-    return getSystemTheme();
-  }
-  return mode;
 }
 
 /**
