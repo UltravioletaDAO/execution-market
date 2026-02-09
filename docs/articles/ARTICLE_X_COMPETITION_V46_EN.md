@@ -24,6 +24,18 @@ We built it.
 
 ---
 
+## Introducing Execution Market
+
+**Execution Market** is trustless infrastructure for AI agents to hire executors — humans, robots, drones — with automatic escrow, instant payments, and portable reputation. No custodial middlemen. No 48-hour dispute windows. No platform-locked track records.
+
+The agent publishes a task and locks payment. An executor takes it, completes it, and submits evidence. The system verifies. Payment settles on-chain in seconds. If verification fails, the escrow authorization expires — funds never left the agent's wallet. No disputes. No waiting. Math.
+
+It's live at [execution.market](https://execution.market) with payments on Base Mainnet, on-chain reputation via ERC-8004, and open MCP integration for any AI agent.
+
+Now let's break down **why** trustless infrastructure is critical — and how Execution Market implements each requirement from the Trustless Manifesto.
+
+---
+
 ## The trust problem
 
 Here's what most people miss about the "AI hires humans" market:
@@ -59,7 +71,7 @@ The Trustless Manifesto defines six requirements for a system to be considered t
 In a trustless execution market, the agent signs its own payment authorization using EIP-3009. The worker submits their own evidence. Nobody moves money on anyone's behalf without cryptographic consent.
 
 **Current platforms**: The platform moves money. You trust them to do it correctly.
-**Execution Market**: You sign. The facilitator executes. The facilitator is replaceable — anyone can run one.
+**Execution Market**: You sign. The facilitator (a service that executes x402 payments gaslessly) executes. The facilitator is replaceable — anyone can run one.
 
 ### 2. Verifiability
 *"Anyone can confirm outcomes from public data."*
@@ -67,7 +79,7 @@ In a trustless execution market, the agent signs its own payment authorization u
 Every payment is an on-chain transaction. Every reputation signal is recorded on-chain via ERC-8004. Every task outcome is verifiable.
 
 **Current platforms**: "Trust us, we paid the worker." There's no public record.
-**Execution Market**: Check BaseScan. The tx hash is right there.
+**Execution Market**: Check BaseScan (Base's block explorer). The tx hash is right there.
 
 ### 3. Censorship resistance
 *"Valid actions included within reasonable time and cost."*
@@ -84,7 +96,7 @@ This is the one that kills most platforms: **what happens if the platform disapp
 
 If a custodial platform shuts down, your escrowed funds are gone. Your reputation is gone. Your work history is gone.
 
-**Execution Market**: Your reputation lives on ERC-8004 — on-chain, on 7 EVM mainnets. Your payment history is on-chain. If we shut down tomorrow, your track record survives. You take it to the next platform.
+**Execution Market**: Your reputation lives on ERC-8004 (an on-chain reputation standard for agents and workers) — on-chain, on 7 EVM mainnets. Your payment history is on-chain. If we shut down tomorrow, your track record survives. You take it to the next platform.
 
 That's what portable reputation means. Not as a marketing claim. As a protocol guarantee.
 
@@ -106,7 +118,7 @@ The Manifesto also establishes three foundational laws:
 
 > **No critical secrets** — no protocol step depends on private information except the user's own keys.
 
-x402 uses standard EIP-3009 signatures. No proprietary payment channels. No API keys that gate access.
+x402 (a protocol for HTTP-native crypto payments) uses standard EIP-3009 signatures. No proprietary payment channels. No API keys that gate access.
 
 > **No indispensable intermediaries** — participants must be practically replaceable.
 
@@ -253,7 +265,7 @@ It's trustless infrastructure for **agents to hire executors** — humans, robot
 
 Directly. No custodial middlemen. No 48-hour dispute windows. No platform-locked reputation.
 
-The agent publishes the task and locks payment via x402.
+The agent publishes the task and locks payment via x402 (HTTP-native crypto payments).
 A nearby executor takes it — human or robot.
 Completes it.
 The system verifies.
@@ -270,9 +282,9 @@ The agent never knew if it was a human or a robot. It only cared that the work g
 
 **How do you connect millions of AI agents to execution infrastructure?**
 
-The answer: **MCP** — Model Context Protocol.
+The answer: **MCP** — Model Context Protocol (a standard that allows AI agents to discover and use external tools).
 
-MCP is the standard that allows AI agents to discover and use external tools. Think of MCP as USB for agents — any compatible agent can connect to any compatible tool. Plug and play.
+Think of MCP as USB for agents — any compatible agent can connect to any compatible tool. Plug and play.
 
 Execution Market exposes its tools via MCP at [mcp.execution.market](https://mcp.execution.market):
 
@@ -325,7 +337,7 @@ No.
 |--|-------------------|----------------------|------------------|
 | **Client** | Humans | AI Agents | AI Agents |
 | **Executors** | Humans only | Humans only | **Humans + Robots + Drones** |
-| **Escrow** | Platform-held | Platform-held (custodial) | **x402r pre-authorization escrow** |
+| **Escrow** | Platform-held | Platform-held (custodial) | **x402r pre-authorization escrow (automatic refund via auth expiry)** |
 | **Refunds** | Manual review | 48-hour human review | **Automatic (auth expiry — funds never leave until approved)** |
 | **Payments** | Centralized, delayed | Crypto + Stripe | **Gasless, instant (x402)** |
 | **Reputation** | Platform-locked | Platform-locked | **On-chain, portable (ERC-8004)** |
