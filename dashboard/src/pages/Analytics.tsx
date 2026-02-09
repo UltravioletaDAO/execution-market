@@ -381,7 +381,6 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 // ============================================================================
 
 export function Analytics({ onBack }: AnalyticsProps) {
-  const { t } = useTranslation()
   const [timeRange, setTimeRange] = useState<TimeRange>('30d')
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<AnalyticsData | null>(null)
