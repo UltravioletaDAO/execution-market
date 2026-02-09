@@ -360,8 +360,8 @@ def _record_refund_payment(
                 "transaction_hash": refund_tx,
                 "amount_usdc": amount,
                 "escrow_id": task.get("escrow_id"),
-                "network": "base",
-                "to_address": task.get("agent_id") or agent_id,
+                "network": task.get("payment_network") or "base",
+                "to_address": agent_id,
                 "settlement_method": settlement_method or "unknown",
                 "note": f"Task cancellation refund. reason={reason or 'not_provided'}",
                 "created_at": datetime.now(timezone.utc).isoformat(),
@@ -702,12 +702,14 @@ async def _settle_submission_payment(
     try:
         # Use PaymentDispatcher to route to x402r escrow or preauth settlement
         dispatcher = get_payment_dispatcher()
+        task_network = task.get("payment_network") or "base"
         if dispatcher:
             result = await dispatcher.release_payment(
                 task_id=task_id or "",
                 worker_address=worker_address,
                 bounty_amount=bounty,
                 payment_header=payment_header,
+                network=task_network,
             )
         else:
             # Fallback: direct SDK settlement (preauth behavior)
@@ -717,6 +719,7 @@ async def _settle_submission_payment(
                 payment_header=payment_header,
                 worker_address=worker_address,
                 bounty_amount=bounty,
+                network=task_network,
             )
 
         if result.get("success"):
@@ -745,7 +748,7 @@ async def _settle_submission_payment(
                 "amount_usdc": float(worker_payout),
                 "fee_usdc": float(fee),
                 "escrow_id": escrow_id,
-                "network": "base",
+                "network": task_network,
                 "to_address": worker_address,
                 "settlement_method": result.get("mode", "facilitator"),
                 "note": f"{note} | fee_tx={result.get('fee_tx_hash', 'n/a')}"
@@ -1744,10 +1747,26 @@ async def create_task(
                             escrow_tx,
                         )
                     else:
+                        escrow_error = auth_result.get("error", "Unknown escrow error")
                         logger.error(
                             "x402r escrow lock failed for task %s: %s",
                             task["id"],
-                            auth_result.get("error"),
+                            escrow_error,
+                        )
+                        # Cancel the task — it has no financial backing
+                        try:
+                            await db.cancel_task(task["id"], api_key.agent_id)
+                        except Exception:
+                            # Best-effort cancel; task may stay published briefly
+                            try:
+                                await db.update_task(
+                                    task["id"], {"status": "cancelled"}
+                                )
+                            except Exception:
+                                pass
+                        raise HTTPException(
+                            status_code=402,
+                            detail=f"Payment escrow failed: {escrow_error}. Task has been cancelled.",
                         )
                 else:
                     # preauth: Store header for later settlement (no funds move yet)
@@ -2731,14 +2750,25 @@ async def cancel_task(
 
         # Idempotency for client retries: cancelling an already-cancelled task
         # should return success.
-        if _normalize_status(task.get("status")) == "cancelled":
+        task_status = _normalize_status(task.get("status"))
+        if task_status == "cancelled":
             return SuccessResponse(
                 message="Task already cancelled.",
                 data={"task_id": task_id, "reason": reason, "idempotent": True},
             )
 
+        # Only published tasks can be cancelled. Tasks in accepted/in_progress/etc.
+        # must NOT be refunded — a worker is actively working on them.
+        if task_status != "published":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Cannot cancel task in '{task_status}' status. Only 'published' tasks can be cancelled.",
+            )
+
         # Check if we need to handle escrow refund
-        escrow_tx = task.get("escrow_tx")  # This stores X-Payment payload
+        escrow_tx = task.get(
+            "escrow_tx"
+        )  # Stores tx hash (x402r) or payment_reference (preauth)
         escrow_id = task.get("escrow_id")
 
         if escrow_tx:
