@@ -453,18 +453,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   // --------------------------------------------------------------------------
-  // E2E Escape Hatch: Override auth state when running in E2E mode
+  // E2E Escape Hatch: Override auth state when __E2E_AUTH__ is present
   // All hooks have already been called above, so this is safe.
+  // Simplified: Only checks for window.__E2E_AUTH__ existence (no env var check)
   // --------------------------------------------------------------------------
-  console.log('[Auth] E2E Check:', {
-    envMode: import.meta.env.VITE_E2E_MODE,
-    hasWindow: typeof window !== 'undefined',
-    hasE2EAuth: typeof window !== 'undefined' ? !!window.__E2E_AUTH__ : false,
-    e2eAuth: typeof window !== 'undefined' ? window.__E2E_AUTH__ : null,
-  })
-
-  if (import.meta.env.VITE_E2E_MODE === 'true' && typeof window !== 'undefined' && window.__E2E_AUTH__) {
-    console.log('[Auth] E2E Escape Hatch ACTIVATED')
+  if (typeof window !== 'undefined' && window.__E2E_AUTH__) {
     const e2e = window.__E2E_AUTH__
     value = {
       ...value,
@@ -502,8 +495,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         last_active_at: null,
       } as Executor,
     }
-  } else {
-    console.log('[Auth] E2E Escape Hatch NOT activated')
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
