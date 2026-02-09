@@ -80,7 +80,9 @@ class PlatformConfig:
         "fees.min_fee_usd": Decimal("0.01"),
         "fees.protection_fund_pct": Decimal("0.005"),
         # Limits
-        "bounty.min_usd": Decimal("0.50"),  # Minimum bounty (configurable via admin API)
+        "bounty.min_usd": Decimal(
+            "0.50"
+        ),  # Minimum bounty (configurable via admin API)
         "bounty.max_usd": Decimal("10000.00"),
         "limits.max_resubmissions": 3,
         "limits.max_active_tasks_per_agent": 100,
