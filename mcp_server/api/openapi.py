@@ -139,10 +139,10 @@ class TaskCreateRequest(BaseModel):
     )
     bounty_usd: float = Field(
         ...,
-        ge=0.50,
+        gt=0,
         le=10000,
-        description="Payment amount in USD. Minimum $0.50, maximum $10,000.",
-        examples=[2.50, 5.00, 10.00],
+        description="Payment amount in USD. Minimum configurable via platform config (default $0.50), maximum $10,000.",
+        examples=[0.50, 2.50, 5.00, 10.00],
     )
     deadline_hours: int = Field(
         ...,
@@ -273,7 +273,7 @@ class BatchTaskDefinition(BaseModel):
     title: str = Field(..., min_length=5, max_length=255)
     instructions: str = Field(..., min_length=20, max_length=5000)
     category: TaskCategory
-    bounty_usd: float = Field(..., ge=0.50, le=10000)
+    bounty_usd: float = Field(..., gt=0, le=10000)
     deadline_hours: int = Field(..., ge=1, le=720)
     evidence_required: List[EvidenceType] = Field(..., min_length=1, max_length=5)
     evidence_optional: Optional[List[EvidenceType]] = None
