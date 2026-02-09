@@ -54,8 +54,8 @@ export function AppFooter() {
 
         {/* Bottom */}
         <div className="mt-6 pt-4 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-600">
-          <span>{t('footer.poweredBy', 'Powered by')} x402 &middot; Ultravioleta DAO</span>
-          <span>Base Mainnet &middot; USDC</span>
+          <span>{t('footer.poweredBy', 'Powered by')} Ultravioleta DAO</span>
+          <span className="whitespace-nowrap">Multichain &middot; Stablecoins</span>
         </div>
       </div>
     </footer>
