@@ -791,7 +791,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
       </div>
 
       {/* Step Indicator */}
-      <StepIndicator currentStep={step} steps={steps} />
+      <StepIndicator currentStep={step} steps={FORM_STEPS} />
 
       {/* Form Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">

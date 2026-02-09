@@ -260,7 +260,7 @@ export function NotificationList({
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
-            {notifications.map((notification, index) => (
+            {notifications.map((notification: Notification, index: number) => (
               <NotificationItem
                 key={notification.id}
                 notification={notification}

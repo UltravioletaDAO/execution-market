@@ -472,3 +472,6 @@ export function NotificationProvider({
 
 // Export context for use in hooks
 export { NotificationContext }
+
+// Re-export useNotificationContext hook for backward compatibility
+export { useNotificationContext } from './hooks'

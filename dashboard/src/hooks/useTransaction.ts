@@ -102,6 +102,27 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     callbacksRef.current = { onPending, onConfirmed, onFailed }
   }, [onPending, onConfirmed, onFailed])
 
+  // ==========================================================================
+  // Add notification helper (defined early to avoid "used before declaration")
+  // ==========================================================================
+
+  const addNotification = useCallback(
+    (params: Omit<TransactionNotification, 'id' | 'timestamp'>) => {
+      const notification: TransactionNotification = {
+        ...params,
+        id: `notif_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        timestamp: new Date(),
+      }
+      setNotifications((prev) => [notification, ...prev])
+
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
+      }, 5000)
+    },
+    []
+  )
+
   // Watch for transaction receipt
   const { data: receipt, isError } = useWaitForTransactionReceipt({
     hash: watchingHash || undefined,
@@ -189,27 +210,6 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
       setWatchingHash(null)
     }
   }, [isError, watchingHash, transactions, addNotification])
-
-  // ==========================================================================
-  // Add notification helper
-  // ==========================================================================
-
-  const addNotification = useCallback(
-    (params: Omit<TransactionNotification, 'id' | 'timestamp'>) => {
-      const notification: TransactionNotification = {
-        ...params,
-        id: `notif_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        timestamp: new Date(),
-      }
-      setNotifications((prev) => [notification, ...prev])
-
-      // Auto-dismiss after 5 seconds
-      setTimeout(() => {
-        setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
-      }, 5000)
-    },
-    []
-  )
 
   // ==========================================================================
   // Add Transaction

@@ -503,3 +503,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+// Re-export useAuth hook for backward compatibility
+export { useAuth } from './hooks'
+

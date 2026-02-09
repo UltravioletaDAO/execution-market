@@ -208,7 +208,7 @@ export function TaskApplicationModal({ task, onClose, onSuccess }: TaskApplicati
 
               {executor.skills && executor.skills.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {executor.skills.slice(0, 6).map((skill) => (
+                  {executor.skills.slice(0, 6).map((skill: string) => (
                     <span
                       key={skill}
                       className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full"
