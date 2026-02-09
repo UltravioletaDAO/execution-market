@@ -124,6 +124,16 @@ try:
 except ImportError:
     ADVANCED_ESCROW_AVAILABLE = False
 
+# Payment Dispatcher (x402r escrow vs preauth mode selector)
+try:
+    from .payment_dispatcher import (
+        PaymentDispatcher,
+        get_dispatcher as get_payment_dispatcher,
+        EM_PAYMENT_MODE,
+    )
+except ImportError:
+    EM_PAYMENT_MODE = "preauth"
+
 __all__ = [
     # Main client
     "X402Client",
@@ -192,6 +202,10 @@ __all__ = [
     "get_sdk_info",
     # Advanced Escrow (PaymentOperator via SDK)
     "ADVANCED_ESCROW_AVAILABLE",
+    # Payment Dispatcher
+    "PaymentDispatcher",
+    "get_payment_dispatcher",
+    "EM_PAYMENT_MODE",
 ]
 
 # Conditionally add Advanced Escrow names only if SDK is available

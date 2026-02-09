@@ -41,6 +41,19 @@ try:
 except ImportError:
     X402_AVAILABLE = False
 
+# Payment dispatcher (x402r escrow vs preauth)
+try:
+    from integrations.x402.payment_dispatcher import (
+        get_dispatcher as get_payment_dispatcher,
+        EM_PAYMENT_MODE,
+    )
+except ImportError:
+    EM_PAYMENT_MODE = "preauth"
+
+    def get_payment_dispatcher():  # type: ignore[misc]
+        return None
+
+
 # ERC-8004 reputation integration
 try:
     from integrations.erc8004 import rate_worker, EM_AGENT_ID
@@ -107,7 +120,7 @@ X402_AUTH_REF_PREFIX = "x402_auth_"
 
 # Escrow lifecycle compatibility sets. The codebase currently supports mixed
 # status vocabularies across legacy and newer payment integrations.
-REFUNDABLE_ESCROW_STATUSES = {"deposited", "funded", "partial_released"}
+REFUNDABLE_ESCROW_STATUSES = {"deposited", "funded", "partial_released", "locked"}
 ALREADY_REFUNDED_ESCROW_STATUSES = {"refunded"}
 NON_REFUNDABLE_ESCROW_STATUSES = {"released"}
 # EIP-3009 authorize-only: no funds moved, authorization just expires.
@@ -666,13 +679,24 @@ async def _settle_submission_payment(
         }
 
     try:
-        sdk = get_sdk()
-        result = await sdk.settle_task_payment(
-            task_id=task_id or "",
-            payment_header=payment_header,
-            worker_address=worker_address,
-            bounty_amount=bounty,
-        )
+        # Use PaymentDispatcher to route to x402r escrow or preauth settlement
+        dispatcher = get_payment_dispatcher()
+        if dispatcher:
+            result = await dispatcher.release_payment(
+                task_id=task_id or "",
+                worker_address=worker_address,
+                bounty_amount=bounty,
+                payment_header=payment_header,
+            )
+        else:
+            # Fallback: direct SDK settlement (preauth behavior)
+            sdk = get_sdk()
+            result = await sdk.settle_task_payment(
+                task_id=task_id or "",
+                payment_header=payment_header,
+                worker_address=worker_address,
+                bounty_amount=bounty,
+            )
 
         if result.get("success"):
             release_tx = _pick_first_tx_hash(
@@ -702,7 +726,7 @@ async def _settle_submission_payment(
                 "escrow_id": escrow_id,
                 "network": "base",
                 "to_address": worker_address,
-                "settlement_method": "facilitator",
+                "settlement_method": result.get("mode", "facilitator"),
                 "note": f"{note} | fee_tx={result.get('fee_tx_hash', 'n/a')}"
                 if release_tx
                 else f"{note} (awaiting tx hash)",
@@ -1625,58 +1649,117 @@ async def create_task(
                     e,
                 )
 
-        # Store escrow data if payment was verified via x402 SDK / facilitator
-        # NOTE: We store the X-Payment header for later settlement (during approval)
-        # The payment is VERIFIED but NOT SETTLED yet - funds stay with agent until approval
+        # Handle escrow based on payment mode (EM_PAYMENT_MODE)
+        # x402r: Settle agent auth + lock funds in on-chain escrow contract
+        # preauth: Store X-Payment header for later settlement (current behavior)
         if payment_result and payment_result.success and x_payment_header:
             try:
-                # Generate a unique escrow reference (not a tx hash - no tx happened yet)
                 import uuid
 
                 escrow_ref = f"escrow_{task['id'][:8]}_{uuid.uuid4().hex[:8]}"
                 payment_reference = f"{X402_AUTH_REF_PREFIX}{uuid.uuid4().hex[:16]}"
 
-                # Update task with escrow info
-                # IMPORTANT:
-                # - tasks.escrow_tx stores a short reference (VARCHAR-compatible)
-                # - full X-Payment header is stored in escrows.metadata for settlement
-                escrow_updates = {
-                    "escrow_id": escrow_ref,
-                    "escrow_tx": payment_reference,
-                    "escrow_amount_usdc": float(total_required),
-                    "escrow_created_at": datetime.now(timezone.utc).isoformat(),
-                }
-                await db.update_task(task["id"], escrow_updates)
-                task.update(escrow_updates)
+                dispatcher = get_payment_dispatcher()
+                if dispatcher and dispatcher.get_mode() == "x402r":
+                    # x402r: Settle + lock funds on-chain (gasless via Facilitator)
+                    auth_result = await dispatcher.authorize_payment(
+                        task_id=task["id"],
+                        receiver=payment_result.payer_address,
+                        amount_usdc=bounty,
+                        x_payment_header=x_payment_header,
+                    )
 
-                # Persist escrow metadata for later settlement.
-                # Critical: include x_payment_header somewhere recoverable.
-                _insert_escrow_record(
-                    {
-                        "task_id": task["id"],
-                        "agent_id": api_key.agent_id,
+                    escrow_status = auth_result.get("escrow_status", "failed")
+                    escrow_tx = auth_result.get("tx_hash")
+                    agent_settle_tx = auth_result.get("agent_settle_tx")
+
+                    escrow_updates = {
                         "escrow_id": escrow_ref,
-                        "funding_tx": None,  # populated when settlement occurs
-                        "status": "authorized",
-                        "total_amount_usdc": float(total_required),
-                        "platform_fee_usdc": float(total_required - bounty),
-                        "beneficiary_address": payment_result.payer_address,
-                        "network": payment_result.network,
-                        "metadata": {
-                            "x_payment_header": x_payment_header,
-                            "payment_reference": payment_reference,
-                        },
-                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "escrow_tx": escrow_tx or payment_reference,
+                        "escrow_amount_usdc": float(total_required),
+                        "escrow_created_at": datetime.now(timezone.utc).isoformat(),
                     }
-                )
+                    await db.update_task(task["id"], escrow_updates)
+                    task.update(escrow_updates)
 
-                logger.info(
-                    "x402 payment authorized: task=%s, escrow=%s, amount=%.2f, payer=%s",
-                    task["id"],
-                    escrow_ref,
-                    float(total_required),
-                    payment_result.payer_address[:10] + "...",
-                )
+                    _insert_escrow_record(
+                        {
+                            "task_id": task["id"],
+                            "agent_id": api_key.agent_id,
+                            "escrow_id": escrow_ref,
+                            "funding_tx": escrow_tx,
+                            "status": escrow_status,
+                            "total_amount_usdc": float(total_required),
+                            "platform_fee_usdc": float(total_required - bounty),
+                            "beneficiary_address": auth_result.get(
+                                "payer_address", payment_result.payer_address
+                            ),
+                            "network": payment_result.network,
+                            "metadata": {
+                                "payment_mode": "x402r",
+                                "x_payment_header": x_payment_header,
+                                "payment_reference": payment_reference,
+                                "agent_settle_tx": agent_settle_tx,
+                                "escrow_lock_tx": escrow_tx,
+                            },
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
+
+                    if auth_result.get("success"):
+                        logger.info(
+                            "x402r escrow deposited: task=%s, escrow=%s, amount=%.2f, "
+                            "settle_tx=%s, lock_tx=%s",
+                            task["id"],
+                            escrow_ref,
+                            float(total_required),
+                            agent_settle_tx,
+                            escrow_tx,
+                        )
+                    else:
+                        logger.error(
+                            "x402r escrow lock failed for task %s: %s",
+                            task["id"],
+                            auth_result.get("error"),
+                        )
+                else:
+                    # preauth: Store header for later settlement (no funds move yet)
+                    escrow_updates = {
+                        "escrow_id": escrow_ref,
+                        "escrow_tx": payment_reference,
+                        "escrow_amount_usdc": float(total_required),
+                        "escrow_created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    await db.update_task(task["id"], escrow_updates)
+                    task.update(escrow_updates)
+
+                    _insert_escrow_record(
+                        {
+                            "task_id": task["id"],
+                            "agent_id": api_key.agent_id,
+                            "escrow_id": escrow_ref,
+                            "funding_tx": None,
+                            "status": "authorized",
+                            "total_amount_usdc": float(total_required),
+                            "platform_fee_usdc": float(total_required - bounty),
+                            "beneficiary_address": payment_result.payer_address,
+                            "network": payment_result.network,
+                            "metadata": {
+                                "payment_mode": "preauth",
+                                "x_payment_header": x_payment_header,
+                                "payment_reference": payment_reference,
+                            },
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
+
+                    logger.info(
+                        "preauth payment authorized: task=%s, escrow=%s, amount=%.2f, payer=%s",
+                        task["id"],
+                        escrow_ref,
+                        float(total_required),
+                        payment_result.payer_address[:10] + "...",
+                    )
             except Exception as e:
                 # Non-fatal: task was created, escrow recording failed
                 logger.error("Failed to record escrow for task %s: %s", task["id"], e)
@@ -2663,12 +2746,28 @@ async def cancel_task(
                         detail=f"Cannot cancel task because escrow is already {escrow_status}",
                     )
                 elif escrow_status in REFUNDABLE_ESCROW_STATUSES:
-                    if X402_AVAILABLE:
-                        sdk = get_sdk()
-                        refund_result = await sdk.refund_task_payment(
+                    # Use PaymentDispatcher for refund (handles x402r escrow and preauth)
+                    dispatcher = get_payment_dispatcher()
+                    if dispatcher:
+                        # Get agent wallet from escrow metadata for x402r refund
+                        agent_address = None
+                        try:
+                            escrow_meta = (escrow_row or {}).get("metadata") or {}
+                            if isinstance(escrow_meta, str):
+                                escrow_meta = json.loads(escrow_meta)
+                            agent_address = escrow_meta.get(
+                                "beneficiary_address"
+                            ) or _extract_agent_wallet_from_header(
+                                escrow_meta.get("x_payment_header")
+                            )
+                        except Exception:
+                            pass
+
+                        refund_result = await dispatcher.refund_payment(
                             task_id=task_id,
                             escrow_id=str(effective_escrow_id or ""),
                             reason=reason,
+                            agent_address=agent_address,
                         )
                         if refund_result.get("success"):
                             refund_tx_hash = refund_result.get("tx_hash")
@@ -2676,10 +2775,8 @@ async def cancel_task(
                                 "status": "refunded",
                                 "escrow_id": effective_escrow_id,
                                 "tx_hash": refund_tx_hash,
-                                "refund_id": refund_result.get("refund_id"),
-                                "method": refund_result.get("method", "unknown"),
+                                "method": refund_result.get("mode", "unknown"),
                             }
-                            # Store refund tx on the task itself
                             if refund_tx_hash:
                                 try:
                                     client.table("tasks").update(
@@ -2714,8 +2811,32 @@ async def cancel_task(
                                 agent_id=api_key.agent_id,
                                 refund_tx=refund_tx_hash,
                                 reason=reason,
-                                settlement_method=refund_result.get("method"),
+                                settlement_method=refund_result.get("mode"),
                             )
+                        else:
+                            refund_info = {
+                                "status": "refund_manual_required",
+                                "escrow_id": effective_escrow_id,
+                                "error": refund_result.get(
+                                    "error", "Refund attempt failed"
+                                ),
+                            }
+                    elif X402_AVAILABLE:
+                        # Fallback: direct SDK refund
+                        sdk = get_sdk()
+                        refund_result = await sdk.refund_task_payment(
+                            task_id=task_id,
+                            escrow_id=str(effective_escrow_id or ""),
+                            reason=reason,
+                        )
+                        if refund_result.get("success"):
+                            refund_tx_hash = refund_result.get("tx_hash")
+                            refund_info = {
+                                "status": "refunded",
+                                "escrow_id": effective_escrow_id,
+                                "tx_hash": refund_tx_hash,
+                                "method": refund_result.get("method", "unknown"),
+                            }
                         else:
                             refund_info = {
                                 "status": "refund_manual_required",
@@ -2731,7 +2852,7 @@ async def cancel_task(
                             "error": "x402 SDK not available",
                         }
                 elif escrow_status in AUTHORIZE_ONLY_ESCROW_STATUSES:
-                    # EIP-3009 authorize-only: no funds moved, authorization expires.
+                    # EIP-3009 authorize-only (preauth mode): no funds moved, auth expires.
                     refund_info = {
                         "status": "authorization_expired",
                         "message": "Payment authorization will expire. No funds were moved.",
