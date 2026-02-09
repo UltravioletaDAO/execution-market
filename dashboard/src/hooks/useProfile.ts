@@ -1,7 +1,7 @@
 // Execution Market: Profile Data Hooks
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Submission, ReputationLog } from '../types/database'
+import type { ReputationLog } from '../types/database'
 
 // Extended types for profile
 export interface EarningsData {

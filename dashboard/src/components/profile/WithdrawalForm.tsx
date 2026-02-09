@@ -23,7 +23,7 @@ export function WithdrawalForm({
   const [destination, setDestination] = useState(walletAddress)
   const [useMax, setUseMax] = useState(false)
 
-  const { withdraw, loading, error, success, reset: _reset } = useWithdrawal(executorId)
+  const { withdraw, loading, error, success } = useWithdrawal(executorId)
 
   const balance = earnings?.balance_usdc || 0
   const minWithdrawal = 1.00 // Minimum $1 USDC

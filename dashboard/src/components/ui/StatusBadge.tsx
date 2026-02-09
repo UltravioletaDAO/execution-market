@@ -54,7 +54,6 @@ export function StatusBadge({
   className,
   icon,
 }: StatusBadgeProps) {
-  const _normalizedStatus = status.replace('-', '_');
   const displayLabel = label || formatStatus(status);
   const dotAnimation = getStatusDotAnimationClass(status);
 
