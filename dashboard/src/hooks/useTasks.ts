@@ -235,7 +235,7 @@ export function useAvailableTasks(options: UseAvailableTasksOptions = {}): UseTa
         throw new Error(`Failed to fetch available tasks (${primaryRes.status})`)
       }
 
-      const primaryData = await primaryRes.json() as { tasks?: any[] }
+      const primaryData = await primaryRes.json() as { tasks?: Array<Partial<Task> & { id: string; agent_id: string; category: TaskCategory; title: string; instructions: string; bounty_usd: number; deadline: string; created_at: string }> }
       let incoming = (primaryData.tasks || []).map(normalizeTask)
 
       if (incoming.length === 0 && options.includeExpiredFallback) {
@@ -245,7 +245,7 @@ export function useAvailableTasks(options: UseAvailableTasksOptions = {}): UseTa
         })
 
         if (fallbackRes.ok) {
-          const fallbackData = await fallbackRes.json() as { tasks?: any[] }
+          const fallbackData = await fallbackRes.json() as { tasks?: Array<Partial<Task> & { id: string; agent_id: string; category: TaskCategory; title: string; instructions: string; bounty_usd: number; deadline: string; created_at: string }> }
           incoming = (fallbackData.tasks || []).map(normalizeTask)
         }
       }
