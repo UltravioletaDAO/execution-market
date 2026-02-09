@@ -231,6 +231,36 @@ execution-market/
 
 ## Development
 
+### Quick Start (Local Docker Stack)
+
+**Fastest way to develop locally** — complete stack running in ~30 seconds:
+
+```bash
+# Start all services (MCP + Dashboard + Redis + Anvil + Supabase Cloud)
+docker compose -f docker-compose.dev.yml up -d
+
+# View logs
+docker compose -f docker-compose.dev.yml logs -f
+
+# Stop all services
+docker compose -f docker-compose.dev.yml down
+```
+
+**Services available:**
+- Dashboard: http://localhost:5173 (hot reload enabled)
+- MCP Server: http://localhost:8000
+- Anvil (local blockchain): http://localhost:8545
+- Redis: localhost:6379
+
+**Development workflow:**
+1. Edit code in `dashboard/src/` or `mcp_server/` → changes auto-reload
+2. For MCP changes: `docker compose -f docker-compose.dev.yml up -d --build mcp-server`
+3. Test locally before push (see Testing section below)
+
+See `QUICKSTART.md` for detailed commands.
+
+---
+
 ### Dashboard
 
 ```bash
@@ -289,6 +319,39 @@ npx playwright test --project=chromium
 # View HTML report
 npx playwright show-report
 ```
+
+---
+
+### Testing Before Push
+
+**Run ALL tests locally** (instead of waiting 20 min in CI):
+
+```powershell
+# PowerShell (Windows) — runs backend + frontend + E2E
+.\scripts\test-local.ps1
+
+# Options
+.\scripts\test-local.ps1 -KeepRunning    # Leave Docker running after tests
+.\scripts\test-local.ps1 -SkipE2E        # Only unit tests (fast, ~2 min)
+.\scripts\test-local.ps1 -SkipUnit       # Only E2E tests (~3 min)
+
+# Git Bash / Linux / Mac
+bash scripts/test-local.sh
+```
+
+**What it does:**
+1. Stops Docker
+2. Runs backend tests (pytest)
+3. Runs frontend tests (vitest)
+4. Starts Docker
+5. Runs E2E tests (playwright)
+6. Shows summary
+
+**Result:** Know in ~5 min if your code is ready to push (vs 20 min in GitHub Actions).
+
+See `TEST_WORKFLOW.md` for detailed testing guide.
+
+---
 
 ### Blockchain Scripts
 
