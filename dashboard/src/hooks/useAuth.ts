@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Executor } from '../types/database'
-import type { User, Session } from '@supabase/supabase-js'
+import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
 
 interface AuthState {
   user: User | null
@@ -128,7 +128,7 @@ export function useAuth(): UseAuthResult {
   useEffect(() => {
     // Get initial session
     console.log('[useAuth] Getting initial session...')
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }: { data: { session: Session | null } }) => {
       console.log('[useAuth] Initial session:', session?.user?.id ?? 'none')
       let executor: Executor | null = null
 
@@ -152,7 +152,7 @@ export function useAuth(): UseAuthResult {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       console.log('[useAuth] Auth state changed:', _event, session?.user?.id ?? 'none')
       let executor: Executor | null = null
 
