@@ -82,7 +82,7 @@ export function WalletSelector({
 }: WalletSelectorProps) {
   const { t } = useTranslation()
   const { signing = false, ...walletRest } = useWallet()
-  const wallet = { signing, ...walletRest }
+  const wallet = useMemo(() => ({ signing, ...walletRest }), [signing, walletRest])
 
   // Local state
   const [selectedWallet, setSelectedWallet] = useState<WalletType | null>(null)

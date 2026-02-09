@@ -206,7 +206,7 @@ export function EvidenceUpload({
 
     setEvidenceItems(prev => [...prev, item])
     setViewMode('preview')
-  }, [currentGps, currentEvidenceType, calculateDistance, taskLocation])
+  }, [currentGps, currentEvidenceType, calculateDistance])
 
   // Handle camera cancel
   const handleCameraCancel = useCallback(() => {

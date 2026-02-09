@@ -109,6 +109,8 @@ const DEFAULT_FORM_DATA: TaskFormData = {
   evidence_optional: [],
 }
 
+const FORM_STEPS: FormStep[] = ['details', 'location', 'evidence', 'preview']
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -653,8 +655,6 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const steps: FormStep[] = ['details', 'location', 'evidence', 'preview']
-
   // Validation
   const isDetailsValid = useMemo(() => {
     return (
@@ -694,18 +694,18 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
 
   // Navigation
   const goNext = useCallback(() => {
-    const currentIndex = steps.indexOf(step)
-    if (currentIndex < steps.length - 1) {
-      setStep(steps[currentIndex + 1])
+    const currentIndex = FORM_STEPS.indexOf(step)
+    if (currentIndex < FORM_STEPS.length - 1) {
+      setStep(FORM_STEPS[currentIndex + 1])
     }
-  }, [step, steps])
+  }, [step])
 
   const goPrev = useCallback(() => {
-    const currentIndex = steps.indexOf(step)
+    const currentIndex = FORM_STEPS.indexOf(step)
     if (currentIndex > 0) {
-      setStep(steps[currentIndex - 1])
+      setStep(FORM_STEPS[currentIndex - 1])
     }
-  }, [step, steps])
+  }, [step])
 
   // Update form data
   const updateFormData = useCallback((updates: Partial<TaskFormData>) => {
