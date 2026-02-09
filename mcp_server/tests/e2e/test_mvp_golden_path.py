@@ -8,7 +8,7 @@ This test uses REAL FUNDS on Base network.
 Gated by EM_E2E_REAL_PAYMENTS=true environment variable.
 
 Wallets:
-  Agent (Wallet A): 0x3403... (AWS Secrets em/x402:PRIVATE_KEY)
+  Agent (Wallet A): 0xD386... (AWS Secrets em/x402:PRIVATE_KEY)
   Worker (Wallet B): 0x857f... (.env.local or AWS Secrets em/test-worker)
 
 Cost per run: ~$0.11 ($0.10 bounty + $0.008 fee)

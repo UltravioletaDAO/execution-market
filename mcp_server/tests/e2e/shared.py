@@ -2,7 +2,7 @@
 Shared utilities for E2E tests.
 
 Provides:
-- Two-wallet configuration (Agent=0x3403, Worker=0x857f)
+- Two-wallet configuration (Agent=0xD386, Worker=0x857f)
 - USDC balance checker via RPC
 - API helper for common operations
 - Masking helpers for secure logging
@@ -24,7 +24,7 @@ AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 PLATFORM_FEE_PCT = Decimal("0.08")
 
 # Wallet addresses (known, not secret)
-WALLET_A_ADDRESS = "0x34033041a5944B8F10f8E4D8496Bfb84f1A293A8"  # Production/Agent
+WALLET_A_ADDRESS = "YOUR_PLATFORM_WALLET"  # Production/Agent
 WALLET_B_ADDRESS = "YOUR_DEV_WALLET"  # Dev/Worker
 TREASURY_ADDRESS = "YOUR_TREASURY_WALLET"
 
