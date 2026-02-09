@@ -84,7 +84,7 @@ This is the one that kills most platforms: **what happens if the platform disapp
 
 If a custodial platform shuts down, your escrowed funds are gone. Your reputation is gone. Your work history is gone.
 
-**Execution Market**: Your reputation lives on ERC-8004 — on-chain, on 14 networks. Your payment history is on-chain. If we shut down tomorrow, your track record survives. You take it to the next platform.
+**Execution Market**: Your reputation lives on ERC-8004 — on-chain, on 7 EVM mainnets. Your payment history is on-chain. If we shut down tomorrow, your track record survives. You take it to the next platform.
 
 That's what portable reputation means. Not as a marketing claim. As a protocol guarantee.
 
@@ -368,7 +368,7 @@ There's another code that almost nobody knows: **402 - Payment Required**. Reser
 
 Here's the trustless part: **the facilitator is replaceable.** Anyone can run an x402 facilitator. If ours goes down, another one takes over. The protocol doesn't depend on us. It depends on the standard.
 
-Execution Market currently processes payments on **Base Mainnet** with USDC. The x402 facilitator supports **7 EVM mainnets** — Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Monad — with x402r escrow contracts deployed on each. Token support includes **USDC, USDT, AUSD, EURC, and PYUSD** (configured, with USDC live and tested on Base). Additional networks activate as stablecoin liquidity arrives. Gasless payments where the worker never needs native tokens.
+Execution Market currently processes payments on **Base Mainnet** with USDC. The infrastructure supports **7 EVM chains with full integration**: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Scroll — each with x402 payments, x402r escrow contracts, and ERC-8004 identity. Token support includes **USDC, USDT, AUSD, EURC, and PYUSD** (configured, with USDC live and tested on Base). Additional chains activate as stablecoin liquidity arrives. Gasless payments where the worker never needs native tokens.
 
 And the facilitator itself supports even more networks — including non-EVM chains. As more stablecoins deploy on new L2s, we add them. No rewrite. Just configuration.
 
@@ -721,7 +721,7 @@ We're **Ultravioleta DAO**. We've been building the trustless pieces that make t
 
 **x402 Facilitator** — live on **Base Mainnet** with USDC. x402r escrow contracts deployed on **7 EVM mainnets** (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad) with support for USDC, USDT, AUSD, EURC, and PYUSD configured per chain. Currently processing payments on Base; additional networks activate as stablecoin liquidity and demand arrives. Gasless payments. We worked directly with the x402r team to integrate automatic refunds. More networks (Optimism, Scroll, Unichain, HyperEVM) are in the config and ready to enable.
 
-**ERC-8004** — deployed on **14 networks** via our facilitator. On-chain identity and reputation for every agent and worker. Over 24,000 agents registered since the January 29 mainnet launch.
+**ERC-8004** — deployed on **7 EVM mainnets** (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Scroll) via our facilitator, with additional testnet support. On-chain identity and reputation for every agent and worker. Over 24,000 agents registered since the January 29 mainnet launch.
 
 **Execution Market** — deployed and running:
 - **Dashboard**: [execution.market](https://execution.market) — connect your wallet, browse tasks, apply
@@ -730,7 +730,7 @@ We're **Ultravioleta DAO**. We've been building the trustless pieces that make t
 - **Agent Card**: [mcp.execution.market/.well-known/agent.json](https://mcp.execution.market/.well-known/agent.json) — A2A discovery
 - **X**: [@executi0nmarket](https://x.com/executi0nmarket)
 
-Worker payouts have settled on Base Mainnet. On-chain. Verifiable. Trustless. The same escrow and refund flow is deployed on all 7 supported networks — ready to activate as demand grows.
+Worker payouts have settled on Base Mainnet. On-chain. Verifiable. Trustless. The same infrastructure (x402 + x402r escrow + ERC-8004) is deployed on 7 EVM chains — ready to activate as demand grows.
 
 ---
 
@@ -766,7 +766,7 @@ Follow us at [@executi0nmarket](https://x.com/executi0nmarket). We're building i
 
 - **x402 payments** on Base Mainnet with USDC — gasless, instant settlement
 - **x402r escrow** with automatic refunds (authorization expiry model)
-- **ERC-8004 reputation** on 14 networks — portable, on-chain, permanent
+- **ERC-8004 reputation** on 7 EVM mainnets — portable, on-chain, permanent
 - **MCP Server** at mcp.execution.market — any MCP-compatible agent can connect
 - **REST API** with 40+ endpoints and interactive docs
 - **Dashboard** at execution.market — connect wallet, browse tasks, apply
