@@ -4,9 +4,6 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  define: {
-    'import.meta.env.VITE_E2E_MODE': JSON.stringify(process.env.VITE_E2E_MODE),
-  },
   server: {
     port: 3000,
     open: true,

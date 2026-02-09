@@ -14,27 +14,9 @@ const TEXT = {
 }
 
 test.describe('Authentication - Escape Hatch', () => {
-  test('worker page loads authenticated', async ({ workerPage }, testInfo) => {
-    // Capture console messages
-    const consoleLogs: string[] = []
-    workerPage.on('console', msg => {
-      consoleLogs.push(`[${msg.type()}] ${msg.text()}`)
-    })
-
+  test('worker page loads authenticated', async ({ workerPage }) => {
     await setupMocks(workerPage)
-    await workerPage.goto('/tasks', { waitUntil: 'domcontentloaded' })
-    await workerPage.waitForTimeout(2000) // Wait for React to render
-
-    // Debug: Print HTML and console to stdout (bypass Playwright logger)
-    const html = await workerPage.content()
-    process.stdout.write('\n=== E2E DEBUG: PAGE HTML (first 3000 chars) ===\n')
-    process.stdout.write(html.substring(0, 3000) + '\n')
-    process.stdout.write('\n=== E2E DEBUG: CONSOLE LOGS ===\n')
-    process.stdout.write(consoleLogs.join('\n') + '\n')
-    process.stdout.write('\n=== E2E DEBUG: END ===\n\n')
-
-    await testInfo.attach('page-html', { body: html, contentType: 'text/html' })
-    await testInfo.attach('console-logs', { body: consoleLogs.join('\n'), contentType: 'text/plain' })
+    await workerPage.goto('/tasks')
 
     await expect(workerPage).toHaveURL(/\/tasks$/)
     await expect(workerPage.getByRole('button', { name: /Execution Market/i })).toBeVisible()
