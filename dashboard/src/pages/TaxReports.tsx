@@ -313,7 +313,7 @@ function useTaxReportData(executorId: string, dateRange: DateRange) {
     } finally {
       setLoading(false)
     }
-  }, [executorId, dateRange])
+  }, [dateRange])
 
   useEffect(() => {
     fetchData()

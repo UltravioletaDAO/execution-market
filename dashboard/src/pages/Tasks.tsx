@@ -470,7 +470,7 @@ export function Tasks({
     }
 
     return result
-  }, [tasks, applications, filters, appliedTaskIds, executor])
+  }, [tasks, filters, appliedTaskIds, executor])
 
   // Check if any filters are active
   const hasActiveFilters =
