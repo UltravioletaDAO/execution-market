@@ -22,10 +22,17 @@ test.describe('Authentication - Escape Hatch', () => {
     })
 
     await setupMocks(workerPage)
-    await workerPage.goto('/tasks', { waitUntil: 'networkidle' })
+    await workerPage.goto('/tasks', { waitUntil: 'domcontentloaded' })
+    await workerPage.waitForTimeout(2000) // Wait for React to render
 
-    // Debug: Attach page HTML and console logs
+    // Debug: Print HTML and console to stdout
     const html = await workerPage.content()
+    console.log('\n=== E2E DEBUG: PAGE HTML (first 3000 chars) ===')
+    console.log(html.substring(0, 3000))
+    console.log('\n=== E2E DEBUG: CONSOLE LOGS ===')
+    console.log(consoleLogs.join('\n'))
+    console.log('\n=== E2E DEBUG: END ===\n')
+
     await testInfo.attach('page-html', { body: html, contentType: 'text/html' })
     await testInfo.attach('console-logs', { body: consoleLogs.join('\n'), contentType: 'text/plain' })
 
