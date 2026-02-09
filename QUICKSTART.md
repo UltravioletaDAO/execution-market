@@ -161,6 +161,64 @@ docker compose -f docker-compose.dev.yml up -d
 
 ---
 
+## 🧪 Testing Antes de Push
+
+### Correr TODOS los Tests Localmente
+
+```powershell
+# PowerShell (Windows)
+.\scripts\test-local.ps1
+
+# Git Bash (Windows/Linux/Mac)
+bash scripts/test-local.sh
+```
+
+**Qué hace:**
+1. Para Docker
+2. Corre tests de backend (pytest)
+3. Corre tests de frontend (vitest)
+4. Levanta stack de Docker
+5. Corre tests E2E (playwright)
+6. Para Docker
+7. Muestra resumen
+
+**Resultado**: Si todos pasan → ✅ Listo para push
+
+### Opciones Útiles
+
+```powershell
+# Dejar stack corriendo después (para debug)
+.\scripts\test-local.ps1 -KeepRunning
+
+# Solo tests unitarios (rápido)
+.\scripts\test-local.ps1 -SkipE2E
+
+# Solo tests E2E
+.\scripts\test-local.ps1 -SkipUnit
+```
+
+### Tests Individuales
+
+```powershell
+# Backend (pytest)
+cd mcp_server
+pytest -v
+
+# Frontend (vitest)
+cd dashboard
+npm run test
+
+# E2E (playwright)
+cd e2e
+npm run test
+
+# E2E con UI (ver tests corriendo)
+cd e2e
+npm run test:ui
+```
+
+---
+
 ## 📝 Notas
 
 - `.env` **nunca** se commitea (está en `.gitignore`)
