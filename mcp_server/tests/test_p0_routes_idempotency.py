@@ -482,6 +482,14 @@ async def test_cancel_task_refunds_when_escrow_is_deposited(monkeypatch):
     api_key = SimpleNamespace(agent_id="agent_test")
 
     monkeypatch.setattr(routes, "X402_AVAILABLE", True)
+
+    # Mock the PaymentDispatcher to return a successful refund
+    mock_refund = AsyncMock(
+        return_value={"success": True, "tx_hash": "0xrefundtx", "mode": "x402r"}
+    )
+    mock_dispatcher = SimpleNamespace(refund_payment=mock_refund)
+    monkeypatch.setattr(routes, "get_payment_dispatcher", lambda: mock_dispatcher)
+
     monkeypatch.setattr(
         routes.db,
         "get_task",
@@ -502,15 +510,6 @@ async def test_cancel_task_refunds_when_escrow_is_deposited(monkeypatch):
     cancel_task_mock = AsyncMock()
     monkeypatch.setattr(routes.db, "cancel_task", cancel_task_mock)
 
-    refund_task_payment = AsyncMock(
-        return_value={"success": True, "tx_hash": "0xrefundtx"}
-    )
-    monkeypatch.setattr(
-        routes,
-        "get_sdk",
-        lambda: SimpleNamespace(refund_task_payment=refund_task_payment),
-    )
-
     result = await routes.cancel_task(
         task_id=task_id,
         request=None,
@@ -524,7 +523,7 @@ async def test_cancel_task_refunds_when_escrow_is_deposited(monkeypatch):
     assert fake_client.tasks.last_update["refund_tx"] == "0xrefundtx"
     assert fake_client.payments.inserted_rows[0]["type"] == "refund"
     assert fake_client.payments.inserted_rows[0]["tx_hash"] == "0xrefundtx"
-    assert refund_task_payment.await_count == 1
+    assert mock_refund.await_count == 1
     cancel_task_mock.assert_awaited_once()
 
 
