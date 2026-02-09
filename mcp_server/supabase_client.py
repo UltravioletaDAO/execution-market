@@ -433,7 +433,11 @@ async def apply_to_task(
     # Get executor to check reputation
     try:
         executor = (
-            client.table("executors").select("*").eq("id", executor_id).single().execute()
+            client.table("executors")
+            .select("*")
+            .eq("id", executor_id)
+            .single()
+            .execute()
         )
     except Exception:
         raise Exception(f"Executor {executor_id} not found")
