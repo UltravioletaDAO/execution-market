@@ -106,7 +106,21 @@ export function usePayments({
 
       if (fetchError) throw fetchError
 
-      const formattedPayments: Payment[] = (data || []).map((p: any) => ({
+      interface PaymentRow {
+        id: string
+        type: string
+        status: string
+        amount: number
+        currency?: string
+        task_id?: string
+        tasks?: { title?: string } | null
+        tx_hash?: string
+        network?: string
+        created_at: string
+        confirmed_at?: string
+      }
+
+      const formattedPayments: Payment[] = (data || []).map((p: PaymentRow) => ({
         id: p.id,
         type: p.type,
         status: p.status,
@@ -167,7 +181,7 @@ export function usePayments({
           table: 'payments',
           filter: `executor_id=eq.${executorId}`,
         },
-        (payload: any) => {
+        (payload: { eventType: string; new?: Payment }) => {
           if (payload.eventType === 'INSERT') {
             const newPayment = payload.new as Payment
             setPayments((prev) => [newPayment, ...prev])
@@ -224,7 +238,13 @@ export function usePaymentStats(executorId: string): UsePaymentStatsReturn {
       let pendingAmount = 0
       let taskCount = 0
 
-      ;(payments || []).forEach((p: any) => {
+      interface PaymentStat {
+        type: string
+        status: string
+        amount: number
+      }
+
+      (payments || []).forEach((p: PaymentStat) => {
         if (p.status === 'confirmed') {
           if (p.type === 'task_payment' || p.type === 'bonus') {
             totalEarned += p.amount

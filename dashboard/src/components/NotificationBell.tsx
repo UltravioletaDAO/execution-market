@@ -243,7 +243,7 @@ export function NotificationBell({
           table: 'notifications',
           filter: `executor_id=eq.${executorId}`,
         },
-        (payload: any) => {
+        (payload: { new: Notification }) => {
           const newNotification = payload.new as Notification
           setNotifications((prev) => [newNotification, ...prev])
           setHasNewNotification(true)

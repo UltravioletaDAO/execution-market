@@ -11,6 +11,8 @@ Both backends go through the Ultravioleta Facilitator and are GASLESS for agents
 """
 
 import os
+import json
+import asyncio
 import logging
 from decimal import Decimal
 from typing import Optional, Dict, Any
@@ -26,14 +28,18 @@ try:
     from integrations.x402.advanced_escrow_integration import (
         EMAdvancedEscrow,
         PaymentStrategy,
+        TaskPayment,
         get_advanced_escrow,
         ADVANCED_ESCROW_AVAILABLE,
+        PLATFORM_FEE_BPS,
     )
 except ImportError:
     ADVANCED_ESCROW_AVAILABLE = False
     EMAdvancedEscrow = None  # type: ignore[assignment,misc]
     PaymentStrategy = None  # type: ignore[assignment,misc]
+    TaskPayment = None  # type: ignore[assignment,misc]
     get_advanced_escrow = None  # type: ignore[assignment]
+    PLATFORM_FEE_BPS = 800
 
 # --- preauth backend (EIP-3009 SDK) ---
 try:
@@ -52,6 +58,59 @@ except ImportError:
     verify_x402_payment = None  # type: ignore[assignment]
     PLATFORM_FEE_PERCENT = Decimal("0.08")
     EM_TREASURY = "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad"
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+
+def _extract_tx_hash(response: Any) -> Optional[str]:
+    """Extract tx hash from various SDK response formats (model objects or dicts)."""
+    if response is None:
+        return None
+
+    # Try get_transaction_hash() method first (SDK model objects)
+    getter = getattr(response, "get_transaction_hash", None)
+    if callable(getter):
+        try:
+            val = getter()
+            if isinstance(val, str) and val.startswith("0x") and len(val) == 66:
+                return val
+        except Exception:
+            pass
+
+    # Try attribute access
+    for attr in ("transaction_hash", "tx_hash", "transaction", "hash"):
+        val = getattr(response, attr, None)
+        if isinstance(val, str) and val.startswith("0x") and len(val) == 66:
+            return val
+
+    # Try dict access
+    if isinstance(response, dict):
+        for key in ("transaction_hash", "tx_hash", "transaction", "hash"):
+            val = response.get(key)
+            if isinstance(val, str) and val.startswith("0x") and len(val) == 66:
+                return val
+
+    return None
+
+
+def _get_platform_address() -> str:
+    """Get the platform wallet address from WALLET_PRIVATE_KEY env var."""
+    pk = os.environ.get("WALLET_PRIVATE_KEY")
+    if not pk:
+        raise RuntimeError(
+            "WALLET_PRIVATE_KEY not set — cannot determine platform address"
+        )
+    from eth_account import Account
+
+    return Account.from_key(pk).address
+
+
+# =============================================================================
+# PaymentDispatcher
+# =============================================================================
 
 
 class PaymentDispatcher:
@@ -119,15 +178,15 @@ class PaymentDispatcher:
         """
         Authorize (lock or verify) a payment for a task.
 
-        x402r mode: Locks funds on-chain via EMAdvancedEscrow.authorize_task().
+        x402r mode: Settles agent auth + locks funds on-chain via escrow contract.
         preauth mode: Verifies EIP-3009 signature via verify_x402_payment().
 
         Args:
             task_id: Unique task identifier
-            receiver: Worker wallet address
-            amount_usdc: Bounty amount in USDC
+            receiver: Unused for x402r (platform address is used); agent address for preauth
+            amount_usdc: Total amount including fee (bounty + platform fee)
             strategy: PaymentStrategy for x402r mode (optional)
-            x_payment_header: X-Payment header for preauth mode (required in preauth)
+            x_payment_header: X-Payment header from agent request
 
         Returns:
             Uniform dict with success, tx_hash, mode, escrow_status, payment_info, error.
@@ -154,6 +213,7 @@ class PaymentDispatcher:
                 "mode": self.mode,
                 "escrow_status": "error",
                 "payment_info": None,
+                "payment_info_serialized": None,
                 "error": str(e),
             }
 
@@ -166,28 +226,33 @@ class PaymentDispatcher:
         x_payment_header: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Authorize via x402r escrow -- settles agent payment then locks funds on-chain.
+        Authorize via x402r escrow — settles agent payment then locks funds on-chain.
 
         Two-step flow (both gasless via Facilitator):
-        1. Settle agent's EIP-3009 auth (agent wallet -> platform wallet)
-        2. Lock funds in AuthCaptureEscrow contract (platform wallet -> escrow)
+        1. Settle agent's EIP-3009 auth (agent wallet → platform wallet)
+        2. Lock funds in AuthCaptureEscrow contract (platform wallet → escrow)
+
+        Args:
+            amount_usdc: Total required (bounty + platform fee). The full amount is
+                         locked in escrow. On release, worker gets bounty and treasury
+                         gets fee. On refund, agent gets full amount back.
         """
         escrow = self._get_escrow()
         sdk = self._get_sdk()
         strat = strategy or PaymentStrategy.ESCROW_CAPTURE
+        platform_address = _get_platform_address()
 
-        # Step 1: Settle agent's X-Payment auth (agent -> platform)
+        # Step 1: Settle agent's X-Payment auth (agent → platform)
         agent_settle_tx = None
         payer_address = None
         if x_payment_header:
             try:
                 payer_address, _ = sdk.client.get_payer_address(x_payment_header)
-                platform_address = sdk._get_agent_account().address
 
                 if payer_address.lower() != platform_address.lower():
                     payload = sdk.client.extract_payload(x_payment_header)
                     settle_resp = sdk.client.settle_payment(payload, amount_usdc)
-                    agent_settle_tx = sdk._extract_settlement_tx_hash(settle_resp)
+                    agent_settle_tx = _extract_tx_hash(settle_resp)
                     logger.info(
                         "x402r: Agent auth settled: task=%s, agent=%s, tx=%s",
                         task_id,
@@ -211,29 +276,58 @@ class PaymentDispatcher:
                     "mode": "x402r",
                     "escrow_status": "settlement_failed",
                     "payment_info": None,
+                    "payment_info_serialized": None,
                     "payer_address": payer_address,
                     "error": f"Agent auth settlement failed: {e}",
                 }
 
-        # Step 2: Lock funds in escrow contract (platform -> escrow)
+        # Step 2: Lock funds in escrow contract (platform → escrow)
         # Use platform address as receiver; on release we disburse to actual worker
-        platform_address = sdk._get_agent_account().address
-        payment = escrow.authorize_task(task_id, platform_address, amount_usdc, strat)
+        # Run synchronous SDK call in a thread to avoid blocking the event loop
+        payment = await asyncio.to_thread(
+            escrow.authorize_task,
+            task_id,
+            platform_address,
+            amount_usdc,
+            strat,
+        )
 
         tx_hash = payment.tx_hashes[0] if payment.tx_hashes else None
+        success = payment.status == "authorized"
+
+        # Serialize PaymentInfo build params for DB persistence.
+        # This allows reconstructing PaymentInfo after server restart so that
+        # release/refund can reference the same on-chain escrow.
+        payment_info_serialized = None
+        if payment.payment_info:
+            try:
+                pi = payment.payment_info
+                tier_val = getattr(pi, "tier", None)
+                if hasattr(tier_val, "value"):
+                    tier_val = tier_val.value
+                payment_info_serialized = {
+                    "receiver": platform_address,
+                    "amount": escrow._amount_to_atomic(amount_usdc),
+                    "tier": str(tier_val) if tier_val else "standard",
+                    "max_fee_bps": PLATFORM_FEE_BPS,
+                }
+            except Exception as ser_err:
+                logger.warning(
+                    "Could not serialize PaymentInfo for task %s: %s",
+                    task_id,
+                    ser_err,
+                )
+
         return {
-            "success": payment.status == "authorized",
+            "success": success,
             "tx_hash": tx_hash,
             "agent_settle_tx": agent_settle_tx,
             "mode": "x402r",
-            "escrow_status": "deposited"
-            if payment.status == "authorized"
-            else payment.status,
+            "escrow_status": "deposited" if success else payment.status,
             "payment_info": payment,
+            "payment_info_serialized": payment_info_serialized,
             "payer_address": payer_address,
-            "error": None
-            if payment.status == "authorized"
-            else f"Escrow lock failed: {payment.status}",
+            "error": None if success else f"Escrow lock failed: {payment.status}",
         }
 
     async def _authorize_preauth(
@@ -242,7 +336,7 @@ class PaymentDispatcher:
         amount_usdc: Decimal,
         x_payment_header: Optional[str],
     ) -> Dict[str, Any]:
-        """Authorize via preauth -- verifies EIP-3009 signature, no funds move."""
+        """Authorize via preauth — verifies EIP-3009 signature, no funds move."""
         if not x_payment_header:
             return {
                 "success": False,
@@ -250,6 +344,7 @@ class PaymentDispatcher:
                 "mode": "preauth",
                 "escrow_status": "missing_header",
                 "payment_info": None,
+                "payment_info_serialized": None,
                 "error": "X-Payment header required for preauth mode",
             }
 
@@ -267,6 +362,7 @@ class PaymentDispatcher:
             "mode": "preauth",
             "escrow_status": "verified" if result.success else "verification_failed",
             "payment_info": result,
+            "payment_info_serialized": None,
             "error": result.error,
         }
 
@@ -286,14 +382,15 @@ class PaymentDispatcher:
         """
         Release payment to a worker after task approval.
 
-        x402r mode: Releases from on-chain escrow via EMAdvancedEscrow.release_to_worker().
+        x402r mode: Releases from on-chain escrow, disburses bounty to worker + fee to treasury.
         preauth mode: Settles EIP-3009 auth via EMX402SDK.settle_task_payment().
 
         Args:
             task_id: Task identifier
             worker_address: Worker wallet address
-            bounty_amount: Total bounty amount in USDC
-            payment_header: Original X-Payment header (required for preauth)
+            bounty_amount: The bounty amount (NOT including platform fee).
+                           Worker receives this full amount.
+            payment_header: Original X-Payment header (required for preauth only)
             network: Payment network (optional, defaults to SDK default)
             token: Payment token (default: USDC)
 
@@ -340,31 +437,40 @@ class PaymentDispatcher:
         Release from on-chain escrow then disburse to worker.
 
         Three-step flow (all gasless via Facilitator):
-        1. Release from escrow contract -> platform wallet
-        2. Platform -> worker (bounty minus fee) via EIP-3009
-        3. Platform -> treasury (fee) via EIP-3009
+        1. Release full escrowed amount from escrow contract → platform wallet
+        2. Platform → worker: full bounty_amount via EIP-3009
+        3. Platform → treasury: platform fee via EIP-3009
+
+        The escrow holds bounty + fee. Worker receives the full bounty (no fee
+        deduction). Fee goes to treasury. This avoids double-charging.
         """
         escrow = self._get_escrow()
         sdk = self._get_sdk()
 
-        # Step 1: Release from escrow (escrow -> platform)
-        escrow_result = escrow.release_to_worker(task_id, bounty_amount)
+        # Ensure the escrow backend has this task's state in memory.
+        # Handles server restarts by reconstructing from DB.
+        state_ok = await self._ensure_escrow_state(task_id)
+        if not state_ok:
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "x402r",
+                "error": (
+                    f"Cannot release task {task_id}: escrow payment state not found. "
+                    "The server may have restarted and the escrow metadata is missing "
+                    "payment_info for reconstruction. Manual intervention required."
+                ),
+            }
 
-        escrow_tx = (
-            escrow_result.transaction_hash
-            if hasattr(escrow_result, "transaction_hash")
-            else None
-        )
-        escrow_success = (
-            escrow_result.success
-            if hasattr(escrow_result, "success")
-            else bool(escrow_tx)
-        )
+        # Step 1: Release full amount from escrow (escrow → platform)
+        # Pass None for amount to release the entire escrowed balance
+        escrow_result = await asyncio.to_thread(escrow.release_to_worker, task_id, None)
+
+        escrow_tx = _extract_tx_hash(escrow_result)
+        escrow_success = getattr(escrow_result, "success", bool(escrow_tx))
 
         if not escrow_success:
-            escrow_error = (
-                escrow_result.error if hasattr(escrow_result, "error") else None
-            )
+            escrow_error = getattr(escrow_result, "error", None)
             return {
                 "success": False,
                 "tx_hash": None,
@@ -379,17 +485,11 @@ class PaymentDispatcher:
             escrow_tx,
         )
 
-        # Step 2: Calculate fee and disburse to worker
-        platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(
-            Decimal("0.000001")
-        )
-        if Decimal("0") < platform_fee < Decimal("0.01"):
-            platform_fee = Decimal("0.01")
-        worker_net = bounty_amount - platform_fee
-
+        # Step 2: Disburse FULL BOUNTY to worker (NO fee deduction here).
+        # The fee was included as extra on top of bounty when the agent paid.
         worker_result = await sdk.disburse_to_worker(
             worker_address=worker_address,
-            amount_usdc=worker_net,
+            amount_usdc=bounty_amount,
             task_id=task_id,
             network=network,
             token=token,
@@ -405,7 +505,13 @@ class PaymentDispatcher:
                 "error": worker_result.get("error", "Worker disbursement failed"),
             }
 
-        # Step 3: Collect platform fee (non-blocking)
+        # Step 3: Collect platform fee (non-blocking — worker already paid)
+        platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(
+            Decimal("0.000001")
+        )
+        if Decimal("0") < platform_fee < Decimal("0.01"):
+            platform_fee = Decimal("0.01")
+
         fee_tx = None
         try:
             fee_result = await sdk.collect_platform_fee(
@@ -432,9 +538,9 @@ class PaymentDispatcher:
             "escrow_release_tx": escrow_tx,
             "fee_tx_hash": fee_tx,
             "mode": "x402r",
-            "gross_amount": float(bounty_amount),
+            "gross_amount": float(bounty_amount + platform_fee),
             "platform_fee": float(platform_fee),
-            "net_to_worker": float(worker_net),
+            "net_to_worker": float(bounty_amount),
             "error": None,
         }
 
@@ -488,7 +594,7 @@ class PaymentDispatcher:
         Refund a task payment.
 
         x402r mode: Refunds from on-chain escrow via EMAdvancedEscrow.refund_to_agent(),
-                    then disburses from platform back to agent wallet.
+                    then disburses full amount from platform back to agent wallet.
         preauth mode: Auth expires naturally, returns success immediately.
 
         Args:
@@ -529,19 +635,31 @@ class PaymentDispatcher:
         Refund from on-chain escrow back to agent.
 
         Two-step flow (both gasless via Facilitator):
-        1. Refund from escrow contract -> platform wallet
-        2. Platform -> agent wallet via EIP-3009 (if agent address known)
+        1. Refund from escrow contract → platform wallet
+        2. Platform → agent wallet via EIP-3009 (full amount including fee)
         """
         escrow = self._get_escrow()
 
-        # Step 1: Refund from escrow (escrow -> platform)
-        result = escrow.refund_to_agent(task_id)
+        # Ensure in-memory state is loaded (handles server restarts)
+        state_ok = await self._ensure_escrow_state(task_id)
+        if not state_ok:
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "x402r",
+                "status": "state_not_found",
+                "error": (
+                    f"Cannot refund task {task_id}: escrow payment state not found. "
+                    "Manual intervention required."
+                ),
+            }
 
-        tx_hash = (
-            result.transaction_hash if hasattr(result, "transaction_hash") else None
-        )
-        error = result.error if hasattr(result, "error") else None
-        success = result.success if hasattr(result, "success") else bool(tx_hash)
+        # Step 1: Refund from escrow (escrow → platform)
+        result = await asyncio.to_thread(escrow.refund_to_agent, task_id, None)
+
+        tx_hash = _extract_tx_hash(result)
+        error = getattr(result, "error", None)
+        success = getattr(result, "success", bool(tx_hash))
 
         if not success:
             return {
@@ -553,12 +671,18 @@ class PaymentDispatcher:
             }
 
         # Step 2: Disburse from platform back to agent (if address known)
+        # The refund amount is the full escrowed amount (bounty + fee)
         agent_refund_tx = None
         if agent_address:
             try:
                 sdk = self._get_sdk()
                 payment = escrow.get_task_payment(task_id)
                 refund_amount = payment.amount_usdc if payment else Decimal("0")
+
+                # Fallback: load amount from DB if in-memory is 0
+                if refund_amount <= 0:
+                    refund_amount = await self._get_escrow_amount_from_db(task_id)
+
                 if refund_amount > 0:
                     refund_result = await sdk.disburse_to_worker(
                         worker_address=agent_address,
@@ -573,6 +697,11 @@ class PaymentDispatcher:
                             task_id,
                             refund_result.get("error"),
                         )
+                else:
+                    logger.warning(
+                        "x402r: Refund amount is 0 for task %s — cannot disburse to agent",
+                        task_id,
+                    )
             except Exception as e:
                 logger.warning(
                     "x402r: Agent refund disbursement failed for task %s: %s",
@@ -624,6 +753,120 @@ class PaymentDispatcher:
             "status": "auth_expired",
             "error": None,
         }
+
+    # =========================================================================
+    # State Reconstruction (survives server restarts)
+    # =========================================================================
+
+    async def _ensure_escrow_state(self, task_id: str) -> bool:
+        """
+        Ensure the EMAdvancedEscrow backend has this task's payment state in memory.
+
+        After a server restart, the in-memory `_task_payments` dict is empty.
+        This method reconstructs the PaymentInfo from serialized data stored in
+        the escrows table metadata, allowing release/refund to proceed.
+        """
+        escrow = self._get_escrow()
+        if escrow.get_task_payment(task_id) is not None:
+            return True
+
+        # Try to reconstruct from DB
+        try:
+            import supabase_client as db
+
+            client = db.get_client()
+            result = (
+                client.table("escrows")
+                .select("metadata,total_amount_usdc,beneficiary_address,status")
+                .eq("task_id", task_id)
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+            rows = result.data or []
+            if not rows:
+                logger.warning("No escrow row found for task %s", task_id)
+                return False
+
+            row = rows[0]
+            metadata = row.get("metadata") or {}
+            if isinstance(metadata, str):
+                metadata = json.loads(metadata)
+
+            pi_data = metadata.get("payment_info")
+            if not pi_data:
+                logger.warning(
+                    "No payment_info in escrow metadata for task %s — cannot "
+                    "reconstruct state. This task may predate payment_info "
+                    "persistence. Manual intervention required.",
+                    task_id,
+                )
+                return False
+
+            # Reconstruct PaymentInfo using the SDK
+            from integrations.x402.advanced_escrow_integration import TaskTier
+
+            tier_val = pi_data.get("tier", "standard")
+            try:
+                tier = TaskTier(tier_val)
+            except (ValueError, KeyError):
+                tier = TaskTier.STANDARD
+
+            pi = escrow.client.build_payment_info(
+                receiver=pi_data["receiver"],
+                amount=pi_data["amount"],
+                tier=tier,
+                max_fee_bps=pi_data.get("max_fee_bps", PLATFORM_FEE_BPS),
+            )
+
+            # Register the reconstructed state in memory
+            # NOTE: The on-chain escrow was already created with these exact params.
+            # Rebuilding with the same values produces the same PaymentInfo hash,
+            # which the contract uses to reference the escrow.
+            amount_usdc = Decimal(str(row.get("total_amount_usdc", 0)))
+            payment = TaskPayment(
+                task_id=task_id,
+                strategy=PaymentStrategy.ESCROW_CAPTURE,
+                payment_info=pi,
+                amount_usdc=amount_usdc,
+                status=row.get("status", "deposited"),
+            )
+            escrow._task_payments[task_id] = payment
+            logger.info(
+                "Reconstructed escrow state for task %s from DB (amount=%s)",
+                task_id,
+                amount_usdc,
+            )
+            return True
+
+        except Exception as e:
+            logger.error(
+                "Failed to reconstruct escrow state for task %s: %s", task_id, e
+            )
+            return False
+
+    async def _get_escrow_amount_from_db(self, task_id: str) -> Decimal:
+        """Load the escrowed amount from the DB as fallback."""
+        try:
+            import supabase_client as db
+
+            client = db.get_client()
+            result = (
+                client.table("escrows")
+                .select("total_amount_usdc")
+                .eq("task_id", task_id)
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+            rows = result.data or []
+            if rows:
+                return Decimal(str(rows[0].get("total_amount_usdc", 0)))
+        except Exception as e:
+            logger.warning(
+                "Could not load escrow amount from DB for task %s: %s", task_id, e
+            )
+        return Decimal("0")
 
     # =========================================================================
     # Info / Config

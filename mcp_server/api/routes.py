@@ -637,7 +637,11 @@ async def _settle_submission_payment(
         return {"payment_tx": release_tx, "payment_error": None}
 
     payment_header = _resolve_task_payment_header(task_id, task.get("escrow_tx"))
-    if not payment_header:
+    # For x402r mode, payment header is not needed (funds are in on-chain escrow).
+    # Only block if we're in preauth mode and have no header.
+    dispatcher = get_payment_dispatcher()
+    is_x402r = dispatcher and dispatcher.get_mode() == "x402r"
+    if not payment_header and not is_x402r:
         return {
             "payment_tx": None,
             "payment_error": f"No x402 payment header found for task {task_id}",
@@ -1662,10 +1666,13 @@ async def create_task(
                 dispatcher = get_payment_dispatcher()
                 if dispatcher and dispatcher.get_mode() == "x402r":
                     # x402r: Settle + lock funds on-chain (gasless via Facilitator)
+                    # Lock total_required (bounty + fee) in escrow. On release,
+                    # worker gets bounty, treasury gets fee. On refund, agent
+                    # gets full total_required back.
                     auth_result = await dispatcher.authorize_payment(
                         task_id=task["id"],
                         receiver=payment_result.payer_address,
-                        amount_usdc=bounty,
+                        amount_usdc=total_required,
                         x_payment_header=x_payment_header,
                     )
 
@@ -1701,6 +1708,9 @@ async def create_task(
                                 "payment_reference": payment_reference,
                                 "agent_settle_tx": agent_settle_tx,
                                 "escrow_lock_tx": escrow_tx,
+                                "payment_info": auth_result.get(
+                                    "payment_info_serialized"
+                                ),
                             },
                             "created_at": datetime.now(timezone.utc).isoformat(),
                         }
@@ -2721,7 +2731,9 @@ async def cancel_task(
                 try:
                     escrow_result = (
                         client.table("escrows")
-                        .select("id,status,escrow_id,refunded_at,released_at")
+                        .select(
+                            "id,status,escrow_id,refunded_at,released_at,metadata,beneficiary_address"
+                        )
                         .eq("task_id", task_id)
                         .single()
                         .execute()
@@ -2749,17 +2761,24 @@ async def cancel_task(
                     # Use PaymentDispatcher for refund (handles x402r escrow and preauth)
                     dispatcher = get_payment_dispatcher()
                     if dispatcher:
-                        # Get agent wallet from escrow metadata for x402r refund
+                        # Get agent wallet for x402r refund disbursement.
+                        # Priority: 1) escrow row beneficiary_address column,
+                        # 2) metadata.beneficiary_address, 3) extract from X-Payment header
                         agent_address = None
                         try:
-                            escrow_meta = (escrow_row or {}).get("metadata") or {}
-                            if isinstance(escrow_meta, str):
-                                escrow_meta = json.loads(escrow_meta)
-                            agent_address = escrow_meta.get(
+                            # Try the DB column first (most reliable)
+                            agent_address = (escrow_row or {}).get(
                                 "beneficiary_address"
-                            ) or _extract_agent_wallet_from_header(
-                                escrow_meta.get("x_payment_header")
                             )
+                            if not agent_address:
+                                escrow_meta = (escrow_row or {}).get("metadata") or {}
+                                if isinstance(escrow_meta, str):
+                                    escrow_meta = json.loads(escrow_meta)
+                                agent_address = escrow_meta.get(
+                                    "beneficiary_address"
+                                ) or _extract_agent_wallet_from_header(
+                                    escrow_meta.get("x_payment_header")
+                                )
                         except Exception:
                             pass
 

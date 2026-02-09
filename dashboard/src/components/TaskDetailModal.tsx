@@ -52,8 +52,8 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
             setSubmissions(subsRes.data || [])
           }
         }
-      } catch (err: any) {
-        if (!cancelled) setError(err.message || 'Failed to load task')
+      } catch (err: unknown) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load task')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -181,7 +181,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                   <p className="text-sm text-gray-400 italic">No hay entregas aun</p>
                 ) : (
                   <div className="space-y-2">
-                    {submissions.map((sub: any) => (
+                    {submissions.map((sub: { id: string; executor?: { display_name?: string }; submitted_at: string }) => (
                       <div
                         key={sub.id}
                         className="border border-gray-200 rounded-lg p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"

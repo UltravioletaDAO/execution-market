@@ -300,7 +300,7 @@ function parseIFD(
       const type = view.getUint16(entryOffset + 2, littleEndian);
       const count = view.getUint32(entryOffset + 4, littleEndian);
 
-      let value: any;
+      let value: number | string;
 
       // Handle different types
       switch (type) {

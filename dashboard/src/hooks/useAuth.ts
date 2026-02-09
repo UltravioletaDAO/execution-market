@@ -128,7 +128,7 @@ export function useAuth(): UseAuthResult {
   useEffect(() => {
     // Get initial session
     console.log('[useAuth] Getting initial session...')
-    supabase.auth.getSession().then(async ({ data: { session } }: any) => {
+    supabase.auth.getSession().then(async ({ data: { session } }: { data: { session: { user: { id: string }; access_token: string } | null } }) => {
       console.log('[useAuth] Initial session:', session?.user?.id ?? 'none')
       let executor: Executor | null = null
 
@@ -152,7 +152,7 @@ export function useAuth(): UseAuthResult {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
+    } = supabase.auth.onAuthStateChange(async (_event: string, session: { user: { id: string }; access_token: string } | null) => {
       console.log('[useAuth] Auth state changed:', _event, session?.user?.id ?? 'none')
       let executor: Executor | null = null
 
