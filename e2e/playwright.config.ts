@@ -46,11 +46,14 @@ export default defineConfig({
   outputDir: 'test-results/',
 
   webServer: {
-    command: 'npx cross-env VITE_E2E_MODE=true npx vite --port 3000',
+    command: 'npx vite --port 3000',
     cwd: '../dashboard',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
+    env: {
+      VITE_E2E_MODE: 'true',
+    },
   },
 
   timeout: 60000,
