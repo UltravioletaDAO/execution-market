@@ -81,6 +81,28 @@ git commit -m "feat: nueva feature"
 # Assistant: git push
 ```
 
+## Working Style - Be Proactive
+
+**IMPORTANT: Default to implementation, not questions.**
+
+When you know something will be needed or is a logical next step:
+- ✅ **DO**: Implement it directly and notify the user
+- ❌ **DON'T**: Ask "Should I also do X?" when you know X is needed
+
+**Examples:**
+- If you add a Python pre-commit hook, also add one for TypeScript (don't ask)
+- If you fix a bug in one file, check similar files for the same issue (don't ask)
+- If you update a component, update its tests too (don't ask)
+- If you see an obvious improvement or missing piece, implement it (don't ask)
+
+**When to ask:**
+- Multiple valid approaches with trade-offs
+- User preference needed (design, naming, architecture)
+- Breaking changes or risky operations
+- Unclear requirements
+
+**Rule of thumb**: If the answer is "obviously yes", don't ask—just do it and report what you did.
+
 ---
 
 ## Common Commands
