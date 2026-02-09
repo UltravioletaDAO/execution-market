@@ -69,6 +69,7 @@ export function WorkerReputationBadge({
 
   const iconSize = size === 'md' ? 'w-4 h-4' : 'w-3 h-3'
 
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   return (
     <span
       className={`inline-flex items-center font-medium rounded-full ${tier.className} ${sizeClasses}`}
@@ -89,6 +90,7 @@ export function WorkerReputationBadge({
       )}
     </span>
   )
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
 export default WorkerReputationBadge

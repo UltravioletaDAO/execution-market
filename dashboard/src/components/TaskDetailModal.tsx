@@ -139,6 +139,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-1">Evidencia Requerida</h4>
                   <div className="flex flex-wrap gap-2">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {((task.evidence_schema as any)?.required || []).map((r: string) => (
                       <span key={r} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
                         {r}

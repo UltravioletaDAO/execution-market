@@ -206,6 +206,7 @@ export function useX402Wallet(): UseX402WalletReturn {
       setError(null)
 
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await switchChainAsync({ chainId: targetChainId as any })
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to switch chain'

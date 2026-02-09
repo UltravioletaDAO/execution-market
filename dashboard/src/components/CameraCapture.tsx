@@ -288,7 +288,9 @@ function parseIFD(
   offset: number,
   littleEndian: boolean,
   tiffStart: number
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<number, any> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: Record<number, any> = {};
 
   try {

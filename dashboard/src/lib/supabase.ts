@@ -19,6 +19,7 @@ const noOpLock = async <R>(_name: string, _timeout: number, fn: () => Promise<R>
 // schema/type drift between runtime DB and static TS types currently breaks
 // query builder inference across the app. Re-enable strict DB generics once
 // types are regenerated from the canonical production schema.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const supabase: any = createClient<any>(supabaseUrl, supabaseAnonKey, {
   auth: {
     // We rely on Dynamic.xyz for wallet auth; Supabase auth is best-effort only.

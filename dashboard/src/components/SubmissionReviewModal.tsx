@@ -211,6 +211,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Evidencia</h3>
                 {submission.evidence && typeof submission.evidence === 'object' ? (
                   <div className="space-y-3">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {Object.entries(submission.evidence as Record<string, any>).map(([key, ev]) => (
                       <div key={key} className="border border-gray-200 rounded-lg p-3">
                         <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{key}</p>

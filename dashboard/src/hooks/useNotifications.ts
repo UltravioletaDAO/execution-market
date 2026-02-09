@@ -111,6 +111,7 @@ export function useNotifications(): UseNotificationsReturn {
         task_id: taskId,
         action_url: `/tasks/${taskId}`,
         action_label: 'Ver tarea',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any as NotificationInsert)
     },
     [addNotification]
@@ -126,6 +127,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_url: `/tasks/${taskId}`,
         action_label: 'Ver detalles',
         priority: 'high',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any as NotificationInsert)
     },
     [addNotification]
@@ -141,6 +143,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_url: `/tasks/${taskId}`,
         action_label: 'Ver motivo',
         priority: 'high',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any as NotificationInsert)
     },
     [addNotification]
@@ -157,6 +160,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_label: 'Ver pagos',
         priority: 'high',
         metadata: { amount, currency },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any as NotificationInsert)
     },
     [addNotification]
@@ -171,6 +175,7 @@ export function useNotifications(): UseNotificationsReturn {
         task_id: taskId,
         action_url: '/payments',
         action_label: 'Ver estado',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any as NotificationInsert)
     },
     [addNotification]
@@ -187,6 +192,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_url: `/disputes/${disputeId}`,
         action_label: 'Ver disputa',
         priority: 'urgent',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any as NotificationInsert)
     },
     [addNotification]
@@ -206,6 +212,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_url: `/disputes/${disputeId}`,
         action_label: 'Ver resolucion',
         priority: 'high',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any as NotificationInsert)
     },
     [addNotification]
@@ -221,6 +228,7 @@ export function useNotifications(): UseNotificationsReturn {
         action_url: '/profile',
         action_label: 'Ver perfil',
         metadata: { delta, newScore },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any as NotificationInsert)
     },
     [addNotification]
@@ -232,6 +240,7 @@ export function useNotifications(): UseNotificationsReturn {
         type: 'system',
         title,
         message,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any as NotificationInsert)
     },
     [addNotification]

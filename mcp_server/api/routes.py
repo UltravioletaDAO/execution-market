@@ -566,9 +566,8 @@ async def _is_submission_ready_for_instant_payout(
     payment_header = _resolve_task_payment_header(task_id, task.get("escrow_tx"))
 
     bounty = Decimal(str(task.get("bounty_usd", 0)))
-    platform_fee_pct = await get_platform_fee_percent()
-    fee = (bounty * platform_fee_pct).quantize(Decimal("0.01"))
-    worker_payout = bounty - fee
+    # Worker receives full bounty (fee from surplus in total_required)
+    worker_payout = bounty
 
     if not X402_AVAILABLE:
         return {"ready": False, "reason": "x402_unavailable"}
@@ -615,7 +614,8 @@ async def _settle_submission_payment(
     bounty = Decimal(str(task.get("bounty_usd", 0)))
     platform_fee_pct = await get_platform_fee_percent()
     fee = (bounty * platform_fee_pct).quantize(Decimal("0.01"))
-    worker_payout = bounty - fee
+    # Worker receives full bounty (fee from surplus in total_required)
+    worker_payout = bounty
 
     existing_payment = _get_existing_submission_payment(submission_id)
     if existing_payment and _is_payment_finalized(existing_payment):
@@ -657,8 +657,25 @@ async def _settle_submission_payment(
             "payment_error": f"Invalid worker wallet format for task {task_id}: {worker_address[:10]}...",
         }
 
-    # Prevent self-payment: compare worker wallet vs agent's actual wallet (from X-Payment auth)
+    # Prevent self-payment: compare worker wallet vs agent's actual wallet.
+    # For x402r mode, payment_header may be None (settled at task creation),
+    # so fall back to escrow beneficiary_address from the task record.
     agent_wallet = _extract_agent_wallet_from_header(payment_header)
+    if not agent_wallet and task:
+        # Try escrow beneficiary from task or escrow table
+        try:
+            client = db.get_client()
+            esc_result = (
+                client.table("escrows")
+                .select("beneficiary_address")
+                .eq("task_id", task_id)
+                .limit(1)
+                .execute()
+            )
+            if esc_result.data:
+                agent_wallet = esc_result.data[0].get("beneficiary_address")
+        except Exception:
+            pass
     if agent_wallet and worker_address.lower() == agent_wallet.lower():
         logger.error(
             "BLOCKED: Self-payment attempt for task %s — worker wallet %s matches agent wallet %s",

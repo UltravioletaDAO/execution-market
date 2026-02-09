@@ -36,9 +36,11 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         walletConnectors: [EthereumWalletConnectors],
         cssOverrides: dynamicCssOverrides,
         // connect-only: wallet connection without signature verification
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         initialAuthenticationMode: 'connect-only' as any,
         events: {
           onAuthSuccess: ({ user }) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             console.log('[Dynamic] Auth success:', (user as any)?.walletPublicKey || 'unknown wallet')
           },
           onLogout: () => {

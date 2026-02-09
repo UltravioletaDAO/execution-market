@@ -174,6 +174,7 @@ export function NotificationBell({
   onNotificationClick,
   onViewAll,
 }: NotificationBellProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
