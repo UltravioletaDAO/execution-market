@@ -155,7 +155,7 @@ export interface UsePaymentReturn {
 export function usePayment(options: UsePaymentOptions = {}): UsePaymentReturn {
   const { defaultToken = 'usdc', chainId = base.id } = options
 
-  const { address, isConnected } = useAccount()
+  const { address } = useAccount()
   const [balance, setBalance] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
