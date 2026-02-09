@@ -1228,27 +1228,30 @@ async def get_public_config() -> PublicConfigResponse:
     supported payment networks, and tokens. Does not expose
     internal settings like fees or feature flags.
     """
+    # Always use get_enabled_networks() as source of truth for networks
+    # (driven by EM_ENABLED_NETWORKS env var, not stale DB rows)
+    from integrations.x402.sdk_client import get_enabled_networks
+
+    enabled = get_enabled_networks()
+
     if CONFIG_AVAILABLE:
         try:
             config = await PlatformConfig.get_public_config()
             return PublicConfigResponse(
                 min_bounty_usd=float(config.get("min_usd", 0.25)),
                 max_bounty_usd=float(config.get("max_usd", 10000.00)),
-                supported_networks=config.get("supported_networks", ["base"]),
+                supported_networks=enabled,
                 supported_tokens=config.get("supported_tokens", ["USDC"]),
                 preferred_network=config.get("preferred_network", "base"),
             )
         except Exception as e:
             logger.warning(f"Error loading public config: {e}")
 
-    # Fallback defaults — use actually enabled networks
-    from integrations.x402.sdk_client import get_enabled_networks
-
     return PublicConfigResponse(
         min_bounty_usd=0.25,
         max_bounty_usd=10000.00,
-        supported_networks=get_enabled_networks(),
-        supported_tokens=["USDC", "EURC", "USDT", "PYUSD"],
+        supported_networks=enabled,
+        supported_tokens=["USDC", "EURC", "USDT", "PYUSD", "AUSD"],
         preferred_network="base",
     )
 
