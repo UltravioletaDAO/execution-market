@@ -126,7 +126,7 @@ jobs:
             e2e/package-lock.json
 
       - name: Install dashboard dependencies
-        run: npm ci
+        run: npm install
         working-directory: dashboard
 
       - name: Install e2e dependencies
