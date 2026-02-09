@@ -5,7 +5,7 @@
  * Allows workers to stake/unstake tokens for validation participation.
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Executor } from '../types/database'
 

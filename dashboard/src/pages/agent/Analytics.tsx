@@ -11,8 +11,6 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   PieChart,

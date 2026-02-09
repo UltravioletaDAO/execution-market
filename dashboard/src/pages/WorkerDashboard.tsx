@@ -10,7 +10,7 @@
  * - Pronostico de ingresos basado en tasa de completacion
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useMemo } from 'react'
 import type {
   Task,
   TaskCategory,
