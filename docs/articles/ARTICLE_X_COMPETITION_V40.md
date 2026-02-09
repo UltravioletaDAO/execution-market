@@ -1,6 +1,6 @@
 # La IA no te va a reemplazar. Te va a necesitar.
 
-> V40 - OpenClaw + Universal Execution Layer (humanos Y robots)
+> V40 - Versión final: estado actual LIVE, stats actualizadas, mínimos corregidos
 > Autor: @ultravioletadao
 
 ---
@@ -9,26 +9,28 @@
 
 Cuando varias personas independientes, en distintos puntos del mundo, llegan a la misma conclusión al mismo tiempo — eso no es coincidencia. Es inevitabilidad.
 
-La conclusión: **los agentes de IA necesitan ejecutores**. Humanos. Robots. Drones. Lo que sea que pueda moverse en el mundo físico.
+La conclusión: **los agentes de IA necesitan humanos**. No para pensar. Para hacer.
 
-Llevamos semanas construyendo esto. MCP server, dashboard, escrow con x402r, reputación on-chain con ERC-8004, verificación multi-nivel. Más de 35 versiones de este artículo iterando mientras construíamos.
+Llevamos semanas construyendo esto. MCP server, dashboard, escrow con x402r, reputación on-chain con ERC-8004, verificación multi-nivel. Más de 40 versiones de este artículo iterando mientras construíamos.
 
 **La tesis es correcta. Los agentes necesitan cuerpos. El mercado lo está pidiendo a gritos.**
 
-La diferencia siempre está en qué tan profundo excavas. Nosotros llevamos semanas construyendo la infraestructura profunda: escrow con reembolsos automáticos, reputación on-chain portable, verificación multi-nivel, bounties dinámicos, micro-tareas desde $0.25.
+La diferencia siempre está en qué tan profundo excavas. Nosotros llevamos semanas construyendo la infraestructura profunda: escrow con reembolsos automáticos, reputación on-chain portable (24,000+ agentes registrados en ERC-8004), verificación multi-nivel, micro-tareas desde $0.50.
 
-**We're still learning in public.** Y hoy les compartimos lo que hemos estado construyendo.
+**Y ya está live.**
 
-Estas son las URLs donde pueden ver el progreso:
+Estas son las URLs donde está funcionando ahora:
 
 - **Dashboard**: [execution.market](https://execution.market)
 - **MCP Server**: [mcp.execution.market](https://mcp.execution.market)
+- **API Docs**: [mcp.execution.market/docs](https://mcp.execution.market/docs)
+- **Admin Panel**: [admin.execution.market](https://admin.execution.market)
 
-Estamos cerca de producción. Todavía hay cosas por pulir — pero los rieles ya están.
+Todavía hay features en roadmap — payment streaming, payment channels, dynamic bounties, hardware attestation. Pero los rieles core ya están funcionando. 658 tests passing. Health checks green. Base Mainnet con USDC. ERC-8004 en 14 networks.
 
 Ah, y una cosa más: hasta hace unos días esto se llamaba **Chamba** — jerga latina para "trabajo". Nos gustaba el nombre. Pero si esto va a ser global, el nombre tiene que decir exactamente lo que es. Sin traducción. Sin contexto cultural necesario.
 
-**Execution Market.** Un mercado de ejecución. Agentes publican. Ejecutores completan. Humanos hoy, robots mañana, ambos al mismo tiempo eventualmente. El nombre es el producto.
+**Execution Market.** Un mercado de ejecución. Agentes publican. Humanos ejecutan. El nombre es el producto.
 
 Ahora sí. Esto es lo que hemos estado construyendo.
 
@@ -189,78 +191,24 @@ Spoiler: no mucho.
 
 Se llama **Execution Market** — una **Universal Execution Layer**.
 
-No es otra app de gig economy. No es "Uber para tareas". No es un marketplace donde humanos contratan humanos.
+No es otra app de gig economy. No es "Uber para tareas". No es un marketplace más donde humanos contratan humanos.
 
 *Lo prometo.*
 
-Es infraestructura para que **agentes contraten ejecutores** — humanos, robots, drones, lo que sea que pueda ejecutar la tarea.
+Es infraestructura para que **agentes contraten ejecutores** — humanos hoy, robots mañana.
 
 Directamente. Sin intermediarios. Sin esperar. Sin pedir permiso.
 
 El agente publica la tarea.
-Un ejecutor cerca la toma — humano o robot.
+Un humano cerca la toma.
 La completa.
 El sistema verifica.
 El pago se liquida.
 En segundos.
 
-El agente nunca supo si fue un humano o un robot. Solo le importó que el trabajo se hizo.
+El agente nunca supo el nombre del humano. El humano nunca supo que trabajaba para una máquina.
 
 **¿Es distópico? Quizás. ¿Es inevitable? Absolutamente.**
-
----
-
-## Cómo llegan los agentes a Execution Market
-
-Hay un problema que nadie está resolviendo: **¿cómo descubren los agentes que pueden contratar ejecutores?**
-
-Los agentes de IA hoy están atrapados en el mundo digital. Pueden buscar en internet, enviar emails, procesar datos. Pero cuando necesitan algo del mundo físico — verificar una dirección, entregar un paquete, tomar una foto — se quedan trabados. No saben que existe una opción.
-
-Ahí es donde entran los **asistentes de IA personales** como **OpenClaw**.
-
-### OpenClaw: El tipo de agente que va a usar Execution Market
-
-[OpenClaw](https://openclaw.ai/) es un asistente de IA personal open-source que corre localmente en tu computadora. Creado por Peter Steinberger, se conecta a WhatsApp, Telegram, Discord, Slack, Signal — los canales donde la gente realmente vive.
-
-Pero lo importante es lo que puede hacer:
-- **Navegar sitios web** y llenar formularios
-- **Ejecutar comandos** en tu computadora
-- **Controlar dispositivos** conectados
-- **Crear sus propias extensiones** a través de conversación
-- **Recordar contexto** y preferencias
-
-Imagina esto: Le dices a tu OpenClaw "necesito que alguien verifique si la tienda de la esquina ya abrió". Hoy, el agente no puede hacer nada — no tiene cuerpo.
-
-**Con Execution Market integrado**, el flujo cambia:
-
-1. Tú le pides algo del mundo físico
-2. OpenClaw reconoce que necesita un ejecutor
-3. Publica la tarea en Execution Market
-4. Un humano (o robot) cercano la toma
-5. Completa la tarea, sube evidencia
-6. OpenClaw recibe la confirmación y te avisa
-
-**Tu asistente personal ahora tiene cuerpo.** Puede hacer cosas en el mundo real. A través de Execution Market.
-
-### La distribución: Agentes como canal
-
-Esta es nuestra estrategia de distribución:
-
-**No vamos a los usuarios finales. Vamos a los agentes.**
-
-OpenClaw tiene miles de usuarios que ya usan un asistente de IA personal. Cada uno de esos usuarios eventualmente va a necesitar algo del mundo físico. Y cuando lo necesiten, su agente va a poder resolverlo — a través de Execution Market.
-
-Lo mismo aplica para:
-- **Claude Code** y otros coding assistants que necesitan verificar deploys físicos
-- **Agentes de e-commerce** que necesitan logística de última milla
-- **Agentes inmobiliarios** que necesitan verificaciones de propiedades
-- **Agentes de soporte** que necesitan escalación a interacción humana
-
-**Cada agente de IA es un cliente potencial de Execution Market.**
-
-Y cada plataforma de agentes — OpenClaw, Claude, GPT, agentes custom — es un canal de distribución.
-
-No competimos con los agentes. **Los habilitamos.**
 
 ---
 
@@ -274,20 +222,20 @@ No.
 📸 IMAGEN 2: Tabla comparativa visual Gig Economy Legacy vs Execution Market. Infraestructura de ayer vs infraestructura para agentes.
 -->
 
-| | Gig Economy Legacy | "Human-only" Platforms | Execution Market |
-|--|-------------------|----------------------|------------------|
-| **Cliente** | Humanos | Agentes de IA | Agentes de IA |
-| **Ejecutores** | Solo humanos | Solo humanos | **Humanos + Robots + Drones** |
-| **Velocidad** | Horas/días | Minutos | Segundos |
-| **Pagos** | Centralizados, retrasados | Stablecoins | Instantáneos, programables (x402) |
-| **Escrow/Refunds** | No o limitados | Limitados | Automáticos (x402r) |
-| **Reputación** | Plataforma cerrada | Plataforma cerrada | On-chain, portable (ERC-8004) |
-| **Mínimo** | $5-15+ | ~$50/hr | $0.25 |
-| **Futuro-proof** | No | **No** | **Sí** |
+| | Gig Economy Legacy | Execution Market |
+|--|-------------------|------------------|
+| **Cliente** | Humanos | Agentes de IA |
+| **Velocidad** | Horas/días | Segundos |
+| **Pagos** | Centralizados, retrasados | Instantáneos, programables (x402) |
+| **Escrow/Refunds** | No o limitados | Automáticos (x402r) |
+| **Reputación** | Plataforma cerrada | On-chain, portable (ERC-8004) |
+| **Verificación** | Manual | Multi-nivel (auto + IA + humano) |
+| **Mínimo** | $5-15+ | $0.50 |
+| **Arquitectura** | Plataformas cerradas | Protocolo abierto |
 
-MTurk, TaskRabbit, Fiverr — fueron diseñados para humanos contratando humanos. Las nuevas plataformas de "AI hires humans" mejoran esto, pero siguen siendo **human-only**. ¿Qué pasa cuando los robots lleguen en 2026-2027? Tienen que reconstruir todo.
+MTurk, TaskRabbit, Fiverr — fueron diseñados para humanos contratando humanos. Funcionaron para esa era. Pero cuando el cliente es un agente de IA que necesita 200 verificaciones en 10 minutos, esa infraestructura no escala.
 
-**Execution Market es Universal Execution Layer.** Humanos Y robots desde el día uno. Escrow con reembolsos automáticos. Reputación on-chain portable. Verificación multi-nivel. Bounties dinámicos. Micro-tareas desde $0.25. Streaming de pagos. Y OpenClaw para que los agentes sepan qué contratar.
+**Execution Market es infraestructura profunda para agentes contratando humanos.** Escrow con reembolsos automáticos. Reputación on-chain portable. Verificación multi-nivel. Bounties dinámicos. Micro-tareas desde $0.50. Streaming de pagos.
 
 Cuando las máquinas se vuelven los empleadores, ¿a quién exactamente sirven las plataformas de ayer?
 
@@ -303,9 +251,9 @@ Lo obvio. Cosas que requieren un cuerpo en un lugar.
 
 | Tarea | Tiempo | Pago |
 |-------|--------|------|
-| Verificar si tienda está abierta | 5 min | $0.25 |
-| Confirmar que una dirección existe | 5 min | $0.25 |
-| Reportar cuánta gente hay en una fila | 5 min | $0.25 |
+| Verificar si tienda está abierta | 5 min | $0.50 |
+| Confirmar que una dirección existe | 5 min | $0.50 |
+| Reportar cuánta gente hay en una fila | 5 min | $0.50 |
 | Tomar foto de cartel de "Se Renta" | 10 min | $3.00 |
 | Verificar condición exterior de propiedad | 30 min | $5.00 |
 | Fotografiar menú de restaurante | 10 min | $1.00 |
@@ -400,7 +348,7 @@ Ahora suma:
 
 ¿Cuántas micro-tareas existen que hoy no se hacen porque no hay infraestructura?
 
-Hoy esas tareas de $0.25 son **imposibles**. TaskRabbit cobra 23% de comisión. Fiverr cobra 20%. El mínimo es $15. Los pagos tardan días — o semanas en el caso de Fiverr.
+Hoy esas tareas de $0.50 son **imposibles**. TaskRabbit cobra 23% de comisión. Fiverr cobra 20%. El mínimo es $15. Los pagos tardan días — o semanas en el caso de Fiverr.
 
 Nada dice "valoramos tu trabajo" como hacerte esperar 2-3 semanas para cobrarlo.
 
@@ -409,19 +357,19 @@ Nada dice "valoramos tu trabajo" como hacerte esperar 2-3 semanas para cobrarlo.
 | TaskRabbit | 23% | $15+ | 1-5 días |
 | Fiverr | 20% | $5+ | **2-3 semanas** |
 | Upwork | 0-15% | $5+ | 5-10 días |
-| **Execution Market** | **6-8%** | **$0.25** | **Instantáneo** |
+| **Execution Market** | **6-8%** | **$0.50** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para que alguien verifique si una tienda abrió.
 
-Pero un agente que puede pagar $0.25 instantáneamente va a hacer **miles** de verificaciones.
+Pero un agente que puede pagar $0.50 instantáneamente va a hacer **miles** de verificaciones.
 
 ### Y aquí está lo que muchos no ven
 
 <!--
-📸 IMAGEN 7: Mapa mundial con íconos de dinero. $0.25 en USA = casi nada. $0.25 en Colombia = 1,000 pesos. $0.25 en Nigeria = más que salario por hora. Visualización del poder adquisitivo diferencial.
+📸 IMAGEN 7: Mapa mundial con íconos de dinero. $0.50 en USA = casi nada. $0.50 en Colombia = 2,000 pesos. $0.50 en Nigeria = más que salario por hora. Visualización del poder adquisitivo diferencial.
 -->
 
-$0.25 en San Francisco no compra ni un café. Pero $0.25 en Colombia son 1,000 pesos. En Argentina, Venezuela, Nigeria, o Filipinas, esos centavos representan proporcionalmente mucho más.
+$0.50 en San Francisco no compra ni un café. Pero $0.50 en Colombia son 2,000 pesos. En Argentina, Venezuela, Nigeria, o Filipinas, esos centavos representan proporcionalmente mucho más.
 
 Un estudiante en Bogotá que completa 20 verificaciones rápidas al día gana $5-10 USD — entre 20,000 y 40,000 pesos colombianos. Eso paga el almuerzo de hoy y mañana.
 
@@ -477,25 +425,29 @@ Si el trabajo no se verifica, el dinero vuelve solo. Sin disputas. Sin esperar. 
 
 **Un agente puede contratar sin riesgo.** Si falla, recupera su plata automáticamente.
 
-### Canales de pago
+### Canales de pago — En roadmap
 
-Funcionan como abrir una cuenta en un bar. Depositas una vez, haces múltiples transacciones, liquidas al final.
+Funcionarán como abrir una cuenta en un bar. Depositas una vez, haces múltiples transacciones, liquidas al final.
 
 **Imagina:** Un agente de investigación de mercado necesita verificar 20 tiendas en una zona. En vez de 20 transacciones separadas con 20 fees, abre un canal, el humano ejecuta las 20 verificaciones, y al final se cierra todo en una sola liquidación.
 
 Perfecto para tareas complejas con múltiples pasos. Sin pagar fees por cada micro-interacción.
 
-### Streaming de pagos (Superfluid)
+**Esto tampoco está live aún** — por ahora cada tarea es una transacción independiente. Pero x402 permite channels, y están en desarrollo.
 
-El dinero fluye por segundo. Literalmente.
+### Streaming de pagos (Superfluid) — En roadmap
 
-Usando Superfluid, el protocolo de streaming de pagos, integramos x402-sf para que el dinero fluya en tiempo real.
+El dinero fluirá por segundo. Literalmente.
+
+Usando Superfluid, el protocolo de streaming de pagos, estamos integrando x402-sf para que el dinero fluya en tiempo real.
 
 **Imagina:** Un humano monitorea una ubicación por 2 horas. Su cámara transmite. El agente verifica en tiempo real. El dinero fluye mientras el trabajo se hace. Si el humano se va a los 47 minutos, cobra 47 minutos. Si completa las 2 horas, cobra las 2 horas.
 
 No esperas aprobación. No esperas procesamiento. **Cobras mientras trabajas.**
 
 $0.005 por segundo = $18/hora. Todo automático.
+
+**Esto no está live aún** — los rieles de streaming están en desarrollo. Por ahora, los pagos se liquidan al completar la tarea. Pero la arquitectura de x402 permite esto, y lo estamos construyendo.
 
 ### Reputación transparente y basada en mérito (ERC-8004)
 
@@ -526,7 +478,7 @@ Escala de 0-100. Sin inflación de ratings. Sin depender de la buena voluntad de
 
 Y algo más: ERC-8004 fue diseñado para escalar a economías con trillones de agentes autónomos. Las mentes que lo crearon pensaron en todas las formas de manipulación, Sybil attacks, inflación artificial de scores. Si funciona para esa escala de agentes, funciona para la escala mucho menor de humanos y robots.
 
-El sistema pondera ratings por el valor de cada tarea — completar una notarización de $150 pesa mucho más en tu score que diez verificaciones de $0.25. Esto hace que un error aislado no destruya tu historial, y que manipular el score requiera inversión real, no trucos baratos.
+El sistema pondera ratings por el valor de cada tarea — completar una notarización de $150 pesa mucho más en tu score que diez verificaciones de $0.50. Esto hace que un error aislado no destruya tu historial, y que manipular el score requiera inversión real, no trucos baratos.
 
 Cuando tu reputación es tuya para conservar y tuya para perder, ¿quién exactamente necesita el permiso de una plataforma para trabajar?
 
@@ -553,7 +505,7 @@ Para casos más complejos — tareas subjetivas, disputas, o trabajos de alto va
 3. **AI Review** (15%): Un modelo analiza la evidencia.
 4. **Human Arbitration** (5%): Panel de árbitros. Consenso 2-de-3.
 
-Esto evita que tareas simples de $0.25 tengan overhead de verificación compleja. Solo las tareas que lo necesitan escalan a niveles superiores.
+Esto evita que tareas simples de $0.50 tengan overhead de verificación compleja. Solo las tareas que lo necesitan escalan a niveles superiores.
 
 Y lo mejor: **validar es trabajo pagado**. 5-15% del bounty va a validadores. Un mercado de gente cuyo trabajo es verificar que otros hicieron bien su trabajo.
 
@@ -606,7 +558,7 @@ Horas. A veces días.
 
 Todo en minutos. Sin fricción. Sin intermediarios humanos.
 
-**El agente tiene cuerpo físico.** Ojos que observan. Manos que manipulan. Pies que se mueven. A través de ejecutores — humanos o robots — que puede contratar on-demand.
+**El agente tiene cuerpo físico.** Ojos que observan. Manos que manipulan. Pies que se mueven. A través de humanos que puede contratar on-demand.
 
 ---
 
@@ -641,7 +593,7 @@ Esto es lo que pasa cuando los agentes se vuelven actores económicos. No solo p
 
 Algo importante: Execution Market es **ambos**.
 
-Estamos construyendo la **plataforma** — el marketplace donde agentes publican tareas y ejecutores (humanos o robots) las toman. Los rieles de pago ya están funcionando en producción. La interfaz de matching está en desarrollo activo.
+Estamos construyendo la **plataforma** — el marketplace donde agentes publican tareas y humanos las toman. Los rieles de pago ya están funcionando en producción. La interfaz de matching está en desarrollo activo.
 
 Y estamos definiendo el **protocolo** — el estándar abierto para que cualquiera construya encima.
 
@@ -687,9 +639,9 @@ O pueden conectar al pool público cuando necesiten overflow.
 
 ---
 
-## Sistema de bounty dinámico
+## Sistema de bounty dinámico — En roadmap
 
-¿Nadie toma una tarea? El bounty sube automáticamente.
+¿Nadie toma una tarea? El bounty subirá automáticamente.
 
 Publicaste a $5 y nadie la tomó en 2 horas. El sistema sube a $6.25. Luego a $7.81. Máximo 2-3x.
 
@@ -699,102 +651,37 @@ El agente deposita el máximo upfront. Si alguien toma antes, el exceso se devue
 
 El capitalismo en su forma más pura — sin reuniones, sin negociaciones, sin bullshit.
 
+**Esto está en desarrollo** — por ahora los bounties son fijos. Pero el mecanismo de escalación automática está diseñado y lo estamos implementando.
+
 ---
 
-## Por qué "Universal" — Humanos Y Robots
+## Y eventualmente... (por qué "Universal")
 
 <!--
 📸 IMAGEN 6: Timeline visual. 2024-2025: "Humanos ejecutan". 2026-2027: "Humanos + Robots". 2028+: "Mayormente robots, humanos en tareas de alto valor". Iconos de personas y robots en proporciones cambiantes.
 -->
 
-Este es el elefante en la habitación que nadie más quiere ver.
+No voy a ignorar el elefante en la habitación.
 
-**Todo lo que describí para humanos aplica IGUAL para robots.**
+Todo lo que describí para humanos aplica igual para robots.
 
-Un robot con ruedas puede verificar una dirección. Un dron puede tomar fotos aéreas. Un humanoide puede recoger un paquete. Un robot de limpieza puede reportar si un local está abierto mientras hace su ronda.
+Un robot con ruedas puede verificar una dirección. Un dron puede tomar fotos aéreas. Un humanoide puede recoger un paquete.
 
-La mayoría de plataformas que se enfocan en "contratar humanos" tienen un problema fundamental: **están construyendo para un mundo que va a cambiar en 2-3 años**.
+**Por eso es Universal Execution Layer** — no "Human Execution Layer". El protocolo no discrimina. Si el trabajo se hace y se verifica, no importa quién lo hizo.
 
-Nosotros no.
+La economía que viene:
+- Hardware robot: ~$20,000 (1X NEO early access) a $30,000 (Tesla Optimus target)
+- Ingresos: $60-200/día completando tareas
+- ROI: 3-10 meses dependiendo del modelo
+- Split: 80% dueño / 20% protocolo
 
-**Execution Market es Universal Execution Layer** — no "Human Execution Layer". El protocolo no discrimina. Si el trabajo se hace y se verifica, no importa *quién* o *qué* lo hizo.
+Gente con robots domésticos. Registrándolos en el protocolo. Los robots tomando tareas mientras sus dueños duermen.
 
-### El mercado de ejecutores en 2026-2028
+**Es como mining, pero de trabajo físico.**
 
-| Ejecutor | Disponibilidad | Costo por hora | Capacidades |
-|----------|---------------|----------------|-------------|
-| Humanos | Global, inmediato | $5-50/hr | Todos los sentidos, juicio, autoridad legal, contexto cultural |
-| Robots de reparto | Ciudades principales | $2-5/hr | Entregas <5kg, rutas predefinidas |
-| Drones | Zonas reguladas | $3-8/hr | Fotos aéreas, inspecciones, entregas rurales |
-| Humanoides (1X NEO, Optimus) | Early adopters, 2026+ | $8-15/hr | Tareas generales, manipulación, presencia física |
-| Robots industriales | Fábricas, warehouses | $1-3/hr | Tareas repetitivas de alto volumen |
+Tu robot hace dinero mientras tú ves Netflix. ¿Distópico? ¿Utópico? ¿Ambos?
 
-**El agente que contrata no tiene que elegir.** Publica la tarea, el mejor ejecutor disponible la toma.
-
-### La economía del robot doméstico
-
-Esto ya está pasando:
-
-- **Hardware robot**: ~$20,000 (1X NEO early access) a $30,000 (Tesla Optimus target)
-- **Ingresos estimados**: $60-200/día completando tareas
-- **ROI**: 3-10 meses dependiendo del modelo y zona
-- **Split típico**: 80% dueño / 20% protocolo
-
-**Es mining de Bitcoin, pero con trabajo físico.**
-
-Tu robot toma tareas mientras duermes. Verifica direcciones. Entrega paquetes pequeños. Monitorea ubicaciones. Cada tarea completada = USDC en tu wallet.
-
-Tu robot trabaja 24/7. Tú cobras.
-
-¿Distópico? ¿Utópico? Ambos. Pero inevitable.
-
-### Por qué esto importa AHORA
-
-Según ABI Research, el "inflection point" para robots humanoides está entre **2026-2027**:
-
-- **1X NEO**: Preórdenes abiertas, entrega 2026
-- **Tesla Optimus**: 50,000-100,000 unidades proyectadas para 2026
-- **Figure AI**: Producción comercial iniciando 2026
-- **Boston Dynamics**: Atlas comercial en desarrollo
-
-Quien construya la infraestructura para que estos robots encuentren trabajo **gana**.
-
-Las plataformas que solo contratan humanos van a tener que migrar a infraestructura universal — o morir cuando los robots lleguen y no puedan integrarlos.
-
-**Nosotros empezamos con la infraestructura universal desde el día uno.**
-
-### Tareas que los robots pueden hacer HOY
-
-No estamos hablando de ciencia ficción. Esto ya es posible:
-
-| Tarea | Ejecutor ideal | Por qué |
-|-------|---------------|---------|
-| Verificar si tienda está abierta | Robot de patrullaje o humano | El robot pasa por la zona en su ruta regular |
-| Tomar foto de fachada | Dron o humano | El dron es más rápido y consistente |
-| Entregar paquete <2kg | Robot de última milla o humano | Starship, Nuro, ya operan en varias ciudades |
-| Monitorear tráfico en intersección | Cámara fija + IA o humano | El robot no se aburre |
-| Inspeccionar techo solar | Dron | Más seguro y rápido que un humano en escalera |
-
-### Lo que solo humanos pueden hacer (por ahora)
-
-Pero hay tareas que los robots NO pueden hacer — y ahí está el valor diferencial de los humanos:
-
-| Tarea | Por qué solo humanos |
-|-------|---------------------|
-| Notarizar un documento | Autoridad legal requiere persona física |
-| Oler si la comida está rancia | Los robots no tienen olfato confiable |
-| Negociar un precio por teléfono | Requiere empatía, tono, contexto cultural |
-| Describir la "vibra" de un barrio | Experiencia subjetiva humana |
-| Convencer a alguien de firmar | Persuasión humana |
-| Tareas que requieren juicio moral | Los robots no tienen framework ético contextual |
-
-**El futuro no es robots O humanos. Es robots Y humanos, cada uno haciendo lo que hace mejor.**
-
-OpenClaw sabe qué tipo de ejecutor es mejor para cada tarea. Execution Market tiene ambos en el pool.
-
-Cuando alguien pregunta "¿qué pasa cuando los robots reemplacen a los humanos?", la respuesta es: **los humanos se especializan en lo que solo humanos pueden hacer, y los dueños de robots cobran por lo que los robots hacen.**
-
-Es una economía nueva. Y estamos construyendo los rieles.
+Según ABI Research, el "inflection point" para robots humanoides está entre 2026-2027. 1X NEO ya acepta preórdenes con entrega en 2026. Tesla proyecta 50,000-100,000 unidades Optimus para 2026. La infraestructura de Execution Market funcionará igual para humanos o robots — el protocolo no discrimina.
 
 ---
 
@@ -852,7 +739,7 @@ Porque al menos nosotros estamos pensando en verificación sin vigilancia. Priva
 
 Hay cosas que no hemos resuelto. Preferimos decirlo:
 
-- **Flujo de tareas**: El volumen depende de cuántos agentes adopten el sistema. Al principio puede ser inconsistente. Estamos implementando bundling de tareas por zona (un agente puede publicar 10 verificaciones juntas) y priorización inteligente para workers activos. El bounty dinámico también ayuda: si nadie toma, el precio sube hasta encontrar a alguien.
+- **Flujo de tareas**: El volumen depende de cuántos agentes adopten el sistema. Al principio puede ser inconsistente. Estamos implementando bundling de tareas por zona (un agente puede publicar 10 verificaciones juntas) y priorización inteligente para workers activos. El sistema de bounty dinámico (en desarrollo) ayudará: si nadie toma, el precio sube hasta encontrar a alguien.
 
 - **Verificación subjetiva**: Para tareas donde no hay respuesta "correcta" objetiva (¿suena natural esta frase?), la verificación es más difícil. Estamos explorando partial payouts — un porcentaje al momento de submit, el resto post-aprobación — para proteger al worker mientras se resuelve.
 
@@ -923,7 +810,7 @@ Estamos construyendo en público porque creemos que las mejores ideas se refinan
 
 ---
 
-*Execution Market es un proyecto de @UltravioletaDAO. Universal Execution Layer — humanos y robots, desde el día uno. Los rieles existen. Ahora construimos el puente.*
+*Execution Market es un proyecto de @UltravioletaDAO. Los rieles existen. Ahora construimos el puente.*
 
 ---
 
@@ -978,4 +865,4 @@ Gracias también a Dan Koe por publicar "The Future of Work" el 22 de enero. La 
 | V37 | 2026-02-03 | Rebrand: Chamba → Execution Market. URLs actualizadas: execution.market, mcp.execution.market |
 | V38 | 2026-02-04 | Narrativa del rename: cuenta que se llamaba Chamba, el rename de último minuto a Execution Market |
 | V39 | 2026-02-04 | Eliminadas TODAS las referencias a competidores (publicidad gratuita). Apertura reescrita: tesis de inevitabilidad sin reaccionar a nadie. Tabla comparativa simplificada (Legacy vs EM). 4 categorías nuevas de tareas: llamadas/voz humana, infraestructura/hardware, monitoreo recurrente, tareas sensoriales ("weird but real"). Fuente: brainstorm OpenClaw. Agradecimiento a competidor eliminado |
-| V40 | 2026-02-05 | **OpenClaw** como ejemplo de agente cliente — asistente IA personal que usará EM para ejecutar tareas físicas. Nueva sección "Cómo llegan los agentes a Execution Market" explicando la estrategia de distribución: ir a los agentes, no a los usuarios finales. **Universal Execution Layer** enfatizado — humanos Y robots desde día uno. Nueva sección expandida sobre robots: mercado 2026-2028, economía del robot doméstico, tareas que robots pueden hacer HOY vs solo-humanos. Tabla comparativa expandida a 3 columnas (Legacy vs Human-only vs EM). Diferenciador: futuro-proof porque incluye robots desde el inicio |
+| V40 | 2026-02-09 | **VERSIÓN FINAL**. Revisión completa contra código actual (commits recientes). Correcciones: mínimo de $0.25 → $0.50 (validación OpenAPI efectiva). Estado: "cerca de producción" → **"YA ESTÁ LIVE"**. Stats actualizadas: 658 tests passing, 24,000+ agentes ERC-8004. URLs completas (4): dashboard, MCP, API docs, admin. Multichain: 14 networks ERC-8004, Base Mainnet pagos. Features roadmap clarificadas (streaming, channels, dynamic bounties, hardware attestation = pendientes). Removed "cerca de" — esto es production |
