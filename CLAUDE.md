@@ -54,7 +54,53 @@ execution-market/
 └── agent-card.json      # ERC-8004 agent metadata
 ```
 
+## Git Workflow
+
+**IMPORTANT: Commit Policy**
+- ✅ **Commit freely**: Create commits when tasks are complete or logical checkpoints are reached
+- ❌ **Never auto-push**: Do NOT push to remote unless explicitly requested by the user
+- ⚠️ **Push only when asked**: Only run `git push` when the user explicitly says "push" or "pusha" or similar
+
+**Rationale**: Pushing triggers CI/CD pipelines (GitHub Actions) which take ~20 minutes. User wants control over when deployments happen.
+
+**Workflow:**
+1. Make changes → commit locally
+2. User tests locally with `.\scripts\test-local.ps1`
+3. User explicitly says "push" → then `git push`
+
+**Example:**
+```bash
+# ✅ OK - Auto commit when done
+git commit -m "feat: nueva feature"
+
+# ❌ NEVER - Do not auto-push
+# git push  # ← NO!
+
+# ✅ OK - Only when user explicitly requests
+# User: "push"
+# Assistant: git push
+```
+
+---
+
 ## Common Commands
+
+### Quick Commands (Local Development)
+
+```powershell
+# Testing
+/test                                    # All tests (5-7 min)
+/test-quick                              # Only unit tests (2-3 min)
+
+# Development
+/dev-start                               # Start Docker stack
+/dev-logs                                # View logs
+/dev-stop                                # Stop Docker stack
+```
+
+See `COMMANDS.md` for complete reference.
+
+---
 
 ### Dashboard Development
 
