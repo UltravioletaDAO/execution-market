@@ -143,9 +143,6 @@ export function EvidenceUpload({
   )
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [_isMobile] = useState(() =>
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  )
 
   // Get completed types
   const completedTypes = new Set(uploadedEvidence.map(e => e.evidenceType))

@@ -193,7 +193,7 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
   (
     {
       position = 'bottom-start',
-      align = 'start',
+      align: _align = 'start',
       width = 'auto',
       portal = false,
       className,

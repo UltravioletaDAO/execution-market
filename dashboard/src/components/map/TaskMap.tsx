@@ -154,30 +154,6 @@ function SelectionHandler({
   return null;
 }
 
-// Fit map bounds to show all tasks (currently unused but kept for future use)
-function _useFitBounds(
-  map: L.Map | null,
-  tasks: Task[],
-  userPosition: Position | null
-) {
-  useEffect(() => {
-    if (!map || tasks.length === 0) return;
-
-    const points: L.LatLngExpression[] = tasks
-      .filter((t) => t.location)
-      .map((t) => [t.location!.lat, t.location!.lng]);
-
-    if (userPosition) {
-      points.push([userPosition.latitude, userPosition.longitude]);
-    }
-
-    if (points.length > 0) {
-      const bounds = L.latLngBounds(points);
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
-    }
-  }, [map, tasks, userPosition]);
-}
-
 export function TaskMap({
   tasks,
   selectedTaskId,
@@ -193,7 +169,7 @@ export function TaskMap({
   height = '400px',
 }: TaskMapProps) {
   const [selectionLocation, setSelectionLocation] = useState<Location | null>(null);
-  const [_mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
+  const [, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const mapRef = useRef<L.Map | null>(null);
 
   const {

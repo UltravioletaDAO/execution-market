@@ -6,7 +6,7 @@ interface AgentIntegrationProps {
 }
 
 export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
-  function AgentIntegration({ onLearnMore }, ref) {
+  function AgentIntegration({ onLearnMore: _onLearnMore }, ref) {
     const { t } = useTranslation()
     const [copiedCommand, setCopiedCommand] = useState<string | null>(null)
 

@@ -12,7 +12,6 @@ import { useNotificationContext } from '../components/notifications/Notification
 import type {
   Notification,
   NotificationInsert,
-  NotificationType,
   ToastOptions,
   NotificationFilter,
 } from '../types/notification'
@@ -87,7 +86,6 @@ export function useNotifications(): UseNotificationsReturn {
     error,
     hasMore,
     filter,
-    toasts: _toasts,
     addNotification,
     removeNotification,
     markAsRead,

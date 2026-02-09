@@ -377,7 +377,7 @@ export function useEscrow(options: UseEscrowOptions = {}): UseEscrowReturn {
         const taskIdBytes = keccak256(toBytes(taskId))
 
         // First approve the token spend
-        const _approveHash = await approveAsync({
+        await approveAsync({
           address: tokenAddress,
           abi: ERC20_ABI,
           functionName: 'approve',
