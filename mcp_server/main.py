@@ -24,7 +24,7 @@ from typing import Any, Dict, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from pathlib import Path
 
 import supabase_client as db
@@ -339,6 +339,15 @@ class HealthResponse(BaseModel):
 class ExecutorRegistration(BaseModel):
     wallet_address: str
     display_name: str | None = None
+
+    @field_validator("wallet_address")
+    @classmethod
+    def validate_wallet(cls, v: str) -> str:
+        import re
+
+        if not re.match(r"^0x[0-9a-fA-F]{40}$", v):
+            raise ValueError("Invalid Ethereum wallet address")
+        return v
 
 
 class TaskApplication(BaseModel):
