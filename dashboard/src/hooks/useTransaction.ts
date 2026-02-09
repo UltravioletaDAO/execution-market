@@ -157,7 +157,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
 
       setWatchingHash(null)
     }
-  }, [receipt, watchingHash, transactions])
+  }, [receipt, watchingHash, transactions, addNotification])
 
   // ==========================================================================
   // Handle errors
@@ -186,7 +186,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
 
       setWatchingHash(null)
     }
-  }, [isError, watchingHash, transactions])
+  }, [isError, watchingHash, transactions, addNotification])
 
   // ==========================================================================
   // Add notification helper

@@ -128,7 +128,7 @@ export function SubmissionForm({
   }, [])
 
   // File-based evidence handlers
-  const doUpload = async (evidenceFile: EvidenceFile): Promise<UploadResult> => {
+  const doUpload = useCallback(async (evidenceFile: EvidenceFile): Promise<UploadResult> => {
     return uploadEvidenceFile({
       file: evidenceFile.file,
       taskId: task.id,
@@ -143,9 +143,9 @@ export function SubmissionForm({
         })
       },
     })
-  }
+  }, [task.id, executor.id])
 
-  const verifyEvidence = async (path: string, evidenceType: EvidenceType) => {
+  const verifyEvidence = useCallback(async (path: string, evidenceType: EvidenceType) => {
     try {
       const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/evidence/${path}`
       const res = await fetch(`${API_URL}/api/v1/evidence/verify`, {
@@ -164,7 +164,7 @@ export function SubmissionForm({
     } catch {
       return null
     }
-  }
+  }, [task.id])
 
   const handleFileSelect = useCallback(
     async (type: EvidenceType, file: File) => {

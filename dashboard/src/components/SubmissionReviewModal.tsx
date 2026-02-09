@@ -55,9 +55,9 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
             setSubmission(data)
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!cancelled) {
-          setError(err.message || 'Failed to load submission')
+          setError(err instanceof Error ? err.message : 'Failed to load submission')
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -80,8 +80,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
       })
       setResult({ type: 'success', message: 'Submission approved. Payment is being processed.' })
       onSuccess?.()
-    } catch (err: any) {
-      setResult({ type: 'error', message: err.message || 'Failed to approve submission' })
+    } catch (err: unknown) {
+      setResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to approve submission' })
     } finally {
       setAction('idle')
     }
@@ -99,8 +99,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
       })
       setResult({ type: 'success', message: 'Submission rejected.' })
       onSuccess?.()
-    } catch (err: any) {
-      setResult({ type: 'error', message: err.message || 'Failed to reject submission' })
+    } catch (err: unknown) {
+      setResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to reject submission' })
     } finally {
       setAction('idle')
     }
@@ -114,8 +114,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
       await requestMoreInfo(submission.id, executor.id, feedback.trim())
       setResult({ type: 'success', message: 'More information requested. Worker will be notified.' })
       onSuccess?.()
-    } catch (err: any) {
-      setResult({ type: 'error', message: err.message || 'Failed to request more info' })
+    } catch (err: unknown) {
+      setResult({ type: 'error', message: err instanceof Error ? err.message : 'Failed to request more info' })
     } finally {
       setAction('idle')
     }

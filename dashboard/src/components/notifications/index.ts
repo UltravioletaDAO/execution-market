@@ -13,8 +13,10 @@
 export {
   NotificationProvider,
   NotificationContext,
-  useNotificationContext,
 } from './NotificationProvider'
+
+// Hooks
+export { useNotificationContext } from './hooks'
 
 // Components
 export { NotificationBell } from './NotificationBell'

@@ -71,7 +71,7 @@ export function NotificationProvider({
   executorId,
   enableWebSocket = true,
 }: NotificationProviderProps) {
-  const db = supabase as any
+  const db = supabase
 
   // State
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -84,7 +84,7 @@ export function NotificationProvider({
   const [, setWsStatus] = useState<WebSocketStatus>('disconnected')
 
   // Refs
-  const channelRef = useRef<any>(null)
+  const channelRef = useRef<RealtimeChannel | null>(null)
   const offsetRef = useRef(0)
 
   // --------------------------------------------------------------------------
@@ -189,7 +189,7 @@ export function NotificationProvider({
             table: 'notifications',
             filter: `executor_id=eq.${executorId}`,
           },
-          (payload: any) => {
+          (payload: RealtimePostgresChangesPayload<Notification>) => {
             const newNotification = payload.new as Notification
 
             setNotifications((prev) => [newNotification, ...prev])
@@ -209,7 +209,7 @@ export function NotificationProvider({
             table: 'notifications',
             filter: `executor_id=eq.${executorId}`,
           },
-          (payload: any) => {
+          (payload: RealtimePostgresChangesPayload<Notification>) => {
             const updated = payload.new as Notification
 
             setNotifications((prev) =>
@@ -230,7 +230,7 @@ export function NotificationProvider({
             table: 'notifications',
             filter: `executor_id=eq.${executorId}`,
           },
-          (payload: any) => {
+          (payload: RealtimePostgresChangesPayload<Notification>) => {
             const deleted = payload.old as Notification
 
             setNotifications((prev) => prev.filter((n) => n.id !== deleted.id))
@@ -240,7 +240,7 @@ export function NotificationProvider({
             }
           }
         )
-        .subscribe((status: any) => {
+        .subscribe((status: string) => {
           if (status === 'SUBSCRIBED') {
             setWsStatus('connected')
           } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
@@ -471,18 +471,5 @@ export function NotificationProvider({
   )
 }
 
-// ============================================================================
-// Hook
-// ============================================================================
-
-export function useNotificationContext(): NotificationContextValue {
-  const context = useContext(NotificationContext)
-
-  if (context === undefined) {
-    throw new Error('useNotificationContext must be used within a NotificationProvider')
-  }
-
-  return context
-}
-
+// Export context for use in hooks
 export { NotificationContext }

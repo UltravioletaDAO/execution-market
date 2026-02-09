@@ -273,7 +273,7 @@ export function NotificationBell({
     } catch (err) {
       console.error('Failed to mark notification as read:', err)
     }
-  }, [])
+  }, [db])
 
   // Mark all as read
   const markAllAsRead = useCallback(async () => {
@@ -288,7 +288,7 @@ export function NotificationBell({
     } catch (err) {
       console.error('Failed to mark all notifications as read:', err)
     }
-  }, [executorId])
+  }, [executorId, db])
 
   // Handle notification click
   const handleNotificationClick = useCallback(

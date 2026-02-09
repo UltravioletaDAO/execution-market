@@ -743,7 +743,14 @@ export async function getTaskAnalytics(agentId: string, days: number = 30): Prom
   const byCategory: Record<string, number> = {}
   let totalPaid = 0
 
-  taskList.forEach((task: any) => {
+  interface TaskListItem {
+    status?: string
+    category?: string
+    bounty_usd?: number
+    executor_id?: string | null
+  }
+
+  taskList.forEach((task: TaskListItem) => {
     // Count by status
     const status = task.status || 'unknown'
     byStatus[status] = (byStatus[status] || 0) + 1
@@ -763,8 +770,8 @@ export async function getTaskAnalytics(agentId: string, days: number = 30): Prom
   const avgBounty = completed > 0 ? totalPaid / completed : 0
 
   // Get top workers
-  const completedTasks = taskList.filter((t: any) => t.status === 'completed')
-  const executorIds = [...new Set(completedTasks.map((t: any) => t.executor_id).filter(Boolean))]
+  const completedTasks = taskList.filter((t: TaskListItem) => t.status === 'completed')
+  const executorIds = [...new Set(completedTasks.map((t: TaskListItem) => t.executor_id).filter(Boolean))]
 
   let topWorkers: AgentAnalytics['topWorkers'] = []
 
@@ -777,20 +784,33 @@ export async function getTaskAnalytics(agentId: string, days: number = 30): Prom
     if (workers) {
       // Count tasks per worker
       const workerCounts: Record<string, number> = {}
-      completedTasks.forEach((t: any) => {
+      completedTasks.forEach((t: TaskListItem) => {
         if (t.executor_id) {
           workerCounts[t.executor_id] = (workerCounts[t.executor_id] || 0) + 1
         }
       })
 
+      interface WorkerRecord {
+        id: string
+        display_name?: string
+        reputation_score?: number
+      }
+
+      interface TopWorker {
+        id: string
+        displayName?: string
+        reputation: number
+        tasksCompleted: number
+      }
+
       topWorkers = workers
-        .map((w: any) => ({
+        .map((w: WorkerRecord) => ({
           id: w.id,
           displayName: w.display_name,
           reputation: w.reputation_score || 0,
           tasksCompleted: workerCounts[w.id] || 0,
         }))
-        .sort((a: any, b: any) => b.tasksCompleted - a.tasksCompleted)
+        .sort((a: TopWorker, b: TopWorker) => b.tasksCompleted - a.tasksCompleted)
         .slice(0, 5)
     }
   }

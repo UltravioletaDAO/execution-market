@@ -37,7 +37,13 @@ export async function getEarnings(executorId: string): Promise<EarningsSummary> 
   let pending = 0
   let taskCount = 0
 
-  ;(payments || []).forEach((p: any) => {
+  interface PaymentRecord {
+    amount?: number
+    status?: string
+    type?: string
+  }
+
+  (payments || []).forEach((p: PaymentRecord) => {
     const amount = p.amount || 0
 
     if (p.status === 'confirmed') {
@@ -115,7 +121,21 @@ export async function getPaymentHistory(
   }
 
   // Format payments
-  const payments: Payment[] = (data || []).map((p: any) => ({
+  interface PaymentRow {
+    id: string
+    type: string
+    status: string
+    amount: number
+    currency?: string
+    task_id?: string
+    tasks?: { title?: string } | null
+    tx_hash?: string
+    network?: string
+    created_at: string
+    confirmed_at?: string
+  }
+
+  const payments: Payment[] = (data || []).map((p: PaymentRow) => ({
     id: p.id,
     type: p.type,
     status: p.status,
@@ -290,7 +310,17 @@ export async function getWithdrawalHistory(
     throw new Error(`Failed to fetch withdrawal history: ${error.message}`)
   }
 
-  return (data || []).map((w: any) => ({
+  interface WithdrawalRow {
+    id: string
+    amount_usdc: number
+    destination_address: string
+    status: string
+    tx_hash?: string
+    requested_at: string
+    processed_at?: string
+  }
+
+  return (data || []).map((w: WithdrawalRow) => ({
     id: w.id,
     amountUsdc: w.amount_usdc,
     destinationAddress: w.destination_address,
@@ -326,11 +356,17 @@ export async function getAgentPaymentStats(agentId: string): Promise<{
   let tasksPaid = 0
   let pendingEscrow = 0
 
-  ;(tasks || []).forEach((t: any) => {
+  interface TaskRecord {
+    id: string
+    bounty_usd?: number
+    status?: string
+  }
+
+  (tasks || []).forEach((t: TaskRecord) => {
     if (t.status === 'completed') {
       totalSpent += t.bounty_usd || 0
       tasksPaid++
-    } else if (['published', 'accepted', 'in_progress', 'submitted'].includes(t.status)) {
+    } else if (['published', 'accepted', 'in_progress', 'submitted'].includes(t.status || '')) {
       pendingEscrow += t.bounty_usd || 0
     }
   })
