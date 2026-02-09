@@ -153,9 +153,10 @@ class TestFacilitator:
         data = result["data"]
         network_names = [n["network"] for n in data.get("networks", [])]
         logger.info(f"ERC-8004 networks ({data.get('count')}): {network_names}")
-        # At minimum, all 7 mainnets should appear
+        # At minimum, all 7 mainnets should appear (accept "base-mainnet" alias)
         for net in ENABLED_NETWORKS:
-            assert net in network_names, f"Network {net} missing from ERC-8004"
+            found = net in network_names or f"{net}-mainnet" in network_names
+            assert found, f"Network {net} missing from ERC-8004 (got: {network_names})"
 
 
 # ============== A6: USDC TOKEN CONTRACTS ==============
