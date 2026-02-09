@@ -25,7 +25,7 @@ Execution Market is a **Human Execution Layer for AI Agents** - a marketplace wh
 | Payments | x402 SDK + Facilitator (Base Mainnet, gasless) |
 | Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
 | Agent Identity | ERC-8004 Registry (14 networks via Facilitator) |
-| SDKs | Python `uvd-x402-sdk>=0.9.1` / TypeScript `uvd-x402-sdk@2.21.1` |
+| SDKs | Python `uvd-x402-sdk>=0.10.0` / TypeScript `uvd-x402-sdk@2.22.0` |
 
 ## Project Structure
 
@@ -345,7 +345,7 @@ Wrong Flow (DO NOT USE):
 
 | Component | Details |
 |-----------|---------|
-| **SDK** | `uvd-x402-sdk[fastapi]>=0.9.1` (in `mcp_server/requirements.txt`) |
+| **SDK** | `uvd-x402-sdk[fastapi]>=0.10.0` (in `mcp_server/requirements.txt`) |
 | **SDK Client** | `mcp_server/integrations/x402/sdk_client.py` — `EMX402SDK` class |
 | **Facilitator URL** | `https://facilitator.ultravioletadao.xyz` |
 | **Facilitator Endpoints** | `POST /verify`, `POST /settle`, `POST /register`, `POST /feedback` |
