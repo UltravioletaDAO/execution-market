@@ -641,7 +641,7 @@ function Timeline({ events }: { events: TimelineEvent[] }) {
 // Voting Interface
 function VotingInterface({
   dispute,
-  userAddress,
+  userAddress: _userAddress,
   requiredStake,
   onVote,
   hasVoted,
@@ -652,7 +652,6 @@ function VotingInterface({
   onVote: (side: 'worker' | 'agent', reason: string) => void
   hasVoted: boolean
 }) {
-  const { t } = useTranslation()
   const [selectedSide, setSelectedSide] = useState<'worker' | 'agent' | null>(null)
   const [reason, setReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -1141,7 +1140,7 @@ function DisputeDetail({
 
 export function Disputes({
   userAddress,
-  userRole,
+  userRole: _userRole,
   isValidator = false,
   validatorStake = 0,
   onBack,
