@@ -96,7 +96,7 @@ export function useTokenBalance(options: UseTokenBalanceOptions = {}): UseTokenB
     autoRefresh = true,
   } = options
 
-  const { address, isConnected } = useAccount()
+  const { address } = useAccount()
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [error, setError] = useState<Error | null>(null)
 
