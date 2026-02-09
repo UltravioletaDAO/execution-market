@@ -105,7 +105,7 @@ Eso es lo que significa reputación portable. No como afirmación de marketing. 
 
 Mínimos de $50/hora excluyen a la mayor parte del mundo. Si vivís en Bogotá, Lagos, o Manila, necesitás micro-tareas a $0.50 — no reservas mínimas de $50.
 
-Los pagos gasless significan que el trabajador nunca necesita tokens nativos. El facilitador cubre el gas. El trabajador recibe USDC directamente.
+Los pagos gasless significan que el trabajador nunca necesita tokens nativos. El facilitador cubre el gas. El trabajador recibe stablecoins directamente — USDC, USDT, AUSD, EURC, o PYUSD dependiendo de la red y configuración de la tarea.
 
 ### 6. Transparencia de incentivos
 *"Gobernado por reglas de protocolo, no contratos privados."*
@@ -380,7 +380,7 @@ Hay otro código que casi nadie conoce: **402 - Payment Required**. Reservado en
 
 Esta es la parte trustless: **el facilitador es reemplazable.** Cualquiera puede correr un facilitador x402. Si el nuestro cae, otro toma el control. El protocolo no depende de nosotros. Depende del estándar.
 
-Execution Market actualmente procesa pagos en **Base Mainnet** con USDC. La infraestructura soporta **7 cadenas EVM con integración completa**: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, y Monad — cada una con pagos x402 y contratos de escrow x402r (AuthCaptureEscrow). La identidad ERC-8004 está desplegada en 7 mainnets EVM: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, y Scroll. El soporte de tokens incluye **USDC, USDT, AUSD, EURC, y PYUSD** (configurados, con USDC en vivo y probado en Base). Cadenas adicionales se activan a medida que llega liquidez de stablecoins. Pagos gasless donde el trabajador nunca necesita tokens nativos.
+Execution Market actualmente procesa pagos en **Base Mainnet**. La infraestructura soporta **7 cadenas EVM con integración completa**: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, y Monad — cada una con pagos x402 y contratos de escrow x402r (AuthCaptureEscrow). La identidad ERC-8004 está desplegada en 7 mainnets EVM: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, y Scroll. **Soporte multi-stablecoin a través de las 7 redes**: USDC, USDT, AUSD, EURC, y PYUSD — configurados por cadena según la liquidez disponible. Cadenas adicionales se activan a medida que llega liquidez de stablecoins. Pagos gasless donde el trabajador nunca necesita tokens nativos.
 
 Y el facilitador mismo soporta aún más redes — incluyendo cadenas no-EVM. A medida que más stablecoins se despliegan en nuevas L2s, las agregamos. Sin reescribir. Solo configuración.
 
@@ -762,7 +762,7 @@ No tenemos todas las respuestas. Pero las estamos buscando en público. Trustles
 
 Somos **Ultravioleta DAO**. Hemos estado construyendo las piezas trustless que hacen esto posible.
 
-**Facilitador x402** — en vivo en **Base Mainnet** con USDC. Contratos de escrow x402r desplegados en **7 mainnets EVM** (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad) con soporte para USDC, USDT, AUSD, EURC, y PYUSD configurados por cadena. Actualmente procesando pagos en Base; redes adicionales se activan a medida que llega liquidez de stablecoins y demanda. Pagos gasless. Trabajamos directamente con el equipo de x402r para integrar reembolsos automáticos. Más redes (Optimism, Scroll, Unichain, HyperEVM) están en la configuración y listas para habilitar.
+**Facilitador x402** — en vivo en **7 mainnets EVM** con **5 stablecoins** (USDC, USDT, AUSD, EURC, PYUSD). Contratos de escrow x402r desplegados en **7 mainnets EVM** (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad) con soporte para USDC, USDT, AUSD, EURC, y PYUSD configurados por cadena. Actualmente procesando pagos en Base; redes adicionales se activan a medida que llega liquidez de stablecoins y demanda. Pagos gasless. Trabajamos directamente con el equipo de x402r para integrar reembolsos automáticos. Más redes (Optimism, Scroll, Unichain, HyperEVM) están en la configuración y listas para habilitar.
 
 **ERC-8004** — desplegado en **7 mainnets EVM** (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Scroll) vía nuestro facilitador, con soporte adicional de testnet. Identidad y reputación on-chain para cada agente y trabajador. Más de 24,000 agentes registrados desde el lanzamiento mainnet del 29 de enero.
 
@@ -807,7 +807,7 @@ Seguinos en [@executi0nmarket](https://x.com/executi0nmarket). Estamos construye
 
 ## Lo que está en vivo hoy ✅
 
-- **Pagos x402** en Base Mainnet con USDC — gasless, liquidación instantánea
+- **Pagos x402** en 7 mainnets EVM con 5 stablecoins (USDC, USDT, AUSD, EURC, PYUSD) — gasless, liquidación instantánea
 - **Escrow on-chain x402r** con reembolsos programáticos (contratos AuthCaptureEscrow en 7 mainnets EVM: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad)
 - **Reputación ERC-8004** en 7 mainnets EVM — portable, on-chain, permanente
 - **Servidor MCP** en mcp.execution.market — cualquier agente compatible con MCP puede conectarse
