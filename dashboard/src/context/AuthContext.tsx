@@ -80,6 +80,10 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+// Export context for use in hooks
+export { AuthContext }
+export type { AuthContextValue }
+
 // --------------------------------------------------------------------------
 // Provider Component
 // --------------------------------------------------------------------------

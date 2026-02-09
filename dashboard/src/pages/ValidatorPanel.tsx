@@ -1333,7 +1333,6 @@ export function ValidatorPanel({
   validatorName,
   onBack,
 }: ValidatorPanelProps) {
-  const { t } = useTranslation()
   const [selectedDisputeId, setSelectedDisputeId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'voted'>('all')
   const [stats, setStats] = useState<ValidatorStats>(MOCK_VALIDATOR_STATS)

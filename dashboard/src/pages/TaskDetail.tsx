@@ -373,9 +373,6 @@ function EvidenceRequirements({ task }: { task: Task }) {
 
 function Requirements({ task, executor }: { task: Task; executor: Executor | null }) {
   const meetsReputation = !executor || executor.reputation_score >= task.min_reputation
-  const hasRequiredRoles =
-    task.required_roles.length === 0 ||
-    (executor && task.required_roles.every((role) => executor.roles.includes(role)))
 
   if (task.min_reputation === 0 && task.required_roles.length === 0) {
     return null
@@ -631,7 +628,6 @@ export function TaskDetailPage({
   onBack,
   onApply,
   onSubmitEvidence,
-  loading = false,
 }: TaskDetailPageProps) {
   const [showSubmissionForm, setShowSubmissionForm] = useState(false)
   const [applying, setApplying] = useState(false)

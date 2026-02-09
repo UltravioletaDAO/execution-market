@@ -143,10 +143,6 @@ function formatHours(hours: number): string {
   return `${hours.toFixed(1)}h`
 }
 
-function formatCompactNumber(num: number): string {
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-  return num.toString()
-}
 
 // ============================================================================
 // Mock Data Generator
@@ -453,7 +449,7 @@ function CategoryBreakdownChart({ data }: { data: CategoryStats[] }) {
 // Main Component
 // ============================================================================
 
-export function Analytics({ agentId, onBack }: AgentAnalyticsProps) {
+export function Analytics({ agentId: _agentId, onBack }: AgentAnalyticsProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d')
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<AnalyticsData | null>(null)
