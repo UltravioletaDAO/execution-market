@@ -9,7 +9,6 @@
  */
 
 import { useState, useCallback, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 
 // ============================================================================
 // TYPES
