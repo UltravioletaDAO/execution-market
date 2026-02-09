@@ -266,7 +266,7 @@ export function ToastContainer({
       className={`fixed ${positionClasses[position]} z-[9999] flex flex-col gap-2 pointer-events-none`}
       aria-label="Notifications"
     >
-      {visibleToasts.map((toast, index) => (
+      {visibleToasts.map((toast: ToastType, index: number) => (
         <div key={toast.id} className="pointer-events-auto">
           <ToastItem
             toast={toast}

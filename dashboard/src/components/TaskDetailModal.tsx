@@ -182,7 +182,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                   <p className="text-sm text-gray-400 italic">No hay entregas aun</p>
                 ) : (
                   <div className="space-y-2">
-                    {submissions.map((sub: { id: string; executor?: { display_name?: string }; submitted_at: string }) => (
+                    {submissions.map((sub: { id: string; executor?: { display_name?: string }; submitted_at: string; agent_verdict?: string; payment_tx?: string }) => (
                       <div
                         key={sub.id}
                         className="border border-gray-200 rounded-lg p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"

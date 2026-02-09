@@ -237,7 +237,7 @@ export function NotificationBell({
             </div>
           ) : (
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
-              {recentNotifications.map((notification, index) => (
+              {recentNotifications.map((notification: Notification, index: number) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
