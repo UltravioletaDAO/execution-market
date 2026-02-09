@@ -10,7 +10,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Task, Location } from '../../types/database';
-import { useLocation, type Position } from './useLocation';
+import { useLocation } from './useLocation';
 import { TaskCluster } from './TaskCluster';
 import { TaskMarker } from './TaskMarker';
 

@@ -220,7 +220,7 @@ function TaskStatusChart({ data }: { data: TaskStatusBreakdown[] }) {
       <div className="h-4 rounded-full overflow-hidden bg-gray-100 flex">
         {data
           .filter((d) => d.count > 0)
-          .map((item, index) => (
+          .map((item, _index) => (
             <div
               key={item.status}
               className="h-full transition-all duration-300"

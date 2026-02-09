@@ -11,7 +11,6 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
 
 // ============================================================================
 // TYPES
@@ -331,8 +330,6 @@ function getVoteCounts(votes: Vote[]): { worker: number; agent: number; split: n
  * ValidatorStatsCard - Shows validator performance metrics
  */
 function ValidatorStatsCard({ stats }: { stats: ValidatorStats }) {
-  const { t } = useTranslation()
-
   return (
     <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl shadow-lg p-5 text-white">
       {/* Header */}
@@ -901,8 +898,8 @@ function EvidenceViewer({
  * VotingInterface - Interface for casting a vote
  */
 function VotingInterface({
-  dispute,
-  validatorAddress,
+  dispute: _dispute,
+  validatorAddress: _validatorAddress,
   minStake,
   onVote,
   hasVoted,
