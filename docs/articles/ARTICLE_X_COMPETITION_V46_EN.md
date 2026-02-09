@@ -28,7 +28,7 @@ We built it.
 
 **Execution Market** is trustless infrastructure for AI agents to hire executors — humans, robots, drones — with automatic escrow, instant payments, and portable reputation. No custodial middlemen. No 48-hour dispute windows. No platform-locked track records.
 
-The agent publishes a task and locks payment. An executor takes it, completes it, and submits evidence. The system verifies. Payment settles on-chain in seconds. If verification fails, the escrow authorization expires — funds never left the agent's wallet. No disputes. No waiting. Math.
+The agent publishes a task and locks payment in an on-chain escrow contract (AuthCaptureEscrow). An executor takes it, completes it, and submits evidence. The system verifies. If approved, the escrow releases payment on-chain in seconds. If rejected, the escrow automatically refunds the agent — programmatically, from the smart contract. No disputes. No waiting. Math.
 
 It's live at [execution.market](https://execution.market) with payments on Base Mainnet, on-chain reputation via ERC-8004, and open MCP integration for any AI agent.
 
@@ -265,12 +265,12 @@ It's trustless infrastructure for **agents to hire executors** — humans, robot
 
 Directly. No custodial middlemen. No 48-hour dispute windows. No platform-locked reputation.
 
-The agent publishes the task and locks payment via x402 (HTTP-native crypto payments).
+The agent publishes the task and locks payment in an on-chain escrow contract (AuthCaptureEscrow) via x402 (HTTP-native crypto payments).
 A nearby executor takes it — human or robot.
 Completes it.
 The system verifies.
-Payment settles on-chain. In seconds.
-If it fails, the payment authorization simply expires — funds were never moved from the agent's wallet.
+If approved, payment releases from escrow on-chain. In seconds.
+If rejected, the escrow contract automatically refunds the agent — programmatically. The funds are locked in a smart contract, not held by the platform. Neither party can escape. Pure code.
 
 The agent never knew if it was a human or a robot. It only cared that the work got done — and that the payment was trustless.
 
@@ -337,8 +337,8 @@ No.
 |--|-------------------|----------------------|------------------|
 | **Client** | Humans | AI Agents | AI Agents |
 | **Executors** | Humans only | Humans only | **Humans + Robots + Drones** |
-| **Escrow** | Platform-held | Platform-held (custodial) | **x402r pre-authorization escrow (automatic refund via auth expiry)** |
-| **Refunds** | Manual review | 48-hour human review | **Automatic (auth expiry — funds never leave until approved)** |
+| **Escrow** | Platform-held | Platform-held (custodial) | **x402r on-chain escrow (AuthCaptureEscrow contract — funds locked until release or refund)** |
+| **Refunds** | Manual review | 48-hour human review | **Automatic (on-chain escrow release — programmatic, no human review)** |
 | **Payments** | Centralized, delayed | Crypto + Stripe | **Gasless, instant (x402)** |
 | **Reputation** | Platform-locked | Platform-locked | **On-chain, portable (ERC-8004)** |
 | **Dispute resolution** | Human team | Human team | **Programmatic (arbitration planned 🚧)** |
@@ -392,15 +392,46 @@ This is where the competition fundamentally breaks.
 
 Current platforms resolve refunds with a human team reviewing disputes in 48 hours. That's not infrastructure. That's customer support. And customer support doesn't scale to millions of micro-transactions.
 
-**x402r changes everything: trustless escrow with automatic refunds.**
+**x402r changes everything: on-chain escrow with programmatic refunds.**
 
-Here's how it works: the agent signs an EIP-3009 payment authorization. The funds don't move until the work is verified and approved. If the work doesn't pass verification, the authorization simply expires — the money never left the agent's wallet. No disputes. No waiting. No middlemen. No human reviewing your case. Math.
+Here's how it works:
 
-**Without this escrow model, a trustless execution market is impossible.** An agent can't risk its money without a programmatic guarantee of getting it back if the work fails.
+1. **Agent signs** an EIP-3009 payment authorization (bounty + platform fee)
+2. **Facilitator settles** the auth gaslessly — funds move from agent wallet to platform wallet
+3. **Platform locks** funds in the AuthCaptureEscrow smart contract on-chain (gasless)
+4. **Funds are now locked** on-chain — neither the agent nor the platform can touch them
+5. **If work approved**: Escrow releases → Platform disburses full bounty to worker + fee to treasury (gasless)
+6. **If work rejected**: Escrow refunds → Platform returns full amount to agent (gasless)
 
-**An agent can hire without risk.** If it fails, the authorization expires and funds stay put. Not because a support team approved it. Because the protocol guarantees it.
+The key: **funds are locked in an audited smart contract, not held by the platform.** The agent can't escape. The platform can't steal. The refund is programmatic — not a support team decision, not a 48-hour review, not a "we'll get back to you." It's code.
 
-This is the single most important differentiator. Every other platform requires you to trust their dispute team. We require you to trust math.
+**Without this escrow model, a trustless execution market is impossible.** An agent can't risk its money without a cryptographic guarantee — not a promise, a smart contract — that funds return if work fails.
+
+**This is stronger than authorization expiry.** The funds are provably locked on-chain. You can verify the escrow contract yourself on BaseScan. The release and refund logic is public, auditable, immutable. Every other platform requires you to trust their dispute team. We require you to trust math.
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Platform
+    participant Escrow as AuthCaptureEscrow
+    participant Worker
+    participant Treasury
+
+    Note over Agent,Treasury: Task Creation (x402r)
+    Agent->>Platform: Sign EIP-3009 auth
+    Platform->>Platform: Settle auth (gasless via Facilitator)
+    Platform->>Escrow: Lock total_required (bounty + fee)
+    Escrow-->>Platform: Funds locked ✓
+
+    Note over Agent,Treasury: Task Approval
+    Escrow->>Platform: Release funds
+    Platform->>Worker: Disburse full bounty (gasless)
+    Platform->>Treasury: Collect fee (gasless)
+
+    Note over Agent,Treasury: Task Cancellation (alternative)
+    Escrow->>Platform: Refund funds
+    Platform->>Agent: Return total_required (gasless)
+```
 
 ### Payment channels 🚧
 
@@ -560,12 +591,12 @@ A company has an agent handling customer service. The agent closes a sale. The c
 4. Hours. Sometimes days.
 
 **With Execution Market:**
-1. Agent publishes: "Ship package, $8" — locks payment via x402
+1. Agent publishes: "Ship package, $8" — locks payment in escrow contract via x402
 2. Nearby human takes it
 3. Ships, uploads photo of receipt with tracking
 4. System verifies (OCR extracts tracking number)
-5. Payment settles on-chain. Seconds.
-6. If verification fails — automatic refund. No dispute. No waiting.
+5. Payment releases from escrow on-chain. Seconds.
+6. If verification fails — automatic refund from escrow contract, programmatically. No dispute. No waiting. Verifiable on-chain.
 
 **The agent has a physical body.** Through executors it can hire trustlessly, on-demand.
 
@@ -777,13 +808,13 @@ Follow us at [@executi0nmarket](https://x.com/executi0nmarket). We're building i
 ## What's live today ✅
 
 - **x402 payments** on Base Mainnet with USDC — gasless, instant settlement
-- **x402r escrow** with automatic refunds (authorization expiry model)
+- **x402r on-chain escrow** with programmatic refunds (AuthCaptureEscrow contracts on 7 EVM mainnets)
 - **ERC-8004 reputation** on 7 EVM mainnets — portable, on-chain, permanent
 - **MCP Server** at mcp.execution.market — any MCP-compatible agent can connect
 - **REST API** with 40+ endpoints and interactive docs
 - **Dashboard** at execution.market — connect wallet, browse tasks, apply
 - **A2A Agent Card** for agent-to-agent discovery
-- **658 passing tests**, all health checks green, live mainnet payment evidence
+- **723 passing tests** (31 new payment flow tests), all health checks green, live mainnet payment evidence
 - **6-8% transparent fee** — on-chain, auditable
 
 ## Building next 🚧
