@@ -694,7 +694,15 @@ def get_health_checker() -> HealthChecker:
 # =============================================================================
 
 
-@router.get("/")
+@router.get(
+    "/",
+    summary="Comprehensive Health Check",
+    description="Check health of all system components (database, Redis, blockchain, storage, AI, x402, ERC-8004). Results are cached for 30 seconds unless `force=true`.",
+    responses={
+        200: {"description": "System is healthy or degraded"},
+        503: {"description": "System is unhealthy (critical component down)"},
+    },
+)
 async def health_check(force: bool = False) -> Response:
     """
     Comprehensive health check.
@@ -723,7 +731,14 @@ async def health_check(force: bool = False) -> Response:
     )
 
 
-@router.get("/live")
+@router.get(
+    "/live",
+    summary="Liveness Probe",
+    description="Kubernetes liveness probe. Returns 200 if the process is alive. Intentionally lightweight — does not check dependencies.",
+    responses={
+        200: {"description": "Process is alive"},
+    },
+)
 async def liveness_probe() -> Dict[str, Any]:
     """
     Kubernetes liveness probe.
@@ -737,7 +752,15 @@ async def liveness_probe() -> Dict[str, Any]:
     return await checker.liveness()
 
 
-@router.get("/ready")
+@router.get(
+    "/ready",
+    summary="Readiness Probe",
+    description="Kubernetes readiness probe. Returns 200 if the service can accept traffic. Checks critical components (database, blockchain).",
+    responses={
+        200: {"description": "Service is ready to accept traffic"},
+        503: {"description": "Service is not ready"},
+    },
+)
 async def readiness_probe(response: Response) -> Dict[str, Any]:
     """
     Kubernetes readiness probe.
@@ -754,7 +777,15 @@ async def readiness_probe(response: Response) -> Dict[str, Any]:
     return result
 
 
-@router.get("/startup")
+@router.get(
+    "/startup",
+    summary="Startup Probe",
+    description="Kubernetes startup probe. More lenient than liveness — allows up to 30 seconds for database connection during container startup.",
+    responses={
+        200: {"description": "Service has started successfully"},
+        503: {"description": "Service is still starting up"},
+    },
+)
 async def startup_probe(response: Response) -> Dict[str, Any]:
     """
     Kubernetes startup probe.
@@ -771,7 +802,14 @@ async def startup_probe(response: Response) -> Dict[str, Any]:
     return result
 
 
-@router.get("/metrics")
+@router.get(
+    "/metrics",
+    summary="Prometheus Metrics",
+    description="Prometheus-compatible metrics endpoint. Returns `em_up`, `em_uptime_seconds`, `em_component_health`, and `em_component_latency_ms` gauges in text exposition format.",
+    responses={
+        200: {"description": "Prometheus metrics in text/plain format"},
+    },
+)
 async def prometheus_metrics() -> Response:
     """
     Prometheus metrics endpoint.
@@ -852,7 +890,14 @@ async def prometheus_metrics() -> Response:
     )
 
 
-@router.get("/history")
+@router.get(
+    "/history",
+    summary="Health Check History",
+    description="Get recent health check history for trend analysis and debugging intermittent issues.",
+    responses={
+        200: {"description": "Health check history entries"},
+    },
+)
 async def health_history(limit: int = 10) -> Dict[str, Any]:
     """
     Get recent health check history.
@@ -870,7 +915,14 @@ async def health_history(limit: int = 10) -> Dict[str, Any]:
     }
 
 
-@router.post("/invalidate-cache")
+@router.post(
+    "/invalidate-cache",
+    summary="Invalidate Health Cache",
+    description="Clear the health check cache, forcing the next check to query all components fresh.",
+    responses={
+        200: {"description": "Cache invalidated"},
+    },
+)
 async def invalidate_cache() -> Dict[str, Any]:
     """
     Invalidate health check cache.
@@ -885,7 +937,14 @@ async def invalidate_cache() -> Dict[str, Any]:
     }
 
 
-@router.get("/version")
+@router.get(
+    "/version",
+    summary="API Version Info",
+    description="Get the API version, environment, build date, git commit, and uptime.",
+    responses={
+        200: {"description": "Version and build information"},
+    },
+)
 async def version_info() -> Dict[str, Any]:
     """
     Get API version and build information.

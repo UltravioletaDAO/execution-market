@@ -57,8 +57,22 @@ def set_health_checker(checker: HealthChecker) -> None:
 # =============================================================================
 
 
-@router.get("")
-@router.get("/")
+@router.get(
+    "",
+    summary="Health Check (Root)",
+    responses={
+        200: {"description": "System is healthy or degraded"},
+        503: {"description": "System is unhealthy"},
+    },
+)
+@router.get(
+    "/",
+    summary="Health Check",
+    responses={
+        200: {"description": "System is healthy or degraded"},
+        503: {"description": "System is unhealthy"},
+    },
+)
 async def health_check(
     force: bool = Query(False, description="Force fresh health check, bypass cache"),
     response: Response = None,
@@ -94,7 +108,14 @@ async def health_check(
 # =============================================================================
 
 
-@router.get("/ready")
+@router.get(
+    "/ready",
+    summary="Readiness Probe",
+    responses={
+        200: {"description": "Service is ready"},
+        503: {"description": "Service is not ready"},
+    },
+)
 async def readiness_probe(response: Response) -> Dict[str, Any]:
     """
     Kubernetes readiness probe.
@@ -142,7 +163,13 @@ async def readiness_probe(response: Response) -> Dict[str, Any]:
     return result
 
 
-@router.get("/live")
+@router.get(
+    "/live",
+    summary="Liveness Probe",
+    responses={
+        200: {"description": "Process is alive"},
+    },
+)
 async def liveness_probe() -> Dict[str, Any]:
     """
     Kubernetes liveness probe.
@@ -164,7 +191,14 @@ async def liveness_probe() -> Dict[str, Any]:
     }
 
 
-@router.get("/startup")
+@router.get(
+    "/startup",
+    summary="Startup Probe",
+    responses={
+        200: {"description": "Service has started"},
+        503: {"description": "Service is still starting"},
+    },
+)
 async def startup_probe(response: Response) -> Dict[str, Any]:
     """
     Kubernetes startup probe.
@@ -222,7 +256,14 @@ async def startup_probe(response: Response) -> Dict[str, Any]:
 # =============================================================================
 
 
-@router.get("/detailed")
+@router.get(
+    "/detailed",
+    summary="Detailed Health Check",
+    responses={
+        200: {"description": "Detailed health status with component latencies and configuration"},
+        503: {"description": "System is unhealthy"},
+    },
+)
 async def detailed_health(
     force: bool = Query(False, description="Force fresh health check"),
     include_history: bool = Query(False, description="Include recent health history"),
@@ -291,7 +332,15 @@ async def detailed_health(
 # =============================================================================
 
 
-@router.get("/component/{component_name}")
+@router.get(
+    "/component/{component_name}",
+    summary="Check Single Component",
+    responses={
+        200: {"description": "Component health status"},
+        404: {"description": "Component not found"},
+        503: {"description": "Component is unhealthy"},
+    },
+)
 async def check_component(
     component_name: str,
     response: Response,
@@ -330,7 +379,13 @@ async def check_component(
 # =============================================================================
 
 
-@router.get("/history")
+@router.get(
+    "/history",
+    summary="Health Check History",
+    responses={
+        200: {"description": "Recent health check history"},
+    },
+)
 async def health_history(
     limit: int = Query(10, ge=1, le=100, description="Number of history entries"),
 ) -> Dict[str, Any]:
@@ -352,7 +407,13 @@ async def health_history(
     }
 
 
-@router.post("/invalidate-cache")
+@router.post(
+    "/invalidate-cache",
+    summary="Invalidate Health Cache",
+    responses={
+        200: {"description": "Cache invalidated successfully"},
+    },
+)
 async def invalidate_cache() -> Dict[str, Any]:
     """
     Invalidate health check cache.
@@ -368,7 +429,13 @@ async def invalidate_cache() -> Dict[str, Any]:
     }
 
 
-@router.get("/version")
+@router.get(
+    "/version",
+    summary="API Version Info",
+    responses={
+        200: {"description": "Version and build information"},
+    },
+)
 async def version_info() -> Dict[str, Any]:
     """
     Get API version and build information.
@@ -452,7 +519,13 @@ def _group_prefix(path: str) -> str:
     return "root"
 
 
-@router.get("/routes")
+@router.get(
+    "/routes",
+    summary="List Registered Routes",
+    responses={
+        200: {"description": "All registered routes grouped by prefix"},
+    },
+)
 async def route_parity_check(request: Request) -> Dict[str, Any]:
     """
     List all registered routes in the FastAPI application.
@@ -493,7 +566,14 @@ async def route_parity_check(request: Request) -> Dict[str, Any]:
 # =============================================================================
 
 
-@router.get("/sanity")
+@router.get(
+    "/sanity",
+    summary="Metrics Sanity Check",
+    responses={
+        200: {"description": "Sanity check results with any warnings"},
+        503: {"description": "Sanity check failed"},
+    },
+)
 async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
     """
     Periodic metrics sanity check.
@@ -704,7 +784,13 @@ async def metrics_sanity_check(response: Response) -> Dict[str, Any]:
 # =============================================================================
 
 
-@router.get("/metrics")
+@router.get(
+    "/metrics",
+    summary="Prometheus Metrics",
+    responses={
+        200: {"description": "Prometheus metrics in text/plain exposition format"},
+    },
+)
 async def prometheus_metrics(
     refresh: bool = Query(
         False, description="Refresh expensive metrics before scraping"

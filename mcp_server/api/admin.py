@@ -112,50 +112,62 @@ async def verify_admin_key(
 
 
 class ConfigValue(BaseModel):
-    key: str
-    value: Any
-    description: Optional[str] = None
-    category: str
-    is_public: bool
-    updated_at: Optional[datetime] = None
+    """Single platform configuration key-value pair."""
+
+    key: str = Field(..., description="Configuration key (e.g. 'fees.platform_fee_pct')")
+    value: Any = Field(..., description="Current configuration value")
+    description: Optional[str] = Field(None, description="Human-readable description of this setting")
+    category: str = Field(..., description="Configuration category (fees, limits, timing, features, payments, treasury)")
+    is_public: bool = Field(..., description="Whether this setting is publicly visible")
+    updated_at: Optional[datetime] = Field(None, description="Last update timestamp (ISO 8601)")
 
 
 class AllConfigResponse(BaseModel):
-    fees: Dict[str, Any]
-    limits: Dict[str, Any]
-    timing: Dict[str, Any]
-    features: Dict[str, Any]
-    payments: Dict[str, Any]
-    treasury: Dict[str, Any]
+    """All platform configuration values grouped by category."""
+
+    fees: Dict[str, Any] = Field(..., description="Fee-related settings (platform fee pct, min fee, etc.)")
+    limits: Dict[str, Any] = Field(..., description="Platform limits (min/max bounty, batch size, etc.)")
+    timing: Dict[str, Any] = Field(..., description="Timing settings (task expiration, deadlines, etc.)")
+    features: Dict[str, Any] = Field(..., description="Feature flags (escrow enabled, AI verification, etc.)")
+    payments: Dict[str, Any] = Field(..., description="Payment settings (supported networks, tokens, etc.)")
+    treasury: Dict[str, Any] = Field(..., description="Treasury settings (wallet address, fee distribution)")
 
 
 class ConfigUpdateRequest(BaseModel):
-    value: Any = Field(..., description="New value")
-    reason: Optional[str] = Field(None, description="Reason for change (for audit log)")
+    """Request to update a platform configuration value."""
+
+    value: Any = Field(..., description="New value for the configuration key")
+    reason: Optional[str] = Field(None, description="Reason for change (recorded in audit log)")
 
 
 class ConfigUpdateResponse(BaseModel):
-    success: bool
-    key: str
-    old_value: Any
-    new_value: Any
-    message: str
+    """Response after updating a configuration value."""
+
+    success: bool = Field(..., description="Whether the update was successful")
+    key: str = Field(..., description="Configuration key that was updated")
+    old_value: Any = Field(..., description="Previous value before the update")
+    new_value: Any = Field(..., description="New value after the update")
+    message: str = Field(..., description="Human-readable result message")
 
 
 class AuditLogEntry(BaseModel):
-    id: str
-    config_key: str
-    old_value: Any
-    new_value: Any
-    changed_by: Optional[str]
-    reason: Optional[str]
-    changed_at: datetime
+    """Single entry in the configuration audit log."""
+
+    id: str = Field(..., description="Unique audit entry ID")
+    config_key: str = Field(..., description="Configuration key that was changed")
+    old_value: Any = Field(..., description="Value before the change")
+    new_value: Any = Field(..., description="Value after the change")
+    changed_by: Optional[str] = Field(None, description="Actor who made the change")
+    reason: Optional[str] = Field(None, description="Reason provided for the change")
+    changed_at: datetime = Field(..., description="Timestamp of the change (ISO 8601)")
 
 
 class AuditLogResponse(BaseModel):
-    entries: List[AuditLogEntry]
-    count: int
-    offset: int
+    """Paginated list of configuration audit log entries."""
+
+    entries: List[AuditLogEntry] = Field(..., description="List of audit log entries")
+    count: int = Field(..., description="Total number of matching entries")
+    offset: int = Field(..., description="Current pagination offset")
 
 
 # =============================================================================
@@ -163,7 +175,17 @@ class AuditLogResponse(BaseModel):
 # =============================================================================
 
 
-@router.get("/verify")
+@router.get(
+    "/verify",
+    summary="Verify Admin Credentials",
+    description="Validate admin authentication credentials. Returns the admin role on success.",
+    responses={
+        200: {"description": "Admin credentials are valid"},
+        401: {"description": "Missing or invalid admin credentials"},
+        403: {"description": "Invalid admin key"},
+        503: {"description": "Admin access not configured"},
+    },
+)
 async def verify_admin(admin: dict = Depends(verify_admin_key)) -> Dict[str, Any]:
     return {"valid": True, "role": admin.get("role", "admin")}
 
@@ -175,7 +197,17 @@ async def verify_admin(admin: dict = Depends(verify_admin_key)) -> Dict[str, Any
 # =============================================================================
 
 
-@router.get("/config", response_model=AllConfigResponse)
+@router.get(
+    "/config",
+    response_model=AllConfigResponse,
+    summary="Get All Configuration",
+    description="Retrieve all platform configuration values grouped by category (fees, limits, timing, features, payments, treasury).",
+    responses={
+        200: {"description": "All configuration values by category"},
+        401: {"description": "Unauthorized"},
+        503: {"description": "Configuration system not available"},
+    },
+)
 async def get_all_config(admin: dict = Depends(verify_admin_key)) -> AllConfigResponse:
     """Get all platform configuration values grouped by category."""
     if not CONFIG_AVAILABLE:
@@ -235,7 +267,16 @@ async def get_all_config(admin: dict = Depends(verify_admin_key)) -> AllConfigRe
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/config/audit", response_model=AuditLogResponse)
+@router.get(
+    "/config/audit",
+    response_model=AuditLogResponse,
+    summary="Get Configuration Audit Log",
+    description="Retrieve the audit trail of all configuration changes. Supports filtering by key and category.",
+    responses={
+        200: {"description": "Paginated audit log entries"},
+        401: {"description": "Unauthorized"},
+    },
+)
 async def get_config_audit_log(
     key: Optional[str] = Query(None, description="Filter by config key"),
     limit: int = Query(50, ge=1, le=500),
@@ -280,7 +321,17 @@ async def get_config_audit_log(
         return AuditLogResponse(entries=[], count=0, offset=offset)
 
 
-@router.get("/config/{key}", response_model=ConfigValue)
+@router.get(
+    "/config/{key}",
+    response_model=ConfigValue,
+    summary="Get Configuration Value",
+    description="Retrieve a specific configuration value by its key. Falls back to default values if not set in the database.",
+    responses={
+        200: {"description": "Configuration value found"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Configuration key not found"},
+    },
+)
 async def get_config_value(
     key: str, admin: dict = Depends(verify_admin_key)
 ) -> ConfigValue:
@@ -323,7 +374,18 @@ async def get_config_value(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.put("/config/{key}", response_model=ConfigUpdateResponse)
+@router.put(
+    "/config/{key}",
+    response_model=ConfigUpdateResponse,
+    summary="Update Configuration Value",
+    description="Update a platform configuration value. All changes are recorded in the audit log with the actor and optional reason.",
+    responses={
+        200: {"description": "Configuration updated successfully"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Configuration key not found"},
+        500: {"description": "Failed to update configuration"},
+    },
+)
 async def update_config_value(
     key: str, request: ConfigUpdateRequest, admin: dict = Depends(verify_admin_key)
 ) -> ConfigUpdateResponse:
@@ -413,7 +475,15 @@ async def update_config_value(
 # =============================================================================
 
 
-@router.get("/stats")
+@router.get(
+    "/stats",
+    summary="Get Platform Statistics",
+    description="Get platform-wide statistics including task counts by status, financial metrics (volume, fees, active escrow), and user counts.",
+    responses={
+        200: {"description": "Platform statistics"},
+        401: {"description": "Unauthorized"},
+    },
+)
 async def get_platform_stats(admin: dict = Depends(verify_admin_key)) -> Dict[str, Any]:
     """Get platform-wide statistics."""
     try:
@@ -527,7 +597,15 @@ async def get_platform_stats(admin: dict = Depends(verify_admin_key)) -> Dict[st
 # =============================================================================
 
 
-@router.get("/tasks")
+@router.get(
+    "/tasks",
+    summary="List All Tasks",
+    description="List all tasks across the platform with optional status filtering and text search. Includes status distribution counts.",
+    responses={
+        200: {"description": "Paginated task list with status counts"},
+        401: {"description": "Unauthorized"},
+    },
+)
 async def list_tasks(
     status: Optional[str] = Query(None, description="Filter by status"),
     search: Optional[str] = Query(None, description="Search in title/description"),
@@ -535,7 +613,7 @@ async def list_tasks(
     offset: int = Query(0, ge=0),
     admin: dict = Depends(verify_admin_key),
 ) -> Dict[str, Any]:
-    """List all tasks with optional filters."""
+    """List all tasks across the platform with optional filters."""
     try:
         supabase = db.get_supabase_client()
 
@@ -569,7 +647,16 @@ async def list_tasks(
         return {"tasks": [], "count": 0, "offset": offset, "stats": {}}
 
 
-@router.get("/tasks/{task_id}")
+@router.get(
+    "/tasks/{task_id}",
+    summary="Get Task Detail",
+    description="Get complete details for a specific task including all fields, evidence schema, and executor info.",
+    responses={
+        200: {"description": "Task details"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Task not found"},
+    },
+)
 async def get_task_detail(
     task_id: str, admin: dict = Depends(verify_admin_key)
 ) -> Dict[str, Any]:
@@ -591,7 +678,17 @@ async def get_task_detail(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.put("/tasks/{task_id}")
+@router.put(
+    "/tasks/{task_id}",
+    summary="Update Task (Admin Override)",
+    description="Update task fields as an admin. Supports updating title, instructions, bounty, deadline, and status. Field names are mapped from frontend conventions to database columns.",
+    responses={
+        200: {"description": "Task updated successfully"},
+        400: {"description": "No valid fields to update"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Task not found"},
+    },
+)
 async def update_task(
     task_id: str, updates: Dict[str, Any], admin: dict = Depends(verify_admin_key)
 ) -> Dict[str, Any]:
@@ -632,7 +729,17 @@ async def update_task(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/tasks/{task_id}/cancel")
+@router.post(
+    "/tasks/{task_id}/cancel",
+    summary="Cancel Task (Admin)",
+    description="Force-cancel a task as an admin. Cannot cancel tasks already completed or cancelled.",
+    responses={
+        200: {"description": "Task cancelled successfully"},
+        400: {"description": "Task cannot be cancelled in its current status"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Task not found"},
+    },
+)
 async def cancel_task(
     task_id: str, body: Dict[str, Any], admin: dict = Depends(verify_admin_key)
 ) -> Dict[str, Any]:
@@ -676,7 +783,15 @@ async def cancel_task(
 # =============================================================================
 
 
-@router.get("/payments")
+@router.get(
+    "/payments",
+    summary="List Payment Transactions",
+    description="List payment transactions derived from task completions and cancellations. Supports time-period filtering.",
+    responses={
+        200: {"description": "Paginated payment transactions"},
+        401: {"description": "Unauthorized"},
+    },
+)
 async def list_payments(
     period: str = Query("7d", description="Time period: 24h, 7d, 30d, 90d, all"),
     limit: int = Query(20, ge=1, le=100),
@@ -742,7 +857,15 @@ async def list_payments(
         return {"transactions": [], "count": 0, "offset": offset}
 
 
-@router.get("/payments/stats")
+@router.get(
+    "/payments/stats",
+    summary="Get Payment Statistics",
+    description="Get aggregated payment statistics including total volume, fees collected, and active escrow amounts. Supports time-period filtering.",
+    responses={
+        200: {"description": "Payment statistics"},
+        401: {"description": "Unauthorized"},
+    },
+)
 async def get_payment_stats(
     period: str = Query("7d", description="Time period: 24h, 7d, 30d, 90d, all"),
     admin: dict = Depends(verify_admin_key),
@@ -810,7 +933,15 @@ async def get_payment_stats(
 # =============================================================================
 
 
-@router.get("/users/agents")
+@router.get(
+    "/users/agents",
+    summary="List Agents",
+    description="List all registered agents (task creators) with their task counts, spending totals, and status. Derived from API keys table.",
+    responses={
+        200: {"description": "Paginated list of agents with statistics"},
+        401: {"description": "Unauthorized"},
+    },
+)
 async def list_agents(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -892,7 +1023,15 @@ async def list_agents(
         return {"users": [], "count": 0, "offset": offset, "stats": {}}
 
 
-@router.get("/users/workers")
+@router.get(
+    "/users/workers",
+    summary="List Workers",
+    description="List all registered workers (task executors) with their completed task counts, earnings, and reputation scores.",
+    responses={
+        200: {"description": "Paginated list of workers with statistics"},
+        401: {"description": "Unauthorized"},
+    },
+)
 async def list_workers(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -956,7 +1095,17 @@ async def list_workers(
         return {"users": [], "count": 0, "offset": offset, "stats": {}}
 
 
-@router.put("/users/{user_id}/status")
+@router.put(
+    "/users/{user_id}/status",
+    summary="Update User Status",
+    description="Suspend or activate an agent or worker. Tries agent (api_keys) first, then worker (executors) table.",
+    responses={
+        200: {"description": "User status updated"},
+        400: {"description": "Invalid status value"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "User not found"},
+    },
+)
 async def update_user_status(
     user_id: str, body: Dict[str, Any], admin: dict = Depends(verify_admin_key)
 ) -> Dict[str, Any]:
@@ -1013,7 +1162,15 @@ async def update_user_status(
 # =============================================================================
 
 
-@router.get("/analytics")
+@router.get(
+    "/analytics",
+    summary="Get Platform Analytics",
+    description="Get detailed analytics data for dashboard charts including daily time series (tasks created/completed, volume), top agents, and top workers.",
+    responses={
+        200: {"description": "Analytics data with time series and rankings"},
+        401: {"description": "Unauthorized"},
+    },
+)
 async def get_analytics(
     period: str = Query("30d", description="Time period: 7d, 30d, 90d, all"),
     admin: dict = Depends(verify_admin_key),
@@ -1175,7 +1332,16 @@ async def get_analytics(
 # =============================================================================
 
 
-@router.get("/payments/orphaned")
+@router.get(
+    "/payments/orphaned",
+    summary="Get Orphaned Payments",
+    description="List submissions that were accepted/approved but are missing a payment transaction hash. These may need manual settlement retry.",
+    responses={
+        200: {"description": "List of orphaned submissions needing payment"},
+        401: {"description": "Unauthorized"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def get_orphaned_payments(
     limit: int = Query(20, ge=1, le=100),
     admin: dict = Depends(verify_admin_key),
@@ -1204,7 +1370,18 @@ async def get_orphaned_payments(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/payments/retry/{submission_id}")
+@router.post(
+    "/payments/retry/{submission_id}",
+    summary="Retry Payment Settlement",
+    description="Manually retry x402 payment settlement for an orphaned submission. Returns the payment transaction hash on success.",
+    responses={
+        200: {"description": "Settlement result (settled, already_paid, or failed)"},
+        400: {"description": "Submission is not in accepted/approved state"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Submission not found"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def retry_submission_payment(
     submission_id: str,
     admin: dict = Depends(verify_admin_key),
