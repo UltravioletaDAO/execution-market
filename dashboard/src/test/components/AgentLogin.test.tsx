@@ -37,11 +37,18 @@ const localStorageMock = {
 vi.stubGlobal('localStorage', localStorageMock)
 
 // Import AFTER mocks are set up
-import { AgentLogin, isAgentLoggedIn, clearAgentSession, setAgentSession } from '../../components/AgentLogin'
+import { AgentLogin } from '../../components/AgentLogin'
+import { isAgentLoggedIn, clearAgentSession, setAgentSession } from '../../utils/agentAuth'
 
 function renderAgentLogin() {
   return render(
-    <MemoryRouter initialEntries={['/agent/login']}>
+    <MemoryRouter
+      initialEntries={['/agent/login']}
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <AgentLogin />
     </MemoryRouter>
   )
