@@ -9,6 +9,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
   function AgentIntegration({ onLearnMore: _onLearnMore }, ref) {
     const { t } = useTranslation()
     const [copiedCommand, setCopiedCommand] = useState<string | null>(null)
+    const REQUIRE_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
 
     const copyToClipboard = async (text: string, id: string) => {
       await navigator.clipboard.writeText(text)
@@ -227,12 +228,14 @@ print(f"Task {task['id']} created!")`}
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </a>
-            <p className="text-sm text-gray-500 mt-3">
-              {t('landing.needApiKey', 'Need an API key?')}{' '}
-              <a href="mailto:UltravioletaDAO@gmail.com" className="text-purple-600 hover:underline">
-                {t('landing.contactUs', 'Contact us')}
-              </a>
-            </p>
+            {REQUIRE_API_KEY && (
+              <p className="text-sm text-gray-500 mt-3">
+                {t('landing.needApiKey', 'Need an API key?')}{' '}
+                <a href="mailto:UltravioletaDAO@gmail.com" className="text-purple-600 hover:underline">
+                  {t('landing.contactUs', 'Contact us')}
+                </a>
+              </p>
+            )}
           </div>
         </div>
       </section>
