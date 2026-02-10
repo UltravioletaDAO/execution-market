@@ -8,7 +8,7 @@ Implements dynamic pricing to ensure tasks get completed.
 import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class BountyEscalator:
             List of escalation results
         """
         results = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         for task in tasks:
             # Skip if escalation disabled
@@ -138,7 +138,7 @@ class BountyEscalator:
             Dict with suggested bounty and breakdown
         """
         multipliers = {}
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Urgency multiplier
         time_to_deadline = (deadline - now).total_seconds()
@@ -193,14 +193,14 @@ class BountyEscalator:
         Returns:
             Job execution summary
         """
-        start = datetime.utcnow()
+        start = datetime.now(timezone.utc)
         logger.info("Starting bounty escalation job")
 
         # Would fetch unclaimed tasks from database
         # For now, return empty results
         results = []
 
-        end = datetime.utcnow()
+        end = datetime.now(timezone.utc)
         duration = (end - start).total_seconds()
 
         summary = {

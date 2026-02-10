@@ -15,7 +15,7 @@ import logging
 import asyncio
 from typing import Dict, List, Optional, Callable, Awaitable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -87,18 +87,18 @@ class WorkerConnection:
             return False
         if not self.grace_until:
             return False
-        return datetime.utcnow() < self.grace_until
+        return datetime.now(timezone.utc) < self.grace_until
 
     def time_until_expiry(self) -> Optional[timedelta]:
         """Get time remaining in grace period."""
         if not self.grace_until:
             return None
-        remaining = self.grace_until - datetime.utcnow()
+        remaining = self.grace_until - datetime.now(timezone.utc)
         return remaining if remaining.total_seconds() > 0 else timedelta(0)
 
     def offline_duration(self) -> timedelta:
         """Get how long worker has been offline."""
-        return datetime.utcnow() - self.last_seen
+        return datetime.now(timezone.utc) - self.last_seen
 
 
 @dataclass
@@ -205,7 +205,7 @@ class ConnectivityManager:
         """
         connection = WorkerConnection(
             worker_id=worker_id,
-            last_seen=datetime.utcnow(),
+            last_seen=datetime.now(timezone.utc),
             state=ConnectionState.CONNECTED,
             metadata=metadata or {},
         )
@@ -250,7 +250,7 @@ class ConnectivityManager:
             # Auto-register if not found
             connection = await self.register_worker(worker_id, metadata)
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         was_disconnected = connection.state in (
             ConnectionState.DISCONNECTED,
             ConnectionState.GRACE_PERIOD,
@@ -308,7 +308,7 @@ class ConnectivityManager:
 
         if connection.state == ConnectionState.CONNECTED:
             connection.state = ConnectionState.GRACE_PERIOD
-            connection.grace_until = datetime.utcnow() + timedelta(
+            connection.grace_until = datetime.now(timezone.utc) + timedelta(
                 minutes=self.config.grace_period_minutes
             )
 
@@ -472,7 +472,7 @@ class ConnectivityManager:
 
     async def _check_connections(self):
         """Check all connections for timeouts and expiries."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         timeout = timedelta(seconds=self.config.heartbeat_timeout_seconds)
 
         for worker_id, connection in list(self._connections.items()):

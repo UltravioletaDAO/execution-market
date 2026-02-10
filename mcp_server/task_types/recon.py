@@ -15,7 +15,7 @@ NOW-132: Execution Market Recon observation tasks
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import List, Optional, Dict, Any, Tuple
@@ -237,7 +237,7 @@ class ReconTask:
     evidence_requirements: List[EvidenceRequirement]
     bounty_usd: Decimal
     deadline: datetime
-    created_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -277,7 +277,7 @@ class ReconTask:
             )
 
         # Validate deadline is in the future
-        if self.deadline <= datetime.utcnow():
+        if self.deadline <= datetime.now(timezone.utc):
             errors.append("Deadline must be in the future")
 
         # Validate at least one question
@@ -425,7 +425,7 @@ Answer all questions based on what you observe.
             questions=questions or default_questions,
             evidence_requirements=evidence_requirements,
             bounty_usd=bounty,
-            deadline=datetime.utcnow() + timedelta(hours=deadline_hours),
+            deadline=datetime.now(timezone.utc) + timedelta(hours=deadline_hours),
             metadata={
                 "store_name": store_name,
                 "location_type": location_type,
@@ -528,7 +528,7 @@ Tips for accurate counting:
             questions=questions,
             evidence_requirements=evidence_requirements,
             bounty_usd=bounty,
-            deadline=datetime.utcnow() + timedelta(hours=deadline_hours),
+            deadline=datetime.now(timezone.utc) + timedelta(hours=deadline_hours),
             metadata={
                 "count_what": count_what,
                 "specific_area": specific_area,
@@ -640,7 +640,7 @@ If an item is not available:
             questions=questions,
             evidence_requirements=evidence_requirements,
             bounty_usd=bounty,
-            deadline=datetime.utcnow() + timedelta(hours=deadline_hours),
+            deadline=datetime.now(timezone.utc) + timedelta(hours=deadline_hours),
             metadata={
                 "store_name": store_name,
                 "items": items,
@@ -747,7 +747,7 @@ Steps:
             questions=questions,
             evidence_requirements=evidence_requirements,
             bounty_usd=bounty,
-            deadline=datetime.utcnow() + timedelta(hours=deadline_hours),
+            deadline=datetime.now(timezone.utc) + timedelta(hours=deadline_hours),
             metadata={
                 "product": product,
                 "product_details": product_details,
@@ -865,7 +865,7 @@ Rating scale (1-10):
             questions=questions,
             evidence_requirements=evidence_requirements,
             bounty_usd=bounty,
-            deadline=datetime.utcnow() + timedelta(hours=deadline_hours),
+            deadline=datetime.now(timezone.utc) + timedelta(hours=deadline_hours),
             metadata={
                 "subject": subject,
                 "aspects_to_check": aspects,

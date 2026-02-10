@@ -17,7 +17,7 @@ import httpx
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -203,7 +203,7 @@ class FirebaseProvider(NotificationProvider):
         # TODO: Implement proper OAuth2 token fetch using google-auth
         # For now, return placeholder
         if self._access_token and self._token_expires:
-            if datetime.utcnow() < self._token_expires:
+            if datetime.now(timezone.utc) < self._token_expires:
                 return self._access_token
 
         logger.warning(
@@ -250,7 +250,7 @@ class FirebaseProvider(NotificationProvider):
                     "headers": {
                         "apns-priority": apns_priority,
                         "apns-expiration": str(
-                            int(datetime.utcnow().timestamp()) + payload.ttl_seconds
+                            int(datetime.now(timezone.utc).timestamp()) + payload.ttl_seconds
                         ),
                     },
                     "payload": {
@@ -297,7 +297,7 @@ class FirebaseProvider(NotificationProvider):
                     provider=self.name,
                     success=True,
                     provider_message_id=result.get("name"),
-                    delivered_at=datetime.utcnow(),
+                    delivered_at=datetime.now(timezone.utc),
                 )
             else:
                 error_data = response.json() if response.content else {}
@@ -441,7 +441,7 @@ class OneSignalProvider(NotificationProvider):
                         provider=self.name,
                         success=True,
                         provider_message_id=notification_id,
-                        delivered_at=datetime.utcnow(),
+                        delivered_at=datetime.now(timezone.utc),
                     )
                     for _ in device_tokens
                 ]
@@ -645,7 +645,7 @@ class PushNotificationManager:
                 # Update existing
                 device["provider"] = provider
                 device["info"] = device_info or {}
-                device["updated_at"] = datetime.utcnow()
+                device["updated_at"] = datetime.now(timezone.utc)
                 return True
 
         # Add new device
@@ -654,8 +654,8 @@ class PushNotificationManager:
                 "token": device_token,
                 "provider": provider,
                 "info": device_info or {},
-                "registered_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow(),
+                "registered_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
             }
         )
 
@@ -689,7 +689,7 @@ class PushNotificationManager:
     def _generate_notification_id(self) -> str:
         """Generate unique notification ID."""
         self._notification_counter += 1
-        return f"notif_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{self._notification_counter}"
+        return f"notif_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{self._notification_counter}"
 
     def _build_payload_from_template(
         self,

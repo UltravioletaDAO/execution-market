@@ -15,7 +15,7 @@ import logging
 import asyncio
 from typing import Dict, List, Optional, Callable, Awaitable, Any
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -112,16 +112,16 @@ class TaskTimeout:
 
     def is_expired(self) -> bool:
         """Check if timeout has expired."""
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(timezone.utc) >= self.expires_at
 
     def time_remaining(self) -> timedelta:
         """Get time remaining until expiry."""
-        remaining = self.expires_at - datetime.utcnow()
+        remaining = self.expires_at - datetime.now(timezone.utc)
         return remaining if remaining.total_seconds() > 0 else timedelta(0)
 
     def elapsed(self) -> timedelta:
         """Get time elapsed since start."""
-        return datetime.utcnow() - self.started_at
+        return datetime.now(timezone.utc) - self.started_at
 
     def progress_pct(self) -> float:
         """Get timeout progress as percentage (0-100)."""
@@ -250,7 +250,7 @@ class TimeoutManager:
         Returns:
             Created TaskTimeout
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         duration = custom_duration or self._get_timeout_duration(timeout_type)
 
         timeout = TaskTimeout(
@@ -398,7 +398,7 @@ class TimeoutManager:
 
         hours = approved_hours or request.requested_hours
         request.approved = True
-        request.approved_at = datetime.utcnow()
+        request.approved_at = datetime.now(timezone.utc)
         request.approved_by = approved_by
 
         # Find and extend the submission timeout
@@ -435,7 +435,7 @@ class TimeoutManager:
             return None
 
         request.approved = False
-        request.approved_at = datetime.utcnow()
+        request.approved_at = datetime.now(timezone.utc)
         request.approved_by = denied_by
 
         logger.info(f"Extension denied: {task_id}, by: {denied_by}, reason: {reason}")
@@ -458,7 +458,7 @@ class TimeoutManager:
 
     def get_expiring_soon(self, within_hours: float = 1.0) -> List[TaskTimeout]:
         """Get timeouts expiring within specified hours."""
-        threshold = datetime.utcnow() + timedelta(hours=within_hours)
+        threshold = datetime.now(timezone.utc) + timedelta(hours=within_hours)
         return [
             timeout
             for timeout in self._timeouts.values()
@@ -501,7 +501,7 @@ class TimeoutManager:
 
     async def _check_timeouts(self):
         """Check all timeouts for warnings and expiries."""
-        datetime.utcnow()
+        datetime.now(timezone.utc)
 
         for key, timeout in list(self._timeouts.items()):
             # Check for expiry
