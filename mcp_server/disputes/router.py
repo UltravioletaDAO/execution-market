@@ -64,7 +64,7 @@ class Dispute:
     description: str
     evidence_urls: List[str] = field(default_factory=list)
     status: DisputeStatus = DisputeStatus.OPENED
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     resolved_at: Optional[datetime] = None
     outcome: Optional[ResolutionOutcome] = None
     resolution_notes: Optional[str] = None
@@ -81,7 +81,7 @@ class ArbitrationVote:
     outcome: ResolutionOutcome
     worker_payout_pct: float
     reasoning: str
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class DisputeRouter:

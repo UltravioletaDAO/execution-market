@@ -9,7 +9,7 @@ import time
 import httpx
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -58,7 +58,7 @@ class Task:
     evidence_required: List[str]
     location_hint: Optional[str] = None
     executor_id: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -297,7 +297,7 @@ class ExecutionMarketClient:
                     status=task.status,
                     evidence=evidence,
                     answer=evidence.get("text_response"),
-                    completed_at=datetime.utcnow()
+                    completed_at=datetime.now(timezone.utc)
                 )
 
             if task.status in [TaskStatus.EXPIRED, TaskStatus.CANCELLED, TaskStatus.DISPUTED]:

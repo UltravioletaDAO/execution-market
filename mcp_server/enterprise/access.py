@@ -157,7 +157,7 @@ class APIKey:
     permissions: Set[Permission] = field(default_factory=set)
     rate_limit_override: Optional[int] = None
     created_by: str = ""
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     last_used: Optional[datetime] = None
     expires_at: Optional[datetime] = None
     is_active: bool = True
