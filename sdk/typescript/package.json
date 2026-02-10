@@ -61,7 +61,7 @@
   "dependencies": {
     "axios": "^1.6.0",
     "ethers": "^6.9.0",
-    "uvd-x402-sdk": "^2.22.0"
+    "uvd-x402-sdk": "^2.23.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

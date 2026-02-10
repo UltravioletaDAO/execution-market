@@ -46,6 +46,7 @@ ESCROW_CONTRACTS = {
     "celo": "0x320a3c35F131E5D2Fb36af56345726B298936037",
     "monad": "0x320a3c35F131E5D2Fb36af56345726B298936037",
     "avalanche": "0x320a3c35F131E5D2Fb36af56345726B298936037",
+    "optimism": "0x320a3c35F131E5D2Fb36af56345726B298936037",
 }
 
 
@@ -148,7 +149,7 @@ class TestFacilitator:
         data = result["data"]
         network_names = [n["network"] for n in data.get("networks", [])]
         logger.info(f"ERC-8004 networks ({data.get('count')}): {network_names}")
-        # At minimum, all 7 mainnets should appear (accept "base-mainnet" alias)
+        # At minimum, all 8 mainnets should appear (accept "base-mainnet" alias)
         for net in ENABLED_NETWORKS:
             found = net in network_names or f"{net}-mainnet" in network_names
             assert found, f"Network {net} missing from ERC-8004 (got: {network_names})"

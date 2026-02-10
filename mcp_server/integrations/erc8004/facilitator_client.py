@@ -94,6 +94,11 @@ ERC8004_CONTRACTS = {
         "reputation_registry": _MAINNET_REPUTATION,
         "chain_id": 43114,
     },
+    "optimism": {
+        "identity_registry": _MAINNET_IDENTITY,
+        "reputation_registry": _MAINNET_REPUTATION,
+        "chain_id": 10,
+    },
     # --- Testnets ---
     "ethereum-sepolia": {
         "identity_registry": _TESTNET_IDENTITY,

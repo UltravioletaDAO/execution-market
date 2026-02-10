@@ -24,8 +24,8 @@ Execution Market is a **Human Execution Layer for AI Agents** - a marketplace wh
 | Blockchain Scripts | TypeScript + viem |
 | Payments | x402 SDK + Facilitator (Base Mainnet, gasless) |
 | Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
-| Agent Identity | ERC-8004 Registry (14 networks via Facilitator) |
-| SDKs | Python `uvd-x402-sdk>=0.10.0` / TypeScript `uvd-x402-sdk@2.22.0` |
+| Agent Identity | ERC-8004 Registry (15 networks via Facilitator) |
+| SDKs | Python `uvd-x402-sdk>=0.11.0` / TypeScript `uvd-x402-sdk@2.23.0` |
 
 ## Project Structure
 
@@ -234,7 +234,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,base-sepolia`)
 - `X402_NETWORK` - Default payment network (default: `base`)
 - To enable a new chain: fund the platform wallet with USDC on that chain, then add it to `EM_ENABLED_NETWORKS`
-- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — 15 EVM networks, 4 stablecoins, 9 with x402r escrow)
+- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — 15 EVM networks, 5 stablecoins, 10 with x402r escrow)
 
 ## On-Chain Contracts
 
@@ -246,7 +246,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Base | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` |
 | x402r Escrow (AuthCaptureEscrow) | Ethereum | `0xc1256Bb30bd0cdDa07D8C8Cf67a59105f2EA1b98` |
 | x402r Escrow (AuthCaptureEscrow) | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
-| x402r Escrow (AuthCaptureEscrow) | Arbitrum, Celo, Monad, Avalanche | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
+| x402r Escrow (AuthCaptureEscrow) | Arbitrum, Celo, Monad, Avalanche, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
 | Execution Market Agent ID | **Base** | `2106` |
 | Execution Market Agent ID | Sepolia (legacy) | `469` |
@@ -423,12 +423,12 @@ Wrong Flow (DO NOT USE):
 
 | Component | Details |
 |-----------|---------|
-| **SDK** | `uvd-x402-sdk[fastapi]>=0.10.0` (in `mcp_server/requirements.txt`) |
+| **SDK** | `uvd-x402-sdk[fastapi]>=0.11.0` (in `mcp_server/requirements.txt`) |
 | **SDK Client** | `mcp_server/integrations/x402/sdk_client.py` — `EMX402SDK` class |
 | **Facilitator URL** | `https://facilitator.ultravioletadao.xyz` |
 | **Facilitator Endpoints** | `POST /verify`, `POST /settle`, `POST /register`, `POST /feedback` |
 | **Network** | Base Mainnet (chain 8453) for production payments |
-| **ERC-8004 Networks** | 14 total: 8 mainnets + 6 testnets (all via Facilitator) |
+| **ERC-8004 Networks** | 15 total: 9 mainnets + 6 testnets (all via Facilitator) |
 
 **Contract Addresses (Base Mainnet)**:
 
@@ -446,7 +446,8 @@ Wrong Flow (DO NOT USE):
 **Wallet Notes**:
 - **Dev wallet** (`0x857f`): Used by local scripts and tests. Key in `.env.local`.
 - **Production wallet** (`0xD386`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`.
-- These are currently different keys. Production wallet has ~$12 USDC across 6 networks.
+- These are currently different keys. Production wallet has ~$5 USDC+USDT per chain across 8 mainnet networks.
+- **Testing budget**: Always use amounts **< $0.30** for test tasks. ~$5 per chain must last through all testing cycles.
 
 **Payment Flow for Tasks** (as of 2026-02-06):
 1. **Deposit** (task creation): Agent signs EIP-3009 auth → MCP verifies via Facilitator → Task created (no funds move yet)
@@ -491,7 +492,7 @@ Wrong Flow (DO NOT USE):
 **MCP Server / Payments**:
 - [x] ~~`x402r_escrow.py` ABI mismatch~~ — FIXED: file deleted, SDK + Facilitator used instead
 - [x] ~~Fee rounding to $0.00 on small bounties~~ — FIXED: 6-decimal quantization + $0.01 minimum fee
-- [x] ~~Multichain support~~ — DONE: 15 EVM networks in token registry (9 with x402r escrow), `EM_ENABLED_NETWORKS` env var gates active chains
+- [x] ~~Multichain support~~ — DONE: 15 EVM networks in token registry (10 with x402r escrow), `EM_ENABLED_NETWORKS` env var gates active chains
 - [x] ~~`routes.py` escrow wiring called contracts directly~~ — FIXED: `create_task()` uses `verify_x402_payment()`, `approve_submission()` uses `sdk.settle_task_payment()`
 - [x] ~~`escrow.py` endpoints referenced deleted `x402r_escrow.py`~~ — FIXED: dead code removed, endpoints return 410 Gone or use SDK
 
@@ -508,9 +509,10 @@ Wrong Flow (DO NOT USE):
 
 When creating test tasks:
 - **Deadlines**: 5-15 minutes for testing, NOT hours.
-- **Bounties**: Small amounts ($0.05–$0.25) for test tasks.
+- **Bounties**: Use amounts **under $0.30** for testing. Each mainnet wallet has ~$5 USDC/USDT — keep tests small to make funds last. Never use $1+ amounts for test tasks.
 - **Script**: `cd scripts && npx tsx task-factory.ts --preset screenshot --bounty 0.10 --deadline 10`
 - **Live escrow**: Add `--live` flag (requires USDC in wallet + uses relay directly — needs SDK migration)
+- **Production wallet only**: Use `0xD3868E1eD738CED6945A574a7c769433BeD5d474` for mainnet testing (funded on all 8 chains)
 
 ### ERC-8004 Identity
 
@@ -525,7 +527,7 @@ When creating test tasks:
 | Facilitator Reputation API | `POST /feedback`, `GET /reputation/{network}/{agentId}` |
 
 **Supported ERC-8004 Networks (14)**:
-- Mainnets: ethereum, base, polygon, arbitrum, celo, bsc, monad, avalanche
+- Mainnets: ethereum, base, polygon, arbitrum, celo, bsc, monad, avalanche, optimism
 - Testnets: ethereum-sepolia, base-sepolia, polygon-amoy, arbitrum-sepolia, celo-sepolia, avalanche-fuji
 
 **Facilitator Network Naming** (v1.29.0+):
@@ -618,7 +620,7 @@ When creating test tasks:
 - `GET /api/v1/reputation/agents/{id}` — Agent reputation
 - `POST /api/v1/reputation/workers/rate` — Rate worker
 - `POST /api/v1/reputation/agents/rate` — Rate agent
-- `POST /api/v1/reputation/register` — Gasless agent/worker registration (any of 14 networks)
+- `POST /api/v1/reputation/register` — Gasless agent/worker registration (any of 15 networks)
 - `GET /api/v1/reputation/networks` — List supported ERC-8004 networks
 
 **WebSocket:**
@@ -653,7 +655,7 @@ When creating test tasks:
 | `mcp_server/integrations/x402/sdk_client.py` | x402 SDK wrapper + multichain token registry (12 EVM, 4 stablecoins) — **USE THIS for all payments** |
 | `mcp_server/integrations/x402/client.py` | Direct HTTP facilitator client (fallback) |
 | `mcp_server/integrations/x402/advanced_escrow_integration.py` | Advanced escrow flows documentation |
-| `mcp_server/integrations/erc8004/facilitator_client.py` | ERC-8004 identity, reputation, registration (14 networks) |
+| `mcp_server/integrations/erc8004/facilitator_client.py` | ERC-8004 identity, reputation, registration (15 networks) |
 | `mcp_server/integrations/erc8004/identity.py` | Worker identity check + gasless registration |
 | `mcp_server/api/routes.py` | REST API endpoints (task CRUD, submissions, escrow) |
 | `mcp_server/api/reputation.py` | Reputation + registration endpoints |
