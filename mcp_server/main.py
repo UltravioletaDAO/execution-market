@@ -240,11 +240,14 @@ add_api_middleware(app)
 x402_sdk: Optional[EMX402SDK] = None
 if X402_SDK_AVAILABLE and setup_x402_for_app:
     try:
-        treasury_address = os.environ.get("EM_TREASURY_ADDRESS")
+        # Settlement address: platform wallet (transit) for split-payment disbursement.
+        # Do NOT pass EM_TREASURY_ADDRESS here — that causes funds to settle directly
+        # to treasury, preventing worker payout. The SDK resolves the correct address
+        # from EM_SETTLEMENT_ADDRESS > WALLET_PRIVATE_KEY > EM_TREASURY (fallback).
         network = os.environ.get("X402_NETWORK", "base")
         x402_sdk = setup_x402_for_app(
             app,
-            recipient_address=treasury_address,
+            recipient_address=None,  # Let SDK resolve from env
             network=network,
         )
         logger.info(

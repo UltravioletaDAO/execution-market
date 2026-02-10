@@ -444,23 +444,30 @@ Wrong Flow (DO NOT USE):
 | Agent Wallet (production/ECS) | `YOUR_PLATFORM_WALLET` |
 | Execution Market Treasury | `YOUR_TREASURY_WALLET` |
 
-**Wallet Notes**:
+**Wallet Roles (CRITICAL — read this before touching payments)**:
 - **Dev wallet** (`0x857f`): Used by local scripts and tests. Key in `.env.local`.
-- **Production wallet** (`0xD386`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`.
-- These are currently different keys. Production wallet has ~$5 USDC+USDT per chain across 8 mainnet networks.
+- **Platform wallet** (`0xD386`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`. **This is the settlement transit point** — agent funds settle here at approval, then immediately disburse to worker (92%) + treasury (8%). No funds should accumulate here long-term.
+- **Treasury** (`0xae07`): Cold wallet (Ledger). **ONLY receives 8% platform fee** on successful task completion. **NEVER a settlement target.** If funds land here during task creation, it's a bug.
+- `EM_SETTLEMENT_ADDRESS` env var (optional): Overrides the platform wallet for settlement. Defaults to address derived from `WALLET_PRIVATE_KEY`.
 - **Testing budget**: Always use amounts **< $0.30** for test tasks. ~$5 per chain must last through all testing cycles.
 
-**Payment Flow for Tasks** (as of 2026-02-06):
-1. **Deposit** (task creation): Agent signs EIP-3009 auth → MCP verifies via Facilitator → Task created (no funds move yet)
-2. **Release** (task approval): MCP signs TWO new EIP-3009 auths: agent→worker (92%) + agent→treasury (8%) → Facilitator settles both (gasless)
-3. **Refund** (task cancellation): Original auth expires — no funds ever moved, no action needed
-4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 8%). Set to `0.00` for 0% fee. Uses 6-decimal USDC precision with $0.01 minimum fee.
+**Payment Mode** (`EM_PAYMENT_MODE`, default: `preauth`):
+- **`preauth`** (default, recommended): No funds move at task creation. Agent signs EIP-3009 auth, MCP verifies via Facilitator, stores header. Settlement happens at approval time.
+- **`x402r`** (deprecated): Settles agent auth + locks funds in on-chain escrow at creation time. **Do not use** — caused fund loss bug in Feb 2026 where $1.404 went to treasury instead of platform wallet.
 
-**Split Payment Architecture** (current MVP):
-- At approval, `sdk_client.py:settle_task_payment()` signs fresh EIP-3009 auths from the agent wallet
-- Uses direct HTTP to facilitator `/settle` (not SDK's `settle_payment()` — see note below)
-- The facilitator validates `payTo == auth.to`, so the SDK's `settle_payment()` which hardcodes `payTo=config.recipient` cannot be used for worker disbursement
-- **TODO**: Modify `uvd-x402-sdk` to support custom `payTo` parameter, then switch from direct HTTP back to SDK
+**Payment Flow for Tasks** (preauth mode, as of 2026-02-10):
+1. **Verify** (task creation): Agent signs EIP-3009 auth → MCP verifies via Facilitator → stores X-Payment header → Task created (**no funds move**)
+2. **Settle + Disburse** (task approval): MCP settles stored auth → platform wallet (agent → 0xD386), then signs TWO new EIP-3009 auths: platform→worker (92%) + platform→treasury (8%) → Facilitator settles both (gasless)
+3. **Refund** (task cancellation): Original auth was never settled → expires naturally. No funds moved, no action needed.
+4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 8%). Uses 6-decimal USDC precision with $0.01 minimum fee.
+
+**Audit Trail**: All payment events are logged to `payment_events` table (migration 027). Tracks verify, store_auth, settle, disburse_worker, disburse_fee, refund, cancel, error events with tx hashes and amounts.
+
+**Manual Refund Procedure** (for fund loss incidents):
+- If `payment_events` shows a `settle` with `status=success` but no corresponding `disburse_worker`, funds are stuck in the settlement target wallet.
+- Check `escrows.metadata.agent_settle_tx` for the on-chain settlement tx.
+- Manual refund must be sent from the wallet that received the funds back to the agent wallet.
+- Incident Feb 2026: 3 tasks ($0.54 + $0.54 + $0.324 = $1.404) settled to treasury `0xae07` instead of platform wallet. Requires Ledger refund to `0x13ef` on Base.
 
 ### Database State
 
