@@ -112,7 +112,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
               </div>
               <h3 className="font-bold text-gray-900 mb-1">x402 Payments</h3>
               <p className="text-sm text-gray-500">
-                {t('landing.agentPayments', 'Gasless USDC payments. We handle the blockchain complexity.')}
+                {t('landing.agentPayments', 'Gasless stablecoin payments. We handle the blockchain complexity.')}
               </p>
             </div>
           </div>

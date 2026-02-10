@@ -9,6 +9,7 @@
  */
 
 import { useState, useMemo } from 'react'
+import { TX_EXPLORER_URLS } from '../utils/blockchain'
 
 // ============================================================================
 // TYPES
@@ -84,13 +85,6 @@ const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   refund: 'Reembolso',
 }
 
-const EXPLORER_URLS: Record<string, string> = {
-  base: 'https://basescan.org/tx/',
-  'base-sepolia': 'https://sepolia.basescan.org/tx/',
-  ethereum: 'https://etherscan.io/tx/',
-  polygon: 'https://polygonscan.com/tx/',
-}
-
 // ============================================================================
 // UTILITIES
 // ============================================================================
@@ -125,7 +119,7 @@ function formatDateTime(dateStr: string): string {
 }
 
 function getExplorerUrl(network: string, txHash: string): string {
-  return (EXPLORER_URLS[network] || EXPLORER_URLS.base) + txHash
+  return (TX_EXPLORER_URLS[network] || TX_EXPLORER_URLS.base) + txHash
 }
 
 function truncateHash(hash: string): string {
@@ -346,7 +340,7 @@ function WithdrawalSection({
         </svg>
         <span>
           Retiro minimo: {formatCurrency(minWithdrawal)}. Los retiros se
-          procesan en la red Base (USDC).
+          procesan en la red de tu tarea.
         </span>
       </div>
     </div>

@@ -38,12 +38,12 @@ const protocols = [
 
 const networks = [
   { name: 'Base', logo: '/base.png', live: true },
-  { name: 'Ethereum', logo: '/ethereum.png', live: false },
-  { name: 'Polygon', logo: '/polygon.png', live: false },
-  { name: 'Arbitrum', logo: '/arbitrum.png', live: false },
-  { name: 'Celo', logo: '/celo.png', live: false },
-  { name: 'Monad', logo: '/monad.png', live: false },
-  { name: 'Avalanche', logo: '/avalanche.png', live: false },
+  { name: 'Ethereum', logo: '/ethereum.png', live: true },
+  { name: 'Polygon', logo: '/polygon.png', live: true },
+  { name: 'Arbitrum', logo: '/arbitrum.png', live: true },
+  { name: 'Celo', logo: '/celo.png', live: true },
+  { name: 'Monad', logo: '/monad.png', live: true },
+  { name: 'Avalanche', logo: '/avalanche.png', live: true },
 ]
 
 export function ProtocolStack() {
@@ -110,7 +110,7 @@ export function ProtocolStack() {
                 {t('landing.protocolStack.networksTitle', '7 EVM Networks')}
               </p>
               <p className="text-[10px] md:text-xs text-gray-500">
-                {t('landing.protocolStack.networksSubtitle', 'Currently live on Base Mainnet · 6 more networks ready to activate')}
+                {t('landing.protocolStack.networksSubtitle', '7 Networks Live · Multi-stablecoin payments across all chains')}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -135,10 +135,10 @@ export function ProtocolStack() {
 
           {/* Status line */}
           <div className="mt-4 flex items-center justify-between text-[10px] md:text-xs text-gray-600">
-            <span>USDC {t('landing.protocolStack.liveToken', '(live)')} &middot; EURC &middot; USDT &middot; PYUSD &middot; AUSD {t('landing.protocolStack.configuredTokens', '(configured)')}</span>
+            <span>USDC &middot; EURC &middot; USDT &middot; PYUSD &middot; AUSD {t('landing.protocolStack.configuredTokens', '(all live)')}</span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {t('landing.protocolStack.status', 'Base Mainnet')}
+              {t('landing.protocolStack.status', '7 Networks Live')}
             </span>
           </div>
         </div>

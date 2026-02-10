@@ -8,6 +8,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Executor } from '../types/database'
+import { getExplorerUrl as getBlockchainExplorerUrl } from '../utils/blockchain'
 
 // ============================================================================
 // TYPES
@@ -670,7 +671,7 @@ function TransactionHistory({
                   </div>
                   {tx.tx_hash && (
                     <a
-                      href={`https://basescan.org/tx/${tx.tx_hash}`}
+                      href={getBlockchainExplorerUrl(tx.tx_hash, 'base')}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-indigo-600 hover:text-indigo-700"
@@ -695,7 +696,7 @@ function TransactionHistory({
                         <>
                           {' | '}
                           <a
-                            href={`https://basescan.org/tx/${tx.tx_hash}`}
+                            href={getBlockchainExplorerUrl(tx.tx_hash, 'base')}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-indigo-600 hover:text-indigo-700"

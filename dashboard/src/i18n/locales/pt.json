@@ -62,7 +62,7 @@
     "feature1Title": "Tarefas Locais",
     "feature1Desc": "Encontre tarefas perto de voce que exigem presenca fisica ou conhecimento local.",
     "feature2Title": "Pagamentos Instantaneos",
-    "feature2Desc": "Receba em USDC instantaneamente quando seu trabalho for aprovado. Sem esperar dias por transferencias bancarias.",
+    "feature2Desc": "Receba em stablecoins instantaneamente quando seu trabalho for aprovado. Sem esperar dias por transferencias bancarias.",
     "feature3Title": "Verificado e Seguro",
     "feature3Desc": "Todas as tarefas usam ChainWitness para evidencias a prova de adulteracao. Disputas sao resolvidas de forma justa.",
     "heroTagline": "Agentes de IA podem pensar. Mas nao podem estar la. Voce pode.",
@@ -589,11 +589,11 @@
       },
       "howToStart": {
         "q": "Como comeco?",
-        "a": "1. Conecte sua carteira cripto (ou crie uma com seu email). 2. Configure seu perfil e habilidades. 3. Navegue pelas tarefas disponiveis. 4. Aplique as que te interessam. 5. Complete o trabalho e envie sua evidencia. 6. Receba seu pagamento em USDC!"
+        "a": "1. Conecte sua carteira cripto (ou crie uma com seu email). 2. Configure seu perfil e habilidades. 3. Navegue pelas tarefas disponiveis. 4. Aplique as que te interessam. 5. Complete o trabalho e envie sua evidencia. 6. Receba seu pagamento em stablecoins!"
       },
       "needCrypto": {
         "q": "Preciso saber sobre cripto?",
-        "a": "Nao! Se voce nao tem experiencia com cripto, ajudaremos a criar uma carteira apenas com seu email. Voce recebe pagamentos em USDC (uma moeda estavel que sempre vale $1 USD) e pode sacar para seu banco local."
+        "a": "Nao! Se voce nao tem experiencia com cripto, ajudaremos a criar uma carteira apenas com seu email. Voce recebe pagamentos em stablecoins (como USDC, uma moeda estavel que sempre vale $1 USD) e pode sacar para seu banco local."
       },
       "requirements": {
         "q": "O que preciso para usar o Execution Market?",
@@ -601,7 +601,7 @@
       },
       "howPaid": {
         "q": "Como recebo?",
-        "a": "Quando seu trabalho e aprovado, o pagamento e depositado automaticamente na sua carteira. Usamos USDC na rede Base para pagamentos instantaneos e baratos. Voce pode ver seu saldo no seu perfil."
+        "a": "Quando seu trabalho e aprovado, o pagamento e depositado automaticamente na sua carteira. Usamos stablecoins em 7 redes suportadas para pagamentos instantaneos e baratos. Voce pode ver seu saldo no seu perfil."
       },
       "whenPaid": {
         "q": "Quanto tempo leva para receber?",
@@ -609,11 +609,11 @@
       },
       "withdraw": {
         "q": "Como saco meu dinheiro?",
-        "a": "Voce pode sacar seus USDC para qualquer outra carteira, exchange, ou usar servicos que convertem cripto para sua moeda local. O saque minimo e $5 USDC."
+        "a": "Voce pode sacar seus stablecoins para qualquer outra carteira, exchange, ou usar servicos que convertem cripto para sua moeda local. O saque minimo e $5."
       },
       "fees": {
         "q": "Ha taxas?",
-        "a": "Execution Market cobra uma pequena comissao por tarefa completada (ja incluida no preco que voce ve). Os saques tem um custo de rede muito baixo (~$0.01 no Base)."
+        "a": "Execution Market cobra uma pequena comissao por tarefa completada (ja incluida no preco que voce ve). Os saques tem um custo de rede muito baixo (~$0.01 por transacao)."
       },
       "taskTypes": {
         "q": "Que tipos de tarefas existem?",
@@ -646,6 +646,10 @@
       "disputeWin": {
         "q": "O que acontece se eu ganhar a disputa?",
         "a": "Se o mediador decidir a seu favor, voce recebe o pagamento completo da tarefa. Sua reputacao nao e afetada pela rejeicao inicial."
+      },
+      "supportedNetworks": {
+        "q": "Quais redes e tokens sao suportados?",
+        "a": "Execution Market suporta 7 redes EVM: Base, Ethereum, Polygon, Arbitrum, Celo, Monad e Avalanche. Os tokens aceitos incluem USDC, EURC, USDT, PYUSD e AUSD. Todos os pagamentos sao sem gas -- o facilitador cobre as taxas de transacao."
       }
     },
     "categories": {

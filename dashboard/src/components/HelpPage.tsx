@@ -70,11 +70,11 @@ export function HelpPage({ onBack }: HelpPageProps) {
       },
       {
         question: t('help.faq.howToStart.q', 'Como empiezo?'),
-        answer: t('help.faq.howToStart.a', '1. Conecta tu billetera crypto (o crea una nueva con tu email). 2. Configura tu perfil y habilidades. 3. Navega las tareas disponibles. 4. Aplica a las que te interesen. 5. Completa el trabajo y envía tu evidencia. 6. Recibe tu pago en USDC!'),
+        answer: t('help.faq.howToStart.a', '1. Conecta tu billetera crypto (o crea una nueva con tu email). 2. Configura tu perfil y habilidades. 3. Navega las tareas disponibles. 4. Aplica a las que te interesen. 5. Completa el trabajo y envia tu evidencia. 6. Recibe tu pago en stablecoins!'),
       },
       {
         question: t('help.faq.needCrypto.q', 'Necesito saber de crypto?'),
-        answer: t('help.faq.needCrypto.a', 'No! Si no tienes experiencia con crypto, te ayudamos a crear una billetera con solo tu email. Recibes tus pagos en USDC (una moneda estable que siempre vale $1 USD) y puedes retirar a tu banco local.'),
+        answer: t('help.faq.needCrypto.a', 'No! Si no tienes experiencia con crypto, te ayudamos a crear una billetera con solo tu email. Recibes tus pagos en stablecoins (como USDC, una moneda estable que siempre vale $1 USD) y puedes retirar a tu banco local.'),
       },
       {
         question: t('help.faq.requirements.q', 'Que necesito para usar Execution Market?'),
@@ -84,7 +84,7 @@ export function HelpPage({ onBack }: HelpPageProps) {
     payments: [
       {
         question: t('help.faq.howPaid.q', 'Como me pagan?'),
-        answer: t('help.faq.howPaid.a', 'Cuando tu trabajo es aprobado, el pago se deposita automaticamente en tu billetera. Usamos USDC en la red Base para pagos instantáneos y baratos. Puedes ver tu saldo en tu perfil.'),
+        answer: t('help.faq.howPaid.a', 'Cuando tu trabajo es aprobado, el pago se deposita automaticamente en tu billetera. Usamos stablecoins en 7 redes soportadas para pagos instantaneos y baratos. Puedes ver tu saldo en tu perfil.'),
       },
       {
         question: t('help.faq.whenPaid.q', 'Cuanto tarda el pago?'),
@@ -92,11 +92,11 @@ export function HelpPage({ onBack }: HelpPageProps) {
       },
       {
         question: t('help.faq.withdraw.q', 'Como retiro mi dinero?'),
-        answer: t('help.faq.withdraw.a', 'Puedes retirar tus USDC a cualquier otra billetera, exchange, o usar servicios que convierten crypto a tu moneda local. El retiro minimo es $5 USDC.'),
+        answer: t('help.faq.withdraw.a', 'Puedes retirar tus stablecoins a cualquier otra billetera, exchange, o usar servicios que convierten crypto a tu moneda local. El retiro minimo es $5.'),
       },
       {
         question: t('help.faq.fees.q', 'Hay comisiones?'),
-        answer: t('help.faq.fees.a', 'Execution Market cobra una pequeña comisión por cada tarea completada (ya incluida en el precio que ves). Los retiros tienen un costo de red muy bajo (~$0.01 en Base).'),
+        answer: t('help.faq.fees.a', 'Execution Market cobra una pequena comision por cada tarea completada (ya incluida en el precio que ves). Los retiros tienen un costo de red muy bajo (~$0.01 por transaccion).'),
       },
     ],
     tasks: [

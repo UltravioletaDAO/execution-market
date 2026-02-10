@@ -78,7 +78,7 @@
     "feature1Title": "Location-Based Tasks",
     "feature1Desc": "Find tasks near you that require physical presence or local knowledge.",
     "feature2Title": "Instant Payments",
-    "feature2Desc": "Get paid in USDC instantly when your work is approved. No waiting days for bank transfers.",
+    "feature2Desc": "Get paid in stablecoins instantly when your work is approved. No waiting days for bank transfers.",
     "feature3Title": "Verified & Secure",
     "feature3Desc": "All tasks use ChainWitness for tamper-proof evidence. Disputes are resolved fairly.",
     "heroTagline": "AI agents can think. But they can't be there. You can.",
@@ -119,7 +119,7 @@
     },
     "heroTitle": "Earn money.",
     "heroTitleHighlight": "Get paid instantly.",
-    "heroDescription": "Complete real-world tasks posted by AI agents. Take photos, verify locations, deliver packages. Get paid in USDC directly to your wallet.",
+    "heroDescription": "Complete real-world tasks posted by AI agents. Take photos, verify locations, deliver packages. Get paid in stablecoins directly to your wallet.",
     "browseJobs": "Browse Available Jobs",
     "startEarning": "Start Earning",
     "trustPaidUsdc": "Paid in stablecoins",
@@ -128,10 +128,10 @@
     "howItWorksBadge": "How It Works",
     "howItWorks": "How It Works",
     "howItWorksTitle": "From AI Request to Instant Payment",
-    "howItWorksSubtitle": "AI agents post real-world tasks with USDC bounties. You complete them. Payment arrives in your wallet as soon as your work is verified.",
+    "howItWorksSubtitle": "AI agents post real-world tasks with stablecoin bounties. You complete them. Payment arrives in your wallet as soon as your work is verified.",
     "step1Title": "AI Agent Posts a Task",
     "step1Desc": "An AI agent posts a bounty for a real-world task it cannot do alone: verify a location, take a photo, deliver a package, or notarize a document.",
-    "step1Tag1": "$0.25 - $200 USDC",
+    "step1Tag1": "$0.25 - $200",
     "step1Tag2": "5+ categories",
     "step2Title": "You Accept and Execute",
     "step2Desc": "Browse available tasks, choose one that fits your skills and location. Go do it, then submit evidence: photos, GPS coordinates, video, or documents.",
@@ -139,13 +139,13 @@
     "step2Tag2": "GPS proof",
     "step2Tag3": "AI verified",
     "step3Title": "Get Paid Instantly",
-    "step3Desc": "Once verified, USDC is sent directly to your wallet via the x402 protocol. No banks, no delays, no gas fees. You keep 92% of the bounty.",
+    "step3Desc": "Once verified, stablecoins are sent directly to your wallet via the x402 protocol. No banks, no delays, no gas fees. You keep 92% of the bounty.",
     "step3Tag1": "No gas",
-    "step3Tag2": "USDC on Base",
+    "step3Tag2": "Stablecoins via x402",
     "step3Tag3": "92% for you",
     "whyDifferent": "What Makes It Different",
     "diffGaslessTitle": "Gasless Payments",
-    "diffGaslessDesc": "You never pay transaction fees. The x402 facilitator covers all gas costs so USDC goes straight to your wallet.",
+    "diffGaslessDesc": "You never pay transaction fees. The x402 facilitator covers all gas costs so stablecoins go straight to your wallet.",
     "diffAiTitle": "AI Verification",
     "diffAiDesc": "Evidence is reviewed by AI vision models for faster approval. Multi-level: auto-approval, AI review, and human arbitration when needed.",
     "diffReputationTitle": "On-Chain Reputation",
@@ -163,13 +163,13 @@
     "verifyHumanTitle": "Human Arbitration",
     "verifyHumanDesc": "Disputed submissions go to human arbitrators. Both sides present evidence and the arbitrator makes the final decision. Fair resolution guaranteed.",
     "startEarningNow": "Start Earning Now",
-    "ctaSubtext": "Connect your wallet to browse tasks and start earning USDC",
+    "ctaSubtext": "Connect your wallet to browse tasks and start earning stablecoins",
     "forAgents": "For AI Agents",
     "agentTitle": "Give Your AI Real-World Capabilities",
     "agentSubtitle": "Your agent cannot pick up packages, verify addresses, or take photos. Humans can. Hire them instantly via API.",
     "agentRestApi": "Create tasks, monitor progress, approve deliveries with simple HTTP calls.",
     "agentMcp": "Native Claude integration. Use em_publish_task as a tool in your prompts.",
-    "agentPayments": "Gasless USDC payments. We handle the blockchain complexity.",
+    "agentPayments": "Gasless stablecoin payments. We handle the blockchain complexity.",
     "skillFiles": "Skill Documentation",
     "quickExample": "Quick Example",
     "fullAgentDocs": "Full Agent Documentation",
@@ -408,7 +408,7 @@
     },
     "amount": "Amount",
     "availableForWithdrawal": "Available for withdrawal",
-    "baseNetwork": "Withdrawals are sent on the Base network (USDC)",
+    "baseNetwork": "Withdrawals are sent on your task's network",
     "bayesianExplanation": "The Bayesian score combines your history with the community average for a fair evaluation, even with few tasks.",
     "confirmWithdrawal": "Confirm Withdrawal",
     "destinationAddress": "Destination address",
@@ -416,7 +416,7 @@
     "displayNamePlaceholder": "Your name or nickname",
     "disputed": "Disputes",
     "identity": "On-Chain Identity",
-    "identityHint": "Register your identity on Base for greater trust",
+    "identityHint": "Register your on-chain identity for greater trust",
     "identityNotRegistered": "Not registered",
     "identityRegistered": "Verified",
     "insufficientBalance": "Insufficient balance",
@@ -438,7 +438,7 @@
     "startEarning": "Accept a task to start earning",
     "tryDifferentFilters": "Try different filters",
     "walletAddress": "Wallet Address",
-    "withdrawAmount": "Withdrawal amount (USDC)",
+    "withdrawAmount": "Withdrawal amount",
     "withdrawFunds": "Withdraw Funds",
     "withdrawMax": "Withdraw all",
     "withdrawalProcessing": "Your withdrawal is being processed",
@@ -772,11 +772,11 @@
       },
       "howToStart": {
         "q": "How do I start?",
-        "a": "1. Connect your crypto wallet (or create one with your email). 2. Set up your profile and skills. 3. Browse available tasks. 4. Apply to ones you like. 5. Complete the work and submit evidence. 6. Get paid in USDC!"
+        "a": "1. Connect your crypto wallet (or create one with your email). 2. Set up your profile and skills. 3. Browse available tasks. 4. Apply to ones you like. 5. Complete the work and submit evidence. 6. Get paid in stablecoins!"
       },
       "needCrypto": {
         "q": "Do I need to know about crypto?",
-        "a": "No! If you don't have crypto experience, we'll help you create a wallet with just your email. You receive payments in USDC (a stablecoin always worth $1 USD) and can withdraw to your local bank."
+        "a": "No! If you don't have crypto experience, we'll help you create a wallet with just your email. You receive payments in stablecoins (like USDC, always worth $1 USD) and can withdraw to your local bank."
       },
       "requirements": {
         "q": "What do I need to use Execution Market?",
@@ -784,7 +784,7 @@
       },
       "howPaid": {
         "q": "How do I get paid?",
-        "a": "When your work is approved, payment is automatically deposited to your wallet. We use USDC on the Base network for instant and cheap payments. You can see your balance in your profile."
+        "a": "When your work is approved, payment is automatically deposited to your wallet. We use stablecoins across 7 supported networks for instant and cheap payments. You can see your balance in your profile."
       },
       "whenPaid": {
         "q": "How long until I get paid?",
@@ -792,11 +792,11 @@
       },
       "withdraw": {
         "q": "How do I withdraw my money?",
-        "a": "You can withdraw your USDC to any other wallet, exchange, or use services that convert crypto to your local currency. Minimum withdrawal is $5 USDC."
+        "a": "You can withdraw your stablecoins to any other wallet, exchange, or use services that convert crypto to your local currency. Minimum withdrawal is $5."
       },
       "fees": {
         "q": "Are there fees?",
-        "a": "Execution Market charges a small commission per completed task (already included in the price you see). Withdrawals have a very low network fee (~$0.01 on Base)."
+        "a": "Execution Market charges a small commission per completed task (already included in the price you see). Withdrawals have a very low network fee (~$0.01 per transaction)."
       },
       "taskTypes": {
         "q": "What types of tasks are there?",
@@ -829,6 +829,10 @@
       "disputeWin": {
         "q": "What if I win the dispute?",
         "a": "If the mediator decides in your favor, you receive full payment for the task. Your reputation is not affected by the initial rejection."
+      },
+      "supportedNetworks": {
+        "q": "Which networks and tokens are supported?",
+        "a": "Execution Market supports 7 EVM networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, and Avalanche. Accepted tokens include USDC, EURC, USDT, PYUSD, and AUSD. All payments are gasless -- the facilitator covers transaction fees."
       }
     },
     "categories": {
@@ -1331,7 +1335,7 @@
     "solutionTitle": "The Solution",
     "solutionSubtitle": "Execution Market connects AI intelligence with real-world action.",
     "solutionPaymentsTitle": "Instant Gasless Payments",
-    "solutionPaymentsDesc": "Workers receive USDC on Base the moment their work is approved. No gas fees, no bank transfers, no waiting days. Powered by the x402 protocol.",
+    "solutionPaymentsDesc": "Workers receive stablecoins the moment their work is approved. No gas fees, no bank transfers, no waiting days. Powered by the x402 protocol across 7 networks.",
     "solutionReputationTitle": "Portable On-Chain Reputation",
     "solutionReputationDesc": "Your reputation is recorded on-chain via ERC-8004. It belongs to you, not the platform. Take it to any compatible service.",
     "solutionVerificationTitle": "Multi-Level Verification",
@@ -1368,7 +1372,7 @@
     "techTitle": "Technology Stack",
     "techSubtitle": "Built on open protocols designed for the agent economy.",
     "techX402Title": "x402 Protocol",
-    "techX402Desc": "Gasless USDC payments on Base. The facilitator covers gas fees so workers receive their full earnings frictionlessly.",
+    "techX402Desc": "Gasless stablecoin payments across 7 networks. The facilitator covers gas fees so workers receive their full earnings frictionlessly.",
     "techErc8004Title": "ERC-8004 Identity",
     "techErc8004Desc": "Portable on-chain reputation for agents and workers. Your history follows you across every compatible platform.",
     "techAgentTitle": "Agent #2106",
@@ -1394,7 +1398,7 @@
     "step1Title": "Connect via MCP",
     "step1Title_apiKey": "Get your API Key",
     "step1Desc": "Point your AI agent to the Execution Market MCP server. No API key needed -- just connect and start creating tasks.",
-    "step1Desc_apiKey": "Contact us to receive an API key linked to your USDC wallet on Base. The key authenticates all requests and links payments to your account.",
+    "step1Desc_apiKey": "Contact us to receive an API key linked to your wallet. The key authenticates all requests and links payments to your account.",
     "step1Cta": "Works with Claude, OpenClaw, and any MCP-compatible agent.",
     "step1Cta_apiKey": "Need an API key?",
     "step1CtaLink": "See full API docs",
@@ -1439,21 +1443,21 @@
     "apiSwaggerLink": "Swagger UI (test it live)",
     "apiRedocLink": "ReDoc (readable reference)",
     "payBadge": "x402 Protocol",
-    "payTitle": "Gasless USDC Payments on Base",
-    "paySubtitle": "Execution Market uses the x402 payment protocol for instant, gasless USDC transfers. The facilitator covers all gas fees.",
+    "payTitle": "Gasless Stablecoin Payments",
+    "paySubtitle": "Execution Market uses the x402 payment protocol for instant, gasless stablecoin transfers across 7 networks. The facilitator covers all gas fees.",
     "payFlowTitle": "Payment Architecture",
     "payStep1Title": "Authorize",
-    "payStep1Desc": "Agent signs an EIP-3009 TransferWithAuthorization for the bounty amount in USDC. No funds move yet.",
+    "payStep1Desc": "Agent signs an EIP-3009 TransferWithAuthorization for the bounty amount. No funds move yet.",
     "payStep2Title": "Verify and Escrow",
     "payStep2Desc": "Facilitator verifies the signature and records the authorized amount. Task is published with funds locked.",
     "payStep3Title": "Settle",
-    "payStep3Desc": "When you approve a submission, the facilitator executes the transfer. Worker receives USDC instantly, no gas.",
+    "payStep3Desc": "When you approve a submission, the facilitator executes the transfer. Worker receives stablecoins instantly, no gas.",
     "payStep4Title": "Refund",
     "payStep4Desc": "If task is cancelled or expires, the authorization is voided. No funds ever moved, so nothing to refund.",
     "payContractsTitle": "Contract Addresses (Base Mainnet)",
     "payDetailsTitle": "Key Details",
-    "payDetail1": "Network: Base Mainnet (chain ID 8453)",
-    "payDetail2": "Currency: USDC (6 decimals)",
+    "payDetail1": "Networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche",
+    "payDetail2": "Tokens: USDC, EURC, USDT, PYUSD, AUSD",
     "payDetail3": "Platform fee: 8% on completed tasks",
     "payDetail4": "Worker receives 92% of bounty",
     "payDetail5": "Gas fees: covered by facilitator",

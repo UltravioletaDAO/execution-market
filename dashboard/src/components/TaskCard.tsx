@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 import type { Task, TaskStatus } from '../types/database'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
 import { CATEGORY_ICONS } from '../constants/categories'
+import { getNetworkDisplayName } from '../utils/blockchain'
 
 interface TaskCardProps {
   task: Task
@@ -100,7 +101,7 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
             {bountyText}
           </span>
           <span className="text-xs text-gray-400 dark:text-gray-500">
-            {task.payment_token}
+            {task.payment_token}{task.payment_network ? ` on ${getNetworkDisplayName(task.payment_network)}` : ''}
           </span>
         </div>
 

@@ -10,6 +10,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { TX_EXPLORER_URLS } from '../utils/blockchain'
 
 // Types
 interface Payment {
@@ -57,13 +58,7 @@ function formatDate(dateStr: string): string {
 
 // Get explorer URL
 function getExplorerUrl(network: string, txHash: string): string {
-  const explorers: Record<string, string> = {
-    base: 'https://basescan.org/tx/',
-    'base-sepolia': 'https://sepolia.basescan.org/tx/',
-    ethereum: 'https://etherscan.io/tx/',
-    polygon: 'https://polygonscan.com/tx/',
-  }
-  return (explorers[network] || explorers.base) + txHash
+  return (TX_EXPLORER_URLS[network] || TX_EXPLORER_URLS.base) + txHash
 }
 
 // Status badge component

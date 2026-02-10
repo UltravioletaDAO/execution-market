@@ -17,26 +17,38 @@ export type NetworkId =
   | 'base-sepolia'
   | 'ethereum'
   | 'sepolia'
-  | 'polygon';
+  | 'polygon'
+  | 'arbitrum'
+  | 'celo'
+  | 'monad'
+  | 'avalanche';
 
 /** Explorer base URLs for transactions */
-const TX_EXPLORER_URLS: Record<string, string> = {
+export const TX_EXPLORER_URLS: Record<string, string> = {
   base: 'https://basescan.org/tx/',
   'base-mainnet': 'https://basescan.org/tx/',
   'base-sepolia': 'https://sepolia.basescan.org/tx/',
   ethereum: 'https://etherscan.io/tx/',
   sepolia: 'https://sepolia.etherscan.io/tx/',
   polygon: 'https://polygonscan.com/tx/',
+  arbitrum: 'https://arbiscan.io/tx/',
+  celo: 'https://celoscan.io/tx/',
+  monad: 'https://explorer.monad.xyz/tx/',
+  avalanche: 'https://snowtrace.io/tx/',
 };
 
 /** Explorer base URLs for addresses */
-const ADDRESS_EXPLORER_URLS: Record<string, string> = {
+export const ADDRESS_EXPLORER_URLS: Record<string, string> = {
   base: 'https://basescan.org/address/',
   'base-mainnet': 'https://basescan.org/address/',
   'base-sepolia': 'https://sepolia.basescan.org/address/',
   ethereum: 'https://etherscan.io/address/',
   sepolia: 'https://sepolia.etherscan.io/address/',
   polygon: 'https://polygonscan.com/address/',
+  arbitrum: 'https://arbiscan.io/address/',
+  celo: 'https://celoscan.io/address/',
+  monad: 'https://explorer.monad.xyz/address/',
+  avalanche: 'https://snowtrace.io/address/',
 };
 
 /**
@@ -139,6 +151,10 @@ export function getNetworkDisplayName(network: string): string {
     ethereum: 'Ethereum',
     sepolia: 'Sepolia',
     polygon: 'Polygon',
+    arbitrum: 'Arbitrum',
+    celo: 'Celo',
+    monad: 'Monad',
+    avalanche: 'Avalanche',
   };
   return names[network] || network;
 }

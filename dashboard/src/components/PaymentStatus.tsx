@@ -13,6 +13,7 @@
 
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { TX_EXPLORER_URLS, ADDRESS_EXPLORER_URLS } from '../utils/blockchain'
 
 // Types
 export type PaymentStatusType =
@@ -57,26 +58,12 @@ interface PaymentStatusProps {
 
 // Get explorer URL for transaction
 function getExplorerUrl(network: string, txHash: string): string {
-  const explorers: Record<string, string> = {
-    base: 'https://basescan.org/tx/',
-    'base-sepolia': 'https://sepolia.basescan.org/tx/',
-    'base-mainnet': 'https://basescan.org/tx/',
-    ethereum: 'https://etherscan.io/tx/',
-    polygon: 'https://polygonscan.com/tx/',
-  }
-  return (explorers[network] || explorers.base) + txHash
+  return (TX_EXPLORER_URLS[network] || TX_EXPLORER_URLS.base) + txHash
 }
 
 // Get contract explorer URL
 function getContractUrl(network: string, address: string): string {
-  const explorers: Record<string, string> = {
-    base: 'https://basescan.org/address/',
-    'base-sepolia': 'https://sepolia.basescan.org/address/',
-    'base-mainnet': 'https://basescan.org/address/',
-    ethereum: 'https://etherscan.io/address/',
-    polygon: 'https://polygonscan.com/address/',
-  }
-  return (explorers[network] || explorers.base) + address
+  return (ADDRESS_EXPLORER_URLS[network] || ADDRESS_EXPLORER_URLS.base) + address
 }
 
 // Format currency

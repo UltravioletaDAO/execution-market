@@ -304,7 +304,7 @@ export function Developers() {
       title: t('dev.payStep1Title', 'Authorize'),
       desc: t(
         'dev.payStep1Desc',
-        'Agent signs an EIP-3009 TransferWithAuthorization for the bounty amount in USDC. No funds move yet.'
+        'Agent signs an EIP-3009 TransferWithAuthorization for the bounty amount. No funds move yet.'
       ),
       color: 'bg-blue-500',
     },
@@ -322,7 +322,7 @@ export function Developers() {
       title: t('dev.payStep3Title', 'Settle'),
       desc: t(
         'dev.payStep3Desc',
-        'When you approve a submission, the facilitator executes the transfer. Worker receives USDC instantly, gasless.'
+        'When you approve a submission, the facilitator executes the transfer. Worker receives stablecoins instantly, gasless.'
       ),
       color: 'bg-purple-500',
     },
@@ -813,10 +813,10 @@ export function Developers() {
           <div className="max-w-5xl mx-auto px-4">
             <SectionHeading
               badge={t('dev.payBadge', 'x402 Protocol')}
-              title={t('dev.payTitle', 'Gasless USDC Payments on Base')}
+              title={t('dev.payTitle', 'Gasless Stablecoin Payments')}
               subtitle={t(
                 'dev.paySubtitle',
-                'Execution Market uses the x402 payment protocol for instant, gasless USDC transfers. The facilitator covers all gas fees.'
+                'Execution Market uses the x402 payment protocol for instant, gasless stablecoin transfers across 7 networks. The facilitator covers all gas fees.'
               )}
             />
 
@@ -866,8 +866,8 @@ export function Developers() {
                                            |
                                            v
                                     +--------------+
-                                    |  USDC on     |  --> Worker wallet
-                                    |  Base L2     |
+                                    | Stablecoins  |  --> Worker wallet
+                                    | 7 EVM chains |
                                     +--------------+`}
               </pre>
             </div>
@@ -897,8 +897,8 @@ export function Developers() {
                 </h3>
                 <ul className="text-sm text-gray-600 space-y-2.5">
                   {[
-                    t('dev.payDetail1', 'Network: Base Mainnet (chain ID 8453)'),
-                    t('dev.payDetail2', 'Currency: USDC (6 decimals)'),
+                    t('dev.payDetail1', 'Networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche'),
+                    t('dev.payDetail2', 'Tokens: USDC, EURC, USDT, PYUSD, AUSD'),
                     t('dev.payDetail3', 'Platform fee: 8% on completed tasks'),
                     t('dev.payDetail4', 'Worker receives 92% of the bounty'),
                     t('dev.payDetail5', 'Gas fees: covered by the facilitator'),
@@ -946,16 +946,16 @@ export function Developers() {
               <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 text-white col-span-1 md:col-span-2">
                 <div className="flex items-start gap-4">
                   <div className="w-14 h-14 bg-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-emerald-400 font-black text-xl">#469</span>
+                    <span className="text-emerald-400 font-black text-xl">#2106</span>
                   </div>
                   <div>
                     <h3 className="text-lg font-bold mb-1">
-                      {t('dev.identityAgentTitle', 'Execution Market -- Agent #469')}
+                      {t('dev.identityAgentTitle', 'Execution Market -- Agent #2106')}
                     </h3>
                     <p className="text-gray-400 text-sm mb-4">
                       {t(
                         'dev.identityAgentDesc',
-                        'Registered on the ERC-8004 Identity Registry on Sepolia. On-chain reputation scores track all interactions with the platform.'
+                        'Registered on the ERC-8004 Identity Registry on Base. On-chain reputation scores track all interactions with the platform.'
                       )}
                     </p>
                     <div className="flex flex-wrap gap-3 text-xs">
@@ -963,13 +963,13 @@ export function Developers() {
                         <span className="text-gray-500 block">
                           {t('dev.identityRegistry', 'Registry')}
                         </span>
-                        <span className="font-mono text-gray-200">0x8004A818...4BD9e</span>
+                        <span className="font-mono text-gray-200">0x8004A169...a432</span>
                       </div>
                       <div className="bg-white/10 rounded-lg px-3 py-2">
                         <span className="text-gray-500 block">
                           {t('dev.identityNetwork', 'Network')}
                         </span>
-                        <span className="text-gray-200">Sepolia</span>
+                        <span className="text-gray-200">Base</span>
                       </div>
                       <div className="bg-white/10 rounded-lg px-3 py-2">
                         <span className="text-gray-500 block">
