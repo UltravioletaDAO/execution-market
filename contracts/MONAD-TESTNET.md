@@ -66,8 +66,11 @@
 # Check ChambaEscrow is deployed
 cast code 0x6Ed128Cfc496A97a8eA8F3b2ee2350201bbF8Ec8 --rpc-url https://testnet-rpc.monad.xyz
 
-# Check escrow count
-cast call 0x6Ed128Cfc496A97a8eA8F3b2ee2350201bbF8Ec8 "escrowCount()" --rpc-url https://testnet-rpc.monad.xyz
+# Check next escrow ID (shows total created + 1)
+cast call 0x6Ed128Cfc496A97a8eA8F3b2ee2350201bbF8Ec8 "nextEscrowId()(uint256)" --rpc-url https://testnet-rpc.monad.xyz
+
+# Check contract version
+cast call 0x6Ed128Cfc496A97a8eA8F3b2ee2350201bbF8Ec8 "VERSION()(string)" --rpc-url https://testnet-rpc.monad.xyz
 
 # Check SealRegistry
 cast code 0xAb06ADC19cb16728bd53755B412BadeE73335D10 --rpc-url https://testnet-rpc.monad.xyz
