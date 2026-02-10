@@ -1,6 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import { NETWORKS } from '../../config/networks'
 
+const stablecoins = [
+  { key: 'usdc', name: 'USDC', fullName: 'USD Coin', logo: '/usdc.png' },
+  { key: 'eurc', name: 'EURC', fullName: 'Euro Coin', logo: '/eurc.png' },
+  { key: 'usdt', name: 'USDT', fullName: 'Tether USD', logo: '/usdt.png' },
+  { key: 'pyusd', name: 'PYUSD', fullName: 'PayPal USD', logo: '/pyusd.png' },
+  { key: 'ausd', name: 'AUSD', fullName: 'Agora Dollar', logo: '/ausd.png' },
+]
+
 const protocols = [
   {
     key: 'x402',
@@ -96,43 +104,60 @@ export function ProtocolStack() {
           ))}
         </div>
 
-        {/* Network strip */}
+        {/* Network & stablecoin strip */}
         <div className="mt-6 pt-5 border-t border-gray-800">
+          {/* Networks row */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <p className="text-xs md:text-sm font-semibold text-white">
-                {t('landing.protocolStack.networksTitle', '7 EVM Networks')}
+                {t('landing.protocolStack.networksTitle', '8 EVM Networks')}
               </p>
               <p className="text-[10px] md:text-xs text-gray-500">
-                {t('landing.protocolStack.networksSubtitle', '7 Networks Live · Multi-stablecoin payments across all chains')}
+                {t('landing.protocolStack.networksSubtitle', '8 Networks Live · Multi-stablecoin payments across all chains')}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {networks.map((net) => (
                 <div key={net.name} className="group/net relative">
                   <img
                     src={net.logo}
                     alt={net.name}
-                    className={`w-6 h-6 md:w-7 md:h-7 rounded-full ring-1 transition-all ${
+                    className={`w-6 h-6 md:w-7 md:h-7 rounded-full ring-1 transition-all cursor-pointer ${
                       net.live
-                        ? 'ring-emerald-500/50 opacity-100 group-hover/net:ring-emerald-400'
+                        ? 'ring-emerald-500/50 opacity-100 group-hover/net:ring-emerald-400 group-hover/net:scale-110'
                         : 'ring-gray-700 opacity-40 group-hover/net:opacity-70 group-hover/net:ring-gray-600'
                     }`}
                   />
-                  <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] text-gray-500 opacity-0 group-hover/net:opacity-100 transition-opacity whitespace-nowrap">
-                    {net.name} {net.live ? '✓' : '(soon)'}
+                  <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-gray-800 text-[10px] text-gray-200 font-medium opacity-0 group-hover/net:opacity-100 transition-opacity whitespace-nowrap shadow-lg border border-gray-700 z-10">
+                    {net.name}
                   </span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Status line */}
-          <div className="mt-4 flex items-center justify-between text-[10px] md:text-xs text-gray-600">
-            <span>USDC &middot; EURC &middot; USDT &middot; PYUSD &middot; AUSD {t('landing.protocolStack.configuredTokens', '(all live)')}</span>
-            <span className="flex items-center gap-1.5">
+          {/* Stablecoins row */}
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {stablecoins.map((coin) => (
+                <div key={coin.key} className="group/coin relative">
+                  <img
+                    src={coin.logo}
+                    alt={coin.name}
+                    className="w-5 h-5 md:w-6 md:h-6 rounded-full ring-1 ring-gray-700 opacity-90 group-hover/coin:ring-emerald-500/50 group-hover/coin:opacity-100 group-hover/coin:scale-110 transition-all cursor-pointer"
+                  />
+                  <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-gray-800 text-[10px] text-gray-200 font-medium opacity-0 group-hover/coin:opacity-100 transition-opacity whitespace-nowrap shadow-lg border border-gray-700 z-10">
+                    {coin.fullName}
+                  </span>
+                </div>
+              ))}
+              <span className="text-[10px] md:text-xs text-gray-600 ml-1">
+                {t('landing.protocolStack.configuredTokens', '5 stablecoins live')}
+              </span>
+            </div>
+            <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-gray-600">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {t('landing.protocolStack.status', '7 Networks Live')}
+              {t('landing.protocolStack.status', '8 Networks Live')}
             </span>
           </div>
         </div>

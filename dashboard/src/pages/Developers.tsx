@@ -867,7 +867,7 @@ export function Developers() {
                                            v
                                     +--------------+
                                     | Stablecoins  |  --> Worker wallet
-                                    | 7 EVM chains |
+                                    | 8 EVM chains |
                                     +--------------+`}
               </pre>
             </div>

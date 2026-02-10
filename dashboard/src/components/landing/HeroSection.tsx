@@ -82,7 +82,18 @@ export function HeroSection({ onConnectWallet, onGoToDashboard, onScrollToTasks 
             <svg className="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
-            {t('landing.trustPaidUsdc', 'Paid in stablecoins')}
+            {t('landing.trustPaidUsdc', 'Paid in')}
+            <span className="flex items-center -space-x-1 ml-0.5">
+              {[
+                { src: '/usdc.png', alt: 'USDC' },
+                { src: '/eurc.png', alt: 'EURC' },
+                { src: '/usdt.png', alt: 'USDT' },
+                { src: '/pyusd.png', alt: 'PYUSD' },
+                { src: '/ausd.png', alt: 'AUSD' },
+              ].map((coin) => (
+                <img key={coin.alt} src={coin.src} alt={coin.alt} title={coin.alt} className="w-4 h-4 rounded-full ring-1 ring-white/80" />
+              ))}
+            </span>
           </span>
           <span className="flex items-center gap-1">
             <svg className="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
