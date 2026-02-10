@@ -6,7 +6,7 @@ Tracks worker activity streaks and bonuses.
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Dict, Optional, List, Tuple, Any
 
 logger = logging.getLogger(__name__)
@@ -82,7 +82,7 @@ class StreakTracker:
         Returns:
             Dict with streak info and any milestones reached
         """
-        now = activity_time or datetime.utcnow()
+        now = activity_time or datetime.now(timezone.utc)
         today = now.date()
 
         if worker_id not in self._streaks:

@@ -7,7 +7,7 @@ Role-based access control for enterprise organizations.
 import logging
 from typing import Optional, Dict, List, Set
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -210,7 +210,7 @@ class AccessControl:
             role=role,
             email=email,
             invited_by=invited_by,
-            invited_at=datetime.utcnow(),
+            invited_at=datetime.now(timezone.utc),
             **kwargs,
         )
 
@@ -366,9 +366,9 @@ class AccessControl:
                 if key.key_hash == key_hash:
                     if not key.is_active:
                         return None
-                    if key.expires_at and key.expires_at < datetime.utcnow():
+                    if key.expires_at and key.expires_at < datetime.now(timezone.utc):
                         return None
-                    key.last_used = datetime.utcnow()
+                    key.last_used = datetime.now(timezone.utc)
                     return key
 
         return None
