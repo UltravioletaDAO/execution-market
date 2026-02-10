@@ -1,7 +1,7 @@
 """
 E2E Test: Multichain Infrastructure Verification (A3-A7)
 
-Validates the infrastructure layer across all 7 enabled networks:
+Validates the infrastructure layer across all enabled networks:
   - ERC-8004 identity registry (same CREATE2 address on all mainnets)
   - x402r escrow contracts deployed
   - USDC token contracts deployed
@@ -9,6 +9,7 @@ Validates the infrastructure layer across all 7 enabled networks:
   - Facilitator reachability
 
 NO real payments needed — these are read-only infrastructure probes.
+Network list is derived from sdk_client.py — add a chain there and tests auto-expand.
 
 Usage:
     pytest tests/e2e/test_multichain_infra.py -v -s
@@ -30,6 +31,7 @@ from .shared import (
     check_contract_code,
     mask_address,
 )
+from integrations.x402.sdk_client import NETWORK_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -37,16 +39,9 @@ logger = logging.getLogger(__name__)
 ERC8004_IDENTITY_REGISTRY = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
 ERC8004_REPUTATION_REGISTRY = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
 
-# x402r escrow contracts per network
+# x402r escrow contracts — derived from sdk_client.py NETWORK_CONFIG
 ESCROW_CONTRACTS = {
-    "base": "0xb9488351E48b23D798f24e8174514F28B741Eb4f",
-    "ethereum": "0xc1256Bb30bd0cdDa07D8C8Cf67a59105f2EA1b98",
-    "polygon": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
-    "arbitrum": "0x320a3c35F131E5D2Fb36af56345726B298936037",
-    "celo": "0x320a3c35F131E5D2Fb36af56345726B298936037",
-    "monad": "0x320a3c35F131E5D2Fb36af56345726B298936037",
-    "avalanche": "0x320a3c35F131E5D2Fb36af56345726B298936037",
-    "optimism": "0x320a3c35F131E5D2Fb36af56345726B298936037",
+    net: cfg["escrow"] for net, cfg in NETWORK_CONFIG.items() if cfg.get("escrow")
 }
 
 

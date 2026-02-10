@@ -27,54 +27,43 @@ WALLET_A_ADDRESS = "0xD3868E1eD738CED6945A574a7c769433BeD5d474"  # Production/Ag
 WALLET_B_ADDRESS = "0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd"  # Dev/Worker
 TREASURY_ADDRESS = "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad"
 
-# Network configuration
-NETWORKS = {
-    "base": {
-        "rpc": "https://mainnet.base.org",
-        "chain_id": 8453,
-        "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    },
-    "ethereum": {
-        "rpc": "https://eth.llamarpc.com",
-        "chain_id": 1,
-        "usdc": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    },
-    "polygon": {
-        "rpc": "https://polygon-rpc.com",
-        "chain_id": 137,
-        "usdc": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-    },
-    "arbitrum": {
-        "rpc": "https://arb1.arbitrum.io/rpc",
-        "chain_id": 42161,
-        "usdc": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-    },
-    "celo": {
-        "rpc": "https://forno.celo.org",
-        "chain_id": 42220,
-        "usdc": "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
-    },
-    "monad": {
-        "rpc": "https://rpc.monad.xyz",
-        "chain_id": 143,
-        "usdc": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
-    },
-    "avalanche": {
-        "rpc": "https://api.avax.network/ext/bc/C/rpc",
-        "chain_id": 43114,
-        "usdc": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
-    },
+# Network configuration — derived from sdk_client.py (single source of truth).
+# Only RPC URLs are test-specific; chain IDs and token addresses come from the registry.
+from integrations.x402.sdk_client import (
+    NETWORK_CONFIG as _NETWORK_CONFIG,
+    ENABLED_NETWORKS as _SDK_ENABLED,
+)
+
+# Public RPC endpoints for direct on-chain queries in e2e tests.
+# When adding a new network, add its RPC here and the rest is automatic.
+_RPC_ENDPOINTS = {
+    "base": "https://mainnet.base.org",
+    "ethereum": "https://eth.llamarpc.com",
+    "polygon": "https://polygon-rpc.com",
+    "arbitrum": "https://arb1.arbitrum.io/rpc",
+    "celo": "https://forno.celo.org",
+    "monad": "https://rpc.monad.xyz",
+    "avalanche": "https://api.avax.network/ext/bc/C/rpc",
+    "optimism": "https://mainnet.optimism.io",
 }
 
-ENABLED_NETWORKS = [
-    "base",
-    "ethereum",
-    "polygon",
-    "arbitrum",
-    "celo",
-    "monad",
-    "avalanche",
-]
+# Build NETWORKS dict from sdk_client registry + test RPC endpoints
+NETWORKS = {}
+for _net, _cfg in _NETWORK_CONFIG.items():
+    _rpc = _RPC_ENDPOINTS.get(_net)
+    if not _rpc:
+        continue  # Skip networks without a test RPC configured
+    _usdc = _cfg["tokens"].get("USDC", {}).get("address")
+    if not _usdc:
+        continue  # Skip networks without USDC
+    NETWORKS[_net] = {
+        "rpc": _rpc,
+        "chain_id": _cfg["chain_id"],
+        "usdc": _usdc,
+    }
+
+# Re-export enabled networks from sdk_client (single source of truth)
+ENABLED_NETWORKS = _SDK_ENABLED
 
 
 # ============== SECURITY HELPERS ==============

@@ -98,9 +98,27 @@ class Config:
         "X402_FACILITATOR_URL", "https://facilitator.ultravioletadao.xyz"
     )
 
-    # Supported networks
-    SUPPORTED_NETWORKS = ["base", "ethereum", "polygon", "optimism", "arbitrum"]
-    SUPPORTED_TOKENS = ["USDC", "USDT", "DAI"]
+    # Supported networks — derived from sdk_client at import time
+    try:
+        from integrations.x402.sdk_client import (
+            get_enabled_networks,
+            get_supported_tokens,
+        )
+
+        SUPPORTED_NETWORKS = get_enabled_networks()
+        SUPPORTED_TOKENS = ["USDC", "USDT", "EURC", "PYUSD", "AUSD"]
+    except ImportError:
+        SUPPORTED_NETWORKS = [
+            "base",
+            "ethereum",
+            "polygon",
+            "arbitrum",
+            "celo",
+            "monad",
+            "avalanche",
+            "optimism",
+        ]
+        SUPPORTED_TOKENS = ["USDC", "USDT", "EURC", "PYUSD", "AUSD"]
 
 
 # ============== AWS SECRETS ==============
