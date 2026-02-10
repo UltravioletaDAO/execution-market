@@ -10,11 +10,9 @@
 - AUDIT-GROUP2.md: 18 docs audited, 11 DONE, 4 partial, 3 pending
 - APP-STATE-AUDIT.md: Full system analysis + article gap check
 
-### 2. Fix datetime.utcnow() Deprecation Warnings (34 warnings)
-**Impact:** 34 deprecation warnings in test suite
-**Fix:** Replace `datetime.utcnow()` → `datetime.now(timezone.utc)` across codebase
-**Risk:** Low — mechanical replacement
-**Files:** Primarily in mcp_server/ Python files
+### 2. ✅ Fix datetime.utcnow() Deprecation Warnings (34 warnings)
+**Status:** DONE — commit `fdaac0c` (Feb 10 2AM dream session)
+**Fixed:** 15 instances across 9 files, pushed to origin/main
 
 ### 3. NOW-015: Implement MCP Assign Task Tool
 **Status:** RPC function `assign_task_to_executor` exists in Supabase
@@ -22,37 +20,22 @@
 **Work:** Add `em_assign_task` tool (similar pattern to existing tools)
 **Note:** Agent tools module has `em_assign_task` — need to verify it works
 
-### 4. NOW-190: Agent Login Frontend Component
-**Status:** Backend API key auth ready in `api/auth.py`
-**Missing:** Frontend form for agents to enter API key
-**Work:** Create AgentLogin.tsx component with:
-  - API key input field
-  - Validation against backend
-  - Redirect to agent dashboard on success
-**Risk:** Medium — UI work, needs to match existing design system
+### 4. ✅ NOW-190: Agent Login Frontend Component
+**Status:** DONE — `dashboard/src/components/AgentLogin.tsx` exists with full test suite (AgentLogin.test.tsx, 27+ dashboard tests)
 
-### 5. Article v46 Update
-**Based on APP-STATE-AUDIT.md findings:**
-- Fix "7 mainnets" claim → accurate "2 deployed + 5 configured"
-- Add missing features (admin dashboard, reputation system, A2A protocol)
-- Remove unverifiable user adoption numbers
-- Clarify roadmap vs live features
-- Highlight 726 tests, 24 tools, 63 endpoints
+### 5. ✅ Article v46 Update
+**Status:** DONE — committed Feb 9 9PM session. Article updated with accurate claims.
 
 ### 6. NOW-206: Swagger UI Documentation Polish
 **Status:** Basic Swagger at /docs endpoint
 **Work:** Add descriptions, examples, and response schemas to all 63 endpoints
 **Risk:** Low — documentation only
 
-### 7. Dashboard Bundle Optimization
-**Issue:** Build warnings about chunks >500KB
-**Work:** Code splitting, lazy loading for heavy routes
-**Risk:** Low — performance improvement
+### 7. ✅ Dashboard Bundle Optimization
+**Status:** DONE — commit `8e24e57` (optimized from 811KB → 176KB, -78%)
 
-### 8. Fix MCP Server Docker (NOW-071)
-**Status:** Dockerfile.mcp exists but needs verification
-**Work:** Test Docker build, fix any issues
-**Command:** `docker build -f Dockerfile.mcp .`
+### 8. ✅ Fix MCP Server Docker (NOW-071)
+**Status:** DONE — commit `9c37997` (Dockerfile.mcp updated for production readiness)
 
 ---
 
