@@ -1,163 +1,61 @@
-# Execution Market Escrow Contracts
+# Execution Market — Contracts
 
-Smart contracts for Execution Market's escrow system - enabling secure payments for human-executed tasks with partial release support.
+## Payment System: x402 Facilitator (Production)
 
-## Overview
+Execution Market uses the **x402 Facilitator** for all payment operations. This is a gasless, EIP-3009 based escrow system operated by Ultravioleta DAO.
 
-The `ChambaEscrow` contract provides:
+- **SDK**: `uvd-x402-sdk` ([Python](https://pypi.org/project/uvd-x402-sdk/) / [TypeScript](https://www.npmjs.com/package/uvd-x402-sdk))
+- **Facilitator**: `https://facilitator.ultravioletadao.xyz`
+- **Networks**: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche (+ testnets)
+- **Tokens**: USDC, EURC, USDT, PYUSD, AUSD
 
-- **ERC20 Escrow**: Lock USDC or other ERC20 tokens for task payments
-- **Partial Releases**: Support for milestone-based payments (e.g., 30% on submission, 70% on approval)
-- **Timeout Protection**: Automatic refund eligibility after configurable timeout
-- **Operator System**: Authorized addresses can manage releases (for automated systems)
-- **Release History**: Full audit trail of all fund movements
+See `mcp_server/integrations/x402/sdk_client.py` for the full network/token registry.
 
-## Contract Architecture
+## ERC-8004 Identity
+
+| Property | Value |
+|----------|-------|
+| Agent ID (Base) | **2106** |
+| Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` (all mainnets) |
+| Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` (all mainnets) |
+
+Registration is gasless via the Facilitator's `/register` endpoint.
+
+## ChambaEscrow — DEPRECATED
+
+> **ChambaEscrow.sol has been archived to `_archive/contracts/`.** It was a custom Solidity escrow contract used during early development. It has been fully replaced by the x402 Facilitator (gasless, EIP-3009 based).
+>
+> **Do not deploy, reference, or interact with ChambaEscrow.** All escrow operations go through `uvd-x402-sdk` + Facilitator.
+
+Historical deployments (read-only, no funds at risk):
+- Ethereum: `0x6c320efaC433690899725B3a7C84635430Acf722` (v1.0, pre-audit)
+- Avalanche: `0xedA98AF95B76293a17399Af41A499C193A8DB51A` (v2, verified)
+
+## Directory Structure
 
 ```
-ChambaEscrow.sol
-├── createEscrow()     - Lock funds for a task
-├── releaseEscrow()    - Release funds (partial or full)
-├── refundEscrow()     - Return remaining funds to depositor
-├── cancelEscrow()     - Cancel before work starts (full refund)
-└── Admin functions    - Operator management
+contracts/
+├── contracts/          # Active Solidity sources (ERC-8004 only)
+├── deployments/        # Active deployment records
+│   └── erc8004-mainnet.json
+├── scripts/            # Deployment scripts
+├── MONAD-TESTNET.md    # Monad testnet deployment guide
+└── README.md           # This file
+
+_archive/contracts/     # Deprecated ChambaEscrow files
+├── ChambaEscrow.sol
+├── IChambaEscrow.sol
+├── ChambaEscrow.test.ts
+├── DEPLOYMENT_LOG.md
+└── deployments/        # Historical deployment records
 ```
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 npm install
-
-# Compile contracts
 npm run compile
-
-# Run tests
 npm test
-
-# Start local node
-npm run node
-
-# Deploy to localhost (in another terminal)
-npm run deploy:localhost
-
-# Optional: use Anvil instead of Hardhat node
-npm run node:anvil
-npm run deploy:anvil
-```
-
-## Deployment
-
-### Local Development
-
-```bash
-# Terminal 1: Start Hardhat node
-npm run node
-
-# Terminal 2: Deploy
-npm run deploy:localhost
-```
-
-Using Foundry Anvil (optional):
-
-```bash
-# Terminal 1
-npm run node:anvil
-
-# Terminal 2
-npm run deploy:anvil
-```
-
-### Base Sepolia (Testnet)
-
-```bash
-# Copy and configure environment
-cp .env.example .env
-# Edit .env with your private key and RPC URL
-
-npm run deploy:base-sepolia
-```
-
-### Base Mainnet
-
-```bash
-npm run deploy:base
-```
-
-## Usage Example
-
-```solidity
-// 1. Approve escrow contract to spend USDC
-usdc.approve(escrowAddress, amount);
-
-// 2. Create escrow for a task
-bytes32 taskId = keccak256("task-123");
-uint256 timeout = 7 days;
-escrow.createEscrow(taskId, workerAddress, usdcAddress, amount, timeout);
-
-// 3. Release on submission (30%)
-escrow.releaseEscrow(escrowId, workerAddress, amount * 30 / 100, "submission");
-
-// 4. Release on approval (70%)
-escrow.releaseEscrow(escrowId, workerAddress, amount * 70 / 100, "approval");
-```
-
-## Key Features
-
-### Partial Releases
-
-The contract supports any release schedule:
-
-| Milestone | Percentage | Reason |
-|-----------|------------|--------|
-| Submission | 30% | Worker submitted deliverable |
-| Approval | 70% | Depositor approved work |
-
-### Timeout Mechanism
-
-- **Before any release**: Depositor can cancel/refund anytime
-- **After partial release**: Must wait for timeout to refund remaining
-
-### Operator System
-
-Operators are authorized addresses that can release funds on behalf of depositors:
-
-```solidity
-// Owner authorizes an operator (e.g., backend service)
-escrow.setOperator(operatorAddress, true);
-
-// Operator can now release funds
-escrow.releaseEscrow(escrowId, recipient, amount, "operator release");
-```
-
-## Contract Addresses
-
-| Network | Address | Explorer |
-|---------|---------|----------|
-| Base Sepolia | TBD | [Basescan](https://sepolia.basescan.org) |
-| Base Mainnet | TBD | [Basescan](https://basescan.org) |
-
-## Security
-
-- Uses OpenZeppelin's `SafeERC20` for token transfers
-- `ReentrancyGuard` on all state-changing functions
-- Comprehensive access control
-- Timeout protection for depositors
-
-## Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run tests against external Anvil node
-npm run test:anvil
-
-# Run with gas reporting
-REPORT_GAS=true npm test
-
-# Run with coverage
-npm run test:coverage
 ```
 
 ## License
