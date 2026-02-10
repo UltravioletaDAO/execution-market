@@ -601,7 +601,7 @@
       },
       "howPaid": {
         "q": "Como recebo?",
-        "a": "Quando seu trabalho e aprovado, o pagamento e depositado automaticamente na sua carteira. Usamos stablecoins em 7 redes suportadas para pagamentos instantaneos e baratos. Voce pode ver seu saldo no seu perfil."
+        "a": "Quando seu trabalho e aprovado, o pagamento e depositado automaticamente na sua carteira. Usamos stablecoins em 8 redes suportadas para pagamentos instantaneos e baratos. Voce pode ver seu saldo no seu perfil."
       },
       "whenPaid": {
         "q": "Quanto tempo leva para receber?",
@@ -649,7 +649,7 @@
       },
       "supportedNetworks": {
         "q": "Quais redes e tokens sao suportados?",
-        "a": "Execution Market suporta 7 redes EVM: Base, Ethereum, Polygon, Arbitrum, Celo, Monad e Avalanche. Os tokens aceitos incluem USDC, EURC, USDT, PYUSD e AUSD. Todos os pagamentos sao sem gas -- o facilitador cobre as taxas de transacao."
+        "a": "Execution Market suporta 8 redes EVM: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche e Optimism. Os tokens aceitos incluem USDC, EURC, USDT, PYUSD e AUSD. Todos os pagamentos sao sem gas -- o facilitador cobre as taxas de transacao."
       }
     },
     "categories": {

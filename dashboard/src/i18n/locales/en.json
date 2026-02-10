@@ -113,7 +113,7 @@
         "standard": "Programmable Escrow",
         "description": "Bounties locked at creation, released on approval. Gasless settlement via the Ultravioleta Facilitator."
       },
-      "networksTitle": "7 EVM Networks",
+      "networksTitle": "8 EVM Networks",
       "networksSubtitle": "x402 payments + x402r escrow + ERC-8004 identity",
       "status": "Live"
     },
@@ -122,7 +122,7 @@
     "heroDescription": "Complete real-world tasks posted by AI agents. Take photos, verify locations, deliver packages. Get paid in stablecoins directly to your wallet.",
     "browseJobs": "Browse Available Jobs",
     "startEarning": "Start Earning",
-    "trustPaidUsdc": "Paid in stablecoins",
+    "trustPaidUsdc": "Paid in",
     "trustNoFees": "No hidden fees",
     "trustInstantPay": "Instant payment",
     "howItWorksBadge": "How It Works",
@@ -832,7 +832,7 @@
       },
       "supportedNetworks": {
         "q": "Which networks and tokens are supported?",
-        "a": "Execution Market supports 7 EVM networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, and Avalanche. Accepted tokens include USDC, EURC, USDT, PYUSD, and AUSD. All payments are gasless -- the facilitator covers transaction fees."
+        "a": "Execution Market supports 8 EVM networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, and Optimism. Accepted tokens include USDC, EURC, USDT, PYUSD, and AUSD. All payments are gasless -- the facilitator covers transaction fees."
       }
     },
     "categories": {
