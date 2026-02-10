@@ -19,10 +19,14 @@ from decimal import Decimal
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 
+from integrations.x402.payment_events import log_payment_event
+
 logger = logging.getLogger(__name__)
 
 # Configuration
-EM_PAYMENT_MODE = os.environ.get("EM_PAYMENT_MODE", "x402r")  # "x402r" or "preauth"
+EM_PAYMENT_MODE = os.environ.get(
+    "EM_PAYMENT_MODE", "preauth"
+)  # "preauth" (default) or "x402r"
 
 # --- x402r backend (advanced escrow) ---
 try:
@@ -271,6 +275,16 @@ class PaymentDispatcher:
                     payload = sdk.client.extract_payload(x_payment_header)
                     settle_resp = sdk.client.settle_payment(payload, amount_usdc)
                     agent_settle_tx = _extract_tx_hash(settle_resp)
+                    await log_payment_event(
+                        task_id=task_id,
+                        event_type="settle",
+                        status="success",
+                        tx_hash=agent_settle_tx,
+                        from_address=payer_address,
+                        to_address=platform_address,
+                        amount_usdc=amount_usdc,
+                        metadata={"mode": "x402r", "step": "agent_settle"},
+                    )
                     logger.info(
                         "x402r: Agent auth settled: task=%s, agent=%s, tx=%s",
                         task_id,
@@ -287,6 +301,16 @@ class PaymentDispatcher:
                     "x402r: Agent auth settlement failed for task %s: %s",
                     task_id,
                     e,
+                )
+                await log_payment_event(
+                    task_id=task_id,
+                    event_type="settle",
+                    status="failed",
+                    from_address=payer_address,
+                    to_address=platform_address,
+                    amount_usdc=amount_usdc,
+                    error=str(e),
+                    metadata={"mode": "x402r", "step": "agent_settle"},
                 )
                 return {
                     "success": False,
@@ -372,6 +396,17 @@ class PaymentDispatcher:
             payment_header=x_payment_header,
             expected_amount=amount_usdc,
             worker_address=sdk.recipient_address,
+        )
+
+        await log_payment_event(
+            task_id=task_id,
+            event_type="verify",
+            status="success" if result.success else "failed",
+            amount_usdc=amount_usdc,
+            to_address=sdk.recipient_address,
+            network=sdk.network,
+            error=result.error,
+            metadata={"mode": "preauth"},
         )
 
         return {
@@ -514,6 +549,18 @@ class PaymentDispatcher:
         )
 
         worker_tx = worker_result.get("tx_hash")
+        await log_payment_event(
+            task_id=task_id,
+            event_type="disburse_worker",
+            status="success" if worker_result.get("success") else "failed",
+            tx_hash=worker_tx,
+            to_address=worker_address,
+            amount_usdc=bounty_amount,
+            network=network,
+            token=token,
+            error=worker_result.get("error"),
+            metadata={"mode": "x402r", "escrow_release_tx": escrow_tx},
+        )
         if not worker_result.get("success") or not worker_tx:
             return {
                 "success": False,
@@ -547,6 +594,18 @@ class PaymentDispatcher:
                     task_id,
                     fee_error,
                 )
+            await log_payment_event(
+                task_id=task_id,
+                event_type="disburse_fee",
+                status="success" if fee_result.get("success") else "failed",
+                tx_hash=fee_tx,
+                to_address=EM_TREASURY,
+                amount_usdc=platform_fee,
+                network=network,
+                token=token,
+                error=fee_error,
+                metadata={"mode": "x402r"},
+            )
         except Exception as fee_err:
             fee_error = str(fee_err)
             logger.warning(
@@ -592,6 +651,19 @@ class PaymentDispatcher:
             bounty_amount=bounty_amount,
             network=network,
             token=token,
+        )
+
+        await log_payment_event(
+            task_id=task_id,
+            event_type="settle",
+            status="success" if result.get("success") else "failed",
+            tx_hash=result.get("tx_hash"),
+            to_address=worker_address,
+            amount_usdc=bounty_amount,
+            network=network,
+            token=token,
+            error=result.get("error"),
+            metadata={"mode": "preauth"},
         )
 
         return {
@@ -790,6 +862,12 @@ class PaymentDispatcher:
         logger.info(
             "Preauth refund for task %s: no escrow_id, auth expires naturally",
             task_id,
+        )
+        await log_payment_event(
+            task_id=task_id,
+            event_type="refund",
+            status="success",
+            metadata={"mode": "preauth", "method": "auth_expired"},
         )
         return {
             "success": True,

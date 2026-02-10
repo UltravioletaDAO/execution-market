@@ -85,6 +85,11 @@ EM_TREASURY = os.environ.get(
 # Default network for payments
 DEFAULT_NETWORK = os.environ.get("X402_NETWORK", "base")
 
+# Settlement address: where agent funds are settled before disbursement.
+# Defaults to the platform wallet (derived from WALLET_PRIVATE_KEY).
+# This is a TRANSIT address — funds arrive here then immediately go to worker + treasury.
+EM_SETTLEMENT_ADDRESS = os.environ.get("EM_SETTLEMENT_ADDRESS")
+
 # Enabled networks for payments (comma-separated env var).
 # Only these networks accept task creation and settlement.
 # The registry below contains ALL known networks, but only enabled ones are active.
@@ -545,7 +550,9 @@ class EMX402SDK:
                 "Install with: pip install uvd-x402-sdk[fastapi]"
             )
 
-        self.recipient_address = recipient_address or EM_TREASURY
+        # Settlement goes to platform wallet (transit), NOT treasury.
+        # Treasury only receives the 8% fee after task completion.
+        self.recipient_address = recipient_address or self._resolve_settlement_address()
         self.facilitator_url = facilitator_url or FACILITATOR_URL
         self.network = network
 
@@ -569,6 +576,22 @@ class EMX402SDK:
             self.facilitator_url,
             self.network,
         )
+
+    @staticmethod
+    def _resolve_settlement_address() -> str:
+        """Resolve the settlement address: EM_SETTLEMENT_ADDRESS > WALLET_PRIVATE_KEY > EM_TREASURY."""
+        if EM_SETTLEMENT_ADDRESS:
+            return EM_SETTLEMENT_ADDRESS
+        pk = os.environ.get("WALLET_PRIVATE_KEY")
+        if pk:
+            return Account.from_key(pk).address
+        logger.warning(
+            "No EM_SETTLEMENT_ADDRESS or WALLET_PRIVATE_KEY set — "
+            "falling back to EM_TREASURY as recipient. "
+            "This means agent funds settle directly to treasury, "
+            "which prevents split-payment disbursement to workers."
+        )
+        return EM_TREASURY
 
     def _setup_fastapi(self, app: FastAPI) -> None:
         """Setup FastAPI integration with x402."""

@@ -127,6 +127,10 @@ import supabase_client as db
 from tools.worker_tools import register_worker_tools, WorkerToolsConfig
 from tools.agent_tools import register_agent_tools, AgentToolsConfig
 from tools.escrow_tools import register_escrow_tools, ADVANCED_ESCROW_AVAILABLE
+from integrations.x402.payment_dispatcher import (
+    get_dispatcher as get_payment_dispatcher,
+)
+from integrations.x402.payment_events import log_payment_event
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -1183,23 +1187,47 @@ async def em_cancel_task(params: CancelTaskInput) -> str:
     try:
         task = await db.cancel_task(params.task_id, params.agent_id)
 
-        # Handle escrow refund via SDK (facilitator pays gas)
+        # Handle escrow refund via PaymentDispatcher (handles both x402r and preauth modes)
         refund_info = None
-        if ADVANCED_ESCROW_AVAILABLE:
-            try:
-                from integrations.x402.advanced_escrow_integration import (
-                    refund_to_agent,
-                )
-
-                result = refund_to_agent(task_id=params.task_id)
+        try:
+            dispatcher = get_payment_dispatcher()
+            refund_result = await dispatcher.refund_payment(
+                task_id=params.task_id,
+                reason=params.reason,
+            )
+            if refund_result.get("success"):
                 refund_info = {
                     "amount_refunded": task.get("bounty_usd", 0),
-                    "tx_hash": getattr(result, "transaction_hash", ""),
-                    "success": getattr(result, "success", False),
+                    "tx_hash": refund_result.get("tx_hash", ""),
+                    "success": True,
+                    "status": refund_result.get("status", "refunded"),
                 }
-                logger.info(f"Escrow refunded via SDK for task {params.task_id}")
-            except Exception as e:
-                logger.warning(f"Could not refund escrow via SDK: {e}")
+                await log_payment_event(
+                    task_id=params.task_id,
+                    event_type="cancel",
+                    status="success",
+                    tx_hash=refund_result.get("tx_hash", ""),
+                    metadata={
+                        "mode": refund_result.get("mode"),
+                        "refund_status": refund_result.get("status"),
+                        "reason": params.reason,
+                        "source": "em_cancel_task",
+                    },
+                )
+                logger.info(
+                    "Payment refunded via PaymentDispatcher for task %s (mode=%s, status=%s)",
+                    params.task_id,
+                    refund_result.get("mode"),
+                    refund_result.get("status"),
+                )
+            else:
+                logger.warning(
+                    "PaymentDispatcher refund returned non-success for task %s: %s",
+                    params.task_id,
+                    refund_result.get("error"),
+                )
+        except Exception as e:
+            logger.warning("Could not refund payment via PaymentDispatcher: %s", e)
 
         # Dispatch webhook
         if WebhookEventType:

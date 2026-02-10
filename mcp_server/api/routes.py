@@ -54,6 +54,10 @@ except ImportError:
         return None
 
 
+# Payment event audit trail
+from integrations.x402.payment_events import log_payment_event
+
+
 # ERC-8004 reputation integration
 try:
     from integrations.erc8004 import rate_worker, EM_AGENT_ID
@@ -1892,6 +1896,15 @@ async def create_task(
                         }
                     )
 
+                    await log_payment_event(
+                        task_id=task["id"],
+                        event_type="store_auth",
+                        status="success",
+                        from_address=payment_result.payer_address,
+                        amount_usdc=total_required,
+                        network=payment_result.network,
+                        metadata={"mode": "preauth", "escrow_ref": escrow_ref},
+                    )
                     logger.info(
                         "preauth payment authorized: task=%s, escrow=%s, amount=%.2f, payer=%s",
                         task["id"],
@@ -1899,8 +1912,11 @@ async def create_task(
                         float(total_required),
                         payment_result.payer_address[:10] + "...",
                     )
+            except HTTPException:
+                # Re-raise HTTP exceptions (e.g., 402 from x402r escrow lock failure)
+                raise
             except Exception as e:
-                # Non-fatal: task was created, escrow recording failed
+                # Non-fatal for preauth (no funds moved), but log loudly
                 logger.error("Failed to record escrow for task %s: %s", task["id"], e)
 
         logger.info(
@@ -3021,6 +3037,49 @@ async def cancel_task(
                             "status": "refund_manual_required",
                             "escrow_id": effective_escrow_id,
                             "error": "x402 SDK not available",
+                        }
+                elif escrow_status == "failed":
+                    # Escrow lock failed — check if agent's auth was already settled
+                    escrow_meta = (escrow_row or {}).get("metadata") or {}
+                    if isinstance(escrow_meta, str):
+                        escrow_meta = json.loads(escrow_meta)
+                    agent_settle_tx = escrow_meta.get("agent_settle_tx")
+                    if agent_settle_tx:
+                        # CRITICAL: Funds WERE moved (agent → recipient) but escrow lock failed.
+                        # The agent's money is in the recipient wallet (treasury or platform).
+                        # A manual refund is required.
+                        refund_info = {
+                            "status": "refund_manual_required",
+                            "escrow_id": effective_escrow_id,
+                            "agent_settle_tx": agent_settle_tx,
+                            "error": (
+                                "Funds were settled from agent wallet but escrow lock "
+                                "failed. Manual refund required. Settlement tx: "
+                                f"{agent_settle_tx}"
+                            ),
+                        }
+                        logger.error(
+                            "FUND LOSS DETECTED: task=%s, agent_settle_tx=%s — "
+                            "escrow lock failed after settlement. Manual refund required.",
+                            task_id,
+                            agent_settle_tx,
+                        )
+                        await log_payment_event(
+                            task_id=task_id,
+                            event_type="error",
+                            status="failed",
+                            tx_hash=agent_settle_tx,
+                            error="FUND LOSS: escrow lock failed after agent settlement",
+                            metadata={
+                                "escrow_status": escrow_status,
+                                "requires_manual_refund": True,
+                            },
+                        )
+                    else:
+                        # Escrow failed but no settlement occurred — safe, auth expires
+                        refund_info = {
+                            "status": "authorization_expired",
+                            "message": "Escrow failed but no funds were moved. Authorization will expire.",
                         }
                 elif escrow_status in AUTHORIZE_ONLY_ESCROW_STATUSES:
                     # EIP-3009 authorize-only (preauth mode): no funds moved, auth expires.
