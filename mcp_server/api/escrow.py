@@ -39,12 +39,22 @@ class EscrowConfigResponse(BaseModel):
     available: bool = Field(..., description="Whether x402r escrow is available")
     network: str = Field(..., description="Blockchain network (e.g. 'base')")
     chain_id: int = Field(..., description="EVM chain ID (e.g. 8453 for Base)")
-    factory_address: str = Field(..., description="DepositRelay factory contract address")
+    factory_address: str = Field(
+        ..., description="DepositRelay factory contract address"
+    )
     escrow_address: str = Field(..., description="Escrow contract address")
-    usdc_address: str = Field(..., description="USDC token contract address on this network")
-    merchant_address: Optional[str] = Field(None, description="Execution Market's merchant address")
-    proxy_address: Optional[str] = Field(None, description="Payment proxy address (if applicable)")
-    signer_address: Optional[str] = Field(None, description="Authorized signer address (if applicable)")
+    usdc_address: str = Field(
+        ..., description="USDC token contract address on this network"
+    )
+    merchant_address: Optional[str] = Field(
+        None, description="Execution Market's merchant address"
+    )
+    proxy_address: Optional[str] = Field(
+        None, description="Payment proxy address (if applicable)"
+    )
+    signer_address: Optional[str] = Field(
+        None, description="Authorized signer address (if applicable)"
+    )
 
 
 class DepositResponse(BaseModel):
@@ -55,7 +65,9 @@ class DepositResponse(BaseModel):
     merchant: str = Field(..., description="Merchant address (Execution Market)")
     amount: str = Field(..., description="Amount in USDC (e.g. '10.00')")
     token: str = Field(..., description="Token address used for the deposit")
-    state: str = Field(..., description="Deposit state: NON_EXISTENT, IN_ESCROW, RELEASED, or REFUNDED")
+    state: str = Field(
+        ..., description="Deposit state: NON_EXISTENT, IN_ESCROW, RELEASED, or REFUNDED"
+    )
     created_at: str = Field(..., description="Deposit creation timestamp")
 
 
@@ -118,7 +130,9 @@ class RefundResponse(BaseModel):
 class PaymentExtensionResponse(BaseModel):
     """x402r payment extension for agents."""
 
-    refund: Dict[str, Any] = Field(..., description="Refund extension configuration for x402 payment payloads")
+    refund: Dict[str, Any] = Field(
+        ..., description="Refund extension configuration for x402 payment payloads"
+    )
 
 
 # =============================================================================

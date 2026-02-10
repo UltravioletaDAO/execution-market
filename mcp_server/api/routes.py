@@ -1040,22 +1040,51 @@ class TaskResponse(BaseModel):
 
     id: str = Field(..., description="Unique task identifier (UUID)")
     title: str = Field(..., description="Short descriptive title of the task")
-    status: str = Field(..., description="Current task status (published, accepted, in_progress, submitted, completed, cancelled, expired)")
-    category: str = Field(..., description="Task category (physical_presence, knowledge_access, human_authority, simple_action, digital_physical)")
+    status: str = Field(
+        ...,
+        description="Current task status (published, accepted, in_progress, submitted, completed, cancelled, expired)",
+    )
+    category: str = Field(
+        ...,
+        description="Task category (physical_presence, knowledge_access, human_authority, simple_action, digital_physical)",
+    )
     bounty_usd: float = Field(..., description="Bounty amount in USD")
     deadline: datetime = Field(..., description="Task deadline (ISO 8601)")
     created_at: datetime = Field(..., description="Task creation timestamp (ISO 8601)")
-    agent_id: str = Field(..., description="Agent identifier (wallet address or API key agent_id)")
-    executor_id: Optional[str] = Field(None, description="Assigned worker's executor ID")
-    instructions: Optional[str] = Field(None, description="Detailed task instructions for the worker")
-    evidence_schema: Optional[Dict] = Field(None, description="Required and optional evidence types")
-    location_hint: Optional[str] = Field(None, description="Human-readable location hint")
-    min_reputation: int = Field(0, description="Minimum reputation score required to apply")
-    erc8004_agent_id: Optional[str] = Field(None, description="ERC-8004 on-chain agent identity token ID")
-    payment_network: str = Field("base", description="Blockchain network for payment (e.g. base, ethereum, polygon)")
-    payment_token: str = Field("USDC", description="Payment token symbol (USDC, EURC, USDT, PYUSD)")
-    escrow_tx: Optional[str] = Field(None, description="Escrow deposit transaction hash or payment reference")
-    refund_tx: Optional[str] = Field(None, description="Refund transaction hash (if cancelled/refunded)")
+    agent_id: str = Field(
+        ..., description="Agent identifier (wallet address or API key agent_id)"
+    )
+    executor_id: Optional[str] = Field(
+        None, description="Assigned worker's executor ID"
+    )
+    instructions: Optional[str] = Field(
+        None, description="Detailed task instructions for the worker"
+    )
+    evidence_schema: Optional[Dict] = Field(
+        None, description="Required and optional evidence types"
+    )
+    location_hint: Optional[str] = Field(
+        None, description="Human-readable location hint"
+    )
+    min_reputation: int = Field(
+        0, description="Minimum reputation score required to apply"
+    )
+    erc8004_agent_id: Optional[str] = Field(
+        None, description="ERC-8004 on-chain agent identity token ID"
+    )
+    payment_network: str = Field(
+        "base",
+        description="Blockchain network for payment (e.g. base, ethereum, polygon)",
+    )
+    payment_token: str = Field(
+        "USDC", description="Payment token symbol (USDC, EURC, USDT, PYUSD)"
+    )
+    escrow_tx: Optional[str] = Field(
+        None, description="Escrow deposit transaction hash or payment reference"
+    )
+    refund_tx: Optional[str] = Field(
+        None, description="Refund transaction hash (if cancelled/refunded)"
+    )
 
 
 class TaskListResponse(BaseModel):
@@ -1074,19 +1103,34 @@ class SubmissionResponse(BaseModel):
     id: str = Field(..., description="Unique submission identifier (UUID)")
     task_id: str = Field(..., description="Associated task ID")
     executor_id: str = Field(..., description="Worker's executor ID")
-    status: str = Field(..., description="Current verdict status (pending, accepted, rejected, more_info_requested, disputed)")
-    pre_check_score: Optional[float] = Field(None, description="AI pre-check score (0.0-1.0) if evidence was auto-verified")
+    status: str = Field(
+        ...,
+        description="Current verdict status (pending, accepted, rejected, more_info_requested, disputed)",
+    )
+    pre_check_score: Optional[float] = Field(
+        None, description="AI pre-check score (0.0-1.0) if evidence was auto-verified"
+    )
     submitted_at: datetime = Field(..., description="Submission timestamp (ISO 8601)")
-    evidence: Optional[Dict] = Field(None, description="Submitted evidence data (photos, text, documents)")
-    agent_verdict: Optional[str] = Field(None, description="Agent's verdict on the submission")
-    agent_notes: Optional[str] = Field(None, description="Agent's notes explaining the verdict")
-    verified_at: Optional[datetime] = Field(None, description="Timestamp when submission was verified")
+    evidence: Optional[Dict] = Field(
+        None, description="Submitted evidence data (photos, text, documents)"
+    )
+    agent_verdict: Optional[str] = Field(
+        None, description="Agent's verdict on the submission"
+    )
+    agent_notes: Optional[str] = Field(
+        None, description="Agent's notes explaining the verdict"
+    )
+    verified_at: Optional[datetime] = Field(
+        None, description="Timestamp when submission was verified"
+    )
 
 
 class SubmissionListResponse(BaseModel):
     """Response model for submission list."""
 
-    submissions: List[SubmissionResponse] = Field(..., description="List of submission objects")
+    submissions: List[SubmissionResponse] = Field(
+        ..., description="List of submission objects"
+    )
     count: int = Field(..., description="Total number of submissions")
 
 
@@ -1125,11 +1169,19 @@ class CancelRequest(BaseModel):
 class AnalyticsResponse(BaseModel):
     """Response model for agent analytics."""
 
-    totals: Dict[str, Any] = Field(..., description="Aggregate totals (total_tasks, total_bounty, completed, etc.)")
+    totals: Dict[str, Any] = Field(
+        ..., description="Aggregate totals (total_tasks, total_bounty, completed, etc.)"
+    )
     by_status: Dict[str, int] = Field(..., description="Task count breakdown by status")
-    by_category: Dict[str, int] = Field(..., description="Task count breakdown by category")
-    average_times: Dict[str, str] = Field(..., description="Average times (time_to_accept, time_to_complete, etc.)")
-    top_workers: List[Dict] = Field(..., description="Top performing workers for this agent")
+    by_category: Dict[str, int] = Field(
+        ..., description="Task count breakdown by category"
+    )
+    average_times: Dict[str, str] = Field(
+        ..., description="Average times (time_to_accept, time_to_complete, etc.)"
+    )
+    top_workers: List[Dict] = Field(
+        ..., description="Top performing workers for this agent"
+    )
     period_days: int = Field(..., description="Number of days covered by this analysis")
 
 
@@ -1180,10 +1232,14 @@ class WorkerSubmissionRequest(BaseModel):
 class AvailableTasksResponse(BaseModel):
     """Response model for available tasks (worker view)."""
 
-    tasks: List[Dict[str, Any]] = Field(..., description="List of published tasks available for workers")
+    tasks: List[Dict[str, Any]] = Field(
+        ..., description="List of published tasks available for workers"
+    )
     count: int = Field(..., description="Number of tasks returned")
     offset: int = Field(..., description="Current pagination offset")
-    filters_applied: Dict[str, Any] = Field(..., description="Filters that were applied to this query")
+    filters_applied: Dict[str, Any] = Field(
+        ..., description="Filters that were applied to this query"
+    )
 
 
 class SuccessResponse(BaseModel):
@@ -1197,9 +1253,13 @@ class SuccessResponse(BaseModel):
 class ErrorResponse(BaseModel):
     """Error response model."""
 
-    error: str = Field(..., description="Error code (e.g. TASK_NOT_FOUND, UNAUTHORIZED)")
+    error: str = Field(
+        ..., description="Error code (e.g. TASK_NOT_FOUND, UNAUTHORIZED)"
+    )
     message: str = Field(..., description="Human-readable error message")
-    details: Optional[Dict[str, Any]] = Field(None, description="Additional error context")
+    details: Optional[Dict[str, Any]] = Field(
+        None, description="Additional error context"
+    )
 
 
 class PublicConfigResponse(BaseModel):
@@ -1207,7 +1267,9 @@ class PublicConfigResponse(BaseModel):
 
     min_bounty_usd: float = Field(..., description="Minimum bounty amount in USD")
     max_bounty_usd: float = Field(..., description="Maximum bounty amount in USD")
-    supported_networks: List[str] = Field(..., description="Currently enabled payment networks")
+    supported_networks: List[str] = Field(
+        ..., description="Currently enabled payment networks"
+    )
     supported_tokens: List[str] = Field(..., description="Supported stablecoin tokens")
     preferred_network: str = Field(..., description="Default payment network")
 
@@ -1215,23 +1277,39 @@ class PublicConfigResponse(BaseModel):
 class PublicPlatformMetricsResponse(BaseModel):
     """Public high-level platform metrics for landing/dashboard surfaces."""
 
-    users: Dict[str, int] = Field(..., description="User counts (registered_workers, registered_agents, active, etc.)")
+    users: Dict[str, int] = Field(
+        ...,
+        description="User counts (registered_workers, registered_agents, active, etc.)",
+    )
     tasks: Dict[str, int] = Field(..., description="Task counts by status and total")
-    activity: Dict[str, int] = Field(..., description="Activity metrics (active workers, agents with live tasks)")
-    payments: Dict[str, float] = Field(..., description="Payment aggregates (total_volume_usd, total_fees_usd)")
-    generated_at: datetime = Field(..., description="Timestamp when these metrics were generated")
+    activity: Dict[str, int] = Field(
+        ..., description="Activity metrics (active workers, agents with live tasks)"
+    )
+    payments: Dict[str, float] = Field(
+        ..., description="Payment aggregates (total_volume_usd, total_fees_usd)"
+    )
+    generated_at: datetime = Field(
+        ..., description="Timestamp when these metrics were generated"
+    )
 
 
 class TaskPaymentEventResponse(BaseModel):
     """Canonical payment timeline event for a task."""
 
     id: str = Field(..., description="Unique event identifier")
-    type: str = Field(..., description="Event type (escrow_created, final_release, refund, partial_release, etc.)")
-    actor: str = Field(..., description="Who triggered the event (agent, system, arbitrator)")
+    type: str = Field(
+        ...,
+        description="Event type (escrow_created, final_release, refund, partial_release, etc.)",
+    )
+    actor: str = Field(
+        ..., description="Who triggered the event (agent, system, arbitrator)"
+    )
     timestamp: str = Field(..., description="Event timestamp (ISO 8601)")
     network: str = Field(..., description="Blockchain network for this event")
     amount: Optional[float] = Field(None, description="Amount in USDC (if applicable)")
-    tx_hash: Optional[str] = Field(None, description="On-chain transaction hash (0x-prefixed, 66 chars)")
+    tx_hash: Optional[str] = Field(
+        None, description="On-chain transaction hash (0x-prefixed, 66 chars)"
+    )
     note: Optional[str] = Field(None, description="Human-readable note about the event")
 
 
@@ -1239,14 +1317,27 @@ class TaskPaymentResponse(BaseModel):
     """Canonical payment timeline and status for a task."""
 
     task_id: str = Field(..., description="Task identifier")
-    status: str = Field(..., description="Derived payment status (pending, escrowed, completed, refunded, partial_released)")
-    total_amount: float = Field(..., description="Total amount escrowed or paid in USDC")
-    released_amount: float = Field(..., description="Amount released to the worker in USDC")
+    status: str = Field(
+        ...,
+        description="Derived payment status (pending, escrowed, completed, refunded, partial_released)",
+    )
+    total_amount: float = Field(
+        ..., description="Total amount escrowed or paid in USDC"
+    )
+    released_amount: float = Field(
+        ..., description="Amount released to the worker in USDC"
+    )
     currency: str = Field("USDC", description="Payment currency")
-    escrow_tx: Optional[str] = Field(None, description="Initial escrow deposit transaction hash")
-    escrow_contract: Optional[str] = Field(None, description="Escrow contract address (if applicable)")
+    escrow_tx: Optional[str] = Field(
+        None, description="Initial escrow deposit transaction hash"
+    )
+    escrow_contract: Optional[str] = Field(
+        None, description="Escrow contract address (if applicable)"
+    )
     network: str = Field("base", description="Primary payment network")
-    events: List[TaskPaymentEventResponse] = Field(..., description="Chronological list of payment events")
+    events: List[TaskPaymentEventResponse] = Field(
+        ..., description="Chronological list of payment events"
+    )
     created_at: str = Field(..., description="When the payment timeline started")
     updated_at: str = Field(..., description="Last event timestamp")
 

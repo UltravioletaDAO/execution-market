@@ -114,30 +114,53 @@ async def verify_admin_key(
 class ConfigValue(BaseModel):
     """Single platform configuration key-value pair."""
 
-    key: str = Field(..., description="Configuration key (e.g. 'fees.platform_fee_pct')")
+    key: str = Field(
+        ..., description="Configuration key (e.g. 'fees.platform_fee_pct')"
+    )
     value: Any = Field(..., description="Current configuration value")
-    description: Optional[str] = Field(None, description="Human-readable description of this setting")
-    category: str = Field(..., description="Configuration category (fees, limits, timing, features, payments, treasury)")
+    description: Optional[str] = Field(
+        None, description="Human-readable description of this setting"
+    )
+    category: str = Field(
+        ...,
+        description="Configuration category (fees, limits, timing, features, payments, treasury)",
+    )
     is_public: bool = Field(..., description="Whether this setting is publicly visible")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp (ISO 8601)")
+    updated_at: Optional[datetime] = Field(
+        None, description="Last update timestamp (ISO 8601)"
+    )
 
 
 class AllConfigResponse(BaseModel):
     """All platform configuration values grouped by category."""
 
-    fees: Dict[str, Any] = Field(..., description="Fee-related settings (platform fee pct, min fee, etc.)")
-    limits: Dict[str, Any] = Field(..., description="Platform limits (min/max bounty, batch size, etc.)")
-    timing: Dict[str, Any] = Field(..., description="Timing settings (task expiration, deadlines, etc.)")
-    features: Dict[str, Any] = Field(..., description="Feature flags (escrow enabled, AI verification, etc.)")
-    payments: Dict[str, Any] = Field(..., description="Payment settings (supported networks, tokens, etc.)")
-    treasury: Dict[str, Any] = Field(..., description="Treasury settings (wallet address, fee distribution)")
+    fees: Dict[str, Any] = Field(
+        ..., description="Fee-related settings (platform fee pct, min fee, etc.)"
+    )
+    limits: Dict[str, Any] = Field(
+        ..., description="Platform limits (min/max bounty, batch size, etc.)"
+    )
+    timing: Dict[str, Any] = Field(
+        ..., description="Timing settings (task expiration, deadlines, etc.)"
+    )
+    features: Dict[str, Any] = Field(
+        ..., description="Feature flags (escrow enabled, AI verification, etc.)"
+    )
+    payments: Dict[str, Any] = Field(
+        ..., description="Payment settings (supported networks, tokens, etc.)"
+    )
+    treasury: Dict[str, Any] = Field(
+        ..., description="Treasury settings (wallet address, fee distribution)"
+    )
 
 
 class ConfigUpdateRequest(BaseModel):
     """Request to update a platform configuration value."""
 
     value: Any = Field(..., description="New value for the configuration key")
-    reason: Optional[str] = Field(None, description="Reason for change (recorded in audit log)")
+    reason: Optional[str] = Field(
+        None, description="Reason for change (recorded in audit log)"
+    )
 
 
 class ConfigUpdateResponse(BaseModel):

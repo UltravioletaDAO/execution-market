@@ -23,7 +23,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/agent", tags=["Agent Auth"])
 
 # JWT configuration
-JWT_SECRET = os.environ.get("EM_JWT_SECRET", os.environ.get("SUPABASE_JWT_SECRET", "em-dev-jwt-secret-change-me"))
+JWT_SECRET = os.environ.get(
+    "EM_JWT_SECRET",
+    os.environ.get("SUPABASE_JWT_SECRET", "em-dev-jwt-secret-change-me"),
+)
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = int(os.environ.get("EM_JWT_EXPIRATION_HOURS", "24"))
 
@@ -32,8 +35,10 @@ JWT_EXPIRATION_HOURS = int(os.environ.get("EM_JWT_EXPIRATION_HOURS", "24"))
 # Request / Response models
 # ---------------------------------------------------------------------------
 
+
 class AgentAuthRequest(BaseModel):
     """Request body for agent authentication."""
+
     api_key: str = Field(
         ...,
         description="Agent API key (format: em_<tier>_<random>)",
@@ -43,6 +48,7 @@ class AgentAuthRequest(BaseModel):
 
 class AgentAuthResponse(BaseModel):
     """Successful authentication response."""
+
     token: str = Field(..., description="JWT token for agent dashboard access")
     agent_id: str = Field(..., description="The authenticated agent's ID")
     tier: str = Field(..., description="API tier (free, starter, growth, enterprise)")
@@ -51,6 +57,7 @@ class AgentAuthResponse(BaseModel):
 
 class AgentAuthError(BaseModel):
     """Error response."""
+
     error: str
     message: str
 
@@ -59,7 +66,10 @@ class AgentAuthError(BaseModel):
 # JWT helpers
 # ---------------------------------------------------------------------------
 
-def create_agent_jwt(agent_id: str, tier: str, organization_id: Optional[str] = None) -> tuple[str, datetime]:
+
+def create_agent_jwt(
+    agent_id: str, tier: str, organization_id: Optional[str] = None
+) -> tuple[str, datetime]:
     """
     Create a JWT token for agent dashboard access.
 
@@ -102,6 +112,7 @@ def verify_agent_jwt(token: str) -> dict:
 # ---------------------------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------------------------
+
 
 @router.post(
     "/auth",
