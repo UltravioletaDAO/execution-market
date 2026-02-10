@@ -474,4 +474,6 @@ export function NotificationProvider({
 export { NotificationContext }
 
 // Re-export useNotificationContext hook for backward compatibility
+// Note: This re-export is needed for backward compatibility with existing imports
+// eslint-disable-next-line react-refresh/only-export-components
 export { useNotificationContext } from './hooks'
