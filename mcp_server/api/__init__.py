@@ -29,12 +29,16 @@ from .reputation import router as reputation_router
 # x402r Escrow routes (Base Mainnet)
 from .escrow import router as escrow_router
 
+# Agent authentication (JWT login for dashboard)
+from .agent_auth import router as agent_auth_router
+
 __all__ = [
     # Core routers
     "api_router",
     "health_router",
     "reputation_router",
     "escrow_router",
+    "agent_auth_router",
     # Auth
     "verify_api_key",
     "get_api_tier",

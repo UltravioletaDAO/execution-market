@@ -1,9 +1,13 @@
 // Execution Market: Agent Guard Component
-// Allows only agents to access the route, redirects workers to their tasks page
+// Allows agents to access routes via either:
+//   1. Dynamic.xyz wallet auth (existing flow, userType === 'agent')
+//   2. API key JWT auth (new agent login flow)
+// Redirects unauthenticated agents to /agent/login
 
 import { type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { isAgentLoggedIn } from '../AgentLogin'
 
 // --------------------------------------------------------------------------
 // Types
@@ -13,7 +17,7 @@ interface AgentGuardProps {
   children: ReactNode
   /** Path to redirect workers to (defaults to '/tasks') */
   workerRedirect?: string
-  /** Path to redirect unauthenticated users to (defaults to '/') */
+  /** Path to redirect unauthenticated agents to (defaults to '/agent/login') */
   unauthRedirect?: string
 }
 
@@ -42,28 +46,36 @@ function LoadingSpinner() {
 export function AgentGuard({
   children,
   workerRedirect = '/tasks',
-  unauthRedirect = '/',
+  unauthRedirect = '/agent/login',
 }: AgentGuardProps) {
   const { isAuthenticated, userType, loading } = useAuth()
   const location = useLocation()
 
-  // Show loading state while checking authentication
+  // Check API key JWT auth (independent of Dynamic.xyz)
+  const hasAgentJwt = isAgentLoggedIn()
+
+  // If agent has a valid JWT from API key login, allow access immediately
+  if (hasAgentJwt) {
+    return <>{children}</>
+  }
+
+  // Show loading state while checking wallet authentication
   if (loading) {
     return <LoadingSpinner />
   }
 
-  // Redirect to landing if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to={unauthRedirect} state={{ from: location }} replace />
+  // If authenticated via wallet as an agent, allow access
+  if (isAuthenticated && userType === 'agent') {
+    return <>{children}</>
   }
 
-  // Redirect workers to tasks page
-  if (userType === 'worker' || userType === null) {
+  // If authenticated via wallet but as a worker, redirect to tasks
+  if (isAuthenticated && (userType === 'worker' || userType === null)) {
     return <Navigate to={workerRedirect} replace />
   }
 
-  // User is authenticated and is an agent
-  return <>{children}</>
+  // Not authenticated at all — redirect to agent login
+  return <Navigate to={unauthRedirect} state={{ from: location }} replace />
 }
 
 export default AgentGuard
