@@ -11,14 +11,58 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    // The vendor-web3 chunk (~5MB) contains @dynamic-labs + @walletconnect +
+    // @reown + viem + wagmi. These libraries are deeply intertwined and cannot
+    // be split further. The chunk is lazy-loaded via DynamicProvider so it
+    // doesn't block initial render. All app code chunks are well under 200KB.
+    chunkSizeWarningLimit: 6000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-web3': ['viem', 'wagmi'],
-          'vendor-dynamic': ['@dynamic-labs/sdk-react-core', '@dynamic-labs/ethereum'],
-          'vendor-charts': ['recharts'],
-          'vendor-maps': ['leaflet', 'react-leaflet'],
-          'vendor-i18n': ['i18next', 'react-i18next'],
+        manualChunks(id) {
+          // React core
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor-react'
+          }
+          // React Router
+          if (id.includes('node_modules/react-router') || id.includes('node_modules/@remix-run/router')) {
+            return 'vendor-router'
+          }
+          // TanStack React Query
+          if (id.includes('node_modules/@tanstack/')) {
+            return 'vendor-query'
+          }
+          // Web3 auth stack: Dynamic SDK + WalletConnect + Reown + viem + wagmi
+          // These libraries have deep circular dependencies between them.
+          // They must be in one chunk to avoid Rollup circular-chunk warnings.
+          // The combined chunk is large (~5MB) but is lazy-loaded via DynamicProvider.
+          if (
+            id.includes('node_modules/@dynamic-labs/') ||
+            id.includes('node_modules/@walletconnect/') ||
+            id.includes('node_modules/@web3modal/') ||
+            id.includes('node_modules/@reown/') ||
+            id.includes('node_modules/viem/') ||
+            id.includes('node_modules/ox/') ||
+            id.includes('node_modules/wagmi/') ||
+            id.includes('node_modules/@wagmi/')
+          ) {
+            return 'vendor-web3'
+          }
+          // Charts
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+            return 'vendor-charts'
+          }
+          // Maps
+          if (id.includes('node_modules/leaflet') || id.includes('node_modules/react-leaflet')) {
+            return 'vendor-maps'
+          }
+          // i18n
+          if (id.includes('node_modules/i18next') || id.includes('node_modules/react-i18next')) {
+            return 'vendor-i18n'
+          }
+          // Supabase
+          if (id.includes('node_modules/@supabase/')) {
+            return 'vendor-supabase'
+          }
         },
       },
     },

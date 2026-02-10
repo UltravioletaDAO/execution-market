@@ -1,31 +1,54 @@
 // Execution Market Dashboard - Main App Component with Routing
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useSearchParams } from 'react-router-dom'
 
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { WorkerGuard, AgentGuard } from './components/guards'
 
-// Components
+// Components (eagerly loaded - used in wrappers)
 import { LanguageSwitcher } from './components/LanguageSwitcher'
-import { ProfilePage } from './components/profile'
-import { ProfileEditModal } from './components/profile/ProfileEditModal'
 
-// Pages
-import { Home } from './pages/Home'
-import { WorkerTasks } from './pages/WorkerTasks'
-import { About } from './pages/About'
-import { FAQ } from './pages/FAQ'
-import { AgentDashboard } from './pages/AgentDashboard'
-import { AgentOnboarding } from './pages/AgentOnboarding'
-import { AgentLogin } from './components/AgentLogin'
-import { SubmissionReviewModal } from './components/SubmissionReviewModal'
-import { TaskDetailModal } from './components/TaskDetailModal'
-import { Developers } from './pages/Developers'
-import { Earnings, type ChartPeriod } from './pages/Earnings'
-import { TaskManagement } from './pages/agent/TaskManagement'
-import { CreateTask } from './pages/agent/CreateTask'
+// Lazy-loaded page components for code splitting
+const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })))
+const WorkerTasks = lazy(() => import('./pages/WorkerTasks').then(m => ({ default: m.WorkerTasks })))
+const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })))
+const FAQ = lazy(() => import('./pages/FAQ').then(m => ({ default: m.FAQ })))
+const AgentDashboard = lazy(() => import('./pages/AgentDashboard').then(m => ({ default: m.AgentDashboard })))
+const AgentOnboarding = lazy(() => import('./pages/AgentOnboarding').then(m => ({ default: m.AgentOnboarding })))
+const AgentLogin = lazy(() => import('./components/AgentLogin').then(m => ({ default: m.AgentLogin })))
+const Developers = lazy(() => import('./pages/Developers').then(m => ({ default: m.Developers })))
+const TaskManagement = lazy(() => import('./pages/agent/TaskManagement').then(m => ({ default: m.TaskManagement })))
+const CreateTask = lazy(() => import('./pages/agent/CreateTask').then(m => ({ default: m.CreateTask })))
+
+// Lazy-loaded heavy components (modals, charts)
+const ProfilePage = lazy(() => import('./components/profile').then(m => ({ default: m.ProfilePage })))
+const ProfileEditModal = lazy(() => import('./components/profile/ProfileEditModal').then(m => ({ default: m.ProfileEditModal })))
+const SubmissionReviewModal = lazy(() => import('./components/SubmissionReviewModal').then(m => ({ default: m.SubmissionReviewModal })))
+const TaskDetailModal = lazy(() => import('./components/TaskDetailModal').then(m => ({ default: m.TaskDetailModal })))
+
+// Type-only import (no runtime cost)
+import type { ChartPeriod } from './pages/Earnings'
+
+// Lazy load Earnings page (has chart dependencies)
+const Earnings = lazy(() => import('./pages/Earnings').then(m => ({ default: m.Earnings })))
+
 import { useEarnings, useTaskHistory } from './hooks/useProfile'
+
+// Loading fallback component
+function PageLoader() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center gap-3">
+        <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    </div>
+  )
+}
 
 // --------------------------------------------------------------------------
 // Profile Page (Worker - Protected)
@@ -89,11 +112,13 @@ function ProfilePageWrapper() {
         onEditProfile={() => setShowEditModal(true)}
       />
       {showEditModal && (
-        <ProfileEditModal
-          executor={executor}
-          onClose={() => setShowEditModal(false)}
-          onSaved={handleEditSaved}
-        />
+        <Suspense fallback={null}>
+          <ProfileEditModal
+            executor={executor}
+            onClose={() => setShowEditModal(false)}
+            onSaved={handleEditSaved}
+          />
+        </Suspense>
       )}
     </>
   )
@@ -267,11 +292,13 @@ function AgentDashboardPage() {
         />
       </main>
       {reviewSubmissionId && (
-        <SubmissionReviewModal
-          submissionId={reviewSubmissionId}
-          onClose={closeReview}
-          onSuccess={closeReview}
-        />
+        <Suspense fallback={null}>
+          <SubmissionReviewModal
+            submissionId={reviewSubmissionId}
+            onClose={closeReview}
+            onSuccess={closeReview}
+          />
+        </Suspense>
       )}
     </div>
   )
@@ -311,18 +338,22 @@ function AgentTasksPage() {
         />
       </main>
       {viewTaskId && (
-        <TaskDetailModal
-          taskId={viewTaskId}
-          onClose={closeModal}
-          onReviewSubmission={(subId) => setSearchParams({ review: subId })}
-        />
+        <Suspense fallback={null}>
+          <TaskDetailModal
+            taskId={viewTaskId}
+            onClose={closeModal}
+            onReviewSubmission={(subId) => setSearchParams({ review: subId })}
+          />
+        </Suspense>
       )}
       {reviewSubmissionId && (
-        <SubmissionReviewModal
-          submissionId={reviewSubmissionId}
-          onClose={closeModal}
-          onSuccess={closeModal}
-        />
+        <Suspense fallback={null}>
+          <SubmissionReviewModal
+            submissionId={reviewSubmissionId}
+            onClose={closeModal}
+            onSuccess={closeModal}
+          />
+        </Suspense>
       )}
     </div>
   )
@@ -351,6 +382,7 @@ function AgentCreateTaskPage() {
 
 function AppRoutes() {
   return (
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Home />} />
@@ -412,6 +444,7 @@ function AppRoutes() {
         }
       />
     </Routes>
+    </Suspense>
   )
 }
 
