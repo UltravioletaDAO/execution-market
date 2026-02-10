@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { NETWORKS } from '../../config/networks'
 
 const protocols = [
   {
@@ -36,16 +37,8 @@ const protocols = [
   },
 ]
 
-const networks = [
-  { name: 'Base', logo: '/base.png', live: true },
-  { name: 'Ethereum', logo: '/ethereum.png', live: true },
-  { name: 'Polygon', logo: '/polygon.png', live: true },
-  { name: 'Arbitrum', logo: '/arbitrum.png', live: true },
-  { name: 'Celo', logo: '/celo.png', live: true },
-  { name: 'Monad', logo: '/monad.png', live: true },
-  { name: 'Avalanche', logo: '/avalanche.png', live: true },
-  { name: 'Optimism', logo: '/optimism.png', live: true },
-]
+// Network list derived from config/networks.ts (single source of truth)
+const networks = NETWORKS
 
 export function ProtocolStack() {
   const { t } = useTranslation()

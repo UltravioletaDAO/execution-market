@@ -16,9 +16,8 @@ Endpoints:
 - POST /feedback/revoke                  - Revoke feedback
 - POST /feedback/response                - Agent responds to feedback
 
-Supported networks (14): All use CREATE2-deployed contracts at deterministic addresses.
-  Mainnets: ethereum, base-mainnet, polygon, arbitrum, celo, bsc, monad, avalanche
-  Testnets: ethereum-sepolia, base-sepolia, polygon-amoy, arbitrum-sepolia, celo-sepolia, avalanche-fuji
+ERC-8004 networks are auto-derived from sdk_client.py NETWORK_CONFIG (single source of truth).
+All mainnets use the same CREATE2-deployed contracts at deterministic addresses.
 """
 
 import os
@@ -27,6 +26,8 @@ from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 
 import httpx
+
+from integrations.x402.sdk_client import NETWORK_CONFIG as _PAYMENT_NETWORKS
 
 logger = logging.getLogger(__name__)
 
@@ -52,91 +53,45 @@ _TESTNET_IDENTITY = "0x8004A818BFB912233c491871b3d84c89A494BD9e"
 _TESTNET_REPUTATION = "0x8004B663056A597Dffe9eCcC1965A193B7388713"
 _TESTNET_VALIDATION = "0x8004Cb1BF31DAf7788923b405b754f57acEB4272"
 
-ERC8004_CONTRACTS = {
-    # --- Mainnets ---
-    "ethereum": {
+_TESTNET_SUFFIXES = ("-sepolia", "-amoy", "-fuji")
+
+# --- Auto-derive ERC-8004 contracts from payment NETWORK_CONFIG ---
+# All payment-network mainnets have ERC-8004 (CREATE2 same-address deployment).
+# Testnets use different registry addresses and are listed explicitly below.
+ERC8004_CONTRACTS: Dict[str, Dict[str, Any]] = {}
+
+# Mainnets: auto-generated from sdk_client.py
+for _net, _cfg in _PAYMENT_NETWORKS.items():
+    if _net.endswith(_TESTNET_SUFFIXES):
+        continue  # Testnets handled below
+    ERC8004_CONTRACTS[_net] = {
         "identity_registry": _MAINNET_IDENTITY,
         "reputation_registry": _MAINNET_REPUTATION,
-        "chain_id": 1,
-    },
-    "base": {
-        "identity_registry": _MAINNET_IDENTITY,
-        "reputation_registry": _MAINNET_REPUTATION,
-        "chain_id": 8453,
-    },
-    "polygon": {
-        "identity_registry": _MAINNET_IDENTITY,
-        "reputation_registry": _MAINNET_REPUTATION,
-        "chain_id": 137,
-    },
-    "arbitrum": {
-        "identity_registry": _MAINNET_IDENTITY,
-        "reputation_registry": _MAINNET_REPUTATION,
-        "chain_id": 42161,
-    },
-    "celo": {
-        "identity_registry": _MAINNET_IDENTITY,
-        "reputation_registry": _MAINNET_REPUTATION,
-        "chain_id": 42220,
-    },
-    "bsc": {
-        "identity_registry": _MAINNET_IDENTITY,
-        "reputation_registry": _MAINNET_REPUTATION,
-        "chain_id": 56,
-    },
-    "monad": {
-        "identity_registry": _MAINNET_IDENTITY,
-        "reputation_registry": _MAINNET_REPUTATION,
-        "chain_id": 143,
-    },
-    "avalanche": {
-        "identity_registry": _MAINNET_IDENTITY,
-        "reputation_registry": _MAINNET_REPUTATION,
-        "chain_id": 43114,
-    },
-    "optimism": {
-        "identity_registry": _MAINNET_IDENTITY,
-        "reputation_registry": _MAINNET_REPUTATION,
-        "chain_id": 10,
-    },
-    # --- Testnets ---
-    "ethereum-sepolia": {
-        "identity_registry": _TESTNET_IDENTITY,
-        "reputation_registry": _TESTNET_REPUTATION,
-        "validation_registry": _TESTNET_VALIDATION,
-        "chain_id": 11155111,
-    },
-    "base-sepolia": {
-        "identity_registry": _TESTNET_IDENTITY,
-        "reputation_registry": _TESTNET_REPUTATION,
-        "validation_registry": _TESTNET_VALIDATION,
-        "chain_id": 84532,
-    },
-    "polygon-amoy": {
-        "identity_registry": _TESTNET_IDENTITY,
-        "reputation_registry": _TESTNET_REPUTATION,
-        "validation_registry": _TESTNET_VALIDATION,
-        "chain_id": 80002,
-    },
-    "arbitrum-sepolia": {
-        "identity_registry": _TESTNET_IDENTITY,
-        "reputation_registry": _TESTNET_REPUTATION,
-        "validation_registry": _TESTNET_VALIDATION,
-        "chain_id": 421614,
-    },
-    "celo-sepolia": {
-        "identity_registry": _TESTNET_IDENTITY,
-        "reputation_registry": _TESTNET_REPUTATION,
-        "validation_registry": _TESTNET_VALIDATION,
-        "chain_id": 44787,
-    },
-    "avalanche-fuji": {
-        "identity_registry": _TESTNET_IDENTITY,
-        "reputation_registry": _TESTNET_REPUTATION,
-        "validation_registry": _TESTNET_VALIDATION,
-        "chain_id": 43113,
-    },
+        "chain_id": _cfg["chain_id"],
+    }
+
+# BSC: ERC-8004 identity/reputation only (no x402 payment support)
+ERC8004_CONTRACTS["bsc"] = {
+    "identity_registry": _MAINNET_IDENTITY,
+    "reputation_registry": _MAINNET_REPUTATION,
+    "chain_id": 56,
 }
+
+# Testnets: different CREATE2 registries, listed explicitly
+for _testnet, _chain_id in [
+    ("ethereum-sepolia", 11155111),
+    ("base-sepolia", 84532),
+    ("polygon-amoy", 80002),
+    ("arbitrum-sepolia", 421614),
+    ("celo-sepolia", 44787),
+    ("avalanche-fuji", 43113),
+]:
+    ERC8004_CONTRACTS[_testnet] = {
+        "identity_registry": _TESTNET_IDENTITY,
+        "reputation_registry": _TESTNET_REPUTATION,
+        "validation_registry": _TESTNET_VALIDATION,
+        "chain_id": _chain_id,
+    }
 
 # Alias: "base-mainnet" → "base" (SDK uses "base-mainnet", facilitator uses "base")
 ERC8004_CONTRACTS["base-mainnet"] = ERC8004_CONTRACTS["base"]

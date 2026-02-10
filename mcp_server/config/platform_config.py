@@ -293,10 +293,12 @@ class PlatformConfig:
 
     @classmethod
     async def get_supported_networks(cls) -> List[str]:
-        """Get list of supported payment networks."""
+        """Get list of supported payment networks (defaults from sdk_client)."""
+        from integrations.x402.sdk_client import get_enabled_networks
+
         return await cls.get(
             "x402.supported_networks",
-            ["base", "ethereum", "polygon", "optimism", "arbitrum"],
+            get_enabled_networks(),
         )
 
     @classmethod
