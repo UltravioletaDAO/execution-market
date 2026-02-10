@@ -1,3 +1,5 @@
+![AI Won't Replace You. It Will Need You.](https://d10ucc05zs1fwn.cloudfront.net/articles/v46/header.jpg)
+
 # AI Won't Replace You. It Will Need You.
 
 > V46 - Technical corrections + narrative improvements. Trustless infrastructure live.
@@ -130,7 +132,7 @@ Payments on-chain. Reputation on-chain. Task verification verifiable. The system
 
 ---
 
-![A person photographs a For Rent sign and receives instant payment](1.png)
+![A person photographs a For Rent sign and receives instant payment](https://d10ucc05zs1fwn.cloudfront.net/articles/v46/1.png)
 
 **No interview. No schedule. No boss.**
 
@@ -331,7 +333,7 @@ Stop me if you've heard this one.
 
 No.
 
-![Legacy Gig Economy vs Human-only Platforms vs Execution Market](2.png)
+![Legacy Gig Economy vs Human-only Platforms vs Execution Market](https://d10ucc05zs1fwn.cloudfront.net/articles/v46/2.png)
 
 | | Legacy Gig Economy | Trust-Based AI Platforms | Execution Market |
 |--|-------------------|----------------------|------------------|
@@ -366,7 +368,7 @@ As the Trustless Manifesto puts it:
 
 ## The trustless stack
 
-![Architecture: x402 payments, x402r refunds, Superfluid streaming, ERC-8004 reputation](3.png)
+![Architecture: x402 payments, x402r refunds, Superfluid streaming, ERC-8004 reputation](https://d10ucc05zs1fwn.cloudfront.net/articles/v46/3.png)
 
 Every layer of Execution Market is designed to be trustless. Not as an afterthought. As the foundation.
 
@@ -479,7 +481,7 @@ And there's more: the Reputation Registry was designed to handle feedback from b
 
 ### Smart verification
 
-![Verification pyramid: Auto-check 80%, AI Review 15%, Human Arbitration 5%](4.png)
+![Verification pyramid: Auto-check 80%, AI Review 15%, Human Arbitration 5%](https://d10ucc05zs1fwn.cloudfront.net/articles/v46/4.png)
 
 Most tasks verify automatically: GPS confirms location, timestamp confirms time, OCR extracts text from photos. If everything checks out, instant payment.
 
@@ -566,7 +568,7 @@ Today those $0.50 tasks are **impossible**. TaskRabbit charges 23% commission. F
 
 ### Global purchasing power
 
-![Global purchasing power - $0.50 means different things in different countries](7.png)
+![Global purchasing power - $0.50 means different things in different countries](https://d10ucc05zs1fwn.cloudfront.net/articles/v46/7.png)
 
 $0.50 in San Francisco doesn't buy a coffee. But $0.50 in Colombia is 1,000 pesos. In Argentina, Venezuela, Nigeria, or the Philippines, those cents represent proportionally much more.
 
@@ -580,7 +582,7 @@ A student in Bogota who completes 20 quick verifications a day earns $5-10 USD. 
 
 ## The use case that already works
 
-![Today's flow (hours/days) vs Execution Market flow (seconds)](5.png)
+![Today's flow (hours/days) vs Execution Market flow (seconds)](https://d10ucc05zs1fwn.cloudfront.net/articles/v46/5.png)
 
 A company has an agent handling customer service. The agent closes a sale. The customer wants shipping.
 
@@ -671,7 +673,7 @@ The agent deposits the maximum upfront. If someone takes it early, the excess is
 
 ## Why "Universal" — Humans AND Robots
 
-![Timeline: 2024 humans only, 2026 humans + robots, 2028+ mostly robots](6.png)
+![Timeline: 2024 humans only, 2026 humans + robots, 2028+ mostly robots](https://d10ucc05zs1fwn.cloudfront.net/articles/v46/6.png)
 
 This is the elephant in the room.
 
