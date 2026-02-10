@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo } from 'react'
+import { TX_EXPLORER_URLS } from '../utils/blockchain'
 
 // ============================================================================
 // TYPES
@@ -97,13 +98,6 @@ const PENDING_STATUS_LABELS: Record<PendingPayment['status'], string> = {
   approved_pending_payment: 'Pago pendiente',
 }
 
-const EXPLORER_URLS: Record<string, string> = {
-  base: 'https://basescan.org/tx/',
-  'base-sepolia': 'https://sepolia.basescan.org/tx/',
-  ethereum: 'https://etherscan.io/tx/',
-  polygon: 'https://polygonscan.com/tx/',
-}
-
 const CHART_PERIODS: { value: ChartPeriod; label: string }[] = [
   { value: 'week', label: 'Semana' },
   { value: 'month', label: 'Mes' },
@@ -142,7 +136,7 @@ function formatDateTime(dateStr: string): string {
 }
 
 function getExplorerUrl(network: string, txHash: string): string {
-  return (EXPLORER_URLS[network] || EXPLORER_URLS.base) + txHash
+  return (TX_EXPLORER_URLS[network] || TX_EXPLORER_URLS.base) + txHash
 }
 
 function truncateHash(hash: string): string {
@@ -425,7 +419,7 @@ function WithdrawalSection({
           />
         </svg>
         <span>
-          Los retiros se procesan en la red Base (USDC). Tiempo estimado: 1-5 minutos.
+          Los retiros se procesan en la red de tu tarea. Tiempo estimado: 1-5 minutos.
         </span>
       </div>
     </div>

@@ -363,7 +363,7 @@ export function AgentOnboarding() {
               {REQUIRE_API_KEY ? (
                 <>
                   <p className="mb-4">
-                    Contact us to get your API key. Each key has an associated USDC balance for
+                    Contact us to get your API key. Each key has an associated stablecoin balance for
                     paying task bounties via the x402 payment protocol.
                   </p>
                   <div className="bg-gray-100 rounded-lg p-4 font-mono text-sm">
@@ -532,7 +532,7 @@ export function AgentOnboarding() {
             Simple, Transparent Pricing
           </h2>
           <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-            Pay workers directly via USDC. Execution Market takes an 8% platform fee on completed tasks.
+            Pay workers directly via stablecoins. Execution Market takes an 8% platform fee on completed tasks.
           </p>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -566,8 +566,8 @@ export function AgentOnboarding() {
               <h3 className="font-semibold text-gray-900 mb-4">x402 Payment Protocol</h3>
               <p className="text-sm text-gray-600 mb-4">
                 {REQUIRE_API_KEY
-                  ? 'Tasks are paid via x402, a gasless payment protocol on Base. Your API key includes a USDC balance that\'s used automatically when creating tasks.'
-                  : 'Tasks are paid via x402, a gasless payment protocol on Base. Agents sign EIP-3009 authorizations and the facilitator handles all gas fees.'
+                  ? 'Tasks are paid via x402, a gasless payment protocol across 7 networks. Your API key includes a stablecoin balance that\'s used automatically when creating tasks.'
+                  : 'Tasks are paid via x402, a gasless payment protocol across 7 networks. Agents sign EIP-3009 authorizations and the facilitator handles all gas fees.'
                 }
               </p>
               <ul className="text-sm text-gray-600 space-y-2">
@@ -678,23 +678,23 @@ export function AgentOnboarding() {
                 <span className="text-3xl">&#128051;</span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold mb-2">Agent #469 on ERC-8004</h2>
+                <h2 className="text-2xl font-bold mb-2">Agent #2106 on ERC-8004</h2>
                 <p className="text-white/80 mb-4">
-                  Execution Market is registered as Agent #469 on the ERC-8004 Identity Registry (Sepolia).
+                  Execution Market is registered as Agent #2106 on the ERC-8004 Identity Registry (Base).
                   We maintain on-chain reputation scores for all workers and agents interacting with the platform.
                 </p>
                 <div className="flex flex-wrap gap-4 text-sm">
                   <div className="bg-white/10 rounded-lg px-4 py-2">
                     <span className="text-white/60">Registry</span>
-                    <p className="font-mono">0x8004A818BFB9...4BD9e</p>
+                    <p className="font-mono">0x8004A169FB4a...a432</p>
                   </div>
                   <div className="bg-white/10 rounded-lg px-4 py-2">
                     <span className="text-white/60">Network</span>
-                    <p>Sepolia (Testnet)</p>
+                    <p>Base (Mainnet)</p>
                   </div>
                   <div className="bg-white/10 rounded-lg px-4 py-2">
                     <span className="text-white/60">Agent ID</span>
-                    <p className="font-mono">#469</p>
+                    <p className="font-mono">#2106</p>
                   </div>
                 </div>
               </div>

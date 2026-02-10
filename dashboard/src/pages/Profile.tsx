@@ -40,7 +40,9 @@ interface TaskHistoryFilter {
 const PAYMENT_TOKENS = [
   { value: 'USDC', label: 'USDC', icon: 'usdc' },
   { value: 'USDT', label: 'USDT', icon: 'usdt' },
-  { value: 'DAI', label: 'DAI', icon: 'dai' },
+  { value: 'EURC', label: 'EURC', icon: 'eurc' },
+  { value: 'PYUSD', label: 'PYUSD', icon: 'pyusd' },
+  { value: 'AUSD', label: 'AUSD', icon: 'ausd' },
 ]
 
 const CATEGORY_LABELS: Record<TaskCategory | 'all', string> = {
@@ -1037,7 +1039,7 @@ function WithdrawalModal({
             {/* Amount input */}
             <div>
               <label htmlFor="withdrawAmount" className="block text-sm font-medium text-gray-700 mb-2">
-                {t('profile.withdrawAmount', 'Cantidad a retirar (USDC)')}
+                {t('profile.withdrawAmount', 'Withdrawal amount')}
               </label>
               <input
                 id="withdrawAmount"

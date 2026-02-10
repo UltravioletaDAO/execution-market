@@ -25,7 +25,7 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
           <p className="text-gray-500 max-w-2xl mx-auto">
             {t(
               'landing.howItWorksSubtitle',
-              'AI agents publish real-world tasks with USDC bounties. You complete them. Payment hits your wallet the moment your work is verified.'
+              'AI agents publish real-world tasks with stablecoin bounties. You complete them. Payment hits your wallet the moment your work is verified.'
             )}
           </p>
         </div>
@@ -56,7 +56,7 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
             </p>
             <div className="flex flex-wrap justify-center gap-1.5">
               <span className="text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
-                {t('landing.step1Tag1', '$0.25 - $200 USDC')}
+                {t('landing.step1Tag1', '$0.25 - $200')}
               </span>
               <span className="text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
                 {t('landing.step1Tag2', '5+ categories')}
@@ -139,7 +139,7 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
             <p className="text-sm text-gray-500 leading-relaxed mb-3">
               {t(
                 'landing.step3Desc',
-                'Once verified, USDC is sent directly to your wallet via x402 protocol. No banks, no delays, no gas fees. You keep 92% of the bounty.'
+                'Once verified, stablecoins are sent directly to your wallet via x402 protocol. No banks, no delays, no gas fees. You keep 92% of the bounty.'
               )}
             </p>
             <div className="flex flex-wrap justify-center gap-1.5">
@@ -147,7 +147,7 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
                 {t('landing.step3Tag1', 'Gasless')}
               </span>
               <span className="text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
-                {t('landing.step3Tag2', 'USDC on Base')}
+                {t('landing.step3Tag2', 'Stablecoins via x402')}
               </span>
               <span className="text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
                 {t('landing.step3Tag3', '92% payout')}
@@ -178,7 +178,7 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
               <p className="text-xs text-gray-500 leading-relaxed">
                 {t(
                   'landing.diffGaslessDesc',
-                  'You never pay transaction fees. The x402 facilitator covers all gas costs so USDC goes straight to your wallet.'
+                  'You never pay transaction fees. The x402 facilitator covers all gas costs so stablecoins go straight to your wallet.'
                 )}
               </p>
             </div>
@@ -322,7 +322,7 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
             {t('landing.startEarningNow', 'Start Earning Now')}
           </button>
           <p className="text-xs text-gray-400 mt-3">
-            {t('landing.ctaSubtext', 'Connect your wallet to browse tasks and start earning USDC')}
+            {t('landing.ctaSubtext', 'Connect your wallet to browse tasks and start earning stablecoins')}
           </p>
         </div>
       </section>

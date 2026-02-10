@@ -7,6 +7,8 @@ import { useTaskPayment } from '../hooks/useTaskPayment'
 import { PaymentStatus } from './PaymentStatus'
 import type { Task, TaskCategory, Executor } from '../types/database'
 import { CATEGORY_ICONS } from '../constants/categories'
+import { getNetworkDisplayName } from '../utils/blockchain'
+import { TxHashLink } from './TxHashLink'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -174,7 +176,9 @@ export function TaskDetail({
             <div className="text-2xl font-bold text-green-600">
               {formatBounty(task.bounty_usd)}
             </div>
-            <div className="text-xs text-gray-400">{task.payment_token}</div>
+            <div className="text-xs text-gray-400">
+              {task.payment_token}{task.payment_network ? ` on ${getNetworkDisplayName(task.payment_network)}` : ''}
+            </div>
           </div>
         </div>
       </div>
@@ -332,6 +336,45 @@ export function TaskDetail({
             </div>
           </div>
         </section>
+
+        {/* Transaction Details */}
+        {(task.escrow_tx || task.refund_tx || task.payment_network) && (
+          <section>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+              {t('tasks.transactionDetails', 'Transaction Details')}
+            </h2>
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              {task.payment_network && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">{t('tasks.network', 'Network')}</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {getNetworkDisplayName(task.payment_network)}
+                  </span>
+                </div>
+              )}
+              {task.payment_token && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">{t('tasks.token', 'Token')}</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {task.payment_token}
+                  </span>
+                </div>
+              )}
+              {task.escrow_tx && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">{t('tasks.escrowTx', 'Escrow')}</span>
+                  <TxHashLink txHash={task.escrow_tx} network={task.payment_network || 'base'} />
+                </div>
+              )}
+              {task.refund_tx && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">{t('tasks.refundTx', 'Refund')}</span>
+                  <TxHashLink txHash={task.refund_tx} network={task.payment_network || 'base'} />
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Payment / Refund status */}
         {showPayment && (

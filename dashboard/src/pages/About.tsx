@@ -230,7 +230,7 @@ export function About() {
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {t(
                     'about.solutionPaymentsDesc',
-                    'Workers get paid in USDC on Base the moment their work is approved. No gas fees, no bank transfers, no waiting days. Powered by the x402 payment protocol.'
+                    'Workers receive stablecoins the moment their work is approved. No gas fees, no bank transfers, no waiting days. Powered by the x402 protocol across 7 networks.'
                   )}
                 </p>
               </div>
@@ -394,7 +394,7 @@ export function About() {
                   <p className="text-sm text-gray-500 leading-relaxed">
                     {t(
                       'about.techX402Desc',
-                      'Gasless USDC payments on Base. The facilitator covers gas fees so workers receive their full earnings without friction.'
+                      'Gasless stablecoin payments across 7 networks. The facilitator covers gas fees so workers receive their full earnings without friction.'
                     )}
                   </p>
                 </div>
@@ -420,19 +420,19 @@ export function About() {
                 </div>
               </div>
 
-              {/* Agent #469 */}
+              {/* Agent #2106 */}
               <div className="flex gap-4">
                 <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-emerald-400 font-black text-sm">#469</span>
+                  <span className="text-emerald-400 font-black text-sm">#2106</span>
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 mb-1">
-                    {t('about.techAgentTitle', 'Agent #469')}
+                    {t('about.techAgentTitle', 'Agent #2106')}
                   </h3>
                   <p className="text-sm text-gray-500 leading-relaxed">
                     {t(
                       'about.techAgentDesc',
-                      'Execution Market is registered as Agent #469 on the ERC-8004 Identity Registry on Sepolia, with on-chain reputation tracking.'
+                      'Execution Market is registered as Agent #2106 on the ERC-8004 Identity Registry on Base, with on-chain reputation tracking.'
                     )}
                   </p>
                 </div>

@@ -368,6 +368,9 @@ class TaskResponse(BaseModel):
     executor_id: Optional[str] = Field(None, description="Assigned worker ID")
     created_at: datetime = Field(..., description="Creation timestamp")
     escrow_tx: Optional[str] = Field(None, description="Escrow transaction hash")
+    refund_tx: Optional[str] = Field(None, description="Refund transaction hash")
+    payment_network: str = Field("base", description="Payment network (e.g. base, ethereum, polygon)")
+    payment_token: str = Field("USDC", description="Payment token symbol (e.g. USDC, EURC)")
     erc8004_agent_id: Optional[str] = Field(
         None, description="ERC-8004 on-chain agent ID (if verified)"
     )

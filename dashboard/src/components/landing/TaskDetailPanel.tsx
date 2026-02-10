@@ -4,6 +4,7 @@ import { useTranslation as useCustomTranslation } from '../../i18n/hooks/useTran
 import type { Task, TaskCategory } from '../../types/database'
 import { PaymentStatus } from '../PaymentStatus'
 import { useTaskPayment } from '../../hooks/useTaskPayment'
+import { getExplorerUrl } from '../../utils/blockchain'
 
 interface TaskDetailPanelProps {
   task: Task
@@ -249,11 +250,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
                           </p>
                           {payment.escrow_tx && (
                             <a
-                              href={
-                                payment.network === 'base' || payment.network === 'base-mainnet'
-                                  ? `https://basescan.org/tx/${payment.escrow_tx}`
-                                  : `https://sepolia.basescan.org/tx/${payment.escrow_tx}`
-                              }
+                              href={getExplorerUrl(payment.escrow_tx, payment.network)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 mt-1.5 text-xs font-mono text-green-700 hover:text-green-900 underline transition-colors"

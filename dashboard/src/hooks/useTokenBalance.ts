@@ -74,14 +74,15 @@ const ERC20_BALANCE_ABI = [
 ] as const
 
 // Default tokens to track
-const DEFAULT_TOKENS: PaymentToken[] = ['usdc', 'eurc', 'dai', 'usdt']
+const DEFAULT_TOKENS: PaymentToken[] = ['usdc', 'eurc', 'usdt', 'pyusd', 'ausd']
 
 // Token symbols for display
 const TOKEN_SYMBOLS: Record<PaymentToken, string> = {
   usdc: 'USDC',
   eurc: 'EURC',
-  dai: 'DAI',
   usdt: 'USDT',
+  pyusd: 'PYUSD',
+  ausd: 'AUSD',
 }
 
 // =============================================================================

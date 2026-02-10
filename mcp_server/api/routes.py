@@ -1054,6 +1054,8 @@ class TaskResponse(BaseModel):
     erc8004_agent_id: Optional[str] = None
     payment_network: str = "base"
     payment_token: str = "USDC"
+    escrow_tx: Optional[str] = None
+    refund_tx: Optional[str] = None
 
 
 class TaskListResponse(BaseModel):
@@ -1834,6 +1836,10 @@ async def create_task(
             location_hint=task.get("location_hint"),
             min_reputation=task.get("min_reputation", 0),
             erc8004_agent_id=task.get("erc8004_agent_id"),
+            payment_network=task.get("payment_network", "base"),
+            payment_token=task.get("payment_token", "USDC"),
+            escrow_tx=task.get("escrow_tx"),
+            refund_tx=task.get("refund_tx"),
         )
 
     except HTTPException:
@@ -1984,6 +1990,10 @@ async def get_task(
         location_hint=task.get("location_hint"),
         min_reputation=task.get("min_reputation", 0),
         erc8004_agent_id=task.get("erc8004_agent_id"),
+        payment_network=task.get("payment_network", "base"),
+        payment_token=task.get("payment_token", "USDC"),
+        escrow_tx=task.get("escrow_tx"),
+        refund_tx=task.get("refund_tx"),
     )
 
 
@@ -2357,6 +2367,10 @@ async def list_tasks(
                 executor_id=task.get("executor_id"),
                 min_reputation=task.get("min_reputation", 0),
                 erc8004_agent_id=task.get("erc8004_agent_id"),
+                payment_network=task.get("payment_network", "base"),
+                payment_token=task.get("payment_token", "USDC"),
+                escrow_tx=task.get("escrow_tx"),
+                refund_tx=task.get("refund_tx"),
             )
         )
 

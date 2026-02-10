@@ -22,19 +22,21 @@ export const TOKEN_ADDRESSES = {
   base: {
     usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     eurc: '0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42',
-    dai: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb',
     usdt: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
+    pyusd: '0x6c3ea9036406852006290770BEdFcAbA0e23A0e8', // PYUSD (Ethereum address; not yet on Base)
+    ausd: '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a', // AUSD CREATE2 (Ethereum, Polygon, Arbitrum, Avalanche, Monad; not on Base)
   },
 } as const
 
 export const TOKEN_DECIMALS = {
   usdc: 6,
   eurc: 6,
-  dai: 18,
   usdt: 6,
+  pyusd: 6,
+  ausd: 6,
 } as const
 
-export type PaymentToken = 'usdc' | 'eurc' | 'dai' | 'usdt'
+export type PaymentToken = 'usdc' | 'eurc' | 'usdt' | 'pyusd' | 'ausd'
 
 // =============================================================================
 // ABIs

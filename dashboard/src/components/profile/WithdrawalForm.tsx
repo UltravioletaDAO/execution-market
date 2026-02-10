@@ -179,7 +179,7 @@ export function WithdrawalForm({
               </p>
             )}
             <p className="text-gray-500 text-xs mt-1">
-              {t('profile.baseNetwork', 'Withdrawals are sent on Base network (USDC)')}
+              {t('profile.baseNetwork', "Withdrawals are sent on your task's network")}
             </p>
           </div>
 

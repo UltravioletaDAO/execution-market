@@ -8,6 +8,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Executor } from '../types/database'
+import { getExplorerUrl as getBlockchainExplorerUrl } from '../utils/blockchain'
 
 // ============================================================================
 // TYPES
@@ -607,7 +608,7 @@ function SlashingHistorySection({ history, loading }: { history: SlashingEvent[]
                         <>
                           <span className="text-gray-300">|</span>
                           <a
-                            href={`https://basescan.org/tx/${event.tx_hash}`}
+                            href={getBlockchainExplorerUrl(event.tx_hash, 'base')}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-indigo-600 hover:text-indigo-700"
@@ -753,7 +754,7 @@ function StakeHistorySection({
                           <>
                             <span className="text-gray-300">|</span>
                             <a
-                              href={`https://basescan.org/tx/${action.tx_hash}`}
+                              href={getBlockchainExplorerUrl(action.tx_hash, 'base')}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-indigo-600 hover:text-indigo-700"
