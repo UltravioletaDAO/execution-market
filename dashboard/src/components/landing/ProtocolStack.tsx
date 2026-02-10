@@ -44,6 +44,7 @@ const networks = [
   { name: 'Celo', logo: '/celo.png', live: true },
   { name: 'Monad', logo: '/monad.png', live: true },
   { name: 'Avalanche', logo: '/avalanche.png', live: true },
+  { name: 'Optimism', logo: '/optimism.png', live: true },
 ]
 
 export function ProtocolStack() {

@@ -90,7 +90,8 @@ DEFAULT_NETWORK = os.environ.get("X402_NETWORK", "base")
 # The registry below contains ALL known networks, but only enabled ones are active.
 # To enable more: fund the platform wallet with USDC on that chain, then add to this list.
 _enabled_raw = os.environ.get(
-    "EM_ENABLED_NETWORKS", "base,ethereum,polygon,arbitrum,celo,monad,avalanche"
+    "EM_ENABLED_NETWORKS",
+    "base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism",
 )
 ENABLED_NETWORKS = [n.strip() for n in _enabled_raw.split(",") if n.strip()]
 
@@ -275,12 +276,14 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
                 "decimals": 6,
             },
             "USDT": {
-                "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+                "address": "0x01bff41798a0bcf287b996046ca68b395dbc1071",
                 "name": "Tether USD",
                 "version": "1",
                 "decimals": 6,
             },
         },
+        "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
+        "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
     },
     "hyperevm": {
         "chain_id": 999,

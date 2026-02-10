@@ -26,7 +26,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "dotenv": "^16.4.5",
-    "uvd-x402-sdk": "^2.22.0",
+    "uvd-x402-sdk": "^2.23.0",
     "viem": "^2.44.4"
   },
   "devDependencies": {
