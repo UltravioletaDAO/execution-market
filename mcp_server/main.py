@@ -38,6 +38,7 @@ from a2a import a2a_router
 from api import api_router, add_api_middleware
 from api import reputation_router, escrow_router
 from api.admin import router as admin_router
+from api.agent_auth import router as agent_auth_router
 from health import router as health_router
 
 # x402 SDK Integration (NOW-202)
@@ -272,6 +273,10 @@ app.include_router(health_router)
 # Include Admin router for platform management
 # Provides /api/v1/admin/config, /api/v1/admin/stats
 app.include_router(admin_router)
+
+# Include Agent Auth router for dashboard login
+# Provides /api/v1/agent/auth
+app.include_router(agent_auth_router)
 
 # Include ERC-8004 Reputation router (Base-first)
 # Provides /api/v1/reputation/* for on-chain identity and feedback

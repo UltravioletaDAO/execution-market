@@ -18,6 +18,7 @@ import { About } from './pages/About'
 import { FAQ } from './pages/FAQ'
 import { AgentDashboard } from './pages/AgentDashboard'
 import { AgentOnboarding } from './pages/AgentOnboarding'
+import { AgentLogin } from './components/AgentLogin'
 import { SubmissionReviewModal } from './components/SubmissionReviewModal'
 import { TaskDetailModal } from './components/TaskDetailModal'
 import { Developers } from './pages/Developers'
@@ -356,6 +357,7 @@ function AppRoutes() {
       <Route path="/about" element={<About />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/agents" element={<AgentOnboarding />} />
+      <Route path="/agent/login" element={<AgentLogin />} />
       <Route path="/developers" element={<Developers />} />
 
       {/* Worker Routes (Protected - Workers Only) */}
