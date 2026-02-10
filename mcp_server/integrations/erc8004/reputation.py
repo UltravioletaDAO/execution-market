@@ -10,7 +10,7 @@ import struct
 import logging
 from typing import Optional, Dict, List
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 from .register import ERC8004Registry
@@ -131,7 +131,7 @@ class ReputationManager:
         if use_cache and cache_key in self._cache:
             cached = self._cache[cache_key]
             # Cache valid for 5 minutes
-            if (datetime.utcnow() - cached.last_updated).seconds < 300:
+            if (datetime.now(timezone.utc) - cached.last_updated).seconds < 300:
                 return cached
 
         # Get identity
@@ -154,7 +154,7 @@ class ReputationManager:
             total_tasks=0,
             successful_tasks=0,
             disputed_tasks=0,
-            last_updated=datetime.utcnow(),
+            last_updated=datetime.now(timezone.utc),
             on_chain=False,
         )
 
@@ -193,7 +193,7 @@ class ReputationManager:
                 total_tasks=0,
                 successful_tasks=0,
                 disputed_tasks=0,
-                last_updated=datetime.utcnow(),
+                last_updated=datetime.now(timezone.utc),
                 on_chain=False,
             )
 
@@ -338,7 +338,7 @@ class ReputationManager:
             # Append new event
             history.append(
                 {
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "task_id": task_id,
                     "delta": score.raw_score - 50,  # Delta from neutral
                     "reason": reason,
@@ -407,7 +407,7 @@ class ReputationManager:
             total_tasks=total,
             successful_tasks=successful,
             disputed_tasks=disputes,
-            last_updated=datetime.utcnow(),
+            last_updated=datetime.now(timezone.utc),
             on_chain=False,  # Set by caller after storage
         )
 
@@ -445,7 +445,7 @@ class ReputationManager:
                 total_tasks=0,
                 successful_tasks=0,
                 disputed_tasks=0,
-                last_updated=datetime.utcnow(),
+                last_updated=datetime.now(timezone.utc),
                 on_chain=False,
             )
 

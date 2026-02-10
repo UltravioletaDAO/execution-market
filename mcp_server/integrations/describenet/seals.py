@@ -13,7 +13,7 @@ Seal Philosophy:
 from enum import Enum
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class WorkerSealType(str, Enum):
@@ -118,14 +118,14 @@ class Seal:
 
     def __post_init__(self):
         if self.earned_at is None:
-            self.earned_at = datetime.utcnow()
+            self.earned_at = datetime.now(timezone.utc)
 
     @property
     def is_active(self) -> bool:
         """Check if seal is currently active."""
         if self.status != SealStatus.ACTIVE:
             return False
-        if self.expires_at and datetime.utcnow() > self.expires_at:
+        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:
             return False
         return True
 
@@ -186,7 +186,7 @@ class Badge:
 
     def __post_init__(self):
         if self.earned_at is None:
-            self.earned_at = datetime.utcnow()
+            self.earned_at = datetime.now(timezone.utc)
 
     @property
     def is_active(self) -> bool:

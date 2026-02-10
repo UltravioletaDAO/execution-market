@@ -7,7 +7,7 @@ Convert between different reward types and currencies.
 import logging
 from typing import Optional, Dict
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ class PointsConverter:
             from_unit="USD",
             to_unit="Points",
             rate=rate,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             source="fixed",
         )
 
@@ -136,14 +136,14 @@ class TokenConverter:
         # Check cache
         if symbol in self._price_cache:
             price, timestamp = self._price_cache[symbol]
-            if (datetime.utcnow() - timestamp).seconds < self.cache_ttl:
+            if (datetime.now(timezone.utc) - timestamp).seconds < self.cache_ttl:
                 return price
 
         # Try price feed
         if self.price_feed_url:
             try:
                 price = await self._fetch_price(symbol)
-                self._price_cache[symbol] = (price, datetime.utcnow())
+                self._price_cache[symbol] = (price, datetime.now(timezone.utc))
                 return price
             except Exception as e:
                 logger.warning(f"Price feed error for {symbol}: {e}")
@@ -203,7 +203,7 @@ class TokenConverter:
             from_unit=from_symbol,
             to_unit=to_symbol,
             rate=rate,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             source="default",
         )
 

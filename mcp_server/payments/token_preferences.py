@@ -5,7 +5,7 @@ Allows workers to set preferred payment tokens.
 """
 
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .multi_token import PaymentToken, MultiTokenPayments, get_multi_token_payments
 
@@ -76,7 +76,7 @@ class TokenPreferenceManager:
             "accepted_tokens": [t.value for t in accepted],
             "auto_convert": auto_convert,
             "min_amount_for_conversion": min_amount_for_conversion,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
         self._preferences[worker_id] = pref
 
