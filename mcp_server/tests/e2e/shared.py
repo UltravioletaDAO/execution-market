@@ -74,7 +74,6 @@ ENABLED_NETWORKS = [
     "celo",
     "monad",
     "avalanche",
-    "optimism",
 ]
 
 
