@@ -16,7 +16,7 @@ import time
 import threading
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -538,7 +538,7 @@ class RateLimiter:
                 "identifier": identifier,
                 "limit_type": limit_type,
                 "remaining": remaining,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             if limit_type in ("ip", "api"):
