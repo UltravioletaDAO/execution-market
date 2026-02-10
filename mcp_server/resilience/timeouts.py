@@ -138,7 +138,7 @@ class ExtensionRequest:
     requested_by: str  # worker_id or agent_id
     reason: str
     requested_hours: float
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     approved: Optional[bool] = None
     approved_at: Optional[datetime] = None
     approved_by: Optional[str] = None

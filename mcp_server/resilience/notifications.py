@@ -80,7 +80,7 @@ class NotificationPayload:
     image_url: Optional[str] = None
     ttl_seconds: int = 86400  # 24 hours
     collapse_key: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass

@@ -6,7 +6,7 @@ White-label branding support for enterprise customers.
 
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 @dataclass
@@ -86,8 +86,8 @@ class BrandingConfig:
     hide_powered_by: bool = False
 
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 def generate_css_variables(config: BrandingConfig) -> str:
