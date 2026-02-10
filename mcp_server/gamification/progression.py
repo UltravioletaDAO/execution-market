@@ -7,7 +7,7 @@ Levels: Novice -> Apprentice -> Journeyman -> Expert -> Master
 import logging
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -458,7 +458,7 @@ class ProgressionSystem:
         progress = self._get_or_create_progress(worker_id)
         progress.total_tasks += 1
         progress.total_earnings += task_value
-        progress.last_active = datetime.utcnow()
+        progress.last_active = datetime.now(timezone.utc)
 
         # Track highest task value
         if task_value > progress.highest_task_value:
@@ -537,7 +537,7 @@ class ProgressionSystem:
 
     def _update_streak(self, progress: WorkerProgress):
         """Update worker's streak."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         last_active_date = progress.last_active.date() if progress.last_active else None
         today = now.date()
 
@@ -556,7 +556,7 @@ class ProgressionSystem:
     def _check_achievements(self, progress: WorkerProgress) -> List[Achievement]:
         """Check and award new achievements."""
         new_achievements = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         for achievement in self.ACHIEVEMENTS:
             if achievement.id in progress.achievements:
@@ -838,8 +838,8 @@ class ProgressionSystem:
                 current_streak=0,
                 longest_streak=0,
                 total_earnings=0.0,
-                joined_at=datetime.utcnow(),
-                last_active=datetime.utcnow(),
+                joined_at=datetime.now(timezone.utc),
+                last_active=datetime.now(timezone.utc),
             )
         return self._progress[worker_id]
 
@@ -868,10 +868,10 @@ class ProgressionSystem:
             total_earnings=data.get("total_earnings", 0.0),
             joined_at=datetime.fromisoformat(data["joined_at"])
             if "joined_at" in data
-            else datetime.utcnow(),
+            else datetime.now(timezone.utc),
             last_active=datetime.fromisoformat(data["last_active"])
             if "last_active" in data
-            else datetime.utcnow(),
+            else datetime.now(timezone.utc),
             five_star_tasks=data.get("five_star_tasks", 0),
             consecutive_approved=data.get("consecutive_approved", 0),
             excellent_photos=data.get("excellent_photos", 0),

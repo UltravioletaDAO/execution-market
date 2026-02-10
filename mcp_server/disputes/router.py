@@ -11,7 +11,7 @@ import os
 import logging
 from typing import Optional, Dict, List
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -281,7 +281,7 @@ class DisputeRouter:
             dispute.agent_refund_pct = 0.3
 
         dispute.status = DisputeStatus.RESOLVED
-        dispute.resolved_at = datetime.utcnow()
+        dispute.resolved_at = datetime.now(timezone.utc)
         dispute.resolution_notes = "Auto-resolved based on objective data"
 
         return dispute
@@ -334,7 +334,7 @@ class DisputeRouter:
             dispute_type=DisputeType.QUALITY,
             description="",
             status=DisputeStatus.RESOLVED,
-            resolved_at=datetime.utcnow(),
+            resolved_at=datetime.now(timezone.utc),
             outcome=winning_outcome,
             worker_payout_pct=avg_worker_payout,
             agent_refund_pct=1.0 - avg_worker_payout,
