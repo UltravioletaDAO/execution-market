@@ -7,7 +7,7 @@ High-level stream management for long-running tasks.
 import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from .client import SuperfluidClient
@@ -103,7 +103,7 @@ class StreamManager:
             hourly_rate_usd=hourly_rate_usd,
             flow_rate_wei=flow_rate,
             status=StreamStatus.PENDING,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         if auto_start:
@@ -113,7 +113,7 @@ class StreamManager:
 
             if tx_hash:
                 stream.status = StreamStatus.ACTIVE
-                stream.started_at = datetime.utcnow()
+                stream.started_at = datetime.now(timezone.utc)
                 stream.tx_hashes.append(tx_hash)
                 logger.info(f"Stream started for task {task_id}: ${hourly_rate_usd}/hr")
             else:
@@ -143,12 +143,12 @@ class StreamManager:
             # Calculate streamed amount before pause
             if stream.started_at:
                 elapsed_hours = (
-                    datetime.utcnow() - stream.started_at
+                    datetime.now(timezone.utc) - stream.started_at
                 ).total_seconds() / 3600
                 stream.total_streamed_usd += elapsed_hours * stream.hourly_rate_usd
 
             stream.status = StreamStatus.PAUSED
-            stream.paused_at = datetime.utcnow()
+            stream.paused_at = datetime.now(timezone.utc)
             stream.tx_hashes.append(tx_hash)
 
             logger.info(f"Stream paused for task {task_id}: {reason}")
@@ -176,7 +176,7 @@ class StreamManager:
 
         if tx_hash:
             stream.status = StreamStatus.ACTIVE
-            stream.started_at = datetime.utcnow()  # Reset start for tracking
+            stream.started_at = datetime.now(timezone.utc)  # Reset start for tracking
             stream.paused_at = None
             stream.tx_hashes.append(tx_hash)
 
@@ -208,12 +208,12 @@ class StreamManager:
         # Calculate final streamed amount
         if stream.started_at and stream.status == StreamStatus.ACTIVE:
             elapsed_hours = (
-                datetime.utcnow() - stream.started_at
+                datetime.now(timezone.utc) - stream.started_at
             ).total_seconds() / 3600
             stream.total_streamed_usd += elapsed_hours * stream.hourly_rate_usd
 
         stream.status = StreamStatus.COMPLETED
-        stream.completed_at = datetime.utcnow()
+        stream.completed_at = datetime.now(timezone.utc)
 
         logger.info(
             f"Stream completed for task {task_id}: "
@@ -268,7 +268,7 @@ class StreamManager:
         current_streamed = stream.total_streamed_usd
         if stream.status == StreamStatus.ACTIVE and stream.started_at:
             elapsed_hours = (
-                datetime.utcnow() - stream.started_at
+                datetime.now(timezone.utc) - stream.started_at
             ).total_seconds() / 3600
             current_streamed += elapsed_hours * stream.hourly_rate_usd
 

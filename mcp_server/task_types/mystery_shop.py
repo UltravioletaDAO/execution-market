@@ -20,7 +20,7 @@ Validation includes:
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Optional, TypedDict
@@ -356,7 +356,7 @@ class MysteryShopTask(TaskType[MysteryShopEvidence]):
                     receipt_date = receipt_date.replace(tzinfo=None)
 
                 max_age = timedelta(days=self.config.max_receipt_age_days)
-                if datetime.utcnow() - receipt_date > max_age:
+                if datetime.now(timezone.utc) - receipt_date > max_age:
                     return ValidationResult.failure(
                         errors=[
                             f"Receipt is too old (max: {self.config.max_receipt_age_days} days)"

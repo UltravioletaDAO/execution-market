@@ -20,7 +20,7 @@ Validation includes:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, TypedDict
 
@@ -265,7 +265,7 @@ class PhotoVerificationTask(TaskType[PhotoEvidence]):
             if photo_time.tzinfo:
                 photo_time = photo_time.replace(tzinfo=None)
 
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             age = now - photo_time
             age_minutes = age.total_seconds() / 60
 
