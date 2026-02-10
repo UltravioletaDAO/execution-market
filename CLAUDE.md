@@ -231,10 +231,11 @@ Required in `.env.local` (project root):
 Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 ### Multichain Payment Config
-- `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,base-sepolia`)
+- `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism`)
 - `X402_NETWORK` - Default payment network (default: `base`)
-- To enable a new chain: fund the platform wallet with USDC on that chain, then add it to `EM_ENABLED_NETWORKS`
-- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — 15 EVM networks, 5 stablecoins, 10 with x402r escrow)
+- **To add a new chain or stablecoin**: Use the **`add-network` skill** (`.claude/skills/add-network/SKILL.md`) — it has the complete step-by-step checklist
+- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — single source of truth, 15 EVM networks, 5 stablecoins, 10 with x402r escrow)
+- Other Python files (facilitator_client, tests, platform_config) **auto-derive** from sdk_client.py — no manual updates needed
 
 ## On-Chain Contracts
 
