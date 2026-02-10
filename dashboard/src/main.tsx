@@ -1,12 +1,14 @@
-import { StrictMode } from 'react'
+import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Initialize i18n (must be imported before App)
 import './i18n'
 
-// Dynamic.xyz provider for wallet auth
-import { DynamicProvider } from './providers/DynamicProvider'
+// Lazy-load Dynamic.xyz provider — the SDK is ~4MB and should not block initial render
+const DynamicProvider = lazy(() =>
+  import('./providers/DynamicProvider').then(m => ({ default: m.DynamicProvider }))
+)
 
 import App from './App'
 import './index.css'
@@ -59,9 +61,15 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <DynamicProvider>
-        <App />
-      </DynamicProvider>
+      <Suspense fallback={
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', color: '#6b7280' }}>Loading...</div>
+        </div>
+      }>
+        <DynamicProvider>
+          <App />
+        </DynamicProvider>
+      </Suspense>
     </QueryClientProvider>
   </StrictMode>,
 )

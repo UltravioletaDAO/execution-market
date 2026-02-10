@@ -5,8 +5,6 @@
  * https://docs.dynamic.xyz/
  */
 
-import { EthereumWalletConnectors } from '@dynamic-labs/ethereum'
-
 // Environment ID from Dynamic dashboard
 export const DYNAMIC_ENVIRONMENT_ID = import.meta.env.VITE_DYNAMIC_ENVIRONMENT_ID || ''
 
@@ -14,9 +12,6 @@ export const DYNAMIC_ENVIRONMENT_ID = import.meta.env.VITE_DYNAMIC_ENVIRONMENT_I
 export const isDynamicConfigured = (): boolean => {
   return Boolean(DYNAMIC_ENVIRONMENT_ID)
 }
-
-// Wallet connectors to enable
-export const walletConnectors = [EthereumWalletConnectors]
 
 // CSS overrides for Dynamic widget (optional)
 export const dynamicCssOverrides = `
