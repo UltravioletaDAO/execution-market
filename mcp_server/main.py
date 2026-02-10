@@ -368,7 +368,17 @@ class WorkSubmission(BaseModel):
 
 
 # Health check endpoint
-@app.get("/health", response_model=HealthResponse, tags=["Health"])
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Health"],
+    summary="Basic Health Check",
+    description="Lightweight health check for load balancers and monitoring. Returns status of all integrated services.",
+    responses={
+        200: {"description": "Server is healthy or degraded"},
+        503: {"description": "Server is unhealthy"},
+    },
+)
 async def health_check():
     """Health check endpoint for load balancers and monitoring."""
 
@@ -425,7 +435,17 @@ async def health_check():
 
 
 # Worker endpoints (for dashboard/mobile)
-@app.post("/api/v1/executors/register", tags=["Workers"])
+@app.post(
+    "/api/v1/executors/register",
+    tags=["Workers"],
+    summary="Register Worker",
+    description="Register a new executor (worker) with their Ethereum wallet address. If the wallet is already registered, returns the existing record.",
+    responses={
+        200: {"description": "Executor registered or already exists"},
+        422: {"description": "Invalid wallet address format"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def register_executor(data: ExecutorRegistration):
     """Register a new executor (worker) with wallet address."""
     try:
@@ -510,7 +530,16 @@ async def submit_work(data: WorkSubmission):
     )
 
 
-@app.get("/api/v1/executors/{executor_id}/tasks", tags=["Workers"])
+@app.get(
+    "/api/v1/executors/{executor_id}/tasks",
+    tags=["Workers"],
+    summary="Get Worker Tasks",
+    description="Retrieve all tasks assigned to a specific executor, optionally filtered by status.",
+    responses={
+        200: {"description": "List of tasks for the executor"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def get_my_tasks(executor_id: str, status: str | None = None):
     """Get tasks for a specific executor."""
     try:
@@ -536,7 +565,17 @@ async def get_my_tasks(executor_id: str, status: str | None = None):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/api/v1/executors/{executor_id}/stats", tags=["Workers"])
+@app.get(
+    "/api/v1/executors/{executor_id}/stats",
+    tags=["Workers"],
+    summary="Get Worker Statistics",
+    description="Retrieve performance statistics for a specific executor including tasks completed, reputation score, and earnings.",
+    responses={
+        200: {"description": "Executor statistics"},
+        404: {"description": "Executor not found"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def get_executor_stats(executor_id: str):
     """Get statistics for an executor."""
     try:
@@ -550,7 +589,16 @@ async def get_executor_stats(executor_id: str):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/api/v1/tasks/available", tags=["Tasks"])
+@app.get(
+    "/api/v1/tasks/available",
+    tags=["Tasks"],
+    summary="Browse Available Tasks (Legacy)",
+    description="Get published tasks available for workers. Supports filtering by category and bounty range. **Note:** Prefer `/api/v1/tasks/available` on the API router for richer filtering.",
+    responses={
+        200: {"description": "List of available tasks"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def get_available_tasks(
     category: str | None = None,
     min_bounty: float | None = None,
@@ -588,7 +636,15 @@ async def get_available_tasks(
 
 
 # x402 SDK info endpoint (NOW-202)
-@app.get("/api/v1/x402/info", tags=["Payments"])
+@app.get(
+    "/api/v1/x402/info",
+    tags=["Payments"],
+    summary="x402 SDK Info",
+    description="Get the current status and configuration of the x402 payment SDK, including facilitator health and supported networks.",
+    responses={
+        200: {"description": "x402 SDK status and configuration"},
+    },
+)
 async def x402_info():
     """Get x402 payment SDK status and configuration."""
     if not X402_SDK_AVAILABLE:
@@ -610,7 +666,15 @@ async def x402_info():
     return info
 
 
-@app.get("/api/v1/x402/networks", tags=["Payments"])
+@app.get(
+    "/api/v1/x402/networks",
+    tags=["Payments"],
+    summary="Supported Payment Networks",
+    description="Get all supported mainnet and testnet networks for x402 payments, including supported tokens per network.",
+    responses={
+        200: {"description": "Supported networks and tokens"},
+    },
+)
 async def x402_networks():
     """Get supported networks for x402 payments."""
     return {

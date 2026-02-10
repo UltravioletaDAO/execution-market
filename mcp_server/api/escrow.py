@@ -36,35 +36,35 @@ router = APIRouter(prefix="/api/v1/escrow", tags=["Escrow"])
 class EscrowConfigResponse(BaseModel):
     """x402r escrow configuration."""
 
-    available: bool
-    network: str
-    chain_id: int
-    factory_address: str
-    escrow_address: str
-    usdc_address: str
-    merchant_address: Optional[str] = None
-    proxy_address: Optional[str] = None
-    signer_address: Optional[str] = None
+    available: bool = Field(..., description="Whether x402r escrow is available")
+    network: str = Field(..., description="Blockchain network (e.g. 'base')")
+    chain_id: int = Field(..., description="EVM chain ID (e.g. 8453 for Base)")
+    factory_address: str = Field(..., description="ChambaEscrow factory contract address")
+    escrow_address: str = Field(..., description="Escrow contract address")
+    usdc_address: str = Field(..., description="USDC token contract address on this network")
+    merchant_address: Optional[str] = Field(None, description="Execution Market's merchant address")
+    proxy_address: Optional[str] = Field(None, description="Payment proxy address (if applicable)")
+    signer_address: Optional[str] = Field(None, description="Authorized signer address (if applicable)")
 
 
 class DepositResponse(BaseModel):
     """Information about a deposit in escrow."""
 
-    deposit_id: str
-    payer: str
-    merchant: str
-    amount: str = Field(description="Amount in USDC")
-    token: str
-    state: str = Field(description="NON_EXISTENT, IN_ESCROW, RELEASED, or REFUNDED")
-    created_at: str
+    deposit_id: str = Field(..., description="Unique deposit identifier (bytes32 hex)")
+    payer: str = Field(..., description="Address that made the deposit")
+    merchant: str = Field(..., description="Merchant address (Execution Market)")
+    amount: str = Field(..., description="Amount in USDC (e.g. '10.00')")
+    token: str = Field(..., description="Token address used for the deposit")
+    state: str = Field(..., description="Deposit state: NON_EXISTENT, IN_ESCROW, RELEASED, or REFUNDED")
+    created_at: str = Field(..., description="Deposit creation timestamp")
 
 
 class BalanceResponse(BaseModel):
     """Merchant balance in escrow."""
 
-    merchant: str
-    balance_usdc: str
-    network: str
+    merchant: str = Field(..., description="Merchant wallet address")
+    balance_usdc: str = Field(..., description="Total USDC balance held in escrow")
+    network: str = Field(..., description="Blockchain network")
 
 
 class ReleaseRequest(BaseModel):
@@ -96,29 +96,29 @@ class RefundRequest(BaseModel):
 class ReleaseResponse(BaseModel):
     """Result of release operation."""
 
-    success: bool
-    tx_hash: Optional[str] = None
-    deposit_id: str
-    recipient: str
-    amount: str
-    error: Optional[str] = None
+    success: bool = Field(..., description="Whether the release was successful")
+    tx_hash: Optional[str] = Field(None, description="Transaction hash of the release")
+    deposit_id: str = Field(..., description="Deposit ID that was released")
+    recipient: str = Field(..., description="Worker address that received funds")
+    amount: str = Field(..., description="Amount released in USDC")
+    error: Optional[str] = Field(None, description="Error message if release failed")
 
 
 class RefundResponse(BaseModel):
     """Result of refund operation."""
 
-    success: bool
-    tx_hash: Optional[str] = None
-    deposit_id: str
-    payer: str
-    amount: str
-    error: Optional[str] = None
+    success: bool = Field(..., description="Whether the refund was successful")
+    tx_hash: Optional[str] = Field(None, description="Transaction hash of the refund")
+    deposit_id: str = Field(..., description="Deposit ID that was refunded")
+    payer: str = Field(..., description="Agent address that received the refund")
+    amount: str = Field(..., description="Amount refunded in USDC")
+    error: Optional[str] = Field(None, description="Error message if refund failed")
 
 
 class PaymentExtensionResponse(BaseModel):
     """x402r payment extension for agents."""
 
-    refund: Dict[str, Any]
+    refund: Dict[str, Any] = Field(..., description="Refund extension configuration for x402 payment payloads")
 
 
 # =============================================================================
