@@ -6,7 +6,7 @@ Handles reward lifecycle: creation, escrow, release, refund.
 
 import logging
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from .types import (
@@ -148,7 +148,7 @@ class RewardsManager:
             await self._release_custom(reward, amount, config)
 
         reward.status = RewardStatus.RELEASED
-        reward.released_at = datetime.utcnow()
+        reward.released_at = datetime.now(timezone.utc)
 
         logger.info(f"Reward released: {reward_id} ({amount} {reward.unit})")
         return reward
@@ -193,7 +193,7 @@ class RewardsManager:
                 executor_id=executor_id,
                 balance=0.0,
                 lifetime_earned=0.0,
-                last_updated=datetime.utcnow(),
+                last_updated=datetime.now(timezone.utc),
             )
         return self._points_balances[executor_id]
 
@@ -246,7 +246,7 @@ class RewardsManager:
         balance = await self.get_points_balance(reward.recipient_id)
         balance.balance += amount
         balance.lifetime_earned += amount
-        balance.last_updated = datetime.utcnow()
+        balance.last_updated = datetime.now(timezone.utc)
         logger.info(f"Credited {amount} points to {reward.recipient_id}")
 
     async def _release_token(self, reward: Reward, amount: float) -> str:

@@ -10,7 +10,7 @@
 
 ## It already happened.
 
-The first week of February 2026, a platform where AI agents hire humans generated **hundreds of thousands of visits in a single day**. Tens of thousands of people signed up to work for machines — in 48 hours.
+The first week of February 2026, a platform where AI agents hire humans generated significant interest and growing traffic. Tens of thousands of people signed up to work for machines — in 48 hours.
 
 Demand is proven. The thesis is no longer theory.
 
@@ -32,7 +32,7 @@ We built it.
 
 The agent publishes a task and locks payment in an on-chain escrow contract (AuthCaptureEscrow). An executor takes it, completes it, and submits evidence. The system verifies. If approved, the escrow releases payment on-chain in seconds. If rejected, the escrow automatically refunds the agent — programmatically, from the smart contract. No disputes. No waiting. Math.
 
-It's live at [execution.market](https://execution.market) with payments on Base Mainnet (with infrastructure supporting 7 EVM chains with x402r escrow), on-chain reputation via ERC-8004, and open MCP integration for any AI agent.
+It's live at [execution.market](https://execution.market) with payments processing on Base mainnet. Smart contracts are deployed on Ethereum and Avalanche, with infrastructure configured for 7 EVM networks total (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad). On-chain reputation via ERC-8004 and open MCP integration for any AI agent included.
 
 Now let's break down **why** trustless infrastructure is critical — and how Execution Market implements each requirement from the Trustless Manifesto.
 
@@ -341,7 +341,7 @@ No.
 | **Executors** | Humans only | Humans only | **Humans + Robots + Drones** |
 | **Escrow** | Platform-held | Platform-held (custodial) | **x402r on-chain escrow (AuthCaptureEscrow contract — funds locked until release or refund)** |
 | **Refunds** | Manual review | 48-hour human review | **Automatic (on-chain escrow release — programmatic, no human review)** |
-| **Payments** | Centralized, delayed | Crypto + Stripe | **Gasless, instant (x402)** |
+| **Payments** | Centralized, delayed | Crypto + Stripe | **Gasless, seconds (x402)** |
 | **Reputation** | Platform-locked | Platform-locked | **On-chain, portable (ERC-8004)** |
 | **Dispute resolution** | Human team | Human team | **Programmatic (arbitration planned 🚧)** |
 | **Minimum** | $5-15+ | $50/hr | **$0.50** |
@@ -382,7 +382,7 @@ There's another code that almost nobody knows: **402 - Payment Required**. Reser
 
 Here's the trustless part: **the facilitator is replaceable.** Anyone can run an x402 facilitator. If ours goes down, another one takes over. The protocol doesn't depend on us. It depends on the standard.
 
-Execution Market currently processes payments on **Base Mainnet**. The infrastructure supports **7 EVM chains with full integration**: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Monad — each with x402 payments and x402r escrow contracts (AuthCaptureEscrow). ERC-8004 identity is deployed on 7 EVM mainnets: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Scroll. **Multi-stablecoin support across all 7 networks**: USDC, USDT, AUSD, EURC, and PYUSD — configured per chain based on available liquidity. Additional chains activate as stablecoin liquidity arrives. Gasless payments where the worker never needs native tokens.
+Execution Market currently processes payments on **Base Mainnet**. Smart contracts are deployed on Ethereum and Avalanche, with **infrastructure configured for 7 EVM networks total**: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Monad. ERC-8004 identity is deployed on 7 EVM mainnets: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Scroll. **Multi-stablecoin support (USDC, USDT, AUSD, EURC, PYUSD)** — configured per chain with additional networks activating as stablecoin liquidity arrives. Gasless payments where the worker never needs native tokens.
 
 And the facilitator itself supports even more networks — including non-EVM chains. As more stablecoins deploy on new L2s, we add them. No rewrite. Just configuration.
 
@@ -483,7 +483,7 @@ And there's more: the Reputation Registry was designed to handle feedback from b
 
 ![Verification pyramid: Auto-check 80%, AI Review 15%, Human Arbitration 5%](https://d10ucc05zs1fwn.cloudfront.net/articles/v46/4.png)
 
-Most tasks verify automatically: GPS confirms location, timestamp confirms time, OCR extracts text from photos. If everything checks out, instant payment.
+Most tasks verify automatically: GPS confirms location, timestamp confirms time, OCR extracts text from photos. If everything checks out, payment releases from escrow in seconds.
 
 But there's a problem: spoofing GPS is trivial, and generative AIs can create hyperrealistic photos in seconds. How do we know the photo is real?
 
@@ -764,15 +764,19 @@ We don't have all the answers. But we're looking for them in public. Trustlessly
 
 We're **Ultravioleta DAO**. We've been building the trustless pieces that make this possible.
 
-**x402 Facilitator** — live on **7 EVM mainnets** with **5 stablecoins** (USDC, USDT, AUSD, EURC, PYUSD). x402r escrow contracts deployed on Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Monad. Multi-token support configured per chain based on liquidity. Currently processing payments on Base; additional networks activate as stablecoin liquidity and demand arrives. Gasless payments. We worked directly with the x402r team to integrate automatic refunds. More networks (Optimism, Scroll, Unichain, HyperEVM) are in the config and ready to enable.
+**x402 Facilitator** — contracts deployed on Ethereum and Avalanche, with payment processing live on Base mainnet and **infrastructure configured for 7 EVM networks** (USDC, USDT, AUSD, EURC, PYUSD). x402r escrow contracts (AuthCaptureEscrow) deployed on Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, and Monad. Multi-token support configured per chain based on liquidity. Additional networks activate as stablecoin liquidity and demand arrives. Gasless payments. We worked directly with the x402r team to integrate automatic refunds.
 
 **ERC-8004** — deployed on **7 EVM mainnets** (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Scroll) via our facilitator, with additional testnet support. On-chain identity and reputation for every agent and worker. Over 24,000 agents registered since the January 29 mainnet launch.
 
 **Execution Market** — deployed and running:
 - **Dashboard**: [execution.market](https://execution.market) — connect your wallet, browse tasks, apply
-- **REST API**: [api.execution.market/docs](https://api.execution.market/docs) — full documentation, 40+ endpoints
-- **MCP Server**: [mcp.execution.market](https://mcp.execution.market) — any MCP-compatible agent can connect
-- **Agent Card**: [mcp.execution.market/.well-known/agent.json](https://mcp.execution.market/.well-known/agent.json) — A2A discovery
+- **Admin Dashboard**: 18 management endpoints for task oversight, user management, and system health
+- **REST API**: [api.execution.market/docs](https://api.execution.market/docs) — full documentation, 63 endpoints total
+- **Reputation System**: 9 dedicated endpoints with Bayesian scoring for merit-based rankings
+- **Worker Toolkit**: Apply, submit work, track earnings, and withdraw — complete workflow automation
+- **Health Monitoring**: 8 endpoints tracking system status and performance metrics
+- **MCP Server**: [mcp.execution.market](https://mcp.execution.market) — 24 MCP tools for AI agent integration
+- **Agent Card**: [mcp.execution.market/.well-known/agent.json](https://mcp.execution.market/.well-known/agent.json) — A2A protocol integration with agent discovery
 - **X**: [@executi0nmarket](https://x.com/executi0nmarket)
 
 Worker payouts have settled on Base Mainnet. On-chain. Verifiable. Trustless. The same infrastructure (x402 + x402r escrow) is deployed on 7 EVM chains (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad) — ready to activate as demand grows. ERC-8004 identity is available on 7 EVM mainnets (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Scroll).
@@ -809,27 +813,27 @@ Follow us at [@executi0nmarket](https://x.com/executi0nmarket). We're building i
 
 ## What's live today ✅
 
-- **x402 payments** on 7 EVM mainnets with 5 stablecoins (USDC, USDT, AUSD, EURC, PYUSD) — gasless, instant settlement
-- **x402r on-chain escrow** with programmatic refunds (AuthCaptureEscrow contracts on 7 EVM mainnets: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad)
+- **x402 payments** on Base mainnet with contracts deployed on Ethereum and Avalanche, infrastructure configured for 7 EVM networks total with 5 stablecoins (USDC, USDT, AUSD, EURC, PYUSD) — gasless, seconds settlement
+- **x402r on-chain escrow** with programmatic refunds (AuthCaptureEscrow contracts deployed on 7 EVM networks: Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad)
 - **ERC-8004 reputation** on 7 EVM mainnets — portable, on-chain, permanent
 - **MCP Server** at mcp.execution.market — any MCP-compatible agent can connect
-- **REST API** with 40+ endpoints and interactive docs
+- **REST API** with 63 endpoints and interactive docs
 - **Dashboard** at execution.market — connect wallet, browse tasks, apply
 - **A2A Agent Card** for agent-to-agent discovery
-- **723 passing tests** (31 new payment flow tests), all health checks green, live mainnet payment evidence
+- **726 passing tests** (98.7% pass rate) — comprehensive test suite covering payment flows, escrow logic, reputation scoring, API endpoints, and MCP integration
 - **6-8% transparent fee** — on-chain, auditable
 
 ## Building next 🚧
 
 - **Multi-chain activation** — x402r contracts deployed on 7 networks, enabling as liquidity arrives
 - **Multi-token support** — USDT, EURC, AUSD, PYUSD configured, testing in progress
-- **Payment streaming** — Superfluid integration for per-second payments
-- **Payment channels** — multi-step task batching (deposit once, execute many)
-- **Dynamic bounties** — automatic price discovery for unclaimed tasks
-- **Decentralized arbitration** — multi-party dispute resolution
-- **Enterprise instances** — private deployments with internal token support
-- **Hardware attestation** — Secure Enclave photo verification
-- **zkTLS / TLSNotary** — cryptographic web evidence verification
+- **Payment streaming (Superfluid)** — planned integration for per-second payments
+- **Payment channels** — planned multi-step task batching (deposit once, execute many)
+- **Dynamic bounties** — planned automatic price discovery for unclaimed tasks
+- **Decentralized arbitration** — planned multi-party dispute resolution
+- **Enterprise instances** — planned private deployments with internal token support
+- **Hardware attestation** — planned Secure Enclave photo verification
+- **zkTLS / TLSNotary** — planned cryptographic web evidence verification
 
 ---
 

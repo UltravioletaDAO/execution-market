@@ -7,7 +7,7 @@ Manages enterprise-specific settings and customization.
 import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from ..rewards.types import RewardType, RewardConfig
@@ -265,7 +265,7 @@ class EnterpriseManager:
             if hasattr(config, key):
                 setattr(config, key, value)
 
-        config.updated_at = datetime.utcnow()
+        config.updated_at = datetime.now(timezone.utc)
         logger.info(f"Enterprise config updated: {org_id}")
         return config
 
@@ -296,7 +296,7 @@ class EnterpriseManager:
             if enabled:  # Only enable, don't disable custom features
                 config.features[feature] = enabled
 
-        config.updated_at = datetime.utcnow()
+        config.updated_at = datetime.now(timezone.utc)
         logger.info(f"Enterprise plan upgraded: {org_id} -> {new_plan.value}")
         return config
 
