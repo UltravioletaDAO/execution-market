@@ -399,6 +399,16 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 | Supabase Management API | `~/.supabase/access-token` | For running SQL migrations (`sbp_c5dd...`) |
 | AWS ECR | Standard AWS CLI auth | `518898403364.dkr.ecr.us-east-2.amazonaws.com` |
 
+### ChambaEscrow — DEPRECATED (DO NOT USE)
+
+ChambaEscrow (`contracts/contracts/ChambaEscrow.sol`) was a legacy custom Solidity escrow contract used during early development. It has been **fully replaced** by the **x402 Facilitator** (gasless, EIP-3009 based).
+
+- All ChambaEscrow source files have been moved to `_archive/contracts/`
+- Generated artifacts (typechain, compiled ABIs) have been deleted
+- Historical deployments on Ethereum and Avalanche are read-only (no active funds)
+- **Never reference, deploy, or interact with ChambaEscrow**
+- Always use `uvd-x402-sdk` + Facilitator for all escrow/payment operations
+
 ### x402 Payment Architecture
 
 **CRITICAL**: Always use the **x402 SDK** (`uvd-x402-sdk`) and the **Ultravioleta Facilitator** for ALL payment operations. Never call contracts directly.

@@ -39,7 +39,7 @@ class EscrowConfigResponse(BaseModel):
     available: bool = Field(..., description="Whether x402r escrow is available")
     network: str = Field(..., description="Blockchain network (e.g. 'base')")
     chain_id: int = Field(..., description="EVM chain ID (e.g. 8453 for Base)")
-    factory_address: str = Field(..., description="ChambaEscrow factory contract address")
+    factory_address: str = Field(..., description="DepositRelay factory contract address")
     escrow_address: str = Field(..., description="Escrow contract address")
     usdc_address: str = Field(..., description="USDC token contract address on this network")
     merchant_address: Optional[str] = Field(None, description="Execution Market's merchant address")

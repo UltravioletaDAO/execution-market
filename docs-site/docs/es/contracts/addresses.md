@@ -20,16 +20,9 @@
 | **Factory** | `0xf981D813842eE78d18ef8ac825eef8e2C8A8BaC2` |
 | **USDC** | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
 
-## ChambaEscrow (Contrato Personalizado)
+## ChambaEscrow — DEPRECADO
 
-### Despliegues
-
-| Red | Direccion | Hash TX | Estado |
-|-----|-----------|---------|--------|
-| **Ethereum Mainnet** | [`0x6c320efaC433690899725B3a7C84635430Acf722`](https://etherscan.io/address/0x6c320efaC433690899725B3a7C84635430Acf722) | `0x31e7d1f2...` | Desplegado (v1.0, pre-auditoria) |
-| **Avalanche Mainnet** | [`0xedA98AF95B76293a17399Af41A499C193A8DB51A`](https://snowscan.xyz/address/0xedA98AF95B76293a17399Af41A499C193A8DB51A) | - | Desplegado y Verificado (v2) |
-
-> **Nota:** El despliegue en Ethereum mainnet (`0x6c320e...`) es la version **pre-auditoria** con vulnerabilidades conocidas. El contrato listo para produccion es v1.4.0 (despues de 5 rondas de auditoria). Los nuevos despliegues usan contratos escrow x402r en Base.
+> ChambaEscrow ha sido deprecado y archivado. Ver [ChambaEscrow](/es/contracts/chamba-escrow) para detalles. Todos los pagos usan x402 Facilitator.
 
 ## Registro de Identidad ERC-8004
 

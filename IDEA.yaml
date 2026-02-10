@@ -42,7 +42,7 @@ patterns:
   - verification-loop        # Verificacion de entregas
   - permission-hooks         # Control de seguridad en tasks
   - agentic-identity         # ERC-8004 agent registration (NEW)
-  - escrow-payments          # On-chain escrow for bounties (NEW)
+  - escrow-payments          # x402 Facilitator escrow (gasless)
   - multi-network-deployment # Testnet + mainnet ready (NEW)
 
 tools:
@@ -50,8 +50,7 @@ tools:
   - uvd-x402-sdk            # Para micropagos
   - chainwitness            # Para notarizacion
   - erc-8004-registry       # Agent identity registration (NEW)
-  - solidity                # ChambaEscrow.sol (NEW)
-  - foundry                 # Contract deployment (NEW)
+  - x402-facilitator        # Gasless escrow via EIP-3009
   - supabase                # Database + Auth + Storage (NEW)
   - react-vite              # Dashboard frontend (NEW)
   - tailwindcss             # UI styling (NEW)
@@ -65,7 +64,7 @@ graduation_criteria:
     - "Integracion x402 definida"
     - "Al menos 5 tipos de tareas documentados"
     - "ERC-8004 identity registration designed"
-    - "ChambaEscrow.sol smart contract designed"
+    - "x402 Facilitator escrow integration (replaced ChambaEscrow)"
     - "Multi-network configuration (testnet + mainnet)"
     - "A2A protocol messages defined"
     - "MCP server implementation documented"
