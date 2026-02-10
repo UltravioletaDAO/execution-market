@@ -260,7 +260,9 @@ async def startup_probe(response: Response) -> Dict[str, Any]:
     "/detailed",
     summary="Detailed Health Check",
     responses={
-        200: {"description": "Detailed health status with component latencies and configuration"},
+        200: {
+            "description": "Detailed health status with component latencies and configuration"
+        },
         503: {"description": "System is unhealthy"},
     },
 )

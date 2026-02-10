@@ -250,7 +250,8 @@ class FirebaseProvider(NotificationProvider):
                     "headers": {
                         "apns-priority": apns_priority,
                         "apns-expiration": str(
-                            int(datetime.now(timezone.utc).timestamp()) + payload.ttl_seconds
+                            int(datetime.now(timezone.utc).timestamp())
+                            + payload.ttl_seconds
                         ),
                     },
                     "payload": {
