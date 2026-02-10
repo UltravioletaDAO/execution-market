@@ -32,7 +32,6 @@ from api.agent_auth import (
     JWT_SECRET,
     JWT_ALGORITHM,
 )
-from api.auth import _hash_key
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +140,6 @@ class TestAuthenticateAgent:
     async def test_valid_key_returns_jwt(self):
         """A valid, active API key should return a JWT with correct claims."""
         api_key = "em_starter_" + "a" * 32
-        key_hash = _hash_key(api_key)
 
         # Mock the Supabase client
         mock_client = MagicMock()
