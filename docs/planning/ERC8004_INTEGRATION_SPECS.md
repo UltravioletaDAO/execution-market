@@ -1,536 +1,462 @@
-# ERC-8004 Full Integration — Development Specifications
+# ERC-8004 Full Integration Specs (Hardened)
 
-> **Date:** February 11, 2026
-> **Status:** Pre-implementation (all 6 gaps investigated)
-> **Blocker for:** Multi-chain expansion (Option A), all subsequent roadmap items
-> **Goal:** 100% ERC-8004 integration in the task lifecycle
-
----
-
-## Table of Contents
-
-1. [Gap 1: Worker Auto-Registration](#gap-1-worker-auto-registration)
-2. [Gap 2: Worker → Agent Bidirectional Rating](#gap-2-worker--agent-bidirectional-rating)
-3. [Gap 3: Negative Feedback on Rejection](#gap-3-negative-feedback-on-rejection)
-4. [Gap 4: MCP Reputation Tools](#gap-4-mcp-reputation-tools)
-5. [Gap 5: Dashboard Reputation UI](#gap-5-dashboard-reputation-ui)
-6. [Gap 6: Dynamic Scoring System](#gap-6-dynamic-scoring-system)
-7. [Implementation Order](#implementation-order)
-8. [Dependency Graph](#dependency-graph)
+> Date: February 11, 2026  
+> Status: Pre-implementation (hardened for production rollout)  
+> Scope: Backend API, MCP tools, dashboard UI, Supabase schema  
+> Goal: Complete ERC-8004 identity + bidirectional reputation integration without breaking payment finality, idempotency, or abuse controls
 
 ---
 
-## Gap 1: Worker Auto-Registration
+## 1) Why this revision
 
-### What Exists
-- `register_worker_gasless()` in `identity.py:470` — fully implemented, never called
-- `check_worker_identity()` in `identity.py:377` — on-chain check via `balanceOf()`
-- `update_executor_identity()` in `identity.py:668` — persists `erc8004_agent_id` to Supabase
-- Facilitator `POST /register` — gasless, mints NFT, transfers to recipient wallet
-- `executors.erc8004_agent_id` column — exists in DB, always NULL
+The prior spec identified the right gaps but left production-risky ambiguity in five areas:
 
-### What's Missing
-Auto-trigger of `register_worker_gasless()` during task lifecycle.
+1. Missing hard invariants (what can never break).
+2. Ambiguous idempotency and dedup behavior.
+3. No reliable retry path for fire-and-forget failures.
+4. No feature-flagged rollout/rollback plan.
+5. No acceptance gates that prove correctness end-to-end.
 
-### Implementation Spec
-
-#### Hook Point: After `approve_submission()` payment success
-**File:** `mcp_server/api/routes.py`, after line 814
-
-**Logic:**
-```
-1. Check if executor.erc8004_agent_id is NULL
-2. If NULL → call register_worker_gasless(wallet_address, network="base")
-3. On success → call update_executor_identity(executor_id, agent_id)
-4. Fire-and-forget (never block the approval flow)
-5. Log result for audit trail
-```
-
-**New function:** `_auto_register_worker_identity(task, executor)`
-```python
-async def _auto_register_worker_identity(task: dict, executor: dict) -> None:
-    """Auto-register worker on ERC-8004 after first task completion. Fire-and-forget."""
-    try:
-        # Skip if already registered
-        if executor.get("erc8004_agent_id"):
-            return
-
-        wallet = executor.get("wallet_address")
-        if not wallet:
-            return
-
-        # Gasless registration via Facilitator
-        result = await register_worker_gasless(
-            wallet_address=wallet,
-            agent_uri=f"https://execution.market/workers/{wallet}",
-            network=task.get("payment_network", "base"),
-            metadata=[
-                {"key": "name", "value": executor.get("display_name", "Worker")},
-                {"key": "platform", "value": "execution-market"},
-            ],
-        )
-
-        if result.status == WorkerIdentityStatus.REGISTERED and result.agent_id:
-            await update_executor_identity(executor["id"], result.agent_id)
-            logger.info(f"[ERC8004] Auto-registered worker {wallet[:10]} as agent #{result.agent_id}")
-        else:
-            logger.warning(f"[ERC8004] Auto-registration failed for {wallet[:10]}: {result.error}")
-    except Exception as e:
-        logger.error(f"[ERC8004] Auto-registration error: {e}")
-```
-
-**Idempotency:**
-- Check `executor.erc8004_agent_id` before calling (DB check)
-- Facilitator returns error if already registered on that network (safe)
-- `update_executor_identity()` is an upsert (safe)
-
-**Files to modify:**
-| File | Change |
-|------|--------|
-| `mcp_server/api/routes.py` | Add `_auto_register_worker_identity()`, call after line 814 |
-| `mcp_server/api/routes.py` | Import `register_worker_gasless`, `WorkerIdentityStatus`, `update_executor_identity` from `integrations.erc8004.identity` |
-
-**Tests:**
-- Worker without identity completes task → gets ERC-8004 NFT
-- Worker WITH identity completes task → skipped (idempotent)
-- Worker without wallet → skipped gracefully
-- Facilitator error → logged, approval not blocked
-
-**Estimated effort:** 1 hour
+This version defines explicit contracts, failure semantics, and release gates.
 
 ---
 
-## Gap 2: Worker → Agent Bidirectional Rating
+## 2) Non-negotiable invariants
 
-### What Exists
-- `rate_agent()` in `facilitator_client.py:750` — fully implemented
-- `POST /api/v1/reputation/agents/rate` — public endpoint, validates task ownership
-- Agent → Worker rating: automatic via `_send_reputation_feedback()` (80/100 hardcoded)
+These are mandatory:
 
-### What's Missing
-Automatic worker → agent rating after task completion. Currently requires manual HTTP call.
-
-### Implementation Spec
-
-#### Approach: Platform submits on behalf of worker
-Since the worker doesn't need a signing key (Facilitator accepts any caller), the platform can auto-submit worker→agent feedback after successful payment.
-
-**Hook Point:** Same as agent→worker — after payment settlement in `_settle_submission_payment()`
-**File:** `mcp_server/api/routes.py`, after line 814
-
-**New function:** `_send_agent_reputation_feedback(task, release_tx)`
-```python
-async def _send_agent_reputation_feedback(task: dict, release_tx: str) -> None:
-    """Auto-rate agent on behalf of worker after task completion. Fire-and-forget."""
-    try:
-        if not (ERC8004_AVAILABLE and rate_agent):
-            return
-
-        agent_address = task.get("agent_id")  # wallet address in tasks table
-        if not agent_address:
-            return
-
-        # Look up agent's ERC-8004 ID from on-chain
-        agent_info = await get_agent_info_by_address(agent_address)
-        if not agent_info or not agent_info.get("agentId"):
-            return  # Agent not registered on ERC-8004
-
-        agent_erc8004_id = agent_info["agentId"]
-
-        # Default positive score — agent paid on time
-        score = 85  # Will be replaced by dynamic scoring (Gap 6)
-
-        await rate_agent(
-            agent_id=agent_erc8004_id,
-            task_id=task["id"],
-            score=score,
-            comment=f"Payment received for: {task.get('title', 'Unknown')[:50]}",
-            proof_tx=release_tx,
-        )
-        logger.info(f"[ERC8004] Auto-rated agent #{agent_erc8004_id} score={score}")
-    except Exception as e:
-        logger.error(f"[ERC8004] Agent rating error: {e}")
-```
-
-**Challenge:** Need to resolve agent wallet address → ERC-8004 agent_id.
-- Option A: `get_agent_info()` takes agent_id (int), not address. Need reverse lookup.
-- Option B: Store agent's `erc8004_agent_id` on `tasks` table (already exists: `tasks.erc8004_agent_id` from migration 020).
-- **Preferred: Option B** — use `task.erc8004_agent_id` if available (set during task creation at line 1903).
-
-**Simplified with Option B:**
-```python
-agent_erc8004_id = task.get("erc8004_agent_id")
-if not agent_erc8004_id:
-    return  # Agent not registered
-```
-
-**Anti-abuse:**
-- `POST /api/v1/reputation/agents/rate` endpoint has NO dedup check — can be called multiple times
-- Auto-rating should check `submission.reputation_agent_tx` (new column) before submitting
-- Add `submissions.reputation_agent_tx` column for tracking
-
-**Files to modify:**
-| File | Change |
-|------|--------|
-| `mcp_server/api/routes.py` | Add `_send_agent_reputation_feedback()`, call after line 814 |
-| `supabase/migrations/` | Add `reputation_agent_tx` column to `submissions` (optional, for dedup) |
-
-**Tests:**
-- Task with ERC-8004 agent → agent gets rated automatically
-- Task without ERC-8004 agent → skipped
-- Duplicate approval → no duplicate rating (if dedup column added)
-
-**Estimated effort:** 1.5 hours
+1. Payment finality first: never mark a submission `accepted` unless a payment tx hash exists.
+2. ERC-8004 side effects never block payment or approval success.
+3. Each ERC-8004 side effect is idempotent and deduplicated per submission/direction.
+4. Approval/rejection authorization checks remain unchanged (ownership checks stay mandatory).
+5. All new behavior is behind feature flags with immediate kill switches.
+6. Every emitted on-chain action has audit evidence in DB (tx hash or explicit error).
 
 ---
 
-## Gap 3: Negative Feedback on Rejection
+## 3) Verified current state (from code)
 
-### What Exists
-- Local Supabase penalty: -3 reputation via DB trigger (works today)
-- `submit_feedback()` supports scores 0-100 (can send low scores)
-- `revoke_feedback()` exists for corrections
-- Dispute module exists (`mcp_server/disputes/`) but not wired
+| Area | Verified behavior | Evidence |
+|---|---|---|
+| Agent->worker rating on approval | `_send_reputation_feedback()` submits `rate_worker()` with hardcoded score `80` after payment settlement | `mcp_server/api/routes.py` |
+| Payment gating | `approve_submission` fails with `502` if no `payment_tx`, then updates submission only after tx exists | `mcp_server/api/routes.py` |
+| Worker identity registration flow | API exists for check + unsigned tx + confirm; uses wallet-signed tx path | `mcp_server/api/routes.py` (`/executors/{id}/identity`, `/register-identity`, `/confirm-identity`) |
+| Gasless worker registration helper | `register_worker_gasless()` exists but is not wired into lifecycle | `mcp_server/integrations/erc8004/identity.py` |
+| Worker->agent public rating API | Endpoint exists and verifies rated `agent_id` ownership against task agent address | `mcp_server/api/reputation.py` (`/api/v1/reputation/agents/rate`) |
+| Task ERC-8004 column | `tasks.erc8004_agent_id` exists | `supabase/migrations/020_tasks_erc8004_agent_id.sql` |
+| Submission reputation tx tracking | `submissions.reputation_tx` exists (agent->worker path) | `supabase/migrations/021_add_reputation_tx_to_submissions.sql` |
+| MCP reputation tools | No dedicated reputation tools file is registered | `mcp_server/tools`, `mcp_server/server.py` |
 
-### What's Missing
-On-chain ERC-8004 feedback when submissions are rejected.
+Critical current limitation to address:
 
-### Implementation Spec
-
-#### Approach: Optional, agent-controlled
-**Recommendation: NOT automatic.** Reasons:
-1. Rejections may be for minor fixable issues (blurry photo)
-2. Automatic negative on-chain feedback is disproportionate for first offenses
-3. Abuse risk is HIGH if automatic (agents reject good work to avoid paying)
-4. Local -3 penalty via DB trigger already handles basic accountability
-
-**Instead:** Add optional `reputation_impact` field to rejection request.
-
-**File:** `mcp_server/api/routes.py`, rejection endpoint (~line 3545)
-
-**Modified rejection model:**
-```python
-class RejectionRequest(BaseModel):
-    notes: str = Field(..., description="Reason for rejection")
-    severity: Optional[str] = Field(
-        default="minor",
-        description="minor (no on-chain impact) or major (on-chain negative feedback)"
-    )
-    reputation_score: Optional[int] = Field(
-        default=None, ge=0, le=50,
-        description="Optional reputation score for major rejections (0-50, low is worse)"
-    )
-```
-
-**Logic on rejection:**
-```
-1. Process normal rejection (status update, DB trigger fires -3 local penalty)
-2. If severity == "major" AND reputation_score is provided:
-   a. Call rate_worker(task_id, score=reputation_score, tag1="rejection", ...)
-   b. Store rejection_reputation_tx on submission
-   c. Log with SECURITY_AUDIT tag
-3. If severity == "minor" (default):
-   a. No on-chain feedback (local -3 only)
-```
-
-**Score cap at 50:** Prevents agents from submitting "positive" scores via rejection flow. Maximum score on rejection is 50 (mediocre), not 100.
-
-**Anti-abuse:**
-- Only agents who own the task can reject (existing check)
-- Score capped at 0-50 (no positive scores through rejection)
-- `revoke_feedback()` available if dispute overturns rejection
-- Rate-limit: max 3 major rejections per agent per 24h (new check)
-
-**Future enhancement (not MVP):**
-- Wire dispute system: rejected workers can dispute, triggering arbitration
-- Auto-escalate after 3+ rejections of same worker
-- Admin review queue for "major" rejections
-
-**Files to modify:**
-| File | Change |
-|------|--------|
-| `mcp_server/api/routes.py` | Update rejection endpoint, add `severity` and `reputation_score` fields |
-| `mcp_server/api/routes.py` | Add `_send_rejection_feedback()` helper (similar pattern to `_send_reputation_feedback()`) |
-
-**Tests:**
-- Minor rejection → no on-chain feedback, local -3 only
-- Major rejection with score=20 → on-chain feedback submitted
-- Major rejection without score → default score 30
-- Rejection by non-owner → 403
-- Rate limit exceeded → 429
-
-**Estimated effort:** 2 hours
+- `verify_agent_identity()` resolves numeric IDs only; wallet-like agent identifiers are treated as not-resolvable. This can leave `tasks.erc8004_agent_id` unset for wallet-based agents.  
+  Evidence: `mcp_server/integrations/erc8004/identity.py`.
 
 ---
 
-## Gap 4: MCP Reputation Tools
+## 4) Target architecture (production-safe)
 
-### What Exists
-- 22 MCP tools across 4 files (server.py, worker_tools.py, agent_tools.py, escrow_tools.py)
-- 0 reputation tools
-- All facilitator methods implemented (`rate_worker`, `rate_agent`, `get_reputation`, `register_agent`)
+### 4.1 Blocking path (unchanged principle)
 
-### What's Missing
-MCP tools exposing reputation operations to AI agents.
+1. Settle payment.
+2. Require `payment_tx` for approval success.
+3. Update submission/task status.
 
-### Implementation Spec
+### 4.2 Non-blocking side-effect path (new)
 
-#### New file: `mcp_server/tools/reputation_tools.py`
+After successful settlement, enqueue side effects and execute best-effort immediately:
 
-**5 new tools:**
+- `register_worker_identity`
+- `rate_worker_from_agent` (existing behavior, but dynamic scoring)
+- `rate_agent_from_worker` (new)
 
-| Tool | Purpose | Wraps | Read/Write |
-|------|---------|-------|------------|
-| `em_rate_worker` | Agent rates worker (on-chain) | `rate_worker()` | Write |
-| `em_get_reputation` | Check any agent's reputation | `get_agent_reputation()` | Read |
-| `em_get_worker_feedback` | Get feedback for a worker | `get_reputation()` with tag filter | Read |
-| `em_register_identity` | Gasless ERC-8004 registration | `register_agent()` | Write |
-| `em_check_identity` | Check if address has ERC-8004 | `check_worker_identity()` | Read |
+Failures are persisted and retried asynchronously.
 
-**Registration pattern (from existing codebase):**
-```python
-def register_reputation_tools(mcp, db):
-    @mcp.tool(
-        name="em_rate_worker",
-        annotations={
-            "title": "Rate Worker",
-            "readOnlyHint": False,
-            "destructiveHint": False,
-            "idempotentHint": False,
-            "openWorldHint": True,
-        },
-    )
-    async def em_rate_worker(
-        task_id: str,
-        score: int,
-        comment: str = "",
-    ) -> str:
-        """Rate a worker's performance on a completed task (0-100 score, on-chain via ERC-8004)."""
-        ...
+### 4.3 Outbox table (required)
+
+Add a durable side-effect ledger to guarantee dedup + retry:
+
+```sql
+CREATE TABLE IF NOT EXISTS erc8004_side_effects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  effect_type TEXT NOT NULL CHECK (effect_type IN (
+    'register_worker_identity',
+    'rate_worker_from_agent',
+    'rate_agent_from_worker',
+    'rate_worker_on_rejection'
+  )),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'success', 'failed', 'skipped')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  tx_hash TEXT,
+  score INTEGER CHECK (score >= 0 AND score <= 100),
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  last_error TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (submission_id, effect_type)
+);
 ```
 
-**Enhancement to `em_approve_submission`:**
-Add optional `rating_score: Optional[int] = None` parameter. If provided, pass to `_send_reputation_feedback()` instead of hardcoded 80.
+Why this is required:
 
-**Files to modify:**
-| File | Change |
-|------|--------|
-| `mcp_server/tools/reputation_tools.py` | **NEW** — 5 reputation tools |
-| `mcp_server/tools/__init__.py` | Export `register_reputation_tools` |
-| `mcp_server/server.py` | Import and call `register_reputation_tools(mcp, db)` |
-| `mcp_server/server.py` | Add `rating_score` param to `em_approve_submission` |
-
-**Tests:**
-- `em_rate_worker` with valid task → on-chain feedback submitted
-- `em_rate_worker` with invalid task → error message
-- `em_get_reputation` → returns formatted reputation data
-- `em_register_identity` → gasless registration succeeds
-- `em_check_identity` → returns registration status
-
-**Estimated effort:** 2.5 hours
+- `fire-and-forget` alone loses failed operations.
+- One `submissions.reputation_tx` column cannot track all directions.
+- Idempotent retries need a canonical key.
 
 ---
 
-## Gap 5: Dashboard Reputation UI
+## 5) Workstream specs
 
-### What Exists (Surprisingly Complete!)
-- `ReputationBar`, `ReputationScore`, `ReputationGauge`, `ReputationTrend` — UI primitives in `components/ui/`
-- `ReputationCard` — profile card with gauge, stats, tier badge
-- `WorkerReputationBadge` — inline pill with score
-- `WorkerRatingModal` — 1-5 star rating modal (agent→worker)
-- `useIdentity` hook — identity check/registration flow (prepared but untested)
-- `useReputation` hook — reads local Supabase scores
-- `IdentitySection` in Profile page — shows registration status
-- `reputation.ts` service — `rateWorker()`, `getEMReputation()`, `getAgentReputation()`
-- i18n keys for reputation in es/en/pt
-- `Executor` type has `reputation_score`, `erc8004_agent_id`, `avg_rating`
+## WS-1) Worker auto-registration after first paid completion
 
-### What's Missing
-1. **Registration button** — IdentitySection shows status but no action button
-2. **On-chain score display** — `useReputation` reads local DB, not on-chain
-3. **Worker→Agent rating UI** — No reverse-direction component
-4. **Agent self-reputation view** — Agent Dashboard has no reputation section
+Objective:
 
-### Implementation Spec
+- Auto-register workers on ERC-8004 after their first successful payout.
 
-#### 5A: Add "Register on ERC-8004" Button
-**File:** `dashboard/src/pages/Profile.tsx`, IdentitySection (~line 1114)
+Hook:
 
-**Change:** When `isRegistered === false`, show button that calls gasless registration endpoint.
-```
-Button "Registrar Identidad" → POST /api/v1/reputation/register
-  { network: "base", recipient: wallet_address }
-→ On success: refetch identity, show agent ID
-→ On error: show error toast
-```
+- Success branch of `_settle_submission_payment()` (covers both manual approval and instant payout path).
 
-**New service function:** `registerIdentity(walletAddress, network)` in `reputation.ts`
+Algorithm:
 
-#### 5B: Add On-Chain Score to Profile
-**File:** `dashboard/src/hooks/useProfile.ts`, `useReputation` hook
+1. Guard by feature flag `feature.erc8004_auto_register_worker_enabled`.
+2. Skip if worker wallet invalid or missing.
+3. Skip if executor already has `erc8004_agent_id`.
+4. Enqueue `register_worker_identity` side-effect row (dedup by unique key).
+5. Best-effort immediate attempt:
+   - call `register_worker_gasless(wallet, network=task.payment_network or "base")`
+   - if success and `agent_id`, call `update_executor_identity(executor_id, agent_id)`
+   - mark side effect `success` with tx metadata
+6. On failure mark `failed` with `last_error`; do not affect approval response.
 
-**Change:** After fetching local score, also fetch on-chain score via `getAgentReputation(erc8004_agent_id)` if registered. Display both:
-- "Reputation Local: 85" (from Supabase)
-- "Reputation On-Chain: 80" (from ERC-8004 via API)
+Idempotency:
 
-#### 5C: Worker→Agent Rating Modal
-**New component:** `AgentRatingModal.tsx` (mirror of `WorkerRatingModal`)
-- Triggered after worker sees "Task Completed" status
-- 1-5 stars → maps to 0-100
-- Optional comment
-- Calls `POST /api/v1/reputation/agents/rate`
+- DB dedup: unique `(submission_id, effect_type)`.
+- Domain dedup: skip when `executors.erc8004_agent_id` already set.
+- Facilitator-level duplicate registration errors are treated as recoverable; fallback to `check_worker_identity()` and persist if found.
 
-**Hook point in dashboard:** Task detail page when `task.status === "completed"` and current user is the executor.
+Files:
 
-#### 5D: Agent Self-Reputation in Dashboard
-**File:** `dashboard/src/pages/AgentDashboard.tsx`
+- `mcp_server/api/routes.py` (enqueue + invoke non-blocking side effects)
+- `mcp_server/integrations/erc8004/identity.py` (reuse existing helpers)
+- `supabase/migrations/*` (add side-effect table)
 
-**Add section:** "Tu Reputacion" card using existing `ReputationCard` component.
-- Fetch via `getAgentReputation(agent_erc8004_id)`
-- Show gauge, feedback count, trend
+Tests:
 
-**Files to modify:**
-| File | Change |
-|------|--------|
-| `dashboard/src/pages/Profile.tsx` | Add registration button to IdentitySection |
-| `dashboard/src/services/reputation.ts` | Add `registerIdentity()`, `rateAgent()`, `getWorkerOnChainReputation()` |
-| `dashboard/src/hooks/useProfile.ts` | Fetch on-chain score alongside local score |
-| `dashboard/src/components/AgentRatingModal.tsx` | **NEW** — Worker→Agent rating modal |
-| `dashboard/src/pages/AgentDashboard.tsx` | Add self-reputation card |
-| `dashboard/src/i18n/locales/es.json` | Add new translation keys |
-| `dashboard/src/i18n/locales/en.json` | Add new translation keys |
-
-**Tests:**
-- Profile shows identity section with register button when unregistered
-- Registration button triggers API call and updates UI
-- On-chain score displays alongside local score
-- Worker can rate agent after task completion
-- Agent sees own reputation in dashboard
-
-**Estimated effort:** 4 hours
+- Missing wallet -> `skipped`, approval succeeds.
+- Already registered worker -> no external call, `skipped`.
+- Facilitator success -> executor identity updated.
+- Facilitator failure -> `failed` side-effect row, approval still succeeds.
 
 ---
 
-## Gap 6: Dynamic Scoring System
+## WS-2) Worker -> agent auto-rating after payment
 
-### What Exists
-- Hardcoded `reputation_score = 80` in `_send_reputation_feedback()` (line 519)
-- Rich data available: task timestamps, evidence schema, auto-check results, forensic metadata
-- Bayesian reputation calculation in Supabase (`calculate_bayesian_reputation()`)
-- `ratings` table with multi-dimensional scores (quality, speed, communication)
-- AI verification system with weighted scoring (`ai_review.py:454`)
+Objective:
 
-### What's Missing
-Dynamic score computation using available data.
+- Close the bidirectional reputation loop automatically once worker is paid.
 
-### Implementation Spec
+Precondition:
 
-#### New file: `mcp_server/reputation/scoring.py`
+- Need reliable agent ERC-8004 ID resolution.
 
-**Main function:**
+Resolution order (strict):
+
+1. Use `task.erc8004_agent_id` if numeric.
+2. Else if `task.agent_id` is numeric, use it.
+3. Else optional lookup in new mapping table (`agent_identity_map`), if implemented.
+4. Else mark side effect as `skipped` with reason `missing_agent_erc8004_id`.
+
+Algorithm:
+
+1. Guard by flag `feature.erc8004_auto_rate_agent_enabled`.
+2. Enqueue `rate_agent_from_worker` side effect.
+3. Calculate score (default from dynamic scoring module; fallback `85`).
+4. Call `rate_agent(agent_id, task_id, score, proof_tx=payment_tx)`.
+5. Persist tx hash and status in side-effect row.
+
+Important:
+
+- Do not reuse `submissions.reputation_tx` for reverse direction.
+- Keep old `reputation_tx` for backward compatibility (agent->worker only).
+
+Tests:
+
+- Task with valid `erc8004_agent_id` -> on-chain feedback submitted.
+- Wallet-only agent without mapping -> `skipped`, no exception.
+- Idempotent retry call -> single on-chain submission due outbox dedup.
+
+---
+
+## WS-3) Rejection feedback policy (major/minor)
+
+Objective:
+
+- Support optional on-chain negative feedback without creating automatic abuse vectors.
+
+API contract change:
+
+- Extend `RejectionRequest` in `mcp_server/api/routes.py`:
+  - `severity: "minor" | "major" = "minor"`
+  - `reputation_score: Optional[int]` constrained to `0..50` for `major` only
+
+Policy:
+
+1. `minor` (default): local rejection only, no on-chain write.
+2. `major`: enqueue `rate_worker_on_rejection` side effect with capped score.
+3. If dispute overturns rejection, call facilitator `revoke_feedback` and mark side effect as reversed.
+
+Abuse controls:
+
+- Existing task ownership checks stay mandatory.
+- Rate-limit major rejection writes (max 3 per agent per 24h).
+- Require non-empty notes (already required).
+- Security audit log on every major rejection submission.
+
+Tests:
+
+- Minor rejection -> no side-effect row for on-chain write.
+- Major rejection with score -> side-effect created and submitted.
+- Major rejection without score -> default score `30`.
+- Non-owner rejection attempt -> `403`.
+- Rate limit exceeded -> `429`.
+
+---
+
+## WS-4) MCP reputation tools
+
+Objective:
+
+- Expose reputation and identity operations in MCP with proper read/write hints and ownership semantics.
+
+New file:
+
+- `mcp_server/tools/reputation_tools.py`
+
+Tools:
+
+1. `em_rate_worker` (write)
+2. `em_rate_agent` (write)
+3. `em_get_reputation` (read)
+4. `em_check_identity` (read)
+5. `em_register_identity` (write; explicit mode required: `wallet_signed` vs `gasless`)
+
+Integration:
+
+- Export in `mcp_server/tools/__init__.py`
+- Register in `mcp_server/server.py`
+
+Additional MCP enhancement:
+
+- Add optional `rating_score` to `ApproveSubmissionInput` (`mcp_server/models.py`) and forward to dynamic scoring override.
+
+Tests:
+
+- Extend `mcp_server/tests/test_mcp_tools.py` for each new tool.
+- Validate ownership/authorization and error surface consistency.
+
+---
+
+## WS-5) Dashboard reputation and identity UX
+
+Objective:
+
+- Surface identity/reputation actions and results without introducing auth abuse or broken UX on partial outages.
+
+Required behavior:
+
+1. Add register CTA in `IdentitySection` (`dashboard/src/pages/Profile.tsx`).
+2. Default registration path uses existing wallet-signed flow from `useIdentity`:
+   - `prepareRegistration` -> wallet send -> `confirmRegistration`.
+3. Gasless registration (if desired later) must be behind authenticated backend control + rate limit; do not call public register endpoint directly from UI.
+4. Show local + on-chain reputation when available.
+5. Add worker->agent rating modal after completed tasks.
+6. Add agent self-reputation card in `AgentDashboard`.
+
+Data/source behavior:
+
+- Local score source: Supabase (`useReputation`).
+- On-chain score source: `/api/v1/reputation/agents/{id}`.
+- If on-chain read fails, keep UI functional with local score and degraded badge state.
+
+Files:
+
+- `dashboard/src/pages/Profile.tsx`
+- `dashboard/src/hooks/useIdentity.ts` (button wiring only; preserve existing flow)
+- `dashboard/src/hooks/useProfile.ts` (on-chain overlay fetch)
+- `dashboard/src/services/reputation.ts` (agent rating + identity helpers)
+- `dashboard/src/pages/AgentDashboard.tsx`
+- i18n files in `dashboard/src/i18n/locales/`
+
+Tests:
+
+- Add/extend component tests and service mock tests.
+- Verify no broken state when on-chain endpoint returns `404/503`.
+
+---
+
+## WS-6) Dynamic scoring engine (replace hardcoded 80)
+
+Objective:
+
+- Replace fixed score with deterministic scoring derived from submission/task quality signals, with optional agent override.
+
+New module:
+
+- `mcp_server/reputation/scoring.py`
+
+Primary function:
+
 ```python
 def calculate_dynamic_score(
     task: dict,
     submission: dict,
     executor: dict,
-    agent_override: Optional[int] = None,
+    override_score: int | None = None,
 ) -> int:
-    """Calculate reputation score 0-100 based on task performance."""
-    if agent_override is not None:
-        return max(0, min(100, agent_override))
-
-    speed = _speed_score(task, submission)           # 0-30
-    evidence = _evidence_score(task, submission)      # 0-30
-    ai_quality = _ai_quality_score(submission)        # 0-25
-    forensics = _forensic_score(submission)           # 0-15
-
-    total = speed + evidence + ai_quality + forensics
-    return max(10, min(100, total))  # Floor at 10 for completed tasks
+    ...
 ```
 
-**Scoring dimensions:**
+Scoring model (v1):
 
-| Dimension | Max Points | Data Source | Formula |
-|-----------|-----------|-------------|---------|
-| Speed | 30 | `submitted_at - accepted_at` vs `deadline - accepted_at` | `30 * (1 - time_used_ratio)` |
-| Evidence completeness | 30 | `evidence_schema.required[]` vs `submission.evidence` | `20 * (provided/required)` + `10 * (optional_provided/optional_total)` |
-| AI verification | 25 | `auto_check_passed`, `auto_check_score`, `auto_check_details` | Weighted auto-check score or defaults |
-| Forensics | 15 | `evidence_metadata` (GPS, device, EXIF, checksums) | +5 GPS, +3 device, +3 EXIF, +2 timestamp, +2 checksum |
+- Speed: 0-30
+- Evidence completeness: 0-30
+- AI verification quality: 0-25
+- Forensic metadata quality: 0-15
+- Clamp final score to `0..100`
 
-**Agent override:** Optional `score` field on `ApproveSubmissionInput` / `ApprovalRequest`. If provided, bypasses calculation.
+Rules:
 
-**Dual write:** Score feeds BOTH systems:
-1. On-chain ERC-8004 via `rate_worker()` (existing)
-2. Off-chain Supabase via `submit_rating()` RPC (new call)
+1. If `override_score` is provided, use it (after validation).
+2. Missing dimensions use neutral defaults, not zeros.
+3. Deterministic output for same inputs.
+4. Persist assigned score and source (`override|dynamic|fallback`) in side-effect payload.
 
-**Files to modify:**
-| File | Change |
-|------|--------|
-| `mcp_server/reputation/scoring.py` | **NEW** — Dynamic score calculation |
-| `mcp_server/reputation/__init__.py` | **NEW** — Package init |
-| `mcp_server/api/routes.py` L510-547 | Modify `_send_reputation_feedback()` to accept submission, executor, use dynamic score |
-| `mcp_server/api/routes.py` L814 | Pass submission + executor to `_send_reputation_feedback()` |
-| `mcp_server/api/routes.py` ApprovalRequest | Add optional `score: int` field |
+Integrations:
 
-**Tests:**
-- Fast submission + full evidence + AI pass → score ~90
-- Slow submission + minimal evidence → score ~40
-- Agent override score=95 → uses 95, ignores calculation
-- Missing data (no auto-check) → reasonable defaults
-- Edge: submit at deadline → speed=0, total still >= 10
+- Update `_send_reputation_feedback()` signature to accept submission/executor/override.
+- Extend `ApprovalRequest` (REST) and `ApproveSubmissionInput` (MCP) with optional score override.
 
-**Estimated effort:** 2 hours
+Tests:
+
+- Fast + complete + high AI -> high score.
+- Slow + incomplete + weak AI -> low score.
+- Override provided -> exact override used.
+- Missing data -> stable neutral score.
 
 ---
 
-## Implementation Order
+## 6) Cross-cutting requirements
 
-```mermaid
-graph TD
-    G6[Gap 6: Dynamic Scoring] --> G1[Gap 1: Worker Auto-Registration]
-    G6 --> G2[Gap 2: Bidirectional Rating]
-    G1 --> G5[Gap 5: Dashboard UI]
-    G2 --> G5
-    G3[Gap 3: Negative Feedback] --> G5
-    G4[Gap 4: MCP Tools] --> G5
+### 6.1 Feature flags (mandatory)
 
-    style G6 fill:#e8f5e9
-    style G1 fill:#e8f5e9
-    style G2 fill:#e8f5e9
-    style G4 fill:#fff3e0
-    style G3 fill:#fff3e0
-    style G5 fill:#e3f2fd
-```
+Add config keys (default `false` until staged rollout):
 
-### Recommended order:
+- `feature.erc8004_auto_register_worker_enabled`
+- `feature.erc8004_auto_rate_agent_enabled`
+- `feature.erc8004_rejection_feedback_enabled`
+- `feature.erc8004_dynamic_scoring_enabled`
+- `feature.erc8004_mcp_tools_enabled`
 
-| Step | Gap | Why | Time |
-|------|-----|-----|------|
-| 1 | **Gap 6: Dynamic Scoring** | Foundation — everything else uses this | 2h |
-| 2 | **Gap 1: Worker Auto-Registration** | Core identity — enables all reputation | 1h |
-| 3 | **Gap 2: Bidirectional Rating** | Completes the feedback loop | 1.5h |
-| 4 | **Gap 4: MCP Tools** | Enables AI agent control | 2.5h |
-| 5 | **Gap 3: Negative Feedback** | Safety net for quality | 2h |
-| 6 | **Gap 5: Dashboard UI** | User-facing (needs backend complete) | 4h |
+Implementation should use existing `PlatformConfig.is_feature_enabled(...)`.
 
-**Total estimated: ~13 hours**
+### 6.2 Observability
+
+Structured logs for each side effect:
+
+- `event=erc8004_side_effect`
+- `submission_id`
+- `task_id`
+- `effect_type`
+- `status`
+- `attempt`
+- `tx_hash` (if any)
+- `error` (if any)
+
+Operational alerts:
+
+- >5% failure rate over 15m for any effect type.
+- Retry queue age > 30m for `pending/failed` items.
+
+### 6.3 Retry strategy
+
+- Retry schedule: 1m, 5m, 15m, 60m, 6h, 24h.
+- Max attempts: 6.
+- After max attempts -> status `failed` + alert.
+
+### 6.4 Backward compatibility
+
+- Do not remove or repurpose `submissions.reputation_tx`.
+- Old flows continue to work when new flags are off.
+- No API breaking changes; only additive request fields.
 
 ---
 
-## Dependency Graph
+## 7) Rollout plan
 
-```
-Gap 6 (Scoring) ─────┬──→ Gap 1 (Auto-Registration) ──→ Gap 5 (Dashboard)
-                      │
-                      ├──→ Gap 2 (Bidirectional) ──────→ Gap 5 (Dashboard)
-                      │
-                      └──→ Gap 4 (MCP Tools)
+1. Deploy schema migrations (outbox + optional helper columns).
+2. Deploy code with all new ERC-8004 flags disabled.
+3. Enable dynamic scoring only.
+4. Enable auto worker registration.
+5. Enable auto worker->agent rating.
+6. Enable major rejection on-chain feedback.
+7. Enable MCP reputation tools.
+8. Enable dashboard UI features.
 
-Gap 3 (Negative Feedback) ──→ Gap 5 (Dashboard) [independent of Gaps 1-2]
-```
+Rollback:
 
-- **Gaps 1, 2, 4** depend on Gap 6 (scoring system)
-- **Gap 3** is independent (can be done in parallel)
-- **Gap 5** depends on all backend gaps being complete
-- **Gaps 1+2+3+4** can be done in a single backend session
-- **Gap 5** (dashboard) is a separate frontend session
+- Disable the corresponding feature flag immediately.
+- Blocking payment/approval flow is unaffected by rollback of side effects.
+
+---
+
+## 8) Test plan and acceptance gates
+
+Required suites:
+
+1. `mcp_server/tests/test_p0_routes_idempotency.py`
+2. `mcp_server/tests/test_reputation_ownership.py`
+3. New unit tests for `mcp_server/reputation/scoring.py`
+4. Extended `mcp_server/tests/test_mcp_tools.py`
+5. Relevant e2e reputation and lifecycle tests in `mcp_server/tests/e2e/`
+6. Dashboard component/service tests for identity/reputation UX
+
+Must-pass acceptance criteria:
+
+1. Approvals still require `payment_tx`.
+2. Side-effect failures never flip approval success to failure.
+3. No duplicate on-chain writes for same submission/effect type.
+4. Worker identity auto-registration works and is idempotent.
+5. Worker->agent auto-rating works when agent ERC-8004 ID is resolvable.
+6. Missing agent ERC-8004 ID yields `skipped` state, not exception.
+7. Rejection major/minor policy behaves exactly as specified.
+8. All new behavior can be disabled live via feature flags.
+9. Audit evidence exists for every side-effect attempt.
+
+---
+
+## 9) Recommended implementation order
+
+| Step | Workstream | Why first | Est. effort |
+|---|---|---|---|
+| 1 | Outbox + feature flags + observability scaffolding | Foundation for safe retries and rollout | 3h |
+| 2 | WS-6 Dynamic scoring | Replaces hardcoded scoring baseline | 2h |
+| 3 | WS-1 Auto worker registration | Highest user impact, low coupling | 1.5h |
+| 4 | WS-2 Auto worker->agent rating | Completes bidirectional loop | 2h |
+| 5 | WS-3 Rejection policy | Safety feature with abuse controls | 2h |
+| 6 | WS-4 MCP tools | Agent-facing operability | 2.5h |
+| 7 | WS-5 Dashboard UX | Surface finalized backend capability | 4h |
+
+Total estimated engineering effort: ~17 hours (excluding QA signoff and production monitoring window).
+
+---
+
+## 10) Open risks to track
+
+1. Agent ID resolution gap for wallet-based agent identifiers (must be explicitly handled).
+2. Environment schema drift between Supabase instances (run preflight schema checks before enabling flags).
+3. Facilitator partial outages (retry queue and UI degradation behavior must be validated).
+4. Abuse risk if gasless registration is exposed without auth/rate limits.
+
+This spec is now implementation-ready with explicit safety rails and operational controls.
