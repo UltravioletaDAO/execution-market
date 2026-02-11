@@ -1472,7 +1472,7 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
 
     **Use Cases:**
     - Landing page statistics
-    - Dashboard overview widgets  
+    - Dashboard overview widgets
     - Public API for external integrations
     - Platform growth tracking
     """
@@ -1635,13 +1635,25 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
     status_code=201,
     responses={
         201: {"description": "Task created successfully"},
-        400: {"model": ErrorResponse, "description": "Invalid request - check bounty limits, network support, or required fields"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid request - check bounty limits, network support, or required fields",
+        },
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
         402: {
             "description": "Payment required. Include X-Payment header with x402 payment authorization."
         },
-        429: {"model": ErrorResponse, "description": "Rate limit exceeded - wait before creating more tasks"},
-        503: {"model": ErrorResponse, "description": "x402 payment service unavailable"},
+        429: {
+            "model": ErrorResponse,
+            "description": "Rate limit exceeded - wait before creating more tasks",
+        },
+        503: {
+            "model": ErrorResponse,
+            "description": "x402 payment service unavailable",
+        },
     },
     summary="Create Task",
     description="Create a new task with payment escrow (supports preauth, x402r, fase1, and fase2 modes)",
@@ -1655,12 +1667,12 @@ async def create_task(
     """
     Create a new task with automatic payment handling.
 
-    Creates a new task that will be visible to workers. Requires authenticated API key 
+    Creates a new task that will be visible to workers. Requires authenticated API key
     and payment authorization via x402 protocol. Supports multiple payment modes:
 
     ## Payment Modes
     - **preauth**: X-Payment header required, funds authorized but not moved until completion
-    - **x402r**: X-Payment header required, funds immediately locked in on-chain escrow  
+    - **x402r**: X-Payment header required, funds immediately locked in on-chain escrow
     - **fase1**: X-Payment optional, balance check only (no funds moved)
     - **fase2**: X-Payment optional, funds locked in escrow via facilitator (gasless)
 
@@ -1678,7 +1690,7 @@ async def create_task(
     {
         "title": "Verify restaurant is open",
         "instructions": "Visit the restaurant and confirm it's currently open for business. Take a photo of the front entrance showing opening hours.",
-        "category": "physical_presence", 
+        "category": "physical_presence",
         "bounty_usd": 5.00,
         "deadline_hours": 24,
         "evidence_required": ["photo", "text_report"],
@@ -1696,7 +1708,7 @@ async def create_task(
     ```json
     {
         "id": "123e4567-e89b-12d3-a456-426614174000",
-        "title": "Verify restaurant is open", 
+        "title": "Verify restaurant is open",
         "status": "published",
         "category": "physical_presence",
         "bounty_usd": 5.00,
@@ -1712,18 +1724,18 @@ async def create_task(
 
     ## Error Responses
     - `400`: Invalid parameters (bounty limits, unsupported network, missing fields)
-    - `401`: Invalid or missing API key  
+    - `401`: Invalid or missing API key
     - `402`: Payment required or x402 payment failed
     - `503`: Payment service unavailable
 
     ## ERC-8004 Identity Integration
-    If the agent has a registered ERC-8004 on-chain identity, it will be automatically 
+    If the agent has a registered ERC-8004 on-chain identity, it will be automatically
     attached to the task for verification and reputation purposes.
 
     ## Escrow Handling
     Based on the configured payment mode:
     - **x402r/fase2**: Funds are immediately locked in escrow contract
-    - **preauth**: Payment authorization stored, funds moved on task completion  
+    - **preauth**: Payment authorization stored, funds moved on task completion
     - **fase1**: Balance verified, no funds moved until payout
 
     Tasks are created in `published` status and immediately visible to workers.
@@ -2246,7 +2258,10 @@ async def create_task(
     response_model=AvailableTasksResponse,
     responses={
         200: {"description": "Available tasks retrieved with applied filters"},
-        500: {"model": ErrorResponse, "description": "Failed to retrieve available tasks"},
+        500: {
+            "model": ErrorResponse,
+            "description": "Failed to retrieve available tasks",
+        },
     },
     summary="Get Available Tasks",
     description="Public endpoint for workers to discover available tasks with filtering and pagination",
@@ -2286,7 +2301,7 @@ async def get_available_tasks(
     - **radius_km**: Search radius in kilometers (1-500, default: 50)
     - Only tasks within the specified radius will be returned
 
-    ### Content Filtering  
+    ### Content Filtering
     - **category**: Filter by task category (physical_presence, knowledge_access, etc.)
     - **min_bounty**: Minimum bounty amount in USD (filters out lower-paying tasks)
     - **max_bounty**: Maximum bounty amount in USD (filters out higher-paying tasks)
@@ -2304,7 +2319,7 @@ async def get_available_tasks(
                 "id": "123e4567-e89b-12d3-a456-426614174000",
                 "title": "Verify restaurant is open",
                 "status": "published",
-                "category": "physical_presence", 
+                "category": "physical_presence",
                 "bounty_usd": 5.00,
                 "deadline": "2024-02-12T06:04:00Z",
                 "created_at": "2024-02-11T06:04:00Z",
@@ -2331,7 +2346,7 @@ async def get_available_tasks(
 
     ## Task Categories
     - **physical_presence**: Requires being at a specific location
-    - **knowledge_access**: Requires specific knowledge or expertise  
+    - **knowledge_access**: Requires specific knowledge or expertise
     - **human_authority**: Requires human decision-making or authority
     - **simple_action**: Basic actions anyone can perform
     - **digital_physical**: Digital tasks with physical world components
@@ -2352,7 +2367,7 @@ async def get_available_tasks(
     Use offset and limit for pagination:
     ```
     Page 1: ?offset=0&limit=20
-    Page 2: ?offset=20&limit=20  
+    Page 2: ?offset=20&limit=20
     Page 3: ?offset=40&limit=20
     ```
 
@@ -2437,7 +2452,10 @@ async def get_available_tasks(
     response_model=TaskResponse,
     responses={
         200: {"description": "Task details retrieved successfully"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
         403: {
             "model": ErrorResponse,
             "description": "Not authorized to view this task - agent doesn't own it",
@@ -2467,7 +2485,7 @@ async def get_task(
         "id": "123e4567-e89b-12d3-a456-426614174000",
         "title": "Verify restaurant is open",
         "status": "accepted",
-        "category": "physical_presence", 
+        "category": "physical_presence",
         "bounty_usd": 5.00,
         "deadline": "2024-02-12T06:04:00Z",
         "created_at": "2024-02-11T06:04:00Z",
@@ -2482,7 +2500,7 @@ async def get_task(
         "min_reputation": 50,
         "erc8004_agent_id": "42",
         "payment_network": "base",
-        "payment_token": "USDC", 
+        "payment_token": "USDC",
         "escrow_tx": "0xabc123...",
         "refund_tx": null
     }
@@ -2490,7 +2508,7 @@ async def get_task(
 
     ## Task Status Lifecycle
     1. **published**: Available for worker applications
-    2. **accepted**: Assigned to a specific worker  
+    2. **accepted**: Assigned to a specific worker
     3. **in_progress**: Worker is actively working
     4. **submitted**: Work submitted, awaiting agent review
     5. **completed**: Approved and payment released
@@ -2504,7 +2522,7 @@ async def get_task(
 
     Evidence types: `photo`, `text_report`, `document`, `gps_coordinates`, `video`, `audio`
 
-    ## Payment Information  
+    ## Payment Information
     - **escrow_tx**: Transaction hash or payment reference for escrow
     - **refund_tx**: Transaction hash if task was cancelled and refunded
     - **payment_network**: Blockchain network (base, ethereum, polygon, arbitrum)
@@ -2564,7 +2582,10 @@ async def get_task(
             "description": "Not authorized to view payment details for draft tasks",
         },
         404: {"model": ErrorResponse, "description": "Task not found"},
-        500: {"model": ErrorResponse, "description": "Failed to resolve task payment information"},
+        500: {
+            "model": ErrorResponse,
+            "description": "Failed to resolve task payment information",
+        },
     },
     summary="Get Task Payment Timeline",
     description="Retrieve complete payment history and current status for a task",
@@ -2578,7 +2599,7 @@ async def get_task_payment(
     Get comprehensive payment timeline and status for a specific task.
 
     Returns the complete payment history including escrow deposits, releases, refunds,
-    and current payment status. Normalizes data from multiple payment tables and 
+    and current payment status. Normalizes data from multiple payment tables and
     handles schema variations gracefully.
 
     ## Path Parameters
@@ -2588,7 +2609,7 @@ async def get_task_payment(
     - **pending**: No payment processed yet
     - **escrowed**: Funds locked in escrow awaiting completion
     - **partial_released**: Partial payment released to worker
-    - **completed**: Full payment released to worker  
+    - **completed**: Full payment released to worker
     - **refunded**: Funds refunded to agent
 
     ## Response Example
@@ -2606,7 +2627,7 @@ async def get_task_payment(
             {
                 "id": "evt_1",
                 "type": "escrow_created",
-                "actor": "agent", 
+                "actor": "agent",
                 "timestamp": "2024-02-11T06:04:00Z",
                 "network": "base",
                 "amount": 5.40,
@@ -2614,10 +2635,10 @@ async def get_task_payment(
                 "note": "x402 reference: abc123ef..."
             },
             {
-                "id": "evt_2", 
+                "id": "evt_2",
                 "type": "final_release",
                 "actor": "system",
-                "timestamp": "2024-02-11T08:30:00Z", 
+                "timestamp": "2024-02-11T08:30:00Z",
                 "network": "base",
                 "amount": 5.00,
                 "tx_hash": "0xdef456...",
@@ -2631,7 +2652,7 @@ async def get_task_payment(
 
     ## Event Types
     - **escrow_created**: Initial funds deposit/authorization
-    - **escrow_funded**: Additional funding events  
+    - **escrow_funded**: Additional funding events
     - **partial_release**: Partial payment to worker
     - **final_release**: Final payment to worker
     - **refund**: Refund to agent
@@ -2646,7 +2667,7 @@ async def get_task_payment(
     ## Data Normalization
     This endpoint handles schema variations across payment tables:
     - Normalizes `type` vs `payment_type` columns
-    - Handles `tx_hash` vs `transaction_hash` variations  
+    - Handles `tx_hash` vs `transaction_hash` variations
     - Gracefully degrades when tables are missing
     - Combines data from `payments`, `escrows`, and `submissions` tables
 
@@ -2663,7 +2684,7 @@ async def get_task_payment(
     ## Use Cases
     - Payment status monitoring
     - Escrow audit and compliance
-    - Payment timeline visualization  
+    - Payment timeline visualization
     - Troubleshooting payment issues
     - Financial reporting and reconciliation
 
@@ -2976,7 +2997,10 @@ async def get_task_payment(
     response_model=TaskListResponse,
     responses={
         200: {"description": "Tasks retrieved successfully with pagination info"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
     },
     summary="List Agent Tasks",
     description="Retrieve paginated list of tasks for the authenticated agent with filtering options",
@@ -3024,7 +3048,7 @@ async def list_tasks(
             {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
                 "title": "Verify restaurant is open",
-                "status": "published", 
+                "status": "published",
                 "category": "physical_presence",
                 "bounty_usd": 5.00,
                 "deadline": "2024-02-12T06:04:00Z",
@@ -3036,7 +3060,7 @@ async def list_tasks(
             }
         ],
         "total": 1,
-        "count": 1, 
+        "count": 1,
         "offset": 0,
         "has_more": false
     }
@@ -3044,7 +3068,7 @@ async def list_tasks(
 
     ## Pagination
     Use `offset` and `limit` for pagination:
-    - Page 1: `offset=0&limit=20` 
+    - Page 1: `offset=0&limit=20`
     - Page 2: `offset=20&limit=20`
     - Page 3: `offset=40&limit=20`
 
@@ -3104,9 +3128,17 @@ async def list_tasks(
     "/tasks/{task_id}/submissions",
     response_model=SubmissionListResponse,
     responses={
-        200: {"description": "Submissions retrieved successfully with AI pre-check scores"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
-        403: {"model": ErrorResponse, "description": "Not authorized to view submissions for this task"},
+        200: {
+            "description": "Submissions retrieved successfully with AI pre-check scores"
+        },
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized to view submissions for this task",
+        },
         404: {"model": ErrorResponse, "description": "Task not found"},
     },
     summary="Get Task Submissions",
@@ -3155,7 +3187,7 @@ async def get_submissions(
             },
             {
                 "id": "456def789-abcd-1234-5678-9abcdef12345",
-                "task_id": "123e4567-e89b-12d3-a456-426614174000", 
+                "task_id": "123e4567-e89b-12d3-a456-426614174000",
                 "executor_id": "def456abc-7890-bcde-f123-456789abcdef",
                 "status": "pending",
                 "pre_check_score": 0.65,
@@ -3193,7 +3225,7 @@ async def get_submissions(
     Evidence data varies by task requirements but commonly includes:
     - **photos**: Array of image URLs
     - **text_report**: Written description of work performed
-    - **documents**: PDF or document file URLs  
+    - **documents**: PDF or document file URLs
     - **gps_coordinates**: Location verification data
     - **video**: Video evidence URLs
     - **audio**: Audio evidence URLs
@@ -3283,11 +3315,23 @@ async def get_submissions(
     response_model=SuccessResponse,
     responses={
         200: {"description": "Submission approved and payment released to worker"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
-        403: {"model": ErrorResponse, "description": "Not authorized to approve this submission"},
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized to approve this submission",
+        },
         404: {"model": ErrorResponse, "description": "Submission not found"},
-        409: {"model": ErrorResponse, "description": "Submission already processed or task not in valid state"},
-        502: {"model": ErrorResponse, "description": "Payment settlement failed - submission not approved"},
+        409: {
+            "model": ErrorResponse,
+            "description": "Submission already processed or task not in valid state",
+        },
+        502: {
+            "model": ErrorResponse,
+            "description": "Payment settlement failed - submission not approved",
+        },
     },
     summary="Approve Submission",
     description="Approve a worker's submission and trigger payment settlement",
@@ -3304,8 +3348,8 @@ async def approve_submission(
     """
     Approve a worker's submission and trigger payment settlement.
 
-    This endpoint approves a worker's submitted work and immediately attempts to 
-    settle payment to the worker's wallet. The task status will be updated to 
+    This endpoint approves a worker's submitted work and immediately attempts to
+    settle payment to the worker's wallet. The task status will be updated to
     'completed' upon successful payment settlement.
 
     ## Payment Settlement Process
@@ -3317,7 +3361,7 @@ async def approve_submission(
 
     ## Payment Modes Support
     - **x402r**: Releases funds from on-chain escrow contract
-    - **preauth**: Settles stored X-Payment authorization  
+    - **preauth**: Settles stored X-Payment authorization
     - **fase1**: Uses `X-Payment-Worker` and `X-Payment-Fee` headers for EIP-3009 settlement
     - **fase2**: Releases funds from facilitator-managed escrow
 
@@ -3340,7 +3384,7 @@ async def approve_submission(
         "message": "Submission approved. Payment released to worker.",
         "data": {
             "submission_id": "123e4567-e89b-12d3-a456-426614174000",
-            "verdict": "accepted", 
+            "verdict": "accepted",
             "payment_tx": "0xdef456...",
             "idempotent": false
         }
@@ -3354,18 +3398,18 @@ async def approve_submission(
     - **404 Not Found**: Submission doesn't exist
 
     ## Idempotency
-    If submission is already approved, returns success with `idempotent: true` and 
+    If submission is already approved, returns success with `idempotent: true` and
     attempts payment settlement again if no payment transaction is recorded.
 
     ## Payment Verification
     - Validates worker wallet address format
-    - Prevents self-payment (agent paying themselves)  
+    - Prevents self-payment (agent paying themselves)
     - Requires valid payment amount (bounty amount)
     - Ensures task has sufficient escrow/authorization
 
     ## Side Effects
     - Updates submission verdict to 'accepted'
-    - Updates task status to 'completed'  
+    - Updates task status to 'completed'
     - Records payment transaction in audit log
     - Submits ERC-8004 reputation score for worker (if enabled)
     - Triggers payment settlement through configured dispatcher
@@ -3503,10 +3547,19 @@ async def approve_submission(
     response_model=SuccessResponse,
     responses={
         200: {"description": "Submission rejected and task returned to available pool"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
-        403: {"model": ErrorResponse, "description": "Not authorized to reject this submission"},
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized to reject this submission",
+        },
         404: {"model": ErrorResponse, "description": "Submission not found"},
-        409: {"model": ErrorResponse, "description": "Submission already processed with different verdict"},
+        409: {
+            "model": ErrorResponse,
+            "description": "Submission already processed with different verdict",
+        },
     },
     summary="Reject Submission",
     description="Reject a worker's submission and return task to available pool",
@@ -3653,10 +3706,19 @@ async def reject_submission(
     response_model=SuccessResponse,
     responses={
         200: {"description": "Additional information requested from worker"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
-        403: {"model": ErrorResponse, "description": "Not authorized to update this submission"},
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized to update this submission",
+        },
         404: {"model": ErrorResponse, "description": "Submission not found"},
-        409: {"model": ErrorResponse, "description": "Submission already processed with final verdict"},
+        409: {
+            "model": ErrorResponse,
+            "description": "Submission already processed with final verdict",
+        },
     },
     summary="Request More Information",
     description="Request additional evidence or clarification from the assigned worker",
@@ -3726,7 +3788,7 @@ async def request_more_info_submission(
 
     ## Effects on Task Status
     - **Submission**: verdict → 'more_info_requested'
-    - **Task**: status → 'in_progress' 
+    - **Task**: status → 'in_progress'
     - **Worker**: can resubmit with additional evidence
     - **Timeline**: deadline remains unchanged
     - **Payment**: escrow remains locked for this worker
@@ -3777,7 +3839,7 @@ async def request_more_info_submission(
     1. **Initial Submission**: Worker submits evidence
     2. **Agent Review**: Agent identifies gaps but sees potential
     3. **More Info Request**: Agent specifies needed improvements
-    4. **Worker Update**: Worker provides additional evidence  
+    4. **Worker Update**: Worker provides additional evidence
     5. **Resubmission**: Updated submission for final review
     6. **Final Decision**: Agent approves or rejects complete submission
 
@@ -3849,14 +3911,28 @@ async def request_more_info_submission(
     "/tasks/{task_id}/cancel",
     response_model=SuccessResponse,
     responses={
-        200: {"description": "Task cancelled successfully with appropriate refund handling"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
-        403: {"model": ErrorResponse, "description": "Not authorized to cancel this task"},
+        200: {
+            "description": "Task cancelled successfully with appropriate refund handling"
+        },
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized to cancel this task",
+        },
         404: {"model": ErrorResponse, "description": "Task not found"},
-        409: {"model": ErrorResponse, "description": "Task cannot be cancelled in current status"},
-        402: {"model": ErrorResponse, "description": "Escrow refund failed - task cancelled but manual refund required"},
+        409: {
+            "model": ErrorResponse,
+            "description": "Task cannot be cancelled in current status",
+        },
+        402: {
+            "model": ErrorResponse,
+            "description": "Escrow refund failed - task cancelled but manual refund required",
+        },
     },
-    summary="Cancel Task", 
+    summary="Cancel Task",
     description="Cancel a published task and handle payment refunds based on escrow status",
     tags=["Tasks", "Agent", "Payments"],
 )
@@ -3868,8 +3944,8 @@ async def cancel_task(
     """
     Cancel a task and handle payment refunds automatically.
 
-    Cancels a task and processes appropriate refund based on the payment mode and 
-    escrow status. Only tasks in 'published' status can be cancelled - tasks with 
+    Cancels a task and processes appropriate refund based on the payment mode and
+    escrow status. Only tasks in 'published' status can be cancelled - tasks with
     assigned workers cannot be cancelled to protect worker interests.
 
     ## Cancellation Rules
@@ -3884,7 +3960,7 @@ async def cancel_task(
     - **Already Released**: Cannot cancel (409 error)
     - **Already Refunded**: Idempotent success
 
-    ### Preauth Mode (Authorization Only)  
+    ### Preauth Mode (Authorization Only)
     - **Authorized**: Authorization expires naturally, no funds moved
     - **Pending**: Authorization expires, no refund needed
 
@@ -3915,7 +3991,7 @@ async def cancel_task(
             "reason": "Task requirements changed",
             "escrow": {
                 "status": "refunded",
-                "escrow_id": "escrow_1234abcd", 
+                "escrow_id": "escrow_1234abcd",
                 "tx_hash": "0xdef456...",
                 "method": "x402r"
             }
@@ -3926,7 +4002,7 @@ async def cancel_task(
     ### Authorization Expiry (No Refund Needed)
     ```json
     {
-        "success": true, 
+        "success": true,
         "message": "Task cancelled successfully. Payment authorization expired (no funds moved).",
         "data": {
             "task_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -3946,7 +4022,7 @@ async def cancel_task(
     - **404 Not Found**: Task doesn't exist
 
     ## Critical Fund Loss Detection
-    In rare cases where agent settlement succeeded but escrow lock failed, the system 
+    In rare cases where agent settlement succeeded but escrow lock failed, the system
     detects potential fund loss and requires manual refund intervention:
 
     ```json
@@ -4338,7 +4414,10 @@ async def cancel_task(
     response_model=AnalyticsResponse,
     responses={
         200: {"description": "Analytics data retrieved successfully"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
     },
     summary="Get Agent Analytics",
     description="Comprehensive analytics dashboard data for the authenticated agent",
@@ -4372,7 +4451,7 @@ async def get_analytics(
         },
         "by_status": {
             "published": 3,
-            "accepted": 2, 
+            "accepted": 2,
             "in_progress": 1,
             "submitted": 1,
             "completed": 38,
@@ -4388,7 +4467,7 @@ async def get_analytics(
         },
         "average_times": {
             "time_to_accept": "2h 15m",
-            "time_to_complete": "4h 30m", 
+            "time_to_complete": "4h 30m",
             "time_to_review": "45m"
         },
         "top_workers": [
@@ -4410,7 +4489,7 @@ async def get_analytics(
 
     ### Task Performance Totals
     - **total_tasks**: Total tasks created in period
-    - **completed**: Successfully completed tasks  
+    - **completed**: Successfully completed tasks
     - **completion_rate**: Percentage of tasks completed
     - **total_bounty**: Total bounty amounts across all tasks
     - **total_spent**: Total spent including platform fees
@@ -4438,7 +4517,7 @@ async def get_analytics(
     ### Timing Metrics
     Average time intervals for workflow stages:
     - **time_to_accept**: From published to worker assignment
-    - **time_to_complete**: From acceptance to work submission  
+    - **time_to_complete**: From acceptance to work submission
     - **time_to_review**: From submission to agent approval/rejection
 
     ### Top Workers Analysis
@@ -4491,8 +4570,14 @@ async def get_analytics(
     response_model=SuccessResponse,
     responses={
         200: {"description": "Task successfully assigned to worker"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
-        403: {"model": ErrorResponse, "description": "Not authorized to assign this task or worker ineligible"},
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized to assign this task or worker ineligible",
+        },
         404: {"model": ErrorResponse, "description": "Task or executor not found"},
         409: {
             "model": ErrorResponse,
@@ -4512,7 +4597,7 @@ async def assign_task_to_worker(
     Assign a published task to a specific worker executor.
 
     Agent endpoint for directly assigning tasks to workers, either from
-    applications received or by selecting qualified workers. Moves the 
+    applications received or by selecting qualified workers. Moves the
     task from 'published' to 'accepted' status.
 
     ## Request Body
@@ -4554,7 +4639,7 @@ async def assign_task_to_worker(
     - **cancelled**: Not available ✗
     - **expired**: Past deadline ✗
 
-    ### Worker Eligibility  
+    ### Worker Eligibility
     Worker must meet these criteria:
     - **Exists**: Valid executor_id in system
     - **Active**: Worker account in good standing
@@ -4614,7 +4699,7 @@ async def assign_task_to_worker(
     ### 403 Forbidden (Insufficient Reputation)
     ```json
     {
-        "error": "INSUFFICIENT_REPUTATION", 
+        "error": "INSUFFICIENT_REPUTATION",
         "message": "Worker reputation score 25 below required minimum 50",
         "details": {"required": 50, "actual": 25}
     }
@@ -4772,12 +4857,17 @@ async def apply_to_task(
     "/tasks/{task_id}/submit",
     response_model=SuccessResponse,
     responses={
-        200: {"description": "Work submitted successfully, with optional instant payment"},
+        200: {
+            "description": "Work submitted successfully, with optional instant payment"
+        },
         400: {
             "model": ErrorResponse,
             "description": "Invalid request or missing required evidence",
         },
-        403: {"model": ErrorResponse, "description": "Not assigned to this task or not authorized"},
+        403: {
+            "model": ErrorResponse,
+            "description": "Not assigned to this task or not authorized",
+        },
         404: {"model": ErrorResponse, "description": "Task not found"},
         409: {"model": ErrorResponse, "description": "Task not in submittable state"},
     },
@@ -4808,7 +4898,7 @@ async def submit_work(
             "text_report": "Successfully verified the restaurant is open. There were customers inside and staff was actively serving. Hours posted on door confirm open until 9 PM today.",
             "gps_coordinates": {
                 "lat": 45.5152,
-                "lng": -122.6784, 
+                "lng": -122.6784,
                 "accuracy": 3,
                 "timestamp": "2024-02-11T08:15:00Z"
             }
@@ -4855,13 +4945,13 @@ async def submit_work(
         "message": "Work submitted successfully. Awaiting agent review.",
         "data": {
             "submission_id": "789abcdef-1234-5678-9abc-def123456789",
-            "task_id": "123e4567-e89b-12d3-a456-426614174000", 
+            "task_id": "123e4567-e89b-12d3-a456-426614174000",
             "status": "submitted"
         }
     }
     ```
 
-    ### Instant Payment Failed  
+    ### Instant Payment Failed
     ```json
     {
         "success": true,
@@ -5087,9 +5177,14 @@ class VerifyEvidenceResponse(BaseModel):
     "/evidence/verify",
     response_model=VerifyEvidenceResponse,
     responses={
-        200: {"description": "AI verification result with confidence score and decision"},
+        200: {
+            "description": "AI verification result with confidence score and decision"
+        },
         404: {"model": ErrorResponse, "description": "Task not found"},
-        503: {"model": ErrorResponse, "description": "AI verification service unavailable"},
+        503: {
+            "model": ErrorResponse,
+            "description": "AI verification service unavailable",
+        },
     },
     summary="Verify Evidence with AI",
     description="Pre-verify submitted evidence against task requirements using AI vision models",
@@ -5106,7 +5201,7 @@ async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceRespo
 
     ## AI Providers Supported
     Configurable via `AI_VERIFICATION_PROVIDER` environment variable:
-    - **anthropic** (default): Claude 3.5 Sonnet Vision  
+    - **anthropic** (default): Claude 3.5 Sonnet Vision
     - **openai**: GPT-4o Vision
     - **bedrock**: AWS Bedrock Claude 3.5 Sonnet
     - **ollama**: Local Ollama vision models
@@ -5138,7 +5233,7 @@ async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceRespo
     {
         "verified": false,
         "confidence": 0.88,
-        "decision": "rejected", 
+        "decision": "rejected",
         "explanation": "The photo shows the restaurant but the opening hours sign is not clearly visible. Additional evidence showing operating status is needed.",
         "issues": [
             "Opening hours sign not visible",
@@ -5165,7 +5260,7 @@ async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceRespo
     ## AI Verification Process
     1. **Task Analysis**: AI reviews task instructions and evidence requirements
     2. **Evidence Processing**: Analyzes uploaded photo/document/video
-    3. **Requirement Matching**: Compares evidence against specific requirements  
+    3. **Requirement Matching**: Compares evidence against specific requirements
     4. **Confidence Scoring**: Provides 0.0-1.0 confidence score
     5. **Decision Making**: Returns approved/rejected/needs_human decision
     6. **Issue Identification**: Lists specific problems if evidence is insufficient
@@ -5189,7 +5284,7 @@ async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceRespo
     ## Graceful Degradation
     If AI verification is unavailable:
     - Returns `verified: true` with `confidence: 0.5`
-    - Decision: "approved" 
+    - Decision: "approved"
     - Note: "AI verification temporarily unavailable"
     - Evidence still accepted for agent review
 
@@ -5381,7 +5476,7 @@ async def get_worker_identity(
     ### Not Registered
     ```json
     {
-        "status": "not_registered", 
+        "status": "not_registered",
         "agent_id": null,
         "wallet_address": "0x742d35Cc6634C0532925a3b8D0fC6A3B3e1d7A5B",
         "network": "base",
@@ -5397,7 +5492,7 @@ async def get_worker_identity(
         "status": "error",
         "agent_id": null,
         "wallet_address": "0x742d35Cc6634C0532925a3b8D0fC6A3B3e1d7A5B",
-        "network": "base", 
+        "network": "base",
         "chain_id": 8453,
         "registry_address": null,
         "error": "RPC timeout connecting to Base network"
@@ -5412,7 +5507,7 @@ async def get_worker_identity(
     ## ERC-8004 Identity Benefits
     Registered workers receive:
     - **Higher Trust Score**: Visual indicators in agent interfaces
-    - **Priority Ranking**: Better visibility in worker search results  
+    - **Priority Ranking**: Better visibility in worker search results
     - **Reputation Integration**: On-chain reputation scoring
     - **Verification Badge**: Platform-wide identity verification
     - **Access to Premium Tasks**: Some tasks may require registration
@@ -5457,7 +5552,7 @@ async def get_worker_identity(
     }
     ```
 
-    ### Worker Profile Enhancement  
+    ### Worker Profile Enhancement
     ```javascript
     // Display identity status in worker profiles
     const identity = await api.get(`/executors/${executorId}/identity`);
@@ -5543,9 +5638,15 @@ async def get_worker_identity(
     response_model=RegisterIdentityResponse,
     responses={
         200: {"description": "Registration transaction prepared or already registered"},
-        400: {"model": ErrorResponse, "description": "Executor has no valid wallet address"},
+        400: {
+            "model": ErrorResponse,
+            "description": "Executor has no valid wallet address",
+        },
         404: {"model": ErrorResponse, "description": "Executor not found"},
-        503: {"model": ErrorResponse, "description": "Identity service unavailable or registration tx preparation failed"},
+        503: {
+            "model": ErrorResponse,
+            "description": "Identity service unavailable or registration tx preparation failed",
+        },
     },
     summary="Prepare Identity Registration",
     description="Prepare ERC-8004 identity registration transaction for worker wallet to sign",
@@ -5598,7 +5699,7 @@ async def register_worker_identity(
             "to": "0x1234567890abcdef1234567890abcdef12345678",
             "data": "0xa9059cbb000000000000000000000000742d35cc6634c0532925a3b8d0fc6a3b3e1d7a5b0000000000000000000000000000000000000000000000000de0b6b3a7640000",
             "chainId": 8453,
-            "value": "0x0", 
+            "value": "0x0",
             "estimated_gas": "150000",
             "gas_price_gwei": "0.001"
         },
@@ -5664,7 +5765,7 @@ async def register_worker_identity(
     ### Service Unavailable
     ```json
     {
-        "error": "IDENTITY_SERVICE_UNAVAILABLE", 
+        "error": "IDENTITY_SERVICE_UNAVAILABLE",
         "message": "Could not prepare registration transaction: RPC timeout",
         "details": {"network": "base", "registry": "0x1234..."}
     }
@@ -5678,7 +5779,7 @@ async def register_worker_identity(
     if (response.status === 'not_registered' && response.transaction) {
         // Present to user's wallet
         const txHash = await wallet.sendTransaction(response.transaction);
-        
+
         // Confirm registration
         await api.post(`/executors/${executorId}/confirm-identity`, {
             tx_hash: txHash
@@ -5926,8 +6027,14 @@ class BatchCreateResponse(BaseModel):
     status_code=201,
     responses={
         201: {"description": "Batch tasks created with success/failure breakdown"},
-        400: {"model": ErrorResponse, "description": "Invalid request or too many tasks in batch"},
-        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        400: {
+            "model": ErrorResponse,
+            "description": "Invalid request or too many tasks in batch",
+        },
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
     },
     summary="Batch Create Tasks",
     description="Create multiple similar tasks in a single API call for efficiency",
@@ -5966,13 +6073,13 @@ async def batch_create_tasks(
                 "min_reputation": 50
             },
             {
-                "title": "Verify restaurant B is open", 
+                "title": "Verify restaurant B is open",
                 "instructions": "Visit Restaurant B and confirm operating status...",
                 "category": "physical_presence",
                 "bounty_usd": 5.00,
                 "deadline_hours": 24,
                 "evidence_required": ["photo", "text_report"],
-                "location_hint": "Downtown Portland, Oak St", 
+                "location_hint": "Downtown Portland, Oak St",
                 "min_reputation": 50
             }
         ]
@@ -5993,7 +6100,7 @@ async def batch_create_tasks(
                 "bounty_usd": 5.00
             },
             {
-                "index": 1, 
+                "index": 1,
                 "id": "456789ab-cdef-1234-5678-9abcdef12345",
                 "title": "Verify restaurant B is open",
                 "bounty_usd": 5.00
@@ -6007,7 +6114,7 @@ async def batch_create_tasks(
     ```json
     {
         "created": 1,
-        "failed": 1, 
+        "failed": 1,
         "total_bounty": 5.00,
         "tasks": [
             {
@@ -6060,7 +6167,7 @@ async def batch_create_tasks(
     ## Validation Rules
     Each task validated independently:
     - Bounty within platform min/max limits
-    - Valid category and evidence types  
+    - Valid category and evidence types
     - Reasonable deadline (1-720 hours)
     - Title and instructions length limits
     - Valid reputation requirements
@@ -6174,7 +6281,7 @@ async def api_health():
     ```json
     {
         "status": "healthy",
-        "api_version": "v1", 
+        "api_version": "v1",
         "timestamp": "2024-02-11T06:04:00.123Z",
         "services": {
             "database": "connected",
@@ -6186,7 +6293,7 @@ async def api_health():
 
     ## Health Status Values
     - **healthy**: All systems operational
-    - **degraded**: Some non-critical services unavailable  
+    - **degraded**: Some non-critical services unavailable
     - **unhealthy**: Critical services down
 
     ## Use Cases
@@ -6200,7 +6307,7 @@ async def api_health():
     - `Cache-Control: no-cache` - Prevents caching of health status
     - `X-Response-Time` - Request processing time (if available)
 
-    This endpoint is intentionally lightweight and doesn't perform deep 
+    This endpoint is intentionally lightweight and doesn't perform deep
     health checks to ensure fast response times for frequent monitoring calls.
     """
     return {
