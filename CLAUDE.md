@@ -456,6 +456,7 @@ Wrong Flow (DO NOT USE):
 
 **Payment Mode** (`EM_PAYMENT_MODE`, default: `fase1`):
 - **`fase1`** (default, production): No auth at task creation — advisory `balanceOf()` check only. At approval, server signs 2 direct EIP-3009 settlements: agent→worker (bounty) + agent→treasury (fee). No intermediary wallet. E2E tested 2026-02-11 ([evidence](docs/planning/FASE1_E2E_EVIDENCE_2026-02-11.md)).
+- **`fase2`** (on-chain escrow, gasless): Locks funds on-chain via AdvancedEscrowClient at task creation. Release/refund via facilitator (gasless). PaymentOperator on Base: `0xb9635f544665758019159c04c08a3d583dadd723`. E2E tested 2026-02-11 ([evidence](docs/planning/FASE2_E2E_EVIDENCE_2026-02-11.md)). Requires `EM_PAYMENT_OPERATOR` env var if not Base.
 - **`preauth`** (legacy): Agent signs EIP-3009 auth at creation, stored header settled at approval via 3-step flow through platform wallet.
 - **`x402r`** (deprecated): Settles agent auth + locks funds in on-chain escrow at creation time. **Do not use** — caused fund loss bug.
 
@@ -464,6 +465,12 @@ Wrong Flow (DO NOT USE):
 2. **Direct settlement** (task approval): Server signs 2 fresh EIP-3009 auths → Facilitator settles both: agent→worker (bounty) + agent→treasury (8% fee). No platform wallet intermediary.
 3. **Cancel** (task cancellation): No-op — no auth was ever signed, nothing to refund.
 4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 8%). Uses 6-decimal USDC precision with $0.01 minimum fee.
+
+**Payment Flow for Tasks** (Fase 2):
+1. **Authorize** (task creation): Lock bounty+fee in on-chain escrow via facilitator (gasless). PaymentInfo stored in escrows table for state reconstruction.
+2. **Release** (task approval): Gasless release via facilitator (escrow → platform), then disburse to worker + fee to treasury via EIP-3009.
+3. **Refund** (task cancellation): Gasless refund via facilitator — funds return directly to agent wallet.
+4. **Query state**: `em_check_escrow_state` MCP tool reads on-chain escrow state (capturableAmount, refundableAmount).
 
 **Audit Trail**: All payment events are logged to `payment_events` table (migration 027). Tracks verify, store_auth, settle, disburse_worker, disburse_fee, refund, cancel, error events with tx hashes and amounts.
 

@@ -643,12 +643,13 @@ async def _settle_submission_payment(
         return {"payment_tx": release_tx, "payment_error": None}
 
     payment_header = _resolve_task_payment_header(task_id, task.get("escrow_tx"))
-    # For x402r/fase1 mode, payment header is not needed at settlement time.
+    # For x402r/fase1/fase2 mode, payment header is not needed at settlement time.
     # Only block if we're in preauth mode and have no header.
     dispatcher = get_payment_dispatcher()
     is_x402r = dispatcher and dispatcher.get_mode() == "x402r"
     is_fase1 = dispatcher and dispatcher.get_mode() == "fase1"
-    if not payment_header and not is_x402r and not is_fase1:
+    is_fase2 = dispatcher and dispatcher.get_mode() == "fase2"
+    if not payment_header and not is_x402r and not is_fase1 and not is_fase2:
         return {
             "payment_tx": None,
             "payment_error": f"No x402 payment header found for task {task_id}",
@@ -1651,12 +1652,13 @@ async def create_task(
             "X-Payment"
         ) or http_request.headers.get("x-payment")
 
-        # Fase 1: X-Payment header is optional (balance check only).
+        # Fase 1/2: X-Payment header is optional (balance check or escrow lock).
         # If provided, verify as usual for backward compatibility.
         dispatcher = get_payment_dispatcher()
         is_fase1_mode = dispatcher and dispatcher.get_mode() == "fase1"
+        is_fase2_mode = dispatcher and dispatcher.get_mode() == "fase2"
 
-        if not x_payment_header and is_fase1_mode:
+        if not x_payment_header and (is_fase1_mode or is_fase2_mode):
             # Fase 1: skip payment verification, do balance check after task creation
             from integrations.x402.sdk_client import TaskPaymentResult
 
@@ -1800,7 +1802,7 @@ async def create_task(
         if (
             payment_result
             and payment_result.success
-            and (x_payment_header or is_fase1_mode)
+            and (x_payment_header or is_fase1_mode or is_fase2_mode)
         ):
             try:
                 import uuid
@@ -1809,7 +1811,79 @@ async def create_task(
                 payment_reference = f"{X402_AUTH_REF_PREFIX}{uuid.uuid4().hex[:16]}"
 
                 dispatcher = get_payment_dispatcher()
-                if dispatcher and dispatcher.get_mode() == "x402r":
+                if dispatcher and dispatcher.get_mode() == "fase2":
+                    # fase2: Lock funds on-chain in escrow (gasless via facilitator)
+                    auth_result = await dispatcher.authorize_payment(
+                        task_id=task["id"],
+                        receiver=api_key.agent_id,
+                        amount_usdc=bounty,
+                        network=request.payment_network or "base",
+                        token=request.payment_token or "USDC",
+                    )
+
+                    escrow_tx = auth_result.get("tx_hash")
+                    escrow_updates = {
+                        "escrow_id": escrow_ref,
+                        "escrow_tx": escrow_tx or payment_reference,
+                        "escrow_amount_usdc": float(total_required),
+                        "escrow_created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    await db.update_task(task["id"], escrow_updates)
+                    task.update(escrow_updates)
+
+                    _insert_escrow_record(
+                        {
+                            "task_id": task["id"],
+                            "agent_id": api_key.agent_id,
+                            "escrow_id": escrow_ref,
+                            "funding_tx": escrow_tx,
+                            "status": auth_result.get("escrow_status", "deposited"),
+                            "total_amount_usdc": float(total_required),
+                            "platform_fee_usdc": float(total_required - bounty),
+                            "beneficiary_address": auth_result.get(
+                                "payer_address", payment_result.payer_address
+                            ),
+                            "network": request.payment_network or "base",
+                            "metadata": {
+                                "payment_mode": "fase2",
+                                "payment_reference": payment_reference,
+                                "payment_info": auth_result.get(
+                                    "payment_info_serialized"
+                                ),
+                            },
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
+
+                    if auth_result.get("success"):
+                        logger.info(
+                            "fase2 escrow deposited: task=%s, amount=%.2f, tx=%s",
+                            task["id"],
+                            float(total_required),
+                            escrow_tx,
+                        )
+                    else:
+                        escrow_error = auth_result.get("error", "Unknown escrow error")
+                        logger.error(
+                            "fase2 escrow lock failed for task %s: %s",
+                            task["id"],
+                            escrow_error,
+                        )
+                        try:
+                            await db.cancel_task(task["id"], api_key.agent_id)
+                        except Exception:
+                            try:
+                                await db.update_task(
+                                    task["id"], {"status": "cancelled"}
+                                )
+                            except Exception:
+                                pass
+                        raise HTTPException(
+                            status_code=402,
+                            detail=f"Escrow lock failed: {escrow_error}. Task cancelled.",
+                        )
+
+                elif dispatcher and dispatcher.get_mode() == "x402r":
                     # x402r: Settle + lock funds on-chain (gasless via Facilitator)
                     # Lock total_required (bounty + fee) in escrow. On release,
                     # worker gets bounty, treasury gets fee. On refund, agent
