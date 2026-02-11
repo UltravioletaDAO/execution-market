@@ -116,6 +116,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     # BSC is excluded from escrow (no stables deployed on x402r yet).
     "base": {
         "chain_id": 8453,
+        "rpc_url": "https://mainnet.base.org",
         "tokens": {
             "USDC": {
                 "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
@@ -135,6 +136,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "ethereum": {
         "chain_id": 1,
+        "rpc_url": "https://eth.llamarpc.com",
         "tokens": {
             "USDC": {
                 "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
@@ -166,6 +168,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "polygon": {
         "chain_id": 137,
+        "rpc_url": "https://polygon-rpc.com",
         "tokens": {
             "USDC": {
                 "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
@@ -185,6 +188,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "arbitrum": {
         "chain_id": 42161,
+        "rpc_url": "https://arb1.arbitrum.io/rpc",
         "tokens": {
             "USDC": {
                 "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
@@ -210,6 +214,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "celo": {
         "chain_id": 42220,
+        "rpc_url": "https://forno.celo.org",
         "tokens": {
             "USDC": {
                 "address": "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
@@ -229,6 +234,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "monad": {
         "chain_id": 143,
+        "rpc_url": "https://rpc.monad.xyz",
         "tokens": {
             "USDC": {
                 "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
@@ -248,6 +254,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "avalanche": {
         "chain_id": 43114,
+        "rpc_url": "https://api.avax.network/ext/bc/C/rpc",
         "tokens": {
             "USDC": {
                 "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
@@ -273,6 +280,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "optimism": {
         "chain_id": 10,
+        "rpc_url": "https://mainnet.optimism.io",
         "tokens": {
             "USDC": {
                 "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
@@ -467,6 +475,16 @@ def validate_payment_network(network: str) -> str:
     return network
 
 
+def get_rpc_url(network: str) -> str:
+    """Get RPC URL for network. Env override: {NETWORK}_RPC_URL."""
+    env_key = f"{network.upper().replace('-', '_')}_RPC_URL"
+    override = os.environ.get(env_key)
+    if override:
+        return override
+    config = NETWORK_CONFIG.get(network, {})
+    return config.get("rpc_url", "https://mainnet.base.org")
+
+
 def get_supported_tokens(network: str) -> list:
     """Return list of supported tokens on a network."""
     net_config = NETWORK_CONFIG.get(network)
@@ -656,6 +674,92 @@ class EMX402SDK:
             amount_usd=amount_usd,
             description=description or "Execution Market optional payment",
         )
+
+    # =========================================================================
+    # Balance Check (Fase 1)
+    # =========================================================================
+
+    async def check_agent_balance(
+        self,
+        agent_address: str,
+        required_amount: Decimal,
+        network: str = None,
+        token: str = "USDC",
+    ) -> Dict[str, Any]:
+        """
+        Check if agent has sufficient token balance via RPC balanceOf().
+
+        Non-blocking on failure: returns sufficient=True if RPC is unreachable
+        (optimistic — actual balance is verified at settlement time).
+
+        Args:
+            agent_address: Agent wallet address
+            required_amount: Minimum required balance in token units (e.g. 1.08)
+            network: Payment network (default: self.network)
+            token: Token symbol (default: USDC)
+
+        Returns:
+            Dict with sufficient, balance, required, network, warning (if RPC failed)
+        """
+        network = network or self.network
+        try:
+            config = get_token_config(network, token)
+            rpc_url = get_rpc_url(network)
+            token_address = config["address"]
+            decimals = config["decimals"]
+
+            # ERC-20 balanceOf(address) selector = 0x70a08231
+            # Pad address to 32 bytes
+            addr_clean = agent_address.lower().replace("0x", "").zfill(64)
+            call_data = "0x70a08231" + addr_clean
+
+            import httpx
+
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "eth_call",
+                "params": [
+                    {"to": token_address, "data": call_data},
+                    "latest",
+                ],
+                "id": 1,
+            }
+
+            async with httpx.AsyncClient() as http:
+                resp = await http.post(rpc_url, json=payload, timeout=10.0)
+                data = resp.json()
+
+            result_hex = data.get("result", "0x0")
+            balance_raw = int(result_hex, 16) if result_hex else 0
+            balance = Decimal(balance_raw) / Decimal(10**decimals)
+            required_raw = required_amount * Decimal(10**decimals)
+            sufficient = balance_raw >= int(required_raw)
+
+            return {
+                "sufficient": sufficient,
+                "balance": balance,
+                "required": required_amount,
+                "network": network,
+                "token": token,
+                "agent_address": agent_address,
+            }
+
+        except Exception as e:
+            logger.warning(
+                "Balance check failed for %s on %s (non-blocking): %s",
+                agent_address[:10] if agent_address else "?",
+                network,
+                e,
+            )
+            return {
+                "sufficient": True,
+                "balance": None,
+                "required": required_amount,
+                "network": network,
+                "token": token,
+                "agent_address": agent_address,
+                "warning": f"RPC unreachable ({e}), balance not verified",
+            }
 
     # =========================================================================
     # EIP-3009 Signing for Worker Disbursement
@@ -969,6 +1073,213 @@ class EMX402SDK:
         except Exception as e:
             logger.warning("Fee collection error (non-blocking): %s", e)
             return {"success": False, "error": str(e), "type": "platform_fee"}
+
+    # =========================================================================
+    # Fase 1: Direct Settlement (no intermediary)
+    # =========================================================================
+
+    async def settle_direct_payments(
+        self,
+        task_id: str,
+        worker_address: str,
+        bounty_amount: Decimal,
+        worker_auth_header: Optional[str] = None,
+        fee_auth_header: Optional[str] = None,
+        network: str = None,
+        token: str = "USDC",
+    ) -> Dict[str, Any]:
+        """
+        Settle 2 direct payments: agent->worker (bounty) + agent->treasury (fee).
+
+        Two sub-paths:
+        A) Server-managed wallet (no auth headers): reuses disburse_to_worker()
+           and collect_platform_fee() which sign from WALLET_PRIVATE_KEY.
+        B) External agent (auth headers provided): settles the pre-signed
+           EIP-3009 auths via the facilitator.
+
+        Args:
+            task_id: Task identifier
+            worker_address: Worker wallet address
+            bounty_amount: Bounty amount (worker receives this)
+            worker_auth_header: Pre-signed X-Payment for worker (external agents)
+            fee_auth_header: Pre-signed X-Payment for fee (external agents)
+            network: Payment network
+            token: Payment token
+
+        Returns:
+            Dict with success, tx_hash, fee_tx_hash, net_to_worker, platform_fee
+        """
+        network = network or self.network
+        validate_payment_network(network)
+
+        # Calculate fee
+        platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(
+            Decimal("0.000001")
+        )
+        if Decimal("0") < platform_fee < Decimal("0.01"):
+            platform_fee = Decimal("0.01")
+
+        try:
+            if worker_auth_header and fee_auth_header:
+                # Path B: External agent — settle pre-signed auths
+                return await self._settle_external_auths(
+                    task_id=task_id,
+                    worker_address=worker_address,
+                    bounty_amount=bounty_amount,
+                    platform_fee=platform_fee,
+                    worker_auth_header=worker_auth_header,
+                    fee_auth_header=fee_auth_header,
+                    network=network,
+                    token=token,
+                )
+            else:
+                # Path A: Server-managed — sign and settle from WALLET_PRIVATE_KEY
+                return await self._settle_server_managed(
+                    task_id=task_id,
+                    worker_address=worker_address,
+                    bounty_amount=bounty_amount,
+                    platform_fee=platform_fee,
+                    network=network,
+                    token=token,
+                )
+
+        except Exception as e:
+            logger.error("settle_direct_payments failed: task=%s, error=%s", task_id, e)
+            return {
+                "success": False,
+                "task_id": task_id,
+                "error": str(e),
+                "network": network,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+    async def _settle_server_managed(
+        self,
+        task_id: str,
+        worker_address: str,
+        bounty_amount: Decimal,
+        platform_fee: Decimal,
+        network: str,
+        token: str,
+    ) -> Dict[str, Any]:
+        """Server signs 2 direct auths from WALLET_PRIVATE_KEY (no intermediary)."""
+        # Step 1: agent -> worker (full bounty)
+        worker_result = await self.disburse_to_worker(
+            worker_address=worker_address,
+            amount_usdc=bounty_amount,
+            task_id=task_id,
+            network=network,
+            token=token,
+        )
+
+        worker_tx = worker_result.get("tx_hash")
+        if not worker_result.get("success") or not worker_tx:
+            return {
+                "success": False,
+                "task_id": task_id,
+                "error": worker_result.get("error", "Worker disbursement failed"),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        # Step 2: agent -> treasury (platform fee)
+        fee_result = await self.collect_platform_fee(
+            fee_amount=platform_fee,
+            task_id=task_id,
+            network=network,
+            token=token,
+        )
+
+        fee_tx = fee_result.get("tx_hash")
+        if not fee_result.get("success"):
+            logger.warning(
+                "Worker paid but fee collection failed for task %s: %s",
+                task_id,
+                fee_result.get("error"),
+            )
+
+        return {
+            "success": True,
+            "task_id": task_id,
+            "worker_address": worker_address,
+            "gross_amount": float(bounty_amount + platform_fee),
+            "platform_fee": float(platform_fee),
+            "net_to_worker": float(bounty_amount),
+            "tx_hash": worker_tx,
+            "fee_tx_hash": fee_tx,
+            "fee_collection_error": fee_result.get("error")
+            if not fee_result.get("success")
+            else None,
+            "network": network,
+            "token": token,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    async def _settle_external_auths(
+        self,
+        task_id: str,
+        worker_address: str,
+        bounty_amount: Decimal,
+        platform_fee: Decimal,
+        worker_auth_header: str,
+        fee_auth_header: str,
+        network: str,
+        token: str,
+    ) -> Dict[str, Any]:
+        """Settle pre-signed EIP-3009 auths from an external agent."""
+        # Validate worker auth's "to" field matches worker_address
+        try:
+            payload = self.client.extract_payload(worker_auth_header)
+            worker_settle_resp = self.client.settle_payment(payload, bounty_amount)
+            worker_tx = self._extract_settlement_tx_hash(worker_settle_resp)
+        except Exception as e:
+            return {
+                "success": False,
+                "task_id": task_id,
+                "error": f"Worker auth settlement failed: {e}",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        if not worker_tx:
+            return {
+                "success": False,
+                "task_id": task_id,
+                "error": "Worker settlement returned no tx hash",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+        logger.info(
+            "External agent worker payment settled: task=%s, tx=%s",
+            task_id,
+            worker_tx,
+        )
+
+        # Settle fee auth
+        fee_tx = None
+        fee_error = None
+        try:
+            fee_payload = self.client.extract_payload(fee_auth_header)
+            fee_settle_resp = self.client.settle_payment(fee_payload, platform_fee)
+            fee_tx = self._extract_settlement_tx_hash(fee_settle_resp)
+        except Exception as e:
+            fee_error = f"Fee auth settlement failed: {e}"
+            logger.warning(
+                "External agent fee payment failed for task %s: %s", task_id, e
+            )
+
+        return {
+            "success": True,
+            "task_id": task_id,
+            "worker_address": worker_address,
+            "gross_amount": float(bounty_amount + platform_fee),
+            "platform_fee": float(platform_fee),
+            "net_to_worker": float(bounty_amount),
+            "tx_hash": worker_tx,
+            "fee_tx_hash": fee_tx,
+            "fee_collection_error": fee_error,
+            "network": network,
+            "token": token,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
     # =========================================================================
     # Task Payment Processing

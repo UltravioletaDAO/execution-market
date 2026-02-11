@@ -248,6 +248,16 @@ class ApproveSubmissionInput(BaseModel):
         ge=5,
         le=50,
     )
+    payment_auth_worker: Optional[str] = Field(
+        default=None,
+        description="X-Payment header for worker payment (EIP-3009 auth: agent->worker). "
+        "Required for external agents in fase1 mode. Server-managed agents omit this.",
+    )
+    payment_auth_fee: Optional[str] = Field(
+        default=None,
+        description="X-Payment header for platform fee (EIP-3009 auth: agent->treasury). "
+        "Required for external agents in fase1 mode. Server-managed agents omit this.",
+    )
 
 
 class CancelTaskInput(BaseModel):

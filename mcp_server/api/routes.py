@@ -601,6 +601,8 @@ async def _settle_submission_payment(
     submission_id: str,
     submission: Dict[str, Any],
     note: str = "Payment settled via x402 SDK facilitator",
+    worker_auth_header: Optional[str] = None,
+    fee_auth_header: Optional[str] = None,
 ) -> Dict[str, Optional[str]]:
     """
     Settle payout for one submission with idempotency safeguards.
@@ -641,11 +643,12 @@ async def _settle_submission_payment(
         return {"payment_tx": release_tx, "payment_error": None}
 
     payment_header = _resolve_task_payment_header(task_id, task.get("escrow_tx"))
-    # For x402r mode, payment header is not needed (funds are in on-chain escrow).
+    # For x402r/fase1 mode, payment header is not needed at settlement time.
     # Only block if we're in preauth mode and have no header.
     dispatcher = get_payment_dispatcher()
     is_x402r = dispatcher and dispatcher.get_mode() == "x402r"
-    if not payment_header and not is_x402r:
+    is_fase1 = dispatcher and dispatcher.get_mode() == "fase1"
+    if not payment_header and not is_x402r and not is_fase1:
         return {
             "payment_tx": None,
             "payment_error": f"No x402 payment header found for task {task_id}",
@@ -704,7 +707,7 @@ async def _settle_submission_payment(
         }
 
     try:
-        # Use PaymentDispatcher to route to x402r escrow or preauth settlement
+        # Use PaymentDispatcher to route to x402r escrow, preauth, or fase1
         dispatcher = get_payment_dispatcher()
         task_network = task.get("payment_network") or "base"
         if dispatcher:
@@ -714,6 +717,8 @@ async def _settle_submission_payment(
                 bounty_amount=bounty,
                 payment_header=payment_header,
                 network=task_network,
+                worker_auth_header=worker_auth_header,
+                fee_auth_header=fee_auth_header,
             )
         else:
             # Fallback: direct SDK settlement (preauth behavior)
@@ -1632,7 +1637,7 @@ async def create_task(
         total_required = bounty * (1 + platform_fee_pct)
         total_required = total_required.quantize(Decimal("0.01"))
 
-        # Verify x402 payment
+        # Verify x402 payment (or balance check for fase1 mode)
         payment_result = None
         x_payment_header = None  # Store original header for later settlement
         if not X402_AVAILABLE:
@@ -1646,7 +1651,25 @@ async def create_task(
             "X-Payment"
         ) or http_request.headers.get("x-payment")
 
-        payment_result = await verify_x402_payment(http_request, total_required)
+        # Fase 1: X-Payment header is optional (balance check only).
+        # If provided, verify as usual for backward compatibility.
+        dispatcher = get_payment_dispatcher()
+        is_fase1_mode = dispatcher and dispatcher.get_mode() == "fase1"
+
+        if not x_payment_header and is_fase1_mode:
+            # Fase 1: skip payment verification, do balance check after task creation
+            from integrations.x402.sdk_client import TaskPaymentResult
+
+            payment_result = TaskPaymentResult(
+                success=True,
+                payer_address=api_key.agent_id,
+                amount_usd=total_required,
+                network=request.payment_network or "base",
+                timestamp=datetime.now(timezone.utc),
+                task_id="pending",
+            )
+        else:
+            payment_result = await verify_x402_payment(http_request, total_required)
 
         if not payment_result.success:
             # Return 402 Payment Required
@@ -1772,8 +1795,13 @@ async def create_task(
 
         # Handle escrow based on payment mode (EM_PAYMENT_MODE)
         # x402r: Settle agent auth + lock funds in on-chain escrow contract
-        # preauth: Store X-Payment header for later settlement (current behavior)
-        if payment_result and payment_result.success and x_payment_header:
+        # preauth: Store X-Payment header for later settlement
+        # fase1: Balance check only (no funds move), X-Payment header optional
+        if (
+            payment_result
+            and payment_result.success
+            and (x_payment_header or is_fase1_mode)
+        ):
             try:
                 import uuid
 
@@ -1865,6 +1893,62 @@ async def create_task(
                             status_code=402,
                             detail=f"Payment escrow failed: {escrow_error}. Task has been cancelled.",
                         )
+                elif dispatcher and dispatcher.get_mode() == "fase1":
+                    # fase1: Balance check only (no funds move, no header stored)
+                    auth_result = await dispatcher.authorize_payment(
+                        task_id=task["id"],
+                        receiver=api_key.agent_id,
+                        amount_usdc=total_required,
+                        network=request.payment_network or "base",
+                        token=request.payment_token or "USDC",
+                    )
+
+                    escrow_updates = {
+                        "escrow_id": escrow_ref,
+                        "escrow_tx": payment_reference,
+                        "escrow_amount_usdc": float(total_required),
+                        "escrow_created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    await db.update_task(task["id"], escrow_updates)
+                    task.update(escrow_updates)
+
+                    _insert_escrow_record(
+                        {
+                            "task_id": task["id"],
+                            "agent_id": api_key.agent_id,
+                            "escrow_id": escrow_ref,
+                            "funding_tx": None,
+                            "status": auth_result.get(
+                                "escrow_status", "balance_verified"
+                            ),
+                            "total_amount_usdc": float(total_required),
+                            "platform_fee_usdc": float(total_required - bounty),
+                            "beneficiary_address": payment_result.payer_address,
+                            "network": payment_result.network,
+                            "metadata": {
+                                "payment_mode": "fase1",
+                                "x_payment_header": x_payment_header,
+                                "payment_reference": payment_reference,
+                                "balance_info": auth_result.get("balance_info"),
+                            },
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
+
+                    balance_warning = auth_result.get("warning")
+                    if balance_warning:
+                        logger.warning(
+                            "fase1 balance warning for task %s: %s",
+                            task["id"],
+                            balance_warning,
+                        )
+                    logger.info(
+                        "fase1 task authorized: task=%s, escrow=%s, amount=%.2f, status=%s",
+                        task["id"],
+                        escrow_ref,
+                        float(total_required),
+                        auth_result.get("escrow_status"),
+                    )
                 else:
                     # preauth: Store header for later settlement (no funds move yet)
                     escrow_updates = {
@@ -2569,6 +2653,7 @@ async def get_submissions(
     },
 )
 async def approve_submission(
+    http_request: Request = None,
     submission_id: str = Path(
         ..., description="UUID of the submission", pattern=UUID_PATTERN
     ),
@@ -2579,7 +2664,20 @@ async def approve_submission(
     Approve a submission.
 
     Triggers payment release to the worker and updates task status to completed.
+
+    For Fase 1 external agents: include `X-Payment-Worker` and `X-Payment-Fee`
+    headers with pre-signed EIP-3009 authorizations.
     """
+    # Read optional Fase 1 payment auth headers
+    _worker_auth = None
+    _fee_auth = None
+    if http_request is not None:
+        _worker_auth = http_request.headers.get(
+            "X-Payment-Worker"
+        ) or http_request.headers.get("x-payment-worker")
+        _fee_auth = http_request.headers.get(
+            "X-Payment-Fee"
+        ) or http_request.headers.get("x-payment-fee")
     # Verify ownership
     if not await verify_agent_owns_submission(api_key.agent_id, submission_id):
         submission = await db.get_submission(submission_id)
@@ -2600,6 +2698,8 @@ async def approve_submission(
             submission_id=submission_id,
             submission=submission,
             note="Idempotent settlement retry after prior approval",
+            worker_auth_header=_worker_auth,
+            fee_auth_header=_fee_auth,
         )
         response_data = {
             "submission_id": submission_id,
@@ -2640,6 +2740,8 @@ async def approve_submission(
         submission_id=submission_id,
         submission=submission,
         note="Manual approval payout via x402 facilitator",
+        worker_auth_header=_worker_auth,
+        fee_auth_header=_fee_auth,
     )
     release_tx = settlement.get("payment_tx")
     release_error = settlement.get("payment_error")
