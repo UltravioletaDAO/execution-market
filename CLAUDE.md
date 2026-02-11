@@ -178,7 +178,7 @@ npm run register:x402r       # Register as x402r merchant (pending)
 ```
 AI Agent → MCP Server → Supabase → Dashboard → Human Worker
                 ↓
-           x402r Escrow (9 networks)
+           x402r Escrow (8 networks: 1 live + 7 pending)
                 ↓
            Payment Release
 ```
@@ -247,7 +247,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Base | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` |
 | x402r Escrow (AuthCaptureEscrow) | Ethereum | `0xc1256Bb30bd0cdDa07D8C8Cf67a59105f2EA1b98` |
 | x402r Escrow (AuthCaptureEscrow) | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
-| x402r Escrow (AuthCaptureEscrow) | Arbitrum, Celo, Monad, Avalanche, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
+| x402r Escrow (AuthCaptureEscrow) | Arbitrum, Avalanche, Celo, Monad, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
 | EM PaymentOperator | Base | `0xb9635f544665758019159c04c08a3d583dadd723` |
 | StaticAddressCondition(Facilitator) | Base | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` |
@@ -500,7 +500,7 @@ Wrong Flow (DO NOT USE):
 
 **Deployment script:** `scripts/deploy-payment-operator.ts` — deploys StaticAddressCondition + PaymentOperator via factory contracts.
 
-**Status:** PaymentOperator deployed on Base but NOT yet registered in facilitator's `addresses.rs`. Other 7 networks pending deployment. See [ESCROW_GASLESS_ROADMAP.md](docs/planning/ESCROW_GASLESS_ROADMAP.md) for full plan.
+**Status:** PaymentOperator deployed on Base but NOT yet registered in facilitator's `addresses.rs`. Other 7 networks pending deployment (Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad, Optimism). See [ESCROW_GASLESS_ROADMAP.md](docs/planning/ESCROW_GASLESS_ROADMAP.md) for full plan.
 
 **Key upstream repos:**
 | Repo | URL | Stack |
