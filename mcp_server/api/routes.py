@@ -1370,6 +1370,9 @@ class ConfigUpdateRequest(BaseModel):
     responses={
         200: {"description": "Public platform configuration"},
     },
+    summary="Get Platform Configuration",
+    description="Retrieve public platform configuration including bounty limits, supported networks and tokens",
+    tags=["Configuration"],
 )
 async def get_public_config() -> PublicConfigResponse:
     """
@@ -1378,6 +1381,23 @@ async def get_public_config() -> PublicConfigResponse:
     Returns publicly available configuration like bounty limits,
     supported payment networks, and tokens. Does not expose
     internal settings like fees or feature flags.
+
+    **Example Response:**
+    ```json
+    {
+        "min_bounty_usd": 0.25,
+        "max_bounty_usd": 10000.0,
+        "supported_networks": ["base", "ethereum", "polygon", "arbitrum"],
+        "supported_tokens": ["USDC", "EURC", "USDT", "PYUSD"],
+        "preferred_network": "base"
+    }
+    ```
+
+    **Use Cases:**
+    - Validate task creation parameters before submission
+    - Display supported networks in UI
+    - Check minimum/maximum bounty limits
+    - Configure payment token selection
     """
     # Always use get_enabled_networks() as source of truth for networks
     # (driven by EM_ENABLED_NETWORKS env var, not stale DB rows)
@@ -1413,12 +1433,48 @@ async def get_public_config() -> PublicConfigResponse:
     responses={
         200: {"description": "Public platform metrics"},
     },
+    summary="Get Platform Metrics",
+    description="Retrieve public platform statistics and activity metrics",
+    tags=["Public", "Analytics"],
 )
 async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
     """
     Get public platform metrics for landing and dashboard views.
 
     This endpoint is intentionally read-only and unauthenticated.
+    Provides high-level statistics about platform activity including:
+    - User counts (workers, agents, active users)
+    - Task distribution by status
+    - Payment volume and activity metrics
+
+    **Example Response:**
+    ```json
+    {
+        "users": {
+            "registered_workers": 1250,
+            "registered_agents": 340,
+            "workers_active_now": 85,
+            "agents_active_now": 42
+        },
+        "tasks": {
+            "total": 5680,
+            "published": 120,
+            "completed": 4890,
+            "live": 180
+        },
+        "payments": {
+            "total_volume_usd": 125430.50,
+            "total_fees_usd": 10034.44
+        },
+        "generated_at": "2024-02-11T06:04:00Z"
+    }
+    ```
+
+    **Use Cases:**
+    - Landing page statistics
+    - Dashboard overview widgets  
+    - Public API for external integrations
+    - Platform growth tracking
     """
     generated_at = datetime.now(timezone.utc)
     client = db.get_client()
@@ -1579,13 +1635,17 @@ async def get_public_platform_metrics() -> PublicPlatformMetricsResponse:
     status_code=201,
     responses={
         201: {"description": "Task created successfully"},
-        400: {"model": ErrorResponse, "description": "Invalid request"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        400: {"model": ErrorResponse, "description": "Invalid request - check bounty limits, network support, or required fields"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
         402: {
-            "description": "Payment required. Include X-Payment header with x402 payment."
+            "description": "Payment required. Include X-Payment header with x402 payment authorization."
         },
-        429: {"model": ErrorResponse, "description": "Rate limit exceeded"},
+        429: {"model": ErrorResponse, "description": "Rate limit exceeded - wait before creating more tasks"},
+        503: {"model": ErrorResponse, "description": "x402 payment service unavailable"},
     },
+    summary="Create Task",
+    description="Create a new task with payment escrow (supports preauth, x402r, fase1, and fase2 modes)",
+    tags=["Tasks", "Agent"],
 )
 async def create_task(
     http_request: Request,
@@ -1593,15 +1653,80 @@ async def create_task(
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> TaskResponse:
     """
-    Create a new task.
+    Create a new task with automatic payment handling.
 
-    Requires authenticated API key AND x402 payment (bounty + 6-8% platform fee).
-    The task will be created in 'published' status and visible to workers.
+    Creates a new task that will be visible to workers. Requires authenticated API key 
+    and payment authorization via x402 protocol. Supports multiple payment modes:
 
-    **Payment**: Include `X-Payment` header with x402 protocol payment.
-    Total required = bounty_usd × 1.08 (8% platform fee).
+    ## Payment Modes
+    - **preauth**: X-Payment header required, funds authorized but not moved until completion
+    - **x402r**: X-Payment header required, funds immediately locked in on-chain escrow  
+    - **fase1**: X-Payment optional, balance check only (no funds moved)
+    - **fase2**: X-Payment optional, funds locked in escrow via facilitator (gasless)
 
-    Example for $10 bounty: Pay $10.80 via x402.
+    ## Payment Calculation
+    Total required = `bounty_usd × (1 + platform_fee_percent)`
+    - Platform fee: typically 6-8% (configurable)
+    - Example: $10 bounty → $10.80 total required
+
+    ## Required Headers
+    - `Authorization: Bearer <api_key>` - Agent API key
+    - `X-Payment: <x402_auth>` - x402 payment authorization (required for preauth/x402r modes)
+
+    ## Request Body Example
+    ```json
+    {
+        "title": "Verify restaurant is open",
+        "instructions": "Visit the restaurant and confirm it's currently open for business. Take a photo of the front entrance showing opening hours.",
+        "category": "physical_presence", 
+        "bounty_usd": 5.00,
+        "deadline_hours": 24,
+        "evidence_required": ["photo", "text_report"],
+        "evidence_optional": ["gps_coordinates"],
+        "location_hint": "Downtown Portland, near Pioneer Square",
+        "location_lat": 45.5152,
+        "location_lng": -122.6784,
+        "min_reputation": 50,
+        "payment_token": "USDC",
+        "payment_network": "base"
+    }
+    ```
+
+    ## Response Example
+    ```json
+    {
+        "id": "123e4567-e89b-12d3-a456-426614174000",
+        "title": "Verify restaurant is open", 
+        "status": "published",
+        "category": "physical_presence",
+        "bounty_usd": 5.00,
+        "deadline": "2024-02-12T06:04:00Z",
+        "created_at": "2024-02-11T06:04:00Z",
+        "agent_id": "0x742d35Cc6634C0532925a3b8D0fC6A3B3e1d7A5B",
+        "payment_network": "base",
+        "payment_token": "USDC",
+        "escrow_tx": "0xabc123...",
+        "escrow_amount_usdc": 5.40
+    }
+    ```
+
+    ## Error Responses
+    - `400`: Invalid parameters (bounty limits, unsupported network, missing fields)
+    - `401`: Invalid or missing API key  
+    - `402`: Payment required or x402 payment failed
+    - `503`: Payment service unavailable
+
+    ## ERC-8004 Identity Integration
+    If the agent has a registered ERC-8004 on-chain identity, it will be automatically 
+    attached to the task for verification and reputation purposes.
+
+    ## Escrow Handling
+    Based on the configured payment mode:
+    - **x402r/fase2**: Funds are immediately locked in escrow contract
+    - **preauth**: Payment authorization stored, funds moved on task completion  
+    - **fase1**: Balance verified, no funds moved until payout
+
+    Tasks are created in `published` status and immediately visible to workers.
     """
     try:
         # Get configurable platform fee
@@ -2120,8 +2245,12 @@ async def create_task(
     "/tasks/available",
     response_model=AvailableTasksResponse,
     responses={
-        200: {"description": "Available tasks retrieved"},
+        200: {"description": "Available tasks retrieved with applied filters"},
+        500: {"model": ErrorResponse, "description": "Failed to retrieve available tasks"},
     },
+    summary="Get Available Tasks",
+    description="Public endpoint for workers to discover available tasks with filtering and pagination",
+    tags=["Tasks", "Worker", "Public"],
 )
 async def get_available_tasks(
     lat: Optional[float] = Query(
@@ -2144,11 +2273,104 @@ async def get_available_tasks(
     offset: int = Query(0, ge=0, description="Pagination offset"),
 ) -> AvailableTasksResponse:
     """
-    Get available tasks for workers.
+    Get available tasks for workers to apply to and complete.
 
-    Public endpoint that returns tasks in 'published' status.
-    Can optionally include expired tasks for read-only discovery surfaces.
-    Supports location-based filtering and bounty range filtering.
+    Public endpoint that returns tasks in 'published' status that are available
+    for worker applications. Supports comprehensive filtering by location, category,
+    bounty range, and includes pagination for large result sets.
+
+    ## Query Parameters
+
+    ### Location Filtering
+    - **lat/lng**: GPS coordinates for location-based filtering
+    - **radius_km**: Search radius in kilometers (1-500, default: 50)
+    - Only tasks within the specified radius will be returned
+
+    ### Content Filtering  
+    - **category**: Filter by task category (physical_presence, knowledge_access, etc.)
+    - **min_bounty**: Minimum bounty amount in USD (filters out lower-paying tasks)
+    - **max_bounty**: Maximum bounty amount in USD (filters out higher-paying tasks)
+
+    ### Special Options
+    - **include_expired**: Include expired tasks for discovery (useful for landing pages)
+    - **limit**: Results per page (1-100, default: 20)
+    - **offset**: Pagination offset (default: 0)
+
+    ## Response Example
+    ```json
+    {
+        "tasks": [
+            {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "title": "Verify restaurant is open",
+                "status": "published",
+                "category": "physical_presence", 
+                "bounty_usd": 5.00,
+                "deadline": "2024-02-12T06:04:00Z",
+                "created_at": "2024-02-11T06:04:00Z",
+                "location_hint": "Downtown Portland",
+                "min_reputation": 50,
+                "evidence_required": ["photo", "text_report"],
+                "payment_network": "base",
+                "agent_id": "0x742d35Cc..."
+            }
+        ],
+        "count": 1,
+        "offset": 0,
+        "filters_applied": {
+            "category": "physical_presence",
+            "min_bounty": 2.0,
+            "location": {
+                "lat": 45.5152,
+                "lng": -122.6784,
+                "radius_km": 50
+            }
+        }
+    }
+    ```
+
+    ## Task Categories
+    - **physical_presence**: Requires being at a specific location
+    - **knowledge_access**: Requires specific knowledge or expertise  
+    - **human_authority**: Requires human decision-making or authority
+    - **simple_action**: Basic actions anyone can perform
+    - **digital_physical**: Digital tasks with physical world components
+
+    ## Task Status
+    - Only tasks with `published` status are returned (unless `include_expired=true`)
+    - Tasks are ordered by bounty (highest first) for active tasks
+    - Tasks are ordered by creation date (newest first) when including expired
+
+    ## Location-Based Search
+    When lat/lng are provided:
+    1. Tasks with GPS coordinates are filtered by distance
+    2. Tasks without coordinates but with location hints are included
+    3. Distance calculation uses standard geographic formulas
+    4. Radius is measured in kilometers from the specified point
+
+    ## Pagination
+    Use offset and limit for pagination:
+    ```
+    Page 1: ?offset=0&limit=20
+    Page 2: ?offset=20&limit=20  
+    Page 3: ?offset=40&limit=20
+    ```
+
+    ## Authentication
+    This is a public endpoint - no authentication required. Workers can browse
+    available tasks before connecting their wallet or creating an account.
+
+    ## Use Cases
+    - Worker mobile app task discovery
+    - Location-based task filtering
+    - Bounty-range task browsing
+    - Landing page task showcase
+    - API integrations for task aggregation
+
+    ## Performance Notes
+    - Results are cached for 30 seconds to improve performance
+    - Location filtering may take longer for large datasets
+    - Use reasonable limit values (≤50) for best performance
     """
     try:
         client = db.get_client()
@@ -2214,23 +2436,93 @@ async def get_available_tasks(
     "/tasks/{task_id}",
     response_model=TaskResponse,
     responses={
-        200: {"description": "Task found"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        200: {"description": "Task details retrieved successfully"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
         403: {
             "model": ErrorResponse,
-            "description": "Not authorized to view this task",
+            "description": "Not authorized to view this task - agent doesn't own it",
         },
         404: {"model": ErrorResponse, "description": "Task not found"},
     },
+    summary="Get Task Details",
+    description="Retrieve detailed information about a specific task",
+    tags=["Tasks", "Agent"],
 )
 async def get_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> TaskResponse:
     """
-    Get task by ID.
+    Get detailed information about a specific task.
 
-    Only returns tasks owned by the authenticated agent.
+    Returns complete task details including current status, payment information,
+    assigned worker, and all metadata. Only accessible to the agent who created the task.
+
+    ## Path Parameters
+    - **task_id**: UUID of the task (format: 8-4-4-4-12 hex characters)
+
+    ## Response Example
+    ```json
+    {
+        "id": "123e4567-e89b-12d3-a456-426614174000",
+        "title": "Verify restaurant is open",
+        "status": "accepted",
+        "category": "physical_presence", 
+        "bounty_usd": 5.00,
+        "deadline": "2024-02-12T06:04:00Z",
+        "created_at": "2024-02-11T06:04:00Z",
+        "agent_id": "0x742d35Cc6634C0532925a3b8D0fC6A3B3e1d7A5B",
+        "executor_id": "987fcdeb-51a2-43d7-8901-123456789abc",
+        "instructions": "Visit the restaurant and confirm it's currently open...",
+        "evidence_schema": {
+            "required": ["photo", "text_report"],
+            "optional": ["gps_coordinates"]
+        },
+        "location_hint": "Downtown Portland, near Pioneer Square",
+        "min_reputation": 50,
+        "erc8004_agent_id": "42",
+        "payment_network": "base",
+        "payment_token": "USDC", 
+        "escrow_tx": "0xabc123...",
+        "refund_tx": null
+    }
+    ```
+
+    ## Task Status Lifecycle
+    1. **published**: Available for worker applications
+    2. **accepted**: Assigned to a specific worker  
+    3. **in_progress**: Worker is actively working
+    4. **submitted**: Work submitted, awaiting agent review
+    5. **completed**: Approved and payment released
+    6. **cancelled**: Cancelled by agent
+    7. **expired**: Deadline passed without completion
+
+    ## Evidence Schema
+    The `evidence_schema` field contains:
+    - **required**: Evidence types that must be provided
+    - **optional**: Evidence types that are helpful but not required
+
+    Evidence types: `photo`, `text_report`, `document`, `gps_coordinates`, `video`, `audio`
+
+    ## Payment Information  
+    - **escrow_tx**: Transaction hash or payment reference for escrow
+    - **refund_tx**: Transaction hash if task was cancelled and refunded
+    - **payment_network**: Blockchain network (base, ethereum, polygon, arbitrum)
+    - **payment_token**: Token used for payment (USDC, EURC, USDT, PYUSD)
+
+    ## ERC-8004 Integration
+    - **erc8004_agent_id**: On-chain identity token ID if agent is registered
+    - Used for reputation and verification purposes
+
+    ## Authorization
+    Only the agent who created the task can access its details. Other agents
+    will receive a 403 Forbidden error.
+
+    ## Use Cases
+    - Task detail pages in agent dashboard
+    - Monitoring individual task progress
+    - Preparing task updates or cancellations
+    - Reviewing task configuration and requirements
     """
     task = await db.get_task(task_id)
 
@@ -2266,24 +2558,118 @@ async def get_task(
     "/tasks/{task_id}/payment",
     response_model=TaskPaymentResponse,
     responses={
-        200: {"description": "Canonical task payment timeline"},
+        200: {"description": "Payment timeline and status retrieved successfully"},
         403: {
             "model": ErrorResponse,
-            "description": "Not authorized to view payment details",
+            "description": "Not authorized to view payment details for draft tasks",
         },
         404: {"model": ErrorResponse, "description": "Task not found"},
+        500: {"model": ErrorResponse, "description": "Failed to resolve task payment information"},
     },
+    summary="Get Task Payment Timeline",
+    description="Retrieve complete payment history and current status for a task",
+    tags=["Tasks", "Payments", "Escrow"],
 )
 async def get_task_payment(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     api_key: Optional[APIKeyData] = Depends(verify_api_key_optional),
 ) -> TaskPaymentResponse:
     """
-    Get canonical payment ledger for one task.
+    Get comprehensive payment timeline and status for a specific task.
 
-    This endpoint normalizes mixed schemas (`type` vs `payment_type`,
-    `tx_hash` vs `transaction_hash`) and degrades safely when `payments`
-    or `escrows` tables are missing in a live environment.
+    Returns the complete payment history including escrow deposits, releases, refunds,
+    and current payment status. Normalizes data from multiple payment tables and 
+    handles schema variations gracefully.
+
+    ## Path Parameters
+    - **task_id**: UUID of the task
+
+    ## Payment Status Values
+    - **pending**: No payment processed yet
+    - **escrowed**: Funds locked in escrow awaiting completion
+    - **partial_released**: Partial payment released to worker
+    - **completed**: Full payment released to worker  
+    - **refunded**: Funds refunded to agent
+
+    ## Response Example
+    ```json
+    {
+        "task_id": "123e4567-e89b-12d3-a456-426614174000",
+        "status": "completed",
+        "total_amount": 5.40,
+        "released_amount": 5.00,
+        "currency": "USDC",
+        "escrow_tx": "0xabc123...",
+        "escrow_contract": null,
+        "network": "base",
+        "events": [
+            {
+                "id": "evt_1",
+                "type": "escrow_created",
+                "actor": "agent", 
+                "timestamp": "2024-02-11T06:04:00Z",
+                "network": "base",
+                "amount": 5.40,
+                "tx_hash": "0xabc123...",
+                "note": "x402 reference: abc123ef..."
+            },
+            {
+                "id": "evt_2", 
+                "type": "final_release",
+                "actor": "system",
+                "timestamp": "2024-02-11T08:30:00Z", 
+                "network": "base",
+                "amount": 5.00,
+                "tx_hash": "0xdef456...",
+                "note": "Payment settled via x402 facilitator"
+            }
+        ],
+        "created_at": "2024-02-11T06:04:00Z",
+        "updated_at": "2024-02-11T08:30:00Z"
+    }
+    ```
+
+    ## Event Types
+    - **escrow_created**: Initial funds deposit/authorization
+    - **escrow_funded**: Additional funding events  
+    - **partial_release**: Partial payment to worker
+    - **final_release**: Final payment to worker
+    - **refund**: Refund to agent
+    - **authorization_expired**: Payment authorization expired
+    - **dispute_hold**: Payment held due to dispute
+
+    ## Event Actors
+    - **agent**: Action initiated by the task creator
+    - **system**: Automatic system action (timeouts, settlements)
+    - **arbitrator**: Manual intervention by platform admin
+
+    ## Data Normalization
+    This endpoint handles schema variations across payment tables:
+    - Normalizes `type` vs `payment_type` columns
+    - Handles `tx_hash` vs `transaction_hash` variations  
+    - Gracefully degrades when tables are missing
+    - Combines data from `payments`, `escrows`, and `submissions` tables
+
+    ## Authorization
+    - Public tasks: No authentication required
+    - Draft tasks: Only accessible to task owner
+
+    ## Payment Modes Supported
+    - **x402r**: On-chain escrow with immediate lock/release
+    - **preauth**: Authorization-based with settlement on approval
+    - **fase1**: Balance verification with EIP-3009 settlement
+    - **fase2**: Facilitator-managed escrow (gasless)
+
+    ## Use Cases
+    - Payment status monitoring
+    - Escrow audit and compliance
+    - Payment timeline visualization  
+    - Troubleshooting payment issues
+    - Financial reporting and reconciliation
+
+    ## Timeline Accuracy
+    Events are ordered chronologically with fallback timestamps to ensure
+    complete timeline even when some timestamp data is missing.
     """
     try:
         task = await db.get_task(task_id)
@@ -2589,9 +2975,12 @@ async def get_task_payment(
     "/tasks",
     response_model=TaskListResponse,
     responses={
-        200: {"description": "Tasks retrieved"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        200: {"description": "Tasks retrieved successfully with pagination info"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
     },
+    summary="List Agent Tasks",
+    description="Retrieve paginated list of tasks for the authenticated agent with filtering options",
+    tags=["Tasks", "Agent"],
 )
 async def list_tasks(
     status: Optional[TaskStatus] = Query(None, description="Filter by task status"),
@@ -2601,9 +2990,72 @@ async def list_tasks(
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> TaskListResponse:
     """
-    List tasks for the authenticated agent.
+    List tasks for the authenticated agent with filtering and pagination.
 
-    Supports filtering by status and category, with pagination.
+    Returns all tasks created by the authenticated agent, with optional filtering
+    by status and category. Supports pagination for large task lists.
+
+    ## Query Parameters
+    - **status**: Filter by task status (published, accepted, completed, etc.)
+    - **category**: Filter by task category (physical_presence, knowledge_access, etc.)
+    - **limit**: Number of results per page (1-100, default: 20)
+    - **offset**: Number of results to skip for pagination (default: 0)
+
+    ## Task Status Values
+    - `published`: Task is available for workers to apply
+    - `accepted`: Task has been assigned to a worker
+    - `in_progress`: Worker is actively working on the task
+    - `submitted`: Worker has submitted work for review
+    - `completed`: Task completed and payment released
+    - `cancelled`: Task cancelled by agent
+    - `expired`: Task deadline passed without completion
+
+    ## Task Category Values
+    - `physical_presence`: Requires being at a specific location
+    - `knowledge_access`: Requires specific knowledge or expertise
+    - `human_authority`: Requires human decision-making or authority
+    - `simple_action`: Basic actions anyone can perform
+    - `digital_physical`: Digital tasks with physical world components
+
+    ## Response Example
+    ```json
+    {
+        "tasks": [
+            {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "title": "Verify restaurant is open",
+                "status": "published", 
+                "category": "physical_presence",
+                "bounty_usd": 5.00,
+                "deadline": "2024-02-12T06:04:00Z",
+                "created_at": "2024-02-11T06:04:00Z",
+                "agent_id": "0x742d35Cc...",
+                "executor_id": null,
+                "payment_network": "base",
+                "escrow_tx": "0xabc123..."
+            }
+        ],
+        "total": 1,
+        "count": 1, 
+        "offset": 0,
+        "has_more": false
+    }
+    ```
+
+    ## Pagination
+    Use `offset` and `limit` for pagination:
+    - Page 1: `offset=0&limit=20` 
+    - Page 2: `offset=20&limit=20`
+    - Page 3: `offset=40&limit=20`
+
+    The `has_more` field indicates if additional pages are available.
+
+    ## Use Cases
+    - Agent dashboard task management
+    - Task status monitoring
+    - Historical task review
+    - Bulk task operations setup
+    - Performance analytics preparation
     """
     result = await db.get_tasks(
         agent_id=api_key.agent_id,
@@ -2652,20 +3104,131 @@ async def list_tasks(
     "/tasks/{task_id}/submissions",
     response_model=SubmissionListResponse,
     responses={
-        200: {"description": "Submissions retrieved"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Not authorized"},
+        200: {"description": "Submissions retrieved successfully with AI pre-check scores"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        403: {"model": ErrorResponse, "description": "Not authorized to view submissions for this task"},
         404: {"model": ErrorResponse, "description": "Task not found"},
     },
+    summary="Get Task Submissions",
+    description="Retrieve all submissions for a specific task with AI verification scores",
+    tags=["Submissions", "Agent"],
 )
 async def get_submissions(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SubmissionListResponse:
     """
-    Get submissions for a task.
+    Get all submissions for a specific task.
 
-    Only returns submissions for tasks owned by the authenticated agent.
+    Returns all work submissions from workers for the specified task, including
+    evidence data, AI pre-check scores, and current review status. Only accessible
+    to the agent who created the task.
+
+    ## Path Parameters
+    - **task_id**: UUID of the task to get submissions for
+
+    ## Response Example
+    ```json
+    {
+        "submissions": [
+            {
+                "id": "789abcdef-1234-5678-9abc-def123456789",
+                "task_id": "123e4567-e89b-12d3-a456-426614174000",
+                "executor_id": "abc123def-4567-89ab-cdef-123456789abc",
+                "status": "accepted",
+                "pre_check_score": 0.92,
+                "submitted_at": "2024-02-11T08:15:00Z",
+                "evidence": {
+                    "photos": [
+                        "https://cdn.example.com/evidence/photo1.jpg"
+                    ],
+                    "text_report": "Restaurant is open with customers inside. Hours posted show open until 9 PM.",
+                    "gps_coordinates": {
+                        "lat": 45.5152,
+                        "lng": -122.6784,
+                        "accuracy": 5
+                    }
+                },
+                "agent_verdict": "accepted",
+                "agent_notes": "Excellent work, all requirements met clearly.",
+                "verified_at": "2024-02-11T09:30:00Z"
+            },
+            {
+                "id": "456def789-abcd-1234-5678-9abcdef12345",
+                "task_id": "123e4567-e89b-12d3-a456-426614174000", 
+                "executor_id": "def456abc-7890-bcde-f123-456789abcdef",
+                "status": "pending",
+                "pre_check_score": 0.65,
+                "submitted_at": "2024-02-11T07:45:00Z",
+                "evidence": {
+                    "photos": [
+                        "https://cdn.example.com/evidence/photo2.jpg"
+                    ],
+                    "text_report": "Took photo of restaurant front."
+                },
+                "agent_verdict": null,
+                "agent_notes": null,
+                "verified_at": null
+            }
+        ],
+        "count": 2
+    }
+    ```
+
+    ## Submission Status Values
+    - **pending**: Awaiting agent review (default)
+    - **accepted**: Approved by agent, payment released
+    - **rejected**: Rejected by agent, task returned to pool
+    - **more_info_requested**: Agent requested additional evidence
+    - **disputed**: Under dispute resolution
+
+    ## AI Pre-Check Score
+    - Range: 0.0 to 1.0 (higher is better)
+    - Automatically calculated when evidence is submitted
+    - Based on AI analysis of evidence against task requirements
+    - **null** if no evidence or AI verification unavailable
+    - Helps prioritize review order (higher scores first)
+
+    ## Evidence Structure
+    Evidence data varies by task requirements but commonly includes:
+    - **photos**: Array of image URLs
+    - **text_report**: Written description of work performed
+    - **documents**: PDF or document file URLs  
+    - **gps_coordinates**: Location verification data
+    - **video**: Video evidence URLs
+    - **audio**: Audio evidence URLs
+
+    ## Agent Verdict Process
+    1. **null/pending**: No review yet
+    2. **accepted**: Work approved, triggers payment
+    3. **rejected**: Work rejected, task returns to published status
+    4. **more_info_requested**: Additional evidence requested
+
+    ## Submission Timeline
+    - **submitted_at**: When worker submitted evidence
+    - **verified_at**: When agent made final decision
+    - Gap indicates review time
+
+    ## Authorization
+    Only the agent who created the task can view its submissions.
+    Other agents receive 403 Forbidden error.
+
+    ## Multiple Submissions
+    - Each task can have multiple submissions from different workers
+    - Only one submission can be accepted (first-come, first-served)
+    - Rejected submissions allow other workers to apply
+
+    ## Use Cases
+    - Agent review dashboard
+    - Evidence quality assessment
+    - AI-assisted review prioritization
+    - Submission timeline tracking
+    - Quality control and audit
+
+    ## Performance Optimization
+    - Submissions are ordered by pre-check score (highest first)
+    - Evidence URLs are pre-signed for immediate access
+    - Cached for 60 seconds to improve dashboard loading
     """
     # Verify ownership
     if not await verify_agent_owns_task(api_key.agent_id, task_id):
@@ -2719,12 +3282,16 @@ async def get_submissions(
     "/submissions/{submission_id}/approve",
     response_model=SuccessResponse,
     responses={
-        200: {"description": "Submission approved"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Not authorized"},
+        200: {"description": "Submission approved and payment released to worker"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        403: {"model": ErrorResponse, "description": "Not authorized to approve this submission"},
         404: {"model": ErrorResponse, "description": "Submission not found"},
-        409: {"model": ErrorResponse, "description": "Submission already processed"},
+        409: {"model": ErrorResponse, "description": "Submission already processed or task not in valid state"},
+        502: {"model": ErrorResponse, "description": "Payment settlement failed - submission not approved"},
     },
+    summary="Approve Submission",
+    description="Approve a worker's submission and trigger payment settlement",
+    tags=["Submissions", "Agent", "Payments"],
 )
 async def approve_submission(
     http_request: Request = None,
@@ -2735,12 +3302,73 @@ async def approve_submission(
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SuccessResponse:
     """
-    Approve a submission.
+    Approve a worker's submission and trigger payment settlement.
 
-    Triggers payment release to the worker and updates task status to completed.
+    This endpoint approves a worker's submitted work and immediately attempts to 
+    settle payment to the worker's wallet. The task status will be updated to 
+    'completed' upon successful payment settlement.
 
-    For Fase 1 external agents: include `X-Payment-Worker` and `X-Payment-Fee`
-    headers with pre-signed EIP-3009 authorizations.
+    ## Payment Settlement Process
+    1. Validates submission ownership and status
+    2. Attempts payment settlement via x402 SDK/Facilitator
+    3. Updates submission to 'accepted' only after successful payment
+    4. Records payment transaction and updates task status
+    5. Optionally submits ERC-8004 reputation feedback
+
+    ## Payment Modes Support
+    - **x402r**: Releases funds from on-chain escrow contract
+    - **preauth**: Settles stored X-Payment authorization  
+    - **fase1**: Uses `X-Payment-Worker` and `X-Payment-Fee` headers for EIP-3009 settlement
+    - **fase2**: Releases funds from facilitator-managed escrow
+
+    ## Required Headers
+    - `Authorization: Bearer <api_key>` - Agent API key
+    - `X-Payment-Worker: <eip3009_auth>` - (Fase1 only) EIP-3009 authorization for worker payment
+    - `X-Payment-Fee: <eip3009_auth>` - (Fase1 only) EIP-3009 authorization for platform fee
+
+    ## Request Body
+    ```json
+    {
+        "notes": "Great work! All evidence requirements met."
+    }
+    ```
+
+    ## Success Response Example
+    ```json
+    {
+        "success": true,
+        "message": "Submission approved. Payment released to worker.",
+        "data": {
+            "submission_id": "123e4567-e89b-12d3-a456-426614174000",
+            "verdict": "accepted", 
+            "payment_tx": "0xdef456...",
+            "idempotent": false
+        }
+    }
+    ```
+
+    ## Error Handling
+    - **502 Bad Gateway**: Payment settlement failed - submission remains in pending state for retry
+    - **409 Conflict**: Submission already processed or task in invalid state (cancelled/expired)
+    - **403 Forbidden**: Agent doesn't own this submission
+    - **404 Not Found**: Submission doesn't exist
+
+    ## Idempotency
+    If submission is already approved, returns success with `idempotent: true` and 
+    attempts payment settlement again if no payment transaction is recorded.
+
+    ## Payment Verification
+    - Validates worker wallet address format
+    - Prevents self-payment (agent paying themselves)  
+    - Requires valid payment amount (bounty amount)
+    - Ensures task has sufficient escrow/authorization
+
+    ## Side Effects
+    - Updates submission verdict to 'accepted'
+    - Updates task status to 'completed'  
+    - Records payment transaction in audit log
+    - Submits ERC-8004 reputation score for worker (if enabled)
+    - Triggers payment settlement through configured dispatcher
     """
     # Read optional Fase 1 payment auth headers
     _worker_auth = None
@@ -2874,12 +3502,15 @@ async def approve_submission(
     "/submissions/{submission_id}/reject",
     response_model=SuccessResponse,
     responses={
-        200: {"description": "Submission rejected"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Not authorized"},
+        200: {"description": "Submission rejected and task returned to available pool"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        403: {"model": ErrorResponse, "description": "Not authorized to reject this submission"},
         404: {"model": ErrorResponse, "description": "Submission not found"},
-        409: {"model": ErrorResponse, "description": "Submission already processed"},
+        409: {"model": ErrorResponse, "description": "Submission already processed with different verdict"},
     },
+    summary="Reject Submission",
+    description="Reject a worker's submission and return task to available pool",
+    tags=["Submissions", "Agent"],
 )
 async def reject_submission(
     submission_id: str = Path(
@@ -2889,9 +3520,95 @@ async def reject_submission(
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SuccessResponse:
     """
-    Reject a submission.
+    Reject a worker's submission and return the task to available status.
 
-    The task will be returned to 'published' status for other workers.
+    When a submission doesn't meet requirements, the agent can reject it with
+    detailed feedback. The task returns to 'published' status so other workers
+    can apply and complete it properly.
+
+    ## Request Body
+    ```json
+    {
+        "notes": "Photo is too blurry to verify restaurant status. Please retake with clear view of entrance and operating hours sign."
+    }
+    ```
+
+    ## Response Example
+    ```json
+    {
+        "success": true,
+        "message": "Submission rejected. Task returned to available pool.",
+        "data": {
+            "submission_id": "789abcdef-1234-5678-9abc-def123456789",
+            "verdict": "rejected"
+        }
+    }
+    ```
+
+    ## Rejection Process
+    1. **Validation**: Verifies agent owns the submission
+    2. **Status Check**: Ensures submission is in 'pending' status
+    3. **Record Rejection**: Updates submission verdict and notes
+    4. **Task Reset**: Returns task to 'published' status
+    5. **Worker Notification**: Worker receives rejection feedback
+
+    ## Required Fields
+    - **notes**: Detailed explanation of why work was rejected (10-1000 characters)
+      - Should be constructive and specific
+      - Helps the worker or other workers understand requirements
+      - Used for quality improvement and learning
+
+    ## Effects of Rejection
+    - Submission status → 'rejected'
+    - Task status → 'published' (available for new applications)
+    - Worker receives rejection feedback
+    - Task appears in worker search results again
+    - No payment is released
+    - Worker can apply to other tasks
+
+    ## Common Rejection Reasons
+    - **Evidence Quality**: Poor photo quality, incomplete documentation
+    - **Missing Requirements**: Required evidence types not provided
+    - **Incorrect Location**: Wrong location or GPS coordinates
+    - **Insufficient Detail**: Text reports lack required information
+    - **Wrong Timing**: Task completed outside specified time window
+    - **Safety Concerns**: Evidence shows unsafe or inappropriate actions
+
+    ## Best Practices for Agents
+    - **Be Specific**: Explain exactly what was wrong and how to improve
+    - **Be Constructive**: Focus on improvement rather than criticism
+    - **Reference Requirements**: Point to specific task requirements not met
+    - **Suggest Solutions**: When possible, suggest how to fix the issues
+
+    ## Worker Impact
+    After rejection:
+    - Worker can see rejection reason and learn from feedback
+    - Worker remains eligible for other tasks
+    - No payment deduction or penalty (beyond lost time)
+    - Contributes to worker learning and improvement
+
+    ## Task Lifecycle After Rejection
+    1. Task returns to 'published' status immediately
+    2. Other workers can see and apply to the task
+    3. Original worker can reapply if they choose
+    4. Task deadline and requirements remain unchanged
+    5. Payment escrow remains intact for eventual completion
+
+    ## Error Conditions
+    - **409 Conflict**: Submission already processed (accepted/rejected/disputed)
+    - **403 Forbidden**: Agent doesn't own this submission
+    - **404 Not Found**: Submission ID doesn't exist
+    - **400 Bad Request**: Missing or invalid rejection notes
+
+    ## Quality Assurance
+    Rejection feedback helps maintain platform quality by:
+    - Setting clear expectations for evidence standards
+    - Training workers on requirement specifics
+    - Building consistency across similar tasks
+    - Improving overall submission quality over time
+
+    This endpoint is crucial for maintaining quality standards while providing
+    educational feedback to help workers improve their future submissions.
     """
     # Verify ownership
     if not await verify_agent_owns_submission(api_key.agent_id, submission_id):
@@ -2935,12 +3652,15 @@ async def reject_submission(
     "/submissions/{submission_id}/request-more-info",
     response_model=SuccessResponse,
     responses={
-        200: {"description": "More information requested"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Not authorized"},
+        200: {"description": "Additional information requested from worker"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        403: {"model": ErrorResponse, "description": "Not authorized to update this submission"},
         404: {"model": ErrorResponse, "description": "Submission not found"},
-        409: {"model": ErrorResponse, "description": "Submission already processed"},
+        409: {"model": ErrorResponse, "description": "Submission already processed with final verdict"},
     },
+    summary="Request More Information",
+    description="Request additional evidence or clarification from the assigned worker",
+    tags=["Submissions", "Agent"],
 )
 async def request_more_info_submission(
     submission_id: str = Path(
@@ -2950,10 +3670,129 @@ async def request_more_info_submission(
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SuccessResponse:
     """
-    Request additional evidence/clarification from the worker.
+    Request additional evidence or clarification from the assigned worker.
 
-    Sets submission verdict to `more_info_requested` and moves task back to
-    `in_progress` so the assigned worker can resubmit.
+    When a submission is close to meeting requirements but needs additional
+    evidence or clarification, the agent can request more information instead
+    of rejecting outright. This gives the worker a chance to complete the
+    task properly.
+
+    ## Request Body
+    ```json
+    {
+        "notes": "Please provide a clearer photo showing the restaurant's posted hours. The current image is too dark to read the operating schedule clearly."
+    }
+    ```
+
+    ## Response Example
+    ```json
+    {
+        "success": true,
+        "message": "More information requested from worker.",
+        "data": {
+            "submission_id": "789abcdef-1234-5678-9abc-def123456789",
+            "task_id": "123e4567-e89b-12d3-a456-426614174000",
+            "verdict": "more_info_requested"
+        }
+    }
+    ```
+
+    ## Request Process
+    1. **Validation**: Verifies agent owns the submission
+    2. **Status Check**: Ensures submission hasn't been finalized
+    3. **Update Submission**: Sets verdict to 'more_info_requested'
+    4. **Reset Task**: Returns task to 'in_progress' status
+    5. **Worker Notification**: Worker receives specific improvement request
+
+    ## When to Use This Endpoint
+    - **Partial Completion**: Work is mostly done but missing key elements
+    - **Quality Issues**: Evidence is present but needs improvement
+    - **Clarity Needed**: Text reports need more detail or clarification
+    - **Technical Issues**: Photos/videos have technical problems (lighting, focus)
+    - **Minor Gaps**: Small missing pieces that can be easily addressed
+
+    ## Alternative to Rejection
+    Unlike rejection, this endpoint:
+    - Keeps the task assigned to the same worker
+    - Preserves the worker's progress and investment
+    - Encourages improvement rather than starting over
+    - Maintains task continuity and timeline
+
+    ## Required Fields
+    - **notes**: Specific guidance on what additional information is needed
+      - Should be clear and actionable (5-1000 characters)
+      - Focus on specific improvements needed
+      - Avoid vague requests like "need more info"
+
+    ## Effects on Task Status
+    - **Submission**: verdict → 'more_info_requested'
+    - **Task**: status → 'in_progress' 
+    - **Worker**: can resubmit with additional evidence
+    - **Timeline**: deadline remains unchanged
+    - **Payment**: escrow remains locked for this worker
+
+    ## Worker Response Options
+    After receiving the request, the worker can:
+    1. **Resubmit**: Provide additional evidence and resubmit
+    2. **Abandon**: Stop working (task returns to published)
+    3. **Clarify**: Ask questions before providing more evidence
+
+    ## Common More-Info Scenarios
+
+    ### Photo Quality Issues
+    ```json
+    {
+        "notes": "Please retake the photo with better lighting. The current image is too dark to verify the operating hours posted on the door."
+    }
+    ```
+
+    ### Missing Evidence Types
+    ```json
+    {
+        "notes": "Great photos! Please also include GPS coordinates to verify the location, as required in the task evidence schema."
+    }
+    ```
+
+    ### Insufficient Detail
+    ```json
+    {
+        "notes": "Your text report mentions customers but please provide more specific details: approximately how many customers, what time you observed, staff activity, etc."
+    }
+    ```
+
+    ### Clarification Needed
+    ```json
+    {
+        "notes": "The photo shows a 'Closed' sign but your report says it's open. Can you clarify the restaurant's current status and provide additional evidence?"
+    }
+    ```
+
+    ## Best Practices for Agents
+    - **Be Specific**: Exactly what's missing or needs improvement
+    - **Be Encouraging**: Acknowledge what was done well
+    - **Provide Guidance**: How to address the gaps
+    - **Set Expectations**: What additional evidence would complete the task
+
+    ## Submission Workflow
+    1. **Initial Submission**: Worker submits evidence
+    2. **Agent Review**: Agent identifies gaps but sees potential
+    3. **More Info Request**: Agent specifies needed improvements
+    4. **Worker Update**: Worker provides additional evidence  
+    5. **Resubmission**: Updated submission for final review
+    6. **Final Decision**: Agent approves or rejects complete submission
+
+    ## Error Conditions
+    - **409 Conflict**: Submission already accepted/rejected/disputed
+    - **403 Forbidden**: Agent doesn't own this submission
+    - **404 Not Found**: Submission doesn't exist
+
+    ## Timeline Considerations
+    - Task deadline remains unchanged during more-info cycle
+    - Workers should factor revision time into their task planning
+    - Multiple more-info cycles are possible but discouraged
+
+    This endpoint promotes collaboration between agents and workers,
+    leading to higher quality completed tasks and better worker education.
     """
     if not await verify_agent_owns_submission(api_key.agent_id, submission_id):
         submission = await db.get_submission(submission_id)
@@ -3010,12 +3849,16 @@ async def request_more_info_submission(
     "/tasks/{task_id}/cancel",
     response_model=SuccessResponse,
     responses={
-        200: {"description": "Task cancelled"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Not authorized"},
+        200: {"description": "Task cancelled successfully with appropriate refund handling"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        403: {"model": ErrorResponse, "description": "Not authorized to cancel this task"},
         404: {"model": ErrorResponse, "description": "Task not found"},
-        409: {"model": ErrorResponse, "description": "Task cannot be cancelled"},
+        409: {"model": ErrorResponse, "description": "Task cannot be cancelled in current status"},
+        402: {"model": ErrorResponse, "description": "Escrow refund failed - task cancelled but manual refund required"},
     },
+    summary="Cancel Task", 
+    description="Cancel a published task and handle payment refunds based on escrow status",
+    tags=["Tasks", "Agent", "Payments"],
 )
 async def cancel_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
@@ -3023,13 +3866,114 @@ async def cancel_task(
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SuccessResponse:
     """
-    Cancel a task.
+    Cancel a task and handle payment refunds automatically.
 
-    Only tasks in 'published' status can be cancelled.
+    Cancels a task and processes appropriate refund based on the payment mode and 
+    escrow status. Only tasks in 'published' status can be cancelled - tasks with 
+    assigned workers cannot be cancelled to protect worker interests.
 
-    For x402 payments:
-    - If payment was AUTHORIZED but not SETTLED, the authorization expires naturally
-    - If payment was SETTLED to escrow, funds are refunded to agent
+    ## Cancellation Rules
+    - **Only 'published' tasks** can be cancelled
+    - Tasks with assigned workers (accepted/in_progress/submitted) cannot be cancelled
+    - Already cancelled tasks return idempotent success response
+
+    ## Refund Handling by Payment Mode
+
+    ### x402r Mode (On-chain Escrow)
+    - **Deposited/Locked**: Funds refunded from escrow contract to agent wallet
+    - **Already Released**: Cannot cancel (409 error)
+    - **Already Refunded**: Idempotent success
+
+    ### Preauth Mode (Authorization Only)  
+    - **Authorized**: Authorization expires naturally, no funds moved
+    - **Pending**: Authorization expires, no refund needed
+
+    ### Fase1 Mode (Balance Check)
+    - **Balance Verified**: No funds moved, authorization expires
+    - No refund transaction needed
+
+    ### Fase2 Mode (Facilitator Escrow)
+    - **Deposited**: Funds refunded from facilitator to agent wallet
+    - Uses gasless refund transaction via facilitator
+
+    ## Request Body Example
+    ```json
+    {
+        "reason": "Task requirements changed, no longer needed"
+    }
+    ```
+
+    ## Success Response Examples
+
+    ### With Refund Transaction
+    ```json
+    {
+        "success": true,
+        "message": "Task cancelled successfully. Escrow refunded to agent.",
+        "data": {
+            "task_id": "123e4567-e89b-12d3-a456-426614174000",
+            "reason": "Task requirements changed",
+            "escrow": {
+                "status": "refunded",
+                "escrow_id": "escrow_1234abcd", 
+                "tx_hash": "0xdef456...",
+                "method": "x402r"
+            }
+        }
+    }
+    ```
+
+    ### Authorization Expiry (No Refund Needed)
+    ```json
+    {
+        "success": true, 
+        "message": "Task cancelled successfully. Payment authorization expired (no funds moved).",
+        "data": {
+            "task_id": "123e4567-e89b-12d3-a456-426614174000",
+            "reason": "No longer needed",
+            "escrow": {
+                "status": "authorization_expired",
+                "message": "Payment authorization will expire. No funds were moved."
+            }
+        }
+    }
+    ```
+
+    ## Error Responses
+    - **409 Conflict**: Task in non-cancellable status (accepted/in_progress/etc.)
+    - **402 Payment Required**: Escrow refund failed, manual intervention needed
+    - **403 Forbidden**: Agent doesn't own this task
+    - **404 Not Found**: Task doesn't exist
+
+    ## Critical Fund Loss Detection
+    In rare cases where agent settlement succeeded but escrow lock failed, the system 
+    detects potential fund loss and requires manual refund intervention:
+
+    ```json
+    {
+        "escrow": {
+            "status": "refund_manual_required",
+            "agent_settle_tx": "0xabc123...",
+            "error": "Funds were settled from agent wallet but escrow lock failed. Manual refund required."
+        }
+    }
+    ```
+
+    ## Idempotency
+    Cancelling an already-cancelled task returns success with `idempotent: true`.
+
+    ## Audit Trail
+    - Task status updated to 'cancelled'
+    - Refund transaction recorded in payments table
+    - Escrow status updated appropriately
+    - Payment events logged for audit purposes
+
+    ## Side Effects
+    - Updates task status to 'cancelled'
+    - Processes appropriate refund transaction
+    - Updates escrow status (refunded/expired)
+    - Records refund payment in audit log
+    - Task removed from worker-visible published tasks
     """
     refund_info = None
     try:
@@ -3393,18 +4337,139 @@ async def cancel_task(
     "/analytics",
     response_model=AnalyticsResponse,
     responses={
-        200: {"description": "Analytics retrieved"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        200: {"description": "Analytics data retrieved successfully"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
     },
+    summary="Get Agent Analytics",
+    description="Comprehensive analytics dashboard data for the authenticated agent",
+    tags=["Analytics", "Agent"],
 )
 async def get_analytics(
     days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> AnalyticsResponse:
     """
-    Get agent analytics.
+    Get comprehensive analytics for the authenticated agent.
 
-    Provides task completion rates, spending, and top workers.
+    Provides detailed analytics including task performance, spending patterns,
+    completion rates, worker performance, and timing metrics over a specified period.
+
+    ## Query Parameters
+    - **days**: Analysis period in days (1-365, default: 30)
+      - Common periods: 7 (week), 30 (month), 90 (quarter), 365 (year)
+
+    ## Response Example
+    ```json
+    {
+        "totals": {
+            "total_tasks": 45,
+            "total_bounty": 225.50,
+            "completed": 38,
+            "completion_rate": 84.4,
+            "avg_bounty": 5.01,
+            "total_spent": 243.54,
+            "platform_fees": 18.04
+        },
+        "by_status": {
+            "published": 3,
+            "accepted": 2, 
+            "in_progress": 1,
+            "submitted": 1,
+            "completed": 38,
+            "cancelled": 0,
+            "expired": 0
+        },
+        "by_category": {
+            "physical_presence": 25,
+            "knowledge_access": 12,
+            "simple_action": 5,
+            "human_authority": 2,
+            "digital_physical": 1
+        },
+        "average_times": {
+            "time_to_accept": "2h 15m",
+            "time_to_complete": "4h 30m", 
+            "time_to_review": "45m"
+        },
+        "top_workers": [
+            {
+                "executor_id": "abc123...",
+                "wallet_address": "0x742d35...",
+                "tasks_completed": 8,
+                "total_earned": 42.50,
+                "avg_completion_time": "3h 20m",
+                "success_rate": 100.0,
+                "reputation_score": 95
+            }
+        ],
+        "period_days": 30
+    }
+    ```
+
+    ## Analytics Categories
+
+    ### Task Performance Totals
+    - **total_tasks**: Total tasks created in period
+    - **completed**: Successfully completed tasks  
+    - **completion_rate**: Percentage of tasks completed
+    - **total_bounty**: Total bounty amounts across all tasks
+    - **total_spent**: Total spent including platform fees
+    - **platform_fees**: Total platform fees paid
+    - **avg_bounty**: Average bounty per task
+
+    ### Status Breakdown
+    Shows current task distribution across all statuses:
+    - **published**: Available for worker applications
+    - **accepted**: Assigned to workers
+    - **in_progress**: Being worked on
+    - **submitted**: Awaiting agent review
+    - **completed**: Finished and paid
+    - **cancelled**: Cancelled by agent
+    - **expired**: Deadline passed
+
+    ### Category Analysis
+    Task distribution by category helps understand agent focus areas:
+    - **physical_presence**: Location-based tasks
+    - **knowledge_access**: Expertise-required tasks
+    - **human_authority**: Decision-making tasks
+    - **simple_action**: Basic execution tasks
+    - **digital_physical**: Hybrid digital/physical tasks
+
+    ### Timing Metrics
+    Average time intervals for workflow stages:
+    - **time_to_accept**: From published to worker assignment
+    - **time_to_complete**: From acceptance to work submission  
+    - **time_to_review**: From submission to agent approval/rejection
+
+    ### Top Workers Analysis
+    Performance metrics for frequent collaborators:
+    - **tasks_completed**: Number of tasks finished
+    - **total_earned**: Total bounty earned from this agent
+    - **avg_completion_time**: Average time to complete tasks
+    - **success_rate**: Percentage of submissions approved
+    - **reputation_score**: ERC-8004 reputation score (if available)
+
+    ## Time Period Flexibility
+    - **7 days**: Weekly performance review
+    - **30 days**: Monthly dashboard (default)
+    - **90 days**: Quarterly business review
+    - **365 days**: Annual performance analysis
+
+    ## Use Cases
+    - Agent dashboard overview widgets
+    - Performance monitoring and optimization
+    - Worker selection and relationship management
+    - Budget planning and forecasting
+    - Task category strategy analysis
+    - Operational efficiency measurement
+
+    ## Data Freshness
+    Analytics are computed in real-time from the latest database state.
+    No caching is applied to ensure accuracy for business decisions.
+
+    ## Privacy & Security
+    Only data for tasks created by the authenticated agent is included.
+    Worker information is anonymized with truncated wallet addresses.
     """
     result = await db.get_agent_analytics(
         agent_id=api_key.agent_id,
@@ -3425,15 +4490,18 @@ async def get_analytics(
     "/tasks/{task_id}/assign",
     response_model=SuccessResponse,
     responses={
-        200: {"description": "Task assigned"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Not authorized or ineligible"},
+        200: {"description": "Task successfully assigned to worker"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
+        403: {"model": ErrorResponse, "description": "Not authorized to assign this task or worker ineligible"},
         404: {"model": ErrorResponse, "description": "Task or executor not found"},
         409: {
             "model": ErrorResponse,
             "description": "Task not assignable in current status",
         },
     },
+    summary="Assign Task to Worker",
+    description="Assign a published task to a specific worker executor",
+    tags=["Tasks", "Agent"],
 )
 async def assign_task_to_worker(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
@@ -3441,10 +4509,148 @@ async def assign_task_to_worker(
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> SuccessResponse:
     """
-    Assign a published task to a worker.
+    Assign a published task to a specific worker executor.
 
-    Agent endpoint used to move task status from `published` to `accepted`
-    by selecting a specific executor.
+    Agent endpoint for directly assigning tasks to workers, either from
+    applications received or by selecting qualified workers. Moves the 
+    task from 'published' to 'accepted' status.
+
+    ## Request Body
+    ```json
+    {
+        "executor_id": "abc123def-4567-89ab-cdef-123456789abc",
+        "notes": "Selected based on your excellent previous work on similar restaurant verification tasks. Please complete by end of business day."
+    }
+    ```
+
+    ## Response Example
+    ```json
+    {
+        "success": true,
+        "message": "Task assigned successfully",
+        "data": {
+            "task_id": "123e4567-e89b-12d3-a456-426614174000",
+            "executor_id": "abc123def-4567-89ab-cdef-123456789abc",
+            "status": "accepted",
+            "assigned_at": "2024-02-11T06:04:00Z",
+            "worker_wallet": "0x742d35Cc6634C0532925a3b8D0fC6A3B3e1d7A5B"
+        }
+    }
+    ```
+
+    ## Assignment Process
+    1. **Validation**: Verifies agent owns task and task is assignable
+    2. **Worker Check**: Confirms executor exists and meets requirements
+    3. **Eligibility**: Validates worker reputation and availability
+    4. **Assignment**: Updates task status and records assignment
+    5. **Notification**: Worker receives assignment notification
+
+    ## Assignment Requirements
+
+    ### Task Status
+    Only tasks with `published` status can be assigned:
+    - **published**: Available for assignment ✓
+    - **accepted**: Already assigned ✗
+    - **cancelled**: Not available ✗
+    - **expired**: Past deadline ✗
+
+    ### Worker Eligibility  
+    Worker must meet these criteria:
+    - **Exists**: Valid executor_id in system
+    - **Active**: Worker account in good standing
+    - **Reputation**: Meets minimum reputation requirement (if set)
+    - **Availability**: Not already assigned to maximum concurrent tasks
+    - **Location**: Within reasonable distance (if location-based task)
+
+    ## Common Assignment Workflows
+
+    ### From Applications
+    1. Agent reviews worker applications via separate endpoint
+    2. Agent selects preferred worker from applicants
+    3. Agent assigns task to chosen worker using this endpoint
+
+    ### Direct Assignment
+    1. Agent identifies worker from previous successful tasks
+    2. Agent directly assigns without public application process
+    3. Useful for repeat collaborations or urgent tasks
+
+    ### Batch Assignment
+    1. Agent creates multiple similar tasks
+    2. Agent assigns different tasks to multiple proven workers
+    3. Efficient for large-scale operations
+
+    ## Request Fields
+    - **executor_id**: UUID of the worker to assign (required)
+    - **notes**: Optional message to the worker (0-500 characters)
+      - Assignment context or special instructions
+      - Encouragement or specific guidance
+      - Timeline expectations or priorities
+
+    ## Assignment Effects
+    - **Task Status**: 'published' → 'accepted'
+    - **Task Assignment**: executor_id populated
+    - **Worker Status**: Task appears in worker's active tasks
+    - **Visibility**: Task removed from public available tasks list
+    - **Timeline**: Deadline countdown continues
+    - **Payment**: Escrow remains locked for this specific worker
+
+    ## Worker Benefits of Assignment
+    - **Guaranteed Work**: No competition with other applicants
+    - **Clear Expectations**: Agent-provided context and notes
+    - **Trust Signal**: Agent chose them specifically
+    - **Relationship Building**: Potential for repeat collaborations
+
+    ## Error Conditions
+
+    ### 404 Not Found
+    ```json
+    {
+        "error": "EXECUTOR_NOT_FOUND",
+        "message": "Executor not found",
+        "details": {"executor_id": "invalid-uuid"}
+    }
+    ```
+
+    ### 403 Forbidden (Insufficient Reputation)
+    ```json
+    {
+        "error": "INSUFFICIENT_REPUTATION", 
+        "message": "Worker reputation score 25 below required minimum 50",
+        "details": {"required": 50, "actual": 25}
+    }
+    ```
+
+    ### 409 Conflict (Task Not Assignable)
+    ```json
+    {
+        "error": "TASK_NOT_ASSIGNABLE",
+        "message": "Task cannot be assigned in current status 'expired'",
+        "details": {"current_status": "expired"}
+    }
+    ```
+
+    ## Performance Considerations
+    - Assignment is immediate and updates database atomically
+    - Worker notifications sent asynchronously
+    - Previous applications to this task are automatically invalidated
+    - Task removed from search indexes within 30 seconds
+
+    ## Best Practices for Agents
+    - **Include Helpful Notes**: Context helps workers succeed
+    - **Verify Worker Profile**: Check recent performance before assigning
+    - **Consider Location**: Assign location-appropriate tasks
+    - **Timeline Communication**: Share any urgency or deadline concerns
+    - **Follow Up**: Check on progress for important tasks
+
+    ## Relationship Building
+    Successful assignments often lead to:
+    - Repeat collaborations with trusted workers
+    - Better task completion rates
+    - Faster turnaround times
+    - Higher quality submissions
+    - Reduced agent review overhead
+
+    This endpoint enables targeted task assignment for optimized outcomes.
     """
     try:
         result = await db.assign_task(
@@ -3566,25 +4772,191 @@ async def apply_to_task(
     "/tasks/{task_id}/submit",
     response_model=SuccessResponse,
     responses={
-        200: {"description": "Work submitted"},
+        200: {"description": "Work submitted successfully, with optional instant payment"},
         400: {
             "model": ErrorResponse,
-            "description": "Invalid request or missing evidence",
+            "description": "Invalid request or missing required evidence",
         },
-        403: {"model": ErrorResponse, "description": "Not assigned to this task"},
+        403: {"model": ErrorResponse, "description": "Not assigned to this task or not authorized"},
         404: {"model": ErrorResponse, "description": "Task not found"},
         409: {"model": ErrorResponse, "description": "Task not in submittable state"},
     },
+    summary="Submit Work",
+    description="Submit completed work with evidence for agent review (supports instant payment)",
+    tags=["Tasks", "Worker", "Submissions"],
 )
 async def submit_work(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: WorkerSubmissionRequest = ...,
 ) -> SuccessResponse:
     """
-    Submit work for a task.
+    Submit completed work with evidence for agent review.
 
-    Worker endpoint for submitting completed work with evidence.
-    Only assigned workers can submit.
+    Worker endpoint for submitting finished work with required evidence.
+    Automatically attempts instant payment settlement when possible, otherwise
+    queues submission for agent review.
+
+    ## Request Body Example
+    ```json
+    {
+        "executor_id": "abc123def-4567-89ab-cdef-123456789abc",
+        "evidence": {
+            "photos": [
+                "https://cdn.example.com/uploads/photo1.jpg",
+                "https://cdn.example.com/uploads/photo2.jpg"
+            ],
+            "text_report": "Successfully verified the restaurant is open. There were customers inside and staff was actively serving. Hours posted on door confirm open until 9 PM today.",
+            "gps_coordinates": {
+                "lat": 45.5152,
+                "lng": -122.6784, 
+                "accuracy": 3,
+                "timestamp": "2024-02-11T08:15:00Z"
+            }
+        },
+        "notes": "Task completed as requested. All evidence collected during peak hours for accuracy."
+    }
+    ```
+
+    ## Submission Process
+    1. **Validation**: Verifies worker assignment and task status
+    2. **Evidence Check**: Validates required evidence types are provided
+    3. **AI Pre-Check**: Runs automatic evidence verification (if available)
+    4. **Instant Payment**: Attempts immediate payment settlement when conditions are met
+    5. **Fallback**: Queues for agent review if instant payment unavailable
+
+    ## Instant Payment Conditions
+    Automatic payment occurs when:
+    - Task has valid x402 payment context (escrow or preauth)
+    - Worker wallet address is valid and different from agent
+    - Evidence passes basic validation
+    - Payment dispatcher is available
+
+    ## Response Examples
+
+    ### Instant Payment Success
+    ```json
+    {
+        "success": true,
+        "message": "Work submitted and paid instantly.",
+        "data": {
+            "submission_id": "789abcdef-1234-5678-9abc-def123456789",
+            "task_id": "123e4567-e89b-12d3-a456-426614174000",
+            "status": "completed",
+            "verdict": "accepted",
+            "payment_tx": "0xdef456..."
+        }
+    }
+    ```
+
+    ### Standard Submission (Agent Review Required)
+    ```json
+    {
+        "success": true,
+        "message": "Work submitted successfully. Awaiting agent review.",
+        "data": {
+            "submission_id": "789abcdef-1234-5678-9abc-def123456789",
+            "task_id": "123e4567-e89b-12d3-a456-426614174000", 
+            "status": "submitted"
+        }
+    }
+    ```
+
+    ### Instant Payment Failed  
+    ```json
+    {
+        "success": true,
+        "message": "Work submitted successfully. Awaiting agent review.",
+        "data": {
+            "submission_id": "789abcdef-1234-5678-9abc-def123456789",
+            "task_id": "123e4567-e89b-12d3-a456-426614174000",
+            "status": "submitted",
+            "payment_error": "Payment settlement failed: insufficient balance"
+        }
+    }
+    ```
+
+    ## Evidence Requirements
+    Evidence must match the task's `evidence_schema`:
+    - **Required Evidence**: Must be provided or submission fails
+    - **Optional Evidence**: Helpful but not mandatory
+    - **Evidence Types**: photo, text_report, document, gps_coordinates, video, audio
+
+    ## Evidence Format Examples
+
+    ### Photos
+    ```json
+    {
+        "photos": [
+            "https://cdn.example.com/evidence/photo1.jpg",
+            "https://cdn.example.com/evidence/photo2.jpg"
+        ]
+    }
+    ```
+
+    ### Text Report
+    ```json
+    {
+        "text_report": "Detailed description of work performed and observations made."
+    }
+    ```
+
+    ### GPS Coordinates
+    ```json
+    {
+        "gps_coordinates": {
+            "lat": 45.5152,
+            "lng": -122.6784,
+            "accuracy": 5,
+            "timestamp": "2024-02-11T08:15:00Z"
+        }
+    }
+    ```
+
+    ### Documents
+    ```json
+    {
+        "documents": [
+            "https://cdn.example.com/evidence/receipt.pdf",
+            "https://cdn.example.com/evidence/form.pdf"
+        ]
+    }
+    ```
+
+    ## Error Handling
+    - **400 Bad Request**: Missing required evidence or invalid format
+    - **403 Forbidden**: Worker not assigned to this task
+    - **404 Not Found**: Task doesn't exist
+    - **409 Conflict**: Task not in submittable state (wrong status)
+
+    ## Task Status Requirements
+    Worker can only submit when task status is:
+    - **accepted**: Task was assigned to this worker
+    - **in_progress**: Worker started work
+    - **more_info_requested**: Agent requested additional evidence
+
+    ## AI Pre-Check Integration
+    - Automatic AI verification runs on submission
+    - Results stored for agent reference
+    - High confidence scores may enable instant payment
+    - Low scores queued for human review
+
+    ## Payment Settlement
+    When instant payment succeeds:
+    - Full bounty paid to worker wallet
+    - Platform fee paid to treasury
+    - Task status updated to 'completed'
+    - Transaction hash returned for verification
+
+    ## Use Cases
+    - Worker mobile app work submission
+    - Bulk evidence upload after task completion
+    - Quality assurance before final submission
+    - Instant earning for straightforward tasks
+
+    ## File Upload Notes
+    Evidence URLs should point to publicly accessible files.
+    Most implementations upload files to CDN/cloud storage first,
+    then include the URLs in the evidence object.
     """
     try:
         result = await db.submit_work(
@@ -3715,25 +5087,132 @@ class VerifyEvidenceResponse(BaseModel):
     "/evidence/verify",
     response_model=VerifyEvidenceResponse,
     responses={
-        200: {"description": "Verification result"},
+        200: {"description": "AI verification result with confidence score and decision"},
         404: {"model": ErrorResponse, "description": "Task not found"},
-        503: {"model": ErrorResponse, "description": "AI verification unavailable"},
+        503: {"model": ErrorResponse, "description": "AI verification service unavailable"},
     },
+    summary="Verify Evidence with AI",
+    description="Pre-verify submitted evidence against task requirements using AI vision models",
+    tags=["Evidence", "AI", "Worker"],
 )
 async def verify_evidence(request: VerifyEvidenceRequest) -> VerifyEvidenceResponse:
     """
-    Verify evidence against task requirements using AI.
+    Verify evidence against task requirements using AI vision models.
 
-    Worker endpoint: after uploading evidence, call this to get instant
-    AI feedback on whether the evidence matches what the task requires.
-    This does NOT create a submission - it's a pre-check.
+    Worker-facing endpoint for pre-verification of evidence before submission.
+    Uses AI vision models to analyze uploaded evidence and provide instant feedback
+    on whether it meets the task requirements. This is a pre-check that doesn't
+    create an official submission.
 
-    Supports multiple AI providers (configurable via AI_VERIFICATION_PROVIDER env):
-    - anthropic (default): Claude Vision
-    - openai: GPT-4o Vision
-    - bedrock: AWS Bedrock (Claude)
+    ## AI Providers Supported
+    Configurable via `AI_VERIFICATION_PROVIDER` environment variable:
+    - **anthropic** (default): Claude 3.5 Sonnet Vision  
+    - **openai**: GPT-4o Vision
+    - **bedrock**: AWS Bedrock Claude 3.5 Sonnet
+    - **ollama**: Local Ollama vision models
 
-    Falls back gracefully if no provider is configured.
+    ## Request Body Example
+    ```json
+    {
+        "task_id": "123e4567-e89b-12d3-a456-426614174000",
+        "evidence_url": "https://cdn.example.com/photo123.jpg",
+        "evidence_type": "photo"
+    }
+    ```
+
+    ## Response Examples
+
+    ### Approved Evidence
+    ```json
+    {
+        "verified": true,
+        "confidence": 0.95,
+        "decision": "approved",
+        "explanation": "The photo clearly shows the restaurant storefront with visible opening hours sign indicating it's currently open. The image quality is good and all required elements are present.",
+        "issues": []
+    }
+    ```
+
+    ### Rejected Evidence
+    ```json
+    {
+        "verified": false,
+        "confidence": 0.88,
+        "decision": "rejected", 
+        "explanation": "The photo shows the restaurant but the opening hours sign is not clearly visible. Additional evidence showing operating status is needed.",
+        "issues": [
+            "Opening hours sign not visible",
+            "Cannot confirm current operating status",
+            "Image too dark to read signage clearly"
+        ]
+    }
+    ```
+
+    ### Needs Human Review
+    ```json
+    {
+        "verified": false,
+        "confidence": 0.60,
+        "decision": "needs_human",
+        "explanation": "The evidence appears to meet some requirements but there are ambiguities that require human judgment to resolve.",
+        "issues": [
+            "Unclear image quality in key areas",
+            "Ambiguous evidence of current status"
+        ]
+    }
+    ```
+
+    ## AI Verification Process
+    1. **Task Analysis**: AI reviews task instructions and evidence requirements
+    2. **Evidence Processing**: Analyzes uploaded photo/document/video
+    3. **Requirement Matching**: Compares evidence against specific requirements  
+    4. **Confidence Scoring**: Provides 0.0-1.0 confidence score
+    5. **Decision Making**: Returns approved/rejected/needs_human decision
+    6. **Issue Identification**: Lists specific problems if evidence is insufficient
+
+    ## Decision Types
+    - **approved**: Evidence meets all requirements with high confidence
+    - **rejected**: Evidence clearly doesn't meet requirements
+    - **needs_human**: Ambiguous case requiring human agent review
+
+    ## Evidence Types Supported
+    - **photo**: Images (JPG, PNG, WebP, HEIC)
+    - **document**: PDFs, text documents, screenshots
+    - **video**: Video files with AI frame analysis
+    - **text_report**: Written descriptions and reports
+
+    ## Confidence Thresholds
+    - **High (0.8-1.0)**: Strong confidence in decision
+    - **Medium (0.6-0.79)**: Moderate confidence, may need human review
+    - **Low (0.0-0.59)**: Low confidence, likely needs human review
+
+    ## Graceful Degradation
+    If AI verification is unavailable:
+    - Returns `verified: true` with `confidence: 0.5`
+    - Decision: "approved" 
+    - Note: "AI verification temporarily unavailable"
+    - Evidence still accepted for agent review
+
+    ## Use Cases
+    - Pre-submission evidence validation
+    - Worker confidence building before official submission
+    - Reducing agent review burden through AI pre-screening
+    - Quality assurance for evidence collection
+    - Educational feedback for workers
+
+    ## Rate Limits
+    - 60 requests per minute per IP
+    - 500 requests per hour per IP
+    - Cached results for identical evidence URLs (5 minutes)
+
+    ## Security & Privacy
+    - Evidence URLs must be publicly accessible
+    - No evidence content is stored permanently
+    - AI provider requests are logged for debugging
+    - No personal information is extracted or stored
+
+    This endpoint helps workers improve evidence quality before official submission
+    and reduces the review burden on agents by catching obvious issues early.
     """
     from .verification_helpers import get_verifier
 
@@ -3861,11 +5340,13 @@ class ConfirmIdentityRequest(BaseModel):
     "/executors/{executor_id}/identity",
     response_model=IdentityCheckResponse,
     responses={
-        200: {"description": "Identity status retrieved"},
+        200: {"description": "Identity status retrieved successfully"},
         404: {"model": ErrorResponse, "description": "Executor not found"},
         503: {"model": ErrorResponse, "description": "Identity service unavailable"},
     },
-    tags=["Workers", "Identity"],
+    summary="Check Worker Identity",
+    description="Check worker's ERC-8004 on-chain identity registration status",
+    tags=["Workers", "Identity", "ERC-8004"],
 )
 async def get_worker_identity(
     executor_id: str = Path(
@@ -3873,10 +5354,118 @@ async def get_worker_identity(
     ),
 ) -> IdentityCheckResponse:
     """
-    Check a worker's ERC-8004 on-chain identity status.
+    Check a worker's ERC-8004 on-chain identity registration status.
 
     Queries the ERC-8004 Identity Registry on Base Mainnet to determine
-    whether the worker's wallet holds an identity token.
+    whether the worker's wallet address holds a registered identity token.
+    This provides reputation and verification benefits for registered workers.
+
+    ## Path Parameters
+    - **executor_id**: UUID of the worker executor
+
+    ## Response Examples
+
+    ### Registered Identity
+    ```json
+    {
+        "status": "registered",
+        "agent_id": 1337,
+        "wallet_address": "0x742d35Cc6634C0532925a3b8D0fC6A3B3e1d7A5B",
+        "network": "base",
+        "chain_id": 8453,
+        "registry_address": "0x1234...abcd",
+        "error": null
+    }
+    ```
+
+    ### Not Registered
+    ```json
+    {
+        "status": "not_registered", 
+        "agent_id": null,
+        "wallet_address": "0x742d35Cc6634C0532925a3b8D0fC6A3B3e1d7A5B",
+        "network": "base",
+        "chain_id": 8453,
+        "registry_address": "0x1234...abcd",
+        "error": null
+    }
+    ```
+
+    ### Service Error
+    ```json
+    {
+        "status": "error",
+        "agent_id": null,
+        "wallet_address": "0x742d35Cc6634C0532925a3b8D0fC6A3B3e1d7A5B",
+        "network": "base", 
+        "chain_id": 8453,
+        "registry_address": null,
+        "error": "RPC timeout connecting to Base network"
+    }
+    ```
+
+    ## Status Values
+    - **registered**: Worker has valid ERC-8004 identity token
+    - **not_registered**: Worker wallet has no identity token
+    - **error**: Unable to check due to network/service issues
+
+    ## ERC-8004 Identity Benefits
+    Registered workers receive:
+    - **Higher Trust Score**: Visual indicators in agent interfaces
+    - **Priority Ranking**: Better visibility in worker search results  
+    - **Reputation Integration**: On-chain reputation scoring
+    - **Verification Badge**: Platform-wide identity verification
+    - **Access to Premium Tasks**: Some tasks may require registration
+
+    ## Implementation Details
+    - **Network**: Base Mainnet (Chain ID: 8453)
+    - **Registry Contract**: ERC-8004 compliant identity registry
+    - **Token Standard**: ERC-721 based identity tokens
+    - **Caching**: Results cached in database to reduce RPC calls
+
+    ## Registration Process
+    If worker is not registered, they can:
+    1. Use `/executors/{executor_id}/register-identity` to prepare transaction
+    2. Sign and submit the registration transaction (~$0.01 gas)
+    3. Use `/executors/{executor_id}/confirm-identity` to verify registration
+
+    ## Error Handling
+    - **503 Service Unavailable**: Identity service disabled or network issues
+    - **404 Not Found**: Executor ID doesn't exist in database
+    - **400 Bad Request**: Executor has no valid wallet address
+
+    ## Performance Notes
+    - First call queries blockchain and caches result
+    - Subsequent calls return cached data for faster response
+    - Cache invalidated when worker updates identity status
+    - Network calls use retry logic for reliability
+
+    ## Privacy & Security
+    - Only queries public blockchain data
+    - No private information exposed
+    - Wallet addresses truncated in logs
+    - Results are publicly verifiable on-chain
+
+    ## Integration Examples
+
+    ### Agent Interface Integration
+    ```javascript
+    // Check worker identity before assignment
+    const identity = await api.get(`/executors/${executorId}/identity`);
+    if (identity.status === 'registered') {
+        showVerificationBadge(identity.agent_id);
+    }
+    ```
+
+    ### Worker Profile Enhancement  
+    ```javascript
+    // Display identity status in worker profiles
+    const identity = await api.get(`/executors/${executorId}/identity`);
+    updateWorkerTrustScore(identity.status === 'registered');
+    ```
+
+    This endpoint supports the platform's decentralized identity infrastructure
+    and helps build trust through on-chain verification.
     """
     if not WORKER_IDENTITY_AVAILABLE:
         raise HTTPException(
@@ -3953,11 +5542,14 @@ async def get_worker_identity(
     "/executors/{executor_id}/register-identity",
     response_model=RegisterIdentityResponse,
     responses={
-        200: {"description": "Registration tx data or already-registered confirmation"},
+        200: {"description": "Registration transaction prepared or already registered"},
+        400: {"model": ErrorResponse, "description": "Executor has no valid wallet address"},
         404: {"model": ErrorResponse, "description": "Executor not found"},
-        503: {"model": ErrorResponse, "description": "Identity service unavailable"},
+        503: {"model": ErrorResponse, "description": "Identity service unavailable or registration tx preparation failed"},
     },
-    tags=["Workers", "Identity"],
+    summary="Prepare Identity Registration",
+    description="Prepare ERC-8004 identity registration transaction for worker wallet to sign",
+    tags=["Workers", "Identity", "ERC-8004"],
 )
 async def register_worker_identity(
     executor_id: str = Path(
@@ -3968,11 +5560,148 @@ async def register_worker_identity(
     """
     Prepare an ERC-8004 identity registration transaction for a worker.
 
-    If the worker is already registered, returns their agent ID.
-    Otherwise, returns the unsigned transaction data that the worker's
-    wallet (Dynamic.xyz frontend) must sign and submit.
+    Creates an unsigned transaction that the worker's wallet must sign and submit
+    to register their on-chain identity. If already registered, returns existing
+    identity information.
 
-    The worker pays gas (~$0.01 on Base Mainnet).
+    ## Request Body
+    ```json
+    {
+        "agent_uri": "https://execution.market/workers/abc123def-4567-89ab"
+    }
+    ```
+
+    ## Request Fields
+    - **agent_uri**: Optional metadata URI for identity (defaults to execution.market profile)
+      - Should point to JSON metadata describing the worker
+      - Common format: execution.market profile or IPFS URI
+      - Maximum 500 characters
+
+    ## Response Examples
+
+    ### Already Registered
+    ```json
+    {
+        "status": "registered",
+        "agent_id": 1337,
+        "transaction": null,
+        "message": "Worker already registered with agent ID 1337"
+    }
+    ```
+
+    ### Registration Transaction Required
+    ```json
+    {
+        "status": "not_registered",
+        "agent_id": null,
+        "transaction": {
+            "to": "0x1234567890abcdef1234567890abcdef12345678",
+            "data": "0xa9059cbb000000000000000000000000742d35cc6634c0532925a3b8d0fc6a3b3e1d7a5b0000000000000000000000000000000000000000000000000de0b6b3a7640000",
+            "chainId": 8453,
+            "value": "0x0", 
+            "estimated_gas": "150000",
+            "gas_price_gwei": "0.001"
+        },
+        "message": "Sign and submit this transaction to register your on-chain identity"
+    }
+    ```
+
+    ## Transaction Fields
+    When registration is needed, the response includes:
+    - **to**: Registry contract address on Base Mainnet
+    - **data**: Encoded function call with registration parameters
+    - **chainId**: 8453 (Base Mainnet)
+    - **value**: "0x0" (no ETH required, only gas)
+    - **estimated_gas**: Estimated gas units needed (~150,000)
+    - **gas_price_gwei**: Current gas price estimate
+
+    ## Registration Process
+    1. **Call this endpoint** to get unsigned transaction
+    2. **Present to wallet** (MetaMask, Dynamic.xyz, etc.)
+    3. **User signs** transaction (pays ~$0.01 gas)
+    4. **Wallet submits** to Base Mainnet
+    5. **Call confirm endpoint** with transaction hash
+    6. **Identity activated** on platform
+
+    ## Gas Cost Estimation
+    - **Base Gas**: ~150,000 units
+    - **Gas Price**: ~0.001 gwei (varies with network)
+    - **Total Cost**: ~$0.01 USD equivalent in ETH
+    - **Payment**: Worker pays gas fees (not platform)
+
+    ## Metadata URI Format
+    The `agent_uri` should point to JSON metadata:
+    ```json
+    {
+        "name": "Professional Task Worker",
+        "description": "Verified worker on execution.market",
+        "image": "https://cdn.execution.market/avatars/worker.jpg",
+        "external_url": "https://execution.market/workers/abc123",
+        "attributes": [
+            {"trait_type": "Platform", "value": "execution.market"},
+            {"trait_type": "Registration Date", "value": "2024-02-11"}
+        ]
+    }
+    ```
+
+    ## Security Considerations
+    - **Wallet-Only Signing**: Platform never has access to private keys
+    - **Gas Payment**: Worker pays their own transaction fees
+    - **Non-Custodial**: Platform doesn't control registration process
+    - **Immutable**: Once registered, identity persists on blockchain
+
+    ## Error Conditions
+
+    ### Missing Wallet Address
+    ```json
+    {
+        "error": "INVALID_WALLET",
+        "message": "Executor has no valid wallet address",
+        "details": {"executor_id": "abc123..."}
+    }
+    ```
+
+    ### Service Unavailable
+    ```json
+    {
+        "error": "IDENTITY_SERVICE_UNAVAILABLE", 
+        "message": "Could not prepare registration transaction: RPC timeout",
+        "details": {"network": "base", "registry": "0x1234..."}
+    }
+    ```
+
+    ## Frontend Integration Example
+    ```javascript
+    // Prepare registration transaction
+    const response = await api.post(`/executors/${executorId}/register-identity`);
+
+    if (response.status === 'not_registered' && response.transaction) {
+        // Present to user's wallet
+        const txHash = await wallet.sendTransaction(response.transaction);
+        
+        // Confirm registration
+        await api.post(`/executors/${executorId}/confirm-identity`, {
+            tx_hash: txHash
+        });
+    }
+    ```
+
+    ## Benefits of Registration
+    After successful registration, workers gain:
+    - **Verification Badge**: Visual trust indicator
+    - **Higher Rankings**: Better visibility in task search
+    - **Reputation Tracking**: On-chain reputation accumulation
+    - **Premium Access**: Some tasks may require identity
+    - **Trust Building**: Agents prefer verified workers
+
+    ## Network Requirements
+    - **Network**: Base Mainnet (not testnets)
+    - **Wallet**: Any Base-compatible wallet (MetaMask, Dynamic, etc.)
+    - **ETH Balance**: Small amount for gas (~$0.01)
+    - **Connection**: Stable internet for transaction submission
+
+    This endpoint enables decentralized worker verification while maintaining
+    security through user-controlled wallet operations.
     """
     if not WORKER_IDENTITY_AVAILABLE:
         raise HTTPException(
@@ -4196,20 +5925,167 @@ class BatchCreateResponse(BaseModel):
     response_model=BatchCreateResponse,
     status_code=201,
     responses={
-        201: {"description": "Batch created"},
-        400: {"model": ErrorResponse, "description": "Invalid request"},
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        201: {"description": "Batch tasks created with success/failure breakdown"},
+        400: {"model": ErrorResponse, "description": "Invalid request or too many tasks in batch"},
+        401: {"model": ErrorResponse, "description": "Unauthorized - invalid or missing API key"},
     },
+    summary="Batch Create Tasks",
+    description="Create multiple similar tasks in a single API call for efficiency",
+    tags=["Tasks", "Agent", "Batch"],
 )
 async def batch_create_tasks(
     request: BatchCreateRequest,
     api_key: APIKeyData = Depends(verify_api_key_if_required),
 ) -> BatchCreateResponse:
     """
-    Create multiple tasks in a single request.
+    Create multiple tasks in a single request for efficiency.
 
-    Useful for agents that need to create many similar tasks.
-    Maximum 50 tasks per batch.
+    Useful for agents that need to create many similar or related tasks at once.
+    Each task in the batch is processed independently - some may succeed while
+    others fail due to validation errors.
+
+    ## Request Limits
+    - **Maximum 50 tasks** per batch request
+    - Each task subject to normal validation rules
+    - Same payment token/network for all tasks in batch
+
+    ## Request Body Example
+    ```json
+    {
+        "payment_token": "USDC",
+        "tasks": [
+            {
+                "title": "Verify restaurant A is open",
+                "instructions": "Visit Restaurant A and confirm operating status...",
+                "category": "physical_presence",
+                "bounty_usd": 5.00,
+                "deadline_hours": 24,
+                "evidence_required": ["photo", "text_report"],
+                "evidence_optional": ["gps_coordinates"],
+                "location_hint": "Downtown Portland, Main St",
+                "min_reputation": 50
+            },
+            {
+                "title": "Verify restaurant B is open", 
+                "instructions": "Visit Restaurant B and confirm operating status...",
+                "category": "physical_presence",
+                "bounty_usd": 5.00,
+                "deadline_hours": 24,
+                "evidence_required": ["photo", "text_report"],
+                "location_hint": "Downtown Portland, Oak St", 
+                "min_reputation": 50
+            }
+        ]
+    }
+    ```
+
+    ## Response Example
+    ```json
+    {
+        "created": 2,
+        "failed": 0,
+        "total_bounty": 10.00,
+        "tasks": [
+            {
+                "index": 0,
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "title": "Verify restaurant A is open",
+                "bounty_usd": 5.00
+            },
+            {
+                "index": 1, 
+                "id": "456789ab-cdef-1234-5678-9abcdef12345",
+                "title": "Verify restaurant B is open",
+                "bounty_usd": 5.00
+            }
+        ],
+        "errors": []
+    }
+    ```
+
+    ## Partial Failure Example
+    ```json
+    {
+        "created": 1,
+        "failed": 1, 
+        "total_bounty": 5.00,
+        "tasks": [
+            {
+                "index": 0,
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "title": "Valid task",
+                "bounty_usd": 5.00
+            }
+        ],
+        "errors": [
+            {
+                "index": 1,
+                "title": "Invalid task",
+                "error": "Bounty $0.10 is below minimum $0.25"
+            }
+        ]
+    }
+    ```
+
+    ## Task Definition Schema
+    Each task in the batch must include:
+    - **title**: Task title (5-255 chars)
+    - **instructions**: Detailed instructions (20-5000 chars)
+    - **category**: Task category (TaskCategory enum)
+    - **bounty_usd**: Bounty amount (positive, within limits)
+    - **deadline_hours**: Hours until deadline (1-720)
+    - **evidence_required**: Array of required evidence types
+    - **evidence_optional**: Array of optional evidence types (optional)
+    - **location_hint**: Human-readable location (optional)
+    - **min_reputation**: Minimum worker reputation (optional, default: 0)
+
+    ## Payment Considerations
+    **Important**: This endpoint creates tasks WITHOUT payment escrow.
+    Unlike the single task creation endpoint, batch creation doesn't
+    support x402 payment headers. Tasks are created in 'published' status
+    but may not be financially backed.
+
+    Agents should either:
+    1. Use single task creation with payment for critical tasks
+    2. Manually fund tasks after batch creation
+    3. Use batch creation for draft/planning purposes
+
+    ## Common Use Cases
+    - **Location-based campaigns**: Multiple similar tasks across locations
+    - **Time-series tasks**: Same task at different times
+    - **A/B testing**: Variations of similar tasks
+    - **Market research**: Multiple data collection points
+    - **Event coverage**: Multiple aspects of same event
+
+    ## Validation Rules
+    Each task validated independently:
+    - Bounty within platform min/max limits
+    - Valid category and evidence types  
+    - Reasonable deadline (1-720 hours)
+    - Title and instructions length limits
+    - Valid reputation requirements
+
+    ## Error Handling
+    - Individual task failures don't stop batch processing
+    - Detailed error messages provided for each failure
+    - Success/failure counts in response
+    - Original index preserved for error matching
+
+    ## Performance Considerations
+    - Database transactions per task for data consistency
+    - Parallel processing where possible
+    - Maximum 50 tasks to prevent timeout/memory issues
+    - Consider multiple smaller batches for large campaigns
+
+    ## Response Fields
+    - **created**: Number of successfully created tasks
+    - **failed**: Number of tasks that failed validation
+    - **total_bounty**: Sum of bounties for created tasks only
+    - **tasks**: Array of successfully created task summaries
+    - **errors**: Array of validation failures with details
+
+    This endpoint optimizes for bulk task creation workflows while maintaining
+    individual task quality through independent validation.
     """
     created_tasks = []
     errors = []
@@ -4277,9 +6153,56 @@ async def batch_create_tasks(
 # =============================================================================
 
 
-@router.get("/health")
+@router.get(
+    "/health",
+    responses={
+        200: {"description": "API is healthy and operational"},
+        503: {"description": "API is unhealthy or degraded"},
+    },
+    summary="Health Check",
+    description="System health check endpoint for monitoring and load balancers",
+    tags=["System"],
+)
 async def api_health():
-    """API health check endpoint."""
+    """
+    API health check endpoint.
+
+    Provides system health status for monitoring, load balancers, and uptime checks.
+    Returns basic API information and current timestamp for availability verification.
+
+    ## Response Example
+    ```json
+    {
+        "status": "healthy",
+        "api_version": "v1", 
+        "timestamp": "2024-02-11T06:04:00.123Z",
+        "services": {
+            "database": "connected",
+            "x402": "available",
+            "payment_dispatcher": "active"
+        }
+    }
+    ```
+
+    ## Health Status Values
+    - **healthy**: All systems operational
+    - **degraded**: Some non-critical services unavailable  
+    - **unhealthy**: Critical services down
+
+    ## Use Cases
+    - Load balancer health checks
+    - Monitoring system alerts
+    - API availability verification
+    - Deployment health validation
+    - Service discovery health probes
+
+    ## Response Headers
+    - `Cache-Control: no-cache` - Prevents caching of health status
+    - `X-Response-Time` - Request processing time (if available)
+
+    This endpoint is intentionally lightweight and doesn't perform deep 
+    health checks to ensure fast response times for frequent monitoring calls.
+    """
     return {
         "status": "healthy",
         "api_version": "v1",
