@@ -721,6 +721,7 @@ class TestFase1Flow:
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
         ):
             from integrations.x402.payment_dispatcher import PaymentDispatcher
+
             d = PaymentDispatcher(mode="fase1")
             d._sdk = FakeSDK()
             d._sdk._get_agent_account = MagicMock()
@@ -976,30 +977,38 @@ class TestFase2Flow:
 
     def _make_fase2_dispatcher(self, sdk_available=True):
         """Create dispatcher in fase2 mode with mocked clients."""
+
         # Mock TaskTier enum
         class MockTaskTier:
             MICRO = "micro"
             STANDARD = "standard"
             PREMIUM = "premium"
             ENTERPRISE = "enterprise"
-            
+
         with (
             patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
             patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", sdk_available),
             patch(f"{DISPATCHER_MODULE}.TaskTier", MockTaskTier),
-            patch(f"{DISPATCHER_MODULE}.NETWORK_CONFIG", {
-                "base": {
-                    "chain_id": 8453,
-                    "rpc_url": "https://mainnet.base.org",
-                    "tokens": {"USDC": {"decimals": 6}},
-                }
-            }),
+            patch(
+                f"{DISPATCHER_MODULE}.NETWORK_CONFIG",
+                {
+                    "base": {
+                        "chain_id": 8453,
+                        "rpc_url": "https://mainnet.base.org",
+                        "tokens": {"USDC": {"decimals": 6}},
+                    }
+                },
+            ),
             patch(f"{DISPATCHER_MODULE}.PLATFORM_FEE_PERCENT", Decimal("0.08")),
-            patch(f"{DISPATCHER_MODULE}._get_platform_address", return_value="0xPlatformAddr"),
+            patch(
+                f"{DISPATCHER_MODULE}._get_platform_address",
+                return_value="0xPlatformAddr",
+            ),
             patch.dict(os.environ, {"WALLET_PRIVATE_KEY": TEST_PK}),
         ):
             from integrations.x402.payment_dispatcher import PaymentDispatcher
+
             d = PaymentDispatcher(mode="fase2")
             if sdk_available:
                 d._sdk = FakeSDK()
@@ -1012,18 +1021,20 @@ class TestFase2Flow:
         """Fase 2 authorize should lock funds in escrow via facilitator."""
         d = _make_dispatcher("fase1")  # Start with simple mode
         d.mode = "fase2"  # Override mode
-        
+
         # Mock the fase2 authorize method directly
-        d._authorize_fase2 = AsyncMock(return_value={
-            "success": True,
-            "tx_hash": "0x" + "auth" * 16,
-            "mode": "fase2",
-            "escrow_status": "deposited",
-            "payment_info": FakeEscrowPaymentInfo(receiver="0xPlatformAddr"),
-            "payment_info_serialized": {"mode": "fase2"},
-            "payer_address": "0xAgent789",
-            "error": None,
-        })
+        d._authorize_fase2 = AsyncMock(
+            return_value={
+                "success": True,
+                "tx_hash": "0x" + "auth" * 16,
+                "mode": "fase2",
+                "escrow_status": "deposited",
+                "payment_info": FakeEscrowPaymentInfo(receiver="0xPlatformAddr"),
+                "payment_info_serialized": {"mode": "fase2"},
+                "payer_address": "0xAgent789",
+                "error": None,
+            }
+        )
 
         result = await d.authorize_payment(
             task_id="task-f2-1",
@@ -1047,6 +1058,7 @@ class TestFase2Flow:
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", False),  # Force fallback
         ):
             from integrations.x402.payment_dispatcher import PaymentDispatcher
+
             d = PaymentDispatcher(mode="fase2")
             assert d.mode == "fase1"
 
@@ -1058,6 +1070,7 @@ class TestFase2Flow:
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
         ):
             from integrations.x402.payment_dispatcher import PaymentDispatcher
+
             d = PaymentDispatcher(mode="fase2")
             assert d.mode == "fase1"
 
@@ -1066,17 +1079,19 @@ class TestFase2Flow:
         """Fase 2 authorize failure should return error."""
         d = _make_dispatcher("fase1")  # Start with simple mode
         d.mode = "fase2"  # Override mode
-        
+
         # Mock the fase2 authorize method to return failure
-        d._authorize_fase2 = AsyncMock(return_value={
-            "success": False,
-            "tx_hash": None,
-            "mode": "fase2",
-            "escrow_status": "authorize_failed",
-            "payment_info": None,
-            "payment_info_serialized": None,
-            "error": "Escrow authorize failed: Insufficient allowance",
-        })
+        d._authorize_fase2 = AsyncMock(
+            return_value={
+                "success": False,
+                "tx_hash": None,
+                "mode": "fase2",
+                "escrow_status": "authorize_failed",
+                "payment_info": None,
+                "payment_info_serialized": None,
+                "error": "Escrow authorize failed: Insufficient allowance",
+            }
+        )
 
         result = await d.authorize_payment(
             task_id="task-f2-2",
@@ -1266,23 +1281,25 @@ class TestFase2Flow:
         mock_result.data = [
             {
                 "status": "deposited",
-                "metadata": json.dumps({
-                    "payment_info": {
-                        "mode": "fase2",
-                        "operator": "0xOp",
-                        "receiver": "0xRec",
-                        "token": "0xTok",
-                        "max_amount": 1000000,
-                        "pre_approval_expiry": 9999999999,
-                        "authorization_expiry": 9999999999,
-                        "refund_expiry": 9999999999,
-                        "min_fee_bps": 0,
-                        "max_fee_bps": 800,
-                        "fee_receiver": "0xFee",
-                        "salt": "0xabcd1234",
-                        "network": "base",
+                "metadata": json.dumps(
+                    {
+                        "payment_info": {
+                            "mode": "fase2",
+                            "operator": "0xOp",
+                            "receiver": "0xRec",
+                            "token": "0xTok",
+                            "max_amount": 1000000,
+                            "pre_approval_expiry": 9999999999,
+                            "authorization_expiry": 9999999999,
+                            "refund_expiry": 9999999999,
+                            "min_fee_bps": 0,
+                            "max_fee_bps": 800,
+                            "fee_receiver": "0xFee",
+                            "salt": "0xabcd1234",
+                            "network": "base",
+                        }
                     }
-                }),
+                ),
                 "total_amount_usdc": 1.00,
             }
         ]
@@ -1349,9 +1366,11 @@ class TestFase2Flow:
         mock_result.data = [
             {
                 "status": "deposited",
-                "metadata": json.dumps({
-                    "payment_info": {"mode": "x402r"}  # Wrong mode
-                }),
+                "metadata": json.dumps(
+                    {
+                        "payment_info": {"mode": "x402r"}  # Wrong mode
+                    }
+                ),
                 "total_amount_usdc": 5.00,
             }
         ]
@@ -1381,6 +1400,7 @@ class TestCrossModeFallbacks:
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
         ):
             from integrations.x402.payment_dispatcher import PaymentDispatcher
+
             d = PaymentDispatcher(mode="fase2")
             assert d.mode == "fase1"
 
@@ -1388,7 +1408,9 @@ class TestCrossModeFallbacks:
     async def test_sdk_exception_handling(self):
         """Test that SDK exceptions are properly caught and returned."""
         d = _make_dispatcher("fase1")
-        d._sdk.settle_direct_payments = AsyncMock(side_effect=RuntimeError("Network timeout"))
+        d._sdk.settle_direct_payments = AsyncMock(
+            side_effect=RuntimeError("Network timeout")
+        )
 
         result = await d.release_payment(
             task_id="task-exception",
