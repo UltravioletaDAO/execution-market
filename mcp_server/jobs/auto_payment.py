@@ -5,8 +5,16 @@ Retries settlement for orphaned submissions: accepted/approved but missing payme
 
 For each orphaned submission:
 1. Resolves the x402 X-Payment header from task.escrow_tx or escrows table
-2. Calls EMX402SDK.settle_task_payment() via the facilitator
-3. Updates submission.payment_tx, paid_at, payment_amount on success
+2. Checks payment_mode — only retries auth-based settlement for 'preauth' mode
+3. Calls EMX402SDK.settle_task_payment() via the facilitator
+4. Updates submission.payment_tx, paid_at, payment_amount on success
+
+Modes that are NOT retryable via auth re-settlement:
+- fase1: No auth signed at creation — approval creates fresh EIP-3009 inline.
+- fase2: Auth nonce consumed on-chain at escrow lock — re-settle causes 60s timeout.
+- x402r (deprecated): Same nonce issue as fase2.
+
+Only 'preauth' mode stores a valid, unsettled EIP-3009 auth header.
 
 Runs every RETRY_INTERVAL seconds (default: 60).
 """
@@ -23,6 +31,12 @@ logger = logging.getLogger(__name__)
 RETRY_INTERVAL = int(os.environ.get("PAYMENT_RETRY_INTERVAL", "60"))
 MAX_BATCH = int(os.environ.get("PAYMENT_RETRY_BATCH_SIZE", "5"))
 MAX_RETRIES_PER_SUBMISSION = int(os.environ.get("PAYMENT_RETRY_MAX_ATTEMPTS", "10"))
+
+# Task statuses where payment retry should NOT proceed
+TERMINAL_TASK_STATUSES = {"cancelled", "expired", "failed"}
+
+# Payment modes where auth re-settlement is valid
+RETRYABLE_PAYMENT_MODES = {"preauth"}
 
 
 def _is_tx_hash(value: Optional[str]) -> bool:
@@ -81,10 +95,45 @@ def _resolve_payment_header(
         return None
 
 
+def _resolve_payment_mode(task_id: Optional[str]) -> Optional[str]:
+    """
+    Resolve the payment_mode used when a task was created.
+    Reads from escrows.metadata.payment_mode.
+    Returns None if not found.
+    """
+    if not task_id:
+        return None
+    try:
+        from supabase_client import get_client
+
+        client = get_client()
+        result = (
+            client.table("escrows")
+            .select("metadata")
+            .eq("task_id", task_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = result.data or []
+        if not rows:
+            return None
+        metadata = rows[0].get("metadata")
+        if isinstance(metadata, dict):
+            return metadata.get("payment_mode")
+        return None
+    except Exception:
+        return None
+
+
 async def _fetch_orphaned_submissions(client) -> list:
     """
     Query submissions that are accepted/approved but lack payment_tx.
     Returns list of submission dicts with joined task and executor data.
+
+    Post-fetch filtering:
+    - Skips submissions that exceeded MAX_RETRIES_PER_SUBMISSION
+    - Skips submissions whose task is in a terminal status (cancelled/expired)
     """
     try:
         result = (
@@ -95,10 +144,10 @@ async def _fetch_orphaned_submissions(client) -> list:
             .in_("agent_verdict", ["accepted", "approved"])
             .is_("payment_tx", "null")
             .order("updated_at", desc=False)
-            .limit(MAX_BATCH)
+            .limit(MAX_BATCH * 2)  # Fetch extra to account for post-fetch filtering
             .execute()
         )
-        return result.data or []
+        raw = result.data or []
     except Exception as err:
         # Fallback: try without retry_count column (may not exist)
         if "retry_count" in str(err):
@@ -111,23 +160,64 @@ async def _fetch_orphaned_submissions(client) -> list:
                     .in_("agent_verdict", ["accepted", "approved"])
                     .is_("payment_tx", "null")
                     .order("updated_at", desc=False)
-                    .limit(MAX_BATCH)
+                    .limit(MAX_BATCH * 2)
                     .execute()
                 )
-                return result.data or []
+                raw = result.data or []
             except Exception as fallback_err:
                 logger.error(
                     "[payment-retry] Fallback query also failed: %s", fallback_err
                 )
                 return []
-        logger.error("[payment-retry] Failed to fetch orphaned submissions: %s", err)
-        return []
+        else:
+            logger.error(
+                "[payment-retry] Failed to fetch orphaned submissions: %s", err
+            )
+            return []
+
+    # Post-fetch filtering
+    filtered = []
+    for sub in raw:
+        if len(filtered) >= MAX_BATCH:
+            break
+
+        # Skip if retry_count exceeded
+        retry_count = sub.get("retry_count") or 0
+        if retry_count >= MAX_RETRIES_PER_SUBMISSION:
+            logger.debug(
+                "[payment-retry] Submission %s exceeded max retries (%d/%d), skipping",
+                sub.get("id"),
+                retry_count,
+                MAX_RETRIES_PER_SUBMISSION,
+            )
+            continue
+
+        # Skip if task is in terminal status
+        task = sub.get("task")
+        if isinstance(task, list):
+            task = task[0] if task else {}
+        task_status = (task.get("status") or "").lower() if task else ""
+        if task_status in TERMINAL_TASK_STATUSES:
+            logger.debug(
+                "[payment-retry] Submission %s has terminal task status '%s', skipping",
+                sub.get("id"),
+                task_status,
+            )
+            continue
+
+        filtered.append(sub)
+
+    return filtered
 
 
 async def _retry_settlement(client, submission: dict) -> bool:
     """
     Attempt to settle payment for a single orphaned submission.
     Returns True if settlement produced a tx hash.
+
+    IMPORTANT: Only retries auth-based settlement for 'preauth' mode.
+    Other modes (fase1, fase2, x402r) use different settlement mechanisms
+    that cannot be retried by re-submitting the original auth header.
     """
     submission_id = submission["id"]
 
@@ -162,6 +252,21 @@ async def _retry_settlement(client, submission: dict) -> bool:
             "[payment-retry] Submission %s has no worker wallet, skipping",
             submission_id,
         )
+        return False
+
+    # Check payment mode — only preauth is retryable via auth re-settlement
+    payment_mode = _resolve_payment_mode(task_id)
+    if payment_mode and payment_mode not in RETRYABLE_PAYMENT_MODES:
+        logger.info(
+            "[payment-retry] Submission %s uses payment_mode='%s' "
+            "(not retryable via auth re-settlement), skipping. "
+            "Modes fase2/x402r: EIP-3009 nonce already consumed on-chain. "
+            "Mode fase1: no stored auth header — approval creates fresh auths inline.",
+            submission_id,
+            payment_mode,
+        )
+        # Mark as max-retried so we don't re-evaluate every cycle
+        _mark_non_retryable(client, submission_id, payment_mode)
         return False
 
     # Resolve X-Payment header
@@ -297,6 +402,27 @@ def _increment_retry_count(client, submission_id: str) -> None:
         pass  # Column may not exist yet
 
 
+def _mark_non_retryable(client, submission_id: str, payment_mode: str) -> None:
+    """
+    Mark a submission as non-retryable by setting retry_count to MAX.
+    This prevents re-evaluating it every cycle when the payment mode
+    is inherently incompatible with auth re-settlement.
+    """
+    try:
+        client.table("submissions").update(
+            {
+                "retry_count": MAX_RETRIES_PER_SUBMISSION,
+            }
+        ).eq("id", submission_id).execute()
+        logger.debug(
+            "[payment-retry] Marked submission %s as non-retryable (mode=%s)",
+            submission_id,
+            payment_mode,
+        )
+    except Exception:
+        pass  # Column may not exist
+
+
 def _persist_payment_record(
     client,
     submission_id: str,
@@ -340,11 +466,16 @@ async def run_auto_payment_loop() -> None:
 
     Queries submissions where agent_verdict IN ('accepted', 'approved')
     but payment_tx IS NULL, then attempts settlement via the x402 SDK.
+
+    Only retries auth-based settlement for 'preauth' mode. Other modes
+    use mechanisms where the EIP-3009 nonce is already consumed or no
+    auth header exists.
     """
     logger.info(
-        "[payment-retry] Payment retry job started (interval=%ds, batch=%d)",
+        "[payment-retry] Payment retry job started (interval=%ds, batch=%d, max_retries=%d)",
         RETRY_INTERVAL,
         MAX_BATCH,
+        MAX_RETRIES_PER_SUBMISSION,
     )
 
     from supabase_client import get_client
