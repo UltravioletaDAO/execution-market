@@ -1,9 +1,13 @@
 """
-Tests for Worker Protection Fund (NOW-100, NOW-101)
+Tests for Worker Protection Fund (DORMANT — not wired into active endpoints)
+
+(NOW-100, NOW-101)
 """
 
 import pytest
 from decimal import Decimal
+
+pytestmark = pytest.mark.dormant
 
 from ..protection.fund import (
     ProtectionFund,

@@ -6,9 +6,12 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+
+pytestmark = pytest.mark.erc8004
 from fastapi import HTTPException
 
 from ..api import reputation
+from ..api import routes
 
 
 TASK_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
@@ -203,3 +206,179 @@ async def test_rate_agent_succeeds_with_valid_task_context(monkeypatch):
 
     assert result.success is True
     assert rate_agent_mock.await_count == 1
+
+
+# =============================================================================
+# Rejection ownership and rate-limiting
+# =============================================================================
+
+REJECTION_SUBMISSION_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+
+
+@pytest.mark.asyncio
+async def test_reject_submission_rejects_non_owner(monkeypatch):
+    """Only the agent who owns the task can reject a submission."""
+    monkeypatch.setattr(
+        routes, "verify_agent_owns_submission", AsyncMock(return_value=False)
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_submission",
+        AsyncMock(return_value={"id": REJECTION_SUBMISSION_ID}),
+    )
+
+    api_key = SimpleNamespace(agent_id="wrong_agent")
+
+    with pytest.raises(HTTPException) as exc:
+        await routes.reject_submission(
+            submission_id=REJECTION_SUBMISSION_ID,
+            request=routes.RejectionRequest(
+                notes="This work is unacceptable",
+                severity="minor",
+            ),
+            api_key=api_key,
+        )
+
+    assert exc.value.status_code == 403
+
+
+class _FakeSideEffectsCountQuery:
+    """Simulates the erc8004_side_effects table for rate-limit counting."""
+
+    def __init__(self, rows, count=None):
+        self._rows = rows
+        self._count = count
+
+    def select(self, *_args, **kwargs):
+        return self
+
+    def eq(self, *_args, **_kwargs):
+        return self
+
+    def gte(self, *_args, **_kwargs):
+        return self
+
+    def execute(self):
+        return SimpleNamespace(
+            data=self._rows,
+            count=self._count if self._count is not None else len(self._rows),
+        )
+
+
+class _FakeRateLimitClient:
+    """Fake Supabase client for rate-limit tests."""
+
+    def __init__(self, agent_id: str, rejection_count: int):
+        self._agent_id = agent_id
+        self._rejection_count = rejection_count
+
+    def table(self, name: str):
+        if name == "erc8004_side_effects":
+            rows = [
+                {"payload": {"agent_id": self._agent_id}}
+                for _ in range(self._rejection_count)
+            ]
+            return _FakeSideEffectsCountQuery(rows, count=self._rejection_count)
+        raise AssertionError(f"Unexpected table access: {name}")
+
+
+@pytest.mark.asyncio
+async def test_major_rejection_rate_limit_returns_429(monkeypatch):
+    """Invariant: >3 major rejections per agent per 24h returns 429.
+
+    WS-3 policy: rate-limit major rejection on-chain writes to prevent abuse.
+    """
+    submission_id = "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    agent_id = "agent_abuser"
+    api_key = SimpleNamespace(agent_id=agent_id)
+
+    # Agent owns the submission
+    monkeypatch.setattr(
+        routes, "verify_agent_owns_submission", AsyncMock(return_value=True)
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_submission",
+        AsyncMock(
+            return_value={
+                "id": submission_id,
+                "agent_verdict": "pending",
+                "task": {"id": "task_rl_1"},
+                "executor": {"wallet_address": "0xworker"},
+            }
+        ),
+    )
+    monkeypatch.setattr(routes.db, "update_submission", AsyncMock())
+
+    # Fake PlatformConfig: rejection feedback enabled
+    class FakePlatformConfig:
+        @staticmethod
+        async def is_feature_enabled(flag: str) -> bool:
+            return flag == "erc8004_rejection_feedback"
+
+    monkeypatch.setattr(
+        "config.platform_config.PlatformConfig",
+        FakePlatformConfig,
+    )
+
+    # Already 3 major rejections in the last 24h for this agent
+    fake_client = _FakeRateLimitClient(agent_id=agent_id, rejection_count=3)
+    monkeypatch.setattr(routes.db, "get_client", lambda: fake_client)
+
+    with pytest.raises(HTTPException) as exc:
+        await routes.reject_submission(
+            submission_id=submission_id,
+            request=routes.RejectionRequest(
+                notes="This is terrible work, completely wrong location",
+                severity="major",
+                reputation_score=20,
+            ),
+            api_key=api_key,
+        )
+
+    assert exc.value.status_code == 429
+    assert "max 3" in exc.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_minor_rejection_does_not_create_on_chain_side_effect(monkeypatch):
+    """Minor rejection must NOT create any on-chain side effect row.
+
+    WS-3 policy: minor = local rejection only, no on-chain write.
+    """
+    submission_id = "dddddddd-dddd-dddd-dddd-dddddddddddd"
+    api_key = SimpleNamespace(agent_id="agent_test")
+
+    monkeypatch.setattr(
+        routes, "verify_agent_owns_submission", AsyncMock(return_value=True)
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_submission",
+        AsyncMock(
+            return_value={
+                "id": submission_id,
+                "agent_verdict": "pending",
+                "task": {"id": "task_minor_1"},
+                "executor": {"wallet_address": "0xworker"},
+            }
+        ),
+    )
+    update_mock = AsyncMock()
+    monkeypatch.setattr(routes.db, "update_submission", update_mock)
+
+    result = await routes.reject_submission(
+        submission_id=submission_id,
+        request=routes.RejectionRequest(
+            notes="Photo slightly blurry, please retake",
+            severity="minor",
+        ),
+        api_key=api_key,
+    )
+
+    assert result.data["verdict"] == "rejected"
+    # No severity key for minor rejections
+    assert "severity" not in result.data
+    # No side_effect_id for minor rejections
+    assert "side_effect_id" not in result.data
+    update_mock.assert_awaited_once()

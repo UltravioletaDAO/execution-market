@@ -3,6 +3,8 @@ Tests for Webhook Notification System (NOW-087)
 """
 
 import pytest
+
+pytestmark = pytest.mark.infrastructure
 import json
 import time
 from unittest.mock import patch

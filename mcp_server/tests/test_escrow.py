@@ -9,6 +9,8 @@ Tests the EscrowManager class and related functionality for:
 """
 
 import pytest
+
+pytestmark = pytest.mark.payments
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock

@@ -128,6 +128,7 @@ import supabase_client as db
 from tools.worker_tools import register_worker_tools, WorkerToolsConfig
 from tools.agent_tools import register_agent_tools, AgentToolsConfig
 from tools.escrow_tools import register_escrow_tools, ADVANCED_ESCROW_AVAILABLE
+from tools.reputation_tools import register_reputation_tools
 from integrations.x402.payment_dispatcher import (
     get_dispatcher as get_payment_dispatcher,
 )
@@ -284,6 +285,9 @@ register_agent_tools(mcp, db)
 
 # Register Advanced Escrow tools (PaymentOperator via SDK)
 register_escrow_tools(mcp)
+
+# Register Reputation & Identity tools (WS-4)
+register_reputation_tools(mcp, db)
 
 
 # ============== CONSTANTS ==============

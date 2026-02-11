@@ -17,6 +17,8 @@ Also tests:
 """
 
 import pytest
+
+pytestmark = pytest.mark.core
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 

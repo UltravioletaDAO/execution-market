@@ -124,6 +124,87 @@ export async function getAgentReputation(
 }
 
 /**
+ * Rate an agent after task completion (worker -> agent).
+ *
+ * The backend expects a score in the 0-100 range.
+ */
+export interface RateAgentRequest {
+  task_id: string
+  score: number // 0-100
+  comment?: string
+}
+
+export async function rateAgent(
+  request: RateAgentRequest
+): Promise<FeedbackResponse> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Client-Info': 'execution-market-dashboard',
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/reputation/agents/rate`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(request),
+    }
+  )
+
+  if (!response.ok) {
+    const text = await response.text()
+    let message = `Rating failed: ${response.status}`
+    try {
+      const data = JSON.parse(text)
+      message = data.detail || data.message || message
+    } catch {
+      // Use default message
+    }
+    throw new Error(message)
+  }
+
+  return response.json()
+}
+
+/**
+ * Check identity registration status for a wallet address.
+ * Returns null if the service is unavailable (404/503).
+ */
+export interface IdentityCheckResult {
+  registered: boolean
+  agent_id: number | null
+  network: string
+}
+
+export async function checkIdentityStatus(
+  walletAddress: string,
+  network = 'base'
+): Promise<IdentityCheckResult | null> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/reputation/check-identity?wallet=${encodeURIComponent(walletAddress)}&network=${encodeURIComponent(network)}`,
+      {
+        headers: {
+          'X-Client-Info': 'execution-market-dashboard',
+        },
+      }
+    )
+
+    if (response.status === 404 || response.status === 503) {
+      return null
+    }
+
+    if (!response.ok) {
+      return null
+    }
+
+    return response.json()
+  } catch {
+    return null
+  }
+}
+
+/**
  * Convert a 1-5 star rating to the 0-100 scale used by the API.
  *
  * Mapping:

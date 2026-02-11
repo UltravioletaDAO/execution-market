@@ -6,6 +6,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+
+pytestmark = pytest.mark.core
 from fastapi import HTTPException
 
 from ..api import routes
@@ -1072,3 +1074,165 @@ async def test_get_task_payment_returns_404_when_task_is_missing(monkeypatch):
         await routes.get_task_payment(task_id=task_id, api_key=None)
 
     assert exc.value.status_code == 404
+
+
+# =============================================================================
+# Side-effect resilience: failures never flip approval success
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_side_effect_failure_never_flips_approval_success(monkeypatch):
+    """Invariant: ERC-8004 side-effect failures are non-blocking.
+
+    Even when _execute_post_approval_side_effects raises, the approval
+    must still return 200 with payment_tx.
+    """
+    submission_id = "aaa11111-1111-1111-1111-111111111111"
+    api_key = SimpleNamespace(agent_id="agent_test")
+    release_tx = "0x" + "f" * 64
+
+    monkeypatch.setattr(
+        routes, "verify_agent_owns_submission", AsyncMock(return_value=True)
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_submission",
+        AsyncMock(
+            return_value={
+                "id": submission_id,
+                "agent_verdict": "pending",
+                "task": {"id": "task_se_1", "status": "submitted"},
+                "executor": {"id": "exec_1", "wallet_address": "0xworker"},
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        routes,
+        "_settle_submission_payment",
+        AsyncMock(return_value={"payment_tx": release_tx, "payment_error": None}),
+    )
+    monkeypatch.setattr(routes.db, "update_submission", AsyncMock())
+
+    # Force side effects to explode
+    monkeypatch.setattr(
+        routes,
+        "_execute_post_approval_side_effects",
+        AsyncMock(side_effect=RuntimeError("ERC-8004 facilitator down")),
+    )
+
+    result = await routes.approve_submission(
+        submission_id=submission_id,
+        request=routes.ApprovalRequest(notes="lgtm"),
+        api_key=api_key,
+    )
+
+    # Approval MUST succeed despite side-effect explosion
+    assert result.data["verdict"] == "accepted"
+    assert result.data["payment_tx"] == release_tx
+    assert "idempotent" not in result.data
+
+
+@pytest.mark.asyncio
+async def test_approve_twice_returns_idempotent_no_duplicate_state_write(monkeypatch):
+    """Invariant: Calling approve on an already-accepted submission returns
+    idempotent success and does NOT call update_submission again."""
+    submission_id = "bbb22222-2222-2222-2222-222222222222"
+    api_key = SimpleNamespace(agent_id="agent_test")
+
+    monkeypatch.setattr(
+        routes, "verify_agent_owns_submission", AsyncMock(return_value=True)
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_submission",
+        AsyncMock(
+            return_value={
+                "id": submission_id,
+                "agent_verdict": "accepted",
+                "task": {"id": "task_idem_1"},
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        routes,
+        "_settle_submission_payment",
+        AsyncMock(return_value={"payment_tx": "0xoriginal_tx", "payment_error": None}),
+    )
+
+    update_mock = AsyncMock()
+    monkeypatch.setattr(routes.db, "update_submission", update_mock)
+
+    side_fx_mock = AsyncMock()
+    monkeypatch.setattr(routes, "_execute_post_approval_side_effects", side_fx_mock)
+
+    # First call (idempotent path since verdict is already accepted)
+    result1 = await routes.approve_submission(
+        submission_id=submission_id,
+        request=None,
+        api_key=api_key,
+    )
+    assert result1.data["idempotent"] is True
+    assert result1.data["payment_tx"] == "0xoriginal_tx"
+
+    # Second call — same behavior
+    result2 = await routes.approve_submission(
+        submission_id=submission_id,
+        request=None,
+        api_key=api_key,
+    )
+    assert result2.data["idempotent"] is True
+
+    # update_submission must NEVER be called for idempotent approvals
+    update_mock.assert_not_called()
+    # Side effects must NOT re-run on idempotent path
+    side_fx_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_feature_flags_disable_side_effects(monkeypatch):
+    """Invariant: When _execute_post_approval_side_effects does nothing
+    because imports fail (modules absent), approval still succeeds.
+
+    This simulates the feature flag being off (modules not available).
+    """
+    submission_id = "ccc33333-3333-3333-3333-333333333333"
+    api_key = SimpleNamespace(agent_id="agent_test")
+    release_tx = "0x" + "d" * 64
+
+    monkeypatch.setattr(
+        routes, "verify_agent_owns_submission", AsyncMock(return_value=True)
+    )
+    monkeypatch.setattr(
+        routes.db,
+        "get_submission",
+        AsyncMock(
+            return_value={
+                "id": submission_id,
+                "agent_verdict": "pending",
+                "task": {"id": "task_ff_1", "status": "submitted"},
+                "executor": {"id": "exec_1", "wallet_address": "0xworker"},
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        routes,
+        "_settle_submission_payment",
+        AsyncMock(return_value={"payment_tx": release_tx, "payment_error": None}),
+    )
+    monkeypatch.setattr(routes.db, "update_submission", AsyncMock())
+
+    # Simulate feature flags off: side effects return immediately (no-op)
+    noop_side_fx = AsyncMock(return_value=None)
+    monkeypatch.setattr(routes, "_execute_post_approval_side_effects", noop_side_fx)
+
+    result = await routes.approve_submission(
+        submission_id=submission_id,
+        request=routes.ApprovalRequest(notes="approved"),
+        api_key=api_key,
+    )
+
+    assert result.data["verdict"] == "accepted"
+    assert result.data["payment_tx"] == release_tx
+    # Side effects were called but did nothing — approval unaffected
+    noop_side_fx.assert_awaited_once()

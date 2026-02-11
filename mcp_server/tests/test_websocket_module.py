@@ -13,6 +13,8 @@ Run with: pytest mcp_server/tests/test_websocket_module.py -v
 
 import json
 import pytest
+
+pytestmark = pytest.mark.infrastructure
 from unittest.mock import AsyncMock, patch
 
 # Import from the new websocket module

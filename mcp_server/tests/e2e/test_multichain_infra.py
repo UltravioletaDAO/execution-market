@@ -20,6 +20,8 @@ Covers test plan IDs: A3, A4, A5, A6, A7
 import logging
 import os
 import pytest
+
+pytestmark = pytest.mark.payments
 from decimal import Decimal
 
 from .shared import (

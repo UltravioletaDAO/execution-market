@@ -18,6 +18,8 @@ without requiring on-chain transactions.
 """
 
 import pytest
+
+pytestmark = pytest.mark.payments
 import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal

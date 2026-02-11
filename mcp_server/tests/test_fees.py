@@ -5,6 +5,8 @@ Tests the FeeManager class and related functionality.
 """
 
 import pytest
+
+pytestmark = pytest.mark.payments
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 

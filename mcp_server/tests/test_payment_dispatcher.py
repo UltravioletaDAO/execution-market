@@ -24,6 +24,8 @@ from unittest.mock import (
 
 import pytest
 
+pytestmark = pytest.mark.payments
+
 import sys
 from pathlib import Path
 

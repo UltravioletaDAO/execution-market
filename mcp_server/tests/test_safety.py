@@ -5,6 +5,8 @@ Tests NOW-112 (Safety Pre-Investigation) and NOW-113 (Hostile Meatspace Protocol
 """
 
 import pytest
+
+pytestmark = pytest.mark.security
 from datetime import datetime, UTC
 from typing import Tuple
 

@@ -2,8 +2,10 @@
 Tests for applications table schema alignment helper.
 """
 
+import pytest
 from types import SimpleNamespace
 
+pytestmark = pytest.mark.core
 
 import supabase_client as db
 

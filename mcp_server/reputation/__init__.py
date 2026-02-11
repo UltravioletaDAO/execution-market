@@ -70,6 +70,9 @@ from .badges import (
     check_and_award_badges,
 )
 
+# Dynamic scoring (ERC-8004 feedback)
+from .scoring import calculate_dynamic_score
+
 # Leaderboard
 from .leaderboard import (
     LeaderboardManager,
@@ -114,4 +117,6 @@ __all__ = [
     "get_rising_stars",
     "get_specialists",
     "calculate_percentile",
+    # Dynamic scoring
+    "calculate_dynamic_score",
 ]

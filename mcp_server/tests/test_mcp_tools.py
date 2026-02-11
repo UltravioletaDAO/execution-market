@@ -12,6 +12,8 @@ Uses pytest-asyncio and mocks for Supabase client.
 """
 
 import pytest
+
+pytestmark = pytest.mark.core
 import json
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch

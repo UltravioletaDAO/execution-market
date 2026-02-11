@@ -25,6 +25,8 @@ import logging
 import os
 import uuid
 import pytest
+
+pytestmark = pytest.mark.erc8004
 from typing import Dict
 
 from .shared import (

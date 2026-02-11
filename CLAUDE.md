@@ -122,6 +122,54 @@ When you know something will be needed or is a logical next step:
 
 See `COMMANDS.md` for complete reference.
 
+### Backend Test Profiles
+
+The backend test suite (909 tests) is organized with **pytest markers** for selective execution. By default, dormant tests (modules not wired into active endpoints) are auto-skipped.
+
+```bash
+cd mcp_server
+
+# Default run — skips dormant (111 tests), runs ~800 active tests
+pytest
+
+# Specific profiles
+pytest -m core                             # Core business logic (213 tests)
+pytest -m erc8004                          # ERC-8004 integration (108 tests)
+pytest -m payments                         # Payment flows (204 tests)
+pytest -m security                         # Fraud, GPS, auth (80 tests)
+pytest -m infrastructure                   # Webhooks, WS, A2A (70 tests)
+
+# Combine profiles
+pytest -m "core or erc8004"                # Core + ERC-8004
+pytest -m "core or payments"               # Core + payments
+pytest -m "not dormant and not redundant"  # Lean suite (~720 tests)
+
+# Include everything (CI full sweep)
+EM_TEST_PROFILE=full pytest                # All 909 tests including dormant
+
+# View dormant tests only
+pytest -m dormant                          # 111 tests for unwired modules
+pytest -m redundant                        # 99 tests (a2a serialization)
+```
+
+**Marker reference** (`mcp_server/pytest.ini`):
+
+| Marker | Tests | What it covers |
+|--------|-------|----------------|
+| `core` | 213 | Routes, MCP tools, auth, reputation, workers, platform config |
+| `payments` | 204 | PaymentDispatcher, escrow, fees, multichain |
+| `erc8004` | 108 | Scoring, side effects, auto-registration, rejection, reputation tools |
+| `security` | 80 | Fraud detection, GPS antispoofing, safety |
+| `infrastructure` | 70 | Webhooks, WebSocket, A2A, timestamps |
+| `dormant` | 111 | Seals, consensus, protection fund, recon (NOT in active endpoints) |
+| `redundant` | 99 | A2A enum/serialization tests (low value) |
+
+**Dormant tests** are preserved in-place (not deleted) with a `pytestmark = pytest.mark.dormant` marker. They test modules that exist in the codebase but aren't wired into `routes.py` or `server.py`:
+- `test_seals.py` (43) — Seals & Credentials (in `mcp_server/seals/`)
+- `test_consensus.py` (27) — Validator Consensus (in `mcp_server/validation/consensus.py`)
+- `test_protection_fund.py` (30) — Worker Protection Fund (in `mcp_server/protection/fund.py`)
+- `test_recon.py` (11) — Recon task types (in `mcp_server/task_types/recon.py`)
+
 ---
 
 ### Dashboard Development

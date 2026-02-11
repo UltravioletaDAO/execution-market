@@ -10,6 +10,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+pytestmark = pytest.mark.infrastructure
+
 from websocket import (
     WebSocketManager,
     ConnectionState,

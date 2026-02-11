@@ -419,7 +419,9 @@
     "identity": "Identidad On-Chain",
     "identityHint": "Registra tu identidad on-chain para mayor confianza",
     "identityNotRegistered": "No registrado",
+    "identityRegisterButton": "Registrar en ERC-8004",
     "identityRegistered": "Verificado",
+    "identityRegistering": "Registrando...",
     "insufficientBalance": "Saldo insuficiente",
     "invalidAddress": "Direccion de wallet invalida",
     "languages": "Idiomas",
@@ -960,8 +962,30 @@
       "trusted": "Confiable",
       "reliable": "Fiable",
       "standard": "Estandar",
-      "new": "Nuevo"
+      "new": "Nuevo",
+      "bronze": "Bronce",
+      "silver": "Plata",
+      "gold": "Oro",
+      "diamond": "Diamante"
     }
+  },
+  "agentReputation": {
+    "title": "Reputacion On-Chain",
+    "score": "Puntuacion",
+    "ratings": "calificaciones recibidas",
+    "unavailable": "Datos on-chain no disponibles"
+  },
+  "rateAgent": {
+    "title": "Calificar Agente",
+    "ratingLabel": "Como fue tu experiencia con este agente?",
+    "commentLabel": "Comentario",
+    "commentPlaceholder": "Comparte detalles sobre tu experiencia con este agente...",
+    "submit": "Calificar Agente",
+    "skip": "Omitir",
+    "success": "Calificacion enviada!",
+    "successDescription": "Tu opinion ayuda a mejorar la plataforma.",
+    "defaultAgentName": "Agente de IA",
+    "agentLabel": "Publicador de la tarea"
   },
   "dashboard": {
     "welcome": "Hola, {{name}}!",

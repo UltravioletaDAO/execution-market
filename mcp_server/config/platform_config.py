@@ -98,6 +98,8 @@ class PlatformConfig:
         "feature.auto_matching_enabled": False,
         "feature.partial_release_enabled": True,
         "feature.websocket_notifications": True,
+        "feature.erc8004_dynamic_scoring_enabled": True,
+        "feature.erc8004_rejection_feedback_enabled": False,
         # Payments
         "x402.supported_networks": [
             "base",

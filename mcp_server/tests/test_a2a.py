@@ -21,6 +21,8 @@ import json
 import re
 from unittest.mock import patch
 
+pytestmark = pytest.mark.redundant
+
 import httpx
 import pytest_asyncio
 from fastapi import FastAPI

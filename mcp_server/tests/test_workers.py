@@ -9,6 +9,8 @@ Tests covering:
 """
 
 import pytest
+
+pytestmark = pytest.mark.core
 from datetime import datetime, timedelta, timezone
 
 from workers.probation import (

@@ -511,12 +511,40 @@ async def _send_reputation_feedback(
     task: Dict[str, Any],
     worker_address: Optional[str],
     release_tx: Optional[str],
+    submission: Optional[Dict[str, Any]] = None,
+    executor: Optional[Dict[str, Any]] = None,
+    override_score: Optional[int] = None,
 ) -> None:
     if not (ERC8004_AVAILABLE and rate_worker and worker_address and release_tx):
         return
 
     try:
-        reputation_score = 80  # Default positive score for completed work.
+        from config.platform_config import PlatformConfig
+
+        dynamic_enabled = await PlatformConfig.is_feature_enabled(
+            "erc8004_dynamic_scoring"
+        )
+
+        if dynamic_enabled:
+            from reputation.scoring import calculate_dynamic_score
+
+            scoring_result = calculate_dynamic_score(
+                task=task,
+                submission=submission or {},
+                executor=executor or {},
+                override_score=override_score,
+            )
+            reputation_score = scoring_result["score"]
+            scoring_source = scoring_result["source"]
+            logger.info(
+                "Dynamic scoring: task=%s, score=%d, source=%s",
+                task.get("id"),
+                reputation_score,
+                scoring_source,
+            )
+        else:
+            reputation_score = 80  # Legacy hardcoded score.
+
         reputation_result = await rate_worker(
             task_id=task["id"],
             score=reputation_score,
@@ -545,6 +573,314 @@ async def _send_reputation_feedback(
             task.get("id"),
             str(rep_err),
         )
+
+
+async def _execute_post_approval_side_effects(
+    submission_id: str,
+    submission: Dict[str, Any],
+    release_tx: Optional[str],
+) -> None:
+    """
+    Fire-and-forget side effects after a successful approval + payment.
+
+    WS-1: Auto-register worker on ERC-8004 Identity Registry (first completion).
+    WS-2: Worker auto-rates the agent on ERC-8004 Reputation Registry.
+
+    All operations are best-effort — failures are logged and recorded in the
+    erc8004_side_effects outbox but never affect the approval response.
+    """
+    task = submission.get("task") or {}
+    executor = submission.get("executor") or {}
+    task_id = task.get("id")
+    worker_address = executor.get("wallet_address")
+    executor_id = executor.get("id")
+    task_network = task.get("payment_network") or "base"
+
+    try:
+        from config.platform_config import PlatformConfig
+    except ImportError:
+        logger.debug(
+            "Side effects modules not available, skipping post-approval effects"
+        )
+        return
+
+    # ---- WS-1: Worker auto-registration --------------------------------
+    try:
+        ws1_enabled = await PlatformConfig.is_feature_enabled(
+            "erc8004_auto_register_worker"
+        )
+        if ws1_enabled:
+            await _ws1_auto_register_worker(
+                submission_id=submission_id,
+                executor=executor,
+                worker_address=worker_address,
+                executor_id=executor_id,
+                task_network=task_network,
+                task_id=task_id,
+            )
+    except Exception as e:
+        logger.error(
+            "WS-1 auto-register error (non-blocking): submission=%s, error=%s",
+            submission_id,
+            e,
+        )
+
+    # ---- WS-2: Worker auto-rates agent ----------------------------------
+    try:
+        ws2_enabled = await PlatformConfig.is_feature_enabled("erc8004_auto_rate_agent")
+        if ws2_enabled:
+            await _ws2_auto_rate_agent(
+                submission_id=submission_id,
+                submission=submission,
+                task=task,
+                executor=executor,
+                release_tx=release_tx,
+                task_id=task_id,
+            )
+    except Exception as e:
+        logger.error(
+            "WS-2 auto-rate error (non-blocking): submission=%s, error=%s",
+            submission_id,
+            e,
+        )
+
+
+async def _ws1_auto_register_worker(
+    submission_id: str,
+    executor: Dict[str, Any],
+    worker_address: Optional[str],
+    executor_id: Optional[str],
+    task_network: str,
+    task_id: Optional[str],
+) -> None:
+    """WS-1: Auto-register worker on first paid completion."""
+    from reputation.side_effects import enqueue_side_effect, mark_side_effect
+
+    # Guard: need a valid wallet
+    if not worker_address or not _is_valid_eth_address(worker_address):
+        logger.info(
+            "WS-1 skip: invalid/missing wallet for submission %s", submission_id
+        )
+        effect = await enqueue_side_effect(
+            supabase=db.get_client(),
+            submission_id=submission_id,
+            effect_type="register_worker_identity",
+            payload={"task_id": task_id, "skip_reason": "missing_or_invalid_wallet"},
+        )
+        if effect:
+            await mark_side_effect(
+                supabase=db.get_client(),
+                effect_id=effect["id"],
+                status="skipped",
+                error="missing_or_invalid_wallet",
+            )
+        return
+
+    # Guard: already registered
+    existing_agent_id = executor.get("erc8004_agent_id")
+    if existing_agent_id:
+        logger.info(
+            "WS-1 skip: executor %s already has erc8004_agent_id=%s",
+            executor_id,
+            existing_agent_id,
+        )
+        effect = await enqueue_side_effect(
+            supabase=db.get_client(),
+            submission_id=submission_id,
+            effect_type="register_worker_identity",
+            payload={
+                "task_id": task_id,
+                "skip_reason": "already_registered",
+                "agent_id": existing_agent_id,
+            },
+        )
+        if effect:
+            await mark_side_effect(
+                supabase=db.get_client(),
+                effect_id=effect["id"],
+                status="skipped",
+                error="already_registered",
+            )
+        return
+
+    # Enqueue
+    effect = await enqueue_side_effect(
+        supabase=db.get_client(),
+        submission_id=submission_id,
+        effect_type="register_worker_identity",
+        payload={
+            "task_id": task_id,
+            "worker_wallet": worker_address,
+            "executor_id": executor_id,
+            "network": task_network,
+        },
+    )
+    if not effect:
+        return  # dedup hit
+
+    # Best-effort immediate attempt
+    try:
+        from integrations.erc8004.identity import (
+            register_worker_gasless,
+            update_executor_identity,
+        )
+
+        reg_result = await register_worker_gasless(
+            wallet_address=worker_address,
+            network=task_network,
+        )
+
+        if reg_result.status.value == "registered" and reg_result.agent_id:
+            if executor_id:
+                await update_executor_identity(executor_id, reg_result.agent_id)
+            await mark_side_effect(
+                supabase=db.get_client(),
+                effect_id=effect["id"],
+                status="success",
+                tx_hash=None,  # gasless — facilitator tx, not directly available
+            )
+            logger.info(
+                "WS-1 success: worker %s registered as agent_id=%s on %s",
+                worker_address[:10],
+                reg_result.agent_id,
+                task_network,
+            )
+        else:
+            await mark_side_effect(
+                supabase=db.get_client(),
+                effect_id=effect["id"],
+                status="failed",
+                error=reg_result.error or "registration_returned_no_agent_id",
+            )
+    except Exception as e:
+        await mark_side_effect(
+            supabase=db.get_client(),
+            effect_id=effect["id"],
+            status="failed",
+            error=str(e),
+        )
+        logger.warning("WS-1 immediate attempt failed (will retry): %s", e)
+
+
+async def _ws2_auto_rate_agent(
+    submission_id: str,
+    submission: Dict[str, Any],
+    task: Dict[str, Any],
+    executor: Dict[str, Any],
+    release_tx: Optional[str],
+    task_id: Optional[str],
+) -> None:
+    """WS-2: Worker auto-rates the agent after successful payment."""
+    from reputation.side_effects import enqueue_side_effect, mark_side_effect
+
+    # Resolve agent ERC-8004 ID
+    agent_erc8004_id = None
+    raw_erc8004 = task.get("erc8004_agent_id")
+    if raw_erc8004 is not None:
+        try:
+            agent_erc8004_id = int(raw_erc8004)
+        except (ValueError, TypeError):
+            pass
+
+    if agent_erc8004_id is None:
+        raw_agent = task.get("agent_id")
+        if raw_agent is not None:
+            try:
+                agent_erc8004_id = int(raw_agent)
+            except (ValueError, TypeError):
+                pass
+
+    if agent_erc8004_id is None:
+        logger.info("WS-2 skip: no numeric agent ERC-8004 ID for task %s", task_id)
+        effect = await enqueue_side_effect(
+            supabase=db.get_client(),
+            submission_id=submission_id,
+            effect_type="rate_agent_from_worker",
+            payload={"task_id": task_id, "skip_reason": "missing_agent_erc8004_id"},
+        )
+        if effect:
+            await mark_side_effect(
+                supabase=db.get_client(),
+                effect_id=effect["id"],
+                status="skipped",
+                error="missing_agent_erc8004_id",
+            )
+        return
+
+    # Calculate score via dynamic scoring (fallback 85)
+    score = 85
+    try:
+        from config.platform_config import PlatformConfig
+
+        dynamic_enabled = await PlatformConfig.is_feature_enabled(
+            "erc8004_dynamic_scoring"
+        )
+        if dynamic_enabled:
+            from reputation.scoring import calculate_dynamic_score
+
+            scoring_result = calculate_dynamic_score(
+                task=task,
+                submission=submission,
+                executor=executor,
+            )
+            score = scoring_result["score"]
+    except Exception as e:
+        logger.debug("WS-2 dynamic scoring fallback to 85: %s", e)
+
+    # Enqueue
+    effect = await enqueue_side_effect(
+        supabase=db.get_client(),
+        submission_id=submission_id,
+        effect_type="rate_agent_from_worker",
+        payload={
+            "task_id": task_id,
+            "agent_erc8004_id": agent_erc8004_id,
+            "payment_tx": release_tx,
+        },
+        score=score,
+    )
+    if not effect:
+        return  # dedup hit
+
+    # Best-effort immediate attempt
+    try:
+        from integrations.erc8004.facilitator_client import rate_agent
+
+        feedback_result = await rate_agent(
+            agent_id=agent_erc8004_id,
+            task_id=task_id or "",
+            score=score,
+            proof_tx=release_tx,
+        )
+
+        if feedback_result.success:
+            await mark_side_effect(
+                supabase=db.get_client(),
+                effect_id=effect["id"],
+                status="success",
+                tx_hash=feedback_result.transaction_hash,
+            )
+            logger.info(
+                "WS-2 success: worker rated agent %d with score=%d, tx=%s",
+                agent_erc8004_id,
+                score,
+                feedback_result.transaction_hash,
+            )
+        else:
+            await mark_side_effect(
+                supabase=db.get_client(),
+                effect_id=effect["id"],
+                status="failed",
+                error=feedback_result.error or "feedback_submission_failed",
+            )
+    except Exception as e:
+        await mark_side_effect(
+            supabase=db.get_client(),
+            effect_id=effect["id"],
+            status="failed",
+            error=str(e),
+        )
+        logger.warning("WS-2 immediate attempt failed (will retry): %s", e)
 
 
 async def _is_submission_ready_for_instant_payout(
@@ -603,6 +939,7 @@ async def _settle_submission_payment(
     note: str = "Payment settled via x402 SDK facilitator",
     worker_auth_header: Optional[str] = None,
     fee_auth_header: Optional[str] = None,
+    override_score: Optional[int] = None,
 ) -> Dict[str, Optional[str]]:
     """
     Settle payout for one submission with idempotency safeguards.
@@ -815,6 +1152,9 @@ async def _settle_submission_payment(
                     task=task,
                     worker_address=worker_address,
                     release_tx=release_tx,
+                    submission=submission,
+                    executor=executor,
+                    override_score=override_score,
                 )
         else:
             release_error = result.get("error", "SDK settlement failed")
@@ -1150,6 +1490,13 @@ class ApprovalRequest(BaseModel):
     notes: Optional[str] = Field(
         default=None, description="Optional notes about the approval", max_length=1000
     )
+    rating_score: Optional[int] = Field(
+        default=None,
+        description="Optional reputation score override (0-100). "
+        "When omitted, score is computed dynamically from submission quality signals.",
+        ge=0,
+        le=100,
+    )
 
 
 class RejectionRequest(BaseModel):
@@ -1157,6 +1504,17 @@ class RejectionRequest(BaseModel):
 
     notes: str = Field(
         ..., description="Required reason for rejection", min_length=10, max_length=1000
+    )
+    severity: str = Field(
+        default="minor",
+        description="Rejection severity: 'minor' (no on-chain effect) or 'major' (records negative reputation)",
+        pattern="^(minor|major)$",
+    )
+    reputation_score: Optional[int] = Field(
+        default=None,
+        description="Reputation score for major rejections (0-50). Defaults to 30 if omitted.",
+        ge=0,
+        le=50,
     )
 
 
@@ -3482,12 +3840,14 @@ async def approve_submission(
         )
 
     notes = request.notes if request else None
+    rating_score = getattr(request, "rating_score", None) if request else None
     settlement = await _settle_submission_payment(
         submission_id=submission_id,
         submission=submission,
         note="Manual approval payout via x402 facilitator",
         worker_auth_header=_worker_auth,
         fee_auth_header=_fee_auth,
+        override_score=rating_score,
     )
     release_tx = settlement.get("payment_tx")
     release_error = settlement.get("payment_error")
@@ -3528,6 +3888,20 @@ async def approve_submission(
         api_key.agent_id,
         release_tx,
     )
+
+    # Fire-and-forget: ERC-8004 side effects (WS-1 registration, WS-2 agent rating)
+    try:
+        await _execute_post_approval_side_effects(
+            submission_id=submission_id,
+            submission=submission,
+            release_tx=release_tx,
+        )
+    except Exception as side_fx_err:
+        logger.error(
+            "Post-approval side effects error (non-blocking): submission=%s, error=%s",
+            submission_id,
+            side_fx_err,
+        )
 
     response_data = {
         "submission_id": submission_id,
@@ -3680,6 +4054,14 @@ async def reject_submission(
             detail=f"Submission already processed with verdict: {submission.get('agent_verdict')}",
         )
 
+    # Validate severity-specific constraints
+    if request.severity == "major" and request.reputation_score is not None:
+        if request.reputation_score > 50:
+            raise HTTPException(
+                status_code=400,
+                detail="Major rejection reputation_score must be 0-50",
+            )
+
     # Update submission
     await db.update_submission(
         submission_id=submission_id,
@@ -3689,15 +4071,110 @@ async def reject_submission(
     )
 
     logger.info(
-        "Submission rejected: id=%s, agent=%s, reason=%s",
+        "Submission rejected: id=%s, agent=%s, severity=%s, reason=%s",
         submission_id,
         api_key.agent_id,
+        request.severity,
         request.notes[:50],
     )
 
+    side_effect_id = None
+    if request.severity == "major":
+        from config.platform_config import PlatformConfig
+
+        rejection_enabled = await PlatformConfig.is_feature_enabled(
+            "erc8004_rejection_feedback"
+        )
+
+        if rejection_enabled:
+            # Rate-limit: max 3 major rejections per agent per 24h
+            try:
+                client = db.get_client()
+                cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+                count_result = (
+                    client.table("erc8004_side_effects")
+                    .select("id", count="exact")
+                    .eq("effect_type", "rate_worker_on_rejection")
+                    .gte("created_at", cutoff)
+                    .execute()
+                )
+                recent_count = (
+                    count_result.count if count_result.count is not None else 0
+                )
+                # Filter by agent_id from payload
+                if recent_count >= 3:
+                    # Additional check: count only this agent's rejections
+                    all_rows = (
+                        client.table("erc8004_side_effects")
+                        .select("payload")
+                        .eq("effect_type", "rate_worker_on_rejection")
+                        .gte("created_at", cutoff)
+                        .execute()
+                    )
+                    agent_count = sum(
+                        1
+                        for r in (all_rows.data or [])
+                        if (r.get("payload") or {}).get("agent_id") == api_key.agent_id
+                    )
+                    if agent_count >= 3:
+                        raise HTTPException(
+                            status_code=429,
+                            detail="Rate limit exceeded: max 3 major rejections per 24 hours",
+                        )
+            except HTTPException:
+                raise
+            except Exception as rl_err:
+                logger.warning(
+                    "Rate limit check failed for rejection feedback: %s", rl_err
+                )
+
+            # Enqueue side effect
+            score = (
+                request.reputation_score if request.reputation_score is not None else 30
+            )
+            task = submission.get("task") or {}
+            executor = submission.get("executor") or {}
+            try:
+                from reputation.side_effects import enqueue_side_effect
+
+                effect = await enqueue_side_effect(
+                    supabase=db.get_client(),
+                    submission_id=submission_id,
+                    effect_type="rate_worker_on_rejection",
+                    payload={
+                        "task_id": task.get("id"),
+                        "worker_wallet": executor.get("wallet_address"),
+                        "agent_id": api_key.agent_id,
+                        "severity": "major",
+                        "notes": request.notes[:200],
+                    },
+                    score=score,
+                )
+                if effect:
+                    side_effect_id = effect.get("id")
+
+                logger.info(
+                    "Major rejection feedback enqueued: submission=%s, agent=%s, score=%d",
+                    submission_id,
+                    api_key.agent_id,
+                    score,
+                )
+            except Exception as se_err:
+                logger.error(
+                    "Failed to enqueue rejection feedback for submission %s: %s",
+                    submission_id,
+                    se_err,
+                )
+
+    response_data = {"submission_id": submission_id, "verdict": "rejected"}
+    if request.severity == "major":
+        response_data["severity"] = "major"
+    if side_effect_id:
+        response_data["side_effect_id"] = side_effect_id
+
     return SuccessResponse(
         message="Submission rejected. Task returned to available pool.",
-        data={"submission_id": submission_id, "verdict": "rejected"},
+        data=response_data,
     )
 
 

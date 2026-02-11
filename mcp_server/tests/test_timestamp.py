@@ -2,7 +2,10 @@
 Tests for timestamp verification module.
 """
 
+import pytest
 from datetime import datetime, timedelta, UTC
+
+pytestmark = pytest.mark.infrastructure
 from verification.checks.timestamp import (
     check_timestamp,
 )

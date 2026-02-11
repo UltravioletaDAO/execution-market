@@ -2,6 +2,10 @@
 Tests for GPS verification module.
 """
 
+import pytest
+
+pytestmark = pytest.mark.security
+
 from verification.checks.gps import (
     check_gps_location,
     haversine_distance,

@@ -7,6 +7,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+pytestmark = pytest.mark.core
+
 from ..jobs import task_expiration
 from api import routes
 import supabase_client as db
