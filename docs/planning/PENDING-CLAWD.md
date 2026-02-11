@@ -8,7 +8,7 @@
 
 ### Payment Architecture: REFACTORED ✅
 - **Fase 1** "Auth on Approve" — LIVE on Base mainnet. Default mode.
-- **Fase 2** Gasless Escrow — TESTED on Base mainnet. Ready to deploy.
+- **Fase 2** Gasless Escrow — LIVE on Base mainnet. E2E verified Feb 11 ($0.10 across 4 TXs).
 - **ChambaEscrow** — ARCHIVED. Replaced by x402 facilitator.
 - **payment_events** audit trail — Implemented. Migration 027 ready.
 - **Fund loss bug** — Structurally impossible in Fase 1 (no transit state).
@@ -16,10 +16,10 @@
 ### Test Suite
 | Component | Tests | Status |
 |-----------|-------|--------|
-| Python (unit + e2e mock) | 706 | ✅ Passing |
+| Python (unit + e2e mock) | 734 | ✅ Passing |
 | Dashboard (React) | 27 | ✅ Passing |
 | Solidity | 0 | ⬇️ ChambaEscrow archived |
-| **Total** | **733** | Stable |
+| **Total** | **761** | Stable |
 
 ---
 
