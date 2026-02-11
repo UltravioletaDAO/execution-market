@@ -546,7 +546,7 @@ class TestModeSelection:
     """Tests for payment mode selection and fallback logic."""
 
     def test_x402r_falls_back_when_escrow_unavailable(self):
-        """x402r should fall back to preauth if advanced escrow is unavailable."""
+        """x402r should fall back to fase1 if advanced escrow is unavailable."""
         with (
             patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
@@ -554,10 +554,10 @@ class TestModeSelection:
             from integrations.x402.payment_dispatcher import PaymentDispatcher
 
             d = PaymentDispatcher(mode="x402r")
-            assert d.mode == "preauth"
+            assert d.mode == "fase1"
 
     def test_x402r_falls_back_when_sdk_unavailable(self):
-        """x402r should fall back to preauth if SDK unavailable (needed for disbursement)."""
+        """x402r should fall back to fase1 if SDK unavailable (needed for disbursement)."""
         with (
             patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", True),
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", False),
@@ -565,10 +565,10 @@ class TestModeSelection:
             from integrations.x402.payment_dispatcher import PaymentDispatcher
 
             d = PaymentDispatcher(mode="x402r")
-            assert d.mode == "preauth"
+            assert d.mode == "fase1"
 
-    def test_unknown_mode_falls_back_to_preauth(self):
-        """Unknown mode should fall back to preauth with warning."""
+    def test_unknown_mode_falls_back_to_fase1(self):
+        """Unknown mode should fall back to fase1 with warning."""
         with (
             patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", True),
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
@@ -576,7 +576,18 @@ class TestModeSelection:
             from integrations.x402.payment_dispatcher import PaymentDispatcher
 
             d = PaymentDispatcher(mode="invalid_mode")
-            assert d.mode == "preauth"
+            assert d.mode == "fase1"
+
+    def test_fase1_mode_accepted(self):
+        """fase1 mode should be accepted directly."""
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase1")
+            assert d.mode == "fase1"
 
     def test_get_mode_returns_current(self):
         """get_mode() should return the configured mode."""

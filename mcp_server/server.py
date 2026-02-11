@@ -687,37 +687,63 @@ async def em_publish_task(params: PublishTaskInput) -> str:
             payment_network=params.payment_network or "base",
         )
 
-        # Authorize escrow via SDK (facilitator handles gas)
+        # Payment authorization via dispatcher (mode-dependent)
         escrow_info = None
-        if ADVANCED_ESCROW_AVAILABLE:
+        balance_warning = None
+        dispatcher = get_payment_dispatcher()
+        if dispatcher:
             try:
-                from integrations.x402.advanced_escrow_integration import (
-                    authorize_task_bounty,
-                )
+                if dispatcher.get_mode() == "fase1":
+                    # Fase 1: advisory balance check only (no funds move)
+                    total_check = Decimal(str(params.bounty_usd)) * Decimal("1.08")
+                    auth_result = await dispatcher.authorize_payment(
+                        task_id=task["id"],
+                        receiver=params.agent_id,
+                        amount_usdc=total_check,
+                        network=params.payment_network or "base",
+                        token=params.payment_token or "USDC",
+                    )
+                    escrow_info = {
+                        "escrow_id": task["id"],
+                        "status": auth_result.get("escrow_status", "balance_verified"),
+                        "deposit_tx": "",
+                    }
+                    if auth_result.get("warning"):
+                        balance_warning = auth_result["warning"]
+                elif ADVANCED_ESCROW_AVAILABLE:
+                    from integrations.x402.advanced_escrow_integration import (
+                        authorize_task_bounty,
+                    )
 
-                escrow_result = authorize_task_bounty(
-                    task_id=task["id"],
-                    receiver=params.agent_id,  # Receiver set at release time
-                    amount_usdc=Decimal(str(params.bounty_usd)),
-                )
-                escrow_info = {
-                    "escrow_id": task["id"],
-                    "status": escrow_result.status
-                    if hasattr(escrow_result, "status")
-                    else "authorized",
-                    "deposit_tx": getattr(escrow_result, "tx_hash", "") or "",
-                }
-                logger.info(f"Escrow authorized via SDK for task {task['id']}")
+                    escrow_result = authorize_task_bounty(
+                        task_id=task["id"],
+                        receiver=params.agent_id,
+                        amount_usdc=Decimal(str(params.bounty_usd)),
+                    )
+                    escrow_info = {
+                        "escrow_id": task["id"],
+                        "status": escrow_result.status
+                        if hasattr(escrow_result, "status")
+                        else "authorized",
+                        "deposit_tx": getattr(escrow_result, "tx_hash", "") or "",
+                    }
+                else:
+                    escrow_info = {
+                        "escrow_id": task["id"],
+                        "status": "pending",
+                        "deposit_tx": "",
+                    }
             except Exception as e:
-                logger.warning(f"Could not authorize escrow via SDK: {e}")
+                logger.warning(
+                    "Payment authorization failed for task %s: %s", task["id"], e
+                )
         elif x402_sdk:
-            # Fallback: record escrow intent without on-chain authorization
             escrow_info = {
                 "escrow_id": task["id"],
                 "status": "pending",
                 "deposit_tx": "",
             }
-            logger.info(f"Escrow recorded (SDK-only) for task {task['id']}")
+            logger.info("Escrow recorded (SDK-only) for task %s", task["id"])
 
         # Dispatch webhook
         if WebhookEventType:
@@ -748,6 +774,12 @@ async def em_publish_task(params: PublishTaskInput) -> str:
 - **Escrow ID**: `{escrow_info.get("escrow_id", "N/A")}`
 - **Status**: {escrow_info.get("status", "deposited").upper()}
 - **Tx**: `{escrow_info.get("deposit_tx", "N/A")[:16]}...`
+"""
+
+        if balance_warning:
+            response += f"""
+## Balance Warning
+{balance_warning}
 """
 
         response += """
@@ -1027,33 +1059,39 @@ async def em_approve_submission(params: ApproveSubmissionInput) -> str:
         # Get task for context
         task = await db.get_task(submission.get("task_id"))
 
-        # Handle payment release on approval via SDK (facilitator pays gas)
+        # Handle payment release on approval via PaymentDispatcher
         payment_info = None
         if params.verdict.value == "accepted" and task:
             worker_wallet = submission.get("executor", {}).get("wallet_address")
             if worker_wallet:
-                # Try advanced escrow first (SDK-based), then basic SDK settle
-                if ADVANCED_ESCROW_AVAILABLE:
-                    try:
-                        from integrations.x402.advanced_escrow_integration import (
-                            release_to_worker,
-                        )
+                try:
+                    dispatcher = get_payment_dispatcher()
+                    if dispatcher:
+                        # Resolve payment header for preauth mode (fase1 doesn't need it)
+                        payment_header = None
+                        if dispatcher.get_mode() == "preauth":
+                            payment_header = _resolve_mcp_payment_header(
+                                task["id"], task.get("escrow_tx")
+                            )
 
-                        result = release_to_worker(task_id=task["id"])
-                        payment_info = {
-                            "tx_hash": getattr(result, "transaction_hash", ""),
-                            "success": getattr(result, "success", False),
-                            "amount": task["bounty_usd"],
-                        }
+                        payment_info = await dispatcher.release_payment(
+                            task_id=task["id"],
+                            worker_address=worker_wallet,
+                            bounty_amount=Decimal(str(task["bounty_usd"])),
+                            payment_header=payment_header,
+                            network=task.get("payment_network"),
+                            token=task.get("payment_token", "USDC"),
+                            worker_auth_header=params.payment_auth_worker,
+                            fee_auth_header=params.payment_auth_fee,
+                        )
                         logger.info(
-                            f"Payment released via advanced escrow for task {task['id']}"
+                            "Payment released via dispatcher (%s) for task %s: success=%s",
+                            dispatcher.get_mode(),
+                            task["id"],
+                            payment_info.get("success"),
                         )
-                    except Exception as e:
-                        logger.error(f"Advanced escrow release failed: {e}")
-
-                if not payment_info and x402_sdk:
-                    try:
-                        # Resolve the x402 payment header from escrows table
+                    elif x402_sdk:
+                        # Fallback: direct SDK settlement
                         payment_header = _resolve_mcp_payment_header(
                             task["id"], task.get("escrow_tx")
                         )
@@ -1063,11 +1101,10 @@ async def em_approve_submission(params: ApproveSubmissionInput) -> str:
                             worker_address=worker_wallet,
                             bounty_amount=Decimal(str(task["bounty_usd"])),
                         )
-                        logger.info(
-                            f"Payment settled via SDK for task {task['id']}: {payment_info}"
-                        )
-                    except Exception as e:
-                        logger.error(f"SDK payment settlement failed: {e}")
+                except Exception as e:
+                    logger.error(
+                        "Payment settlement failed for task %s: %s", task["id"], e
+                    )
 
                 # Dispatch payment webhook
                 if (
@@ -1143,11 +1180,15 @@ The task has been marked as completed and the executor will receive payment."""
                 tx_hash = payment_info.get("tx_hash", "N/A")
                 if isinstance(tx_hash, list):
                     tx_hash = tx_hash[0] if tx_hash else "N/A"
+                worker_amount = (
+                    payment_info.get("net_to_worker") or payment_info.get("amount") or 0
+                )
+                fee_amount = payment_info.get("platform_fee") or 0
                 response += f"""
 
 ## Payment Details
-- **Worker Payment**: ${payment_info.get("net_to_worker", payment_info.get("amount", 0)):.2f}
-- **Platform Fee**: ${payment_info.get("platform_fee", 0):.2f}
+- **Worker Payment**: ${float(worker_amount):.2f}
+- **Platform Fee**: ${float(fee_amount):.2f}
 - **Transaction**: `{str(tx_hash)[:16]}...`"""
         else:
             response += "\nThe executor has been notified of your decision."
@@ -1256,6 +1297,101 @@ The task is no longer available for human executors."""
 
     except Exception as e:
         return f"Error: Failed to cancel task - {str(e)}"
+
+
+@mcp.tool(
+    name="em_get_payment_info",
+    annotations={
+        "title": "Get Payment Info for Task Approval",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)
+async def em_get_payment_info(task_id: str, submission_id: str) -> str:
+    """
+    Get payment details needed to approve a task submission (Fase 1 mode).
+
+    External agents use this to get the exact addresses and amounts they need
+    to sign 2 EIP-3009 authorizations: one for the worker and one for the
+    platform fee.
+
+    Args:
+        task_id: UUID of the task
+        submission_id: UUID of the submission to approve
+
+    Returns:
+        JSON with worker_address, treasury_address, bounty_amount, fee_amount,
+        token details, and signing parameters.
+    """
+    try:
+        from integrations.x402.sdk_client import (
+            PLATFORM_FEE_PERCENT,
+            EM_TREASURY,
+            get_token_config,
+        )
+
+        task = await db.get_task(task_id)
+        if not task:
+            return json.dumps({"error": f"Task {task_id} not found"})
+
+        # Get submission to find worker wallet
+        result = await db.get_submissions(task_id)
+        submission = None
+        for s in result if isinstance(result, list) else [result]:
+            if s.get("id") == submission_id:
+                submission = s
+                break
+
+        if not submission:
+            return json.dumps({"error": f"Submission {submission_id} not found"})
+
+        worker_address = (submission.get("executor") or {}).get("wallet_address")
+        if not worker_address:
+            return json.dumps(
+                {"error": "Worker wallet address not found on submission"}
+            )
+
+        bounty = Decimal(str(task.get("bounty_usd", 0)))
+        platform_fee = (bounty * PLATFORM_FEE_PERCENT).quantize(Decimal("0.000001"))
+        if Decimal("0") < platform_fee < Decimal("0.01"):
+            platform_fee = Decimal("0.01")
+
+        network = task.get("payment_network", "base")
+        token = task.get("payment_token", "USDC")
+
+        try:
+            token_config = get_token_config(network, token)
+        except ValueError as e:
+            return json.dumps({"error": str(e)})
+
+        return json.dumps(
+            {
+                "task_id": task_id,
+                "submission_id": submission_id,
+                "worker_address": worker_address,
+                "treasury_address": EM_TREASURY,
+                "bounty_amount": str(bounty),
+                "fee_amount": str(platform_fee),
+                "total_required": str(bounty + platform_fee),
+                "network": network,
+                "token": token,
+                "token_address": token_config["address"],
+                "token_decimals": token_config["decimals"],
+                "valid_for_seconds": 3600,
+                "instructions": (
+                    "Sign 2 EIP-3009 TransferWithAuthorization messages: "
+                    "1) agent->worker_address for bounty_amount, "
+                    "2) agent->treasury_address for fee_amount. "
+                    "Then call em_approve_submission with payment_auth_worker and payment_auth_fee."
+                ),
+            },
+            indent=2,
+        )
+
+    except Exception as e:
+        return json.dumps({"error": f"Failed to get payment info: {str(e)}"})
 
 
 # ============== WORKER TOOLS ==============

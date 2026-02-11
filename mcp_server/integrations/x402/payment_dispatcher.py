@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 EM_PAYMENT_MODE = os.environ.get(
-    "EM_PAYMENT_MODE", "preauth"
-)  # "preauth" (default) or "x402r"
+    "EM_PAYMENT_MODE", "fase1"
+)  # "fase1" (default), "preauth", or "x402r"
 
 # --- x402r backend (advanced escrow) ---
 try:
@@ -137,34 +137,35 @@ class PaymentDispatcher:
     def __init__(self, mode: Optional[str] = None):
         self.mode = (mode or EM_PAYMENT_MODE).lower()
 
-        if self.mode not in ("x402r", "preauth"):
+        if self.mode not in ("x402r", "preauth", "fase1"):
             logger.warning(
-                "Unknown EM_PAYMENT_MODE '%s', falling back to 'preauth'",
+                "Unknown EM_PAYMENT_MODE '%s', falling back to 'fase1'",
                 self.mode,
             )
-            self.mode = "preauth"
+            self.mode = "fase1"
 
         # Validate availability and fall back if needed
         if self.mode == "x402r" and not ADVANCED_ESCROW_AVAILABLE:
             logger.warning(
                 "x402r mode requested but advanced escrow SDK not available. "
-                "Falling back to preauth mode."
+                "Falling back to fase1 mode."
             )
-            self.mode = "preauth"
+            self.mode = "fase1"
 
         # x402r mode also requires the SDK for disbursement (disburse_to_worker,
         # collect_platform_fee, settle agent auth). Fall back if unavailable.
         if self.mode == "x402r" and not SDK_AVAILABLE:
             logger.warning(
                 "x402r mode requested but uvd-x402-sdk not available for "
-                "disbursement operations. Falling back to preauth mode."
+                "disbursement operations. Falling back to fase1 mode."
             )
-            self.mode = "preauth"
+            self.mode = "fase1"
 
-        if self.mode == "preauth" and not SDK_AVAILABLE:
+        if self.mode in ("preauth", "fase1") and not SDK_AVAILABLE:
             logger.error(
-                "preauth mode requested but uvd-x402-sdk not available. "
-                "Payment operations will fail."
+                "%s mode requested but uvd-x402-sdk not available. "
+                "Payment operations will fail.",
+                self.mode,
             )
 
         # Lazy-initialized backend instances
@@ -196,12 +197,16 @@ class PaymentDispatcher:
         amount_usdc: Decimal,
         strategy: Optional[Any] = None,
         x_payment_header: Optional[str] = None,
+        agent_address: Optional[str] = None,
+        network: Optional[str] = None,
+        token: str = "USDC",
     ) -> Dict[str, Any]:
         """
         Authorize (lock or verify) a payment for a task.
 
         x402r mode: Settles agent auth + locks funds on-chain via escrow contract.
         preauth mode: Verifies EIP-3009 signature via verify_x402_payment().
+        fase1 mode: Checks agent's on-chain balance (no funds move).
 
         Args:
             task_id: Unique task identifier
@@ -209,6 +214,9 @@ class PaymentDispatcher:
             amount_usdc: Total amount including fee (bounty + platform fee)
             strategy: PaymentStrategy for x402r mode (optional)
             x_payment_header: X-Payment header from agent request
+            agent_address: Agent wallet address (for fase1 balance check)
+            network: Payment network (for fase1)
+            token: Payment token (for fase1)
 
         Returns:
             Uniform dict with success, tx_hash, mode, escrow_status, payment_info, error.
@@ -217,6 +225,10 @@ class PaymentDispatcher:
             if self.mode == "x402r":
                 return await self._authorize_x402r(
                     task_id, receiver, amount_usdc, strategy, x_payment_header
+                )
+            elif self.mode == "fase1":
+                return await self._authorize_fase1(
+                    task_id, amount_usdc, agent_address, network, token
                 )
             else:
                 return await self._authorize_preauth(
@@ -419,6 +431,84 @@ class PaymentDispatcher:
             "error": result.error,
         }
 
+    async def _authorize_fase1(
+        self,
+        task_id: str,
+        amount_usdc: Decimal,
+        agent_address: Optional[str] = None,
+        network: Optional[str] = None,
+        token: str = "USDC",
+    ) -> Dict[str, Any]:
+        """
+        Authorize via fase1 — balance check only, no funds move.
+
+        Checks that agent has enough tokens on-chain. Advisory: task still
+        creates even if balance check fails (payment enforced at approval).
+        """
+        sdk = self._get_sdk()
+
+        # Derive agent address from WALLET_PRIVATE_KEY if not provided
+        if not agent_address:
+            try:
+                agent_address = sdk._get_agent_account().address
+            except Exception:
+                agent_address = None
+
+        if not agent_address:
+            return {
+                "success": True,
+                "tx_hash": None,
+                "mode": "fase1",
+                "escrow_status": "balance_unknown",
+                "payment_info": None,
+                "payment_info_serialized": None,
+                "error": None,
+                "warning": "No agent address available for balance check",
+            }
+
+        balance_result = await sdk.check_agent_balance(
+            agent_address=agent_address,
+            required_amount=amount_usdc,
+            network=network or sdk.network,
+            token=token,
+        )
+
+        await log_payment_event(
+            task_id=task_id,
+            event_type="balance_check",
+            status="success" if balance_result.get("sufficient") else "warning",
+            from_address=agent_address,
+            amount_usdc=amount_usdc,
+            network=network or sdk.network,
+            token=token,
+            metadata={
+                "mode": "fase1",
+                "balance": str(balance_result.get("balance")),
+                "sufficient": balance_result.get("sufficient"),
+                "warning": balance_result.get("warning"),
+            },
+        )
+
+        sufficient = balance_result.get("sufficient", True)
+        return {
+            "success": True,  # Always succeed — balance check is advisory
+            "tx_hash": None,
+            "mode": "fase1",
+            "escrow_status": "balance_verified"
+            if sufficient
+            else "insufficient_balance",
+            "payment_info": None,
+            "payment_info_serialized": None,
+            "balance_info": balance_result,
+            "error": None,
+            "warning": None
+            if sufficient
+            else (
+                f"Agent balance may be insufficient "
+                f"(have {balance_result.get('balance')}, need {amount_usdc})"
+            ),
+        }
+
     # =========================================================================
     # release_payment
     # =========================================================================
@@ -431,12 +521,15 @@ class PaymentDispatcher:
         payment_header: Optional[str] = None,
         network: Optional[str] = None,
         token: str = "USDC",
+        worker_auth_header: Optional[str] = None,
+        fee_auth_header: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Release payment to a worker after task approval.
 
         x402r mode: Releases from on-chain escrow, disburses bounty to worker + fee to treasury.
         preauth mode: Settles EIP-3009 auth via EMX402SDK.settle_task_payment().
+        fase1 mode: 2 direct settlements agent->worker + agent->treasury (no intermediary).
 
         Args:
             task_id: Task identifier
@@ -446,6 +539,8 @@ class PaymentDispatcher:
             payment_header: Original X-Payment header (required for preauth only)
             network: Payment network (optional, defaults to SDK default)
             token: Payment token (default: USDC)
+            worker_auth_header: Pre-signed auth for worker payment (fase1 external agents)
+            fee_auth_header: Pre-signed auth for fee payment (fase1 external agents)
 
         Returns:
             Uniform dict with success, tx_hash, mode, error.
@@ -454,6 +549,16 @@ class PaymentDispatcher:
             if self.mode == "x402r":
                 return await self._release_x402r(
                     task_id, worker_address, bounty_amount, network, token
+                )
+            elif self.mode == "fase1":
+                return await self._release_fase1(
+                    task_id,
+                    worker_address,
+                    bounty_amount,
+                    worker_auth_header,
+                    fee_auth_header,
+                    network,
+                    token,
                 )
             else:
                 return await self._release_preauth(
@@ -673,6 +778,74 @@ class PaymentDispatcher:
             "error": result.get("error"),
         }
 
+    async def _release_fase1(
+        self,
+        task_id: str,
+        worker_address: str,
+        bounty_amount: Decimal,
+        worker_auth_header: Optional[str],
+        fee_auth_header: Optional[str],
+        network: Optional[str],
+        token: str,
+    ) -> Dict[str, Any]:
+        """
+        Fase 1: 2 direct settlements — agent->worker + agent->treasury.
+
+        No intermediary wallet. Server-managed agents: server signs both auths.
+        External agents: provide pre-signed auth headers.
+        """
+        sdk = self._get_sdk()
+        result = await sdk.settle_direct_payments(
+            task_id=task_id,
+            worker_address=worker_address,
+            bounty_amount=bounty_amount,
+            worker_auth_header=worker_auth_header,
+            fee_auth_header=fee_auth_header,
+            network=network,
+            token=token,
+        )
+
+        worker_tx = result.get("tx_hash")
+        fee_tx = result.get("fee_tx_hash")
+
+        await log_payment_event(
+            task_id=task_id,
+            event_type="settle_worker_direct",
+            status="success" if result.get("success") else "failed",
+            tx_hash=worker_tx,
+            to_address=worker_address,
+            amount_usdc=bounty_amount,
+            network=network,
+            token=token,
+            error=result.get("error"),
+            metadata={"mode": "fase1"},
+        )
+
+        if fee_tx:
+            platform_fee = Decimal(str(result.get("platform_fee", 0)))
+            await log_payment_event(
+                task_id=task_id,
+                event_type="settle_fee_direct",
+                status="success",
+                tx_hash=fee_tx,
+                to_address=EM_TREASURY,
+                amount_usdc=platform_fee,
+                network=network,
+                token=token,
+                metadata={"mode": "fase1"},
+            )
+
+        return {
+            "success": result.get("success", False),
+            "tx_hash": worker_tx,
+            "fee_tx_hash": fee_tx,
+            "mode": "fase1",
+            "gross_amount": result.get("gross_amount"),
+            "platform_fee": result.get("platform_fee"),
+            "net_to_worker": result.get("net_to_worker"),
+            "error": result.get("error"),
+        }
+
     # =========================================================================
     # refund_payment
     # =========================================================================
@@ -703,6 +876,8 @@ class PaymentDispatcher:
         try:
             if self.mode == "x402r":
                 return await self._refund_x402r(task_id, agent_address)
+            elif self.mode == "fase1":
+                return await self._refund_fase1(task_id, reason)
             else:
                 return await self._refund_preauth(task_id, escrow_id, reason)
         except Exception as e:
@@ -877,6 +1052,30 @@ class PaymentDispatcher:
             "error": None,
         }
 
+    async def _refund_fase1(
+        self,
+        task_id: str,
+        reason: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Fase 1 refund: no funds were moved, nothing to refund."""
+        logger.info(
+            "Fase 1 refund for task %s: no funds moved, nothing to refund",
+            task_id,
+        )
+        await log_payment_event(
+            task_id=task_id,
+            event_type="refund",
+            status="success",
+            metadata={"mode": "fase1", "method": "no_funds_moved", "reason": reason},
+        )
+        return {
+            "success": True,
+            "tx_hash": None,
+            "mode": "fase1",
+            "status": "no_funds_moved",
+            "error": None,
+        }
+
     # =========================================================================
     # State Reconstruction (survives server restarts)
     # =========================================================================
@@ -1033,7 +1232,7 @@ class PaymentDispatcher:
             except Exception:
                 pass
 
-        if self.mode == "preauth" and self._sdk is not None:
+        if self.mode in ("preauth", "fase1") and self._sdk is not None:
             info["preauth_config"] = {
                 "facilitator_url": self._sdk.facilitator_url,
                 "network": self._sdk.network,

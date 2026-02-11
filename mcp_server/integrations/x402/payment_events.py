@@ -35,7 +35,9 @@ async def log_payment_event(
     Args:
         task_id: Task UUID
         event_type: One of: verify, store_auth, settle, disburse_worker,
-                    disburse_fee, refund, cancel, error
+                    disburse_fee, refund, cancel, error,
+                    balance_check (fase1), settle_worker_direct (fase1),
+                    settle_fee_direct (fase1)
         status: pending, success, or failed
         tx_hash: On-chain transaction hash (if available)
         from_address: Source wallet address
