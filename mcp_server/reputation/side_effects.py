@@ -68,11 +68,13 @@ async def enqueue_side_effect(
 
     try:
         result = await asyncio.to_thread(
-            lambda: supabase.table("erc8004_side_effects")
-            .upsert(
-                row, on_conflict="submission_id,effect_type", ignore_duplicates=True
+            lambda: (
+                supabase.table("erc8004_side_effects")
+                .upsert(
+                    row, on_conflict="submission_id,effect_type", ignore_duplicates=True
+                )
+                .execute()
             )
-            .execute()
         )
         if result.data:
             created = result.data[0]
@@ -120,20 +122,24 @@ async def mark_side_effect(
     try:
         # Fetch current to increment attempts
         current = await asyncio.to_thread(
-            lambda: supabase.table("erc8004_side_effects")
-            .select("attempts, submission_id, effect_type, payload")
-            .eq("id", effect_id)
-            .single()
-            .execute()
+            lambda: (
+                supabase.table("erc8004_side_effects")
+                .select("attempts, submission_id, effect_type, payload")
+                .eq("id", effect_id)
+                .single()
+                .execute()
+            )
         )
         if current.data:
             update["attempts"] = current.data["attempts"] + 1
 
         await asyncio.to_thread(
-            lambda: supabase.table("erc8004_side_effects")
-            .update(update)
-            .eq("id", effect_id)
-            .execute()
+            lambda: (
+                supabase.table("erc8004_side_effects")
+                .update(update)
+                .eq("id", effect_id)
+                .execute()
+            )
         )
 
         log_data = {
@@ -181,13 +187,15 @@ async def get_pending_effects(
     """
     try:
         result = await asyncio.to_thread(
-            lambda: supabase.table("erc8004_side_effects")
-            .select("*")
-            .in_("status", ["pending", "failed"])
-            .lt("attempts", MAX_ATTEMPTS)
-            .order("created_at")
-            .limit(limit)
-            .execute()
+            lambda: (
+                supabase.table("erc8004_side_effects")
+                .select("*")
+                .in_("status", ["pending", "failed"])
+                .lt("attempts", MAX_ATTEMPTS)
+                .order("created_at")
+                .limit(limit)
+                .execute()
+            )
         )
 
         if not result.data:
