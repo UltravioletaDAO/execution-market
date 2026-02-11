@@ -18,6 +18,7 @@ const AgentDashboard = lazy(() => import('./pages/AgentDashboard').then(m => ({ 
 const AgentOnboarding = lazy(() => import('./pages/AgentOnboarding').then(m => ({ default: m.AgentOnboarding })))
 const AgentLogin = lazy(() => import('./components/AgentLogin').then(m => ({ default: m.AgentLogin })))
 const Developers = lazy(() => import('./pages/Developers').then(m => ({ default: m.Developers })))
+const FeedbackPage = lazy(() => import('./pages/FeedbackPage').then(m => ({ default: m.FeedbackPage })))
 const TaskManagement = lazy(() => import('./pages/agent/TaskManagement').then(m => ({ default: m.TaskManagement })))
 const CreateTask = lazy(() => import('./pages/agent/CreateTask').then(m => ({ default: m.CreateTask })))
 
@@ -391,6 +392,7 @@ function AppRoutes() {
       <Route path="/agents" element={<AgentOnboarding />} />
       <Route path="/agent/login" element={<AgentLogin />} />
       <Route path="/developers" element={<Developers />} />
+      <Route path="/feedback/:taskId" element={<FeedbackPage />} />
 
       {/* Worker Routes (Protected - Workers Only) */}
       <Route
