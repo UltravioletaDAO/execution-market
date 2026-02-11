@@ -676,11 +676,11 @@ async def _ws1_auto_register_worker(
             )
         return
 
-    # Guard: already registered
+    # Guard 1: DB check — fast path
     existing_agent_id = executor.get("erc8004_agent_id")
     if existing_agent_id:
         logger.info(
-            "WS-1 skip: executor %s already has erc8004_agent_id=%s",
+            "WS-1 skip: executor %s already has erc8004_agent_id=%s (DB)",
             executor_id,
             existing_agent_id,
         )
@@ -692,6 +692,7 @@ async def _ws1_auto_register_worker(
                 "task_id": task_id,
                 "skip_reason": "already_registered",
                 "agent_id": existing_agent_id,
+                "source": "database",
             },
         )
         if effect:
@@ -702,6 +703,51 @@ async def _ws1_auto_register_worker(
                 error="already_registered",
             )
         return
+
+    # Guard 2: On-chain check — verify wallet holds ERC-8004 NFT directly
+    try:
+        from integrations.erc8004.identity import (
+            check_worker_identity,
+            update_executor_identity,
+        )
+
+        onchain_result = await check_worker_identity(worker_address)
+        if onchain_result.status.value == "registered" and onchain_result.agent_id:
+            logger.info(
+                "WS-1 skip: wallet %s already holds ERC-8004 NFT agent_id=%s (on-chain)",
+                worker_address[:10],
+                onchain_result.agent_id,
+            )
+            # Sync DB with on-chain truth
+            if executor_id:
+                await update_executor_identity(executor_id, onchain_result.agent_id)
+
+            effect = await enqueue_side_effect(
+                supabase=db.get_client(),
+                submission_id=submission_id,
+                effect_type="register_worker_identity",
+                payload={
+                    "task_id": task_id,
+                    "skip_reason": "already_registered",
+                    "agent_id": onchain_result.agent_id,
+                    "source": "on_chain",
+                },
+            )
+            if effect:
+                await mark_side_effect(
+                    supabase=db.get_client(),
+                    effect_id=effect["id"],
+                    status="skipped",
+                    error="already_registered_on_chain",
+                )
+            return
+    except Exception as e:
+        # Non-blocking: if on-chain check fails, proceed to registration attempt
+        logger.warning(
+            "WS-1: on-chain identity check failed (proceeding): wallet=%s, error=%s",
+            worker_address[:10],
+            e,
+        )
 
     # Enqueue
     effect = await enqueue_side_effect(
@@ -746,11 +792,23 @@ async def _ws1_auto_register_worker(
                 task_network,
             )
         else:
+            err = reg_result.error or "registration_returned_no_agent_id"
+            # Permanent errors: skip instead of retrying forever
+            err_lower = err.lower()
+            is_permanent = any(
+                s in err_lower
+                for s in (
+                    "already registered",
+                    "already exists",
+                    "duplicate",
+                    "invalid",
+                )
+            )
             await mark_side_effect(
                 supabase=db.get_client(),
                 effect_id=effect["id"],
-                status="failed",
-                error=reg_result.error or "registration_returned_no_agent_id",
+                status="skipped" if is_permanent else "failed",
+                error=err,
             )
     except Exception as e:
         await mark_side_effect(
@@ -806,6 +864,45 @@ async def _ws2_auto_rate_agent(
                 error="missing_agent_erc8004_id",
             )
         return
+
+    # Guard: verify agent exists on-chain before sending feedback
+    try:
+        from integrations.erc8004.identity import verify_agent_identity
+
+        agent_identity = await verify_agent_identity(
+            str(agent_erc8004_id), network=task.get("payment_network", "base")
+        )
+        if not agent_identity.get("registered"):
+            logger.warning(
+                "WS-2 skip: agent %d not found on-chain for task %s",
+                agent_erc8004_id,
+                task_id,
+            )
+            effect = await enqueue_side_effect(
+                supabase=db.get_client(),
+                submission_id=submission_id,
+                effect_type="rate_agent_from_worker",
+                payload={
+                    "task_id": task_id,
+                    "skip_reason": "agent_not_found_on_chain",
+                    "agent_id": agent_erc8004_id,
+                },
+            )
+            if effect:
+                await mark_side_effect(
+                    supabase=db.get_client(),
+                    effect_id=effect["id"],
+                    status="skipped",
+                    error="agent_not_found_on_chain",
+                )
+            return
+    except Exception as e:
+        # Non-blocking: if on-chain check fails, proceed anyway
+        logger.warning(
+            "WS-2: on-chain agent check failed (proceeding): agent=%d, error=%s",
+            agent_erc8004_id,
+            e,
+        )
 
     # Calculate score via dynamic scoring (fallback 85)
     score = 85
@@ -867,11 +964,24 @@ async def _ws2_auto_rate_agent(
                 feedback_result.transaction_hash,
             )
         else:
+            err = feedback_result.error or "feedback_submission_failed"
+            # Permanent errors: skip instead of retrying forever
+            err_lower = err.lower()
+            is_permanent = any(
+                s in err_lower
+                for s in (
+                    "not found",
+                    "404",
+                    "not exist",
+                    "invalid agent",
+                    "self-feedback",
+                )
+            )
             await mark_side_effect(
                 supabase=db.get_client(),
                 effect_id=effect["id"],
-                status="failed",
-                error=feedback_result.error or "feedback_submission_failed",
+                status="skipped" if is_permanent else "failed",
+                error=err,
             )
     except Exception as e:
         await mark_side_effect(
@@ -4128,43 +4238,73 @@ async def reject_submission(
                     "Rate limit check failed for rejection feedback: %s", rl_err
                 )
 
-            # Enqueue side effect
+            # Verify agent exists on-chain before enqueuing rejection feedback
             score = (
                 request.reputation_score if request.reputation_score is not None else 30
             )
             task = submission.get("task") or {}
             executor = submission.get("executor") or {}
+
+            agent_id_for_feedback = api_key.agent_id
             try:
-                from reputation.side_effects import enqueue_side_effect
+                agent_id_int = int(agent_id_for_feedback)
+                from integrations.erc8004.identity import verify_agent_identity
 
-                effect = await enqueue_side_effect(
-                    supabase=db.get_client(),
-                    submission_id=submission_id,
-                    effect_type="rate_worker_on_rejection",
-                    payload={
-                        "task_id": task.get("id"),
-                        "worker_wallet": executor.get("wallet_address"),
-                        "agent_id": api_key.agent_id,
-                        "severity": "major",
-                        "notes": request.notes[:200],
-                    },
-                    score=score,
+                agent_check = await verify_agent_identity(
+                    str(agent_id_int),
+                    network=task.get("payment_network", "base"),
                 )
-                if effect:
-                    side_effect_id = effect.get("id")
-
-                logger.info(
-                    "Major rejection feedback enqueued: submission=%s, agent=%s, score=%d",
-                    submission_id,
+                if not agent_check.get("registered"):
+                    logger.warning(
+                        "Rejection feedback skip: agent %s not found on-chain",
+                        agent_id_for_feedback,
+                    )
+                    # Don't block rejection — just skip the side effect
+                    agent_id_for_feedback = None
+            except (ValueError, TypeError):
+                logger.warning(
+                    "Rejection feedback skip: agent_id %s not numeric",
                     api_key.agent_id,
-                    score,
                 )
-            except Exception as se_err:
-                logger.error(
-                    "Failed to enqueue rejection feedback for submission %s: %s",
-                    submission_id,
-                    se_err,
+                agent_id_for_feedback = None
+            except Exception as vc_err:
+                logger.warning(
+                    "Rejection feedback: on-chain check failed (proceeding): %s",
+                    vc_err,
                 )
+
+            if agent_id_for_feedback is not None:
+                try:
+                    from reputation.side_effects import enqueue_side_effect
+
+                    effect = await enqueue_side_effect(
+                        supabase=db.get_client(),
+                        submission_id=submission_id,
+                        effect_type="rate_worker_on_rejection",
+                        payload={
+                            "task_id": task.get("id"),
+                            "worker_wallet": executor.get("wallet_address"),
+                            "agent_id": agent_id_for_feedback,
+                            "severity": "major",
+                            "notes": request.notes[:200],
+                        },
+                        score=score,
+                    )
+                    if effect:
+                        side_effect_id = effect.get("id")
+
+                    logger.info(
+                        "Major rejection feedback enqueued: submission=%s, agent=%s, score=%d",
+                        submission_id,
+                        agent_id_for_feedback,
+                        score,
+                    )
+                except Exception as se_err:
+                    logger.error(
+                        "Failed to enqueue rejection feedback for submission %s: %s",
+                        submission_id,
+                        se_err,
+                    )
 
     response_data = {"submission_id": submission_id, "verdict": "rejected"}
     if request.severity == "major":

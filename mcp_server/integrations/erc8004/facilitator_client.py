@@ -486,6 +486,14 @@ class ERC8004FacilitatorClient:
         Returns:
             FeedbackResult with transaction details
         """
+        # Validate agent_id before making network call
+        if not isinstance(agent_id, int) or agent_id <= 0:
+            return FeedbackResult(
+                success=False,
+                error=f"agent_id must be a positive integer, got {agent_id}",
+                network=self.network,
+            )
+
         client = await self._get_client()
 
         try:
