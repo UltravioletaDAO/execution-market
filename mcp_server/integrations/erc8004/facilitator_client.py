@@ -717,9 +717,17 @@ async def rate_worker(
     worker_address: str = "",
     comment: str = "",
     proof_tx: Optional[str] = None,
+    rejection_reason: str = "",
+    evidence_urls: Optional[list] = None,
+    submission_id: str = "",
+    task_title: str = "",
+    task_category: str = "",
+    bounty_usd: float = 0.0,
 ) -> FeedbackResult:
     """
     Rate a worker after task completion (agent rates human).
+
+    Persists feedback document to S3 with keccak256 hash on-chain.
 
     Args:
         task_id: Task identifier
@@ -727,15 +735,46 @@ async def rate_worker(
         worker_address: Worker's wallet address (for tag)
         comment: Optional comment
         proof_tx: Transaction hash of payment (for verified feedback)
+        rejection_reason: Reason for rejection (if applicable)
+        evidence_urls: URLs of evidence files
+        submission_id: Submission identifier
+        task_title: Task title for context
+        task_category: Task category
+        bounty_usd: Task bounty amount
 
     Returns:
         FeedbackResult
     """
     client = get_facilitator_client()
 
+    # Persist feedback document to S3 and compute hash
     feedback_uri = ""
-    if comment:
-        feedback_uri = f"https://execution.market/feedback/{task_id}"
+    feedback_hash = None
+    try:
+        from integrations.erc8004.feedback_store import persist_and_hash_feedback
+
+        feedback_type = "rejection" if rejection_reason else "worker_rating"
+        feedback_uri, feedback_hash = await persist_and_hash_feedback(
+            task_id=task_id,
+            feedback_type=feedback_type,
+            score=score,
+            rater_type="agent",
+            rater_id=str(EM_AGENT_ID),
+            target_type="worker",
+            target_address=worker_address,
+            comment=comment,
+            rejection_reason=rejection_reason,
+            evidence_urls=evidence_urls,
+            submission_id=submission_id,
+            payment_tx=proof_tx or "",
+            task_title=task_title,
+            task_category=task_category,
+            bounty_usd=bounty_usd,
+            network=ERC8004_NETWORK,
+        )
+    except Exception as exc:
+        logger.warning("Feedback persistence failed (continuing): %s", exc)
+        feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
 
     proof = None
     if proof_tx:
@@ -751,6 +790,7 @@ async def rate_worker(
         tag2=worker_address[:10] if worker_address else "",
         endpoint=f"task:{task_id}",
         feedback_uri=feedback_uri,
+        feedback_hash=feedback_hash,
         proof=proof,
     )
 
@@ -761,9 +801,14 @@ async def rate_agent(
     score: int,
     comment: str = "",
     proof_tx: Optional[str] = None,
+    task_title: str = "",
+    task_category: str = "",
+    bounty_usd: float = 0.0,
 ) -> FeedbackResult:
     """
     Rate an AI agent after task completion (human rates agent).
+
+    Persists feedback document to S3 with keccak256 hash on-chain.
 
     Args:
         agent_id: Agent's ERC-8004 token ID
@@ -771,15 +816,38 @@ async def rate_agent(
         score: Rating 0-100
         comment: Optional comment
         proof_tx: Transaction hash of payment received
+        task_title: Task title for context
+        task_category: Task category
+        bounty_usd: Task bounty amount
 
     Returns:
         FeedbackResult
     """
     client = get_facilitator_client()
 
+    # Persist feedback document to S3 and compute hash
     feedback_uri = ""
-    if comment:
-        feedback_uri = f"https://execution.market/feedback/{task_id}"
+    feedback_hash = None
+    try:
+        from integrations.erc8004.feedback_store import persist_and_hash_feedback
+
+        feedback_uri, feedback_hash = await persist_and_hash_feedback(
+            task_id=task_id,
+            feedback_type="agent_rating",
+            score=score,
+            rater_type="worker",
+            target_type="agent",
+            target_agent_id=agent_id,
+            comment=comment,
+            payment_tx=proof_tx or "",
+            task_title=task_title,
+            task_category=task_category,
+            bounty_usd=bounty_usd,
+            network=ERC8004_NETWORK,
+        )
+    except Exception as exc:
+        logger.warning("Feedback persistence failed (continuing): %s", exc)
+        feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
 
     proof = None
     if proof_tx:
@@ -795,6 +863,7 @@ async def rate_agent(
         tag2="execution-market",
         endpoint=f"task:{task_id}",
         feedback_uri=feedback_uri,
+        feedback_hash=feedback_hash,
         proof=proof,
     )
 
