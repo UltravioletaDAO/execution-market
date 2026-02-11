@@ -249,6 +249,9 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
 | x402r Escrow (AuthCaptureEscrow) | Arbitrum, Celo, Monad, Avalanche, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
+| EM PaymentOperator | Base | `0xb9635f544665758019159c04c08a3d583dadd723` |
+| StaticAddressCondition(Facilitator) | Base | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` |
+| Facilitator EOA | All | `0x103040545AC5031A11E8C03dd11324C7333a13C7` |
 | Execution Market Agent ID | **Base** | `2106` |
 | Execution Market Agent ID | Sepolia (legacy) | `469` |
 
@@ -451,14 +454,15 @@ Wrong Flow (DO NOT USE):
 - `EM_SETTLEMENT_ADDRESS` env var (optional): Overrides the platform wallet for settlement. Defaults to address derived from `WALLET_PRIVATE_KEY`.
 - **Testing budget**: Always use amounts **< $0.30** for test tasks. ~$5 per chain must last through all testing cycles.
 
-**Payment Mode** (`EM_PAYMENT_MODE`, default: `preauth`):
-- **`preauth`** (default, recommended): No funds move at task creation. Agent signs EIP-3009 auth, MCP verifies via Facilitator, stores header. Settlement happens at approval time.
-- **`x402r`** (deprecated): Settles agent auth + locks funds in on-chain escrow at creation time. **Do not use** — caused fund loss bug in Feb 2026 where $1.404 went to treasury instead of platform wallet.
+**Payment Mode** (`EM_PAYMENT_MODE`, default: `fase1`):
+- **`fase1`** (default, production): No auth at task creation — advisory `balanceOf()` check only. At approval, server signs 2 direct EIP-3009 settlements: agent→worker (bounty) + agent→treasury (fee). No intermediary wallet. E2E tested 2026-02-11 ([evidence](docs/planning/FASE1_E2E_EVIDENCE_2026-02-11.md)).
+- **`preauth`** (legacy): Agent signs EIP-3009 auth at creation, stored header settled at approval via 3-step flow through platform wallet.
+- **`x402r`** (deprecated): Settles agent auth + locks funds in on-chain escrow at creation time. **Do not use** — caused fund loss bug.
 
-**Payment Flow for Tasks** (preauth mode, as of 2026-02-10):
-1. **Verify** (task creation): Agent signs EIP-3009 auth → MCP verifies via Facilitator → stores X-Payment header → Task created (**no funds move**)
-2. **Settle + Disburse** (task approval): MCP settles stored auth → platform wallet (agent → 0xD386), then signs TWO new EIP-3009 auths: platform→worker (92%) + platform→treasury (8%) → Facilitator settles both (gasless)
-3. **Refund** (task cancellation): Original auth was never settled → expires naturally. No funds moved, no action needed.
+**Payment Flow for Tasks** (Fase 1, as of 2026-02-11):
+1. **Balance check** (task creation): `balanceOf(agent)` via RPC — advisory only, task creates regardless. No auth signed, no funds move.
+2. **Direct settlement** (task approval): Server signs 2 fresh EIP-3009 auths → Facilitator settles both: agent→worker (bounty) + agent→treasury (8% fee). No platform wallet intermediary.
+3. **Cancel** (task cancellation): No-op — no auth was ever signed, nothing to refund.
 4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 8%). Uses 6-decimal USDC precision with $0.01 minimum fee.
 
 **Audit Trail**: All payment events are logged to `payment_events` table (migration 027). Tracks verify, store_auth, settle, disburse_worker, disburse_fee, refund, cancel, error events with tx hashes and amounts.
@@ -468,6 +472,35 @@ Wrong Flow (DO NOT USE):
 - Check `escrows.metadata.agent_settle_tx` for the on-chain settlement tx.
 - Manual refund must be sent from the wallet that received the funds back to the agent wallet.
 - Incident Feb 2026: 3 tasks ($0.54 + $0.54 + $0.324 = $1.404) settled to treasury `0xae07` instead of platform wallet. Requires Ledger refund to `0x13ef` on Base.
+
+### x402r Escrow System (Fase 2 — In Progress)
+
+**Full reference:** [`docs/planning/X402R_REFERENCE.md`](docs/planning/X402R_REFERENCE.md) — architecture, ABIs, all contract addresses, condition system, deployment guide.
+
+**Architecture (3 layers):**
+- **Layer 1:** `AuthCaptureEscrow` — shared singleton per chain, holds funds in TokenStore clones (EIP-1167)
+- **Layer 2:** `PaymentOperator` — per-config contract with pluggable conditions (who can authorize/release/refund)
+- **Layer 3:** `Facilitator` — off-chain server, pays gas, enforces business logic
+
+**Deployed PaymentOperator (Base Mainnet):**
+
+| Contract | Address | TX |
+|----------|---------|-----|
+| StaticAddressCondition(Facilitator) | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` | `0xb5b2f36f...` |
+| PaymentOperator (EM) | `0xb9635f544665758019159c04c08a3d583dadd723` | `0xba9fdeaf...` |
+
+**Operator config:** Facilitator-only release/refund (via `StaticAddressCondition`), no escrow period, no freeze. `feeCalculator=address(0)` (we charge 8% ourselves). `authorizeCondition=UsdcTvlLimit` (protocol safety).
+
+**Deployment script:** `scripts/deploy-payment-operator.ts` — deploys StaticAddressCondition + PaymentOperator via factory contracts.
+
+**Status:** PaymentOperator deployed on Base but NOT yet registered in facilitator's `addresses.rs`. Other 7 networks pending deployment. See [ESCROW_GASLESS_ROADMAP.md](docs/planning/ESCROW_GASLESS_ROADMAP.md) for full plan.
+
+**Key upstream repos:**
+| Repo | URL | Stack |
+|------|-----|-------|
+| x402r-contracts | `github.com/BackTrackCo/x402r-contracts` | Foundry (Solidity) |
+| x402r-sdk | `github.com/BackTrackCo/x402r-sdk` | TypeScript monorepo (pnpm) |
+| x402r docs | `github.com/BackTrackCo/docs` | Mintlify (docs.x402r.org) |
 
 ### Database State
 
