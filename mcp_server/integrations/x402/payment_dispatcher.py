@@ -1,13 +1,13 @@
 """
 Payment Dispatcher for Execution Market.
 
-Routes payment operations to x402r escrow or EIP-3009 pre-auth based on EM_PAYMENT_MODE.
-
-Two payment backends:
-  - x402r: Locks funds on-chain via AuthCaptureEscrow contract (authorize/release/refund)
+Routes payment operations based on EM_PAYMENT_MODE:
+  - fase1: Balance check at creation, 2 direct EIP-3009 settlements at approval (default)
+  - fase2: On-chain escrow via AdvancedEscrowClient + gasless facilitator release/refund
   - preauth: EIP-3009 pre-authorization, funds stay in agent wallet until settlement
+  - x402r: Legacy on-chain escrow via EMAdvancedEscrow (requires gas + operator key)
 
-Both backends go through the Ultravioleta Facilitator and are GASLESS for agents and workers.
+All backends go through the Ultravioleta Facilitator and are GASLESS for agents and workers.
 """
 
 import os
@@ -55,6 +55,8 @@ try:
         SDK_AVAILABLE,
         PLATFORM_FEE_PERCENT,
         EM_TREASURY,
+        FACILITATOR_URL,
+        NETWORK_CONFIG,
     )
 except ImportError:
     SDK_AVAILABLE = False
@@ -63,6 +65,29 @@ except ImportError:
     verify_x402_payment = None  # type: ignore[assignment]
     PLATFORM_FEE_PERCENT = Decimal("0.08")
     EM_TREASURY = "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad"
+    FACILITATOR_URL = "https://facilitator.ultravioletadao.xyz"
+    NETWORK_CONFIG = {}  # type: ignore[assignment]
+
+# --- fase2 backend (AdvancedEscrowClient from SDK, gasless via facilitator) ---
+try:
+    from uvd_x402_sdk.advanced_escrow import (
+        AdvancedEscrowClient,
+        PaymentInfo as EscrowPaymentInfo,
+        TaskTier,
+    )
+
+    FASE2_SDK_AVAILABLE = True
+except ImportError:
+    FASE2_SDK_AVAILABLE = False
+    AdvancedEscrowClient = None  # type: ignore[assignment,misc]
+    EscrowPaymentInfo = None  # type: ignore[assignment,misc]
+    TaskTier = None  # type: ignore[assignment,misc]
+
+# EM PaymentOperator address (Base Mainnet). Only chain with operator deployed.
+# Override via env var when deploying operators on additional chains.
+EM_OPERATOR = os.environ.get(
+    "EM_PAYMENT_OPERATOR", "0xb9635f544665758019159c04c08a3d583dadd723"
+)
 
 
 # =============================================================================
@@ -137,7 +162,7 @@ class PaymentDispatcher:
     def __init__(self, mode: Optional[str] = None):
         self.mode = (mode or EM_PAYMENT_MODE).lower()
 
-        if self.mode not in ("x402r", "preauth", "fase1"):
+        if self.mode not in ("x402r", "preauth", "fase1", "fase2"):
             logger.warning(
                 "Unknown EM_PAYMENT_MODE '%s', falling back to 'fase1'",
                 self.mode,
@@ -145,6 +170,21 @@ class PaymentDispatcher:
             self.mode = "fase1"
 
         # Validate availability and fall back if needed
+        if self.mode == "fase2" and not FASE2_SDK_AVAILABLE:
+            logger.warning(
+                "fase2 mode requested but AdvancedEscrowClient SDK not available. "
+                "Falling back to fase1 mode."
+            )
+            self.mode = "fase1"
+
+        # fase2 also needs the base SDK for post-release disbursement
+        if self.mode == "fase2" and not SDK_AVAILABLE:
+            logger.warning(
+                "fase2 mode requested but uvd-x402-sdk not available for "
+                "disbursement operations. Falling back to fase1 mode."
+            )
+            self.mode = "fase1"
+
         if self.mode == "x402r" and not ADVANCED_ESCROW_AVAILABLE:
             logger.warning(
                 "x402r mode requested but advanced escrow SDK not available. "
@@ -171,6 +211,7 @@ class PaymentDispatcher:
         # Lazy-initialized backend instances
         self._escrow: Optional[Any] = None
         self._sdk: Optional[Any] = None
+        self._fase2_clients: Dict[int, Any] = {}  # chain_id → AdvancedEscrowClient
 
         logger.info("PaymentDispatcher initialized: mode=%s", self.mode)
 
@@ -185,6 +226,36 @@ class PaymentDispatcher:
         if self._sdk is None:
             self._sdk = get_sdk()
         return self._sdk
+
+    def _get_fase2_client(self, network: str = "base") -> "AdvancedEscrowClient":
+        """Lazy-init an AdvancedEscrowClient for the given network."""
+        config = NETWORK_CONFIG.get(network, {})
+        chain_id = config.get("chain_id", 8453)
+
+        if chain_id not in self._fase2_clients:
+            pk = os.environ.get("WALLET_PRIVATE_KEY")
+            if not pk:
+                raise RuntimeError(
+                    "WALLET_PRIVATE_KEY not set — cannot init AdvancedEscrowClient"
+                )
+
+            rpc_url = config.get("rpc_url", "https://mainnet.base.org")
+            operator = os.environ.get("EM_PAYMENT_OPERATOR", EM_OPERATOR)
+
+            self._fase2_clients[chain_id] = AdvancedEscrowClient(
+                private_key=pk,
+                facilitator_url=FACILITATOR_URL,
+                rpc_url=rpc_url,
+                chain_id=chain_id,
+                operator_address=operator,
+            )
+            logger.info(
+                "Fase2 AdvancedEscrowClient initialized: chain=%d, operator=%s",
+                chain_id,
+                operator[:10],
+            )
+
+        return self._fase2_clients[chain_id]
 
     # =========================================================================
     # authorize_payment
@@ -226,6 +297,8 @@ class PaymentDispatcher:
                 return await self._authorize_x402r(
                     task_id, receiver, amount_usdc, strategy, x_payment_header
                 )
+            elif self.mode == "fase2":
+                return await self._authorize_fase2(task_id, amount_usdc, network, token)
             elif self.mode == "fase1":
                 return await self._authorize_fase1(
                     task_id, amount_usdc, agent_address, network, token
@@ -509,6 +582,144 @@ class PaymentDispatcher:
             ),
         }
 
+    async def _authorize_fase2(
+        self,
+        task_id: str,
+        amount_usdc: Decimal,
+        network: Optional[str] = None,
+        token: str = "USDC",
+    ) -> Dict[str, Any]:
+        """
+        Authorize via fase2 — lock funds on-chain in escrow via facilitator.
+
+        Uses AdvancedEscrowClient.authorize() which signs an EIP-3009 auth
+        and sends it to the facilitator, which locks funds in the
+        AuthCaptureEscrow contract. Fully gasless for the agent.
+
+        Receiver = platform wallet. On release, we disburse to worker + fee.
+        """
+        network = network or "base"
+        client = self._get_fase2_client(network)
+        platform_address = _get_platform_address()
+
+        # Total to lock = bounty + platform fee
+        total_amount = amount_usdc * (Decimal("1") + PLATFORM_FEE_PERCENT)
+        total_amount = total_amount.quantize(Decimal("0.000001"))
+
+        # Convert to atomic units (6 decimals for USDC)
+        config = NETWORK_CONFIG.get(network, {})
+        decimals = 6
+        for t_info in (config.get("tokens", {}).get(token, {}),):
+            if t_info:
+                decimals = t_info.get("decimals", 6)
+        amount_atomic = int(total_amount * Decimal(10**decimals))
+
+        # Determine tier from amount
+        tier = TaskTier.MICRO
+        if amount_usdc >= Decimal("100"):
+            tier = TaskTier.ENTERPRISE
+        elif amount_usdc >= Decimal("25"):
+            tier = TaskTier.PREMIUM
+        elif amount_usdc >= Decimal("5"):
+            tier = TaskTier.STANDARD
+
+        # Build PaymentInfo (receiver = platform wallet for post-release disbursement)
+        pi = await asyncio.to_thread(
+            client.build_payment_info,
+            receiver=platform_address,
+            amount=amount_atomic,
+            tier=tier,
+            max_fee_bps=int(PLATFORM_FEE_PERCENT * 10000),
+        )
+
+        logger.info(
+            "fase2: Built PaymentInfo for task %s: amount=%d, tier=%s, salt=%s...",
+            task_id,
+            amount_atomic,
+            tier.value if hasattr(tier, "value") else tier,
+            pi.salt[:18],
+        )
+
+        # Authorize (lock funds) via facilitator — synchronous, run in thread
+        auth_result = await asyncio.to_thread(client.authorize, pi)
+
+        if not auth_result.success:
+            await log_payment_event(
+                task_id=task_id,
+                event_type="escrow_authorize",
+                status="failed",
+                amount_usdc=total_amount,
+                network=network,
+                token=token,
+                error=auth_result.error,
+                metadata={"mode": "fase2", "tier": str(tier)},
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "fase2",
+                "escrow_status": "authorize_failed",
+                "payment_info": None,
+                "payment_info_serialized": None,
+                "error": f"Escrow authorize failed: {auth_result.error}",
+            }
+
+        tx_hash = auth_result.transaction_hash
+
+        # Serialize full PaymentInfo for DB persistence (state reconstruction)
+        payment_info_serialized = {
+            "mode": "fase2",
+            "operator": pi.operator,
+            "receiver": pi.receiver,
+            "token": pi.token,
+            "max_amount": pi.max_amount,
+            "pre_approval_expiry": pi.pre_approval_expiry,
+            "authorization_expiry": pi.authorization_expiry,
+            "refund_expiry": pi.refund_expiry,
+            "min_fee_bps": pi.min_fee_bps,
+            "max_fee_bps": pi.max_fee_bps,
+            "fee_receiver": pi.fee_receiver,
+            "salt": pi.salt,
+            "chain_id": client.chain_id,
+            "network": network,
+        }
+
+        await log_payment_event(
+            task_id=task_id,
+            event_type="escrow_authorize",
+            status="success",
+            tx_hash=tx_hash,
+            from_address=client.payer,
+            to_address=platform_address,
+            amount_usdc=total_amount,
+            network=network,
+            token=token,
+            metadata={
+                "mode": "fase2",
+                "tier": str(tier),
+                "salt": pi.salt[:18],
+                "bounty": str(amount_usdc),
+            },
+        )
+
+        logger.info(
+            "fase2: Funds locked in escrow: task=%s, amount=%s, tx=%s",
+            task_id,
+            total_amount,
+            tx_hash,
+        )
+
+        return {
+            "success": True,
+            "tx_hash": tx_hash,
+            "mode": "fase2",
+            "escrow_status": "deposited",
+            "payment_info": pi,
+            "payment_info_serialized": payment_info_serialized,
+            "payer_address": client.payer,
+            "error": None,
+        }
+
     # =========================================================================
     # release_payment
     # =========================================================================
@@ -548,6 +759,10 @@ class PaymentDispatcher:
         try:
             if self.mode == "x402r":
                 return await self._release_x402r(
+                    task_id, worker_address, bounty_amount, network, token
+                )
+            elif self.mode == "fase2":
+                return await self._release_fase2(
                     task_id, worker_address, bounty_amount, network, token
                 )
             elif self.mode == "fase1":
@@ -846,6 +1061,168 @@ class PaymentDispatcher:
             "error": result.get("error"),
         }
 
+    async def _release_fase2(
+        self,
+        task_id: str,
+        worker_address: str,
+        bounty_amount: Decimal,
+        network: Optional[str] = None,
+        token: str = "USDC",
+    ) -> Dict[str, Any]:
+        """
+        Fase 2: Release from on-chain escrow (gasless) then disburse to worker.
+
+        Three-step flow:
+        1. Reconstruct PaymentInfo from DB (escrows table metadata)
+        2. Release full escrowed amount via facilitator (escrow → platform, gasless)
+        3. Disburse bounty to worker + fee to treasury via EIP-3009
+        """
+        network = network or "base"
+
+        # Step 1: Reconstruct PaymentInfo from DB
+        pi, pi_meta = await self._reconstruct_fase2_state(task_id)
+        if pi is None:
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "fase2",
+                "error": (
+                    f"Cannot release task {task_id}: escrow payment state not found. "
+                    "The payment_info metadata may be missing from the escrows table."
+                ),
+            }
+
+        stored_network = pi_meta.get("network", network)
+        client = self._get_fase2_client(stored_network)
+
+        # Step 2: Release from escrow via facilitator (gasless)
+        logger.info("fase2: Releasing escrow for task %s via facilitator...", task_id)
+        release_result = await asyncio.to_thread(client.release_via_facilitator, pi)
+
+        if not release_result.success:
+            await log_payment_event(
+                task_id=task_id,
+                event_type="escrow_release",
+                status="failed",
+                network=stored_network,
+                token=token,
+                error=release_result.error,
+                metadata={"mode": "fase2"},
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "fase2",
+                "error": f"Escrow release failed: {release_result.error}",
+            }
+
+        escrow_tx = release_result.transaction_hash
+        await log_payment_event(
+            task_id=task_id,
+            event_type="escrow_release",
+            status="success",
+            tx_hash=escrow_tx,
+            to_address=pi.receiver,
+            amount_usdc=bounty_amount,
+            network=stored_network,
+            token=token,
+            metadata={"mode": "fase2"},
+        )
+
+        logger.info(
+            "fase2: Escrow released for task %s, tx=%s. Disbursing to worker...",
+            task_id,
+            escrow_tx,
+        )
+
+        # Step 3: Disburse bounty to worker from platform wallet
+        sdk = self._get_sdk()
+        worker_result = await sdk.disburse_to_worker(
+            worker_address=worker_address,
+            amount_usdc=bounty_amount,
+            task_id=task_id,
+            network=stored_network,
+            token=token,
+        )
+
+        worker_tx = worker_result.get("tx_hash")
+        await log_payment_event(
+            task_id=task_id,
+            event_type="disburse_worker",
+            status="success" if worker_result.get("success") else "failed",
+            tx_hash=worker_tx,
+            to_address=worker_address,
+            amount_usdc=bounty_amount,
+            network=stored_network,
+            token=token,
+            error=worker_result.get("error"),
+            metadata={"mode": "fase2", "escrow_release_tx": escrow_tx},
+        )
+
+        if not worker_result.get("success") or not worker_tx:
+            return {
+                "success": False,
+                "tx_hash": None,
+                "escrow_release_tx": escrow_tx,
+                "mode": "fase2",
+                "error": worker_result.get("error", "Worker disbursement failed"),
+            }
+
+        # Step 4: Collect platform fee (non-blocking — worker already paid)
+        platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(
+            Decimal("0.000001")
+        )
+        if Decimal("0") < platform_fee < Decimal("0.01"):
+            platform_fee = Decimal("0.01")
+
+        fee_tx = None
+        fee_error = None
+        try:
+            fee_result = await sdk.collect_platform_fee(
+                fee_amount=platform_fee,
+                task_id=task_id,
+                network=stored_network,
+                token=token,
+            )
+            fee_tx = fee_result.get("tx_hash")
+            if not fee_result.get("success"):
+                fee_error = fee_result.get("error", "Fee collection failed")
+                logger.warning(
+                    "fase2: Worker paid but fee collection failed for task %s: %s",
+                    task_id,
+                    fee_error,
+                )
+            await log_payment_event(
+                task_id=task_id,
+                event_type="disburse_fee",
+                status="success" if fee_result.get("success") else "failed",
+                tx_hash=fee_tx,
+                to_address=EM_TREASURY,
+                amount_usdc=platform_fee,
+                network=stored_network,
+                token=token,
+                error=fee_error,
+                metadata={"mode": "fase2"},
+            )
+        except Exception as fee_err:
+            fee_error = str(fee_err)
+            logger.warning(
+                "fase2: Fee collection error for task %s: %s", task_id, fee_err
+            )
+
+        return {
+            "success": True,
+            "tx_hash": worker_tx,
+            "escrow_release_tx": escrow_tx,
+            "fee_tx_hash": fee_tx,
+            "fee_collection_error": fee_error,
+            "mode": "fase2",
+            "gross_amount": float(bounty_amount + platform_fee),
+            "platform_fee": float(platform_fee),
+            "net_to_worker": float(bounty_amount),
+            "error": None,
+        }
+
     # =========================================================================
     # refund_payment
     # =========================================================================
@@ -862,6 +1239,7 @@ class PaymentDispatcher:
 
         x402r mode: Refunds from on-chain escrow via EMAdvancedEscrow.refund_to_agent(),
                     then disburses full amount from platform back to agent wallet.
+        fase2 mode: Gasless refund via facilitator (funds return to agent directly).
         preauth mode: Auth expires naturally, returns success immediately.
 
         Args:
@@ -876,6 +1254,8 @@ class PaymentDispatcher:
         try:
             if self.mode == "x402r":
                 return await self._refund_x402r(task_id, agent_address)
+            elif self.mode == "fase2":
+                return await self._refund_fase2(task_id, reason)
             elif self.mode == "fase1":
                 return await self._refund_fase1(task_id, reason)
             else:
@@ -1076,9 +1456,174 @@ class PaymentDispatcher:
             "error": None,
         }
 
+    async def _refund_fase2(
+        self,
+        task_id: str,
+        reason: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Fase 2 refund: gasless refund from on-chain escrow via facilitator.
+
+        Funds return directly to the agent's wallet. No platform intermediary
+        needed because the escrow contract sends funds to the original payer.
+        """
+        # Reconstruct PaymentInfo from DB
+        pi, pi_meta = await self._reconstruct_fase2_state(task_id)
+        if pi is None:
+            # If no escrow found, maybe task was created but authorize failed.
+            # Treat as no-op like fase1.
+            logger.info(
+                "fase2: No escrow state for task %s — treating as no-op refund",
+                task_id,
+            )
+            await log_payment_event(
+                task_id=task_id,
+                event_type="escrow_refund",
+                status="success",
+                metadata={
+                    "mode": "fase2",
+                    "method": "no_escrow_found",
+                    "reason": reason,
+                },
+            )
+            return {
+                "success": True,
+                "tx_hash": None,
+                "mode": "fase2",
+                "status": "no_escrow_found",
+                "error": None,
+            }
+
+        stored_network = pi_meta.get("network", "base")
+        client = self._get_fase2_client(stored_network)
+
+        logger.info("fase2: Refunding escrow for task %s via facilitator...", task_id)
+        refund_result = await asyncio.to_thread(client.refund_via_facilitator, pi)
+
+        if not refund_result.success:
+            await log_payment_event(
+                task_id=task_id,
+                event_type="escrow_refund",
+                status="failed",
+                network=stored_network,
+                error=refund_result.error,
+                metadata={"mode": "fase2", "reason": reason},
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "fase2",
+                "status": "refund_failed",
+                "error": f"Escrow refund failed: {refund_result.error}",
+            }
+
+        tx_hash = refund_result.transaction_hash
+        await log_payment_event(
+            task_id=task_id,
+            event_type="escrow_refund",
+            status="success",
+            tx_hash=tx_hash,
+            from_address=pi.receiver,
+            to_address=client.payer,
+            network=stored_network,
+            metadata={"mode": "fase2", "reason": reason},
+        )
+
+        logger.info(
+            "fase2: Escrow refunded for task %s, tx=%s",
+            task_id,
+            tx_hash,
+        )
+
+        return {
+            "success": True,
+            "tx_hash": tx_hash,
+            "mode": "fase2",
+            "status": "refunded",
+            "error": None,
+        }
+
     # =========================================================================
     # State Reconstruction (survives server restarts)
     # =========================================================================
+
+    async def _reconstruct_fase2_state(self, task_id: str) -> tuple:
+        """
+        Reconstruct a Fase 2 PaymentInfo from the escrows table metadata.
+
+        Returns (PaymentInfo, metadata_dict) or (None, {}) if not found.
+        """
+        try:
+            import supabase_client as db
+
+            client = db.get_client()
+            result = (
+                client.table("escrows")
+                .select("metadata,total_amount_usdc,status")
+                .eq("task_id", task_id)
+                .order("created_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+            rows = result.data or []
+            if not rows:
+                logger.warning("fase2: No escrow row found for task %s", task_id)
+                return None, {}
+
+            row = rows[0]
+            escrow_status = (row.get("status") or "").lower()
+
+            # Block operations on already-terminal escrows
+            terminal_statuses = {
+                "released",
+                "refunded",
+                "completed",
+                "authorization_expired",
+            }
+            if escrow_status in terminal_statuses:
+                logger.warning(
+                    "fase2: Escrow for task %s is in terminal state '%s' — "
+                    "refusing to reconstruct.",
+                    task_id,
+                    escrow_status,
+                )
+                return None, {}
+
+            metadata = row.get("metadata") or {}
+            if isinstance(metadata, str):
+                metadata = json.loads(metadata)
+
+            pi_data = metadata.get("payment_info")
+            if not pi_data or pi_data.get("mode") != "fase2":
+                logger.warning(
+                    "fase2: No fase2 payment_info in escrow metadata for task %s",
+                    task_id,
+                )
+                return None, {}
+
+            # Reconstruct PaymentInfo dataclass
+            pi = EscrowPaymentInfo(
+                operator=pi_data["operator"],
+                receiver=pi_data["receiver"],
+                token=pi_data["token"],
+                max_amount=pi_data["max_amount"],
+                pre_approval_expiry=pi_data["pre_approval_expiry"],
+                authorization_expiry=pi_data["authorization_expiry"],
+                refund_expiry=pi_data["refund_expiry"],
+                min_fee_bps=pi_data["min_fee_bps"],
+                max_fee_bps=pi_data["max_fee_bps"],
+                fee_receiver=pi_data["fee_receiver"],
+                salt=pi_data["salt"],
+            )
+
+            logger.info("fase2: Reconstructed PaymentInfo for task %s from DB", task_id)
+            return pi, pi_data
+
+        except Exception as e:
+            logger.error(
+                "fase2: Failed to reconstruct state for task %s: %s", task_id, e
+            )
+            return None, {}
 
     async def _ensure_escrow_state(self, task_id: str) -> bool:
         """
@@ -1222,6 +1767,7 @@ class PaymentDispatcher:
         info: Dict[str, Any] = {
             "mode": self.mode,
             "x402r_available": ADVANCED_ESCROW_AVAILABLE,
+            "fase2_available": FASE2_SDK_AVAILABLE,
             "preauth_available": SDK_AVAILABLE,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
@@ -1231,6 +1777,13 @@ class PaymentDispatcher:
                 info["x402r_config"] = self._escrow.get_config()
             except Exception:
                 pass
+
+        if self.mode == "fase2" and self._fase2_clients:
+            info["fase2_config"] = {
+                "operator": EM_OPERATOR,
+                "chains": list(self._fase2_clients.keys()),
+                "facilitator_url": FACILITATOR_URL,
+            }
 
         if self.mode in ("preauth", "fase1") and self._sdk is not None:
             info["preauth_config"] = {

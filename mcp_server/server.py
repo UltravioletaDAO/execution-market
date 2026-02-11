@@ -99,6 +99,7 @@ Error Codes:
     - RATE_LIMIT_EXCEEDED: Too many requests
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -693,7 +694,60 @@ async def em_publish_task(params: PublishTaskInput) -> str:
         dispatcher = get_payment_dispatcher()
         if dispatcher:
             try:
-                if dispatcher.get_mode() == "fase1":
+                mode = dispatcher.get_mode()
+                if mode == "fase2":
+                    # Fase 2: Lock funds on-chain in escrow (gasless via facilitator)
+                    auth_result = await dispatcher.authorize_payment(
+                        task_id=task["id"],
+                        receiver=params.agent_id,
+                        amount_usdc=Decimal(str(params.bounty_usd)),
+                        network=params.payment_network or "base",
+                        token=params.payment_token or "USDC",
+                    )
+                    escrow_info = {
+                        "escrow_id": task["id"],
+                        "status": auth_result.get("escrow_status", "deposited"),
+                        "deposit_tx": auth_result.get("tx_hash") or "",
+                    }
+                    # Store serialized PaymentInfo in escrows table
+                    if auth_result.get("success") and auth_result.get(
+                        "payment_info_serialized"
+                    ):
+                        try:
+                            import supabase_client as sdb
+
+                            sdb_client = sdb.get_client()
+                            total_locked = Decimal(str(params.bounty_usd)) * Decimal(
+                                "1.08"
+                            )
+                            sdb_client.table("escrows").upsert(
+                                {
+                                    "task_id": task["id"],
+                                    "status": "deposited",
+                                    "total_amount_usdc": float(total_locked),
+                                    "beneficiary_address": auth_result.get(
+                                        "payer_address", ""
+                                    ),
+                                    "metadata": {
+                                        "payment_info": auth_result[
+                                            "payment_info_serialized"
+                                        ],
+                                    },
+                                },
+                                on_conflict="task_id",
+                            ).execute()
+                        except Exception as db_err:
+                            logger.warning(
+                                "Failed to store fase2 escrow metadata for task %s: %s",
+                                task["id"],
+                                db_err,
+                            )
+                    if not auth_result.get("success"):
+                        balance_warning = (
+                            f"Escrow lock failed: {auth_result.get('error', 'unknown')}. "
+                            "Task created but funds are NOT locked."
+                        )
+                elif mode == "fase1":
                     # Fase 1: advisory balance check only (no funds move)
                     total_check = Decimal(str(params.bounty_usd)) * Decimal("1.08")
                     auth_result = await dispatcher.authorize_payment(
@@ -1090,6 +1144,24 @@ async def em_approve_submission(params: ApproveSubmissionInput) -> str:
                             task["id"],
                             payment_info.get("success"),
                         )
+                        # Update escrow row status for fase2/x402r
+                        if payment_info.get("success") and payment_info.get("mode") in (
+                            "fase2",
+                            "x402r",
+                        ):
+                            try:
+                                import supabase_client as sdb
+
+                                sdb_client = sdb.get_client()
+                                sdb_client.table("escrows").update(
+                                    {"status": "released"}
+                                ).eq("task_id", task["id"]).execute()
+                            except Exception as db_err:
+                                logger.warning(
+                                    "Failed to update escrow status for task %s: %s",
+                                    task["id"],
+                                    db_err,
+                                )
                     elif x402_sdk:
                         # Fallback: direct SDK settlement
                         payment_header = _resolve_mcp_payment_header(
@@ -1255,6 +1327,21 @@ async def em_cancel_task(params: CancelTaskInput) -> str:
                         "source": "em_cancel_task",
                     },
                 )
+                # Update escrow row status for fase2/x402r
+                if refund_result.get("mode") in ("fase2", "x402r"):
+                    try:
+                        import supabase_client as sdb
+
+                        sdb_client = sdb.get_client()
+                        sdb_client.table("escrows").update({"status": "refunded"}).eq(
+                            "task_id", params.task_id
+                        ).execute()
+                    except Exception as db_err:
+                        logger.warning(
+                            "Failed to update escrow status for task %s: %s",
+                            params.task_id,
+                            db_err,
+                        )
                 logger.info(
                     "Payment refunded via PaymentDispatcher for task %s (mode=%s, status=%s)",
                     params.task_id,
@@ -1392,6 +1479,85 @@ async def em_get_payment_info(task_id: str, submission_id: str) -> str:
 
     except Exception as e:
         return json.dumps({"error": f"Failed to get payment info: {str(e)}"})
+
+
+@mcp.tool(
+    name="em_check_escrow_state",
+    annotations={
+        "title": "Check On-Chain Escrow State",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)
+async def em_check_escrow_state(task_id: str) -> str:
+    """
+    Query the on-chain escrow state for a task (Fase 2 mode only).
+
+    Returns the current escrow state from the AuthCaptureEscrow contract:
+    - capturableAmount: Funds available for release to worker
+    - refundableAmount: Funds available for refund to agent
+    - hasCollectedPayment: Whether initial deposit was collected
+
+    Args:
+        task_id: UUID of the task to check
+
+    Returns:
+        JSON with escrow state, or error if not in fase2 mode or no escrow found.
+    """
+    try:
+        dispatcher = get_payment_dispatcher()
+        if not dispatcher or dispatcher.get_mode() != "fase2":
+            return json.dumps(
+                {
+                    "error": f"Escrow state query requires fase2 mode (current: {dispatcher.get_mode() if dispatcher else 'none'})",
+                    "task_id": task_id,
+                }
+            )
+
+        # Reconstruct PaymentInfo from DB
+        pi, pi_meta = await dispatcher._reconstruct_fase2_state(task_id)
+        if pi is None:
+            return json.dumps(
+                {
+                    "error": f"No fase2 escrow found for task {task_id}",
+                    "task_id": task_id,
+                }
+            )
+
+        stored_network = pi_meta.get("network", "base")
+        client = dispatcher._get_fase2_client(stored_network)
+
+        # Query on-chain state (read-only, no gas)
+        state = await asyncio.to_thread(client.query_escrow_state, pi)
+
+        capturable = int(state.get("capturableAmount", 0))
+        refundable = int(state.get("refundableAmount", 0))
+        collected = state.get("hasCollectedPayment", False)
+
+        return json.dumps(
+            {
+                "task_id": task_id,
+                "network": stored_network,
+                "escrow_state": {
+                    "capturable_usdc": capturable / 1_000_000,
+                    "refundable_usdc": refundable / 1_000_000,
+                    "has_collected_payment": collected,
+                    "capturable_atomic": capturable,
+                    "refundable_atomic": refundable,
+                },
+                "operator": pi.operator,
+                "salt": pi.salt[:18] + "...",
+                "raw": state,
+            },
+            indent=2,
+        )
+
+    except Exception as e:
+        return json.dumps(
+            {"error": f"Failed to query escrow state: {str(e)}", "task_id": task_id}
+        )
 
 
 # ============== WORKER TOOLS ==============
