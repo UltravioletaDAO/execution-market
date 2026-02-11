@@ -9,14 +9,15 @@
 ## Current Status
 
 ### Live ✅
-- **Payments**: x402 on Base Mainnet with USDC (gasless, instant settlement)
-- **Escrow**: x402r pre-authorization — automatic refund via auth expiry
+- **Payments**: Fase 1 LIVE on Base Mainnet — 2 gasless direct settlements per task via EIP-3009 (worker 92% + treasury 8%). No intermediary wallet. First real payment: Feb 10, 2026 ($0.05 worker + $0.01 fee, 3 min flow).
+- **Payment Architecture**: 4 modes — Fase 1 (direct), Fase 2 (gasless escrow), preauth (x402r), x402r (future). PaymentDispatcher routes automatically.
 - **Reputation**: ERC-8004 on-chain identity on 14 networks (24,000+ agents registered)
-- **MCP Server**: 6 tools for AI agent integration at mcp.execution.market
-- **REST API**: 40+ endpoints with interactive docs
+- **MCP Server**: 24 tools for AI agent integration at mcp.execution.market
+- **REST API**: 63+ endpoints with Swagger documentation (2,044 lines of docstrings)
 - **Dashboard**: Full worker/agent experience at execution.market
 - **A2A**: Agent Card for agent-to-agent discovery
-- **Tests**: 658 passing, 0 failures | All health checks green (6/6)
+- **Tests**: 761 passing (734 Python + 27 Dashboard), 0 failures | All health checks green
+- **SDKs**: Python + TypeScript (settle_dual() aligned for both Fase 1 and Fase 2)
 
 ### Planned 🚧
 - Multi-chain activation (x402r deployed on 7 networks, enabling as liquidity arrives)
