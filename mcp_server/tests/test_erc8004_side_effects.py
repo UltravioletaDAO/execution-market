@@ -320,6 +320,7 @@ class TestWS2AutoRateAgent:
         mock_rate = AsyncMock(
             return_value=FakeFeedbackResult(success=True, tx_hash="0xfeed123")
         )
+        mock_verify = AsyncMock(return_value={"registered": True, "agent_id": 2106})
 
         with (
             patch("api.routes.PlatformConfig") as MockConfig,
@@ -327,6 +328,11 @@ class TestWS2AutoRateAgent:
             patch(
                 "integrations.erc8004.facilitator_client.rate_agent",
                 mock_rate,
+            ),
+            patch(
+                "integrations.erc8004.identity.verify_agent_identity",
+                mock_verify,
+                create=True,
             ),
         ):
             MockConfig.is_feature_enabled = AsyncMock(return_value=False)
@@ -391,6 +397,7 @@ class TestWS2AutoRateAgent:
         mock_sb = _make_supabase_mock()
 
         mock_rate = AsyncMock(return_value=FakeFeedbackResult(success=True))
+        mock_verify = AsyncMock(return_value={"registered": True, "agent_id": 469})
 
         with (
             patch("api.routes.PlatformConfig") as MockConfig,
@@ -398,6 +405,11 @@ class TestWS2AutoRateAgent:
             patch(
                 "integrations.erc8004.facilitator_client.rate_agent",
                 mock_rate,
+            ),
+            patch(
+                "integrations.erc8004.identity.verify_agent_identity",
+                mock_verify,
+                create=True,
             ),
         ):
             MockConfig.is_feature_enabled = AsyncMock(return_value=False)
