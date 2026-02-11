@@ -664,3 +664,49 @@ async def rate_agent_endpoint(
         network=result.network,
         error=result.error,
     )
+
+
+# =============================================================================
+# FEEDBACK DOCUMENT RETRIEVAL
+# =============================================================================
+
+
+@router.get(
+    "/feedback/{task_id}",
+    summary="Get feedback document for a task",
+    description="Retrieves the off-chain feedback document stored on S3. "
+    "This is the data referenced by feedbackUri in ERC-8004 Reputation Registry.",
+)
+async def get_feedback_endpoint(
+    task_id: str = Path(..., description="Task ID"),
+    feedback_type: Optional[str] = None,
+):
+    """
+    Retrieve feedback document for a task.
+
+    The feedbackUri on-chain points here. Returns the full JSON document
+    with score, comment, rejection reason, evidence, and transaction hashes.
+    """
+    try:
+        from integrations.erc8004.feedback_store import get_feedback_document
+
+        doc = await get_feedback_document(task_id, feedback_type)
+        if not doc:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No feedback document found for task {task_id}",
+            )
+        return doc
+    except HTTPException:
+        raise
+    except ImportError:
+        raise HTTPException(
+            status_code=501,
+            detail="Feedback store not available",
+        )
+    except Exception as exc:
+        logger.error("Error fetching feedback for task %s: %s", task_id, exc)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve feedback document",
+        )
