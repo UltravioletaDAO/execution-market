@@ -9,6 +9,8 @@ Tests the centralized configuration system including:
 """
 
 import pytest
+
+pytestmark = pytest.mark.core
 from decimal import Decimal
 from unittest.mock import MagicMock
 

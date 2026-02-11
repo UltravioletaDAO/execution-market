@@ -1,5 +1,5 @@
 """
-Tests for the Validator Consensus System.
+Tests for the Validator Consensus System (DORMANT — not wired into active endpoints).
 
 Tests NOW-180, NOW-181, NOW-182 requirements:
 - 2-of-3 validator consensus
@@ -8,6 +8,8 @@ Tests NOW-180, NOW-181, NOW-182 requirements:
 """
 
 import pytest
+
+pytestmark = pytest.mark.dormant
 
 from ..validation.consensus import (
     ValidatorSpecialization,

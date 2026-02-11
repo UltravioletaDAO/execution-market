@@ -67,6 +67,13 @@ from .worker_tools import (
     create_worker_tools_standalone,
 )
 
+from .reputation_tools import (
+    # Registration function
+    register_reputation_tools,
+    # Availability flags
+    ERC8004_AVAILABLE as REPUTATION_TOOLS_AVAILABLE,
+)
+
 __all__ = [
     # Agent Tools
     "register_agent_tools",
@@ -106,4 +113,7 @@ __all__ = [
     "VALID_TRANSITIONS",
     "can_transition",
     "create_worker_tools_standalone",
+    # Reputation Tools (WS-4)
+    "register_reputation_tools",
+    "REPUTATION_TOOLS_AVAILABLE",
 ]

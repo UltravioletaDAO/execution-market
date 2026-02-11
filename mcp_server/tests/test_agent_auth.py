@@ -16,6 +16,8 @@ from unittest.mock import MagicMock, patch
 
 import jwt
 import pytest
+
+pytestmark = pytest.mark.core
 from fastapi import HTTPException
 
 # Add parent to path for imports

@@ -8,6 +8,8 @@ Tests NOW-108, NOW-109, NOW-111 implementation:
 """
 
 import pytest
+
+pytestmark = pytest.mark.security
 from datetime import datetime, timedelta, UTC
 
 from ..verification.gps_antispoofing import (

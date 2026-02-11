@@ -1,5 +1,5 @@
 """
-Tests for Seals & Credentials Module
+Tests for Seals & Credentials Module (DORMANT — not wired into active endpoints)
 
 Tests cover:
 - Seal types and requirements
@@ -11,6 +11,8 @@ Tests cover:
 
 import pytest
 from datetime import datetime, timedelta, UTC
+
+pytestmark = pytest.mark.dormant
 
 from ..seals import (
     # Types

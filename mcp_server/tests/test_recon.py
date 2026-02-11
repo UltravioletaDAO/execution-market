@@ -4,8 +4,11 @@ Test script for recon.py module.
 Tests for NOW-131 (Task type tiers) and NOW-132 (Execution Market Recon observation tasks).
 """
 
+import pytest
 import sys
 from pathlib import Path
+
+pytestmark = pytest.mark.dormant
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))

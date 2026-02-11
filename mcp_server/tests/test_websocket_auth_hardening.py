@@ -6,6 +6,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+pytestmark = pytest.mark.infrastructure
+
 from ..websocket.server import WebSocketManager, ConnectionState
 
 

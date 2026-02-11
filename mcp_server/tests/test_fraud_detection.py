@@ -5,6 +5,8 @@ Tests multi-device detection, wash trading, collusion, and risk scoring.
 """
 
 import pytest
+
+pytestmark = pytest.mark.security
 from datetime import datetime, timezone, timedelta
 
 from ..security.fraud_detection import (

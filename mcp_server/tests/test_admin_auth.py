@@ -3,6 +3,8 @@ Focused tests for admin authentication dependency.
 """
 
 import pytest
+
+pytestmark = pytest.mark.core
 from fastapi import HTTPException
 
 from ..api.admin import verify_admin_key

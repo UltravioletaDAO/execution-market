@@ -258,6 +258,13 @@ class ApproveSubmissionInput(BaseModel):
         description="X-Payment header for platform fee (EIP-3009 auth: agent->treasury). "
         "Required for external agents in fase1 mode. Server-managed agents omit this.",
     )
+    rating_score: Optional[int] = Field(
+        default=None,
+        description="Optional agent-provided reputation score override (0-100). "
+        "When omitted, score is computed dynamically from submission quality signals.",
+        ge=0,
+        le=100,
+    )
 
 
 class CancelTaskInput(BaseModel):
@@ -430,3 +437,88 @@ class GetTaskAnalyticsInput(BaseModel):
     response_format: ResponseFormat = Field(
         default=ResponseFormat.MARKDOWN, description="Output format"
     )
+
+
+# ============== REPUTATION TOOL INPUT MODELS ==============
+
+
+class RateWorkerInput(BaseModel):
+    """Input model for rating a worker after task completion."""
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
+
+    submission_id: str = Field(
+        ..., description="UUID of the submission to rate", min_length=36, max_length=36
+    )
+    score: Optional[int] = Field(
+        default=None,
+        description="Rating score 0-100. If omitted, computed dynamically.",
+        ge=0,
+        le=100,
+    )
+    comment: Optional[str] = Field(
+        default=None, description="Optional comment about the worker", max_length=1000
+    )
+
+
+class RateAgentInput(BaseModel):
+    """Input model for a worker rating an agent."""
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
+
+    task_id: str = Field(
+        ..., description="UUID of the completed task", min_length=36, max_length=36
+    )
+    score: int = Field(..., description="Rating score 0-100", ge=0, le=100)
+    comment: Optional[str] = Field(
+        default=None, description="Optional comment about the agent", max_length=1000
+    )
+
+
+class GetReputationInput(BaseModel):
+    """Input model for getting on-chain reputation."""
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
+
+    agent_id: Optional[int] = Field(
+        default=None, description="ERC-8004 agent token ID", ge=1
+    )
+    wallet_address: Optional[str] = Field(
+        default=None, description="Agent's wallet address", max_length=42
+    )
+    network: str = Field(default="base", description="ERC-8004 network", max_length=30)
+
+
+class CheckIdentityInput(BaseModel):
+    """Input model for checking ERC-8004 identity."""
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
+
+    wallet_address: str = Field(
+        ..., description="Wallet address to check", min_length=42, max_length=42
+    )
+    network: str = Field(default="base", description="Network to check", max_length=30)
+
+
+class RegisterIdentityInput(BaseModel):
+    """Input model for gasless ERC-8004 identity registration."""
+
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
+
+    wallet_address: str = Field(
+        ..., description="Wallet address to register", min_length=42, max_length=42
+    )
+    mode: str = Field(
+        default="gasless", description="Registration mode (only 'gasless' supported)"
+    )
+    network: str = Field(default="base", description="ERC-8004 network", max_length=30)

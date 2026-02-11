@@ -9,7 +9,10 @@ Tests the Beta-Binomial reputation system:
 - Edge cases (zero values, negatives, extremes)
 """
 
+import pytest
 from datetime import datetime, UTC
+
+pytestmark = pytest.mark.core
 
 from reputation.bayesian import (
     BayesianCalculator,

@@ -418,7 +418,9 @@
     "identity": "On-Chain Identity",
     "identityHint": "Register your on-chain identity for greater trust",
     "identityNotRegistered": "Not registered",
+    "identityRegisterButton": "Register on ERC-8004",
     "identityRegistered": "Verified",
+    "identityRegistering": "Registering...",
     "insufficientBalance": "Insufficient balance",
     "invalidAddress": "Invalid wallet address",
     "languages": "Languages",
@@ -458,8 +460,30 @@
       "trusted": "Trusted",
       "reliable": "Reliable",
       "standard": "Standard",
-      "new": "New"
+      "new": "New",
+      "bronze": "Bronze",
+      "silver": "Silver",
+      "gold": "Gold",
+      "diamond": "Diamond"
     }
+  },
+  "agentReputation": {
+    "title": "On-Chain Reputation",
+    "score": "Score",
+    "ratings": "{{count}} ratings",
+    "unavailable": "On-chain data not available"
+  },
+  "rateAgent": {
+    "title": "Rate Agent",
+    "ratingLabel": "How was your experience with this agent?",
+    "commentLabel": "Comment",
+    "commentPlaceholder": "Share details about your experience with this agent...",
+    "submit": "Rate Agent",
+    "skip": "Skip",
+    "success": "Rating submitted!",
+    "successDescription": "Your feedback helps improve the platform.",
+    "defaultAgentName": "AI Agent",
+    "agentLabel": "Task publisher"
   },
   "filters": {
     "all": "All",

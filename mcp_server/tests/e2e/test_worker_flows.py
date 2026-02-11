@@ -27,6 +27,8 @@ import logging
 import os
 import uuid
 import pytest
+
+pytestmark = pytest.mark.core
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Dict

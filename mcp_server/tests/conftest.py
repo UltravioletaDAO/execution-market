@@ -1,7 +1,24 @@
 """
 Pytest configuration and fixtures for Execution Market MCP Server tests.
+
+Test Profiles (use -m flag):
+    pytest                              # ALL tests (909)
+    pytest -m "not dormant"             # Active tests only (~815) - DEFAULT for CI
+    pytest -m "not dormant and not redundant"  # Lean suite (~720)
+    pytest -m core                      # Core business logic (~200)
+    pytest -m erc8004                   # ERC-8004 integration (~120)
+    pytest -m payments                  # Payment flows (~130)
+    pytest -m security                  # Security & fraud (~80)
+    pytest -m infrastructure            # Webhooks, WS, A2A (~70)
+    pytest -m dormant                   # Dormant/unwired modules (~95)
+    pytest -m redundant                 # Redundant/low-value (~99)
+
+Combine profiles:
+    pytest -m "core or erc8004"         # Core + ERC-8004
+    pytest -m "core or payments"        # Core + payments
 """
 
+import os
 import pytest
 import sys
 from pathlib import Path
@@ -9,6 +26,29 @@ from datetime import datetime, UTC
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+
+def pytest_collection_modifyitems(config, items):
+    """Auto-exclude dormant and redundant tests unless explicitly requested.
+
+    Default behavior (no -m flag): skip dormant tests.
+    If user passes any -m expression: respect it exactly.
+    Set EM_TEST_PROFILE=full to run everything.
+    """
+    profile = os.environ.get("EM_TEST_PROFILE", "").lower()
+
+    # If user explicitly set a marker expression or wants full, don't interfere
+    if config.getoption("-m") or profile == "full":
+        return
+
+    # Default: skip dormant tests (not wired into production)
+    skip_dormant = pytest.mark.skip(
+        reason="Dormant test (module not in active endpoints). Run with -m dormant or EM_TEST_PROFILE=full"
+    )
+
+    for item in items:
+        if "dormant" in item.keywords:
+            item.add_marker(skip_dormant)
 
 
 @pytest.fixture
