@@ -25,14 +25,13 @@ import sys
 import time
 import json
 from pathlib import Path
-from decimal import Decimal
 
 from dotenv import load_dotenv
 
 # Load env
 load_dotenv(Path(__file__).parent.parent / ".env.local")
 
-from uvd_x402_sdk.advanced_escrow import (
+from uvd_x402_sdk.advanced_escrow import (  # noqa: E402
     AdvancedEscrowClient,
     TaskTier,
 )
@@ -86,7 +85,7 @@ def main():
     )
 
     print(f"Payer (agent):   {client.payer}")
-    print(f"Contracts:")
+    print("Contracts:")
     for k, v in client.contracts.items():
         print(f"  {k:25s} {v}")
     print()
@@ -98,14 +97,22 @@ def main():
             amount=TEST_AMOUNT,
             tier=TaskTier.MICRO,
         )
-        print(f"\nPaymentInfo:")
+        print("\nPaymentInfo:")
         print(f"  operator:              {pi.operator}")
         print(f"  receiver:              {pi.receiver}")
         print(f"  token:                 {pi.token}")
-        print(f"  maxAmount:             {pi.max_amount} ({pi.max_amount / 1_000_000:.6f} USDC)")
-        print(f"  preApprovalExpiry:     {pi.pre_approval_expiry} ({time.ctime(pi.pre_approval_expiry)})")
-        print(f"  authorizationExpiry:   {pi.authorization_expiry} ({time.ctime(pi.authorization_expiry)})")
-        print(f"  refundExpiry:          {pi.refund_expiry} ({time.ctime(pi.refund_expiry)})")
+        print(
+            f"  maxAmount:             {pi.max_amount} ({pi.max_amount / 1_000_000:.6f} USDC)"
+        )
+        print(
+            f"  preApprovalExpiry:     {pi.pre_approval_expiry} ({time.ctime(pi.pre_approval_expiry)})"
+        )
+        print(
+            f"  authorizationExpiry:   {pi.authorization_expiry} ({time.ctime(pi.authorization_expiry)})"
+        )
+        print(
+            f"  refundExpiry:          {pi.refund_expiry} ({time.ctime(pi.refund_expiry)})"
+        )
         print(f"  minFeeBps:             {pi.min_fee_bps}")
         print(f"  maxFeeBps:             {pi.max_fee_bps}")
         print(f"  feeReceiver:           {pi.fee_receiver}")
@@ -123,7 +130,7 @@ def main():
         amount=TEST_AMOUNT,
         tier=TaskTier.MICRO,
     )
-    print(f"PaymentInfo built:")
+    print("PaymentInfo built:")
     print(f"  salt: {pi.salt[:18]}...")
     print(f"  preApprovalExpiry: {time.ctime(pi.pre_approval_expiry)}")
     print(f"  authorizationExpiry: {time.ctime(pi.authorization_expiry)}")
@@ -152,7 +159,7 @@ def main():
 
     try:
         state = client.query_escrow_state(pi)
-        print(f"Escrow state:")
+        print("Escrow state:")
         print(f"  {json.dumps(state, indent=2)}")
         capturable = int(state.get("capturableAmount", 0))
         refundable = int(state.get("refundableAmount", 0))
@@ -162,7 +169,9 @@ def main():
         print(f"  Collected:  {collected}")
 
         if capturable == 0:
-            print("\nWARNING: capturableAmount is 0 — authorize may have failed silently")
+            print(
+                "\nWARNING: capturableAmount is 0 — authorize may have failed silently"
+            )
     except Exception as e:
         print(f"QUERY FAILED (non-fatal): {e}")
         print("Continuing with release/refund anyway...")
@@ -209,14 +218,16 @@ def main():
 
     try:
         final_state = client.query_escrow_state(pi)
-        print(f"Final escrow state:")
+        print("Final escrow state:")
         print(f"  {json.dumps(final_state, indent=2)}")
         final_capturable = int(final_state.get("capturableAmount", 0))
         final_collected = final_state.get("hasCollectedPayment", False)
 
         if do_refund:
             if final_capturable == 0:
-                print("\nREFUND VERIFIED: capturableAmount = 0 (funds returned to agent)")
+                print(
+                    "\nREFUND VERIFIED: capturableAmount = 0 (funds returned to agent)"
+                )
             else:
                 print(f"\nWARNING: capturableAmount still {final_capturable}")
         else:
@@ -243,7 +254,9 @@ def main():
     print()
     print("BaseScan links:")
     print(f"  Authorize: https://basescan.org/tx/{auth_result.transaction_hash}")
-    print(f"  {'Refund' if do_refund else 'Release'}:   https://basescan.org/tx/{result.transaction_hash}")
+    print(
+        f"  {'Refund' if do_refund else 'Release'}:   https://basescan.org/tx/{result.transaction_hash}"
+    )
 
 
 if __name__ == "__main__":
