@@ -143,7 +143,7 @@ async def _fetch_orphaned_submissions(client) -> list:
             )
             .in_("agent_verdict", ["accepted", "approved"])
             .is_("payment_tx", "null")
-            .order("updated_at", desc=False)
+            .order("submitted_at", desc=False)
             .limit(MAX_BATCH * 2)  # Fetch extra to account for post-fetch filtering
             .execute()
         )
@@ -159,7 +159,7 @@ async def _fetch_orphaned_submissions(client) -> list:
                     )
                     .in_("agent_verdict", ["accepted", "approved"])
                     .is_("payment_tx", "null")
-                    .order("updated_at", desc=False)
+                    .order("submitted_at", desc=False)
                     .limit(MAX_BATCH * 2)
                     .execute()
                 )

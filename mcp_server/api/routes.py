@@ -849,21 +849,33 @@ async def _ws2_auto_rate_agent(
                 pass
 
     if agent_erc8004_id is None:
-        logger.info("WS-2 skip: no numeric agent ERC-8004 ID for task %s", task_id)
-        effect = await enqueue_side_effect(
-            supabase=db.get_client(),
-            submission_id=submission_id,
-            effect_type="rate_agent_from_worker",
-            payload={"task_id": task_id, "skip_reason": "missing_agent_erc8004_id"},
-        )
-        if effect:
-            await mark_side_effect(
-                supabase=db.get_client(),
-                effect_id=effect["id"],
-                status="skipped",
-                error="missing_agent_erc8004_id",
+        # Fallback: use platform's own ERC-8004 agent ID (EM_AGENT_ID env var)
+        try:
+            agent_erc8004_id = EM_AGENT_ID
+            logger.info(
+                "WS-2: task %s missing erc8004_agent_id, using platform EM_AGENT_ID=%d",
+                task_id,
+                agent_erc8004_id,
             )
-        return
+        except Exception:
+            logger.info("WS-2 skip: no numeric agent ERC-8004 ID for task %s", task_id)
+            effect = await enqueue_side_effect(
+                supabase=db.get_client(),
+                submission_id=submission_id,
+                effect_type="rate_agent_from_worker",
+                payload={
+                    "task_id": task_id,
+                    "skip_reason": "missing_agent_erc8004_id",
+                },
+            )
+            if effect:
+                await mark_side_effect(
+                    supabase=db.get_client(),
+                    effect_id=effect["id"],
+                    status="skipped",
+                    error="missing_agent_erc8004_id",
+                )
+            return
 
     # Guard: verify agent exists on-chain before sending feedback
     try:

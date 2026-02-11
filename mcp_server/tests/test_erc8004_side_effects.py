@@ -357,17 +357,29 @@ class TestWS2AutoRateAgent:
         )
 
     @pytest.mark.asyncio
-    async def test_wallet_only_agent_skipped(self):
-        """Agent with no numeric ID -> enqueue + mark skipped, no exception."""
+    async def test_wallet_only_agent_falls_back_to_em_agent_id(self):
+        """Agent with no numeric ID falls back to EM_AGENT_ID (platform agent)."""
         submission = _make_submission(
             task_erc8004_agent_id=None,
             task_agent_id="0xWalletAddress",  # non-numeric
         )
         mock_sb = _make_supabase_mock()
 
+        mock_rate = AsyncMock(return_value=FakeFeedbackResult(success=True))
+        mock_verify = AsyncMock(return_value={"registered": True, "agent_id": 469})
+
         with (
             patch("api.routes.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
+            patch(
+                "integrations.erc8004.facilitator_client.rate_agent",
+                mock_rate,
+            ),
+            patch(
+                "integrations.erc8004.identity.verify_agent_identity",
+                mock_verify,
+                create=True,
+            ),
         ):
             MockConfig.is_feature_enabled = AsyncMock(return_value=False)
             mock_db.get_client.return_value = mock_sb
@@ -383,9 +395,12 @@ class TestWS2AutoRateAgent:
                 task_id="task-001",
             )
 
+        # Should enqueue with agent_erc8004_id from EM_AGENT_ID fallback (469)
         assert len(mock_sb._enqueue_calls) == 1
         payload = mock_sb._enqueue_calls[0]["payload"]
-        assert payload.get("skip_reason") == "missing_agent_erc8004_id"
+        assert payload.get("agent_erc8004_id") == 469
+        # Should attempt rate_agent with EM_AGENT_ID
+        mock_rate.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_numeric_agent_id_fallback(self):
