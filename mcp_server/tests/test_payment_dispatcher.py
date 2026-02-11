@@ -705,6 +705,748 @@ class TestFeeCalculations:
 # ===========================================================================
 
 
+# ===========================================================================
+# Test: Fase 1 Payment Flow (Auth on Approve)
+# ===========================================================================
+
+
+class TestFase1Flow:
+    """Tests for Fase 1 payment flow (balance check + direct settlements)."""
+
+    def _make_fase1_dispatcher(self):
+        """Create dispatcher in fase1 mode with mocked SDK."""
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+            d = PaymentDispatcher(mode="fase1")
+            d._sdk = FakeSDK()
+            d._sdk._get_agent_account = MagicMock()
+            d._sdk._get_agent_account.return_value.address = "0xAgent123"
+            d._sdk.check_agent_balance = AsyncMock()
+            d._sdk.settle_direct_payments = AsyncMock()
+            return d
+
+    @pytest.mark.asyncio
+    async def test_fase1_authorize_success_sufficient_balance(self):
+        """Fase 1 authorize with sufficient balance should succeed."""
+        d = self._make_fase1_dispatcher()
+        d._sdk.check_agent_balance.return_value = {
+            "sufficient": True,
+            "balance": "15.00",
+        }
+
+        result = await d.authorize_payment(
+            task_id="task-f1-1",
+            receiver="0xWorker",
+            amount_usdc=Decimal("10.00"),
+            agent_address="0xAgent123",
+            network="base",
+        )
+
+        assert result["success"] is True
+        assert result["mode"] == "fase1"
+        assert result["escrow_status"] == "balance_verified"
+        assert result["error"] is None
+        assert result["warning"] is None
+
+    @pytest.mark.asyncio
+    async def test_fase1_authorize_insufficient_balance_warning(self):
+        """Fase 1 authorize with insufficient balance should warn but succeed."""
+        d = self._make_fase1_dispatcher()
+        d._sdk.check_agent_balance.return_value = {
+            "sufficient": False,
+            "balance": "5.00",
+        }
+
+        result = await d.authorize_payment(
+            task_id="task-f1-2",
+            receiver="0xWorker",
+            amount_usdc=Decimal("10.00"),
+            agent_address="0xAgent123",
+            network="base",
+        )
+
+        assert result["success"] is True  # Always succeed - advisory check
+        assert result["mode"] == "fase1"
+        assert result["escrow_status"] == "insufficient_balance"
+        assert result["warning"] is not None
+        assert "insufficient" in result["warning"].lower()
+
+    @pytest.mark.asyncio
+    async def test_fase1_authorize_no_agent_address(self):
+        """Fase 1 authorize without agent address should derive from SDK."""
+        d = self._make_fase1_dispatcher()
+        d._sdk.check_agent_balance.return_value = {
+            "sufficient": True,
+            "balance": "15.00",
+        }
+
+        result = await d.authorize_payment(
+            task_id="task-f1-3",
+            receiver="0xWorker",
+            amount_usdc=Decimal("10.00"),
+            network="base",
+        )
+
+        assert result["success"] is True
+        assert result["escrow_status"] == "balance_verified"
+        d._sdk.check_agent_balance.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_fase1_authorize_sdk_agent_derivation_failure(self):
+        """Fase 1 authorize should handle SDK agent derivation failure gracefully."""
+        d = self._make_fase1_dispatcher()
+        d._sdk._get_agent_account.side_effect = Exception("No private key")
+
+        result = await d.authorize_payment(
+            task_id="task-f1-4",
+            receiver="0xWorker",
+            amount_usdc=Decimal("10.00"),
+            network="base",
+        )
+
+        assert result["success"] is True
+        assert result["escrow_status"] == "balance_unknown"
+        assert "No agent address available" in result["warning"]
+
+    @pytest.mark.asyncio
+    async def test_fase1_release_success_server_managed(self):
+        """Fase 1 release for server-managed agent should succeed."""
+        d = self._make_fase1_dispatcher()
+        d._sdk.settle_direct_payments.return_value = {
+            "success": True,
+            "tx_hash": "0x" + "a" * 64,
+            "fee_tx_hash": "0x" + "b" * 64,
+            "gross_amount": 10.80,
+            "platform_fee": 0.80,
+            "net_to_worker": 10.00,
+        }
+
+        result = await d.release_payment(
+            task_id="task-f1-5",
+            worker_address="0xWorker123",
+            bounty_amount=Decimal("10.00"),
+            network="base",
+        )
+
+        assert result["success"] is True
+        assert result["mode"] == "fase1"
+        assert result["tx_hash"] == "0x" + "a" * 64
+        assert result["fee_tx_hash"] == "0x" + "b" * 64
+        assert result["gross_amount"] == 10.80
+        assert result["net_to_worker"] == 10.00
+
+        # Verify SDK was called without pre-signed headers
+        d._sdk.settle_direct_payments.assert_called_once_with(
+            task_id="task-f1-5",
+            worker_address="0xWorker123",
+            bounty_amount=Decimal("10.00"),
+            worker_auth_header=None,
+            fee_auth_header=None,
+            network="base",
+            token="USDC",
+        )
+
+    @pytest.mark.asyncio
+    async def test_fase1_release_with_presigned_headers(self):
+        """Fase 1 release with pre-signed headers for external agents."""
+        d = self._make_fase1_dispatcher()
+        d._sdk.settle_direct_payments.return_value = {
+            "success": True,
+            "tx_hash": "0x" + "c" * 64,
+            "fee_tx_hash": "0x" + "d" * 64,
+            "gross_amount": 5.40,
+            "platform_fee": 0.40,
+            "net_to_worker": 5.00,
+        }
+
+        worker_header = "eip3009-worker-signature-data"
+        fee_header = "eip3009-fee-signature-data"
+
+        result = await d.release_payment(
+            task_id="task-f1-6",
+            worker_address="0xWorker456",
+            bounty_amount=Decimal("5.00"),
+            worker_auth_header=worker_header,
+            fee_auth_header=fee_header,
+            network="polygon",
+            token="USDC",
+        )
+
+        assert result["success"] is True
+        assert result["tx_hash"] == "0x" + "c" * 64
+
+        # Verify pre-signed headers were passed through
+        d._sdk.settle_direct_payments.assert_called_once_with(
+            task_id="task-f1-6",
+            worker_address="0xWorker456",
+            bounty_amount=Decimal("5.00"),
+            worker_auth_header=worker_header,
+            fee_auth_header=fee_header,
+            network="polygon",
+            token="USDC",
+        )
+
+    @pytest.mark.asyncio
+    async def test_fase1_release_sdk_failure(self):
+        """Fase 1 release should handle SDK settlement failure."""
+        d = self._make_fase1_dispatcher()
+        d._sdk.settle_direct_payments.return_value = {
+            "success": False,
+            "error": "Insufficient allowance",
+        }
+
+        result = await d.release_payment(
+            task_id="task-f1-7",
+            worker_address="0xWorker",
+            bounty_amount=Decimal("10.00"),
+        )
+
+        assert result["success"] is False
+        assert result["mode"] == "fase1"
+        assert "Insufficient allowance" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_fase1_refund_no_op(self):
+        """Fase 1 refund should be a no-op (no funds moved)."""
+        d = self._make_fase1_dispatcher()
+
+        result = await d.refund_payment(
+            task_id="task-f1-8",
+            reason="Task cancelled",
+        )
+
+        assert result["success"] is True
+        assert result["mode"] == "fase1"
+        assert result["status"] == "no_funds_moved"
+        assert result["tx_hash"] is None
+        assert result["error"] is None
+
+
+# ===========================================================================
+# Test: Fase 2 Payment Flow (On-chain escrow via AdvancedEscrowClient)
+# ===========================================================================
+
+
+class FaseClientMock:
+    """Mock AdvancedEscrowClient for fase2 testing."""
+
+    def __init__(self):
+        self.payer = "0xAgent789"
+        self.chain_id = 8453
+
+    def build_payment_info(self, receiver, amount, tier, max_fee_bps):
+        return FakeEscrowPaymentInfo(
+            operator="0xOperator",
+            receiver=receiver,
+            token="0xUSDC",
+            max_amount=amount,
+            pre_approval_expiry=9999999999,
+            authorization_expiry=9999999999,
+            refund_expiry=9999999999,
+            min_fee_bps=0,
+            max_fee_bps=max_fee_bps,
+            fee_receiver="0xTreasury",
+            salt="0x" + "1234" * 16,
+        )
+
+    def authorize(self, payment_info):
+        return FakeTransactionResult(success=True, tx_hash="0x" + "auth" * 16)
+
+    def release_via_facilitator(self, payment_info):
+        return FakeTransactionResult(success=True, tx_hash="0x" + "release" * 14)
+
+    def refund_via_facilitator(self, payment_info):
+        return FakeTransactionResult(success=True, tx_hash="0x" + "refund" * 15)
+
+
+class FakeEscrowPaymentInfo:
+    """Mock EscrowPaymentInfo for fase2."""
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
+class TestFase2Flow:
+    """Tests for Fase 2 payment flow (on-chain escrow + gasless facilitator)."""
+
+    def _make_fase2_dispatcher(self, sdk_available=True):
+        """Create dispatcher in fase2 mode with mocked clients."""
+        # Mock TaskTier enum
+        class MockTaskTier:
+            MICRO = "micro"
+            STANDARD = "standard"
+            PREMIUM = "premium"
+            ENTERPRISE = "enterprise"
+            
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", sdk_available),
+            patch(f"{DISPATCHER_MODULE}.TaskTier", MockTaskTier),
+            patch(f"{DISPATCHER_MODULE}.NETWORK_CONFIG", {
+                "base": {
+                    "chain_id": 8453,
+                    "rpc_url": "https://mainnet.base.org",
+                    "tokens": {"USDC": {"decimals": 6}},
+                }
+            }),
+            patch(f"{DISPATCHER_MODULE}.PLATFORM_FEE_PERCENT", Decimal("0.08")),
+            patch(f"{DISPATCHER_MODULE}._get_platform_address", return_value="0xPlatformAddr"),
+            patch.dict(os.environ, {"WALLET_PRIVATE_KEY": TEST_PK}),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+            d = PaymentDispatcher(mode="fase2")
+            if sdk_available:
+                d._sdk = FakeSDK()
+            mock_client = FaseClientMock()
+            d._fase2_clients = {8453: mock_client}
+            return d, mock_client
+
+    @pytest.mark.asyncio
+    async def test_fase2_authorize_success(self):
+        """Fase 2 authorize should lock funds in escrow via facilitator."""
+        d = _make_dispatcher("fase1")  # Start with simple mode
+        d.mode = "fase2"  # Override mode
+        
+        # Mock the fase2 authorize method directly
+        d._authorize_fase2 = AsyncMock(return_value={
+            "success": True,
+            "tx_hash": "0x" + "auth" * 16,
+            "mode": "fase2",
+            "escrow_status": "deposited",
+            "payment_info": FakeEscrowPaymentInfo(receiver="0xPlatformAddr"),
+            "payment_info_serialized": {"mode": "fase2"},
+            "payer_address": "0xAgent789",
+            "error": None,
+        })
+
+        result = await d.authorize_payment(
+            task_id="task-f2-1",
+            receiver="0xWorker",
+            amount_usdc=Decimal("10.00"),
+            network="base",
+        )
+
+        assert result["success"] is True
+        assert result["mode"] == "fase2"
+        assert result["escrow_status"] == "deposited"
+        assert result["tx_hash"] == "0x" + "auth" * 16
+        assert result["payer_address"] == "0xAgent789"
+        assert result["payment_info_serialized"]["mode"] == "fase2"
+
+    @pytest.mark.asyncio
+    async def test_fase2_authorize_sdk_unavailable_fallback(self):
+        """Fase 2 should fallback to fase1 if SDK not available during init."""
+        with (
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", False),  # Force fallback
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+            d = PaymentDispatcher(mode="fase2")
+            assert d.mode == "fase1"
+
+    @pytest.mark.asyncio
+    async def test_fase2_authorize_escrow_client_unavailable(self):
+        """Fase 2 should fallback to fase1 if AdvancedEscrowClient not available."""
+        with (
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", False),  # Force fallback
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+            d = PaymentDispatcher(mode="fase2")
+            assert d.mode == "fase1"
+
+    @pytest.mark.asyncio
+    async def test_fase2_authorize_failure(self):
+        """Fase 2 authorize failure should return error."""
+        d = _make_dispatcher("fase1")  # Start with simple mode
+        d.mode = "fase2"  # Override mode
+        
+        # Mock the fase2 authorize method to return failure
+        d._authorize_fase2 = AsyncMock(return_value={
+            "success": False,
+            "tx_hash": None,
+            "mode": "fase2",
+            "escrow_status": "authorize_failed",
+            "payment_info": None,
+            "payment_info_serialized": None,
+            "error": "Escrow authorize failed: Insufficient allowance",
+        })
+
+        result = await d.authorize_payment(
+            task_id="task-f2-2",
+            receiver="0xWorker",
+            amount_usdc=Decimal("10.00"),
+            network="base",
+        )
+
+        assert result["success"] is False
+        assert result["mode"] == "fase2"
+        assert result["escrow_status"] == "authorize_failed"
+        assert "Insufficient allowance" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_fase2_release_success_full_flow(self):
+        """Fase 2 release should reconstruct state, release escrow, and disburse."""
+        d, mock_client = self._make_fase2_dispatcher()
+
+        # Mock DB state reconstruction
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(
+                    operator="0xOperator",
+                    receiver="0xPlatform",
+                    token="0xUSDC",
+                    max_amount=10800000,
+                    salt="0x" + "1234" * 16,
+                ),
+                {"network": "base"},
+            )
+        )
+
+        result = await d.release_payment(
+            task_id="task-f2-3",
+            worker_address="0xWorker789",
+            bounty_amount=Decimal("10.00"),
+            network="base",
+        )
+
+        assert result["success"] is True
+        assert result["mode"] == "fase2"
+        assert result["tx_hash"] == "0x" + "c" * 64  # Worker disbursement
+        assert result["escrow_release_tx"] == "0x" + "release" * 14
+        assert result["fee_tx_hash"] == "0x" + "d" * 64
+        assert result["net_to_worker"] == 10.00
+        assert result["platform_fee"] == 0.80
+
+    @pytest.mark.asyncio
+    async def test_fase2_release_no_escrow_state(self):
+        """Fase 2 release without escrow state should fail."""
+        d, mock_client = self._make_fase2_dispatcher()
+        d._reconstruct_fase2_state = AsyncMock(return_value=(None, {}))
+
+        result = await d.release_payment(
+            task_id="task-f2-4",
+            worker_address="0xWorker",
+            bounty_amount=Decimal("10.00"),
+        )
+
+        assert result["success"] is False
+        assert "payment state not found" in result["error"].lower()
+
+    @pytest.mark.asyncio
+    async def test_fase2_release_escrow_release_failure(self):
+        """Fase 2 release should handle escrow release failure."""
+        d, mock_client = self._make_fase2_dispatcher()
+
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(salt="0x1234"),
+                {"network": "base"},
+            )
+        )
+
+        # Mock release failure
+        mock_client.release_via_facilitator = lambda pi: FakeTransactionResult(
+            success=False, error="Release window expired"
+        )
+
+        result = await d.release_payment(
+            task_id="task-f2-5",
+            worker_address="0xWorker",
+            bounty_amount=Decimal("10.00"),
+        )
+
+        assert result["success"] is False
+        assert "Release window expired" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_fase2_release_worker_disbursement_failure(self):
+        """Fase 2 release should handle worker disbursement failure after escrow release."""
+        d, mock_client = self._make_fase2_dispatcher()
+
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(salt="0x1234", receiver="0xPlatform"),
+                {"network": "base"},
+            )
+        )
+
+        # Mock worker disbursement failure
+        d._sdk.disburse_to_worker = AsyncMock(
+            return_value={"success": False, "error": "Gas price too high"}
+        )
+
+        result = await d.release_payment(
+            task_id="task-f2-6",
+            worker_address="0xWorker",
+            bounty_amount=Decimal("10.00"),
+        )
+
+        assert result["success"] is False
+        assert result["escrow_release_tx"] == "0x" + "release" * 14  # Escrow released
+        assert "Gas price too high" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_fase2_refund_success(self):
+        """Fase 2 refund should refund via facilitator (gasless)."""
+        d, mock_client = self._make_fase2_dispatcher()
+
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(salt="0x5678", receiver="0xPlatform"),
+                {"network": "base"},
+            )
+        )
+
+        result = await d.refund_payment(
+            task_id="task-f2-7",
+            reason="Task cancelled by agent",
+        )
+
+        assert result["success"] is True
+        assert result["mode"] == "fase2"
+        assert result["status"] == "refunded"
+        assert result["tx_hash"] == "0x" + "refund" * 15
+        assert result["error"] is None
+
+    @pytest.mark.asyncio
+    async def test_fase2_refund_no_escrow_found(self):
+        """Fase 2 refund with no escrow state should be treated as no-op."""
+        d, mock_client = self._make_fase2_dispatcher()
+        d._reconstruct_fase2_state = AsyncMock(return_value=(None, {}))
+
+        result = await d.refund_payment(
+            task_id="task-f2-8",
+            reason="No escrow created",
+        )
+
+        assert result["success"] is True
+        assert result["status"] == "no_escrow_found"
+        assert result["tx_hash"] is None
+
+    @pytest.mark.asyncio
+    async def test_fase2_refund_failure(self):
+        """Fase 2 refund failure should return error."""
+        d, mock_client = self._make_fase2_dispatcher()
+
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(salt="0x9abc"),
+                {"network": "base"},
+            )
+        )
+
+        # Mock refund failure
+        mock_client.refund_via_facilitator = lambda pi: FakeTransactionResult(
+            success=False, error="Refund window closed"
+        )
+
+        result = await d.refund_payment(
+            task_id="task-f2-9",
+            reason="Agent requested refund",
+        )
+
+        assert result["success"] is False
+        assert result["status"] == "refund_failed"
+        assert "Refund window closed" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_fase2_reconstruct_state_success(self):
+        """_reconstruct_fase2_state should rebuild PaymentInfo from DB."""
+        d, mock_client = self._make_fase2_dispatcher()
+
+        mock_client_obj = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = [
+            {
+                "status": "deposited",
+                "metadata": json.dumps({
+                    "payment_info": {
+                        "mode": "fase2",
+                        "operator": "0xOp",
+                        "receiver": "0xRec",
+                        "token": "0xTok",
+                        "max_amount": 1000000,
+                        "pre_approval_expiry": 9999999999,
+                        "authorization_expiry": 9999999999,
+                        "refund_expiry": 9999999999,
+                        "min_fee_bps": 0,
+                        "max_fee_bps": 800,
+                        "fee_receiver": "0xFee",
+                        "salt": "0xabcd1234",
+                        "network": "base",
+                    }
+                }),
+                "total_amount_usdc": 1.00,
+            }
+        ]
+        mock_client_obj.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_result
+
+        # Mock EscrowPaymentInfo constructor to return our fake object
+        with (
+            patch("supabase_client.get_client", return_value=mock_client_obj),
+            patch(f"{DISPATCHER_MODULE}.EscrowPaymentInfo", FakeEscrowPaymentInfo),
+        ):
+            pi, pi_data = await d._reconstruct_fase2_state("task-reconstruct")
+
+        assert pi is not None
+        assert pi.operator == "0xOp"
+        assert pi.receiver == "0xRec"
+        assert pi.salt == "0xabcd1234"
+        assert pi_data["network"] == "base"
+
+    @pytest.mark.asyncio
+    async def test_fase2_reconstruct_state_terminal_status(self):
+        """_reconstruct_fase2_state should refuse terminal statuses."""
+        d, mock_client = self._make_fase2_dispatcher()
+
+        mock_client_obj = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = [{"status": "released"}]  # Terminal status
+        mock_client_obj.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_result
+
+        with patch("supabase_client.get_client", return_value=mock_client_obj):
+            pi, pi_data = await d._reconstruct_fase2_state("task-terminal")
+
+        assert pi is None
+        assert pi_data == {}
+
+    @pytest.mark.asyncio
+    async def test_fase2_reconstruct_state_missing_metadata(self):
+        """_reconstruct_fase2_state should handle missing payment_info."""
+        d, mock_client = self._make_fase2_dispatcher()
+
+        mock_client_obj = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = [
+            {
+                "status": "deposited",
+                "metadata": json.dumps({"other": "data"}),  # No payment_info
+                "total_amount_usdc": 5.00,
+            }
+        ]
+        mock_client_obj.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_result
+
+        with patch("supabase_client.get_client", return_value=mock_client_obj):
+            pi, pi_data = await d._reconstruct_fase2_state("task-no-metadata")
+
+        assert pi is None
+        assert pi_data == {}
+
+    @pytest.mark.asyncio
+    async def test_fase2_reconstruct_state_mode_mismatch(self):
+        """_reconstruct_fase2_state should reject non-fase2 payment_info."""
+        d, mock_client = self._make_fase2_dispatcher()
+
+        mock_client_obj = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = [
+            {
+                "status": "deposited",
+                "metadata": json.dumps({
+                    "payment_info": {"mode": "x402r"}  # Wrong mode
+                }),
+                "total_amount_usdc": 5.00,
+            }
+        ]
+        mock_client_obj.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = mock_result
+
+        with patch("supabase_client.get_client", return_value=mock_client_obj):
+            pi, pi_data = await d._reconstruct_fase2_state("task-wrong-mode")
+
+        assert pi is None
+        assert pi_data == {}
+
+
+# ===========================================================================
+# Test: Cross-Mode Fallback Scenarios
+# ===========================================================================
+
+
+class TestCrossModeFallbacks:
+    """Tests for cross-mode fallback scenarios and edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_mode_fallback_cascade(self):
+        """Test complete fallback cascade: fase2 → fase1 when dependencies unavailable."""
+        with (
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+            d = PaymentDispatcher(mode="fase2")
+            assert d.mode == "fase1"
+
+    @pytest.mark.asyncio
+    async def test_sdk_exception_handling(self):
+        """Test that SDK exceptions are properly caught and returned."""
+        d = _make_dispatcher("fase1")
+        d._sdk.settle_direct_payments = AsyncMock(side_effect=RuntimeError("Network timeout"))
+
+        result = await d.release_payment(
+            task_id="task-exception",
+            worker_address="0xWorker",
+            bounty_amount=Decimal("10.00"),
+        )
+
+        assert result["success"] is False
+        assert "Network timeout" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_dispatcher_exception_handling_authorize(self):
+        """Test that dispatcher-level exceptions in authorize are handled."""
+        d = _make_dispatcher("x402r")
+        d._authorize_x402r = AsyncMock(side_effect=ValueError("Invalid amount"))
+
+        result = await d.authorize_payment(
+            task_id="task-auth-exception",
+            receiver="0xAgent",
+            amount_usdc=Decimal("-1.00"),  # Invalid
+        )
+
+        assert result["success"] is False
+        assert "Invalid amount" in result["error"]
+        assert result["mode"] == "x402r"
+
+    @pytest.mark.asyncio
+    async def test_dispatcher_exception_handling_release(self):
+        """Test that dispatcher-level exceptions in release are handled."""
+        d = _make_dispatcher("preauth")
+        d._release_preauth = AsyncMock(side_effect=KeyError("Missing header"))
+
+        result = await d.release_payment(
+            task_id="task-rel-exception",
+            worker_address="0xWorker",
+            bounty_amount=Decimal("10.00"),
+        )
+
+        assert result["success"] is False
+        assert "Missing header" in result["error"]
+        assert result["mode"] == "preauth"
+
+    @pytest.mark.asyncio
+    async def test_dispatcher_exception_handling_refund(self):
+        """Test that dispatcher-level exceptions in refund are handled."""
+        d = _make_dispatcher("x402r")
+        d._refund_x402r = AsyncMock(side_effect=ConnectionError("DB unavailable"))
+
+        result = await d.refund_payment(
+            task_id="task-ref-exception",
+            agent_address="0xAgent",
+        )
+
+        assert result["success"] is False
+        assert "DB unavailable" in result["error"]
+        assert result["mode"] == "x402r"
+
+
 class TestHelpers:
     """Tests for module-level helper functions."""
 
