@@ -24,13 +24,8 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 # S3 config — same bucket as evidence uploads
-FEEDBACK_BUCKET = os.environ.get("EVIDENCE_BUCKET", "")
+FEEDBACK_BUCKET = os.environ.get("EVIDENCE_BUCKET", "evidence")
 FEEDBACK_CDN_URL = os.environ.get("EVIDENCE_PUBLIC_BASE_URL", "").rstrip("/")
-
-# Fallback: try to derive bucket name from account
-if not FEEDBACK_BUCKET:
-    _acct = os.environ.get("AWS_ACCOUNT_ID", "518898403364")
-    FEEDBACK_BUCKET = f"em-production-evidence-{_acct}"
 
 # Also store feedback reference in Supabase for quick lookups
 _SUPABASE_TABLE = "feedback_documents"
