@@ -209,7 +209,7 @@ class TestDepositRequiresValidAmount:
     ):
         """Deposit accepts bounty that results in exactly minimum payout."""
         # Minimum bounty = 0.50 / 0.87 = ~0.5747, rounded up to 0.58
-        min_bounty = Decimal("0.55")
+        min_bounty = Decimal("0.58")
 
         mock_x402_client.create_escrow = AsyncMock(
             return_value=ClientEscrowDeposit(
@@ -386,7 +386,7 @@ class TestReleaseFullAmount:
             return_value=ClientPaymentResult(
                 success=True,
                 tx_hash="0xRELEASE123",
-                amount=Decimal("92.00"),
+                amount=Decimal("87.00"),
                 token=ClientPaymentToken.USDC,
                 recipient=sample_worker_wallet,
                 timestamp=datetime.now(timezone.utc),
@@ -514,7 +514,7 @@ class TestReleaseRequiresValidStatus:
             return_value=ClientPaymentResult(
                 success=True,
                 tx_hash="0xRELEASE",
-                amount=Decimal("92.00"),
+                amount=Decimal("87.00"),
                 token=ClientPaymentToken.USDC,
                 recipient=sample_worker_wallet,
                 timestamp=datetime.now(timezone.utc),
@@ -662,7 +662,7 @@ class TestReleaseUpdatesStatus:
             return_value=ClientPaymentResult(
                 success=True,
                 tx_hash="0xWORKER_RELEASE",
-                amount=Decimal("92.00"),
+                amount=Decimal("87.00"),
                 token=ClientPaymentToken.USDC,
                 recipient=sample_worker_wallet,
                 timestamp=datetime.now(timezone.utc),
@@ -682,7 +682,7 @@ class TestReleaseUpdatesStatus:
         )
         assert worker_release is not None
         assert worker_release.tx_hash == "0xWORKER_RELEASE"
-        assert worker_release.amount == Decimal("92.00")
+        assert worker_release.amount == Decimal("87.00")
         assert worker_release.recipient == sample_worker_wallet
 
 
@@ -730,7 +730,7 @@ class TestPartialReleaseOnSubmission:
             return_value=ClientPaymentResult(
                 success=True,
                 tx_hash="0xPARTIAL",
-                amount=Decimal("26.10"),  # 30% of $87 = $27.60
+                amount=Decimal("26.10"),  # 30% of $87 = $26.10
                 token=ClientPaymentToken.USDC,
                 recipient=sample_worker_wallet,
                 timestamp=datetime.now(timezone.utc),
@@ -742,8 +742,8 @@ class TestPartialReleaseOnSubmission:
             worker_wallet=sample_worker_wallet,
         )
 
-        # Verify 30% of net ($92) = $27.60
-        assert escrow.released_amount == Decimal("27.60")
+        # Verify 30% of net ($87) = $26.10
+        assert escrow.released_amount == Decimal("26.10")
         assert escrow.status == EscrowStatus.PARTIAL_RELEASED
 
 
@@ -784,7 +784,7 @@ class TestPartialReleaseTracking:
             return_value=ClientPaymentResult(
                 success=True,
                 tx_hash="0xPARTIAL",
-                amount=Decimal("27.60"),
+                amount=Decimal("26.10"),
                 token=ClientPaymentToken.USDC,
                 recipient=sample_worker_wallet,
                 timestamp=datetime.now(timezone.utc),
@@ -797,15 +797,15 @@ class TestPartialReleaseTracking:
         )
 
         # Verify tracking
-        assert escrow.released_amount == Decimal("27.60")
-        assert escrow.remaining_amount == Decimal("100.00") - Decimal("27.60")
+        assert escrow.released_amount == Decimal("26.10")
+        assert escrow.remaining_amount == Decimal("100.00") - Decimal("26.10")
 
         # Verify release record
         partial_release = next(
             (r for r in escrow.release_txs if r.release_type == "partial"), None
         )
         assert partial_release is not None
-        assert partial_release.amount == Decimal("27.60")
+        assert partial_release.amount == Decimal("26.10")
 
     @pytest.mark.asyncio
     async def test_partial_release_sets_beneficiary(
@@ -841,7 +841,7 @@ class TestPartialReleaseTracking:
             return_value=ClientPaymentResult(
                 success=True,
                 tx_hash="0xPARTIAL",
-                amount=Decimal("27.60"),
+                amount=Decimal("26.10"),
                 token=ClientPaymentToken.USDC,
                 recipient=sample_worker_wallet,
                 timestamp=datetime.now(timezone.utc),
@@ -1079,7 +1079,7 @@ class TestRefundBlockedIfPartialReleased:
             task_id=sample_task_id,
             escrow_id="escrow_123",
             total_amount=Decimal("100.00"),
-            released_amount=Decimal("27.60"),  # 30% released
+            released_amount=Decimal("26.10"),  # 30% released
             status=EscrowStatus.PARTIAL_RELEASED,
             token=PaymentToken.USDC,
             depositor_wallet="0xAGENT",

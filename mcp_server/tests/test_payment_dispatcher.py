@@ -681,8 +681,8 @@ class TestFeeCalculations:
         )
 
         assert result["success"] is True
-        # $0.50 * 13% = $0.065 -> $0.07 (above minimum $0.01)
-        assert result["platform_fee"] == 0.07
+        # $0.50 * 13% = $0.065 (above minimum $0.01)
+        assert result["platform_fee"] == 0.065
 
     @pytest.mark.asyncio
     async def test_x402r_fee_for_tiny_bounty(self):

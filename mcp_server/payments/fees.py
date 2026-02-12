@@ -10,11 +10,11 @@ Features:
 - Support for fee waivers and promotional discounts
 
 Fee Structure:
-- PHYSICAL_PRESENCE: 8% (highest effort, highest platform value)
-- KNOWLEDGE_ACCESS: 7% (specialized knowledge tasks)
-- HUMAN_AUTHORITY: 6% (licensed professional tasks - incentivize)
-- SIMPLE_ACTION: 8% (high volume, standard rate)
-- DIGITAL_PHYSICAL: 7% (hybrid tasks)
+- PHYSICAL_PRESENCE: 13% (highest effort, highest platform value)
+- KNOWLEDGE_ACCESS: 12% (specialized knowledge tasks)
+- HUMAN_AUTHORITY: 11% (licensed professional tasks - incentivize)
+- SIMPLE_ACTION: 13% (high volume, standard rate)
+- DIGITAL_PHYSICAL: 12% (hybrid tasks)
 """
 
 import os
@@ -249,7 +249,7 @@ class FeeManager:
         ...     category=TaskCategory.PHYSICAL_PRESENCE
         ... )
         >>> print(f"Worker gets ${breakdown.worker_amount}, fee is ${breakdown.fee_amount}")
-        Worker gets $92.00, fee is $8.00
+        Worker gets $87.00, fee is $13.00
 
         >>> collected = await manager.collect_fee(
         ...     task_id="task-123",
@@ -735,8 +735,8 @@ class FeeManager:
             },
             "treasury_wallet": self.treasury_wallet,
             "distribution": {
-                "worker_percent": "92-94%",
-                "platform_percent": "6-8%",
+                "worker_percent": "87-89%",
+                "platform_percent": "11-13%",
             },
         }
 
