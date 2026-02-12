@@ -752,12 +752,12 @@ async def main():
         executor_id = FALLBACK_EXECUTOR_ID
         print(f"\nUsing executor: {executor_id}")
 
-        # Run scenarios sequentially with pauses for server processing
-        await test_happy_path(client, executor_id)
-        await asyncio.sleep(10)  # Wait for escrow TX to finalize
+        # Run scenarios — reordered: light ops first, heavy (happy) last
         await test_cancel_path(client)
-        await asyncio.sleep(10)
+        await asyncio.sleep(5)
         await test_rejection_path(client, executor_id)
+        await asyncio.sleep(5)
+        await test_happy_path(client, executor_id)
 
     # Generate report
     report = generate_report(results)

@@ -354,6 +354,45 @@ print(f"Call 3: {resp3.status_code}")  # Likely "nonce too low"
 
 ---
 
+## Update: Nonce Retry Logic Deployed (2026-02-12 15:00 UTC)
+
+The Facilitator team deployed nonce retry logic. We ran 6 E2E rounds to validate:
+
+### Results After Fix
+
+| Run | Config | Happy Path | Cancel | Reject | Notes |
+|-----|--------|-----------|--------|--------|-------|
+| 1 | 0s pauses | PASS | FAIL (504) | PASS | Retry latency > ALB 60s |
+| 2 | 0s pauses | PASS | FAIL (504) | FAIL (504) | Both post-happy scenarios failed |
+| 3 | 3s pauses | FAIL (502) | FAIL (invalid sig) | PASS | EIP-3009 auth reuse on retry |
+| 4 | 5s pauses | PASS | FAIL (504) | PASS | Cancel still timed out |
+| 5 | 5s reordered | PASS | PASS | PASS | Light ops first, heavy last |
+| 6 | 5s reordered (back-to-back) | PASS | FAIL (504) | PASS | Prior run's burst still processing |
+
+### What's Fixed
+
+- **"nonce too low" errors are gone** — zero occurrences across 6 runs (previously ~50% failure rate)
+- The nonce retry correctly bumps the gas nonce on stale-nonce detection
+
+### New Issues Introduced by Retry
+
+1. **Latency increase**: Retries add enough time that the ALB 60s timeout triggers (HTTP 504) on calls immediately following a burst of Facilitator operations
+
+2. **EIP-3009 invalid signature on retry** (Run 3): When the original TX actually succeeded but the Facilitator thought it failed (stale nonce read), the retry replays the same `transferWithAuthorization` call. Since the EIP-3009 nonce was already consumed on-chain, USDC rejects with `FiatTokenV2: invalid signature`. Error:
+   ```
+   Escrow authorize failed: Escrow scheme error: Contract call failed:
+   ContractCall("ErrorResp(ErrorPayload { code: 3, message:
+   "execution reverted: FiatTokenV2: invalid signature" })")
+   ```
+
+### Suggested Next Steps
+
+1. **Before retrying**: Check if the original TX was actually mined (query receipt). If it succeeded, don't retry — return the original TX hash
+2. **Optimistic nonce tracking**: Instead of reading `eth_getTransactionCount` each time, track nonces in-memory with atomic increment. This eliminates the need for retries entirely
+3. **Reduce retry backoff**: Current retry latency pushes total request time past ALB 60s. Faster retries (or no retries with optimistic nonces) would fix the 504s
+
+---
+
 ## Contact
 
 - **Project**: Execution Market (`https://execution.market`)

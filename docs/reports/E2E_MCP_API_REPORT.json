@@ -20,59 +20,51 @@
       "preferred_network": "base",
       "name": "health_check",
       "description": "API health and config verification",
-      "timestamp": "2026-02-12T13:12:05.304204+00:00"
+      "timestamp": "2026-02-12T15:37:45.556848+00:00"
     },
     {
       "status": "FAILED",
-      "task_id": "983fa018-f535-4887-b881-5fea3b9eeac4",
-      "submission_id": "50fc69ea-ab4a-463e-b6cd-283065ebf7c2",
-      "escrow_tx": "0xaa27896770a901e90c77351137d52ceb0e0601c15d6d61c77f8cceff1560fc2e",
-      "payment_tx": null,
-      "worker_tx": null,
-      "fee_tx": null,
-      "payment_error": null,
-      "approve_http_status": 502,
-      "approve_message": null,
-      "approve_data": {},
-      "error": null,
-      "name": "happy_path",
-      "description": "Create -> Apply -> Assign -> Submit -> Approve (+ payment)",
-      "timestamp": "2026-02-12T13:12:17.115610+00:00"
-    },
-    {
-      "status": "SUCCESS",
-      "task_id": "6e8adeda-65a5-4f24-b17f-c98f5dce3294",
-      "escrow_tx": "0x09581052311fc06b3980786d6f2b9725df689ea40343adfbc2549a93cc769d76",
-      "refund_tx": null,
-      "message": "Task cancelled successfully. Payment authorization expired (no funds moved).",
-      "cancel_data": {
-        "task_id": "6e8adeda-65a5-4f24-b17f-c98f5dce3294",
-        "reason": null,
-        "escrow": {
-          "status": "authorization_expired",
-          "message": "Payment authorization will expire. No funds were moved."
-        }
-      },
-      "error": null,
+      "error": "Task creation failed: HTTP 504 - ",
       "name": "cancel_path",
-      "description": "Create task and immediately cancel (+ refund)",
-      "timestamp": "2026-02-12T13:12:36.116979+00:00"
+      "description": "Cancel flow test",
+      "timestamp": "2026-02-12T15:38:45.604809+00:00"
     },
     {
       "status": "SUCCESS",
-      "task_id": "94c7db62-01dd-4102-9daf-a2b907961ead",
-      "submission_id": "47d8a344-c2fc-4575-98e2-87129e963e99",
-      "escrow_tx": "0xe9d4dbe77008242f4c3a32840e9a6db4ff7ed991d18db955dbd6d240a35e4c56",
+      "task_id": "e4e443f2-0a62-4b57-b74e-99dbf9e3cf60",
+      "submission_id": "44a7cdc4-f135-4ecf-8360-1ba8f491c6b6",
+      "escrow_tx": "0xeda875837dfbb54600a68679f9e7cabc240373ebb815fab580cb21a3eb00b176",
       "reputation_tx": null,
       "reject_data": {
-        "submission_id": "47d8a344-c2fc-4575-98e2-87129e963e99",
+        "submission_id": "44a7cdc4-f135-4ecf-8360-1ba8f491c6b6",
         "verdict": "rejected",
         "severity": "major"
       },
       "error": null,
       "name": "rejection_path",
       "description": "Create -> Apply -> Assign -> Submit -> Reject (major, score=30)",
-      "timestamp": "2026-02-12T13:12:50.252970+00:00"
+      "timestamp": "2026-02-12T15:39:01.026059+00:00"
+    },
+    {
+      "status": "SUCCESS",
+      "task_id": "eeaff61c-d1b9-43c0-871b-ddd4cfc70e54",
+      "submission_id": "301825db-b053-4f0f-9159-177766ec4fde",
+      "escrow_tx": "0x81aace3df95d341b9ea17407ec1f231ab9693bb2aceffce31f55ade10ba060aa",
+      "payment_tx": "0xbaf4555728283bd6d510d2dd8cc0a278a5a70c44aae7c218ecdc6ef0b2ba09ba",
+      "worker_tx": null,
+      "fee_tx": null,
+      "payment_error": null,
+      "approve_http_status": 200,
+      "approve_message": "Submission approved. Payment released to worker.",
+      "approve_data": {
+        "submission_id": "301825db-b053-4f0f-9159-177766ec4fde",
+        "verdict": "accepted",
+        "payment_tx": "0xbaf4555728283bd6d510d2dd8cc0a278a5a70c44aae7c218ecdc6ef0b2ba09ba"
+      },
+      "error": null,
+      "name": "happy_path",
+      "description": "Create -> Apply -> Assign -> Submit -> Approve (+ payment)",
+      "timestamp": "2026-02-12T15:40:15.570245+00:00"
     }
   ]
 }
