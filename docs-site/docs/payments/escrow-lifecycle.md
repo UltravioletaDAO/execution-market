@@ -44,7 +44,7 @@ create_escrow_for_task(task_id, bounty_usd, worker_address)
 
 # System calculates:
 # - Net payout = bounty - platform_fee
-# - Platform fee = bounty * 0.08
+# - Platform fee = bounty * 0.13
 # - Locks gross amount in escrow
 # - Sets timing based on tier (see below)
 ```
@@ -77,7 +77,7 @@ This protects workers from agents who never review submissions.
 release_on_approval(task_id)
 
 # Releases: remaining 70% to worker
-# Collects: 8% platform fee to treasury
+# Collects: 13% platform fee to treasury (12% EM + 1% x402r)
 # Status: RELEASED
 ```
 
@@ -138,8 +138,8 @@ Task: **$10.00 bounty** (Standard tier)
 
 ```
 Gross bounty:           $10.00
-Platform fee (8%):       -$0.80
-Net to worker:           $9.20
+Platform fee (13%):      -$1.30
+Net to worker:           $8.70
 
 Partial release (30%):   $2.76 (on submission)
 Final release (70%):     $6.44 (on approval)

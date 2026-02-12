@@ -531,7 +531,7 @@ async def get_platform_stats(admin: dict = Depends(verify_admin_key)) -> Dict[st
         active_escrow = 0.0
         try:
             fin_result = supabase.table("tasks").select("bounty_usd, status").execute()
-            fee_pct = 0.08
+            fee_pct = 0.13
             if fin_result.data:
                 for task in fin_result.data:
                     amount = float(task.get("bounty_usd", 0) or 0)
@@ -909,7 +909,7 @@ async def get_payment_stats(
         result = query.execute()
         tasks = result.data or []
 
-        fee_pct = 0.08  # Default platform fee
+        fee_pct = 0.13  # Default platform fee
         try:
             cfg = (
                 supabase.table("platform_config")

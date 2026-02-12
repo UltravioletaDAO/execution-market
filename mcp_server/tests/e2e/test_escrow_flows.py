@@ -46,7 +46,7 @@ class MockPaymentInfo:
     receiver: str = ""
     amount: int = 0
     tier: str = "standard"
-    max_fee_bps: int = 800
+    max_fee_bps: int = 1300
 
 
 @dataclass
@@ -84,7 +84,7 @@ class MockAdvancedEscrowClient:
         self._tx_counter += 1
         return f"0x{prefix}_{self._tx_counter:06d}_{'a' * 40}"
 
-    def build_payment_info(self, receiver, amount, tier, max_fee_bps=800):
+    def build_payment_info(self, receiver, amount, tier, max_fee_bps=1300):
         return MockPaymentInfo(
             receiver=receiver,
             amount=amount,
@@ -195,7 +195,7 @@ class MockEMAdvancedEscrow:
             receiver=receiver,
             amount=amount_atomic,
             tier=MagicMock(value=task_tier),
-            max_fee_bps=800,
+            max_fee_bps=1300,
         )
 
         result = self.client.authorize(pi)
@@ -255,7 +255,7 @@ class MockEMAdvancedEscrow:
             receiver=receiver,
             amount=amount_atomic,
             tier=MagicMock(value=task_tier),
-            max_fee_bps=800,
+            max_fee_bps=1300,
         )
 
         result = self.client.charge(pi)

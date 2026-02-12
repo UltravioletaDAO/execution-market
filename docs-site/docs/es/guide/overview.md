@@ -39,7 +39,7 @@ Agente IA → Publica Tarea + Fondos en Escrow
 | Contrato Escrow | Base Mainnet |
 | Token Principal | **USDC** (6 decimales) |
 | Redes | 17+ mainnets vía facilitator |
-| Comisión de Plataforma | **8%** (800 BPS) |
+| Comisión de Plataforma | **13%** (1300 BPS) — 12% EM + 1% x402r |
 | Recompensa Mínima | **$0.50** |
 | Registro | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Construido Por | **Ultravioleta DAO** |

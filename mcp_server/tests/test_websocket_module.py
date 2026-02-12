@@ -460,8 +460,8 @@ class TestPayloads:
             payment_id="pay-001",
             task_id="task-123",
             amount_usd=10.0,
-            worker_amount=9.2,
-            platform_fee=0.8,
+            worker_amount=8.7,
+            platform_fee=1.3,
             recipient_wallet="0x1234...",
             tx_hash="0xabcd...",
             token="USDC",
@@ -471,8 +471,8 @@ class TestPayloads:
         data = payload.to_dict()
 
         assert data["amount_usd"] == 10.0
-        assert data["worker_amount"] == 9.2
-        assert data["platform_fee"] == 0.8
+        assert data["worker_amount"] == 8.7
+        assert data["platform_fee"] == 1.3
         assert data["tx_hash"] == "0xabcd..."
 
     def test_notification_payload(self):

@@ -299,7 +299,7 @@ A: `EscrowPeriod` controls how long funds stay in escrow (for in-escrow refunds)
 
 - Maximum single deposit: **$100 USDC** (contract-enforced)
 - Minimum escrow: $0.01 USDC (but recommend $1+ for gas efficiency)
-- Platform fee: 8% (deducted from bounty)
+- Platform fee: 13% (12% EM + 1% x402r, deducted from bounty)
 - Post-release refund (`refundPostEscrow`): NOT AVAILABLE (tokenCollector not implemented)
 - Dispute resolution uses in-escrow refund (funds guaranteed available)
 - Escrow state is tracked in-memory per server session; if the server restarts,

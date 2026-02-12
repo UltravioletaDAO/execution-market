@@ -19,10 +19,10 @@ class TestPlatformConfigDefaults:
     """Test default configuration values."""
 
     def test_default_platform_fee(self):
-        """Default platform fee should be 8%."""
+        """Default platform fee should be 13%."""
         from config.platform_config import PlatformConfig
 
-        assert PlatformConfig._defaults["fees.platform_fee_pct"] == Decimal("0.08")
+        assert PlatformConfig._defaults["fees.platform_fee_pct"] == Decimal("0.13")
 
     def test_default_partial_release(self):
         """Default partial release should be 30%."""
@@ -82,8 +82,8 @@ class TestPlatformConfigCaching:
         PlatformConfig._cache.clear()
         PlatformConfig._supabase = None
 
-        value = await PlatformConfig.get("fees.platform_fee_pct", Decimal("0.08"))
-        assert value == Decimal("0.08")
+        value = await PlatformConfig.get("fees.platform_fee_pct", Decimal("0.13"))
+        assert value == Decimal("0.13")
 
     @pytest.mark.asyncio
     async def test_cache_invalidation(self):
@@ -122,9 +122,9 @@ class TestPlatformConfigTypeConversion:
         """Fee values should be converted to Decimal."""
         from config.platform_config import PlatformConfig
 
-        result = PlatformConfig._convert_type(0.08, "fees.platform_fee_pct")
+        result = PlatformConfig._convert_type(0.13, "fees.platform_fee_pct")
         assert isinstance(result, Decimal)
-        assert result == Decimal("0.08")
+        assert result == Decimal("0.13")
 
     def test_convert_bounty_to_decimal(self):
         """Bounty values should be converted to Decimal."""
@@ -163,7 +163,7 @@ class TestPlatformConfigConvenienceMethods:
         value = await PlatformConfig.get_fee_pct()
 
         assert isinstance(value, Decimal)
-        assert value == Decimal("0.08")
+        assert value == Decimal("0.13")
 
     @pytest.mark.asyncio
     async def test_get_partial_release_pct(self):
@@ -283,8 +283,8 @@ class TestModuleLevelHelpers:
         """get_config() should work like PlatformConfig.get()."""
         from config import get_config
 
-        value = await get_config("fees.platform_fee_pct", Decimal("0.08"))
-        assert value == Decimal("0.08")
+        value = await get_config("fees.platform_fee_pct", Decimal("0.13"))
+        assert value == Decimal("0.13")
 
     def test_invalidate_config_cache_helper(self):
         """invalidate_config_cache() should work."""
@@ -308,7 +308,7 @@ class TestFeeCalculations:
 
         total = bounty * (1 + fee_pct)
 
-        assert total == Decimal("10.80")  # $10 + 8% = $10.80
+        assert total == Decimal("11.30")  # $10 + 13% = $11.30
 
     @pytest.mark.asyncio
     async def test_calculate_worker_payout(self):
@@ -321,8 +321,8 @@ class TestFeeCalculations:
         platform_fee = bounty * fee_pct
         worker_payout = bounty - platform_fee
 
-        assert platform_fee == Decimal("0.80")  # 8% of $10
-        assert worker_payout == Decimal("9.20")  # $10 - $0.80
+        assert platform_fee == Decimal("1.30")  # 13% of $10
+        assert worker_payout == Decimal("8.70")  # $10 - $1.30
 
     @pytest.mark.asyncio
     async def test_calculate_partial_release(self):
@@ -334,9 +334,9 @@ class TestFeeCalculations:
         partial_pct = await PlatformConfig.get_partial_release_pct()
 
         # Worker payout after fee
-        worker_payout = bounty * (1 - fee_pct)  # $9.20
+        worker_payout = bounty * (1 - fee_pct)  # $8.70
 
         # Partial release (30% of worker payout)
         partial_release = worker_payout * partial_pct
 
-        assert partial_release == Decimal("2.76")  # 30% of $9.20
+        assert partial_release == Decimal("2.61")  # 30% of $8.70

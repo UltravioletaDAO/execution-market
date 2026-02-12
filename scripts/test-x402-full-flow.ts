@@ -72,8 +72,8 @@ const EM_TREASURY = '0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad' as Address;
 // Fibonacci bounties for test tasks
 const FIBONACCI_BOUNTIES = [0.01, 0.02, 0.03, 0.05, 0.08];
 
-// Platform fee (8%)
-const PLATFORM_FEE_PERCENT = 0.08;
+// Platform fee (13% = 12% EM + 1% x402r)
+const PLATFORM_FEE_PERCENT = 0.13;
 
 // =============================================================================
 // Contract ABIs

@@ -229,7 +229,7 @@ class MultiTokenPayments:
         bounty_usd: float,
         agent_token: PaymentToken,
         worker_id: str,
-        platform_fee_pct: float = 0.08,
+        platform_fee_pct: float = 0.13,
     ) -> Dict[str, Any]:
         """Generate payment summary for a task."""
         payment_token, needs_conversion = self.match_payment_token(

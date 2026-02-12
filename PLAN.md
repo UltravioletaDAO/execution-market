@@ -368,10 +368,10 @@ sequenceDiagram
     Note over Agent,Worker: 3. VERIFY + SETTLE
     EM->>EM: Auto-verify evidence
     alt Approved
-        EM->>EM: Sign NEW auth: agent wallet → worker (92%)
+        EM->>EM: Sign NEW auth: agent wallet → worker (87%)
         EM->>Fac: Settle worker payment
         Fac-->>Worker: USDC received (gasless)
-        EM->>EM: Sign NEW auth: agent wallet → treasury (8%)
+        EM->>EM: Sign NEW auth: agent wallet → treasury (13%)
         EM->>Fac: Settle platform fee
         Note over Worker: Instant payment!
     else Disputed

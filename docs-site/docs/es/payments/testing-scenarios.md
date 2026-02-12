@@ -152,7 +152,7 @@ El trabajador entrega pero la calidad es mixta.
 3. Luis envia 20 fotos
    → Verificacion automatica pasa (conteo correcto, formato valido)
    → El agente auto-aprueba
-   → RELEASE: $23.00 para Luis (despues de comision del 8%)
+   → RELEASE: $21.75 para Luis (despues de comision del 13%)
 
 4. DESPUES: El agente revisa las fotos manualmente
    → 8 de 20 fotos estan borrosas/inutilizables

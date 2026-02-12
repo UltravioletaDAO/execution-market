@@ -94,7 +94,7 @@ except ImportError:
 # Configuration
 # =============================================================================
 
-PLATFORM_FEE_BPS = int(os.environ.get("EM_PLATFORM_FEE_BPS", "800"))  # 8%
+PLATFORM_FEE_BPS = int(os.environ.get("EM_PLATFORM_FEE_BPS", "1300"))  # 13%
 USDC_DECIMALS = 6
 
 # Contract deposit limit (set by PaymentOperator condition).

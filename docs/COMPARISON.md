@@ -10,7 +10,7 @@
 Execution Market is not just another gig platform - it's a **Universal Execution Layer** where Humans, AI Agents, and Robots can hire each other and get paid instantly. While traditional platforms focus on human-to-human work, Execution Market enables all 9 combinations of the work matrix.
 
 **Key advantages**:
-- **92-94% worker payout** vs 75-85% on traditional platforms
+- **87% worker payout** vs 75-85% on traditional platforms
 - **Instant payment** vs days/weeks waiting period
 - **No banking required** - crypto-native, global access
 - **AI-first design** - agents can programmatically hire and pay
@@ -21,7 +21,7 @@ Execution Market is not just another gig platform - it's a **Universal Execution
 
 | Platform | Platform Fee | Payment Speed | Worker Cut | Min Payout |
 |----------|--------------|---------------|------------|------------|
-| **Execution Market** | **6-8%** | **Instant** | **92-94%** | **$0.01** |
+| **Execution Market** | **13%** | **Instant** | **87%** | **$0.01** |
 | TaskRabbit | 15% | 3-5 days | 85% | $5.00 |
 | Fiverr | 20% | 14 days | 80% | $5.00 |
 | Upwork | 10-20% | 5-10 days | 80-90% | $10.00 |
@@ -33,14 +33,13 @@ Execution Market is not just another gig platform - it's a **Universal Execution
 ### Fee Structure Detail
 
 ```
-Execution Market Progressive Fees:
+Execution Market Fee Structure:
 ├── Micro tasks ($0-5):     Flat $0.25
-├── Standard ($5-50):       8%
-├── Premium ($50-200):      6%
-└── Enterprise ($200+):     4% (negotiable)
+├── Standard ($5+):         13% (12% EM + 1% x402r)
+└── Enterprise ($200+):     Negotiable
 
 Competitor Comparison (on $100 task):
-├── Execution Market:      Worker gets $94 (6% fee)
+├── Execution Market:      Worker gets $87 (13% fee)
 ├── Fiverr:      Worker gets $80 (20% fee)
 ├── Upwork:      Worker gets $85-90 (10-15% fee)
 ├── MTurk:       Worker gets $60-80 (20-40% fee)
@@ -50,10 +49,10 @@ Competitor Comparison (on $100 task):
 **Annual impact for a worker earning $30,000/year**:
 | Platform | Worker Keeps | Difference vs Execution Market |
 |----------|--------------|----------------------|
-| **Execution Market** | **$28,200** | - |
-| Fiverr | $24,000 | -$4,200/year |
-| Upwork | $25,500 | -$2,700/year |
-| MTurk | $21,000 | -$7,200/year |
+| **Execution Market** | **$26,100** | - |
+| Fiverr | $24,000 | -$2,100/year |
+| Upwork | $25,500 | -$600/year |
+| MTurk | $21,000 | -$5,100/year |
 
 ---
 
@@ -157,8 +156,8 @@ Competitor Comparison (on $100 task):
 ### For Workers
 
 1. **Higher Earnings**
-   - Keep 92-94% vs 75-85% elsewhere
-   - On $30K annual earnings: **+$4,200/year vs Fiverr**
+   - Keep 87% vs 75-85% elsewhere
+   - On $30K annual earnings: **+$2,100/year vs Fiverr**
 
 2. **Instant Access to Money**
    - Get paid in seconds, not 14 days
@@ -205,7 +204,7 @@ Competitor Comparison (on $100 task):
 ### For Enterprises
 
 1. **Lower Costs**
-   - 6-8% vs 15-25% traditional fees
+   - 13% vs 15-25% traditional fees
    - Volume discounts available
    - No hidden charges
 
@@ -310,7 +309,7 @@ Part of Ultravioleta DAO ecosystem:
 
 ### "Why would workers switch?"
 
-1. **More money** - Keep 92-94% vs 80%
+1. **More money** - Keep 87% vs 80%
 2. **Instant payment** - No 14-day wait
 3. **No gatekeeping** - Anyone can join with a wallet
 4. **Fair treatment** - Decentralized disputes
@@ -318,7 +317,7 @@ Part of Ultravioleta DAO ecosystem:
 ### "Why would companies switch?"
 
 1. **AI agent support** - No alternative exists
-2. **Lower costs** - 6-8% vs 15-25%
+2. **Lower costs** - 13% vs 15-25%
 3. **Faster execution** - Hours vs days
 4. **Audit trail** - On-chain records
 
@@ -335,7 +334,7 @@ Part of Ultravioleta DAO ecosystem:
 
 | Dimension | Execution Market | Best Alternative | Execution Market Advantage |
 |-----------|--------|------------------|------------------|
-| Worker payout | 92-94% | 85% (TaskRabbit) | +7-9% |
+| Worker payout | 87% | 85% (TaskRabbit) | +2% |
 | Payment speed | Instant | 3 days (MTurk) | Infinitely faster |
 | AI integration | Native | API only (MTurk) | Full agent support |
 | Min task size | $0.01 | $0.01 (MTurk) | Equal |

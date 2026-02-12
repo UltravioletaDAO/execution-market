@@ -41,10 +41,10 @@ class TestFeeRates:
 
     def test_expected_rates(self):
         """Verify specific rates match requirements."""
-        assert FEE_RATES[TaskCategory.PHYSICAL_PRESENCE] == Decimal("0.08")  # 8%
+        assert FEE_RATES[TaskCategory.PHYSICAL_PRESENCE] == Decimal("0.13")  # 13%
         assert FEE_RATES[TaskCategory.KNOWLEDGE_ACCESS] == Decimal("0.07")  # 7%
         assert FEE_RATES[TaskCategory.HUMAN_AUTHORITY] == Decimal("0.06")  # 6%
-        assert FEE_RATES[TaskCategory.SIMPLE_ACTION] == Decimal("0.08")  # 8%
+        assert FEE_RATES[TaskCategory.SIMPLE_ACTION] == Decimal("0.13")  # 13%
         assert FEE_RATES[TaskCategory.DIGITAL_PHYSICAL] == Decimal("0.07")  # 7%
 
 
@@ -69,7 +69,7 @@ class TestFeeManager:
 
     def test_get_fee_rate(self, manager):
         """Should return correct rate for each category."""
-        assert manager.get_fee_rate(TaskCategory.PHYSICAL_PRESENCE) == Decimal("0.08")
+        assert manager.get_fee_rate(TaskCategory.PHYSICAL_PRESENCE) == Decimal("0.13")
         assert manager.get_fee_rate(TaskCategory.HUMAN_AUTHORITY) == Decimal("0.06")
 
 
@@ -81,15 +81,15 @@ class TestFeeCalculation:
         return FeeManager()
 
     def test_calculate_fee_physical_presence(self, manager):
-        """Test 8% fee for physical presence tasks."""
+        """Test 13% fee for physical presence tasks."""
         breakdown = manager.calculate_fee(
             Decimal("100"), TaskCategory.PHYSICAL_PRESENCE
         )
 
         assert breakdown.gross_amount == Decimal("100")
-        assert breakdown.fee_rate == Decimal("0.08")
-        assert breakdown.fee_amount == Decimal("8.00")
-        assert breakdown.worker_amount == Decimal("92.00")
+        assert breakdown.fee_rate == Decimal("0.13")
+        assert breakdown.fee_amount == Decimal("13.00")
+        assert breakdown.worker_amount == Decimal("87.00")
         assert breakdown.category == TaskCategory.PHYSICAL_PRESENCE
         assert not breakdown.is_waived
 
@@ -105,16 +105,16 @@ class TestFeeCalculation:
         """Test proper rounding of fee amounts."""
         breakdown = manager.calculate_fee(Decimal("15.50"), TaskCategory.SIMPLE_ACTION)
 
-        # 15.50 * 0.08 = 1.24
-        assert breakdown.fee_amount == Decimal("1.24")
-        assert breakdown.worker_amount == Decimal("14.26")
+        # 15.50 * 0.13 = 2.015 -> 2.02 (rounded)
+        assert breakdown.fee_amount == Decimal("2.02")
+        assert breakdown.worker_amount == Decimal("13.48")
 
     def test_calculate_fee_minimum_enforced(self, manager):
         """Test minimum fee is enforced."""
-        # Very small bounty: $0.50 * 0.08 = $0.04 -> should become $0.01 minimum
+        # Very small bounty: $0.50 * 0.13 = $0.065 -> should become $0.07 (rounded)
         breakdown = manager.calculate_fee(Decimal("0.50"), TaskCategory.SIMPLE_ACTION)
 
-        # Actually $0.50 * 0.08 = $0.04, which is > MIN_FEE_AMOUNT
+        # $0.50 * 0.13 = $0.065, which is > MIN_FEE_AMOUNT
         assert breakdown.fee_amount >= MIN_FEE_AMOUNT
 
     def test_calculate_fee_zero_bounty_raises(self, manager):
@@ -134,8 +134,8 @@ class TestFeeCalculation:
             Decimal("10"), TaskCategory.SIMPLE_ACTION
         )
 
-        # bounty = 10 / (1 - 0.08) = 10 / 0.92 = 10.87
-        assert breakdown.gross_amount == Decimal("10.87")
+        # bounty = 10 / (1 - 0.13) = 10 / 0.87 = 11.49
+        assert breakdown.gross_amount == Decimal("11.49")
         # Worker should get approximately $10 (may differ slightly due to rounding)
         assert abs(breakdown.worker_amount - Decimal("10")) < Decimal("0.01")
 
@@ -182,7 +182,7 @@ class TestFeeWaivers:
         )
 
         assert not breakdown.is_waived
-        assert breakdown.fee_amount == Decimal("8.00")
+        assert breakdown.fee_amount == Decimal("13.00")
 
     def test_waiver_expiration(self, manager):
         """Test that expired waivers are not applied."""
@@ -200,7 +200,7 @@ class TestFeeWaivers:
         )
 
         assert not breakdown.is_waived
-        assert breakdown.fee_amount == Decimal("8.00")
+        assert breakdown.fee_amount == Decimal("13.00")
 
 
 class TestFeeCollection:
@@ -226,7 +226,7 @@ class TestFeeCollection:
         )
 
         assert collected.task_id == "task-123"
-        assert collected.amount == Decimal("8.00")
+        assert collected.amount == Decimal("13.00")
         assert collected.status == FeeStatus.COLLECTED
         assert collected.tx_hash == "0xabcdef123456"
         assert collected.agent_id == "agent-1"
@@ -310,9 +310,9 @@ class TestFeeAnalytics:
 
         analytics = manager.get_analytics()
 
-        assert analytics.total_collected == Decimal("40.00")  # 5 * $8
+        assert analytics.total_collected == Decimal("65.00")  # 5 * $13
         assert analytics.transaction_count == 5
-        assert analytics.by_category.get("physical_presence") == Decimal("40.00")
+        assert analytics.by_category.get("physical_presence") == Decimal("65.00")
 
     def test_get_fee_structure(self, manager):
         """Test getting fee structure information."""
@@ -325,7 +325,7 @@ class TestFeeAnalytics:
 
         # Check specific rate
         assert (
-            structure["rates_by_category"]["physical_presence"]["rate_percent"] == 8.0
+            structure["rates_by_category"]["physical_presence"]["rate_percent"] == 13.0
         )
 
 
@@ -336,9 +336,9 @@ class TestConvenienceFunctions:
         """Test convenience function for fee calculation."""
         result = calculate_platform_fee(100.0, TaskCategory.SIMPLE_ACTION)
 
-        assert result["fee_rate_percent"] == 8.0
-        assert result["fee_amount"] == 8.0
-        assert result["worker_amount"] == 92.0
+        assert result["fee_rate_percent"] == 13.0
+        assert result["fee_amount"] == 13.0
+        assert result["worker_amount"] == 87.0
 
     def test_get_fee_rate_for_category(self):
         """Test getting fee rate for a category."""
@@ -350,7 +350,7 @@ class TestConvenienceFunctions:
         rates = get_all_fee_rates()
 
         assert len(rates) == len(TaskCategory)
-        assert rates["physical_presence"] == 0.08
+        assert rates["physical_presence"] == 0.13
         assert rates["human_authority"] == 0.06
 
 
@@ -361,9 +361,9 @@ class TestFeeBreakdownSerialization:
         """Test FeeBreakdown.to_dict() method."""
         breakdown = FeeBreakdown(
             gross_amount=Decimal("100"),
-            fee_rate=Decimal("0.08"),
-            fee_amount=Decimal("8.00"),
-            worker_amount=Decimal("92.00"),
+            fee_rate=Decimal("0.13"),
+            fee_amount=Decimal("13.00"),
+            worker_amount=Decimal("87.00"),
             treasury_wallet="0x123",
             category=TaskCategory.PHYSICAL_PRESENCE,
         )
@@ -371,10 +371,10 @@ class TestFeeBreakdownSerialization:
         result = breakdown.to_dict()
 
         assert result["gross_amount"] == 100.0
-        assert result["fee_rate"] == 0.08
-        assert result["fee_rate_percent"] == 8.0
-        assert result["fee_amount"] == 8.0
-        assert result["worker_amount"] == 92.0
-        assert result["worker_percent"] == 92.0
+        assert result["fee_rate"] == 0.13
+        assert result["fee_rate_percent"] == 13.0
+        assert result["fee_amount"] == 13.0
+        assert result["worker_amount"] == 87.0
+        assert result["worker_percent"] == 87.0
         assert result["category"] == "physical_presence"
         assert result["is_waived"] is False

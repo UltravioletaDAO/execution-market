@@ -413,8 +413,8 @@ sequenceDiagram
     Op->>Op: check releaseCondition (StaticAddress = facilitator)
     Op->>Esc: capture(paymentInfo, workerAmount)
     Esc->>USDC: transfer(tokenStore -> worker, workerAmount)
-    USDC-->>Agent: worker paid (92%)
-    Note over Fac: Facilitator also distributes platform fee (8%)
+    USDC-->>Agent: worker paid (87%)
+    Note over Fac: Facilitator also distributes platform fee (13%)
     Op->>Esc: capture(paymentInfo, feeAmount)
     Esc->>USDC: transfer(tokenStore -> feeReceiver, feeAmount)
     Fac-->>MCP: settled
@@ -444,7 +444,7 @@ sequenceDiagram
 | Step | Trigger | Contract Call | Funds Move |
 |------|---------|--------------|------------|
 | **Authorize** | Task creation | `operator.authorize()` -> `escrow.authorize()` | Agent -> TokenStore (locked) |
-| **Release** | Task approval | `operator.release()` -> `escrow.capture()` | TokenStore -> Worker (92%) + Fee receiver (8%) |
+| **Release** | Task approval | `operator.release()` -> `escrow.capture()` | TokenStore -> Worker (87%) + Fee receiver (13%) |
 | **Refund (in escrow)** | Task cancellation | `operator.refundInEscrow()` -> `escrow.partialVoid()` | TokenStore -> Agent (full refund) |
 | **Charge** | Instant payment | `operator.charge()` -> direct transfer | Agent -> Worker (no escrow) |
 | **Refund (post escrow)** | Dispute resolution | `operator.refundPostEscrow()` -> `escrow.refund()` | Receiver -> Agent (reverse captured funds) |

@@ -92,7 +92,7 @@ const EVIDENCE_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
   screenshot: { label: 'Captura de pantalla', icon: '🖥️' },
 }
 
-const PLATFORM_FEE_PERCENT = 5 // 5% platform fee
+const PLATFORM_FEE_PERCENT = 13 // 13% platform fee
 
 // ============================================================================
 // UTILITIES

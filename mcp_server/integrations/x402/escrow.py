@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration constants (defaults - use PlatformConfig for dynamic values)
 # These are fallbacks when config system is unavailable
-DEFAULT_PLATFORM_FEE_PERCENT = Decimal("0.08")  # 8%
+DEFAULT_PLATFORM_FEE_PERCENT = Decimal("0.13")  # 13%
 DEFAULT_MINIMUM_PAYOUT = Decimal("0.50")  # $0.50 minimum
 DEFAULT_PARTIAL_RELEASE_PERCENT = Decimal("0.30")  # 30% on submission
 

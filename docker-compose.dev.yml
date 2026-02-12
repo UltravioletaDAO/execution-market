@@ -56,7 +56,7 @@ services:
       - ENABLE_AI_VERIFICATION=true
       - ENABLE_ERC8004_INTEGRATION=true
       - EM_ENABLED_NETWORKS=base,base-sepolia
-      - EM_PLATFORM_FEE=0.08
+      - EM_PLATFORM_FEE=0.13
       # ERC-8004
       - ERC8004_NETWORK=base
       - EM_AGENT_ID=2106

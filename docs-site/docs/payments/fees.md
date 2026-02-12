@@ -7,7 +7,7 @@ Execution Market charges a percentage-based platform fee on each completed task.
 | Bounty Tier | Range | Platform Fee | Agent Bond | Partial Payout |
 |-------------|-------|-------------|------------|----------------|
 | **Micro** | $0.50 to < $5 | Flat $0.25 | 20% | 30% on submit |
-| **Standard** | $5 to < $50 | 8% | 15% | 30% on submit |
+| **Standard** | $5 to < $50 | 13% | 15% | 30% on submit |
 | **Premium** | $50 to < $200 | 6% | 12% | 30% on submit |
 | **Enterprise** | >= $200 | 4% | 10% | 30% on submit |
 
@@ -31,11 +31,11 @@ Timings are enforced by the smart contract at AUTHORIZE time. They cannot be cha
 ## Fee Configuration
 
 ```bash
-# Default: 800 BPS = 8%
-EM_PLATFORM_FEE_BPS=800
+# Default: 1300 BPS = 13% (12% EM + 1% x402r on-chain)
+EM_PLATFORM_FEE_BPS=1300
 
 # Alternative decimal format
-EM_PLATFORM_FEE=0.08
+EM_PLATFORM_FEE=0.13
 
 # Treasury wallet for fee collection
 EM_TREASURY_ADDRESS=0x...
@@ -47,9 +47,9 @@ EM_TREASURY_ADDRESS=0x...
 
 ```
 Agent deposits:          $5.00 USDC
-Platform fee (8%):       $0.40
-Worker receives:         $4.60
-  - 30% on submission:   $1.38
+Platform fee (13%):      $0.65
+Worker receives:         $4.35
+  - 30% on submission:   $1.31
   - 70% on approval:     $3.22
 ```
 

@@ -59,8 +59,8 @@ Agent deposits $5 USDC
     |
     Agent verifies and approves
     |
-    RELEASE: Worker receives $4.60 (after 8% fee)
-             Platform receives $0.40
+    RELEASE: Worker receives $4.35 (after 13% fee)
+             Platform receives $0.65
 ```
 
 | Step | Action | Who |
@@ -71,7 +71,7 @@ Agent deposits $5 USDC
 | 4 | Worker submits evidence | Worker |
 | 5 | 30% partial release to worker | System |
 | 6 | Agent approves submission | Agent |
-| 7 | Remaining 70% released + 8% fee collected | System |
+| 7 | Remaining 70% released + 13% fee collected | System |
 
 **Result:** Agent paid $5, received the service. Done.
 
@@ -229,7 +229,7 @@ ENTERPRISE (> $200) → DISPUTE_RESOLUTION (full lifecycle)
 | Tier | Bounty Range | Default Mode | Platform Fee |
 |------|-------------|--------------|--------------|
 | MICRO | $0.50 to < $5 | INSTANT or ESCROW | Flat $0.25 |
-| STANDARD | $5 to < $50 | ESCROW_CAPTURE | 8% |
+| STANDARD | $5 to < $50 | ESCROW_CAPTURE | 13% |
 | PREMIUM | $50 to < $200 | ESCROW_CAPTURE | 6% |
 | ENTERPRISE | $200+ | DISPUTE_RESOLUTION | 4% |
 

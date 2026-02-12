@@ -899,8 +899,8 @@ export function Developers() {
                   {[
                     t('dev.payDetail1', 'Networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche'),
                     t('dev.payDetail2', 'Tokens: USDC, EURC, USDT, PYUSD, AUSD'),
-                    t('dev.payDetail3', 'Platform fee: 8% on completed tasks'),
-                    t('dev.payDetail4', 'Worker receives 92% of the bounty'),
+                    t('dev.payDetail3', 'Platform fee: 13% on completed tasks'),
+                    t('dev.payDetail4', 'Worker receives 87% of the bounty'),
                     t('dev.payDetail5', 'Gas fees: covered by the facilitator'),
                     t('dev.payDetail6', 'Max deposit: $100 per task'),
                   ].map((detail) => (

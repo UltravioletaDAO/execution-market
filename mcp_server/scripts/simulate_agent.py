@@ -301,7 +301,7 @@ async def create_task(
     logger.info(f"\n[CREATE] Creating task with bounty ${bounty_usd}...")
 
     # Calculate fee (8%)
-    fee_pct = Decimal("0.08")
+    fee_pct = Decimal("0.13")
     total_usd = bounty_usd * (1 + fee_pct)
     logger.info(f"[CREATE] Total with fee: ${total_usd} ({fee_pct * 100}% fee)")
 
@@ -530,7 +530,7 @@ async def run_simulation(
         else:
             # 2. Generate payment
             bounty_decimal = Decimal(str(bounty))
-            fee_pct = Decimal("0.08")
+            fee_pct = Decimal("0.13")
             total = bounty_decimal * (1 + fee_pct)
 
             try:

@@ -532,7 +532,7 @@ export function AgentOnboarding() {
             Simple, Transparent Pricing
           </h2>
           <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-            Pay workers directly via stablecoins. Execution Market takes an 8% platform fee on completed tasks.
+            Pay workers directly via stablecoins. Execution Market takes a 13% platform fee on completed tasks.
           </p>
 
           <div className="grid md:grid-cols-2 gap-8">

@@ -501,7 +501,7 @@ class TestStateReconstruction:
                             "receiver": "0xPlatform",
                             "amount": 10800000,
                             "tier": "standard",
-                            "max_fee_bps": 800,
+                            "max_fee_bps": 1300,
                         }
                     }
                 ),
@@ -681,8 +681,8 @@ class TestFeeCalculations:
         )
 
         assert result["success"] is True
-        # $0.50 * 8% = $0.04 (above minimum $0.01)
-        assert result["platform_fee"] == 0.04
+        # $0.50 * 13% = $0.065 -> $0.07 (above minimum $0.01)
+        assert result["platform_fee"] == 0.07
 
     @pytest.mark.asyncio
     async def test_x402r_fee_for_tiny_bounty(self):
@@ -698,7 +698,7 @@ class TestFeeCalculations:
         )
 
         assert result["success"] is True
-        # $0.05 * 8% = $0.004 < $0.01 -> bumped to $0.01
+        # $0.05 * 13% = $0.0065 < $0.01 -> bumped to $0.01
         assert result["platform_fee"] == 0.01
 
 
@@ -1002,7 +1002,7 @@ class TestFase2Flow:
                     }
                 },
             ),
-            patch(f"{DISPATCHER_MODULE}.PLATFORM_FEE_PERCENT", Decimal("0.08")),
+            patch(f"{DISPATCHER_MODULE}.PLATFORM_FEE_PERCENT", Decimal("0.13")),
             patch(
                 f"{DISPATCHER_MODULE}._get_platform_address",
                 return_value="0xPlatformAddr",
@@ -1139,7 +1139,7 @@ class TestFase2Flow:
         assert result["escrow_release_tx"] == "0x" + "release" * 14
         assert result["fee_tx_hash"] == "0x" + "d" * 64
         assert result["net_to_worker"] == 10.00
-        assert result["platform_fee"] == 0.80
+        assert result["platform_fee"] == 1.30
 
     @pytest.mark.asyncio
     async def test_fase2_release_no_escrow_state(self):
@@ -1295,7 +1295,7 @@ class TestFase2Flow:
                             "authorization_expiry": 9999999999,
                             "refund_expiry": 9999999999,
                             "min_fee_bps": 0,
-                            "max_fee_bps": 800,
+                            "max_fee_bps": 1300,
                             "fee_receiver": "0xFee",
                             "salt": "0xabcd1234",
                             "network": "base",

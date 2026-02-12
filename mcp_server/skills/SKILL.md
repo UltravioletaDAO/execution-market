@@ -707,7 +707,7 @@ while True:
 
 | Component | Amount |
 |-----------|--------|
-| Platform fee | 8% of bounty |
+| Platform fee | 13% of bounty (12% EM + 1% x402r) |
 | Minimum bounty | $0.01 |
 | Maximum bounty | $10,000 |
 | Payment network | Base (USDC) |

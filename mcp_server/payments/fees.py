@@ -4,8 +4,8 @@ Fee Collection Module (NOW-025, NOW-026)
 Handles platform fee calculation, collection, and analytics.
 
 Features:
-- Variable platform fees by task category (6-8%)
-- Fee collection on bounty release (worker gets 92-94%, treasury gets 6-8%)
+- Variable platform fees by task category (13%)
+- Fee collection on bounty release (worker gets 87%, treasury gets 12%, x402r gets 1%)
 - Comprehensive fee tracking and analytics
 - Support for fee waivers and promotional discounts
 
@@ -59,21 +59,21 @@ class FeeStatus(str, Enum):
 # Fee rates by task category (NOW-025)
 # Rates are designed to balance platform sustainability with worker incentives
 FEE_RATES: Dict[TaskCategory, Decimal] = {
-    TaskCategory.PHYSICAL_PRESENCE: Decimal("0.08"),  # 8% - high effort tasks
-    TaskCategory.KNOWLEDGE_ACCESS: Decimal("0.07"),  # 7% - specialized knowledge
-    TaskCategory.HUMAN_AUTHORITY: Decimal("0.06"),  # 6% - incentivize licensed pros
-    TaskCategory.SIMPLE_ACTION: Decimal("0.08"),  # 8% - standard digital tasks
-    TaskCategory.DIGITAL_PHYSICAL: Decimal("0.07"),  # 7% - hybrid tasks
+    TaskCategory.PHYSICAL_PRESENCE: Decimal("0.13"),  # 13% - high effort tasks
+    TaskCategory.KNOWLEDGE_ACCESS: Decimal("0.12"),  # 12% - specialized knowledge
+    TaskCategory.HUMAN_AUTHORITY: Decimal("0.11"),  # 11% - incentivize licensed pros
+    TaskCategory.SIMPLE_ACTION: Decimal("0.13"),  # 13% - standard digital tasks
+    TaskCategory.DIGITAL_PHYSICAL: Decimal("0.12"),  # 12% - hybrid tasks
 }
 
 # Default fee rate for unknown categories
-DEFAULT_FEE_RATE = Decimal("0.08")  # 8%
+DEFAULT_FEE_RATE = Decimal("0.13")  # 13%
 
 # Minimum fee to collect (avoid dust transactions)
 MIN_FEE_AMOUNT = Decimal("0.01")  # $0.01
 
 # Maximum fee cap (protect against extreme cases)
-MAX_FEE_PERCENT = Decimal("0.10")  # 10% absolute maximum
+MAX_FEE_PERCENT = Decimal("0.15")  # 15% absolute maximum
 
 
 # =============================================================================
@@ -88,7 +88,7 @@ class FeeBreakdown:
 
     Attributes:
         gross_amount: Total bounty before fees
-        fee_rate: Applied fee percentage (0.06-0.08)
+        fee_rate: Applied fee percentage (0.11-0.13)
         fee_amount: Actual fee amount in USD
         worker_amount: Amount worker receives after fees
         treasury_wallet: Destination for collected fees
@@ -296,7 +296,7 @@ class FeeManager:
             category: Task category
 
         Returns:
-            Fee rate as decimal (e.g., 0.08 for 8%)
+            Fee rate as decimal (e.g., 0.13 for 13%)
         """
         rate = self.fee_rates.get(category, DEFAULT_FEE_RATE)
         # Ensure rate doesn't exceed maximum
@@ -787,7 +787,7 @@ def get_fee_rate_for_category(category: TaskCategory) -> float:
         category: Task category
 
     Returns:
-        Fee rate as float (e.g., 0.08 for 8%)
+        Fee rate as float (e.g., 0.13 for 13%)
     """
     return float(FEE_RATES.get(category, DEFAULT_FEE_RATE))
 

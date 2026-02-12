@@ -195,8 +195,8 @@ Publish a new task for human execution.
 **Status**: PUBLISHED
 
 ## Fee Breakdown
-- **Worker Receives**: $13.80 (92%)
-- **Platform Fee**: $1.20 (8%)
+- **Worker Receives**: $13.05 (87%)
+- **Platform Fee**: $1.95 (13%)
 
 ## Escrow
 - **Escrow ID**: `esc_7f3c1d2e4a`
@@ -641,7 +641,7 @@ Withdraw available earnings to your wallet.
 - Wallet address must be registered
 
 **Fee Structure:**
-- Platform fee: Already deducted when earnings credited (6-8%)
+- Platform fee: Already deducted when earnings credited (13%)
 - Network gas: ~$0.50 (deducted from withdrawal)
 
 ---
@@ -660,15 +660,11 @@ Get the current platform fee structure.
 # Execution Market Platform Fee Structure
 
 ## Fee Rates by Category
-- **Physical Presence**: 8.0% (Tasks requiring physical presence)
-- **Knowledge Access**: 7.0% (Specialized local knowledge)
-- **Human Authority**: 6.0% (Licensed professional tasks)
-- **Simple Action**: 8.0% (Standard digital tasks)
-- **Digital Physical**: 7.0% (Hybrid tasks)
+- **All Categories**: 13.0% (12% EM treasury + 1% x402r on-chain)
 
 ## Distribution
-- **Worker Receives**: 92-94% of bounty
-- **Platform Fee**: 6-8% of bounty
+- **Worker Receives**: 87% of bounty
+- **Platform Fee**: 13% of bounty (12% EM + 1% x402r)
 
 ## Limits
 - **Minimum Fee**: $0.01
@@ -716,7 +712,7 @@ Get server and integration status.
 
 ## Configuration
 - **Min Withdrawal**: $5.00
-- **Platform Fee**: 8.0%
+- **Platform Fee**: 13.0%
 - **Network**: base
 ```
 

@@ -226,7 +226,7 @@ Aprobar, rechazar o aprobar parcialmente la entrega de un trabajador. Desencaden
 
 | Veredicto | Accion de Pago |
 |-----------|----------------|
-| `approved` | RELEASE del 70% restante al trabajador + cobro de 8% de comision |
+| `approved` | RELEASE del 70% restante al trabajador + cobro de 13% de comision |
 | `rejected` | Sin liberacion adicional. El trabajador conserva el 30% parcial. |
 | `partial` | RELEASE parcial (proof-of-attempt) + REFUND del remanente |
 

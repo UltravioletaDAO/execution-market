@@ -500,7 +500,7 @@ ESCROW_URL = os.environ.get("X402_ESCROW_URL", "https://escrow.ultravioletadao.x
 ESCROW_API_KEY = os.environ.get("X402_ESCROW_API_KEY", os.environ.get("X402_API_KEY"))
 
 # Platform fee percentage
-PLATFORM_FEE_PERCENT = Decimal(os.environ.get("EM_PLATFORM_FEE", "0.08"))
+PLATFORM_FEE_PERCENT = Decimal(os.environ.get("EM_PLATFORM_FEE", "0.13"))
 
 
 # =============================================================================

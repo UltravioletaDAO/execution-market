@@ -308,7 +308,7 @@ Task Published                    Submission Approved
 ┌─────────────┐                  ┌─────────────┐ ┌─────────────┐
 │   Escrow    │                  │   Worker    │ │  Treasury   │
 │   Contract  │                  │  Receives   │ │  Receives   │
-│             │                  │  92-94%     │ │   6-8%      │
+│             │                  │  87%        │ │   13%       │
 └─────────────┘                  └─────────────┘ └─────────────┘
 ```
 
@@ -336,8 +336,8 @@ On submission approval:
 ```json
 // Automatic on verdict: "accepted"
 {
-  "worker_payment": 13.80,    // 92% to worker
-  "platform_fee": 1.20,       // 8% to treasury
+  "worker_payment": 13.05,    // 87% to worker
+  "platform_fee": 1.95,       // 13% to treasury (12% EM + 1% x402r)
   "tx_hashes": [
     "0xabc123...",  // Worker payment
     "0xdef456..."   // Treasury fee
@@ -359,11 +359,11 @@ On submission approval:
 
 | Category | Fee Rate | Worker Receives |
 |----------|----------|-----------------|
-| Physical Presence | 8% | 92% |
-| Knowledge Access | 7% | 93% |
-| Human Authority | 6% | 94% |
-| Simple Action | 8% | 92% |
-| Digital Physical | 7% | 93% |
+| Physical Presence | 13% | 87% |
+| Knowledge Access | 13% | 87% |
+| Human Authority | 13% | 87% |
+| Simple Action | 13% | 87% |
+| Digital Physical | 13% | 87% |
 
 ---
 
