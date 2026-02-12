@@ -691,3 +691,103 @@ Phase 1 (Data Model) → Phase 2 (Auth) → Phase 3 (MCP Tools) → Phase 5 (Ope
 | `code_execution` | Coding Agents & IDEs, CLI Utilities |
 | `research` | Search & Research, Data & Analytics |
 | `multi_step_workflow` | Agent-to-Agent Protocols, Productivity & Tasks |
+
+---
+
+## Annex A: UltraClaw A2A Implementation Reference (2026-02-12)
+
+> **Context**: UltraClaw (OpenClaw agent) independently implemented an A2A JSON-RPC adapter
+> on 2026-02-11/12 WITHOUT following this plan. It jumped directly to Phase 5 (protocol adapter)
+> without building the Phase 1-4 foundation. This annex documents what was built, what's
+> reusable, and what needs adaptation when we implement Phases 1-5 properly.
+
+### Files Created by UltraClaw
+
+| File | Lines | Reusability | Notes |
+|------|-------|-------------|-------|
+| `mcp_server/a2a/models.py` | 224 | **High — use as-is** | Clean Pydantic models for A2A Protocol v0.3.0. Spec-compliant. Only needs minor additions for Phase 1 fields (executor_type, capabilities in metadata). |
+| `mcp_server/a2a/task_manager.py` | 543 | **Medium — use as reference** | Good adapter pattern (A2A ↔ EM DB), but has critical gaps. Use as starting point, significant refactoring needed. |
+| `mcp_server/a2a/jsonrpc_router.py` | 515 | **High — reuse mostly** | Solid JSON-RPC 2.0 plumbing with batch support, SSE streaming, proper error codes. Fix auth integration and mount in main.py. |
+| `mcp_server/tests/test_a2a_protocol.py` | 853 | **High — extend** | 62 tests with good protocol-level coverage. Uses mocks for supabase_client. Extend with Phase 1-4 tests. |
+| `docs/integrations/A2A_INTEGRATION.md` | 286 | **High** | Developer-facing guide with JSON-RPC examples, SSE streaming, SDK samples. |
+| `docs/integrations/a2a-agent-card.json` | 131 | **High** | Agent Card JSON with 4 skills, 3 auth schemes, payment extensions. |
+| `docs/AGENT_COOKBOOK.md` | 472 | **High** | 5 integration patterns for agent developers. Good marketing material. |
+| `docs/articles/FIRST_AGENT_TO_HUMAN_PAYMENT.md` | 123 | **High** | Article about Feb 10 milestone. |
+| `docs/articles/WHY_AI_NEEDS_8_BILLION_EMPLOYEES.md` | 138 | **High** | Vision article. |
+
+### What UltraClaw Got Right
+
+1. **A2A Protocol compliance** — `models.py` correctly implements A2A v0.3.0 wire format (Task, Message, Part, Artifact, TaskState)
+2. **Status mapping** — `em_status_to_a2a()` correctly maps all EM task statuses to A2A TaskStates
+3. **JSON-RPC 2.0** — `jsonrpc_router.py` has proper request/response framing, batch support, error codes per spec
+4. **SSE streaming** — Polling-based SSE with terminal state detection (completed/failed/canceled)
+5. **Auth extraction** — Supports 3 auth methods: Bearer, API Key, ERC-8004 header
+6. **Thin adapter design** — `task_manager.py` doesn't duplicate business logic from routes.py (correct approach)
+7. **Evidence → Artifacts** — Maps worker photos/GPS/text to A2A Artifact parts
+
+### Critical Gaps (Why This Can't Ship As-Is)
+
+| Gap | Severity | What's Missing |
+|-----|----------|----------------|
+| **No payment integration** | CRITICAL | `send_message("approve")` does a raw DB status update. Bypasses PaymentDispatcher entirely — no EIP-3009, no settlement, no fee disbursement. Must route through `approve_submission()` in routes.py. |
+| **No Phase 1 schema** | CRITICAL | Assumes current DB schema. No `executor_type`, `capabilities`, `target_executor_type`, `verification_mode`, digital categories. |
+| **Auth not wired** | HIGH | `_extract_agent_id()` creates synthetic IDs (`apikey:xxx`, `bearer:xxx`) instead of resolving through our actual `api/auth.py` module. |
+| **Not mounted** | HIGH | Router exists but isn't included in `main.py` or `server.py`. Orphaned code. |
+| **Sync DB calls** | MEDIUM | `task_manager.py` calls `supabase_client.create_task()` etc. synchronously. Our routes.py patterns are async. Needs async adapter. |
+| **No `__init__.py` export** | MEDIUM | UltraClaw renamed `a2a_router` → `a2a_discovery_router` which breaks `main.py` imports. We kept our original `__init__.py`. The new files exist but aren't exported from the package. |
+| **No cancel refund** | MEDIUM | `cancel_task()` updates DB status but doesn't trigger escrow refund flow. |
+
+### How It Maps to Our Phases
+
+| Our Phase | UltraClaw Coverage | Assessment |
+|-----------|-------------------|------------|
+| Phase 1: Data Model (Migration 029) | 0% | Not touched. No DB schema changes. |
+| Phase 2: Agent Executor Registration | 0% | Not touched. No new endpoints. |
+| Phase 3: Agent Executor MCP Tools | 0% | Not touched. No new MCP tools. |
+| Phase 4: Dashboard UI | 0% | Not touched. |
+| **Phase 5: A2A Protocol Adapter** | **~60%** | Wire format + JSON-RPC done. Auth + payments + mounting missing. |
+| Phase 6: Payment Optimizations | 0% | Not touched. |
+| Phase 7: Testing | ~30% | Protocol-level tests done (62). Missing: payment, auth, integration, E2E. |
+
+### Integration Plan for Phase 5
+
+When we reach Phase 5, use UltraClaw's code as follows:
+
+1. **`models.py`** — Import directly. Add `executor_type`, `capabilities` fields to metadata mapping in `_em_task_to_a2a()`.
+
+2. **`task_manager.py`** — Refactor to:
+   - Use async Supabase calls (match routes.py patterns)
+   - Route `approve` through `approve_submission()` + PaymentDispatcher (not raw DB update)
+   - Route `cancel` through `cancel_task()` with escrow refund
+   - Add `executor_type` and `capabilities` filtering in `list_tasks()`
+   - Add capability matching in `create_task()` (Phase 1 schema)
+
+3. **`jsonrpc_router.py`** — Wire into `main.py`:
+   ```python
+   from a2a.jsonrpc_router import router as a2a_jsonrpc_router
+   app.include_router(a2a_jsonrpc_router)  # Mounts at /a2a/v1
+   ```
+   Fix `_extract_agent_id()` to use `api/auth.py:verify_api_key_optional()`.
+
+4. **`test_a2a_protocol.py`** — Extend with:
+   - Payment settlement tests (mock PaymentDispatcher)
+   - Phase 1 field tests (executor_type, capabilities)
+   - Auth integration tests (real API key resolution)
+   - E2E lifecycle tests (create → accept → submit → approve → pay)
+
+### Architecture After Integration
+
+```
+Agent → POST /a2a/v1 (JSON-RPC 2.0)
+  ↓
+jsonrpc_router.py → _dispatch()
+  ↓
+task_manager.py → A2ATaskManager
+  ↓
+routes.py (business logic + payments)
+  ↓
+supabase_client (database) + PaymentDispatcher (x402)
+```
+
+The key principle: `task_manager.py` is a **thin translation layer** only. All business
+logic (validation, payment, reputation) must flow through routes.py, not bypass it.
