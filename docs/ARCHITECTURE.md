@@ -412,7 +412,7 @@ CREATE INDEX idx_feedback_months ON reputation_feedback(months_old);
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │                    AGENT DEPOSITS                                    │   │
 │  │                                                                      │   │
-│  │  Bounty ($X)          Agent Bond (10-20%)        Platform Fee (6-8%)│   │
+│  │  Bounty ($X)          Agent Bond (10-20%)        Platform Fee (13%) │   │
 │  │  ────────────         ─────────────────────      ─────────────────  │   │
 │  │  Goes to worker       Slashed if unfair          70% Execution Market         │   │
 │  │  on completion        rejection per arbitration  30% Arbitration Pool│   │

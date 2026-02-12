@@ -53,7 +53,7 @@ AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 
 # Minimum bounty (configurable) - lowered for micropayment testing
 MIN_BOUNTY = Decimal("0.01")
-PLATFORM_FEE_PCT = Decimal("0.08")
+PLATFORM_FEE_PCT = Decimal("0.13")
 
 
 # ============== SECURITY HELPERS ==============
@@ -257,7 +257,7 @@ async def test_create_task_with_real_payment(
     3. Verifies escrow was created
     4. Verifies correct fee calculation
 
-    Cost: ~$0.27 ($0.25 bounty + 8% fee)
+    Cost: ~$0.28 ($0.25 bounty + 13% fee)
     """
     if DRY_RUN:
         logger.info("DRY RUN: Skipping real payment")
@@ -332,10 +332,10 @@ async def test_fee_calculation_accuracy(check_enabled):
     """Verify fee calculations match expected values."""
     test_cases = [
         # (bounty, expected_fee, expected_worker_payout)
-        (Decimal("0.25"), Decimal("0.02"), Decimal("0.23")),
-        (Decimal("1.00"), Decimal("0.08"), Decimal("0.92")),
-        (Decimal("10.00"), Decimal("0.80"), Decimal("9.20")),
-        (Decimal("100.00"), Decimal("8.00"), Decimal("92.00")),
+        (Decimal("0.25"), Decimal("0.03"), Decimal("0.22")),
+        (Decimal("1.00"), Decimal("0.13"), Decimal("0.87")),
+        (Decimal("10.00"), Decimal("1.30"), Decimal("8.70")),
+        (Decimal("100.00"), Decimal("13.00"), Decimal("87.00")),
     ]
 
     for bounty, expected_fee, expected_payout in test_cases:

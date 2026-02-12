@@ -113,7 +113,7 @@ class MockEscrowManager:
     - Dispute locks
     """
 
-    PLATFORM_FEE_PERCENT = Decimal("0.08")  # 8%
+    PLATFORM_FEE_PERCENT = Decimal("0.13")  # 13%
     PARTIAL_RELEASE_PERCENT = Decimal("0.30")  # 30%
 
     def __init__(self):

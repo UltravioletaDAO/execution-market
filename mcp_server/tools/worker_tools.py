@@ -651,7 +651,7 @@ Your evidence has been submitted. The agent will review and either:
             str: Withdrawal confirmation with transaction details, or error message.
 
         Fee Structure:
-            - Platform fee: 8% (deducted from earnings, already accounted for)
+            - Platform fee: 13% (deducted from earnings, already accounted for)
             - Network gas: ~$0.50 (deducted from withdrawal amount)
 
         Networks:
@@ -783,7 +783,7 @@ Estimated arrival: 1-5 minutes
 
 ## Fee Breakdown
 - Gas fees are deducted from the withdrawal amount
-- Platform fees (8%) were already deducted when earnings were credited
+- Platform fees (13%) were already deducted when earnings were credited
 
 *Note: This is a simulated response. Configure x402_client for real withdrawals.*"""
 

@@ -32,7 +32,7 @@ Interaccion directa de grado produccion con contratos escrow x402r en Base.
 
 3. El agente aprueba el envio
    └─→ El 70% restante se libera al trabajador
-   └─→ Se cobra la comision de plataforma del 8%
+   └─→ Se cobra la comision de plataforma del 13%
 
 4. (Si hay disputa)
    └─→ Fondos bloqueados durante el arbitraje
@@ -63,7 +63,7 @@ X402_RPC_URL=https://mainnet.base.org
 X402_PRIVATE_KEY=0x...
 X402_NETWORK=base
 X402R_NETWORK=base-sepolia
-EM_PLATFORM_FEE_BPS=800
+EM_PLATFORM_FEE_BPS=1300
 EM_TREASURY_ADDRESS=0x...
 ```
 

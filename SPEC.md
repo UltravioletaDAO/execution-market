@@ -101,9 +101,9 @@ sequenceDiagram
 
     EM->>EM: 8. Auto-verify evidence
     alt Verification passes
-        EM->>F: 9a. Settle: agent → worker (92%)
+        EM->>F: 9a. Settle: agent → worker (87%)
         F-->>H: USDC received (gasless)
-        EM->>F: 9b. Settle: agent → treasury (8%)
+        EM->>F: 9b. Settle: agent → treasury (13%)
         F-->>EM: Fee collected
         EM-->>A: 10. Task COMPLETED + results
     else Verification fails
@@ -546,7 +546,7 @@ INCIDENT: Mass fraud detected
 | Tier | Fee Structure | Rationale |
 |------|---------------|-----------|
 | **Micro** ($0-5) | Flat $0.25 | Porcentaje sería confiscatorio |
-| **Standard** ($5-50) | 8% | Competitivo con alternatives |
+| **Standard** ($5-50) | 13% | 12% EM + 1% x402r on-chain |
 | **Premium** ($50-200) | 6% | Incentiva tasks de alto valor |
 | **Enterprise** ($200+) | 4% + negociado | Volume discounts |
 
@@ -558,7 +558,7 @@ INCIDENT: Mass fraud detected
 - Fiverr: 20% al seller
 - Upwork: 5-20% sliding
 - MTurk: 20-40% al requester
-- **Execution Market: 6-8% promedio** ← Más competitivo
+- **Execution Market: 13% (12% EM + 1% x402r)** ← Sustainable + on-chain
 
 ---
 

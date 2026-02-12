@@ -67,7 +67,7 @@ On task approval, funds are released to the worker:
 # Release to beneficiary
 await escrow.release(
     task_id="task_abc123",
-    amount=9_200_000,  # 9.20 USDC (net after 8% fee)
+    amount=8_700_000,  # 8.70 USDC (net after 13% fee)
 )
 ```
 

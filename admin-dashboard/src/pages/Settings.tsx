@@ -177,7 +177,7 @@ export default function Settings({ adminKey }: SettingsProps) {
         <ConfigInput
           label="Platform Fee"
           configKey="fees.platform_fee_pct"
-          value={(fees.platform_fee_pct || 0.08) * 100}
+          value={(fees.platform_fee_pct || 0.13) * 100}
           saveDivisor={100}
           suffix="%"
           adminKey={adminKey}

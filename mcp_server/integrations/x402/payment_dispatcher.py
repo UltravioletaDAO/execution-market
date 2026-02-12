@@ -44,7 +44,7 @@ except ImportError:
     PaymentStrategy = None  # type: ignore[assignment,misc]
     TaskPayment = None  # type: ignore[assignment,misc]
     get_advanced_escrow = None  # type: ignore[assignment]
-    PLATFORM_FEE_BPS = 800
+    PLATFORM_FEE_BPS = 1300
 
 # --- preauth backend (EIP-3009 SDK) ---
 try:
@@ -63,7 +63,7 @@ except ImportError:
     EMX402SDK = None  # type: ignore[assignment,misc]
     get_sdk = None  # type: ignore[assignment]
     verify_x402_payment = None  # type: ignore[assignment]
-    PLATFORM_FEE_PERCENT = Decimal("0.08")
+    PLATFORM_FEE_PERCENT = Decimal("0.13")
     EM_TREASURY = "YOUR_TREASURY_WALLET"
     FACILITATOR_URL = "https://facilitator.ultravioletadao.xyz"
     NETWORK_CONFIG = {}  # type: ignore[assignment]

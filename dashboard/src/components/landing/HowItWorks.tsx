@@ -139,7 +139,7 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
             <p className="text-sm text-gray-500 leading-relaxed mb-3">
               {t(
                 'landing.step3Desc',
-                'Once verified, stablecoins are sent directly to your wallet via x402 protocol. No banks, no delays, no gas fees. You keep 92% of the bounty.'
+                'Once verified, stablecoins are sent directly to your wallet via x402 protocol. No banks, no delays, no gas fees. You keep 87% of the bounty.'
               )}
             </p>
             <div className="flex flex-wrap justify-center gap-1.5">
@@ -150,7 +150,7 @@ export const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(
                 {t('landing.step3Tag2', 'Stablecoins via x402')}
               </span>
               <span className="text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
-                {t('landing.step3Tag3', '92% payout')}
+                {t('landing.step3Tag3', '87% payout')}
               </span>
             </div>
           </div>

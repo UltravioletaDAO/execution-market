@@ -117,7 +117,7 @@ Approve or reject a worker's submission. Triggers the corresponding payment flow
 **Verdict → Payment Flow:**
 | Verdict | Payment Action |
 |---------|---------------|
-| `approved` | RELEASE remaining 70% to worker + collect 8% fee |
+| `approved` | RELEASE remaining 70% to worker + collect 13% fee |
 | `rejected` | No additional release. Worker keeps 30% partial. |
 | `partial` | Partial RELEASE (proof-of-attempt) + REFUND remainder |
 

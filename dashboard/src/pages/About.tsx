@@ -87,7 +87,7 @@ export function About() {
     },
     {
       feature: t('about.compFeatureCommission', 'Commission'),
-      em: '6 - 8%',
+      em: '13%',
       legacy: '20 - 23%',
     },
     {

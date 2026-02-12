@@ -96,7 +96,7 @@ const FACILITATOR_URL = 'https://facilitator.ultravioletadao.xyz';
 
 // Fibonacci bounties for test tasks
 const FIBONACCI_BOUNTIES = [0.01, 0.02, 0.03, 0.05, 0.08];
-const PLATFORM_FEE_PERCENT = 0.08;
+const PLATFORM_FEE_PERCENT = 0.13;
 
 // =============================================================================
 // CLI Args

@@ -67,7 +67,7 @@ class BondConfig:
     proof_of_attempt_percent: Decimal = Decimal("0.15")  # 15% for valid attempt
     min_proof_of_attempt_usd: Decimal = Decimal("0.50")  # Minimum $0.50
     min_net_payout_usd: Decimal = Decimal("0.50")  # Global minimum
-    platform_fee_percent: Decimal = Decimal("0.08")  # 8% platform fee
+    platform_fee_percent: Decimal = Decimal("0.13")  # 13% platform fee
 
 
 @dataclass

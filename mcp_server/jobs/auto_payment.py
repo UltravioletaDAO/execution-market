@@ -323,7 +323,7 @@ async def _retry_settlement(client, submission: dict) -> bool:
             return False
 
         # Calculate worker net amount
-        platform_fee_pct = Decimal(os.environ.get("EM_PLATFORM_FEE", "0.08"))
+        platform_fee_pct = Decimal(os.environ.get("EM_PLATFORM_FEE", "0.13"))
         fee = (bounty * platform_fee_pct).quantize(Decimal("0.01"))
         worker_payout = float(bounty - fee)
 

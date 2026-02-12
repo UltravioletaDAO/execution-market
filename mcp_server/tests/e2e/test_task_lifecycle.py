@@ -140,9 +140,9 @@ async def test_complete_task_lifecycle(
     escrow_state = mock_escrow_manager.get_escrow(task_id)
     assert escrow_state.status == "partial_released"
 
-    # Net bounty = $10 * (1 - 8% fee) = $9.20
-    # 30% of $9.20 = $2.76
-    expected_partial = Decimal("10.00") * Decimal("0.92") * Decimal("0.30")
+    # Net bounty = $10 * (1 - 13% fee) = $8.70
+    # 30% of $8.70 = $2.61
+    expected_partial = Decimal("10.00") * Decimal("0.87") * Decimal("0.30")
     assert escrow_state.released_amount == expected_partial.quantize(Decimal("0.01"))
 
     # ========== STEP 6: Agent approves -> 70% final release ==========
@@ -170,11 +170,11 @@ async def test_complete_task_lifecycle(
     escrow_state = mock_escrow_manager.get_escrow(task_id)
     assert escrow_state.status == "released"
 
-    # Worker should receive full net amount: $10 * 0.92 = $9.20
-    assert final_result["worker_payment"] == 9.20
+    # Worker should receive full net amount: $10 * 0.87 = $8.70
+    assert final_result["worker_payment"] == 8.70
 
-    # Platform fee: $10 * 0.08 = $0.80
-    assert final_result["platform_fee"] == 0.80
+    # Platform fee: $10 * 0.13 = $1.30
+    assert final_result["platform_fee"] == 1.30
 
     # ========== STEP 7: Verify task is completed ==========
     final_task = await mock_supabase.get_task(task_id)
@@ -521,10 +521,10 @@ async def test_lifecycle_with_timeout_after_partial_release(
         worker_wallet=test_worker.wallet.address,
     )
 
-    # Net bounty = $50 * 0.92 = $46
-    # Partial = $46 * 0.30 = $13.80
+    # Net bounty = $50 * 0.87 = $43.50
+    # Partial = $43.50 * 0.30 = $13.05
     assert partial_result["success"] is True
-    assert partial_result["amount_released"] == 13.80
+    assert partial_result["amount_released"] == 13.05
 
     # Simulate timeout
     escrow_record = mock_escrow_manager.get_escrow(task_id)
@@ -535,11 +535,11 @@ async def test_lifecycle_with_timeout_after_partial_release(
 
     assert refund_result["success"] is True
     assert refund_result["type"] == "timeout_partial_refund"
-    assert refund_result["partial_released_to_worker"] == 13.80
+    assert refund_result["partial_released_to_worker"] == 13.05
 
-    # Remaining goes back to agent: $50 - $13.80 = $36.20
+    # Remaining goes back to agent: $50 - $13.05 = $36.95
     # (This includes the platform fee since task wasn't completed)
-    remaining = Decimal("50.00") - Decimal("13.80")
+    remaining = Decimal("50.00") - Decimal("13.05")
     assert Decimal(str(refund_result["amount_refunded"])) == remaining.quantize(
         Decimal("0.01")
     )
@@ -647,8 +647,8 @@ async def test_lifecycle_with_dispute_worker_wins(
     assert release_result["success"] is True
 
     # Worker should receive full net payment
-    # $20 * 0.92 = $18.40
-    assert release_result["worker_payment"] == 18.40
+    # $20 * 0.87 = $17.40
+    assert release_result["worker_payment"] == 17.40
 
     # Verify task completed
     final_task = await mock_supabase.get_task(task_id)

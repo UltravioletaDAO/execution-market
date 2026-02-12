@@ -76,7 +76,7 @@ We do not hide our workers behind anonymity. We help them build reputations that
 
 Workers earn what their work is worth. Not what a race to the bottom dictates. Not what a monopoly platform decides to extract.
 
-We are transparent about fees. Execution Market takes 6-8%, not 20-30%. Workers see what agents pay and what they receive.
+We are transparent about fees. Execution Market takes 13% (12% EM + 1% x402r on-chain), not 20-30%. Workers see what agents pay and what they receive.
 
 We build systems that cannot be gamed to steal wages. Escrow locks funds before work begins. Partial payment releases when work is submitted. Full payment releases when work is verified. The money is there before the task starts.
 

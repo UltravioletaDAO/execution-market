@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 API_BASE = os.environ.get("EM_API_URL", "https://mcp.execution.market")
 FACILITATOR_URL = "https://facilitator.ultravioletadao.xyz"
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
-PLATFORM_FEE_PCT = Decimal("0.08")
+PLATFORM_FEE_PCT = Decimal("0.13")
 
 # Wallet addresses (known, not secret)
 WALLET_A_ADDRESS = "YOUR_PLATFORM_WALLET"  # Production/Agent

@@ -227,8 +227,8 @@ function generateMockData(timeRange: TimeRange): AnalyticsData {
     revenue: Math.round(totalGMV * [0.35, 0.22, 0.20, 0.13, 0.10][i]),
   }))
 
-  // Fee revenue (5% platform fee)
-  const feeRevenue = Math.round(totalGMV * 0.05)
+  // Fee revenue (13% platform fee)
+  const feeRevenue = Math.round(totalGMV * 0.13)
   const feeRevenueGrowth = gmvGrowth // Same growth rate as GMV
 
   return {
@@ -493,7 +493,7 @@ export function Analytics({ onBack }: AnalyticsProps) {
           <StatCard
             title="Revenue (Fees)"
             value={formatCurrency(data.feeRevenue)}
-            subValue="5% platform fee"
+            subValue="13% platform fee"
             change={{ value: data.feeRevenueGrowth, isPositive: data.feeRevenueGrowth > 0 }}
             color="purple"
             icon={

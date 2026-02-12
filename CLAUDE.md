@@ -497,8 +497,8 @@ Wrong Flow (DO NOT USE):
 
 **Wallet Roles (CRITICAL — read this before touching payments)**:
 - **Dev wallet** (`0x857f`): Used by local scripts and tests. Key in `.env.local`.
-- **Platform wallet** (`0xD386`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`. **This is the settlement transit point** — agent funds settle here at approval, then immediately disburse to worker (92%) + treasury (8%). No funds should accumulate here long-term.
-- **Treasury** (`0xae07`): Cold wallet (Ledger). **ONLY receives 8% platform fee** on successful task completion. **NEVER a settlement target.** If funds land here during task creation, it's a bug.
+- **Platform wallet** (`0xD386`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`. **This is the settlement transit point** — agent funds settle here at approval, then immediately disburse to worker (87%) + treasury (13%). No funds should accumulate here long-term.
+- **Treasury** (`0xae07`): Cold wallet (Ledger). **ONLY receives 13% platform fee (12% EM + 1% x402r)** on successful task completion. **NEVER a settlement target.** If funds land here during task creation, it's a bug.
 - `EM_SETTLEMENT_ADDRESS` env var (optional): Overrides the platform wallet for settlement. Defaults to address derived from `WALLET_PRIVATE_KEY`.
 - **Testing budget**: Always use amounts **< $0.30** for test tasks. ~$5 per chain must last through all testing cycles.
 
@@ -510,9 +510,9 @@ Wrong Flow (DO NOT USE):
 
 **Payment Flow for Tasks** (Fase 1, as of 2026-02-11):
 1. **Balance check** (task creation): `balanceOf(agent)` via RPC — advisory only, task creates regardless. No auth signed, no funds move.
-2. **Direct settlement** (task approval): Server signs 2 fresh EIP-3009 auths → Facilitator settles both: agent→worker (bounty) + agent→treasury (8% fee). No platform wallet intermediary.
+2. **Direct settlement** (task approval): Server signs 2 fresh EIP-3009 auths → Facilitator settles both: agent→worker (bounty) + agent→treasury (13% fee). No platform wallet intermediary.
 3. **Cancel** (task cancellation): No-op — no auth was ever signed, nothing to refund.
-4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 8%). Uses 6-decimal USDC precision with $0.01 minimum fee.
+4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 13% — 12% EM + 1% x402r). Uses 6-decimal USDC precision with $0.01 minimum fee.
 
 **Payment Flow for Tasks** (Fase 2):
 1. **Authorize** (task creation): Lock bounty+fee in on-chain escrow via facilitator (gasless). PaymentInfo stored in escrows table for state reconstruction.
@@ -544,7 +544,7 @@ Wrong Flow (DO NOT USE):
 | StaticAddressCondition(Facilitator) | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` | `0xb5b2f36f...` |
 | PaymentOperator (EM) | `0xb9635f544665758019159c04c08a3d583dadd723` | `0xba9fdeaf...` |
 
-**Operator config:** Facilitator-only release/refund (via `StaticAddressCondition`), no escrow period, no freeze. `feeCalculator=address(0)` (we charge 8% ourselves). `authorizeCondition=UsdcTvlLimit` (protocol safety).
+**Operator config:** Facilitator-only release/refund (via `StaticAddressCondition`), no escrow period, no freeze. `feeCalculator=address(0)` (we charge 13% ourselves — 12% EM + 1% x402r). `authorizeCondition=UsdcTvlLimit` (protocol safety).
 
 **Deployment script:** `scripts/deploy-payment-operator.ts` — deploys StaticAddressCondition + PaymentOperator via factory contracts.
 

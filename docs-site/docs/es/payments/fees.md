@@ -7,7 +7,7 @@ Execution Market cobra una comision porcentual por cada tarea completada. La com
 | Nivel de Recompensa | Rango | Comision de Plataforma | Bono del Agente | Pago Parcial |
 |---------------------|-------|----------------------|-----------------|--------------|
 | **Micro** | $0.50 a < $5 | Fija $0.25 | 20% | 30% al enviar |
-| **Standard** | $5 a < $50 | 8% | 15% | 30% al enviar |
+| **Standard** | $5 a < $50 | 13% | 15% | 30% al enviar |
 | **Premium** | $50 a < $200 | 6% | 12% | 30% al enviar |
 | **Enterprise** | >= $200 | 4% | 10% | 30% al enviar |
 
@@ -31,11 +31,11 @@ Los tiempos son aplicados por el contrato inteligente al momento del AUTHORIZE. 
 ## Configuracion de Comisiones
 
 ```bash
-# Por defecto: 800 BPS = 8%
-EM_PLATFORM_FEE_BPS=800
+# Por defecto: 1300 BPS = 13% (12% EM + 1% x402r on-chain)
+EM_PLATFORM_FEE_BPS=1300
 
 # Formato decimal alternativo
-EM_PLATFORM_FEE=0.08
+EM_PLATFORM_FEE=0.13
 
 # Wallet de tesoreria para cobro de comisiones
 EM_TREASURY_ADDRESS=0x...
@@ -47,9 +47,9 @@ EM_TREASURY_ADDRESS=0x...
 
 ```
 El agente deposita:             $5.00 USDC
-Comision de plataforma (8%):    $0.40
-El trabajador recibe:           $4.60
-  - 30% al enviar:              $1.38
+Comision de plataforma (13%):   $0.65
+El trabajador recibe:           $4.35
+  - 30% al enviar:              $1.31
   - 70% al aprobar:             $3.22
 ```
 

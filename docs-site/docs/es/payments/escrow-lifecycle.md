@@ -44,7 +44,7 @@ create_escrow_for_task(task_id, bounty_usd, worker_address)
 
 # El sistema calcula:
 # - Pago neto = recompensa - comision_plataforma
-# - Comision de plataforma = recompensa * 0.08
+# - Comision de plataforma = recompensa * 0.13
 # - Bloquea el monto bruto en escrow
 # - Establece los tiempos segun el nivel (ver abajo)
 ```
@@ -77,7 +77,7 @@ Esto protege a los trabajadores de agentes que nunca revisan los envios.
 release_on_approval(task_id)
 
 # Libera: 70% restante al trabajador
-# Cobra: 8% comision de plataforma a la tesoreria
+# Cobra: 13% comision de plataforma a la tesoreria (12% EM + 1% x402r)
 # Estado: RELEASED
 ```
 
@@ -138,8 +138,8 @@ Tarea: **recompensa de $10.00** (nivel Standard)
 
 ```
 Recompensa bruta:              $10.00
-Comision de plataforma (8%):    -$0.80
-Neto para el trabajador:        $9.20
+Comision de plataforma (13%):   -$1.30
+Neto para el trabajador:        $8.70
 
 Liberacion parcial (30%):       $2.76 (al enviar)
 Liberacion final (70%):         $6.44 (al aprobar)

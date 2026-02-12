@@ -195,7 +195,7 @@ class TestDepositRequiresValidAmount:
         self, escrow_manager, sample_task_id, sample_agent_wallet
     ):
         """Deposit fails if net payout would be below minimum."""
-        # Bounty too small: $0.50 * 0.92 (after 8% fee) = $0.46 < MINIMUM_PAYOUT
+        # Bounty too small: $0.50 * 0.87 (after 13% fee) = $0.435 < MINIMUM_PAYOUT
         with pytest.raises(X402Error, match="below minimum"):
             await escrow_manager.deposit_for_task(
                 task_id=sample_task_id,
@@ -208,7 +208,7 @@ class TestDepositRequiresValidAmount:
         self, escrow_manager, mock_x402_client, sample_task_id, sample_agent_wallet
     ):
         """Deposit accepts bounty that results in exactly minimum payout."""
-        # Minimum bounty = 0.50 / 0.92 = ~0.5435, rounded up to 0.55
+        # Minimum bounty = 0.50 / 0.87 = ~0.5747, rounded up to 0.58
         min_bounty = Decimal("0.55")
 
         mock_x402_client.create_escrow = AsyncMock(
@@ -237,30 +237,30 @@ class TestDepositRequiresValidAmount:
 class TestDepositCalculatesFees:
     """Test that deposit calculates fee breakdown correctly."""
 
-    def test_calculate_fees_8_percent(self, escrow_manager):
-        """Fee breakdown correctly applies 8% platform fee."""
+    def test_calculate_fees_13_percent(self, escrow_manager):
+        """Fee breakdown correctly applies 13% platform fee."""
         fees = escrow_manager.calculate_fees(Decimal("100.00"))
 
         assert fees.gross_amount == Decimal("100.00")
-        assert fees.platform_fee == Decimal("8.00")
-        assert fees.net_to_worker == Decimal("92.00")
-        assert fees.fee_percent == Decimal("8")  # 8%
+        assert fees.platform_fee == Decimal("13.00")
+        assert fees.net_to_worker == Decimal("87.00")
+        assert fees.fee_percent == Decimal("13")  # 13%
 
     def test_calculate_fees_rounds_to_cents(self, escrow_manager):
         """Fee amounts are rounded to 2 decimal places."""
         fees = escrow_manager.calculate_fees(Decimal("15.50"))
 
-        # 15.50 * 0.08 = 1.24
-        assert fees.platform_fee == Decimal("1.24")
-        assert fees.net_to_worker == Decimal("14.26")
+        # 15.50 * 0.13 = 2.015 → 2.02 (rounded)
+        assert fees.platform_fee == Decimal("2.02")
+        assert fees.net_to_worker == Decimal("13.48")
 
     def test_calculate_fees_small_amount(self, escrow_manager):
         """Fee calculation works for small amounts."""
         fees = escrow_manager.calculate_fees(Decimal("5.00"))
 
-        # 5.00 * 0.08 = 0.40
-        assert fees.platform_fee == Decimal("0.40")
-        assert fees.net_to_worker == Decimal("4.60")
+        # 5.00 * 0.13 = 0.65
+        assert fees.platform_fee == Decimal("0.65")
+        assert fees.net_to_worker == Decimal("4.35")
 
     @pytest.mark.asyncio
     async def test_deposit_stores_fee_breakdown(
@@ -289,8 +289,8 @@ class TestDepositCalculatesFees:
 
         assert escrow.fees is not None
         assert escrow.fees.gross_amount == Decimal("100.00")
-        assert escrow.fees.platform_fee == Decimal("8.00")
-        assert escrow.fees.net_to_worker == Decimal("92.00")
+        assert escrow.fees.platform_fee == Decimal("13.00")
+        assert escrow.fees.net_to_worker == Decimal("87.00")
 
 
 class TestDepositWithInsufficientBalance:
@@ -419,7 +419,7 @@ class TestReleaseWithPlatformFee:
         sample_agent_wallet,
         sample_worker_wallet,
     ):
-        """Release deducts 8% platform fee and sends to treasury."""
+        """Release deducts 13% platform fee and sends to treasury."""
         # Setup escrow
         mock_x402_client.create_escrow = AsyncMock(
             return_value=ClientEscrowDeposit(
@@ -464,17 +464,17 @@ class TestReleaseWithPlatformFee:
         )
 
         # Verify calls
-        # First call: worker payment ($92)
-        # Second call: fee to treasury ($8)
+        # First call: worker payment ($87)
+        # Second call: fee to treasury ($13)
         assert len(release_calls) == 2
 
         worker_call = release_calls[0]
         assert worker_call["recipient"] == sample_worker_wallet
-        assert worker_call["amount"] == Decimal("92.00")
+        assert worker_call["amount"] == Decimal("87.00")
 
         fee_call = release_calls[1]
         assert fee_call["recipient"] == escrow_manager.treasury_address
-        assert fee_call["amount"] == Decimal("8.00")
+        assert fee_call["amount"] == Decimal("13.00")
 
 
 class TestReleaseRequiresValidStatus:
@@ -730,7 +730,7 @@ class TestPartialReleaseOnSubmission:
             return_value=ClientPaymentResult(
                 success=True,
                 tx_hash="0xPARTIAL",
-                amount=Decimal("27.60"),  # 30% of $92 = $27.60
+                amount=Decimal("26.10"),  # 30% of $87 = $27.60
                 token=ClientPaymentToken.USDC,
                 recipient=sample_worker_wallet,
                 timestamp=datetime.now(timezone.utc),
@@ -895,7 +895,7 @@ class TestFinalReleaseAfterPartial:
             return_value=ClientPaymentResult(
                 success=True,
                 tx_hash="0xPARTIAL",
-                amount=Decimal("27.60"),  # 30% of $92
+                amount=Decimal("26.10"),  # 30% of $87
                 token=ClientPaymentToken.USDC,
                 recipient=sample_worker_wallet,
                 timestamp=datetime.now(timezone.utc),
@@ -930,15 +930,15 @@ class TestFinalReleaseAfterPartial:
         )
 
         # First call should be remaining worker payment
-        # $92 total - $27.60 already released = $64.40
+        # $87 total - $26.10 already released = $60.90
         worker_call = release_calls[0]
         assert worker_call["recipient"] == sample_worker_wallet
-        assert worker_call["amount"] == Decimal("64.40")
+        assert worker_call["amount"] == Decimal("60.90")
 
         # Second call should be fee to treasury
         fee_call = release_calls[1]
         assert fee_call["recipient"] == escrow_manager.treasury_address
-        assert fee_call["amount"] == Decimal("8.00")
+        assert fee_call["amount"] == Decimal("13.00")
 
 
 # =============================================================================
@@ -1231,9 +1231,9 @@ class TestResolveDisputeWorkerWins:
             deposit_tx="0xDEPOSIT",
             fees=FeeBreakdown(
                 gross_amount=Decimal("100.00"),
-                platform_fee=Decimal("8.00"),
-                net_to_worker=Decimal("92.00"),
-                fee_percent=Decimal("8"),
+                platform_fee=Decimal("13.00"),
+                net_to_worker=Decimal("87.00"),
+                fee_percent=Decimal("13"),
             ),
         )
 
@@ -1241,7 +1241,7 @@ class TestResolveDisputeWorkerWins:
             return_value=ClientPaymentResult(
                 success=True,
                 tx_hash="0xWORKER_WINS",
-                amount=Decimal("92.00"),
+                amount=Decimal("87.00"),
                 token=ClientPaymentToken.USDC,
                 recipient=sample_worker_wallet,
                 timestamp=datetime.now(timezone.utc),
@@ -1447,7 +1447,7 @@ class TestTaskEscrowProperties:
             task_id="task-123",
             escrow_id="escrow-456",
             total_amount=Decimal("100.00"),
-            released_amount=Decimal("27.60"),
+            released_amount=Decimal("26.10"),
             status=EscrowStatus.PARTIAL_RELEASED,
             token=PaymentToken.USDC,
             depositor_wallet="0xAGENT",
@@ -1455,9 +1455,9 @@ class TestTaskEscrowProperties:
             deposit_tx="0xDEPOSIT",
             fees=FeeBreakdown(
                 gross_amount=Decimal("100.00"),
-                platform_fee=Decimal("8.00"),
-                net_to_worker=Decimal("92.00"),
-                fee_percent=Decimal("8"),
+                platform_fee=Decimal("13.00"),
+                net_to_worker=Decimal("87.00"),
+                fee_percent=Decimal("13"),
             ),
         )
 
@@ -1465,11 +1465,11 @@ class TestTaskEscrowProperties:
 
         assert result["task_id"] == "task-123"
         assert result["total_amount"] == 100.0
-        assert result["released_amount"] == 27.6
-        assert result["remaining_amount"] == 72.4
+        assert result["released_amount"] == 26.1
+        assert result["remaining_amount"] == 73.9
         assert result["status"] == "partial_released"
         assert result["token"] == "USDC"
-        assert result["fees"]["platform_fee"] == 8.0
+        assert result["fees"]["platform_fee"] == 13.0
 
 
 class TestFeeBreakdownSerialization:
@@ -1479,14 +1479,14 @@ class TestFeeBreakdownSerialization:
         """FeeBreakdown.to_dict() correctly serializes."""
         fees = FeeBreakdown(
             gross_amount=Decimal("100.00"),
-            platform_fee=Decimal("8.00"),
-            net_to_worker=Decimal("92.00"),
-            fee_percent=Decimal("8"),
+            platform_fee=Decimal("13.00"),
+            net_to_worker=Decimal("87.00"),
+            fee_percent=Decimal("13"),
         )
 
         result = fees.to_dict()
 
         assert result["gross_amount"] == 100.0
-        assert result["platform_fee"] == 8.0
-        assert result["net_to_worker"] == 92.0
-        assert result["fee_percent"] == 8.0
+        assert result["platform_fee"] == 13.0
+        assert result["net_to_worker"] == 87.0
+        assert result["fee_percent"] == 13.0

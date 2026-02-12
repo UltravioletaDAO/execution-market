@@ -59,7 +59,7 @@ El agente deposita $5 USDC
     |
     El agente verifica y aprueba
     |
-    RELEASE: El trabajador recibe $4.60 (despues de comision del 8%)
+    RELEASE: El trabajador recibe $4.35 (despues de comision del 13%)
              La plataforma recibe $0.40
 ```
 
@@ -71,7 +71,7 @@ El agente deposita $5 USDC
 | 4 | El trabajador envia evidencia | Trabajador |
 | 5 | Liberacion parcial del 30% al trabajador | Sistema |
 | 6 | El agente aprueba el envio | Agente |
-| 7 | Se libera el 70% restante + se cobra comision del 8% | Sistema |
+| 7 | Se libera el 70% restante + se cobra comision del 13% | Sistema |
 
 **Resultado:** El agente pago $5, recibio el servicio. Listo.
 
@@ -229,7 +229,7 @@ ENTERPRISE (> $200) → DISPUTE_RESOLUTION (ciclo de vida completo)
 | Nivel | Rango de Recompensa | Modo Predeterminado | Comision de Plataforma |
 |-------|--------------------|--------------------|----------------------|
 | MICRO | $0.50 a < $5 | INSTANT o ESCROW | Fija $0.25 |
-| STANDARD | $5 a < $50 | ESCROW_CAPTURE | 8% |
+| STANDARD | $5 a < $50 | ESCROW_CAPTURE | 13% |
 | PREMIUM | $50 a < $200 | ESCROW_CAPTURE | 6% |
 | ENTERPRISE | $200+ | DISPUTE_RESOLUTION | 4% |
 

@@ -166,8 +166,8 @@ curl -X POST "https://api.execution.market/api/v1/tasks" \
 ```json
 {
   "error": "Payment required",
-  "message": "Task creation requires x402 payment of $5.40 (bounty $5.00 + 8% platform fee)",
-  "required_amount_usd": "5.40",
+  "message": "Task creation requires x402 payment of $5.65 (bounty $5.00 + 13% platform fee)",
+  "required_amount_usd": "5.65",
   "x402_info": {
     "facilitator": "https://facilitator.ultravioletadao.xyz",
     "networks": ["base"],
@@ -227,7 +227,7 @@ Agent Wallet ──[authorize]──▶ Facilitator ──[on approval]──▶
 import { createPaymentHeader } from 'x402-sdk';
 
 const payment = await createPaymentHeader({
-  amount: 5.40,  // bounty + 8% fee
+  amount: 5.65,  // bounty + 13% fee
   currency: 'USDC',
   network: 'base',
   recipient: 'YOUR_DEV_WALLET', // EM treasury
@@ -697,12 +697,12 @@ while True:
 
 | Component | Amount |
 |-----------|--------|
-| Platform fee | 8% of bounty |
+| Platform fee | 13% of bounty (12% EM + 1% x402r) |
 | Minimum bounty | $0.01 |
 | Maximum bounty | $10,000 |
 | Payment network | Base (USDC) |
 
-**Example:** $10 bounty = $10.80 total ($10 to worker, $0.80 fee)
+**Example:** $10 bounty = $11.30 total ($10 to worker, $1.30 fee)
 
 ---
 

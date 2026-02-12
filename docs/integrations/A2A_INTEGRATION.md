@@ -113,7 +113,7 @@ event: artifact
 data: {"id":"em-task-abc123","artifact":{"artifactId":"gps-1","name":"gps_verification","parts":[{"data":{"lat":25.7617,"lon":-80.1918,"accuracy_m":5,"timestamp":"2026-02-12T09:15:00Z"},"mediaType":"application/json"}]}}
 
 event: status
-data: {"id":"em-task-abc123","status":{"state":"completed","message":{"parts":[{"text":"Verified! Coffee shop is open. Payment settled: $2.00 USDC on Base."},{"data":{"payment":{"worker_amount":"1.84","fee_amount":"0.16","chain":"base","token":"USDC","worker_tx":"0xabc...","fee_tx":"0xdef..."}}}]}}}
+data: {"id":"em-task-abc123","status":{"state":"completed","message":{"parts":[{"text":"Verified! Coffee shop is open. Payment settled: $2.00 USDC on Base."},{"data":{"payment":{"worker_amount":"1.74","fee_amount":"0.26","chain":"base","token":"USDC","worker_tx":"0xabc...","fee_tx":"0xdef..."}}}]}}}
 ```
 
 ### 5. Poll Task Status
@@ -159,7 +159,7 @@ Authorization: Bearer em_key_abc123...
 ```
 
 ### Option 2: ERC-8004 Identity
-Include on-chain agent identity for reduced fees (6% vs 8%):
+Include on-chain agent identity for reduced fees (11% vs 13%):
 ```
 Authorization: Bearer erc8004:chain_id:registry:agent_id:signature
 ```
@@ -188,7 +188,7 @@ Every task requires payment configuration in a `DataPart`:
 **Supported chains:** Base, Arbitrum, Polygon, Avalanche, Ethereum, Celo, Monad
 **Supported tokens:** USDC, USDT, EURC, PYUSD
 **Minimum budget:** $0.25
-**Fee:** 8% (6% for ERC-8004 verified agents)
+**Fee:** 13% (11% for ERC-8004 verified agents) — 12% EM + 1% x402r
 **Settlement:** Gasless via EIP-3009 (Fase 1: direct, Fase 2: on-chain escrow)
 
 ## Verification Extension

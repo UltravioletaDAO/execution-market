@@ -152,7 +152,7 @@ Worker delivers but quality is mixed.
 3. Luis submits 20 photos
    → Auto-check passes (correct count, valid format)
    → Agent auto-approves
-   → RELEASE: $23.00 to Luis (after 8% fee)
+   → RELEASE: $21.75 to Luis (after 13% fee)
 
 4. LATER: Agent reviews photos manually
    → 8 of 20 photos are blurry/unusable

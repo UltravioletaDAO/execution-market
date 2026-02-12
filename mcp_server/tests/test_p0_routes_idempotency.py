@@ -924,8 +924,8 @@ async def test_get_public_platform_metrics_aggregates_counts(monkeypatch):
             },
         ],
         escrow_rows=[
-            {"total_amount_usdc": 10.5, "platform_fee_usdc": 0.8},
-            {"total_amount_usdc": "5.25", "platform_fee_usdc": "0.42"},
+            {"total_amount_usdc": 10.5, "platform_fee_usdc": 1.37},
+            {"total_amount_usdc": "5.25", "platform_fee_usdc": "0.68"},
         ],
         worker_count=12,
         agent_count=4,
@@ -953,7 +953,7 @@ async def test_get_public_platform_metrics_aggregates_counts(monkeypatch):
     assert result.activity["agents_with_live_tasks"] == 1
 
     assert result.payments["total_volume_usd"] == 15.75
-    assert result.payments["total_fees_usd"] == 1.26
+    assert result.payments["total_fees_usd"] == 2.05
 
 
 @pytest.mark.asyncio

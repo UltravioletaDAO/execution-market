@@ -51,11 +51,11 @@ class PlatformConfig:
 
     Usage:
         # Get specific config methods (recommended)
-        fee = await PlatformConfig.get_fee_pct()  # Decimal("0.08")
+        fee = await PlatformConfig.get_fee_pct()  # Decimal("0.13")
         min_bounty = await PlatformConfig.get_min_bounty()  # Decimal("0.25")
 
         # Get raw value
-        value = await PlatformConfig.get("fees.platform_fee_pct", default=0.08)
+        value = await PlatformConfig.get("fees.platform_fee_pct", default=0.13)
 
         # Invalidate cache (after admin update)
         PlatformConfig.invalidate_cache("fees.platform_fee_pct")
@@ -75,7 +75,7 @@ class PlatformConfig:
     # Default values (used when DB is unavailable)
     _defaults: Dict[str, Any] = {
         # Fees
-        "fees.platform_fee_pct": Decimal("0.08"),
+        "fees.platform_fee_pct": Decimal("0.13"),
         "fees.partial_release_pct": Decimal("0.30"),
         "fees.min_fee_usd": Decimal("0.01"),
         "fees.protection_fund_pct": Decimal("0.005"),
@@ -247,8 +247,8 @@ class PlatformConfig:
 
     @classmethod
     async def get_fee_pct(cls) -> Decimal:
-        """Get platform fee percentage (e.g., Decimal("0.08") = 8%)."""
-        return await cls.get("fees.platform_fee_pct", Decimal("0.08"))
+        """Get platform fee percentage (e.g., Decimal("0.13") = 13%)."""
+        return await cls.get("fees.platform_fee_pct", Decimal("0.13"))
 
     @classmethod
     async def get_partial_release_pct(cls) -> Decimal:
@@ -474,7 +474,7 @@ async def get_config(key: str, default: T = None) -> Union[Any, T]:
 
     Usage:
         from config import get_config
-        fee = await get_config("fees.platform_fee_pct", Decimal("0.08"))
+        fee = await get_config("fees.platform_fee_pct", Decimal("0.13"))
     """
     return await PlatformConfig.get(key, default)
 

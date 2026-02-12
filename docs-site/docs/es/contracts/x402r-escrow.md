@@ -67,7 +67,7 @@ Al aprobar la tarea, los fondos se liberan al trabajador:
 # Release to beneficiary
 await escrow.release(
     task_id="task_abc123",
-    amount=9_200_000,  # 9.20 USDC (neto despues de 8% de comision)
+    amount=8_700_000,  # 8.70 USDC (neto despues de 13% de comision)
 )
 ```
 

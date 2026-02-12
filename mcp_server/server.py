@@ -268,7 +268,7 @@ mcp = FastMCP(
 # Configure worker tools (NOW-011 to NOW-014)
 worker_config = WorkerToolsConfig(
     min_withdrawal_usdc=float(os.environ.get("MIN_WITHDRAWAL_USDC", "5.0")),
-    platform_fee_percent=float(os.environ.get("PLATFORM_FEE_PERCENT", "8.0")),
+    platform_fee_percent=float(os.environ.get("PLATFORM_FEE_PERCENT", "13.0")),
     x402_enabled=x402_sdk is not None,
 )
 

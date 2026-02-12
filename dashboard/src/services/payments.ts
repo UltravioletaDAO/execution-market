@@ -390,33 +390,33 @@ export async function getFeeStructure(): Promise<FeeStructure> {
   return {
     ratesByCategory: {
       physical_presence: {
-        ratePercent: 8.0,
+        ratePercent: 13.0,
         description: 'Tasks requiring physical presence (delivery, verification)',
       },
       knowledge_access: {
-        ratePercent: 7.0,
+        ratePercent: 13.0,
         description: 'Tasks requiring specialized knowledge or access',
       },
       human_authority: {
-        ratePercent: 6.0,
+        ratePercent: 13.0,
         description: 'Tasks requiring human authorization or signatures',
       },
       simple_action: {
-        ratePercent: 8.0,
+        ratePercent: 13.0,
         description: 'Simple, quick tasks',
       },
       digital_physical: {
-        ratePercent: 7.5,
+        ratePercent: 13.0,
         description: 'Tasks bridging digital and physical worlds',
       },
     },
     distribution: {
-      workerPercent: '92-94%',
-      platformPercent: '6-8%',
+      workerPercent: '87%',
+      platformPercent: '13%',
     },
     limits: {
       minimumFee: 0.50,
-      maximumRatePercent: 8.0,
+      maximumRatePercent: 13.0,
     },
   }
 }

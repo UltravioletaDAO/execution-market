@@ -86,7 +86,7 @@ except ImportError:
     CONFIG_AVAILABLE = False
 
 # Default fee (overridden by config system when available)
-DEFAULT_PLATFORM_FEE_PERCENT = Decimal("0.08")
+DEFAULT_PLATFORM_FEE_PERCENT = Decimal("0.13")
 
 
 async def get_platform_fee_percent() -> Decimal:
@@ -2158,7 +2158,7 @@ async def create_task(
 
     ## Payment Calculation
     Total required = `bounty_usd × (1 + platform_fee_percent)`
-    - Platform fee: typically 6-8% (configurable)
+    - Platform fee: 13% (12% EM + 1% x402r on-chain, configurable)
     - Example: $10 bounty → $10.80 total required
 
     ## Required Headers

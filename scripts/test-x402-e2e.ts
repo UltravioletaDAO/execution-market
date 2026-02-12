@@ -47,7 +47,7 @@ const CONFIG = {
 
   // Test parameters
   TEST_BOUNTY_USD: 0.10, // $0.10 for testing
-  PLATFORM_FEE_PERCENT: 0.08, // 8%
+  PLATFORM_FEE_PERCENT: 0.13, // 13% (12% EM + 1% x402r)
 };
 
 // Types

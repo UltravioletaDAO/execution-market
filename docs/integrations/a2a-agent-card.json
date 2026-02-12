@@ -22,7 +22,7 @@
       {
         "scheme": "custom",
         "id": "erc8004",
-        "description": "ERC-8004 on-chain agent identity. Agents with verified on-chain registry entries get priority matching and reduced fees (6% vs 8%)."
+        "description": "ERC-8004 on-chain agent identity. Agents with verified on-chain registry entries get priority matching and reduced fees (11% vs 13%)."
       },
       {
         "scheme": "custom",
@@ -98,7 +98,7 @@
   "extensions": [
     {
       "uri": "urn:execution-market:payment",
-      "description": "Stablecoin payment configuration. Tasks require USDC/USDT/EURC/PYUSD funding. Supported chains: Base, Arbitrum, Polygon, Avalanche, Ethereum, Celo, Monad. Minimum: $0.25. Fee: 8% (6% for ERC-8004 verified agents). Gasless via EIP-3009.",
+      "description": "Stablecoin payment configuration. Tasks require USDC/USDT/EURC/PYUSD funding. Supported chains: Base, Arbitrum, Polygon, Avalanche, Ethereum, Celo, Monad. Minimum: $0.25. Fee: 13% (11% for ERC-8004 verified agents) — 12% EM + 1% x402r. Gasless via EIP-3009.",
       "required": true,
       "params": {
         "chain": "Blockchain to settle on (base, arbitrum, polygon, avalanche, ethereum, celo, monad)",
