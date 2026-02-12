@@ -470,7 +470,7 @@ async def run_erc8004_scenarios(results: FlowResult):
                     "tag1": "worker_rating",
                     "tag2": "e2e_full_flow",
                     "endpoint": f"task:e2e-happy-{timestamp}",
-                    "feedbackUri": f"https://execution.market/feedback/e2e-happy-{timestamp}",
+                    "feedbackUri": f"https://api.execution.market/api/v1/reputation/feedback/e2e-happy-{timestamp}",
                 },
             },
         )
@@ -493,7 +493,7 @@ async def run_erc8004_scenarios(results: FlowResult):
             "score": 82,
             "tag1": "worker_rating",
             "tag2": "e2e_full_flow",
-            "feedbackUri": f"https://execution.market/feedback/e2e-happy-{timestamp}",
+            "feedbackUri": f"https://api.execution.market/api/v1/reputation/feedback/e2e-happy-{timestamp}",
             "endpoint": f"task:e2e-happy-{timestamp}",
             "error": data.get("error"),
         })
@@ -571,7 +571,7 @@ async def run_erc8004_scenarios(results: FlowResult):
                         "tag1": "worker_rating",
                         "tag2": "rejection_major",
                         "endpoint": f"task:e2e-reject-{timestamp}",
-                        "feedbackUri": f"https://execution.market/feedback/e2e-reject-{timestamp}",
+                        "feedbackUri": f"https://api.execution.market/api/v1/reputation/feedback/e2e-reject-{timestamp}",
                     },
                 },
             )
@@ -594,7 +594,7 @@ async def run_erc8004_scenarios(results: FlowResult):
                 "score": 25,
                 "tag1": "worker_rating",
                 "tag2": "rejection_major",
-                "feedbackUri": f"https://execution.market/feedback/e2e-reject-{timestamp}",
+                "feedbackUri": f"https://api.execution.market/api/v1/reputation/feedback/e2e-reject-{timestamp}",
                 "error": data.get("error"),
             })
         except httpx.ReadTimeout:
@@ -613,7 +613,7 @@ async def run_erc8004_scenarios(results: FlowResult):
                             "tag1": "worker_rating",
                             "tag2": "rejection_major",
                             "endpoint": f"task:e2e-reject-{timestamp}",
-                            "feedbackUri": f"https://execution.market/feedback/e2e-reject-{timestamp}",
+                            "feedbackUri": f"https://api.execution.market/api/v1/reputation/feedback/e2e-reject-{timestamp}",
                         },
                     },
                     timeout=httpx.Timeout(180.0, connect=15.0),

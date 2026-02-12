@@ -140,7 +140,7 @@ Function: giveFeedback(uint256 agentId, int128 value, uint8 valueDecimals,
 | `tag1` | `worker_rating` | Identifies this as a worker rating |
 | `tag2` | `e2e_full_flow` | Test run identifier |
 | `endpoint` | `task:e2e-happy-2026-02-12T03:34` | Links to the task |
-| `feedbackUri` | `https://execution.market/feedback/e2e-happy-2026-02-12T03:34` | Human-readable feedback page |
+| `feedbackUri` | `https://execution.market/feedback/e2e-happy-2026-02-12T03:34` | Feedback page (see [Known Gap](#known-gap-feedbackuri-resolution)) |
 | `feedbackHash` | `0x0000...0000` | Placeholder (off-chain evidence hash) |
 
 > All parameters are **publicly verifiable** on BaseScan → Input Data → Decode Input Data.
@@ -218,7 +218,7 @@ Function: giveFeedback(uint256 agentId, int128 value, uint8 valueDecimals,
 | `valueDecimals` | 0 | Integer score |
 | `tag1` | `worker_rating` | Worker rating type |
 | `tag2` | `rejection_major` | **Penalty classification** — distinguishes from normal rating |
-| `feedbackUri` | `https://execution.market/feedback/e2e-reject-2026-02-12T03:34` | Rejection evidence page |
+| `feedbackUri` | `https://execution.market/feedback/e2e-reject-2026-02-12T03:34` | Rejection evidence (see [Known Gap](#known-gap-feedbackuri-resolution)) |
 | `feedbackHash` | `0x0000...0000` | Placeholder |
 
 > **Penalty tiers** (our classification via `tag2`):
@@ -312,6 +312,32 @@ Additional transactions from earlier in the test run (before delay fix):
    TokenStore → Receiver for release)
 5. For reputation TXs, check the **Input Data** to see the feedback parameters
    (agentId, value, tag1, tag2, feedbackUri)
+
+---
+
+## Known Gap: feedbackUri Resolution
+
+The `feedbackUri` values recorded on-chain in this test run (e.g.,
+`https://execution.market/feedback/e2e-happy-2026-02-12T03:34`) do **not resolve**
+to actual content. This is expected for direct Facilitator tests.
+
+**Why:** This E2E test sends feedback directly to the Facilitator endpoint,
+bypassing the MCP server. In production, the full flow is:
+
+1. MCP server calls `persist_and_hash_feedback()` → creates JSON document
+2. Document is uploaded to S3 + stored in Supabase `feedback_documents` table
+3. The resulting CDN/API URL is passed as `feedbackUri` to the Facilitator
+4. On-chain `feedbackUri` resolves to the actual feedback JSON
+
+**In production:** The dashboard route `/feedback/:taskId` calls
+`GET /api/v1/reputation/feedback/{taskId}` which retrieves the document from
+Supabase/S3. This works correctly when feedback flows through the MCP server's
+`/workers/rate` or `/agents/rate` endpoints.
+
+**Future test improvement:** Updated the test script to use the API URL format
+(`https://api.execution.market/api/v1/reputation/feedback/{id}`) instead of the
+dashboard URL. To make these resolve, the test would need to call the MCP server's
+rating API instead of the Facilitator directly.
 
 ---
 
