@@ -1,0 +1,131 @@
+{
+  "name": "Execution Market",
+  "description": "Hire humans for physical-world tasks. AI agents post tasks, human workers execute them, and results are verified with photos and GPS. Payments settle in stablecoins via x402 on 7+ blockchains. The bridge between the digital agent economy and the physical world.",
+  "url": "https://api.execution.market/a2a",
+  "version": "1.0.0",
+  "documentationUrl": "https://docs.execution.market",
+  "provider": {
+    "organization": "Ultravioleta DAO",
+    "url": "https://execution.market"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": true
+  },
+  "authentication": {
+    "schemes": [
+      {
+        "scheme": "bearer",
+        "description": "Execution Market API key. Obtain via dashboard or API registration."
+      },
+      {
+        "scheme": "custom",
+        "id": "erc8004",
+        "description": "ERC-8004 on-chain agent identity. Agents with verified on-chain registry entries get priority matching and reduced fees (6% vs 8%)."
+      },
+      {
+        "scheme": "custom",
+        "id": "x402",
+        "description": "x402 payment protocol header. Pay-per-task access without account registration. Include x-402-payment header with signed USDC authorization."
+      }
+    ]
+  },
+  "defaultInputModes": ["text", "data"],
+  "defaultOutputModes": ["text", "data", "file"],
+  "skills": [
+    {
+      "id": "post-task",
+      "name": "Post Human Task",
+      "description": "Create a task for human workers to execute in the physical world. Specify what needs to be done, where, your budget, deadline, and verification requirements. Workers bid on your task, you approve one, they execute, and you receive verified results with photo/GPS evidence. Minimum budget: $0.25 USDC.",
+      "tags": ["human-execution", "physical-world", "verification", "gig-economy", "stablecoin-payment"],
+      "examples": [
+        "Take a photo of the storefront at this address and confirm it's open",
+        "Pick up a package from location A and deliver it to location B",
+        "Check if this restaurant has outdoor seating available right now",
+        "Verify that this construction site has active workers present",
+        "Count the number of available parking spots in this parking lot",
+        "Purchase a specific item from a local store and photograph the receipt"
+      ],
+      "inputModes": ["text", "data"],
+      "outputModes": ["text", "data", "file"]
+    },
+    {
+      "id": "verify-reality",
+      "name": "Verify Physical Reality",
+      "description": "Get cryptographic proof that something exists, happened, or is in a specific state in the physical world. Workers provide timestamped, GPS-tagged photos and structured verification data. Ideal for proof-of-existence, condition checks, compliance verification, and ground truth for AI models.",
+      "tags": ["proof-of-reality", "verification", "photo-evidence", "GPS", "ground-truth", "compliance"],
+      "examples": [
+        "Verify this billboard is displaying the correct advertisement",
+        "Confirm this inventory exists at this warehouse location",
+        "Check if this retail display matches the planogram specification",
+        "Photograph all four sides of this building for insurance documentation",
+        "Verify that safety equipment is properly installed at this location"
+      ],
+      "inputModes": ["text", "data"],
+      "outputModes": ["text", "data", "file"]
+    },
+    {
+      "id": "local-intelligence",
+      "name": "Local Intelligence Gathering",
+      "description": "Get real-time, human-observed intelligence about a physical location. Current conditions, availability, pricing, wait times, crowd levels, etc. Information that cannot be obtained from maps, websites, or sensors — only from a human physically present.",
+      "tags": ["local", "intelligence", "real-time", "reconnaissance", "market-research"],
+      "examples": [
+        "What are the current menu prices at this restaurant?",
+        "How long is the wait at this DMV office right now?",
+        "Is there street parking available near this address?",
+        "What brands of product X are available at this store and their prices?",
+        "How crowded is this venue right now?"
+      ],
+      "inputModes": ["text"],
+      "outputModes": ["text", "data", "file"]
+    },
+    {
+      "id": "physical-delivery",
+      "name": "Physical Delivery & Errands",
+      "description": "Have a human perform a physical errand: pick up, deliver, purchase, drop off, or transport items between locations. Worker provides photo evidence at each step of the process.",
+      "tags": ["delivery", "errands", "transport", "pickup", "physical-action"],
+      "examples": [
+        "Pick up a document from office A and deliver to office B",
+        "Purchase these items from the nearest pharmacy and deliver to this address",
+        "Return this package to the store at this address",
+        "Drop off this sealed envelope at this specific office"
+      ],
+      "inputModes": ["text", "data"],
+      "outputModes": ["text", "data", "file"]
+    }
+  ],
+  "extensions": [
+    {
+      "uri": "urn:execution-market:payment",
+      "description": "Stablecoin payment configuration. Tasks require USDC/USDT/EURC/PYUSD funding. Supported chains: Base, Arbitrum, Polygon, Avalanche, Ethereum, Celo, Monad. Minimum: $0.25. Fee: 8% (6% for ERC-8004 verified agents). Gasless via EIP-3009.",
+      "required": true,
+      "params": {
+        "chain": "Blockchain to settle on (base, arbitrum, polygon, avalanche, ethereum, celo, monad)",
+        "token": "Stablecoin (USDC, USDT, EURC, PYUSD)",
+        "budget_usd": "Task budget in USD (minimum 0.25)",
+        "fee_model": "fase1 (direct settlement) or fase2 (on-chain escrow)"
+      }
+    },
+    {
+      "uri": "urn:execution-market:verification",
+      "description": "Task verification requirements. Specify what evidence workers must provide.",
+      "required": false,
+      "params": {
+        "types": "Array of required verification types: photo, gps, video, receipt, signature",
+        "min_photos": "Minimum number of photos required (default: 1)",
+        "gps_radius_m": "Maximum acceptable distance from task location in meters"
+      }
+    },
+    {
+      "uri": "urn:execution-market:erc8004",
+      "description": "ERC-8004 agent identity. Agents with registered on-chain identities get priority matching, reduced fees, and portable reputation via describe-net SealRegistry.",
+      "required": false,
+      "params": {
+        "registry_address": "ERC-8004 registry contract address",
+        "agent_id": "On-chain agent identifier",
+        "chain_id": "Chain where agent is registered"
+      }
+    }
+  ]
+}
