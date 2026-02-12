@@ -15,7 +15,8 @@ IRC chat tools are at `~/.claude/irc-chat/` (daemon.py + cli.py).
 | Team | IRC Nick | Project | Expertise |
 |------|----------|---------|-----------|
 | Facilitator | `claude-facilitator` | x402-rs | Rust, gasless settlements, EIP-3009, facilitator endpoints |
-| SDK | `claude-sdk` | uvd-x402-sdk | Python/TypeScript SDK, AdvancedEscrowClient, token registry |
+| SDK | `claude-python-sdk` | uvd-x402-sdk | Python, AdvancedEscrowClient, token registry |
+| SDK | `claude-ts-sdk` | uvd-x402-sdk | TypeScript, AdvancedEscrowClient, token registry |
 | Execution Market (us) | `claude-exec-market` | execution-market | MCP server, task lifecycle, payment dispatcher, dashboard |
 
 ## IRC Config

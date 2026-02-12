@@ -20,51 +20,37 @@
       "preferred_network": "base",
       "name": "health_check",
       "description": "API health and config verification",
-      "timestamp": "2026-02-12T15:37:45.556848+00:00"
+      "timestamp": "2026-02-12T17:42:19.735656+00:00"
     },
     {
       "status": "FAILED",
-      "error": "Task creation failed: HTTP 504 - ",
+      "error": "Task creation failed: HTTP 402 - Escrow lock failed: Escrow authorize failed: Escrow scheme error: Contract call failed: ContractCall(\"TxWatcher(Timeout)\"). Task cancelled.",
       "name": "cancel_path",
       "description": "Cancel flow test",
-      "timestamp": "2026-02-12T15:38:45.604809+00:00"
+      "timestamp": "2026-02-12T17:43:51.399092+00:00"
     },
     {
       "status": "SUCCESS",
-      "task_id": "e4e443f2-0a62-4b57-b74e-99dbf9e3cf60",
-      "submission_id": "44a7cdc4-f135-4ecf-8360-1ba8f491c6b6",
-      "escrow_tx": "0xeda875837dfbb54600a68679f9e7cabc240373ebb815fab580cb21a3eb00b176",
+      "task_id": "928604f1-8390-4e8e-8149-2b93cf21eddd",
+      "submission_id": "a7a4cafe-91c0-4022-aca6-770506c8cadb",
+      "escrow_tx": "0xe326c60b786d05ab66cc70d42f2f95f281625470dfa60b55bd11a31a02af9fe6",
       "reputation_tx": null,
       "reject_data": {
-        "submission_id": "44a7cdc4-f135-4ecf-8360-1ba8f491c6b6",
+        "submission_id": "a7a4cafe-91c0-4022-aca6-770506c8cadb",
         "verdict": "rejected",
         "severity": "major"
       },
       "error": null,
       "name": "rejection_path",
       "description": "Create -> Apply -> Assign -> Submit -> Reject (major, score=30)",
-      "timestamp": "2026-02-12T15:39:01.026059+00:00"
+      "timestamp": "2026-02-12T17:44:01.079342+00:00"
     },
     {
-      "status": "SUCCESS",
-      "task_id": "eeaff61c-d1b9-43c0-871b-ddd4cfc70e54",
-      "submission_id": "301825db-b053-4f0f-9159-177766ec4fde",
-      "escrow_tx": "0x81aace3df95d341b9ea17407ec1f231ab9693bb2aceffce31f55ade10ba060aa",
-      "payment_tx": "0xbaf4555728283bd6d510d2dd8cc0a278a5a70c44aae7c218ecdc6ef0b2ba09ba",
-      "worker_tx": null,
-      "fee_tx": null,
-      "payment_error": null,
-      "approve_http_status": 200,
-      "approve_message": "Submission approved. Payment released to worker.",
-      "approve_data": {
-        "submission_id": "301825db-b053-4f0f-9159-177766ec4fde",
-        "verdict": "accepted",
-        "payment_tx": "0xbaf4555728283bd6d510d2dd8cc0a278a5a70c44aae7c218ecdc6ef0b2ba09ba"
-      },
-      "error": null,
+      "status": "FAILED",
+      "error": "Task creation failed: HTTP 402 - Escrow lock failed: Escrow authorize failed: Escrow scheme error: Contract call failed: ContractCall(\"ErrorResp(ErrorPayload { code: 3, message: \\\"execution reverted: FiatTokenV2: invalid signature\\\", data: Some(RawValue(\\\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e46696174546f6b656e56323a20696e76616c6964207369676e61747572650000\\\")) })\"). Task cancelled.",
       "name": "happy_path",
-      "description": "Create -> Apply -> Assign -> Submit -> Approve (+ payment)",
-      "timestamp": "2026-02-12T15:40:15.570245+00:00"
+      "description": "Full lifecycle test",
+      "timestamp": "2026-02-12T17:44:07.608866+00:00"
     }
   ]
 }

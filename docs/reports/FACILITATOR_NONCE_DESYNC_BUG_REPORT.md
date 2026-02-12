@@ -393,6 +393,92 @@ The Facilitator team deployed nonce retry logic. We ran 6 E2E rounds to validate
 
 ---
 
+## Update: ALB Timeout + v1.33.1 Validation (2026-02-12 17:00 UTC)
+
+### EM-Side Changes Applied
+
+1. **ALB idle_timeout: 60s → 120s** (live, applied via `aws elbv2 modify-load-balancer-attributes`)
+2. **SDK settle timeout: 30s → 90s** (committed, pending deploy to ECS)
+
+### Facilitator Analysis
+
+The Facilitator team confirmed:
+- Previous 504 errors were **EM's ALB cutting connections at 60s**, not Facilitator issues
+- Facilitator has a 180s internal timeout — much higher than our old 60s ALB
+- With ALB at 120s, we now see **real Facilitator errors (HTTP 402)** instead of generic 504s
+
+### E2E Results After ALB 120s
+
+| Run | Config | Happy | Cancel | Reject | Notes |
+|-----|--------|-------|--------|--------|-------|
+| 1 | Post-funding | PASS | PASS | PASS | **4/4 PASS** (first time!) |
+| 2 | Back-to-back | PASS | FAIL (402: TxWatcher Timeout) | PASS | First authorize after burst |
+| 3 | 45s cooldown | PASS | FAIL (402: TxWatcher Timeout) | PASS | Same pattern |
+| 4 | Latest (17:02 UTC) | PASS | FAIL (402: TxWatcher Timeout) | PASS | Cancel is first scenario |
+
+### Root Cause: TxWatcher(Timeout)
+
+The remaining error is **not a nonce issue** — nonce bugs are completely fixed (v1.33.1). The error is:
+
+```
+Escrow authorize failed: Escrow scheme error: Contract call failed: ContractCall("TxWatcher(Timeout)")
+```
+
+This means:
+- The TX was submitted to Base mempool successfully
+- The Facilitator's TX receipt watcher timed out waiting for confirmation
+- Base TX confirmation currently takes 30-55s during congestion
+- **Facilitator Base TX_RECEIPT_TIMEOUT is 60s** — barely above congestion range
+
+### IRC Discussion Results (2026-02-12 17:04-17:08 UTC)
+
+Live discussion on `#execution-market-facilitator` between `claude-em` and `claude-facilitator`:
+
+**Key findings from Facilitator:**
+- TX_RECEIPT_TIMEOUT_SECS for Base is hardcoded at 60s (30s for other chains)
+- TxWatcher(Timeout) means TX was submitted but receipt not confirmed in time
+- TX may still get mined — orphan escrow locks are the real risk
+- Facilitator has no "check escrow status" endpoint yet
+
+**Agreed Action Items:**
+
+| # | Owner | Action | Priority |
+|---|-------|--------|----------|
+| 1 | **Facilitator** | Increase Base TX_RECEIPT_TIMEOUT_SECS: 60s → 90s | High |
+| 2 | **EM** | Deploy sdk_client.py settle timeout: 30s → 90s to ECS | High |
+| 3 | **EM** | Add on-chain escrow state check on TxWatcher(Timeout) | Medium |
+| 4 | **EM** | Keep ALB idle_timeout at 120s | Done |
+
+**Action Item #3 detail**: When `authorize` returns TxWatcher(Timeout):
+1. Wait 10s for TX to potentially mine
+2. Query on-chain escrow state (capturableAmount/refundableAmount)
+3. If escrow IS authorized → proceed with task creation normally
+4. If escrow is NOT authorized → cancel task as before
+
+This prevents orphan escrow locks where funds are locked on-chain but EM has no task to release/refund them.
+
+### Timeout Chain (Current → After Fixes)
+
+```
+Current:
+  Facilitator TxWatcher: 60s (Base) → often times out
+  SDK HTTP timeout: 30s (on ECS) → cuts connection before Facilitator responds
+  ALB idle_timeout: 120s → now passes through real errors
+
+After fixes:
+  Facilitator TxWatcher: 90s (Base) → covers congestion spikes
+  SDK HTTP timeout: 90s → matches Facilitator timeout
+  ALB idle_timeout: 120s → 30s headroom above SDK timeout
+```
+
+### Next Steps
+
+- Waiting for Facilitator to deploy v1.33.2 with 90s Base timeout
+- Facilitator will notify on `#execution-market-facilitator` when live
+- EM will re-run E2E tests to validate 4/4 PASS with both fixes
+
+---
+
 ## Contact
 
 - **Project**: Execution Market (`https://execution.market`)
