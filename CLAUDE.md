@@ -605,8 +605,9 @@ Wrong Flow (DO NOT USE):
 
 When creating test tasks:
 - **Deadlines**: 5-15 minutes for testing, NOT hours.
-- **Bounties**: Use amounts **under $0.30** for testing. Each mainnet wallet has ~$5 USDC/USDT — keep tests small to make funds last. Never use $1+ amounts for test tasks.
+- **Bounties**: Use amounts **under $0.20** for testing. Each mainnet wallet has ~$4 USDC on Base — keep tests small to make funds last. Never use $0.50+ amounts for test tasks. The E2E script uses `TEST_BOUNTY = 0.10`. Ignore any DB-level `min_bounty` config for local E2E testing.
 - **Script**: `cd scripts && npx tsx task-factory.ts --preset screenshot --bounty 0.10 --deadline 10`
+- **E2E script**: `python scripts/e2e_mcp_api.py` — tests full lifecycle through REST API ($0.10 bounties)
 - **Live escrow**: Add `--live` flag (requires USDC in wallet + uses relay directly — needs SDK migration)
 - **Production wallet only**: Use `0xD3868E1eD738CED6945A574a7c769433BeD5d474` for mainnet testing (funded on all 8 chains)
 

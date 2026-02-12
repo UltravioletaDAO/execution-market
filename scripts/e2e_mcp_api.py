@@ -33,8 +33,8 @@ API_BASE = os.environ.get("EM_API_URL", "https://api.execution.market").rstrip("
 # Test executor (exists in Supabase)
 FALLBACK_EXECUTOR_ID = "33333333-3333-3333-3333-333333333333"
 
-# Use tiny bounties for test ($0.05)
-TEST_BOUNTY = 0.05
+# Use tiny bounties for test — keep under $0.20 to conserve wallet funds
+TEST_BOUNTY = 0.10
 
 
 def ts():
