@@ -181,12 +181,12 @@ class PlatformConfig:
         except Exception as e:
             logger.warning(f"Error loading config {key} from DB: {e}")
 
-        # Fall back to defaults
-        if default is not None:
-            return default
-
+        # Fall back to class defaults first, then explicit default
         if key in cls._defaults:
             return cls._defaults[key]
+
+        if default is not None:
+            return default
 
         return None
 

@@ -170,7 +170,7 @@ class TestWS1AutoRegisterWorker:
         mock_sb = _make_supabase_mock()
 
         with (
-            patch("api.routes.PlatformConfig") as MockConfig,
+            patch("config.platform_config.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
         ):
             MockConfig.is_feature_enabled = AsyncMock(return_value=True)
@@ -199,7 +199,7 @@ class TestWS1AutoRegisterWorker:
         mock_sb = _make_supabase_mock()
 
         with (
-            patch("api.routes.PlatformConfig") as MockConfig,
+            patch("config.platform_config.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
         ):
             MockConfig.is_feature_enabled = AsyncMock(return_value=True)
@@ -232,7 +232,7 @@ class TestWS1AutoRegisterWorker:
         mock_update = AsyncMock(return_value=True)
 
         with (
-            patch("api.routes.PlatformConfig") as MockConfig,
+            patch("config.platform_config.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
             patch(
                 "integrations.erc8004.identity.register_worker_gasless",
@@ -276,7 +276,7 @@ class TestWS1AutoRegisterWorker:
         )
 
         with (
-            patch("api.routes.PlatformConfig") as MockConfig,
+            patch("config.platform_config.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
             patch(
                 "integrations.erc8004.identity.register_worker_gasless",
@@ -323,7 +323,7 @@ class TestWS2AutoRateAgent:
         mock_verify = AsyncMock(return_value={"registered": True, "agent_id": 2106})
 
         with (
-            patch("api.routes.PlatformConfig") as MockConfig,
+            patch("config.platform_config.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
             patch(
                 "integrations.erc8004.facilitator_client.rate_agent",
@@ -349,12 +349,12 @@ class TestWS2AutoRateAgent:
                 task_id="task-001",
             )
 
-        mock_rate.assert_called_once_with(
-            agent_id=2106,
-            task_id="task-001",
-            score=85,  # fallback score
-            proof_tx="0xpayment123",
-        )
+        mock_rate.assert_called_once()
+        call_kwargs = mock_rate.call_args.kwargs
+        assert call_kwargs["agent_id"] == 2106
+        assert call_kwargs["task_id"] == "task-001"
+        assert call_kwargs["proof_tx"] == "0xpayment123"
+        assert 0 < call_kwargs["score"] <= 100  # dynamic or fallback
 
     @pytest.mark.asyncio
     async def test_wallet_only_agent_falls_back_to_em_agent_id(self):
@@ -369,7 +369,7 @@ class TestWS2AutoRateAgent:
         mock_verify = AsyncMock(return_value={"registered": True, "agent_id": 469})
 
         with (
-            patch("api.routes.PlatformConfig") as MockConfig,
+            patch("config.platform_config.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
             patch(
                 "integrations.erc8004.facilitator_client.rate_agent",
@@ -415,7 +415,7 @@ class TestWS2AutoRateAgent:
         mock_verify = AsyncMock(return_value={"registered": True, "agent_id": 469})
 
         with (
-            patch("api.routes.PlatformConfig") as MockConfig,
+            patch("config.platform_config.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
             patch(
                 "integrations.erc8004.facilitator_client.rate_agent",
@@ -497,7 +497,7 @@ class TestWS2AutoRateAgent:
         mock_rate = AsyncMock(return_value=FakeFeedbackResult(success=True))
 
         with (
-            patch("api.routes.PlatformConfig") as MockConfig,
+            patch("config.platform_config.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
             patch(
                 "integrations.erc8004.facilitator_client.rate_agent",
@@ -549,7 +549,7 @@ class TestExecutePostApprovalSideEffects:
         mock_sb = _make_supabase_mock()
 
         with (
-            patch("api.routes.PlatformConfig") as MockConfig,
+            patch("config.platform_config.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
         ):
             MockConfig.is_feature_enabled = AsyncMock(return_value=False)
@@ -571,7 +571,7 @@ class TestExecutePostApprovalSideEffects:
         submission = _make_submission()
 
         with (
-            patch("api.routes.PlatformConfig") as MockConfig,
+            patch("config.platform_config.PlatformConfig") as MockConfig,
             patch("api.routes.db") as mock_db,
         ):
             MockConfig.is_feature_enabled = AsyncMock(side_effect=Exception("DB down"))

@@ -185,7 +185,7 @@ class TestPlatformConfigConvenienceMethods:
         value = await PlatformConfig.get_min_bounty()
 
         assert isinstance(value, Decimal)
-        assert value == Decimal("0.01")
+        assert value == Decimal("0.50")  # From _defaults dict (canonical fallback)
 
     @pytest.mark.asyncio
     async def test_get_max_bounty(self):
