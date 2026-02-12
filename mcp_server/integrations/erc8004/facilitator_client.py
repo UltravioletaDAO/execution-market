@@ -776,13 +776,6 @@ async def rate_worker(
         logger.warning("Feedback persistence failed (continuing): %s", exc)
         feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
 
-    proof = None
-    if proof_tx:
-        proof = {
-            "transactionHash": {"Evm": proof_tx},
-            "network": ERC8004_NETWORK,
-        }
-
     return await client.submit_feedback(
         agent_id=EM_AGENT_ID,
         value=score,
@@ -791,7 +784,6 @@ async def rate_worker(
         endpoint=f"task:{task_id}",
         feedback_uri=feedback_uri,
         feedback_hash=feedback_hash,
-        proof=proof,
     )
 
 
@@ -849,13 +841,6 @@ async def rate_agent(
         logger.warning("Feedback persistence failed (continuing): %s", exc)
         feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
 
-    proof = None
-    if proof_tx:
-        proof = {
-            "transactionHash": {"Evm": proof_tx},
-            "network": ERC8004_NETWORK,
-        }
-
     return await client.submit_feedback(
         agent_id=agent_id,
         value=score,
@@ -864,7 +849,6 @@ async def rate_agent(
         endpoint=f"task:{task_id}",
         feedback_uri=feedback_uri,
         feedback_hash=feedback_hash,
-        proof=proof,
     )
 
 
