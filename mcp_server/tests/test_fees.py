@@ -42,10 +42,10 @@ class TestFeeRates:
     def test_expected_rates(self):
         """Verify specific rates match requirements."""
         assert FEE_RATES[TaskCategory.PHYSICAL_PRESENCE] == Decimal("0.13")  # 13%
-        assert FEE_RATES[TaskCategory.KNOWLEDGE_ACCESS] == Decimal("0.07")  # 7%
-        assert FEE_RATES[TaskCategory.HUMAN_AUTHORITY] == Decimal("0.06")  # 6%
+        assert FEE_RATES[TaskCategory.KNOWLEDGE_ACCESS] == Decimal("0.12")  # 12%
+        assert FEE_RATES[TaskCategory.HUMAN_AUTHORITY] == Decimal("0.11")  # 11%
         assert FEE_RATES[TaskCategory.SIMPLE_ACTION] == Decimal("0.13")  # 13%
-        assert FEE_RATES[TaskCategory.DIGITAL_PHYSICAL] == Decimal("0.07")  # 7%
+        assert FEE_RATES[TaskCategory.DIGITAL_PHYSICAL] == Decimal("0.12")  # 12%
 
 
 class TestFeeManager:
@@ -70,7 +70,7 @@ class TestFeeManager:
     def test_get_fee_rate(self, manager):
         """Should return correct rate for each category."""
         assert manager.get_fee_rate(TaskCategory.PHYSICAL_PRESENCE) == Decimal("0.13")
-        assert manager.get_fee_rate(TaskCategory.HUMAN_AUTHORITY) == Decimal("0.06")
+        assert manager.get_fee_rate(TaskCategory.HUMAN_AUTHORITY) == Decimal("0.11")
 
 
 class TestFeeCalculation:
@@ -94,12 +94,12 @@ class TestFeeCalculation:
         assert not breakdown.is_waived
 
     def test_calculate_fee_human_authority(self, manager):
-        """Test 6% fee for human authority tasks."""
+        """Test 11% fee for human authority tasks."""
         breakdown = manager.calculate_fee(Decimal("100"), TaskCategory.HUMAN_AUTHORITY)
 
-        assert breakdown.fee_rate == Decimal("0.06")
-        assert breakdown.fee_amount == Decimal("6.00")
-        assert breakdown.worker_amount == Decimal("94.00")
+        assert breakdown.fee_rate == Decimal("0.11")
+        assert breakdown.fee_amount == Decimal("11.00")
+        assert breakdown.worker_amount == Decimal("89.00")
 
     def test_calculate_fee_rounding(self, manager):
         """Test proper rounding of fee amounts."""
@@ -343,7 +343,7 @@ class TestConvenienceFunctions:
     def test_get_fee_rate_for_category(self):
         """Test getting fee rate for a category."""
         rate = get_fee_rate_for_category(TaskCategory.HUMAN_AUTHORITY)
-        assert rate == 0.06
+        assert rate == 0.11
 
     def test_get_all_fee_rates(self):
         """Test getting all fee rates."""
@@ -351,7 +351,7 @@ class TestConvenienceFunctions:
 
         assert len(rates) == len(TaskCategory)
         assert rates["physical_presence"] == 0.13
-        assert rates["human_authority"] == 0.06
+        assert rates["human_authority"] == 0.11
 
 
 class TestFeeBreakdownSerialization:
