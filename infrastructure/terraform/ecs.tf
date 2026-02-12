@@ -88,6 +88,31 @@ resource "aws_iam_role" "ecs_task" {
   })
 }
 
+# S3 access for feedback documents and evidence uploads
+resource "aws_iam_role_policy" "ecs_task_s3" {
+  name = "${local.name_prefix}-ecs-task-s3"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "EvidenceBucketReadWrite"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${local.evidence_bucket_name}",
+          "arn:aws:s3:::${local.evidence_bucket_name}/*"
+        ]
+      }
+    ]
+  })
+}
+
 # Security Groups
 resource "aws_security_group" "ecs" {
   name        = "${local.name_prefix}-ecs-sg"
@@ -161,6 +186,11 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "EM_BASE_URL", value = "https://api.execution.market" },
         { name = "ERC8004_NETWORK", value = "base" },
         { name = "EM_AGENT_ID", value = "2106" },
+        { name = "EM_PAYMENT_MODE", value = "fase2" },
+        { name = "EM_PAYMENT_OPERATOR", value = "0xb9635f544665758019159c04c08a3d583dadd723" },
+        { name = "EM_ENABLED_NETWORKS", value = "base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism" },
+        { name = "EVIDENCE_BUCKET", value = local.evidence_bucket_name },
+        { name = "EVIDENCE_PUBLIC_BASE_URL", value = var.enable_evidence_pipeline ? "https://${aws_cloudfront_distribution.evidence[0].domain_name}" : "https://${local.evidence_bucket_name}.s3.amazonaws.com" },
       ]
 
       secrets = [
@@ -183,6 +213,34 @@ resource "aws_ecs_task_definition" "mcp_server" {
         {
           name      = "ANTHROPIC_API_KEY"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/anthropic:ANTHROPIC_API_KEY::"
+        },
+        {
+          name      = "WALLET_PRIVATE_KEY"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/x402:PRIVATE_KEY::"
+        },
+        {
+          name      = "X402_NETWORK"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/x402:X402_NETWORK::"
+        },
+        {
+          name      = "X402_RPC_URL"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/x402:X402_RPC_URL::"
+        },
+        {
+          name      = "X402_FACILITATOR_URL"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/x402:FACILITATOR_URL::"
+        },
+        {
+          name      = "EM_ESCROW_ADDRESS"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/x402:X402R_ESCROW::"
+        },
+        {
+          name      = "USDC_ADDRESS"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/x402:USDC_ADDRESS::"
+        },
+        {
+          name      = "EM_TREASURY_ADDRESS"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/commission:wallet_address::"
         },
       ]
 

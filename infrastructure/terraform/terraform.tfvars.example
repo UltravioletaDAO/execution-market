@@ -1,59 +1,7 @@
-# Execution Market Infrastructure - Example Variables
-# Copy this to terraform.tfvars and fill in values
+# Execution Market - Production Terraform Variables
+# Copy this to terraform.tfvars and fill in values before running terraform apply.
+#
+# CRITICAL: enable_evidence_pipeline MUST be true in production.
+# Setting it to false will DESTROY the S3 bucket, CloudFront CDN, and Lambda function.
 
-# AWS Configuration
-aws_region  = "us-east-1"
-environment = "production"
-
-# Domain Configuration
-domain        = "execution.market"
-api_subdomain = "api"
-app_subdomain = "app"
-
-# VPC Configuration
-vpc_cidr = "10.0.0.0/16"
-
-# ECS Configuration - MCP Server
-mcp_server_cpu           = 256
-mcp_server_memory        = 512
-mcp_server_desired_count = 2
-mcp_server_port          = 8000
-mcp_server_image_tag     = "latest"
-
-# ECS Configuration - Dashboard
-dashboard_cpu           = 256
-dashboard_memory        = 512
-dashboard_desired_count = 2
-dashboard_port          = 80
-dashboard_image_tag     = "latest"
-
-# Secrets (will be stored in Secrets Manager)
-# These can be left empty and updated via AWS Console or CLI
-# supabase_url         = ""
-# supabase_anon_key    = ""
-# supabase_service_key = ""
-# anthropic_api_key    = ""
-# x402_facilitator_key = ""
-# base_rpc_url         = ""
-
-# Evidence pipeline (optional)
-# Set to true to create API Gateway + Lambda + S3 + CloudFront stack.
-enable_evidence_pipeline = false
-
-# Optional custom bucket name. If empty, Terraform generates one.
-evidence_bucket_name = ""
-
-# CORS allowlist for presigned URL API + direct browser upload to S3.
-evidence_allowed_origins = [
-  "https://execution.market",
-  "https://www.execution.market"
-]
-
-# Presigned URL behavior
-evidence_presign_expiry_seconds = 900
-evidence_max_upload_mb          = 25
-evidence_retention_days         = 365
-
-# Custom domain for CDN (requires ACM cert in us-east-1).
-evidence_subdomain           = "storage"
-evidence_acm_certificate_arn = ""
+enable_evidence_pipeline = true
