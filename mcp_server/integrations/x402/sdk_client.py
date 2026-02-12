@@ -925,7 +925,7 @@ class EMX402SDK:
         resp = httpx.post(
             f"{self.facilitator_url}/settle",
             json=settle_request,
-            timeout=30.0,
+            timeout=90.0,
         )
 
         if resp.status_code != 200:
