@@ -1,0 +1,94 @@
+{
+  "scenarios": [
+    {
+      "name": "escrow_release",
+      "description": "Escrow happy path",
+      "timestamp": "2026-02-12T03:34:34.671150+00:00",
+      "status": "FAILED",
+      "error": "Escrow scheme error: Contract call failed: ContractCall(\"TxWatcher(Timeout)\")"
+    },
+    {
+      "name": "escrow_refund",
+      "description": "Escrow cancel path",
+      "timestamp": "2026-02-12T03:34:46.852382+00:00",
+      "status": "PARTIAL",
+      "authorize_tx": "0x69acb1c4725b24ee027ea1825c9be23d6dbfa0863802fa7908e63857d1f19611",
+      "refund_error": "Escrow scheme error: Contract call failed: ContractCall(\"ErrorResp(ErrorPayload { code: -32000, message: \\\"nonce too low: next nonce 4571, tx nonce 4569\\\", data: None })\")"
+    },
+    {
+      "name": "worker_rating_happy",
+      "description": "Agent approves submission and rates worker 82/100",
+      "timestamp": "2026-02-12T03:34:49.798454+00:00",
+      "status": "SUCCESS",
+      "feedback_tx": "0x0d65425f34b993d3cc88ec8062d4c95a70232670ad2926ce5ef4b3acfb9a5e36",
+      "feedback_index": null,
+      "target_agent_id": 1,
+      "score": 82,
+      "tag1": "worker_rating",
+      "tag2": "e2e_full_flow",
+      "feedbackUri": "https://execution.market/feedback/e2e-happy-2026-02-12T03:34",
+      "endpoint": "task:e2e-happy-2026-02-12T03:34",
+      "error": null
+    },
+    {
+      "name": "agent_rating_auto",
+      "description": "Worker auto-rates Agent #2 after getting paid (score 90/100)",
+      "timestamp": "2026-02-12T03:34:56.822806+00:00",
+      "status": "SUCCESS",
+      "feedback_tx": "0x7a58f4c8509fbf6bedfc6f4248e67c231c1d0b60eaa5a3d670ef159d8f03ceaa",
+      "feedback_index": null,
+      "target_agent_id": 2,
+      "score": 90,
+      "tag1": "agent_rating",
+      "tag2": "execution-market",
+      "error": null
+    },
+    {
+      "name": "rejection_penalty",
+      "description": "Agent rejects bad submission -> worker gets penalty score 25/100",
+      "timestamp": "2026-02-12T03:35:03.842020+00:00",
+      "status": "SUCCESS",
+      "feedback_tx": "0xbe77b764977abd12014a7352e4ee33f9ffca7931be2dd7888b5bf49ff450c325",
+      "feedback_index": null,
+      "target_agent_id": 3,
+      "score": 25,
+      "tag1": "worker_rating",
+      "tag2": "rejection_major",
+      "feedbackUri": "https://execution.market/feedback/e2e-reject-2026-02-12T03:34",
+      "error": null
+    },
+    {
+      "name": "identity_check",
+      "description": "Verify Agent #2106 (Execution Market) exists on-chain",
+      "timestamp": "2026-02-12T03:35:06.953890+00:00",
+      "status": "SUCCESS",
+      "agent_id": 2106,
+      "reputation_count": 1,
+      "reputation_summary_value": 100
+    },
+    {
+      "name": "reputation_verification",
+      "description": "Final reputation state for all agents involved in tests",
+      "timestamp": "2026-02-12T03:35:07.339805+00:00",
+      "status": "SUCCESS",
+      "agents": {
+        "1": {
+          "count": 8,
+          "summaryValue": 84
+        },
+        "2": {
+          "count": 4,
+          "summaryValue": 93
+        },
+        "3": {
+          "count": 5,
+          "summaryValue": 56
+        },
+        "2106": {
+          "count": 1,
+          "summaryValue": 100
+        }
+      }
+    }
+  ]
+}
