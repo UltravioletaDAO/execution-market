@@ -182,9 +182,7 @@ def _patched_authorize(self, payment_info):
                 salt=payment_info.salt,
             )
         else:
-            return AuthorizationResult(
-                success=False, error=result.get("errorReason")
-            )
+            return AuthorizationResult(success=False, error=result.get("errorReason"))
     except Exception as e:
         return AuthorizationResult(success=False, error=str(e))
 
@@ -215,7 +213,9 @@ DEV_WALLET = "0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd"
 EM_AGENT_ID = 2106
 
 # Report output path
-REPORT_PATH = Path(__file__).parent.parent / "docs" / "reports" / "E2E_FULL_FLOW_REPORT.md"
+REPORT_PATH = (
+    Path(__file__).parent.parent / "docs" / "reports" / "E2E_FULL_FLOW_REPORT.md"
+)
 
 
 def basescan_tx(tx_hash: str) -> str:
@@ -239,6 +239,7 @@ def format_tx_hash(tx_data) -> str:
 # Result collector
 # ============================================================
 
+
 class FlowResult:
     """Collects results from all test scenarios."""
 
@@ -247,19 +248,25 @@ class FlowResult:
         self.start_time = datetime.now(timezone.utc)
 
     def add(self, name: str, description: str, result: dict):
-        self.scenarios.append({
-            "name": name,
-            "description": description,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            **result,
-        })
+        self.scenarios.append(
+            {
+                "name": name,
+                "description": description,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                **result,
+            }
+        )
 
     def get_all_tx_hashes(self) -> list[str]:
         """Get all transaction hashes from all scenarios."""
         hashes = []
         for s in self.scenarios:
             for key, val in s.items():
-                if key.endswith("_tx") and isinstance(val, str) and val.startswith("0x"):
+                if (
+                    key.endswith("_tx")
+                    and isinstance(val, str)
+                    and val.startswith("0x")
+                ):
                     hashes.append(val)
         return hashes
 
@@ -268,11 +275,14 @@ class FlowResult:
 # Scenario 1: Escrow Happy Path (Authorize → Release)
 # ============================================================
 
+
 def run_escrow_release(client: AdvancedEscrowClient, results: FlowResult):
     """Lock $0.05 in escrow, then release to worker (simulates approval)."""
     print("\n" + "=" * 70)
     print("SCENARIO 1: ESCROW HAPPY PATH (Authorize -> Release)")
-    print("  Story: Agent posts task. Worker delivers. Agent approves. Worker gets paid.")
+    print(
+        "  Story: Agent posts task. Worker delivers. Agent approves. Worker gets paid."
+    )
     print("=" * 70)
 
     # Build payment info
@@ -291,10 +301,14 @@ def run_escrow_release(client: AdvancedEscrowClient, results: FlowResult):
 
     if not auth_result.success:
         print(f"  AUTHORIZE FAILED: {auth_result.error}")
-        results.add("escrow_release", "Escrow happy path", {
-            "status": "FAILED",
-            "error": str(auth_result.error),
-        })
+        results.add(
+            "escrow_release",
+            "Escrow happy path",
+            {
+                "status": "FAILED",
+                "error": str(auth_result.error),
+            },
+        )
         return
     print(f"  AUTHORIZE OK ({t_auth:.1f}s) TX: {auth_result.transaction_hash}")
 
@@ -321,12 +335,16 @@ def run_escrow_release(client: AdvancedEscrowClient, results: FlowResult):
 
     if not release_result.success:
         print(f"  RELEASE FAILED: {release_result.error}")
-        results.add("escrow_release", "Escrow happy path", {
-            "status": "PARTIAL",
-            "authorize_tx": auth_result.transaction_hash,
-            "authorize_time": f"{t_auth:.1f}s",
-            "release_error": str(release_result.error),
-        })
+        results.add(
+            "escrow_release",
+            "Escrow happy path",
+            {
+                "status": "PARTIAL",
+                "authorize_tx": auth_result.transaction_hash,
+                "authorize_time": f"{t_auth:.1f}s",
+                "release_error": str(release_result.error),
+            },
+        )
         return
 
     print(f"  RELEASE OK ({t_release:.1f}s) TX: {release_result.transaction_hash}")
@@ -340,28 +358,35 @@ def run_escrow_release(client: AdvancedEscrowClient, results: FlowResult):
     except Exception:
         final_state = {}
 
-    results.add("escrow_release", "Agent approves task -> worker gets paid via escrow release", {
-        "status": "SUCCESS",
-        "amount": f"${TEST_AMOUNT / 1_000_000:.2f}",
-        "authorize_tx": auth_result.transaction_hash,
-        "authorize_time": f"{t_auth:.1f}s",
-        "release_tx": release_result.transaction_hash,
-        "release_time": f"{t_release:.1f}s",
-        "escrow_state_before": state,
-        "escrow_state_after": final_state,
-        "receiver": TREASURY,
-    })
+    results.add(
+        "escrow_release",
+        "Agent approves task -> worker gets paid via escrow release",
+        {
+            "status": "SUCCESS",
+            "amount": f"${TEST_AMOUNT / 1_000_000:.2f}",
+            "authorize_tx": auth_result.transaction_hash,
+            "authorize_time": f"{t_auth:.1f}s",
+            "release_tx": release_result.transaction_hash,
+            "release_time": f"{t_release:.1f}s",
+            "escrow_state_before": state,
+            "escrow_state_after": final_state,
+            "receiver": TREASURY,
+        },
+    )
 
 
 # ============================================================
 # Scenario 2: Escrow Cancel Path (Authorize → Refund)
 # ============================================================
 
+
 def run_escrow_refund(client: AdvancedEscrowClient, results: FlowResult):
     """Lock $0.05 in escrow, then refund to agent (simulates cancellation)."""
     print("\n" + "=" * 70)
     print("SCENARIO 2: ESCROW CANCEL PATH (Authorize -> Refund)")
-    print("  Story: Agent posts task. No worker delivers. Agent cancels. Funds returned.")
+    print(
+        "  Story: Agent posts task. No worker delivers. Agent cancels. Funds returned."
+    )
     print("=" * 70)
 
     pi = client.build_payment_info(
@@ -379,10 +404,14 @@ def run_escrow_refund(client: AdvancedEscrowClient, results: FlowResult):
 
     if not auth_result.success:
         print(f"  AUTHORIZE FAILED: {auth_result.error}")
-        results.add("escrow_refund", "Escrow cancel path", {
-            "status": "FAILED",
-            "error": str(auth_result.error),
-        })
+        results.add(
+            "escrow_refund",
+            "Escrow cancel path",
+            {
+                "status": "FAILED",
+                "error": str(auth_result.error),
+            },
+        )
         return
     print(f"  AUTHORIZE OK ({t_auth:.1f}s) TX: {auth_result.transaction_hash}")
 
@@ -407,11 +436,15 @@ def run_escrow_refund(client: AdvancedEscrowClient, results: FlowResult):
 
     if not refund_result.success:
         print(f"  REFUND FAILED: {refund_result.error}")
-        results.add("escrow_refund", "Escrow cancel path", {
-            "status": "PARTIAL",
-            "authorize_tx": auth_result.transaction_hash,
-            "refund_error": str(refund_result.error),
-        })
+        results.add(
+            "escrow_refund",
+            "Escrow cancel path",
+            {
+                "status": "PARTIAL",
+                "authorize_tx": auth_result.transaction_hash,
+                "refund_error": str(refund_result.error),
+            },
+        )
         return
 
     print(f"  REFUND OK ({t_refund:.1f}s) TX: {refund_result.transaction_hash}")
@@ -425,21 +458,26 @@ def run_escrow_refund(client: AdvancedEscrowClient, results: FlowResult):
     except Exception:
         final_state = {}
 
-    results.add("escrow_refund", "Agent cancels task -> funds refunded from escrow to agent", {
-        "status": "SUCCESS",
-        "amount": f"${TEST_AMOUNT / 1_000_000:.2f}",
-        "authorize_tx": auth_result.transaction_hash,
-        "authorize_time": f"{t_auth:.1f}s",
-        "refund_tx": refund_result.transaction_hash,
-        "refund_time": f"{t_refund:.1f}s",
-        "escrow_state_before": state,
-        "escrow_state_after": final_state,
-    })
+    results.add(
+        "escrow_refund",
+        "Agent cancels task -> funds refunded from escrow to agent",
+        {
+            "status": "SUCCESS",
+            "amount": f"${TEST_AMOUNT / 1_000_000:.2f}",
+            "authorize_tx": auth_result.transaction_hash,
+            "authorize_time": f"{t_auth:.1f}s",
+            "refund_tx": refund_result.transaction_hash,
+            "refund_time": f"{t_refund:.1f}s",
+            "escrow_state_before": state,
+            "escrow_state_after": final_state,
+        },
+    )
 
 
 # ============================================================
 # Scenario 3-7: ERC-8004 Reputation & Identity (async)
 # ============================================================
+
 
 async def run_erc8004_scenarios(results: FlowResult):
     """Run all ERC-8004 reputation and identity scenarios."""
@@ -450,12 +488,15 @@ async def run_erc8004_scenarios(results: FlowResult):
         timeout=httpx.Timeout(120.0, connect=15.0),
         headers={"Content-Type": "application/json"},
     ) as client:
-
         # ---- Scenario 3: Agent rates worker (happy path) ----
         print("\n" + "=" * 70)
         print("SCENARIO 3: WORKER RATING (Happy Path)")
-        print("  Story: Agent #2106 approves worker's submission -> rates worker score 82")
-        print("  Metadata: tag1=worker_rating, tag2=e2e_full_flow, feedbackUri=task URL")
+        print(
+            "  Story: Agent #2106 approves worker's submission -> rates worker score 82"
+        )
+        print(
+            "  Metadata: tag1=worker_rating, tag2=e2e_full_flow, feedbackUri=task URL"
+        )
         print("=" * 70)
 
         resp = await client.post(
@@ -475,7 +516,11 @@ async def run_erc8004_scenarios(results: FlowResult):
             },
         )
         data = resp.json()
-        tx_hash = format_tx_hash(data.get("transaction", "")) if data.get("transaction") else None
+        tx_hash = (
+            format_tx_hash(data.get("transaction", ""))
+            if data.get("transaction")
+            else None
+        )
         print(f"  HTTP {resp.status_code} | Success: {data.get('success')}")
         if tx_hash:
             print(f"  TX: {tx_hash}")
@@ -485,18 +530,22 @@ async def run_erc8004_scenarios(results: FlowResult):
         if data.get("error"):
             print(f"  Error: {data['error']}")
 
-        results.add("worker_rating_happy", "Agent approves submission and rates worker 82/100", {
-            "status": "SUCCESS" if data.get("success") else "FAILED",
-            "feedback_tx": tx_hash,
-            "feedback_index": data.get("feedbackIndex"),
-            "target_agent_id": 1,
-            "score": 82,
-            "tag1": "worker_rating",
-            "tag2": "e2e_full_flow",
-            "feedbackUri": f"https://api.execution.market/api/v1/reputation/feedback/e2e-happy-{timestamp}",
-            "endpoint": f"task:e2e-happy-{timestamp}",
-            "error": data.get("error"),
-        })
+        results.add(
+            "worker_rating_happy",
+            "Agent approves submission and rates worker 82/100",
+            {
+                "status": "SUCCESS" if data.get("success") else "FAILED",
+                "feedback_tx": tx_hash,
+                "feedback_index": data.get("feedbackIndex"),
+                "target_agent_id": 1,
+                "score": 82,
+                "tag1": "worker_rating",
+                "tag2": "e2e_full_flow",
+                "feedbackUri": f"https://api.execution.market/api/v1/reputation/feedback/e2e-happy-{timestamp}",
+                "endpoint": f"task:e2e-happy-{timestamp}",
+                "error": data.get("error"),
+            },
+        )
 
         await asyncio.sleep(3)
 
@@ -505,8 +554,12 @@ async def run_erc8004_scenarios(results: FlowResult):
         # Instead, rate Agent #2 (a different agent ID) to demonstrate the flow.
         target_agent_for_rating = 2
         print("\n" + "=" * 70)
-        print(f"SCENARIO 4: AGENT RATING (Worker auto-rates Agent #{target_agent_for_rating})")
-        print(f"  Story: Worker completes task -> auto-rates Agent #{target_agent_for_rating} score 90")
+        print(
+            f"SCENARIO 4: AGENT RATING (Worker auto-rates Agent #{target_agent_for_rating})"
+        )
+        print(
+            f"  Story: Worker completes task -> auto-rates Agent #{target_agent_for_rating} score 90"
+        )
         print("  Metadata: tag1=agent_rating, tag2=execution-market")
         print("  Note: Self-feedback not allowed on-chain, using different agent ID")
         print("=" * 70)
@@ -528,7 +581,11 @@ async def run_erc8004_scenarios(results: FlowResult):
             },
         )
         data = resp.json()
-        tx_hash = format_tx_hash(data.get("transaction", "")) if data.get("transaction") else None
+        tx_hash = (
+            format_tx_hash(data.get("transaction", ""))
+            if data.get("transaction")
+            else None
+        )
         print(f"  HTTP {resp.status_code} | Success: {data.get('success')}")
         if tx_hash:
             print(f"  TX: {tx_hash}")
@@ -538,23 +595,29 @@ async def run_erc8004_scenarios(results: FlowResult):
         if data.get("error"):
             print(f"  Error: {data['error']}")
 
-        results.add("agent_rating_auto", f"Worker auto-rates Agent #{target_agent_for_rating} after getting paid (score 90/100)", {
-            "status": "SUCCESS" if data.get("success") else "FAILED",
-            "feedback_tx": tx_hash,
-            "feedback_index": data.get("feedbackIndex"),
-            "target_agent_id": target_agent_for_rating,
-            "score": 90,
-            "tag1": "agent_rating",
-            "tag2": "execution-market",
-            "error": data.get("error"),
-        })
+        results.add(
+            "agent_rating_auto",
+            f"Worker auto-rates Agent #{target_agent_for_rating} after getting paid (score 90/100)",
+            {
+                "status": "SUCCESS" if data.get("success") else "FAILED",
+                "feedback_tx": tx_hash,
+                "feedback_index": data.get("feedbackIndex"),
+                "target_agent_id": target_agent_for_rating,
+                "score": 90,
+                "tag1": "agent_rating",
+                "tag2": "execution-market",
+                "error": data.get("error"),
+            },
+        )
 
         await asyncio.sleep(3)
 
         # ---- Scenario 5: Rejection penalty ----
         print("\n" + "=" * 70)
         print("SCENARIO 5: REJECTION PENALTY")
-        print("  Story: Agent rejects poor-quality submission -> penalty score 25 on worker")
+        print(
+            "  Story: Agent rejects poor-quality submission -> penalty score 25 on worker"
+        )
         print("  Metadata: tag1=worker_rating, tag2=rejection_major")
         print("=" * 70)
 
@@ -576,7 +639,11 @@ async def run_erc8004_scenarios(results: FlowResult):
                 },
             )
             data = resp.json()
-            tx_hash = format_tx_hash(data.get("transaction", "")) if data.get("transaction") else None
+            tx_hash = (
+                format_tx_hash(data.get("transaction", ""))
+                if data.get("transaction")
+                else None
+            )
             print(f"  HTTP {resp.status_code} | Success: {data.get('success')}")
             if tx_hash:
                 print(f"  TX: {tx_hash}")
@@ -586,19 +653,25 @@ async def run_erc8004_scenarios(results: FlowResult):
             if data.get("error"):
                 print(f"  Error: {data['error']}")
 
-            results.add("rejection_penalty", "Agent rejects bad submission -> worker gets penalty score 25/100", {
-                "status": "SUCCESS" if data.get("success") else "FAILED",
-                "feedback_tx": tx_hash,
-                "feedback_index": data.get("feedbackIndex"),
-                "target_agent_id": 3,
-                "score": 25,
-                "tag1": "worker_rating",
-                "tag2": "rejection_major",
-                "feedbackUri": f"https://api.execution.market/api/v1/reputation/feedback/e2e-reject-{timestamp}",
-                "error": data.get("error"),
-            })
+            results.add(
+                "rejection_penalty",
+                "Agent rejects bad submission -> worker gets penalty score 25/100",
+                {
+                    "status": "SUCCESS" if data.get("success") else "FAILED",
+                    "feedback_tx": tx_hash,
+                    "feedback_index": data.get("feedbackIndex"),
+                    "target_agent_id": 3,
+                    "score": 25,
+                    "tag1": "worker_rating",
+                    "tag2": "rejection_major",
+                    "feedbackUri": f"https://api.execution.market/api/v1/reputation/feedback/e2e-reject-{timestamp}",
+                    "error": data.get("error"),
+                },
+            )
         except httpx.ReadTimeout:
-            print("  TIMEOUT — facilitator took too long (retrying with longer timeout)...")
+            print(
+                "  TIMEOUT — facilitator took too long (retrying with longer timeout)..."
+            )
             try:
                 await asyncio.sleep(5)
                 resp = await client.post(
@@ -619,32 +692,48 @@ async def run_erc8004_scenarios(results: FlowResult):
                     timeout=httpx.Timeout(180.0, connect=15.0),
                 )
                 data = resp.json()
-                tx_hash = format_tx_hash(data.get("transaction", "")) if data.get("transaction") else None
-                print(f"  RETRY HTTP {resp.status_code} | Success: {data.get('success')}")
+                tx_hash = (
+                    format_tx_hash(data.get("transaction", ""))
+                    if data.get("transaction")
+                    else None
+                )
+                print(
+                    f"  RETRY HTTP {resp.status_code} | Success: {data.get('success')}"
+                )
                 if tx_hash:
                     print(f"  TX: {tx_hash}")
-                results.add("rejection_penalty", "Agent rejects bad submission (retry)", {
-                    "status": "SUCCESS" if data.get("success") else "FAILED",
-                    "feedback_tx": tx_hash,
-                    "target_agent_id": 3,
-                    "score": 25,
-                    "tag1": "worker_rating",
-                    "tag2": "rejection_major",
-                    "error": data.get("error"),
-                })
+                results.add(
+                    "rejection_penalty",
+                    "Agent rejects bad submission (retry)",
+                    {
+                        "status": "SUCCESS" if data.get("success") else "FAILED",
+                        "feedback_tx": tx_hash,
+                        "target_agent_id": 3,
+                        "score": 25,
+                        "tag1": "worker_rating",
+                        "tag2": "rejection_major",
+                        "error": data.get("error"),
+                    },
+                )
             except Exception as retry_err:
                 print(f"  RETRY ALSO FAILED: {retry_err}")
-                results.add("rejection_penalty", "Agent rejects bad submission (timeout)", {
-                    "status": "TIMEOUT",
-                    "error": str(retry_err),
-                })
+                results.add(
+                    "rejection_penalty",
+                    "Agent rejects bad submission (timeout)",
+                    {
+                        "status": "TIMEOUT",
+                        "error": str(retry_err),
+                    },
+                )
 
         await asyncio.sleep(3)
 
         # ---- Scenario 6: Identity check ----
         print("\n" + "=" * 70)
         print("SCENARIO 6: IDENTITY CHECK")
-        print(f"  Story: Check if dev wallet {DEV_WALLET[:10]}... has ERC-8004 identity on Base")
+        print(
+            f"  Story: Check if dev wallet {DEV_WALLET[:10]}... has ERC-8004 identity on Base"
+        )
         print("=" * 70)
 
         resp = await client.get(f"{FACILITATOR_URL}/reputation/base/{EM_AGENT_ID}")
@@ -654,12 +743,16 @@ async def run_erc8004_scenarios(results: FlowResult):
         print(f"    Count: {summary.get('count', 0)}")
         print(f"    SummaryValue: {summary.get('summaryValue', 0)}")
 
-        results.add("identity_check", f"Verify Agent #{EM_AGENT_ID} (Execution Market) exists on-chain", {
-            "status": "SUCCESS",
-            "agent_id": EM_AGENT_ID,
-            "reputation_count": summary.get("count", 0),
-            "reputation_summary_value": summary.get("summaryValue", 0),
-        })
+        results.add(
+            "identity_check",
+            f"Verify Agent #{EM_AGENT_ID} (Execution Market) exists on-chain",
+            {
+                "status": "SUCCESS",
+                "agent_id": EM_AGENT_ID,
+                "reputation_count": summary.get("count", 0),
+                "reputation_summary_value": summary.get("summaryValue", 0),
+            },
+        )
 
         # ---- Scenario 7: Reputation for all involved agents ----
         print("\n" + "=" * 70)
@@ -680,15 +773,20 @@ async def run_erc8004_scenarios(results: FlowResult):
                 print(f"  Agent #{aid}: error {e}")
                 rep_results[str(aid)] = {"error": str(e)}
 
-        results.add("reputation_verification", "Final reputation state for all agents involved in tests", {
-            "status": "SUCCESS",
-            "agents": rep_results,
-        })
+        results.add(
+            "reputation_verification",
+            "Final reputation state for all agents involved in tests",
+            {
+                "status": "SUCCESS",
+                "agents": rep_results,
+            },
+        )
 
 
 # ============================================================
 # Report Generator
 # ============================================================
+
 
 def generate_report(results: FlowResult) -> str:
     """Generate a Markdown narrative report."""
@@ -698,8 +796,8 @@ def generate_report(results: FlowResult) -> str:
     lines.append("# E2E Full Flow Report — Execution Market")
     lines.append("")
     lines.append(f"> Generated: {now}")
-    lines.append(f"> Network: Base Mainnet (chain 8453)")
-    lines.append(f"> Agent: Execution Market (#2106)")
+    lines.append("> Network: Base Mainnet (chain 8453)")
+    lines.append("> Agent: Execution Market (#2106)")
     lines.append(f"> PaymentOperator: `{EM_OPERATOR}`")
     lines.append(f"> Facilitator: `{FACILITATOR_URL}`")
     lines.append("")
@@ -714,7 +812,13 @@ def generate_report(results: FlowResult) -> str:
 
     for i, s in enumerate(results.scenarios, 1):
         status = s.get("status", "?")
-        status_icon = "PASS" if status == "SUCCESS" else "FAIL" if status == "FAILED" else "PARTIAL"
+        status_icon = (
+            "PASS"
+            if status == "SUCCESS"
+            else "FAIL"
+            if status == "FAILED"
+            else "PARTIAL"
+        )
 
         # Find the primary tx hash(es) for this scenario
         tx_links = []
@@ -724,8 +828,22 @@ def generate_report(results: FlowResult) -> str:
                 tx_links.append(f"[`{short}`]({basescan_tx(val)})")
 
         tx_cell = "<br>".join(tx_links) if tx_links else "N/A"
-        basescan_cell = "<br>".join([f"[View]({basescan_tx(val)})" for key, val in s.items() if key.endswith("_tx") and isinstance(val, str) and val.startswith("0x")]) if tx_links else "N/A"
-        lines.append(f"| {i} | {s['name']} | {status_icon} | {tx_cell} | {basescan_cell} |")
+        basescan_cell = (
+            "<br>".join(
+                [
+                    f"[View]({basescan_tx(val)})"
+                    for key, val in s.items()
+                    if key.endswith("_tx")
+                    and isinstance(val, str)
+                    and val.startswith("0x")
+                ]
+            )
+            if tx_links
+            else "N/A"
+        )
+        lines.append(
+            f"| {i} | {s['name']} | {status_icon} | {tx_cell} | {basescan_cell} |"
+        )
 
     lines.append("")
     lines.append("---")
@@ -741,113 +859,197 @@ def generate_report(results: FlowResult) -> str:
         if s["name"] == "escrow_release":
             lines.append("### The Story")
             lines.append("")
-            lines.append("An AI agent publishes a bounty task on Execution Market. The task requires")
-            lines.append("physical evidence (a photo of a specific storefront). The agent locks")
-            lines.append(f"**{s.get('amount', '$0.05')} USDC** in the x402r escrow smart contract.")
-            lines.append("A human worker nearby picks up the task, walks to the location, takes")
-            lines.append("the photo, and submits it. The agent reviews the evidence and approves.")
-            lines.append("The escrow releases the funds to the worker — gasless, in seconds.")
+            lines.append(
+                "An AI agent publishes a bounty task on Execution Market. The task requires"
+            )
+            lines.append(
+                "physical evidence (a photo of a specific storefront). The agent locks"
+            )
+            lines.append(
+                f"**{s.get('amount', '$0.05')} USDC** in the x402r escrow smart contract."
+            )
+            lines.append(
+                "A human worker nearby picks up the task, walks to the location, takes"
+            )
+            lines.append(
+                "the photo, and submits it. The agent reviews the evidence and approves."
+            )
+            lines.append(
+                "The escrow releases the funds to the worker — gasless, in seconds."
+            )
             lines.append("")
             lines.append("### On-Chain Evidence")
             lines.append("")
             if s.get("authorize_tx"):
-                lines.append(f"1. **AUTHORIZE** (lock funds in escrow)")
-                lines.append(f"   - TX: [`{s['authorize_tx']}`]({basescan_tx(s['authorize_tx'])})")
+                lines.append("1. **AUTHORIZE** (lock funds in escrow)")
+                lines.append(
+                    f"   - TX: [`{s['authorize_tx']}`]({basescan_tx(s['authorize_tx'])})"
+                )
                 lines.append(f"   - Time: {s.get('authorize_time', 'N/A')}")
                 lines.append(f"   - Contract: PaymentOperator `{EM_OPERATOR}`")
-                lines.append(f"   - BaseScan labels this as **\"x402 Transaction\"**")
+                lines.append('   - BaseScan labels this as **"x402 Transaction"**')
                 lines.append("")
             if s.get("release_tx"):
-                lines.append(f"2. **RELEASE** (pay worker, gasless via Facilitator)")
-                lines.append(f"   - TX: [`{s['release_tx']}`]({basescan_tx(s['release_tx'])})")
+                lines.append("2. **RELEASE** (pay worker, gasless via Facilitator)")
+                lines.append(
+                    f"   - TX: [`{s['release_tx']}`]({basescan_tx(s['release_tx'])})"
+                )
                 lines.append(f"   - Time: {s.get('release_time', 'N/A')}")
                 lines.append(f"   - Receiver: `{s.get('receiver', TREASURY)}`")
-                lines.append(f"   - Gas paid by: Facilitator (`0x103040545AC5031A11E8C03dd11324C7333a13C7`)")
+                lines.append(
+                    "   - Gas paid by: Facilitator (`0x103040545AC5031A11E8C03dd11324C7333a13C7`)"
+                )
                 lines.append("")
 
         elif s["name"] == "escrow_refund":
             lines.append("### The Story")
             lines.append("")
-            lines.append("An AI agent publishes a task but no worker picks it up before the deadline,")
-            lines.append("or the agent decides to cancel. The agent requests a cancellation.")
-            lines.append(f"The **{s.get('amount', '$0.05')} USDC** locked in escrow is refunded")
+            lines.append(
+                "An AI agent publishes a task but no worker picks it up before the deadline,"
+            )
+            lines.append(
+                "or the agent decides to cancel. The agent requests a cancellation."
+            )
+            lines.append(
+                f"The **{s.get('amount', '$0.05')} USDC** locked in escrow is refunded"
+            )
             lines.append("back to the agent's wallet — gasless, automatic.")
             lines.append("")
             lines.append("### On-Chain Evidence")
             lines.append("")
             if s.get("authorize_tx"):
-                lines.append(f"1. **AUTHORIZE** (lock funds in escrow)")
-                lines.append(f"   - TX: [`{s['authorize_tx']}`]({basescan_tx(s['authorize_tx'])})")
+                lines.append("1. **AUTHORIZE** (lock funds in escrow)")
+                lines.append(
+                    f"   - TX: [`{s['authorize_tx']}`]({basescan_tx(s['authorize_tx'])})"
+                )
                 lines.append(f"   - Time: {s.get('authorize_time', 'N/A')}")
                 lines.append("")
             if s.get("refund_tx"):
-                lines.append(f"2. **REFUND** (return funds to agent, gasless via Facilitator)")
-                lines.append(f"   - TX: [`{s['refund_tx']}`]({basescan_tx(s['refund_tx'])})")
+                lines.append(
+                    "2. **REFUND** (return funds to agent, gasless via Facilitator)"
+                )
+                lines.append(
+                    f"   - TX: [`{s['refund_tx']}`]({basescan_tx(s['refund_tx'])})"
+                )
                 lines.append(f"   - Time: {s.get('refund_time', 'N/A')}")
-                lines.append(f"   - Funds returned to: Agent wallet (the original payer)")
+                lines.append(
+                    "   - Funds returned to: Agent wallet (the original payer)"
+                )
                 lines.append("")
 
         elif s["name"] == "worker_rating_happy":
             lines.append("### The Story")
             lines.append("")
-            lines.append("After approving a worker's submission, Agent #2106 (Execution Market)")
-            lines.append("submits on-chain reputation feedback via the ERC-8004 Reputation Registry.")
-            lines.append(f"The worker (Agent #{s.get('target_agent_id', 1)}) receives a score of")
-            lines.append(f"**{s.get('score', 82)}/100** — a positive rating for quality work.")
+            lines.append(
+                "After approving a worker's submission, Agent #2106 (Execution Market)"
+            )
+            lines.append(
+                "submits on-chain reputation feedback via the ERC-8004 Reputation Registry."
+            )
+            lines.append(
+                f"The worker (Agent #{s.get('target_agent_id', 1)}) receives a score of"
+            )
+            lines.append(
+                f"**{s.get('score', 82)}/100** — a positive rating for quality work."
+            )
             lines.append("")
             lines.append("### On-Chain Evidence")
             lines.append("")
             if s.get("feedback_tx"):
-                lines.append(f"- **Feedback TX**: [`{s['feedback_tx']}`]({basescan_tx(s['feedback_tx'])})")
+                lines.append(
+                    f"- **Feedback TX**: [`{s['feedback_tx']}`]({basescan_tx(s['feedback_tx'])})"
+                )
             lines.append(f"- **Feedback Index**: {s.get('feedback_index', 'N/A')}")
-            lines.append(f"- **tag1**: `{s.get('tag1', 'worker_rating')}` (identifies this as a worker rating)")
-            lines.append(f"- **tag2**: `{s.get('tag2', 'e2e_full_flow')}` (test identifier)")
-            lines.append(f"- **endpoint**: `{s.get('endpoint', 'N/A')}` (links to the task)")
-            lines.append(f"- **feedbackUri**: `{s.get('feedbackUri', 'N/A')}` (human-readable feedback page)")
+            lines.append(
+                f"- **tag1**: `{s.get('tag1', 'worker_rating')}` (identifies this as a worker rating)"
+            )
+            lines.append(
+                f"- **tag2**: `{s.get('tag2', 'e2e_full_flow')}` (test identifier)"
+            )
+            lines.append(
+                f"- **endpoint**: `{s.get('endpoint', 'N/A')}` (links to the task)"
+            )
+            lines.append(
+                f"- **feedbackUri**: `{s.get('feedbackUri', 'N/A')}` (human-readable feedback page)"
+            )
             lines.append("")
 
         elif s["name"] == "agent_rating_auto":
             lines.append("### The Story")
             lines.append("")
-            lines.append("When a worker gets paid, the system automatically submits a positive rating")
-            lines.append(f"for Agent #2106 (Execution Market). Score: **{s.get('score', 90)}/100**.")
-            lines.append("This creates a bidirectional reputation relationship — the agent rates the")
+            lines.append(
+                "When a worker gets paid, the system automatically submits a positive rating"
+            )
+            lines.append(
+                f"for Agent #2106 (Execution Market). Score: **{s.get('score', 90)}/100**."
+            )
+            lines.append(
+                "This creates a bidirectional reputation relationship — the agent rates the"
+            )
             lines.append("worker, and the worker rates the agent.")
             lines.append("")
             lines.append("### On-Chain Evidence")
             lines.append("")
             if s.get("feedback_tx"):
-                lines.append(f"- **Feedback TX**: [`{s['feedback_tx']}`]({basescan_tx(s['feedback_tx'])})")
+                lines.append(
+                    f"- **Feedback TX**: [`{s['feedback_tx']}`]({basescan_tx(s['feedback_tx'])})"
+                )
             lines.append(f"- **Feedback Index**: {s.get('feedback_index', 'N/A')}")
-            lines.append(f"- **tag1**: `{s.get('tag1', 'agent_rating')}` (identifies this as an agent rating)")
-            lines.append(f"- **tag2**: `{s.get('tag2', 'execution-market')}` (platform identifier)")
-            lines.append(f"- **Target**: Agent #{s.get('target_agent_id', EM_AGENT_ID)} (Execution Market)")
+            lines.append(
+                f"- **tag1**: `{s.get('tag1', 'agent_rating')}` (identifies this as an agent rating)"
+            )
+            lines.append(
+                f"- **tag2**: `{s.get('tag2', 'execution-market')}` (platform identifier)"
+            )
+            lines.append(
+                f"- **Target**: Agent #{s.get('target_agent_id', EM_AGENT_ID)} (Execution Market)"
+            )
             lines.append("")
 
         elif s["name"] == "rejection_penalty":
             lines.append("### The Story")
             lines.append("")
-            lines.append("An agent reviews a submission and finds it doesn't meet the requirements.")
-            lines.append("The agent rejects it. The system automatically submits a low score")
-            lines.append(f"(**{s.get('score', 25)}/100**) as a penalty for the worker (Agent #{s.get('target_agent_id', 3)}).")
-            lines.append("The `tag2=rejection_major` flag marks this as a rejection penalty, not a regular rating.")
+            lines.append(
+                "An agent reviews a submission and finds it doesn't meet the requirements."
+            )
+            lines.append(
+                "The agent rejects it. The system automatically submits a low score"
+            )
+            lines.append(
+                f"(**{s.get('score', 25)}/100**) as a penalty for the worker (Agent #{s.get('target_agent_id', 3)})."
+            )
+            lines.append(
+                "The `tag2=rejection_major` flag marks this as a rejection penalty, not a regular rating."
+            )
             lines.append("")
             lines.append("### On-Chain Evidence")
             lines.append("")
             if s.get("feedback_tx"):
-                lines.append(f"- **Feedback TX**: [`{s['feedback_tx']}`]({basescan_tx(s['feedback_tx'])})")
+                lines.append(
+                    f"- **Feedback TX**: [`{s['feedback_tx']}`]({basescan_tx(s['feedback_tx'])})"
+                )
             lines.append(f"- **Feedback Index**: {s.get('feedback_index', 'N/A')}")
             lines.append(f"- **tag1**: `{s.get('tag1', 'worker_rating')}`")
-            lines.append(f"- **tag2**: `{s.get('tag2', 'rejection_major')}` (penalty classification)")
-            lines.append(f"- **feedbackUri**: `{s.get('feedbackUri', 'N/A')}` (rejection evidence page)")
-            lines.append(f"- **Score**: {s.get('score', 25)}/100 (below 30 = major penalty)")
+            lines.append(
+                f"- **tag2**: `{s.get('tag2', 'rejection_major')}` (penalty classification)"
+            )
+            lines.append(
+                f"- **feedbackUri**: `{s.get('feedbackUri', 'N/A')}` (rejection evidence page)"
+            )
+            lines.append(
+                f"- **Score**: {s.get('score', 25)}/100 (below 30 = major penalty)"
+            )
             lines.append("")
 
         elif s["name"] == "identity_check":
             lines.append("### The Story")
             lines.append("")
-            lines.append(f"Execution Market is registered as Agent #{s.get('agent_id', EM_AGENT_ID)}")
-            lines.append("on the ERC-8004 Identity Registry on Base. This on-chain identity enables")
+            lines.append(
+                f"Execution Market is registered as Agent #{s.get('agent_id', EM_AGENT_ID)}"
+            )
+            lines.append(
+                "on the ERC-8004 Identity Registry on Base. This on-chain identity enables"
+            )
             lines.append("reputation tracking across all platforms that use ERC-8004.")
             lines.append("")
             lines.append("### On-Chain State")
@@ -860,9 +1062,13 @@ def generate_report(results: FlowResult) -> str:
         elif s["name"] == "reputation_verification":
             lines.append("### Final Reputation State")
             lines.append("")
-            lines.append("After all test transactions, here is the reputation state for each agent:")
+            lines.append(
+                "After all test transactions, here is the reputation state for each agent:"
+            )
             lines.append("")
-            lines.append("| Agent ID | Feedback Count | Summary Value | Role in Tests |")
+            lines.append(
+                "| Agent ID | Feedback Count | Summary Value | Role in Tests |"
+            )
             lines.append("|----------|---------------|---------------|---------------|")
             agents = s.get("agents", {})
             roles = {
@@ -873,7 +1079,9 @@ def generate_report(results: FlowResult) -> str:
             }
             for aid, data in agents.items():
                 if isinstance(data, dict) and "error" not in data:
-                    lines.append(f"| #{aid} | {data.get('count', 0)} | {data.get('summaryValue', 0)} | {roles.get(aid, 'N/A')} |")
+                    lines.append(
+                        f"| #{aid} | {data.get('count', 0)} | {data.get('summaryValue', 0)} | {roles.get(aid, 'N/A')} |"
+                    )
                 else:
                     lines.append(f"| #{aid} | Error | - | {roles.get(aid, 'N/A')} |")
             lines.append("")
@@ -899,7 +1107,9 @@ def generate_report(results: FlowResult) -> str:
             if key.endswith("_tx") and isinstance(val, str) and val.startswith("0x"):
                 tx_count += 1
                 tx_type = key.replace("_tx", "").replace("_", " ").title()
-                lines.append(f"| {tx_count} | {tx_type} | `{val}` | [BaseScan]({basescan_tx(val)}) |")
+                lines.append(
+                    f"| {tx_count} | {tx_type} | `{val}` | [BaseScan]({basescan_tx(val)}) |"
+                )
 
     lines.append("")
     lines.append(f"**Total on-chain transactions: {tx_count}**")
@@ -910,27 +1120,49 @@ def generate_report(results: FlowResult) -> str:
     lines.append("")
     lines.append("| Contract | Address | BaseScan |")
     lines.append("|----------|---------|----------|")
-    lines.append(f"| PaymentOperator (EM) | `{EM_OPERATOR}` | [View](https://basescan.org/address/{EM_OPERATOR}) |")
-    lines.append(f"| AuthCaptureEscrow | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` | [View](https://basescan.org/address/0xb9488351E48b23D798f24e8174514F28B741Eb4f) |")
-    lines.append(f"| ERC-8004 Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` | [View](https://basescan.org/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63) |")
-    lines.append(f"| ERC-8004 Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | [View](https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432) |")
-    lines.append(f"| StaticAddressCondition | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` | [View](https://basescan.org/address/0x9d03c03c15563E72CF2186E9FDB859A00ea661fc) |")
-    lines.append(f"| USDC (Base) | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | [View](https://basescan.org/address/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913) |")
-    lines.append(f"| Facilitator EOA | `0x103040545AC5031A11E8C03dd11324C7333a13C7` | [View](https://basescan.org/address/0x103040545AC5031A11E8C03dd11324C7333a13C7) |")
+    lines.append(
+        f"| PaymentOperator (EM) | `{EM_OPERATOR}` | [View](https://basescan.org/address/{EM_OPERATOR}) |"
+    )
+    lines.append(
+        "| AuthCaptureEscrow | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` | [View](https://basescan.org/address/0xb9488351E48b23D798f24e8174514F28B741Eb4f) |"
+    )
+    lines.append(
+        "| ERC-8004 Reputation Registry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` | [View](https://basescan.org/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63) |"
+    )
+    lines.append(
+        "| ERC-8004 Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | [View](https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432) |"
+    )
+    lines.append(
+        "| StaticAddressCondition | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` | [View](https://basescan.org/address/0x9d03c03c15563E72CF2186E9FDB859A00ea661fc) |"
+    )
+    lines.append(
+        "| USDC (Base) | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | [View](https://basescan.org/address/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913) |"
+    )
+    lines.append(
+        "| Facilitator EOA | `0x103040545AC5031A11E8C03dd11324C7333a13C7` | [View](https://basescan.org/address/0x103040545AC5031A11E8C03dd11324C7333a13C7) |"
+    )
     lines.append("")
 
     # How to verify
     lines.append("## How to Verify")
     lines.append("")
     lines.append("1. Click any BaseScan link above")
-    lines.append("2. Look for **\"Transaction Action: x402 Transaction\"** — this is how BaseScan")
+    lines.append(
+        '2. Look for **"Transaction Action: x402 Transaction"** — this is how BaseScan'
+    )
     lines.append("   labels transactions through the x402r protocol")
-    lines.append("3. Check **\"Interacted With (To)\"** — should show our PaymentOperator")
+    lines.append(
+        '3. Check **"Interacted With (To)"** — should show our PaymentOperator'
+    )
     lines.append(f"   (`{EM_OPERATOR}`)")
-    lines.append("4. Check **ERC-20 Token Transfers** — shows USDC moving through the escrow")
+    lines.append(
+        "4. Check **ERC-20 Token Transfers** — shows USDC moving through the escrow"
+    )
     lines.append("   (Agent Wallet -> TokenCollector -> TokenStore for authorize,")
     lines.append("   TokenStore -> Receiver for release)")
-    lines.append("5. For reputation TXs, check the **Input Data** to see the feedback parameters")
+    lines.append(
+        "5. For reputation TXs, check the **Input Data** to see the feedback parameters"
+    )
     lines.append("   (agentId, value, tag1, tag2, feedbackUri)")
     lines.append("")
 
@@ -940,6 +1172,7 @@ def generate_report(results: FlowResult) -> str:
 # ============================================================
 # Main
 # ============================================================
+
 
 def main():
     is_dry_run = "--dry-run" in sys.argv

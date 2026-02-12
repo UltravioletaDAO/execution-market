@@ -3,6 +3,7 @@
 Test Supabase connection for Execution Market
 Run: python scripts/test_supabase.py
 """
+
 import os
 import sys
 from pathlib import Path
