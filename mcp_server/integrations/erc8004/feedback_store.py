@@ -199,26 +199,30 @@ async def store_feedback_reference(
     feedback_hash: str,
     score: int,
     reputation_tx: str = "",
+    document_json: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     Store a reference to the feedback document in Supabase for quick lookups.
+    Also stores the full document JSON for retrieval when S3 is unavailable.
     Best-effort — table may not exist yet.
     """
     try:
         from supabase_client import get_client
 
+        row = {
+            "task_id": task_id,
+            "feedback_type": feedback_type,
+            "feedback_uri": feedback_uri,
+            "feedback_hash": feedback_hash,
+            "score": score,
+            "reputation_tx": reputation_tx,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if document_json is not None:
+            row["document_json"] = document_json
+
         client = get_client()
-        client.table(_SUPABASE_TABLE).insert(
-            {
-                "task_id": task_id,
-                "feedback_type": feedback_type,
-                "feedback_uri": feedback_uri,
-                "feedback_hash": feedback_hash,
-                "score": score,
-                "reputation_tx": reputation_tx,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            }
-        ).execute()
+        client.table(_SUPABASE_TABLE).insert(row).execute()
     except Exception as exc:
         logger.debug("[feedback-store] Could not store reference in DB: %s", exc)
 
@@ -227,9 +231,12 @@ async def get_feedback_document(
     task_id: str, feedback_type: Optional[str] = None
 ) -> Optional[Dict]:
     """
-    Retrieve a feedback document from S3.
+    Retrieve a feedback document.
 
-    Tries Supabase lookup first (for the S3 key), falls back to listing S3 prefix.
+    Priority:
+    1. Supabase document_json (inline, fastest)
+    2. S3 via CDN URL from Supabase reference
+    3. S3 prefix listing (fallback)
     """
     import asyncio
 
@@ -239,15 +246,22 @@ async def get_feedback_document(
 
         client = get_client()
         query = (
-            client.table(_SUPABASE_TABLE).select("feedback_uri").eq("task_id", task_id)
+            client.table(_SUPABASE_TABLE)
+            .select("feedback_uri, document_json")
+            .eq("task_id", task_id)
         )
         if feedback_type:
             query = query.eq("feedback_type", feedback_type)
         result = query.order("created_at", desc=True).limit(1).execute()
 
-        if result.data and result.data[0].get("feedback_uri"):
-            uri = result.data[0]["feedback_uri"]
-            # Extract S3 key from CDN URL
+        if result.data:
+            row = result.data[0]
+            # Return inline document if available
+            if row.get("document_json"):
+                return row["document_json"]
+
+            # Try S3 via URI
+            uri = row.get("feedback_uri", "")
             if FEEDBACK_CDN_URL and uri.startswith(FEEDBACK_CDN_URL):
                 s3_key = uri[len(FEEDBACK_CDN_URL) :].lstrip("/")
             elif ".s3.amazonaws.com/" in uri:
@@ -256,7 +270,9 @@ async def get_feedback_document(
                 s3_key = None
 
             if s3_key:
-                return await _fetch_from_s3(s3_key)
+                doc = await _fetch_from_s3(s3_key)
+                if doc:
+                    return doc
     except Exception:
         pass
 
@@ -273,7 +289,6 @@ async def get_feedback_document(
         contents = resp.get("Contents", [])
         if not contents:
             return None
-        # Get most recent
         contents.sort(key=lambda x: x.get("LastModified", ""), reverse=True)
         key = contents[0]["Key"]
         obj = s3.get_object(Bucket=FEEDBACK_BUCKET, Key=key)
@@ -335,13 +350,14 @@ async def persist_and_hash_feedback(
             f"https://api.execution.market/api/v1/reputation/feedback/{task_id}"
         )
 
-    # Store reference in Supabase (best-effort)
+    # Store reference + full document in Supabase (best-effort)
     await store_feedback_reference(
         task_id=task_id,
         feedback_type=feedback_type,
         feedback_uri=feedback_uri,
         feedback_hash=feedback_hash,
         score=score,
+        document_json=doc,
     )
 
     return feedback_uri, feedback_hash

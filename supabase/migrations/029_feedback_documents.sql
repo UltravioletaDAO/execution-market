@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS feedback_documents (
     feedback_hash TEXT NOT NULL,  -- keccak256 hex (0x-prefixed), stored on-chain
     score       INTEGER NOT NULL CHECK (score >= 0 AND score <= 100),
     reputation_tx TEXT,           -- on-chain reputation tx hash
+    document_json JSONB,         -- full feedback document (fallback when S3 unavailable)
     created_at  TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
