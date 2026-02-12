@@ -1,0 +1,70 @@
+{
+  "scenarios": [
+    {
+      "status": "SUCCESS",
+      "health_http": 200,
+      "config_http": 200,
+      "networks": [
+        "arbitrum",
+        "avalanche",
+        "base",
+        "celo",
+        "ethereum",
+        "monad",
+        "optimism",
+        "polygon"
+      ],
+      "tokens": [
+        "USDC"
+      ],
+      "preferred_network": "base",
+      "name": "health_check",
+      "description": "API health and config verification",
+      "timestamp": "2026-02-12T04:26:30.998974+00:00"
+    },
+    {
+      "status": "SUCCESS",
+      "task_id": "918ef09a-09e4-4237-9739-caf412874edd",
+      "submission_id": "1669f155-5497-4cea-9960-25c1e4b4dde9",
+      "escrow_tx": "0xa0fe715b71a655d0f563e81b4540c60a6e09117102e64419a6ed646e334ba251",
+      "payment_tx": "0xd3dd28b8c0cfa7ec941271739ae9fc326c104e6c16cc04e918661620b47a3066",
+      "worker_tx": null,
+      "fee_tx": null,
+      "payment_error": null,
+      "approve_http_status": 200,
+      "approve_message": "Submission approved. Payment released to worker.",
+      "approve_data": {
+        "submission_id": "1669f155-5497-4cea-9960-25c1e4b4dde9",
+        "verdict": "accepted",
+        "payment_tx": "0xd3dd28b8c0cfa7ec941271739ae9fc326c104e6c16cc04e918661620b47a3066"
+      },
+      "error": null,
+      "name": "happy_path",
+      "description": "Create -> Apply -> Assign -> Submit -> Approve (+ payment)",
+      "timestamp": "2026-02-12T04:27:28.802196+00:00"
+    },
+    {
+      "status": "FAILED",
+      "error": "Task creation failed: HTTP 504 - ",
+      "name": "cancel_path",
+      "description": "Cancel flow test",
+      "timestamp": "2026-02-12T04:28:38.975235+00:00"
+    },
+    {
+      "status": "SUCCESS",
+      "task_id": "43183a96-7ecd-4732-9aaf-69e359033561",
+      "submission_id": "aba0357f-373a-4bed-9952-a559466e96e4",
+      "escrow_tx": "0x712b5e8d9ff4e5f53bec12ea4c16d9c4f04928bbd3469052a719578c8bc5250a",
+      "reputation_tx": null,
+      "reject_data": {
+        "submission_id": "aba0357f-373a-4bed-9952-a559466e96e4",
+        "verdict": "rejected",
+        "severity": "major"
+      },
+      "error": null,
+      "name": "rejection_path",
+      "description": "Create -> Apply -> Assign -> Submit -> Reject (major, score=30)",
+      "timestamp": "2026-02-12T04:28:59.205549+00:00"
+    }
+  ]
+}
