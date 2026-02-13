@@ -125,10 +125,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         device_id = request.headers.get("X-Device-ID")
         api_key = _extract_api_key(request)
 
+        # Check for ERC-8128 wallet as rate limit identifier
+        if not api_key:
+            erc8128_wallet = _extract_erc8128_wallet(request)
+            if erc8128_wallet:
+                # Use wallet address as the rate limit key (default STARTER tier)
+                api_key = f"erc8128:{erc8128_wallet}"
+
         # Determine tier from API key
         tier = RateLimitTier.FREE
         if api_key:
-            tier = _get_tier_from_key(api_key)
+            if api_key.startswith("erc8128:"):
+                tier = RateLimitTier.STARTER  # Default tier for wallet auth
+            else:
+                tier = _get_tier_from_key(api_key)
 
         # Check rate limits
         limiter = get_rate_limiter()
@@ -271,6 +281,26 @@ def _extract_api_key(request: Request) -> Optional[str]:
     x_api_key = request.headers.get("X-API-Key") or request.headers.get("x-api-key")
     if x_api_key:
         return x_api_key.strip()
+    return None
+
+
+def _extract_erc8128_wallet(request: Request) -> Optional[str]:
+    """
+    Extract wallet address from ERC-8128 Signature-Input keyid for rate limiting.
+
+    This is a pre-auth heuristic — the actual signature is verified later
+    in the auth dependency. A fake keyid gets higher rate limits but will
+    still fail signature verification.
+    """
+    import re
+
+    sig_input = request.headers.get("signature-input") or request.headers.get(
+        "Signature-Input", ""
+    )
+    if "erc8128:" in sig_input:
+        match = re.search(r'keyid="erc8128:\d+:(0x[a-fA-F0-9]{40})"', sig_input)
+        if match:
+            return match.group(1).lower()
     return None
 
 

@@ -7477,6 +7477,65 @@ async def batch_create_tasks(
 
 
 # =============================================================================
+# ERC-8128 AUTH ENDPOINTS
+# =============================================================================
+
+
+@router.get(
+    "/auth/nonce",
+    responses={
+        200: {"description": "Fresh nonce for ERC-8128 authentication"},
+    },
+    summary="Get Authentication Nonce",
+    description="Generate a fresh single-use nonce for ERC-8128 wallet-based authentication",
+    tags=["Authentication"],
+)
+async def get_auth_nonce():
+    """
+    Generate a fresh nonce for ERC-8128 authentication.
+
+    The nonce must be included in the Signature-Input `nonce` parameter
+    when signing requests with ERC-8128. Each nonce is single-use and
+    expires after 5 minutes.
+    """
+    from .auth import generate_auth_nonce
+
+    return await generate_auth_nonce()
+
+
+@router.get(
+    "/auth/erc8128/info",
+    responses={
+        200: {"description": "ERC-8128 authentication configuration"},
+    },
+    summary="ERC-8128 Auth Info",
+    description="Get ERC-8128 authentication configuration (supported chains, policy, nonce TTL)",
+    tags=["Authentication"],
+)
+async def get_erc8128_info():
+    """
+    Get ERC-8128 authentication configuration.
+
+    Helps agents discover ERC-8128 support and understand the server's
+    verification policy.
+    """
+    return {
+        "supported": True,
+        "version": "ERC-8128 Draft",
+        "supported_chains": [1, 8453, 11155111, 84532],
+        "policy": {
+            "max_validity_sec": 300,
+            "clock_skew_sec": 30,
+            "require_request_bound": True,
+            "require_nonce": True,
+        },
+        "nonce_endpoint": "/api/v1/auth/nonce",
+        "erc8004_cross_reference": True,
+        "documentation": "https://eip.tools/eip/8128",
+    }
+
+
+# =============================================================================
 # HEALTH & INFO ENDPOINTS
 # =============================================================================
 
