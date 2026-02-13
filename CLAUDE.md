@@ -303,8 +303,11 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
 | x402r Escrow (AuthCaptureEscrow) | Arbitrum, Avalanche, Celo, Monad, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
-| EM PaymentOperator | Base | `0xb9635f544665758019159c04c08a3d583dadd723` |
+| EM PaymentOperator (Fase 3) | Base | `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6` |
+| EM PaymentOperator (Fase 2, legacy) | Base | `0xb9635f544665758019159c04c08a3d583dadd723` |
 | StaticAddressCondition(Facilitator) | Base | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` |
+| OrCondition(Payer\|Facilitator) | Base | `0xb365717C35004089996F72939b0C5b32Fa2ef8aE` |
+| StaticFeeCalculator(100bps) | Base | `0xB422A41aae5aFCb150249228eEfCDcd54f1FD987` |
 | Facilitator EOA | All | `0x103040545AC5031A11E8C03dd11324C7333a13C7` |
 | Execution Market Agent ID | **Base** | `2106` |
 | Execution Market Agent ID | Sepolia (legacy) | `469` |
@@ -510,7 +513,7 @@ Wrong Flow (DO NOT USE):
 
 **Payment Mode** (`EM_PAYMENT_MODE`, default: `fase1`):
 - **`fase1`** (default, production): No auth at task creation — advisory `balanceOf()` check only. At approval, server signs 2 direct EIP-3009 settlements: agent→worker (bounty) + agent→treasury (fee). No intermediary wallet. E2E tested 2026-02-11 ([evidence](docs/planning/FASE1_E2E_EVIDENCE_2026-02-11.md)).
-- **`fase2`** (on-chain escrow, gasless): Locks funds on-chain via AdvancedEscrowClient at task creation. Release/refund via facilitator (gasless). PaymentOperator on Base: `0xb9635f544665758019159c04c08a3d583dadd723`. E2E tested 2026-02-11 ([evidence](docs/planning/FASE2_E2E_EVIDENCE_2026-02-11.md)). Requires `EM_PAYMENT_OPERATOR` env var if not Base.
+- **`fase2`** (on-chain escrow, gasless): Locks funds on-chain via AdvancedEscrowClient at task creation. Release/refund via facilitator (gasless). **Fase 3 PaymentOperator on Base: `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6`** (OR(Payer,Facilitator) + 1% on-chain fee). Legacy operator: `0xb9635f...`. E2E tested 2026-02-11 ([evidence](docs/planning/FASE2_E2E_EVIDENCE_2026-02-11.md)). Requires `EM_PAYMENT_OPERATOR` env var.
 - **`preauth`** (legacy): Agent signs EIP-3009 auth at creation, stored header settled at approval via 3-step flow through platform wallet.
 - **`x402r`** (deprecated): Settles agent auth + locks funds in on-chain escrow at creation time. **Do not use** — caused fund loss bug.
 
@@ -543,18 +546,21 @@ Wrong Flow (DO NOT USE):
 - **Layer 2:** `PaymentOperator` — per-config contract with pluggable conditions (who can authorize/release/refund)
 - **Layer 3:** `Facilitator` — off-chain server, pays gas, enforces business logic
 
-**Deployed PaymentOperator (Base Mainnet):**
+**Deployed PaymentOperators (Base Mainnet):**
 
-| Contract | Address | TX |
-|----------|---------|-----|
-| StaticAddressCondition(Facilitator) | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` | `0xb5b2f36f...` |
-| PaymentOperator (EM) | `0xb9635f544665758019159c04c08a3d583dadd723` | `0xba9fdeaf...` |
+| Contract | Address | TX | Status |
+|----------|---------|-----|--------|
+| **PaymentOperator (Fase 3)** | `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6` | `0x23c14f3a...` | **ACTIVE** |
+| OrCondition(Payer\|Facilitator) | `0xb365717C35004089996F72939b0C5b32Fa2ef8aE` | `0xa26fb85c...` | Fase 3 |
+| StaticFeeCalculator(100bps) | `0xB422A41aae5aFCb150249228eEfCDcd54f1FD987` | `0xe6d55b2c...` | Fase 3 |
+| StaticAddressCondition(Facilitator) | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` | `0xb5b2f36f...` | Fase 2 |
+| PaymentOperator (Fase 2) | `0xb9635f544665758019159c04c08a3d583dadd723` | `0xba9fdeaf...` | Legacy (keep for old tasks) |
 
-**Operator config:** Facilitator-only release/refund (via `StaticAddressCondition`), no escrow period, no freeze. `feeCalculator=address(0)` (we charge 13% ourselves — 12% EM + 1% x402r). `authorizeCondition=UsdcTvlLimit` (protocol safety).
+**Fase 3 Operator config:** OR(Payer, Facilitator) release/refund, 1% on-chain operator fee (100 BPS via StaticFeeCalculator to EM treasury), UsdcTvlLimit authorize condition, no escrow period, no freeze.
 
-**Deployment script:** `scripts/deploy-payment-operator.ts` — deploys StaticAddressCondition + PaymentOperator via factory contracts.
+**Deployment script:** `scripts/deploy-payment-operator.ts` — deploys via x402r factory contracts. Use `--fase3` flag.
 
-**Status:** PaymentOperator deployed on Base but NOT yet registered in facilitator's `addresses.rs`. Other 7 networks pending deployment (Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad, Optimism). See [ESCROW_GASLESS_ROADMAP.md](docs/planning/ESCROW_GASLESS_ROADMAP.md) for full plan.
+**Status:** Fase 3 PaymentOperator deployed on Base (2026-02-12). Facilitator v1.33.3 supports Vec<Address> for multi-operator. Need to register new operator in facilitator `addresses.rs`. Other 7 networks pending deployment.
 
 **Key upstream repos:**
 | Repo | URL | Stack |
