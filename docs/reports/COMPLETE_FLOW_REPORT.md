@@ -1,122 +1,138 @@
-# Complete Flow Report -- E2E Fee Split Verification
+# Complete Flow Report -- Golden Flow E2E (2026-02-13)
 
 > **Date**: 2026-02-13
 > **Environment**: Production (Base Mainnet, chain 8453)
 > **API**: `https://api.execution.market`
 > **Payment Mode**: Fase 2 (on-chain escrow, gasless via Facilitator)
-> **PaymentOperator**: `0xd5149049e7c212ce5436a9581b4307EB9595df95` (clean, no on-chain operator fee)
+> **PaymentOperator**: Fase 4 Secure `0x030353642B936c9D4213caD7BcB0fB8a1489cBe5`
 
 ---
 
 ## Executive Summary
 
-The full task lifecycle was tested end-to-end on production against Base Mainnet. All 3 on-chain transactions were verified independently via RPC. The 13% platform fee split between Worker and Treasury is working correctly.
+Golden Flow executed on production at `2026-02-13T22:33:47`. Result: **6/7 PASS, 1 PARTIAL**. All financial operations (escrow, payment, fees) verified on-chain with 4 independent transactions. Reputation phase had 2 code bugs (both fixed in commit `37ec118`) and 1 on-chain ownership limitation (pending Facilitator team resolution).
 
-**Result: PASS** -- All scenarios verified with on-chain evidence.
+| Phase | Status | Time |
+|-------|--------|------|
+| 1. Health & Config | PASS | 0.49s |
+| 2. Task Creation + Escrow | PASS | 9.06s |
+| 3. Worker Registration & Identity | PASS | 11.34s |
+| 4. Task Lifecycle | PASS | 2.52s |
+| 5. Approval & Payment | PASS | 61.95s |
+| 6. Bidirectional Reputation | PARTIAL | 0.62s |
+| 7. Final Verification | PASS | 0.25s |
 
----
-
-## Test Configuration
-
-| Parameter | Value |
-|-----------|-------|
-| Bounty | $0.10 USDC |
-| Platform Fee | 13% ($0.013) |
-| Total Locked | $0.113 USDC |
-| Worker Wallet | `0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15` |
-| Treasury | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` |
-| Platform Wallet | `0xD3868E1eD738CED6945A574a7c769433BeD5d474` |
-| Facilitator | `0x103040545AC5031A11E8C03dd11324C7333a13C7` |
-| Task ID | `852961c1-862d-4e95-88d8-348b89c37785` |
-| Submission ID | `101427c6-3646-45f8-80cd-57bd4b1ef0ac` |
+**Total elapsed**: 97.24s | **On-chain TXs**: 4
 
 ---
 
-## Scenario: Happy Path (Create -> Apply -> Assign -> Submit -> Approve)
+## Wallets Involved
 
-### Flow
+| Role | Address | Description |
+|------|---------|-------------|
+| **Agent (Platform)** | `0xD3868E1eD738CED6945A574a7c769433BeD5d474` | ECS MCP server wallet. Signs task escrow. |
+| **Worker** | `0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15` | Test worker wallet. Completely separate from agent. |
+| **Treasury** | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` | Cold wallet (Ledger). Receives 13% platform fee. |
+| **Facilitator** | `0x103040545AC5031A11E8C03dd11324C7333a13C7` | Ultravioleta DAO EOA. Pays gas for all TXs. |
+| **Escrow Contract** | AuthCaptureEscrow (Base) | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` |
 
-```mermaid
-sequenceDiagram
-    participant Agent as AI Agent
-    participant API as MCP Server API
-    participant Fac as Facilitator
-    participant Chain as Base Mainnet
-    participant Worker as Worker Wallet
-    participant Treasury as Treasury
+---
 
-    Agent->>API: POST /tasks (bounty=$0.10)
-    API->>Fac: Escrow authorize ($0.113)
-    Fac->>Chain: TX1: Lock $0.113 in escrow
-    Chain-->>API: escrow_tx confirmed
-    API-->>Agent: Task published
+## Phase Details
 
-    Note over Agent,Treasury: Worker applies, gets assigned, submits evidence
+### Phase 1: Health & Config (PASS)
 
-    Agent->>API: POST /submissions/{id}/approve
-    API->>Fac: Release escrow
-    Fac->>Chain: Escrow release
-    Chain-->>API: $0.113 to platform wallet
-
-    API->>Fac: EIP-3009 transfer $0.10
-    Fac->>Chain: TX2: Execute transfer
-    Chain->>Worker: $0.100 USDC received
-
-    API->>Fac: EIP-3009 transfer $0.013
-    Fac->>Chain: TX3: Execute transfer
-    Chain->>Treasury: $0.013 USDC received
-
-    API-->>Agent: Approved (3 TX hashes)
+```
+API: https://api.execution.market -> HTTP 200, healthy
+Networks: 8 payment networks (arbitrum, avalanche, base, celo, ethereum, monad, optimism, polygon)
+ERC-8004: Available, Agent #2106 on Base
+ERC-8004 Networks: 18 (9 mainnet + 9 testnet)
+Min bounty: $0.01
 ```
 
-### On-Chain Evidence
+### Phase 2: Task Creation with Escrow (PASS)
 
-All transactions verified via Base RPC (`eth_getTransactionReceipt`). All returned `status: 0x1` (SUCCESS).
+- **Task ID**: `cae0004c-697a-48b9-8d8d-ed6fc8403cf4`
+- **Bounty**: $0.10 USDC
+- **Fee (13%)**: $0.013 USDC
+- **Total locked**: $0.113 USDC
+- **Operator**: Fase 4 Secure (`0x0303...cBe5`)
 
 #### TX 1: Escrow Lock
 
 | Field | Value |
 |-------|-------|
-| TX Hash | `0x21dc467c08d1be2f7315970c99c98c39d4c5857b910d5fd04fc56205c4952d27` |
+| TX Hash | `0x3df903c9bb7886bd71e9db07fab90821774557f80faa5a95af93cdbc1e55f821` |
 | Status | **SUCCESS** |
-| From | `0x103040545AC5031A11E8C03dd11324C7333a13C7` (Facilitator) |
-| To | `0xd5149049e7c212ce5436a9581b4307EB9595df95` (PaymentOperator) |
-| Gas Used | 176,968 |
-| USDC Transfer 1 | Platform `0xD386...` -> TokenStore `0x48ad...`: **$0.113000** |
-| USDC Transfer 2 | TokenStore `0x48ad...` -> Escrow `0x3f52...`: **$0.113000** |
-| BaseScan | [View](https://basescan.org/tx/0x21dc467c08d1be2f7315970c99c98c39d4c5857b910d5fd04fc56205c4952d27) |
+| Gas Used | 213,948 |
+| Transfer 1 | Agent `0xD386...` -> TokenStore `0x48ad...`: **$0.113000** |
+| Transfer 2 | TokenStore `0x48ad...` -> Escrow internal `0x670...`: **$0.113000** |
+| BaseScan | [View](https://basescan.org/tx/0x3df903c9bb7886bd71e9db07fab90821774557f80faa5a95af93cdbc1e55f821) |
 
-> Agent's $0.113 USDC locked in on-chain escrow via the clean PaymentOperator. Facilitator pays gas.
+### Phase 3: Worker Registration & Identity (PASS)
 
-#### TX 2: Worker Disbursement
+- **Executor ID**: `803dfbf1-7b91-4a41-8d31-518f4fa2fcd4`
+- **ERC-8004 Agent ID**: **17333** (worker's on-chain identity)
+- **Owner**: `0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15` (worker wallet)
+
+#### TX 2: Worker ERC-8004 Registration
 
 | Field | Value |
 |-------|-------|
-| TX Hash | `0x2bdff37721b433d8d8fded04a021526f069ce7503f0f33026e79aa63cf19f884` |
+| TX Hash | `0xde72667d3acc7454b4b5e7c0b9e9f3eb7407a8e3b603eeea6dc358a44739a455` |
 | Status | **SUCCESS** |
-| From | `0x103040545AC5031A11E8C03dd11324C7333a13C7` (Facilitator) |
-| To | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (USDC contract) |
-| Gas Used | 86,156 |
-| USDC Transfer | Platform `0xD386...` -> Worker `0x52E0...5A15`: **$0.100000** |
-| BaseScan | [View](https://basescan.org/tx/0x2bdff37721b433d8d8fded04a021526f069ce7503f0f33026e79aa63cf19f884) |
+| BaseScan | [View](https://basescan.org/tx/0xde72667d3acc7454b4b5e7c0b9e9f3eb7407a8e3b603eeea6dc358a44739a455) |
 
-> Worker receives full $0.10 bounty. EIP-3009 gasless transfer via Facilitator.
+### Phase 4: Task Lifecycle (PASS)
 
-#### TX 3: Fee Collection
+```
+Apply:  Worker applied -> Application fb030a88...
+Assign: Agent assigned worker -> Task status: accepted
+Submit: Worker submitted evidence -> Submission a8342182...
+```
+
+### Phase 5: Approval & Payment Settlement (PASS)
+
+Approval took **61.74 seconds** (includes 3 gasless TXs via Facilitator: escrow release + worker payout + fee collection).
+
+```mermaid
+sequenceDiagram
+    participant Agent as Agent (0xD386)
+    participant API as API Server
+    participant Facilitator as Facilitator (0x1030)
+    participant Escrow as Escrow Contract
+    participant Worker as Worker (0x52E0)
+    participant Treasury as Treasury (0xae07)
+
+    Agent->>API: POST /approve (submission)
+    API->>Facilitator: Release escrow
+    Facilitator->>Escrow: release $0.113
+    Escrow-->>API: $0.113 to platform wallet
+    API->>Facilitator: EIP-3009 disburse $0.10
+    Facilitator->>Worker: TX3: $0.100 USDC
+    API->>Facilitator: EIP-3009 collect $0.013
+    Facilitator->>Treasury: TX4: $0.013 USDC
+```
+
+#### TX 3: Worker Payout
 
 | Field | Value |
 |-------|-------|
-| TX Hash | `0x60f00316ef97fee149a344bc2eb6fc6bb1181d89a621e42b12398f4d5afb87ff` |
+| TX Hash | `0xe8a8b5c2320e0a129f9cd0e8892411239277841a071d0c5ac38a920d7ae0a10a` |
 | Status | **SUCCESS** |
-| From | `0x103040545AC5031A11E8C03dd11324C7333a13C7` (Facilitator) |
-| To | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (USDC contract) |
-| Gas Used | 86,144 |
+| USDC Transfer | Platform `0xD386...` -> Worker `0x52E0...`: **$0.100000** |
+| BaseScan | [View](https://basescan.org/tx/0xe8a8b5c2320e0a129f9cd0e8892411239277841a071d0c5ac38a920d7ae0a10a) |
+
+#### TX 4: Fee Collection
+
+| Field | Value |
+|-------|-------|
+| TX Hash | `0xb12afb6b4781cda38aeb5a60c4529ebfbf12ae32d77d48d022e51169700933db` |
+| Status | **SUCCESS** |
 | USDC Transfer | Platform `0xD386...` -> Treasury `0xae07...`: **$0.013000** |
-| BaseScan | [View](https://basescan.org/tx/0x60f00316ef97fee149a344bc2eb6fc6bb1181d89a621e42b12398f4d5afb87ff) |
+| BaseScan | [View](https://basescan.org/tx/0xb12afb6b4781cda38aeb5a60c4529ebfbf12ae32d77d48d022e51169700933db) |
 
-> 13% platform fee ($0.013) collected to cold wallet Treasury (Ledger).
-
-### Fee Math Verification
+#### Fee Math Verification
 
 | Line Item | Expected | Actual | Match |
 |-----------|----------|--------|-------|
@@ -127,60 +143,135 @@ All transactions verified via Base RPC (`eth_getTransactionReceipt`). All return
 
 **All amounts verified on-chain. Zero discrepancy.**
 
-### Timing
+---
 
-| Step | Duration |
-|------|----------|
-| Task creation (incl. escrow lock) | 8.36s |
-| Approval (escrow release + 2 disbursements) | 68.03s |
+### Phase 6: Bidirectional Reputation (PARTIAL)
+
+Three issues found. Two code bugs fixed, one on-chain limitation pending.
+
+#### Issue 1 (Bug): `rate_worker()` targeted wrong agent -- FIXED
+
+```
+POST /reputation/workers/rate -> HTTP 200, success: false
+Error: "Self-feedback not allowed"
+```
+
+**Root cause**: `rate_worker()` in `facilitator_client.py` called `submit_feedback(agent_id=2106)` -- sending feedback to **our own EM agent** instead of the **worker's agent** (#17333).
+
+**Why "self-feedback"**: Agent 2106 was registered gaslessly, so the Facilitator (`0x1030`) is its on-chain `owner`. When the Facilitator calls `submitFeedback(agentId=2106)`, the contract checks `msg.sender == ownerOf(2106)` -> both are `0x1030` -> self-feedback rejected.
+
+**Fix** (commit `37ec118`): `rate_worker()` now resolves the worker's `erc8004_agent_id` from the `executors` table and targets THAT agent. Since `ownerOf(17333) = 0x52E0 != msg.sender (0x1030)`, the self-feedback check passes.
+
+#### Issue 2 (Bug): `rate_agent_endpoint()` HTTP 403 -- FIXED
+
+```
+POST /reputation/agents/rate -> HTTP 403
+Error: "Task agent does not match rated agent identity"
+```
+
+**Root cause**: Validation compared `task.agent_id` (an internal API key ID or wallet `0xD386`) with `agent_identity.owner` (Facilitator wallet `0x1030`). These are fundamentally different identifiers and never match for gaslessly-registered agents.
+
+**Fix** (commit `37ec118`): If `request.agent_id == EM_AGENT_ID` (our own platform agent), accept as valid. Only do wallet-matching for third-party agents.
+
+#### Issue 3 (On-chain): Worker cannot rate Agent 2106 via Facilitator -- PENDING
+
+Even with Issues 1 and 2 fixed, `rate_agent()` will fail on-chain because:
+
+```
+Agent #2106 on-chain identity:
+  owner: 0x103040545AC5031A11E8C03dd11324C7333a13C7  (= Facilitator)
+
+rate_agent() calls: submit_feedback(agent_id=2106)
+  msg.sender: Facilitator (0x1030)
+  ownerOf(2106): Facilitator (0x1030)
+  Result: msg.sender == owner -> "Self-feedback not allowed"
+```
+
+**Why this happened**: Agent 2106 was registered gaslessly via the Facilitator. The ERC-8004 `register()` function sets `owner = msg.sender`, which is the Facilitator (it pays gas for gasless registrations).
+
+**Resolution options** (requires Facilitator team collaboration):
+
+| Option | Description | Effort |
+|--------|-------------|--------|
+| **A. Transfer ownership** | `transferFrom(Facilitator, platformWallet, 2106)` on ERC-8004 Registry | Low -- single TX |
+| **B. Delegate pattern** | Facilitator submits feedback from a secondary signer | Medium -- Facilitator code change |
+| **C. Direct TX from platform wallet** | Platform wallet signs feedback TX directly (needs Base ETH for gas) | Low -- code change |
+
+**Recommendation**: Option A (transfer ownership) is simplest. After transfer, `ownerOf(2106) = 0xD386` (platform wallet) != Facilitator -> feedback works.
+
+---
+
+### Phase 7: Final Verification (PASS)
+
+- **EM Reputation Score**: 100.0
+- **EM Reputation Count**: 1
+- **Feedback document**: Available
+- **Total on-chain TXs**: 4 (all verified SUCCESS)
+
+---
+
+## On-Chain Evidence Summary
+
+| # | Transaction | Purpose | Amount | Status |
+|---|-------------|---------|--------|--------|
+| 1 | [`0x3df903c9...`](https://basescan.org/tx/0x3df903c9bb7886bd71e9db07fab90821774557f80faa5a95af93cdbc1e55f821) | Escrow lock | $0.113 | SUCCESS |
+| 2 | [`0xde72667d...`](https://basescan.org/tx/0xde72667d3acc7454b4b5e7c0b9e9f3eb7407a8e3b603eeea6dc358a44739a455) | Worker ERC-8004 identity | -- | SUCCESS |
+| 3 | [`0xe8a8b5c2...`](https://basescan.org/tx/0xe8a8b5c2320e0a129f9cd0e8892411239277841a071d0c5ac38a920d7ae0a10a) | Worker payout | $0.100 | SUCCESS |
+| 4 | [`0xb12afb6b...`](https://basescan.org/tx/0xb12afb6b4781cda38aeb5a60c4529ebfbf12ae32d77d48d022e51169700933db) | Fee collection | $0.013 | SUCCESS |
+
+---
+
+## Bugs Fixed
+
+| # | Severity | File | Issue | Fix (commit `37ec118`) |
+|---|----------|------|-------|------------------------|
+| 1 | **HIGH** | `facilitator_client.py:rate_worker()` | Feedback sent to Agent 2106 (self-feedback) | Resolve worker's `erc8004_agent_id`, target that agent |
+| 2 | **MEDIUM** | `reputation.py:rate_agent_endpoint()` | Compared API key ID vs on-chain wallet -> always 403 | Accept `EM_AGENT_ID` as valid for platform tasks |
+| -- | -- | `supabase_client.py:get_task()` | Missing `erc8004_agent_id` in executor join | Added to SELECT query |
+
+## Pending Issue
+
+| # | Severity | Component | Issue | Resolution |
+|---|----------|-----------|-------|------------|
+| 3 | **HIGH** | ERC-8004 on-chain | Agent 2106 owned by Facilitator -> worker can't rate agent (self-feedback) | Transfer ownership to platform wallet |
+
+---
+
+## Operator Status
+
+| Version | Address | Status |
+|---------|---------|--------|
+| **Fase 4 Secure** | `0x030353642B936c9D4213caD7BcB0fB8a1489cBe5` | **ACTIVE** -- deployed 2026-02-13 |
+| Fase 3 Clean | `0xd5149049e7c212ce5436a9581b4307EB9595df95` | DEPRECATED (refund vulnerability) |
+| Fase 3 v1 | `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6` | LEGACY |
+| Fase 2 | `0xb9635f544665758019159c04c08a3d583dadd723` | LEGACY |
+
+Fase 4 Secure Operator verified on-chain:
+- `REFUND_IN_ESCROW_CONDITION` = `StaticAddressCondition(Facilitator)` -- only Facilitator can refund
+- `RELEASE_CONDITION` = `OrCondition(Payer|Facilitator)` -- either can release
 
 ---
 
 ## Invariants Verified
 
-- [x] All 3 transactions are distinct on-chain TXs with unique hashes
+- [x] All 4 transactions are distinct on-chain TXs with unique hashes
 - [x] Escrow lock amount = bounty + fee ($0.113)
 - [x] Worker receives exactly the bounty amount ($0.100)
 - [x] Treasury receives exactly the fee amount ($0.013)
 - [x] Worker + Fee = Escrow lock amount ($0.113)
 - [x] All TXs executed by Facilitator (gasless for agent and worker)
-- [x] Clean PaymentOperator used (no on-chain operator fee, feeCalculator=address(0))
+- [x] Fase 4 Secure Operator used (Facilitator-only refund, no on-chain operator fee)
 - [x] USDC transfers use EIP-3009 (gasless authorization)
 - [x] Platform wallet is transit only (receives from escrow, immediately disburses)
+- [x] Worker has ERC-8004 identity (Agent #17333)
+- [x] Agent-to-worker rating: fixed to target worker's agent ID (not EM's)
+- [ ] Worker-to-agent rating: blocked by on-chain self-feedback (pending ownership transfer)
 
 ---
 
-## Architecture Notes
+## Next Steps
 
-### Payment Flow (Fase 2)
-
-1. **Task Creation**: Agent creates task via API. Server calls Facilitator to lock `bounty * 1.13` in on-chain escrow via the clean PaymentOperator.
-2. **Task Lifecycle**: Worker applies -> Agent assigns -> Worker submits evidence.
-3. **Approval**: Agent approves submission. Server:
-   - Releases escrow via Facilitator (funds go to platform wallet)
-   - Signs EIP-3009 auth for worker disbursement ($bounty -> Worker)
-   - Signs EIP-3009 auth for fee collection ($fee -> Treasury)
-   - Facilitator executes both transfers (gasless)
-
-### Why 3 Separate Transactions
-
-The escrow releases 100% to the platform wallet. The platform then executes 2 separate EIP-3009 transfers: one for the worker bounty and one for the treasury fee. This design:
-
-- Allows flexible fee splitting without on-chain fee calculators
-- Keeps the on-chain escrow simple (single release target)
-- Enables future changes to fee structure without redeploying contracts
-- Each transfer is independently verifiable on BaseScan
-
-### Clean PaymentOperator
-
-The PaymentOperator `0xd514...df95` is configured with:
-- `feeCalculator = address(0)` -- no on-chain operator fee
-- `releaseCondition = OrCondition(Payer|Facilitator)` -- payer OR Facilitator can release
-- `refundCondition = OrCondition(Payer|Facilitator)` -- payer OR Facilitator can refund
-- Fee splitting handled entirely in Python backend
-
----
-
-## Conclusion
-
-The Execution Market payment pipeline is fully operational on Base Mainnet with Fase 2 (on-chain escrow). The 13% platform fee split between Worker ($0.10) and Treasury ($0.013) is verified with 3 independent on-chain transactions, all gasless via the x402r Facilitator.
+1. **Deploy fix** -- CI/CD triggered by commit `37ec118` (in progress)
+2. **Re-run Golden Flow** -- Verify Bug 1 (rate_worker) and Bug 2 (rate_agent 403) are fixed
+3. **IRC with Facilitator team** -- Resolve Issue 3: transfer Agent 2106 ownership from Facilitator to platform wallet
+4. **Final Golden Flow** -- After ownership transfer, all 7 phases should PASS

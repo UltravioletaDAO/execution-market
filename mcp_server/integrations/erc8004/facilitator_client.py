@@ -775,6 +775,40 @@ async def rate_worker(
         except Exception as exc:
             logger.warning("Could not resolve worker ERC-8004 agent ID: %s", exc)
 
+    # Fallback: check on-chain identity if DB lookup failed
+    if not target_agent_id and worker_address:
+        try:
+            from integrations.erc8004.identity import check_worker_identity
+
+            onchain = await check_worker_identity(worker_address)
+            if onchain.agent_id:
+                target_agent_id = onchain.agent_id
+                logger.info(
+                    "Resolved worker %s on-chain -> agent %d (DB was empty)",
+                    worker_address[:10],
+                    target_agent_id,
+                )
+                # Best-effort: persist to DB for future lookups
+                try:
+                    from integrations.erc8004.identity import update_executor_identity
+
+                    exec_result = (
+                        db.get_client()
+                        .table("executors")
+                        .select("id")
+                        .ilike("wallet_address", worker_address.lower())
+                        .limit(1)
+                        .execute()
+                    )
+                    if exec_result.data:
+                        await update_executor_identity(
+                            exec_result.data[0]["id"], target_agent_id
+                        )
+                except Exception:
+                    pass
+        except Exception as exc:
+            logger.warning("On-chain identity check failed: %s", exc)
+
     if not target_agent_id:
         return FeedbackResult(
             success=False,

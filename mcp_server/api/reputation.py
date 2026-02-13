@@ -446,16 +446,48 @@ async def register_agent_endpoint(
         recipient=request.recipient,
     )
 
+    agent_id = result.get("agentId")
+    success = result.get("success", False)
+
     logger.info(
         "SECURITY_AUDIT action=identity.register network=%s agent_id=%s success=%s",
         request.network,
-        result.get("agentId"),
-        result.get("success"),
+        agent_id,
+        success,
     )
 
+    # Persist agent_id to executors table so downstream operations
+    # (rate_worker, rate_agent) can find the worker's ERC-8004 identity.
+    if success and agent_id and request.recipient:
+        try:
+            from integrations.erc8004.identity import update_executor_identity
+
+            addr_lower = request.recipient.lower()
+            executor_result = (
+                db.get_client()
+                .table("executors")
+                .select("id")
+                .ilike("wallet_address", addr_lower)
+                .limit(1)
+                .execute()
+            )
+            if executor_result.data:
+                executor_id = executor_result.data[0]["id"]
+                await update_executor_identity(executor_id, int(agent_id))
+                logger.info(
+                    "Persisted erc8004_agent_id=%s for executor %s (wallet %s)",
+                    agent_id,
+                    executor_id,
+                    addr_lower[:10],
+                )
+        except Exception as exc:
+            logger.warning(
+                "Could not persist erc8004_agent_id after registration: %s", exc
+            )
+
     return RegisterAgentResponse(
-        success=result.get("success", False),
-        agent_id=result.get("agentId"),
+        success=success,
+        agent_id=agent_id,
         transaction=result.get("transaction"),
         transfer_transaction=result.get("transferTransaction"),
         owner=result.get("owner"),
