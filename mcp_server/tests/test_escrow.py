@@ -411,7 +411,7 @@ class TestReleaseWithPlatformFee:
     """Test that release deducts platform fee correctly."""
 
     @pytest.mark.asyncio
-    async def test_release_deducts_8_percent_fee(
+    async def test_release_deducts_platform_fee(
         self,
         escrow_manager,
         mock_x402_client,

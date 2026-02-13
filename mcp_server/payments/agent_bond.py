@@ -89,7 +89,7 @@ class TaskTypeConfig:
 TASK_TYPE_MINIMUMS: Dict[TaskType, TaskTypeConfig] = {
     TaskType.SIMPLE: TaskTypeConfig(
         task_type=TaskType.SIMPLE,
-        min_bounty_usd=Decimal("0.75"),  # To achieve $0.50 net after 8% fee
+        min_bounty_usd=Decimal("0.75"),  # To achieve ~$0.50 net after 13% fee
         min_net_payout_usd=Decimal("0.50"),
         description="Simple digital tasks (data entry, screenshots)",
     ),

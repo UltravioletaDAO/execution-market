@@ -300,7 +300,7 @@ async def create_task(
     """
     logger.info(f"\n[CREATE] Creating task with bounty ${bounty_usd}...")
 
-    # Calculate fee (8%)
+    # Calculate fee (13%)
     fee_pct = Decimal("0.13")
     total_usd = bounty_usd * (1 + fee_pct)
     logger.info(f"[CREATE] Total with fee: ${total_usd} ({fee_pct * 100}% fee)")

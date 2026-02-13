@@ -362,10 +362,10 @@ async def test_partial_release_calculation(check_enabled):
 
     test_cases = [
         # (bounty, expected_partial, expected_final)
-        (Decimal("10.00"), Decimal("2.76"), Decimal("6.44")),
-        # Worker payout = 10 - 0.80 = 9.20
-        # Partial = 9.20 * 0.30 = 2.76
-        # Final = 9.20 * 0.70 = 6.44
+        (Decimal("10.00"), Decimal("2.61"), Decimal("6.09")),
+        # Worker payout = 10 - 1.30 = 8.70
+        # Partial = 8.70 * 0.30 = 2.61
+        # Final = 8.70 * 0.70 = 6.09
     ]
 
     for bounty, expected_partial, expected_final in test_cases:

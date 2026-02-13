@@ -89,8 +89,8 @@ class MockMCPClient:
                 "success": True,
                 "verdict": params["verdict"],
                 "payment_released": params["verdict"] == "accepted",
-                "worker_payment": 9.20 if params["verdict"] == "accepted" else 0,
-                "platform_fee": 0.80 if params["verdict"] == "accepted" else 0,
+                "worker_payment": 8.70 if params["verdict"] == "accepted" else 0,
+                "platform_fee": 1.30 if params["verdict"] == "accepted" else 0,
             }
 
         return {"error": f"Unknown tool: {tool_name}"}

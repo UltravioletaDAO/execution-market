@@ -37,7 +37,7 @@ class WorkerToolsConfig:
     min_withdrawal_usdc: float = 5.0
 
     # Platform fee percentage (deducted on withdrawal)
-    platform_fee_percent: float = 8.0
+    platform_fee_percent: float = 13.0
 
     # Gas estimate for withdrawals (in USDC)
     estimated_gas_usdc: float = 0.50
