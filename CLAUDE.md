@@ -386,18 +386,7 @@ Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t em-d
 **Reference:** See `docs/planning/PAYMENT_ARCHITECTURE.md` for examples of all diagram types.
 
 
-## Operational State (as of 2026-02-06)
-
-### Deployment Details
-
-| Service | URL | ECR Repo | ECS Service |
-|---------|-----|----------|-------------|
-| Dashboard | `execution.market` | `em-production-dashboard:latest` | `em-production-cluster` / `em-production-dashboard` |
-| MCP Server | `mcp.execution.market` | `em-production-mcp-server:latest` | `em-production-cluster` / `em-production-mcp-server` |
-
-**Current ECS Task Definition Revisions** (as of 2026-02-06):
-- MCP Server: revision 24 (5 env vars + 12 secrets — added EM_ENABLED_NETWORKS=base,base-sepolia)
-- Dashboard: revision 12
+## Operational State (as of 2026-02-13)
 
 **CRITICAL: ECS Image Tag Rules**
 - Always use the `:latest` tag for all images. ECS task definitions MUST reference `:latest`.
@@ -463,19 +452,6 @@ Wrong Flow (DO NOT USE):
 | **Network** | Base Mainnet (chain 8453) for production payments |
 | **ERC-8004 Networks** | 15 total: 9 mainnets + 6 testnets (all via Facilitator) |
 
-**Contract Addresses (Base Mainnet)**:
-
-| Contract | Address |
-|----------|---------|
-| USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
-| x402r Escrow | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
-| DepositRelayFactory | `0x41Cc4D337FEC5E91ddcf4C363700FC6dB5f3A814` |
-| Deposit Relay (our wallet) | `0xe8CCF8Be24867cf21b4031fB1A5226932483EAF3` |
-| Vault | `0x0b3fC8BA8952C6cA6807F667894b0b7c9c40fc8b` |
-| Agent Wallet (dev) | `YOUR_DEV_WALLET` |
-| Agent Wallet (production/ECS) | `YOUR_PLATFORM_WALLET` |
-| Execution Market Treasury | `YOUR_TREASURY_WALLET` |
-
 **Wallet Roles (CRITICAL — read this before touching payments)**:
 - **Dev wallet** (`0x857f`): Used by local scripts and tests. Key in `.env.local`.
 - **Platform wallet** (`0xD386`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`. **This is the settlement transit point** — agent funds settle here at approval, then immediately disburse to worker (87%) + treasury (13%). No funds should accumulate here long-term.
@@ -518,17 +494,7 @@ Wrong Flow (DO NOT USE):
 - **Layer 2:** `PaymentOperator` — per-config contract with pluggable conditions (who can authorize/release/refund)
 - **Layer 3:** `Facilitator` — off-chain server, pays gas, enforces business logic
 
-**Deployed PaymentOperators (Base Mainnet):**
-
-| Contract | Address | TX | Status |
-|----------|---------|-----|--------|
-| **PaymentOperator (Fase 3)** | `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6` | `0x23c14f3a...` | **ACTIVE** |
-| OrCondition(Payer\|Facilitator) | `0xb365717C35004089996F72939b0C5b32Fa2ef8aE` | `0xa26fb85c...` | Fase 3 |
-| StaticFeeCalculator(100bps) | `0xB422A41aae5aFCb150249228eEfCDcd54f1FD987` | `0xe6d55b2c...` | Fase 3 |
-| StaticAddressCondition(Facilitator) | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` | `0xb5b2f36f...` | Fase 2 |
-| PaymentOperator (Fase 2) | `0xb9635f544665758019159c04c08a3d583dadd723` | `0xba9fdeaf...` | Legacy (keep for old tasks) |
-
-**Fase 3 Operator config:** OR(Payer, Facilitator) release/refund, 1% on-chain operator fee (100 BPS via StaticFeeCalculator to EM treasury), UsdcTvlLimit authorize condition, no escrow period, no freeze.
+**>>> IMPORTANT: Active Fase 3 Clean Operator** (`0xd5149049e7c212ce5436a9581b4307EB9595df95` on Base): OR(Payer|Facilitator) release/refund, **feeCalculator=address(0) — NO on-chain operator fee**. All contract addresses in the On-Chain Contracts table above. Old operators (Fase 3 v1 at `0x8D3D...`, Fase 2 at `0xb963...`) are legacy — keep for historical tasks only.
 
 **Deployment script:** `scripts/deploy-payment-operator.ts` — deploys via x402r factory contracts. Use `--fase3` flag.
 
@@ -627,24 +593,9 @@ When creating test tasks:
 
 ### ERC-8004 Identity
 
-| Field | Value |
-|-------|-------|
-| Agent ID (Base) | **2106** (production, tx `0xd28908e1...`) |
-| Agent ID (Sepolia) | 469 (legacy) |
-| Identity Registry (Mainnets) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
-| Identity Registry (Testnets) | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
-| Reputation Registry (Mainnets) | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
-| Facilitator Registration | `POST /register` (gasless, facilitator pays gas) |
-| Facilitator Reputation API | `POST /feedback`, `GET /reputation/{network}/{agentId}` |
+Agent ID **2106** on Base (production). Registry addresses in On-Chain Contracts table above. Registration and reputation via Facilitator (`POST /register`, `POST /feedback`) — gasless.
 
-**Supported ERC-8004 Networks (14)**:
-- Mainnets: ethereum, base, polygon, arbitrum, celo, bsc, monad, avalanche, optimism
-- Testnets: ethereum-sepolia, base-sepolia, polygon-amoy, arbitrum-sepolia, celo-sepolia, avalanche-fuji
-
-**Facilitator Network Naming** (v1.29.0+):
-- All endpoints now use consistent names derived from the `Network` enum: `"base"`, `"polygon"`, `"ethereum"`, etc.
-- Our code keeps `"base-mainnet"` as alias for backward compatibility: `ERC8004_CONTRACTS["base-mainnet"] = ERC8004_CONTRACTS["base"]`
-- Identity lookups use `ownerOf()` (ERC-721 standard) — non-existent agents return 404
+**Supported ERC-8004 Networks (15)**: 9 mainnets (ethereum, base, polygon, arbitrum, celo, bsc, monad, avalanche, optimism) + 6 testnets (ethereum-sepolia, base-sepolia, polygon-amoy, arbitrum-sepolia, celo-sepolia, avalanche-fuji). Network naming uses `Network` enum: `"base"`, `"polygon"`, etc. Our code keeps `"base-mainnet"` as alias.
 
 ### Complete URL Map
 
