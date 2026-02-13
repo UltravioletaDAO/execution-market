@@ -83,12 +83,19 @@ except ImportError:
     EscrowPaymentInfo = None  # type: ignore[assignment,misc]
     TaskTier = None  # type: ignore[assignment,misc]
 
-# EM PaymentOperator address (Base Mainnet). Fase 3: OR(Payer|Facilitator) + 1% on-chain fee.
+# EM PaymentOperator address (Base Mainnet). Fase 3 Clean: OR(Payer|Facilitator), no operator fee.
+# Only x402r ProtocolFeeConfig (controlled by BackTrack) can take on-chain fees.
 # Override via env var when deploying operators on additional chains.
-# Legacy Fase 2 operator: 0xb9635f544665758019159c04c08a3d583dadd723 (keep for old tasks)
+# Legacy: 0x8D3D...c2E6 (fase3 w/1% fee), 0xb963...d723 (fase2)
 EM_OPERATOR = os.environ.get(
-    "EM_PAYMENT_OPERATOR", "0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6"
+    "EM_PAYMENT_OPERATOR", "0xd5149049e7c212ce5436a9581b4307EB9595df95"
 )
+
+# On-chain protocol fee (in basis points) that x402r deducts when releasing escrow.
+# Fase 2 uses 0 (feeCalculator=address(0)). Fase 3 will set this to 100 (1%).
+# This is used to compute how much the platform wallet actually receives after escrow
+# release, so that treasury disbursement does not attempt to send more than available.
+X402R_ON_CHAIN_FEE_BPS = int(os.environ.get("X402R_ON_CHAIN_FEE_BPS", "0"))
 
 
 # =============================================================================
@@ -125,6 +132,45 @@ def _extract_tx_hash(response: Any) -> Optional[str]:
                 return val
 
     return None
+
+
+def _compute_treasury_remainder(
+    bounty_amount: Decimal, total_locked: Decimal
+) -> Decimal:
+    """
+    Compute the treasury fee as the remainder after paying the worker.
+
+    Treasury receives whatever is left in the platform wallet after the worker
+    gets their full bounty. This naturally handles any on-chain protocol fee
+    deduction from x402r — if the escrow takes a cut, the treasury amount
+    shrinks accordingly instead of the transfer failing.
+
+    Args:
+        bounty_amount: The worker's bounty (they always get this in full).
+        total_locked: The total amount originally locked in escrow
+                      (bounty + platform fee).
+
+    Returns:
+        The amount to send to treasury (>= 0, quantized to 6 decimals).
+    """
+    on_chain_fee_rate = Decimal(X402R_ON_CHAIN_FEE_BPS) / Decimal(10000)
+    total_received = total_locked * (Decimal("1") - on_chain_fee_rate)
+    treasury_amount = (total_received - bounty_amount).quantize(Decimal("0.000001"))
+
+    # Ensure non-negative (safety: if on-chain fee is unexpectedly high)
+    if treasury_amount < Decimal("0"):
+        logger.warning(
+            "Treasury remainder is negative (%.6f). On-chain fee may have exceeded "
+            "platform fee margin. Setting treasury to 0.",
+            treasury_amount,
+        )
+        treasury_amount = Decimal("0")
+
+    # Apply minimum fee ($0.01) if non-zero
+    if Decimal("0") < treasury_amount < Decimal("0.01"):
+        treasury_amount = Decimal("0.01")
+
+    return treasury_amount
 
 
 _cached_platform_address: Optional[str] = None
@@ -891,12 +937,14 @@ class PaymentDispatcher:
                 "error": worker_result.get("error", "Worker disbursement failed"),
             }
 
-        # Step 3: Collect platform fee (non-blocking — worker already paid)
-        platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(
-            Decimal("0.000001")
-        )
-        if Decimal("0") < platform_fee < Decimal("0.01"):
-            platform_fee = Decimal("0.01")
+        # Step 3: Collect platform fee (non-blocking — worker already paid).
+        # Treasury receives the remainder after worker payment. This naturally
+        # handles any on-chain protocol fee deduction from x402r — if the escrow
+        # contract takes a cut, the treasury amount shrinks accordingly instead
+        # of the transfer failing due to insufficient funds.
+        total_locked = bounty_amount * (Decimal("1") + PLATFORM_FEE_PERCENT)
+        total_locked = total_locked.quantize(Decimal("0.000001"))
+        platform_fee = _compute_treasury_remainder(bounty_amount, total_locked)
 
         fee_tx = None
         fee_error = None
@@ -1169,12 +1217,14 @@ class PaymentDispatcher:
                 "error": worker_result.get("error", "Worker disbursement failed"),
             }
 
-        # Step 4: Collect platform fee (non-blocking — worker already paid)
-        platform_fee = (bounty_amount * PLATFORM_FEE_PERCENT).quantize(
-            Decimal("0.000001")
-        )
-        if Decimal("0") < platform_fee < Decimal("0.01"):
-            platform_fee = Decimal("0.01")
+        # Step 4: Collect platform fee (non-blocking — worker already paid).
+        # Treasury receives the remainder after worker payment. This naturally
+        # handles any on-chain protocol fee deduction from x402r — if the escrow
+        # contract takes a cut, the treasury amount shrinks accordingly instead
+        # of the transfer failing due to insufficient funds.
+        total_locked = bounty_amount * (Decimal("1") + PLATFORM_FEE_PERCENT)
+        total_locked = total_locked.quantize(Decimal("0.000001"))
+        platform_fee = _compute_treasury_remainder(bounty_amount, total_locked)
 
         fee_tx = None
         fee_error = None
