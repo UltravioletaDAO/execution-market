@@ -29,6 +29,12 @@ EM_PAYMENT_MODE = os.environ.get(
     "EM_PAYMENT_MODE", "fase1"
 )  # "fase1" (default), "preauth", or "x402r"
 
+# Escrow release mode: controls whether escrow releases to platform wallet (legacy)
+# or directly to worker (trustless).
+# "platform_release" (default): escrow receiver = platform wallet, then platform disburses
+# "direct_release": escrow receiver = worker wallet, 1-TX release, fee collected separately
+EM_ESCROW_MODE = os.environ.get("EM_ESCROW_MODE", "platform_release")
+
 # --- x402r backend (advanced escrow) ---
 try:
     from integrations.x402.advanced_escrow_integration import (
@@ -339,12 +345,25 @@ class PaymentDispatcher:
                 self.mode,
             )
 
+        # Escrow release mode: "platform_release" (legacy) or "direct_release" (trustless)
+        self.escrow_mode = os.environ.get("EM_ESCROW_MODE", EM_ESCROW_MODE).lower()
+        if self.escrow_mode not in ("platform_release", "direct_release"):
+            logger.warning(
+                "Unknown EM_ESCROW_MODE '%s', falling back to 'platform_release'",
+                self.escrow_mode,
+            )
+            self.escrow_mode = "platform_release"
+
         # Lazy-initialized backend instances
         self._escrow: Optional[Any] = None
         self._sdk: Optional[Any] = None
         self._fase2_clients: Dict[int, Any] = {}  # chain_id → AdvancedEscrowClient
 
-        logger.info("PaymentDispatcher initialized: mode=%s", self.mode)
+        logger.info(
+            "PaymentDispatcher initialized: mode=%s, escrow_mode=%s",
+            self.mode,
+            self.escrow_mode,
+        )
 
     def _get_escrow(self) -> "EMAdvancedEscrow":
         """Lazy-init the x402r escrow backend."""
@@ -848,6 +867,528 @@ class PaymentDispatcher:
             "payment_info": pi,
             "payment_info_serialized": payment_info_serialized,
             "payer_address": client.payer,
+            "error": None,
+        }
+
+    # =========================================================================
+    # Trustless Direct Release (EM_ESCROW_MODE=direct_release)
+    # =========================================================================
+
+    async def authorize_escrow_for_worker(
+        self,
+        task_id: str,
+        agent_address: str,
+        worker_address: str,
+        bounty_usdc: Decimal,
+        network: Optional[str] = None,
+        token: str = "USDC",
+    ) -> Dict[str, Any]:
+        """
+        Lock bounty in escrow with worker as direct receiver (trustless).
+
+        Only the bounty is locked in escrow. Platform fee is collected
+        separately via EIP-3009 at the same time (not through escrow).
+        If x402r protocol fee is active, we over-lock so worker receives
+        exactly the bounty after protocol deduction.
+
+        Args:
+            task_id: Task identifier.
+            agent_address: Agent's wallet address (payer).
+            worker_address: Worker's wallet address (escrow receiver).
+            bounty_usdc: The bounty amount the worker should receive.
+            network: Payment network (default: base).
+            token: Payment token (default: USDC).
+
+        Returns:
+            Dict with success, tx_hash, escrow_status, fee_tx_hash, etc.
+        """
+        network = network or "base"
+        client = self._get_fase2_client(network)
+
+        # Read protocol fee dynamically — if active, over-lock so worker
+        # gets exact bounty after protocol deduction.
+        protocol_fee_bps = await _get_protocol_fee_bps()
+        if protocol_fee_bps > 0:
+            # lock_amount = bounty / (1 - protocol_fee_rate)
+            protocol_rate = Decimal(protocol_fee_bps) / Decimal(10000)
+            lock_amount = (bounty_usdc / (Decimal("1") - protocol_rate)).quantize(
+                Decimal("0.000001")
+            )
+        else:
+            lock_amount = bounty_usdc
+
+        # Convert to atomic units (6 decimals for USDC)
+        config = NETWORK_CONFIG.get(network, {})
+        decimals = 6
+        for t_info in (config.get("tokens", {}).get(token, {}),):
+            if t_info:
+                decimals = t_info.get("decimals", 6)
+        amount_atomic = int(lock_amount * Decimal(10**decimals))
+
+        # Determine tier from bounty
+        tier = TaskTier.MICRO
+        if bounty_usdc >= Decimal("100"):
+            tier = TaskTier.ENTERPRISE
+        elif bounty_usdc >= Decimal("25"):
+            tier = TaskTier.PREMIUM
+        elif bounty_usdc >= Decimal("5"):
+            tier = TaskTier.STANDARD
+
+        # Build PaymentInfo with WORKER as receiver (trustless)
+        pi = await asyncio.to_thread(
+            client.build_payment_info,
+            receiver=worker_address,
+            amount=amount_atomic,
+            tier=tier,
+            max_fee_bps=0,  # No operator fee — worker gets full amount
+        )
+
+        logger.info(
+            "trustless: Built PaymentInfo for task %s: receiver=%s, amount=%d, "
+            "bounty=%s, protocol_fee_bps=%d",
+            task_id,
+            worker_address[:10],
+            amount_atomic,
+            bounty_usdc,
+            protocol_fee_bps,
+        )
+
+        # Authorize (lock funds) via facilitator — gasless
+        auth_result = await asyncio.to_thread(client.authorize, pi)
+
+        if not auth_result.success:
+            await log_payment_event(
+                task_id=task_id,
+                event_type="escrow_authorize",
+                status="failed",
+                amount_usdc=lock_amount,
+                network=network,
+                token=token,
+                error=auth_result.error,
+                metadata={
+                    "mode": "fase2",
+                    "escrow_mode": "direct_release",
+                    "receiver": worker_address,
+                },
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+                "escrow_status": "authorize_failed",
+                "payment_info": None,
+                "payment_info_serialized": None,
+                "error": f"Escrow authorize failed: {auth_result.error}",
+            }
+
+        escrow_tx = auth_result.transaction_hash
+
+        # Serialize PaymentInfo for DB persistence
+        payment_info_serialized = {
+            "mode": "fase2",
+            "escrow_mode": "direct_release",
+            "operator": pi.operator,
+            "receiver": pi.receiver,
+            "token": pi.token,
+            "max_amount": pi.max_amount,
+            "pre_approval_expiry": pi.pre_approval_expiry,
+            "authorization_expiry": pi.authorization_expiry,
+            "refund_expiry": pi.refund_expiry,
+            "min_fee_bps": pi.min_fee_bps,
+            "max_fee_bps": pi.max_fee_bps,
+            "fee_receiver": pi.fee_receiver,
+            "salt": pi.salt,
+            "chain_id": client.chain_id,
+            "network": network,
+            "worker_address": worker_address,
+            "bounty_usdc": str(bounty_usdc),
+            "lock_amount_usdc": str(lock_amount),
+            "protocol_fee_bps": protocol_fee_bps,
+        }
+
+        await log_payment_event(
+            task_id=task_id,
+            event_type="escrow_authorize",
+            status="success",
+            tx_hash=escrow_tx,
+            from_address=agent_address,
+            to_address=worker_address,
+            amount_usdc=lock_amount,
+            network=network,
+            token=token,
+            metadata={
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+                "bounty": str(bounty_usdc),
+                "salt": pi.salt[:18],
+                "protocol_fee_bps": protocol_fee_bps,
+            },
+        )
+
+        logger.info(
+            "trustless: Bounty locked in escrow: task=%s, receiver=%s, "
+            "lock_amount=%s, bounty=%s, tx=%s",
+            task_id,
+            worker_address[:10],
+            lock_amount,
+            bounty_usdc,
+            escrow_tx,
+        )
+
+        # Collect platform fee from agent via EIP-3009 (separate from escrow)
+        platform_fee = (bounty_usdc * PLATFORM_FEE_PERCENT).quantize(
+            Decimal("0.000001")
+        )
+        if platform_fee < Decimal("0.01"):
+            platform_fee = Decimal("0.01")
+
+        fee_tx_hash = None
+        fee_error = None
+        if platform_fee > 0:
+            try:
+                sdk = self._get_sdk()
+                fee_result = await sdk.collect_platform_fee(
+                    fee_amount=platform_fee,
+                    task_id=task_id,
+                    network=network,
+                    token=token,
+                )
+                fee_tx_hash = fee_result.get("tx_hash")
+                if fee_result.get("success"):
+                    await log_payment_event(
+                        task_id=task_id,
+                        event_type="collect_fee",
+                        status="success",
+                        tx_hash=fee_tx_hash,
+                        from_address=agent_address,
+                        to_address=_get_platform_address(),
+                        amount_usdc=platform_fee,
+                        network=network,
+                        token=token,
+                        metadata={
+                            "mode": "fase2",
+                            "escrow_mode": "direct_release",
+                            "step": "upfront_fee",
+                        },
+                    )
+                    logger.info(
+                        "trustless: Platform fee collected: task=%s, fee=%s, tx=%s",
+                        task_id,
+                        platform_fee,
+                        fee_tx_hash,
+                    )
+                else:
+                    fee_error = fee_result.get("error", "Fee collection failed")
+                    logger.error(
+                        "trustless: Fee collection failed for task %s: %s",
+                        task_id,
+                        fee_error,
+                    )
+            except Exception as e:
+                fee_error = str(e)
+                logger.error(
+                    "trustless: Fee collection exception for task %s: %s",
+                    task_id,
+                    e,
+                )
+
+        return {
+            "success": True,
+            "tx_hash": escrow_tx,
+            "fee_tx_hash": fee_tx_hash,
+            "fee_error": fee_error,
+            "mode": "fase2",
+            "escrow_mode": "direct_release",
+            "escrow_status": "deposited",
+            "payment_info": pi,
+            "payment_info_serialized": payment_info_serialized,
+            "payer_address": client.payer,
+            "worker_address": worker_address,
+            "bounty_usdc": str(bounty_usdc),
+            "lock_amount_usdc": str(lock_amount),
+            "platform_fee_usdc": str(platform_fee),
+            "protocol_fee_bps": protocol_fee_bps,
+            "error": None,
+        }
+
+    async def release_direct_to_worker(
+        self,
+        task_id: str,
+        network: Optional[str] = None,
+        token: str = "USDC",
+    ) -> Dict[str, Any]:
+        """
+        Release escrow directly to worker. Single TX, fully trustless.
+
+        The escrow was created with worker as receiver, so release sends
+        funds directly to worker. No disburse step needed. No fee step
+        needed (fee was collected upfront at authorize time).
+
+        Args:
+            task_id: Task identifier.
+            network: Payment network.
+            token: Payment token.
+
+        Returns:
+            Dict with success, release_tx_hash, method, etc.
+        """
+        network = network or "base"
+
+        # Reconstruct PaymentInfo from DB
+        pi, pi_meta = await self._reconstruct_fase2_state(task_id)
+        if pi is None:
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+                "error": (
+                    f"Cannot release task {task_id}: escrow payment state not found. "
+                    "The payment_info metadata may be missing from the escrows table."
+                ),
+            }
+
+        stored_network = pi_meta.get("network", network)
+        client = self._get_fase2_client(stored_network)
+
+        # Single TX: release from escrow directly to worker via facilitator
+        logger.info(
+            "trustless: Releasing escrow for task %s directly to worker via facilitator...",
+            task_id,
+        )
+        release_result = await asyncio.to_thread(client.release_via_facilitator, pi)
+
+        if not release_result.success:
+            await log_payment_event(
+                task_id=task_id,
+                event_type="escrow_release",
+                status="failed",
+                network=stored_network,
+                token=token,
+                error=release_result.error,
+                metadata={"mode": "fase2", "escrow_mode": "direct_release"},
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+                "error": f"Escrow release failed: {release_result.error}",
+            }
+
+        release_tx = release_result.transaction_hash
+        worker_address = pi_meta.get("worker_address", pi.receiver)
+        bounty_usdc = pi_meta.get("bounty_usdc", "0")
+
+        await log_payment_event(
+            task_id=task_id,
+            event_type="escrow_release",
+            status="released_to_worker",
+            tx_hash=release_tx,
+            to_address=worker_address,
+            amount_usdc=Decimal(str(bounty_usdc)),
+            network=stored_network,
+            token=token,
+            metadata={
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+                "method": "direct_release",
+            },
+        )
+
+        logger.info(
+            "trustless: Escrow released directly to worker: task=%s, worker=%s, tx=%s",
+            task_id,
+            worker_address[:10] if worker_address else "?",
+            release_tx,
+        )
+
+        return {
+            "success": True,
+            "tx_hash": release_tx,
+            "escrow_release_tx": release_tx,
+            "fee_tx_hash": None,
+            "fee_status": "collected_upfront",
+            "mode": "fase2",
+            "escrow_mode": "direct_release",
+            "method": "direct_release",
+            "worker_paid": True,
+            "net_to_worker": float(Decimal(str(bounty_usdc))),
+            "error": None,
+        }
+
+    async def refund_trustless_escrow(
+        self,
+        task_id: str,
+        reason: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Refund a trustless escrow (direct_release mode).
+
+        Escrow refund returns bounty to agent (standard facilitator refund).
+        Additionally, if platform fee was collected upfront, refund it from
+        platform wallet to agent via EIP-3009.
+
+        Args:
+            task_id: Task identifier.
+            reason: Reason for refund.
+
+        Returns:
+            Dict with success, tx_hash, fee_refund_tx, etc.
+        """
+        # Reconstruct PaymentInfo from DB
+        pi, pi_meta = await self._reconstruct_fase2_state(task_id)
+        if pi is None:
+            logger.info(
+                "trustless: No escrow state for task %s — treating as no-op refund",
+                task_id,
+            )
+            await log_payment_event(
+                task_id=task_id,
+                event_type="escrow_refund",
+                status="success",
+                metadata={
+                    "mode": "fase2",
+                    "escrow_mode": "direct_release",
+                    "method": "no_escrow_found",
+                    "reason": reason,
+                },
+            )
+            return {
+                "success": True,
+                "tx_hash": None,
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+                "status": "no_escrow_found",
+                "error": None,
+            }
+
+        stored_network = pi_meta.get("network", "base")
+        client = self._get_fase2_client(stored_network)
+
+        # Step 1: Refund escrow via facilitator — bounty returns to agent
+        logger.info(
+            "trustless: Refunding escrow for task %s via facilitator...", task_id
+        )
+        refund_result = await asyncio.to_thread(client.refund_via_facilitator, pi)
+
+        if not refund_result.success:
+            await log_payment_event(
+                task_id=task_id,
+                event_type="escrow_refund",
+                status="failed",
+                network=stored_network,
+                error=refund_result.error,
+                metadata={
+                    "mode": "fase2",
+                    "escrow_mode": "direct_release",
+                    "reason": reason,
+                },
+            )
+            return {
+                "success": False,
+                "tx_hash": None,
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+                "status": "refund_failed",
+                "error": f"Escrow refund failed: {refund_result.error}",
+            }
+
+        escrow_tx = refund_result.transaction_hash
+        await log_payment_event(
+            task_id=task_id,
+            event_type="escrow_refund",
+            status="success",
+            tx_hash=escrow_tx,
+            from_address=pi.receiver,
+            to_address=client.payer,
+            network=stored_network,
+            metadata={
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+                "reason": reason,
+            },
+        )
+
+        logger.info("trustless: Escrow refunded for task %s, tx=%s", task_id, escrow_tx)
+
+        # Step 2: Refund platform fee from platform wallet to agent
+        fee_refund_tx = None
+        fee_refund_error = None
+        platform_fee_str = pi_meta.get("platform_fee_usdc") or pi_meta.get(
+            "lock_amount_usdc"
+        )
+        # Try to compute fee from bounty stored in metadata
+        bounty_str = pi_meta.get("bounty_usdc")
+        if bounty_str:
+            platform_fee = (Decimal(str(bounty_str)) * PLATFORM_FEE_PERCENT).quantize(
+                Decimal("0.000001")
+            )
+            if platform_fee < Decimal("0.01"):
+                platform_fee = Decimal("0.01")
+        elif platform_fee_str:
+            platform_fee = Decimal(str(platform_fee_str))
+        else:
+            platform_fee = Decimal("0")
+
+        if platform_fee > 0:
+            try:
+                sdk = self._get_sdk()
+                agent_address = client.payer
+                # Use disburse_to_worker as generic EIP-3009 transfer
+                refund_fee_result = await sdk.disburse_to_worker(
+                    worker_address=agent_address,
+                    amount_usdc=platform_fee,
+                    task_id=f"{task_id}_fee_refund",
+                    network=stored_network,
+                )
+                fee_refund_tx = refund_fee_result.get("tx_hash")
+                if refund_fee_result.get("success"):
+                    await log_payment_event(
+                        task_id=task_id,
+                        event_type="refund_fee",
+                        status="success",
+                        tx_hash=fee_refund_tx,
+                        from_address=_get_platform_address(),
+                        to_address=agent_address,
+                        amount_usdc=platform_fee,
+                        network=stored_network,
+                        metadata={
+                            "mode": "fase2",
+                            "escrow_mode": "direct_release",
+                            "reason": reason,
+                        },
+                    )
+                    logger.info(
+                        "trustless: Fee refunded to agent: task=%s, fee=%s, tx=%s",
+                        task_id,
+                        platform_fee,
+                        fee_refund_tx,
+                    )
+                else:
+                    fee_refund_error = refund_fee_result.get(
+                        "error", "Fee refund failed"
+                    )
+                    logger.error(
+                        "trustless: Fee refund failed for task %s: %s",
+                        task_id,
+                        fee_refund_error,
+                    )
+            except Exception as e:
+                fee_refund_error = str(e)
+                logger.error(
+                    "trustless: Fee refund exception for task %s: %s", task_id, e
+                )
+
+        return {
+            "success": True,
+            "tx_hash": escrow_tx,
+            "fee_refund_tx": fee_refund_tx,
+            "fee_refund_error": fee_refund_error,
+            "mode": "fase2",
+            "escrow_mode": "direct_release",
+            "status": "refunded",
             "error": None,
         }
 
@@ -2035,6 +2576,7 @@ class PaymentDispatcher:
         """Return dispatcher configuration and backend availability."""
         info: Dict[str, Any] = {
             "mode": self.mode,
+            "escrow_mode": self.escrow_mode,
             "x402r_available": ADVANCED_ESCROW_AVAILABLE,
             "fase2_available": FASE2_SDK_AVAILABLE,
             "preauth_available": SDK_AVAILABLE,
