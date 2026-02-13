@@ -2,7 +2,7 @@
 
 > **Every Transaction. Every Flow. Every Proof.**
 > Base Mainnet | February 11-13, 2026
-> Agent #2106 | 40+ on-chain transactions | Zero gas paid by users
+> Agent #2106 | 28+ on-chain transactions | Zero gas paid by users
 > Clean PaymentOperator: `0xd5149049e7c212ce5436a9581b4307EB9595df95`
 
 ---
@@ -14,6 +14,7 @@
 | **Agent #2106** | `0xD3868E1eD738CED6945A574a7c769433BeD5d474` | The AI agent. Runs on ECS. Posts bounties, reviews submissions, pays workers. Production wallet. |
 | **Dev Agent** | `0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd` | Same agent, local testing wallet. Used for escrow E2E tests. |
 | **Worker** | `0xcedc02fd261dbf27d47608ea3be6da7a6fa7595d` | A human worker. Signs up, does tasks, gets paid. |
+| **Test Worker** | `0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15` | Dedicated test worker wallet. Receives bounties in escrow E2E tests. Distinct from Treasury to prove fee separation on-chain. |
 | **Treasury** | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` | The platform's cold wallet (Ledger). Receives the 13% fee. |
 | **Facilitator** | `0x103040545AC5031A11E8C03dd11324C7333a13C7` | The invisible hand. Pays ALL gas. Relays ALL transactions. Nobody else spends a cent on gas. |
 | **USDC** | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | The money. Circle's stablecoin on Base. 6 decimals. |
@@ -56,11 +57,11 @@ If the Facilitator disappears tomorrow, every agent can still release or refund 
 
 ## Chapter 2: The Happy Path (Clean Operator)
 
-### "Lock $0.002, release 100% to the receiver. Zero fee."
+### "Lock $0.002, release 100% to the test worker. Zero fee."
 
-*February 13, 2026 — 16:19 UTC*
+*February 13, 2026 — 17:19 UTC*
 
-The first E2E test with the clean operator. A tiny amount — $0.002 — but it proves the architecture.
+The definitive E2E test with the clean operator. The receiver is a **dedicated test worker wallet** (`0x52E0...5A15`) — distinct from the Treasury — so the USDC transfer on BaseScan unambiguously shows: "this money went to the worker, not the fee collector."
 
 **Step 1 — Lock funds in escrow (AUTHORIZE)**
 
@@ -68,23 +69,24 @@ The Dev Agent signs an EIP-3009 authorization. The Facilitator calls `authorize(
 
 | Field | Value |
 |-------|-------|
-| **TX** | [`0x72de9c1372eaf3c7a75b24fda0864800fd4b42ca025f5ca51290cbfc26d5d243`](https://basescan.org/tx/0x72de9c1372eaf3c7a75b24fda0864800fd4b42ca025f5ca51290cbfc26d5d243) |
-| **Block** | 42,105,113 |
-| **Time** | 2026-02-13 16:19:33 UTC |
+| **TX** | [`0x699a3c0d92e526d2539fc9fb360783ecbf6b1805eeec435d2e97af2fac31dd15`](https://basescan.org/tx/0x699a3c0d92e526d2539fc9fb360783ecbf6b1805eeec435d2e97af2fac31dd15) |
+| **Block** | 42,106,298 |
+| **Time** | 2026-02-13 17:19:04 UTC |
 | **From** | Facilitator `0x1030...13C7` (pays gas) |
 | **To** | PaymentOperator `0xd514...df95` |
 | **Method** | `authorize(PaymentInfo, signature)` |
 | **Amount locked** | 2,000 USDC atomic ($0.002) |
-| **Gas** | 213,932 gas = 0.000004299 ETH (**$0.009**) |
+| **Payer** | Dev Agent `0x857f...43Cd` |
+| **Receiver** | Test Worker `0x52E0...5A15` |
 
 **Token flow (2 hops):**
 
 | # | From | To | Amount |
 |---|------|----|--------|
 | 1 | Dev Agent `0x857f...` | TokenCollector `0x48AD...` | 2,000 ($0.002) |
-| 2 | TokenCollector `0x48AD...` | TokenStore clone `0x3f52...` | 2,000 ($0.002) |
+| 2 | TokenCollector `0x48AD...` | TokenStore clone | 2,000 ($0.002) |
 
-The $0.002 is now locked in a minimal proxy contract. Neither the agent, the platform, nor the Facilitator can spend it arbitrarily. It can only be released to the designated receiver or refunded to the payer.
+The $0.002 is now locked in a minimal proxy contract. Neither the agent, the platform, nor the Facilitator can spend it arbitrarily. It can only be released to the designated receiver (test worker) or refunded to the payer (dev agent).
 
 **Step 2 — Query escrow state**
 
@@ -93,35 +95,34 @@ The $0.002 is now locked in a minimal proxy contract. Neither the agent, the pla
   "hasCollectedPayment": true,
   "capturableAmount": "2000",
   "refundableAmount": "0",
-  "paymentInfoHash": "0xfd852bb7...11828c"
+  "paymentInfoHash": "0xb4086bf6...1602"
 }
 ```
 
 Confirmed: 2,000 USDC atomic units locked and capturable.
 
-**Step 3 — Release to receiver (CAPTURE)**
+**Step 3 — Release to test worker (CAPTURE)**
 
-The Facilitator calls `release()` on the PaymentOperator. The escrow sends the full amount to the receiver.
+The Facilitator calls `release()` on the PaymentOperator. The escrow sends the full amount to the test worker.
 
 | Field | Value |
 |-------|-------|
-| **TX** | [`0x0e40dcffbd204596dc3386938bcd7c44fff41348eb8b03820802edd58f4d6675`](https://basescan.org/tx/0x0e40dcffbd204596dc3386938bcd7c44fff41348eb8b03820802edd58f4d6675) |
-| **Block** | 42,105,115 |
-| **Time** | 2026-02-13 16:19:37 UTC |
+| **TX** | [`0x21efe2edebe624ec3e3f4542efe99e5d4551e3066452743be691b8082b1e9856`](https://basescan.org/tx/0x21efe2edebe624ec3e3f4542efe99e5d4551e3066452743be691b8082b1e9856) |
+| **Block** | 42,106,300 |
+| **Time** | 2026-02-13 17:19:08 UTC |
 | **From** | Facilitator `0x1030...13C7` (pays gas) |
 | **To** | PaymentOperator `0xd514...df95` |
 | **Method** | `release(PaymentInfo, captureAmount)` |
-| **Gas** | 145,657 gas = 0.000002917 ETH (**$0.006**) |
 
 **Token transfer (1 transfer — zero fee):**
 
 | # | From | To | Amount |
 |---|------|----|--------|
-| 1 | TokenStore `0x3f52...` | Treasury `0xae07...` | **2,000 ($0.002)** |
+| 1 | TokenStore clone | **Test Worker `0x52E0...5A15`** | **2,000 ($0.002)** |
 
-**That's it. One transfer. 100% to the receiver. Zero fee deducted on-chain.**
+**That's it. One transfer. 100% to the test worker. Zero fee deducted on-chain.**
 
-The `fee` parameter in the release call was explicitly `0`. The AuthCaptureEscrow capture event confirms `fee = 0`. No secondary transfer to any fee recipient.
+The `fee` parameter in the release call was explicitly `0`. The AuthCaptureEscrow capture event confirms `fee = 0`. No secondary transfer to any fee recipient. No USDC went to Treasury `0xae07...` in this transaction.
 
 **Step 4 — Verify final state**
 
@@ -133,14 +134,7 @@ The `fee` parameter in the release call was explicitly `0`. The AuthCaptureEscro
 }
 ```
 
-Escrow is empty. Funds delivered. `hasCollectedPayment: true` confirmed.
-
-**Timeline:**
-
-| Time (UTC) | Event | Duration |
-|------------|-------|----------|
-| 16:19:33 | Authorize TX confirmed | — |
-| 16:19:37 | Release TX confirmed | **4 seconds** after authorize |
+Escrow is empty. Test worker received the full $0.002. `hasCollectedPayment: true` confirmed.
 
 ```mermaid
 sequenceDiagram
@@ -148,10 +142,10 @@ sequenceDiagram
     participant F as Facilitator 0x1030
     participant OP as PaymentOperator 0xd514
     participant ESC as AuthCaptureEscrow 0xb948
-    participant TS as TokenStore 0x3f52
-    participant R as Receiver 0xae07
+    participant TS as TokenStore clone
+    participant W as Test Worker 0x52E0
 
-    Note over A,R: AUTHORIZE — Lock $0.002 in escrow
+    Note over A,W: AUTHORIZE — Lock $0.002 in escrow
 
     A->>A: Sign EIP-3009 auth
     F->>OP: authorize(paymentInfo, signature)
@@ -159,13 +153,13 @@ sequenceDiagram
     ESC->>TS: USDC: Agent → TokenStore ($0.002)
     Note over TS: Funds LOCKED
 
-    Note over A,R: RELEASE — 100% to receiver, 0% fee
+    Note over A,W: RELEASE — 100% to test worker, 0% fee
 
     F->>OP: release(paymentInfo, 2000)
     OP->>OP: check releaseCondition (OR: Payer|Facilitator) ✓
     OP->>ESC: capture(paymentInfo, 2000, fee=0)
-    ESC->>TS: USDC: TokenStore → Receiver ($0.002)
-    Note over R: Received 100% — $0.002
+    ESC->>TS: USDC: TokenStore → Test Worker ($0.002)
+    Note over W: Received 100% — $0.002
     Note over OP: feeCalculator=address(0) → ZERO fee
 ```
 
@@ -175,21 +169,22 @@ sequenceDiagram
 
 ### "Lock $0.002, refund 100% back to the agent."
 
-*February 13, 2026 — 16:21 UTC*
+*February 13, 2026 — 17:20 UTC*
 
-Same clean operator, different outcome. This time the agent cancels.
+Same clean operator, same test worker as receiver in the PaymentInfo, but this time the agent cancels. The refund goes back to the **payer** (Dev Agent), not to the receiver.
 
 **Step 1 — Lock funds**
 
 | Field | Value |
 |-------|-------|
-| **TX** | [`0xbd8bf489c0d3134efb3fe7f512a229047ea0ff7d388a94fe309af6155a6c9e8f`](https://basescan.org/tx/0xbd8bf489c0d3134efb3fe7f512a229047ea0ff7d388a94fe309af6155a6c9e8f) |
-| **Block** | 42,105,168 |
-| **Time** | 2026-02-13 16:21:23 UTC |
+| **TX** | [`0x7dfb11b463bcd6b0fbb4cfb40e0ec6ba5bca3e3dc53a1b1eddceed5e70506c3e`](https://basescan.org/tx/0x7dfb11b463bcd6b0fbb4cfb40e0ec6ba5bca3e3dc53a1b1eddceed5e70506c3e) |
+| **Block** | ~42,106,340 |
+| **Time** | 2026-02-13 17:20:21 UTC |
 | **Amount** | 2,000 USDC atomic ($0.002) |
-| **Gas** | 193,988 gas = 0.000003707 ETH (**$0.008**) |
+| **Payer** | Dev Agent `0x857f...43Cd` |
+| **Receiver** | Test Worker `0x52E0...5A15` (in PaymentInfo — won't receive funds on refund) |
 
-Same two-hop token flow as the release test. Funds locked in TokenStore clone `0x3f52...`.
+Same two-hop token flow as the release test. Funds locked in a TokenStore clone.
 
 **Step 2 — Escrow state confirmed**
 
@@ -204,20 +199,19 @@ Same two-hop token flow as the release test. Funds locked in TokenStore clone `0
 
 | Field | Value |
 |-------|-------|
-| **TX** | [`0x4f13f8e2c005788be9a0fec94760af77867b9efa7d508048d7a4344061652050`](https://basescan.org/tx/0x4f13f8e2c005788be9a0fec94760af77867b9efa7d508048d7a4344061652050) |
-| **Block** | 42,105,173 |
-| **Time** | 2026-02-13 16:21:33 UTC |
+| **TX** | [`0x1893fdba0ae84f5e94420da5dfbc2f8f17e8313e6c38f0d218b8b81ebf6bd94a`](https://basescan.org/tx/0x1893fdba0ae84f5e94420da5dfbc2f8f17e8313e6c38f0d218b8b81ebf6bd94a) |
+| **Block** | ~42,106,344 |
+| **Time** | 2026-02-13 17:20:28 UTC |
 | **From** | Facilitator `0x1030...13C7` |
 | **Method** | `refundInEscrow(PaymentInfo, amount)` |
-| **Gas** | 93,714 gas = 0.000001785 ETH (**$0.004**) |
 
 **Token transfer (1 transfer — full refund):**
 
 | # | From | To | Amount |
 |---|------|----|--------|
-| 1 | TokenStore `0x3f52...` | Dev Agent `0x857f...` | **2,000 ($0.002)** |
+| 1 | TokenStore | **Dev Agent `0x857f...43Cd`** | **2,000 ($0.002)** |
 
-**100% returned. Zero fee. Zero penalty.** On refund, the `feeCalculator` is never invoked — funds always return in full.
+**100% returned to the payer. Zero fee. Zero penalty.** On refund, the `feeCalculator` is never invoked — funds always return in full. The test worker `0x52E0...` receives nothing (they didn't earn it).
 
 **Step 4 — Final state**
 
@@ -228,7 +222,7 @@ Same two-hop token flow as the release test. Funds locked in TokenStore clone `0
 }
 ```
 
-Escrow is empty. Agent got their money back. **10 seconds** from lock to refund.
+Escrow is empty. Agent got their money back. **~7 seconds** from lock to refund.
 
 ```mermaid
 sequenceDiagram
@@ -236,21 +230,24 @@ sequenceDiagram
     participant F as Facilitator 0x1030
     participant OP as PaymentOperator 0xd514
     participant ESC as AuthCaptureEscrow 0xb948
-    participant TS as TokenStore 0x3f52
+    participant TS as TokenStore clone
+    participant W as Test Worker 0x52E0
 
-    Note over A,TS: AUTHORIZE — Lock $0.002
+    Note over A,W: AUTHORIZE — Lock $0.002 (receiver=Test Worker)
 
+    A->>A: Sign EIP-3009 auth
     F->>OP: authorize(paymentInfo, signature)
     OP->>ESC: lock USDC in TokenStore
     Note over TS: $0.002 LOCKED
 
-    Note over A,TS: REFUND — Agent wants out
+    Note over A,W: REFUND — Agent cancels (worker gets nothing)
 
     F->>OP: refundInEscrow(paymentInfo, 2000)
     OP->>OP: check refundCondition (OR: Payer|Facilitator) ✓
     OP->>ESC: partialVoid(paymentInfo, 2000)
     ESC->>TS: USDC: TokenStore → Agent ($0.002)
     Note over A: Got back 100% — $0.002
+    Note over W: Received $0.00 — task was cancelled
     Note over OP: No fee on refund. Never.
 ```
 
@@ -298,7 +295,7 @@ Both operators return 100% on refund. No difference here.
 | Operator | TX | Amount returned | Fee |
 |----------|----|----------------|-----|
 | Old `0x8D3D` | [`0xb7709f83...`](https://basescan.org/tx/0xb7709f8339aa90ddf8dc327aa4b20a50ecf322d974ff0003bc55a6dc903c3725) | 2,000 (100%) | 0 |
-| New `0xd514` | [`0x4f13f8e2...`](https://basescan.org/tx/0x4f13f8e2c005788be9a0fec94760af77867b9efa7d508048d7a4344061652050) | 2,000 (100%) | 0 |
+| New `0xd514` | [`0x1893fdba...`](https://basescan.org/tx/0x1893fdba0ae84f5e94420da5dfbc2f8f17e8313e6c38f0d218b8b81ebf6bd94a) | 2,000 (100%) | 0 |
 
 ### On-Chain Configuration (Verified via `cast call`)
 
@@ -530,7 +527,7 @@ Disbursement:
 |-----------|--------------|---------------|----------|
 | **Authorize** (lock funds) | NO | NO | [TX `0x72de9c13...`](https://basescan.org/tx/0x72de9c1372eaf3c7a75b24fda0864800fd4b42ca025f5ca51290cbfc26d5d243) — full amount locked |
 | **Release** (pay worker) | Only if feeCalc ≠ 0 | Only if protocolFee ≠ 0 | [TX `0x0e40dcff...`](https://basescan.org/tx/0x0e40dcffbd204596dc3386938bcd7c44fff41348eb8b03820802edd58f4d6675) — 0% fee |
-| **Refund** (return to agent) | **NEVER** | **NEVER** | [TX `0x4f13f8e2...`](https://basescan.org/tx/0x4f13f8e2c005788be9a0fec94760af77867b9efa7d508048d7a4344061652050) — 100% back |
+| **Refund** (return to agent) | **NEVER** | **NEVER** | [TX `0x1893fdba...`](https://basescan.org/tx/0x1893fdba0ae84f5e94420da5dfbc2f8f17e8313e6c38f0d218b8b81ebf6bd94a) — 100% back |
 
 Fees only apply on the happy path (release). Cancellations and refunds are always free.
 
@@ -575,6 +572,10 @@ Fees only apply on the happy path (release). Cancellations and refunds are alway
 | E12 | **Feb 13 16:19** | `0x0e40dcff...` | **Release (0% fee)** | **Clean `0xd514`** | **$0.002** | [View](https://basescan.org/tx/0x0e40dcffbd204596dc3386938bcd7c44fff41348eb8b03820802edd58f4d6675) |
 | E13 | **Feb 13 16:21** | `0xbd8bf489...` | **Lock (clean refund)** | **Clean `0xd514`** | $0.002 | [View](https://basescan.org/tx/0xbd8bf489c0d3134efb3fe7f512a229047ea0ff7d388a94fe309af6155a6c9e8f) |
 | E14 | **Feb 13 16:21** | `0x4f13f8e2...` | **Refund (100% back)** | **Clean `0xd514`** | **$0.002** | [View](https://basescan.org/tx/0x4f13f8e2c005788be9a0fec94760af77867b9efa7d508048d7a4344061652050) |
+| E15 | **Feb 13 17:19** | `0x699a3c0d...` | **Lock (test worker release)** | **Clean `0xd514`** | $0.002 | [View](https://basescan.org/tx/0x699a3c0d92e526d2539fc9fb360783ecbf6b1805eeec435d2e97af2fac31dd15) |
+| E16 | **Feb 13 17:19** | `0x21efe2ed...` | **Release → Test Worker (0% fee)** | **Clean `0xd514`** | **$0.002** | [View](https://basescan.org/tx/0x21efe2edebe624ec3e3f4542efe99e5d4551e3066452743be691b8082b1e9856) |
+| E17 | **Feb 13 17:20** | `0x7dfb11b4...` | **Lock (test worker refund)** | **Clean `0xd514`** | $0.002 | [View](https://basescan.org/tx/0x7dfb11b463bcd6b0fbb4cfb40e0ec6ba5bca3e3dc53a1b1eddceed5e70506c3e) |
+| E18 | **Feb 13 17:20** | `0x1893fdba...` | **Refund → Dev Agent (100%)** | **Clean `0xd514`** | **$0.002** | [View](https://basescan.org/tx/0x1893fdba0ae84f5e94420da5dfbc2f8f17e8313e6c38f0d218b8b81ebf6bd94a) |
 
 #### Direct Payments (EIP-3009)
 
@@ -596,13 +597,27 @@ Fees only apply on the happy path (release). Cancellations and refunds are alway
 
 ### Gas Costs (Clean Operator E2E, Feb 13)
 
+**Round 1** (receiver = Treasury — for internal testing):
+
 | TX | Operation | Gas Used | Fee (ETH) | Fee (USD) |
 |----|-----------|----------|-----------|-----------|
-| `0x72de9c13...` | Authorize (release test) | 213,932 | 0.000004299 | $0.009 |
-| `0x0e40dcff...` | Release (0% fee) | 145,657 | 0.000002917 | $0.006 |
-| `0xbd8bf489...` | Authorize (refund test) | 193,988 | 0.000003707 | $0.008 |
-| `0x4f13f8e2...` | Refund (100% back) | 93,714 | 0.000001785 | $0.004 |
-| **Total** | | **647,291** | **0.000012708** | **$0.027** |
+| `0x72de9c13...` (E11) | Authorize (release test) | 213,932 | 0.000004299 | $0.009 |
+| `0x0e40dcff...` (E12) | Release (0% fee) | 145,657 | 0.000002917 | $0.006 |
+| `0xbd8bf489...` (E13) | Authorize (refund test) | 193,988 | 0.000003707 | $0.008 |
+| `0x4f13f8e2...` (E14) | Refund (100% back) | 93,714 | 0.000001785 | $0.004 |
+| **Subtotal** | | **647,291** | **0.000012708** | **$0.027** |
+
+**Round 2** (receiver = **Test Worker `0x52E0...`** — proving worker/treasury separation):
+
+| TX | Operation | Gas Used | Fee (ETH) | Fee (USD) |
+|----|-----------|----------|-----------|-----------|
+| `0x699a3c0d...` (E15) | Authorize (release test) | ~214,000 | ~0.000004300 | ~$0.009 |
+| `0x21efe2ed...` (E16) | Release → Test Worker (0% fee) | ~146,000 | ~0.000002920 | ~$0.006 |
+| `0x7dfb11b4...` (E17) | Authorize (refund test) | ~194,000 | ~0.000003710 | ~$0.008 |
+| `0x1893fdba...` (E18) | Refund → Dev Agent (100%) | ~94,000 | ~0.000001790 | ~$0.004 |
+| **Subtotal** | | **~648,000** | **~0.000012720** | **~$0.027** |
+
+| **Grand Total (8 TXs)** | | **~1,295,000** | **~0.000025428** | **~$0.054** |
 
 All gas paid by the Facilitator. Agent gas cost: **$0.00**.
 
@@ -610,11 +625,11 @@ All gas paid by the Facilitator. Agent gas cost: **$0.00**.
 
 | Category | TX Count | USDC Moved | Gas Paid by Users |
 |----------|----------|-----------|-------------------|
-| Escrow operations | 14 | ~$0.66 locked/released | $0.00 |
+| Escrow operations | 18 | ~$0.67 locked/released | $0.00 |
 | Direct payments | 3 | $0.16 | $0.00 |
 | Identity (ERC-8004) | 2 | $0.00 | $0.00 |
 | Reputation (ERC-8004) | 5 unique + 2 dupes | $0.00 | $0.00 |
-| **Total** | **~24** | **~$0.82** | **$0.00** |
+| **Total** | **~28** | **~$0.83** | **$0.00** |
 
 ---
 
@@ -685,14 +700,14 @@ graph TD
 | **Fase 1** | N/A | Balance check + direct settlement | Production | Ch. 5 (TXs P1, P2) |
 | **Fase 2** | `0xb963` | Escrow lock + facilitator-only release | Production | Ch. 5 (TXs E1-E7, P3) |
 | **Fase 3 (1% fee)** | `0x8D3D` | OR conditions + 1% operator fee | Tested, **replaced** | Ch. 4 (TXs E8-E10) |
-| **Fase 3 Clean** | **`0xd514`** | OR conditions + 0% operator fee | **Active** | Ch. 2-3 (TXs E11-E14) |
+| **Fase 3 Clean** | **`0xd514`** | OR conditions + 0% operator fee | **Active** | Ch. 2-3 (TXs E15-E18, with dedicated test worker) |
 
 ### Flows Verified End-to-End
 
 | # | Flow | Evidence | Status |
 |---|------|----------|--------|
-| 1 | **Escrow lock + release (0% fee)** | [E11](https://basescan.org/tx/0x72de9c1372eaf3c7a75b24fda0864800fd4b42ca025f5ca51290cbfc26d5d243) + [E12](https://basescan.org/tx/0x0e40dcffbd204596dc3386938bcd7c44fff41348eb8b03820802edd58f4d6675) | **PASS** |
-| 2 | **Escrow lock + refund (100% back)** | [E13](https://basescan.org/tx/0xbd8bf489c0d3134efb3fe7f512a229047ea0ff7d388a94fe309af6155a6c9e8f) + [E14](https://basescan.org/tx/0x4f13f8e2c005788be9a0fec94760af77867b9efa7d508048d7a4344061652050) | **PASS** |
+| 1 | **Escrow lock + release to Test Worker (0% fee)** | [E15](https://basescan.org/tx/0x699a3c0d92e526d2539fc9fb360783ecbf6b1805eeec435d2e97af2fac31dd15) + [E16](https://basescan.org/tx/0x21efe2edebe624ec3e3f4542efe99e5d4551e3066452743be691b8082b1e9856) | **PASS** |
+| 2 | **Escrow lock + refund to Dev Agent (100% back)** | [E17](https://basescan.org/tx/0x7dfb11b463bcd6b0fbb4cfb40e0ec6ba5bca3e3dc53a1b1eddceed5e70506c3e) + [E18](https://basescan.org/tx/0x1893fdba0ae84f5e94420da5dfbc2f8f17e8313e6c38f0d218b8b81ebf6bd94a) | **PASS** |
 | 3 | **Old operator 1% fee visible** | [E9](https://basescan.org/tx/0x06e85fb2bcf28ab2606fed13073bf4e98c5cc1b471c2c43ad109099fea22ae54) — 20/2000 units to operator | **PASS** (proven, then replaced) |
 | 4 | **Full lifecycle (create → pay)** | [E7](https://basescan.org/tx/0x97f6b4f75f0dbb5855201bc13f846398391f5283dd0a70d6e1e119428ae1d412) + [P3](https://basescan.org/tx/0xabd0138f9faba740a01a151f7d8cbc8e749c74516f4ebdd2ecfbdfd7b91380fc) | **PASS** |
 | 5 | **Cancel path (lock → refund)** | [E5](https://basescan.org/tx/0xbe6b229d894cc92e270d7dd8633d885c7ab1676e76922db476575687b6d89168) | **PASS** |
@@ -707,14 +722,15 @@ graph TD
 
 1. **Zero gas for users** — Every TX has `from: 0x1030...` (Facilitator). Users never pay gas.
 2. **Worker gets full bounty** — Fee is additional, never deducted from the bounty amount.
-3. **Cancel = full refund** — Agent gets bounty + fee back. No penalty. No fee.
-4. **Reject = funds stay locked** — Task returns to pool. Money doesn't move.
-5. **Release with clean operator = 0% on-chain fee** — Single USDC transfer, 100% to receiver.
-6. **Refund always returns 100%** — Regardless of operator fee config. Proven on both old and new operators.
-7. **Trustless release/refund** — OR(Payer, Facilitator) condition verified on-chain. Agent can act without Facilitator.
-8. **On-chain reputation** — Every approval AND rejection leaves a permanent, verifiable trace on ERC-8004.
-9. **Gasless identity** — Workers get ERC-8004 NFTs without spending a cent.
-10. **x402r protocol fee mechanism ready** — ProtocolFeeConfig exists at 0% with 7-day timelock. When activated, our math handles it automatically.
+3. **Worker and Treasury are distinct on-chain** — Release TX [E16](https://basescan.org/tx/0x21efe2edebe624ec3e3f4542efe99e5d4551e3066452743be691b8082b1e9856) sends funds to Test Worker `0x52E0...`, NOT to Treasury `0xae07...`. Provably different recipients.
+4. **Cancel = full refund** — Agent gets bounty + fee back. No penalty. No fee.
+5. **Reject = funds stay locked** — Task returns to pool. Money doesn't move.
+6. **Release with clean operator = 0% on-chain fee** — Single USDC transfer, 100% to receiver.
+7. **Refund always returns 100%** — Regardless of operator fee config. Proven on both old and new operators.
+8. **Trustless release/refund** — OR(Payer, Facilitator) condition verified on-chain. Agent can act without Facilitator.
+9. **On-chain reputation** — Every approval AND rejection leaves a permanent, verifiable trace on ERC-8004.
+10. **Gasless identity** — Workers get ERC-8004 NFTs without spending a cent.
+11. **x402r protocol fee mechanism ready** — ProtocolFeeConfig exists at 0% with 7-day timelock. When activated, our math handles it automatically.
 
 ---
 
