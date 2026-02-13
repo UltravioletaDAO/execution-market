@@ -12,6 +12,7 @@ All backends go through the Ultravioleta Facilitator and are GASLESS for agents 
 
 import os
 import json
+import time
 import asyncio
 import logging
 import threading
@@ -91,11 +92,91 @@ EM_OPERATOR = os.environ.get(
     "EM_PAYMENT_OPERATOR", "0xd5149049e7c212ce5436a9581b4307EB9595df95"
 )
 
-# On-chain protocol fee (in basis points) that x402r deducts when releasing escrow.
-# Fase 2 uses 0 (feeCalculator=address(0)). Fase 3 will set this to 100 (1%).
-# This is used to compute how much the platform wallet actually receives after escrow
-# release, so that treasury disbursement does not attempt to send more than available.
-X402R_ON_CHAIN_FEE_BPS = int(os.environ.get("X402R_ON_CHAIN_FEE_BPS", "0"))
+# x402r ProtocolFeeConfig contract on Base (singleton, shared by all operators).
+# BackTrack controls this via multisig with 7-day timelock. Max 5% (500 BPS).
+# We read the current protocol fee dynamically so treasury math auto-adjusts.
+PROTOCOL_FEE_CONFIG_ADDRESS = "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6"
+BASE_RPC_URL = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
+
+# Function selectors (precomputed keccak256)
+_SELECTOR_CALCULATOR = "0xce3e39c0"  # calculator()
+_SELECTOR_FEE_BPS = "0xbf333f2c"  # FEE_BPS()
+
+# Cache: {bps: int, expires: float}
+_protocol_fee_cache: Dict[str, Any] = {"bps": 0, "expires": 0.0}
+_CACHE_TTL = 300  # 5 minutes
+
+
+async def _get_protocol_fee_bps() -> int:
+    """Read x402r protocol fee from ProtocolFeeConfig on Base via RPC.
+
+    BackTrack controls this contract (7-day timelock, 5% hard cap).
+    Cached for 5 minutes to avoid spamming RPC.
+    Returns 0 if chain is unreachable (fail-open for treasury).
+    """
+    now = time.time()
+    if now < _protocol_fee_cache["expires"]:
+        return _protocol_fee_cache["bps"]
+
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Step 1: Read calculator() address from ProtocolFeeConfig
+            resp = await client.post(
+                BASE_RPC_URL,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "eth_call",
+                    "params": [
+                        {
+                            "to": PROTOCOL_FEE_CONFIG_ADDRESS,
+                            "data": _SELECTOR_CALCULATOR,
+                        },
+                        "latest",
+                    ],
+                },
+            )
+            result = resp.json().get("result", "0x" + "0" * 64)
+            calculator_addr = "0x" + result[-40:]
+
+            if calculator_addr == "0x" + "0" * 40:
+                # No calculator set -> 0% protocol fee
+                _protocol_fee_cache.update({"bps": 0, "expires": now + _CACHE_TTL})
+                logger.debug("x402r protocol fee: 0 BPS (no calculator set)")
+                return 0
+
+            # Step 2: Read FEE_BPS() from the calculator (StaticFeeCalculator)
+            resp2 = await client.post(
+                BASE_RPC_URL,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "eth_call",
+                    "params": [
+                        {"to": calculator_addr, "data": _SELECTOR_FEE_BPS},
+                        "latest",
+                    ],
+                },
+            )
+            result2 = resp2.json().get("result", "0x0")
+            fee_bps = int(result2, 16) if result2 and result2 != "0x" else 0
+
+            # Cap at 500 (5% max, matching contract's MAX_PROTOCOL_FEE_BPS)
+            fee_bps = min(fee_bps, 500)
+
+            _protocol_fee_cache.update({"bps": fee_bps, "expires": now + _CACHE_TTL})
+            logger.info("x402r protocol fee: %d BPS (read from chain)", fee_bps)
+            return fee_bps
+
+    except Exception as e:
+        logger.warning(
+            "Failed to read protocol fee from chain: %s. Using cached value %d BPS.",
+            e,
+            _protocol_fee_cache.get("bps", 0),
+        )
+        return _protocol_fee_cache.get("bps", 0)
 
 
 # =============================================================================
@@ -135,25 +216,28 @@ def _extract_tx_hash(response: Any) -> Optional[str]:
 
 
 def _compute_treasury_remainder(
-    bounty_amount: Decimal, total_locked: Decimal
+    bounty_amount: Decimal, total_locked: Decimal, on_chain_fee_bps: int = 0
 ) -> Decimal:
     """
     Compute the treasury fee as the remainder after paying the worker.
 
     Treasury receives whatever is left in the platform wallet after the worker
     gets their full bounty. This naturally handles any on-chain protocol fee
-    deduction from x402r — if the escrow takes a cut, the treasury amount
+    deduction from x402r -- if the escrow takes a cut, the treasury amount
     shrinks accordingly instead of the transfer failing.
 
     Args:
         bounty_amount: The worker's bounty (they always get this in full).
         total_locked: The total amount originally locked in escrow
                       (bounty + platform fee).
+        on_chain_fee_bps: Protocol fee in basis points, read dynamically from
+                          ProtocolFeeConfig on Base via ``_get_protocol_fee_bps()``.
+                          Defaults to 0 (no on-chain fee).
 
     Returns:
         The amount to send to treasury (>= 0, quantized to 6 decimals).
     """
-    on_chain_fee_rate = Decimal(X402R_ON_CHAIN_FEE_BPS) / Decimal(10000)
+    on_chain_fee_rate = Decimal(on_chain_fee_bps) / Decimal(10000)
     total_received = total_locked * (Decimal("1") - on_chain_fee_rate)
     treasury_amount = (total_received - bounty_amount).quantize(Decimal("0.000001"))
 
@@ -944,7 +1028,10 @@ class PaymentDispatcher:
         # of the transfer failing due to insufficient funds.
         total_locked = bounty_amount * (Decimal("1") + PLATFORM_FEE_PERCENT)
         total_locked = total_locked.quantize(Decimal("0.000001"))
-        platform_fee = _compute_treasury_remainder(bounty_amount, total_locked)
+        on_chain_bps = await _get_protocol_fee_bps()
+        platform_fee = _compute_treasury_remainder(
+            bounty_amount, total_locked, on_chain_bps
+        )
 
         fee_tx = None
         fee_error = None
@@ -1224,7 +1311,10 @@ class PaymentDispatcher:
         # of the transfer failing due to insufficient funds.
         total_locked = bounty_amount * (Decimal("1") + PLATFORM_FEE_PERCENT)
         total_locked = total_locked.quantize(Decimal("0.000001"))
-        platform_fee = _compute_treasury_remainder(bounty_amount, total_locked)
+        on_chain_bps = await _get_protocol_fee_bps()
+        platform_fee = _compute_treasury_remainder(
+            bounty_amount, total_locked, on_chain_bps
+        )
 
         fee_tx = None
         fee_error = None
