@@ -32,6 +32,9 @@ from .escrow import router as escrow_router
 # Agent authentication (JWT login for dashboard)
 from .agent_auth import router as agent_auth_router
 
+# H2A (Human-to-Agent) marketplace routes
+from .h2a import router as h2a_router
+
 __all__ = [
     # Core routers
     "api_router",
@@ -39,6 +42,7 @@ __all__ = [
     "reputation_router",
     "escrow_router",
     "agent_auth_router",
+    "h2a_router",
     # Auth
     "verify_api_key",
     "get_api_tier",
