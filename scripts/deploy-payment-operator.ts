@@ -4,7 +4,7 @@
  * This script deploys a PaymentOperator via the x402r factory contracts.
  *
  * Fase 2 (default): Facilitator-only release/refund, no protocol fees.
- * Fase 3 (--fase3):  OR(Payer, Facilitator) release/refund + StaticFeeCalculator (1% to BackTrack).
+ * Fase 3 (--fase3):  OR(Payer, Facilitator) release/refund + StaticFeeCalculator (1% operator fee to EM treasury).
  *
  * Usage:
  *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts
@@ -46,8 +46,8 @@ const ADDRESSES = {
   usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944" as Address,
   tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8" as Address,
 
-  // Condition singletons
-  payerCondition: "0x7254b68D7262FE82e0638927C23bBFe3cc3E7E10" as Address,
+  // Condition singletons (verified on-chain — have bytecode)
+  payerCondition: "0x7254b68D1AaAbd118C8A8b15756b4654c10a16d2" as Address,
   receiverCondition: "0x6926c05193c714ED4bA3867Ee93d6816Fdc14128" as Address,
   alwaysTrueCondition: "0xBAF68176FF94CAdD403EF7FbB776bbca548AC09D" as Address,
 
@@ -58,11 +58,12 @@ const ADDRESSES = {
   emTreasury: "YOUR_TREASURY_WALLET" as Address,
 };
 
-// TODO: Get actual address from Ali Abdoli (BackTrack/x402r)
-const BACKTRACK_TREASURY: Address = "0x0000000000000000000000000000000000000000";
-
-// Fase 3: 1% protocol fee to BackTrack (100 basis points)
-const BACKTRACK_FEE_BPS = 100;
+// Fase 3: 1% operator fee (100 basis points)
+// FEE_RECIPIENT is set on the PaymentOperator (already = EM treasury).
+// StaticFeeCalculator only takes feeBps, NOT a recipient address.
+// Ali confirmed: "The configurable fee options are for you not us."
+// BackTrack collects their own fees via ProtocolFeeConfig (currently 0% on Base).
+const OPERATOR_FEE_BPS = 100;
 
 // ============================================================
 // ABIs (minimal, only what we need)
@@ -84,13 +85,13 @@ const PaymentOperatorFactoryABI = parseAbi([
 ]);
 
 const OrConditionFactoryABI = parseAbi([
-  "function deploy(address conditionA, address conditionB) external returns (address)",
-  "function getDeployed(address conditionA, address conditionB) external view returns (address)",
+  "function deploy(address[] conditions) external returns (address)",
+  "function getDeployed(address[] conditions) external view returns (address)",
 ]);
 
 const StaticFeeCalculatorFactoryABI = parseAbi([
-  "function deploy(address feeRecipient, uint16 feeBps) external returns (address)",
-  "function getDeployed(address feeRecipient, uint16 feeBps) external view returns (address)",
+  "function deploy(uint256 feeBps) external returns (address)",
+  "function getDeployed(uint256 feeBps) external view returns (address)",
 ]);
 
 // ============================================================
@@ -121,11 +122,6 @@ async function main() {
   console.log(`Mode:         ${isFase3 ? "Fase 3 — OR(Payer, Facilitator) + StaticFeeCalculator" : "Fase 2 — Facilitator-only"}`);
   console.log(`Dry run:      ${isDryRun}`);
   console.log("");
-
-  if (isFase3 && BACKTRACK_TREASURY === ZERO_ADDRESS) {
-    console.warn("WARNING: BACKTRACK_TREASURY is address(0). Fee revenue will be unclaimable.");
-    console.warn("         Get the real address from Ali Abdoli before deploying to production.\n");
-  }
 
   const publicClient = createPublicClient({
     chain: base,
@@ -257,7 +253,8 @@ async function deployFase3(
   // ============================================================
   // Step 1: Deploy StaticFeeCalculator
   // ============================================================
-  console.log("\n--- Step 1: StaticFeeCalculator(BackTrack, 100bps) ---");
+  console.log(`\n--- Step 1: StaticFeeCalculator(${OPERATOR_FEE_BPS}bps = ${OPERATOR_FEE_BPS / 100}%) ---`);
+  console.log(`  Fee goes to FEE_RECIPIENT on operator (EM treasury ${ADDRESSES.emTreasury})`);
 
   let feeCalculator: Address;
   try {
@@ -265,7 +262,7 @@ async function deployFase3(
       address: ADDRESSES.staticFeeCalculatorFactory,
       abi: StaticFeeCalculatorFactoryABI,
       functionName: "getDeployed",
-      args: [BACKTRACK_TREASURY, BACKTRACK_FEE_BPS],
+      args: [BigInt(OPERATOR_FEE_BPS)],
     });
 
     if (existing && existing !== ZERO_ADDRESS) {
@@ -277,18 +274,16 @@ async function deployFase3(
   } catch {
     if (isDryRun) {
       console.log("DRY RUN: Would deploy StaticFeeCalculator");
-      console.log(`  feeRecipient: ${BACKTRACK_TREASURY}`);
-      console.log(`  feeBps:       ${BACKTRACK_FEE_BPS} (${BACKTRACK_FEE_BPS / 100}%)`);
+      console.log(`  feeBps: ${OPERATOR_FEE_BPS} (${OPERATOR_FEE_BPS / 100}%)`);
       feeCalculator = "0x_DRY_RUN_FEE_CALC" as Address;
     } else {
       console.log("Deploying StaticFeeCalculator...");
-      console.log(`  feeRecipient: ${BACKTRACK_TREASURY}`);
-      console.log(`  feeBps:       ${BACKTRACK_FEE_BPS} (${BACKTRACK_FEE_BPS / 100}%)`);
+      console.log(`  feeBps: ${OPERATOR_FEE_BPS} (${OPERATOR_FEE_BPS / 100}%)`);
       const hash = await walletClient.writeContract({
         address: ADDRESSES.staticFeeCalculatorFactory,
         abi: StaticFeeCalculatorFactoryABI,
         functionName: "deploy",
-        args: [BACKTRACK_TREASURY, BACKTRACK_FEE_BPS],
+        args: [BigInt(OPERATOR_FEE_BPS)],
       });
       console.log(`TX: ${hash}`);
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -298,7 +293,7 @@ async function deployFase3(
         address: ADDRESSES.staticFeeCalculatorFactory,
         abi: StaticFeeCalculatorFactoryABI,
         functionName: "getDeployed",
-        args: [BACKTRACK_TREASURY, BACKTRACK_FEE_BPS],
+        args: [BigInt(OPERATOR_FEE_BPS)],
       });
       console.log(`Deployed at: ${feeCalculator}`);
     }
@@ -309,13 +304,15 @@ async function deployFase3(
   // ============================================================
   console.log("\n--- Step 2: OrCondition(Payer, Facilitator) ---");
 
+  const orConditions: Address[] = [ADDRESSES.payerCondition, ADDRESSES.facilitatorCondition];
+
   let orCondition: Address;
   try {
     const existing = await publicClient.readContract({
       address: ADDRESSES.orConditionFactory,
       abi: OrConditionFactoryABI,
       functionName: "getDeployed",
-      args: [ADDRESSES.payerCondition, ADDRESSES.facilitatorCondition],
+      args: [orConditions],
     });
 
     if (existing && existing !== ZERO_ADDRESS) {
@@ -327,18 +324,18 @@ async function deployFase3(
   } catch {
     if (isDryRun) {
       console.log("DRY RUN: Would deploy OrCondition");
-      console.log(`  conditionA: ${ADDRESSES.payerCondition} (PayerCondition)`);
-      console.log(`  conditionB: ${ADDRESSES.facilitatorCondition} (FacilitatorCondition)`);
+      console.log(`  conditions[0]: ${ADDRESSES.payerCondition} (PayerCondition)`);
+      console.log(`  conditions[1]: ${ADDRESSES.facilitatorCondition} (StaticAddressCondition(Facilitator))`);
       orCondition = "0x_DRY_RUN_OR_COND" as Address;
     } else {
       console.log("Deploying OrCondition...");
-      console.log(`  conditionA: ${ADDRESSES.payerCondition} (PayerCondition)`);
-      console.log(`  conditionB: ${ADDRESSES.facilitatorCondition} (FacilitatorCondition)`);
+      console.log(`  conditions[0]: ${ADDRESSES.payerCondition} (PayerCondition)`);
+      console.log(`  conditions[1]: ${ADDRESSES.facilitatorCondition} (StaticAddressCondition(Facilitator))`);
       const hash = await walletClient.writeContract({
         address: ADDRESSES.orConditionFactory,
         abi: OrConditionFactoryABI,
         functionName: "deploy",
-        args: [ADDRESSES.payerCondition, ADDRESSES.facilitatorCondition],
+        args: [orConditions],
       });
       console.log(`TX: ${hash}`);
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -348,7 +345,7 @@ async function deployFase3(
         address: ADDRESSES.orConditionFactory,
         abi: OrConditionFactoryABI,
         functionName: "getDeployed",
-        args: [ADDRESSES.payerCondition, ADDRESSES.facilitatorCondition],
+        args: [orConditions],
       });
       console.log(`Deployed at: ${orCondition}`);
     }
@@ -360,8 +357,8 @@ async function deployFase3(
   console.log("\n--- Step 3: PaymentOperator (Fase 3) ---");
 
   // Fase 3 operator config:
-  // - feeRecipient: EM treasury (receives EM-level fees)
-  // - feeCalculator: StaticFeeCalculator (1% to BackTrack treasury)
+  // - feeRecipient: EM treasury (receives 1% on-chain operator fee)
+  // - feeCalculator: StaticFeeCalculator (1% = 100 BPS)
   // - authorizeCondition: UsdcTvlLimit (protocol safety)
   // - authorizeRecorder: address(0)
   // - chargeCondition/Recorder: address(0) (not used by EM)
@@ -388,7 +385,7 @@ async function deployFase3(
   };
 
   logOperatorConfig(operatorConfig, {
-    [feeCalculator]: `(StaticFeeCalculator ${BACKTRACK_FEE_BPS}bps)`,
+    [feeCalculator]: `(StaticFeeCalculator ${OPERATOR_FEE_BPS}bps)`,
     [orCondition]: "(OR: Payer | Facilitator)",
     [ADDRESSES.usdcTvlLimit]: "(UsdcTvlLimit)",
     [ADDRESSES.emTreasury]: "(EM Treasury)",
