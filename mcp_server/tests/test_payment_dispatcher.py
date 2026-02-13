@@ -343,14 +343,10 @@ class TestReleasePayment:
         assert result["error"] is not None  # Contains the SDK error message
 
     @pytest.mark.asyncio
-    async def test_x402r_fee_collection_failure_flagged(self):
-        """If fee collection fails, success should be True but fee_collection_error set."""
+    async def test_x402r_release_fee_accrued_not_collected(self):
+        """x402r release should accrue fees (no fee TX), fee_status='accrued'."""
         d = _make_dispatcher(
             "x402r", seed_task_id="task-1", seed_amount=Decimal("10.80")
-        )
-
-        d._sdk.collect_platform_fee = AsyncMock(
-            return_value={"success": False, "error": "Treasury unreachable"}
         )
 
         result = await d.release_payment(
@@ -360,8 +356,9 @@ class TestReleasePayment:
         )
 
         assert result["success"] is True
-        assert result.get("fee_collection_error") is not None
-        assert "treasury" in result["fee_collection_error"].lower()
+        assert result["fee_tx_hash"] is None
+        assert result["fee_status"] == "accrued"
+        assert result["platform_fee"] > 0
 
     @pytest.mark.asyncio
     async def test_preauth_release_requires_payment_header(self):
@@ -1109,7 +1106,7 @@ class TestFase2Flow:
 
     @pytest.mark.asyncio
     async def test_fase2_release_success_full_flow(self):
-        """Fase 2 release should reconstruct state, release escrow, and disburse."""
+        """Fase 2 release should reconstruct state, release escrow, disburse, and accrue fees."""
         d, mock_client = self._make_fase2_dispatcher()
 
         # Mock DB state reconstruction
@@ -1137,7 +1134,9 @@ class TestFase2Flow:
         assert result["mode"] == "fase2"
         assert result["tx_hash"] == "0x" + "c" * 64  # Worker disbursement
         assert result["escrow_release_tx"] == "0x" + "release" * 14
-        assert result["fee_tx_hash"] == "0x" + "d" * 64
+        # Fees are accrued, not collected per-task
+        assert result["fee_tx_hash"] is None
+        assert result["fee_status"] == "accrued"
         assert result["net_to_worker"] == 10.00
         assert result["platform_fee"] == 1.30
 
@@ -1523,3 +1522,156 @@ class TestHelpers:
             if old:
                 os.environ["WALLET_PRIVATE_KEY"] = old
             mod._cached_platform_address = None
+
+
+# ===========================================================================
+# Test: Batch Fee Sweep
+# ===========================================================================
+
+
+class TestBatchFeeSweep:
+    """Tests for get_accrued_fees() and sweep_fees_to_treasury()."""
+
+    def _make_dispatcher_for_sweep(self):
+        """Create a dispatcher with mocked SDK for sweep testing."""
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase1")
+            d._sdk = FakeSDK()
+            d._sdk.check_agent_balance = AsyncMock()
+            d._sdk.collect_platform_fee = AsyncMock()
+            return d
+
+    @pytest.mark.asyncio
+    async def test_get_accrued_fees_success(self):
+        """get_accrued_fees should return balance, sweepable, and accrued totals."""
+        d = self._make_dispatcher_for_sweep()
+        d._sdk.check_agent_balance.return_value = {
+            "balance": "15.50",
+            "sufficient": True,
+        }
+
+        mock_client = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = [
+            {"amount_usdc": 1.30},
+            {"amount_usdc": 0.65},
+            {"amount_usdc": 0.26},
+        ]
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = mock_result
+
+        with (
+            patch(
+                f"{DISPATCHER_MODULE}._get_platform_address",
+                return_value="0xPlatformAddr",
+            ),
+            patch("supabase_client.get_client", return_value=mock_client),
+        ):
+            result = await d.get_accrued_fees()
+
+        assert result["balance_usdc"] == 15.50
+        assert result["safety_buffer_usdc"] == 1.00
+        assert result["sweepable_usdc"] == 14.50
+        assert result["accrued_from_tasks_usdc"] == 2.21
+
+    @pytest.mark.asyncio
+    async def test_get_accrued_fees_low_balance(self):
+        """get_accrued_fees with low balance should show zero sweepable."""
+        d = self._make_dispatcher_for_sweep()
+        d._sdk.check_agent_balance.return_value = {
+            "balance": "0.50",
+            "sufficient": True,
+        }
+
+        mock_client = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = []
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = mock_result
+
+        with (
+            patch(
+                f"{DISPATCHER_MODULE}._get_platform_address",
+                return_value="0xPlatformAddr",
+            ),
+            patch("supabase_client.get_client", return_value=mock_client),
+        ):
+            result = await d.get_accrued_fees()
+
+        assert result["sweepable_usdc"] == 0
+
+    @pytest.mark.asyncio
+    async def test_sweep_fees_success(self):
+        """sweep_fees_to_treasury should execute single TX and mark events as swept."""
+        d = self._make_dispatcher_for_sweep()
+        d._sdk.check_agent_balance.return_value = {
+            "balance": "10.00",
+            "sufficient": True,
+        }
+        d._sdk.collect_platform_fee.return_value = {
+            "success": True,
+            "tx_hash": "0x" + "sweep" * 13,
+        }
+
+        mock_client = MagicMock()
+        mock_update_result = MagicMock()
+        mock_update_result.data = []
+        mock_client.table.return_value.update.return_value.eq.return_value.eq.return_value.execute.return_value = mock_update_result
+
+        with (
+            patch(
+                f"{DISPATCHER_MODULE}._get_platform_address",
+                return_value="0xPlatformAddr",
+            ),
+            patch("supabase_client.get_client", return_value=mock_client),
+        ):
+            result = await d.sweep_fees_to_treasury()
+
+        assert result["success"] is True
+        assert result["amount_swept_usdc"] == 9.0
+        assert result["tx_hash"] is not None
+
+    @pytest.mark.asyncio
+    async def test_sweep_fees_below_minimum(self):
+        """sweep should refuse if amount below $0.10."""
+        d = self._make_dispatcher_for_sweep()
+        d._sdk.check_agent_balance.return_value = {
+            "balance": "1.05",
+            "sufficient": True,
+        }
+
+        with patch(
+            f"{DISPATCHER_MODULE}._get_platform_address",
+            return_value="0xPlatformAddr",
+        ):
+            result = await d.sweep_fees_to_treasury()
+
+        assert result["success"] is False
+        assert "below minimum" in result["error"].lower()
+
+    @pytest.mark.asyncio
+    async def test_sweep_fees_tx_failure(self):
+        """sweep should handle TX failure gracefully."""
+        d = self._make_dispatcher_for_sweep()
+        d._sdk.check_agent_balance.return_value = {
+            "balance": "10.00",
+            "sufficient": True,
+        }
+        d._sdk.collect_platform_fee.return_value = {
+            "success": False,
+            "error": "Nonce too low",
+        }
+
+        with patch(
+            f"{DISPATCHER_MODULE}._get_platform_address",
+            return_value="0xPlatformAddr",
+        ):
+            result = await d.sweep_fees_to_treasury()
+
+        assert result["success"] is False
+        assert result["amount_swept_usdc"] == 0
+        assert "Nonce too low" in result["error"]

@@ -1351,6 +1351,85 @@ async def get_analytics(
 
 
 # =============================================================================
+# FEE MANAGEMENT ENDPOINTS (Batch Fee Collection)
+# =============================================================================
+
+
+@router.get(
+    "/fees/accrued",
+    summary="Get Accrued Fees",
+    description=(
+        "Show accumulated platform fees in the platform wallet awaiting sweep to treasury. "
+        "Fees accrue automatically on each task approval (2-TX flow). "
+        "Use POST /fees/sweep to transfer them to treasury."
+    ),
+    responses={
+        200: {"description": "Accrued fee information"},
+        401: {"description": "Unauthorized"},
+        503: {"description": "Payment system not available"},
+    },
+)
+async def get_accrued_fees(
+    network: str = Query("base", description="Payment network"),
+    token: str = Query("USDC", description="Token symbol"),
+    admin: dict = Depends(verify_admin_key),
+) -> Dict[str, Any]:
+    """Get accumulated fees available for sweep to treasury."""
+    try:
+        from integrations.x402.payment_dispatcher import get_dispatcher
+
+        dispatcher = get_dispatcher()
+        result = await dispatcher.get_accrued_fees(network=network, token=token)
+        return result
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Payment dispatcher not available")
+    except Exception as e:
+        logger.error(f"Error getting accrued fees: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/fees/sweep",
+    summary="Sweep Fees to Treasury",
+    description=(
+        "Transfer accumulated platform fees from platform wallet to treasury. "
+        "Executes a single EIP-3009 transfer. Retains a $1.00 safety buffer in platform wallet. "
+        "Minimum sweep amount: $0.10."
+    ),
+    responses={
+        200: {"description": "Sweep result with tx hash"},
+        401: {"description": "Unauthorized"},
+        503: {"description": "Payment system not available"},
+    },
+)
+async def sweep_fees_to_treasury(
+    network: str = Query("base", description="Payment network"),
+    token: str = Query("USDC", description="Token symbol"),
+    admin: dict = Depends(verify_admin_key),
+) -> Dict[str, Any]:
+    """Sweep accumulated fees from platform wallet to treasury."""
+    try:
+        from integrations.x402.payment_dispatcher import get_dispatcher
+
+        dispatcher = get_dispatcher()
+
+        logger.info(
+            "SECURITY_AUDIT action=admin.fee_sweep actor=%s source=%s network=%s",
+            admin.get("actor_id"),
+            admin.get("auth_source"),
+            network,
+        )
+
+        result = await dispatcher.sweep_fees_to_treasury(network=network, token=token)
+        return result
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Payment dispatcher not available")
+    except Exception as e:
+        logger.error(f"Error sweeping fees: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
 # PAYMENT RETRY ENDPOINTS
 # =============================================================================
 

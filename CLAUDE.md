@@ -303,7 +303,8 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
 | x402r Escrow (AuthCaptureEscrow) | Arbitrum, Avalanche, Celo, Monad, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
-| **EM PaymentOperator (Fase 3 Clean)** | **Base** | **`0xd5149049e7c212ce5436a9581b4307EB9595df95`** |
+| **EM PaymentOperator (Fase 4 Secure)** | **Base** | **`PENDING DEPLOY`** |
+| EM PaymentOperator (Fase 3 Clean, legacy) | Base | `0xd5149049e7c212ce5436a9581b4307EB9595df95` |
 | EM PaymentOperator (Fase 3 v1, legacy) | Base | `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6` |
 | EM PaymentOperator (Fase 2, legacy) | Base | `0xb9635f544665758019159c04c08a3d583dadd723` |
 | StaticAddressCondition(Facilitator) | Base | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` |
@@ -433,7 +434,8 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 
 ### x402 Payment Architecture
 
-**CRITICAL**: Always use the **x402 SDK** (`uvd-x402-sdk`) and the **Ultravioleta Facilitator** for ALL payment operations. Never call contracts directly.
+**>>> CRITICAL — ALWAYS USE SDK + FACILITATOR <<<**
+Always use the **x402 SDK** (`uvd-x402-sdk`) and the **Ultravioleta Facilitator** for ALL payment operations. **NEVER call contracts directly. NEVER send raw transactions to escrow contracts.** If you're writing `contract.functions.` or `cast send` to a payment contract, you're doing it wrong.
 
 ```
 Correct Flow (gasless):
@@ -455,13 +457,13 @@ Wrong Flow (DO NOT USE):
 **Wallet Roles (CRITICAL — read this before touching payments)**:
 - **Dev wallet** (`0x857f`): Used by local scripts and tests. Key in `.env.local`.
 - **Platform wallet** (`0xD386`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`. **This is the settlement transit point** — agent funds settle here at approval, then immediately disburse to worker (87%) + treasury (13%). No funds should accumulate here long-term.
-- **Treasury** (`0xae07`): Cold wallet (Ledger). **ONLY receives 13% platform fee (12% EM + 1% x402r)** on successful task completion. **NEVER a settlement target.** If funds land here during task creation, it's a bug.
+- **Treasury** (`0xae07`): Cold wallet (Ledger). **ONLY receives 13% platform fee** on successful task completion (treasury = remainder after worker payment; absorbs x402r protocol fee automatically). **NEVER a settlement target.** If funds land here during task creation, it's a bug.
 - `EM_SETTLEMENT_ADDRESS` env var (optional): Overrides the platform wallet for settlement. Defaults to address derived from `WALLET_PRIVATE_KEY`.
 - **Testing budget**: Always use amounts **< $0.30** for test tasks. ~$5 per chain must last through all testing cycles.
 
 **Payment Mode** (`EM_PAYMENT_MODE`, default: `fase1`):
 - **`fase1`** (default, production): No auth at task creation — advisory `balanceOf()` check only. At approval, server signs 2 direct EIP-3009 settlements: agent→worker (bounty) + agent→treasury (fee). No intermediary wallet. E2E tested 2026-02-11 ([evidence](docs/planning/FASE1_E2E_EVIDENCE_2026-02-11.md)).
-- **`fase2`** (on-chain escrow, gasless): Locks funds on-chain via AdvancedEscrowClient at task creation. Release/refund via facilitator (gasless). **Fase 3 PaymentOperator on Base: `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6`** (OR(Payer,Facilitator) + 1% on-chain fee). Legacy operator: `0xb9635f...`. E2E tested 2026-02-11 ([evidence](docs/planning/FASE2_E2E_EVIDENCE_2026-02-11.md)). Requires `EM_PAYMENT_OPERATOR` env var.
+- **`fase2`** (on-chain escrow, gasless): Locks funds on-chain via AdvancedEscrowClient at task creation. Release/refund via facilitator (gasless). **Active Fase 3 Clean Operator on Base: `0xd5149049e7c212ce5436a9581b4307EB9595df95`** (OR(Payer,Facilitator), 0% on-chain fee). E2E tested 2026-02-13. Requires `EM_PAYMENT_OPERATOR` env var.
 - **`preauth`** (legacy): Agent signs EIP-3009 auth at creation, stored header settled at approval via 3-step flow through platform wallet.
 - **`x402r`** (deprecated): Settles agent auth + locks funds in on-chain escrow at creation time. **Do not use** — caused fund loss bug.
 
@@ -469,13 +471,14 @@ Wrong Flow (DO NOT USE):
 1. **Balance check** (task creation): `balanceOf(agent)` via RPC — advisory only, task creates regardless. No auth signed, no funds move.
 2. **Direct settlement** (task approval): Server signs 2 fresh EIP-3009 auths → Facilitator settles both: agent→worker (bounty) + agent→treasury (13% fee). No platform wallet intermediary.
 3. **Cancel** (task cancellation): No-op — no auth was ever signed, nothing to refund.
-4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 13% — 12% EM + 1% x402r). Uses 6-decimal USDC precision with $0.01 minimum fee.
+4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 13%). Uses 6-decimal USDC precision with $0.01 minimum fee. Treasury absorbs any x402r protocol fee automatically via `_compute_treasury_remainder()`.
 
-**Payment Flow for Tasks** (Fase 2):
+**Payment Flow for Tasks** (Fase 2 — 2-TX flow, batch fees):
 1. **Authorize** (task creation): Lock bounty+fee in on-chain escrow via facilitator (gasless). PaymentInfo stored in escrows table for state reconstruction.
-2. **Release** (task approval): Gasless release via facilitator (escrow → platform), then disburse to worker + fee to treasury via EIP-3009.
+2. **Release** (task approval): 2 TXs only — (1) gasless release via facilitator (escrow → platform), (2) disburse bounty to worker via EIP-3009. Fee **stays in platform wallet** (accrued, not transferred per-task).
 3. **Refund** (task cancellation): Gasless refund via facilitator — funds return directly to agent wallet.
 4. **Query state**: `em_check_escrow_state` MCP tool reads on-chain escrow state (capturableAmount, refundableAmount).
+5. **Fee sweep** (admin): `POST /api/v1/admin/fees/sweep` — batch transfer all accrued fees from platform wallet to treasury in a single TX. `GET /api/v1/admin/fees/accrued` to check balance.
 
 **Audit Trail**: All payment events are logged to `payment_events` table (migration 027). Tracks verify, store_auth, settle, disburse_worker, disburse_fee, refund, cancel, error events with tx hashes and amounts.
 
@@ -483,7 +486,6 @@ Wrong Flow (DO NOT USE):
 - If `payment_events` shows a `settle` with `status=success` but no corresponding `disburse_worker`, funds are stuck in the settlement target wallet.
 - Check `escrows.metadata.agent_settle_tx` for the on-chain settlement tx.
 - Manual refund must be sent from the wallet that received the funds back to the agent wallet.
-- Incident Feb 2026: 3 tasks ($0.54 + $0.54 + $0.324 = $1.404) settled to treasury `0xae07` instead of platform wallet. Requires Ledger refund to `0x13ef` on Base.
 
 ### x402r Escrow System (Fase 2 — In Progress)
 
@@ -496,9 +498,11 @@ Wrong Flow (DO NOT USE):
 
 **>>> IMPORTANT: Active Fase 3 Clean Operator** (`0xd5149049e7c212ce5436a9581b4307EB9595df95` on Base): OR(Payer|Facilitator) release/refund, **feeCalculator=address(0) — NO on-chain operator fee**. All contract addresses in the On-Chain Contracts table above. Old operators (Fase 3 v1 at `0x8D3D...`, Fase 2 at `0xb963...`) are legacy — keep for historical tasks only.
 
-**Deployment script:** `scripts/deploy-payment-operator.ts` — deploys via x402r factory contracts. Use `--fase3` flag.
+**>>> PENDING: Fase 4 Secure Operator** — Fixes critical vulnerability where payer can call `refundInEscrow()` directly on-chain (bypasses Facilitator). New operator uses `StaticAddressCondition(Facilitator)` for refund (Facilitator-only), keeps `OrCondition(Payer|Facilitator)` for release. Deploy script ready: `--fase4` flag. Deploy, register in Facilitator allowlist, then update `EM_PAYMENT_OPERATOR` env var.
 
-**Status:** Fase 3 PaymentOperator deployed on Base (2026-02-12). Facilitator v1.33.3 supports Vec<Address> for multi-operator. Need to register new operator in facilitator `addresses.rs`. Other 7 networks pending deployment.
+**Deployment script:** `scripts/deploy-payment-operator.ts` — deploys via x402r factory contracts. Use `--fase3`, `--fase3-clean`, or `--fase4` flag.
+
+**Status:** Fase 3 Clean Operator deployed on Base (2026-02-13). Fase 4 Secure Operator code ready, pending deployment. Facilitator v1.33.4 (only clean operator in allowlist). ECS task def updated. Other 7 networks pending deployment.
 
 **Key upstream repos:**
 | Repo | URL | Stack |
@@ -563,12 +567,10 @@ The **Golden Flow** is the definitive acceptance test. If the Golden Flow passes
 - `docs/reports/PAYMENT_FLOW_REPORT.md` — Escrow + fee split only (existing Complete Flow Report)
 - `docs/reports/ERC8004_FLOW_REPORT.md` — Identity + reputation only
 
-### Facilitator Ownership (CRITICAL)
+### Facilitator Ownership
 
-**The Facilitator (`facilitator.ultravioletadao.xyz`) is OURS — Ultravioleta DAO.** Repo: `UltravioletaDAO/x402-rs`. We deploy, control, and maintain it. Ali/BackTrack has NOTHING to do with the Facilitator.
-
-- **Ali Abdoli / BackTrack** = x402r protocol (contracts, factories, ProtocolFeeConfig). NOT the Facilitator.
-- **Ultravioleta DAO** = Facilitator server, pays gas, enforces business logic.
+**>>> CRITICAL — FACILITATOR IS OURS <<<**
+**The Facilitator (`facilitator.ultravioletadao.xyz`) is OURS — Ultravioleta DAO.** Repo: `UltravioletaDAO/x402-rs`. We deploy, control, maintain. **Ali/BackTrack = x402r protocol (contracts, ProtocolFeeConfig) ONLY. NOT the Facilitator.** NEVER say Ali owns/controls the Facilitator.
 
 ### x402r Protocol Fee (Automatic Handling)
 
@@ -583,9 +585,9 @@ BackTrack controls `ProtocolFeeConfig` (`0x59314674...`) — a shared singleton 
 
 ### Task Factory Guidelines
 
-When creating test tasks:
+**>>> IMPORTANT: Testing Budget Rules <<<**
+- **Bounties**: **ALWAYS under $0.20** for testing. Each mainnet wallet has ~$4 USDC — keep tests small. Never $0.50+. E2E script uses `TEST_BOUNTY = 0.10`.
 - **Deadlines**: 5-15 minutes for testing, NOT hours.
-- **Bounties**: Use amounts **under $0.20** for testing. Each mainnet wallet has ~$4 USDC on Base — keep tests small to make funds last. Never use $0.50+ amounts for test tasks. The E2E script uses `TEST_BOUNTY = 0.10`. Ignore any DB-level `min_bounty` config for local E2E testing.
 - **Script**: `cd scripts && npx tsx task-factory.ts --preset screenshot --bounty 0.10 --deadline 10`
 - **E2E script**: `python scripts/e2e_mcp_api.py` — tests full lifecycle through REST API ($0.10 bounties)
 - **Live escrow**: Add `--live` flag (requires USDC in wallet + uses relay directly — needs SDK migration)
@@ -612,103 +614,23 @@ Agent ID **2106** on Base (production). Registry addresses in On-Chain Contracts
 | `https://mcp.execution.market/mcp/` | MCP Transport | Streamable HTTP endpoint |
 | `https://mcp.execution.market/.well-known/agent.json` | A2A | Agent discovery card |
 
-#### Dashboard Pages (`https://execution.market`)
+#### API Endpoints
 
-| Path | Page | Auth |
-|------|------|------|
-| `/` | Home (hero, task browser, how-it-works) | Public |
-| `/about` | About Execution Market | Public |
-| `/faq` | FAQ | Public |
-| `/tasks` | Browse & apply for tasks | Worker |
-| `/profile` | Worker profile, earnings, reputation | Worker |
-| `/earnings` | Earnings tracking (placeholder) | Worker |
-| `/agent/dashboard` | Agent analytics, task mgmt, submissions | Agent |
-| `/agent/tasks` | Agent task management (placeholder) | Agent |
-| `/agent/tasks/new` | Create new task (placeholder) | Agent |
+Full interactive docs at **`https://api.execution.market/docs`** (Swagger UI) or `/redoc`.
 
-#### API Endpoints (`https://api.execution.market` or `https://mcp.execution.market`)
-
-**Health & Monitoring:**
-- `GET /health` — Basic health check (ALB)
-- `GET /health/` — Detailed health with component latency
-- `GET /health/live` | `/health/ready` | `/health/startup` — K8s probes
-- `GET /health/metrics` — Prometheus metrics
-- `GET /health/version` — Version info
-
-**MCP Transport:**
-- `POST /mcp/` — MCP Streamable HTTP (SSE) for AI agent tool invocation
-- `GET /mcp/` — MCP session initialization
-
-**REST API — Agent Endpoints (`/api/v1`):** (API key required)
-- `POST /api/v1/tasks` — Create task (with x402 payment)
-- `GET /api/v1/tasks` — List agent's tasks
-- `GET /api/v1/tasks/{id}` — Get task details
-- `POST /api/v1/tasks/batch` — Batch create (max 50)
-- `POST /api/v1/tasks/{id}/cancel` — Cancel + refund
-- `GET /api/v1/tasks/{id}/submissions` — Get submissions
-- `POST /api/v1/submissions/{id}/approve` — Approve + pay
-- `POST /api/v1/submissions/{id}/reject` — Reject
-- `GET /api/v1/analytics` — Agent analytics
-
-**REST API — Worker Endpoints (`/api/v1`):**
-- `POST /api/v1/executors/register` — Register worker
-- `GET /api/v1/tasks/available` — Browse available tasks
-- `POST /api/v1/tasks/{id}/apply` — Apply to task
-- `POST /api/v1/tasks/{id}/submit` — Submit work + evidence
-- `GET /api/v1/executors/{id}/tasks` — Worker's tasks
-- `GET /api/v1/executors/{id}/stats` — Worker stats
-
-**REST API — Admin Endpoints (`/api/v1/admin`):** (Admin key required)
-- `GET /api/v1/admin/verify` — Verify admin key
-- `GET /api/v1/admin/stats` — Platform statistics
-- `GET /api/v1/admin/tasks` — All tasks (search, filter)
-- `GET|PUT /api/v1/admin/tasks/{id}` — Task details/override
-- `GET /api/v1/admin/payments` — Transaction history
-- `GET /api/v1/admin/payments/stats` — Payment stats
-- `GET /api/v1/admin/users/agents` | `/workers` — User lists
-- `PUT /api/v1/admin/users/{id}/status` — Suspend/activate
-- `GET|PUT /api/v1/admin/config` | `/{key}` — Platform config
-- `GET /api/v1/admin/config/audit` — Config change audit
-- `GET /api/v1/admin/analytics` — Analytics data
-
-**Escrow (`/api/v1/escrow`):**
-- `GET /api/v1/escrow/config` — x402r configuration
-- `GET /api/v1/escrow/balance` — Merchant USDC balance
-- `POST /api/v1/escrow/release` — Release to worker
-- `POST /api/v1/escrow/refund` — Refund to agent
-
-**Reputation & Identity (`/api/v1/reputation`):**
-- `GET /api/v1/reputation/em` — EM reputation score
-- `GET /api/v1/reputation/agents/{id}` — Agent reputation
-- `POST /api/v1/reputation/workers/rate` — Rate worker
-- `POST /api/v1/reputation/agents/rate` — Rate agent
-- `POST /api/v1/reputation/register` — Gasless agent/worker registration (any of 15 networks)
-- `GET /api/v1/reputation/networks` — List supported ERC-8004 networks
-
-**WebSocket:**
-- `WS /ws` — Real-time task notifications
-- `GET /ws/stats` — WebSocket stats
+**Key endpoint groups** (`/api/v1`):
+- **Tasks**: CRUD, batch create, cancel+refund, submissions (API key required)
+- **Workers**: Register, browse available, apply, submit evidence
+- **Admin** (`/admin`): Stats, task override, payments, user mgmt, platform config (Admin key)
+- **Escrow**: Config, balance, release, refund
+- **Reputation**: Scores, rate worker/agent, gasless registration (15 networks)
+- **Health**: `/health`, `/health/live`, `/health/ready`, `/health/metrics`, `/health/version`
+- **MCP**: `POST /mcp/` (SSE transport), `GET /mcp/` (session init)
+- **WebSocket**: `WS /ws` (real-time notifications)
 
 #### Admin Dashboard (`admin.execution.market`)
 
-| Resource | Details |
-|----------|---------|
-| URL | `https://admin.execution.market` |
-| Hosting | S3 (`em-production-admin-dashboard`) + CloudFront (`E2IUZLTDUFIAQP`) |
-| CDN Domain | `d10ucc05zs1fwn.cloudfront.net` |
-| ACM Cert | `arn:aws:acm:us-east-1:518898403364:certificate/841084f8-b130-4b12-87ee-88ac7d81be24` |
-| OAC | `E3HPQ9VBJWQVDR` |
-| Auth | Admin key via `X-Admin-Key` header (key in `EM_ADMIN_KEY` secret) |
-| CI/CD | `.github/workflows/deploy-admin.yml` — auto-deploy on push to `main` when `admin-dashboard/**` changes |
-| Manual Deploy | `cd admin-dashboard && VITE_API_URL=https://mcp.execution.market npm run build && aws s3 sync dist/ s3://em-production-admin-dashboard/ --delete --cache-control "public, max-age=31536000" --exclude "index.html" && aws s3 cp dist/index.html s3://em-production-admin-dashboard/index.html --cache-control "no-cache" --content-type "text/html"` |
-| Terraform | `infrastructure/terraform/admin-dashboard.tf` (resources created via CLI, importable) |
-
-#### Not Yet Deployed
-
-| App | Directory | Intended URL | Status |
-|-----|-----------|-------------|--------|
-| Docs Site | `docs-site/` | `docs.execution.market` | VitePress, no pipeline |
-| Landing Pages | `landing/` | N/A | Static HTML, no deployment |
+S3 + CloudFront. Auth via `X-Admin-Key` header. CI/CD: `.github/workflows/deploy-admin.yml` (auto on push to `main` when `admin-dashboard/**` changes). Terraform: `infrastructure/terraform/admin-dashboard.tf`.
 
 ### Key Integration Files
 
