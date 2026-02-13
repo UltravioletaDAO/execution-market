@@ -1,0 +1,44 @@
+{
+  "scenarios": [
+    {
+      "status": "SUCCESS",
+      "payment_mode": "unknown",
+      "networks": [
+        "arbitrum",
+        "avalanche",
+        "base",
+        "celo",
+        "ethereum",
+        "monad",
+        "optimism",
+        "polygon"
+      ],
+      "name": "health_check",
+      "description": "API health and config verification",
+      "timestamp": "2026-02-13T18:35:06.493107+00:00"
+    },
+    {
+      "status": "SUCCESS",
+      "task_id": "852961c1-862d-4e95-88d8-348b89c37785",
+      "submission_id": "101427c6-3646-45f8-80cd-57bd4b1ef0ac",
+      "escrow_tx": "0x21dc467c08d1be2f7315970c99c98c39d4c5857b910d5fd04fc56205c4952d27",
+      "escrow_release_tx": null,
+      "payment_tx": "0x2bdff37721b433d8d8fded04a021526f069ce7503f0f33026e79aa63cf19f884",
+      "fee_tx": "0x60f00316ef97fee149a344bc2eb6fc6bb1181d89a621e42b12398f4d5afb87ff",
+      "payment_mode": "fase2",
+      "worker_net_usdc": null,
+      "platform_fee_usdc": null,
+      "gross_amount_usdc": null,
+      "expected_bounty": 0.1,
+      "expected_fee": 0.013,
+      "expected_total": 0.113,
+      "fee_mismatch": null,
+      "approve_time_s": 68.03,
+      "create_time_s": 8.36,
+      "error": null,
+      "name": "happy_path",
+      "description": "Create -> Apply -> Assign -> Submit -> Approve (fee split)",
+      "timestamp": "2026-02-13T18:36:25.458069+00:00"
+    }
+  ]
+}
