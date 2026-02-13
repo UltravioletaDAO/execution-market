@@ -1068,6 +1068,7 @@ async def _settle_submission_payment(
     """
     release_tx: Optional[str] = None
     release_error: Optional[str] = None
+    result: Optional[Dict[str, Any]] = None
 
     task = submission.get("task") or {}
     executor = submission.get("executor") or {}
@@ -1291,7 +1292,21 @@ async def _settle_submission_payment(
             "Failed to settle payment for submission %s: %s", submission_id, err
         )
 
-    return {"payment_tx": release_tx, "payment_error": release_error}
+    ret: Dict[str, Any] = {"payment_tx": release_tx, "payment_error": release_error}
+    if result:
+        if result.get("fee_tx_hash"):
+            ret["fee_tx"] = result["fee_tx_hash"]
+        if result.get("escrow_release_tx"):
+            ret["escrow_release_tx"] = result["escrow_release_tx"]
+        if result.get("mode"):
+            ret["payment_mode"] = result["mode"]
+        if result.get("platform_fee") is not None:
+            ret["platform_fee_usdc"] = float(result["platform_fee"])
+        if result.get("worker_net") is not None:
+            ret["worker_net_usdc"] = float(result["worker_net"])
+        if result.get("gross_amount") is not None:
+            ret["gross_amount_usdc"] = float(result["gross_amount"])
+    return ret
 
 
 async def _auto_approve_submission(
@@ -4032,6 +4047,17 @@ async def approve_submission(
     }
     if release_error:
         response_data["payment_error"] = release_error
+    # Pass through detailed payment fields from settlement
+    for key in (
+        "fee_tx",
+        "escrow_release_tx",
+        "payment_mode",
+        "platform_fee_usdc",
+        "worker_net_usdc",
+        "gross_amount_usdc",
+    ):
+        if settlement.get(key) is not None:
+            response_data[key] = settlement[key]
 
     return SuccessResponse(
         message="Submission approved. Payment released to worker.", data=response_data
