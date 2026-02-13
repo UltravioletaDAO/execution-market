@@ -23,7 +23,7 @@ Integrated Systems:
     - A2A Protocol: Agent discovery (/.well-known/agent.json)
     - Webhooks: HMAC-SHA256 signed real-time notifications
     - x402 Protocol: Payments and escrow via USDC on Base/Polygon/Optimism
-    - Fee Management: 6-8% platform fee by task category
+    - Fee Management: 13% platform fee (12% EM + 1% x402r)
 
 Authentication Methods:
     - API Key: X-API-Key header (em_sk_live_xxx)

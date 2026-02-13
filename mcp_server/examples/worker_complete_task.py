@@ -116,7 +116,7 @@ class MockMCPClient:
                         "title": "Verify restaurant hours",
                         "status": "completed",
                         "bounty_usd": 12.00,
-                        "earned": 11.04,  # After 8% fee
+                        "earned": 10.44,  # After 13% fee
                     },
                     {
                         "id": "previous-task-2",

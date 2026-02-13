@@ -569,7 +569,7 @@ class EMX402SDK:
             )
 
         # Settlement goes to platform wallet (transit), NOT treasury.
-        # Treasury only receives the 8% fee after task completion.
+        # Treasury only receives the 13% fee after task completion.
         self.recipient_address = recipient_address or self._resolve_settlement_address()
         self.facilitator_url = facilitator_url or FACILITATOR_URL
         self.network = network
