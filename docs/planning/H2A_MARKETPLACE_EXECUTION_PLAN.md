@@ -60,7 +60,7 @@ sequenceDiagram
     Dash->>API: 10. POST /h2a/tasks/{id}/approve + signatures
     API->>Fac: 11. Settle auth #1 (human → agent, bounty)
     Fac->>Chain: Transfer USDC
-    API->>Fac: 12. Settle auth #2 (human → treasury, 8% fee)
+    API->>Fac: 12. Settle auth #2 (human → treasury, 13% fee)
     Fac->>Chain: Transfer USDC
     API-->>Dash: 13. Success {tx_hashes}
     Dash-->>Human: "Pago enviado!"
@@ -111,7 +111,7 @@ The A2A plan (Migration 029) adds infrastructure that H2A reuses directly:
 | 4 | **H2A terminology** | "Solicitud" (not "Tarea") | Clear differentiation in Spanish UI |
 | 5 | **Agent directory** | Public (no auth to browse) | Discovery drives adoption |
 | 6 | **Agent supply model** | Open marketplace (any agent) + EM-provisioned OpenClaw as fallback | More open = more agents = more commission. EM's own agents fill gaps + add compute revenue |
-| 7 | **Fee structure** | 8% (same as A2H/A2A) | Consistency; volume discounts via platform_config later |
+| 7 | **Fee structure** | 13% (12% EM + 1% x402r, same as A2H/A2A) | Consistency; volume discounts via platform_config later |
 
 ---
 
@@ -441,7 +441,7 @@ graph LR
 | 1 | Detalles de la Solicitud | Title, Instructions (rich text), Category (digital only) |
 | 2 | Agente Objetivo | Browse agents / search by capability / specific agent (optional) |
 | 3 | Presupuesto y Plazo | Bounty (USDC), Deadline, Required capabilities |
-| 4 | Vista Previa | Summary, total cost (bounty + 8% fee), "Publicar Solicitud" |
+| 4 | Vista Previa | Summary, total cost (bounty + 13% fee), "Publicar Solicitud" |
 
 **Key UX difference from A2H CreateTask**: No evidence schema step (agents deliver structured data). No location step (digital tasks). Agent selection step is new.
 
@@ -487,12 +487,12 @@ sequenceDiagram
     H->>D: Click "Aprobar y Pagar"
     D->>D: Show ApproveModal with<br/>submission details + cost breakdown
 
-    Note over D: Bounty: $5.00<br/>Fee (8%): $0.40<br/>Total: $5.40
+    Note over D: Bounty: $5.00<br/>Fee (13%): $0.65<br/>Total: $5.65
 
     H->>D: Confirm approval
     D->>W: Sign EIP-3009 #1<br/>(human → agent, $5.00 USDC)
     W-->>D: Signature #1
-    D->>W: Sign EIP-3009 #2<br/>(human → treasury, $0.40 USDC)
+    D->>W: Sign EIP-3009 #2<br/>(human → treasury, $0.65 USDC)
     W-->>D: Signature #2
 
     D->>D: POST /h2a/tasks/{id}/approve<br/>+ both signatures
@@ -527,7 +527,7 @@ sequenceDiagram
 | Revision button | "Solicitar Revisión" |
 | Agent directory title | "Directorio de Agentes IA" |
 | Agent card CTA | "Crear Solicitud" |
-| Cost breakdown | "Presupuesto: $X.XX · Comisión (8%): $X.XX · Total: $X.XX" |
+| Cost breakdown | "Presupuesto: $X.XX · Comisión (13%): $X.XX · Total: $X.XX" |
 
 ### Files to create:
 | File | Change |
@@ -783,7 +783,7 @@ Phase 1 (Data) → Phase 2 (Auth+API) → Phase 4 (Publisher UI) → Phase 5 (Es
 
 ## Open Agent Marketplace + EM-Provisioned OpenClaw (Phase 2 — Post-MVP)
 
-> **Vision**: An open marketplace of AI agents competing for human tasks. Any agent can participate — self-hosted, third-party, or EM-provisioned. EM earns 8% commission on every transaction regardless of which agent executes.
+> **Vision**: An open marketplace of AI agents competing for human tasks. Any agent can participate — self-hosted, third-party, or EM-provisioned. EM earns 13% commission on every transaction regardless of which agent executes.
 > **Principle**: The more open the marketplace, the better. More agents = more competition = better service = more volume = more commission.
 > **Status**: Architecture brainstorm — to be refined after H2A MVP is live.
 
@@ -818,7 +818,7 @@ graph TD
     end
 
     subgraph "Revenue"
-        FEE["EM earns 8%<br/>on ALL transactions<br/>regardless of agent"]
+        FEE["EM earns 13%<br/>on ALL transactions<br/>regardless of agent"]
     end
 
     H -->|"publishes task"| MKT
@@ -847,11 +847,11 @@ graph TD
 
 | Channel | Who | How They Join | Infrastructure | EM Revenue |
 |---|---|---|---|---|
-| **1. Registered Agents** | Any AI agent (any platform, any hosting) | Register via ERC-8004 Identity Registry + EM executor registration | Agent's own infra | 8% commission |
-| **2. OpenClaw Organic** | OpenClaw agents that installed EM ClawHub skill | Install skill from ClawHub marketplace | Agent owner's infra | 8% commission |
-| **3. EM-Provisioned OpenClaw** | Execution Market's own ephemeral agents | EM spins up when no one else takes the task | AWS ECS (EM pays, recharges human) | 8% commission + compute markup |
+| **1. Registered Agents** | Any AI agent (any platform, any hosting) | Register via ERC-8004 Identity Registry + EM executor registration | Agent's own infra | 13% commission |
+| **2. OpenClaw Organic** | OpenClaw agents that installed EM ClawHub skill | Install skill from ClawHub marketplace | Agent owner's infra | 13% commission |
+| **3. EM-Provisioned OpenClaw** | Execution Market's own ephemeral agents | EM spins up when no one else takes the task | AWS ECS (EM pays, recharges human) | 13% commission + compute markup |
 
-**All channels coexist and compete.** The first agent to accept a task wins the bounty. EM earns 8% no matter who executes.
+**All channels coexist and compete.** The first agent to accept a task wins the bounty. EM earns 13% no matter who executes.
 
 ### Channel 1: Open Agent Registry (The Marketplace)
 
@@ -932,7 +932,7 @@ graph LR
     style OC fill:#8b5cf6,color:#fff
 ```
 
-**Zero infrastructure cost for EM** — these agents run on their owners' hardware. EM just earns 8%.
+**Zero infrastructure cost for EM** — these agents run on their owners' hardware. EM just earns 13%.
 
 ### Channel 3: EM-Provisioned OpenClaw (The Fallback / House Agent)
 
@@ -952,12 +952,12 @@ Human publishes task → waits N minutes → no takers
         ↓
    Submits results → container terminates (ephemeral)
         ↓
-   Human pays: bounty + compute cost + 8% fee
+   Human pays: bounty + compute cost + 13% fee
 ```
 
 **Why EM benefits from running its own agents**:
 - **Guaranteed completion**: Tasks never go unfilled — UX trust signal for humans
-- **Higher margin**: EM earns 8% commission PLUS compute markup
+- **Higher margin**: EM earns 13% commission PLUS compute markup
 - **Quality control**: EM controls the agent's skills and configuration
 - **Bootstrap**: Before marketplace has organic supply, EM agents fill the gap
 - **Data**: EM learns which tasks are most common → optimize skill bundles
@@ -1024,7 +1024,7 @@ sequenceDiagram
     Note over EM: Phase 1: Wait for marketplace agents
 
     alt Registered/organic agent accepts
-        Note over EM: Normal flow — 8% commission
+        Note over EM: Normal flow — 13% commission
     else No agent after timeout
         EM->>Orch: Provision EM agent
         Orch->>Orch: Match capabilities → skill bundle
@@ -1037,7 +1037,7 @@ sequenceDiagram
         OC->>OC: Idle 5 min → auto-terminate
 
         Note over EM: Human reviews + pays
-        Note over EM: EM earns 8% + compute margin
+        Note over EM: EM earns 13% + compute margin
     end
 ```
 
@@ -1065,7 +1065,7 @@ Human: "Quiero rentar un Research Agent por 30 minutos"
         ↓
    Session ends → container terminates
         ↓
-   Billing: time-based + 8% fee
+   Billing: time-based + 13% fee
 ```
 
 ### Billing Model
@@ -1073,15 +1073,15 @@ Human: "Quiero rentar un Research Agent por 30 minutos"
 **For marketplace agents (Channel 1 & 2)**:
 ```
 Human pays = Bounty + Fee
-Fee        = 8% of Bounty
+Fee        = 13% of Bounty
 ```
-Simple. Agent sets/accepts the bounty, EM takes 8%.
+Simple. Agent sets/accepts the bounty, EM takes 13%.
 
 **For EM-provisioned agents (Channel 3)**:
 ```
 Human pays = Bounty + Compute + Fee
 Compute    = Metered: vCPU-seconds × rate + memory × rate
-Fee        = 8% of (Bounty + Compute)
+Fee        = 13% of (Bounty + Compute)
 ```
 
 | Compute Tier | vCPU | Memory | Cost/min |
@@ -1097,7 +1097,7 @@ Compute is negligible for most tasks — a 3-minute Standard task costs $0.012.
 ```mermaid
 graph LR
     subgraph "Revenue Streams"
-        R1["8% commission<br/>on ALL tasks"]
+        R1["13% commission<br/>on ALL tasks"]
         R2["Compute markup<br/>on EM-provisioned agents"]
         R3["Rental fees<br/>on agent sessions"]
         R4["Premium placement<br/>in Agent Directory (future)"]
@@ -1262,7 +1262,7 @@ More open marketplace
         ↓
    More humans publishing tasks (demand)
         ↓
-   More bounties = more 8% commission
+   More bounties = more 13% commission
         ↓
    EM can invest in better EM-provisioned agents
         ↓
@@ -1285,7 +1285,7 @@ More open marketplace
 | Task discovery | Dashboard browse | MCP tools + REST | Dashboard browse (agents) |
 | Evidence type | Photo, video, document | JSON, code, API response | JSON, code, API response |
 | Verification | Manual (agent reviews) | Manual or auto | Manual (human reviews) |
-| Fee | 8% | 8% | 8% |
+| Fee | 13% | 13% | 13% |
 | Escrow | Fase 1 (advisory) | Fase 1 or Fase 2 | Sign-on-approval or Fase 2 |
 
 ---

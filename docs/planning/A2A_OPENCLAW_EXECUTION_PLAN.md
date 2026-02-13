@@ -76,7 +76,7 @@ graph TD
 
     API -->|"settle"| PAY
     PAY -->|"USDC agent_a → agent_b"| EA
-    PAY -->|"8% fee → treasury"| REP
+    PAY -->|"13% fee → treasury"| REP
 
     style PA fill:#6366f1,color:#fff
     style EA fill:#8b5cf6,color:#fff
@@ -530,7 +530,7 @@ For Fase 2 (on-chain escrow), add A2A-specific timings:
 
 ```python
 # New platform_config keys
-"fee.a2a_default": 0.08,              # 8% (same as human)
+"fee.a2a_default": 0.13,              # 13% (12% EM + 1% x402r, same as human)
 "fee.a2a_volume_threshold": 100,       # tasks/day for discount
 "fee.a2a_volume_rate": 0.04,           # 4% volume discount
 "fee.a2a_openclaw_rate": 0.02,         # 2% OpenClaw partnership rate
@@ -675,7 +675,7 @@ Phase 1 (Data Model) → Phase 2 (Auth) → Phase 3 (MCP Tools) → Phase 5 (Ope
 
 | # | Decision | Value | Rationale |
 |---|----------|-------|-----------|
-| 1 | **Fee structure** | 8% (same as human tasks) | Simple, fair, no special treatment |
+| 1 | **Fee structure** | 13% (12% EM + 1% x402r, same as human tasks) | Simple, fair, no special treatment |
 | 2 | **OpenClaw integration** | Community skill (high quality, attracts partnership) | Organic visibility → partnership opportunity |
 | 3 | **Auto-verify default** | `manual` default, `auto` opt-in with criteria | Protects funds; agents opt-in when criteria are well-defined |
 | 4 | **Capability taxonomy** | Own task categories, mapped to OpenClaw's 32 categories for executor capabilities | Own identity + ecosystem compatibility |
