@@ -501,8 +501,8 @@ sequenceDiagram
 | Bounty Tier | Platform Fee | Agent Bond | Partial Payout |
 |-------------|--------------|------------|----------------|
 | Micro ($0.50-$5) | Flat $0.25 | 20% | 50% on submit |
-| Standard ($5-$50) | 8% | 15% | 40% on submit |
-| Premium ($50-$200) | 6% | 12% | 30% on submit |
+| Standard ($5-$50) | 13% | 15% | 40% on submit |
+| Premium ($50-$200) | 13% | 12% | 30% on submit |
 | Enterprise ($200+) | 4% negotiated | 10% | 25% on submit |
 
 ### 4.4 Regional Payout Scaling (NEW)

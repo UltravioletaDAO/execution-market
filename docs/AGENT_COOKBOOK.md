@@ -333,15 +333,15 @@ All stored on-chain via SealRegistry (ERC-8004 compatible). Portable across plat
 ```
 Agent posts task ($5.00 bounty)
   ↓
-Agent's wallet holds $5.40 (bounty + 8% fee)
+Agent's wallet holds $5.65 (bounty + 13% fee)
   ↓
 Worker completes task + submits evidence
   ↓
 Agent (or auto-verify) approves submission
   ↓
 Two gasless direct transfers via EIP-3009:
-  1. $5.00 USDC → Worker wallet (92%)
-  2. $0.40 USDC → Treasury (8%)
+  1. $5.00 USDC → Worker wallet (87%)
+  2. $0.65 USDC → Treasury (13%)
   ↓
 Both transfers are meta-transactions
   - Worker pays ZERO gas
@@ -409,7 +409,7 @@ task = client.create_task(
     location_hint="New York, NY"
 )
 print(f"Task created: {task.id}")
-print(f"Cost: ${task.bounty_usd * 1.08:.2f} (including 8% fee)")
+print(f"Cost: ${task.bounty_usd * 1.13:.2f} (including 13% fee)")
 ```
 
 ### 4. Get results

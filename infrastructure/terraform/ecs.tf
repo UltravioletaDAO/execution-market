@@ -187,7 +187,7 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "ERC8004_NETWORK", value = "base" },
         { name = "EM_AGENT_ID", value = "2106" },
         { name = "EM_PAYMENT_MODE", value = "fase2" },
-        { name = "EM_PAYMENT_OPERATOR", value = "0xb9635f544665758019159c04c08a3d583dadd723" },
+        { name = "EM_PAYMENT_OPERATOR", value = "0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6" },
         { name = "EM_ENABLED_NETWORKS", value = "base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism" },
         { name = "EVIDENCE_BUCKET", value = local.evidence_bucket_name },
         { name = "EVIDENCE_PUBLIC_BASE_URL", value = var.enable_evidence_pipeline ? "https://${aws_cloudfront_distribution.evidence[0].domain_name}" : "https://${local.evidence_bucket_name}.s3.amazonaws.com" },

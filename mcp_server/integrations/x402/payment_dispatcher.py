@@ -83,10 +83,11 @@ except ImportError:
     EscrowPaymentInfo = None  # type: ignore[assignment,misc]
     TaskTier = None  # type: ignore[assignment,misc]
 
-# EM PaymentOperator address (Base Mainnet). Only chain with operator deployed.
+# EM PaymentOperator address (Base Mainnet). Fase 3: OR(Payer|Facilitator) + 1% on-chain fee.
 # Override via env var when deploying operators on additional chains.
+# Legacy Fase 2 operator: 0xb9635f544665758019159c04c08a3d583dadd723 (keep for old tasks)
 EM_OPERATOR = os.environ.get(
-    "EM_PAYMENT_OPERATOR", "0xb9635f544665758019159c04c08a3d583dadd723"
+    "EM_PAYMENT_OPERATOR", "0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6"
 )
 
 
