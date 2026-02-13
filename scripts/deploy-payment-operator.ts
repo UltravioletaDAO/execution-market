@@ -289,12 +289,25 @@ async function deployFase3(
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       console.log(`Gas used: ${receipt.gasUsed} (${receipt.status})`);
 
+      // Wait for RPC to index, then look up via factory
       feeCalculator = await publicClient.readContract({
         address: ADDRESSES.staticFeeCalculatorFactory,
         abi: StaticFeeCalculatorFactoryABI,
         functionName: "getDeployed",
         args: [BigInt(OPERATOR_FEE_BPS)],
       });
+
+      // Fallback: extract from TX receipt logs if getDeployed returns zero
+      if (!feeCalculator || feeCalculator === ZERO_ADDRESS) {
+        console.log("  getDeployed() returned zero — extracting from TX logs...");
+        const deployed = extractDeployedAddress(receipt);
+        if (deployed) {
+          feeCalculator = deployed;
+        } else {
+          console.error("FATAL: Could not determine deployed address from TX receipt");
+          process.exit(1);
+        }
+      }
       console.log(`Deployed at: ${feeCalculator}`);
     }
   }
@@ -341,12 +354,25 @@ async function deployFase3(
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       console.log(`Gas used: ${receipt.gasUsed} (${receipt.status})`);
 
+      // Wait for RPC to index, then look up via factory
       orCondition = await publicClient.readContract({
         address: ADDRESSES.orConditionFactory,
         abi: OrConditionFactoryABI,
         functionName: "getDeployed",
         args: [orConditions],
       });
+
+      // Fallback: extract from TX receipt logs if getDeployed returns zero
+      if (!orCondition || orCondition === ZERO_ADDRESS) {
+        console.log("  getDeployed() returned zero — extracting from TX logs...");
+        const deployed = extractDeployedAddress(receipt);
+        if (deployed) {
+          orCondition = deployed;
+        } else {
+          console.error("FATAL: Could not determine deployed address from TX receipt");
+          process.exit(1);
+        }
+      }
       console.log(`Deployed at: ${orCondition}`);
     }
   }
@@ -355,6 +381,16 @@ async function deployFase3(
   // Step 3: Deploy PaymentOperator with Fase 3 config
   // ============================================================
   console.log("\n--- Step 3: PaymentOperator (Fase 3) ---");
+
+  // CRITICAL: Validate that Steps 1 & 2 produced real addresses
+  if (feeCalculator === ZERO_ADDRESS) {
+    console.error("FATAL: StaticFeeCalculator address is zero — cannot deploy PaymentOperator with wrong config");
+    process.exit(1);
+  }
+  if (orCondition === ZERO_ADDRESS) {
+    console.error("FATAL: OrCondition address is zero — cannot deploy PaymentOperator with wrong config");
+    process.exit(1);
+  }
 
   // Fase 3 operator config:
   // - feeRecipient: EM treasury (receives 1% on-chain operator fee)
@@ -465,15 +501,50 @@ async function deployOrGetOperator(
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     console.log(`Gas used: ${receipt.gasUsed} (${receipt.status})`);
 
-    const deployed = await publicClient.readContract({
+    // Wait for RPC to index, then look up via factory
+    let deployed = await publicClient.readContract({
       address: ADDRESSES.paymentOperatorFactory,
       abi: PaymentOperatorFactoryABI,
       functionName: "getOperator",
       args: [configTuple],
     });
+
+    // Fallback: extract from TX receipt logs if getOperator returns zero
+    if (!deployed || deployed === ZERO_ADDRESS) {
+      console.log("  getOperator() returned zero — extracting from TX logs...");
+      const fromLogs = extractDeployedAddress(receipt);
+      if (fromLogs) {
+        deployed = fromLogs;
+      } else {
+        console.error("FATAL: Could not determine deployed address from TX receipt");
+        process.exit(1);
+      }
+    }
     console.log(`Deployed at: ${deployed}`);
     return deployed;
   }
+}
+
+/**
+ * Extract the deployed contract address from a CREATE2 factory TX receipt.
+ * Factories typically emit an event with the deployed address in the first topic/data.
+ * We look for a 20-byte address in the log topics (after the event signature).
+ */
+function extractDeployedAddress(receipt: { logs: Array<{ topics: string[]; data: string; address: string }> }): Address | null {
+  for (const log of receipt.logs) {
+    // CREATE2 factories typically have the deployed address in topics[1] or topics[2]
+    for (let i = 1; i < log.topics.length; i++) {
+      const topic = log.topics[i];
+      if (topic && topic.length === 66) { // 0x + 64 hex chars
+        const addr = getAddress("0x" + topic.slice(26)); // last 20 bytes
+        // Verify it's not a known factory or zero address
+        if (addr !== ZERO_ADDRESS && addr !== log.address) {
+          return addr;
+        }
+      }
+    }
+  }
+  return null;
 }
 
 function printSummary(params: {
