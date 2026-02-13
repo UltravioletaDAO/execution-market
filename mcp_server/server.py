@@ -262,6 +262,7 @@ TOOL_TAGS = {
 mcp = FastMCP(
     SERVER_INFO["name"],
     streamable_http_path="/",
+    host="0.0.0.0",
 )
 
 
