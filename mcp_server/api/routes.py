@@ -129,6 +129,8 @@ ALREADY_REFUNDED_ESCROW_STATUSES = {"refunded"}
 NON_REFUNDABLE_ESCROW_STATUSES = {"released"}
 # EIP-3009 authorize-only: no funds moved, authorization just expires.
 AUTHORIZE_ONLY_ESCROW_STATUSES = {"authorized", "pending"}
+# Trustless direct_release: escrow not yet locked (waiting for assignment).
+PENDING_ASSIGNMENT_ESCROW_STATUSES = {"pending_assignment"}
 LIVE_TASK_STATUSES = {"published", "accepted", "in_progress", "submitted", "verifying"}
 ACTIVE_WORKER_TASK_STATUSES = {"accepted", "in_progress", "submitted", "verifying"}
 TASK_PAYMENT_SETTLED_STATUSES = {
@@ -1171,17 +1173,36 @@ async def _settle_submission_payment(
         # Use PaymentDispatcher to route to x402r escrow, preauth, or fase1
         dispatcher = get_payment_dispatcher()
         task_network = task.get("payment_network") or "base"
-        if dispatcher:
-            result = await dispatcher.release_payment(
+
+        # Check if this task uses trustless direct_release escrow
+        is_direct_release_task = False
+        if dispatcher and task_id:
+            try:
+                client = db.get_client()
+                esc_check = (
+                    client.table("escrows")
+                    .select("metadata")
+                    .eq("task_id", task_id)
+                    .limit(1)
+                    .execute()
+                )
+                if esc_check.data:
+                    esc_meta = esc_check.data[0].get("metadata") or {}
+                    if isinstance(esc_meta, str):
+                        esc_meta = json.loads(esc_meta)
+                    is_direct_release_task = (
+                        esc_meta.get("escrow_mode") == "direct_release"
+                    )
+            except Exception:
+                pass
+
+        if dispatcher and is_direct_release_task:
+            # Trustless: 1-TX release directly to worker from escrow
+            result = await dispatcher.release_direct_to_worker(
                 task_id=task_id or "",
-                worker_address=worker_address,
-                bounty_amount=bounty,
-                payment_header=payment_header,
                 network=task_network,
-                worker_auth_header=worker_auth_header,
-                fee_auth_header=fee_auth_header,
             )
-        else:
+        elif dispatcher:
             # Fallback: direct SDK settlement (preauth behavior)
             sdk = get_sdk()
             result = await sdk.settle_task_payment(
@@ -2427,11 +2448,86 @@ async def create_task(
                     e,
                 )
 
-        # Handle escrow based on payment mode (EM_PAYMENT_MODE)
-        # x402r: Settle agent auth + lock funds in on-chain escrow contract
-        # preauth: Store X-Payment header for later settlement
-        # fase1: Balance check only (no funds move), X-Payment header optional
-        if (
+        # Handle escrow based on payment mode (EM_PAYMENT_MODE) and escrow mode
+        # (EM_ESCROW_MODE).
+        # direct_release (trustless): Skip escrow at creation — lock happens at
+        # assignment time when worker address is known. Do balance check only.
+        # platform_release (legacy): Lock escrow at creation as before.
+        is_direct_release = (
+            dispatcher
+            and is_fase2_mode
+            and getattr(dispatcher, "escrow_mode", "platform_release")
+            == "direct_release"
+        )
+
+        if is_direct_release and payment_result and payment_result.success:
+            # Trustless mode: balance check only at creation time.
+            # Escrow lock deferred to assignment (when worker address is known).
+            try:
+                import uuid
+
+                escrow_ref = f"escrow_{task['id'][:8]}_{uuid.uuid4().hex[:8]}"
+                payment_reference = f"{X402_AUTH_REF_PREFIX}{uuid.uuid4().hex[:16]}"
+
+                auth_result = await dispatcher.authorize_payment(
+                    task_id=task["id"],
+                    receiver=api_key.agent_id,
+                    amount_usdc=total_required,
+                    network=request.payment_network or "base",
+                    token=request.payment_token or "USDC",
+                )
+
+                escrow_updates = {
+                    "escrow_id": escrow_ref,
+                    "escrow_tx": payment_reference,
+                    "escrow_amount_usdc": float(total_required),
+                    "escrow_created_at": datetime.now(timezone.utc).isoformat(),
+                }
+                await db.update_task(task["id"], escrow_updates)
+                task.update(escrow_updates)
+
+                _insert_escrow_record(
+                    {
+                        "task_id": task["id"],
+                        "agent_id": api_key.agent_id,
+                        "escrow_id": escrow_ref,
+                        "funding_tx": None,
+                        "status": "pending_assignment",
+                        "total_amount_usdc": float(total_required),
+                        "platform_fee_usdc": float(total_required - bounty),
+                        "beneficiary_address": payment_result.payer_address,
+                        "network": request.payment_network or "base",
+                        "metadata": {
+                            "payment_mode": "fase2",
+                            "escrow_mode": "direct_release",
+                            "payment_reference": payment_reference,
+                            "balance_info": auth_result.get("balance_info"),
+                        },
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
+
+                balance_warning = auth_result.get("warning")
+                if balance_warning:
+                    logger.warning(
+                        "trustless balance warning for task %s: %s",
+                        task["id"],
+                        balance_warning,
+                    )
+                logger.info(
+                    "trustless: Task created with deferred escrow: task=%s, amount=%.2f "
+                    "(escrow lock deferred to assignment)",
+                    task["id"],
+                    float(total_required),
+                )
+            except Exception as e:
+                logger.error(
+                    "Error during trustless task creation escrow setup for task %s: %s",
+                    task["id"],
+                    e,
+                )
+        # Legacy escrow handling (platform_release or non-fase2 modes)
+        elif (
             payment_result
             and payment_result.success
             and (x_payment_header or is_fase1_mode or is_fase2_mode)
@@ -4729,12 +4825,26 @@ async def cancel_task(
                 data={"task_id": task_id, "reason": reason, "idempotent": True},
             )
 
-        # Only published tasks can be cancelled. Tasks in accepted/in_progress/etc.
-        # must NOT be refunded — a worker is actively working on them.
-        if task_status != "published":
+        # Check if direct_release mode — allows cancelling accepted tasks too
+        # because escrow is locked with worker as receiver and can be refunded.
+        dispatcher = get_payment_dispatcher()
+        is_direct_release_cancel = (
+            dispatcher
+            and dispatcher.get_mode() == "fase2"
+            and getattr(dispatcher, "escrow_mode", "platform_release")
+            == "direct_release"
+        )
+        cancellable_statuses = {"published"}
+        if is_direct_release_cancel:
+            cancellable_statuses.add("accepted")
+
+        if task_status not in cancellable_statuses:
             raise HTTPException(
                 status_code=409,
-                detail=f"Cannot cancel task in '{task_status}' status. Only 'published' tasks can be cancelled.",
+                detail=(
+                    f"Cannot cancel task in '{task_status}' status. "
+                    f"Only {', '.join(sorted(cancellable_statuses))} tasks can be cancelled."
+                ),
             )
 
         # Check if we need to handle escrow refund
@@ -4780,6 +4890,14 @@ async def cancel_task(
                     # Use PaymentDispatcher for refund (handles x402r escrow and preauth)
                     dispatcher = get_payment_dispatcher()
                     if dispatcher:
+                        # Check if this is a direct_release escrow
+                        escrow_meta = (escrow_row or {}).get("metadata") or {}
+                        if isinstance(escrow_meta, str):
+                            escrow_meta = json.loads(escrow_meta)
+                        is_trustless_escrow = (
+                            escrow_meta.get("escrow_mode") == "direct_release"
+                        )
+
                         # Get agent wallet for x402r refund disbursement.
                         # Priority: 1) escrow row beneficiary_address column,
                         # 2) metadata.beneficiary_address, 3) extract from X-Payment header
@@ -4790,9 +4908,6 @@ async def cancel_task(
                                 "beneficiary_address"
                             )
                             if not agent_address:
-                                escrow_meta = (escrow_row or {}).get("metadata") or {}
-                                if isinstance(escrow_meta, str):
-                                    escrow_meta = json.loads(escrow_meta)
                                 agent_address = escrow_meta.get(
                                     "beneficiary_address"
                                 ) or _extract_agent_wallet_from_header(
@@ -4801,12 +4916,19 @@ async def cancel_task(
                         except Exception:
                             pass
 
-                        refund_result = await dispatcher.refund_payment(
-                            task_id=task_id,
-                            escrow_id=str(effective_escrow_id or ""),
-                            reason=reason,
-                            agent_address=agent_address,
-                        )
+                        if is_trustless_escrow:
+                            # Trustless escrow: refund bounty from escrow + fee from platform
+                            refund_result = await dispatcher.refund_trustless_escrow(
+                                task_id=task_id,
+                                reason=reason,
+                            )
+                        else:
+                            refund_result = await dispatcher.refund_payment(
+                                task_id=task_id,
+                                escrow_id=str(effective_escrow_id or ""),
+                                reason=reason,
+                                agent_address=agent_address,
+                            )
                         if refund_result.get("success"):
                             refund_tx_hash = refund_result.get("tx_hash")
                             refund_info = {
@@ -4932,6 +5054,13 @@ async def cancel_task(
                             "status": "authorization_expired",
                             "message": "Escrow failed but no funds were moved. Authorization will expire.",
                         }
+                elif escrow_status in PENDING_ASSIGNMENT_ESCROW_STATUSES:
+                    # Trustless direct_release: escrow not yet locked (pre-assignment).
+                    # No funds moved, just a balance check. Safe to cancel as no-op.
+                    refund_info = {
+                        "status": "no_escrow_locked",
+                        "message": "Escrow was not yet locked (pre-assignment). No funds to refund.",
+                    }
                 elif escrow_status in AUTHORIZE_ONLY_ESCROW_STATUSES:
                     # EIP-3009 authorize-only (preauth mode): no funds moved, auth expires.
                     refund_info = {
@@ -5402,6 +5531,151 @@ async def assign_task_to_worker(
 
         task = result.get("task", {})
         executor = result.get("executor", {})
+        worker_wallet = executor.get("wallet_address")
+
+        # --- Trustless escrow lock at assignment time ---
+        # In direct_release mode, escrow is deferred from task creation to
+        # assignment because we need the worker's wallet as escrow receiver.
+        escrow_data = {}
+        dispatcher = get_payment_dispatcher()
+        is_direct_release = (
+            dispatcher
+            and dispatcher.get_mode() == "fase2"
+            and getattr(dispatcher, "escrow_mode", "platform_release")
+            == "direct_release"
+        )
+
+        if is_direct_release and worker_wallet:
+            try:
+                bounty = Decimal(str(task.get("bounty_usd", 0)))
+                network = task.get("payment_network") or "base"
+                token = "USDC"
+                agent_address = task.get("agent_id", api_key.agent_id)
+
+                # Look up agent's wallet from escrow record (beneficiary_address)
+                try:
+                    client = db.get_client()
+                    esc_row = (
+                        client.table("escrows")
+                        .select("beneficiary_address")
+                        .eq("task_id", task_id)
+                        .limit(1)
+                        .execute()
+                    )
+                    if esc_row.data:
+                        agent_address = esc_row.data[0].get(
+                            "beneficiary_address", agent_address
+                        )
+                except Exception:
+                    pass
+
+                if bounty > 0:
+                    auth_result = await dispatcher.authorize_escrow_for_worker(
+                        task_id=task_id,
+                        agent_address=agent_address,
+                        worker_address=worker_wallet,
+                        bounty_usdc=bounty,
+                        network=network,
+                        token=token,
+                    )
+
+                    if auth_result.get("success"):
+                        # Update escrow record with on-chain data
+                        escrow_tx = auth_result.get("tx_hash")
+                        try:
+                            client = db.get_client()
+                            client.table("escrows").update(
+                                {
+                                    "status": "deposited",
+                                    "funding_tx": escrow_tx,
+                                    "metadata": {
+                                        "payment_mode": "fase2",
+                                        "escrow_mode": "direct_release",
+                                        "payment_info": auth_result.get(
+                                            "payment_info_serialized"
+                                        ),
+                                        "worker_address": worker_wallet,
+                                        "fee_tx_hash": auth_result.get("fee_tx_hash"),
+                                    },
+                                }
+                            ).eq("task_id", task_id).execute()
+
+                            # Update task with escrow tx
+                            await db.update_task(
+                                task_id,
+                                {
+                                    "escrow_tx": escrow_tx,
+                                    "escrow_amount_usdc": float(
+                                        Decimal(
+                                            str(
+                                                auth_result.get(
+                                                    "lock_amount_usdc", bounty
+                                                )
+                                            )
+                                        )
+                                    ),
+                                },
+                            )
+                        except Exception as db_err:
+                            logger.warning(
+                                "Could not update escrow record for task %s: %s",
+                                task_id,
+                                db_err,
+                            )
+
+                        escrow_data = {
+                            "escrow_tx": escrow_tx,
+                            "escrow_status": "deposited",
+                            "escrow_mode": "direct_release",
+                            "fee_tx": auth_result.get("fee_tx_hash"),
+                            "bounty_locked": str(bounty),
+                            "platform_fee": auth_result.get("platform_fee_usdc"),
+                        }
+                        logger.info(
+                            "trustless: Escrow locked at assignment: task=%s, "
+                            "worker=%s, tx=%s",
+                            task_id,
+                            worker_wallet[:10],
+                            escrow_tx,
+                        )
+                    else:
+                        # Escrow lock failed — revert assignment
+                        escrow_error = auth_result.get("error", "Unknown escrow error")
+                        logger.error(
+                            "trustless: Escrow lock failed at assignment for "
+                            "task %s: %s",
+                            task_id,
+                            escrow_error,
+                        )
+                        # Try to revert task status back to published
+                        try:
+                            await db.update_task(
+                                task_id,
+                                {
+                                    "status": "published",
+                                    "executor_id": None,
+                                    "assigned_at": None,
+                                },
+                            )
+                        except Exception:
+                            pass
+                        raise HTTPException(
+                            status_code=402,
+                            detail=(
+                                f"Escrow lock failed during assignment: {escrow_error}. "
+                                "Task remains published."
+                            ),
+                        )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(
+                    "trustless: Error during escrow lock at assignment for task %s: %s",
+                    task_id,
+                    e,
+                )
+                # Non-fatal for non-payment errors — assignment proceeds
+
         logger.info(
             "Task assigned: task=%s, agent=%s, executor=%s",
             task_id,
@@ -5409,17 +5683,23 @@ async def assign_task_to_worker(
             request.executor_id[:10],
         )
 
+        response_data = {
+            "task_id": task_id,
+            "executor_id": request.executor_id,
+            "status": task.get("status", "accepted"),
+            "assigned_at": task.get("assigned_at"),
+            "worker_wallet": worker_wallet,
+        }
+        if escrow_data:
+            response_data["escrow"] = escrow_data
+
         return SuccessResponse(
             message="Task assigned successfully",
-            data={
-                "task_id": task_id,
-                "executor_id": request.executor_id,
-                "status": task.get("status", "accepted"),
-                "assigned_at": task.get("assigned_at"),
-                "worker_wallet": executor.get("wallet_address"),
-            },
+            data=response_data,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         error_msg = str(e)
         lowered = error_msg.lower()

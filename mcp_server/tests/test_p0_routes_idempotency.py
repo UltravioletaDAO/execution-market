@@ -489,7 +489,11 @@ async def test_cancel_task_refunds_when_escrow_is_deposited(monkeypatch):
     mock_refund = AsyncMock(
         return_value={"success": True, "tx_hash": "0xrefundtx", "mode": "x402r"}
     )
-    mock_dispatcher = SimpleNamespace(refund_payment=mock_refund)
+    mock_dispatcher = SimpleNamespace(
+        refund_payment=mock_refund,
+        get_mode=lambda: "x402r",
+        escrow_mode="platform_release",
+    )
     monkeypatch.setattr(routes, "get_payment_dispatcher", lambda: mock_dispatcher)
 
     monkeypatch.setattr(

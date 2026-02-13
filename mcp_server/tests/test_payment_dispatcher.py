@@ -1675,3 +1675,522 @@ class TestBatchFeeSweep:
         assert result["success"] is False
         assert result["amount_swept_usdc"] == 0
         assert "Nonce too low" in result["error"]
+
+
+# ===========================================================================
+# Test: Trustless Direct Release (EM_ESCROW_MODE=direct_release)
+# ===========================================================================
+
+
+class TestTrustlessAuthorize:
+    """Tests for authorize_escrow_for_worker() — trustless escrow with worker as receiver."""
+
+    def _make_trustless_dispatcher(self):
+        """Create a dispatcher in fase2+direct_release mode with mocked clients."""
+
+        class MockTaskTier:
+            MICRO = "micro"
+            STANDARD = "standard"
+            PREMIUM = "premium"
+            ENTERPRISE = "enterprise"
+
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.TaskTier", MockTaskTier),
+            patch(
+                f"{DISPATCHER_MODULE}.NETWORK_CONFIG",
+                {
+                    "base": {
+                        "chain_id": 8453,
+                        "rpc_url": "https://mainnet.base.org",
+                        "tokens": {"USDC": {"decimals": 6}},
+                    }
+                },
+            ),
+            patch(f"{DISPATCHER_MODULE}.PLATFORM_FEE_PERCENT", Decimal("0.13")),
+            patch(
+                f"{DISPATCHER_MODULE}._get_platform_address",
+                return_value="0xPlatformAddr",
+            ),
+            patch.dict(
+                os.environ,
+                {"WALLET_PRIVATE_KEY": TEST_PK, "EM_ESCROW_MODE": "direct_release"},
+            ),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase2")
+            d._sdk = FakeSDK()
+            mock_client = FaseClientMock()
+            d._fase2_clients = {8453: mock_client}
+            return d, mock_client
+
+    @pytest.mark.asyncio
+    async def test_authorize_escrow_for_worker_success(self):
+        """Should lock bounty in escrow with worker as receiver."""
+        d, mock_client = self._make_trustless_dispatcher()
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            result = await d.authorize_escrow_for_worker(
+                task_id="task-trustless-1",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+                network="base",
+            )
+
+        assert result["success"] is True
+        assert result["escrow_mode"] == "direct_release"
+        assert result["escrow_status"] == "deposited"
+        assert result["worker_address"] == "0xWorker"
+        assert result["bounty_usdc"] == "10.00"
+        assert result["tx_hash"] is not None
+
+    @pytest.mark.asyncio
+    async def test_authorize_escrow_receiver_is_worker(self):
+        """Escrow PaymentInfo should have worker as receiver, not platform."""
+        d, mock_client = self._make_trustless_dispatcher()
+
+        # Track what build_payment_info was called with
+        original_build = mock_client.build_payment_info
+        build_calls = []
+
+        def tracking_build(**kwargs):
+            build_calls.append(kwargs)
+            return original_build(**kwargs)
+
+        mock_client.build_payment_info = lambda **kwargs: tracking_build(**kwargs)
+        # Need to use positional args since FaseClientMock uses positional
+        mock_client.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            build_calls.append(
+                {
+                    "receiver": receiver,
+                    "amount": amount,
+                    "tier": tier,
+                    "max_fee_bps": max_fee_bps,
+                }
+            ),
+            original_build(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="task-trustless-2",
+                agent_address="0xAgent",
+                worker_address="0xWorkerXYZ",
+                bounty_usdc=Decimal("5.00"),
+            )
+
+        assert len(build_calls) == 1
+        assert build_calls[0]["receiver"] == "0xWorkerXYZ"
+        # max_fee_bps should be 0 (no operator fee for direct release)
+        assert build_calls[0]["max_fee_bps"] == 0
+
+    @pytest.mark.asyncio
+    async def test_authorize_collects_platform_fee(self):
+        """Should collect 13% platform fee from agent via EIP-3009."""
+        d, _ = self._make_trustless_dispatcher()
+        d._sdk.collect_platform_fee = AsyncMock(
+            return_value={"success": True, "tx_hash": "0x" + "fee1" * 16}
+        )
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            result = await d.authorize_escrow_for_worker(
+                task_id="task-trustless-3",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert result["fee_tx_hash"] is not None
+        assert result["platform_fee_usdc"] == "1.300000"
+        d._sdk.collect_platform_fee.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_authorize_with_protocol_fee_overlocks(self):
+        """When protocol fee > 0, should lock more than bounty to compensate."""
+        d, mock_client = self._make_trustless_dispatcher()
+
+        build_calls = []
+        original_build = mock_client.build_payment_info
+        mock_client.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            build_calls.append({"amount": amount}),
+            original_build(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        # 1% protocol fee (100 BPS)
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=100):
+            result = await d.authorize_escrow_for_worker(
+                task_id="task-trustless-4",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert result["success"] is True
+        assert result["protocol_fee_bps"] == 100
+        # Lock amount should be > 10.00 USDC (10 / 0.99 ≈ 10.101010)
+        assert len(build_calls) == 1
+        lock_atomic = build_calls[0]["amount"]
+        assert lock_atomic > 10_000_000  # > 10 USDC in atomic units
+
+    @pytest.mark.asyncio
+    async def test_authorize_failure(self):
+        """Should return failure if escrow authorize fails."""
+        d, mock_client = self._make_trustless_dispatcher()
+        mock_client.authorize = lambda pi: FakeTransactionResult(
+            success=False, error="Insufficient balance"
+        )
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            result = await d.authorize_escrow_for_worker(
+                task_id="task-trustless-5",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert result["success"] is False
+        assert "Insufficient balance" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_escrow_mode_toggle(self):
+        """Dispatcher should reflect escrow_mode in config."""
+        d, _ = self._make_trustless_dispatcher()
+        assert d.escrow_mode == "direct_release"
+        info = d.get_info()
+        assert info["escrow_mode"] == "direct_release"
+
+
+class TestDirectRelease:
+    """Tests for release_direct_to_worker() — single-TX release to worker."""
+
+    def _make_release_dispatcher(self):
+        """Create dispatcher with mocked fase2 client and pre-seeded escrow."""
+
+        class MockTaskTier:
+            MICRO = "micro"
+            STANDARD = "standard"
+            PREMIUM = "premium"
+            ENTERPRISE = "enterprise"
+
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.TaskTier", MockTaskTier),
+            patch(
+                f"{DISPATCHER_MODULE}.NETWORK_CONFIG",
+                {
+                    "base": {
+                        "chain_id": 8453,
+                        "rpc_url": "https://mainnet.base.org",
+                        "tokens": {"USDC": {"decimals": 6}},
+                    }
+                },
+            ),
+            patch(f"{DISPATCHER_MODULE}.PLATFORM_FEE_PERCENT", Decimal("0.13")),
+            patch(
+                f"{DISPATCHER_MODULE}._get_platform_address",
+                return_value="0xPlatformAddr",
+            ),
+            patch.dict(
+                os.environ,
+                {"WALLET_PRIVATE_KEY": TEST_PK, "EM_ESCROW_MODE": "direct_release"},
+            ),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase2")
+            d._sdk = FakeSDK()
+            mock_client = FaseClientMock()
+            d._fase2_clients = {8453: mock_client}
+            return d, mock_client
+
+    @pytest.mark.asyncio
+    async def test_direct_release_success(self):
+        """Should release escrow in 1 TX directly to worker."""
+        d, _ = self._make_release_dispatcher()
+
+        # Mock state reconstruction
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(
+                    operator="0xOp",
+                    receiver="0xWorker",
+                    token="0xUSDC",
+                    max_amount=10_000_000,
+                    pre_approval_expiry=9999999999,
+                    authorization_expiry=9999999999,
+                    refund_expiry=9999999999,
+                    min_fee_bps=0,
+                    max_fee_bps=0,
+                    fee_receiver="0x0",
+                    salt="0x" + "1234" * 16,
+                ),
+                {
+                    "network": "base",
+                    "escrow_mode": "direct_release",
+                    "worker_address": "0xWorker",
+                    "bounty_usdc": "10.00",
+                },
+            )
+        )
+
+        result = await d.release_direct_to_worker(task_id="task-dr-1")
+
+        assert result["success"] is True
+        assert result["escrow_mode"] == "direct_release"
+        assert result["method"] == "direct_release"
+        assert result["worker_paid"] is True
+        assert result["net_to_worker"] == 10.0
+        assert result["tx_hash"] is not None
+        assert result["fee_status"] == "collected_upfront"
+
+    @pytest.mark.asyncio
+    async def test_direct_release_no_state(self):
+        """Should fail cleanly if no escrow state found."""
+        d, _ = self._make_release_dispatcher()
+        d._reconstruct_fase2_state = AsyncMock(return_value=(None, {}))
+
+        result = await d.release_direct_to_worker(task_id="task-dr-missing")
+
+        assert result["success"] is False
+        assert "not found" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_direct_release_facilitator_failure(self):
+        """Should handle facilitator release failure."""
+        d, mock_client = self._make_release_dispatcher()
+        mock_client.release_via_facilitator = lambda pi: FakeTransactionResult(
+            success=False, error="Facilitator timeout"
+        )
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(
+                    operator="0xOp",
+                    receiver="0xWorker",
+                    token="0xUSDC",
+                    max_amount=10_000_000,
+                    pre_approval_expiry=9999999999,
+                    authorization_expiry=9999999999,
+                    refund_expiry=9999999999,
+                    min_fee_bps=0,
+                    max_fee_bps=0,
+                    fee_receiver="0x0",
+                    salt="0x" + "1234" * 16,
+                ),
+                {"network": "base", "escrow_mode": "direct_release"},
+            )
+        )
+
+        result = await d.release_direct_to_worker(task_id="task-dr-fail")
+
+        assert result["success"] is False
+        assert "Facilitator timeout" in result["error"]
+
+
+class TestTrustlessRefund:
+    """Tests for refund_trustless_escrow() — refund bounty + fee."""
+
+    def _make_refund_dispatcher(self):
+        """Create dispatcher with mocked clients."""
+
+        class MockTaskTier:
+            MICRO = "micro"
+
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.TaskTier", MockTaskTier),
+            patch(
+                f"{DISPATCHER_MODULE}.NETWORK_CONFIG",
+                {
+                    "base": {
+                        "chain_id": 8453,
+                        "rpc_url": "https://mainnet.base.org",
+                        "tokens": {"USDC": {"decimals": 6}},
+                    }
+                },
+            ),
+            patch(f"{DISPATCHER_MODULE}.PLATFORM_FEE_PERCENT", Decimal("0.13")),
+            patch(
+                f"{DISPATCHER_MODULE}._get_platform_address",
+                return_value="0xPlatformAddr",
+            ),
+            patch.dict(
+                os.environ,
+                {"WALLET_PRIVATE_KEY": TEST_PK, "EM_ESCROW_MODE": "direct_release"},
+            ),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase2")
+            d._sdk = FakeSDK()
+            mock_client = FaseClientMock()
+            d._fase2_clients = {8453: mock_client}
+            return d, mock_client
+
+    @pytest.mark.asyncio
+    async def test_refund_trustless_escrow_success(self):
+        """Should refund bounty from escrow + fee from platform wallet."""
+        d, _ = self._make_refund_dispatcher()
+        d._sdk.disburse_to_worker = AsyncMock(
+            return_value={"success": True, "tx_hash": "0x" + "feeref" * 10 + "aaaa"}
+        )
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(
+                    operator="0xOp",
+                    receiver="0xWorker",
+                    token="0xUSDC",
+                    max_amount=10_000_000,
+                    pre_approval_expiry=9999999999,
+                    authorization_expiry=9999999999,
+                    refund_expiry=9999999999,
+                    min_fee_bps=0,
+                    max_fee_bps=0,
+                    fee_receiver="0x0",
+                    salt="0x" + "1234" * 16,
+                ),
+                {
+                    "network": "base",
+                    "escrow_mode": "direct_release",
+                    "bounty_usdc": "10.00",
+                },
+            )
+        )
+
+        result = await d.refund_trustless_escrow(
+            task_id="task-ref-1", reason="Test refund"
+        )
+
+        assert result["success"] is True
+        assert result["status"] == "refunded"
+        assert result["tx_hash"] is not None  # escrow refund tx
+        assert result["fee_refund_tx"] is not None  # fee refund tx
+
+    @pytest.mark.asyncio
+    async def test_refund_no_escrow_noop(self):
+        """Should succeed as no-op when no escrow state found."""
+        d, _ = self._make_refund_dispatcher()
+        d._reconstruct_fase2_state = AsyncMock(return_value=(None, {}))
+
+        result = await d.refund_trustless_escrow(task_id="task-ref-noop")
+
+        assert result["success"] is True
+        assert result["status"] == "no_escrow_found"
+
+    @pytest.mark.asyncio
+    async def test_refund_escrow_failure(self):
+        """Should handle facilitator refund failure."""
+        d, mock_client = self._make_refund_dispatcher()
+        mock_client.refund_via_facilitator = lambda pi: FakeTransactionResult(
+            success=False, error="Refund window expired"
+        )
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(
+                    operator="0xOp",
+                    receiver="0xWorker",
+                    token="0xUSDC",
+                    max_amount=10_000_000,
+                    pre_approval_expiry=9999999999,
+                    authorization_expiry=9999999999,
+                    refund_expiry=9999999999,
+                    min_fee_bps=0,
+                    max_fee_bps=0,
+                    fee_receiver="0x0",
+                    salt="0x" + "1234" * 16,
+                ),
+                {"network": "base", "escrow_mode": "direct_release"},
+            )
+        )
+
+        result = await d.refund_trustless_escrow(task_id="task-ref-fail")
+
+        assert result["success"] is False
+        assert "Refund window expired" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_refund_fee_failure_partial(self):
+        """Should still succeed if escrow refund works but fee refund fails."""
+        d, _ = self._make_refund_dispatcher()
+        d._sdk.disburse_to_worker = AsyncMock(
+            return_value={"success": False, "error": "Nonce collision"}
+        )
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(
+                    operator="0xOp",
+                    receiver="0xWorker",
+                    token="0xUSDC",
+                    max_amount=10_000_000,
+                    pre_approval_expiry=9999999999,
+                    authorization_expiry=9999999999,
+                    refund_expiry=9999999999,
+                    min_fee_bps=0,
+                    max_fee_bps=0,
+                    fee_receiver="0x0",
+                    salt="0x" + "1234" * 16,
+                ),
+                {
+                    "network": "base",
+                    "escrow_mode": "direct_release",
+                    "bounty_usdc": "10.00",
+                },
+            )
+        )
+
+        result = await d.refund_trustless_escrow(task_id="task-ref-partial")
+
+        # Escrow refund succeeded, fee refund failed — report success with error
+        assert result["success"] is True
+        assert result["status"] == "refunded"
+        assert result["fee_refund_error"] is not None
+        assert "Nonce collision" in result["fee_refund_error"]
+
+
+class TestEscrowModeToggle:
+    """Tests for EM_ESCROW_MODE feature toggle."""
+
+    def test_default_mode_is_platform_release(self):
+        """Without env var, escrow_mode should default to platform_release."""
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase1")
+            assert d.escrow_mode == "platform_release"
+
+    def test_direct_release_mode(self):
+        """With EM_ESCROW_MODE=direct_release, should set escrow_mode."""
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+            patch.dict(os.environ, {"EM_ESCROW_MODE": "direct_release"}),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase1")
+            assert d.escrow_mode == "direct_release"
+
+    def test_unknown_mode_falls_back(self):
+        """Unknown EM_ESCROW_MODE should fall back to platform_release."""
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+            patch.dict(os.environ, {"EM_ESCROW_MODE": "invalid_mode"}),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase1")
+            assert d.escrow_mode == "platform_release"

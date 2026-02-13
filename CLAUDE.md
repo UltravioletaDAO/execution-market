@@ -475,12 +475,21 @@ Wrong Flow (DO NOT USE):
 3. **Cancel** (task cancellation): No-op — no auth was ever signed, nothing to refund.
 4. **Platform fee**: Configurable via `EM_PLATFORM_FEE` env var (default 13%). Uses 6-decimal USDC precision with $0.01 minimum fee. Treasury absorbs any x402r protocol fee automatically via `_compute_treasury_remainder()`.
 
-**Payment Flow for Tasks** (Fase 2 — 2-TX flow, batch fees):
-1. **Authorize** (task creation): Lock bounty+fee in on-chain escrow via facilitator (gasless). PaymentInfo stored in escrows table for state reconstruction.
+**Payment Flow for Tasks** (Fase 2 — platform_release mode, legacy):
+1. **Authorize** (task creation): Lock bounty+fee in on-chain escrow via facilitator (gasless). PaymentInfo stored in escrows table for state reconstruction. Escrow receiver = platform wallet.
 2. **Release** (task approval): 2 TXs only — (1) gasless release via facilitator (escrow → platform), (2) disburse bounty to worker via EIP-3009. Fee **stays in platform wallet** (accrued, not transferred per-task).
 3. **Refund** (task cancellation): Gasless refund via facilitator — funds return directly to agent wallet.
 4. **Query state**: `em_check_escrow_state` MCP tool reads on-chain escrow state (capturableAmount, refundableAmount).
 5. **Fee sweep** (admin): `POST /api/v1/admin/fees/sweep` — batch transfer all accrued fees from platform wallet to treasury in a single TX. `GET /api/v1/admin/fees/accrued` to check balance.
+
+**Payment Flow for Tasks** (Fase 2 — direct_release mode, TRUSTLESS):
+1. **Balance check** (task creation): Advisory `balanceOf()` check only. Escrow deferred to assignment (worker address unknown at creation). Escrow status = `pending_assignment`.
+2. **Escrow lock** (task assignment): Lock ONLY bounty in escrow with **worker as direct receiver** + collect 13% platform fee via separate EIP-3009 to platform wallet. If protocol fee active, over-locks to compensate.
+3. **Release** (task approval): **1 TX only** — gasless release via facilitator (escrow → worker DIRECTLY). No disburse step, no fee step. Worker gets paid by the escrow contract itself.
+4. **Cancel** (published or accepted): Published → no-op (no escrow locked). Accepted → refund bounty from escrow to agent + refund fee from platform wallet to agent.
+5. **Fee sweep**: Same as platform_release. Accrued fee stays in platform wallet for batch sweep.
+- **Env var**: `EM_ESCROW_MODE=direct_release` (default: `platform_release` for backward compat)
+- **Trust model**: Escrow protects worker — platform never holds worker's funds. Only platform fee ($0.01+) sits in platform wallet.
 
 **Audit Trail**: All payment events are logged to `payment_events` table (migration 027). Tracks verify, store_auth, settle, disburse_worker, disburse_fee, refund, cancel, error events with tx hashes and amounts.
 
