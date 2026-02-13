@@ -1021,11 +1021,8 @@ class PaymentDispatcher:
                 "error": worker_result.get("error", "Worker disbursement failed"),
             }
 
-        # Step 3: Collect platform fee (non-blocking — worker already paid).
-        # Treasury receives the remainder after worker payment. This naturally
-        # handles any on-chain protocol fee deduction from x402r — if the escrow
-        # contract takes a cut, the treasury amount shrinks accordingly instead
-        # of the transfer failing due to insufficient funds.
+        # Step 3: Calculate platform fee (ACCRUED — no TX).
+        # Fee stays in platform wallet. Use admin sweep endpoint to collect.
         total_locked = bounty_amount * (Decimal("1") + PLATFORM_FEE_PERCENT)
         total_locked = total_locked.quantize(Decimal("0.000001"))
         on_chain_bps = await _get_protocol_fee_bps()
@@ -1033,47 +1030,30 @@ class PaymentDispatcher:
             bounty_amount, total_locked, on_chain_bps
         )
 
-        fee_tx = None
-        fee_error = None
-        try:
-            fee_result = await sdk.collect_platform_fee(
-                fee_amount=platform_fee,
-                task_id=task_id,
-                network=network,
-                token=token,
-            )
-            fee_tx = fee_result.get("tx_hash")
-            if not fee_result.get("success"):
-                fee_error = fee_result.get("error", "Fee collection failed")
-                logger.warning(
-                    "x402r: Worker paid but fee collection failed for task %s: %s",
-                    task_id,
-                    fee_error,
-                )
-            await log_payment_event(
-                task_id=task_id,
-                event_type="disburse_fee",
-                status="success" if fee_result.get("success") else "failed",
-                tx_hash=fee_tx,
-                to_address=EM_TREASURY,
-                amount_usdc=platform_fee,
-                network=network,
-                token=token,
-                error=fee_error,
-                metadata={"mode": "x402r"},
-            )
-        except Exception as fee_err:
-            fee_error = str(fee_err)
-            logger.warning(
-                "x402r: Fee collection error for task %s: %s", task_id, fee_err
-            )
+        # Log fee as accrued (no TX — stays in platform wallet for batch sweep)
+        await log_payment_event(
+            task_id=task_id,
+            event_type="disburse_fee",
+            status="accrued",
+            to_address=EM_TREASURY,
+            amount_usdc=platform_fee,
+            network=network,
+            token=token,
+            metadata={"mode": "x402r", "batch_collection": True},
+        )
+
+        logger.info(
+            "x402r: Fee accrued for task %s: $%s (batch sweep later)",
+            task_id,
+            platform_fee,
+        )
 
         return {
             "success": True,
             "tx_hash": worker_tx,
             "escrow_release_tx": escrow_tx,
-            "fee_tx_hash": fee_tx,
-            "fee_collection_error": fee_error,
+            "fee_tx_hash": None,
+            "fee_status": "accrued",
             "mode": "x402r",
             "gross_amount": float(bounty_amount + platform_fee),
             "platform_fee": float(platform_fee),
@@ -1304,7 +1284,8 @@ class PaymentDispatcher:
                 "error": worker_result.get("error", "Worker disbursement failed"),
             }
 
-        # Step 4: Collect platform fee (non-blocking — worker already paid).
+        # Step 4: Calculate platform fee (ACCRUED — no TX).
+        # Fee stays in platform wallet. Use admin sweep endpoint to collect.
         # Treasury receives the remainder after worker payment. This naturally
         # handles any on-chain protocol fee deduction from x402r — if the escrow
         # contract takes a cut, the treasury amount shrinks accordingly instead
@@ -1316,47 +1297,30 @@ class PaymentDispatcher:
             bounty_amount, total_locked, on_chain_bps
         )
 
-        fee_tx = None
-        fee_error = None
-        try:
-            fee_result = await sdk.collect_platform_fee(
-                fee_amount=platform_fee,
-                task_id=task_id,
-                network=stored_network,
-                token=token,
-            )
-            fee_tx = fee_result.get("tx_hash")
-            if not fee_result.get("success"):
-                fee_error = fee_result.get("error", "Fee collection failed")
-                logger.warning(
-                    "fase2: Worker paid but fee collection failed for task %s: %s",
-                    task_id,
-                    fee_error,
-                )
-            await log_payment_event(
-                task_id=task_id,
-                event_type="disburse_fee",
-                status="success" if fee_result.get("success") else "failed",
-                tx_hash=fee_tx,
-                to_address=EM_TREASURY,
-                amount_usdc=platform_fee,
-                network=stored_network,
-                token=token,
-                error=fee_error,
-                metadata={"mode": "fase2"},
-            )
-        except Exception as fee_err:
-            fee_error = str(fee_err)
-            logger.warning(
-                "fase2: Fee collection error for task %s: %s", task_id, fee_err
-            )
+        # Log fee as accrued (no TX — stays in platform wallet for batch sweep)
+        await log_payment_event(
+            task_id=task_id,
+            event_type="disburse_fee",
+            status="accrued",
+            to_address=EM_TREASURY,
+            amount_usdc=platform_fee,
+            network=stored_network,
+            token=token,
+            metadata={"mode": "fase2", "batch_collection": True},
+        )
+
+        logger.info(
+            "fase2: Fee accrued for task %s: $%s (batch sweep later)",
+            task_id,
+            platform_fee,
+        )
 
         return {
             "success": True,
             "tx_hash": worker_tx,
             "escrow_release_tx": escrow_tx,
-            "fee_tx_hash": fee_tx,
-            "fee_collection_error": fee_error,
+            "fee_tx_hash": None,
+            "fee_status": "accrued",
             "mode": "fase2",
             "gross_amount": float(bounty_amount + platform_fee),
             "platform_fee": float(platform_fee),
@@ -1894,6 +1858,170 @@ class PaymentDispatcher:
                 "Could not load escrow amount from DB for task %s: %s", task_id, e
             )
         return Decimal("0")
+
+    # =========================================================================
+    # Fee Sweep (Batch Collection)
+    # =========================================================================
+
+    async def get_accrued_fees(
+        self, network: str = "base", token: str = "USDC"
+    ) -> Dict[str, Any]:
+        """
+        Get the accumulated fees in platform wallet available for sweep.
+
+        Reads on-chain USDC balance and subtracts a safety buffer ($1.00)
+        to ensure the platform wallet retains enough for operational gas/nonce.
+        """
+        safety_buffer = Decimal("1.00")
+
+        try:
+            sdk = self._get_sdk()
+            platform_address = _get_platform_address()
+
+            # Read on-chain USDC balance
+            balance_result = await sdk.check_agent_balance(
+                agent_address=platform_address,
+                required_amount=Decimal("0"),
+                network=network,
+                token=token,
+            )
+            balance = Decimal(str(balance_result.get("balance", "0")))
+
+            sweepable = max(balance - safety_buffer, Decimal("0"))
+
+            # Count accrued fee events from DB
+            accrued_total = Decimal("0")
+            try:
+                import supabase_client as db_mod
+
+                client = db_mod.get_client()
+                result = (
+                    client.table("payment_events")
+                    .select("amount_usdc")
+                    .eq("event_type", "disburse_fee")
+                    .eq("status", "accrued")
+                    .execute()
+                )
+                for row in result.data or []:
+                    accrued_total += Decimal(str(row.get("amount_usdc", 0)))
+            except Exception as e:
+                logger.warning("Could not sum accrued fees from DB: %s", e)
+
+            return {
+                "platform_wallet": platform_address,
+                "balance_usdc": float(balance),
+                "safety_buffer_usdc": float(safety_buffer),
+                "sweepable_usdc": float(sweepable),
+                "accrued_from_tasks_usdc": float(accrued_total),
+                "treasury_address": EM_TREASURY,
+                "network": network,
+                "token": token,
+            }
+        except Exception as e:
+            logger.error("get_accrued_fees failed: %s", e)
+            return {
+                "error": str(e),
+                "sweepable_usdc": 0,
+                "accrued_from_tasks_usdc": 0,
+            }
+
+    async def sweep_fees_to_treasury(
+        self, network: str = "base", token: str = "USDC"
+    ) -> Dict[str, Any]:
+        """
+        Sweep accumulated fees from platform wallet to treasury.
+
+        Single EIP-3009 transfer. Only sweeps amount above safety buffer.
+        Logs a 'fee_sweep' event for audit trail.
+        """
+        safety_buffer = Decimal("1.00")
+        min_sweep = Decimal("0.10")  # Don't sweep less than $0.10
+
+        try:
+            sdk = self._get_sdk()
+            platform_address = _get_platform_address()
+
+            # Read on-chain USDC balance
+            balance_result = await sdk.check_agent_balance(
+                agent_address=platform_address,
+                required_amount=Decimal("0"),
+                network=network,
+                token=token,
+            )
+            balance = Decimal(str(balance_result.get("balance", "0")))
+            sweepable = (balance - safety_buffer).quantize(Decimal("0.000001"))
+
+            if sweepable < min_sweep:
+                return {
+                    "success": False,
+                    "error": (
+                        f"Sweepable amount (${sweepable}) below minimum (${min_sweep}). "
+                        f"Balance: ${balance}, buffer: ${safety_buffer}"
+                    ),
+                    "balance_usdc": float(balance),
+                    "sweepable_usdc": float(max(sweepable, Decimal("0"))),
+                }
+
+            # Execute sweep: platform wallet -> treasury via EIP-3009
+            sweep_result = await sdk.collect_platform_fee(
+                fee_amount=sweepable,
+                task_id="fee_sweep",
+                network=network,
+                token=token,
+            )
+
+            sweep_tx = sweep_result.get("tx_hash")
+            success = sweep_result.get("success", False)
+
+            await log_payment_event(
+                task_id="fee_sweep",
+                event_type="fee_sweep",
+                status="success" if success else "failed",
+                tx_hash=sweep_tx,
+                from_address=platform_address,
+                to_address=EM_TREASURY,
+                amount_usdc=sweepable,
+                network=network,
+                token=token,
+                error=sweep_result.get("error"),
+                metadata={"balance_before": float(balance)},
+            )
+
+            if success:
+                # Mark accrued events as swept
+                try:
+                    import supabase_client as db_mod
+
+                    client = db_mod.get_client()
+                    client.table("payment_events").update({"status": "swept"}).eq(
+                        "event_type", "disburse_fee"
+                    ).eq("status", "accrued").execute()
+                except Exception as e:
+                    logger.warning("Could not mark accrued fees as swept: %s", e)
+
+                logger.info(
+                    "Fee sweep complete: $%s -> treasury, tx=%s",
+                    sweepable,
+                    sweep_tx,
+                )
+
+            return {
+                "success": success,
+                "tx_hash": sweep_tx,
+                "amount_swept_usdc": float(sweepable) if success else 0,
+                "balance_before_usdc": float(balance),
+                "treasury_address": EM_TREASURY,
+                "error": sweep_result.get("error"),
+            }
+
+        except Exception as e:
+            logger.error("sweep_fees_to_treasury failed: %s", e)
+            return {
+                "success": False,
+                "tx_hash": None,
+                "amount_swept_usdc": 0,
+                "error": str(e),
+            }
 
     # =========================================================================
     # Info / Config

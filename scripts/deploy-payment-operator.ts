@@ -7,6 +7,8 @@
  * Fase 3 (--fase3):  OR(Payer, Facilitator) release/refund + StaticFeeCalculator (1% operator fee to EM treasury).
  * Fase 3 Clean (--fase3-clean): OR(Payer, Facilitator) release/refund, feeCalculator=address(0) (no on-chain operator fee).
  *                                Reuses existing OrCondition. x402r earns protocol fees via ProtocolFeeConfig, not operator fees.
+ * Fase 4 (--fase4):  SECURE operator — OR(Payer|Facilitator) release, Facilitator-ONLY refund, feeCalculator=address(0).
+ *                    Fixes security vulnerability: payer can no longer call refundInEscrow() directly on-chain.
  *
  * Usage:
  *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts
@@ -15,6 +17,8 @@
  *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase3 --dry-run
  *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase3-clean
  *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase3-clean --dry-run
+ *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase4
+ *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase4 --dry-run
  *
  * Environment:
  *   PRIVATE_KEY  - Wallet with ETH on Base for gas (~$2-5)
@@ -116,18 +120,23 @@ async function main() {
   const isDryRun = process.argv.includes("--dry-run");
   const isFase3 = process.argv.includes("--fase3");
   const isFase3Clean = process.argv.includes("--fase3-clean");
+  const isFase4 = process.argv.includes("--fase4");
 
-  const modeLabel = isFase3Clean
-    ? "Fase 3 Clean"
-    : isFase3
-      ? "Fase 3"
-      : "Fase 2";
+  const modeLabel = isFase4
+    ? "Fase 4 (Secure)"
+    : isFase3Clean
+      ? "Fase 3 Clean"
+      : isFase3
+        ? "Fase 3"
+        : "Fase 2";
 
-  const modeDescription = isFase3Clean
-    ? "Fase 3 Clean — OR(Payer, Facilitator), feeCalculator=address(0)"
-    : isFase3
-      ? "Fase 3 — OR(Payer, Facilitator) + StaticFeeCalculator"
-      : "Fase 2 — Facilitator-only";
+  const modeDescription = isFase4
+    ? "Fase 4 — OR(Payer, Facilitator) release, Facilitator-ONLY refund, feeCalculator=address(0)"
+    : isFase3Clean
+      ? "Fase 3 Clean — OR(Payer, Facilitator), feeCalculator=address(0)"
+      : isFase3
+        ? "Fase 3 — OR(Payer, Facilitator) + StaticFeeCalculator"
+        : "Fase 2 — Facilitator-only";
 
   // Get private key
   const privateKey = (process.env.PRIVATE_KEY || process.env.WALLET_PRIVATE_KEY) as Hex | undefined;
@@ -170,7 +179,9 @@ async function main() {
     process.exit(1);
   }
 
-  if (isFase3Clean) {
+  if (isFase4) {
+    await deployFase4(publicClient, walletClient, isDryRun);
+  } else if (isFase3Clean) {
     await deployFase3Clean(publicClient, walletClient, isDryRun);
   } else if (isFase3) {
     await deployFase3(publicClient, walletClient, isDryRun);
@@ -583,6 +594,151 @@ async function deployFase3Clean(
     orCondition,
     operatorAddress,
   });
+}
+
+// ============================================================
+// Fase 4: SECURE — OR(Payer, Facilitator) release, Facilitator-ONLY refund
+// Fixes vulnerability: payer can no longer call refundInEscrow() directly.
+// feeCalculator=address(0), no on-chain operator fee.
+// ============================================================
+
+async function deployFase4(
+  publicClient: ReturnType<typeof createPublicClient>,
+  walletClient: ReturnType<typeof createWalletClient>,
+  isDryRun: boolean,
+) {
+  // ============================================================
+  // Step 1: Verify existing conditions on-chain (reuse, no deploy)
+  // ============================================================
+  console.log("\n--- Step 1: Verify existing conditions ---");
+  console.log(`  OrCondition(Payer, Facilitator):    ${ADDRESSES.orConditionPayerFacilitator}`);
+  console.log(`  StaticAddressCondition(Facilitator): ${ADDRESSES.facilitatorCondition}`);
+
+  const orCondition = ADDRESSES.orConditionPayerFacilitator;
+  const facilitatorOnly = ADDRESSES.facilitatorCondition;
+
+  if (!isDryRun) {
+    // Verify OrCondition bytecode
+    const orBytecode = await publicClient.getCode({ address: orCondition });
+    if (!orBytecode || orBytecode === "0x") {
+      console.error(`FATAL: OrCondition at ${orCondition} has no bytecode`);
+      process.exit(1);
+    }
+    console.log(`  OrCondition verified: contract exists (${orBytecode.length / 2 - 1} bytes)`);
+
+    // Verify StaticAddressCondition(Facilitator) bytecode
+    const facBytecode = await publicClient.getCode({ address: facilitatorOnly });
+    if (!facBytecode || facBytecode === "0x") {
+      console.error(`FATAL: StaticAddressCondition at ${facilitatorOnly} has no bytecode`);
+      process.exit(1);
+    }
+    console.log(`  FacilitatorCondition verified: contract exists (${facBytecode.length / 2 - 1} bytes)`);
+  } else {
+    console.log(`  DRY RUN: Would verify bytecode at both addresses`);
+  }
+
+  // ============================================================
+  // Step 2: Deploy PaymentOperator with SECURE config
+  // ============================================================
+  console.log("\n--- Step 2: PaymentOperator (Fase 4 — Secure) ---");
+
+  // Fase 4 Secure config:
+  // - feeRecipient: EM Treasury — required by factory (non-zero), no fee charged (calculator=0)
+  // - feeCalculator: address(0) — NO on-chain operator fee
+  // - authorizeCondition: UsdcTvlLimit (protocol safety)
+  // - releaseCondition: OR(Payer, Facilitator) — payer OR facilitator can release
+  // - refundInEscrowCondition: StaticAddressCondition(Facilitator) — ONLY facilitator can refund
+  //   (THIS IS THE KEY SECURITY FIX: payer cannot refund directly on-chain)
+  // - Everything else: address(0) (permissive/unused)
+
+  const operatorConfig = {
+    feeRecipient: ADDRESSES.emTreasury,  // Factory requires non-zero; no fee since calculator=0
+    feeCalculator: ZERO_ADDRESS,
+    authorizeCondition: ADDRESSES.usdcTvlLimit,
+    authorizeRecorder: ZERO_ADDRESS,
+    chargeCondition: ZERO_ADDRESS,
+    chargeRecorder: ZERO_ADDRESS,
+    releaseCondition: orCondition,           // OR(Payer | Facilitator) — unchanged
+    releaseRecorder: ZERO_ADDRESS,
+    refundInEscrowCondition: facilitatorOnly, // Facilitator-ONLY (SECURITY FIX)
+    refundInEscrowRecorder: ZERO_ADDRESS,
+    refundPostEscrowCondition: ZERO_ADDRESS,
+    refundPostEscrowRecorder: ZERO_ADDRESS,
+  };
+
+  logOperatorConfig(operatorConfig, {
+    [orCondition]: "(OR: Payer | Facilitator)",
+    [facilitatorOnly]: "(Facilitator-ONLY — SECURE)",
+    [ADDRESSES.usdcTvlLimit]: "(UsdcTvlLimit)",
+  });
+
+  const operatorAddress = await deployOrGetOperator(publicClient, walletClient, operatorConfig, isDryRun);
+
+  // ============================================================
+  // Step 3: On-chain verification
+  // ============================================================
+  if (!isDryRun && operatorAddress !== ("0x_DRY_RUN_OPERATOR" as Address)) {
+    console.log("\n--- Step 3: On-chain verification ---");
+
+    const feeCalc = await publicClient.readContract({
+      address: operatorAddress,
+      abi: PaymentOperatorReadABI,
+      functionName: "FEE_CALCULATOR",
+    });
+    const releaseCond = await publicClient.readContract({
+      address: operatorAddress,
+      abi: PaymentOperatorReadABI,
+      functionName: "RELEASE_CONDITION",
+    });
+    const refundCond = await publicClient.readContract({
+      address: operatorAddress,
+      abi: PaymentOperatorReadABI,
+      functionName: "REFUND_IN_ESCROW_CONDITION",
+    });
+
+    const checks = [
+      { name: "FEE_CALCULATOR() == address(0)", actual: feeCalc, expected: ZERO_ADDRESS },
+      { name: "RELEASE_CONDITION() == OrCondition(Payer|Facilitator)", actual: releaseCond, expected: orCondition },
+      { name: "REFUND_IN_ESCROW_CONDITION() == StaticAddressCondition(Facilitator)", actual: refundCond, expected: facilitatorOnly },
+    ];
+
+    let allPassed = true;
+    for (const check of checks) {
+      const passed = check.actual.toLowerCase() === check.expected.toLowerCase();
+      console.log(`  ${passed ? "PASS" : "FAIL"}: ${check.name}`);
+      console.log(`         got:      ${check.actual}`);
+      console.log(`         expected: ${check.expected}`);
+      if (!passed) allPassed = false;
+    }
+
+    if (!allPassed) {
+      console.error("\nFATAL: On-chain verification failed — operator config does not match expected values");
+      process.exit(1);
+    }
+    console.log("\n  All on-chain checks passed.");
+
+    // KEY SECURITY VERIFICATION: Confirm refund condition is NOT the OR condition
+    if (refundCond.toLowerCase() === orCondition.toLowerCase()) {
+      console.error("\nSECURITY ALERT: REFUND_IN_ESCROW_CONDITION is OrCondition — payer can still refund directly!");
+      console.error("This defeats the purpose of Fase 4. DO NOT use this operator.");
+      process.exit(1);
+    }
+    console.log("  SECURITY: Refund is Facilitator-only (payer CANNOT refund directly).");
+  }
+
+  // Summary
+  printSummary({
+    mode: "Fase 4 (Secure) — OR(Payer|Facilitator) release, Facilitator-ONLY refund",
+    orCondition,
+    operatorAddress,
+  });
+
+  console.log("");
+  console.log("SECURITY NOTE:");
+  console.log("  - Release: OR(Payer, Facilitator) — both can release (no change)");
+  console.log(`  - Refund:  Facilitator-ONLY (${facilitatorOnly})`);
+  console.log("  - Payer CANNOT call refundInEscrow() directly on-chain");
+  console.log("  - This prevents frontrunning attacks where payer refunds after worker delivers");
 }
 
 // ============================================================
