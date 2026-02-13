@@ -36,6 +36,7 @@ try:
 except ImportError:
     ERC8004_AVAILABLE = False
     ERC8004_SUPPORTED_NETWORKS = []
+    EM_AGENT_ID = 0
 
 from .auth import verify_api_key_if_required, APIKeyData
 
@@ -526,12 +527,19 @@ async def rate_worker_endpoint(
             status_code=409, detail="Task has no assigned worker to rate"
         )
 
+    # Resolve worker's ERC-8004 agent ID from executor record if available
+    worker_agent_id = None
+    executor = task.get("executor") or {}
+    if executor.get("erc8004_agent_id"):
+        worker_agent_id = int(executor["erc8004_agent_id"])
+
     result = await rate_worker(
         task_id=request.task_id,
         score=request.score,
         worker_address=worker_address,
         comment=request.comment or "",
         proof_tx=request.proof_tx,
+        worker_agent_id=worker_agent_id,
     )
 
     logger.info(
@@ -619,20 +627,30 @@ async def rate_agent_endpoint(
     if not task.get("executor_id") and not task_executor_wallet:
         raise HTTPException(status_code=409, detail="Task has no assigned worker")
 
-    # Verify the provided ERC-8004 agent identity maps to the task owner.
-    # This blocks mismatched task/agent feedback injection.
+    # Verify the provided ERC-8004 agent identity exists on-chain.
     agent_identity = await get_agent_info(request.agent_id)
     if not agent_identity:
         raise HTTPException(
             status_code=404, detail=f"Agent {request.agent_id} not found"
         )
 
-    task_agent = _normalize_address(task.get("agent_id"))
+    # Verify the rated agent matches the task's agent.
+    # task.agent_id is an internal ID (API key or wallet), while
+    # agent_identity.owner is the on-chain owner (may be the Facilitator
+    # for gasless registrations). Compare against known EM agent ID
+    # or against the task's agent wallet/ID with normalization.
+    task_agent_raw = task.get("agent_id", "")
     identity_owner = _normalize_address(agent_identity.owner)
-    if task_agent and identity_owner and task_agent != identity_owner:
-        raise HTTPException(
-            status_code=403, detail="Task agent does not match rated agent identity"
-        )
+
+    # Strategy: if the rated agent is our EM agent, accept as valid
+    # (the task was created by our platform). Otherwise check wallet match.
+    if request.agent_id != EM_AGENT_ID:
+        task_agent_addr = _normalize_address(task_agent_raw)
+        if task_agent_addr and identity_owner and task_agent_addr != identity_owner:
+            raise HTTPException(
+                status_code=403,
+                detail="Task agent does not match rated agent identity",
+            )
 
     result = await rate_agent(
         agent_id=request.agent_id,

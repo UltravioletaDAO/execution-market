@@ -196,7 +196,7 @@ async def get_task(task_id: str) -> Optional[Dict[str, Any]]:
         result = (
             client.table("tasks")
             .select(
-                "*, executor:executors(id, display_name, wallet_address, reputation_score)"
+                "*, executor:executors(id, display_name, wallet_address, reputation_score, erc8004_agent_id)"
             )
             .eq("id", task_id)
             .single()

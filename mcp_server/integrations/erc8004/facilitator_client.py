@@ -723,16 +723,18 @@ async def rate_worker(
     task_title: str = "",
     task_category: str = "",
     bounty_usd: float = 0.0,
+    worker_agent_id: Optional[int] = None,
 ) -> FeedbackResult:
     """
     Rate a worker after task completion (agent rates human).
 
+    Submits on-chain feedback to the WORKER's ERC-8004 agent identity.
     Persists feedback document to S3 with keccak256 hash on-chain.
 
     Args:
         task_id: Task identifier
         score: Rating 0-100
-        worker_address: Worker's wallet address (for tag)
+        worker_address: Worker's wallet address (for tag and DB lookup)
         comment: Optional comment
         proof_tx: Transaction hash of payment (for verified feedback)
         rejection_reason: Reason for rejection (if applicable)
@@ -741,11 +743,45 @@ async def rate_worker(
         task_title: Task title for context
         task_category: Task category
         bounty_usd: Task bounty amount
+        worker_agent_id: Worker's ERC-8004 agent ID (looked up from DB if not provided)
 
     Returns:
         FeedbackResult
     """
     client = get_facilitator_client()
+
+    # Resolve worker's ERC-8004 agent ID — feedback goes to THEIR identity
+    target_agent_id = worker_agent_id
+    if not target_agent_id and worker_address:
+        try:
+            import supabase_client as db
+
+            addr_lower = worker_address.lower()
+            result = (
+                db.get_client()
+                .table("executors")
+                .select("erc8004_agent_id")
+                .ilike("wallet_address", addr_lower)
+                .limit(1)
+                .execute()
+            )
+            if result.data and result.data[0].get("erc8004_agent_id"):
+                target_agent_id = int(result.data[0]["erc8004_agent_id"])
+                logger.info(
+                    "Resolved worker %s -> ERC-8004 agent %d",
+                    worker_address[:10],
+                    target_agent_id,
+                )
+        except Exception as exc:
+            logger.warning("Could not resolve worker ERC-8004 agent ID: %s", exc)
+
+    if not target_agent_id:
+        return FeedbackResult(
+            success=False,
+            error=f"Worker {worker_address[:10]}... has no ERC-8004 identity. "
+            "Register the worker first via POST /reputation/register.",
+            network=ERC8004_NETWORK,
+        )
 
     # Persist feedback document to S3 and compute hash
     feedback_uri = ""
@@ -762,6 +798,7 @@ async def rate_worker(
             rater_id=str(EM_AGENT_ID),
             target_type="worker",
             target_address=worker_address,
+            target_agent_id=target_agent_id,
             comment=comment,
             rejection_reason=rejection_reason,
             evidence_urls=evidence_urls,
@@ -777,7 +814,7 @@ async def rate_worker(
         feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
 
     return await client.submit_feedback(
-        agent_id=EM_AGENT_ID,
+        agent_id=target_agent_id,
         value=score,
         tag1="worker_rating",
         tag2=worker_address[:10] if worker_address else "",
