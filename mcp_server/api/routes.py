@@ -7476,6 +7476,412 @@ async def batch_create_tasks(
     )
 
 
+
+
+
+# =============================================================================
+# AGENT EXECUTOR ENDPOINTS (A2A — Agent-to-Agent)
+# =============================================================================
+
+
+class RegisterAgentExecutorRequest(BaseModel):
+    """Request body for agent executor registration."""
+
+    wallet_address: str = Field(
+        ..., description="Agent's wallet address for receiving payments"
+    )
+    capabilities: List[str] = Field(
+        ..., description="List of agent capabilities"
+    )
+    display_name: str = Field(..., description="Display name for the agent executor")
+    agent_card_url: Optional[str] = Field(
+        default=None, description="URL to A2A Agent Card"
+    )
+    mcp_endpoint_url: Optional[str] = Field(
+        default=None, description="URL to MCP server endpoint"
+    )
+    a2a_protocol_version: Optional[str] = Field(
+        default=None, description="A2A protocol version (e.g. 0.3.0)"
+    )
+
+
+class RegisterAgentExecutorResponse(BaseModel):
+    """Response for agent executor registration."""
+
+    executor_id: str
+    executor_type: str = "agent"
+    display_name: str
+    wallet_address: str
+    capabilities: List[str]
+    status: str = "active"
+
+
+@router.post(
+    "/agents/register-executor",
+    response_model=RegisterAgentExecutorResponse,
+    responses={
+        201: {"description": "Agent executor registered successfully"},
+        200: {"description": "Agent executor updated (already registered)"},
+        400: {"description": "Invalid request"},
+        401: {"description": "Authentication required"},
+    },
+    summary="Register Agent Executor",
+    description=(
+        "Register an AI agent as a task executor. This enables the agent to "
+        "browse, accept, and complete tasks published by other agents or humans."
+    ),
+    tags=["Agent Executor (A2A)"],
+)
+async def register_agent_executor(
+    body: RegisterAgentExecutorRequest,
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
+):
+    """Register an AI agent as a task executor."""
+    client = db.get_client()
+
+    existing = (
+        client.table("executors")
+        .select("id, display_name, capabilities")
+        .eq("wallet_address", body.wallet_address)
+        .eq("executor_type", "agent")
+        .execute()
+    )
+
+    if existing.data and len(existing.data) > 0:
+        executor = existing.data[0]
+        updates: Dict[str, Any] = {
+            "capabilities": body.capabilities,
+            "display_name": body.display_name,
+        }
+        if body.agent_card_url:
+            updates["agent_card_url"] = body.agent_card_url
+        if body.mcp_endpoint_url:
+            updates["mcp_endpoint_url"] = body.mcp_endpoint_url
+        if body.a2a_protocol_version:
+            updates["a2a_protocol_version"] = body.a2a_protocol_version
+
+        client.table("executors").update(updates).eq("id", executor["id"]).execute()
+
+        return JSONResponse(
+            status_code=200,
+            content=RegisterAgentExecutorResponse(
+                executor_id=executor["id"],
+                display_name=body.display_name,
+                wallet_address=body.wallet_address,
+                capabilities=body.capabilities,
+            ).model_dump(),
+        )
+
+    executor_data: Dict[str, Any] = {
+        "wallet_address": body.wallet_address,
+        "display_name": body.display_name,
+        "executor_type": "agent",
+        "capabilities": body.capabilities,
+        "status": "active",
+        "reputation_score": 50,
+        "tasks_completed": 0,
+    }
+    if body.agent_card_url:
+        executor_data["agent_card_url"] = body.agent_card_url
+    if body.mcp_endpoint_url:
+        executor_data["mcp_endpoint_url"] = body.mcp_endpoint_url
+    if body.a2a_protocol_version:
+        executor_data["a2a_protocol_version"] = body.a2a_protocol_version
+
+    result = client.table("executors").insert(executor_data).execute()
+
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to register agent executor")
+
+    new_executor = result.data[0]
+    logger.info("Agent executor registered: %s (%s)", new_executor["id"], body.display_name)
+
+    return JSONResponse(
+        status_code=201,
+        content=RegisterAgentExecutorResponse(
+            executor_id=new_executor["id"],
+            display_name=body.display_name,
+            wallet_address=body.wallet_address,
+            capabilities=body.capabilities,
+        ).model_dump(),
+    )
+
+
+@router.get(
+    "/agent-tasks",
+    responses={200: {"description": "List of available agent tasks"}},
+    summary="Browse Agent Tasks",
+    description="Browse tasks available for agent execution.",
+    tags=["Agent Executor (A2A)"],
+)
+async def browse_agent_tasks(
+    category: Optional[str] = Query(None, description="Filter by task category"),
+    capabilities: Optional[str] = Query(None, description="Comma-separated capabilities"),
+    min_bounty: Optional[float] = Query(None, description="Minimum bounty in USD"),
+    max_bounty: Optional[float] = Query(None, description="Maximum bounty in USD"),
+    limit: int = Query(20, ge=1, le=100, description="Max results"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
+    api_key: Optional[APIKeyData] = Depends(verify_api_key_optional),
+):
+    """Browse tasks available for agent execution."""
+    client = db.get_client()
+
+    query = (
+        client.table("tasks")
+        .select(
+            "id, title, instructions, category, bounty_usd, payment_token, "
+            "deadline, status, target_executor_type, verification_mode, "
+            "required_capabilities, created_at, agent_id"
+        )
+        .eq("status", "published")
+        .in_("target_executor_type", ["agent", "any"])
+    )
+
+    if category:
+        query = query.eq("category", category)
+    if min_bounty is not None:
+        query = query.gte("bounty_usd", min_bounty)
+    if max_bounty is not None:
+        query = query.lte("bounty_usd", max_bounty)
+
+    result = (
+        query.order("created_at", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+    )
+
+    tasks = result.data or []
+
+    if capabilities:
+        cap_list = [c.strip() for c in capabilities.split(",") if c.strip()]
+        if cap_list:
+            filtered = []
+            for t in tasks:
+                req_caps = t.get("required_capabilities") or []
+                if not req_caps or set(req_caps).issubset(set(cap_list)):
+                    filtered.append(t)
+            tasks = filtered
+
+    return {
+        "tasks": tasks,
+        "count": len(tasks),
+        "offset": offset,
+        "has_more": len(result.data or []) == limit,
+    }
+
+
+class AcceptAgentTaskRequest(BaseModel):
+    """Request body for accepting a task as agent executor."""
+
+    executor_id: str = Field(..., description="Agent executor ID")
+    estimated_completion_hours: Optional[float] = Field(
+        default=None, description="Estimated hours to completion"
+    )
+    message: Optional[str] = Field(default=None, description="Message to task publisher")
+
+
+@router.post(
+    "/agent-tasks/{task_id}/accept",
+    responses={
+        200: {"description": "Task accepted by agent executor"},
+        400: {"description": "Task not available or capability mismatch"},
+        404: {"description": "Task not found"},
+    },
+    summary="Accept Agent Task",
+    description="Accept a task as an agent executor.",
+    tags=["Agent Executor (A2A)"],
+)
+async def accept_agent_task(
+    task_id: str = Path(..., description="Task UUID"),
+    body: AcceptAgentTaskRequest = ...,
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
+):
+    """Accept a task as an agent executor."""
+    client = db.get_client()
+
+    task = await db.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+
+    if task["status"] != "published":
+        raise HTTPException(status_code=400, detail=f"Task not available (status: {task['status']})")
+
+    target_type = task.get("target_executor_type", "any")
+    if target_type == "human":
+        raise HTTPException(status_code=400, detail="This task is only available for human executors")
+
+    try:
+        exec_result = (
+            client.table("executors").select("*").eq("id", body.executor_id).single().execute()
+        )
+        executor = exec_result.data
+    except Exception:
+        raise HTTPException(status_code=404, detail=f"Executor {body.executor_id} not found")
+
+    if not executor:
+        raise HTTPException(status_code=404, detail="Executor not found")
+
+    if executor.get("executor_type") != "agent":
+        raise HTTPException(status_code=400, detail="Executor is not an agent. Use /agents/register-executor.")
+
+    if executor.get("status") != "active":
+        raise HTTPException(status_code=400, detail=f"Executor not active (status: {executor.get('status')})")
+
+    required_caps = task.get("required_capabilities") or []
+    executor_caps = executor.get("capabilities") or []
+
+    if required_caps:
+        missing = set(required_caps) - set(executor_caps)
+        if missing:
+            raise HTTPException(status_code=400, detail=f"Capability mismatch. Missing: {', '.join(missing)}")
+
+    try:
+        await db.update_task(
+            task_id,
+            {
+                "status": "accepted",
+                "executor_id": body.executor_id,
+                "assigned_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to accept task: {str(e)}")
+
+    logger.info("Agent executor %s accepted task %s", body.executor_id, task_id)
+
+    return {
+        "success": True,
+        "task_id": task_id,
+        "executor_id": body.executor_id,
+        "status": "accepted",
+        "task": {
+            "title": task["title"],
+            "bounty_usd": task.get("bounty_usd"),
+            "deadline": task.get("deadline"),
+            "verification_mode": task.get("verification_mode", "manual"),
+            "instructions": task.get("instructions"),
+        },
+    }
+
+
+class SubmitAgentWorkRequest(BaseModel):
+    """Request body for submitting agent work."""
+
+    executor_id: str = Field(..., description="Agent executor ID")
+    result_data: Dict[str, Any] = Field(..., description="Structured result data")
+    result_type: str = Field(default="json_response", description="Type of result")
+    notes: Optional[str] = Field(default=None, description="Optional notes")
+
+
+@router.post(
+    "/agent-tasks/{task_id}/submit",
+    responses={
+        200: {"description": "Work submitted successfully"},
+        400: {"description": "Not assigned or wrong status"},
+        404: {"description": "Task not found"},
+    },
+    summary="Submit Agent Work",
+    description="Submit completed work as an agent executor.",
+    tags=["Agent Executor (A2A)"],
+)
+async def submit_agent_work(
+    task_id: str = Path(..., description="Task UUID"),
+    body: SubmitAgentWorkRequest = ...,
+    api_key: APIKeyData = Depends(verify_api_key_if_required),
+):
+    """Submit completed work as an agent executor."""
+    client = db.get_client()
+
+    task = await db.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+
+    if task.get("executor_id") != body.executor_id:
+        raise HTTPException(status_code=400, detail="You are not assigned to this task")
+
+    if task["status"] not in ("accepted", "in_progress"):
+        raise HTTPException(status_code=400, detail=f"Cannot submit for task in status: {task['status']}")
+
+    evidence = {
+        body.result_type: body.result_data,
+        "submission_metadata": {
+            "executor_type": "agent",
+            "result_type": body.result_type,
+            "submitted_at": datetime.now(timezone.utc).isoformat(),
+        },
+    }
+
+    sub_data = {
+        "task_id": task_id,
+        "executor_id": body.executor_id,
+        "evidence": evidence,
+        "notes": body.notes,
+        "status": "pending",
+        "submitted_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    sub_result = client.table("submissions").insert(sub_data).execute()
+    if not sub_result.data:
+        raise HTTPException(status_code=500, detail="Failed to create submission")
+
+    submission = sub_result.data[0]
+    submission_id = submission["id"]
+
+    await db.update_task(task_id, {"status": "submitted"})
+
+    verification_mode = task.get("verification_mode", "manual")
+    auto_verified = False
+    auto_verdict = None
+
+    if verification_mode == "auto":
+        from tools.agent_executor_tools import _passes_auto_verification
+
+        criteria = task.get("verification_criteria", {})
+        passed, reason = _passes_auto_verification(body.result_data, criteria)
+
+        if passed:
+            client.table("submissions").update(
+                {
+                    "status": "approved",
+                    "agent_verdict": "accepted",
+                    "verified_at": datetime.now(timezone.utc).isoformat(),
+                    "notes": f"Auto-verified: {reason}",
+                }
+            ).eq("id", submission_id).execute()
+
+            await db.update_task(task_id, {"status": "completed"})
+            auto_verified = True
+            auto_verdict = "approved"
+        else:
+            client.table("submissions").update(
+                {
+                    "status": "rejected",
+                    "agent_verdict": "rejected",
+                    "notes": f"Auto-verification failed: {reason}",
+                }
+            ).eq("id", submission_id).execute()
+            auto_verdict = "rejected"
+
+    logger.info("Agent %s submitted work for task %s (auto=%s)", body.executor_id, task_id, auto_verdict)
+
+    response: Dict[str, Any] = {
+        "success": True,
+        "submission_id": submission_id,
+        "task_id": task_id,
+        "status": "approved" if auto_verified else "pending",
+        "auto_verified": auto_verified,
+    }
+    if auto_verdict:
+        response["auto_verdict"] = auto_verdict
+
+    return response
+
+
+
+
+
+
+
 # =============================================================================
 # HEALTH & INFO ENDPOINTS
 # =============================================================================
