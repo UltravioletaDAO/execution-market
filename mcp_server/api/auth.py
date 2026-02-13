@@ -2,6 +2,13 @@
 API Authentication Module
 
 Handles API key verification, tier determination, and agent authorization.
+Supports dual auth: traditional API keys AND ERC-8128 wallet-based authentication.
+
+ERC-8128 Auth Flow:
+  HTTP request with Signature + Signature-Input headers
+    → verify_agent_auth()
+      → Has Signature header? → verify_erc8128_request()
+      → Has Bearer/X-API-Key? → verify_api_key() (existing, unchanged)
 """
 
 import os
@@ -12,7 +19,7 @@ from typing import Optional
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, Header
+from fastapi import HTTPException, Header, Request
 
 logger = logging.getLogger(__name__)
 
@@ -415,6 +422,176 @@ async def verify_agent_owns_submission(agent_id: str, submission_id: str) -> boo
     except Exception as e:
         logger.error("Error verifying submission ownership: %s", str(e))
         return False
+
+
+
+# ==========================================================================
+# ERC-8128 Wallet-Based Authentication (Unified Auth)
+# ==========================================================================
+
+
+@dataclass
+class AgentAuth:
+    """
+    Unified auth result for both API keys and ERC-8128 wallet signatures.
+
+    This is the new canonical auth type. Routes can migrate from
+    Depends(verify_api_key_if_required) to Depends(verify_agent_auth).
+    """
+
+    agent_id: str
+    wallet_address: Optional[str] = None
+    tier: str = "free"
+    auth_method: str = "api_key"        # "api_key" | "erc8128"
+    chain_id: Optional[int] = None
+    organization_id: Optional[str] = None
+    erc8004_registered: bool = False
+    erc8004_agent_id: Optional[int] = None
+
+
+# Lazy-initialized nonce store (avoids import-time side effects)
+_erc8128_nonce_store = None
+
+
+def _get_erc8128_nonce_store():
+    """Get or create the ERC-8128 nonce store."""
+    global _erc8128_nonce_store
+    if _erc8128_nonce_store is None:
+        try:
+            from integrations.erc8128.nonce_store import get_nonce_store
+
+            _erc8128_nonce_store = get_nonce_store()
+        except ImportError:
+            logger.warning("ERC-8128 nonce store not available")
+            return None
+    return _erc8128_nonce_store
+
+
+async def _resolve_erc8004_identity(
+    wallet_address: str, chain_id: int
+) -> dict:
+    """
+    Cross-reference a wallet address with ERC-8004 identity.
+
+    Returns dict with agent_id, registered, etc.
+    Falls back to wallet address as agent_id if identity lookup fails.
+    """
+    try:
+        from integrations.erc8004.identity import check_worker_identity
+
+        result = await check_worker_identity(wallet_address)
+        return {
+            "registered": result.status.value == "registered",
+            "agent_id": result.agent_id,
+        }
+    except ImportError:
+        logger.debug("ERC-8004 identity module not available")
+    except Exception as e:
+        logger.warning("ERC-8004 identity lookup failed: %s", e)
+
+    return {"registered": False, "agent_id": None}
+
+
+async def verify_agent_auth(request: Request) -> AgentAuth:
+    """
+    Unified auth dependency: tries ERC-8128 first (if Signature header present),
+    falls back to API key auth.
+
+    Usage in routes::
+
+        @router.post("/api/v1/tasks")
+        async def create_task(auth: AgentAuth = Depends(verify_agent_auth)):
+            print(f"Authenticated: {auth.agent_id} via {auth.auth_method}")
+
+    Priority:
+      1. Signature header present → ERC-8128 verification
+      2. Bearer/X-API-Key header → existing API key verification
+      3. Neither → depends on EM_REQUIRE_API_KEY setting
+    """
+    # Path 1: ERC-8128 signature-based auth
+    sig_header = request.headers.get("signature")
+    sig_input_header = request.headers.get("signature-input")
+
+    if sig_header and sig_input_header:
+        try:
+            from integrations.erc8128.verifier import verify_erc8128_request
+
+            nonce_store = _get_erc8128_nonce_store()
+            result = await verify_erc8128_request(
+                request, nonce_store=nonce_store
+            )
+
+            if result.ok:
+                # Cross-reference with ERC-8004 identity
+                identity = await _resolve_erc8004_identity(
+                    result.address, result.chain_id
+                )
+
+                agent_id = str(identity.get("agent_id") or result.address)
+
+                return AgentAuth(
+                    agent_id=agent_id,
+                    wallet_address=result.address,
+                    auth_method="erc8128",
+                    chain_id=result.chain_id,
+                    erc8004_registered=identity.get("registered", False),
+                    erc8004_agent_id=identity.get("agent_id"),
+                )
+
+            # ERC-8128 failed — DON'T fall through to API key
+            raise HTTPException(
+                status_code=401,
+                detail=f"ERC-8128 verification failed: {result.reason}",
+                headers={"WWW-Authenticate": 'ERC8128 realm="execution-market"'},
+            )
+
+        except HTTPException:
+            raise
+        except ImportError:
+            logger.warning(
+                "ERC-8128 module not available, falling through to API key auth"
+            )
+        except Exception as e:
+            logger.error("ERC-8128 verification error: %s", e)
+            raise HTTPException(
+                status_code=401,
+                detail=f"ERC-8128 verification error: {e}",
+                headers={"WWW-Authenticate": 'ERC8128 realm="execution-market"'},
+            )
+
+    # Path 2: API key auth (existing behavior, unchanged)
+    authorization = request.headers.get("authorization")
+    x_api_key = request.headers.get("x-api-key")
+
+    api_key_data = await verify_api_key_if_required(
+        authorization=authorization, x_api_key=x_api_key
+    )
+
+    return AgentAuth(
+        agent_id=api_key_data.agent_id,
+        tier=api_key_data.tier,
+        auth_method="api_key",
+        organization_id=api_key_data.organization_id,
+    )
+
+
+# ==========================================================================
+# Nonce endpoint helper
+# ==========================================================================
+
+
+async def generate_auth_nonce() -> dict:
+    """Generate a fresh nonce for ERC-8128 authentication."""
+    store = _get_erc8128_nonce_store()
+    if store is None:
+        return {"error": "Nonce store not available", "nonce": None}
+
+    nonce = await store.generate()
+    return {
+        "nonce": nonce,
+        "ttl_seconds": 300,
+        "message": "Include this nonce in the Signature-Input nonce parameter",
+    }
 
 
 def clear_api_key_cache() -> int:
