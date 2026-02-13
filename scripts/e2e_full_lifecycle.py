@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-E2E Full Lifecycle Test — Fee Split Verification
+E2E Full Lifecycle Test -- Fee Split Verification
 
 The "test of all tests". Runs the complete production flow through the MCP
 Server REST API and verifies the fee split between Worker and Treasury with
 on-chain TX evidence.
 
 Scenarios:
-  1. HAPPY PATH: Create → Apply → Assign → Submit → Approve
+  1. HAPPY PATH: Create -> Apply -> Assign -> Submit -> Approve
      - TX 1: Escrow authorize (lock bounty * 1.13)
-     - TX 2: Worker disbursement ($bounty → Worker)
-     - TX 3: Fee collection ($fee → Treasury)
-  2. CANCEL PATH: Create → Cancel (full refund to agent)
-  3. REJECTION PATH: Create → Apply → Assign → Submit → Reject (no payment)
+     - TX 2: Worker disbursement ($bounty -> Worker)
+     - TX 3: Fee collection ($fee -> Treasury)
+  2. CANCEL PATH: Create -> Cancel (full refund to agent)
+  3. REJECTION PATH: Create -> Apply -> Assign -> Submit -> Reject (no payment)
 
 Usage:
   python scripts/e2e_full_lifecycle.py                   # Full test
@@ -36,11 +37,18 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import httpx
+from dotenv import load_dotenv
+
+# Load env for Supabase access
+load_dotenv(Path(__file__).parent.parent / "mcp_server" / ".env")
+load_dotenv(Path(__file__).parent.parent / ".env.local")
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
 API_BASE = os.environ.get("EM_API_URL", "https://api.execution.market").rstrip("/")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
 # Test executor ID (must exist in Supabase)
 TEST_EXECUTOR_ID = os.environ.get(
@@ -105,6 +113,48 @@ class TestResult:
 
 
 results = TestResult()
+
+
+# ---------------------------------------------------------------------------
+# Supabase fallback for payment details
+# ---------------------------------------------------------------------------
+import re
+
+
+def _fetch_payment_from_supabase(task_id: str) -> Optional[Dict[str, Any]]:
+    """Query Supabase payment record for a task, extract fee_tx from note."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return None
+    try:
+        import requests
+
+        headers = {
+            "apikey": SUPABASE_SERVICE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        }
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/payments?task_id=eq.{task_id}&select=*",
+            headers=headers,
+            timeout=10,
+        )
+        if r.status_code != 200 or not r.json():
+            return None
+        payment = r.json()[0]
+        result: Dict[str, Any] = {
+            "to_address": payment.get("to_address"),
+            "fee_usdc": payment.get("fee_usdc"),
+            "amount_usdc": payment.get("amount_usdc"),
+            "settlement_method": payment.get("settlement_method"),
+        }
+        # Extract fee_tx from note: "... | fee_tx=0xabc..."
+        note = payment.get("note", "")
+        m = re.search(r"fee_tx=(0x[a-fA-F0-9]+)", note)
+        if m:
+            result["fee_tx"] = m.group(1)
+        return result
+    except Exception as e:
+        print(f"         [Supabase fallback] error: {e}")
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +229,7 @@ async def test_health(client: httpx.AsyncClient) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Scenario 1: Happy Path — Fee Split Verification
+# Scenario 1: Happy Path -- Fee Split Verification
 # ---------------------------------------------------------------------------
 async def test_happy_path(
     client: httpx.AsyncClient,
@@ -190,7 +240,7 @@ async def test_happy_path(
     total = bounty + fee
 
     print("\n" + "=" * 72)
-    print("SCENARIO 1: HAPPY PATH — FEE SPLIT VERIFICATION")
+    print("SCENARIO 1: HAPPY PATH -- FEE SPLIT VERIFICATION")
     print(f"  API:      {API_BASE}")
     print(f"  Bounty:   ${bounty:.2f} USDC")
     print(f"  Fee:      ${fee:.6f} USDC (13%)")
@@ -210,7 +260,7 @@ async def test_happy_path(
             "title": f"E2E Fee Split Test {ts_short()}",
             "instructions": (
                 "Take a photo of any nearby object. "
-                "Automated E2E full lifecycle test — fee split verification."
+                "Automated E2E full lifecycle test -- fee split verification."
             ),
             "category": "physical_presence",
             "bounty_usd": bounty,
@@ -254,7 +304,7 @@ async def test_happy_path(
         f"/tasks/{task_id}/apply",
         {
             "executor_id": executor_id,
-            "message": "E2E fee split test — ready to work",
+            "message": "E2E fee split test -- ready to work",
         },
     )
     print(f"         Apply: HTTP {apply_data.get('_http_status')}")
@@ -354,7 +404,7 @@ async def test_happy_path(
         "POST",
         f"/submissions/{submission_id}/approve",
         {
-            "notes": "E2E fee split verification — approving for payment",
+            "notes": "E2E fee split verification -- approving for payment",
             "rating_score": 85,
         },
     )
@@ -372,30 +422,42 @@ async def test_happy_path(
     escrow_release = resp_data.get("escrow_release_tx")
     payment_mode = resp_data.get("payment_mode", "unknown")
     platform_fee_actual = resp_data.get("platform_fee_usdc")
+
+    # Fallback: query Supabase if API response is missing fee details
+    if payment_tx and not fee_tx:
+        print("         [Fallback] Querying Supabase for payment details...")
+        sb_payment = _fetch_payment_from_supabase(task_id)
+        if sb_payment:
+            if sb_payment.get("fee_tx"):
+                fee_tx = sb_payment["fee_tx"]
+                print(f"         [Fallback] fee_tx from DB: {fee_tx[:20]}...")
+            if sb_payment.get("settlement_method") and payment_mode == "unknown":
+                payment_mode = sb_payment["settlement_method"]
+                print(f"         [Fallback] mode from DB: {payment_mode}")
     worker_net_actual = resp_data.get("worker_net_usdc")
     gross_actual = resp_data.get("gross_amount_usdc")
 
     print()
-    print("  ┌─────────────────────────────────────────────────────────┐")
-    print("  │              PAYMENT SETTLEMENT RESULTS                 │")
-    print("  ├─────────────────────────────────────────────────────────┤")
-    print(f"  │  Mode:           {payment_mode:<40s}│")
+    print("  +-----------------------------------------------------------+")
+    print("  |              PAYMENT SETTLEMENT RESULTS                  |")
+    print("  +-----------------------------------------------------------+")
+    print(f"  |  Mode:           {payment_mode:<40s}|")
     if escrow_release:
-        print(f"  │  Escrow Release:  {escrow_release[:42]:<40s}│")
-        print(f"  │    {BASESCAN_TX}/{escrow_release}")
+        print(f"  |  Escrow Release:  {escrow_release[:42]:<40s}|")
+        print(f"  |    {BASESCAN_TX}/{escrow_release}")
     if payment_tx:
-        print(f"  │  Worker TX:      {payment_tx[:42]:<40s}│")
-        print(f"  │    {BASESCAN_TX}/{payment_tx}")
+        print(f"  |  Worker TX:      {payment_tx[:42]:<40s}|")
+        print(f"  |    {BASESCAN_TX}/{payment_tx}")
     if fee_tx:
-        print(f"  │  Fee TX:         {fee_tx[:42]:<40s}│")
-        print(f"  │    {BASESCAN_TX}/{fee_tx}")
+        print(f"  |  Fee TX:         {fee_tx[:42]:<40s}|")
+        print(f"  |    {BASESCAN_TX}/{fee_tx}")
     if worker_net_actual is not None:
-        print(f"  │  Worker net:     ${worker_net_actual:.6f} USDC{' ':>23s}│")
+        print(f"  |  Worker net:     ${worker_net_actual:.6f} USDC{' ':>23s}|")
     if platform_fee_actual is not None:
-        print(f"  │  Platform fee:   ${platform_fee_actual:.6f} USDC{' ':>23s}│")
+        print(f"  |  Platform fee:   ${platform_fee_actual:.6f} USDC{' ':>23s}|")
     if gross_actual is not None:
-        print(f"  │  Gross:          ${gross_actual:.6f} USDC{' ':>23s}│")
-    print("  └─────────────────────────────────────────────────────────┘")
+        print(f"  |  Gross:          ${gross_actual:.6f} USDC{' ':>23s}|")
+    print("  +-----------------------------------------------------------+")
 
     # Verify fee math
     fee_mismatch = None
@@ -427,7 +489,7 @@ async def test_happy_path(
 
     results.add(
         "happy_path",
-        "Create → Apply → Assign → Submit → Approve (fee split)",
+        "Create -> Apply -> Assign -> Submit -> Approve (fee split)",
         {
             "status": status,
             "task_id": task_id,
@@ -461,7 +523,7 @@ async def test_cancel_path(
     bounty: float,
 ) -> Optional[str]:
     print("\n" + "=" * 72)
-    print("SCENARIO 2: CANCEL PATH (Create → Cancel → Refund)")
+    print("SCENARIO 2: CANCEL PATH (Create -> Cancel -> Refund)")
     print(f"  Bounty: ${bounty:.2f}")
     print("=" * 72)
 
@@ -526,7 +588,7 @@ async def test_cancel_path(
     status = "SUCCESS" if cancel_data.get("_http_status") == 200 else "FAILED"
     results.add(
         "cancel_path",
-        "Create → Cancel (full refund to agent)",
+        "Create -> Cancel (full refund to agent)",
         {
             "status": status,
             "task_id": task_id,
@@ -550,7 +612,7 @@ async def test_rejection_path(
 ) -> Optional[str]:
     print("\n" + "=" * 72)
     print("SCENARIO 3: REJECTION PATH")
-    print("  Create → Apply → Assign → Submit → Reject (no payment)")
+    print("  Create -> Apply -> Assign -> Submit -> Reject (no payment)")
     print(f"  Bounty: ${bounty:.2f}")
     print("=" * 72)
 
@@ -644,7 +706,7 @@ async def test_rejection_path(
             "executor_id": executor_id,
             "evidence": {
                 "photo": ["https://cdn.execution.market/evidence/e2e-blurry.jpg"],
-                "text_response": "Incomplete — E2E rejection test.",
+                "text_response": "Incomplete -- E2E rejection test.",
             },
             "notes": "Low-quality submission for E2E rejection test",
         },
@@ -689,7 +751,7 @@ async def test_rejection_path(
         "POST",
         f"/submissions/{submission_id}/reject",
         {
-            "notes": "E2E test rejection — evidence incomplete",
+            "notes": "E2E test rejection -- evidence incomplete",
             "severity": "major",
             "reputation_score": 30,
         },
@@ -700,7 +762,7 @@ async def test_rejection_path(
     status = "SUCCESS" if reject_data.get("_http_status") == 200 else "FAILED"
     results.add(
         "rejection_path",
-        "Create → Apply → Assign → Submit → Reject (no payment, score=30)",
+        "Create -> Apply -> Assign -> Submit -> Reject (no payment, score=30)",
         {
             "status": status,
             "task_id": task_id,
@@ -721,7 +783,7 @@ def generate_report(results_obj: TestResult, bounty: float) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     lines = [
-        "# E2E Full Lifecycle Report — Fee Split Verification",
+        "# E2E Full Lifecycle Report -- Fee Split Verification",
         "",
         f"> Generated: {now}",
         f"> API: `{API_BASE}`",
@@ -845,7 +907,7 @@ def generate_report(results_obj: TestResult, bounty: float) -> str:
                 )
 
         if s.get("fee_mismatch"):
-            lines.append(f"\n> **WARNING**: Fee mismatch — {s['fee_mismatch']}")
+            lines.append(f"\n> **WARNING**: Fee mismatch -- {s['fee_mismatch']}")
 
         if s.get("error"):
             lines.append(f"\n> **Error**: {s['error']}")
@@ -924,7 +986,7 @@ async def main() -> int:
     total = bounty + fee
 
     print("=" * 72)
-    print("E2E FULL LIFECYCLE TEST — FEE SPLIT VERIFICATION")
+    print("E2E FULL LIFECYCLE TEST -- FEE SPLIT VERIFICATION")
     print("=" * 72)
     print(f"  API:       {API_BASE}")
     print(f"  Time:      {ts()}")
@@ -938,7 +1000,7 @@ async def main() -> int:
     print(f"  Happy only:{happy_only}")
 
     if dry_run:
-        print("\nDRY RUN — configuration shown above. Remove --dry-run to execute.")
+        print("\nDRY RUN -- configuration shown above. Remove --dry-run to execute.")
         return 0
 
     timeout = httpx.Timeout(180.0, connect=15.0)
