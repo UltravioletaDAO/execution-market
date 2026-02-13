@@ -303,7 +303,8 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
 | x402r Escrow (AuthCaptureEscrow) | Arbitrum, Avalanche, Celo, Monad, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
-| EM PaymentOperator (Fase 3) | Base | `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6` |
+| **EM PaymentOperator (Fase 3 Clean)** | **Base** | **`0xd5149049e7c212ce5436a9581b4307EB9595df95`** |
+| EM PaymentOperator (Fase 3 v1, legacy) | Base | `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6` |
 | EM PaymentOperator (Fase 2, legacy) | Base | `0xb9635f544665758019159c04c08a3d583dadd723` |
 | StaticAddressCondition(Facilitator) | Base | `0x9d03c03c15563E72CF2186E9FDB859A00ea661fc` |
 | OrCondition(Payer\|Facilitator) | Base | `0xb365717C35004089996F72939b0C5b32Fa2ef8aE` |
@@ -384,29 +385,6 @@ Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t em-d
 
 **Reference:** See `docs/planning/PAYMENT_ARCHITECTURE.md` for examples of all diagram types.
 
-### Claude Code Memory Organization
-
-Memory files live in the auto memory directory (`~/.claude/projects/.../memory/`). They persist across conversations.
-
-**Structure:**
-- `MEMORY.md` — **Concise index only** (<120 lines). Contains project context, topic file table, batch progress, fix summary, open issues.
-- Topic files (e.g., `payment-architecture.md`, `infrastructure.md`) — Detailed learnings per domain.
-
-**Rules:**
-- MEMORY.md is always loaded into the system prompt. Lines after 200 are truncated.
-- When adding new learnings, find the right topic file or create a new one.
-- Always update the topic table in MEMORY.md when creating new topic files.
-- Keep MEMORY.md under 120 lines — move details to topic files.
-- Organize semantically by topic, not chronologically.
-
-**Current topic files:**
-| File | Domain |
-|------|--------|
-| `payment-architecture.md` | x402 flow, wallets, SDK, settlement |
-| `infrastructure.md` | AWS, ECS, ALB, DNS, secrets |
-| `database.md` | Supabase, migrations, RPC functions |
-| `frontend.md` | Dynamic.xyz, admin dashboard, UI bugs |
-| `ecosystem.md` | Facilitator, SDKs, ERC-8004 contracts |
 
 ## Operational State (as of 2026-02-06)
 
@@ -462,13 +440,7 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 
 ### ChambaEscrow — DEPRECATED (DO NOT USE)
 
-ChambaEscrow (`contracts/contracts/ChambaEscrow.sol`) was a legacy custom Solidity escrow contract used during early development. It has been **fully replaced** by the **x402 Facilitator** (gasless, EIP-3009 based).
-
-- All ChambaEscrow source files have been moved to `_archive/contracts/`
-- Generated artifacts (typechain, compiled ABIs) have been deleted
-- Historical deployments on Ethereum and Avalanche are read-only (no active funds)
-- **Never reference, deploy, or interact with ChambaEscrow**
-- Always use `uvd-x402-sdk` + Facilitator for all escrow/payment operations
+**NEVER reference, deploy, or interact with ChambaEscrow** (`_archive/contracts/`). Fully replaced by x402 SDK + Facilitator.
 
 ### x402 Payment Architecture
 
@@ -593,25 +565,55 @@ Wrong Flow (DO NOT USE):
 
 ### Known Bugs & TODOs
 
-**Dashboard**:
-- [x] ~~`SubmissionForm.tsx` uses direct Supabase insert~~ — FIXED: now uses `submitWork()` service
-- [ ] The proper `EvidenceUpload.tsx` component (with camera, GPS, EXIF) is unused — `SubmissionForm.tsx` is a simpler version
-
-**MCP Server / Payments**:
-- [x] ~~`x402r_escrow.py` ABI mismatch~~ — FIXED: file deleted, SDK + Facilitator used instead
-- [x] ~~Fee rounding to $0.00 on small bounties~~ — FIXED: 6-decimal quantization + $0.01 minimum fee
-- [x] ~~Multichain support~~ — DONE: 15 EVM networks in token registry (10 with x402r escrow), `EM_ENABLED_NETWORKS` env var gates active chains
-- [x] ~~`routes.py` escrow wiring called contracts directly~~ — FIXED: `create_task()` uses `verify_x402_payment()`, `approve_submission()` uses `sdk.settle_task_payment()`
-- [x] ~~`escrow.py` endpoints referenced deleted `x402r_escrow.py`~~ — FIXED: dead code removed, endpoints return 410 Gone or use SDK
-
-**Escrow**:
+- [ ] `EvidenceUpload.tsx` (camera, GPS, EXIF) is unused — `SubmissionForm.tsx` is a simpler version
 - [ ] $0.10 USDC stuck in vault from direct relay deposit (tx `0xda31cbe...`). Needs refund or contract expiry
-- [ ] Deposit limit: $100 max per deposit (contract-enforced, only relevant if using direct relay deposits)
+- [ ] Incident Feb 2026: 3 tasks ($1.404) settled to treasury `0xae07` instead of platform wallet. Pending Ledger refund to `0x13ef` on Base
 
-**Infrastructure**:
-- [x] ~~`ANTHROPIC_API_KEY` not in ECS~~ — FIXED: Added to task def rev 23, AI verification now real
-- [x] ~~`ERC8004_NETWORK` / `EM_AGENT_ID` not in ECS~~ — FIXED: `base` / `2106` in task def rev 23
-- [x] ~~Admin dashboard not deployed~~ — DONE: S3 + CloudFront at `admin.execution.market`
+### Golden Flow (Comprehensive E2E Acceptance Test)
+
+The **Golden Flow** is the definitive acceptance test. If the Golden Flow passes, the platform is healthy. It tests EVERYTHING end-to-end on production (Base Mainnet):
+
+**Script**: `python scripts/e2e_golden_flow.py`
+
+**What it tests (in order):**
+1. **Health check** — API reachable
+2. **Task creation** — Fase 2 escrow lock on-chain ($0.10 bounty, 13% fee = $0.113 locked)
+3. **Worker auto-registration** — Worker registers via API (creates executor profile)
+4. **ERC-8004 Identity** — Worker gets on-chain identity via Facilitator (gasless)
+5. **Task application** — Worker applies to task
+6. **Task assignment** — Agent assigns worker
+7. **Evidence submission** — Worker submits evidence (stored on S3/CloudFront CDN)
+8. **Task approval + payment** — Agent approves, 3 on-chain TXs: escrow release, worker payout ($0.10), fee collection ($0.013)
+9. **Agent rates worker** — Reputation feedback (on-chain via Facilitator)
+10. **Worker rates agent** — Bidirectional reputation
+11. **On-chain verification** — All TXs verified via Base RPC
+12. **Reputation verification** — Scores readable from ERC-8004 Reputation Registry
+
+**Reports generated:**
+- `docs/reports/GOLDEN_FLOW_REPORT.md` (English)
+- `docs/reports/GOLDEN_FLOW_REPORT.es.md` (Spanish)
+
+**Separate reports (focused):**
+- `docs/reports/PAYMENT_FLOW_REPORT.md` — Escrow + fee split only (existing Complete Flow Report)
+- `docs/reports/ERC8004_FLOW_REPORT.md` — Identity + reputation only
+
+### Facilitator Ownership (CRITICAL)
+
+**The Facilitator (`facilitator.ultravioletadao.xyz`) is OURS — Ultravioleta DAO.** Repo: `UltravioletaDAO/x402-rs`. We deploy, control, and maintain it. Ali/BackTrack has NOTHING to do with the Facilitator.
+
+- **Ali Abdoli / BackTrack** = x402r protocol (contracts, factories, ProtocolFeeConfig). NOT the Facilitator.
+- **Ultravioleta DAO** = Facilitator server, pays gas, enforces business logic.
+
+### x402r Protocol Fee (Automatic Handling)
+
+BackTrack controls `ProtocolFeeConfig` (`0x59314674...`) — a shared singleton affecting ALL operators on Base. They can enable a protocol fee (up to 5% hard cap) with 7-day timelock notice. This is by design and we trust them with this authority.
+
+**Our code reads the protocol fee from chain dynamically** (not from an env var). When BackTrack enables their fee:
+- Agent still pays 13% total
+- x402r protocol deducts their % on-chain at escrow release
+- Worker ALWAYS receives 100% of bounty (fee comes from agent surplus)
+- Treasury receives: `13% - protocol_fee%` (the remainder)
+- No manual intervention needed — fully automatic
 
 ### Task Factory Guidelines
 

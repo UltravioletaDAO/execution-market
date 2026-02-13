@@ -55,11 +55,17 @@ sequenceDiagram
 
     Agent->>API: POST /submissions/{id}/approve
     API->>Fac: Release escrow
-    Fac->>Chain: Escrow release -> Platform wallet
+    Fac->>Chain: Escrow release
+    Chain-->>API: $0.113 to platform wallet
+
     API->>Fac: EIP-3009 transfer $0.10
-    Fac->>Chain: TX2: $0.10 USDC -> Worker
+    Fac->>Chain: TX2: Execute transfer
+    Chain->>Worker: $0.100 USDC received
+
     API->>Fac: EIP-3009 transfer $0.013
-    Fac->>Chain: TX3: $0.013 USDC -> Treasury
+    Fac->>Chain: TX3: Execute transfer
+    Chain->>Treasury: $0.013 USDC received
+
     API-->>Agent: Approved (3 TX hashes)
 ```
 
@@ -169,8 +175,8 @@ The escrow releases 100% to the platform wallet. The platform then executes 2 se
 
 The PaymentOperator `0xd514...df95` is configured with:
 - `feeCalculator = address(0)` -- no on-chain operator fee
-- `releaseCondition = StaticAddressCondition(Facilitator)` -- Facilitator-only release
-- `refundCondition = StaticAddressCondition(Facilitator)` -- Facilitator-only refund
+- `releaseCondition = OrCondition(Payer|Facilitator)` -- payer OR Facilitator can release
+- `refundCondition = OrCondition(Payer|Facilitator)` -- payer OR Facilitator can refund
 - Fee splitting handled entirely in Python backend
 
 ---
