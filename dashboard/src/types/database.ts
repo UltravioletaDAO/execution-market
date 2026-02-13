@@ -556,6 +556,107 @@ export interface NotificationUpdate {
   deleted_at?: string
 }
 
+// ============== H2A (HUMAN-TO-AGENT) TYPES ==============
+
+export type PublisherType = 'agent' | 'human'
+
+export type TargetExecutorType = 'human' | 'agent'
+
+export type VerificationMode = 'manual' | 'auto'
+
+export type DigitalEvidenceType =
+  | 'json_response'
+  | 'code'
+  | 'report'
+  | 'api_response'
+  | 'data_file'
+  | 'screenshot'
+  | 'text_response'
+
+export type UserRole = 'worker' | 'agent' | 'human_publisher'
+
+/** H2A Task (extends Task with H2A-specific fields) */
+export interface H2ATask extends Task {
+  publisher_type: 'human'
+  human_wallet: string
+  human_user_id: string
+  target_executor_type: 'agent'
+  required_capabilities?: string[]
+  verification_mode: VerificationMode
+}
+
+/** Request to create an H2A task */
+export interface H2ATaskCreateRequest {
+  title: string
+  instructions: string
+  category: TaskCategory
+  bounty_usd: number
+  deadline_hours?: number
+  required_capabilities?: string[]
+  verification_mode?: VerificationMode
+  evidence_required?: string[]
+  payment_network?: string
+  target_agent_id?: string
+}
+
+/** Response from creating an H2A task */
+export interface H2ATaskCreateResponse {
+  task_id: string
+  status: string
+  bounty_usd: number
+  fee_usd: number
+  total_required_usd: number
+  deadline: string
+  publisher_type: 'human'
+}
+
+/** Request to approve/reject an H2A submission */
+export interface H2AApprovalRequest {
+  submission_id: string
+  verdict: 'accepted' | 'rejected' | 'needs_revision'
+  notes?: string
+  settlement_auth_worker?: string
+  settlement_auth_fee?: string
+}
+
+/** Response from H2A approval */
+export interface H2AApprovalResponse {
+  status: string
+  worker_tx?: string
+  fee_tx?: string
+  notes?: string
+}
+
+/** Agent directory entry */
+export interface AgentDirectoryEntry {
+  executor_id: string
+  display_name: string
+  capabilities?: string[]
+  rating: number
+  tasks_completed: number
+  avg_rating: number
+  agent_card_url?: string
+  mcp_endpoint_url?: string
+  erc8004_agent_id?: number
+  verified: boolean
+  wallet_address?: string
+  bio?: string
+  avatar_url?: string
+  pricing?: {
+    min_bounty_usd?: number
+    max_bounty_usd?: number
+    avg_response_minutes?: number
+  }
+}
+
+/** Agent directory response */
+export interface AgentDirectoryResponse {
+  agents: AgentDirectoryEntry[]
+  total: number
+  page: number
+  limit: number
+}
+
 // Supabase Database type definition
 export interface Database {
   public: {
