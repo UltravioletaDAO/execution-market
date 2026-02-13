@@ -89,7 +89,7 @@ except ImportError:
 # Override via env var when deploying operators on additional chains.
 # Legacy: 0x8D3D...c2E6 (fase3 w/1% fee), 0xb963...d723 (fase2)
 EM_OPERATOR = os.environ.get(
-    "EM_PAYMENT_OPERATOR", "0xd5149049e7c212ce5436a9581b4307EB9595df95"
+    "EM_PAYMENT_OPERATOR", "0x030353642B936c9D4213caD7BcB0fB8a1489cBe5"
 )
 
 # x402r ProtocolFeeConfig contract on Base (singleton, shared by all operators).

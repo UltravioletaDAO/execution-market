@@ -303,7 +303,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
 | x402r Escrow (AuthCaptureEscrow) | Arbitrum, Avalanche, Celo, Monad, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
-| **EM PaymentOperator (Fase 4 Secure)** | **Base** | **`PENDING DEPLOY`** |
+| **EM PaymentOperator (Fase 4 Secure)** | **Base** | **`0x030353642B936c9D4213caD7BcB0fB8a1489cBe5`** |
 | EM PaymentOperator (Fase 3 Clean, legacy) | Base | `0xd5149049e7c212ce5436a9581b4307EB9595df95` |
 | EM PaymentOperator (Fase 3 v1, legacy) | Base | `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6` |
 | EM PaymentOperator (Fase 2, legacy) | Base | `0xb9635f544665758019159c04c08a3d583dadd723` |
@@ -428,6 +428,8 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 | Supabase Management API | `~/.supabase/access-token` | For running SQL migrations (`sbp_c5dd...`) |
 | AWS ECR | Standard AWS CLI auth | `YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com` |
 
+**Deploy scripts & dotenv**: All TypeScript scripts in `scripts/` load `.env.local` automatically via `dotenv.config({ path: "../.env.local" })`. The `WALLET_PRIVATE_KEY` from `.env.local` is accepted as `PRIVATE_KEY` alias. No need to set env vars manually — just run `npx tsx script.ts` from `scripts/` directory.
+
 ### ChambaEscrow — DEPRECATED (DO NOT USE)
 
 **NEVER reference, deploy, or interact with ChambaEscrow** (`_archive/contracts/`). Fully replaced by x402 SDK + Facilitator.
@@ -498,11 +500,11 @@ Wrong Flow (DO NOT USE):
 
 **>>> IMPORTANT: Active Fase 3 Clean Operator** (`0xd5149049e7c212ce5436a9581b4307EB9595df95` on Base): OR(Payer|Facilitator) release/refund, **feeCalculator=address(0) — NO on-chain operator fee**. All contract addresses in the On-Chain Contracts table above. Old operators (Fase 3 v1 at `0x8D3D...`, Fase 2 at `0xb963...`) are legacy — keep for historical tasks only.
 
-**>>> PENDING: Fase 4 Secure Operator** — Fixes critical vulnerability where payer can call `refundInEscrow()` directly on-chain (bypasses Facilitator). New operator uses `StaticAddressCondition(Facilitator)` for refund (Facilitator-only), keeps `OrCondition(Payer|Facilitator)` for release. Deploy script ready: `--fase4` flag. Deploy, register in Facilitator allowlist, then update `EM_PAYMENT_OPERATOR` env var.
+**>>> DEPLOYED: Fase 4 Secure Operator** (`0x030353642B936c9D4213caD7BcB0fB8a1489cBe5` on Base) — Fixes critical vulnerability where payer could call `refundInEscrow()` directly. `REFUND_IN_ESCROW_CONDITION` = `StaticAddressCondition(Facilitator)` (`0x9d03...`). Verified on-chain 2026-02-13. **Pending**: Register in Facilitator allowlist + update `EM_PAYMENT_OPERATOR` env var in ECS.
 
 **Deployment script:** `scripts/deploy-payment-operator.ts` — deploys via x402r factory contracts. Use `--fase3`, `--fase3-clean`, or `--fase4` flag.
 
-**Status:** Fase 3 Clean Operator deployed on Base (2026-02-13). Fase 4 Secure Operator code ready, pending deployment. Facilitator v1.33.4 (only clean operator in allowlist). ECS task def updated. Other 7 networks pending deployment.
+**Status:** Fase 4 Secure Operator deployed on Base (2026-02-13, `0x0303...cBe5`). Verified on-chain: `REFUND_IN_ESCROW_CONDITION` = FacilitatorOnly. **Next**: Add to Facilitator allowlist + update `EM_PAYMENT_OPERATOR` in ECS. Other 7 networks pending.
 
 **Key upstream repos:**
 | Repo | URL | Stack |
