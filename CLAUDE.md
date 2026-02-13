@@ -107,7 +107,7 @@ When you know something will be needed or is a logical next step:
 
 ## IRC Collaboration
 
-When the user says **"Conéctate a IRC"**, **"charla con el facilitador"**, **"chat with facilitator"**, or similar — use the **irc-collab** skill at `.claude/skills/irc-collab/SKILL.md`. This connects to `irc.meshrelay.xyz` channel `#execution-market-facilitator` to discuss with other Ultravioleta DAO Claude Code sessions (facilitator, SDK teams).
+When the user says **"Conéctate a IRC"**, **"charla con el equipo"**, **"chat on IRC"**, or similar — use the **irc-agent** skill at `.claude/skills/irc-agent/SKILL.md`. This connects to `irc.meshrelay.xyz` channel `#Agents` for inter-agent and human-agent collaboration. Config at `.claude/irc-config.json`. Skill source: `https://github.com/0xultravioleta/irc-agent-skill`.
 
 ---
 
