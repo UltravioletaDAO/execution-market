@@ -52,9 +52,9 @@ CHAIN_ID = 8453
 # Dev wallet has limited USDC — keep test tiny
 TEST_AMOUNT = 2_000
 
-# Worker address — use the EM treasury for this test (we'll release to ourselves)
-# In production this would be an actual worker address
-TEST_RECEIVER = "YOUR_TREASURY_WALLET"  # EM Treasury
+# Worker address — dedicated test worker wallet (keys in AWS Secrets Manager em/test-worker)
+# Distinct from Treasury so on-chain transfers clearly show worker vs fee split
+TEST_RECEIVER = "YOUR_TEST_WORKER_WALLET"  # Test Worker
 
 
 def main():
