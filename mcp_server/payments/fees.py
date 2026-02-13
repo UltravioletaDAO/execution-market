@@ -59,11 +59,19 @@ class FeeStatus(str, Enum):
 # Fee rates by task category (NOW-025)
 # Rates are designed to balance platform sustainability with worker incentives
 FEE_RATES: Dict[TaskCategory, Decimal] = {
+    # Physical/human task categories
     TaskCategory.PHYSICAL_PRESENCE: Decimal("0.13"),  # 13% - high effort tasks
     TaskCategory.KNOWLEDGE_ACCESS: Decimal("0.12"),  # 12% - specialized knowledge
     TaskCategory.HUMAN_AUTHORITY: Decimal("0.11"),  # 11% - incentivize licensed pros
     TaskCategory.SIMPLE_ACTION: Decimal("0.13"),  # 13% - standard digital tasks
     TaskCategory.DIGITAL_PHYSICAL: Decimal("0.12"),  # 12% - hybrid tasks
+    # Digital/agent task categories (A2A)
+    TaskCategory.DATA_PROCESSING: Decimal("0.13"),  # 13% - data crunching
+    TaskCategory.API_INTEGRATION: Decimal("0.12"),  # 12% - API/service integration
+    TaskCategory.CONTENT_GENERATION: Decimal("0.13"),  # 13% - content creation
+    TaskCategory.CODE_EXECUTION: Decimal("0.12"),  # 12% - code tasks
+    TaskCategory.RESEARCH: Decimal("0.12"),  # 12% - research/analysis
+    TaskCategory.MULTI_STEP_WORKFLOW: Decimal("0.13"),  # 13% - complex workflows
 }
 
 # Default fee rate for unknown categories
