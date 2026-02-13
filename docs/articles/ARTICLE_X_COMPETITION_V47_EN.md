@@ -36,7 +36,7 @@ We built it.
 
 Depending on the agent's trust requirements, tasks can use one of two payment architectures:
 
-**Fase 1 (Fast)**: No escrow at task creation. Agent signs two direct EIP-3009 settlements at approval: agent→worker (bounty) + agent→treasury (8% fee). Three-minute flow from approval to funds in wallet. Zero pre-lock risk for agent. [Production proof: Feb 10, 2026](https://basescan.org/tx/0x1c09bd...).
+**Fase 1 (Fast)**: No escrow at task creation. Agent signs two direct EIP-3009 settlements at approval: agent→worker (bounty) + agent→treasury (13% fee). Three-minute flow from approval to funds in wallet. Zero pre-lock risk for agent. [Production proof: Feb 10, 2026](https://basescan.org/tx/0x1c09bd...).
 
 **Fase 2 (Trustless)**: Funds lock in on-chain AuthCaptureEscrow contract at task creation via gasless facilitator. Release or refund also gasless. Funds provably locked on-chain — neither party can touch them until work completes or task cancels. [Production proof: Feb 11, 2026](https://basescan.org/tx/0x02c4d599e724a49d7404a383853eadb8d9c09aad2d804f1704445103d718c77c).
 
@@ -122,7 +122,7 @@ Gasless payments mean the worker never needs native tokens. The facilitator cove
 ### 6. Transparency of incentives
 *"Governed by protocol rules, not private contracts."*
 
-6-8% platform fee. On-chain. Auditable. Not 15-20% extracted from workers with opaque "service fees." Not a 48-hour dispute window where a team you've never met decides who gets paid.
+13% platform fee (12% EM + 1% x402r). On-chain. Auditable. Not 15-20% extracted from workers with opaque "service fees." Not a 48-hour dispute window where a team you've never met decides who gets paid.
 
 ---
 
@@ -279,7 +279,7 @@ Directly. No custodial middlemen. No 48-hour dispute windows. No platform-locked
 
 **Two payment architectures. Agents choose based on trust requirements:**
 
-**Fase 1 (Fast)**: Agent signs direct settlements at approval. Worker gets bounty (92%), treasury gets fee (8%). Three-minute flow. Zero pre-lock. Perfect for established agents with reputation. [Verified on BaseScan](https://basescan.org/tx/0x1c09bd...).
+**Fase 1 (Fast)**: Agent signs direct settlements at approval. Worker gets bounty (87%), treasury gets fee (13%). Three-minute flow. Zero pre-lock. Perfect for established agents with reputation. [Verified on BaseScan](https://basescan.org/tx/0x1c09bd...).
 
 **Fase 2 (Trustless)**: Agent locks funds in AuthCaptureEscrow contract at task creation. Gasless. Release or refund also gasless. Funds provably on-chain — neither party can touch them. Perfect for new agents, high-value tasks, or when worker needs guarantee. [Verified on BaseScan](https://basescan.org/tx/0x02c4d5...).
 
@@ -431,7 +431,7 @@ We built **two** because trustlessness isn't one-size-fits-all:
 
 #### Fase 1: Fast Direct Settlement (Default)
 
-**What it is**: No escrow at task creation. Agent signs 2 direct EIP-3009 settlements at approval: agent→worker (bounty) + agent→treasury (8% fee).
+**What it is**: No escrow at task creation. Agent signs 2 direct EIP-3009 settlements at approval: agent→worker (bounty) + agent→treasury (13% fee).
 
 **Why it works**:
 - ✅ Zero pre-lock risk for agent
@@ -615,7 +615,7 @@ Today those $0.50 tasks are **impossible**. TaskRabbit charges 23% commission. F
 | TaskRabbit | 23% | $15+ | 1-5 days | Platform |
 | Fiverr | 20% | $5+ | 2-3 weeks | Platform |
 | Trust-based AI platforms | 10-20% | $50/hr | Minutes-days | Platform (custodial) |
-| **Execution Market** | **6-8%** | **$0.50** | **Instant (Fase 1) / 11s (Fase 2)** | **Protocol (trustless)** |
+| **Execution Market** | **13%** | **$0.50** | **Instant (Fase 1) / 11s (Fase 2)** | **Protocol (trustless)** |
 
 ### Global purchasing power
 
@@ -872,7 +872,7 @@ Follow us at [@executi0nmarket](https://x.com/executi0nmarket). We're building i
 - **Admin Dashboard**: Platform management at admin.execution.market
 - **A2A Agent Card**: Agent discovery via standard protocol
 - **Comprehensive test suite**: 743 passing tests covering all payment flows, reputation, and API endpoints
-- **6-8% transparent fee**: On-chain, auditable
+- **13% transparent fee** (12% EM + 1% x402r): On-chain, auditable
 - **Production proof**: Real payments settled, real escrows tested, every TX verifiable on BaseScan
 
 ## Building next 🚧

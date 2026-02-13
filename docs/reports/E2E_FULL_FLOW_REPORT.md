@@ -64,7 +64,7 @@ USDC flow: Agent wallet → TokenCollector → TokenStore (EIP-1167 clone)
 USDC flow: TokenStore → Receiver wallet
 
 > **Note**: In production, after escrow release, the MCP server performs two
-> additional EIP-3009 disbursements: 92% of bounty → worker wallet, 8% fee → treasury.
+> additional EIP-3009 disbursements: 87% of bounty → worker wallet, 13% fee → treasury.
 > These are separate transactions that complete the full payment lifecycle.
 
 ---

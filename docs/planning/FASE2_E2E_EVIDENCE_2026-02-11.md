@@ -235,7 +235,7 @@ sequenceDiagram
 
 ```
 feeRecipient              = 0xae07...  (EM Treasury)
-feeCalculator             = address(0) (no operator fee — EM charges 8% itself)
+feeCalculator             = address(0) (no operator fee — EM charges 13% itself)
 authorizeCondition        = 0x67B6...  (UsdcTvlLimit — protocol safety)
 releaseCondition          = 0x9d03...  (StaticAddressCondition → Facilitator-only)
 refundInEscrowCondition   = 0x9d03...  (StaticAddressCondition → Facilitator-only)

@@ -178,7 +178,7 @@ For now.
 ```markdown
 TaskRabbit charges 23%. Fiverr charges 20%. Payments take days — or weeks.
 
-**Execution Market: 6-8%, instant, trustless.**
+**Execution Market: 13%, instant, trustless.**
 
 Volume explodes when you remove friction — and trust requirements.
 ```

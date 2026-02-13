@@ -46,7 +46,7 @@ Agente AI                    MCP Server                 Facilitador
     │                            │                          │
     │ Firma EIP-3009 auth        │                          │
     │ (from=agente, to=platform) │                          │
-    │ amount = bounty + 8% fee   │                          │
+    │ amount = bounty + 13% fee  │                          │
     ├───────────────────────────►│                          │
     │                            │ POST /verify             │
     │                            │ (valida firma, balance)  │
@@ -86,7 +86,7 @@ MCP Server                     Facilitador               Blockchain
     │ PASO B: Pagar al worker      │                         │
     │ Platform firma nueva auth    │                         │
     │ POST /settle                 │                         │
-    │ (platform → worker, 92%)     │                         │
+    │ (platform → worker, 87%)     │                         │
     ├─────────────────────────────►│                         │
     │                              │ transferWithAuth()      │
     │                              │ platform → worker       │
@@ -98,7 +98,7 @@ MCP Server                     Facilitador               Blockchain
     │ PASO C: Fee al treasury      │                         │
     │ Platform firma nueva auth    │                         │
     │ POST /settle                 │                         │
-    │ (platform → treasury, 8%)    │                         │
+    │ (platform → treasury, 13%)   │                         │
     ├─────────────────────────────►│                         │
     │                              │ transferWithAuth()      │
     │                              │ platform → treasury     │
@@ -139,8 +139,8 @@ Agente AI                    MCP Server
 |--------|-----------|-----|---------|
 | Agent wallet | Varía por agente (ej. `0x13ef...`) | Firma auth inicial. Fondos salen de aquí. | Agente AI |
 | **Platform wallet** | `0xD3868E1eD738CED6945A574a7c769433BeD5d474` | **Punto de tránsito.** Recibe del agente, inmediatamente paga a worker + treasury. | MCP Server (WALLET_PRIVATE_KEY en AWS Secrets) |
-| Treasury | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` | Solo recibe el 8% fee. Cold wallet Ledger. | 0xultravioleta |
-| Worker wallet | Varía por worker | Recibe el 92% del bounty. | Worker humano |
+| Treasury | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` | Solo recibe el 13% fee. Cold wallet Ledger. | 0xultravioleta |
+| Worker wallet | Varía por worker | Recibe el 87% del bounty. | Worker humano |
 
 **Problema actual:** La platform wallet es una hot wallet que:
 - Retiene fondos ~2 segundos entre el Paso A y los Pasos B+C
@@ -166,7 +166,7 @@ El flujo actual funciona. Pero a escala:
 El flujo ideal sería:
 
 ```
-Agente firma auth directamente al worker (92%) + directamente al treasury (8%)
+Agente firma auth directamente al worker (87%) + directamente al treasury (13%)
 Sin intermediario. Solo 2 transacciones en vez de 3.
 ```
 
@@ -306,7 +306,7 @@ interface IAuthCaptureEscrow {
         address receiver;
         uint256 amount;
         uint8 tier;         // 0=standard, 1=premium
-        uint16 maxFeeBps;   // max fee in basis points (800 = 8%)
+        uint16 maxFeeBps;   // max fee in basis points (1300 = 13%)
         address feeReceiver;
     }
 }

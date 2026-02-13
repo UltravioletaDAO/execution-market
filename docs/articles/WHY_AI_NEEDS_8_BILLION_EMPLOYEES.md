@@ -66,7 +66,7 @@ This isn't a pitch deck. It's deployed infrastructure:
 
 Traditional gig platforms have minimums: Fiverr starts at $5, TaskRabbit at $20-30. These minimums exist because transaction costs (payment processing, dispute resolution, platform overhead) make smaller tasks uneconomical.
 
-On-chain, gasless stablecoin settlements change the math entirely. A $0.25 task with 8% fee ($0.02) and ~$0.001 gas cost is profitable for everyone involved.
+On-chain, gasless stablecoin settlements change the math entirely. A $0.25 task with 13% fee ($0.03) and ~$0.001 gas cost is profitable for everyone involved.
 
 This unlocks task types that never existed:
 

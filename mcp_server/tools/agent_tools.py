@@ -383,7 +383,7 @@ async def calculate_batch_escrow(
     - Total escrow needed
     """
     total_bounty = sum(task.bounty_usd for task in tasks)
-    platform_fee_rate = 0.05  # 5% platform fee
+    platform_fee_rate = 0.13  # 13% platform fee (12% EM + 1% x402r on-chain)
     platform_fee = total_bounty * platform_fee_rate
     total_escrow = total_bounty + platform_fee
 

@@ -101,7 +101,7 @@ Las plataformas actuales no fueron diseñadas para esto:
 |------------|----------|-------------|----------------|
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
-| **Execution Market** | **6-8%** | **$1** | **Instantáneo** |
+| **Execution Market** | **13%** | **$1** | **Instantáneo** |
 
 Nadie va a usar TaskRabbit para saber si un cartel sigue en una ventana. Pero con tareas de $3 y pago inmediato, de pronto millones de micro-tareas se vuelven viables.
 

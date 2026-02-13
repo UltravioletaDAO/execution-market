@@ -174,7 +174,7 @@ Hoy esas tareas de $0.25 son **imposibles**. TaskRabbit cobra 23% de comisión. 
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
 | Upwork | 0-15% | $5+ | 5-10 días |
-| **Execution Market** | **6-8%** | **$0.25** | **Instantáneo** |
+| **Execution Market** | **13%** | **$0.25** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para que alguien complete un CAPTCHA.
 

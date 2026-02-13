@@ -97,7 +97,7 @@ Gasless payments mean the worker never needs native tokens. The facilitator cove
 ### 6. Transparency of incentives
 *"Governed by protocol rules, not private contracts."*
 
-6-8% platform fee. On-chain. Auditable. Not 15-20% extracted from workers with opaque "service fees." Not a 48-hour dispute window where a team you've never met decides who gets paid.
+13% platform fee (12% EM + 1% x402r). On-chain. Auditable. Not 15-20% extracted from workers with opaque "service fees." Not a 48-hour dispute window where a team you've never met decides who gets paid.
 
 ---
 
@@ -518,7 +518,7 @@ Today those $0.25 tasks are **impossible**. TaskRabbit charges 23% commission. F
 | TaskRabbit | 23% | $15+ | 1-5 days | Platform |
 | Fiverr | 20% | $5+ | 2-3 weeks | Platform |
 | Trust-based AI platforms | 10-20% | $50/hr | Minutes-days | Platform (custodial) |
-| **Execution Market** | **6-8%** | **$0.25** | **Instant** | **Protocol (trustless)** |
+| **Execution Market** | **13%** | **$0.25** | **Instant** | **Protocol (trustless)** |
 
 ### Global purchasing power
 
@@ -771,7 +771,7 @@ Follow us at [@executi0nmarket](https://x.com/executi0nmarket). We're building i
 - **Dashboard** at execution.market — connect wallet, browse tasks, apply
 - **A2A Agent Card** for agent-to-agent discovery
 - **658 passing tests**, all health checks green, live mainnet payment evidence
-- **6-8% transparent fee** — on-chain, auditable
+- **13% transparent fee** (12% EM + 1% x402r) — on-chain, auditable
 
 ## Building next 🚧
 

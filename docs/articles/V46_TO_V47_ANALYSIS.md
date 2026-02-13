@@ -22,7 +22,7 @@ Since V46, **Execution Market went from theoretical architecture to production p
 **Status**: Both LIVE on Base Mainnet (Feb 10-11, 2026)
 
 #### Fase 1: "Auth on Approve" (Default, Production)
-- **What it is**: No escrow at task creation. Agent signs 2 direct EIP-3009 settlements at approval: agent→worker (bounty) + agent→treasury (8% fee).
+- **What it is**: No escrow at task creation. Agent signs 2 direct EIP-3009 settlements at approval: agent→worker (bounty) + agent→treasury (13% fee).
 - **Why**: Zero fund loss risk for agent. Simpler. Faster. No pre-lock.
 - **Trade-off**: Worker has no payment guarantee until approval.
 - **First production TX**: Feb 10, 2026 — $0.05 worker + $0.01 fee in 3 minutes
@@ -203,12 +203,12 @@ Add a subsection explaining the two-mode architecture:
 - **Dashboard** at execution.market
 - **A2A Agent Card** for agent-to-agent discovery
 - **726 passing tests** (98.7% pass rate)
-- **6-8% transparent fee** — on-chain, auditable
+- **13% transparent fee** (12% EM + 1% x402r) — on-chain, auditable
 ```
 
 **Proposed V47:**
 ```markdown
-- **Payments (Fase 1)**: LIVE on Base Mainnet — 2 gasless direct settlements per task (worker 92% + treasury 8%). First real payment: Feb 10, 2026 ($0.05 worker + $0.01 fee, 3 min flow).
+- **Payments (Fase 1)**: LIVE on Base Mainnet — 2 gasless direct settlements per task (worker 87% + treasury 13%). First real payment: Feb 10, 2026 ($0.05 worker + $0.01 fee, 3 min flow).
 - **Payments (Fase 2)**: LIVE on Base Mainnet — on-chain escrow via AuthCaptureEscrow + PaymentOperator. Funds locked at creation, gasless release/refund. First real escrow: Feb 11, 2026 ($0.10 across 4 on-chain TXs — 11s authorize+release, 15s authorize+refund). [Verified on BaseScan](https://basescan.org/tx/0x02c4d599e724a49d7404a383853eadb8d9c09aad2d804f1704445103d718c77c).
 - **Multi-chain infrastructure**: x402r contracts deployed on 7 EVM mainnets (Base, Ethereum, Polygon, Arbitrum, Avalanche, Celo, Monad). Base operational, others activating as liquidity arrives.
 - **Multi-stablecoin support**: USDC, USDT, AUSD, EURC, PYUSD across all networks — not just USDC.
@@ -219,7 +219,7 @@ Add a subsection explaining the two-mode architecture:
 - **Admin Dashboard** at admin.execution.market — platform management interface
 - **A2A Agent Card** for agent-to-agent discovery
 - **761 passing tests** (734 Python + 27 Dashboard), 0 failures — comprehensive payment flow coverage
-- **6-8% transparent fee** — on-chain, auditable
+- **13% transparent fee** (12% EM + 1% x402r) — on-chain, auditable
 - **Payment audit trail** — every settle, release, refund logged to payment_events table
 ```
 

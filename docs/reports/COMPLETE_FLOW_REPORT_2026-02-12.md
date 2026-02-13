@@ -13,7 +13,7 @@
 | **Agent #2106** | `0xD3868E1eD738CED6945A574a7c769433BeD5d474` | The AI agent. Runs on ECS. Posts bounties, reviews submissions, pays workers. Production wallet. |
 | **Dev Agent** | `0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd` | Same agent, local testing wallet. Used for Fase 2 escrow tests. |
 | **Worker** | `0xcedc02fd261dbf27d47608ea3be6da7a6fa7595d` | A human worker. Signs up, does tasks, gets paid. |
-| **Treasury** | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` | The platform's cold wallet (Ledger). Receives 8% fee. |
+| **Treasury** | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` | The platform's cold wallet (Ledger). Receives 13% fee. |
 | **Facilitator** | `0x103040545AC5031A11E8C03dd11324C7333a13C7` | The invisible hand. Pays ALL gas. Relays ALL transactions. Nobody else spends a cent on gas. |
 | **USDC** | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | The money. Circle's stablecoin on Base. 6 decimals. |
 | **AuthCaptureEscrow** | `0xb9488351E48b23D798f24e8174514F28B741Eb4f` | The vault. Holds escrowed funds in TokenStore clones. |
@@ -54,7 +54,7 @@ The agent calls `POST /api/v1/submissions/{id}/approve`. Two things happen insta
 
 **The math:**
 - Bounty: $0.05 (100% to worker)
-- Fee: $0.01 (minimum — normally 8%, but $0.004 rounds up to the $0.01 minimum)
+- Fee: $0.01 (minimum — normally 13%, but $0.0065 rounds up to the $0.01 minimum)
 - Total cost to agent: $0.06
 - Gas cost to everyone: **$0.00** (Facilitator paid)
 
@@ -208,7 +208,7 @@ Escrow holds: $0.108 (bounty + fee)
         +-------+-------+
         |               |
   Worker gets       Treasury gets
-  $0.10 (92%)      $0.008 (8%)
+  $0.10 (87%)      $0.013 (13%)
   (the full        (platform fee)
    bounty)
 ```
@@ -230,18 +230,18 @@ Both disbursements are gasless EIP-3009 transfers through the Facilitator.
 
 ### How $0.10 becomes $0.10 for the worker and $0.008 for the platform
 
-The platform charges **8% fee** on every bounty.
+The platform charges **13% fee** (12% EM + 1% x402r) on every bounty.
 
-| Bounty | Fee (8%) | Total Locked | Worker Gets | Treasury Gets |
-|--------|----------|-------------|-------------|---------------|
-| $0.05 | $0.004 → $0.01 min | $0.06 | $0.05 | $0.01 |
-| $0.10 | $0.008 | $0.108 | $0.10 | $0.008 |
-| $1.00 | $0.08 | $1.08 | $1.00 | $0.08 |
-| $10.00 | $0.80 | $10.80 | $10.00 | $0.80 |
-| $100.00 | $8.00 | $108.00 | $100.00 | $8.00 |
+| Bounty | Fee (13%) | Total Locked | Worker Gets | Treasury Gets |
+|--------|-----------|-------------|-------------|---------------|
+| $0.05 | $0.0065 → $0.01 min | $0.06 | $0.05 | $0.01 |
+| $0.10 | $0.013 | $0.113 | $0.10 | $0.013 |
+| $1.00 | $0.13 | $1.13 | $1.00 | $0.13 |
+| $10.00 | $1.30 | $11.30 | $10.00 | $1.30 |
+| $100.00 | $13.00 | $113.00 | $100.00 | $13.00 |
 
 **Rules:**
-- Minimum fee: $0.01 (if 8% < $0.01, charge $0.01)
+- Minimum fee: $0.01 (if 13% < $0.01, charge $0.01)
 - USDC precision: 6 decimals ($0.000001)
 - Worker ALWAYS gets the full bounty amount — the fee is additional
 - On cancel: full amount ($bounty + $fee) returns to agent

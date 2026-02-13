@@ -276,7 +276,7 @@ Future:    Robots execute, humans supervise
 |---------|--------|------------|-----------------|
 | Minimum task | $0.50 | $15 | $0.01 |
 | Payment speed | Instant | 3-5 days | 7+ days |
-| Fees | 6-8% | 20-23% | 20-40% |
+| Fees | 13% | 20-23% | 20-40% |
 | Crypto native | Yes | No | No |
 | AI integration | Native | None | Limited |
 | Verification | AI + Crypto | Manual | Manual |
@@ -285,7 +285,7 @@ Future:    Robots execute, humans supervise
 
 | Audience | Key Message |
 |----------|-------------|
-| Workers | "Keep 92-94% of every dollar, paid instantly" |
+| Workers | "Keep 87% of every dollar, paid instantly" |
 | Agents | "Hire humans programmatically in one API call" |
 | Enterprises | "6% fees vs 20%+, with AI verification included" |
 
@@ -542,7 +542,7 @@ First Task Completed
 
 ### If TaskRabbit adds crypto payments
 - Emphasize AI-native features
-- Highlight fee difference (6% vs 20%)
+- Highlight fee difference (13% vs 20%)
 - Focus on agent integration
 
 ### If Amazon MTurk improves UX

@@ -172,7 +172,7 @@ Y aquí está la diferencia clave:
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
 | Upwork | 5-20% | $5+ | 5-10 días |
-| **Execution Market** | **6-8%** | **$0.25** | **Instantáneo** |
+| **Execution Market** | **13%** | **$0.25** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para saber si un cartel sigue en una ventana.
 

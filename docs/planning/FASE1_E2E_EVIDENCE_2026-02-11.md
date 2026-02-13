@@ -45,7 +45,7 @@ Fase 1 was live.
 | Title | "Fase 1 E2E Test - Take a screenshot of current time" |
 | Category | `simple_action` |
 | Bounty | $0.05 USDC |
-| Platform Fee | $0.01 USDC (minimum, normally 8%) |
+| Platform Fee | $0.01 USDC (minimum, normally 13%) |
 | Total Cost | $0.06 USDC |
 | Network | Base (chain 8453) |
 | Token | USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`) |

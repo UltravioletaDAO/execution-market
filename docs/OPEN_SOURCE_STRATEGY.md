@@ -155,7 +155,7 @@ Todos los contributors firman un CLA que permite a Ultravioleta DAO:
 
 ## Modelo de Negocio Compatible
 
-### Ingresos Protocol (6-8% fee)
+### Ingresos Protocol (13% fee: 12% EM + 1% x402r)
 
 El protocolo define un fee que va a:
 - 70% → Facilitator (quien procesa x402)

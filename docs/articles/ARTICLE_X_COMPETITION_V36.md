@@ -313,7 +313,7 @@ Nada dice "valoramos tu trabajo" como hacerte esperar 2-3 semanas para cobrarlo.
 | Fiverr | 20% | $5+ | **2-3 semanas** |
 | Upwork | 0-15% | $5+ | 5-10 días |
 | Rentahuman | ? | ~$50/hr | Stablecoins |
-| **Execution Market** | **6-8%** | **$0.50** | **Instantáneo** |
+| **Execution Market** | **13%** | **$0.50** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para que alguien verifique si una tienda abrió.
 

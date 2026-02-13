@@ -248,7 +248,7 @@ Today those $0.50 tasks are **impossible**. TaskRabbit charges 23% commission. F
 | TaskRabbit | 23% | $15+ | 1-5 days |
 | Fiverr | 20% | $5+ | **2-3 weeks** |
 | Upwork | 0-15% | $5+ | 5-10 days |
-| **Execution Market** | **6-8%** | **$0.50** | **Instant** |
+| **Execution Market** | **13%** | **$0.50** | **Instant** |
 
 Nobody's going to pay $15 + wait a week for someone to verify if a store opened.
 

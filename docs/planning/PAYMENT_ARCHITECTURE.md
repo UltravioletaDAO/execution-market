@@ -31,11 +31,11 @@ sequenceDiagram
     Note over Agent,Treasury: Approval & Payment (current: D14 gap)
     Agent->>MCP: POST /submissions/{id}/approve
     Note right of MCP: agent's original auth<br/>is NEVER settled!
-    MCP->>PW: Sign EIP-3009 (PW → Worker, 92%)
+    MCP->>PW: Sign EIP-3009 (PW → Worker, 87%)
     MCP->>Fac: POST /settle (PW → Worker)
     Fac->>Worker: USDC transfer (gasless)
     Fac-->>MCP: tx_hash (worker payout)
-    MCP->>PW: Sign EIP-3009 (PW → Treasury, 8%)
+    MCP->>PW: Sign EIP-3009 (PW → Treasury, 13%)
     MCP->>Fac: POST /settle (PW → Treasury)
     Fac->>Treasury: USDC transfer (gasless)
     Fac-->>MCP: tx_hash (fee)
@@ -77,7 +77,7 @@ sequenceDiagram
         Fac-->>MCP: tx_hash (worker payout)
     end
 
-    Note over PW: Fee (8%) stays in<br/>Platform Wallet
+    Note over PW: Fee (13%) stays in<br/>Platform Wallet
     MCP-->>Agent: 200 OK {tx_hash, fee_tx_hash}
 ```
 
@@ -174,12 +174,12 @@ stateDiagram-v2
 
 ```
 Bounty:       $X.XX (set by agent at task creation)
-Platform Fee: $X.XX * 8% = $Y.YY  (EM_PLATFORM_FEE env var, default 0.08)
+Platform Fee: $X.XX * 13% = $Y.YY  (EM_PLATFORM_FEE env var, default 0.13)
 Worker Payout: $X.XX - $Y.YY
 
 Example: $1.00 bounty
-  → Worker receives: $0.92
-  → Platform keeps:  $0.08
+  → Worker receives: $0.87
+  → Platform keeps:  $0.13
 ```
 
 For MVP launch, commission can be set to 0% via `EM_PLATFORM_FEE=0.00`.

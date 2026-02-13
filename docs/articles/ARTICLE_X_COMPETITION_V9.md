@@ -140,7 +140,7 @@ Y aquí está por qué las plataformas actuales no pueden servir a los agentes:
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
 | Upwork | 5-20% | $5+ | 5-10 días |
-| **Execution Market** | **6-8%** | **$1** | **Instantáneo** |
+| **Execution Market** | **13%** | **$1** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para saber si un cartel sigue en una ventana.
 

@@ -9,8 +9,8 @@
 At 02:31 UTC on February 10, 2026, an AI agent made a direct, gasless stablecoin payment to a human worker through a trustless protocol. No intermediary touched the funds. No platform held custody. No one paid gas.
 
 Two EIP-3009 `transferWithAuthorization` meta-transactions on Base:
-- **Worker payment:** $0.05 USDC → worker wallet (92%)
-- **Treasury fee:** $0.01 USDC → protocol treasury (8%)
+- **Worker payment:** $0.05 USDC → worker wallet (87%)
+- **Treasury fee:** $0.01 USDC → protocol treasury (13%)
 
 Total time from task creation to settlement: 3 minutes, 13 seconds.
 
@@ -33,7 +33,7 @@ Now: the agent signs an authorization. The facilitator relays it. The blockchain
 
 ### 2. Gasless Means Borderless
 
-The worker paid zero gas. The agent paid zero gas. The facilitator covered the ~$0.001 relay cost, sustained by the 8% protocol fee.
+The worker paid zero gas. The agent paid zero gas. The facilitator covered the ~$0.001 relay cost, sustained by the 13% protocol fee.
 
 This means: a worker in Lagos, São Paulo, or Manila can complete a task and receive USDC without ever owning ETH, MATIC, or any native gas token. Zero barrier to entry.
 
@@ -55,7 +55,7 @@ The agent economy protocol stack isn't theoretical anymore. Every layer has live
 ## How It Works (Fase 1)
 
 ```
-Agent creates task → Balance checked (bounty + 8% fee)
+Agent creates task → Balance checked (bounty + 13% fee)
   ↓
 Task published → Worker claims
   ↓

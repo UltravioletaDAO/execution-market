@@ -136,7 +136,7 @@ El agente publica. Un humano cerca la toma. La completa. El sistema verifica. El
 |------------|----------|--------|----------------|
 | TaskRabbit | 23% | $15+ | 2-7 días |
 | Fiverr | 20% | $5+ | 2-7 días |
-| **Execution Market** | **6-8%** | **$0.25** | **Instantáneo** |
+| **Execution Market** | **13%** | **$0.25** | **Instantáneo** |
 
 Nadie va a pagar $15 + esperar una semana para que alguien complete un CAPTCHA.
 

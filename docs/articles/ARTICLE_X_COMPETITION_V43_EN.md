@@ -411,7 +411,7 @@ Nothing says "we value your work" like making you wait 2-3 weeks to get paid.
 | TaskRabbit | 23% | $15+ | 1-5 days |
 | Fiverr | 20% | $5+ | **2-3 weeks** |
 | Upwork | 0-15% | $5+ | 5-10 days |
-| **Execution Market** | **6-8%** | **$0.25** | **Instant** |
+| **Execution Market** | **13%** | **$0.25** | **Instant** |
 
 Nobody's going to pay $15 + wait a week for someone to verify if a store is open.
 

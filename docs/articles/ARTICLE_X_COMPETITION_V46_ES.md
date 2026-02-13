@@ -110,7 +110,7 @@ Los pagos gasless significan que el trabajador nunca necesita tokens nativos. El
 ### 6. Transparencia de incentivos
 *"Gobernado por reglas de protocolo, no contratos privados."*
 
-Comisión de plataforma del 6-8%. On-chain. Auditable. No 15-20% extraído de los trabajadores con "tarifas de servicio" opacas. No una ventana de disputa de 48 horas donde un equipo que nunca conociste decide quién cobra.
+Comisión de plataforma del 13% (12% EM + 1% x402r). On-chain. Auditable. No 15-20% extraído de los trabajadores con "tarifas de servicio" opacas. No una ventana de disputa de 48 horas donde un equipo que nunca conociste decide quién cobra.
 
 ---
 
@@ -562,7 +562,7 @@ Hoy esas tareas de $0.50 son **imposibles**. TaskRabbit cobra 23% de comisión. 
 | TaskRabbit | 23% | $15+ | 1-5 días | Plataforma |
 | Fiverr | 20% | $5+ | 2-3 semanas | Plataforma |
 | Plataformas AI de confianza | 10-20% | $50/hr | Minutos-días | Plataforma (custodiada) |
-| **Execution Market** | **6-8%** | **$0.50** | **Instantáneo** | **Protocolo (trustless)** |
+| **Execution Market** | **13%** | **$0.50** | **Instantáneo** | **Protocolo (trustless)** |
 
 ### Poder adquisitivo global
 
@@ -815,7 +815,7 @@ Seguinos en [@executi0nmarket](https://x.com/executi0nmarket). Estamos construye
 - **Dashboard** en execution.market — conectar wallet, navegar tareas, aplicar
 - **Tarjeta de Agente A2A** para descubrimiento agente-a-agente
 - **723 tests pasando** (31 nuevos tests de flujo de pago), todos los health checks verdes, evidencia de pago mainnet en vivo
-- **Comisión transparente del 6-8%** — on-chain, auditable
+- **Comisión transparente del 13%** (12% EM + 1% x402r) — on-chain, auditable
 
 ## Construyendo próximamente 🚧
 
