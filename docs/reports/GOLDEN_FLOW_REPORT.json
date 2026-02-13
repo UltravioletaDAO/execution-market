@@ -1,0 +1,115 @@
+{
+  "timestamp": "2026-02-13T23:43:09.225504+00:00",
+  "api_base": "https://api.execution.market",
+  "bounty_usd": 0.1,
+  "fee_usd": 0.013,
+  "total_cost_usd": 0.113,
+  "worker_wallet": "0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15",
+  "treasury_wallet": "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad",
+  "phases": {
+    "health_config": {
+      "name": "health_config",
+      "description": "Health & Config Verification",
+      "status": "PASS",
+      "elapsed_s": 0.47,
+      "health_status": "healthy",
+      "supported_networks": [
+        "arbitrum",
+        "avalanche",
+        "base",
+        "celo",
+        "ethereum",
+        "monad",
+        "optimism",
+        "polygon"
+      ],
+      "preferred_network": "base",
+      "min_bounty_usd": 0.01,
+      "em_agent_id": 2106,
+      "erc8004_network": "base",
+      "erc8004_available": true,
+      "erc8004_network_count": 18
+    },
+    "task_creation": {
+      "name": "task_creation",
+      "description": "Task Creation with Escrow",
+      "status": "PASS",
+      "elapsed_s": 20.46,
+      "task_id": "ad4d4406-bd43-4734-ac57-5a21732aa1bb",
+      "task_status": "published",
+      "escrow_tx": "0xf94925d273f5a0b1abf83b983becba8f43db9508a982245f57ef7952797c93d6",
+      "escrow_verified": true,
+      "escrow_amount_usd": 0.113
+    },
+    "worker_registration": {
+      "name": "worker_registration",
+      "description": "Worker Registration & Identity",
+      "status": "PASS",
+      "elapsed_s": 0.38,
+      "executor_id": "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4",
+      "erc8004_agent_id": null,
+      "erc8004_tx": null
+    },
+    "task_lifecycle": {
+      "name": "task_lifecycle",
+      "description": "Task Lifecycle (Apply -> Assign -> Submit)",
+      "status": "PASS",
+      "elapsed_s": 2.28,
+      "application_id": "66b11648-7d22-4374-b4f2-2bead4cf3512",
+      "submission_id": "0509169f-75d6-4ab5-8cfb-be070e55f874"
+    },
+    "payment": {
+      "name": "payment",
+      "description": "Approval & Payment Settlement",
+      "status": "PASS",
+      "elapsed_s": 26.16,
+      "payment_mode": "facilitator",
+      "escrow_release_tx": null,
+      "payment_tx": "0x750f3843a8fb6e94135257c39ee500a914ef745f2d977e73090b818a4d360578",
+      "fee_tx": null,
+      "worker_net_usdc": null,
+      "platform_fee_usdc": 0.013,
+      "gross_amount_usdc": 0.1,
+      "approve_time_s": 25.66,
+      "tx_verifications": {
+        "escrow_lock": true,
+        "worker_payout": true
+      },
+      "all_txs_verified": true
+    },
+    "reputation": {
+      "name": "reputation",
+      "description": "Bidirectional Reputation",
+      "status": "PASS",
+      "elapsed_s": 10.31,
+      "agent_rates_worker_tx": "0x417e03cb8125f3c579a90d66eebfe00d5185a199b1b39f0e5641e8df30426113",
+      "worker_rates_agent_tx": "0x17cf9ed176fc18ffede104f6b9ac6a48c1b8d060c3fb4da765f7e73fdbf1beb2",
+      "agent_rates_worker_success": true,
+      "worker_rates_agent_success": true
+    },
+    "verification": {
+      "name": "verification",
+      "description": "Final Verification",
+      "status": "PASS",
+      "elapsed_s": 0.27,
+      "em_reputation_score": 82.0,
+      "em_reputation_count": 3,
+      "feedback_available": true,
+      "total_txs": 4,
+      "all_tx_hashes": [
+        "0xf94925d273f5a0b1abf83b983becba8f43db9508a982245f57ef7952797c93d6",
+        "0x750f3843a8fb6e94135257c39ee500a914ef745f2d977e73090b818a4d360578",
+        "0x417e03cb8125f3c579a90d66eebfe00d5185a199b1b39f0e5641e8df30426113",
+        "0x17cf9ed176fc18ffede104f6b9ac6a48c1b8d060c3fb4da765f7e73fdbf1beb2"
+      ]
+    }
+  },
+  "overall": "PASS",
+  "tx_hashes": [
+    "0xf94925d273f5a0b1abf83b983becba8f43db9508a982245f57ef7952797c93d6",
+    "0x750f3843a8fb6e94135257c39ee500a914ef745f2d977e73090b818a4d360578",
+    "0x417e03cb8125f3c579a90d66eebfe00d5185a199b1b39f0e5641e8df30426113",
+    "0x17cf9ed176fc18ffede104f6b9ac6a48c1b8d060c3fb4da765f7e73fdbf1beb2"
+  ],
+  "total_elapsed_s": 71.34
+}
