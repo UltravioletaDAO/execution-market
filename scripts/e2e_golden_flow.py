@@ -784,6 +784,7 @@ async def phase_approval_payment(
         # Extract TX hashes
         payment_tx = resp_data.get("payment_tx")
         fee_tx = resp_data.get("fee_tx")
+        fee_distribute_tx = resp_data.get("fee_distribute_tx")
         escrow_release_tx = resp_data.get("escrow_release_tx")
         payment_mode = resp_data.get("payment_mode", "unknown")
         worker_net_actual = resp_data.get("worker_net_usdc")
@@ -791,7 +792,7 @@ async def phase_approval_payment(
         gross_actual = resp_data.get("gross_amount_usdc")
 
         # Supabase fallback for fee_tx
-        if payment_tx and not fee_tx:
+        if payment_tx and not fee_tx and not fee_distribute_tx:
             print("         [Fallback] Querying Supabase for fee TX...")
             sb_payment = _fetch_payment_from_supabase(task_id)
             if sb_payment:
@@ -814,6 +815,9 @@ async def phase_approval_payment(
         if fee_tx:
             print(f"  |  Fee TX:        {fee_tx[:42]:<42s}|")
             print(f"  |    {BASESCAN_TX}/{fee_tx}")
+        if fee_distribute_tx:
+            print(f"  |  Distribute TX: {fee_distribute_tx[:42]:<42s}|")
+            print(f"  |    {BASESCAN_TX}/{fee_distribute_tx}")
         if worker_net_actual is not None:
             print(f"  |  Worker net:    ${worker_net_actual:.6f} USDC{' ':>25s}|")
         if platform_fee_actual is not None:
@@ -827,6 +831,8 @@ async def phase_approval_payment(
             results.add_tx(payment_tx)
         if fee_tx:
             results.add_tx(fee_tx)
+        if fee_distribute_tx:
+            results.add_tx(fee_distribute_tx)
 
         # Step 2: Verify TXs on-chain
         tx_verifications: Dict[str, Dict[str, Any]] = {}
@@ -843,6 +849,8 @@ async def phase_approval_payment(
             txs_to_verify["worker_payout"] = payment_tx
         if fee_tx:
             txs_to_verify["fee_collection"] = fee_tx
+        if fee_distribute_tx:
+            txs_to_verify["fee_distribute"] = fee_distribute_tx
 
         if txs_to_verify:
             print(f"\n  [2/3] Verifying {len(txs_to_verify)} TX(s) on-chain...")
@@ -893,6 +901,7 @@ async def phase_approval_payment(
                 escrow_release_tx=escrow_release_tx,
                 payment_tx=payment_tx,
                 fee_tx=fee_tx,
+                fee_distribute_tx=fee_distribute_tx,
                 worker_net_usdc=worker_net_actual,
                 platform_fee_usdc=platform_fee_actual,
                 gross_amount_usdc=gross_actual,

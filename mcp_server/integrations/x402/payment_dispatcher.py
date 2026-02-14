@@ -90,13 +90,24 @@ except ImportError:
     EscrowPaymentInfo = None  # type: ignore[assignment,misc]
     TaskTier = None  # type: ignore[assignment,misc]
 
-# EM PaymentOperator address (Base Mainnet). Fase 3 Clean: OR(Payer|Facilitator), no operator fee.
-# Only x402r ProtocolFeeConfig (controlled by BackTrack) can take on-chain fees.
+# EM PaymentOperator address (Base Mainnet). Fase 5: Trustless fee split via on-chain fee calculator.
+# StaticFeeCalculator(1150 BPS) auto-splits at release: worker 88.5%, operator 11.5%.
+# distributeFees() flushes operator balance to EM treasury.
 # Override via env var when deploying operators on additional chains.
-# Legacy: 0x8D3D...c2E6 (fase3 w/1% fee), 0xb963...d723 (fase2)
+# Legacy: 0x0303...cBe5 (fase4), 0xd514...df95 (fase3-clean), 0x8D3D...c2E6 (fase3), 0xb963...d723 (fase2)
 EM_OPERATOR = os.environ.get(
     "EM_PAYMENT_OPERATOR", "0x030353642B936c9D4213caD7BcB0fB8a1489cBe5"
 )
+
+# Fase 5: max_fee_bps to allow on-chain fee calculator to deduct from escrow.
+# Actual fee is 1150 BPS (11.5%). We set max=1500 for headroom.
+FASE5_MAX_FEE_BPS = 1500
+
+# USDC contract on Base Mainnet (for distributeFees calls)
+USDC_BASE_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+
+# Function selector for distributeFees(address) — keccak256("distributeFees(address)")[:4]
+_SELECTOR_DISTRIBUTE_FEES = "0x9413f25c"
 
 # x402r ProtocolFeeConfig contract on Base (singleton, shared by all operators).
 # BackTrack controls this via multisig with 7-day timelock. Max 5% (500 BPS).
@@ -884,12 +895,13 @@ class PaymentDispatcher:
         token: str = "USDC",
     ) -> Dict[str, Any]:
         """
-        Lock bounty in escrow with worker as direct receiver (trustless).
+        Lock bounty + platform fee in escrow with worker as direct receiver (trustless).
 
-        Only the bounty is locked in escrow. Platform fee is collected
-        separately via EIP-3009 at the same time (not through escrow).
-        If x402r protocol fee is active, we over-lock so worker receives
-        exactly the bounty after protocol deduction.
+        Fase 5: The on-chain fee calculator (StaticFeeCalculator 1150 BPS) splits
+        at release — worker gets 88.5% (bounty), operator holds 11.5% (fee).
+        No separate EIP-3009 fee collection needed.
+
+        If x402r protocol fee is active, we over-lock to compensate.
 
         Args:
             task_id: Task identifier.
@@ -900,22 +912,29 @@ class PaymentDispatcher:
             token: Payment token (default: USDC).
 
         Returns:
-            Dict with success, tx_hash, escrow_status, fee_tx_hash, etc.
+            Dict with success, tx_hash, escrow_status, etc.
         """
         network = network or "base"
         client = self._get_fase2_client(network)
 
-        # Read protocol fee dynamically — if active, over-lock so worker
-        # gets exact bounty after protocol deduction.
+        # Fase 5: Lock bounty + platform fee in escrow.
+        # Fee calculator splits at release (worker gets 88.5%, operator holds 11.5%).
+        platform_fee = (bounty_usdc * PLATFORM_FEE_PERCENT).quantize(
+            Decimal("0.000001")
+        )
+        if platform_fee < Decimal("0.01"):
+            platform_fee = Decimal("0.01")
+        base_lock = bounty_usdc + platform_fee
+
+        # Read protocol fee dynamically — if active, over-lock to compensate.
         protocol_fee_bps = await _get_protocol_fee_bps()
         if protocol_fee_bps > 0:
-            # lock_amount = bounty / (1 - protocol_fee_rate)
             protocol_rate = Decimal(protocol_fee_bps) / Decimal(10000)
-            lock_amount = (bounty_usdc / (Decimal("1") - protocol_rate)).quantize(
+            lock_amount = (base_lock / (Decimal("1") - protocol_rate)).quantize(
                 Decimal("0.000001")
             )
         else:
-            lock_amount = bounty_usdc
+            lock_amount = base_lock
 
         # Convert to atomic units (6 decimals for USDC)
         config = NETWORK_CONFIG.get(network, {})
@@ -935,12 +954,13 @@ class PaymentDispatcher:
             tier = TaskTier.STANDARD
 
         # Build PaymentInfo with WORKER as receiver (trustless)
+        # Fase 5: max_fee_bps allows the on-chain fee calculator to deduct
         pi = await asyncio.to_thread(
             client.build_payment_info,
             receiver=worker_address,
             amount=amount_atomic,
             tier=tier,
-            max_fee_bps=0,  # No operator fee — worker gets full amount
+            max_fee_bps=FASE5_MAX_FEE_BPS,
         )
 
         logger.info(
@@ -1027,77 +1047,23 @@ class PaymentDispatcher:
         )
 
         logger.info(
-            "trustless: Bounty locked in escrow: task=%s, receiver=%s, "
-            "lock_amount=%s, bounty=%s, tx=%s",
+            "trustless: Bounty+fee locked in escrow: task=%s, receiver=%s, "
+            "lock_amount=%s, bounty=%s, fee=%s, tx=%s",
             task_id,
             worker_address[:10],
             lock_amount,
             bounty_usdc,
+            platform_fee,
             escrow_tx,
         )
 
-        # Collect platform fee from agent via EIP-3009 (separate from escrow)
-        platform_fee = (bounty_usdc * PLATFORM_FEE_PERCENT).quantize(
-            Decimal("0.000001")
-        )
-        if platform_fee < Decimal("0.01"):
-            platform_fee = Decimal("0.01")
-
-        fee_tx_hash = None
-        fee_error = None
-        if platform_fee > 0:
-            try:
-                sdk = self._get_sdk()
-                fee_result = await sdk.collect_platform_fee(
-                    fee_amount=platform_fee,
-                    task_id=task_id,
-                    network=network,
-                    token=token,
-                )
-                fee_tx_hash = fee_result.get("tx_hash")
-                if fee_result.get("success"):
-                    await log_payment_event(
-                        task_id=task_id,
-                        event_type="collect_fee",
-                        status="success",
-                        tx_hash=fee_tx_hash,
-                        from_address=agent_address,
-                        to_address=_get_platform_address(),
-                        amount_usdc=platform_fee,
-                        network=network,
-                        token=token,
-                        metadata={
-                            "mode": "fase2",
-                            "escrow_mode": "direct_release",
-                            "step": "upfront_fee",
-                        },
-                    )
-                    logger.info(
-                        "trustless: Platform fee collected: task=%s, fee=%s, tx=%s",
-                        task_id,
-                        platform_fee,
-                        fee_tx_hash,
-                    )
-                else:
-                    fee_error = fee_result.get("error", "Fee collection failed")
-                    logger.error(
-                        "trustless: Fee collection failed for task %s: %s",
-                        task_id,
-                        fee_error,
-                    )
-            except Exception as e:
-                fee_error = str(e)
-                logger.error(
-                    "trustless: Fee collection exception for task %s: %s",
-                    task_id,
-                    e,
-                )
+        # Fase 5: No separate EIP-3009 fee collection needed.
+        # The on-chain fee calculator handles fee split at release time.
 
         return {
             "success": True,
             "tx_hash": escrow_tx,
-            "fee_tx_hash": fee_tx_hash,
-            "fee_error": fee_error,
+            "fee_method": "on_chain_fee_calculator",
             "mode": "fase2",
             "escrow_mode": "direct_release",
             "escrow_status": "deposited",
@@ -1119,11 +1085,12 @@ class PaymentDispatcher:
         token: str = "USDC",
     ) -> Dict[str, Any]:
         """
-        Release escrow directly to worker. Single TX, fully trustless.
+        Release escrow directly to worker. Fully trustless.
 
-        The escrow was created with worker as receiver, so release sends
-        funds directly to worker. No disburse step needed. No fee step
-        needed (fee was collected upfront at authorize time).
+        Fase 5: The on-chain fee calculator auto-splits at release:
+        - Worker gets ~88.5% (the bounty)
+        - Operator contract holds ~11.5% (the platform fee)
+        After release, distributeFees() flushes operator balance to treasury.
 
         Args:
             task_id: Task identifier.
@@ -1131,7 +1098,7 @@ class PaymentDispatcher:
             token: Payment token.
 
         Returns:
-            Dict with success, release_tx_hash, method, etc.
+            Dict with success, release_tx_hash, method, fee_distribute_tx, etc.
         """
         network = network or "base"
 
@@ -1204,12 +1171,45 @@ class PaymentDispatcher:
             release_tx,
         )
 
+        # Fase 5: Best-effort flush of operator fees to treasury via distributeFees()
+        fee_distribute_tx = None
+        try:
+            fee_distribute_tx = await self._distribute_operator_fees(
+                network=stored_network, token=token
+            )
+            if fee_distribute_tx:
+                await log_payment_event(
+                    task_id=task_id,
+                    event_type="distribute_fees",
+                    status="success",
+                    tx_hash=fee_distribute_tx,
+                    to_address=EM_TREASURY,
+                    network=stored_network,
+                    token=token,
+                    metadata={
+                        "mode": "fase2",
+                        "escrow_mode": "direct_release",
+                        "operator": EM_OPERATOR,
+                    },
+                )
+                logger.info(
+                    "trustless: Operator fees distributed to treasury: task=%s, tx=%s",
+                    task_id,
+                    fee_distribute_tx,
+                )
+        except Exception as e:
+            logger.warning(
+                "trustless: distributeFees() failed (non-blocking): task=%s, error=%s",
+                task_id,
+                e,
+            )
+
         return {
             "success": True,
             "tx_hash": release_tx,
             "escrow_release_tx": release_tx,
-            "fee_tx_hash": None,
-            "fee_status": "collected_upfront",
+            "fee_distribute_tx": fee_distribute_tx,
+            "fee_status": "on_chain",
             "mode": "fase2",
             "escrow_mode": "direct_release",
             "method": "direct_release",
@@ -1226,16 +1226,16 @@ class PaymentDispatcher:
         """
         Refund a trustless escrow (direct_release mode).
 
-        Escrow refund returns bounty to agent (standard facilitator refund).
-        Additionally, if platform fee was collected upfront, refund it from
-        platform wallet to agent via EIP-3009.
+        Fase 5: The full locked amount (bounty + fee) returns to agent via
+        escrow refund. No separate fee was collected off-chain, so no fee
+        refund step is needed.
 
         Args:
             task_id: Task identifier.
             reason: Reason for refund.
 
         Returns:
-            Dict with success, tx_hash, fee_refund_tx, etc.
+            Dict with success, tx_hash, etc.
         """
         # Reconstruct PaymentInfo from DB
         pi, pi_meta = await self._reconstruct_fase2_state(task_id)
@@ -1313,84 +1313,157 @@ class PaymentDispatcher:
 
         logger.info("trustless: Escrow refunded for task %s, tx=%s", task_id, escrow_tx)
 
-        # Step 2: Refund platform fee from platform wallet to agent
-        fee_refund_tx = None
-        fee_refund_error = None
-        platform_fee_str = pi_meta.get("platform_fee_usdc") or pi_meta.get(
-            "lock_amount_usdc"
-        )
-        # Try to compute fee from bounty stored in metadata
-        bounty_str = pi_meta.get("bounty_usdc")
-        if bounty_str:
-            platform_fee = (Decimal(str(bounty_str)) * PLATFORM_FEE_PERCENT).quantize(
-                Decimal("0.000001")
-            )
-            if platform_fee < Decimal("0.01"):
-                platform_fee = Decimal("0.01")
-        elif platform_fee_str:
-            platform_fee = Decimal(str(platform_fee_str))
-        else:
-            platform_fee = Decimal("0")
-
-        if platform_fee > 0:
-            try:
-                sdk = self._get_sdk()
-                agent_address = client.payer
-                # Use disburse_to_worker as generic EIP-3009 transfer
-                refund_fee_result = await sdk.disburse_to_worker(
-                    worker_address=agent_address,
-                    amount_usdc=platform_fee,
-                    task_id=f"{task_id}_fee_refund",
-                    network=stored_network,
-                )
-                fee_refund_tx = refund_fee_result.get("tx_hash")
-                if refund_fee_result.get("success"):
-                    await log_payment_event(
-                        task_id=task_id,
-                        event_type="refund_fee",
-                        status="success",
-                        tx_hash=fee_refund_tx,
-                        from_address=_get_platform_address(),
-                        to_address=agent_address,
-                        amount_usdc=platform_fee,
-                        network=stored_network,
-                        metadata={
-                            "mode": "fase2",
-                            "escrow_mode": "direct_release",
-                            "reason": reason,
-                        },
-                    )
-                    logger.info(
-                        "trustless: Fee refunded to agent: task=%s, fee=%s, tx=%s",
-                        task_id,
-                        platform_fee,
-                        fee_refund_tx,
-                    )
-                else:
-                    fee_refund_error = refund_fee_result.get(
-                        "error", "Fee refund failed"
-                    )
-                    logger.error(
-                        "trustless: Fee refund failed for task %s: %s",
-                        task_id,
-                        fee_refund_error,
-                    )
-            except Exception as e:
-                fee_refund_error = str(e)
-                logger.error(
-                    "trustless: Fee refund exception for task %s: %s", task_id, e
-                )
+        # Fase 5: No separate fee refund needed — the full locked amount
+        # (bounty + fee) returns to agent via the single escrow refund.
 
         return {
             "success": True,
             "tx_hash": escrow_tx,
-            "fee_refund_tx": fee_refund_tx,
-            "fee_refund_error": fee_refund_error,
             "mode": "fase2",
             "escrow_mode": "direct_release",
             "status": "refunded",
             "error": None,
         }
+
+    # =========================================================================
+    # distributeFees — flush operator fees to treasury (Fase 5)
+    # =========================================================================
+
+    async def _distribute_operator_fees(
+        self, network: str = "base", token: str = "USDC"
+    ) -> Optional[str]:
+        """
+        Call distributeFees(token) on the PaymentOperator contract.
+
+        This is a permissionless function — anyone can call it.
+        It flushes all accumulated operator fees for the given token
+        to the FEE_RECIPIENT (EM treasury).
+
+        Uses raw RPC (eth_sendRawTransaction) to avoid extra dependencies.
+        Returns the transaction hash or None if the call fails.
+        """
+        import httpx
+
+        pk = os.environ.get("WALLET_PRIVATE_KEY")
+        if not pk:
+            logger.warning("distributeFees: No WALLET_PRIVATE_KEY, skipping")
+            return None
+
+        config = NETWORK_CONFIG.get(network, {})
+        rpc_url = config.get("rpc_url", BASE_RPC_URL)
+
+        # Find USDC address for this network
+        token_info = config.get("tokens", {}).get(token, {})
+        token_address = token_info.get("address", USDC_BASE_ADDRESS)
+
+        # Build calldata: distributeFees(address token)
+        # Pad token address to 32 bytes
+        token_clean = token_address.lower().replace("0x", "")
+        calldata = _SELECTOR_DISTRIBUTE_FEES + token_clean.zfill(64)
+
+        operator = os.environ.get("EM_PAYMENT_OPERATOR", EM_OPERATOR)
+
+        try:
+            from eth_account import Account
+
+            account = Account.from_key(pk)
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Get nonce
+                nonce_resp = await client.post(
+                    rpc_url,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "method": "eth_getTransactionCount",
+                        "params": [account.address, "latest"],
+                    },
+                )
+                nonce = int(nonce_resp.json()["result"], 16)
+
+                # Estimate gas (distributeFees is cheap ~30-50k gas)
+                gas_resp = await client.post(
+                    rpc_url,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 2,
+                        "method": "eth_estimateGas",
+                        "params": [
+                            {
+                                "from": account.address,
+                                "to": operator,
+                                "data": "0x" + calldata,
+                            }
+                        ],
+                    },
+                )
+                gas_result = gas_resp.json()
+                if "error" in gas_result:
+                    # Gas estimation failed — maybe no fees to distribute
+                    logger.info(
+                        "distributeFees: gas estimation failed (likely no fees): %s",
+                        gas_result.get("error", {}).get("message", "unknown"),
+                    )
+                    return None
+                gas_limit = int(gas_result["result"], 16)
+
+                # Get gas price
+                gas_price_resp = await client.post(
+                    rpc_url,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 3,
+                        "method": "eth_gasPrice",
+                        "params": [],
+                    },
+                )
+                gas_price = int(gas_price_resp.json()["result"], 16)
+
+                # Get chain ID
+                chain_id = config.get("chain_id", 8453)
+
+                # Build and sign transaction
+                tx = {
+                    "nonce": nonce,
+                    "gasPrice": gas_price,
+                    "gas": gas_limit + 10000,  # Add buffer
+                    "to": operator,
+                    "value": 0,
+                    "data": bytes.fromhex(calldata),
+                    "chainId": chain_id,
+                }
+                signed = account.sign_transaction(tx)
+
+                # Send raw transaction
+                send_resp = await client.post(
+                    rpc_url,
+                    json={
+                        "jsonrpc": "2.0",
+                        "id": 4,
+                        "method": "eth_sendRawTransaction",
+                        "params": [signed.raw_transaction.hex()],
+                    },
+                )
+                send_result = send_resp.json()
+                if "error" in send_result:
+                    logger.warning(
+                        "distributeFees: send failed: %s",
+                        send_result["error"].get("message", "unknown"),
+                    )
+                    return None
+
+                tx_hash = send_result["result"]
+                logger.info(
+                    "distributeFees: TX sent: %s (operator=%s, token=%s)",
+                    tx_hash,
+                    operator[:10],
+                    token,
+                )
+                return tx_hash
+
+        except Exception as e:
+            logger.warning("distributeFees failed: %s", e)
+            return None
 
     # =========================================================================
     # release_payment
@@ -2448,12 +2521,28 @@ class PaymentDispatcher:
             except Exception as e:
                 logger.warning("Could not sum accrued fees from DB: %s", e)
 
+            # Fase 5: Also check operator contract USDC balance (fees pending distributeFees)
+            operator_fees_usdc = Decimal("0")
+            try:
+                operator_address = os.environ.get("EM_PAYMENT_OPERATOR", EM_OPERATOR)
+                operator_balance = await sdk.check_agent_balance(
+                    agent_address=operator_address,
+                    required_amount=Decimal("0"),
+                    network=network,
+                    token=token,
+                )
+                operator_fees_usdc = Decimal(str(operator_balance.get("balance", "0")))
+            except Exception as e:
+                logger.warning("Could not read operator USDC balance: %s", e)
+
             return {
                 "platform_wallet": platform_address,
                 "balance_usdc": float(balance),
                 "safety_buffer_usdc": float(safety_buffer),
                 "sweepable_usdc": float(sweepable),
                 "accrued_from_tasks_usdc": float(accrued_total),
+                "operator_fees_pending_usdc": float(operator_fees_usdc),
+                "operator_address": os.environ.get("EM_PAYMENT_OPERATOR", EM_OPERATOR),
                 "treasury_address": EM_TREASURY,
                 "network": network,
                 "token": token,
@@ -2470,15 +2559,27 @@ class PaymentDispatcher:
         self, network: str = "base", token: str = "USDC"
     ) -> Dict[str, Any]:
         """
-        Sweep accumulated fees from platform wallet to treasury.
+        Sweep accumulated fees to treasury.
 
-        Single EIP-3009 transfer. Only sweeps amount above safety buffer.
-        Logs a 'fee_sweep' event for audit trail.
+        Fase 5: First calls distributeFees() on operator to flush on-chain
+        fees to treasury. Then sweeps any remaining platform wallet balance
+        (from legacy tasks) via EIP-3009 transfer.
         """
         safety_buffer = Decimal("1.00")
         min_sweep = Decimal("0.10")  # Don't sweep less than $0.10
 
         try:
+            # Fase 5: First flush operator fees to treasury via distributeFees()
+            distribute_tx = None
+            try:
+                distribute_tx = await self._distribute_operator_fees(
+                    network=network, token=token
+                )
+                if distribute_tx:
+                    logger.info("sweep: distributeFees() sent: tx=%s", distribute_tx)
+            except Exception as e:
+                logger.warning("sweep: distributeFees() failed (non-blocking): %s", e)
+
             sdk = self._get_sdk()
             platform_address = _get_platform_address()
 
@@ -2549,6 +2650,7 @@ class PaymentDispatcher:
             return {
                 "success": success,
                 "tx_hash": sweep_tx,
+                "distribute_fees_tx": distribute_tx,
                 "amount_swept_usdc": float(sweepable) if success else 0,
                 "balance_before_usdc": float(balance),
                 "treasury_address": EM_TREASURY,
