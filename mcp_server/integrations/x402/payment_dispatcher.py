@@ -16,7 +16,7 @@ import time
 import asyncio
 import logging
 import threading
-from decimal import ROUND_CEILING, Decimal
+from decimal import Decimal
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 
@@ -90,8 +90,9 @@ except ImportError:
     EscrowPaymentInfo = None  # type: ignore[assignment,misc]
     TaskTier = None  # type: ignore[assignment,misc]
 
-# EM PaymentOperator address (Base Mainnet). Fase 5: Trustless fee split via on-chain fee calculator.
+# EM PaymentOperator address (Base Mainnet). Fase 5: Credit card model fee split.
 # StaticFeeCalculator(1300 BPS = 13%) auto-splits at release: worker 87%, operator 13%.
+# Bounty = lock amount = what agent pays. Fee deducted from bounty, not added on top.
 # distributeFees() flushes operator balance to EM treasury.
 # Override via env var when deploying operators on additional chains.
 # Legacy: 0x4661...2Cd9 (fase5-1150bps), 0x0303...cBe5 (fase4), 0xd514...df95 (fase3-clean)
@@ -102,11 +103,6 @@ EM_OPERATOR = os.environ.get(
 # Fase 5: max_fee_bps to allow on-chain fee calculator to deduct from escrow.
 # Actual fee is 1300 BPS (13%). Set max=1800 for headroom if x402r enables protocol fee (up to 5%).
 FASE5_MAX_FEE_BPS = 1800
-
-# Fee calculator BPS — used in lock amount computation.
-# Standard DeFi convention: fee is 13% of gross (total locked), not 13% of net (bounty).
-# Lock formula: ceil(bounty * 10000 / (10000 - FEE_BPS))
-FASE5_FEE_BPS = 1300
 
 # USDC contract on Base Mainnet (for distributeFees calls)
 USDC_BASE_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -900,19 +896,17 @@ class PaymentDispatcher:
         token: str = "USDC",
     ) -> Dict[str, Any]:
         """
-        Lock bounty + platform fee in escrow with worker as direct receiver (trustless).
+        Lock bounty in escrow with worker as direct receiver (trustless).
 
-        Fase 5: The on-chain fee calculator (StaticFeeCalculator 1150 BPS) splits
-        at release — worker gets 88.5% (bounty), operator holds 11.5% (fee).
-        No separate EIP-3009 fee collection needed.
-
-        If x402r protocol fee is active, we over-lock to compensate.
+        Fase 5 credit card model: bounty = lock amount = what the agent pays.
+        On-chain fee calculator (StaticFeeCalculator 1300 BPS) splits at release:
+        worker gets 87% (net), operator holds 13% (fee) → treasury via distributeFees().
 
         Args:
             task_id: Task identifier.
             agent_address: Agent's wallet address (payer).
             worker_address: Worker's wallet address (escrow receiver).
-            bounty_usdc: The bounty amount the worker should receive.
+            bounty_usdc: The gross bounty amount (what the agent pays). Worker receives 87%.
             network: Payment network (default: base).
             token: Payment token (default: USDC).
 
@@ -922,21 +916,9 @@ class PaymentDispatcher:
         network = network or "base"
         client = self._get_fase2_client(network)
 
-        # Fase 5: Lock amount computed so that after on-chain fee deduction, worker gets >= bounty.
-        # Standard DeFi convention: fee = 13% of gross (lock amount), not 13% of net (bounty).
-        # Formula: lock = ceil(bounty * 10000 / (10000 - FEE_BPS))
-        # With protocol fee: lock = ceil(bounty * 10000 / (10000 - FEE_BPS - protocol_bps))
-        protocol_fee_bps = await _get_protocol_fee_bps()
-        total_bps = FASE5_FEE_BPS + protocol_fee_bps
-        denom = Decimal(10000 - total_bps)
-        if denom <= 0:
-            raise ValueError(
-                f"Total fee BPS ({total_bps}) >= 10000, cannot compute lock amount"
-            )
-        # Ceiling division: ensure worker always gets >= bounty after fee deduction
-        lock_amount = (bounty_usdc * Decimal(10000) / denom).quantize(
-            Decimal("0.000001"), rounding=ROUND_CEILING
-        )
+        # Fase 5 credit card model: bounty IS the lock amount. No inverse math.
+        # Fee calculator deducts 13% at release — worker gets 87%, operator gets 13%.
+        lock_amount = bounty_usdc
 
         # Convert to atomic units (6 decimals for USDC)
         config = NETWORK_CONFIG.get(network, {})
@@ -967,12 +949,11 @@ class PaymentDispatcher:
 
         logger.info(
             "trustless: Built PaymentInfo for task %s: receiver=%s, amount=%d, "
-            "bounty=%s, protocol_fee_bps=%d",
+            "bounty=%s (credit card model: lock=bounty)",
             task_id,
             worker_address[:10],
             amount_atomic,
             bounty_usdc,
-            protocol_fee_bps,
         )
 
         # Authorize (lock funds) via facilitator — gasless
@@ -1026,7 +1007,6 @@ class PaymentDispatcher:
             "worker_address": worker_address,
             "bounty_usdc": str(bounty_usdc),
             "lock_amount_usdc": str(lock_amount),
-            "protocol_fee_bps": protocol_fee_bps,
         }
 
         await log_payment_event(
@@ -1042,28 +1022,23 @@ class PaymentDispatcher:
             metadata={
                 "mode": "fase2",
                 "escrow_mode": "direct_release",
+                "fee_model": "credit_card",
                 "bounty": str(bounty_usdc),
                 "salt": pi.salt[:18],
-                "protocol_fee_bps": protocol_fee_bps,
             },
         )
 
-        # Compute fee amount for logging/return (lock_amount - bounty)
-        fee_amount = lock_amount - bounty_usdc
-
         logger.info(
-            "trustless: Bounty+fee locked in escrow: task=%s, receiver=%s, "
-            "lock_amount=%s, bounty=%s, fee=%s, tx=%s",
+            "trustless: Bounty locked in escrow (credit card model): task=%s, "
+            "receiver=%s, lock_amount=%s, tx=%s",
             task_id,
             worker_address[:10],
             lock_amount,
-            bounty_usdc,
-            fee_amount,
             escrow_tx,
         )
 
-        # Fase 5: No separate EIP-3009 fee collection needed.
-        # The on-chain fee calculator handles fee split at release time.
+        # Fase 5 credit card model: fee calculator handles fee split at release.
+        # No separate fee collection. Worker gets 87%, operator gets 13%.
 
         return {
             "success": True,
@@ -1078,8 +1053,6 @@ class PaymentDispatcher:
             "worker_address": worker_address,
             "bounty_usdc": str(bounty_usdc),
             "lock_amount_usdc": str(lock_amount),
-            "platform_fee_usdc": str(fee_amount),
-            "protocol_fee_bps": protocol_fee_bps,
             "error": None,
         }
 
@@ -1092,10 +1065,10 @@ class PaymentDispatcher:
         """
         Release escrow directly to worker. Fully trustless.
 
-        Fase 5: The on-chain fee calculator auto-splits at release:
-        - Worker gets ~88.5% (the bounty)
-        - Operator contract holds ~11.5% (the platform fee)
-        After release, distributeFees() flushes operator balance to treasury.
+        Fase 5 credit card model: The on-chain fee calculator auto-splits at release:
+        - Worker gets 87% of bounty (net)
+        - Operator contract holds 13% (fee) → treasury via distributeFees()
+        Single TX settlement.
 
         Args:
             task_id: Task identifier.
@@ -1209,6 +1182,10 @@ class PaymentDispatcher:
                 e,
             )
 
+        # Credit card model: worker gets 87% of bounty (fee deducted on-chain)
+        bounty_dec = Decimal(str(bounty_usdc))
+        net_worker = float((bounty_dec * Decimal("0.87")).quantize(Decimal("0.000001")))
+
         return {
             "success": True,
             "tx_hash": release_tx,
@@ -1219,7 +1196,9 @@ class PaymentDispatcher:
             "escrow_mode": "direct_release",
             "method": "direct_release",
             "worker_paid": True,
-            "net_to_worker": float(Decimal(str(bounty_usdc))),
+            "bounty_usdc": float(bounty_dec),
+            "net_to_worker": net_worker,
+            "fee_to_treasury": float(bounty_dec) - net_worker,
             "error": None,
         }
 
@@ -1231,9 +1210,8 @@ class PaymentDispatcher:
         """
         Refund a trustless escrow (direct_release mode).
 
-        Fase 5: The full locked amount (bounty + fee) returns to agent via
-        escrow refund. No separate fee was collected off-chain, so no fee
-        refund step is needed.
+        Fase 5 credit card model: The full bounty returns to agent via
+        escrow refund. No fee was collected off-chain, nothing to refund separately.
 
         Args:
             task_id: Task identifier.
@@ -1318,8 +1296,8 @@ class PaymentDispatcher:
 
         logger.info("trustless: Escrow refunded for task %s, tx=%s", task_id, escrow_tx)
 
-        # Fase 5: No separate fee refund needed — the full locked amount
-        # (bounty + fee) returns to agent via the single escrow refund.
+        # Fase 5 credit card model: Full bounty returns to agent via single escrow refund.
+        # No separate fee was ever collected, so no fee refund needed.
 
         return {
             "success": True,

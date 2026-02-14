@@ -1359,9 +1359,9 @@ async def get_analytics(
     "/fees/accrued",
     summary="Get Accrued Fees",
     description=(
-        "Show accumulated platform fees in the platform wallet awaiting sweep to treasury. "
-        "Fees accrue automatically on each task approval (2-TX flow). "
-        "Use POST /fees/sweep to transfer them to treasury."
+        "Show accumulated fees in the operator contract awaiting distribution to treasury. "
+        "Fase 5 credit card model: fees are deducted on-chain at release (13% of bounty). "
+        "Use POST /fees/sweep to call distributeFees() and flush to treasury."
     ),
     responses={
         200: {"description": "Accrued fee information"},
@@ -1390,11 +1390,11 @@ async def get_accrued_fees(
 
 @router.post(
     "/fees/sweep",
-    summary="Sweep Fees to Treasury",
+    summary="Distribute Fees to Treasury",
     description=(
-        "Transfer accumulated platform fees from platform wallet to treasury. "
-        "Executes a single EIP-3009 transfer. Retains a $1.00 safety buffer in platform wallet. "
-        "Minimum sweep amount: $0.10."
+        "Call distributeFees() on the operator contract to flush accumulated fees to treasury. "
+        "Fase 5 credit card model: fees accumulate in the operator contract on each release. "
+        "Also sweeps any legacy platform wallet balance for backward compatibility."
     ),
     responses={
         200: {"description": "Sweep result with tx hash"},
