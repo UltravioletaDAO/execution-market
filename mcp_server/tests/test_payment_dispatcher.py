@@ -1685,20 +1685,28 @@ class TestBatchFeeSweep:
 class TestTrustlessAuthorize:
     """Tests for authorize_escrow_for_worker() — trustless escrow with worker as receiver."""
 
+    class _MockTaskTier:
+        MICRO = "micro"
+        STANDARD = "standard"
+        PREMIUM = "premium"
+        ENTERPRISE = "enterprise"
+
     def _make_trustless_dispatcher(self):
-        """Create a dispatcher in fase2+direct_release mode with mocked clients."""
+        """Create a dispatcher in fase2+direct_release mode with mocked clients.
 
-        class MockTaskTier:
-            MICRO = "micro"
-            STANDARD = "standard"
-            PREMIUM = "premium"
-            ENTERPRISE = "enterprise"
+        NOTE: Patches are started manually and must be stopped after the test.
+        Use ``_trustless_env()`` context manager instead for automatic cleanup.
+        """
+        return self._start_trustless_patches()
 
-        with (
+    @staticmethod
+    def _trustless_patches():
+        """Return a list of patch objects needed for trustless dispatcher tests."""
+        return [
             patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
             patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
-            patch(f"{DISPATCHER_MODULE}.TaskTier", MockTaskTier),
+            patch(f"{DISPATCHER_MODULE}.TaskTier", TestTrustlessAuthorize._MockTaskTier),
             patch(
                 f"{DISPATCHER_MODULE}.NETWORK_CONFIG",
                 {
@@ -1718,14 +1726,33 @@ class TestTrustlessAuthorize:
                 os.environ,
                 {"WALLET_PRIVATE_KEY": TEST_PK, "EM_ESCROW_MODE": "direct_release"},
             ),
-        ):
-            from integrations.x402.payment_dispatcher import PaymentDispatcher
+        ]
 
-            d = PaymentDispatcher(mode="fase2")
-            d._sdk = FakeSDK()
-            mock_client = FaseClientMock()
-            d._fase2_clients = {8453: mock_client}
-            return d, mock_client
+    def _start_trustless_patches(self):
+        """Start all patches and return (dispatcher, mock_client). Patches stay active."""
+        self._active_patches = self._trustless_patches()
+        for p in self._active_patches:
+            p.start()
+
+        from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+        d = PaymentDispatcher(mode="fase2")
+        d._sdk = FakeSDK()
+        mock_client = FaseClientMock()
+        d._fase2_clients = {8453: mock_client}
+        return d, mock_client
+
+    def _stop_trustless_patches(self):
+        """Stop all active patches."""
+        for p in getattr(self, "_active_patches", []):
+            p.stop()
+        self._active_patches = []
+
+    def setup_method(self):
+        self._active_patches = []
+
+    def teardown_method(self):
+        self._stop_trustless_patches()
 
     @pytest.mark.asyncio
     async def test_authorize_escrow_for_worker_success(self):
