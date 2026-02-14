@@ -1785,8 +1785,8 @@ class TestTrustlessAuthorize:
 
         assert len(build_calls) == 1
         assert build_calls[0]["receiver"] == "0xWorkerXYZ"
-        # Fase 5: max_fee_bps allows on-chain fee calculator deduction
-        assert build_calls[0]["max_fee_bps"] == 1500
+        # Fase 5: max_fee_bps allows on-chain fee calculator + protocol fee headroom
+        assert build_calls[0]["max_fee_bps"] == 1800
 
     @pytest.mark.asyncio
     async def test_authorize_locks_bounty_plus_fee(self):
@@ -1810,11 +1810,11 @@ class TestTrustlessAuthorize:
 
         assert result["success"] is True
         assert result["fee_method"] == "on_chain_fee_calculator"
-        assert result["platform_fee_usdc"] == "1.300000"
-        # Lock amount = bounty + fee = 10.00 + 1.30 = 11.30 USDC = 11_300_000 atomic
+        assert result["platform_fee_usdc"] == "1.494253"
+        # Lock = ceil(10.00 * 10000 / 8700) = ceil(11.494252..) = 11.494253 USDC = 11_494_253 atomic
         assert len(build_calls) == 1
-        assert build_calls[0]["amount"] == 11_300_000
-        assert build_calls[0]["max_fee_bps"] == 1500
+        assert build_calls[0]["amount"] == 11_494_253
+        assert build_calls[0]["max_fee_bps"] == 1800
         # No separate fee collection call
         assert not hasattr(d._sdk, "collect_platform_fee") or not isinstance(
             d._sdk.collect_platform_fee, AsyncMock
@@ -1843,11 +1843,12 @@ class TestTrustlessAuthorize:
 
         assert result["success"] is True
         assert result["protocol_fee_bps"] == 100
-        # Base lock = bounty + fee = 10.00 + 1.30 = 11.30 USDC
-        # With 1% protocol fee: 11.30 / 0.99 ≈ 11.41 → > 11_300_000 atomic
+        # With 1% protocol fee: total_bps = 1300 + 100 = 1400
+        # Lock = ceil(10.00 * 10000 / 8600) = ceil(11.627906..) = 11.627907 = 11_627_907 atomic
+        # Must be > no-protocol-fee lock (11_494_253)
         assert len(build_calls) == 1
         lock_atomic = build_calls[0]["amount"]
-        assert lock_atomic > 11_300_000  # > 11.30 USDC in atomic units
+        assert lock_atomic > 11_494_253  # > base lock without protocol fee
 
     @pytest.mark.asyncio
     async def test_authorize_failure(self):
@@ -2060,12 +2061,12 @@ class TestTrustlessRefund:
                     operator="0xOp",
                     receiver="0xWorker",
                     token="0xUSDC",
-                    max_amount=11_300_000,  # bounty + fee
+                    max_amount=11_494_253,  # ceil(bounty * 10000 / 8700)
                     pre_approval_expiry=9999999999,
                     authorization_expiry=9999999999,
                     refund_expiry=9999999999,
                     min_fee_bps=0,
-                    max_fee_bps=1500,
+                    max_fee_bps=1800,
                     fee_receiver="0x0",
                     salt="0x" + "1234" * 16,
                 ),
@@ -2144,7 +2145,7 @@ class TestTrustlessRefund:
                     authorization_expiry=9999999999,
                     refund_expiry=9999999999,
                     min_fee_bps=0,
-                    max_fee_bps=1500,
+                    max_fee_bps=1800,
                     fee_receiver="0x0",
                     salt="0x" + "1234" * 16,
                 ),
@@ -2269,7 +2270,7 @@ class TestDistributeOperatorFees:
                     authorization_expiry=9999999999,
                     refund_expiry=9999999999,
                     min_fee_bps=0,
-                    max_fee_bps=1500,
+                    max_fee_bps=1800,
                     fee_receiver="0x0",
                     salt="0x" + "1234" * 16,
                 ),
@@ -2304,7 +2305,7 @@ class TestDistributeOperatorFees:
                     authorization_expiry=9999999999,
                     refund_expiry=9999999999,
                     min_fee_bps=0,
-                    max_fee_bps=1500,
+                    max_fee_bps=1800,
                     fee_receiver="0x0",
                     salt="0x" + "1234" * 16,
                 ),

@@ -16,7 +16,7 @@ import time
 import asyncio
 import logging
 import threading
-from decimal import Decimal
+from decimal import ROUND_CEILING, Decimal
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 
@@ -91,17 +91,22 @@ except ImportError:
     TaskTier = None  # type: ignore[assignment,misc]
 
 # EM PaymentOperator address (Base Mainnet). Fase 5: Trustless fee split via on-chain fee calculator.
-# StaticFeeCalculator(1150 BPS) auto-splits at release: worker 88.5%, operator 11.5%.
+# StaticFeeCalculator(1300 BPS = 13%) auto-splits at release: worker 87%, operator 13%.
 # distributeFees() flushes operator balance to EM treasury.
 # Override via env var when deploying operators on additional chains.
-# Legacy: 0x0303...cBe5 (fase4), 0xd514...df95 (fase3-clean), 0x8D3D...c2E6 (fase3), 0xb963...d723 (fase2)
+# Legacy: 0x4661...2Cd9 (fase5-1150bps), 0x0303...cBe5 (fase4), 0xd514...df95 (fase3-clean)
 EM_OPERATOR = os.environ.get(
-    "EM_PAYMENT_OPERATOR", "0x466191B6830f23BB6A7A99a62F8dee9CC48e2Cd9"
+    "EM_PAYMENT_OPERATOR", "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb"
 )
 
 # Fase 5: max_fee_bps to allow on-chain fee calculator to deduct from escrow.
-# Actual fee is 1150 BPS (11.5%). We set max=1500 for headroom.
-FASE5_MAX_FEE_BPS = 1500
+# Actual fee is 1300 BPS (13%). Set max=1800 for headroom if x402r enables protocol fee (up to 5%).
+FASE5_MAX_FEE_BPS = 1800
+
+# Fee calculator BPS — used in lock amount computation.
+# Standard DeFi convention: fee is 13% of gross (total locked), not 13% of net (bounty).
+# Lock formula: ceil(bounty * 10000 / (10000 - FEE_BPS))
+FASE5_FEE_BPS = 1300
 
 # USDC contract on Base Mainnet (for distributeFees calls)
 USDC_BASE_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -917,24 +922,21 @@ class PaymentDispatcher:
         network = network or "base"
         client = self._get_fase2_client(network)
 
-        # Fase 5: Lock bounty + platform fee in escrow.
-        # Fee calculator splits at release (worker gets 88.5%, operator holds 11.5%).
-        platform_fee = (bounty_usdc * PLATFORM_FEE_PERCENT).quantize(
-            Decimal("0.000001")
-        )
-        if platform_fee < Decimal("0.01"):
-            platform_fee = Decimal("0.01")
-        base_lock = bounty_usdc + platform_fee
-
-        # Read protocol fee dynamically — if active, over-lock to compensate.
+        # Fase 5: Lock amount computed so that after on-chain fee deduction, worker gets >= bounty.
+        # Standard DeFi convention: fee = 13% of gross (lock amount), not 13% of net (bounty).
+        # Formula: lock = ceil(bounty * 10000 / (10000 - FEE_BPS))
+        # With protocol fee: lock = ceil(bounty * 10000 / (10000 - FEE_BPS - protocol_bps))
         protocol_fee_bps = await _get_protocol_fee_bps()
-        if protocol_fee_bps > 0:
-            protocol_rate = Decimal(protocol_fee_bps) / Decimal(10000)
-            lock_amount = (base_lock / (Decimal("1") - protocol_rate)).quantize(
-                Decimal("0.000001")
+        total_bps = FASE5_FEE_BPS + protocol_fee_bps
+        denom = Decimal(10000 - total_bps)
+        if denom <= 0:
+            raise ValueError(
+                f"Total fee BPS ({total_bps}) >= 10000, cannot compute lock amount"
             )
-        else:
-            lock_amount = base_lock
+        # Ceiling division: ensure worker always gets >= bounty after fee deduction
+        lock_amount = (bounty_usdc * Decimal(10000) / denom).quantize(
+            Decimal("0.000001"), rounding=ROUND_CEILING
+        )
 
         # Convert to atomic units (6 decimals for USDC)
         config = NETWORK_CONFIG.get(network, {})
@@ -1046,6 +1048,9 @@ class PaymentDispatcher:
             },
         )
 
+        # Compute fee amount for logging/return (lock_amount - bounty)
+        fee_amount = lock_amount - bounty_usdc
+
         logger.info(
             "trustless: Bounty+fee locked in escrow: task=%s, receiver=%s, "
             "lock_amount=%s, bounty=%s, fee=%s, tx=%s",
@@ -1053,7 +1058,7 @@ class PaymentDispatcher:
             worker_address[:10],
             lock_amount,
             bounty_usdc,
-            platform_fee,
+            fee_amount,
             escrow_tx,
         )
 
@@ -1073,7 +1078,7 @@ class PaymentDispatcher:
             "worker_address": worker_address,
             "bounty_usdc": str(bounty_usdc),
             "lock_amount_usdc": str(lock_amount),
-            "platform_fee_usdc": str(platform_fee),
+            "platform_fee_usdc": str(fee_amount),
             "protocol_fee_bps": protocol_fee_bps,
             "error": None,
         }
