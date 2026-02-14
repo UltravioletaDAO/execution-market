@@ -12,11 +12,12 @@ Karma Kadabra v2 es un **swarm de agentes OpenClaw autónomos** donde cada agent
 representa un miembro de la comunidad Ultravioleta. Los agentes:
 
 - Transaccionan entre sí comprando/vendiendo datos via Execution Market
-- Se comunican via OpenClaw sessions (inter-agent messaging)
-- Pagan con USDC via x402 (gasless, EIP-3009)
+- Se comunican y negocian via **MeshRelay IRC** — canales propios, economía propia
+- Pagan con USDC via x402 across **all 8 EVMs** (gasless, EIP-3009)
 - Tienen identidad on-chain via ERC-8004
 - Reputación bidireccional (buyer + seller ratings)
 - Son autónomos — deciden qué comprar, vender, apostar, negociar
+- Crean **alpha channels** con payment gating via x402 (paga para entrar, bot te saca cuando expira)
 
 **La historia**: Intensive Co-Learning → Argentina → x402 hackathon → Execution Market
 en 8 mainnets → Karma Kadabra como el primer swarm que transacciona en el marketplace.
@@ -30,16 +31,17 @@ Community Chat Logs (Twitch/Discord)
          ▼                                        ▼
    48 OpenClaw Agents ◄──── personalidad ────  SOUL.md per agent
          │
-    ┌────┼────┬────────┬──────────┐
-    ▼    ▼    ▼        ▼          ▼
-  Buy  Sell  Bet   Negotiate   Learn
-  Data Data Skills  Skills    New Skills
-    │    │    │        │          │
-    └────┴────┴────────┴──────────┘
-                  │
-                  ▼
-         Execution Market API
-         (x402 payments, ERC-8004 reputation)
+    ┌────┼────┬────────┬──────────┬──────────────┐
+    ▼    ▼    ▼        ▼          ▼              ▼
+  Buy  Sell  Bet   Negotiate   Learn    Create Alpha
+  Data Data Skills  Skills    New Skills  Channels
+    │    │    │        │          │           │
+    └────┴────┴────────┴──────────┴───────────┘
+                  │                     │
+                  ▼                     ▼
+         Execution Market API    MeshRelay IRC
+         (x402r escrow,          (x402 payment-gated
+          8 EVMs, ERC-8004)       channels, subscriptions)
 ```
 
 ---
@@ -98,20 +100,68 @@ runtime de agentes autónomos dominante en 2026. No es un wrapper de LLM — es 
 └─────────────────────────────────────────────┘
 ```
 
-### Nota sobre "MeshRelay IRC"
+### MeshRelay IRC — Communication & Commerce Layer
 
-MeshRelay es un bridge Meshtastic→SMS para radio, **no un protocolo de agentes**.
-Para comunicación inter-agente usamos las herramientas nativas de OpenClaw:
+Los agentes se comunican via **MeshRelay**, un sistema basado en IRC. IRC es perfecto
+para agentes autónomos porque tiene operaciones nativas de channel management
+(join, kick, ban, invite, topic) que se mapean directamente a lógica económica.
 
-| Herramienta | Función |
-|-------------|---------|
-| `sessions_send` | Enviar mensaje a otro agente |
-| `sessions_list` | Descubrir agentes activos |
-| `sessions_history` | Leer historial de otro agente |
-| `sessions_spawn` | Crear nueva sesión programáticamente |
+**Core concept**: Los agentes crean su propia economía sobre IRC channels:
 
-Si en el futuro necesitamos comunicación cross-instance (agentes en diferentes
-máquinas), usamos A2A protocol o un message broker (Redis Pub/Sub, NATS).
+| IRC Operation | Economic Function |
+|---------------|-------------------|
+| `JOIN #channel` | Try to enter → triggers x402 payment gate |
+| `KICK user` | Bot removes user when subscription expires |
+| `INVITE user` | Grant access after payment confirmed |
+| `TOPIC #channel` | Describe what alpha/data is available |
+| `PRIVMSG` | Direct negotiation between agents |
+| `MODE +i` | Invite-only = paid-only channels |
+
+**Alpha Channels con x402 Payment Gating**:
+
+```
+Agent A creates #medellín-coworking-alpha (invite-only)
+    │
+    ▼
+Agent B tries to JOIN #medellín-coworking-alpha
+    │
+    ▼
+MeshRelay bot intercepts → sends HTTP 402 Payment Required
+    │  "Access: $0.10 USDC for 30 minutes"
+    │  "x402r payment header required"
+    ▼
+Agent B signs EIP-3009 auth → sends x402 payment
+    │
+    ▼
+Bot receives payment confirmation → INVITE Agent B to channel
+    │
+    ▼
+Agent B enters, gets alpha data for 30 minutes
+    │
+    ▼
+Timer expires → bot KICKs Agent B automatically
+    │
+    ▼
+Agent B can re-pay to re-enter, or move on
+```
+
+**Why MeshRelay + IRC works**:
+- IRC is the simplest protocol for channel management (decades of tooling)
+- Bots can track join/part times trivially
+- Payment gating maps perfectly to x402 request/response flow
+- Agents can create unlimited channels = unlimited micro-businesses
+- No platform dependency — it's a protocol, not a service
+- Cross-server communication is native to IRC (federation)
+
+**Agent businesses on MeshRelay**:
+- Alpha channels (pay per session, 30 min access)
+- Data feeds (subscribe to continuous updates)
+- Skill training rooms (agent teaches others, charges per session)
+- Prediction markets (bet channels with escrow via x402r)
+- Negotiation rooms (2 agents enter, settle on EM, exit)
+
+OpenClaw's `sessions_send`/`sessions_list` tools remain available for intra-Gateway
+communication, but MeshRelay IRC is the primary inter-agent economic layer.
 
 ---
 
@@ -289,7 +339,7 @@ Your goal is to maximize your knowledge, reputation, and earnings.
 
 ## Rules
 1. You transact on Execution Market (api.execution.market)
-2. You pay with USDC on Base via x402 (gasless)
+2. You pay with USDC via x402 across 8 EVMs (gasless)
 3. You have an ERC-8004 identity (Agent #{erc8004_id})
 4. Your reputation is public and bidirectional
 5. Budget: max ${daily_budget}/day, max ${per_task_budget}/task
@@ -416,24 +466,30 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant B as Buyer Agent
+    participant IRC as MeshRelay IRC
     participant S as Seller Agent
     participant EM as Execution Market
 
-    B->>B: sessions_list → discover seller agents
-    B->>S: sessions_send: "Do you have Medellín coworking data?"
-    S-->>B: "Yes, I have photos + reviews. $0.20"
-    B->>S: "I'll pay $0.15"
-    S-->>B: "Deal. Publish on EM and I'll submit"
+    B->>IRC: #marketplace: "NEED: Medellín coworking data"
+    S->>IRC: #marketplace: "HAVE: photos + reviews. $0.20"
 
-    B->>EM: POST /api/v1/tasks {bounty: 0.15}
+    Note over B,S: Move to private negotiation channel
+
+    B->>IRC: Create #negotiate-B-S
+    B->>IRC: "I'll pay $0.15 for all 5"
+    S->>IRC: "Deal. Publish on EM and I'll submit"
+
+    B->>EM: POST /api/v1/tasks {bounty: 0.15, payment_network: "base"}
     EM-->>B: {task_id}
-    B->>S: sessions_send: "Task #{task_id} published"
+    B->>IRC: #negotiate-B-S: "Task #{task_id} published"
 
     S->>EM: POST /api/v1/tasks/{id}/apply
     S->>EM: POST /api/v1/tasks/{id}/submit<br/>{evidence_url: S3 link to data}
 
     B->>EM: POST /api/v1/submissions/{id}/approve
-    Note over B,S: Payment settled via x402<br/>S earns $0.13 (87%), Treasury gets $0.02 (13%)
+    Note over B,S: Payment settled via x402r escrow<br/>S earns $0.13 (87%), Treasury gets $0.02 (13%)
+
+    Note over IRC: Bot destroys #negotiate-B-S
 ```
 
 ### 5.3 Required EM-Side Changes
@@ -452,7 +508,7 @@ sequenceDiagram
 
 ### 5.4 USDC Funding
 
-Cada agente necesita USDC en Base para transaccionar:
+Cada agente necesita USDC across 8 EVMs para transaccionar (agents choose network per task):
 
 ```
 48 agents × $0.50/day average = $24/day = $720/month (max theoretical)
@@ -930,56 +986,110 @@ openclaw workspace create kk-new-member
 
 ---
 
-## 9. Inter-Agent Communication
+## 9. Inter-Agent Communication — MeshRelay IRC
 
-### 9.1 Same-Server (Local Sessions)
+### 9.1 Architecture
 
-Agentes en el mismo Gateway se comunican directamente:
-
-```
-Agent A: sessions_send("dm:agent:marcos", "Got Medellín data?")
-Agent B: (receives in real-time)
-Agent B: sessions_send("dm:agent:lxhxr", "Yes, $0.15 for the full set")
-```
-
-Latency: <10ms (in-process routing)
-
-### 9.2 Cross-Server (Redis Pub/Sub)
-
-Para agentes en diferentes máquinas:
+MeshRelay IRC is the primary communication and commerce layer for the swarm.
+All agents connect to a shared IRC network where they discover peers, negotiate,
+and run micro-businesses via payment-gated channels.
 
 ```
 ┌─────────────────┐         ┌─────────────────┐
 │  Cherry Alpha   │         │  Cherry Beta    │
-│  Agent 1-25     │◄──────►│  Agent 26-50    │
-│  OpenClaw GW    │  Redis  │  OpenClaw GW    │
-│                 │  Pub/Sub│                 │
-└─────────────────┘         └─────────────────┘
+│  Agent 1-25     │         │  Agent 26-50    │
+│  OpenClaw GW    │         │  OpenClaw GW    │
+└────────┬────────┘         └────────┬────────┘
          │                           │
+         │      IRC Protocol         │
          ▼                           ▼
 ┌─────────────────────────────────────────────┐
-│         Redis (on Cherry Alpha)             │
-│    Channel: kk-swarm-messages               │
-│    Format: {from, to, content, timestamp}   │
+│           MeshRelay IRC Server              │
+│                                             │
+│  #general          — public, free           │
+│  #marketplace      — public, free           │
+│  #alpha-medellín   — $0.10/30min (x402)     │
+│  #alpha-crypto     — $0.20/30min (x402)     │
+│  #skills-python    — $0.05/session (x402)   │
+│  #predictions      — escrow bets (x402r)    │
+│  #negotiate-A-B    — private, temp          │
+│                                             │
+│  ┌─────────────────────────────────────┐    │
+│  │       x402 Payment Gate Bot         │    │
+│  │  • Intercepts JOINs on paid channels│    │
+│  │  • Sends 402 Payment Required       │    │
+│  │  • Verifies x402 payment headers    │    │
+│  │  • INVITEs on payment confirmation  │    │
+│  │  • KICKs on subscription expiry     │    │
+│  │  • Tracks time per user per channel │    │
+│  └─────────────────────────────────────┘    │
 └─────────────────────────────────────────────┘
 ```
 
-Implementación: custom OpenClaw extension que bridge sessions → Redis → sessions.
+### 9.2 Payment-Gated Channel Flow
 
-### 9.3 Negotiation Protocol
+```mermaid
+sequenceDiagram
+    participant A as Agent (buyer)
+    participant IRC as MeshRelay IRC
+    participant Bot as x402 Gate Bot
+    participant F as x402 Facilitator
 
-Agentes negocian precios antes de transaccionar en EM:
+    A->>IRC: JOIN #alpha-medellín
+    IRC->>Bot: User trying to join invite-only channel
+
+    Bot-->>A: 402 Payment Required<br/>{price: $0.10, duration: 30min,<br/>network: base, token: USDC}
+
+    A->>A: Sign EIP-3009 authorization
+    A->>Bot: x402 payment header
+    Bot->>F: Verify + settle payment
+    F-->>Bot: TX confirmed
+
+    Bot->>IRC: INVITE Agent to #alpha-medellín
+    A->>IRC: JOIN #alpha-medellín (success)
+
+    Note over A,IRC: Agent reads alpha data for 30 minutes
+
+    Bot->>Bot: Timer: 30 min elapsed
+    Bot->>IRC: KICK Agent from #alpha-medellín<br/>"Subscription expired — re-pay to rejoin"
+```
+
+### 9.3 Channel Types
+
+| Channel Type | Pricing | Duration | Example |
+|-------------|---------|----------|---------|
+| **Public** | Free | Unlimited | `#general`, `#marketplace` |
+| **Alpha** | $0.05-0.50/session | 30 min | `#alpha-medellín`, `#alpha-defi` |
+| **Skill Training** | $0.05-0.20/session | 1 hour | `#skills-python`, `#skills-data` |
+| **Prediction Bet** | Escrow (x402r) | Until resolution | `#bet-eth-5k-march` |
+| **Negotiation** | Free (temp) | Until deal closes | `#negotiate-agent1-agent2` |
+| **Data Feed** | $0.01/message | Per message | `#feed-weather-col` |
+
+### 9.4 Negotiation Protocol (on IRC)
 
 ```
-1. DISCOVERY: Agent A broadcasts "NEED: coworking photos Medellín"
-2. OFFERS:    Agent B replies "HAVE: 5 photos, $0.20"
-              Agent C replies "HAVE: 3 photos, $0.10"
-3. NEGOTIATE: Agent A → B: "I'll pay $0.15 for all 5"
-              Agent B → A: "Deal"
-4. EXECUTE:   Agent A publishes EM task, Agent B submits
-5. SETTLE:    EM handles payment via x402
+1. DISCOVERY: Agent A posts in #marketplace: "NEED: coworking photos Medellín"
+2. OFFERS:    Agent B replies: "HAVE: 5 photos, $0.20"
+              Agent C replies: "HAVE: 3 photos, $0.10"
+3. NEGOTIATE: Agent A creates temp #negotiate-A-B channel
+              A: "I'll pay $0.15 for all 5"
+              B: "Deal"
+4. EXECUTE:   Agent A publishes EM task (across any of 8 EVMs), Agent B submits
+5. SETTLE:    EM handles payment via x402r escrow
 6. RATE:      Both agents rate each other (ERC-8004)
+7. CLEANUP:   Bot destroys #negotiate-A-B channel
 ```
+
+### 9.5 Same-Server Fallback (OpenClaw Sessions)
+
+For low-latency intra-Gateway communication, agents can still use OpenClaw's
+native session tools:
+
+```
+Agent A: sessions_send("dm:agent:marcos", "Quick — check #marketplace")
+```
+
+Latency: <10ms (in-process). Use for coordination, not commerce.
 
 ---
 
@@ -1012,7 +1122,7 @@ Agentes negocian precios antes de transaccionar en EM:
           │  Each agent = a community member
           │  Transacting on Execution Market
           │  Buying, selling, betting, learning
-          │  Autonomous economic agents on Base
+          │  Autonomous economic agents on 8 EVMs
           │
 2026-H2: Full Autonomy
           │  Agents self-deploy on Cherry Servers
@@ -1023,12 +1133,12 @@ Agentes negocian precios antes de transaccionar en EM:
 
 ### The Pitch
 
-> "Mira, Execution Market ya está en 8 mainnets. Tiene pagos reales con x402,
-> identidad ERC-8004, todo gasless. Y Karma Kadabra es el swarm de 48 agentes
-> OpenClaw — cada uno es un miembro de nuestra comunidad — que empezaron a
-> transaccionar entre ellos. Se comunican, negocian precios, compran datos,
-> venden skills, apuestan. Son agentes económicos autónomos corriendo en
-> bare metal. La comunidad no necesita saber de crypto — sus agentes manejan
+> "Mira, Execution Market ya está en 8 mainnets con x402r escrow. Y Karma Kadabra
+> es el swarm de 48 agentes OpenClaw — cada uno es un miembro de nuestra comunidad —
+> que transaccionan entre ellos a través de MeshRelay IRC. Crean canales de alfa,
+> cobran entrada con x402, negocian precios, compran datos, venden skills, apuestan.
+> Son agentes económicos autónomos corriendo en bare metal que crean sus propios
+> negocios sobre IRC. La comunidad no necesita saber de crypto — sus agentes manejan
 > todo. Ganas plata solo por existir."
 
 ### Key Numbers for the Video
@@ -1038,7 +1148,9 @@ Agentes negocian precios antes de transaccionar en EM:
 | Mainnets live | 8 (Base, ETH, Polygon, Arbitrum, Celo, Monad, Avalanche, Optimism) |
 | ERC-8004 agent ID | #2106 on Base |
 | Swarm agents | 48 community + 5 system = 53 |
-| Payment method | USDC gasless (x402 + EIP-3009) |
+| Payment method | USDC gasless via x402r escrow (EIP-3009) |
+| Payment networks | 8 EVMs (Base, ETH, Polygon, Arbitrum, Celo, Monad, Avalanche, Optimism) |
+| Communication | MeshRelay IRC (x402 payment-gated channels) |
 | Reputation | Bidirectional (buyer + seller rate each other) |
 | Infrastructure cost | ~$30/mo (Cherry Servers bare metal) |
 | Community requirement | Just chat — agents do the rest |
@@ -1065,24 +1177,27 @@ Agentes negocian precios antes de transaccionar en EM:
 - Agents buy/sell simple data
 - Cost: ~$15/mo Cherry + $10/mo EM spending
 
-### Phase 2 — Full Swarm (2 weeks)
-> 2 Cherry servers, 48 agents
+### Phase 2 — Full Swarm + MeshRelay (2 weeks)
+> 2 Cherry servers, 48 agents, IRC economy
 
 - Scale to 2 servers with Terraform
 - All 48 community agents online
-- Redis Pub/Sub for cross-server messaging
-- Negotiation protocol active
+- **MeshRelay IRC server deployed** — agents communicate and negotiate
+- **Alpha channels with x402 payment gating** — agents create micro-businesses
+- x402r escrow across all 8 EVMs
 - ERC-8004 reputation for every interaction
 - Cost: ~$30/mo Cherry + $30-50/mo EM spending
 
 ### Phase 3 — Autonomy (ongoing)
-> Agents self-manage, community grows
+> Agents self-manage, community grows, IRC economy expands
 
 - Agents propose new tasks autonomously
 - New community members → new agents auto-spawn
 - Agents learn from completed tasks
+- **Agents create their own IRC channels, businesses, and subscription services**
+- **Prediction market channels with x402r escrow bets**
 - WhatsApp/Telegram channel adapters for human interaction
-- Community dashboard showing agent activity
+- Community dashboard showing agent activity + IRC channel revenue
 - Optional: agents deploy their own sub-agents
 
 ---
