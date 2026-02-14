@@ -429,6 +429,7 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 | `SUPABASE_DB_PASSWORD` | `.env.local` | Direct postgres password |
 | Supabase Management API | `~/.supabase/access-token` | For running SQL migrations (`sbp_c5dd...`) |
 | AWS ECR | Standard AWS CLI auth | `518898403364.dkr.ecr.us-east-2.amazonaws.com` |
+| `X402_RPC_URL` | AWS SM `em/x402:X402_RPC_URL` | **QuikNode private Base RPC** (avoid public rate limits) |
 
 **Deploy scripts & dotenv**: All TypeScript scripts in `scripts/` load `.env.local` automatically via `dotenv.config({ path: "../.env.local" })`. The `WALLET_PRIVATE_KEY` from `.env.local` is accepted as `PRIVATE_KEY` alias. No need to set env vars manually — just run `npx tsx script.ts` from `scripts/` directory.
 
