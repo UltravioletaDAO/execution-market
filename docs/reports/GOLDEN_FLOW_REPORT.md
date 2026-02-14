@@ -1,6 +1,6 @@
 # Golden Flow Report -- Definitive E2E Acceptance Test (Fase 5)
 
-> **Date**: 2026-02-14 04:05 UTC
+> **Date**: 2026-02-14 04:30 UTC
 > **Environment**: Production (Base Mainnet, chain 8453)
 > **API**: `https://api.execution.market`
 > **Fee Model**: credit_card (fee deducted from bounty on-chain)
@@ -93,71 +93,79 @@ sequenceDiagram
 
 | # | Phase | Status | Time |
 |---|-------|--------|------|
-| 1 | Health & Config Verification | **PASS** | 11.94s |
-| 2 | Task Creation (Balance Check) | **PASS** | 91.85s |
-| 3 | Worker Registration & Identity | **PASS** | 7.5s |
-| 4 | Task Lifecycle (Apply -> Assign+Escrow -> Submit) | **PASS** | 8.02s |
-| 5 | Approval & Payment Settlement | **PASS** | 42.94s |
-| 6 | Bidirectional Reputation | **PARTIAL** | 66.31s |
-| 7 | Final Verification | **PASS** | 0.27s |
+| 1 | Health & Config Verification | **PASS** | 0.53s |
+| 2 | Task Creation (Balance Check) | **PASS** | 91.84s |
+| 3 | Worker Registration & Identity | **PASS** | 5.41s |
+| 4 | Task Lifecycle (Apply -> Assign+Escrow -> Submit) | **PASS** | 6.27s |
+| 5 | Approval & Payment Settlement | **PASS** | 57.08s |
+| 6 | Bidirectional Reputation | **PARTIAL** | 63.61s |
+| 7 | Final Verification | **PASS** | 0.39s |
 
 ---
 
 ## Health & Config Verification
 
 - **Status**: PASS
-- **Time**: 11.94s
+- **Time**: 0.53s
 
 
 ## Task Creation (Balance Check)
 
 - **Status**: PASS
-- **Time**: 91.85s
+- **Time**: 91.84s
 
-- **Task ID**: `e2215052-7436-48d7-bfe4-16447c2b6b03`
+- **Task ID**: `1d9fc238-0eb1-4d46-a8b3-e210aa1dcd5f`
 - **Escrow at creation**: False
 - **Fee model**: credit_card
 
 ## Worker Registration & Identity
 
 - **Status**: PASS
-- **Time**: 7.5s
+- **Time**: 5.41s
 
 - **Executor ID**: `803dfbf1-7b91-4a41-8d31-518f4fa2fcd4`
 
 ## Task Lifecycle (Apply -> Assign+Escrow -> Submit)
 
 - **Status**: PASS
-- **Time**: 8.02s
+- **Time**: 6.27s
 
-- **Submission ID**: `88329014-1d0b-4553-b018-ff31306f9ea7`
-- **Escrow TX (at assignment)**: [`0x0e8a29356f9dcc...`](https://basescan.org/tx/0x0e8a29356f9dcc8f3bd52378ae4dad210344935edb48f859d1fb1b7dd3915530)
+- **Submission ID**: `fe98ce0d-7824-406b-8c22-9a03bd42fdcc`
+- **Escrow TX (at assignment)**: [`0x2fe52a0fade20e...`](https://basescan.org/tx/0x2fe52a0fade20e100e1d54dfaa71ee4f5a2315f28fce481a8836741758ae22f8)
 - **Escrow Verified**: True
 - **Escrow mode**: direct_release
 
 ## Approval & Payment Settlement
 
 - **Status**: PASS
-- **Time**: 42.94s
+- **Time**: 57.08s
 
 - **Payment Mode**: `fase2`
-- **Worker TX**: [`0x48110f7a38936e...`](https://basescan.org/tx/0x48110f7a38936ee6816dbf7ce5ba827f0b1c48d6e1f5ba2fe01fe3eda1ffaa6c)
-- **Escrow Release**: [`0x48110f7a38936e...`](https://basescan.org/tx/0x48110f7a38936ee6816dbf7ce5ba827f0b1c48d6e1f5ba2fe01fe3eda1ffaa6c)
+- **Worker TX**: [`0x92b2687ef1d03f...`](https://basescan.org/tx/0x92b2687ef1d03fda370aea6b3491694c6a71e0584dc6b49267813ffa4736dbf3)
+- **Escrow Release**: [`0x92b2687ef1d03f...`](https://basescan.org/tx/0x92b2687ef1d03fda370aea6b3491694c6a71e0584dc6b49267813ffa4736dbf3)
+
+### Fee Math Verification (Credit Card Model)
+
+| Metric | Expected | Actual | Match |
+|--------|----------|--------|-------|
+| Worker net (87%) | $0.087000 | $0.087000 | YES |
+| Operator fee (13%) | $0.013000 | $0.013000 | YES |
+| Lock amount | $0.100000 | $0.100000 | YES |
 
 ## Bidirectional Reputation
 
 - **Status**: PARTIAL
-- **Time**: 66.31s
+- **Time**: 63.61s
 - **Error**: Agent->Worker: HTTP 200, success=False, error=; Worker->Agent: HTTP 200, success=False, error=
 
 
 ## Final Verification
 
 - **Status**: PASS
-- **Time**: 0.27s
+- **Time**: 0.39s
 
-- **EM Reputation Score**: 77.0
-- **EM Reputation Count**: 7
+- **EM Reputation Score**: 76.0
+- **EM Reputation Count**: 9
 - **Feedback Available**: True
 
 ---
@@ -166,8 +174,8 @@ sequenceDiagram
 
 | # | TX Hash | BaseScan |
 |---|---------|----------|
-| 1 | `0x0e8a29356f9dcc8f3b...` | [View](https://basescan.org/tx/0x0e8a29356f9dcc8f3bd52378ae4dad210344935edb48f859d1fb1b7dd3915530) |
-| 2 | `0x48110f7a38936ee681...` | [View](https://basescan.org/tx/0x48110f7a38936ee6816dbf7ce5ba827f0b1c48d6e1f5ba2fe01fe3eda1ffaa6c) |
+| 1 | `0x2fe52a0fade20e100e...` | [View](https://basescan.org/tx/0x2fe52a0fade20e100e1d54dfaa71ee4f5a2315f28fce481a8836741758ae22f8) |
+| 2 | `0x92b2687ef1d03fda37...` | [View](https://basescan.org/tx/0x92b2687ef1d03fda370aea6b3491694c6a71e0584dc6b49267813ffa4736dbf3) |
 
 ---
 
@@ -178,5 +186,7 @@ sequenceDiagram
 - [x] Escrow locked at assignment (direct_release, worker as receiver)
 - [x] Escrow lock TX verified on-chain (status: SUCCESS)
 - [x] Worker registered with executor ID
+- [x] Worker receives $0.087000 (87% of bounty, credit card model)
+- [x] Operator receives $0.013000 (13% on-chain fee calculator)
 - [x] All payment TXs verified on-chain (status: 0x1)
 - [x] Single-TX escrow release (fee split by StaticFeeCalculator 1300bps)

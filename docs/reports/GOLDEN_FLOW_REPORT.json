@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-14T04:05:02.496125+00:00",
+  "timestamp": "2026-02-14T04:30:24.146270+00:00",
   "api_base": "https://api.execution.market",
   "fee_model": "credit_card",
   "bounty_usd": 0.1,
@@ -13,7 +13,7 @@
       "name": "health_config",
       "description": "Health & Config Verification",
       "status": "PASS",
-      "elapsed_s": 11.94,
+      "elapsed_s": 0.53,
       "health_status": "healthy",
       "supported_networks": [
         "arbitrum",
@@ -36,8 +36,8 @@
       "name": "task_creation",
       "description": "Task Creation (Balance Check)",
       "status": "PASS",
-      "elapsed_s": 91.85,
-      "task_id": "e2215052-7436-48d7-bfe4-16447c2b6b03",
+      "elapsed_s": 91.84,
+      "task_id": "1d9fc238-0eb1-4d46-a8b3-e210aa1dcd5f",
       "task_status": "published",
       "escrow_at_creation": false,
       "fee_model": "credit_card"
@@ -46,7 +46,7 @@
       "name": "worker_registration",
       "description": "Worker Registration & Identity",
       "status": "PASS",
-      "elapsed_s": 7.5,
+      "elapsed_s": 5.41,
       "executor_id": "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4",
       "erc8004_agent_id": null,
       "erc8004_tx": null
@@ -55,10 +55,10 @@
       "name": "task_lifecycle",
       "description": "Task Lifecycle (Apply -> Assign+Escrow -> Submit)",
       "status": "PASS",
-      "elapsed_s": 8.02,
-      "application_id": "ea2c8e13-aae3-4a44-aa9b-01459d458817",
-      "submission_id": "88329014-1d0b-4553-b018-ff31306f9ea7",
-      "escrow_tx": "0x0e8a29356f9dcc8f3bd52378ae4dad210344935edb48f859d1fb1b7dd3915530",
+      "elapsed_s": 6.27,
+      "application_id": "4d4710cf-23b2-48e0-a799-c0099a7ecd34",
+      "submission_id": "fe98ce0d-7824-406b-8c22-9a03bd42fdcc",
+      "escrow_tx": "0x2fe52a0fade20e100e1d54dfaa71ee4f5a2315f28fce481a8836741758ae22f8",
       "escrow_verified": true,
       "escrow_mode": "direct_release",
       "fee_model": "credit_card"
@@ -67,16 +67,16 @@
       "name": "payment",
       "description": "Approval & Payment Settlement",
       "status": "PASS",
-      "elapsed_s": 42.94,
+      "elapsed_s": 57.08,
       "payment_mode": "fase2",
-      "escrow_release_tx": "0x48110f7a38936ee6816dbf7ce5ba827f0b1c48d6e1f5ba2fe01fe3eda1ffaa6c",
-      "payment_tx": "0x48110f7a38936ee6816dbf7ce5ba827f0b1c48d6e1f5ba2fe01fe3eda1ffaa6c",
+      "escrow_release_tx": "0x92b2687ef1d03fda370aea6b3491694c6a71e0584dc6b49267813ffa4736dbf3",
+      "payment_tx": "0x92b2687ef1d03fda370aea6b3491694c6a71e0584dc6b49267813ffa4736dbf3",
       "fee_tx": null,
       "fee_distribute_tx": null,
-      "worker_net_usdc": null,
-      "platform_fee_usdc": null,
-      "gross_amount_usdc": null,
-      "approve_time_s": 42.77,
+      "worker_net_usdc": 0.087,
+      "platform_fee_usdc": 0.013000000000000012,
+      "gross_amount_usdc": 0.1,
+      "approve_time_s": 56.9,
       "tx_verifications": {
         "escrow_lock": true,
         "escrow_release": true
@@ -88,7 +88,7 @@
       "name": "reputation",
       "description": "Bidirectional Reputation",
       "status": "PARTIAL",
-      "elapsed_s": 66.31,
+      "elapsed_s": 63.61,
       "error": "Agent->Worker: HTTP 200, success=False, error=; Worker->Agent: HTTP 200, success=False, error=",
       "agent_rates_worker_tx": null,
       "worker_rates_agent_tx": null
@@ -97,21 +97,21 @@
       "name": "verification",
       "description": "Final Verification",
       "status": "PASS",
-      "elapsed_s": 0.27,
-      "em_reputation_score": 77.0,
-      "em_reputation_count": 7,
+      "elapsed_s": 0.39,
+      "em_reputation_score": 76.0,
+      "em_reputation_count": 9,
       "feedback_available": true,
       "total_txs": 2,
       "all_tx_hashes": [
-        "0x0e8a29356f9dcc8f3bd52378ae4dad210344935edb48f859d1fb1b7dd3915530",
-        "0x48110f7a38936ee6816dbf7ce5ba827f0b1c48d6e1f5ba2fe01fe3eda1ffaa6c"
+        "0x2fe52a0fade20e100e1d54dfaa71ee4f5a2315f28fce481a8836741758ae22f8",
+        "0x92b2687ef1d03fda370aea6b3491694c6a71e0584dc6b49267813ffa4736dbf3"
       ]
     }
   },
   "overall": "PARTIAL",
   "tx_hashes": [
-    "0x0e8a29356f9dcc8f3bd52378ae4dad210344935edb48f859d1fb1b7dd3915530",
-    "0x48110f7a38936ee6816dbf7ce5ba827f0b1c48d6e1f5ba2fe01fe3eda1ffaa6c"
+    "0x2fe52a0fade20e100e1d54dfaa71ee4f5a2315f28fce481a8836741758ae22f8",
+    "0x92b2687ef1d03fda370aea6b3491694c6a71e0584dc6b49267813ffa4736dbf3"
   ],
-  "total_elapsed_s": 239.87
+  "total_elapsed_s": 236.17
 }
