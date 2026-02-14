@@ -96,7 +96,7 @@ except ImportError:
 # Override via env var when deploying operators on additional chains.
 # Legacy: 0x0303...cBe5 (fase4), 0xd514...df95 (fase3-clean), 0x8D3D...c2E6 (fase3), 0xb963...d723 (fase2)
 EM_OPERATOR = os.environ.get(
-    "EM_PAYMENT_OPERATOR", "0x030353642B936c9D4213caD7BcB0fB8a1489cBe5"
+    "EM_PAYMENT_OPERATOR", "0x466191B6830f23BB6A7A99a62F8dee9CC48e2Cd9"
 )
 
 # Fase 5: max_fee_bps to allow on-chain fee calculator to deduct from escrow.
