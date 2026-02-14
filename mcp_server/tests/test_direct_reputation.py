@@ -72,6 +72,11 @@ _dr_mod = importlib.import_module("integrations.erc8004.direct_reputation")
 importlib.reload(_dr_mod)
 sys.modules["integrations.erc8004.direct_reputation"] = _dr_mod
 
+# Also reload feedback_store so we can test _extract_s3_key and FEEDBACK_PUBLIC_URL
+_fs_mod = importlib.import_module("integrations.erc8004.feedback_store")
+importlib.reload(_fs_mod)
+sys.modules["integrations.erc8004.feedback_store"] = _fs_mod
+
 
 # ============================================================================
 # give_feedback_direct() tests
@@ -613,3 +618,77 @@ class TestABIEncoding:
         from integrations.erc8004.direct_reputation import GIVE_FEEDBACK_ABI
 
         assert GIVE_FEEDBACK_ABI[0]["outputs"] == []
+
+
+# ============================================================================
+# Feedback URI & S3 key extraction tests
+# ============================================================================
+
+
+class TestFeedbackURI:
+    """Tests for feedbackURI construction and S3 key extraction."""
+
+    def test_extract_s3_key_from_execution_market_url(self):
+        """execution.market/feedback/... URLs should resolve to S3 keys."""
+        from integrations.erc8004.feedback_store import _extract_s3_key
+
+        uri = "https://execution.market/feedback/abc-123/worker_rating_1234.json"
+        with patch(
+            "integrations.erc8004.feedback_store.FEEDBACK_PUBLIC_URL",
+            "https://execution.market",
+        ):
+            key = _extract_s3_key(uri)
+        assert key == "feedback/abc-123/worker_rating_1234.json"
+
+    def test_extract_s3_key_from_cloudfront_url(self):
+        """Legacy CloudFront URLs should still resolve to S3 keys."""
+        from integrations.erc8004.feedback_store import _extract_s3_key
+
+        uri = "https://d3h6yzj24t9k8z.cloudfront.net/feedback/abc-123/agent_rating_5678.json"
+        key = _extract_s3_key(uri)
+        assert key == "feedback/abc-123/agent_rating_5678.json"
+
+    def test_extract_s3_key_from_s3_url(self):
+        """Direct S3 URLs should resolve to S3 keys."""
+        from integrations.erc8004.feedback_store import _extract_s3_key
+
+        uri = (
+            "https://evidence.s3.amazonaws.com/feedback/abc-123/worker_rating_1234.json"
+        )
+        key = _extract_s3_key(uri)
+        assert key == "feedback/abc-123/worker_rating_1234.json"
+
+    def test_extract_s3_key_from_cdn_env_url(self):
+        """CDN env var URL should resolve to S3 keys."""
+        from integrations.erc8004.feedback_store import _extract_s3_key
+
+        uri = (
+            "https://storage.execution.market/feedback/abc-123/worker_rating_1234.json"
+        )
+        with patch(
+            "integrations.erc8004.feedback_store.FEEDBACK_CDN_URL",
+            "https://storage.execution.market",
+        ):
+            key = _extract_s3_key(uri)
+        assert key == "feedback/abc-123/worker_rating_1234.json"
+
+    def test_extract_s3_key_none_for_unknown_url(self):
+        """Unknown URLs should return None."""
+        from integrations.erc8004.feedback_store import _extract_s3_key
+
+        key = _extract_s3_key("https://example.com/some/path")
+        assert key is None
+
+    def test_extract_s3_key_none_for_empty(self):
+        """Empty or None URIs should return None."""
+        from integrations.erc8004.feedback_store import _extract_s3_key
+
+        assert _extract_s3_key("") is None
+        assert _extract_s3_key(None) is None
+
+    def test_feedback_public_url_default(self):
+        """FEEDBACK_PUBLIC_URL should default to execution.market."""
+        from integrations.erc8004 import feedback_store
+
+        # The module-level default (without env var override)
+        assert "execution.market" in feedback_store.FEEDBACK_PUBLIC_URL
