@@ -187,6 +187,7 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "ERC8004_NETWORK", value = "base" },
         { name = "EM_AGENT_ID", value = "2106" },
         { name = "EM_PAYMENT_MODE", value = "fase2" },
+        { name = "EM_ESCROW_MODE", value = "direct_release" },
         { name = "EM_PAYMENT_OPERATOR", value = "0x030353642B936c9D4213caD7BcB0fB8a1489cBe5" },
         { name = "EM_ENABLED_NETWORKS", value = "base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism" },
         { name = "EVIDENCE_BUCKET", value = local.evidence_bucket_name },

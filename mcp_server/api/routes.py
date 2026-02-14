@@ -1317,6 +1317,8 @@ async def _settle_submission_payment(
     if result:
         if result.get("fee_tx_hash"):
             ret["fee_tx"] = result["fee_tx_hash"]
+        if result.get("fee_distribute_tx"):
+            ret["fee_distribute_tx"] = result["fee_distribute_tx"]
         if result.get("escrow_release_tx"):
             ret["escrow_release_tx"] = result["escrow_release_tx"]
         if result.get("mode"):
@@ -5595,7 +5597,9 @@ async def assign_task_to_worker(
                                             "payment_info_serialized"
                                         ),
                                         "worker_address": worker_wallet,
-                                        "fee_tx_hash": auth_result.get("fee_tx_hash"),
+                                        "fee_method": auth_result.get(
+                                            "fee_method", "on_chain_fee_calculator"
+                                        ),
                                     },
                                 }
                             ).eq("task_id", task_id).execute()
@@ -5627,7 +5631,9 @@ async def assign_task_to_worker(
                             "escrow_tx": escrow_tx,
                             "escrow_status": "deposited",
                             "escrow_mode": "direct_release",
-                            "fee_tx": auth_result.get("fee_tx_hash"),
+                            "fee_method": auth_result.get(
+                                "fee_method", "on_chain_fee_calculator"
+                            ),
                             "bounty_locked": str(bounty),
                             "platform_fee": auth_result.get("platform_fee_usdc"),
                         }

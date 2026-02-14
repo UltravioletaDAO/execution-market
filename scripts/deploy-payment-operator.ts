@@ -9,6 +9,10 @@
  *                                Reuses existing OrCondition. x402r earns protocol fees via ProtocolFeeConfig, not operator fees.
  * Fase 4 (--fase4):  SECURE operator — OR(Payer|Facilitator) release, Facilitator-ONLY refund, feeCalculator=address(0).
  *                    Fixes security vulnerability: payer can no longer call refundInEscrow() directly on-chain.
+ * Fase 5 (--fase5):  TRUSTLESS FEE SPLIT — OR(Payer|Facilitator) release, Facilitator-ONLY refund,
+ *                    StaticFeeCalculator(1150 BPS = 11.5%). At release, escrow auto-splits: worker gets 88.5%,
+ *                    operator holds 11.5%. distributeFees() flushes operator balance to EM treasury.
+ *                    Why 1150 BPS? Our fee is 13% of bounty. Agent pays bounty*1.13. 11.5% of total = 13% of bounty.
  *
  * Usage:
  *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts
@@ -19,6 +23,8 @@
  *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase3-clean --dry-run
  *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase4
  *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase4 --dry-run
+ *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase5
+ *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase5 --dry-run
  *
  * Environment:
  *   PRIVATE_KEY  - Wallet with ETH on Base for gas (~$2-5)
@@ -76,6 +82,14 @@ const ADDRESSES = {
 // BackTrack collects their own fees via ProtocolFeeConfig (currently 0% on Base).
 const OPERATOR_FEE_BPS = 100;
 
+// Fase 5: 11.5% operator fee (1150 basis points) — trustless fee split
+// Why 1150 BPS (not 1300)? Our fee is 13% of BOUNTY, not 13% of TOTAL.
+// Agent pays bounty * 1.13 (e.g. $0.113 for $0.10 bounty):
+//   - 11.5% of $0.113 = $0.012995 ≈ $0.013 (the 13% fee)
+//   - 88.5% of $0.113 = $0.100005 ≈ $0.10  (the bounty, worker receives this)
+// Rounding: +$0.000005 to worker. Negligible.
+const FASE5_FEE_BPS = 1150;
+
 // ============================================================
 // ABIs (minimal, only what we need)
 // ============================================================
@@ -108,8 +122,14 @@ const StaticFeeCalculatorFactoryABI = parseAbi([
 // PaymentOperator read-only ABI for on-chain verification
 const PaymentOperatorReadABI = parseAbi([
   "function FEE_CALCULATOR() external view returns (address)",
+  "function FEE_RECIPIENT() external view returns (address)",
   "function RELEASE_CONDITION() external view returns (address)",
   "function REFUND_IN_ESCROW_CONDITION() external view returns (address)",
+]);
+
+// StaticFeeCalculator read-only ABI
+const StaticFeeCalculatorReadABI = parseAbi([
+  "function FEE_BPS() external view returns (uint256)",
 ]);
 
 // ============================================================
@@ -121,22 +141,27 @@ async function main() {
   const isFase3 = process.argv.includes("--fase3");
   const isFase3Clean = process.argv.includes("--fase3-clean");
   const isFase4 = process.argv.includes("--fase4");
+  const isFase5 = process.argv.includes("--fase5");
 
-  const modeLabel = isFase4
-    ? "Fase 4 (Secure)"
-    : isFase3Clean
-      ? "Fase 3 Clean"
-      : isFase3
-        ? "Fase 3"
-        : "Fase 2";
+  const modeLabel = isFase5
+    ? "Fase 5 (Trustless Fee Split)"
+    : isFase4
+      ? "Fase 4 (Secure)"
+      : isFase3Clean
+        ? "Fase 3 Clean"
+        : isFase3
+          ? "Fase 3"
+          : "Fase 2";
 
-  const modeDescription = isFase4
-    ? "Fase 4 — OR(Payer, Facilitator) release, Facilitator-ONLY refund, feeCalculator=address(0)"
-    : isFase3Clean
-      ? "Fase 3 Clean — OR(Payer, Facilitator), feeCalculator=address(0)"
-      : isFase3
-        ? "Fase 3 — OR(Payer, Facilitator) + StaticFeeCalculator"
-        : "Fase 2 — Facilitator-only";
+  const modeDescription = isFase5
+    ? `Fase 5 — OR(Payer, Facilitator) release, Facilitator-ONLY refund, StaticFeeCalculator(${FASE5_FEE_BPS}bps)`
+    : isFase4
+      ? "Fase 4 — OR(Payer, Facilitator) release, Facilitator-ONLY refund, feeCalculator=address(0)"
+      : isFase3Clean
+        ? "Fase 3 Clean — OR(Payer, Facilitator), feeCalculator=address(0)"
+        : isFase3
+          ? "Fase 3 — OR(Payer, Facilitator) + StaticFeeCalculator"
+          : "Fase 2 — Facilitator-only";
 
   // Get private key
   const privateKey = (process.env.PRIVATE_KEY || process.env.WALLET_PRIVATE_KEY) as Hex | undefined;
@@ -179,7 +204,9 @@ async function main() {
     process.exit(1);
   }
 
-  if (isFase4) {
+  if (isFase5) {
+    await deployFase5(publicClient, walletClient, isDryRun);
+  } else if (isFase4) {
     await deployFase4(publicClient, walletClient, isDryRun);
   } else if (isFase3Clean) {
     await deployFase3Clean(publicClient, walletClient, isDryRun);
@@ -739,6 +766,236 @@ async function deployFase4(
   console.log(`  - Refund:  Facilitator-ONLY (${facilitatorOnly})`);
   console.log("  - Payer CANNOT call refundInEscrow() directly on-chain");
   console.log("  - This prevents frontrunning attacks where payer refunds after worker delivers");
+}
+
+// ============================================================
+// Fase 5: Trustless Fee Split — StaticFeeCalculator(1150 BPS) + Secure refund
+// At release(), escrow auto-splits: worker gets 88.5%, operator holds 11.5%.
+// distributeFees(token) flushes operator balance to EM treasury.
+// ============================================================
+
+async function deployFase5(
+  publicClient: ReturnType<typeof createPublicClient>,
+  walletClient: ReturnType<typeof createWalletClient>,
+  isDryRun: boolean,
+) {
+  // ============================================================
+  // Step 1: Deploy or reuse StaticFeeCalculator(1150 BPS)
+  // ============================================================
+  console.log(`\n--- Step 1: StaticFeeCalculator(${FASE5_FEE_BPS}bps = ${FASE5_FEE_BPS / 100}%) ---`);
+  console.log(`  Fee goes to FEE_RECIPIENT on operator (EM treasury ${ADDRESSES.emTreasury})`);
+
+  let feeCalculator: Address;
+  try {
+    const existing = await publicClient.readContract({
+      address: ADDRESSES.staticFeeCalculatorFactory,
+      abi: StaticFeeCalculatorFactoryABI,
+      functionName: "getDeployed",
+      args: [BigInt(FASE5_FEE_BPS)],
+    });
+
+    if (existing && existing !== ZERO_ADDRESS) {
+      feeCalculator = existing;
+      console.log(`Already deployed at: ${feeCalculator}`);
+    } else {
+      throw new Error("Not deployed");
+    }
+  } catch {
+    if (isDryRun) {
+      console.log("DRY RUN: Would deploy StaticFeeCalculator");
+      console.log(`  feeBps: ${FASE5_FEE_BPS} (${FASE5_FEE_BPS / 100}%)`);
+      feeCalculator = "0x_DRY_RUN_FEE_CALC" as Address;
+    } else {
+      console.log("Deploying StaticFeeCalculator...");
+      console.log(`  feeBps: ${FASE5_FEE_BPS} (${FASE5_FEE_BPS / 100}%)`);
+      const hash = await walletClient.writeContract({
+        address: ADDRESSES.staticFeeCalculatorFactory,
+        abi: StaticFeeCalculatorFactoryABI,
+        functionName: "deploy",
+        args: [BigInt(FASE5_FEE_BPS)],
+      });
+      console.log(`TX: ${hash}`);
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      console.log(`Gas used: ${receipt.gasUsed} (${receipt.status})`);
+
+      feeCalculator = await publicClient.readContract({
+        address: ADDRESSES.staticFeeCalculatorFactory,
+        abi: StaticFeeCalculatorFactoryABI,
+        functionName: "getDeployed",
+        args: [BigInt(FASE5_FEE_BPS)],
+      });
+
+      if (!feeCalculator || feeCalculator === ZERO_ADDRESS) {
+        console.log("  getDeployed() returned zero — extracting from TX logs...");
+        const deployed = extractDeployedAddress(receipt);
+        if (deployed) {
+          feeCalculator = deployed;
+        } else {
+          console.error("FATAL: Could not determine deployed address from TX receipt");
+          process.exit(1);
+        }
+      }
+      console.log(`Deployed at: ${feeCalculator}`);
+    }
+  }
+
+  // ============================================================
+  // Step 2: Verify existing conditions on-chain (reuse from Fase 4)
+  // ============================================================
+  console.log("\n--- Step 2: Verify existing conditions ---");
+  console.log(`  OrCondition(Payer, Facilitator):    ${ADDRESSES.orConditionPayerFacilitator}`);
+  console.log(`  StaticAddressCondition(Facilitator): ${ADDRESSES.facilitatorCondition}`);
+
+  const orCondition = ADDRESSES.orConditionPayerFacilitator;
+  const facilitatorOnly = ADDRESSES.facilitatorCondition;
+
+  if (!isDryRun) {
+    const orBytecode = await publicClient.getCode({ address: orCondition });
+    if (!orBytecode || orBytecode === "0x") {
+      console.error(`FATAL: OrCondition at ${orCondition} has no bytecode`);
+      process.exit(1);
+    }
+    console.log(`  OrCondition verified: contract exists (${orBytecode.length / 2 - 1} bytes)`);
+
+    const facBytecode = await publicClient.getCode({ address: facilitatorOnly });
+    if (!facBytecode || facBytecode === "0x") {
+      console.error(`FATAL: StaticAddressCondition at ${facilitatorOnly} has no bytecode`);
+      process.exit(1);
+    }
+    console.log(`  FacilitatorCondition verified: contract exists (${facBytecode.length / 2 - 1} bytes)`);
+  } else {
+    console.log(`  DRY RUN: Would verify bytecode at both addresses`);
+  }
+
+  // ============================================================
+  // Step 3: Deploy PaymentOperator with Fase 5 config
+  // ============================================================
+  console.log("\n--- Step 3: PaymentOperator (Fase 5 — Trustless Fee Split) ---");
+
+  if (feeCalculator === ZERO_ADDRESS) {
+    console.error("FATAL: StaticFeeCalculator address is zero — cannot deploy Fase 5 operator");
+    process.exit(1);
+  }
+
+  // Fase 5 config:
+  // - feeRecipient: EM Treasury (receives operator fees via distributeFees())
+  // - feeCalculator: StaticFeeCalculator(1150 BPS) — auto-splits at release
+  // - authorizeCondition: UsdcTvlLimit (protocol safety)
+  // - releaseCondition: OR(Payer, Facilitator) — payer OR facilitator can release
+  // - refundInEscrowCondition: StaticAddressCondition(Facilitator) — ONLY facilitator (Fase 4 security)
+  // - Everything else: address(0) (permissive/unused)
+
+  const operatorConfig = {
+    feeRecipient: ADDRESSES.emTreasury,
+    feeCalculator: feeCalculator,
+    authorizeCondition: ADDRESSES.usdcTvlLimit,
+    authorizeRecorder: ZERO_ADDRESS,
+    chargeCondition: ZERO_ADDRESS,
+    chargeRecorder: ZERO_ADDRESS,
+    releaseCondition: orCondition,
+    releaseRecorder: ZERO_ADDRESS,
+    refundInEscrowCondition: facilitatorOnly,  // Facilitator-ONLY (Fase 4 security retained)
+    refundInEscrowRecorder: ZERO_ADDRESS,
+    refundPostEscrowCondition: ZERO_ADDRESS,
+    refundPostEscrowRecorder: ZERO_ADDRESS,
+  };
+
+  logOperatorConfig(operatorConfig, {
+    [feeCalculator]: `(StaticFeeCalculator ${FASE5_FEE_BPS}bps)`,
+    [orCondition]: "(OR: Payer | Facilitator)",
+    [facilitatorOnly]: "(Facilitator-ONLY — SECURE)",
+    [ADDRESSES.usdcTvlLimit]: "(UsdcTvlLimit)",
+    [ADDRESSES.emTreasury]: "(EM Treasury)",
+  });
+
+  const operatorAddress = await deployOrGetOperator(publicClient, walletClient, operatorConfig, isDryRun);
+
+  // ============================================================
+  // Step 4: On-chain verification
+  // ============================================================
+  if (!isDryRun && operatorAddress !== ("0x_DRY_RUN_OPERATOR" as Address)) {
+    console.log("\n--- Step 4: On-chain verification ---");
+
+    const feeCalc = await publicClient.readContract({
+      address: operatorAddress,
+      abi: PaymentOperatorReadABI,
+      functionName: "FEE_CALCULATOR",
+    });
+    const feeRecipient = await publicClient.readContract({
+      address: operatorAddress,
+      abi: PaymentOperatorReadABI,
+      functionName: "FEE_RECIPIENT",
+    });
+    const releaseCond = await publicClient.readContract({
+      address: operatorAddress,
+      abi: PaymentOperatorReadABI,
+      functionName: "RELEASE_CONDITION",
+    });
+    const refundCond = await publicClient.readContract({
+      address: operatorAddress,
+      abi: PaymentOperatorReadABI,
+      functionName: "REFUND_IN_ESCROW_CONDITION",
+    });
+
+    // Read FEE_BPS from the fee calculator contract
+    const feeBps = await publicClient.readContract({
+      address: feeCalc,
+      abi: StaticFeeCalculatorReadABI,
+      functionName: "FEE_BPS",
+    });
+
+    const checks = [
+      { name: `FEE_CALCULATOR() != address(0)`, actual: feeCalc, expected: feeCalculator },
+      { name: `FEE_RECIPIENT() == EM Treasury`, actual: feeRecipient, expected: ADDRESSES.emTreasury },
+      { name: "RELEASE_CONDITION() == OrCondition(Payer|Facilitator)", actual: releaseCond, expected: orCondition },
+      { name: "REFUND_IN_ESCROW_CONDITION() == StaticAddressCondition(Facilitator)", actual: refundCond, expected: facilitatorOnly },
+    ];
+
+    let allPassed = true;
+    for (const check of checks) {
+      const passed = check.actual.toLowerCase() === check.expected.toLowerCase();
+      console.log(`  ${passed ? "PASS" : "FAIL"}: ${check.name}`);
+      console.log(`         got:      ${check.actual}`);
+      console.log(`         expected: ${check.expected}`);
+      if (!passed) allPassed = false;
+    }
+
+    // Verify fee BPS
+    const bpsMatch = Number(feeBps) === FASE5_FEE_BPS;
+    console.log(`  ${bpsMatch ? "PASS" : "FAIL"}: FEE_BPS() == ${FASE5_FEE_BPS}`);
+    console.log(`         got:      ${feeBps}`);
+    console.log(`         expected: ${FASE5_FEE_BPS}`);
+    if (!bpsMatch) allPassed = false;
+
+    if (!allPassed) {
+      console.error("\nFATAL: On-chain verification failed — operator config does not match expected values");
+      process.exit(1);
+    }
+    console.log("\n  All on-chain checks passed.");
+
+    // Security check: refund condition is NOT the OR condition
+    if (refundCond.toLowerCase() === orCondition.toLowerCase()) {
+      console.error("\nSECURITY ALERT: REFUND_IN_ESCROW_CONDITION is OrCondition — payer can still refund directly!");
+      process.exit(1);
+    }
+    console.log("  SECURITY: Refund is Facilitator-only (payer CANNOT refund directly).");
+  }
+
+  // Summary
+  printSummary({
+    mode: `Fase 5 (Trustless Fee Split) — StaticFeeCalculator(${FASE5_FEE_BPS}bps), Facilitator-ONLY refund`,
+    feeCalculator,
+    orCondition,
+    operatorAddress,
+  });
+
+  console.log("");
+  console.log("FEE SPLIT DETAILS:");
+  console.log(`  - Fee calculator: StaticFeeCalculator(${FASE5_FEE_BPS} BPS = ${FASE5_FEE_BPS / 100}%)`);
+  console.log(`  - At release: worker gets ${100 - FASE5_FEE_BPS / 100}%, operator holds ${FASE5_FEE_BPS / 100}%`);
+  console.log(`  - distributeFees(USDC) flushes operator balance to EM treasury`);
+  console.log("  - Release: OR(Payer, Facilitator)");
+  console.log(`  - Refund:  Facilitator-ONLY (${facilitatorOnly})`);
 }
 
 // ============================================================

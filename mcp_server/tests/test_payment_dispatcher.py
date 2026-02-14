@@ -1785,16 +1785,20 @@ class TestTrustlessAuthorize:
 
         assert len(build_calls) == 1
         assert build_calls[0]["receiver"] == "0xWorkerXYZ"
-        # max_fee_bps should be 0 (no operator fee for direct release)
-        assert build_calls[0]["max_fee_bps"] == 0
+        # Fase 5: max_fee_bps allows on-chain fee calculator deduction
+        assert build_calls[0]["max_fee_bps"] == 1500
 
     @pytest.mark.asyncio
-    async def test_authorize_collects_platform_fee(self):
-        """Should collect 13% platform fee from agent via EIP-3009."""
-        d, _ = self._make_trustless_dispatcher()
-        d._sdk.collect_platform_fee = AsyncMock(
-            return_value={"success": True, "tx_hash": "0x" + "fee1" * 16}
-        )
+    async def test_authorize_locks_bounty_plus_fee(self):
+        """Fase 5: Should lock bounty + 13% fee in escrow (no separate EIP-3009)."""
+        d, mock_client = self._make_trustless_dispatcher()
+
+        build_calls = []
+        original_build = mock_client.build_payment_info
+        mock_client.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            build_calls.append({"amount": amount, "max_fee_bps": max_fee_bps}),
+            original_build(receiver, amount, tier, max_fee_bps),
+        )[1]
 
         with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
             result = await d.authorize_escrow_for_worker(
@@ -1804,13 +1808,21 @@ class TestTrustlessAuthorize:
                 bounty_usdc=Decimal("10.00"),
             )
 
-        assert result["fee_tx_hash"] is not None
+        assert result["success"] is True
+        assert result["fee_method"] == "on_chain_fee_calculator"
         assert result["platform_fee_usdc"] == "1.300000"
-        d._sdk.collect_platform_fee.assert_called_once()
+        # Lock amount = bounty + fee = 10.00 + 1.30 = 11.30 USDC = 11_300_000 atomic
+        assert len(build_calls) == 1
+        assert build_calls[0]["amount"] == 11_300_000
+        assert build_calls[0]["max_fee_bps"] == 1500
+        # No separate fee collection call
+        assert not hasattr(d._sdk, "collect_platform_fee") or not isinstance(
+            d._sdk.collect_platform_fee, AsyncMock
+        )
 
     @pytest.mark.asyncio
     async def test_authorize_with_protocol_fee_overlocks(self):
-        """When protocol fee > 0, should lock more than bounty to compensate."""
+        """When protocol fee > 0, should lock more than bounty+fee to compensate."""
         d, mock_client = self._make_trustless_dispatcher()
 
         build_calls = []
@@ -1831,10 +1843,11 @@ class TestTrustlessAuthorize:
 
         assert result["success"] is True
         assert result["protocol_fee_bps"] == 100
-        # Lock amount should be > 10.00 USDC (10 / 0.99 ≈ 10.101010)
+        # Base lock = bounty + fee = 10.00 + 1.30 = 11.30 USDC
+        # With 1% protocol fee: 11.30 / 0.99 ≈ 11.41 → > 11_300_000 atomic
         assert len(build_calls) == 1
         lock_atomic = build_calls[0]["amount"]
-        assert lock_atomic > 10_000_000  # > 10 USDC in atomic units
+        assert lock_atomic > 11_300_000  # > 11.30 USDC in atomic units
 
     @pytest.mark.asyncio
     async def test_authorize_failure(self):
@@ -1911,8 +1924,9 @@ class TestDirectRelease:
 
     @pytest.mark.asyncio
     async def test_direct_release_success(self):
-        """Should release escrow in 1 TX directly to worker."""
+        """Should release escrow in 1 TX directly to worker + distributeFees."""
         d, _ = self._make_release_dispatcher()
+        d._distribute_operator_fees = AsyncMock(return_value="0x" + "dist" * 16)
 
         # Mock state reconstruction
         d._reconstruct_fase2_state = AsyncMock(
@@ -1947,7 +1961,9 @@ class TestDirectRelease:
         assert result["worker_paid"] is True
         assert result["net_to_worker"] == 10.0
         assert result["tx_hash"] is not None
-        assert result["fee_status"] == "collected_upfront"
+        assert result["fee_status"] == "on_chain"
+        assert result["fee_distribute_tx"] is not None
+        d._distribute_operator_fees.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_direct_release_no_state(self):
@@ -1993,7 +2009,7 @@ class TestDirectRelease:
 
 
 class TestTrustlessRefund:
-    """Tests for refund_trustless_escrow() — refund bounty + fee."""
+    """Tests for refund_trustless_escrow() — Fase 5: single escrow refund (bounty+fee)."""
 
     def _make_refund_dispatcher(self):
         """Create dispatcher with mocked clients."""
@@ -2036,23 +2052,20 @@ class TestTrustlessRefund:
 
     @pytest.mark.asyncio
     async def test_refund_trustless_escrow_success(self):
-        """Should refund bounty from escrow + fee from platform wallet."""
+        """Fase 5: Should refund full escrow (bounty+fee) in single TX."""
         d, _ = self._make_refund_dispatcher()
-        d._sdk.disburse_to_worker = AsyncMock(
-            return_value={"success": True, "tx_hash": "0x" + "feeref" * 10 + "aaaa"}
-        )
         d._reconstruct_fase2_state = AsyncMock(
             return_value=(
                 FakeEscrowPaymentInfo(
                     operator="0xOp",
                     receiver="0xWorker",
                     token="0xUSDC",
-                    max_amount=10_000_000,
+                    max_amount=11_300_000,  # bounty + fee
                     pre_approval_expiry=9999999999,
                     authorization_expiry=9999999999,
                     refund_expiry=9999999999,
                     min_fee_bps=0,
-                    max_fee_bps=0,
+                    max_fee_bps=1500,
                     fee_receiver="0x0",
                     salt="0x" + "1234" * 16,
                 ),
@@ -2071,7 +2084,8 @@ class TestTrustlessRefund:
         assert result["success"] is True
         assert result["status"] == "refunded"
         assert result["tx_hash"] is not None  # escrow refund tx
-        assert result["fee_refund_tx"] is not None  # fee refund tx
+        # Fase 5: No separate fee_refund_tx — full amount returned via escrow
+        assert "fee_refund_tx" not in result
 
     @pytest.mark.asyncio
     async def test_refund_no_escrow_noop(self):
@@ -2116,24 +2130,21 @@ class TestTrustlessRefund:
         assert "Refund window expired" in result["error"]
 
     @pytest.mark.asyncio
-    async def test_refund_fee_failure_partial(self):
-        """Should still succeed if escrow refund works but fee refund fails."""
+    async def test_refund_no_fee_refund_needed(self):
+        """Fase 5: Refund is single-step (no separate fee refund)."""
         d, _ = self._make_refund_dispatcher()
-        d._sdk.disburse_to_worker = AsyncMock(
-            return_value={"success": False, "error": "Nonce collision"}
-        )
         d._reconstruct_fase2_state = AsyncMock(
             return_value=(
                 FakeEscrowPaymentInfo(
                     operator="0xOp",
                     receiver="0xWorker",
                     token="0xUSDC",
-                    max_amount=10_000_000,
+                    max_amount=11_300_000,
                     pre_approval_expiry=9999999999,
                     authorization_expiry=9999999999,
                     refund_expiry=9999999999,
                     min_fee_bps=0,
-                    max_fee_bps=0,
+                    max_fee_bps=1500,
                     fee_receiver="0x0",
                     salt="0x" + "1234" * 16,
                 ),
@@ -2145,13 +2156,13 @@ class TestTrustlessRefund:
             )
         )
 
-        result = await d.refund_trustless_escrow(task_id="task-ref-partial")
+        result = await d.refund_trustless_escrow(task_id="task-ref-nofee")
 
-        # Escrow refund succeeded, fee refund failed — report success with error
+        # Escrow refund returns bounty+fee to agent in one TX
         assert result["success"] is True
         assert result["status"] == "refunded"
-        assert result["fee_refund_error"] is not None
-        assert "Nonce collision" in result["fee_refund_error"]
+        assert "fee_refund_tx" not in result
+        assert "fee_refund_error" not in result
 
 
 class TestEscrowModeToggle:
@@ -2194,3 +2205,120 @@ class TestEscrowModeToggle:
 
             d = PaymentDispatcher(mode="fase1")
             assert d.escrow_mode == "platform_release"
+
+
+class TestDistributeOperatorFees:
+    """Tests for _distribute_operator_fees() — Fase 5 on-chain fee flush."""
+
+    def _make_dispatcher(self):
+        """Create a dispatcher with mocked clients."""
+        with (
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+            patch(
+                f"{DISPATCHER_MODULE}.NETWORK_CONFIG",
+                {
+                    "base": {
+                        "chain_id": 8453,
+                        "rpc_url": "https://mainnet.base.org",
+                        "tokens": {
+                            "USDC": {
+                                "decimals": 6,
+                                "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                            }
+                        },
+                    }
+                },
+            ),
+            patch.dict(
+                os.environ,
+                {"WALLET_PRIVATE_KEY": TEST_PK, "EM_ESCROW_MODE": "direct_release"},
+            ),
+        ):
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+            d = PaymentDispatcher(mode="fase2")
+            d._sdk = FakeSDK()
+            mock_client = FaseClientMock()
+            d._fase2_clients = {8453: mock_client}
+            return d
+
+    @pytest.mark.asyncio
+    async def test_distribute_returns_none_without_key(self):
+        """Should return None if WALLET_PRIVATE_KEY is not set."""
+        d = self._make_dispatcher()
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("WALLET_PRIVATE_KEY", None)
+            result = await d._distribute_operator_fees(network="base")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_release_calls_distribute(self):
+        """Release should call distributeFees as best-effort."""
+        d = self._make_dispatcher()
+        d._distribute_operator_fees = AsyncMock(return_value="0x" + "ab" * 32)
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(
+                    operator="0xOp",
+                    receiver="0xWorker",
+                    token="0xUSDC",
+                    max_amount=11_300_000,
+                    pre_approval_expiry=9999999999,
+                    authorization_expiry=9999999999,
+                    refund_expiry=9999999999,
+                    min_fee_bps=0,
+                    max_fee_bps=1500,
+                    fee_receiver="0x0",
+                    salt="0x" + "1234" * 16,
+                ),
+                {
+                    "network": "base",
+                    "escrow_mode": "direct_release",
+                    "worker_address": "0xWorker",
+                    "bounty_usdc": "10.00",
+                },
+            )
+        )
+
+        result = await d.release_direct_to_worker(task_id="task-dist-1")
+
+        assert result["success"] is True
+        assert result["fee_distribute_tx"] == "0x" + "ab" * 32
+        d._distribute_operator_fees.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_release_succeeds_if_distribute_fails(self):
+        """Release should succeed even if distributeFees fails."""
+        d = self._make_dispatcher()
+        d._distribute_operator_fees = AsyncMock(side_effect=Exception("gas too low"))
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(
+                    operator="0xOp",
+                    receiver="0xWorker",
+                    token="0xUSDC",
+                    max_amount=11_300_000,
+                    pre_approval_expiry=9999999999,
+                    authorization_expiry=9999999999,
+                    refund_expiry=9999999999,
+                    min_fee_bps=0,
+                    max_fee_bps=1500,
+                    fee_receiver="0x0",
+                    salt="0x" + "1234" * 16,
+                ),
+                {
+                    "network": "base",
+                    "escrow_mode": "direct_release",
+                    "worker_address": "0xWorker",
+                    "bounty_usdc": "10.00",
+                },
+            )
+        )
+
+        result = await d.release_direct_to_worker(task_id="task-dist-2")
+
+        # Release itself succeeded — distributeFees failure is non-blocking
+        assert result["success"] is True
+        assert result["fee_distribute_tx"] is None
