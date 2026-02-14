@@ -42,6 +42,9 @@ from .facilitator_client import (
     FACILITATOR_URL,
 )
 
+# Direct on-chain reputation (bypasses Facilitator)
+from .direct_reputation import give_feedback_direct
+
 # Identity verification (non-blocking, cached) & worker registration
 from .identity import (
     verify_agent_identity,
@@ -82,6 +85,8 @@ __all__ = [
     "ERC8004_NETWORK",
     "ERC8004_SUPPORTED_NETWORKS",
     "FACILITATOR_URL",
+    # Direct reputation
+    "give_feedback_direct",
     # Identity verification
     "verify_agent_identity",
     "clear_identity_cache",

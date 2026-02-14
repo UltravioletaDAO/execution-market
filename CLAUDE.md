@@ -466,6 +466,7 @@ Wrong Flow (DO NOT USE):
 - **Platform wallet** (`0xD386`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`. **This is the settlement transit point** — agent funds settle here at approval, then immediately disburse to worker (87%) + treasury (13%). No funds should accumulate here long-term.
 - **Treasury** (`0xae07`): Cold wallet (Ledger). **ONLY receives 13% platform fee** on successful task completion (treasury = remainder after worker payment; absorbs x402r protocol fee automatically). **NEVER a settlement target.** If funds land here during task creation, it's a bug.
 - `EM_SETTLEMENT_ADDRESS` env var (optional): Overrides the platform wallet for settlement. Defaults to address derived from `WALLET_PRIVATE_KEY`.
+- `EM_REPUTATION_RELAY_KEY` env var (optional): Private key for a dedicated relay wallet used when workers rate agents. Platform wallet can't rate Agent #2106 (self-feedback revert). Relay wallet must NOT own any agent NFTs and needs ~0.001 ETH on Base for gas. If not set, worker→agent feedback falls back to Facilitator.
 - **Testing budget**: Always use amounts **< $0.30** for test tasks. ~$5 per chain must last through all testing cycles.
 
 **Payment Mode** (`EM_PAYMENT_MODE`, default: `fase1`):
