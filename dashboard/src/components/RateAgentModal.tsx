@@ -1,8 +1,10 @@
 /**
- * RateAgentModal: Modal for workers to rate agents after task completion.
+ * RateAgentModal: Multi-step modal for workers to rate agents on-chain.
  *
- * Shows a star rating (1-5), optional comment field, and agent info.
- * Submits to POST /api/v1/reputation/agents/rate.
+ * Flow: rating → signing → confirming → complete
+ *
+ * The worker signs giveFeedback() directly from their wallet.
+ * msg.sender on-chain = worker's address (trustless reputation).
  *
  * Star ratings map to the 0-100 backend scale:
  *   1 star = 20, 2 = 40, 3 = 60, 4 = 80, 5 = 100
@@ -10,7 +12,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { rateAgent, starsToScore } from '../services/reputation'
+import { useReputationFeedback, type FeedbackStep } from '../hooks/useReputationFeedback'
 
 // --------------------------------------------------------------------------
 // Types
@@ -21,6 +23,8 @@ interface RateAgentModalProps {
   taskId: string
   /** Task title for display */
   taskTitle: string
+  /** Agent's ERC-8004 token ID (required for on-chain feedback) */
+  agentId: number
   /** Agent identifier (wallet or display name) */
   agentName?: string
   /** Called when modal closes (after submit or cancel) */
@@ -41,6 +45,9 @@ const STAR_LABELS = [
   'rating.stars.5',
 ] as const
 
+// BaseScan URL for TX links
+const BASESCAN_TX_URL = 'https://basescan.org/tx/'
+
 // --------------------------------------------------------------------------
 // Component
 // --------------------------------------------------------------------------
@@ -48,6 +55,7 @@ const STAR_LABELS = [
 export function RateAgentModal({
   taskId,
   taskTitle,
+  agentId,
   agentName,
   onClose,
   onSuccess,
@@ -58,11 +66,17 @@ export function RateAgentModal({
   const [rating, setRating] = useState<number>(0)
   const [hoverRating, setHoverRating] = useState<number>(0)
   const [comment, setComment] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+
+  const {
+    step,
+    txHash,
+    error,
+    submitFeedback,
+    reset,
+  } = useReputationFeedback()
 
   const displayRating = hoverRating || rating
+  const isProcessing = step !== 'idle' && step !== 'error' && step !== 'complete'
 
   // ------- Accessibility: Focus trap -------
   useEffect(() => {
@@ -96,14 +110,14 @@ export function RateAgentModal({
     return () => modal.removeEventListener('keydown', handleTab)
   }, [])
 
-  // ------- Close on Escape -------
+  // ------- Close on Escape (only when not processing) -------
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && !isProcessing) onClose()
     }
     document.addEventListener('keydown', handleEsc)
     return () => document.removeEventListener('keydown', handleEsc)
-  }, [onClose])
+  }, [onClose, isProcessing])
 
   // ------- Prevent body scroll -------
   useEffect(() => {
@@ -113,38 +127,51 @@ export function RateAgentModal({
     }
   }, [])
 
+  // ------- Auto-close on complete -------
+  useEffect(() => {
+    if (step === 'complete') {
+      const timer = setTimeout(() => {
+        onSuccess?.()
+        onClose()
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [step, onClose, onSuccess])
+
   // ------- Submit handler -------
   const handleSubmit = useCallback(async () => {
     if (rating === 0) return
+    await submitFeedback({
+      agentId,
+      taskId,
+      stars: rating,
+      comment: comment.trim() || undefined,
+    })
+  }, [rating, agentId, taskId, comment, submitFeedback])
 
-    setSubmitting(true)
-    setError(null)
+  // ------- Retry handler -------
+  const handleRetry = useCallback(() => {
+    reset()
+  }, [reset])
 
-    try {
-      await rateAgent({
-        task_id: taskId,
-        score: starsToScore(rating),
-        comment: comment.trim() || undefined,
-      })
-
-      setSuccess(true)
-
-      // Auto-close after brief success feedback
-      setTimeout(() => {
-        onSuccess?.()
-        onClose()
-      }, 1500)
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : t('errors.generic', 'Ocurrio un error')
-      setError(message)
-    } finally {
-      setSubmitting(false)
+  // ------- Step indicator text -------
+  const getStepText = (currentStep: FeedbackStep): string => {
+    switch (currentStep) {
+      case 'preparing':
+        return t('rateAgent.stepPreparing', 'Preparando datos...')
+      case 'switching_chain':
+        return t('rateAgent.stepSwitchingChain', 'Cambiando a red Base...')
+      case 'signing':
+        return t('rateAgent.stepSigning', 'Confirma en tu wallet')
+      case 'confirming':
+        return t('rateAgent.stepConfirming', 'Confirmando transaccion...')
+      default:
+        return ''
     }
-  }, [rating, taskId, comment, onClose, onSuccess, t])
+  }
 
-  // ------- Success state -------
-  if (success) {
+  // ------- Complete state -------
+  if (step === 'complete') {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" />
@@ -155,11 +182,21 @@ export function RateAgentModal({
             </svg>
           </div>
           <h3 className="text-lg font-bold text-gray-900">
-            {t('rateAgent.success', 'Calificacion enviada!')}
+            {t('rateAgent.success', 'Calificacion registrada on-chain!')}
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            {t('rateAgent.successDescription', 'Tu opinion ayuda a mejorar la plataforma.')}
+            {t('rateAgent.successDescription', 'Tu calificacion quedo grabada en la blockchain.')}
           </p>
+          {txHash && (
+            <a
+              href={`${BASESCAN_TX_URL}${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-3 text-xs text-blue-600 hover:text-blue-800 underline"
+            >
+              {t('rateAgent.viewOnBasescan', 'Ver en BaseScan')}
+            </a>
+          )}
         </div>
       </div>
     )
@@ -170,7 +207,7 @@ export function RateAgentModal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={isProcessing ? undefined : onClose}
         aria-hidden="true"
       />
 
@@ -190,19 +227,50 @@ export function RateAgentModal({
           >
             {t('rateAgent.title', 'Calificar Agente')}
           </h2>
-          <button
-            onClick={onClose}
-            aria-label={t('common.close', 'Cerrar')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          {!isProcessing && (
+            <button
+              onClick={onClose}
+              aria-label={t('common.close', 'Cerrar')}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-5">
+          {/* Processing overlay */}
+          {isProcessing && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900">
+                    {getStepText(step)}
+                  </p>
+                  {step === 'signing' && (
+                    <p className="text-xs text-blue-600 mt-0.5">
+                      {t('rateAgent.gasNote', 'Gas estimado: < $0.01')}
+                    </p>
+                  )}
+                  {step === 'confirming' && txHash && (
+                    <a
+                      href={`${BASESCAN_TX_URL}${txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:text-blue-800 underline mt-0.5 inline-block"
+                    >
+                      {txHash.slice(0, 10)}...{txHash.slice(-6)}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Agent info */}
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
             <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center flex-shrink-0">
@@ -238,11 +306,12 @@ export function RateAgentModal({
                 <button
                   key={star}
                   type="button"
+                  disabled={isProcessing}
                   onClick={() => setRating(star)}
                   onMouseEnter={() => setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}
                   aria-label={`${star} ${star === 1 ? 'estrella' : 'estrellas'}`}
-                  className="p-1 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
+                  className="p-1 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded disabled:opacity-50"
                 >
                   <svg
                     className={`w-8 h-8 transition-colors ${
@@ -277,11 +346,12 @@ export function RateAgentModal({
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
+              disabled={isProcessing}
               placeholder={t(
                 'rateAgent.commentPlaceholder',
                 'Comparte detalles sobre tu experiencia con este agente...'
               )}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none text-sm disabled:opacity-50"
               rows={3}
               maxLength={1000}
             />
@@ -293,7 +363,7 @@ export function RateAgentModal({
           </div>
 
           {/* Error message */}
-          {error && (
+          {error && step === 'error' && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
               <div className="flex items-start gap-2">
                 <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -302,7 +372,7 @@ export function RateAgentModal({
                 <div className="flex-1">
                   <p className="text-sm text-red-700">{error}</p>
                   <button
-                    onClick={() => setError(null)}
+                    onClick={handleRetry}
                     className="mt-1 text-xs text-red-600 hover:text-red-800 underline"
                   >
                     {t('common.retry', 'Reintentar')}
@@ -311,26 +381,40 @@ export function RateAgentModal({
               </div>
             </div>
           )}
+
+          {/* On-chain info badge */}
+          {step === 'idle' && (
+            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+              <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-xs text-gray-500">
+                {t('rateAgent.onChainNote', 'Tu calificacion sera registrada en la blockchain de Base. Necesitaras confirmar una transaccion en tu wallet.')}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            {t('rateAgent.skip', 'Omitir')}
-          </button>
+          {!isProcessing && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              {t('rateAgent.skip', 'Omitir')}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={rating === 0 || submitting}
+            disabled={rating === 0 || isProcessing}
             className="flex-1 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
           >
-            {submitting
-              ? t('common.submitting', 'Enviando...')
-              : t('rateAgent.submit', 'Calificar Agente')}
+            {isProcessing
+              ? getStepText(step)
+              : t('rateAgent.submit', 'Calificar en Cadena')}
           </button>
         </div>
       </div>

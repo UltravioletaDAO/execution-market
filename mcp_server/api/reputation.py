@@ -135,6 +135,64 @@ class FeedbackResponse(BaseModel):
     error: Optional[str] = None
 
 
+class PrepareFeedbackRequest(BaseModel):
+    """Request to prepare on-chain feedback parameters for worker signing."""
+
+    agent_id: int = Field(..., ge=1, description="Target agent's ERC-8004 token ID")
+    task_id: str = Field(
+        ..., min_length=36, max_length=36, description="Task ID for context"
+    )
+    score: int = Field(
+        ..., ge=0, le=100, description="Rating score from 0 (worst) to 100 (best)"
+    )
+    comment: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Optional comment about the interaction",
+    )
+    worker_address: str = Field(
+        ..., min_length=42, max_length=42, description="Worker's wallet address"
+    )
+
+
+class PrepareFeedbackResponse(BaseModel):
+    """Response with parameters for giveFeedback() on-chain call."""
+
+    prepare_id: str = Field(description="Unique ID to confirm feedback later")
+    contract_address: str
+    chain_id: int
+    agent_id: int
+    value: int
+    value_decimals: int = 0
+    tag1: str
+    tag2: str
+    endpoint: str
+    feedback_uri: str
+    feedback_hash: str = Field(description="0x-prefixed keccak256 hex")
+    estimated_gas: int = 200000
+
+
+class ConfirmFeedbackRequest(BaseModel):
+    """Request to confirm that the worker signed the feedback TX."""
+
+    prepare_id: str = Field(..., description="prepare_id from prepare-feedback")
+    tx_hash: str = Field(
+        ..., min_length=66, max_length=66, description="0x-prefixed TX hash"
+    )
+    task_id: str = Field(
+        ..., min_length=36, max_length=36, description="Task ID for context"
+    )
+
+
+class ConfirmFeedbackResponse(BaseModel):
+    """Response after confirming feedback TX."""
+
+    success: bool
+    transaction_hash: Optional[str] = None
+    network: str
+    error: Optional[str] = None
+
+
 class ERC8004InfoResponse(BaseModel):
     """ERC-8004 integration status and info."""
 
@@ -625,7 +683,7 @@ async def rate_worker_endpoint(
     "/agents/rate",
     response_model=FeedbackResponse,
     responses={
-        200: {"description": "Feedback submitted"},
+        200: {"description": "Feedback prepared (pending worker signature)"},
         503: {"description": "ERC-8004 integration unavailable"},
     },
 )
@@ -635,9 +693,9 @@ async def rate_agent_endpoint(
     """
     Rate an agent after task completion (worker → agent).
 
-    Workers use this endpoint to submit on-chain reputation feedback
-    for agents who published tasks. This creates bidirectional
-    accountability in the Execution Market ecosystem.
+    **DEPRECATED**: Use prepare-feedback + confirm-feedback instead.
+    This legacy endpoint persists S3 data but returns pending_worker_signature=True.
+    The actual on-chain TX must be signed by the worker's wallet directly.
 
     **Public endpoint**: Any worker can rate agents they've worked with.
     """
@@ -667,15 +725,9 @@ async def rate_agent_endpoint(
         )
 
     # Verify the rated agent matches the task's agent.
-    # task.agent_id is an internal ID (API key or wallet), while
-    # agent_identity.owner is the on-chain owner (may be the Facilitator
-    # for gasless registrations). Compare against known EM agent ID
-    # or against the task's agent wallet/ID with normalization.
     task_agent_raw = task.get("agent_id", "")
     identity_owner = _normalize_address(agent_identity.owner)
 
-    # Strategy: if the rated agent is our EM agent, accept as valid
-    # (the task was created by our platform). Otherwise check wallet match.
     if request.agent_id != EM_AGENT_ID:
         task_agent_addr = _normalize_address(task_agent_raw)
         if task_agent_addr and identity_owner and task_agent_addr != identity_owner:
@@ -693,14 +745,14 @@ async def rate_agent_endpoint(
     )
 
     logger.info(
-        "Worker rated agent %d for task %s: score=%d, success=%s",
+        "Worker prepared agent rating %d for task %s: score=%d, pending_worker_signature=%s",
         request.agent_id,
         request.task_id,
         request.score,
         result.success,
     )
     logger.info(
-        "SECURITY_AUDIT action=reputation.rate_agent task=%s agent_id=%d score=%d success=%s",
+        "SECURITY_AUDIT action=reputation.rate_agent task=%s agent_id=%d score=%d pending_worker_signature=%s",
         request.task_id,
         request.agent_id,
         request.score,
@@ -713,6 +765,174 @@ async def rate_agent_endpoint(
         feedback_index=result.feedback_index,
         network=result.network,
         error=result.error,
+    )
+
+
+# =============================================================================
+# WORKER DIRECT SIGNING (prepare → sign → confirm)
+# =============================================================================
+
+
+@router.post(
+    "/prepare-feedback",
+    response_model=PrepareFeedbackResponse,
+    responses={
+        200: {"description": "Feedback parameters prepared for worker signing"},
+        404: {"description": "Task not found"},
+        409: {"description": "Task status does not allow rating"},
+        503: {"description": "ERC-8004 integration unavailable"},
+    },
+)
+async def prepare_feedback_endpoint(
+    request: PrepareFeedbackRequest,
+) -> PrepareFeedbackResponse:
+    """
+    Prepare on-chain feedback parameters for a worker to sign directly.
+
+    The worker's wallet will call giveFeedback() on-chain, making
+    msg.sender = worker address (trustless reputation).
+
+    Flow: prepare-feedback → worker signs in wallet → confirm-feedback
+    """
+    if not ERC8004_AVAILABLE:
+        raise HTTPException(
+            status_code=503, detail="ERC-8004 integration not available"
+        )
+
+    task = await _get_task_or_404(request.task_id)
+    task_status = str(task.get("status", "")).lower()
+    if task_status in {"published", "cancelled", "expired"}:
+        raise HTTPException(
+            status_code=409, detail=f"Task status {task_status} cannot be rated yet"
+        )
+
+    # Verify the worker is the assigned executor
+    task_executor_wallet = _normalize_address(
+        (task.get("executor") or {}).get("wallet_address")
+    )
+    worker_addr = _normalize_address(request.worker_address)
+    if task_executor_wallet and worker_addr != task_executor_wallet:
+        raise HTTPException(
+            status_code=403,
+            detail="Worker address does not match assigned executor",
+        )
+
+    # Verify the rated agent exists on-chain
+    agent_identity = await get_agent_info(request.agent_id)
+    if not agent_identity:
+        raise HTTPException(
+            status_code=404, detail=f"Agent {request.agent_id} not found on-chain"
+        )
+
+    # Persist feedback document to S3 + compute keccak256
+    feedback_uri = ""
+    feedback_hash = "0x" + "00" * 32
+    try:
+        from integrations.erc8004.feedback_store import persist_and_hash_feedback
+
+        feedback_uri, feedback_hash = await persist_and_hash_feedback(
+            task_id=request.task_id,
+            feedback_type="agent_rating",
+            score=request.score,
+            rater_type="worker",
+            target_type="agent",
+            target_agent_id=request.agent_id,
+            target_address=request.worker_address,
+            comment=request.comment or "",
+            network=ERC8004_NETWORK,
+        )
+    except Exception as exc:
+        logger.warning("Feedback persistence failed (continuing): %s", exc)
+        feedback_uri = (
+            f"https://api.execution.market/api/v1/reputation/feedback/{request.task_id}"
+        )
+
+    # Store prepare_id for confirm step
+    import uuid
+
+    prepare_id = str(uuid.uuid4())
+    try:
+        client = db.get_client()
+        client.table("feedback_documents").update({"prepare_id": prepare_id}).eq(
+            "task_id", request.task_id
+        ).eq("feedback_type", "agent_rating").execute()
+    except Exception as exc:
+        logger.debug("Could not store prepare_id in DB: %s", exc)
+
+    contracts = ERC8004_CONTRACTS.get(ERC8004_NETWORK, {})
+
+    logger.info(
+        "Prepared feedback for worker signing: task=%s, agent=%d, prepare_id=%s",
+        request.task_id,
+        request.agent_id,
+        prepare_id[:8],
+    )
+
+    return PrepareFeedbackResponse(
+        prepare_id=prepare_id,
+        contract_address=contracts.get(
+            "reputation_registry", "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
+        ),
+        chain_id=contracts.get("chain_id", 8453),
+        agent_id=request.agent_id,
+        value=request.score,
+        value_decimals=0,
+        tag1="agent_rating",
+        tag2="execution-market",
+        endpoint=f"task:{request.task_id}",
+        feedback_uri=feedback_uri,
+        feedback_hash=feedback_hash,
+        estimated_gas=200000,
+    )
+
+
+@router.post(
+    "/confirm-feedback",
+    response_model=ConfirmFeedbackResponse,
+    responses={
+        200: {"description": "Feedback TX confirmed"},
+        400: {"description": "Invalid parameters"},
+    },
+)
+async def confirm_feedback_endpoint(
+    request: ConfirmFeedbackRequest,
+) -> ConfirmFeedbackResponse:
+    """
+    Confirm that the worker signed and submitted the feedback TX.
+
+    Stores the tx_hash in the database for audit trail.
+    """
+    # Store tx_hash in feedback_documents for the task
+    try:
+        client = db.get_client()
+        client.table("feedback_documents").update(
+            {"reputation_tx": request.tx_hash}
+        ).eq("task_id", request.task_id).eq("feedback_type", "agent_rating").execute()
+    except Exception as exc:
+        logger.warning(
+            "Could not store reputation_tx for task %s: %s", request.task_id, exc
+        )
+
+    # Also update the submission's reputation_tx field
+    try:
+        client = db.get_client()
+        client.table("submissions").update(
+            {"worker_reputation_tx": request.tx_hash}
+        ).eq("task_id", request.task_id).eq("status", "approved").execute()
+    except Exception as exc:
+        logger.debug("Could not update submission worker_reputation_tx: %s", exc)
+
+    logger.info(
+        "Confirmed worker feedback TX: task=%s, tx=%s, prepare_id=%s",
+        request.task_id,
+        request.tx_hash[:16],
+        request.prepare_id[:8],
+    )
+
+    return ConfirmFeedbackResponse(
+        success=True,
+        transaction_hash=request.tx_hash,
+        network=ERC8004_NETWORK if ERC8004_AVAILABLE else "base",
     )
 
 
