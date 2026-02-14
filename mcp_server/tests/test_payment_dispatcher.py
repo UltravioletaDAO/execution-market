@@ -2437,3 +2437,448 @@ class TestDistributeOperatorFees:
         # Release itself succeeded — distributeFees failure is non-blocking
         assert result["success"] is True
         assert result["fee_distribute_tx"] is None
+
+
+class TestFase5FeeModel:
+    """Tests for Fase 5 credit card fee model math and configuration.
+
+    Validates:
+    - Credit card model: lock = bounty, fee deducted on-chain
+    - Agent absorbs model: lock = bounty / 0.87, worker gets ~100%
+    - Fee math precision across different bounty amounts
+    - Tier selection logic (MICRO/STANDARD/PREMIUM/ENTERPRISE)
+    - Protocol fee headroom in max_fee_bps
+    - Environment variable configuration
+    """
+
+    class _MockTaskTier:
+        MICRO = "micro"
+        STANDARD = "standard"
+        PREMIUM = "premium"
+        ENTERPRISE = "enterprise"
+
+    def _make_dispatcher(self, fee_model="credit_card"):
+        """Create dispatcher with specific fee model for testing."""
+        self._active_patches = [
+            patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
+            patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
+            patch(f"{DISPATCHER_MODULE}.TaskTier", self._MockTaskTier),
+            patch(
+                f"{DISPATCHER_MODULE}.NETWORK_CONFIG",
+                {
+                    "base": {
+                        "chain_id": 8453,
+                        "rpc_url": "https://mainnet.base.org",
+                        "tokens": {"USDC": {"decimals": 6}},
+                    }
+                },
+            ),
+            patch(f"{DISPATCHER_MODULE}.PLATFORM_FEE_PERCENT", Decimal("0.13")),
+            patch(
+                f"{DISPATCHER_MODULE}._get_platform_address",
+                return_value="0xPlatformAddr",
+            ),
+            patch(f"{DISPATCHER_MODULE}.EM_FEE_MODEL", fee_model),
+            patch.dict(
+                os.environ,
+                {"WALLET_PRIVATE_KEY": TEST_PK, "EM_ESCROW_MODE": "direct_release"},
+            ),
+        ]
+        for p in self._active_patches:
+            p.start()
+
+        from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+        d = PaymentDispatcher(mode="fase2")
+        d._sdk = FakeSDK()
+        mock_client = FaseClientMock()
+        d._fase2_clients = {8453: mock_client}
+        return d, mock_client
+
+    def setup_method(self):
+        self._active_patches = []
+
+    def teardown_method(self):
+        for p in getattr(self, "_active_patches", []):
+            p.stop()
+        self._active_patches = []
+
+    # =========================================================================
+    # Credit Card Model Tests
+    # =========================================================================
+
+    @pytest.mark.asyncio
+    async def test_credit_card_lock_equals_bounty(self):
+        """Credit card: lock amount must equal bounty exactly (fee deducted on-chain)."""
+        d, mock = self._make_dispatcher("credit_card")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"amount": amount}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="cc-1",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("25.00"),
+            )
+
+        assert len(calls) == 1
+        # $25.00 USDC = 25_000_000 atomic units (6 decimals)
+        assert calls[0]["amount"] == 25_000_000
+
+    @pytest.mark.asyncio
+    async def test_credit_card_small_bounty(self):
+        """Credit card: minimum $0.25 bounty produces correct atomic amount."""
+        d, mock = self._make_dispatcher("credit_card")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"amount": amount}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="cc-2",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("0.25"),
+            )
+
+        assert calls[0]["amount"] == 250_000  # $0.25 = 250000 atomic
+
+    @pytest.mark.asyncio
+    async def test_credit_card_fee_method_in_result(self):
+        """Credit card model: result should indicate on-chain fee method."""
+        d, mock = self._make_dispatcher("credit_card")
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            result = await d.authorize_escrow_for_worker(
+                task_id="cc-3",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert result["success"] is True
+        assert result["fee_method"] == "on_chain_fee_calculator"
+        assert result["fee_model"] == "credit_card"
+
+    @pytest.mark.asyncio
+    async def test_credit_card_no_platform_fee_in_result(self):
+        """Credit card: no platform_fee_usdc key — fee is handled on-chain."""
+        d, mock = self._make_dispatcher("credit_card")
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            result = await d.authorize_escrow_for_worker(
+                task_id="cc-4",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert "platform_fee_usdc" not in result
+
+    # =========================================================================
+    # Agent Absorbs Model Tests
+    # =========================================================================
+
+    @pytest.mark.asyncio
+    async def test_agent_absorbs_lock_gt_bounty(self):
+        """Agent absorbs: lock must be > bounty so worker gets ~100% after 13% fee."""
+        d, mock = self._make_dispatcher("agent_absorbs")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"amount": amount}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="aa-1",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        # agent_absorbs: lock = ceil(10 * 10000 / (10000 - 1300)) = ceil(10 * 10000 / 8700)
+        # = ceil(100000 / 8700) = ceil(11.4942...) = 11.494253 USDC (rounded up)
+        # In atomic: 11_494_253
+        assert len(calls) == 1
+        assert calls[0]["amount"] > 10_000_000  # Must be more than bounty
+        assert calls[0]["amount"] == 11_494_253  # Precise math
+
+    @pytest.mark.asyncio
+    async def test_agent_absorbs_fee_model_in_result(self):
+        """Agent absorbs model: result should indicate the fee model."""
+        d, mock = self._make_dispatcher("agent_absorbs")
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            result = await d.authorize_escrow_for_worker(
+                task_id="aa-2",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert result["success"] is True
+        assert result["fee_model"] == "agent_absorbs"
+
+    @pytest.mark.asyncio
+    async def test_agent_absorbs_lock_math_precision(self):
+        """Agent absorbs: verify precise math for various bounty amounts."""
+        d, mock = self._make_dispatcher("agent_absorbs")
+
+        test_cases = [
+            # (bounty, expected_lock_atomic)
+            # lock = ceil(bounty * 10000 / 8700)
+            (Decimal("1.00"), 1_149_426),  # ceil(1 * 10000 / 8700) = 1.149425... -> 1.149426
+            (Decimal("100.00"), 114_942_529),  # ceil(100 * 10000 / 8700)
+            (Decimal("0.25"), 287_357),  # ceil(0.25 * 10000 / 8700)
+        ]
+
+        # Capture original ONCE before loop to avoid lambda recursion
+        base_build = FaseClientMock().build_payment_info
+
+        for bounty, expected in test_cases:
+            calls = []
+            mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+                calls.append({"amount": amount}),
+                base_build(receiver, amount, tier, max_fee_bps),
+            )[1]
+
+            with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+                await d.authorize_escrow_for_worker(
+                    task_id=f"aa-math-{bounty}",
+                    agent_address="0xAgent",
+                    worker_address="0xWorker",
+                    bounty_usdc=bounty,
+                )
+
+            assert calls[0]["amount"] == expected, (
+                f"bounty={bounty}: expected {expected}, got {calls[0]['amount']}"
+            )
+
+    # =========================================================================
+    # Tier Selection Tests
+    # =========================================================================
+
+    @pytest.mark.asyncio
+    async def test_tier_micro_for_small_bounty(self):
+        """Bounty < $5 should use MICRO tier."""
+        d, mock = self._make_dispatcher("credit_card")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"tier": tier}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="tier-1",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("2.50"),
+            )
+
+        assert calls[0]["tier"] == "micro"
+
+    @pytest.mark.asyncio
+    async def test_tier_standard_for_5_to_25(self):
+        """Bounty >= $5 and < $25 should use STANDARD tier."""
+        d, mock = self._make_dispatcher("credit_card")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"tier": tier}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="tier-2",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert calls[0]["tier"] == "standard"
+
+    @pytest.mark.asyncio
+    async def test_tier_premium_for_25_to_100(self):
+        """Bounty >= $25 and < $100 should use PREMIUM tier."""
+        d, mock = self._make_dispatcher("credit_card")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"tier": tier}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="tier-3",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("50.00"),
+            )
+
+        assert calls[0]["tier"] == "premium"
+
+    @pytest.mark.asyncio
+    async def test_tier_enterprise_for_100_plus(self):
+        """Bounty >= $100 should use ENTERPRISE tier."""
+        d, mock = self._make_dispatcher("credit_card")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"tier": tier}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="tier-4",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("500.00"),
+            )
+
+        assert calls[0]["tier"] == "enterprise"
+
+    @pytest.mark.asyncio
+    async def test_tier_boundary_5_exactly(self):
+        """$5.00 exactly should be STANDARD (>= 5)."""
+        d, mock = self._make_dispatcher("credit_card")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"tier": tier}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="tier-5",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("5.00"),
+            )
+
+        assert calls[0]["tier"] == "standard"
+
+    @pytest.mark.asyncio
+    async def test_tier_boundary_25_exactly(self):
+        """$25.00 exactly should be PREMIUM (>= 25)."""
+        d, mock = self._make_dispatcher("credit_card")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"tier": tier}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="tier-6",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("25.00"),
+            )
+
+        assert calls[0]["tier"] == "premium"
+
+    @pytest.mark.asyncio
+    async def test_tier_boundary_100_exactly(self):
+        """$100.00 exactly should be ENTERPRISE (>= 100)."""
+        d, mock = self._make_dispatcher("credit_card")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"tier": tier}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="tier-7",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("100.00"),
+            )
+
+        assert calls[0]["tier"] == "enterprise"
+
+    # =========================================================================
+    # Max Fee BPS Headroom Tests
+    # =========================================================================
+
+    @pytest.mark.asyncio
+    async def test_max_fee_bps_includes_headroom(self):
+        """max_fee_bps should be 1800 (1300 fee + 500 protocol headroom)."""
+        d, mock = self._make_dispatcher("credit_card")
+        calls = []
+        original = mock.build_payment_info
+        mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            calls.append({"max_fee_bps": max_fee_bps}),
+            original(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            await d.authorize_escrow_for_worker(
+                task_id="bps-1",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert calls[0]["max_fee_bps"] == 1800
+
+    # =========================================================================
+    # Worker-as-Receiver Tests
+    # =========================================================================
+
+    @pytest.mark.asyncio
+    async def test_worker_is_always_receiver(self):
+        """In both fee models, worker must always be the escrow receiver."""
+        for model in ("credit_card", "agent_absorbs"):
+            d, mock = self._make_dispatcher(model)
+            calls = []
+            original = mock.build_payment_info
+            mock.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+                calls.append({"receiver": receiver}),
+                original(receiver, amount, tier, max_fee_bps),
+            )[1]
+
+            with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+                await d.authorize_escrow_for_worker(
+                    task_id=f"recv-{model}",
+                    agent_address="0xAgent",
+                    worker_address="0xWorkerAddr",
+                    bounty_usdc=Decimal("10.00"),
+                )
+
+            assert calls[0]["receiver"] == "0xWorkerAddr", f"Failed for model={model}"
+
+    @pytest.mark.asyncio
+    async def test_escrow_mode_direct_release(self):
+        """Both fee models should use direct_release escrow mode."""
+        d, mock = self._make_dispatcher("credit_card")
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            result = await d.authorize_escrow_for_worker(
+                task_id="mode-1",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert result["escrow_mode"] == "direct_release"
+        assert result["escrow_status"] == "deposited"
