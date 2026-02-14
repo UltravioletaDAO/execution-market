@@ -303,8 +303,10 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Polygon | `0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6` |
 | x402r Escrow (AuthCaptureEscrow) | Arbitrum, Avalanche, Celo, Monad, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
-| **EM PaymentOperator (Fase 5 Trustless Fee Split)** | **Base** | **`0x466191B6830f23BB6A7A99a62F8dee9CC48e2Cd9`** |
-| StaticFeeCalculator(1150bps) | Base | `0x256eb4454a440767aE688a257ff8EadcBF180EF0` |
+| **EM PaymentOperator (Fase 5 Trustless Fee Split)** | **Base** | **`0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb`** |
+| StaticFeeCalculator(1300bps) | Base | `0xd643DB63028Cd1852AAFe62A0E3d2A5238d7465A` |
+| StaticFeeCalculator(1150bps, unused) | Base | `0x256eb4454a440767aE688a257ff8EadcBF180EF0` |
+| PaymentOperator (Fase 5 1150bps, unused) | Base | `0x466191B6830f23BB6A7A99a62F8dee9CC48e2Cd9` |
 | EM PaymentOperator (Fase 4 Secure, legacy) | Base | `0x030353642B936c9D4213caD7BcB0fB8a1489cBe5` |
 | EM PaymentOperator (Fase 3 Clean, legacy) | Base | `0xd5149049e7c212ce5436a9581b4307EB9595df95` |
 | EM PaymentOperator (Fase 3 v1, legacy) | Base | `0x8D3DeCBAe68F6BA6f8104B60De1a42cE1869c2E6` |
@@ -468,7 +470,7 @@ Wrong Flow (DO NOT USE):
 
 **Payment Mode** (`EM_PAYMENT_MODE`, default: `fase1`):
 - **`fase1`** (default, production): No auth at task creation — advisory `balanceOf()` check only. At approval, server signs 2 direct EIP-3009 settlements: agent→worker (bounty) + agent→treasury (fee). No intermediary wallet. E2E tested 2026-02-11 ([evidence](docs/planning/FASE1_E2E_EVIDENCE_2026-02-11.md)).
-- **`fase2`** (on-chain escrow, gasless): Locks funds on-chain via AdvancedEscrowClient at task creation. Release/refund via facilitator (gasless). **Active Fase 5 Operator on Base: `0x466191B6830f23BB6A7A99a62F8dee9CC48e2Cd9`** — StaticFeeCalculator(1150 BPS), trustless fee split at release. E2E tested 2026-02-13. Requires `EM_PAYMENT_OPERATOR` env var.
+- **`fase2`** (on-chain escrow, gasless): Locks funds on-chain via AdvancedEscrowClient at task creation. Release/refund via facilitator (gasless). **Active Fase 5 Operator on Base: `0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb`** — StaticFeeCalculator(1300 BPS = 13%), trustless fee split at release. E2E tested 2026-02-13. Requires `EM_PAYMENT_OPERATOR` env var.
 - **`preauth`** (legacy): Agent signs EIP-3009 auth at creation, stored header settled at approval via 3-step flow through platform wallet.
 - **`x402r`** (deprecated): Settles agent auth + locks funds in on-chain escrow at creation time. **Do not use** — caused fund loss bug.
 
@@ -510,11 +512,11 @@ Wrong Flow (DO NOT USE):
 - **Layer 2:** `PaymentOperator` — per-config contract with pluggable conditions (who can authorize/release/refund)
 - **Layer 3:** `Facilitator` — off-chain server, pays gas, enforces business logic
 
-**>>> ACTIVE: Fase 5 Operator (Trustless Fee Split)** (`0x466191B6830f23BB6A7A99a62F8dee9CC48e2Cd9` on Base) — StaticFeeCalculator(1150 BPS = 11.5%) auto-splits at release: worker gets 88.5%, operator holds 11.5%. `distributeFees(USDC)` flushes to EM treasury. Facilitator-ONLY refund (Fase 4 security retained). Deployed + verified on-chain 2026-02-13. **Pending**: Register in Facilitator allowlist.
+**>>> ACTIVE: Fase 5 Operator (Trustless Fee Split)** (`0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb` on Base) — StaticFeeCalculator(1300 BPS = 13%) auto-splits at release: worker gets 87%, operator holds 13%. `distributeFees(USDC)` flushes to EM treasury. Facilitator-ONLY refund (Fase 4 security retained). Deployed + verified on-chain 2026-02-13. **Pending**: Register in Facilitator allowlist.
 
 **Deployment script:** `scripts/deploy-payment-operator.ts` — deploys via x402r factory contracts. Use `--fase3`, `--fase3-clean`, or `--fase4` flag.
 
-**Status:** Fase 5 Operator deployed on Base (2026-02-13, `0x4661...2Cd9`). Verified on-chain: FEE_CALCULATOR=StaticFeeCalculator(1150), FEE_RECIPIENT=Treasury, REFUND_IN_ESCROW_CONDITION=FacilitatorOnly. **Next**: Register in Facilitator allowlist + deploy to ECS. Other 7 networks pending.
+**Status:** Fase 5 Operator deployed on Base (2026-02-13, `0x271f...D8F0Eb`). Verified on-chain: FEE_CALCULATOR=StaticFeeCalculator(1300), FEE_RECIPIENT=Treasury, REFUND_IN_ESCROW_CONDITION=FacilitatorOnly. **Next**: Register in Facilitator allowlist + deploy to ECS. Other 7 networks pending.
 
 **Key upstream repos:**
 | Repo | URL | Stack |

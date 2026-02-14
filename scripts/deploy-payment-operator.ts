@@ -82,13 +82,13 @@ const ADDRESSES = {
 // BackTrack collects their own fees via ProtocolFeeConfig (currently 0% on Base).
 const OPERATOR_FEE_BPS = 100;
 
-// Fase 5: 11.5% operator fee (1150 basis points) — trustless fee split
-// Why 1150 BPS (not 1300)? Our fee is 13% of BOUNTY, not 13% of TOTAL.
-// Agent pays bounty * 1.13 (e.g. $0.113 for $0.10 bounty):
-//   - 11.5% of $0.113 = $0.012995 ≈ $0.013 (the 13% fee)
-//   - 88.5% of $0.113 = $0.100005 ≈ $0.10  (the bounty, worker receives this)
-// Rounding: +$0.000005 to worker. Negligible.
-const FASE5_FEE_BPS = 1150;
+// Fase 5: 13% operator fee (1300 basis points) — trustless fee split (standard DeFi convention)
+// Fee is 13% of the TOTAL locked amount. Lock formula: ceil(bounty * 10000 / 8700).
+// Agent pays bounty / 0.87 (e.g. $0.114943 for $0.10 bounty):
+//   - 13% of $0.114943 = $0.014942 (fee to operator → treasury via distributeFees)
+//   - 87% of $0.114943 = $0.100001 (net to worker, >= bounty guaranteed)
+// Rounding: <=1 unit (0.000001 USDC) variance in worker's favor. Standard for on-chain fee math.
+const FASE5_FEE_BPS = 1300;
 
 // ============================================================
 // ABIs (minimal, only what we need)
