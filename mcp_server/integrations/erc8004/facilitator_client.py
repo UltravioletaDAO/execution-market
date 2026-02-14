@@ -748,8 +748,6 @@ async def rate_worker(
     Returns:
         FeedbackResult
     """
-    client = get_facilitator_client()
-
     # Resolve worker's ERC-8004 agent ID — feedback goes to THEIR identity
     target_agent_id = worker_agent_id
     if not target_agent_id and worker_address:
@@ -847,7 +845,13 @@ async def rate_worker(
         logger.warning("Feedback persistence failed (continuing): %s", exc)
         feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
 
-    return await client.submit_feedback(
+    # Direct on-chain call — platform wallet rates worker's identity.
+    # Platform wallet doesn't own worker agents, so self-feedback check passes.
+    # This bypasses the Facilitator, eliminating nonce races and ensuring
+    # correct msg.sender attribution (our wallet = our agent).
+    from integrations.erc8004.direct_reputation import give_feedback_direct
+
+    return await give_feedback_direct(
         agent_id=target_agent_id,
         value=score,
         tag1="worker_rating",
@@ -855,6 +859,7 @@ async def rate_worker(
         endpoint=f"task:{task_id}",
         feedback_uri=feedback_uri,
         feedback_hash=feedback_hash,
+        # private_key=None → defaults to WALLET_PRIVATE_KEY (platform wallet)
     )
 
 
@@ -912,6 +917,25 @@ async def rate_agent(
         logger.warning("Feedback persistence failed (continuing): %s", exc)
         feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
 
+    # Direct on-chain call if relay wallet is configured.
+    # Platform wallet CANNOT rate Agent #2106 (self-feedback revert).
+    # Relay wallet doesn't own any agents, so it passes for all targets.
+    relay_key = os.environ.get("EM_REPUTATION_RELAY_KEY")
+    if relay_key:
+        from integrations.erc8004.direct_reputation import give_feedback_direct
+
+        return await give_feedback_direct(
+            agent_id=agent_id,
+            value=score,
+            tag1="agent_rating",
+            tag2="execution-market",
+            endpoint=f"task:{task_id}",
+            feedback_uri=feedback_uri,
+            feedback_hash=feedback_hash,
+            private_key=relay_key,
+        )
+
+    # Fallback: use Facilitator (existing behavior)
     return await client.submit_feedback(
         agent_id=agent_id,
         value=score,
