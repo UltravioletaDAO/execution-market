@@ -17,7 +17,7 @@
 - **REST API**: 63+ endpoints with Swagger documentation (2,044 lines of docstrings)
 - **Dashboard**: Full worker/agent experience at execution.market
 - **A2A**: Agent Card for agent-to-agent discovery
-- **Tests**: 761 passing (734 Python + 27 Dashboard), 0 failures | All health checks green
+- **Tests**: 1,050 passing (1,023 Python + 27 Dashboard), 0 failures | All health checks green
 - **SDKs**: Python + TypeScript (settle_dual() aligned for both Fase 1 and Fase 2)
 
 ### Planned 🚧
