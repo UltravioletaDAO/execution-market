@@ -27,6 +27,13 @@ logger = logging.getLogger(__name__)
 FEEDBACK_BUCKET = os.environ.get("EVIDENCE_BUCKET", "evidence")
 FEEDBACK_CDN_URL = os.environ.get("EVIDENCE_PUBLIC_BASE_URL", "").rstrip("/")
 
+# Public-facing feedbackURI base — this is the URL stored on-chain in ERC-8004.
+# Defaults to execution.market so on-chain data shows our domain, not raw CloudFront.
+# The dashboard nginx proxies /feedback/* to the evidence CloudFront distribution.
+FEEDBACK_PUBLIC_URL = os.environ.get(
+    "EM_FEEDBACK_BASE_URL", "https://execution.market"
+).rstrip("/")
+
 # Also store feedback reference in Supabase for quick lookups
 _SUPABASE_TABLE = "feedback_documents"
 
@@ -175,7 +182,10 @@ async def upload_feedback_to_s3(
     try:
         key = await asyncio.to_thread(_do_upload)
 
-        if FEEDBACK_CDN_URL:
+        # On-chain URI uses execution.market domain (proxied to CloudFront by nginx)
+        if FEEDBACK_PUBLIC_URL:
+            public_url = f"{FEEDBACK_PUBLIC_URL}/{key}"
+        elif FEEDBACK_CDN_URL:
             public_url = f"{FEEDBACK_CDN_URL}/{key}"
         else:
             public_url = f"https://{FEEDBACK_BUCKET}.s3.amazonaws.com/{key}"
@@ -227,6 +237,25 @@ async def store_feedback_reference(
         logger.debug("[feedback-store] Could not store reference in DB: %s", exc)
 
 
+def _extract_s3_key(uri: str) -> Optional[str]:
+    """Extract S3 key from a feedbackURI, handling all known URL formats."""
+    if not uri:
+        return None
+    # execution.market/feedback/... (current on-chain format)
+    if FEEDBACK_PUBLIC_URL and uri.startswith(FEEDBACK_PUBLIC_URL):
+        return uri[len(FEEDBACK_PUBLIC_URL) :].lstrip("/")
+    # CloudFront CDN URL (legacy on-chain format)
+    if FEEDBACK_CDN_URL and uri.startswith(FEEDBACK_CDN_URL):
+        return uri[len(FEEDBACK_CDN_URL) :].lstrip("/")
+    # Direct S3 URL
+    if ".s3.amazonaws.com/" in uri:
+        return uri.split(".s3.amazonaws.com/", 1)[1]
+    # Any cloudfront.net URL (handles old TXs)
+    if ".cloudfront.net/" in uri:
+        return uri.split(".cloudfront.net/", 1)[1]
+    return None
+
+
 async def get_feedback_document(
     task_id: str, feedback_type: Optional[str] = None
 ) -> Optional[Dict]:
@@ -260,14 +289,9 @@ async def get_feedback_document(
             if row.get("document_json"):
                 return row["document_json"]
 
-            # Try S3 via URI
+            # Try S3 via URI — handle both execution.market and CloudFront URLs
             uri = row.get("feedback_uri", "")
-            if FEEDBACK_CDN_URL and uri.startswith(FEEDBACK_CDN_URL):
-                s3_key = uri[len(FEEDBACK_CDN_URL) :].lstrip("/")
-            elif ".s3.amazonaws.com/" in uri:
-                s3_key = uri.split(".s3.amazonaws.com/", 1)[1]
-            else:
-                s3_key = None
+            s3_key = _extract_s3_key(uri)
 
             if s3_key:
                 doc = await _fetch_from_s3(s3_key)
