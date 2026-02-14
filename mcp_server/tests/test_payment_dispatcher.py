@@ -1863,12 +1863,59 @@ class TestTrustlessAuthorize:
         assert "Insufficient balance" in result["error"]
 
     @pytest.mark.asyncio
+    async def test_authorize_agent_absorbs_model(self):
+        """agent_absorbs model: lock > bounty so worker gets ~100% after fee."""
+        d, mock_client = self._make_trustless_dispatcher()
+
+        build_calls = []
+        original_build = mock_client.build_payment_info
+        mock_client.build_payment_info = lambda receiver, amount, tier, max_fee_bps: (
+            build_calls.append({"amount": amount, "max_fee_bps": max_fee_bps}),
+            original_build(receiver, amount, tier, max_fee_bps),
+        )[1]
+
+        with (
+            patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0),
+            patch(f"{DISPATCHER_MODULE}.EM_FEE_MODEL", "agent_absorbs"),
+        ):
+            result = await d.authorize_escrow_for_worker(
+                task_id="task-absorbs-1",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert result["success"] is True
+        assert result["fee_model"] == "agent_absorbs"
+        # lock = ceil(10.00 * 10000 / 8700) = ceil(11.494252..) = 11.494253
+        assert len(build_calls) == 1
+        assert build_calls[0]["amount"] == 11_494_253
+        assert build_calls[0]["max_fee_bps"] == 1800
+
+    @pytest.mark.asyncio
+    async def test_authorize_credit_card_returns_fee_model(self):
+        """credit_card model should include fee_model in return."""
+        d, _ = self._make_trustless_dispatcher()
+
+        with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=0):
+            result = await d.authorize_escrow_for_worker(
+                task_id="task-cc-model",
+                agent_address="0xAgent",
+                worker_address="0xWorker",
+                bounty_usdc=Decimal("10.00"),
+            )
+
+        assert result["fee_model"] == "credit_card"
+        assert result["lock_amount_usdc"] == "10.00"
+
+    @pytest.mark.asyncio
     async def test_escrow_mode_toggle(self):
-        """Dispatcher should reflect escrow_mode in config."""
+        """Dispatcher should reflect escrow_mode and fee_model in config."""
         d, _ = self._make_trustless_dispatcher()
         assert d.escrow_mode == "direct_release"
         info = d.get_info()
         assert info["escrow_mode"] == "direct_release"
+        assert "fee_model" in info
 
 
 class TestDirectRelease:
@@ -1943,6 +1990,8 @@ class TestDirectRelease:
                     "escrow_mode": "direct_release",
                     "worker_address": "0xWorker",
                     "bounty_usdc": "10.00",
+                    "lock_amount_usdc": "10.00",
+                    "fee_model": "credit_card",
                 },
             )
         )
@@ -1953,7 +2002,8 @@ class TestDirectRelease:
         assert result["escrow_mode"] == "direct_release"
         assert result["method"] == "direct_release"
         assert result["worker_paid"] is True
-        # Credit card model: worker gets 87% of $10.00 bounty = $8.70
+        assert result["fee_model"] == "credit_card"
+        # Credit card model: worker gets 87% of $10.00 lock = $8.70
         assert result["net_to_worker"] == 8.7
         assert result["bounty_usdc"] == 10.0
         assert result["fee_to_treasury"] == pytest.approx(1.3, abs=0.01)
@@ -1961,6 +2011,47 @@ class TestDirectRelease:
         assert result["fee_status"] == "on_chain"
         assert result["fee_distribute_tx"] is not None
         d._distribute_operator_fees.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_direct_release_agent_absorbs(self):
+        """agent_absorbs: worker gets ~100% of bounty (87% of higher lock)."""
+        d, _ = self._make_release_dispatcher()
+        d._distribute_operator_fees = AsyncMock(return_value="0x" + "dist" * 16)
+
+        # agent_absorbs: lock = 11.494253 for $10.00 bounty
+        d._reconstruct_fase2_state = AsyncMock(
+            return_value=(
+                FakeEscrowPaymentInfo(
+                    operator="0xOp",
+                    receiver="0xWorker",
+                    token="0xUSDC",
+                    max_amount=11_494_253,
+                    pre_approval_expiry=9999999999,
+                    authorization_expiry=9999999999,
+                    refund_expiry=9999999999,
+                    min_fee_bps=0,
+                    max_fee_bps=1800,
+                    fee_receiver="0x0",
+                    salt="0x" + "1234" * 16,
+                ),
+                {
+                    "network": "base",
+                    "escrow_mode": "direct_release",
+                    "worker_address": "0xWorker",
+                    "bounty_usdc": "10.00",
+                    "lock_amount_usdc": "11.494253",
+                    "fee_model": "agent_absorbs",
+                },
+            )
+        )
+
+        result = await d.release_direct_to_worker(task_id="task-dr-absorbs")
+
+        assert result["success"] is True
+        assert result["fee_model"] == "agent_absorbs"
+        # Worker gets 87% of 11.494253 ≈ 10.00 (the bounty)
+        assert result["net_to_worker"] == pytest.approx(10.0, abs=0.01)
+        assert result["bounty_usdc"] == 10.0
 
     @pytest.mark.asyncio
     async def test_direct_release_no_state(self):
