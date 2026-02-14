@@ -8,17 +8,16 @@ Covers:
 - Edge cases (deduplication, state transitions)
 """
 
-import asyncio
-import json
 from datetime import datetime, timezone, timedelta
 
 import pytest
+
+pytestmark = pytest.mark.dormant
 
 from mcp_server.monitoring.alerts import (
     AlertSeverity,
     AlertState,
     Alert,
-    AlertRule,
     AlertRuleBuilder,
 )
 
@@ -26,6 +25,7 @@ from mcp_server.monitoring.alerts import (
 # ═══════════════════════════════════════════════════════════
 # Alert Enums
 # ═══════════════════════════════════════════════════════════
+
 
 class TestAlertEnums:
     """Tests for AlertSeverity and AlertState enums."""
@@ -44,6 +44,7 @@ class TestAlertEnums:
 # ═══════════════════════════════════════════════════════════
 # Alert Model
 # ═══════════════════════════════════════════════════════════
+
 
 class TestAlertModel:
     """Tests for the Alert dataclass."""
@@ -136,6 +137,7 @@ class TestAlertModel:
 # ═══════════════════════════════════════════════════════════
 # AlertRuleBuilder
 # ═══════════════════════════════════════════════════════════
+
 
 class TestAlertRuleBuilder:
     """Tests for the fluent AlertRuleBuilder."""

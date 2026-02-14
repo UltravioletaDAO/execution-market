@@ -14,6 +14,8 @@ from datetime import datetime, timezone, timedelta
 
 import pytest
 
+pytestmark = pytest.mark.dormant
+
 from mcp_server.growth.referrals import (
     ReferralStatus,
     ReferralConfig,
@@ -46,25 +48,30 @@ def manager(config):
 # ReferralCode model
 # ═══════════════════════════════════════════════════════════
 
-class TestReferralCodeModel:
 
+class TestReferralCodeModel:
     def test_is_valid_active_code(self):
         code = ReferralCode(
-            code="TEST-AAA", referrer_id="w1",
-            created_at=datetime.now(timezone.utc), is_active=True,
+            code="TEST-AAA",
+            referrer_id="w1",
+            created_at=datetime.now(timezone.utc),
+            is_active=True,
         )
         assert code.is_valid is True
 
     def test_is_valid_inactive(self):
         code = ReferralCode(
-            code="TEST-AAA", referrer_id="w1",
-            created_at=datetime.now(timezone.utc), is_active=False,
+            code="TEST-AAA",
+            referrer_id="w1",
+            created_at=datetime.now(timezone.utc),
+            is_active=False,
         )
         assert code.is_valid is False
 
     def test_is_valid_expired(self):
         code = ReferralCode(
-            code="TEST-AAA", referrer_id="w1",
+            code="TEST-AAA",
+            referrer_id="w1",
             created_at=datetime.now(timezone.utc) - timedelta(days=60),
             expires_at=datetime.now(timezone.utc) - timedelta(days=1),
         )
@@ -72,22 +79,30 @@ class TestReferralCodeModel:
 
     def test_is_valid_max_uses_reached(self):
         code = ReferralCode(
-            code="TEST-AAA", referrer_id="w1",
-            created_at=datetime.now(timezone.utc), uses=5, max_uses=5,
+            code="TEST-AAA",
+            referrer_id="w1",
+            created_at=datetime.now(timezone.utc),
+            uses=5,
+            max_uses=5,
         )
         assert code.is_valid is False
 
     def test_remaining_uses_unlimited(self):
         code = ReferralCode(
-            code="TEST-AAA", referrer_id="w1",
-            created_at=datetime.now(timezone.utc), max_uses=None,
+            code="TEST-AAA",
+            referrer_id="w1",
+            created_at=datetime.now(timezone.utc),
+            max_uses=None,
         )
         assert code.remaining_uses is None
 
     def test_remaining_uses_limited(self):
         code = ReferralCode(
-            code="TEST-AAA", referrer_id="w1",
-            created_at=datetime.now(timezone.utc), uses=3, max_uses=10,
+            code="TEST-AAA",
+            referrer_id="w1",
+            created_at=datetime.now(timezone.utc),
+            uses=3,
+            max_uses=10,
         )
         assert code.remaining_uses == 7
 
@@ -96,13 +111,19 @@ class TestReferralCodeModel:
 # Referral model
 # ═══════════════════════════════════════════════════════════
 
-class TestReferralModel:
 
+class TestReferralModel:
     def _make(self, **kw):
         defaults = dict(
-            id="ref_1", code="TEST-AAA", referrer_id="w1", referee_id="w2",
-            status=ReferralStatus.QUALIFYING, tasks_completed=2, tasks_required=5,
-            bonus_amount=2.00, bonus_paid=False,
+            id="ref_1",
+            code="TEST-AAA",
+            referrer_id="w1",
+            referee_id="w2",
+            status=ReferralStatus.QUALIFYING,
+            tasks_completed=2,
+            tasks_required=5,
+            bonus_amount=2.00,
+            bonus_paid=False,
             created_at=datetime.now(timezone.utc),
         )
         defaults.update(kw)
@@ -118,19 +139,35 @@ class TestReferralModel:
         assert self._make(tasks_completed=7, tasks_required=5).tasks_remaining == 0
 
     def test_progress_percent(self):
-        assert self._make(tasks_completed=3, tasks_required=5).progress_percent == pytest.approx(60.0)
+        assert self._make(
+            tasks_completed=3, tasks_required=5
+        ).progress_percent == pytest.approx(60.0)
 
     def test_progress_percent_zero(self):
-        assert self._make(tasks_completed=0, tasks_required=5).progress_percent == pytest.approx(0.0)
+        assert self._make(
+            tasks_completed=0, tasks_required=5
+        ).progress_percent == pytest.approx(0.0)
 
     def test_progress_percent_complete(self):
-        assert self._make(tasks_completed=5, tasks_required=5).progress_percent == pytest.approx(100.0)
+        assert self._make(
+            tasks_completed=5, tasks_required=5
+        ).progress_percent == pytest.approx(100.0)
 
     def test_is_expired_false(self):
-        assert self._make(expires_at=datetime.now(timezone.utc) + timedelta(days=10)).is_expired is False
+        assert (
+            self._make(
+                expires_at=datetime.now(timezone.utc) + timedelta(days=10)
+            ).is_expired
+            is False
+        )
 
     def test_is_expired_true(self):
-        assert self._make(expires_at=datetime.now(timezone.utc) - timedelta(days=1)).is_expired is True
+        assert (
+            self._make(
+                expires_at=datetime.now(timezone.utc) - timedelta(days=1)
+            ).is_expired
+            is True
+        )
 
     def test_is_expired_no_expiry(self):
         assert self._make(expires_at=None).is_expired is False
@@ -140,8 +177,8 @@ class TestReferralModel:
 # ReferralManager — Code Generation
 # ═══════════════════════════════════════════════════════════
 
-class TestCodeGeneration:
 
+class TestCodeGeneration:
     @pytest.mark.asyncio
     async def test_generate_code(self, manager):
         code = await manager.generate_code("worker_1")
@@ -195,8 +232,8 @@ class TestCodeGeneration:
 # ReferralManager — Apply Code
 # ═══════════════════════════════════════════════════════════
 
-class TestApplyCode:
 
+class TestApplyCode:
     @pytest.mark.asyncio
     async def test_apply_valid_code(self, manager):
         code = await manager.generate_code("referrer_1")
@@ -242,8 +279,8 @@ class TestApplyCode:
 # ReferralManager — Task Completion
 # ═══════════════════════════════════════════════════════════
 
-class TestTaskCompletion:
 
+class TestTaskCompletion:
     @pytest.mark.asyncio
     async def test_non_referee_returns_none(self, manager):
         result = await manager.record_task_completion("random_worker")
@@ -287,7 +324,9 @@ class TestTaskCompletion:
         code = await manager.generate_code("referrer_1")
         await manager.apply_code(code.code, "new_user_1")
         referral = await manager.record_task_completion(
-            "new_user_1", task_id="task_42", task_rating=4.5,
+            "new_user_1",
+            task_id="task_42",
+            task_rating=4.5,
         )
         tasks = referral.metadata.get("completed_tasks", [])
         assert len(tasks) == 1

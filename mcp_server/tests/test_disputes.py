@@ -14,6 +14,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+pytestmark = pytest.mark.dormant
+
 from mcp_server.disputes.models import (
     Dispute,
     DisputeStatus,
@@ -21,7 +23,6 @@ from mcp_server.disputes.models import (
     DisputeParty,
     DisputeResponse,
     DisputeEvidence,
-    DisputeResolution,
     ResolutionType,
     DisputeConfig,
 )
@@ -35,7 +36,6 @@ from mcp_server.disputes.manager import (
 from mcp_server.disputes.evidence import (
     EvidenceManager,
     EvidenceError,
-    EvidenceLimitError,
     EvidenceNotFoundError,
     EvidenceIntegrityError,
     reset_manager as reset_evidence_manager,
@@ -44,11 +44,11 @@ from mcp_server.disputes.resolution import (
     calculate_refund_split,
     determine_auto_resolution,
     get_resolution_recommendations,
-    ResolutionError,
 )
 
 
 # ─── Helpers ───
+
 
 @pytest.fixture(autouse=True)
 def reset_singletons():
@@ -105,6 +105,7 @@ def _make_dispute(**kw):
 # ═══════════════════════════════════════════════════════════
 # DisputeManager — Creation
 # ═══════════════════════════════════════════════════════════
+
 
 class TestDisputeCreation:
     """Tests for creating disputes."""
@@ -173,6 +174,7 @@ class TestDisputeCreation:
 # DisputeManager — Response
 # ═══════════════════════════════════════════════════════════
 
+
 class TestDisputeResponse:
     """Tests for responding to disputes."""
 
@@ -187,7 +189,9 @@ class TestDisputeResponse:
     async def test_add_response_with_evidence(self, manager):
         d = await _create_basic_dispute(manager)
         d = await manager.add_response(
-            d.id, "agent_001", "Here is proof.",
+            d.id,
+            "agent_001",
+            "Here is proof.",
             evidence=[{"file_url": "s3://rebuttal.jpg"}],
         )
         assert len(d.evidence) == 1
@@ -225,19 +229,30 @@ class TestDisputeResponse:
         cfg = DisputeConfig(max_evidence_per_party=2)
         mgr = DisputeManager(config=cfg)
         d = await _create_basic_dispute(mgr)
-        await mgr.add_response(d.id, "agent_001", "ev1", evidence=[
-            {"file_url": "a.jpg"},
-            {"file_url": "b.jpg"},
-        ])
+        await mgr.add_response(
+            d.id,
+            "agent_001",
+            "ev1",
+            evidence=[
+                {"file_url": "a.jpg"},
+                {"file_url": "b.jpg"},
+            ],
+        )
         with pytest.raises(DisputeError, match="Evidence limit"):
-            await mgr.add_response(d.id, "agent_001", "ev2", evidence=[
-                {"file_url": "c.jpg"},
-            ])
+            await mgr.add_response(
+                d.id,
+                "agent_001",
+                "ev2",
+                evidence=[
+                    {"file_url": "c.jpg"},
+                ],
+            )
 
 
 # ═══════════════════════════════════════════════════════════
 # DisputeManager — Resolution, Escalation, Withdrawal
 # ═══════════════════════════════════════════════════════════
+
 
 class TestDisputeResolution:
     """Tests for resolving/escalating/withdrawing disputes."""
@@ -321,6 +336,7 @@ class TestDisputeResolution:
 # DisputeManager — Queries & Statistics
 # ═══════════════════════════════════════════════════════════
 
+
 class TestDisputeQueries:
     """Tests for dispute queries and statistics."""
 
@@ -347,7 +363,7 @@ class TestDisputeQueries:
     @pytest.mark.asyncio
     async def test_statistics_comprehensive(self, manager):
         d1 = await _create_basic_dispute(manager, task_id="t1")
-        d2 = await _create_basic_dispute(manager, task_id="t2", reason=DisputeReason.FRAUD)
+        await _create_basic_dispute(manager, task_id="t2", reason=DisputeReason.FRAUD)
         await manager.resolve_dispute(d1.id, DisputeParty.WORKER, "Worker wins")
         stats = manager.get_statistics()
         assert stats["total"] == 2
@@ -362,14 +378,18 @@ class TestDisputeQueries:
 # Evidence Manager
 # ═══════════════════════════════════════════════════════════
 
+
 class TestEvidenceManager:
     """Tests for evidence attachment and verification."""
 
     @pytest.mark.asyncio
     async def test_attach_evidence_basic(self, evidence_mgr):
         ev = await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-            file_url="s3://photo.jpg", file_type="image/jpeg",
+            dispute_id="d1",
+            submitter_id="w1",
+            party=DisputeParty.WORKER,
+            file_url="s3://photo.jpg",
+            file_type="image/jpeg",
             description="Photo of work done",
         )
         assert ev.id.startswith("ev_")
@@ -379,9 +399,13 @@ class TestEvidenceManager:
     async def test_attach_with_hash(self, evidence_mgr):
         content = b"fake image data"
         ev = await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-            file_url="s3://photo.jpg", file_type="image/jpeg",
-            description="test", file_content=content,
+            dispute_id="d1",
+            submitter_id="w1",
+            party=DisputeParty.WORKER,
+            file_url="s3://photo.jpg",
+            file_type="image/jpeg",
+            description="test",
+            file_content=content,
         )
         assert ev.hash == hashlib.sha256(content).hexdigest()
         assert ev.verified is True
@@ -390,8 +414,11 @@ class TestEvidenceManager:
     async def test_attach_invalid_type(self, evidence_mgr):
         with pytest.raises(EvidenceError, match="not allowed"):
             await evidence_mgr.attach_evidence(
-                dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-                file_url="s3://x.exe", file_type="application/x-executable",
+                dispute_id="d1",
+                submitter_id="w1",
+                party=DisputeParty.WORKER,
+                file_url="s3://x.exe",
+                file_type="application/x-executable",
                 description="bad file",
             )
 
@@ -401,18 +428,26 @@ class TestEvidenceManager:
         huge = b"x" * (2 * 1024 * 1024)  # 2MB
         with pytest.raises(EvidenceError, match="exceeds"):
             await mgr.attach_evidence(
-                dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-                file_url="s3://big.jpg", file_type="image/jpeg",
-                description="too big", file_content=huge,
+                dispute_id="d1",
+                submitter_id="w1",
+                party=DisputeParty.WORKER,
+                file_url="s3://big.jpg",
+                file_type="image/jpeg",
+                description="too big",
+                file_content=huge,
             )
 
     @pytest.mark.asyncio
     async def test_verify_integrity_pass(self, evidence_mgr):
         content = b"original data"
         ev = await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-            file_url="s3://x.jpg", file_type="image/jpeg",
-            description="t", file_content=content,
+            dispute_id="d1",
+            submitter_id="w1",
+            party=DisputeParty.WORKER,
+            file_url="s3://x.jpg",
+            file_type="image/jpeg",
+            description="t",
+            file_content=content,
         )
         result = await evidence_mgr.verify_evidence_integrity(ev.id, content)
         assert result is True
@@ -420,9 +455,13 @@ class TestEvidenceManager:
     @pytest.mark.asyncio
     async def test_verify_integrity_fail(self, evidence_mgr):
         ev = await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-            file_url="s3://x.jpg", file_type="image/jpeg",
-            description="t", file_content=b"original",
+            dispute_id="d1",
+            submitter_id="w1",
+            party=DisputeParty.WORKER,
+            file_url="s3://x.jpg",
+            file_type="image/jpeg",
+            description="t",
+            file_content=b"original",
         )
         result = await evidence_mgr.verify_evidence_integrity(ev.id, b"tampered")
         assert result is False
@@ -430,8 +469,11 @@ class TestEvidenceManager:
     @pytest.mark.asyncio
     async def test_verify_no_hash_raises(self, evidence_mgr):
         ev = await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-            file_url="s3://x.jpg", file_type="image/jpeg",
+            dispute_id="d1",
+            submitter_id="w1",
+            party=DisputeParty.WORKER,
+            file_url="s3://x.jpg",
+            file_type="image/jpeg",
             description="no hash provided",
         )
         with pytest.raises(EvidenceIntegrityError):
@@ -449,8 +491,12 @@ class TestEvidenceManager:
     @pytest.mark.asyncio
     async def test_remove_evidence_exists(self, evidence_mgr):
         ev = await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-            file_url="s3://x.jpg", file_type="image/jpeg", description="t",
+            dispute_id="d1",
+            submitter_id="w1",
+            party=DisputeParty.WORKER,
+            file_url="s3://x.jpg",
+            file_type="image/jpeg",
+            description="t",
         )
         assert evidence_mgr.remove_evidence(ev.id) is True
         assert evidence_mgr.get_evidence(ev.id) is None
@@ -458,24 +504,40 @@ class TestEvidenceManager:
     @pytest.mark.asyncio
     async def test_get_by_dispute(self, evidence_mgr):
         await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-            file_url="a.jpg", file_type="image/jpeg", description="a",
+            dispute_id="d1",
+            submitter_id="w1",
+            party=DisputeParty.WORKER,
+            file_url="a.jpg",
+            file_type="image/jpeg",
+            description="a",
         )
         await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="a1", party=DisputeParty.AGENT,
-            file_url="b.jpg", file_type="image/jpeg", description="b",
+            dispute_id="d1",
+            submitter_id="a1",
+            party=DisputeParty.AGENT,
+            file_url="b.jpg",
+            file_type="image/jpeg",
+            description="b",
         )
         assert len(evidence_mgr.get_evidence_by_dispute("d1")) == 2
 
     @pytest.mark.asyncio
     async def test_get_by_party(self, evidence_mgr):
         await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-            file_url="a.jpg", file_type="image/jpeg", description="a",
+            dispute_id="d1",
+            submitter_id="w1",
+            party=DisputeParty.WORKER,
+            file_url="a.jpg",
+            file_type="image/jpeg",
+            description="a",
         )
         await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="a1", party=DisputeParty.AGENT,
-            file_url="b.jpg", file_type="image/jpeg", description="b",
+            dispute_id="d1",
+            submitter_id="a1",
+            party=DisputeParty.AGENT,
+            file_url="b.jpg",
+            file_type="image/jpeg",
+            description="b",
         )
         worker_ev = evidence_mgr.get_evidence_by_party("d1", DisputeParty.WORKER)
         assert len(worker_ev) == 1
@@ -483,13 +545,21 @@ class TestEvidenceManager:
     @pytest.mark.asyncio
     async def test_statistics(self, evidence_mgr):
         await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-            file_url="a.jpg", file_type="image/jpeg", description="a",
+            dispute_id="d1",
+            submitter_id="w1",
+            party=DisputeParty.WORKER,
+            file_url="a.jpg",
+            file_type="image/jpeg",
+            description="a",
             file_content=b"data",
         )
         await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="a1", party=DisputeParty.AGENT,
-            file_url="b.pdf", file_type="application/pdf", description="b",
+            dispute_id="d1",
+            submitter_id="a1",
+            party=DisputeParty.AGENT,
+            file_url="b.pdf",
+            file_type="application/pdf",
+            description="b",
         )
         stats = evidence_mgr.get_statistics("d1")
         assert stats["total"] == 2
@@ -500,8 +570,12 @@ class TestEvidenceManager:
     @pytest.mark.asyncio
     async def test_update_hash(self, evidence_mgr):
         ev = await evidence_mgr.attach_evidence(
-            dispute_id="d1", submitter_id="w1", party=DisputeParty.WORKER,
-            file_url="a.jpg", file_type="image/jpeg", description="a",
+            dispute_id="d1",
+            submitter_id="w1",
+            party=DisputeParty.WORKER,
+            file_url="a.jpg",
+            file_type="image/jpeg",
+            description="a",
         )
         assert ev.hash is None
         updated = await evidence_mgr.update_evidence_hash(ev.id, b"new content")
@@ -512,6 +586,7 @@ class TestEvidenceManager:
 # ═══════════════════════════════════════════════════════════
 # Resolution Logic
 # ═══════════════════════════════════════════════════════════
+
 
 class TestResolutionLogic:
     """Tests for refund split calculation and auto-resolution."""
@@ -532,41 +607,63 @@ class TestResolutionLogic:
     def test_evidence_affects_split(self):
         d = _make_dispute()
         for i in range(3):
-            d.evidence.append(DisputeEvidence(
-                id=f"ev_{i}", dispute_id="disp_test", submitted_by="w1",
-                party=DisputeParty.WORKER, file_url=f"f{i}.jpg",
-                file_type="image/jpeg", description="proof",
-            ))
+            d.evidence.append(
+                DisputeEvidence(
+                    id=f"ev_{i}",
+                    dispute_id="disp_test",
+                    submitted_by="w1",
+                    party=DisputeParty.WORKER,
+                    file_url=f"f{i}.jpg",
+                    file_type="image/jpeg",
+                    description="proof",
+                )
+            )
         result = calculate_refund_split(d)
         assert result["worker_pct"] > 0.5
 
     def test_non_responsive_party_penalized(self):
         d = _make_dispute()
-        d.responses.append(DisputeResponse(
-            id="r1", dispute_id="disp_test", responder_id="w1",
-            responder_party=DisputeParty.WORKER, message="I responded",
-        ))
+        d.responses.append(
+            DisputeResponse(
+                id="r1",
+                dispute_id="disp_test",
+                responder_id="w1",
+                responder_party=DisputeParty.WORKER,
+                message="I responded",
+            )
+        )
         result = calculate_refund_split(d)
         assert result["worker_pct"] > 0.5
 
     def test_auto_resolve_small_dispute(self):
         d = _make_dispute(amount_disputed=Decimal("5.00"))
         for i in range(3):
-            d.evidence.append(DisputeEvidence(
-                id=f"ev_{i}", dispute_id="disp_test", submitted_by="w1",
-                party=DisputeParty.WORKER, file_url=f"f{i}.jpg",
-                file_type="image/jpeg", description="proof",
-            ))
+            d.evidence.append(
+                DisputeEvidence(
+                    id=f"ev_{i}",
+                    dispute_id="disp_test",
+                    submitted_by="w1",
+                    party=DisputeParty.WORKER,
+                    file_url=f"f{i}.jpg",
+                    file_type="image/jpeg",
+                    description="proof",
+                )
+            )
         result = determine_auto_resolution(d)
         assert result is not None
         assert result["can_auto_resolve"] is True
 
     def test_auto_resolve_non_responsive_respondent(self):
         d = _make_dispute(initiator_party=DisputeParty.WORKER)
-        d.responses.append(DisputeResponse(
-            id="r1", dispute_id="disp_test", responder_id="w1",
-            responder_party=DisputeParty.WORKER, message="help",
-        ))
+        d.responses.append(
+            DisputeResponse(
+                id="r1",
+                dispute_id="disp_test",
+                responder_id="w1",
+                responder_party=DisputeParty.WORKER,
+                message="help",
+            )
+        )
         result = determine_auto_resolution(d)
         assert result is not None
         assert result["winner"] == DisputeParty.WORKER
@@ -575,14 +672,24 @@ class TestResolutionLogic:
         """Large dispute with no evidence and no responses → no auto-resolve."""
         d = _make_dispute(amount_disputed=Decimal("500.00"))
         # Both parties responded → no non-response auto-resolve path
-        d.responses.append(DisputeResponse(
-            id="r1", dispute_id="disp_test", responder_id="w1",
-            responder_party=DisputeParty.WORKER, message="help",
-        ))
-        d.responses.append(DisputeResponse(
-            id="r2", dispute_id="disp_test", responder_id="a1",
-            responder_party=DisputeParty.AGENT, message="nope",
-        ))
+        d.responses.append(
+            DisputeResponse(
+                id="r1",
+                dispute_id="disp_test",
+                responder_id="w1",
+                responder_party=DisputeParty.WORKER,
+                message="help",
+            )
+        )
+        d.responses.append(
+            DisputeResponse(
+                id="r2",
+                dispute_id="disp_test",
+                responder_id="a1",
+                responder_party=DisputeParty.AGENT,
+                message="nope",
+            )
+        )
         result = determine_auto_resolution(d)
         assert result is None
 

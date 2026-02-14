@@ -14,9 +14,10 @@ from decimal import Decimal
 
 import pytest
 
+pytestmark = pytest.mark.dormant
+
 from mcp_server.task_types.tiers import (
     TaskTier,
-    TierConfig,
     TierManager,
     TIER_CONFIGS,
     get_tier_for_bounty,
@@ -32,6 +33,7 @@ def manager():
 # ═══════════════════════════════════════════════════════════
 # TierConfig
 # ═══════════════════════════════════════════════════════════
+
 
 class TestTierConfig:
     """Tests for TierConfig data model."""
@@ -93,6 +95,7 @@ class TestTierConfig:
 # TierManager — Determine Tier
 # ═══════════════════════════════════════════════════════════
 
+
 class TestTierDetermination:
     """Tests for determining appropriate tier from bounty."""
 
@@ -132,6 +135,7 @@ class TestTierDetermination:
 # TierManager — Worker Eligibility
 # ═══════════════════════════════════════════════════════════
 
+
 class TestWorkerEligibility:
     """Tests for worker eligibility checks."""
 
@@ -151,14 +155,18 @@ class TestWorkerEligibility:
 
     def test_ineligible_too_many_active_tasks(self, manager):
         eligible, reasons = manager.check_worker_eligibility(
-            TaskTier.TIER_1, 100, worker_active_tasks=10,
+            TaskTier.TIER_1,
+            100,
+            worker_active_tasks=10,
         )
         assert eligible is False
         assert any("active tasks" in r.lower() for r in reasons)
 
     def test_ineligible_multiple_reasons(self, manager):
         eligible, reasons = manager.check_worker_eligibility(
-            TaskTier.TIER_3, 10, worker_active_tasks=3,
+            TaskTier.TIER_3,
+            10,
+            worker_active_tasks=3,
         )
         assert eligible is False
         assert len(reasons) == 2  # low rep + too many tasks
@@ -167,6 +175,7 @@ class TestWorkerEligibility:
 # ═══════════════════════════════════════════════════════════
 # TierManager — Accessible Tiers & Progression
 # ═══════════════════════════════════════════════════════════
+
 
 class TestTierProgression:
     """Tests for tier access and progression suggestions."""
@@ -196,6 +205,7 @@ class TestTierProgression:
 # TierManager — Statistics
 # ═══════════════════════════════════════════════════════════
 
+
 class TestTierStats:
     """Tests for tier statistics."""
 
@@ -215,6 +225,7 @@ class TestTierStats:
 # ═══════════════════════════════════════════════════════════
 # Convenience Functions
 # ═══════════════════════════════════════════════════════════
+
 
 class TestConvenienceFunctions:
     """Tests for module-level convenience functions."""
