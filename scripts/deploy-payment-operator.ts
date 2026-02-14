@@ -171,7 +171,7 @@ async function main() {
   }
 
   const account = privateKeyToAccount(privateKey);
-  const rpcUrl = process.env.RPC_URL || "https://mainnet.base.org";
+  const rpcUrl = process.env.RPC_URL || process.env.X402_RPC_URL || "https://mainnet.base.org";
 
   console.log("=".repeat(60));
   console.log(`Deploy PaymentOperator for Execution Market (${modeLabel})`);
