@@ -188,6 +188,7 @@ resource "aws_ecs_task_definition" "mcp_server" {
         { name = "EM_AGENT_ID", value = "2106" },
         { name = "EM_PAYMENT_MODE", value = "fase2" },
         { name = "EM_ESCROW_MODE", value = "direct_release" },
+        { name = "EM_FEE_MODEL", value = "credit_card" },
         { name = "EM_PAYMENT_OPERATOR", value = "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb" },
         { name = "EM_ENABLED_NETWORKS", value = "base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism" },
         { name = "EVIDENCE_BUCKET", value = local.evidence_bucket_name },
