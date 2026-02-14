@@ -487,14 +487,15 @@ Wrong Flow (DO NOT USE):
 4. **Query state**: `em_check_escrow_state` MCP tool reads on-chain escrow state (capturableAmount, refundableAmount).
 5. **Fee sweep** (admin): `POST /api/v1/admin/fees/sweep` — batch transfer all accrued fees from platform wallet to treasury in a single TX. `GET /api/v1/admin/fees/accrued` to check balance.
 
-**Payment Flow for Tasks** (Fase 2 — direct_release mode, TRUSTLESS):
+**Payment Flow for Tasks** (Fase 5 — credit card model, TRUSTLESS):
 1. **Balance check** (task creation): Advisory `balanceOf()` check only. Escrow deferred to assignment (worker address unknown at creation). Escrow status = `pending_assignment`.
-2. **Escrow lock** (task assignment): Lock ONLY bounty in escrow with **worker as direct receiver** + collect 13% platform fee via separate EIP-3009 to platform wallet. If protocol fee active, over-locks to compensate.
-3. **Release** (task approval): **1 TX only** — gasless release via facilitator (escrow → worker DIRECTLY). No disburse step, no fee step. Worker gets paid by the escrow contract itself.
-4. **Cancel** (published or accepted): Published → no-op (no escrow locked). Accepted → refund bounty from escrow to agent + refund fee from platform wallet to agent.
-5. **Fee sweep**: Same as platform_release. Accrued fee stays in platform wallet for batch sweep.
+2. **Escrow lock** (task assignment): Lock bounty in escrow with **worker as direct receiver**. Bounty = lock amount (credit card model). No separate fee collection — fee calculator handles split at release.
+3. **Release** (task approval): **1 TX only** — gasless release via facilitator. Fee calculator splits atomically: worker gets 87% (net), operator holds 13% (fee). `distributeFees()` flushes fee to treasury.
+4. **Cancel** (published or accepted): Published → no-op (no escrow locked). Accepted → refund full bounty from escrow to agent. No separate fee refund needed.
+5. **Fee distribution**: `distributeFees()` called best-effort after each release, or via admin endpoint `POST /admin/fees/sweep`.
 - **Env var**: `EM_ESCROW_MODE=direct_release` (default: `platform_release` for backward compat)
-- **Trust model**: Escrow protects worker — platform never holds worker's funds. Only platform fee ($0.01+) sits in platform wallet.
+- **Fee model**: Credit card convention — fee is 13% of gross (bounty), deducted on-chain. Agent pays $0.10, worker gets $0.087, treasury gets $0.013.
+- **Trust model**: Fully trustless — platform never touches funds. Escrow pays worker, operator holds fee for treasury.
 
 **Audit Trail**: All payment events are logged to `payment_events` table (migration 027). Tracks verify, store_auth, settle, disburse_worker, disburse_fee, refund, cancel, error events with tx hashes and amounts.
 
@@ -516,7 +517,7 @@ Wrong Flow (DO NOT USE):
 
 **Deployment script:** `scripts/deploy-payment-operator.ts` — deploys via x402r factory contracts. Use `--fase3`, `--fase3-clean`, or `--fase4` flag.
 
-**Status:** Fase 5 Operator deployed on Base (2026-02-13, `0x271f...D8F0Eb`). Verified on-chain: FEE_CALCULATOR=StaticFeeCalculator(1300), FEE_RECIPIENT=Treasury, REFUND_IN_ESCROW_CONDITION=FacilitatorOnly. **Next**: Register in Facilitator allowlist + deploy to ECS. Other 7 networks pending.
+**Status:** Fase 5 Operator deployed on Base (2026-02-13, `0x271f...D8F0Eb`). Credit card model: bounty = lock amount, fee deducted on-chain at release (13% of gross). Facilitator v1.33.6 live with operator in allowlist. ECS deployed. **Next**: Golden Flow E2E test. Other 7 networks pending.
 
 **Key upstream repos:**
 | Repo | URL | Stack |

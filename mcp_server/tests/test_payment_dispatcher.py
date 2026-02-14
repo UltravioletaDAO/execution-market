@@ -1789,8 +1789,8 @@ class TestTrustlessAuthorize:
         assert build_calls[0]["max_fee_bps"] == 1800
 
     @pytest.mark.asyncio
-    async def test_authorize_locks_bounty_plus_fee(self):
-        """Fase 5: Should lock bounty + 13% fee in escrow (no separate EIP-3009)."""
+    async def test_authorize_locks_bounty_credit_card(self):
+        """Fase 5 credit card model: lock amount = bounty (fee deducted on-chain at release)."""
         d, mock_client = self._make_trustless_dispatcher()
 
         build_calls = []
@@ -1810,19 +1810,16 @@ class TestTrustlessAuthorize:
 
         assert result["success"] is True
         assert result["fee_method"] == "on_chain_fee_calculator"
-        assert result["platform_fee_usdc"] == "1.494253"
-        # Lock = ceil(10.00 * 10000 / 8700) = ceil(11.494252..) = 11.494253 USDC = 11_494_253 atomic
+        # Credit card model: lock amount = bounty = 10.00 USDC = 10_000_000 atomic
         assert len(build_calls) == 1
-        assert build_calls[0]["amount"] == 11_494_253
+        assert build_calls[0]["amount"] == 10_000_000
         assert build_calls[0]["max_fee_bps"] == 1800
-        # No separate fee collection call
-        assert not hasattr(d._sdk, "collect_platform_fee") or not isinstance(
-            d._sdk.collect_platform_fee, AsyncMock
-        )
+        # No platform_fee_usdc in return — fee handled on-chain
+        assert "platform_fee_usdc" not in result
 
     @pytest.mark.asyncio
-    async def test_authorize_with_protocol_fee_overlocks(self):
-        """When protocol fee > 0, should lock more than bounty+fee to compensate."""
+    async def test_authorize_lock_equals_bounty_always(self):
+        """Credit card model: lock amount = bounty regardless of protocol fee."""
         d, mock_client = self._make_trustless_dispatcher()
 
         build_calls = []
@@ -1832,7 +1829,7 @@ class TestTrustlessAuthorize:
             original_build(receiver, amount, tier, max_fee_bps),
         )[1]
 
-        # 1% protocol fee (100 BPS)
+        # Even with 1% protocol fee, lock amount stays = bounty
         with patch(f"{DISPATCHER_MODULE}._get_protocol_fee_bps", return_value=100):
             result = await d.authorize_escrow_for_worker(
                 task_id="task-trustless-4",
@@ -1842,13 +1839,9 @@ class TestTrustlessAuthorize:
             )
 
         assert result["success"] is True
-        assert result["protocol_fee_bps"] == 100
-        # With 1% protocol fee: total_bps = 1300 + 100 = 1400
-        # Lock = ceil(10.00 * 10000 / 8600) = ceil(11.627906..) = 11.627907 = 11_627_907 atomic
-        # Must be > no-protocol-fee lock (11_494_253)
+        # Credit card model: lock = bounty = 10_000_000, always
         assert len(build_calls) == 1
-        lock_atomic = build_calls[0]["amount"]
-        assert lock_atomic > 11_494_253  # > base lock without protocol fee
+        assert build_calls[0]["amount"] == 10_000_000
 
     @pytest.mark.asyncio
     async def test_authorize_failure(self):
@@ -1960,7 +1953,10 @@ class TestDirectRelease:
         assert result["escrow_mode"] == "direct_release"
         assert result["method"] == "direct_release"
         assert result["worker_paid"] is True
-        assert result["net_to_worker"] == 10.0
+        # Credit card model: worker gets 87% of $10.00 bounty = $8.70
+        assert result["net_to_worker"] == 8.7
+        assert result["bounty_usdc"] == 10.0
+        assert result["fee_to_treasury"] == pytest.approx(1.3, abs=0.01)
         assert result["tx_hash"] is not None
         assert result["fee_status"] == "on_chain"
         assert result["fee_distribute_tx"] is not None
@@ -2053,7 +2049,7 @@ class TestTrustlessRefund:
 
     @pytest.mark.asyncio
     async def test_refund_trustless_escrow_success(self):
-        """Fase 5: Should refund full escrow (bounty+fee) in single TX."""
+        """Fase 5 credit card model: Should refund full bounty in single TX."""
         d, _ = self._make_refund_dispatcher()
         d._reconstruct_fase2_state = AsyncMock(
             return_value=(
@@ -2061,7 +2057,7 @@ class TestTrustlessRefund:
                     operator="0xOp",
                     receiver="0xWorker",
                     token="0xUSDC",
-                    max_amount=11_494_253,  # ceil(bounty * 10000 / 8700)
+                    max_amount=10_000_000,  # credit card model: lock = bounty
                     pre_approval_expiry=9999999999,
                     authorization_expiry=9999999999,
                     refund_expiry=9999999999,
@@ -2132,7 +2128,7 @@ class TestTrustlessRefund:
 
     @pytest.mark.asyncio
     async def test_refund_no_fee_refund_needed(self):
-        """Fase 5: Refund is single-step (no separate fee refund)."""
+        """Fase 5 credit card model: Refund is single-step (no separate fee refund)."""
         d, _ = self._make_refund_dispatcher()
         d._reconstruct_fase2_state = AsyncMock(
             return_value=(
@@ -2140,7 +2136,7 @@ class TestTrustlessRefund:
                     operator="0xOp",
                     receiver="0xWorker",
                     token="0xUSDC",
-                    max_amount=11_300_000,
+                    max_amount=10_000_000,  # credit card model: lock = bounty
                     pre_approval_expiry=9999999999,
                     authorization_expiry=9999999999,
                     refund_expiry=9999999999,
@@ -2159,7 +2155,7 @@ class TestTrustlessRefund:
 
         result = await d.refund_trustless_escrow(task_id="task-ref-nofee")
 
-        # Escrow refund returns bounty+fee to agent in one TX
+        # Escrow refund returns full bounty to agent in one TX
         assert result["success"] is True
         assert result["status"] == "refunded"
         assert "fee_refund_tx" not in result

@@ -5635,7 +5635,7 @@ async def assign_task_to_worker(
                                 "fee_method", "on_chain_fee_calculator"
                             ),
                             "bounty_locked": str(bounty),
-                            "platform_fee": auth_result.get("platform_fee_usdc"),
+                            "fee_model": "credit_card",
                         }
                         logger.info(
                             "trustless: Escrow locked at assignment: task=%s, "
