@@ -126,7 +126,8 @@ export async function getAgentReputation(
 /**
  * Rate an agent after task completion (worker -> agent).
  *
- * The backend expects a score in the 0-100 range.
+ * @deprecated Use prepareFeedback + confirmFeedback instead.
+ * This legacy function calls the old endpoint which no longer submits on-chain.
  */
 export interface RateAgentRequest {
   task_id: string
@@ -154,6 +155,115 @@ export async function rateAgent(
   if (!response.ok) {
     const text = await response.text()
     let message = `Rating failed: ${response.status}`
+    try {
+      const data = JSON.parse(text)
+      message = data.detail || data.message || message
+    } catch {
+      // Use default message
+    }
+    throw new Error(message)
+  }
+
+  return response.json()
+}
+
+// --------------------------------------------------------------------------
+// Worker Direct Signing (prepare → sign → confirm)
+// --------------------------------------------------------------------------
+
+export interface PrepareFeedbackRequest {
+  agent_id: number
+  task_id: string
+  score: number // 0-100
+  comment?: string
+  worker_address: string
+}
+
+export interface PrepareFeedbackResponse {
+  prepare_id: string
+  contract_address: string
+  chain_id: number
+  agent_id: number
+  value: number
+  value_decimals: number
+  tag1: string
+  tag2: string
+  endpoint: string
+  feedback_uri: string
+  feedback_hash: string
+  estimated_gas: number
+}
+
+export interface ConfirmFeedbackRequest {
+  prepare_id: string
+  tx_hash: string
+  task_id: string
+}
+
+export interface ConfirmFeedbackResponse {
+  success: boolean
+  transaction_hash: string | null
+  network: string
+  error: string | null
+}
+
+/**
+ * Prepare on-chain feedback parameters for worker direct signing.
+ *
+ * Returns the giveFeedback() call parameters that the worker's wallet
+ * will use to submit the TX on-chain (msg.sender = worker).
+ */
+export async function prepareFeedback(
+  request: PrepareFeedbackRequest
+): Promise<PrepareFeedbackResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/reputation/prepare-feedback`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Client-Info': 'execution-market-dashboard',
+      },
+      body: JSON.stringify(request),
+    }
+  )
+
+  if (!response.ok) {
+    const text = await response.text()
+    let message = `Prepare feedback failed: ${response.status}`
+    try {
+      const data = JSON.parse(text)
+      message = data.detail || data.message || message
+    } catch {
+      // Use default message
+    }
+    throw new Error(message)
+  }
+
+  return response.json()
+}
+
+/**
+ * Confirm that the worker signed and submitted the feedback TX.
+ */
+export async function confirmFeedback(
+  request: ConfirmFeedbackRequest
+): Promise<ConfirmFeedbackResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/reputation/confirm-feedback`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Client-Info': 'execution-market-dashboard',
+      },
+      body: JSON.stringify(request),
+    }
+  )
+
+  if (!response.ok) {
+    const text = await response.text()
+    let message = `Confirm feedback failed: ${response.status}`
     try {
       const data = JSON.parse(text)
       message = data.detail || data.message || message

@@ -874,9 +874,14 @@ async def rate_agent(
     bounty_usd: float = 0.0,
 ) -> FeedbackResult:
     """
-    Rate an AI agent after task completion (human rates agent).
+    Prepare agent rating data (human rates agent).
 
-    Persists feedback document to S3 with keccak256 hash on-chain.
+    Persists feedback document to S3 with keccak256 hash.
+    Returns pending_worker_signature=True — the actual on-chain TX must be
+    signed by the worker's wallet directly via the dashboard (trustless).
+
+    The worker calls giveFeedback() on the ReputationRegistry from their
+    own wallet, so msg.sender = worker address (not a relay or Facilitator).
 
     Args:
         agent_id: Agent's ERC-8004 token ID
@@ -889,17 +894,14 @@ async def rate_agent(
         bounty_usd: Task bounty amount
 
     Returns:
-        FeedbackResult
+        FeedbackResult with success=True (data persisted, pending worker TX)
     """
-    client = get_facilitator_client()
-
     # Persist feedback document to S3 and compute hash
     feedback_uri = ""
-    feedback_hash = None
     try:
         from integrations.erc8004.feedback_store import persist_and_hash_feedback
 
-        feedback_uri, feedback_hash = await persist_and_hash_feedback(
+        feedback_uri, _feedback_hash = await persist_and_hash_feedback(
             task_id=task_id,
             feedback_type="agent_rating",
             score=score,
@@ -917,33 +919,18 @@ async def rate_agent(
         logger.warning("Feedback persistence failed (continuing): %s", exc)
         feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
 
-    # Direct on-chain call if relay wallet is configured.
-    # Platform wallet CANNOT rate Agent #2106 (self-feedback revert).
-    # Relay wallet doesn't own any agents, so it passes for all targets.
-    relay_key = os.environ.get("EM_REPUTATION_RELAY_KEY")
-    if relay_key:
-        from integrations.erc8004.direct_reputation import give_feedback_direct
+    logger.info(
+        "Agent rating prepared (pending worker signature): agent=%d, task=%s, uri=%s",
+        agent_id,
+        task_id,
+        feedback_uri[:60],
+    )
 
-        return await give_feedback_direct(
-            agent_id=agent_id,
-            value=score,
-            tag1="agent_rating",
-            tag2="execution-market",
-            endpoint=f"task:{task_id}",
-            feedback_uri=feedback_uri,
-            feedback_hash=feedback_hash,
-            private_key=relay_key,
-        )
-
-    # Fallback: use Facilitator (existing behavior)
-    return await client.submit_feedback(
-        agent_id=agent_id,
-        value=score,
-        tag1="agent_rating",
-        tag2="execution-market",
-        endpoint=f"task:{task_id}",
-        feedback_uri=feedback_uri,
-        feedback_hash=feedback_hash,
+    # Return success — the worker will sign giveFeedback() directly from dashboard
+    return FeedbackResult(
+        success=True,
+        transaction_hash=None,  # No TX yet — worker signs in wallet
+        network=ERC8004_NETWORK,
     )
 
 

@@ -646,6 +646,30 @@ async def _execute_post_approval_side_effects(
             e,
         )
 
+    # ---- WS-3: Gas dust for worker on-chain reputation -------------------
+    try:
+        ws3_enabled = await PlatformConfig.is_feature_enabled("gas_dust_auto_fund")
+        if ws3_enabled and worker_address and executor_id:
+            from integrations.gas_dust import fund_worker_gas_dust
+
+            tx_hash = await fund_worker_gas_dust(
+                wallet_address=worker_address,
+                executor_id=executor_id,
+            )
+            if tx_hash:
+                logger.info(
+                    "WS-3 gas dust funded: submission=%s, worker=%s, tx=%s",
+                    submission_id,
+                    worker_address[:10],
+                    tx_hash[:16],
+                )
+    except Exception as e:
+        logger.error(
+            "WS-3 gas dust error (non-blocking): submission=%s, error=%s",
+            submission_id,
+            e,
+        )
+
 
 async def _ws1_auto_register_worker(
     submission_id: str,

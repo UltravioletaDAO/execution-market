@@ -472,30 +472,18 @@ class TestRateWorkerDirectPath:
 
 
 # ============================================================================
-# rate_agent() path selection tests
+# rate_agent() — returns pending_worker_signature (no relay, no facilitator)
 # ============================================================================
 
 
-class TestRateAgentPathSelection:
-    """Tests that rate_agent() chooses the right path based on EM_REPUTATION_RELAY_KEY."""
+class TestRateAgentPendingSignature:
+    """Tests that rate_agent() returns pending_worker_signature (worker signs directly)."""
 
     @pytest.mark.asyncio
-    async def test_rate_agent_with_relay_key_uses_direct(self):
-        """With EM_REPUTATION_RELAY_KEY set, rate_agent() uses direct path."""
-        mock_result = MagicMock()
-        mock_result.success = True
-        mock_result.transaction_hash = "0xrelay_agent"
-
-        relay_key = "0x" + "dd" * 32
-
+    async def test_rate_agent_returns_pending_no_tx(self):
+        """rate_agent() persists S3 data but returns no tx_hash (pending worker sig)."""
         with (
-            patch.dict("os.environ", {"EM_REPUTATION_RELAY_KEY": relay_key}),
             patch("integrations.erc8004.facilitator_client.get_facilitator_client"),
-            patch(
-                "integrations.erc8004.direct_reputation.give_feedback_direct",
-                new_callable=AsyncMock,
-                return_value=mock_result,
-            ) as mock_direct,
             patch(
                 "integrations.erc8004.feedback_store.persist_and_hash_feedback",
                 new_callable=AsyncMock,
@@ -511,26 +499,15 @@ class TestRateAgentPathSelection:
             )
 
         assert result.success is True
-        mock_direct.assert_called_once()
-        call_kwargs = mock_direct.call_args
-        assert call_kwargs.kwargs["agent_id"] == 2106
-        assert call_kwargs.kwargs["private_key"] == relay_key
-        assert call_kwargs.kwargs["tag1"] == "agent_rating"
+        assert result.transaction_hash is None  # Worker must sign directly
 
     @pytest.mark.asyncio
-    async def test_rate_agent_without_relay_key_uses_facilitator(self):
-        """Without EM_REPUTATION_RELAY_KEY, rate_agent() falls back to Facilitator."""
-        mock_feedback_result = MagicMock()
-        mock_feedback_result.success = True
-        mock_feedback_result.transaction_hash = "0xfacilitator_agent"
-
+    async def test_rate_agent_does_not_use_facilitator(self):
+        """rate_agent() should NOT call Facilitator submit_feedback anymore."""
         mock_client_instance = AsyncMock()
-        mock_client_instance.submit_feedback = AsyncMock(
-            return_value=mock_feedback_result
-        )
+        mock_client_instance.submit_feedback = AsyncMock()
 
         with (
-            patch.dict("os.environ", {}, clear=False),
             patch(
                 "integrations.erc8004.facilitator_client.get_facilitator_client",
                 return_value=mock_client_instance,
@@ -541,22 +518,40 @@ class TestRateAgentPathSelection:
                 return_value=("https://cdn/feedback.json", "0x" + "cc" * 32),
             ),
         ):
-            # Ensure relay key is NOT set
-            import os
-
-            os.environ.pop("EM_REPUTATION_RELAY_KEY", None)
-
             from integrations.erc8004.facilitator_client import rate_agent
 
-            result = await rate_agent(
+            await rate_agent(
                 agent_id=2106,
                 task_id="test-task-4",
                 score=88,
             )
 
+        # Facilitator should NOT have been called
+        mock_client_instance.submit_feedback.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rate_agent_relay_key_env_ignored(self):
+        """EM_REPUTATION_RELAY_KEY should be completely ignored now."""
+        with (
+            patch.dict("os.environ", {"EM_REPUTATION_RELAY_KEY": "0x" + "dd" * 32}),
+            patch("integrations.erc8004.facilitator_client.get_facilitator_client"),
+            patch(
+                "integrations.erc8004.feedback_store.persist_and_hash_feedback",
+                new_callable=AsyncMock,
+                return_value=("https://cdn/feedback.json", "0xhash"),
+            ),
+        ):
+            from integrations.erc8004.facilitator_client import rate_agent
+
+            result = await rate_agent(
+                agent_id=2106,
+                task_id="test-task-5",
+                score=80,
+            )
+
+        # Should still succeed without calling direct_reputation
         assert result.success is True
-        # Facilitator client's submit_feedback should have been called
-        mock_client_instance.submit_feedback.assert_called_once()
+        assert result.transaction_hash is None
 
 
 # ============================================================================

@@ -1706,7 +1706,9 @@ class TestTrustlessAuthorize:
             patch(f"{DISPATCHER_MODULE}.ADVANCED_ESCROW_AVAILABLE", False),
             patch(f"{DISPATCHER_MODULE}.FASE2_SDK_AVAILABLE", True),
             patch(f"{DISPATCHER_MODULE}.SDK_AVAILABLE", True),
-            patch(f"{DISPATCHER_MODULE}.TaskTier", TestTrustlessAuthorize._MockTaskTier),
+            patch(
+                f"{DISPATCHER_MODULE}.TaskTier", TestTrustlessAuthorize._MockTaskTier
+            ),
             patch(
                 f"{DISPATCHER_MODULE}.NETWORK_CONFIG",
                 {
@@ -2638,7 +2640,10 @@ class TestFase5FeeModel:
         test_cases = [
             # (bounty, expected_lock_atomic)
             # lock = ceil(bounty * 10000 / 8700)
-            (Decimal("1.00"), 1_149_426),  # ceil(1 * 10000 / 8700) = 1.149425... -> 1.149426
+            (
+                Decimal("1.00"),
+                1_149_426,
+            ),  # ceil(1 * 10000 / 8700) = 1.149425... -> 1.149426
             (Decimal("100.00"), 114_942_529),  # ceil(100 * 10000 / 8700)
             (Decimal("0.25"), 287_357),  # ceil(0.25 * 10000 / 8700)
         ]

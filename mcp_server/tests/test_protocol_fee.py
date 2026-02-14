@@ -13,8 +13,7 @@ Covers:
 
 import time
 from decimal import Decimal
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -202,9 +201,7 @@ class TestProtocolFeeReading:
 
         calc_addr = "0x" + "0" * 24 + "abcdef1234567890abcdef1234567890abcdef12"
 
-        client = FakeHTTPClient(
-            [FakeHTTPResponse(calc_addr), FakeHTTPResponse("0x")]
-        )
+        client = FakeHTTPClient([FakeHTTPResponse(calc_addr), FakeHTTPResponse("0x")])
 
         with patch("httpx.AsyncClient", return_value=client):
             result = await pd._get_protocol_fee_bps()
