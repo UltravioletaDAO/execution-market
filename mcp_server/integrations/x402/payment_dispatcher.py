@@ -1223,6 +1223,10 @@ class PaymentDispatcher:
             "lock_amount_usdc": float(lock_usdc),
             "net_to_worker": net_worker,
             "fee_to_treasury": fee_amount,
+            # Keys expected by routes.py _settle_submission_payment():
+            "worker_net": net_worker,
+            "platform_fee": fee_amount,
+            "gross_amount": float(lock_usdc),
             "error": None,
         }
 
