@@ -1,18 +1,20 @@
-# Golden Flow Report -- Definitive E2E Acceptance Test
+# Golden Flow Report -- Definitive E2E Acceptance Test (Fase 5)
 
-> **Date**: 2026-02-13 23:43 UTC
+> **Date**: 2026-02-14 04:05 UTC
 > **Environment**: Production (Base Mainnet, chain 8453)
 > **API**: `https://api.execution.market`
-> **Result**: **PASS**
+> **Fee Model**: credit_card (fee deducted from bounty on-chain)
+> **Escrow Mode**: direct_release (escrow at assignment, 1-TX release)
+> **Result**: **PARTIAL**
 
 ---
 
 ## Executive Summary
 
 The Golden Flow tested the complete Execution Market lifecycle end-to-end 
-on production against Base Mainnet. 7/7 phases passed.
+on production against Base Mainnet using the Fase 5 credit card fee model. 6/7 phases passed.
 
-**Overall Result: PASS**
+**Overall Result: PARTIAL**
 
 ---
 
@@ -20,9 +22,12 @@ on production against Base Mainnet. 7/7 phases passed.
 
 | Parameter | Value |
 |-----------|-------|
-| Bounty | $0.10 USDC |
-| Platform Fee | 13% ($0.013000) |
-| Total Cost | $0.113000 USDC |
+| Bounty (lock amount) | $0.10 USDC |
+| Worker Net (87%) | $0.087000 USDC |
+| Operator Fee (13%) | $0.013000 USDC |
+| Total Cost to Agent | $0.10 USDC |
+| Fee Model | credit_card |
+| Escrow Mode | direct_release |
 | Worker Wallet | `0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15` |
 | Treasury | `0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad` |
 | API Base | `https://api.execution.market` |
@@ -37,7 +42,7 @@ sequenceDiagram
     participant Agent
     participant API
     participant Facilitator
-    participant Base
+    participant Escrow
     participant Worker
     participant ERC8004
 
@@ -46,10 +51,10 @@ sequenceDiagram
     Agent->>API: GET /config
     Agent->>API: GET /reputation/info
 
-    Note over Agent,ERC8004: Phase 2: Task + Escrow
+    Note over Agent,ERC8004: Phase 2: Task Creation (balance check only)
     Agent->>API: POST /tasks (bounty=$0.10)
-    API->>Facilitator: Authorize escrow
-    Facilitator->>Base: TX1: Lock $0.113
+    API->>API: balanceOf(agent) -- advisory check
+    Note right of API: No escrow yet (deferred to assignment)
 
     Note over Agent,ERC8004: Phase 3: Worker Identity
     Worker->>API: POST /executors/register
@@ -57,14 +62,19 @@ sequenceDiagram
     API->>Facilitator: Gasless registration
     Facilitator->>ERC8004: Mint identity NFT
 
-    Note over Agent,ERC8004: Phase 4: Task Lifecycle
-    Worker->>API: Apply -> Assign -> Submit evidence
+    Note over Agent,ERC8004: Phase 4: Apply + Assign (escrow lock) + Submit
+    Worker->>API: POST /tasks/{id}/apply
+    Agent->>API: POST /tasks/{id}/assign
+    API->>Facilitator: Lock $0.10 in escrow (receiver=worker)
+    Facilitator->>Escrow: TX1: Lock $0.10
+    Worker->>API: POST /tasks/{id}/submit (evidence)
 
-    Note over Agent,ERC8004: Phase 5: Payment
+    Note over Agent,ERC8004: Phase 5: Approval + Payment (1 TX)
     Agent->>API: POST /submissions/{id}/approve
     API->>Facilitator: Release escrow
-    Facilitator->>Base: TX2: $0.10 -> Worker
-    Facilitator->>Base: TX3: $0.013 -> Treasury
+    Facilitator->>Escrow: TX2: Release (fee calc splits)
+    Escrow->>Worker: $0.087000 (87%)
+    Escrow->>Operator: $0.013000 (13%)
 
     Note over Agent,ERC8004: Phase 6: Reputation
     Agent->>API: Rate worker (score: 90)
@@ -83,12 +93,12 @@ sequenceDiagram
 
 | # | Phase | Status | Time |
 |---|-------|--------|------|
-| 1 | Health & Config Verification | **PASS** | 0.47s |
-| 2 | Task Creation with Escrow | **PASS** | 20.46s |
-| 3 | Worker Registration & Identity | **PASS** | 0.38s |
-| 4 | Task Lifecycle (Apply -> Assign -> Submit) | **PASS** | 2.28s |
-| 5 | Approval & Payment Settlement | **PASS** | 26.16s |
-| 6 | Bidirectional Reputation | **PASS** | 10.31s |
+| 1 | Health & Config Verification | **PASS** | 11.94s |
+| 2 | Task Creation (Balance Check) | **PASS** | 91.85s |
+| 3 | Worker Registration & Identity | **PASS** | 7.5s |
+| 4 | Task Lifecycle (Apply -> Assign+Escrow -> Submit) | **PASS** | 8.02s |
+| 5 | Approval & Payment Settlement | **PASS** | 42.94s |
+| 6 | Bidirectional Reputation | **PARTIAL** | 66.31s |
 | 7 | Final Verification | **PASS** | 0.27s |
 
 ---
@@ -96,56 +106,58 @@ sequenceDiagram
 ## Health & Config Verification
 
 - **Status**: PASS
-- **Time**: 0.47s
+- **Time**: 11.94s
 
 
-## Task Creation with Escrow
+## Task Creation (Balance Check)
 
 - **Status**: PASS
-- **Time**: 20.46s
+- **Time**: 91.85s
 
-- **Task ID**: `ad4d4406-bd43-4734-ac57-5a21732aa1bb`
-- **Escrow TX**: [`0xf94925d273f5a0...`](https://basescan.org/tx/0xf94925d273f5a0b1abf83b983becba8f43db9508a982245f57ef7952797c93d6)
-- **Escrow Verified**: True
-- **Escrow Amount**: $0.113000 USDC
+- **Task ID**: `e2215052-7436-48d7-bfe4-16447c2b6b03`
+- **Escrow at creation**: False
+- **Fee model**: credit_card
 
 ## Worker Registration & Identity
 
 - **Status**: PASS
-- **Time**: 0.38s
+- **Time**: 7.5s
 
 - **Executor ID**: `803dfbf1-7b91-4a41-8d31-518f4fa2fcd4`
 
-## Task Lifecycle (Apply -> Assign -> Submit)
+## Task Lifecycle (Apply -> Assign+Escrow -> Submit)
 
 - **Status**: PASS
-- **Time**: 2.28s
+- **Time**: 8.02s
 
-- **Submission ID**: `0509169f-75d6-4ab5-8cfb-be070e55f874`
+- **Submission ID**: `88329014-1d0b-4553-b018-ff31306f9ea7`
+- **Escrow TX (at assignment)**: [`0x0e8a29356f9dcc...`](https://basescan.org/tx/0x0e8a29356f9dcc8f3bd52378ae4dad210344935edb48f859d1fb1b7dd3915530)
+- **Escrow Verified**: True
+- **Escrow mode**: direct_release
 
 ## Approval & Payment Settlement
 
 - **Status**: PASS
-- **Time**: 26.16s
+- **Time**: 42.94s
 
-- **Payment Mode**: `facilitator`
-- **Worker TX**: [`0x750f3843a8fb6e...`](https://basescan.org/tx/0x750f3843a8fb6e94135257c39ee500a914ef745f2d977e73090b818a4d360578)
+- **Payment Mode**: `fase2`
+- **Worker TX**: [`0x48110f7a38936e...`](https://basescan.org/tx/0x48110f7a38936ee6816dbf7ce5ba827f0b1c48d6e1f5ba2fe01fe3eda1ffaa6c)
+- **Escrow Release**: [`0x48110f7a38936e...`](https://basescan.org/tx/0x48110f7a38936ee6816dbf7ce5ba827f0b1c48d6e1f5ba2fe01fe3eda1ffaa6c)
 
 ## Bidirectional Reputation
 
-- **Status**: PASS
-- **Time**: 10.31s
+- **Status**: PARTIAL
+- **Time**: 66.31s
+- **Error**: Agent->Worker: HTTP 200, success=False, error=; Worker->Agent: HTTP 200, success=False, error=
 
-- **Agent->Worker TX**: [`0x417e03cb8125f3...`](https://basescan.org/tx/0x417e03cb8125f3c579a90d66eebfe00d5185a199b1b39f0e5641e8df30426113)
-- **Worker->Agent TX**: [`0x17cf9ed176fc18...`](https://basescan.org/tx/0x17cf9ed176fc18ffede104f6b9ac6a48c1b8d060c3fb4da765f7e73fdbf1beb2)
 
 ## Final Verification
 
 - **Status**: PASS
 - **Time**: 0.27s
 
-- **EM Reputation Score**: 82.0
-- **EM Reputation Count**: 3
+- **EM Reputation Score**: 77.0
+- **EM Reputation Count**: 7
 - **Feedback Available**: True
 
 ---
@@ -154,19 +166,17 @@ sequenceDiagram
 
 | # | TX Hash | BaseScan |
 |---|---------|----------|
-| 1 | `0xf94925d273f5a0b1ab...` | [View](https://basescan.org/tx/0xf94925d273f5a0b1abf83b983becba8f43db9508a982245f57ef7952797c93d6) |
-| 2 | `0x750f3843a8fb6e9413...` | [View](https://basescan.org/tx/0x750f3843a8fb6e94135257c39ee500a914ef745f2d977e73090b818a4d360578) |
-| 3 | `0x417e03cb8125f3c579...` | [View](https://basescan.org/tx/0x417e03cb8125f3c579a90d66eebfe00d5185a199b1b39f0e5641e8df30426113) |
-| 4 | `0x17cf9ed176fc18ffed...` | [View](https://basescan.org/tx/0x17cf9ed176fc18ffede104f6b9ac6a48c1b8d060c3fb4da765f7e73fdbf1beb2) |
+| 1 | `0x0e8a29356f9dcc8f3b...` | [View](https://basescan.org/tx/0x0e8a29356f9dcc8f3bd52378ae4dad210344935edb48f859d1fb1b7dd3915530) |
+| 2 | `0x48110f7a38936ee681...` | [View](https://basescan.org/tx/0x48110f7a38936ee6816dbf7ce5ba827f0b1c48d6e1f5ba2fe01fe3eda1ffaa6c) |
 
 ---
 
 ## Invariants Verified
 
 - [x] API is healthy and returning correct configuration
-- [x] Task created successfully with published status
-- [x] Escrow TX verified on-chain (status: SUCCESS)
+- [x] Task created successfully with published status (balance check only)
+- [x] Escrow locked at assignment (direct_release, worker as receiver)
+- [x] Escrow lock TX verified on-chain (status: SUCCESS)
 - [x] Worker registered with executor ID
-- [x] Treasury receives $0.013000 (13% platform fee)
 - [x] All payment TXs verified on-chain (status: 0x1)
-- [x] Bidirectional reputation: agent rated worker AND worker rated agent
+- [x] Single-TX escrow release (fee split by StaticFeeCalculator 1300bps)
