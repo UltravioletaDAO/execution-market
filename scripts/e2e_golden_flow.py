@@ -17,6 +17,7 @@ Environment:
     EM_API_KEY           -- Agent API key (optional when EM_REQUIRE_API_KEY=false)
     EM_API_URL           -- API base URL (default: https://api.execution.market)
     EM_WORKER_WALLET     -- Worker wallet (default: 0x52E0...)
+    EM_WORKER_PRIVATE_KEY -- Worker private key (for on-chain reputation signing)
     EM_TEST_EXECUTOR_ID  -- Existing executor UUID (skips registration if set)
     SUPABASE_URL         -- For fallback queries
     SUPABASE_SERVICE_KEY -- For fallback queries
@@ -1008,30 +1009,154 @@ async def phase_reputation(
         if rw_error:
             print(f"         Note: {rw_error}")
 
-        # Step 2: Worker rates agent
-        print("  [2/2] Worker rating agent (score: 85)...")
-        rate_agent_data = await api_call(
+        # Step 2: Worker rates agent (new prepare-feedback + on-chain signing flow)
+        print("  [2/4] Worker preparing feedback for agent (score: 85)...")
+        prepare_data = await api_call(
             client,
             "POST",
-            "/reputation/agents/rate",
+            "/reputation/prepare-feedback",
             {
                 "agent_id": EM_AGENT_ID,
                 "task_id": task_id,
                 "score": 85,
                 "comment": "Golden Flow test -- great agent",
+                "worker_address": WORKER_WALLET,
             },
         )
-        ra_status = rate_agent_data.get("_http_status")
-        print(f"         Rate agent: HTTP {ra_status}")
-        ra_success = rate_agent_data.get("success", False)
-        worker_rates_agent_tx = rate_agent_data.get("transaction_hash")
-        ra_error = rate_agent_data.get("error")
-        print(f"         Success: {ra_success}")
-        if worker_rates_agent_tx:
-            print(f"         TX: {worker_rates_agent_tx}")
-            results.add_tx(worker_rates_agent_tx)
-        if ra_error:
-            print(f"         Note: {ra_error}")
+        prep_status = prepare_data.get("_http_status")
+        print(f"         Prepare feedback: HTTP {prep_status}")
+
+        worker_rates_agent_tx = None
+        ra_success = False
+        ra_error = None
+        ra_status = prep_status
+
+        if prep_status == 200:
+            prepare_id = prepare_data.get("prepare_id", "")
+            contract_address = prepare_data.get("contract_address", "")
+            chain_id = prepare_data.get("chain_id", 8453)
+            agent_id_param = prepare_data.get("agent_id", EM_AGENT_ID)
+            value_param = prepare_data.get("value", 85)
+            tag1 = prepare_data.get("tag1", "agent_rating")
+            tag2 = prepare_data.get("tag2", "execution-market")
+            endpoint_param = prepare_data.get("endpoint", f"task:{task_id}")
+            feedback_uri = prepare_data.get("feedback_uri", "")
+            feedback_hash = prepare_data.get("feedback_hash", "0x" + "00" * 32)
+            print(f"         Prepare ID: {prepare_id[:16]}...")
+            print(f"         Contract: {contract_address}")
+
+            # Step 3: Worker signs giveFeedback() TX on-chain
+            worker_private_key = os.environ.get("EM_WORKER_PRIVATE_KEY", "")
+            if worker_private_key:
+                print("  [3/4] Worker signing giveFeedback() on-chain...")
+                try:
+                    from web3 import Web3
+                    try:
+                        from web3.middleware import ExtraDataToPOAMiddleware as _poa
+                    except ImportError:
+                        from web3.middleware import geth_poa_middleware as _poa
+
+                    rpc_url = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
+                    w3 = Web3(Web3.HTTPProvider(rpc_url))
+                    try:
+                        w3.middleware_onion.inject(_poa, layer=0)
+                    except Exception:
+                        pass
+
+                    GIVE_FEEDBACK_ABI = [{
+                        "inputs": [
+                            {"name": "agentId", "type": "uint256"},
+                            {"name": "value", "type": "int128"},
+                            {"name": "valueDecimals", "type": "uint8"},
+                            {"name": "tag1", "type": "string"},
+                            {"name": "tag2", "type": "string"},
+                            {"name": "endpoint", "type": "string"},
+                            {"name": "feedbackURI", "type": "string"},
+                            {"name": "feedbackHash", "type": "bytes32"},
+                        ],
+                        "name": "giveFeedback",
+                        "outputs": [],
+                        "stateMutability": "nonpayable",
+                        "type": "function",
+                    }]
+
+                    registry = w3.eth.contract(
+                        address=Web3.to_checksum_address(contract_address),
+                        abi=GIVE_FEEDBACK_ABI,
+                    )
+
+                    acct = w3.eth.account.from_key(worker_private_key)
+                    nonce = w3.eth.get_transaction_count(acct.address)
+
+                    # Ensure feedback_hash is bytes32
+                    if isinstance(feedback_hash, str):
+                        fb_hash_bytes = bytes.fromhex(feedback_hash.replace("0x", "").ljust(64, "0"))
+                    else:
+                        fb_hash_bytes = feedback_hash
+
+                    tx = registry.functions.giveFeedback(
+                        agent_id_param,
+                        value_param,
+                        0,  # valueDecimals
+                        tag1,
+                        tag2,
+                        endpoint_param,
+                        feedback_uri,
+                        fb_hash_bytes,
+                    ).build_transaction({
+                        "from": acct.address,
+                        "nonce": nonce,
+                        "gas": 250000,
+                        "maxFeePerGas": w3.to_wei(0.5, "gwei"),
+                        "maxPriorityFeePerGas": w3.to_wei(0.1, "gwei"),
+                        "chainId": chain_id,
+                    })
+
+                    signed = acct.sign_transaction(tx)
+                    tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+                    worker_rates_agent_tx = tx_hash.hex()
+                    print(f"         TX sent: {worker_rates_agent_tx}")
+
+                    # Wait for receipt
+                    receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+                    if receipt["status"] == 1:
+                        print(f"         TX confirmed! Gas used: {receipt['gasUsed']}")
+                        ra_success = True
+                        results.add_tx(worker_rates_agent_tx)
+                    else:
+                        ra_error = "TX reverted on-chain"
+                        print(f"         TX REVERTED")
+
+                except Exception as e:
+                    ra_error = f"On-chain signing failed: {e}"
+                    print(f"         Error: {ra_error}")
+
+                # Step 4: Confirm feedback with API
+                if ra_success and worker_rates_agent_tx:
+                    print("  [4/4] Confirming feedback TX with API...")
+                    confirm_data = await api_call(
+                        client,
+                        "POST",
+                        "/reputation/confirm-feedback",
+                        {
+                            "prepare_id": prepare_id,
+                            "task_id": task_id,
+                            "tx_hash": worker_rates_agent_tx,
+                        },
+                    )
+                    cf_status = confirm_data.get("_http_status")
+                    print(f"         Confirm: HTTP {cf_status}")
+                    ra_status = 200  # Overall success
+            else:
+                # No worker private key — can only prepare, not sign
+                ra_error = "EM_WORKER_PRIVATE_KEY not set — worker cannot sign on-chain TX"
+                print(f"         ⚠️  {ra_error}")
+                print("         Set EM_WORKER_PRIVATE_KEY to enable full bidirectional reputation")
+                ra_success = False
+                ra_status = 200  # API worked, but no TX
+        else:
+            ra_error = prepare_data.get("detail", f"HTTP {prep_status}")
+            print(f"         Error: {ra_error}")
 
         # Both must succeed for full pass; partial if one fails
         if rw_status == 200 and ra_status == 200 and rw_success and ra_success:
