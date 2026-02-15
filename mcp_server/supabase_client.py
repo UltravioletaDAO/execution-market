@@ -446,9 +446,10 @@ async def apply_to_task(
 
     # Check minimum reputation
     min_rep = task.get("min_reputation", 0)
-    if executor.data.get("reputation_score", 0) < min_rep:
+    executor_rep = executor.data.get("reputation_score", 0)
+    if executor_rep < min_rep:
         raise Exception(
-            f"Insufficient reputation. Required: {min_rep}, yours: {executor.data['reputation_score']}"
+            f"Insufficient reputation. Required: {min_rep}, yours: {executor_rep}"
         )
 
     # Check for existing application
