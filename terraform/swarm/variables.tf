@@ -187,3 +187,18 @@ variable "log_retention_days" {
   type        = number
   default     = 14
 }
+
+# -----------------------------------------------------------------------------
+# Cost Alerting
+# -----------------------------------------------------------------------------
+variable "alert_email" {
+  description = "Email address for cost/budget alerts. Leave empty to skip."
+  type        = string
+  default     = ""
+}
+
+variable "daily_spend_limit" {
+  description = "Maximum daily EM task spend (USD) before alerting."
+  type        = number
+  default     = 25
+}
