@@ -173,6 +173,7 @@ export default {
         'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
         'glow-pulse': 'glowPulse 2s ease-in-out infinite',
         'blink': 'blink 1s step-end infinite',
+        'feed-in': 'feedIn 0.5s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -219,6 +220,11 @@ export default {
         blink: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0' },
+        },
+        feedIn: {
+          '0%': { opacity: '0', transform: 'translateY(-8px)' },
+          '60%': { opacity: '1', transform: 'translateY(0)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
       boxShadow: {
