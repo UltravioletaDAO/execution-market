@@ -107,6 +107,7 @@ export function WorkerTasks() {
     tasks: myTasks,
     loading: myTasksLoading,
     error: myTasksError,
+    refetch: refetchMyTasks,
   } = useMyTasks(executor?.id)
   const { metrics: platformMetrics, loading: metricsLoading } = usePublicMetrics()
 
@@ -124,7 +125,9 @@ export function WorkerTasks() {
     setActiveTab('mine')
     setView('list')
     setSelectedTask(null)
-  }, [])
+    // Immediately refetch so the accepted task appears without manual refresh
+    refetchMyTasks()
+  }, [refetchMyTasks])
 
   const handleStartSubmission = useCallback(() => {
     setView('submit')
