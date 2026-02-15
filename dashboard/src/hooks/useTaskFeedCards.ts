@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { TaskFeedCardData, TaskFeedParticipant } from '../components/feed/TaskFeedCard'
+import type { TaskFeedCardData, TaskFeedParticipant, FeedbackData } from '../components/feed/TaskFeedCard'
 import type { ActivityEventType, ActivityFilter, ActivityFeedMode } from './useActivityFeed'
 
 // ---------------------------------------------------------------------------
@@ -161,15 +161,40 @@ export function useTaskFeedCards(
     const escrowTx = task.escrow_tx as string | null
     const refundTx = task.refund_tx as string | null
 
-    // Payment and reputation TXs come from the submission
+    // Payment TX from submission
     const submissions = (task.submissions || []) as Array<Record<string, unknown>>
     const latestSubmission = submissions.length > 0 ? submissions[submissions.length - 1] : null
     const paymentTx = latestSubmission?.payment_tx as string | null ?? null
-    const reputationTx = latestSubmission?.reputation_tx as string | null ?? null
 
-    // For now, reputation_tx covers agent→worker. Worker→agent stored separately if available.
-    const agentRepTx = reputationTx
-    const workerRepTx: string | null = null
+    // Bidirectional feedback from feedback_documents
+    const feedbackDocs = (task.feedback_documents || []) as Array<Record<string, unknown>>
+
+    // worker_rating = agent rated the worker
+    const workerRatingDoc = feedbackDocs.find(d => d.feedback_type === 'worker_rating')
+    // agent_rating = worker rated the agent
+    const agentRatingDoc = feedbackDocs.find(d => d.feedback_type === 'agent_rating')
+
+    const buildFeedback = (doc: Record<string, unknown> | undefined): FeedbackData | null => {
+      if (!doc) {
+        // If task is completed, show as pending
+        if (status === 'completed') {
+          return { score: null, rating_stars: null, reputation_tx: null, comment: null, status: 'pending' }
+        }
+        return null
+      }
+      const score = doc.score as number
+      const docJson = doc.document_json as Record<string, unknown> | null
+      return {
+        score,
+        rating_stars: Math.round((score / 100) * 5),
+        reputation_tx: doc.reputation_tx as string | null,
+        comment: docJson?.comment as string | null ?? docJson?.notes as string | null ?? null,
+        status: 'completed',
+      }
+    }
+
+    const agentToWorkerFeedback = buildFeedback(workerRatingDoc)
+    const workerToAgentFeedback = buildFeedback(agentRatingDoc)
 
     return {
       id: task.id as string,
@@ -188,8 +213,8 @@ export function useTaskFeedCards(
       escrow_tx: escrowTx,
       payment_tx: paymentTx,
       refund_tx: refundTx,
-      agent_reputation_tx: agentRepTx,
-      worker_reputation_tx: workerRepTx,
+      agent_to_worker_feedback: agentToWorkerFeedback,
+      worker_to_agent_feedback: workerToAgentFeedback,
     }
   }, [])
 
@@ -204,7 +229,7 @@ export function useTaskFeedCards(
       // Build query
       let query = supabase
         .from('tasks')
-        .select('id, title, status, category, bounty_usd, payment_token, payment_network, agent_id, executor_id, escrow_tx, escrow_id, refund_tx, created_at, updated_at, completed_at, submissions(payment_tx, reputation_tx)')
+        .select('id, title, status, category, bounty_usd, payment_token, payment_network, agent_id, executor_id, escrow_tx, escrow_id, refund_tx, created_at, updated_at, completed_at, submissions(payment_tx, reputation_tx), feedback_documents(feedback_type, score, reputation_tx, document_json)')
         .order('updated_at', { ascending: false })
         .range(pageNum * effectiveLimit, (pageNum + 1) * effectiveLimit - 1)
 
