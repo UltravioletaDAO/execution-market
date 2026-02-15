@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException, Depends, Path
 from pydantic import BaseModel, Field
 
 import supabase_client as db
+from integrations.x402.payment_events import log_payment_event
 
 # ERC-8004 Facilitator client
 try:
@@ -665,6 +666,21 @@ async def rate_worker_endpoint(
                 "Failed to store reputation_tx for task %s: %s", request.task_id, e
             )
 
+        # Log to payment_events audit trail
+        await log_payment_event(
+            task_id=request.task_id,
+            event_type="reputation_agent_rates_worker",
+            status="success",
+            tx_hash=result.transaction_hash,
+            network=result.network
+            or (ERC8004_NETWORK if ERC8004_AVAILABLE else "base"),
+            metadata={
+                "score": request.score,
+                "worker_address": worker_address,
+                "feedback_index": result.feedback_index,
+            },
+        )
+
     return FeedbackResponse(
         success=result.success,
         transaction_hash=result.transaction_hash,
@@ -927,6 +943,19 @@ async def confirm_feedback_endpoint(
         request.task_id,
         request.tx_hash[:16],
         request.prepare_id[:8],
+    )
+
+    # Log to payment_events audit trail
+    await log_payment_event(
+        task_id=request.task_id,
+        event_type="reputation_worker_rates_agent",
+        status="success",
+        tx_hash=request.tx_hash,
+        network=ERC8004_NETWORK if ERC8004_AVAILABLE else "base",
+        metadata={
+            "prepare_id": request.prepare_id,
+            "worker_signed": True,
+        },
     )
 
     return ConfirmFeedbackResponse(
