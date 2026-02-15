@@ -284,7 +284,7 @@ export function WorkerTasks() {
             {/* Nav links */}
             <nav className="hidden md:flex items-center gap-1">
               <button onClick={() => navigate('/tasks')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium">
-                {t('nav.myTasks', 'My Tasks')}
+                {t('nav.tasks', 'Tasks')}
               </button>
               <button onClick={() => navigate('/activity')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
                 {t('nav.activity', 'Activity')}
