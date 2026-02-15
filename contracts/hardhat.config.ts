@@ -165,6 +165,20 @@ const config: HardhatUserConfig = {
       gasPrice: "auto",
     },
 
+    // ============ MONAD ============
+    monad_mainnet: {
+      url: process.env.MONAD_RPC_URL || "https://rpc.monad.xyz",
+      chainId: 143,
+      accounts: getAccountsConfig(),
+      gasPrice: "auto",
+    },
+    monad_testnet: {
+      url: process.env.MONAD_TESTNET_RPC_URL || "https://testnet-rpc.monad.xyz",
+      chainId: 10143,
+      accounts: getAccountsConfig(),
+      gasPrice: "auto",
+    },
+
     // ============ SCROLL ============
     scroll: {
       url: process.env.SCROLL_RPC_URL || "https://rpc.scroll.io",
