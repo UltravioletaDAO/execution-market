@@ -19,6 +19,7 @@ import { PaymentStatusBadge } from '../components/PaymentStatusBadge'
 import { useTaskPayment } from '../hooks/useTaskPayment'
 import { PaymentStatus } from '../components/PaymentStatus'
 import { TransactionTimeline } from '../components/TransactionTimeline'
+import { useAgentReputation, getReputationTier, getTierColor } from '../hooks/useAgentReputation'
 import type { Task, TaskCategory, TaskStatus, Executor, TaskApplication } from '../types/database'
 
 // ============================================================================
@@ -643,6 +644,7 @@ export function TaskDetailPage({
     task.status === 'expired' ||
     task.status === 'cancelled'
   const { payment, loading: paymentLoading } = useTaskPayment(showPaymentSection ? task.id : null)
+  const { data: agentReputation } = useAgentReputation()
 
   const isAssigned = task.executor_id === executor?.id
   const canApply = useMemo(() => {
@@ -824,9 +826,20 @@ export function TaskDetailPage({
               />
             </svg>
           </div>
-          <div>
+          <div className="flex-1">
             <div className="font-medium text-gray-900">{task.agent_id}</div>
-            <div className="text-xs text-gray-500">Agente verificado</div>
+            {agentReputation ? (
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className={`text-xs px-1.5 py-0.5 rounded border ${getTierColor(getReputationTier(agentReputation.score))}`}>
+                  {getReputationTier(agentReputation.score)}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {Math.round(agentReputation.score)}/100 ({agentReputation.count} {agentReputation.count === 1 ? 'valoracion' : 'valoraciones'})
+                </span>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500">Agente verificado</div>
+            )}
           </div>
         </div>
       </div>
