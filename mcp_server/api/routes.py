@@ -1894,6 +1894,47 @@ class TaskPaymentResponse(BaseModel):
     updated_at: str = Field(..., description="Last event timestamp")
 
 
+class TransactionEventResponse(BaseModel):
+    """Single on-chain transaction event from the payment_events audit trail."""
+
+    id: str = Field(..., description="Event UUID")
+    event_type: str = Field(
+        ...,
+        description="Event type: escrow_authorize, escrow_release, escrow_refund, balance_check, settle_worker_direct, settle_fee_direct, disburse_worker, disburse_fee, fee_collect, reputation_agent_rates_worker, reputation_worker_rates_agent",
+    )
+    tx_hash: Optional[str] = Field(
+        None, description="On-chain transaction hash (0x-prefixed)"
+    )
+    amount_usdc: Optional[float] = Field(None, description="Amount in USDC")
+    from_address: Optional[str] = Field(None, description="Source wallet address")
+    to_address: Optional[str] = Field(None, description="Destination wallet address")
+    network: Optional[str] = Field(None, description="Blockchain network")
+    token: str = Field("USDC", description="Token symbol")
+    status: str = Field(..., description="Event status: pending, success, failed")
+    explorer_url: Optional[str] = Field(
+        None, description="Block explorer URL for this transaction"
+    )
+    label: Optional[str] = Field(None, description="Human-readable label in Spanish")
+    timestamp: str = Field(..., description="Event timestamp (ISO 8601)")
+    metadata: Optional[Dict[str, Any]] = Field(
+        None, description="Additional event context"
+    )
+
+
+class TaskTransactionsResponse(BaseModel):
+    """Chronological transaction history for a task from the payment_events audit trail."""
+
+    task_id: str = Field(..., description="Task UUID")
+    transactions: List[TransactionEventResponse] = Field(
+        ..., description="Chronological list of transaction events"
+    )
+    total_count: int = Field(..., description="Total number of events")
+    summary: Dict[str, Any] = Field(
+        ...,
+        description="Summary: total_locked, total_released, total_refunded, fee_collected",
+    )
+
+
 class ConfigUpdateRequest(BaseModel):
     """Request to update a config value (admin only)."""
 
@@ -3606,6 +3647,221 @@ async def get_task_payment(
         events=[TaskPaymentEventResponse(**event) for event in events],
         created_at=created_at,
         updated_at=updated_at,
+    )
+
+
+# Human-readable labels for transaction event types (Spanish)
+_TX_EVENT_LABELS: Dict[str, str] = {
+    "balance_check": "Verificacion de Balance",
+    "escrow_authorize": "Deposito Escrow",
+    "escrow_release": "Liberacion Escrow",
+    "escrow_refund": "Reembolso Escrow",
+    "settle": "Liquidacion",
+    "settle_worker_direct": "Pago Directo al Worker",
+    "settle_fee_direct": "Fee de Plataforma",
+    "disburse_worker": "Pago al Worker",
+    "disburse_fee": "Fee Plataforma",
+    "fee_collect": "Cobro de Fee",
+    "refund": "Reembolso al Agente",
+    "cancel": "Cancelacion",
+    "verify": "Verificacion",
+    "store_auth": "Autorizacion Almacenada",
+    "error": "Error de Pago",
+    "reputation_agent_rates_worker": "Agente Califica Worker",
+    "reputation_worker_rates_agent": "Worker Califica Agente",
+}
+
+# Explorer URL templates per network
+_EXPLORER_TX_URLS: Dict[str, str] = {
+    "base": "https://basescan.org/tx/",
+    "ethereum": "https://etherscan.io/tx/",
+    "polygon": "https://polygonscan.com/tx/",
+    "arbitrum": "https://arbiscan.io/tx/",
+    "celo": "https://celoscan.io/tx/",
+    "avalanche": "https://snowtrace.io/tx/",
+    "optimism": "https://optimistic.etherscan.io/tx/",
+    "monad": "https://explorer.monad.xyz/tx/",
+    "base-sepolia": "https://sepolia.basescan.org/tx/",
+    "sepolia": "https://sepolia.etherscan.io/tx/",
+}
+
+
+def _build_explorer_url(
+    tx_hash: Optional[str], network: Optional[str]
+) -> Optional[str]:
+    if not tx_hash:
+        return None
+    net = (network or "base").lower()
+    base_url = _EXPLORER_TX_URLS.get(net, _EXPLORER_TX_URLS["base"])
+    h = tx_hash if tx_hash.startswith("0x") else f"0x{tx_hash}"
+    return f"{base_url}{h}"
+
+
+@router.get(
+    "/tasks/{task_id}/transactions",
+    response_model=TaskTransactionsResponse,
+    responses={
+        200: {"description": "Transaction history retrieved successfully"},
+        404: {"model": ErrorResponse, "description": "Task not found"},
+    },
+    summary="Get Task Transaction History",
+    description="Retrieve chronological on-chain transaction history for a task from the payment_events audit trail",
+    tags=["Tasks", "Payments"],
+)
+async def get_task_transactions(
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
+    api_key: Optional[APIKeyData] = Depends(verify_api_key_optional),
+) -> TaskTransactionsResponse:
+    """
+    Get all on-chain transactions for a task, ordered chronologically.
+
+    Returns events from the payment_events audit trail plus reputation
+    transaction hashes stored on the task/submission records.
+
+    Visible to both the agent (task creator) and anyone (public tasks).
+    """
+    try:
+        task = await db.get_task(task_id)
+    except Exception as task_err:
+        if _is_not_found_error(task_err):
+            task = None
+        else:
+            raise HTTPException(status_code=500, detail="Failed to load task")
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    client = db.get_client()
+
+    # Query payment_events audit trail
+    try:
+        pe_result = (
+            client.table("payment_events")
+            .select("*")
+            .eq("task_id", task_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+        pe_rows = pe_result.data or []
+    except Exception as pe_err:
+        logger.warning(
+            "Failed to query payment_events for task %s: %s", task_id, pe_err
+        )
+        pe_rows = []
+
+    default_network = task.get("payment_network") or "base"
+
+    # Build transaction events from payment_events rows
+    transactions: List[Dict[str, Any]] = []
+    total_locked = 0.0
+    total_released = 0.0
+    total_refunded = 0.0
+    fee_collected = 0.0
+
+    for row in pe_rows:
+        event_type = row.get("event_type", "unknown")
+        amount = float(row.get("amount_usdc") or 0)
+        status = row.get("status", "pending")
+        tx_hash = row.get("tx_hash")
+        network = row.get("network") or default_network
+
+        # Aggregate summary
+        if status == "success":
+            if event_type in ("escrow_authorize",):
+                total_locked += amount
+            elif event_type in (
+                "escrow_release",
+                "settle_worker_direct",
+                "disburse_worker",
+                "settle",
+            ):
+                total_released += amount
+            elif event_type in ("escrow_refund", "refund"):
+                total_refunded += amount
+            elif event_type in (
+                "settle_fee_direct",
+                "disburse_fee",
+                "fee_collect",
+            ):
+                fee_collected += amount
+
+        transactions.append(
+            {
+                "id": row.get("id", ""),
+                "event_type": event_type,
+                "tx_hash": tx_hash,
+                "amount_usdc": amount if amount > 0 else None,
+                "from_address": row.get("from_address"),
+                "to_address": row.get("to_address"),
+                "network": network,
+                "token": row.get("token", "USDC"),
+                "status": status,
+                "explorer_url": _build_explorer_url(tx_hash, network),
+                "label": _TX_EVENT_LABELS.get(event_type, event_type),
+                "timestamp": str(row.get("created_at", "")),
+                "metadata": row.get("metadata"),
+            }
+        )
+
+    # Inject reputation events from task metadata (if not already in payment_events)
+    existing_tx_hashes = {t["tx_hash"] for t in transactions if t.get("tx_hash")}
+
+    # Check for reputation TX hashes in escrow metadata or task
+    try:
+        escrows_result = (
+            client.table("escrows")
+            .select("metadata")
+            .eq("task_id", task_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        escrow_meta = (
+            (escrows_result.data[0].get("metadata") or {})
+            if escrows_result.data
+            else {}
+        )
+    except Exception:
+        escrow_meta = {}
+
+    # Check for reputation TXs in escrow metadata
+    for rep_key, rep_event_type in [
+        ("reputation_agent_tx", "reputation_agent_rates_worker"),
+        ("reputation_worker_tx", "reputation_worker_rates_agent"),
+    ]:
+        rep_tx = escrow_meta.get(rep_key)
+        if rep_tx and rep_tx not in existing_tx_hashes:
+            transactions.append(
+                {
+                    "id": f"{task_id}-{rep_event_type}",
+                    "event_type": rep_event_type,
+                    "tx_hash": rep_tx,
+                    "amount_usdc": None,
+                    "from_address": None,
+                    "to_address": None,
+                    "network": default_network,
+                    "token": "USDC",
+                    "status": "success",
+                    "explorer_url": _build_explorer_url(rep_tx, default_network),
+                    "label": _TX_EVENT_LABELS.get(rep_event_type, rep_event_type),
+                    "timestamp": str(task.get("updated_at", "")),
+                    "metadata": None,
+                }
+            )
+
+    # Sort chronologically
+    transactions.sort(key=lambda t: t.get("timestamp") or "")
+
+    return TaskTransactionsResponse(
+        task_id=task_id,
+        transactions=[TransactionEventResponse(**t) for t in transactions],
+        total_count=len(transactions),
+        summary={
+            "total_locked": round(total_locked, 6),
+            "total_released": round(total_released, 6),
+            "total_refunded": round(total_refunded, 6),
+            "fee_collected": round(fee_collected, 6),
+        },
     )
 
 
