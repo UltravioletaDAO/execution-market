@@ -284,6 +284,111 @@ function FeedbackPanel({
   )
 }
 
+/** Task center content — shared between mobile and desktop layouts */
+function TaskCenterContent({
+  data,
+  categoryIcon,
+  hasFeedback,
+  isCompleted,
+  transactions,
+  onTaskClick,
+  t,
+}: {
+  data: TaskFeedCardData
+  categoryIcon: string
+  hasFeedback: boolean
+  isCompleted: boolean
+  transactions: TaskFeedTransaction[]
+  onTaskClick: () => void
+  t: (key: string, fallback: string, opts?: Record<string, unknown>) => string
+}) {
+  return (
+    <>
+      {/* Task title + category */}
+      <div className="flex items-start gap-2 mb-3">
+        <span className="text-lg flex-shrink-0">{categoryIcon}</span>
+        <div className="min-w-0">
+          {data.task_title ? (
+            <button
+              onClick={onTaskClick}
+              className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left leading-snug"
+            >
+              {data.task_title}
+            </button>
+          ) : (
+            <span className="text-sm text-slate-400 italic">{t('feed.untitledTask', 'Untitled task')}</span>
+          )}
+          {data.task_category && (
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+              {t(`tasks.categories.${data.task_category}`, data.task_category.replace(/_/g, ' '))}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex flex-wrap gap-3 mb-3">
+        {data.bounty_usd != null && data.bounty_usd > 0 && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-slate-500 dark:text-slate-400">💰</span>
+            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+              ${data.bounty_usd.toFixed(2)}
+            </span>
+            {data.payment_token && (
+              <span className="text-[10px] text-slate-400">{data.payment_token}</span>
+            )}
+          </div>
+        )}
+        {data.payment_network && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-slate-500 dark:text-slate-400">⛓️</span>
+            <span className="text-xs text-slate-600 dark:text-slate-300 capitalize">{data.payment_network}</span>
+          </div>
+        )}
+        {data.time_taken_seconds != null && data.time_taken_seconds > 0 && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-slate-500 dark:text-slate-400">⏱️</span>
+            <span className="text-xs text-slate-600 dark:text-slate-300">{formatDuration(data.time_taken_seconds)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Reputation Exchange */}
+      {(hasFeedback || isCompleted) && (
+        <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2 mb-2">
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium mb-2">
+            {t('feed.reputationExchange', 'Reputation Exchange')}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <FeedbackPanel
+              label={t('feed.agentToWorker', 'Requester → Executor')}
+              feedback={data.agent_to_worker_feedback}
+              network={data.payment_network || 'base'}
+            />
+            <FeedbackPanel
+              label={t('feed.workerToAgent', 'Executor → Requester')}
+              feedback={data.worker_to_agent_feedback}
+              network={data.payment_network || 'base'}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Transactions */}
+      {transactions.length > 0 && (
+        <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2 space-y-0.5">
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium mb-1">
+            {t('feed.transactions', 'Transactions')}
+          </p>
+          {transactions.map((tx) => (
+            <TxRow key={tx.label} label={tx.label} hash={tx.hash} network={tx.network} />
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
 /** Transaction row */
 function TxRow({ label, hash, network }: { label: string; hash: string | null | undefined; network?: string }) {
   if (!hash) return null
@@ -324,7 +429,7 @@ export const TaskFeedCard = memo(function TaskFeedCard({
     return txs
   }, [data])
 
-  const hasFeedback = data.agent_to_worker_feedback || data.worker_to_agent_feedback
+  const hasFeedback = Boolean(data.agent_to_worker_feedback || data.worker_to_agent_feedback)
   const isCompleted = data.event_type === 'task_completed'
 
   const handleTaskClick = () => {
@@ -389,8 +494,25 @@ export const TaskFeedCard = memo(function TaskFeedCard({
         </span>
       </div>
 
-      {/* Main body: Agent | Task | Worker */}
-      <div className="flex items-stretch">
+      {/* Participants row — horizontal on mobile, flanking on desktop */}
+      <div className="flex items-center justify-around gap-2 px-4 pt-3 pb-2 sm:hidden">
+        <ParticipantPanel
+          participant={data.agent}
+          role={t('feed.requester', 'Requester')}
+          align="left"
+          onClick={() => data.agent.wallet && navigate(`/profile/${data.agent.wallet}`)}
+        />
+        <div className="text-slate-300 dark:text-slate-600 text-lg">→</div>
+        <ParticipantPanel
+          participant={data.worker}
+          role={t('feed.worker', 'Worker')}
+          align="right"
+          onClick={() => data.worker?.wallet && navigate(`/profile/${data.worker.wallet}`)}
+        />
+      </div>
+
+      {/* Desktop: 3-column layout */}
+      <div className="hidden sm:flex items-stretch">
         {/* Left — Agent (requester) */}
         <div className="flex items-center justify-center p-4 border-r border-slate-100 dark:border-slate-700/50">
           <ParticipantPanel
@@ -401,96 +523,17 @@ export const TaskFeedCard = memo(function TaskFeedCard({
           />
         </div>
 
-        {/* Center — Task details */}
+        {/* Center — Task details (desktop) */}
         <div className="flex-1 p-4 min-w-0">
-          {/* Task title + category */}
-          <div className="flex items-start gap-2 mb-3">
-            <span className="text-lg flex-shrink-0">{categoryIcon}</span>
-            <div className="min-w-0">
-              {data.task_title ? (
-                <button
-                  onClick={handleTaskClick}
-                  className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left leading-snug"
-                >
-                  {data.task_title}
-                </button>
-              ) : (
-                <span className="text-sm text-slate-400 italic">{t('feed.untitledTask', 'Untitled task')}</span>
-              )}
-              {data.task_category && (
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
-                  {t(`tasks.categories.${data.task_category}`, data.task_category.replace(/_/g, ' '))}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Stats row */}
-          <div className="flex flex-wrap gap-3 mb-3">
-            {/* Bounty */}
-            {data.bounty_usd != null && data.bounty_usd > 0 && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-slate-500 dark:text-slate-400">💰</span>
-                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                  ${data.bounty_usd.toFixed(2)}
-                </span>
-                {data.payment_token && (
-                  <span className="text-[10px] text-slate-400">{data.payment_token}</span>
-                )}
-              </div>
-            )}
-
-            {/* Network */}
-            {data.payment_network && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-slate-500 dark:text-slate-400">⛓️</span>
-                <span className="text-xs text-slate-600 dark:text-slate-300 capitalize">{data.payment_network}</span>
-              </div>
-            )}
-
-            {/* Time taken */}
-            {data.time_taken_seconds != null && data.time_taken_seconds > 0 && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-slate-500 dark:text-slate-400">⏱️</span>
-                <span className="text-xs text-slate-600 dark:text-slate-300">{formatDuration(data.time_taken_seconds)}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Reputation Exchange */}
-          {(hasFeedback || isCompleted) && (
-            <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2 mb-2">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium mb-2">
-                {t('feed.reputationExchange', 'Reputation Exchange')}
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                {/* Agent → Worker */}
-                <FeedbackPanel
-                  label={t('feed.agentToWorker', 'Requester → Executor')}
-                  feedback={data.agent_to_worker_feedback}
-                  network={data.payment_network || 'base'}
-                />
-                {/* Worker → Agent */}
-                <FeedbackPanel
-                  label={t('feed.workerToAgent', 'Executor → Requester')}
-                  feedback={data.worker_to_agent_feedback}
-                  network={data.payment_network || 'base'}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Transactions */}
-          {transactions.length > 0 && (
-            <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2 space-y-0.5">
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium mb-1">
-                {t('feed.transactions', 'Transactions')}
-              </p>
-              {transactions.map((tx) => (
-                <TxRow key={tx.label} label={tx.label} hash={tx.hash} network={tx.network} />
-              ))}
-            </div>
-          )}
+          <TaskCenterContent
+            data={data}
+            categoryIcon={categoryIcon}
+            hasFeedback={hasFeedback}
+            isCompleted={isCompleted}
+            transactions={transactions}
+            onTaskClick={handleTaskClick}
+            t={t}
+          />
         </div>
 
         {/* Right — Worker */}
@@ -502,6 +545,19 @@ export const TaskFeedCard = memo(function TaskFeedCard({
             onClick={() => data.worker?.wallet && navigate(`/profile/${data.worker.wallet}`)}
           />
         </div>
+      </div>
+
+      {/* Mobile: task details below participants */}
+      <div className="sm:hidden px-4 pb-4">
+        <TaskCenterContent
+          data={data}
+          categoryIcon={categoryIcon}
+          hasFeedback={hasFeedback}
+          isCompleted={isCompleted}
+          transactions={transactions}
+          onTaskClick={handleTaskClick}
+          t={t}
+        />
       </div>
     </div>
   )

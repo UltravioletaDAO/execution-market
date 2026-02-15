@@ -233,10 +233,20 @@ export function useTaskFeedCards(
         .order('updated_at', { ascending: false })
         .range(pageNum * effectiveLimit, (pageNum + 1) * effectiveLimit - 1)
 
-      // Apply filter
+      // Apply filter — map event types back to task statuses
+      // Note: 'reputation' and 'workers' filters have no task-status equivalent
+      // in fallback mode; they only work with the activity_feed table
+      if (filter === 'reputation' || filter === 'workers') {
+        // These filters need the activity_feed table (not fallback)
+        // Return empty with a hint
+        setCards([])
+        setHasMore(false)
+        setLoading(false)
+        return
+      }
+
       const eventTypes = FILTER_EVENT_MAP[filter]
       if (eventTypes) {
-        // Map event types back to task statuses
         const statuses: string[] = []
         if (eventTypes.includes('task_created')) statuses.push('published')
         if (eventTypes.includes('task_accepted')) statuses.push('accepted', 'in_progress', 'submitted', 'verifying')
