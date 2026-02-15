@@ -433,6 +433,22 @@ resource "aws_cloudwatch_log_group" "swarm" {
 # -----------------------------------------------------------------------------
 # Agent Modules — Deploy each agent
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Cost Alerting (CloudWatch + SNS)
+# -----------------------------------------------------------------------------
+module "cost_alerts" {
+  source = "./modules/cost-alerts"
+
+  cluster_name        = aws_ecs_cluster.swarm.name
+  nat_gateway_id      = aws_nat_gateway.swarm.id
+  alert_email         = var.alert_email
+  daily_spend_limit   = var.daily_spend_limit
+  max_expected_agents = var.agent_count
+}
+
+# -----------------------------------------------------------------------------
+# Agent Modules — Deploy each agent
+# -----------------------------------------------------------------------------
 module "agent" {
   source   = "./modules/agent"
   for_each = { for i in range(var.agent_count) : format("agent-%03d", i) => i }
