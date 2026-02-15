@@ -1,22 +1,20 @@
 /**
  * ActivityFeed Component
  *
- * Full activity feed with filter tabs, real-time updates, pagination.
+ * Full activity feed with rich TaskFeedCards showing both participants,
+ * transactions, scores, and task details.
  *
- * Two modes controlled by `mode` prop:
- *  - 'public'        (default) — compact read-only, no filters/pagination/realtime
- *  - 'authenticated' — filter tabs, load-more, realtime slide-in, richer detail
+ * Two modes:
+ *  - 'public'        (default) — compact read-only cards, no filters/realtime
+ *  - 'authenticated' — filter tabs, load-more, realtime, full rich cards
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '../../lib/utils'
-import {
-  useActivityFeed,
-  type ActivityFilter,
-  type ActivityFeedMode,
-} from '../../hooks/useActivityFeed'
-import { ActivityFeedItem } from './ActivityFeedItem'
+import { useTaskFeedCards } from '../../hooks/useTaskFeedCards'
+import type { ActivityFilter, ActivityFeedMode } from '../../hooks/useActivityFeed'
+import { TaskFeedCard } from './TaskFeedCard'
 import { Skeleton } from '../ui/Skeleton'
 
 // ---------------------------------------------------------------------------
@@ -71,41 +69,41 @@ export function ActivityFeed({
   // Filters only available in authenticated (full) mode
   const [filter, setFilter] = useState<ActivityFilter>('all')
 
-  const { events, loading, error, hasMore, loadMore, newEventCount, clearNewEvents } =
-    useActivityFeed({ limit, filter, mode })
+  const { cards, loading, error, hasMore, loadMore, newCardCount, clearNewCards } =
+    useTaskFeedCards({ limit, filter, mode })
 
-  // Track which event IDs were present on first render so we can highlight new ones
+  // Track which card IDs were present on first render to highlight new ones
   const initialIds = useRef<Set<string>>(new Set())
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    if (!loading && events.length > 0 && initialIds.current.size === 0) {
-      const ids = new Set(events.map((e) => e.id))
+    if (!loading && cards.length > 0 && initialIds.current.size === 0) {
+      const ids = new Set(cards.map((c) => c.id))
       initialIds.current = ids
       setSeenIds(ids)
     }
-  }, [loading, events])
+  }, [loading, cards])
 
-  // When user clicks "N new events" banner, clear counter and mark all as seen
+  // When user clicks "N new" banner, clear counter and mark all as seen
   const handleShowNew = useCallback(() => {
-    clearNewEvents()
-    setSeenIds(new Set(events.map((e) => e.id)))
-  }, [clearNewEvents, events])
+    clearNewCards()
+    setSeenIds(new Set(cards.map((c) => c.id)))
+  }, [clearNewCards, cards])
 
   // Derive display flags
   const showFilters = isAuthenticated && !compact
   const showLoadMore = isAuthenticated && hasMore && !compact
-  const showNewBanner = isAuthenticated && newEventCount > 0
+  const showNewBanner = isAuthenticated && newCardCount > 0
 
   // ------------------------------------------------------------------
   // Loading skeleton
   // ------------------------------------------------------------------
-  if (loading && events.length === 0) {
+  if (loading && cards.length === 0) {
     return (
-      <div className={cn('space-y-2', className)}>
+      <div className={cn('space-y-3', className)}>
         {showFilters && <FilterTabsSkeleton />}
-        {Array.from({ length: compact ? 5 : 8 }).map((_, i) => (
-          <FeedItemSkeleton key={i} compact={compact} />
+        {Array.from({ length: compact ? 3 : 5 }).map((_, i) => (
+          <FeedCardSkeleton key={i} compact={compact} />
         ))}
       </div>
     )
@@ -114,7 +112,7 @@ export function ActivityFeed({
   // ------------------------------------------------------------------
   // Error state
   // ------------------------------------------------------------------
-  if (error && events.length === 0) {
+  if (error && cards.length === 0) {
     return (
       <div className={cn('text-center py-8', className)}>
         <p className="text-sm text-red-500 dark:text-red-400">
@@ -127,7 +125,7 @@ export function ActivityFeed({
   // ------------------------------------------------------------------
   // Empty state
   // ------------------------------------------------------------------
-  if (!loading && events.length === 0) {
+  if (!loading && cards.length === 0) {
     return (
       <div className={cn('text-center py-10', className)}>
         <span className="text-4xl">🦗</span>
@@ -142,7 +140,7 @@ export function ActivityFeed({
     <div className={cn('flex flex-col', className)}>
       {/* Filter tabs (authenticated full-mode only) */}
       {showFilters && (
-        <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1 -mx-1 px-1">
+        <div className="flex items-center gap-1 mb-4 overflow-x-auto pb-1 -mx-1 px-1">
           {TABS.map((tab) => (
             <button
               key={tab.key}
@@ -166,26 +164,25 @@ export function ActivityFeed({
         <button
           onClick={handleShowNew}
           className={cn(
-            'mb-2 py-1.5 px-3 rounded-lg text-xs font-medium text-center transition-colors',
+            'mb-3 py-1.5 px-3 rounded-lg text-xs font-medium text-center transition-colors',
             'bg-blue-50 text-blue-700 hover:bg-blue-100',
             'dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50',
           )}
         >
-          {t('feed.newEvents', '{{count}} new events', { count: newEventCount })}
+          {t('feed.newEvents', '{{count}} new events', { count: newCardCount })}
         </button>
       )}
 
-      {/* Events list */}
-      <div className="divide-y divide-slate-100 dark:divide-slate-800">
-        {events.map((event) => (
-          <ActivityFeedItem
-            key={event.id}
-            event={event}
+      {/* Cards list */}
+      <div className="space-y-3">
+        {cards.map((card) => (
+          <TaskFeedCard
+            key={card.id}
+            data={card}
             compact={compact}
-            linkActors={isAuthenticated}
             isNew={
               isAuthenticated &&
-              !seenIds.has(event.id) &&
+              !seenIds.has(card.id) &&
               initialIds.current.size > 0
             }
           />
@@ -198,7 +195,7 @@ export function ActivityFeed({
           onClick={loadMore}
           disabled={loading}
           className={cn(
-            'mt-3 py-2 px-4 rounded-lg text-sm font-medium transition-colors self-center',
+            'mt-4 py-2 px-4 rounded-lg text-sm font-medium transition-colors self-center',
             'bg-slate-100 text-slate-700 hover:bg-slate-200',
             'dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700',
             'disabled:opacity-50',
@@ -219,7 +216,7 @@ export function ActivityFeed({
 
 function FilterTabsSkeleton() {
   return (
-    <div className="flex items-center gap-2 mb-3">
+    <div className="flex items-center gap-2 mb-4">
       {Array.from({ length: 4 }).map((_, i) => (
         <Skeleton key={i} width={i === 0 ? 50 : 70} height={28} className="rounded-full" />
       ))}
@@ -227,15 +224,41 @@ function FilterTabsSkeleton() {
   )
 }
 
-function FeedItemSkeleton({ compact }: { compact?: boolean }) {
-  return (
-    <div className={cn('flex items-start gap-3', compact ? 'py-2 px-2' : 'py-2.5 px-3')}>
-      <Skeleton circle width={compact ? 28 : 32} height={compact ? 28 : 32} />
-      <div className="flex-1 space-y-1.5">
-        <Skeleton height={14} width="80%" />
-        {!compact && <Skeleton height={12} width="50%" />}
+function FeedCardSkeleton({ compact }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3 px-3 py-2">
+        <Skeleton circle width={28} height={28} />
+        <div className="flex-1 space-y-1">
+          <Skeleton height={14} width="80%" />
+        </div>
+        <Skeleton height={12} width={40} />
       </div>
-      <Skeleton height={12} width={40} />
+    )
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800/50">
+        <Skeleton height={20} width={120} className="rounded-full" />
+      </div>
+      <div className="flex p-4 gap-4">
+        <div className="flex flex-col items-center gap-2 w-28">
+          <Skeleton circle width={48} height={48} />
+          <Skeleton height={12} width={60} />
+          <Skeleton height={10} width={40} />
+        </div>
+        <div className="flex-1 space-y-2">
+          <Skeleton height={16} width="70%" />
+          <Skeleton height={12} width="40%" />
+          <Skeleton height={10} width="60%" />
+        </div>
+        <div className="flex flex-col items-center gap-2 w-28">
+          <Skeleton circle width={48} height={48} />
+          <Skeleton height={12} width={60} />
+          <Skeleton height={10} width={40} />
+        </div>
+      </div>
     </div>
   )
 }

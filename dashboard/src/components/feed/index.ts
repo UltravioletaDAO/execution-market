@@ -1,7 +1,5 @@
-/**
- * Feed Components - Barrel Exports
- */
-
-export { ActivityFeed, type ActivityFeedProps } from './ActivityFeed'
-export { ActivityFeedItem, type ActivityFeedItemProps } from './ActivityFeedItem'
-export { ActivityFeedCompact, type ActivityFeedCompactProps } from './ActivityFeedCompact'
+export { ActivityFeed } from './ActivityFeed'
+export { ActivityFeedItem } from './ActivityFeedItem'
+export { ActivityFeedCompact } from './ActivityFeedCompact'
+export { TaskFeedCard } from './TaskFeedCard'
+export type { TaskFeedCardData, TaskFeedCardProps, TaskFeedParticipant } from './TaskFeedCard'
