@@ -48,6 +48,8 @@ export interface Location {
   lng: number
 }
 
+export type AgentType = 'human' | 'ai' | 'organization'
+
 // Database row types (what you get from SELECT)
 export interface Executor {
   id: string
@@ -72,9 +74,33 @@ export interface Executor {
   reputation_contract: string | null
   reputation_token_id: number | null
   erc8004_agent_id: number | null
+  agent_type: AgentType
+  networks_active: string[]
   created_at: string
   updated_at: string
   last_active_at: string | null
+}
+
+export type ActivityEventType =
+  | 'task_created'
+  | 'task_accepted'
+  | 'task_completed'
+  | 'feedback_given'
+  | 'worker_joined'
+  | 'dispute_opened'
+  | 'dispute_resolved'
+
+export interface ActivityFeedRow {
+  id: string
+  event_type: ActivityEventType
+  actor_wallet: string
+  actor_name: string | null
+  actor_type: AgentType
+  target_wallet: string | null
+  target_name: string | null
+  task_id: string | null
+  metadata: Record<string, unknown>
+  created_at: string
 }
 
 export interface Task {
