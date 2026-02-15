@@ -31,8 +31,16 @@ const EVENT_CONFIG: Record<ActivityEventType, EventConfig> = {
     bgColor: 'bg-blue-50 dark:bg-blue-900/20',
   },
   task_accepted: {
-    icon: '✅',
+    icon: '🤝',
     bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+  },
+  task_in_progress: {
+    icon: '⚙️',
+    bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+  },
+  task_submitted: {
+    icon: '📤',
+    bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
   },
   task_completed: {
     icon: '🎉',

@@ -41,9 +41,9 @@ interface UseTaskFeedCardsResult {
 const STATUS_TO_EVENT: Record<string, ActivityEventType> = {
   published: 'task_created',
   accepted: 'task_accepted',
-  in_progress: 'task_accepted',
-  submitted: 'task_accepted',
-  verifying: 'task_accepted',
+  in_progress: 'task_in_progress',
+  submitted: 'task_submitted',
+  verifying: 'task_submitted',
   completed: 'task_completed',
   disputed: 'dispute_opened',
   expired: 'task_created',
@@ -52,7 +52,7 @@ const STATUS_TO_EVENT: Record<string, ActivityEventType> = {
 
 const FILTER_EVENT_MAP: Record<ActivityFilter, ActivityEventType[] | null> = {
   all: null,
-  tasks: ['task_created', 'task_accepted', 'task_completed'],
+  tasks: ['task_created', 'task_accepted', 'task_in_progress', 'task_submitted', 'task_completed'],
   reputation: ['feedback_given'],
   workers: ['worker_joined'],
 }

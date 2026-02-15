@@ -80,12 +80,14 @@ export interface TaskFeedCardProps {
 
 const EVENT_STYLES: Record<string, { label: string; color: string; icon: string }> = {
   task_created: { label: 'Task Posted', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300', icon: '📝' },
-  task_accepted: { label: 'Task Accepted', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300', icon: '✅' },
+  task_accepted: { label: 'Assigned to Executor', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300', icon: '🤝' },
+  task_in_progress: { label: 'In Progress', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300', icon: '⚙️' },
+  task_submitted: { label: 'Work Submitted', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300', icon: '📤' },
   task_completed: { label: 'Task Completed', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300', icon: '🎉' },
-  feedback_given: { label: 'Feedback Given', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300', icon: '⭐' },
+  feedback_given: { label: 'Reputation Scored', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300', icon: '⭐' },
   dispute_opened: { label: 'Dispute Opened', color: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300', icon: '⚠️' },
   dispute_resolved: { label: 'Dispute Resolved', color: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300', icon: '⚖️' },
-  worker_joined: { label: 'New Worker', color: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300', icon: '👋' },
+  worker_joined: { label: 'New Executor', color: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300', icon: '👋' },
 }
 
 // ---------------------------------------------------------------------------
@@ -293,11 +295,22 @@ export const TaskFeedCard = memo(function TaskFeedCard({
       isNew && 'animate-feed-in ring-2 ring-blue-300 dark:ring-blue-600',
       className,
     )}>
-      {/* Header bar — event type + timestamp */}
+      {/* Header bar — event type + chain badge + timestamp */}
       <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700/50">
-        <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium', eventStyle.color)}>
-          {eventStyle.icon} {t(`feed.event.${data.event_type}`, eventStyle.label)}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium', eventStyle.color)}>
+            {eventStyle.icon} {t(`feed.event.${data.event_type}`, eventStyle.label)}
+          </span>
+          {/* Chain + token badge */}
+          {data.payment_network && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 uppercase tracking-wide">
+              ⛓️ {data.payment_network}
+              {data.payment_token && (
+                <span className="text-slate-400 dark:text-slate-500">· {data.payment_token}</span>
+              )}
+            </span>
+          )}
+        </div>
         <span className="text-xs text-slate-400 dark:text-slate-500" title={new Date(data.created_at).toLocaleString()}>
           {formatRelativeTime(data.created_at)}
         </span>
