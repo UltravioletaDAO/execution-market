@@ -39,7 +39,9 @@ async def log_payment_event(
                     balance_check (fase1), settle_worker_direct (fase1),
                     settle_fee_direct (fase1),
                     escrow_authorize (fase2), escrow_release (fase2),
-                    escrow_refund (fase2)
+                    escrow_refund (fase2), distribute_fees (fase2),
+                    fee_sweep (admin),
+                    reputation_agent_rates_worker, reputation_worker_rates_agent
         status: pending, success, or failed
         tx_hash: On-chain transaction hash (if available)
         from_address: Source wallet address
