@@ -311,6 +311,7 @@ app.add_middleware(
         "X-API-Key",
         "X-Admin-Key",
         "X-Admin-Actor",
+        "X-Client-Info",
         "X-Device-ID",
         "X-Request-ID",
         "X-Payment",

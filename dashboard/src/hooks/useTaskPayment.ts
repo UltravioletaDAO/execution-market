@@ -506,7 +506,6 @@ export function useTaskPayment(taskId: string | null | undefined): UseTaskPaymen
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-Client-Info': 'execution-market-dashboard',
         },
       })
 

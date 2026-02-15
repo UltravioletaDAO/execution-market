@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 export interface PublicPlatformMetrics {
   users: {
@@ -90,7 +91,6 @@ export function usePublicMetrics(): UsePublicMetricsResult {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
-              'X-Client-Info': 'execution-market-dashboard',
             },
           })
 
@@ -109,6 +109,79 @@ export function usePublicMetrics(): UsePublicMetricsResult {
 
       throw lastError ?? new Error('Failed to load platform metrics')
     } catch (err) {
+      console.warn('[Metrics] API fetch failed, trying Supabase fallback:', err)
+      // Fallback: query Supabase directly for basic counts
+      try {
+        const [executorsRes, tasksRes] = await Promise.all([
+          supabase.from('executors').select('id', { count: 'exact', head: true }),
+          supabase.from('tasks').select('status, executor_id, agent_id').limit(10000),
+        ])
+
+        const taskRows = tasksRes.data || []
+        const completed = taskRows.filter((t: { status: string }) => t.status === 'completed').length
+        const published = taskRows.filter((t: { status: string }) => t.status === 'published').length
+        const activeWorkers = new Set(
+          taskRows
+            .filter((t: { status: string; executor_id?: string }) =>
+              ['accepted', 'in_progress', 'submitted'].includes(t.status) && t.executor_id
+            )
+            .map((t: { executor_id?: string }) => t.executor_id)
+        )
+        const activeAgents = new Set(
+          taskRows
+            .filter((t: { status: string; agent_id?: string }) =>
+              ['published', 'accepted', 'in_progress', 'submitted'].includes(t.status) && t.agent_id
+            )
+            .map((t: { agent_id?: string }) => t.agent_id)
+        )
+
+        const fallbackMetrics: PublicPlatformMetrics = {
+          users: {
+            registered_workers: executorsRes.count || 0,
+            registered_agents: activeAgents.size,
+            workers_with_tasks: activeWorkers.size,
+            workers_active_now: activeWorkers.size,
+            workers_completed: new Set(
+              taskRows
+                .filter((t: { status: string; executor_id?: string }) => t.status === 'completed' && t.executor_id)
+                .map((t: { executor_id?: string }) => t.executor_id)
+            ).size,
+            agents_active_now: activeAgents.size,
+          },
+          tasks: {
+            total: taskRows.length,
+            published,
+            accepted: taskRows.filter((t: { status: string }) => t.status === 'accepted').length,
+            in_progress: taskRows.filter((t: { status: string }) => t.status === 'in_progress').length,
+            submitted: taskRows.filter((t: { status: string }) => t.status === 'submitted').length,
+            verifying: taskRows.filter((t: { status: string }) => t.status === 'verifying').length,
+            completed,
+            disputed: taskRows.filter((t: { status: string }) => t.status === 'disputed').length,
+            cancelled: taskRows.filter((t: { status: string }) => t.status === 'cancelled').length,
+            expired: taskRows.filter((t: { status: string }) => t.status === 'expired').length,
+            live: taskRows.filter((t: { status: string }) =>
+              ['published', 'accepted', 'in_progress', 'submitted'].includes(t.status)
+            ).length,
+          },
+          activity: {
+            workers_with_active_tasks: activeWorkers.size,
+            workers_with_completed_tasks: new Set(
+              taskRows
+                .filter((t: { status: string; executor_id?: string }) => t.status === 'completed' && t.executor_id)
+                .map((t: { executor_id?: string }) => t.executor_id)
+            ).size,
+            agents_with_live_tasks: activeAgents.size,
+          },
+          payments: { total_volume_usd: 0, total_fees_usd: 0 },
+          generated_at: new Date().toISOString(),
+        }
+        console.log('[Metrics] Supabase fallback succeeded:', fallbackMetrics.users.registered_workers, 'workers')
+        setMetrics(fallbackMetrics)
+        return
+      } catch (fallbackErr) {
+        console.error('[Metrics] Supabase fallback also failed:', fallbackErr)
+      }
+
       const normalized = err instanceof Error ? err : new Error('Failed to load platform metrics')
       setError(normalized)
     } finally {
