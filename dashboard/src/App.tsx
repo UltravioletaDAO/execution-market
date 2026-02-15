@@ -21,6 +21,8 @@ const Developers = lazy(() => import('./pages/Developers').then(m => ({ default:
 const FeedbackPage = lazy(() => import('./pages/FeedbackPage').then(m => ({ default: m.FeedbackPage })))
 const TaskManagement = lazy(() => import('./pages/agent/TaskManagement').then(m => ({ default: m.TaskManagement })))
 const CreateTask = lazy(() => import('./pages/agent/CreateTask').then(m => ({ default: m.CreateTask })))
+const PublicProfile = lazy(() => import('./pages/PublicProfile').then(m => ({ default: m.PublicProfile })))
+const Activity = lazy(() => import('./pages/Activity').then(m => ({ default: m.Activity })))
 
 // Lazy-loaded heavy components (modals, charts)
 const ProfilePage = lazy(() => import('./components/profile').then(m => ({ default: m.ProfilePage })))
@@ -392,6 +394,8 @@ function AppRoutes() {
       <Route path="/agents" element={<AgentOnboarding />} />
       <Route path="/agent/login" element={<AgentLogin />} />
       <Route path="/developers" element={<Developers />} />
+      <Route path="/activity" element={<Activity />} />
+      <Route path="/profile/:wallet" element={<PublicProfile />} />
       <Route path="/feedback/:taskId" element={<FeedbackPage />} />
 
       {/* Worker Routes (Protected - Workers Only) */}
