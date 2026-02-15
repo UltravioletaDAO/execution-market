@@ -18,6 +18,8 @@ import { supabase } from '../lib/supabase'
 export type ActivityEventType =
   | 'task_created'
   | 'task_accepted'
+  | 'task_in_progress'
+  | 'task_submitted'
   | 'task_completed'
   | 'feedback_given'
   | 'worker_joined'
@@ -44,7 +46,7 @@ export type ActivityFeedMode = 'public' | 'authenticated'
 
 const FILTER_EVENT_MAP: Record<ActivityFilter, ActivityEventType[] | null> = {
   all: null,
-  tasks: ['task_created', 'task_accepted', 'task_completed'],
+  tasks: ['task_created', 'task_accepted', 'task_in_progress', 'task_submitted', 'task_completed'],
   reputation: ['feedback_given'],
   workers: ['worker_joined'],
 }
