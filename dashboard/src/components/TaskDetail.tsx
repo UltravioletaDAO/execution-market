@@ -9,6 +9,7 @@ import type { Task, TaskCategory, Executor } from '../types/database'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
 import { TxHashLink } from './TxHashLink'
+import { useAgentReputation, getReputationTier, getTierColor } from '../hooks/useAgentReputation'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -83,6 +84,7 @@ export function TaskDetail({
     task.status === 'expired' ||
     task.status === 'cancelled'
   const { payment, loading: paymentLoading } = useTaskPayment(showPayment ? task.id : null)
+  const { data: agentReputation } = useAgentReputation()
 
   const canAccept =
     task.status === 'published' &&
@@ -330,9 +332,20 @@ export function TaskDetail({
                 />
               </svg>
             </div>
-            <div>
+            <div className="flex-1">
               <div className="font-medium">{task.agent_id}</div>
-              <div className="text-xs text-gray-500">Agente verificado</div>
+              {agentReputation ? (
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className={`text-xs px-1.5 py-0.5 rounded border ${getTierColor(getReputationTier(agentReputation.score))}`}>
+                    {getReputationTier(agentReputation.score)}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {Math.round(agentReputation.score)}/100 ({agentReputation.count} {agentReputation.count === 1 ? 'valoracion' : 'valoraciones'})
+                  </span>
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500">Agente verificado</div>
+              )}
             </div>
           </div>
         </section>
