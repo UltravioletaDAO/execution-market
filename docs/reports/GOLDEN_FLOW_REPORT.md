@@ -1,20 +1,20 @@
 # Golden Flow Report -- Definitive E2E Acceptance Test (Fase 5)
 
-> **Date**: 2026-02-14 04:30 UTC
+> **Date**: 2026-02-14 17:55 UTC
 > **Environment**: Production (Base Mainnet, chain 8453)
 > **API**: `https://api.execution.market`
 > **Fee Model**: credit_card (fee deducted from bounty on-chain)
 > **Escrow Mode**: direct_release (escrow at assignment, 1-TX release)
-> **Result**: **PARTIAL**
+> **Result**: **PASS**
 
 ---
 
 ## Executive Summary
 
 The Golden Flow tested the complete Execution Market lifecycle end-to-end 
-on production against Base Mainnet using the Fase 5 credit card fee model. 6/7 phases passed.
+on production against Base Mainnet using the Fase 5 credit card fee model. 7/7 phases passed.
 
-**Overall Result: PARTIAL**
+**Overall Result: PASS**
 
 ---
 
@@ -93,56 +93,56 @@ sequenceDiagram
 
 | # | Phase | Status | Time |
 |---|-------|--------|------|
-| 1 | Health & Config Verification | **PASS** | 0.53s |
-| 2 | Task Creation (Balance Check) | **PASS** | 91.84s |
-| 3 | Worker Registration & Identity | **PASS** | 5.41s |
-| 4 | Task Lifecycle (Apply -> Assign+Escrow -> Submit) | **PASS** | 6.27s |
-| 5 | Approval & Payment Settlement | **PASS** | 57.08s |
-| 6 | Bidirectional Reputation | **PARTIAL** | 63.61s |
-| 7 | Final Verification | **PASS** | 0.39s |
+| 1 | Health & Config Verification | **PASS** | 0.93s |
+| 2 | Task Creation (Balance Check) | **PASS** | 91.33s |
+| 3 | Worker Registration & Identity | **PASS** | 7.14s |
+| 4 | Task Lifecycle (Apply -> Assign+Escrow -> Submit) | **PASS** | 6.26s |
+| 5 | Approval & Payment Settlement | **PASS** | 27.59s |
+| 6 | Bidirectional Reputation | **PASS** | 8.3s |
+| 7 | Final Verification | **PASS** | 0.28s |
 
 ---
 
 ## Health & Config Verification
 
 - **Status**: PASS
-- **Time**: 0.53s
+- **Time**: 0.93s
 
 
 ## Task Creation (Balance Check)
 
 - **Status**: PASS
-- **Time**: 91.84s
+- **Time**: 91.33s
 
-- **Task ID**: `1d9fc238-0eb1-4d46-a8b3-e210aa1dcd5f`
+- **Task ID**: `7b4c0175-9ba6-4c93-84e9-36bebe0ec25a`
 - **Escrow at creation**: False
 - **Fee model**: credit_card
 
 ## Worker Registration & Identity
 
 - **Status**: PASS
-- **Time**: 5.41s
+- **Time**: 7.14s
 
 - **Executor ID**: `803dfbf1-7b91-4a41-8d31-518f4fa2fcd4`
 
 ## Task Lifecycle (Apply -> Assign+Escrow -> Submit)
 
 - **Status**: PASS
-- **Time**: 6.27s
+- **Time**: 6.26s
 
-- **Submission ID**: `fe98ce0d-7824-406b-8c22-9a03bd42fdcc`
-- **Escrow TX (at assignment)**: [`0x2fe52a0fade20e...`](https://basescan.org/tx/0x2fe52a0fade20e100e1d54dfaa71ee4f5a2315f28fce481a8836741758ae22f8)
+- **Submission ID**: `2a68a56e-e5e7-4412-ba9f-7882afec8d90`
+- **Escrow TX (at assignment)**: [`0xba6f704383a176...`](https://basescan.org/tx/0xba6f704383a176fcb2c2d7e52755c41bdaec1cf626564288637e87875051078a)
 - **Escrow Verified**: True
 - **Escrow mode**: direct_release
 
 ## Approval & Payment Settlement
 
 - **Status**: PASS
-- **Time**: 57.08s
+- **Time**: 27.59s
 
 - **Payment Mode**: `fase2`
-- **Worker TX**: [`0x92b2687ef1d03f...`](https://basescan.org/tx/0x92b2687ef1d03fda370aea6b3491694c6a71e0584dc6b49267813ffa4736dbf3)
-- **Escrow Release**: [`0x92b2687ef1d03f...`](https://basescan.org/tx/0x92b2687ef1d03fda370aea6b3491694c6a71e0584dc6b49267813ffa4736dbf3)
+- **Worker TX**: [`0xa86bdcf8b05a6e...`](https://basescan.org/tx/0xa86bdcf8b05a6ebcbf1d2f6b9cfe0777ad66f908f92610bb57099e42ad37f5e6)
+- **Escrow Release**: [`0xa86bdcf8b05a6e...`](https://basescan.org/tx/0xa86bdcf8b05a6ebcbf1d2f6b9cfe0777ad66f908f92610bb57099e42ad37f5e6)
 
 ### Fee Math Verification (Credit Card Model)
 
@@ -154,18 +154,19 @@ sequenceDiagram
 
 ## Bidirectional Reputation
 
-- **Status**: PARTIAL
-- **Time**: 63.61s
-- **Error**: Agent->Worker: HTTP 200, success=False, error=; Worker->Agent: HTTP 200, success=False, error=
+- **Status**: PASS
+- **Time**: 8.3s
 
+- **Agent->Worker TX**: [`fe74cf95c5d7817a...`](https://basescan.org/tx/fe74cf95c5d7817a1e677b96a2eb384366df6026717f705348051905729ef12b)
+- **Worker->Agent TX**: [`18468ee223fa6bc5...`](https://basescan.org/tx/18468ee223fa6bc5db24e72a3626228358875ee6d94fd04e33e3cd763c537887)
 
 ## Final Verification
 
 - **Status**: PASS
-- **Time**: 0.39s
+- **Time**: 0.28s
 
-- **EM Reputation Score**: 76.0
-- **EM Reputation Count**: 9
+- **EM Reputation Score**: 77.0
+- **EM Reputation Count**: 12
 - **Feedback Available**: True
 
 ---
@@ -174,8 +175,10 @@ sequenceDiagram
 
 | # | TX Hash | BaseScan |
 |---|---------|----------|
-| 1 | `0x2fe52a0fade20e100e...` | [View](https://basescan.org/tx/0x2fe52a0fade20e100e1d54dfaa71ee4f5a2315f28fce481a8836741758ae22f8) |
-| 2 | `0x92b2687ef1d03fda37...` | [View](https://basescan.org/tx/0x92b2687ef1d03fda370aea6b3491694c6a71e0584dc6b49267813ffa4736dbf3) |
+| 1 | `0xba6f704383a176fcb2...` | [View](https://basescan.org/tx/0xba6f704383a176fcb2c2d7e52755c41bdaec1cf626564288637e87875051078a) |
+| 2 | `0xa86bdcf8b05a6ebcbf...` | [View](https://basescan.org/tx/0xa86bdcf8b05a6ebcbf1d2f6b9cfe0777ad66f908f92610bb57099e42ad37f5e6) |
+| 3 | `fe74cf95c5d7817a1e67...` | [View](https://basescan.org/tx/fe74cf95c5d7817a1e677b96a2eb384366df6026717f705348051905729ef12b) |
+| 4 | `18468ee223fa6bc5db24...` | [View](https://basescan.org/tx/18468ee223fa6bc5db24e72a3626228358875ee6d94fd04e33e3cd763c537887) |
 
 ---
 
@@ -190,3 +193,4 @@ sequenceDiagram
 - [x] Operator receives $0.013000 (13% on-chain fee calculator)
 - [x] All payment TXs verified on-chain (status: 0x1)
 - [x] Single-TX escrow release (fee split by StaticFeeCalculator 1300bps)
+- [x] Bidirectional reputation: agent rated worker AND worker rated agent
