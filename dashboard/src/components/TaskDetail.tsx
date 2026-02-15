@@ -9,6 +9,7 @@ import type { Task, TaskCategory, Executor } from '../types/database'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
 import { TxHashLink } from './TxHashLink'
+import { NetworkBadge } from './ui/NetworkBadge'
 import { useAgentReputation, getReputationTier, getTierColor } from '../hooks/useAgentReputation'
 import { AgentStandardCard } from './agents/AgentStandardCard'
 
@@ -179,8 +180,18 @@ export function TaskDetail({
             <div className="text-2xl font-bold text-green-600">
               {formatBounty(task.bounty_usd)}
             </div>
-            <div className="text-xs text-gray-400">
-              {task.payment_token}{task.payment_network ? ` on ${getNetworkDisplayName(task.payment_network)}` : ''}
+            <div className="flex items-center justify-end gap-1 mt-1">
+              {task.payment_token && task.payment_network ? (
+                <NetworkBadge
+                  network={task.payment_network}
+                  token={task.payment_token}
+                  size="sm"
+                />
+              ) : (
+                <div className="text-xs text-gray-400">
+                  {task.payment_token}{task.payment_network ? ` on ${getNetworkDisplayName(task.payment_network)}` : ''}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -345,9 +356,10 @@ export function TaskDetail({
               {task.payment_network && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">{t('tasks.network', 'Network')}</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {getNetworkDisplayName(task.payment_network)}
-                  </span>
+                  <NetworkBadge
+                    network={task.payment_network}
+                    size="sm"
+                  />
                 </div>
               )}
               {task.payment_token && (

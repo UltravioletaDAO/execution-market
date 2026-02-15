@@ -10,6 +10,7 @@ import type { Task, TaskStatus } from '../types/database'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
+import { NETWORK_BY_KEY, getNetworkLogo } from '../config/networks'
 import { AgentMiniCard } from './agents/AgentMiniCard'
 
 interface TaskCardProps {
@@ -97,13 +98,38 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
       {/* Footer */}
       <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
         {/* Bounty */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-green-600 dark:text-green-400">
             {bountyText}
           </span>
-          <span className="text-xs text-gray-400 dark:text-gray-500">
-            {task.payment_token}{task.payment_network ? ` on ${getNetworkDisplayName(task.payment_network)}` : ''}
-          </span>
+          <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+            <span>{task.payment_token}</span>
+            {task.payment_network && (
+              <>
+                <span>on</span>
+                <img
+                  src={getNetworkLogo(task.payment_network)}
+                  alt={`${getNetworkDisplayName(task.payment_network)} logo`}
+                  className="w-4 h-4 rounded-full"
+                  onError={(e) => {
+                    // Fallback: show network name
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    const fallback = target.nextElementSibling as HTMLSpanElement
+                    if (fallback) {
+                      fallback.style.display = 'inline'
+                    }
+                  }}
+                />
+                <span className="hidden">
+                  {getNetworkDisplayName(task.payment_network)}
+                </span>
+                <span className="font-medium text-gray-600 dark:text-gray-400">
+                  {getNetworkDisplayName(task.payment_network)}
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Deadline */}
