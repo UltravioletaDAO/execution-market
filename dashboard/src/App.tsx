@@ -275,12 +275,19 @@ function AgentDashboardPage() {
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">&#128188;</span>
-              <span className="font-bold text-lg text-gray-900">Execution Market</span>
+              <button onClick={() => navigate('/')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <span className="text-2xl">&#128188;</span>
+                <span className="font-bold text-lg text-gray-900">Execution Market</span>
+              </button>
               <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
                 Agent
               </span>
             </div>
+            <nav className="hidden md:flex items-center gap-1">
+              <button onClick={() => navigate('/agent/dashboard')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium">Dashboard</button>
+              <button onClick={() => navigate('/agent/tasks/new')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">New Task</button>
+              <button onClick={() => navigate('/activity')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">Activity</button>
+            </nav>
             <LanguageSwitcher />
           </div>
         </div>
