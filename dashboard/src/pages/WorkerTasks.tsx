@@ -281,6 +281,19 @@ export function WorkerTasks() {
               <span className="font-bold text-lg text-gray-900 hidden sm:inline">Execution Market</span>
             </button>
 
+            {/* Nav links */}
+            <nav className="hidden md:flex items-center gap-1">
+              <button onClick={() => navigate('/tasks')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium">
+                {t('nav.myTasks', 'My Tasks')}
+              </button>
+              <button onClick={() => navigate('/activity')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
+                {t('nav.activity', 'Activity')}
+              </button>
+              <button onClick={() => navigate('/profile')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
+                {t('nav.profile', 'Profile')}
+              </button>
+            </nav>
+
             <div className="flex items-center gap-2">
               <div className="hidden sm:block">
                 <LanguageSwitcher compact />
