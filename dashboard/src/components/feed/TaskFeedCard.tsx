@@ -18,6 +18,7 @@ import { cn } from '../../lib/utils'
 import { formatRelativeTime } from '../../lib/formatRelativeTime'
 import { AgentAvatar } from '../agents/AgentAvatar'
 import { TxHashLink } from '../TxHashLink'
+import { NetworkBadge } from '../ui/NetworkBadge'
 import type { ActivityEventType } from '../../hooks/useActivityFeed'
 
 // ---------------------------------------------------------------------------
@@ -340,10 +341,10 @@ function TaskCenterContent({
           </div>
         )}
         {data.payment_network && (
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-slate-500 dark:text-slate-400">⛓️</span>
-            <span className="text-xs text-slate-600 dark:text-slate-300 capitalize">{data.payment_network}</span>
-          </div>
+          <NetworkBadge 
+            network={data.payment_network}
+            size="sm"
+          />
         )}
         {data.time_taken_seconds != null && data.time_taken_seconds > 0 && (
           <div className="flex items-center gap-1">
@@ -481,12 +482,11 @@ export const TaskFeedCard = memo(function TaskFeedCard({
           </span>
           {/* Chain + token badge */}
           {data.payment_network && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 uppercase tracking-wide">
-              ⛓️ {data.payment_network}
-              {data.payment_token && (
-                <span className="text-slate-400 dark:text-slate-500">· {data.payment_token}</span>
-              )}
-            </span>
+            <NetworkBadge 
+              network={data.payment_network}
+              token={data.payment_token || undefined}
+              size="sm"
+            />
           )}
         </div>
         <span className="text-xs text-slate-400 dark:text-slate-500" title={new Date(data.created_at).toLocaleString()}>
