@@ -10,6 +10,7 @@ import type { Task, TaskStatus } from '../types/database'
 import { useTranslation as useCustomTranslation } from '../i18n/hooks/useTranslation'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
+import { AgentMiniCard } from './agents/AgentMiniCard'
 
 interface TaskCardProps {
   task: Task
@@ -154,6 +155,11 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
           <span>{t('tasks.requiresReputation', { score: task.min_reputation })}</span>
         </div>
       )}
+
+      {/* Task poster */}
+      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <AgentMiniCard walletAddress={task.agent_id} clickable={false} />
+      </div>
     </article>
   )
 })
