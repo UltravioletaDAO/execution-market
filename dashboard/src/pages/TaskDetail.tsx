@@ -18,6 +18,7 @@ import { TxHashLink } from '../components/TxHashLink'
 import { PaymentStatusBadge } from '../components/PaymentStatusBadge'
 import { useTaskPayment } from '../hooks/useTaskPayment'
 import { PaymentStatus } from '../components/PaymentStatus'
+import { TransactionTimeline } from '../components/TransactionTimeline'
 import type { Task, TaskCategory, TaskStatus, Executor, TaskApplication } from '../types/database'
 
 // ============================================================================
@@ -796,6 +797,9 @@ export function TaskDetailPage({
           )}
         </div>
       )}
+
+      {/* Transaction Timeline (from payment_events audit trail) */}
+      {showPaymentSection && <TransactionTimeline taskId={task.id} />}
 
       {/* Location Map (if location exists) */}
       {(task.location || task.location_hint) && <LocationMap task={task} />}
