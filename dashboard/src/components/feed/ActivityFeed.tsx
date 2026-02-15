@@ -2,13 +2,20 @@
  * ActivityFeed Component
  *
  * Full activity feed with filter tabs, real-time updates, pagination.
- * Supports compact mode for embedding in sidebar/landing.
+ *
+ * Two modes controlled by `mode` prop:
+ *  - 'public'        (default) — compact read-only, no filters/pagination/realtime
+ *  - 'authenticated' — filter tabs, load-more, realtime slide-in, richer detail
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '../../lib/utils'
-import { useActivityFeed, type ActivityFilter } from '../../hooks/useActivityFeed'
+import {
+  useActivityFeed,
+  type ActivityFilter,
+  type ActivityFeedMode,
+} from '../../hooks/useActivityFeed'
 import { ActivityFeedItem } from './ActivityFeedItem'
 import { Skeleton } from '../ui/Skeleton'
 
@@ -19,8 +26,13 @@ import { Skeleton } from '../ui/Skeleton'
 export interface ActivityFeedProps {
   /** Max events per page */
   limit?: number
-  /** Hide filter tabs and show minimal layout */
+  /** Hide filter tabs and show minimal compact layout */
   compact?: boolean
+  /**
+   * 'public'        — lightweight, no realtime, anonymous-safe (landing page)
+   * 'authenticated' — full features, realtime, filter tabs, load-more
+   */
+  mode?: ActivityFeedMode
   /** Additional CSS */
   className?: string
 }
@@ -47,12 +59,20 @@ const TABS: FilterTab[] = [
 // Component
 // ---------------------------------------------------------------------------
 
-export function ActivityFeed({ limit, compact = false, className }: ActivityFeedProps) {
+export function ActivityFeed({
+  limit,
+  compact = false,
+  mode = 'public',
+  className,
+}: ActivityFeedProps) {
   const { t } = useTranslation()
+  const isAuthenticated = mode === 'authenticated'
+
+  // Filters only available in authenticated (full) mode
   const [filter, setFilter] = useState<ActivityFilter>('all')
 
   const { events, loading, error, hasMore, loadMore, newEventCount, clearNewEvents } =
-    useActivityFeed({ limit, filter, realtime: true })
+    useActivityFeed({ limit, filter, mode })
 
   // Track which event IDs were present on first render so we can highlight new ones
   const initialIds = useRef<Set<string>>(new Set())
@@ -72,13 +92,18 @@ export function ActivityFeed({ limit, compact = false, className }: ActivityFeed
     setSeenIds(new Set(events.map((e) => e.id)))
   }, [clearNewEvents, events])
 
+  // Derive display flags
+  const showFilters = isAuthenticated && !compact
+  const showLoadMore = isAuthenticated && hasMore && !compact
+  const showNewBanner = isAuthenticated && newEventCount > 0
+
   // ------------------------------------------------------------------
   // Loading skeleton
   // ------------------------------------------------------------------
   if (loading && events.length === 0) {
     return (
       <div className={cn('space-y-2', className)}>
-        {!compact && <FilterTabsSkeleton />}
+        {showFilters && <FilterTabsSkeleton />}
         {Array.from({ length: compact ? 5 : 8 }).map((_, i) => (
           <FeedItemSkeleton key={i} compact={compact} />
         ))}
@@ -115,8 +140,8 @@ export function ActivityFeed({ limit, compact = false, className }: ActivityFeed
 
   return (
     <div className={cn('flex flex-col', className)}>
-      {/* Filter tabs (full mode only) */}
-      {!compact && (
+      {/* Filter tabs (authenticated full-mode only) */}
+      {showFilters && (
         <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1 -mx-1 px-1">
           {TABS.map((tab) => (
             <button
@@ -136,8 +161,8 @@ export function ActivityFeed({ limit, compact = false, className }: ActivityFeed
         </div>
       )}
 
-      {/* New events banner */}
-      {newEventCount > 0 && (
+      {/* New events banner (authenticated only) */}
+      {showNewBanner && (
         <button
           onClick={handleShowNew}
           className={cn(
@@ -157,13 +182,18 @@ export function ActivityFeed({ limit, compact = false, className }: ActivityFeed
             key={event.id}
             event={event}
             compact={compact}
-            isNew={!seenIds.has(event.id) && initialIds.current.size > 0}
+            linkActors={isAuthenticated}
+            isNew={
+              isAuthenticated &&
+              !seenIds.has(event.id) &&
+              initialIds.current.size > 0
+            }
           />
         ))}
       </div>
 
-      {/* Load more */}
-      {hasMore && !compact && (
+      {/* Load more (authenticated only) */}
+      {showLoadMore && (
         <button
           onClick={loadMore}
           disabled={loading}

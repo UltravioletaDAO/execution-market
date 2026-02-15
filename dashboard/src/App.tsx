@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useSearchParams } from 'reac
 
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { WorkerGuard, AgentGuard } from './components/guards'
+import { AuthGuard, WorkerGuard, AgentGuard } from './components/guards'
 
 // Components (eagerly loaded - used in wrappers)
 import { LanguageSwitcher } from './components/LanguageSwitcher'
@@ -394,7 +394,14 @@ function AppRoutes() {
       <Route path="/agents" element={<AgentOnboarding />} />
       <Route path="/agent/login" element={<AgentLogin />} />
       <Route path="/developers" element={<Developers />} />
-      <Route path="/activity" element={<Activity />} />
+      <Route
+        path="/activity"
+        element={
+          <AuthGuard>
+            <Activity />
+          </AuthGuard>
+        }
+      />
       <Route path="/profile/:wallet" element={<PublicProfile />} />
       <Route path="/feedback/:taskId" element={<FeedbackPage />} />
 
