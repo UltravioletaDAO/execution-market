@@ -4,15 +4,22 @@ Agent Executor MCP Tools for Execution Market (A2A)
 Tools for AI agents acting as task EXECUTORS:
 - em_register_as_executor: Register agent as executor
 - em_browse_agent_tasks: Browse available agent tasks
-- em_accept_agent_task: Accept a task
-- em_submit_agent_work: Submit structured deliverables
+- em_accept_agent_task: Accept a task (with reputation gate)
+- em_submit_agent_work: Submit structured deliverables (with fee calculation)
 - em_get_my_executions: Track accepted tasks
+
+Integrations (post-rebase on main 702c723):
+- Reputation gate: min_reputation enforced on task acceptance
+- Fase 5 fee model: fees calculated on auto-approval
+- Rejection flow: structured rejection feedback on auto-verification failure
+- Payment events: audit trail logged for fee/approval actions
 """
 
 import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Optional, Any, List, Dict
 
 from mcp.server.fastmcp import FastMCP
@@ -25,6 +32,7 @@ class AgentExecutorToolsConfig:
     max_capabilities: int = 20
     require_capability_match: bool = True
     auto_verification_enabled: bool = True
+    enforce_reputation_gate: bool = True
 
 
 KNOWN_CAPABILITIES = {
@@ -80,6 +88,38 @@ def _passes_auto_verification(
                 return False, f"Missing required keyword: {kw}"
 
     return True, "All criteria passed"
+
+
+def _log_payment_event(client: Any, task_id: str, event_type: str, details: Dict[str, Any]) -> None:
+    """Log a payment event to the audit trail (mirrors main flow)."""
+    try:
+        client.table("payment_events").insert({
+            "task_id": task_id,
+            "event_type": event_type,
+            "details": details,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }).execute()
+    except Exception as e:
+        logger.warning(f"Failed to log payment event for task {task_id}: {e}")
+
+
+def _calculate_fee_breakdown(bounty_usd: float, category: str) -> Dict[str, Any]:
+    """Calculate Fase 5 fee breakdown for a task bounty."""
+    try:
+        from payments.fees import calculate_platform_fee, TaskCategory
+        cat = TaskCategory(category)
+        return calculate_platform_fee(bounty_usd, cat)
+    except Exception as e:
+        # Fallback: use default 13% rate
+        logger.warning(f"Fee calculation fallback: {e}")
+        bounty = Decimal(str(bounty_usd))
+        fee = (bounty * Decimal("0.13")).quantize(Decimal("0.01"))
+        return {
+            "gross_amount": float(bounty),
+            "fee_rate": 0.13,
+            "fee_amount": float(fee),
+            "worker_amount": float(bounty - fee),
+        }
 
 
 def format_bounty(amount: float) -> str:
@@ -185,12 +225,14 @@ def register_agent_executor_tools(
 
             lines = [f"# Available Agent Tasks ({len(tasks)} found)\n"]
             for task in tasks:
+                min_rep = task.get("min_reputation", 0)
+                rep_str = f" | Min Rep: {min_rep}" if min_rep > 0 else ""
                 lines.extend([
                     f"### {task['title']}",
                     f"- **ID**: `{task['id']}`",
                     f"- **Bounty**: {format_bounty(task.get('bounty_usd', 0))}",
                     f"- **Category**: {task.get('category', 'N/A')}",
-                    f"- **Verification**: {task.get('verification_mode', 'manual')}",
+                    f"- **Verification**: {task.get('verification_mode', 'manual')}{rep_str}",
                     "",
                 ])
             return "\n".join(lines)
@@ -199,7 +241,13 @@ def register_agent_executor_tools(
 
     @mcp.tool(name="em_accept_agent_task")
     async def em_accept_agent_task(params: AcceptAgentTaskInput) -> str:
-        """Accept a task as an agent executor."""
+        """Accept a task as an agent executor.
+
+        Enforces:
+        - Target executor type check (agent/any)
+        - Capability matching
+        - Reputation gate (min_reputation from task)
+        """
         try:
             client = db_module.get_client()
             task = await db_module.get_task(params.task_id)
@@ -221,6 +269,17 @@ def register_agent_executor_tools(
             if executor.get("executor_type") != "agent":
                 return "Error: Not registered as agent executor"
 
+            # --- Reputation gate (aligned with main H2A flow) ---
+            if config.enforce_reputation_gate:
+                min_rep = task.get("min_reputation", 0)
+                executor_rep = executor.get("reputation_score", 0)
+                if executor_rep < min_rep:
+                    return (
+                        f"Error: Insufficient reputation. "
+                        f"Required: {min_rep}, yours: {executor_rep}"
+                    )
+
+            # --- Capability matching ---
             required_caps = task.get("required_capabilities") or []
             executor_caps = executor.get("capabilities") or []
             if config.require_capability_match and required_caps:
@@ -240,7 +299,17 @@ def register_agent_executor_tools(
 
     @mcp.tool(name="em_submit_agent_work")
     async def em_submit_agent_work(params: SubmitAgentWorkInput) -> str:
-        """Submit completed work as an agent executor."""
+        """Submit completed work as an agent executor.
+
+        On auto-approval:
+        - Calculates Fase 5 fees (13% platform fee)
+        - Logs payment events to audit trail
+        - Records fee breakdown in submission metadata
+
+        On auto-rejection:
+        - Records structured rejection feedback
+        - Reverts task to accepted (agent can retry)
+        """
         try:
             client = db_module.get_client()
             task = await db_module.get_task(params.task_id)
@@ -251,12 +320,13 @@ def register_agent_executor_tools(
             if task["status"] not in ("accepted", "in_progress"):
                 return f"Error: Cannot submit for status: {task['status']}"
 
+            now_iso = datetime.now(timezone.utc).isoformat()
             evidence = {
                 params.result_type: params.result_data,
                 "submission_metadata": {
                     "executor_type": "agent",
                     "result_type": params.result_type,
-                    "submitted_at": datetime.now(timezone.utc).isoformat(),
+                    "submitted_at": now_iso,
                 },
             }
 
@@ -266,7 +336,7 @@ def register_agent_executor_tools(
                 "evidence": evidence,
                 "notes": params.notes,
                 "status": "pending",
-                "submitted_at": datetime.now(timezone.utc).isoformat(),
+                "submitted_at": now_iso,
             }
             sub_result = client.table("submissions").insert(sub_data).execute()
             if not sub_result.data:
@@ -279,17 +349,62 @@ def register_agent_executor_tools(
                 criteria = task.get("verification_criteria", {})
                 passed, reason = _passes_auto_verification(params.result_data, criteria)
                 if passed:
+                    # Calculate Fase 5 fees
+                    bounty = task.get("bounty_usd", 0)
+                    category = task.get("category", "simple_action")
+                    fee_info = _calculate_fee_breakdown(bounty, category)
+
                     client.table("submissions").update({
-                        "status": "approved", "agent_verdict": "accepted",
+                        "status": "approved",
+                        "agent_verdict": "accepted",
+                        "fee_breakdown": fee_info,
                     }).eq("id", submission_id).execute()
                     await db_module.update_task(params.task_id, {"status": "completed"})
-                    return f"# Work Submitted & Auto-Approved\n\n**Submission ID**: `{submission_id}`"
+
+                    # Log to payment events audit trail
+                    _log_payment_event(client, params.task_id, "auto_approved", {
+                        "submission_id": submission_id,
+                        "executor_type": "agent",
+                        "fee_breakdown": fee_info,
+                    })
+
+                    worker_amt = fee_info.get("worker_amount", bounty)
+                    fee_amt = fee_info.get("fee_amount", 0)
+                    return (
+                        f"# Work Submitted & Auto-Approved\n\n"
+                        f"**Submission ID**: `{submission_id}`\n"
+                        f"**Bounty**: {format_bounty(bounty)}\n"
+                        f"**Fee ({fee_info.get('fee_rate', 0.13)*100:.0f}%)**: {format_bounty(fee_amt)}\n"
+                        f"**You receive**: {format_bounty(worker_amt)}"
+                    )
                 else:
+                    # Structured rejection feedback (aligned with rejection flow)
+                    rejection_details = {
+                        "rejection_reason": reason,
+                        "verification_criteria": criteria,
+                        "result_summary": {k: type(v).__name__ for k, v in params.result_data.items()},
+                    }
                     client.table("submissions").update({
-                        "status": "rejected", "agent_verdict": "rejected",
+                        "status": "rejected",
+                        "agent_verdict": "rejected",
                         "notes": f"Auto-verification failed: {reason}",
+                        "rejection_feedback": rejection_details,
                     }).eq("id", submission_id).execute()
-                    return f"# Auto-Verification Failed\n\nReason: {reason}"
+
+                    # Revert task to accepted so agent can retry
+                    await db_module.update_task(params.task_id, {"status": "accepted"})
+
+                    _log_payment_event(client, params.task_id, "auto_rejected", {
+                        "submission_id": submission_id,
+                        "executor_type": "agent",
+                        "rejection_reason": reason,
+                    })
+
+                    return (
+                        f"# Auto-Verification Failed\n\n"
+                        f"**Reason**: {reason}\n\n"
+                        f"Task reverted to `accepted` — you may retry submission."
+                    )
 
             return f"# Work Submitted\n\n**Submission ID**: `{submission_id}`\nAwaiting publisher review."
         except Exception as e:
