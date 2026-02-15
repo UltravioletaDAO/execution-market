@@ -64,6 +64,48 @@ Confirmed: ERC-8004 reputation is our layer, built on top of x402r payments. Ali
 
 ---
 
+## Follow-up Conversation — 2026-02-14 23:00 UTC
+
+After reviewing the full Golden Flow gist and fee architecture, Ali sent follow-up notes:
+
+### TVL Limit — Not Really "Established"
+
+> **Ali (23:02):** "This is a bit weird because you'd have to make a new operator to increase the limit, making it not really 'established'. Can't switch limits on the fly (with our limit contract at least)"
+
+Ali points out that our Fase 5 operator starts at $1,000 TVL (new contract). To get to $100K, we'd need a new operator — the current `UsdcTvlLimit` contract doesn't allow upgrading an existing operator's limit.
+
+**Our decision:** $1,000 is sufficient for current scale. At $0.10/task, that's 10,000 concurrent escrows. When we need more, we deploy a new operator (same config, new address). No action needed now.
+
+### Release Condition — Payer-Only vs Payer|Facilitator
+
+> **Ali (23:04):** "Also you could make release payer only and facilitator can just execute their approval on chain because I think you wanted to wait for their approval anyways before releasing. This is up to you though. 'Payer or facilitator' vs 'payer only' isn't that different trust assumptions wise (could just prevent an accidental facilitator release)"
+
+> **Ali (23:05):** "And I guess if you don't agree with the payer, you can force a release through if facilitator has control too"
+
+> **Ali (23:06):** "Yeah mostly depends on your own design but wanted to flag it"
+
+> **Ali (23:07):** "I think both methods are valid"
+
+> **Ali (23:09):** "Funds would get stuck otherwise if facil[itator can't release]"
+
+Ali presents the trade-off:
+
+| | Payer-only release | Payer\|Facilitator (current) |
+|---|---|---|
+| Accidental release | Prevented | Possible (low risk — we control Facilitator) |
+| Payer disappears | Funds stuck forever | Facilitator can rescue |
+| Dispute resolution | No override possible | Facilitator can force release |
+
+**Our decision:** Keep `Payer|Facilitator`. The Facilitator is ours (Ultravioleta DAO). The risk of accidental release is near-zero because our code only calls release on agent approval. The benefit of being able to rescue stuck funds if an agent disappears outweighs the theoretical risk.
+
+### Overall Verdict
+
+> **Ali (23:01):** "Mostly looks good! A few notes though"
+
+Ali validated the Fase 5 architecture. His notes are informational — no code changes required. Both the TVL limit and release condition are design choices he considers valid.
+
+---
+
 ## Summary
 
 | Topic | Ali's Position | Our Action |
@@ -71,6 +113,8 @@ Confirmed: ERC-8004 reputation is our layer, built on top of x402r payments. Ali
 | Credit card fee math | Validated, "looks good" | Keep credit_card model |
 | On-chain immutability | Immutable operators preferred, less attack surface | Deploy new operators per fee change |
 | UX-side configurability | "Perfectly fine" to toggle UX presentation | `EM_FEE_MODEL` toggle is safe |
-| TVL limit | $1K for new contracts, $100K for established | Sufficient for current scale |
+| TVL limit | $1K for new, $100K for established. Can't upgrade on the fly | $1K sufficient now. Redeploy when needed |
 | Mid-payment switching | Can be "weird" | Avoid — one operator per fee model |
+| Release condition | Both Payer-only and Payer\|Facilitator are valid | Keep Payer\|Facilitator (rescue stuck funds) |
+| Funds stuck risk | Facilitator release prevents stuck funds if payer disappears | Agrees with our current design |
 | Reputation | Not his domain | Our responsibility (ERC-8004) |
