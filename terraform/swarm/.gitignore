@@ -1,0 +1,16 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+.terraform.lock.hcl
+
+# SSH keys
+.ssh/
+
+# Local overrides
+terraform.tfvars
+*.auto.tfvars
+
+# Ansible inventory (generated)
+ansible/inventory_*
