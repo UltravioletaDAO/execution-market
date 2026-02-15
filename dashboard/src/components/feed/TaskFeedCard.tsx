@@ -39,6 +39,14 @@ export interface TaskFeedTransaction {
   network?: string
 }
 
+export interface FeedbackData {
+  score: number | null          // 0-100 scale
+  rating_stars: number | null   // derived: score mapped to 1-5
+  reputation_tx: string | null  // on-chain TX hash
+  comment: string | null        // optional feedback text
+  status: 'completed' | 'pending'
+}
+
 export interface TaskFeedCardData {
   id: string
   event_type: ActivityEventType
@@ -61,8 +69,9 @@ export interface TaskFeedCardData {
   escrow_tx: string | null
   payment_tx: string | null
   refund_tx: string | null
-  agent_reputation_tx: string | null
-  worker_reputation_tx: string | null
+  /** Bidirectional reputation */
+  agent_to_worker_feedback: FeedbackData | null  // agent rates worker
+  worker_to_agent_feedback: FeedbackData | null  // worker rates agent
 }
 
 export interface TaskFeedCardProps {
@@ -215,6 +224,66 @@ const ParticipantPanel = memo(function ParticipantPanel({
   )
 })
 
+/** Star rating display */
+function StarRating({ score, max = 5 }: { score: number; max?: number }) {
+  // Score is 0-100, map to 1-5 stars
+  const stars = Math.round((score / 100) * max)
+  return (
+    <span className="inline-flex items-center gap-px" aria-label={`${stars} out of ${max} stars`}>
+      {Array.from({ length: max }).map((_, i) => (
+        <span key={i} className={cn('text-sm', i < stars ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700')}>
+          ★
+        </span>
+      ))}
+      <span className="ml-1 text-xs text-slate-500 dark:text-slate-400">
+        ({stars}/{max})
+      </span>
+    </span>
+  )
+}
+
+/** Feedback panel for one direction of reputation */
+function FeedbackPanel({
+  label,
+  feedback,
+  network,
+}: {
+  label: string
+  feedback: FeedbackData | null
+  network: string
+}) {
+  if (!feedback || feedback.status === 'pending') {
+    return (
+      <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-2">
+        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mb-1">{label}</p>
+        <div className="flex items-center gap-1.5">
+          <span className="text-amber-400 text-sm">⏳</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500 italic">Pending</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-2">
+      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mb-1">{label}</p>
+      {feedback.score != null && (
+        <StarRating score={feedback.score} />
+      )}
+      {feedback.comment && (
+        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1 italic line-clamp-2">
+          &ldquo;{feedback.comment}&rdquo;
+        </p>
+      )}
+      {feedback.reputation_tx && (
+        <div className="mt-1">
+          <TxHashLink txHash={feedback.reputation_tx} network={network} className="text-[10px]" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** Transaction row */
 function TxRow({ label, hash, network }: { label: string; hash: string | null | undefined; network?: string }) {
   if (!hash) return null
@@ -246,13 +315,17 @@ export const TaskFeedCard = memo(function TaskFeedCard({
 
   const transactions = useMemo<TaskFeedTransaction[]>(() => {
     const txs: TaskFeedTransaction[] = []
-    if (data.escrow_tx) txs.push({ label: 'Escrow', hash: data.escrow_tx, network: data.payment_network || 'base' })
-    if (data.payment_tx) txs.push({ label: 'Payment', hash: data.payment_tx, network: data.payment_network || 'base' })
-    if (data.refund_tx) txs.push({ label: 'Refund', hash: data.refund_tx, network: data.payment_network || 'base' })
-    if (data.agent_reputation_tx) txs.push({ label: 'Rep (Agent→Worker)', hash: data.agent_reputation_tx, network: data.payment_network || 'base' })
-    if (data.worker_reputation_tx) txs.push({ label: 'Rep (Worker→Agent)', hash: data.worker_reputation_tx, network: data.payment_network || 'base' })
+    const net = data.payment_network || 'base'
+    if (data.escrow_tx) txs.push({ label: 'Escrow', hash: data.escrow_tx, network: net })
+    if (data.payment_tx) txs.push({ label: 'Payment', hash: data.payment_tx, network: net })
+    if (data.refund_tx) txs.push({ label: 'Refund', hash: data.refund_tx, network: net })
+    if (data.agent_to_worker_feedback?.reputation_tx) txs.push({ label: 'Rep (Agent→Worker)', hash: data.agent_to_worker_feedback.reputation_tx, network: net })
+    if (data.worker_to_agent_feedback?.reputation_tx) txs.push({ label: 'Rep (Worker→Agent)', hash: data.worker_to_agent_feedback.reputation_tx, network: net })
     return txs
   }, [data])
+
+  const hasFeedback = data.agent_to_worker_feedback || data.worker_to_agent_feedback
+  const isCompleted = data.event_type === 'task_completed'
 
   const handleTaskClick = () => {
     if (data.task_id) navigate(`/?task=${data.task_id}`)
@@ -383,6 +456,29 @@ export const TaskFeedCard = memo(function TaskFeedCard({
               </div>
             )}
           </div>
+
+          {/* Reputation Exchange */}
+          {(hasFeedback || isCompleted) && (
+            <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2 mb-2">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium mb-2">
+                {t('feed.reputationExchange', 'Reputation Exchange')}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Agent → Worker */}
+                <FeedbackPanel
+                  label={t('feed.agentToWorker', 'Requester → Executor')}
+                  feedback={data.agent_to_worker_feedback}
+                  network={data.payment_network || 'base'}
+                />
+                {/* Worker → Agent */}
+                <FeedbackPanel
+                  label={t('feed.workerToAgent', 'Executor → Requester')}
+                  feedback={data.worker_to_agent_feedback}
+                  network={data.payment_network || 'base'}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Transactions */}
           {transactions.length > 0 && (
