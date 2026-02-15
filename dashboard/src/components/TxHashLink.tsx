@@ -14,7 +14,7 @@
 import { useState, useCallback } from 'react';
 import { cn } from '../lib/utils';
 import { copyToClipboard } from '../lib/utils';
-import { getExplorerUrl, truncateHash } from '../utils/blockchain';
+import { getExplorerUrl, truncateHash, isValidTxHash } from '../utils/blockchain';
 
 export interface TxHashLinkProps {
   /** The transaction hash to display */
@@ -100,7 +100,10 @@ export function TxHashLink({
     return null;
   }
 
-  const explorerUrl = getExplorerUrl(txHash, network);
+  // Only link to explorer for valid tx hashes (0x-prefixed, 66 chars)
+  // x402 references like "x402_auth_..." are not valid explorer links
+  const isTxHash = isValidTxHash(txHash);
+  const explorerUrl = isTxHash ? getExplorerUrl(txHash, network) : null;
   const displayText = label || truncateHash(txHash);
 
   return (
@@ -117,13 +120,14 @@ export function TxHashLink({
         className={cn(
           'relative inline-flex items-center gap-1',
           'font-mono text-sm',
-          'text-blue-600 hover:text-blue-700',
-          'dark:text-blue-400 dark:hover:text-blue-300',
+          isTxHash
+            ? 'text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
+            : 'text-gray-600 dark:text-gray-400',
           'transition-colors cursor-pointer',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 rounded-sm'
         )}
         title={copied ? undefined : txHash}
-        aria-label={`Copy transaction hash ${txHash}`}
+        aria-label={`Copy reference ${txHash}`}
       >
         <CopyIcon className="opacity-0 group-hover:opacity-100 transition-opacity" />
         <span>{displayText}</span>
@@ -147,8 +151,8 @@ export function TxHashLink({
         )}
       </button>
 
-      {/* Explorer link */}
-      {showIcon && (
+      {/* Explorer link — only for valid tx hashes */}
+      {showIcon && explorerUrl && (
         <a
           href={explorerUrl}
           target="_blank"
