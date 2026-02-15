@@ -1,8 +1,10 @@
 /**
  * ActivityFeedCompact Component
  *
- * Compact version of the activity feed for landing page / sidebar.
+ * Compact version of the activity feed for the PUBLIC landing page.
  * Shows last N events with a "View all activity →" link.
+ *
+ * Uses mode="public" — no realtime, no auth required.
  */
 
 import { useTranslation } from 'react-i18next'
@@ -23,7 +25,8 @@ export function ActivityFeedCompact({ limit = 8, className }: ActivityFeedCompac
 
   return (
     <div className={cn('flex flex-col', className)}>
-      <ActivityFeed limit={limit} compact />
+      {/* Public mode: lightweight, no realtime, no auth required */}
+      <ActivityFeed limit={limit} compact mode="public" />
 
       {/* View all link */}
       <button

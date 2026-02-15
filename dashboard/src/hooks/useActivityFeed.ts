@@ -40,6 +40,7 @@ export interface ActivityEvent {
 }
 
 export type ActivityFilter = 'all' | 'tasks' | 'reputation' | 'workers'
+export type ActivityFeedMode = 'public' | 'authenticated'
 
 const FILTER_EVENT_MAP: Record<ActivityFilter, ActivityEventType[] | null> = {
   all: null,
@@ -56,6 +57,7 @@ interface UseActivityFeedOptions {
   limit?: number
   filter?: ActivityFilter
   realtime?: boolean
+  mode?: ActivityFeedMode
 }
 
 interface UseActivityFeedResult {
@@ -73,7 +75,9 @@ const PAGE_SIZE = 20
 export function useActivityFeed(
   options: UseActivityFeedOptions = {},
 ): UseActivityFeedResult {
-  const { limit, filter = 'all', realtime = true } = options
+  const { limit, filter = 'all', realtime = true, mode = 'public' } = options
+  // In public mode, disable realtime to keep it lightweight
+  const enableRealtime = realtime && mode === 'authenticated'
   const effectiveLimit = limit ?? PAGE_SIZE
 
   const [events, setEvents] = useState<ActivityEvent[]>([])
@@ -266,7 +270,7 @@ export function useActivityFeed(
   // Realtime subscription
   // ------------------------------------------------------------------
   useEffect(() => {
-    if (!realtime) return
+    if (!enableRealtime) return
 
     const channel = supabase
       .channel('activity_feed_realtime')
@@ -302,7 +306,7 @@ export function useActivityFeed(
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [realtime, filter])
+  }, [enableRealtime, filter])
 
   return { events, loading, error, hasMore, loadMore, newEventCount, clearNewEvents }
 }

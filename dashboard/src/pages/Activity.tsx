@@ -1,7 +1,8 @@
 /**
- * Activity Page
+ * Activity Page (Protected)
  *
- * Full activity feed page with navigation and breadcrumb.
+ * Full activity feed page — requires authentication.
+ * Uses mode="authenticated" for realtime, filters, richer actor data.
  */
 
 import { useTranslation } from 'react-i18next'
@@ -52,9 +53,9 @@ export function Activity() {
           </p>
         </div>
 
-        {/* Feed */}
+        {/* Feed — authenticated mode: realtime, filters, richer data */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-          <ActivityFeed />
+          <ActivityFeed mode="authenticated" />
         </div>
       </main>
 
