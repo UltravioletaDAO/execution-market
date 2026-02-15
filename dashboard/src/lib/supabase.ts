@@ -22,10 +22,10 @@ const noOpLock = async <R>(_name: string, _timeout: number, fn: () => Promise<R>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const supabase: any = createClient<any>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // We rely on Dynamic.xyz for wallet auth; Supabase auth is best-effort only.
-    // Disable session persistence to avoid cross-tab lock timeouts.
-    persistSession: false,
-    autoRefreshToken: false,
+    // Dynamic.xyz handles wallet auth; Supabase session persists the
+    // anonymous user + wallet link so users stay logged in across reloads.
+    persistSession: true,
+    autoRefreshToken: true,
     detectSessionInUrl: false,
     // Avoid Web Locks API deadlocks in some browsers
     lock: noOpLock,
