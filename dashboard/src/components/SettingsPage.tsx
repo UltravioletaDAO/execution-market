@@ -123,10 +123,13 @@ export function SettingsPage({ executor, onBack, onLogout }: SettingsPageProps) 
     })
   }, [])
 
-  // Change language
-  const changeLanguage = useCallback((lang: string) => {
+  // Change language — use the canonical changeLanguage from i18n module
+  // which persists to the correct storage key ('em-lang')
+  const handleLanguageChange = useCallback((lang: string) => {
     i18n.changeLanguage(lang)
-    localStorage.setItem('em_language', lang)
+    localStorage.setItem('em-lang', lang)
+    // Clean up legacy key if present
+    localStorage.removeItem('em_language')
   }, [i18n])
 
   // Delete account
@@ -261,7 +264,7 @@ export function SettingsPage({ executor, onBack, onLogout }: SettingsPageProps) 
               ].map((lang) => (
                 <button
                   key={lang.code}
-                  onClick={() => changeLanguage(lang.code)}
+                  onClick={() => handleLanguageChange(lang.code)}
                   className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors ${
                     i18n.language === lang.code
                       ? 'bg-blue-600 text-white'

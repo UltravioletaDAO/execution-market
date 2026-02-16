@@ -55,38 +55,24 @@ export const LANGUAGE_CONFIG: Record<
 const STORAGE_KEY = 'em-lang'
 
 /**
- * Detect browser language and return a supported language code
- */
-function getBrowserLanguage(): SupportedLanguage {
-  // Try navigator.language first (e.g., "en-US", "es-MX", "pt-BR")
-  const browserLang = navigator.language?.split('-')[0]?.toLowerCase()
-
-  if (browserLang && SUPPORTED_LANGUAGES.includes(browserLang as SupportedLanguage)) {
-    return browserLang as SupportedLanguage
-  }
-
-  // Try navigator.languages array
-  for (const lang of navigator.languages || []) {
-    const code = lang.split('-')[0].toLowerCase()
-    if (SUPPORTED_LANGUAGES.includes(code as SupportedLanguage)) {
-      return code as SupportedLanguage
-    }
-  }
-
-  // Default to English as the fallback
-  return 'en'
-}
-
-/**
- * Get the initial language to use
- * Priority: localStorage > browser detection > English
+ * Get the initial language to use.
+ *
+ * ENGLISH BY DEFAULT. Only switches to another language when the user
+ * explicitly selects it via the language switcher menu. No browser
+ * auto-detection — we don't want Spanish-browser users seeing the site
+ * in Spanish without opting in.
+ *
+ * Priority: localStorage (explicit user choice) > English
  */
 function getInitialLanguage(): SupportedLanguage {
+  // Check both storage keys for backward compatibility
+  // (SettingsPage previously used 'em_language', canonical key is 'em-lang')
   const stored = localStorage.getItem(STORAGE_KEY)
+    || localStorage.getItem('em_language')
   if (stored && SUPPORTED_LANGUAGES.includes(stored as SupportedLanguage)) {
     return stored as SupportedLanguage
   }
-  return getBrowserLanguage()
+  return 'en'
 }
 
 // Initialize i18next

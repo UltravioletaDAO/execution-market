@@ -92,9 +92,10 @@ export function OnboardingFlow({
     }
   }, [currentStep])
 
-  // Handle language change
+  // Handle language change — persist choice so it survives page reload
   const handleLanguageChange = useCallback((lang: string) => {
     i18n.changeLanguage(lang)
+    localStorage.setItem('em-lang', lang)
   }, [i18n])
 
   // Handle notification permission
