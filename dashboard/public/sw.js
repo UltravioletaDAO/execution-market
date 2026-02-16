@@ -4,7 +4,7 @@
  * Handles offline caching, push notifications, and background sync.
  */
 
-const CACHE_NAME = 'em-v3-20260216';
+const CACHE_NAME = 'em-v4-20260216';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/offline.html',
@@ -66,9 +66,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Versioned assets - cache first
+  // Versioned assets — network first to prevent stale chunk references.
+  // Vite hashes filenames so cache-first SOUNDS safe, but when the entry JS
+  // changes hash, a cached old entry will request chunks that no longer exist
+  // on the server, causing infinite reload loops.
   if (url.pathname.startsWith('/assets/')) {
-    event.respondWith(cacheFirst(request, CACHE_NAME));
+    event.respondWith(networkFirst(request, CACHE_NAME));
     return;
   }
 
