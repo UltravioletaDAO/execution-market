@@ -1086,7 +1086,8 @@ async def phase_reputation(
                     )
 
                     acct = w3.eth.account.from_key(worker_private_key)
-                    nonce = w3.eth.get_transaction_count(acct.address)
+                    # Use 'pending' to include not-yet-mined TXs and avoid stale nonce
+                    nonce = w3.eth.get_transaction_count(acct.address, "pending")
 
                     # Ensure feedback_hash is bytes32
                     if isinstance(feedback_hash, str):
@@ -1094,28 +1095,53 @@ async def phase_reputation(
                     else:
                         fb_hash_bytes = feedback_hash
 
-                    tx = registry.functions.giveFeedback(
-                        agent_id_param,
-                        value_param,
-                        0,  # valueDecimals
-                        tag1,
-                        tag2,
-                        endpoint_param,
-                        feedback_uri,
-                        fb_hash_bytes,
-                    ).build_transaction({
-                        "from": acct.address,
-                        "nonce": nonce,
-                        "gas": 250000,
-                        "maxFeePerGas": w3.to_wei(0.5, "gwei"),
-                        "maxPriorityFeePerGas": w3.to_wei(0.1, "gwei"),
-                        "chainId": chain_id,
-                    })
+                    # Retry loop for nonce errors (up to 3 attempts)
+                    max_retries = 3
+                    for attempt in range(max_retries):
+                        if attempt > 0:
+                            print(f"         Retry {attempt}/{max_retries - 1}: refreshing nonce...")
+                            nonce = w3.eth.get_transaction_count(acct.address, "pending")
 
-                    signed = acct.sign_transaction(tx)
-                    tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
-                    worker_rates_agent_tx = tx_hash.hex()
-                    print(f"         TX sent: {worker_rates_agent_tx}")
+                        tx = registry.functions.giveFeedback(
+                            agent_id_param,
+                            value_param,
+                            0,  # valueDecimals
+                            tag1,
+                            tag2,
+                            endpoint_param,
+                            feedback_uri,
+                            fb_hash_bytes,
+                        ).build_transaction({
+                            "from": acct.address,
+                            "nonce": nonce,
+                            "gas": 250000,
+                            "maxFeePerGas": w3.to_wei(0.5, "gwei"),
+                            "maxPriorityFeePerGas": w3.to_wei(0.1, "gwei"),
+                            "chainId": chain_id,
+                        })
+
+                        signed = acct.sign_transaction(tx)
+                        try:
+                            tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+                            worker_rates_agent_tx = tx_hash.hex()
+                            print(f"         TX sent: {worker_rates_agent_tx}")
+                            break  # Success — exit retry loop
+                        except Exception as send_err:
+                            err_str = str(send_err)
+                            if "nonce too low" in err_str and attempt < max_retries - 1:
+                                # Extract expected nonce from error if possible
+                                import re as _re
+                                m = _re.search(r"next nonce (\d+)", err_str)
+                                if m:
+                                    nonce = int(m.group(1))
+                                    print(f"         Nonce too low, retrying with nonce {nonce}...")
+                                else:
+                                    nonce += 1
+                                    print(f"         Nonce too low, incrementing to {nonce}...")
+                                continue
+                            raise  # Non-nonce error or final attempt — propagate
+                    else:
+                        raise RuntimeError(f"Failed after {max_retries} nonce retries")
 
                     # Wait for receipt
                     receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)

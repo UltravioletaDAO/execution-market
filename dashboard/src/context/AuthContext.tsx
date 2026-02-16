@@ -375,6 +375,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [sdkHasLoaded, dynamicInitialized])
 
   // --------------------------------------------------------------------------
+  // Effect: Handle tab visibility changes (mobile tab switching)
+  // When user switches away and comes back, re-fetch executor data to keep
+  // the session warm. This helps after mobile browsers suspend the tab.
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && walletAddress && dynamicInitialized) {
+        console.log('[Auth] Tab restored — refreshing executor data')
+        // Re-link wallet and refresh executor to keep Supabase session alive
+        linkWalletToSession(walletAddress)
+          .then(() => fetchExecutor(walletAddress))
+          .then((data) => {
+            if (data) setExecutor(data)
+          })
+          .catch((err) => console.warn('[Auth] Tab restore refresh failed:', err))
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [walletAddress, dynamicInitialized, linkWalletToSession, fetchExecutor])
+
+  // --------------------------------------------------------------------------
   // Effect: Fetch executor when wallet changes
   // Note: dynamicWalletAddress is read via ref (not a dep) to prevent
   // unnecessary re-fetches when Dynamic SDK transitions wallet state
@@ -418,7 +443,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } else {
       // Debounce wallet removal — Dynamic SDK may briefly null the wallet
       // during session restoration or wallet provisioning transitions.
-      // The 300ms delay prevents a flash of unauthenticated state.
+      // 2s delay on mobile (tab switching can take >1s to restore SDK state),
+      // 500ms on desktop. Prevents logout flash on tab restore.
+      const debounceMs = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 2000 : 500
       logoutDebounceRef.current = setTimeout(() => {
         logoutDebounceRef.current = null
         setExecutor(null)
@@ -430,7 +457,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             console.warn('[Auth] Failed to clear Supabase session:', err)
           })
         }
-      }, 300)
+      }, debounceMs)
     }
 
     return () => {
