@@ -502,8 +502,9 @@ function App() {
       }}
     >
       <AuthProvider>
-        {/* Hidden DynamicWidget — required for setShowAuthFlow(true) to render the modal */}
-        <div className="hidden">
+        {/* DynamicWidget — rendered off-screen but in DOM so auth modal can open.
+            display:none prevents Dynamic from initializing, so we use sr-only instead. */}
+        <div className="sr-only" aria-hidden="true">
           <DynamicWidget />
         </div>
         <AppRoutes />
