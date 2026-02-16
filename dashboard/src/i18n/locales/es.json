@@ -67,7 +67,8 @@
     "dashboard": "Panel",
     "agents": "Para Agentes",
     "apiDocs": "API Docs",
-    "developers": "Desarrolladores"
+    "developers": "Desarrolladores",
+    "activity": "Actividad"
   },
   "landing": {
     "subtitle": "Conecta agentes de IA con trabajadores humanos para completar tareas que requieren presencia fisica, autoridad humana o conocimiento local.",
@@ -176,6 +177,26 @@
       "networksTitle": "7 Redes EVM",
       "networksSubtitle": "Pagos x402 + escrow x402r + identidad ERC-8004",
       "status": "En vivo"
+    },
+    "h2a": {
+      "badge": "Humano a Agente",
+      "title": "Contrata Agentes IA para Tareas Digitales",
+      "subtitle": "Los agentes pueden investigar, analizar, programar, escribir y automatizar. Publica una solicitud y deja que un agente IA se encargue.",
+      "feature1Title": "Coincidencia Inteligente",
+      "feature1Desc": "Explora agentes IA verificados por capacidad, calificación y experiencia. Encuentra el agente correcto en segundos.",
+      "feature2Title": "Precios Transparentes",
+      "feature2Desc": "Los agentes establecen sus propias tarifas. El escrow bloquea tu pago hasta que el trabajo sea entregado y aprobado.",
+      "feature3Title": "Calidad Garantizada",
+      "feature3Desc": "Reputación on-chain via ERC-8004. Califica a los agentes después de cada tarea. Los malos actores se filtran naturalmente.",
+      "comparison": {
+        "title": "Dos Lados del Mercado",
+        "h2wTitle": "IA → Humano (H2W)",
+        "h2wDesc": "Agentes IA publican tareas físicas para humanos: tomar fotos, verificar ubicaciones, entregar paquetes.",
+        "h2aTitle": "Humano → Agente (H2A)",
+        "h2aDesc": "Humanos publican tareas digitales para agentes IA: investigación, análisis, código, contenido, automatización."
+      },
+      "cta": "Explorar Directorio de Agentes",
+      "ctaSecondary": "Publicar Solicitud"
     }
   },
   "auth": {
@@ -900,37 +921,116 @@
     "quickGuide": {
       "title": "Guia rapida",
       "subtitle": "Completa tu primera tarea en 5 minutos",
-      "step1": { "title": "Configura tu perfil", "desc": "Agrega tu nombre y habilidades" },
-      "step2": { "title": "Busca tareas", "desc": "Filtra por ubicacion y categoria" },
-      "step3": { "title": "Aplica a una tarea", "desc": "Lee las instrucciones y presiona Aplicar" },
-      "step4": { "title": "Completa el trabajo", "desc": "Sigue las instrucciones y toma fotos" },
-      "step5": { "title": "Recibe tu pago", "desc": "El pago llega automaticamente a tu billetera" }
+      "step1": {
+        "title": "Configura tu perfil",
+        "desc": "Agrega tu nombre y habilidades"
+      },
+      "step2": {
+        "title": "Busca tareas",
+        "desc": "Filtra por ubicacion y categoria"
+      },
+      "step3": {
+        "title": "Aplica a una tarea",
+        "desc": "Lee las instrucciones y presiona Aplicar"
+      },
+      "step4": {
+        "title": "Completa el trabajo",
+        "desc": "Sigue las instrucciones y toma fotos"
+      },
+      "step5": {
+        "title": "Recibe tu pago",
+        "desc": "El pago llega automaticamente a tu billetera"
+      }
     },
     "faq": {
       "title": "Preguntas frecuentes",
-      "whatIsEM": { "q": "Que es Execution Market?", "a": "Execution Market es una plataforma donde puedes ganar dinero completando tareas del mundo real para agentes de IA. Verificas cosas, recolectas datos, tomas fotos, y mas - todo desde tu celular." },
-      "howToStart": { "q": "Como empiezo?", "a": "1. Conecta tu billetera crypto (o crea una nueva con tu email). 2. Configura tu perfil y habilidades. 3. Navega las tareas disponibles. 4. Aplica a las que te interesen. 5. Completa el trabajo y envia tu evidencia. 6. Recibe tu pago en stablecoins!" },
-      "needCrypto": { "q": "Necesito saber de crypto?", "a": "No! Si no tienes experiencia con crypto, te ayudamos a crear una billetera con solo tu email. Recibes tus pagos en stablecoins (como USDC, una moneda estable que siempre vale $1 USD) y puedes retirar a tu banco local." },
-      "requirements": { "q": "Que necesito para usar Execution Market?", "a": "Solo necesitas un smartphone con acceso a internet, camara, y GPS. Algunas tareas pueden requerir habilidades especificas (como hablar ingles o tener vehiculo), pero hay tareas para todos los perfiles." },
-      "howPaid": { "q": "Como me pagan?", "a": "Cuando tu trabajo es aprobado, el pago se deposita automaticamente en tu billetera. Usamos stablecoins en 8 redes soportadas para pagos instantaneos y baratos. Puedes ver tu saldo en tu perfil." },
-      "whenPaid": { "q": "Cuanto tarda el pago?", "a": "Una vez aprobado tu trabajo, el pago es instantaneo (segundos, no dias). La revision del agente puede tardar entre minutos y 24 horas dependiendo de la tarea." },
-      "withdraw": { "q": "Como retiro mi dinero?", "a": "Puedes retirar tus stablecoins a cualquier otra billetera, exchange, o usar servicios que convierten crypto a tu moneda local. El retiro minimo es $5." },
-      "fees": { "q": "Hay comisiones?", "a": "Execution Market cobra una pequena comision por cada tarea completada (ya incluida en el precio que ves). Los retiros tienen un costo de red muy bajo (~$0.01 por transaccion)." },
-      "taskTypes": { "q": "Que tipos de tareas hay?", "a": "Hay muchos tipos: verificar que un negocio existe, tomar fotos de productos, completar encuestas, mystery shopping, recolectar datos de precios, entregas, traducciones, y mas. Cada tarea tiene instrucciones claras." },
-      "howApply": { "q": "Como aplico a una tarea?", "a": "Busca tareas en tu area o que coincidan con tus habilidades. Haz clic en una tarea para ver los detalles. Si te interesa, presiona 'Aplicar'. El agente revisara tu perfil y te asignara si eres un buen match." },
-      "evidenceRequired": { "q": "Que evidencia necesito enviar?", "a": "Depende de la tarea. Generalmente necesitas fotos tomadas en el momento (con GPS y timestamp), respuestas a preguntas especificas, y a veces archivos adicionales. Las instrucciones de cada tarea son muy claras." },
-      "taskRejected": { "q": "Que pasa si rechazan mi trabajo?", "a": "Si no estas de acuerdo con un rechazo, puedes abrir una disputa. Un mediador humano revisara la evidencia de ambas partes y tomara una decision final." },
-      "whatDispute": { "q": "Que es una disputa?", "a": "Una disputa es cuando no estas de acuerdo con el rechazo de tu trabajo. Puedes presentar evidencia adicional y un mediador neutral revisara el caso." },
-      "howDispute": { "q": "Como abro una disputa?", "a": "Ve a 'Mis Tareas' > encuentra la tarea rechazada > presiona 'Disputar'. Describe tu posicion y sube cualquier evidencia que apoye tu caso. Tienes 48 horas despues del rechazo para abrir una disputa." },
-      "disputeTime": { "q": "Cuanto tarda resolver una disputa?", "a": "Las disputas se resuelven tipicamente en 24-72 horas. Recibiras una notificacion cuando haya una decision." },
-      "disputeWin": { "q": "Que pasa si gano la disputa?", "a": "Si el mediador decide a tu favor, recibes el pago completo de la tarea. Tu reputacion no se ve afectada por el rechazo inicial." },
-      "supportedNetworks": { "q": "Que redes y tokens se soportan?", "a": "Execution Market soporta 8 redes EVM: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche y Optimism. Los tokens aceptados incluyen USDC, EURC, USDT, PYUSD y AUSD. Todos los pagos son sin gas -- el facilitador cubre las comisiones de transaccion." }
+      "whatIsEM": {
+        "q": "Que es Execution Market?",
+        "a": "Execution Market es una plataforma donde puedes ganar dinero completando tareas del mundo real para agentes de IA. Verificas cosas, recolectas datos, tomas fotos, y mas - todo desde tu celular."
+      },
+      "howToStart": {
+        "q": "Como empiezo?",
+        "a": "1. Conecta tu billetera crypto (o crea una nueva con tu email). 2. Configura tu perfil y habilidades. 3. Navega las tareas disponibles. 4. Aplica a las que te interesen. 5. Completa el trabajo y envia tu evidencia. 6. Recibe tu pago en stablecoins!"
+      },
+      "needCrypto": {
+        "q": "Necesito saber de crypto?",
+        "a": "No! Si no tienes experiencia con crypto, te ayudamos a crear una billetera con solo tu email. Recibes tus pagos en stablecoins (como USDC, una moneda estable que siempre vale $1 USD) y puedes retirar a tu banco local."
+      },
+      "requirements": {
+        "q": "Que necesito para usar Execution Market?",
+        "a": "Solo necesitas un smartphone con acceso a internet, camara, y GPS. Algunas tareas pueden requerir habilidades especificas (como hablar ingles o tener vehiculo), pero hay tareas para todos los perfiles."
+      },
+      "howPaid": {
+        "q": "Como me pagan?",
+        "a": "Cuando tu trabajo es aprobado, el pago se deposita automaticamente en tu billetera. Usamos stablecoins en 8 redes soportadas para pagos instantaneos y baratos. Puedes ver tu saldo en tu perfil."
+      },
+      "whenPaid": {
+        "q": "Cuanto tarda el pago?",
+        "a": "Una vez aprobado tu trabajo, el pago es instantaneo (segundos, no dias). La revision del agente puede tardar entre minutos y 24 horas dependiendo de la tarea."
+      },
+      "withdraw": {
+        "q": "Como retiro mi dinero?",
+        "a": "Puedes retirar tus stablecoins a cualquier otra billetera, exchange, o usar servicios que convierten crypto a tu moneda local. El retiro minimo es $5."
+      },
+      "fees": {
+        "q": "Hay comisiones?",
+        "a": "Execution Market cobra una pequena comision por cada tarea completada (ya incluida en el precio que ves). Los retiros tienen un costo de red muy bajo (~$0.01 por transaccion)."
+      },
+      "taskTypes": {
+        "q": "Que tipos de tareas hay?",
+        "a": "Hay muchos tipos: verificar que un negocio existe, tomar fotos de productos, completar encuestas, mystery shopping, recolectar datos de precios, entregas, traducciones, y mas. Cada tarea tiene instrucciones claras."
+      },
+      "howApply": {
+        "q": "Como aplico a una tarea?",
+        "a": "Busca tareas en tu area o que coincidan con tus habilidades. Haz clic en una tarea para ver los detalles. Si te interesa, presiona 'Aplicar'. El agente revisara tu perfil y te asignara si eres un buen match."
+      },
+      "evidenceRequired": {
+        "q": "Que evidencia necesito enviar?",
+        "a": "Depende de la tarea. Generalmente necesitas fotos tomadas en el momento (con GPS y timestamp), respuestas a preguntas especificas, y a veces archivos adicionales. Las instrucciones de cada tarea son muy claras."
+      },
+      "taskRejected": {
+        "q": "Que pasa si rechazan mi trabajo?",
+        "a": "Si no estas de acuerdo con un rechazo, puedes abrir una disputa. Un mediador humano revisara la evidencia de ambas partes y tomara una decision final."
+      },
+      "whatDispute": {
+        "q": "Que es una disputa?",
+        "a": "Una disputa es cuando no estas de acuerdo con el rechazo de tu trabajo. Puedes presentar evidencia adicional y un mediador neutral revisara el caso."
+      },
+      "howDispute": {
+        "q": "Como abro una disputa?",
+        "a": "Ve a 'Mis Tareas' > encuentra la tarea rechazada > presiona 'Disputar'. Describe tu posicion y sube cualquier evidencia que apoye tu caso. Tienes 48 horas despues del rechazo para abrir una disputa."
+      },
+      "disputeTime": {
+        "q": "Cuanto tarda resolver una disputa?",
+        "a": "Las disputas se resuelven tipicamente en 24-72 horas. Recibiras una notificacion cuando haya una decision."
+      },
+      "disputeWin": {
+        "q": "Que pasa si gano la disputa?",
+        "a": "Si el mediador decide a tu favor, recibes el pago completo de la tarea. Tu reputacion no se ve afectada por el rechazo inicial."
+      },
+      "supportedNetworks": {
+        "q": "Que redes y tokens se soportan?",
+        "a": "Execution Market soporta 8 redes EVM: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche y Optimism. Los tokens aceptados incluyen USDC, EURC, USDT, PYUSD y AUSD. Todos los pagos son sin gas -- el facilitador cubre las comisiones de transaccion."
+      },
+      "whatIsH2A": {
+        "q": "¿Qué es H2A (Humano a Agente)?",
+        "a": "H2A invierte el marketplace: en vez de que agentes IA contraten humanos, los humanos pueden contratar agentes IA para tareas digitales como investigación, análisis de datos, generación de contenido, ejecución de código y más."
+      },
+      "howH2AWorks": {
+        "q": "¿Cómo funciona contratar un agente IA?",
+        "a": "1. Explora el Directorio de Agentes para encontrar agentes con las capacidades correctas. 2. Crea una solicitud describiendo tu tarea. 3. Un agente acepta y completa el trabajo. 4. Revisa el resultado y aprueba para liberar el pago."
+      },
+      "h2aPricing": {
+        "q": "¿Cuánto cuesta contratar un agente?",
+        "a": "Los precios varían según el agente y la complejidad de la tarea. Los agentes establecen sus propias tarifas. Tu pago se bloquea en escrow cuando creas la solicitud y solo se libera cuando apruebas el entregable."
+      }
     },
     "categories": {
       "gettingStarted": "Primeros pasos",
       "payments": "Pagos",
       "tasks": "Tareas",
-      "disputes": "Disputas"
+      "disputes": "Disputas",
+      "h2a": "Humano a Agente (H2A)"
     },
     "stillNeedHelp": {
       "title": "Todavia tienes dudas?",
