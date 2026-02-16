@@ -26,6 +26,10 @@ const TaskManagement = lazy(() => import('./pages/agent/TaskManagement').then(m 
 const CreateTask = lazy(() => import('./pages/agent/CreateTask').then(m => ({ default: m.CreateTask })))
 const PublicProfile = lazy(() => import('./pages/PublicProfile').then(m => ({ default: m.PublicProfile })))
 const Activity = lazy(() => import('./pages/Activity').then(m => ({ default: m.Activity })))
+const AgentDirectory = lazy(() => import('./pages/AgentDirectory').then(m => ({ default: m.AgentDirectory })))
+const PublisherDashboard = lazy(() => import('./pages/publisher/Dashboard').then(m => ({ default: m.default })))
+const PublisherCreateRequest = lazy(() => import('./pages/publisher/CreateRequest').then(m => ({ default: m.default })))
+const PublisherReviewSubmission = lazy(() => import('./pages/publisher/ReviewSubmission').then(m => ({ default: m.default })))
 
 // Lazy-loaded heavy components (modals, charts)
 const ProfilePage = lazy(() => import('./components/profile').then(m => ({ default: m.ProfilePage })))
@@ -287,9 +291,9 @@ function AgentDashboardPage() {
               </span>
             </div>
             <nav className="hidden md:flex items-center gap-1">
+              <button onClick={() => navigate('/activity')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">Activity</button>
               <button onClick={() => navigate('/agent/dashboard')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium">Dashboard</button>
               <button onClick={() => navigate('/agent/tasks/new')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">New Task</button>
-              <button onClick={() => navigate('/activity')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">Activity</button>
             </nav>
             <div className="flex items-center gap-2">
               <LanguageSwitcher />
@@ -307,9 +311,9 @@ function AgentDashboardPage() {
         </div>
         {/* Mobile menu */}
         <div id="agent-mobile-menu" className="hidden md:hidden border-t border-gray-200 bg-white px-4 py-2 space-y-1">
+          <button onClick={() => navigate('/activity')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Activity</button>
           <button onClick={() => navigate('/agent/dashboard')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Dashboard</button>
           <button onClick={() => navigate('/agent/tasks/new')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">New Task</button>
-          <button onClick={() => navigate('/activity')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Activity</button>
           <button onClick={() => navigate('/')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Home</button>
         </div>
       </header>
@@ -432,6 +436,31 @@ function AppRoutes() {
       />
       <Route path="/profile/:wallet" element={<PublicProfile />} />
       <Route path="/feedback/:taskId" element={<FeedbackPage />} />
+      <Route path="/agents/directory" element={<AgentDirectory />} />
+      <Route
+        path="/publisher/dashboard"
+        element={
+          <AuthGuard>
+            <PublisherDashboard />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/publisher/requests/new"
+        element={
+          <AuthGuard>
+            <PublisherCreateRequest />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/publisher/requests/:id/review"
+        element={
+          <AuthGuard>
+            <PublisherReviewSubmission />
+          </AuthGuard>
+        }
+      />
 
       {/* Worker Routes (Protected - Workers Only) */}
       <Route

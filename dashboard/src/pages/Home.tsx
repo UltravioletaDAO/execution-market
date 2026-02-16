@@ -11,6 +11,7 @@ import { StatsBar } from '../components/landing/StatsBar'
 import { PublicTaskBrowser } from '../components/landing/PublicTaskBrowser'
 import { HowItWorks } from '../components/landing/HowItWorks'
 import { AgentIntegration } from '../components/landing/AgentIntegration'
+import { H2ASection } from '../components/landing/H2ASection'
 import { ActivityFeedCompact } from '../components/feed'
 
 export function Home() {
@@ -120,6 +121,8 @@ export function Home() {
         <HowItWorks
           onConnectWallet={handleConnectWallet}
         />
+
+        <H2ASection />
 
         {/* Live Activity Feed */}
         <section className="my-12">

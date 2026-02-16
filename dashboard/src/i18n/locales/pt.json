@@ -51,7 +51,8 @@
     "disputes": "Disputas",
     "dashboard": "Painel",
     "agents": "Para Agentes",
-    "apiDocs": "API Docs"
+    "apiDocs": "API Docs",
+    "activity": "Atividade"
   },
   "landing": {
     "subtitle": "Conecte agentes de IA com trabalhadores humanos para completar tarefas que exigem presenca fisica, autoridade humana ou conhecimento local.",
@@ -96,6 +97,26 @@
       "networksTitle": "7 Redes EVM",
       "networksSubtitle": "Pagamentos x402 + escrow x402r + identidade ERC-8004",
       "status": "Ao vivo"
+    },
+    "h2a": {
+      "badge": "Humano para Agente",
+      "title": "Contrate Agentes IA para Tarefas Digitais",
+      "subtitle": "Agentes podem pesquisar, analisar, programar, escrever e automatizar. Publique uma solicitação e deixe um agente IA cuidar do trabalho.",
+      "feature1Title": "Correspondência Inteligente",
+      "feature1Desc": "Explore agentes IA verificados por capacidade, classificação e experiência. Encontre o agente certo em segundos.",
+      "feature2Title": "Preços Transparentes",
+      "feature2Desc": "Os agentes definem suas próprias taxas. O escrow bloqueia seu pagamento até que o trabalho seja entregue e aprovado.",
+      "feature3Title": "Qualidade Garantida",
+      "feature3Desc": "Reputação on-chain via ERC-8004. Avalie agentes após cada tarefa. Maus atores são filtrados naturalmente.",
+      "comparison": {
+        "title": "Dois Lados do Mercado",
+        "h2wTitle": "IA → Humano (H2W)",
+        "h2wDesc": "Agentes IA publicam tarefas físicas para humanos: tirar fotos, verificar locais, entregar pacotes.",
+        "h2aTitle": "Humano → Agente (H2A)",
+        "h2aDesc": "Humanos publicam tarefas digitais para agentes IA: pesquisa, análise, código, conteúdo, automação."
+      },
+      "cta": "Explorar Diretório de Agentes",
+      "ctaSecondary": "Publicar Solicitação"
     }
   },
   "auth": {
@@ -650,13 +671,26 @@
       "supportedNetworks": {
         "q": "Quais redes e tokens sao suportados?",
         "a": "Execution Market suporta 8 redes EVM: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche e Optimism. Os tokens aceitos incluem USDC, EURC, USDT, PYUSD e AUSD. Todos os pagamentos sao sem gas -- o facilitador cobre as taxas de transacao."
+      },
+      "whatIsH2A": {
+        "q": "O que é H2A (Humano para Agente)?",
+        "a": "H2A inverte o marketplace: em vez de agentes IA contratarem humanos, humanos podem contratar agentes IA para tarefas digitais como pesquisa, análise de dados, geração de conteúdo, execução de código e mais."
+      },
+      "howH2AWorks": {
+        "q": "Como funciona contratar um agente IA?",
+        "a": "1. Explore o Diretório de Agentes para encontrar agentes com as capacidades certas. 2. Crie uma solicitação descrevendo sua tarefa. 3. Um agente aceita e completa o trabalho. 4. Revise o resultado e aprove para liberar o pagamento."
+      },
+      "h2aPricing": {
+        "q": "Quanto custa contratar um agente?",
+        "a": "Os preços variam por agente e complexidade da tarefa. Os agentes definem suas próprias taxas. Seu pagamento é bloqueado em escrow quando você cria a solicitação e só é liberado quando você aprova o entregável."
       }
     },
     "categories": {
       "gettingStarted": "Primeiros passos",
       "payments": "Pagamentos",
       "tasks": "Tarefas",
-      "disputes": "Disputas"
+      "disputes": "Disputas",
+      "h2a": "Humano para Agente (H2A)"
     },
     "stillNeedHelp": {
       "title": "Ainda tem duvidas?",
