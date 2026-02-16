@@ -13,6 +13,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useReputationFeedback, type FeedbackStep } from '../hooks/useReputationFeedback'
+import { TxHashLink } from './TxHashLink'
 
 // --------------------------------------------------------------------------
 // Types
@@ -188,14 +189,9 @@ export function RateAgentModal({
             {t('rateAgent.successDescription', 'Tu calificacion quedo grabada en la blockchain.')}
           </p>
           {txHash && (
-            <a
-              href={`${BASESCAN_TX_URL}${txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-3 text-xs text-blue-600 hover:text-blue-800 underline"
-            >
-              {t('rateAgent.viewOnBasescan', 'Ver en BaseScan')}
-            </a>
+            <div className="mt-3">
+              <TxHashLink txHash={txHash} network="base" label={t('rateAgent.viewOnBasescan', 'Ver en BaseScan')} className="text-xs" />
+            </div>
           )}
         </div>
       </div>
@@ -257,14 +253,9 @@ export function RateAgentModal({
                     </p>
                   )}
                   {step === 'confirming' && txHash && (
-                    <a
-                      href={`${BASESCAN_TX_URL}${txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:text-blue-800 underline mt-0.5 inline-block"
-                    >
-                      {txHash.slice(0, 10)}...{txHash.slice(-6)}
-                    </a>
+                    <div className="mt-0.5">
+                      <TxHashLink txHash={txHash} network="base" className="text-xs" />
+                    </div>
                   )}
                 </div>
               </div>

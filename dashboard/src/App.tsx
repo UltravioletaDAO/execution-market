@@ -287,9 +287,9 @@ function AgentDashboardPage() {
               </span>
             </div>
             <nav className="hidden md:flex items-center gap-1">
+              <button onClick={() => navigate('/activity')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">Activity</button>
               <button onClick={() => navigate('/agent/dashboard')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium">Dashboard</button>
               <button onClick={() => navigate('/agent/tasks/new')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">New Task</button>
-              <button onClick={() => navigate('/activity')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">Activity</button>
             </nav>
             <div className="flex items-center gap-2">
               <LanguageSwitcher />
@@ -307,9 +307,9 @@ function AgentDashboardPage() {
         </div>
         {/* Mobile menu */}
         <div id="agent-mobile-menu" className="hidden md:hidden border-t border-gray-200 bg-white px-4 py-2 space-y-1">
+          <button onClick={() => navigate('/activity')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Activity</button>
           <button onClick={() => navigate('/agent/dashboard')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Dashboard</button>
           <button onClick={() => navigate('/agent/tasks/new')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">New Task</button>
-          <button onClick={() => navigate('/activity')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Activity</button>
           <button onClick={() => navigate('/')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Home</button>
         </div>
       </header>

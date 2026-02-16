@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { AppHeader } from '../components/layout/AppHeader'
@@ -52,52 +51,21 @@ const FAQ_DATA: FAQCategory[] = [
   },
 ]
 
-function AccordionItem({
-  questionKey,
-  isOpen,
-  onToggle,
-}: {
-  questionKey: string
-  isOpen: boolean
-  onToggle: () => void
-}) {
+/**
+ * FAQEntry — Always-visible Q&A pair (no accordion/collapsible).
+ * Avoids text wrapping issues from accordion animations.
+ */
+function FAQEntry({ questionKey }: { questionKey: string }) {
   const { t } = useTranslation()
 
   return (
-    <div className="border-b border-gray-100 last:border-b-0">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between gap-4 py-4 px-1 text-left group"
-        aria-expanded={isOpen}
-      >
-        <span className="text-sm font-medium text-gray-900 group-hover:text-emerald-600 transition-colors">
-          {t(`help.faq.${questionKey}.q`)}
-        </span>
-        <svg
-          className={`w-5 h-5 flex-shrink-0 text-gray-400 transition-transform duration-200 ${
-            isOpen ? 'rotate-180' : ''
-          }`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-      <div
-        className={`overflow-hidden transition-all duration-200 ease-in-out ${
-          isOpen ? 'max-h-96 opacity-100 pb-4' : 'max-h-0 opacity-0'
-        }`}
-      >
-        <p className="text-sm text-gray-600 leading-relaxed px-1">
-          {t(`help.faq.${questionKey}.a`)}
-        </p>
-      </div>
+    <div className="py-4 px-1 border-b border-gray-100 last:border-b-0">
+      <h3 className="text-sm font-medium text-gray-900 mb-2">
+        {t(`help.faq.${questionKey}.q`)}
+      </h3>
+      <p className="text-sm text-gray-600 leading-relaxed">
+        {t(`help.faq.${questionKey}.a`)}
+      </p>
     </div>
   )
 }
@@ -105,11 +73,6 @@ function AccordionItem({
 export function FAQ() {
   const { t } = useTranslation()
   const { openAuthModal } = useAuth()
-  const [openItem, setOpenItem] = useState<string | null>(null)
-
-  const handleToggle = (key: string) => {
-    setOpenItem((prev) => (prev === key ? null : key))
-  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -144,15 +107,10 @@ export function FAQ() {
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
 
-                {/* Questions */}
+                {/* Questions — always visible, no accordion */}
                 <div className="bg-gray-50 rounded-xl border border-gray-200 px-5">
                   {category.items.map((item) => (
-                    <AccordionItem
-                      key={item.key}
-                      questionKey={item.key}
-                      isOpen={openItem === item.key}
-                      onToggle={() => handleToggle(item.key)}
-                    />
+                    <FAQEntry key={item.key} questionKey={item.key} />
                   ))}
                 </div>
               </div>

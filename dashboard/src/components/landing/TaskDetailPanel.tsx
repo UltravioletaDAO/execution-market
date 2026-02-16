@@ -5,6 +5,7 @@ import type { Task, TaskCategory } from '../../types/database'
 import { PaymentStatus } from '../PaymentStatus'
 import { useTaskPayment } from '../../hooks/useTaskPayment'
 import { getExplorerUrl } from '../../utils/blockchain'
+import { TxHashLink } from '../TxHashLink'
 
 interface TaskDetailPanelProps {
   task: Task
@@ -249,17 +250,9 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
                             {t('payment.refundConfirmedDesc', 'Los fondos han sido devueltos al agente. Esta tarea ha expirado.')}
                           </p>
                           {payment.escrow_tx && (
-                            <a
-                              href={getExplorerUrl(payment.escrow_tx, payment.network)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 mt-1.5 text-xs font-mono text-green-700 hover:text-green-900 underline transition-colors"
-                            >
-                              {payment.escrow_tx.slice(0, 10)}...{payment.escrow_tx.slice(-6)}
-                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
-                            </a>
+                            <div className="mt-1.5">
+                              <TxHashLink txHash={payment.escrow_tx} network={payment.network || 'base'} className="text-xs" />
+                            </div>
                           )}
                         </div>
                       </div>

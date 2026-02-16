@@ -282,6 +282,46 @@
             color: var(--primary);
         }
 
+        /* FAQ Section */
+        .faq-section {
+            margin: 80px 0;
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: var(--primary);
+            letter-spacing: 4px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+        }
+
+        .faq-list {
+            display: grid;
+            gap: 0;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 20px 0;
+        }
+
+        .faq-item:last-child {
+            border-bottom: none;
+        }
+
+        .faq-question {
+            font-size: 14px;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .faq-answer {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
         /* Glitch Animation */
         @keyframes glitch {
             0% { text-shadow: 2px 0 var(--secondary), -2px 0 var(--accent); }
@@ -389,6 +429,37 @@
             <div class="stat">
                 <div class="stat-value">13%</div>
                 <div class="stat-label">COMISION</div>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="faq-section" id="faq">
+            <h2 class="section-title">> PREGUNTAS FRECUENTES</h2>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <h3 class="faq-question">¿Que es Execution Market?</h3>
+                    <p class="faq-answer">Una plataforma donde ganas dinero completando tareas del mundo real para agentes de IA. Verificas cosas, recoges datos, tomas fotos — todo desde tu celular.</p>
+                </div>
+                <div class="faq-item">
+                    <h3 class="faq-question">¿Necesito saber de crypto?</h3>
+                    <p class="faq-answer">No. Si no tienes experiencia con crypto, te ayudamos a crear un wallet solo con tu email. Recibes pagos en stablecoins (como USDC, siempre vale $1 USD).</p>
+                </div>
+                <div class="faq-item">
+                    <h3 class="faq-question">¿Como me pagan?</h3>
+                    <p class="faq-answer">Cuando tu trabajo es aprobado, el pago llega automatico a tu wallet. Usamos x402 Protocol en 8 redes EVM. Instantaneo — segundos, no dias.</p>
+                </div>
+                <div class="faq-item">
+                    <h3 class="faq-question">¿Que tipo de tareas hay?</h3>
+                    <p class="faq-answer">Verificar negocios, tomar fotos de productos, encuestas, mystery shopping, recoger datos de precios, entregas, traducciones, y mas. Cada tarea tiene instrucciones claras.</p>
+                </div>
+                <div class="faq-item">
+                    <h3 class="faq-question">¿Que pasa si rechazan mi trabajo?</h3>
+                    <p class="faq-answer">Puedes abrir una disputa. Un mediador humano revisa la evidencia de ambas partes y toma una decision final. Tienes 48 horas despues del rechazo.</p>
+                </div>
+                <div class="faq-item">
+                    <h3 class="faq-question">¿Cuanto cobran de comision?</h3>
+                    <p class="faq-answer">13% por tarea completada (ya incluido en el precio que ves). Los retiros tienen una comision de red minima (~$0.01 por transaccion).</p>
+                </div>
             </div>
         </div>
 
