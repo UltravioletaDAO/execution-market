@@ -14,12 +14,11 @@ env:
   AWS_REGION: us-east-2
   ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com
   MCP_SERVER_ECR_REPO: em-production-mcp-server
-  DASHBOARD_ECR_REPO: em-production-dashboard
   ECS_CLUSTER: em-production-cluster
   MCP_SERVER_SERVICE: em-production-mcp-server
   MCP_SERVER_CONTAINER: mcp-server
-  DASHBOARD_SERVICE: em-production-dashboard
-  DASHBOARD_CONTAINER: dashboard
+  DASHBOARD_S3_BUCKET: em-production-dashboard
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.DASHBOARD_CLOUDFRONT_ID }}
   BASE_URL: https://execution.market
   API_URL: https://api.execution.market
 
@@ -42,9 +41,8 @@ jobs:
               - 'Dockerfile.mcp_server'
             frontend:
               - 'dashboard/**'
-              - 'Dockerfile.dashboard'
 
-  # ── Build & Push Backend ─────────────────────────────────────────
+  # ── Build & Push Backend (Docker → ECR → ECS) ───────────────────
   build-and-push-backend:
     name: Build & Push Backend
     runs-on: ubuntu-latest
@@ -86,16 +84,36 @@ jobs:
         id: output
         run: echo "image=${{ env.ECR_REGISTRY }}/${{ env.MCP_SERVER_ECR_REPO }}:${{ github.sha }}" >> $GITHUB_OUTPUT
 
-  # ── Build & Push Frontend ────────────────────────────────────────
-  build-and-push-frontend:
-    name: Build & Push Frontend
+  # ── Build & Deploy Frontend (Vite → S3 → CloudFront) ────────────
+  deploy-frontend:
+    name: Build & Deploy Frontend
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend == 'true'
-    outputs:
-      image: ${{ steps.output.outputs.image }}
+    environment:
+      name: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
+      url: ${{ env.BASE_URL }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Build
+        working-directory: dashboard
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ env.API_URL }}
+          VITE_REQUIRE_AGENT_API_KEY: 'true'
+          VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS: 'false'
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -104,33 +122,43 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Deploy to S3
+        working-directory: dashboard
+        run: |
+          # Static assets with long cache (Vite content hashes)
+          aws s3 sync dist/ s3://${{ env.DASHBOARD_S3_BUCKET }}/ \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html" \
+            --exclude "*.json"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+          # HTML + manifests with short cache (need fresh on deploy)
+          aws s3 cp dist/index.html s3://${{ env.DASHBOARD_S3_BUCKET }}/index.html \
+            --cache-control "public, max-age=60"
 
-      - name: Build and push Dashboard
-        uses: docker/build-push-action@v6
-        with:
-          context: ./dashboard
-          file: ./dashboard/Dockerfile
-          push: true
-          tags: |
-            ${{ env.ECR_REGISTRY }}/${{ env.DASHBOARD_ECR_REPO }}:${{ github.sha }}
-            ${{ env.ECR_REGISTRY }}/${{ env.DASHBOARD_ECR_REPO }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
-          build-args: |
-            VITE_API_URL=${{ env.API_URL }}
-            VITE_REQUIRE_AGENT_API_KEY=true
-            VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=false
+          # Copy any other HTML/JSON files with short cache
+          aws s3 sync dist/ s3://${{ env.DASHBOARD_S3_BUCKET }}/ \
+            --exclude "*" \
+            --include "*.html" \
+            --include "*.json" \
+            --cache-control "public, max-age=60"
 
-      - name: Output image tag
-        id: output
-        run: echo "image=${{ env.ECR_REGISTRY }}/${{ env.DASHBOARD_ECR_REPO }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+      - name: Invalidate CloudFront cache
+        if: env.CLOUDFRONT_DISTRIBUTION_ID != ''
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/index.html" "/assets/*" "/*.json"
+
+      - name: Health check
+        run: |
+          sleep 15
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.BASE_URL }} || echo "000")
+          if [ "$HTTP_STATUS" == "200" ]; then
+            echo "Frontend healthy ✅"
+          else
+            echo "Frontend returned $HTTP_STATUS (may need DNS propagation)"
+          fi
 
   # ── Deploy Backend to ECS ────────────────────────────────────────
   deploy-backend:
@@ -185,58 +213,6 @@ jobs:
             echo "Attempt $i: $HTTP_STATUS, retrying..."; sleep 10
           done
           echo "Backend health check failed"; exit 1
-
-  # ── Deploy Frontend to ECS ───────────────────────────────────────
-  deploy-frontend:
-    name: Deploy Frontend
-    runs-on: ubuntu-latest
-    needs: [detect-changes, build-and-push-frontend]
-    if: always() && !cancelled() && needs.detect-changes.outputs.frontend == 'true' && needs.build-and-push-frontend.result == 'success'
-    environment:
-      name: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
-      url: ${{ env.BASE_URL }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Download task definition
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition ${{ env.DASHBOARD_SERVICE }} \
-            --query taskDefinition > task-def.json
-
-      - name: Update task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-def.json
-          container-name: ${{ env.DASHBOARD_CONTAINER }}
-          image: ${{ needs.build-and-push-frontend.outputs.image }}
-
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.DASHBOARD_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
-          wait-for-minutes: 15
-
-      - name: Health check
-        run: |
-          sleep 30
-          for i in {1..5}; do
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.BASE_URL }} || echo "000")
-            if [ "$HTTP_STATUS" == "200" ]; then echo "Frontend healthy ✅"; exit 0; fi
-            echo "Attempt $i: $HTTP_STATUS, retrying..."; sleep 10
-          done
-          echo "Frontend health check failed"; exit 1
 
   # ── Notify on Failure ────────────────────────────────────────────
   notify:
