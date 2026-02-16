@@ -111,6 +111,7 @@ jobs:
         working-directory: dashboard
         run: npm run build
         env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
           VITE_API_URL: ${{ env.API_URL }}
           VITE_REQUIRE_AGENT_API_KEY: 'true'
           VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS: 'false'
