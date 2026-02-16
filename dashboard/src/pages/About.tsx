@@ -1,8 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
-import { AppHeader } from '../components/layout/AppHeader'
-import { AppFooter } from '../components/layout/AppFooter'
 
 export function About() {
   const { t } = useTranslation()
@@ -98,11 +96,8 @@ export function About() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <AppHeader onConnectWallet={openAuthModal} />
-
-      <main className="flex-1">
-        {/* Hero */}
+    <>
+      {/* Hero */}
         <section className="bg-gray-900 text-white py-16 md:py-24">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-full text-sm font-medium mb-6">
@@ -495,9 +490,6 @@ export function About() {
             </div>
           </div>
         </section>
-      </main>
-
-      <AppFooter />
-    </div>
+    </>
   )
 }

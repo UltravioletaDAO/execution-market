@@ -1,7 +1,4 @@
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../context/AuthContext'
-import { AppHeader } from '../components/layout/AppHeader'
-import { AppFooter } from '../components/layout/AppFooter'
 
 interface FAQItem {
   key: string
@@ -72,14 +69,10 @@ function FAQEntry({ questionKey }: { questionKey: string }) {
 
 export function FAQ() {
   const { t } = useTranslation()
-  const { openAuthModal } = useAuth()
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <AppHeader onConnectWallet={openAuthModal} />
-
-      <main className="flex-1">
-        {/* Hero */}
+    <>
+      {/* Hero */}
         <section className="bg-gray-900 text-white">
           <div className="max-w-3xl mx-auto px-4 py-16 text-center">
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">
@@ -151,9 +144,6 @@ export function FAQ() {
             </a>
           </div>
         </section>
-      </main>
-
-      <AppFooter />
-    </div>
+    </>
   )
 }
