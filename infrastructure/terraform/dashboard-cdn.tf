@@ -222,27 +222,29 @@ resource "aws_s3_bucket_policy" "dashboard" {
 # UNCOMMENT after verifying CloudFront works via d*.cloudfront.net
 # This REPLACES the current A record pointing to ALB/ECS.
 
-# resource "aws_route53_record" "dashboard_cdn" {
-#   zone_id = data.aws_route53_zone.main.zone_id
-#   name    = var.domain
-#   type    = "A"
-#   alias {
-#     name                   = aws_cloudfront_distribution.dashboard.domain_name
-#     zone_id                = aws_cloudfront_distribution.dashboard.hosted_zone_id
-#     evaluate_target_health = false
-#   }
-# }
-#
-# resource "aws_route53_record" "dashboard_cdn_www" {
-#   zone_id = data.aws_route53_zone.main.zone_id
-#   name    = "www.${var.domain}"
-#   type    = "A"
-#   alias {
-#     name                   = aws_cloudfront_distribution.dashboard.domain_name
-#     zone_id                = aws_cloudfront_distribution.dashboard.hosted_zone_id
-#     evaluate_target_health = false
-#   }
-# }
+resource "aws_route53_record" "dashboard_cdn" {
+  zone_id         = data.aws_route53_zone.main.zone_id
+  name            = var.domain
+  type            = "A"
+  allow_overwrite = true
+  alias {
+    name                   = aws_cloudfront_distribution.dashboard.domain_name
+    zone_id                = aws_cloudfront_distribution.dashboard.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "dashboard_cdn_www" {
+  zone_id         = data.aws_route53_zone.main.zone_id
+  name            = "www.${var.domain}"
+  type            = "A"
+  allow_overwrite = true
+  alias {
+    name                   = aws_cloudfront_distribution.dashboard.domain_name
+    zone_id                = aws_cloudfront_distribution.dashboard.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
 
 # ─── Outputs ───────────────────────────────────────────────────────
 
