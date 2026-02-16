@@ -46,6 +46,14 @@ const FAQ_DATA: FAQCategory[] = [
       { key: 'disputeWin' },
     ],
   },
+  {
+    categoryKey: 'a2a',
+    items: [
+      { key: 'whatIsA2A' },
+      { key: 'howA2AWorks' },
+      { key: 'a2aReputation' },
+    ],
+  },
 ]
 
 /**

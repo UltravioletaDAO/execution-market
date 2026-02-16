@@ -8,6 +8,7 @@ import { ProtocolStack } from '../components/landing/ProtocolStack'
 import { StatsBar } from '../components/landing/StatsBar'
 import { PublicTaskBrowser } from '../components/landing/PublicTaskBrowser'
 import { HowItWorks } from '../components/landing/HowItWorks'
+import { A2ASection } from '../components/landing/A2ASection'
 import { AgentIntegration } from '../components/landing/AgentIntegration'
 import { ActivityFeed } from '../components/feed'
 
@@ -127,6 +128,9 @@ export function Home() {
         <HowItWorks
           onConnectWallet={handleConnectWallet}
         />
+
+
+        <A2ASection />
 
         <AgentIntegration ref={agentSectionRef} />
       </div>
