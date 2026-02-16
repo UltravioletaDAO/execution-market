@@ -124,11 +124,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Derived state
   const dynamicWalletAddress = primaryWallet?.address?.toLowerCase() || null
   dynamicWalletRef.current = dynamicWalletAddress
-  // In connect-and-sign mode, trust Dynamic's wallet state primarily.
-  // persistedWalletAddress is only a fallback hint during SDK initialization.
-  const walletAddress = dynamicWalletAddress || null
-  // With connect-and-sign mode, isLoggedIn should be reliable and persistent
-  // thanks to Dynamic's JWT session management.
+  const walletAddress = dynamicWalletAddress || persistedWalletAddress || null
+  // Only consider authenticated when Dynamic SDK says user is logged in.
+  // persistedWalletAddress is a hint for executor lookup, NOT an auth signal.
   const isAuthenticated = dynamicInitialized && isLoggedIn && !!dynamicWalletAddress
   const isProfileComplete = !!executor?.display_name
 
@@ -378,18 +376,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // --------------------------------------------------------------------------
   // Effect: Handle tab visibility changes (mobile tab switching)
-  // In connect-and-sign mode, Dynamic's JWT should handle session persistence,
-  // but we still refresh executor data when tab becomes visible to ensure
-  // Supabase session stays linked.
+  // When user switches away and comes back, re-fetch executor data to keep
+  // the session warm. This helps after mobile browsers suspend the tab.
   // --------------------------------------------------------------------------
   useEffect(() => {
     if (typeof document === 'undefined') return
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && walletAddress && dynamicInitialized && isLoggedIn) {
+      if (document.visibilityState === 'visible' && walletAddress && dynamicInitialized) {
         console.log('[Auth] Tab restored — refreshing executor data')
-        // With connect-and-sign, Dynamic session should persist automatically.
-        // We just refresh Supabase linkage and executor data.
+        // Re-link wallet and refresh executor to keep Supabase session alive
         linkWalletToSession(walletAddress)
           .then(() => fetchExecutor(walletAddress))
           .then((data) => {
@@ -401,12 +397,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [walletAddress, dynamicInitialized, isLoggedIn, linkWalletToSession, fetchExecutor])
+  }, [walletAddress, dynamicInitialized, linkWalletToSession, fetchExecutor])
 
   // --------------------------------------------------------------------------
   // Effect: Fetch executor when wallet changes
-  // In connect-and-sign mode, Dynamic's session persistence should be reliable,
-  // so we can simplify this logic and trust the wallet state more directly.
+  // Note: dynamicWalletAddress is read via ref (not a dep) to prevent
+  // unnecessary re-fetches when Dynamic SDK transitions wallet state
+  // (e.g. null → address) while walletAddress stays the same via persisted fallback.
   // --------------------------------------------------------------------------
   useEffect(() => {
     if (!dynamicInitialized) {
@@ -415,21 +412,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     if (walletAddress) {
-      // Cancel any pending logout debounce if wallet is back
+      // Cancel any pending logout debounce — wallet is back
       if (logoutDebounceRef.current) {
         clearTimeout(logoutDebounceRef.current)
         logoutDebounceRef.current = null
       }
 
-      // Store wallet address for reference (but not as primary auth mechanism)
       localStorage.setItem(WALLET_STORAGE_KEY, walletAddress)
       setPersistedWalletAddress(walletAddress)
       lastWalletRef.current = walletAddress
-      
       setLoading(true)
       linkWalletToSession(walletAddress)
         .then(() => fetchExecutor(walletAddress))
         .then((data) => {
+          // If we can't recover executor data for a persisted-only wallet,
+          // clear persisted session and require explicit re-auth.
+          if (!dynamicWalletRef.current && !data) {
+            localStorage.removeItem(WALLET_STORAGE_KEY)
+            setPersistedWalletAddress(null)
+            setUserType(null)
+          }
           setExecutor(data)
           setLoading(false)
         })
@@ -439,24 +441,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setLoading(false)
         })
     } else {
-      // In connect-and-sign mode, only clear state if we're sure the user is logged out
-      // Give a short grace period for SDK initialization, but don't debounce as aggressively
-      const debounceMs = 1000 // Reduced from 2000ms for better UX
+      // Debounce wallet removal — Dynamic SDK may briefly null the wallet
+      // during session restoration or wallet provisioning transitions.
+      // 2s delay on mobile (tab switching can take >1s to restore SDK state),
+      // 500ms on desktop. Prevents logout flash on tab restore.
+      const debounceMs = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 2000 : 500
       logoutDebounceRef.current = setTimeout(() => {
         logoutDebounceRef.current = null
-        // Only clear if user is definitely not logged in according to Dynamic
-        if (!isLoggedIn) {
-          setExecutor(null)
-          setLoading(false)
-          if (lastWalletRef.current) {
-            lastWalletRef.current = null
-            linkedWalletRef.current = null
-            supabase.auth.signOut().catch((err: unknown) => {
-              console.warn('[Auth] Failed to clear Supabase session:', err)
-            })
-          }
-        } else {
-          setLoading(false)
+        setExecutor(null)
+        setLoading(false)
+        if (lastWalletRef.current) {
+          lastWalletRef.current = null
+          linkedWalletRef.current = null
+          supabase.auth.signOut().catch((err: unknown) => {
+            console.warn('[Auth] Failed to clear Supabase session:', err)
+          })
         }
       }, debounceMs)
     }
@@ -466,7 +465,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         clearTimeout(logoutDebounceRef.current)
       }
     }
-  }, [dynamicInitialized, walletAddress, fetchExecutor, linkWalletToSession, isLoggedIn])
+  }, [dynamicInitialized, walletAddress, fetchExecutor, linkWalletToSession, setUserType])
 
   // --------------------------------------------------------------------------
   // Context Value
