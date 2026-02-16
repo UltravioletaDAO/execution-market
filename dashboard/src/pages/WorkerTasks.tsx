@@ -9,7 +9,6 @@ import { TaskList, CategoryFilter } from '../components/TaskList'
 import { TaskDetail } from '../components/TaskDetail'
 import { SubmissionForm } from '../components/SubmissionForm'
 import { PaymentStatus } from '../components/PaymentStatus'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import type { Task, TaskCategory } from '../types/database'
 
 type TasksView = 'list' | 'detail' | 'submit' | 'submitted'
@@ -91,12 +90,11 @@ export function WorkerTasks() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [category, setCategory] = useState<TaskCategory | null>(null)
   const location = useLocation()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'available' | 'mine'>(
     location.state?.tab === 'mine' ? 'mine' : 'available'
   )
 
-  const { executor, isAuthenticated, loading: authLoading, logout } = useAuth()
+  const { executor } = useAuth()
 
   const {
     tasks: availableTasks,
@@ -268,117 +266,6 @@ export function WorkerTasks() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="flex items-center justify-between h-14">
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-              aria-label="Execution Market"
-            >
-              <img src="/logo.png" alt="EM" className="w-8 h-8 rounded-lg object-contain" />
-              <span className="font-bold text-lg text-gray-900 hidden sm:inline">Execution Market</span>
-            </button>
-
-            {/* Nav links */}
-            <nav className="hidden md:flex items-center gap-1">
-              <button onClick={() => navigate('/tasks')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium">
-                {t('nav.tasks', 'Tasks')}
-              </button>
-              <button onClick={() => navigate('/activity')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
-                {t('nav.activity', 'Activity')}
-              </button>
-              <button onClick={() => navigate('/profile')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
-                {t('nav.profile', 'Profile')}
-              </button>
-            </nav>
-
-            <div className="flex items-center gap-2">
-              {/* Mobile hamburger */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-1.5 text-gray-500 hover:text-gray-900 transition-colors"
-                aria-label="Menu"
-              >
-                {mobileMenuOpen ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                )}
-              </button>
-
-              <div className="hidden sm:block">
-                <LanguageSwitcher compact />
-              </div>
-
-              {authLoading ? (
-                <div className="w-6 h-6 bg-gray-200 rounded-full animate-pulse" />
-              ) : isAuthenticated ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => navigate('/profile')}
-                    className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-3 py-1.5 transition-colors"
-                  >
-                    <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">
-                        {(executor?.display_name || 'U')[0].toUpperCase()}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium text-gray-700 hidden sm:inline">
-                      {executor?.display_name || t('nav.profile', 'Profile')}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => logout()}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    title={t('auth.logout')}
-                  >
-                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-        {/* Mobile menu dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white">
-            <div className="px-4 py-2 space-y-1">
-              {[
-                { label: t('nav.tasks', 'Tasks'), href: '/tasks' },
-                { label: t('nav.activity', 'Activity'), href: '/activity' },
-                { label: t('nav.profile', 'Profile'), href: '/profile' },
-                { label: t('nav.home', 'Home'), href: '/' },
-              ].map((link) => (
-                <button
-                  key={link.href}
-                  onClick={() => { navigate(link.href); setMobileMenuOpen(false) }}
-                  className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-                >
-                  {link.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* Main content */}
-      <main className="max-w-3xl mx-auto px-4 py-6">{renderContent()}</main>
-
-      {/* Footer */}
-      <footer className="max-w-3xl mx-auto px-4 py-6 text-center text-sm text-gray-400">
-        <p>Execution Market - Human Execution Layer for AI Agents</p>
-        <p className="mt-1">{t('footer.poweredBy')} Ultravioleta DAO</p>
-      </footer>
-    </div>
+    <div className="max-w-3xl mx-auto px-4 py-6">{renderContent()}</div>
   )
 }

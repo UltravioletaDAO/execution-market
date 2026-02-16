@@ -7,26 +7,14 @@
 
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { AppHeader } from '../components/layout/AppHeader'
-import { AppFooter } from '../components/layout/AppFooter'
 import { ActivityFeed } from '../components/feed'
-import { useAuth } from '../context/AuthContext'
-import { useCallback } from 'react'
 
 export function Activity() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { openAuthModal } = useAuth()
-
-  const handleConnectWallet = useCallback(() => {
-    openAuthModal()
-  }, [openAuthModal])
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col">
-      <AppHeader onConnectWallet={handleConnectWallet} />
-
-      <main className="flex-1 max-w-3xl mx-auto px-4 w-full py-8">
+    <div className="max-w-3xl mx-auto px-4 w-full py-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-6">
           <button
@@ -57,9 +45,6 @@ export function Activity() {
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
           <ActivityFeed mode="authenticated" />
         </div>
-      </main>
-
-      <AppFooter />
     </div>
   )
 }

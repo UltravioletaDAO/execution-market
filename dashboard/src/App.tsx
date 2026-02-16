@@ -9,8 +9,8 @@ import { AuthGuard, WorkerGuard, AgentGuard } from './components/guards'
 // Dynamic.xyz widget — must be rendered in the tree for the auth modal to work
 import { DynamicWidget } from '@dynamic-labs/sdk-react-core'
 
-// Components (eagerly loaded - used in wrappers)
-import { LanguageSwitcher } from './components/LanguageSwitcher'
+// Layout
+import { AppLayout } from './components/layout/AppLayout'
 
 // Lazy-loaded page components for code splitting
 const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })))
@@ -73,7 +73,7 @@ function ProfilePageWrapper() {
   // Show loading state while fetching executor
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <div className="flex items-center gap-3">
           <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -88,7 +88,7 @@ function ProfilePageWrapper() {
   // If not loading but no executor, show error with retry option
   if (!executor) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <p className="text-gray-500 mb-4">No se pudo cargar tu perfil.</p>
           <div className="flex gap-3 justify-center">
@@ -220,35 +220,29 @@ function EarningsPage() {
   }, [summary, chartPeriod])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/tasks')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="font-bold text-lg text-gray-900">Mis Ganancias</h1>
-          </div>
-        </div>
-      </header>
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        <Earnings
-          summary={summary}
-          transactions={transactions}
-          pendingPayments={pendingPayments}
-          chartData={chartData}
-          loading={earningsLoading || historyLoading}
-          error={error}
-          onWithdraw={() => navigate('/profile')}
-          onChartPeriodChange={setChartPeriod}
-          chartPeriod={chartPeriod}
-        />
-      </main>
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => navigate('/tasks')}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <h1 className="font-bold text-lg text-gray-900">Mis Ganancias</h1>
+      </div>
+      <Earnings
+        summary={summary}
+        transactions={transactions}
+        pendingPayments={pendingPayments}
+        chartData={chartData}
+        loading={earningsLoading || historyLoading}
+        error={error}
+        onWithdraw={() => navigate('/profile')}
+        onChartPeriodChange={setChartPeriod}
+        chartPeriod={chartPeriod}
+      />
     </div>
   )
 }
@@ -273,47 +267,8 @@ function AgentDashboardPage() {
   }, [setSearchParams])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button onClick={() => navigate('/')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <span className="text-2xl">&#128188;</span>
-                <span className="font-bold text-lg text-gray-900">Execution Market</span>
-              </button>
-              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                Agent
-              </span>
-            </div>
-            <nav className="hidden md:flex items-center gap-1">
-              <button onClick={() => navigate('/activity')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">Activity</button>
-              <button onClick={() => navigate('/agent/dashboard')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium">Dashboard</button>
-              <button onClick={() => navigate('/agent/tasks/new')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">New Task</button>
-            </nav>
-            <div className="flex items-center gap-2">
-              <LanguageSwitcher />
-              <button
-                onClick={() => { const el = document.getElementById('agent-mobile-menu'); if (el) el.classList.toggle('hidden') }}
-                className="md:hidden p-1.5 text-gray-500 hover:text-gray-900 transition-colors"
-                aria-label="Menu"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        {/* Mobile menu */}
-        <div id="agent-mobile-menu" className="hidden md:hidden border-t border-gray-200 bg-white px-4 py-2 space-y-1">
-          <button onClick={() => navigate('/activity')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Activity</button>
-          <button onClick={() => navigate('/agent/dashboard')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Dashboard</button>
-          <button onClick={() => navigate('/agent/tasks/new')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">New Task</button>
-          <button onClick={() => navigate('/')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Home</button>
-        </div>
-      </header>
-      <main className="max-w-6xl mx-auto px-4 py-6">
+    <>
+      <div className="max-w-6xl mx-auto px-4 py-6">
         <AgentDashboard
           agentId={executor?.id ?? ''}
           onBack={() => navigate('/')}
@@ -321,7 +276,7 @@ function AgentDashboardPage() {
           onViewTask={(task) => navigate(`/agent/tasks?view=${task.id}`)}
           onReviewSubmission={(submission) => setSearchParams({ review: submission.id })}
         />
-      </main>
+      </div>
       {reviewSubmissionId && (
         <Suspense fallback={null}>
           <SubmissionReviewModal
@@ -331,7 +286,7 @@ function AgentDashboardPage() {
           />
         </Suspense>
       )}
-    </div>
+    </>
   )
 }
 
@@ -357,8 +312,8 @@ function AgentTasksPage() {
   }, [setSearchParams])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-6xl mx-auto px-4 py-6">
+    <>
+      <div className="max-w-6xl mx-auto px-4 py-6">
         <TaskManagement
           agentId={executor?.id ?? ''}
           onBack={() => navigate('/agent/dashboard')}
@@ -367,7 +322,7 @@ function AgentTasksPage() {
           onEditTask={(task) => navigate(`/agent/tasks/new?edit=${task.id}`)}
           onViewApplicants={(task) => setSearchParams({ view: task.id })}
         />
-      </main>
+      </div>
       {viewTaskId && (
         <Suspense fallback={null}>
           <TaskDetailModal
@@ -386,7 +341,7 @@ function AgentTasksPage() {
           />
         </Suspense>
       )}
-    </div>
+    </>
   )
 }
 
@@ -395,14 +350,12 @@ function AgentCreateTaskPage() {
   const { executor } = useAuth()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        <CreateTask
-          agentId={executor?.id ?? ''}
-          onBack={() => navigate('/agent/tasks')}
-          onSuccess={() => navigate('/agent/tasks')}
-        />
-      </main>
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      <CreateTask
+        agentId={executor?.id ?? ''}
+        onBack={() => navigate('/agent/tasks')}
+        onSuccess={() => navigate('/agent/tasks')}
+      />
     </div>
   )
 }
@@ -415,75 +368,77 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
     <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Home />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/faq" element={<FAQ />} />
-      <Route path="/agents" element={<AgentOnboarding />} />
-      <Route path="/agent/login" element={<AgentLogin />} />
-      <Route path="/developers" element={<Developers />} />
-      <Route
-        path="/activity"
-        element={
-          <AuthGuard>
-            <Activity />
-          </AuthGuard>
-        }
-      />
-      <Route path="/profile/:wallet" element={<PublicProfile />} />
-      <Route path="/feedback/:taskId" element={<FeedbackPage />} />
+      <Route element={<AppLayout />}>
+        {/* Public Routes */}
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/agents" element={<AgentOnboarding />} />
+        <Route path="/agent/login" element={<AgentLogin />} />
+        <Route path="/developers" element={<Developers />} />
+        <Route
+          path="/activity"
+          element={
+            <AuthGuard>
+              <Activity />
+            </AuthGuard>
+          }
+        />
+        <Route path="/profile/:wallet" element={<PublicProfile />} />
+        <Route path="/feedback/:taskId" element={<FeedbackPage />} />
 
-      {/* Worker Routes (Protected - Workers Only) */}
-      <Route
-        path="/tasks"
-        element={
-          <WorkerGuard>
-            <WorkerTasks />
-          </WorkerGuard>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <WorkerGuard>
-            <ProfilePageWrapper />
-          </WorkerGuard>
-        }
-      />
-      <Route
-        path="/earnings"
-        element={
-          <WorkerGuard>
-            <EarningsPage />
-          </WorkerGuard>
-        }
-      />
+        {/* Worker Routes (Protected - Workers Only) */}
+        <Route
+          path="/tasks"
+          element={
+            <WorkerGuard>
+              <WorkerTasks />
+            </WorkerGuard>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <WorkerGuard>
+              <ProfilePageWrapper />
+            </WorkerGuard>
+          }
+        />
+        <Route
+          path="/earnings"
+          element={
+            <WorkerGuard>
+              <EarningsPage />
+            </WorkerGuard>
+          }
+        />
 
-      {/* Agent Routes (Protected - Agents Only) */}
-      <Route
-        path="/agent/dashboard"
-        element={
-          <AgentGuard>
-            <AgentDashboardPage />
-          </AgentGuard>
-        }
-      />
-      <Route
-        path="/agent/tasks"
-        element={
-          <AgentGuard>
-            <AgentTasksPage />
-          </AgentGuard>
-        }
-      />
-      <Route
-        path="/agent/tasks/new"
-        element={
-          <AgentGuard>
-            <AgentCreateTaskPage />
-          </AgentGuard>
-        }
-      />
+        {/* Agent Routes (Protected - Agents Only) */}
+        <Route
+          path="/agent/dashboard"
+          element={
+            <AgentGuard>
+              <AgentDashboardPage />
+            </AgentGuard>
+          }
+        />
+        <Route
+          path="/agent/tasks"
+          element={
+            <AgentGuard>
+              <AgentTasksPage />
+            </AgentGuard>
+          }
+        />
+        <Route
+          path="/agent/tasks/new"
+          element={
+            <AgentGuard>
+              <AgentCreateTaskPage />
+            </AgentGuard>
+          }
+        />
+      </Route>
     </Routes>
     </Suspense>
   )

@@ -1,27 +1,31 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { LanguageSwitcher } from '../LanguageSwitcher'
 
-interface AppHeaderProps {
-  onConnectWallet: () => void
-}
-
-export function AppHeader({ onConnectWallet }: AppHeaderProps) {
+export function AppHeader() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { isAuthenticated, userType, executor, loading } = useAuth()
+  const location = useLocation()
+  const { isAuthenticated, userType, executor, loading, openAuthModal } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const navLinks = [
+  const mainNavLinks = [
     { label: t('nav.activity', 'Activity'), href: '/activity' },
     { label: t('nav.home', 'Jobs'), href: '/' },
-    { label: t('footer.about', 'About'), href: '/about' },
     { label: t('help.faq.title', 'FAQ'), href: '/faq' },
+  ]
+
+  const secondaryNavLinks = [
+    { label: t('footer.about', 'About'), href: '/about' },
     { label: t('nav.agents', 'For Agents'), href: '/agents' },
     { label: t('nav.developers', 'Developers'), href: '/developers' },
   ]
+
+  const allNavLinks = [...mainNavLinks, ...secondaryNavLinks]
+
+  const isActive = (href: string) => location.pathname === href
 
   return (
     <header className="bg-gray-900 sticky top-0 z-30">
@@ -40,11 +44,29 @@ export function AppHeader({ onConnectWallet }: AppHeaderProps) {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+            {mainNavLinks.map((link) => (
               <button
                 key={link.href}
                 onClick={() => navigate(link.href)}
-                className="px-3 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  isActive(link.href)
+                    ? 'text-white bg-white/15'
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {link.label}
+              </button>
+            ))}
+            {/* Secondary links - smaller */}
+            {secondaryNavLinks.map((link) => (
+              <button
+                key={link.href}
+                onClick={() => navigate(link.href)}
+                className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
+                  isActive(link.href)
+                    ? 'text-white bg-white/15'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/10'
+                }`}
               >
                 {link.label}
               </button>
@@ -77,7 +99,7 @@ export function AppHeader({ onConnectWallet }: AppHeaderProps) {
               </div>
             ) : (
               <button
-                onClick={onConnectWallet}
+                onClick={openAuthModal}
                 disabled={loading}
                 className="px-4 py-1.5 bg-emerald-500 text-white text-sm font-semibold rounded-md hover:bg-emerald-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
@@ -109,18 +131,44 @@ export function AppHeader({ onConnectWallet }: AppHeaderProps) {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-800 bg-gray-900 animate-slide-down">
           <div className="px-4 py-3 space-y-1">
-            {navLinks.map((link) => (
+            {allNavLinks.map((link) => (
               <button
                 key={link.href}
                 onClick={() => {
                   navigate(link.href)
                   setMobileMenuOpen(false)
                 }}
-                className="block w-full text-left px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                className={`block w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                  isActive(link.href)
+                    ? 'text-white bg-white/15'
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
+                }`}
               >
                 {link.label}
               </button>
             ))}
+            {isAuthenticated && (
+              <>
+                <button
+                  onClick={() => {
+                    navigate('/profile')
+                    setMobileMenuOpen(false)
+                  }}
+                  className="block w-full text-left px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                >
+                  {t('nav.profile', 'Profile')}
+                </button>
+                <button
+                  onClick={() => {
+                    navigate(userType === 'agent' ? '/agent/dashboard' : '/tasks')
+                    setMobileMenuOpen(false)
+                  }}
+                  className="block w-full text-left px-3 py-2 text-sm text-emerald-400 hover:text-emerald-300 hover:bg-white/10 rounded-md transition-colors"
+                >
+                  {t('nav.myTasks', 'My Tasks')}
+                </button>
+              </>
+            )}
             <div className="pt-2 px-3">
               <LanguageSwitcher />
             </div>

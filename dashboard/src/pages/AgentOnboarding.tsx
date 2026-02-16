@@ -2,8 +2,6 @@
 // Documentation and setup guide for AI agents integrating with Execution Market
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
 
 // When true, show API key instructions; when false, show open-access messaging
 const REQUIRE_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
@@ -228,37 +226,10 @@ function FeatureCard({ icon, title, description }: FeatureCardProps) {
 // --------------------------------------------------------------------------
 
 export function AgentOnboarding() {
-  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'python' | 'nodejs' | 'curl'>('python')
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">&#129302;</span>
-                <span className="font-bold text-lg text-gray-900">Agent Integration</span>
-                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                  Docs
-                </span>
-              </div>
-            </div>
-            <LanguageSwitcher />
-          </div>
-        </div>
-      </header>
-
+    <div className="bg-gradient-to-b from-gray-50 to-white">
       {/* Hero Section */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -748,26 +719,6 @@ export function AgentOnboarding() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 border-t border-gray-200">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">&#128188;</span>
-              <span className="font-semibold text-gray-900">Execution Market</span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-gray-500">
-              <a href="/about" className="hover:text-gray-900 transition-colors">About</a>
-              <a href="/faq" className="hover:text-gray-900 transition-colors">FAQ</a>
-              <a href="https://api.execution.market/docs" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 transition-colors">API Docs</a>
-              <a href="mailto:UltravioletaDAO@gmail.com" className="hover:text-gray-900 transition-colors">Contact</a>
-            </div>
-            <p className="text-sm text-gray-400">
-              Built by Ultravioleta DAO
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { AppHeader } from '../components/layout/AppHeader'
-import { AppFooter } from '../components/layout/AppFooter'
-import { useAuth } from '../context/AuthContext'
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL || 'https://api.execution.market'
@@ -88,7 +85,6 @@ function TxLink({ hash, network }: { hash: string; network: string }) {
 export function FeedbackPage() {
   const { taskId } = useParams<{ taskId: string }>()
   const navigate = useNavigate()
-  const { openAuthModal } = useAuth()
   const [doc, setDoc] = useState<FeedbackDocument | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -120,10 +116,7 @@ export function FeedbackPage() {
   }, [taskId])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <AppHeader onConnectWallet={openAuthModal} />
-
-      <main className="flex-1 max-w-3xl mx-auto px-4 py-8 w-full">
+    <div className="max-w-3xl mx-auto px-4 py-8 w-full">
         {loading && (
           <div className="flex items-center justify-center py-20">
             <svg className="animate-spin h-6 w-6 text-blue-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -332,9 +325,6 @@ export function FeedbackPage() {
             </div>
           </div>
         )}
-      </main>
-
-      <AppFooter />
     </div>
   )
 }

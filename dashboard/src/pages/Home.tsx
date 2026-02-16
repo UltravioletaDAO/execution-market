@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { ProfileCompletionModal } from '../components/ProfileCompletionModal'
-import { AppHeader } from '../components/layout/AppHeader'
-import { AppFooter } from '../components/layout/AppFooter'
 import { HeroSection } from '../components/landing/HeroSection'
 import { ProtocolStack } from '../components/landing/ProtocolStack'
 import { StatsBar } from '../components/landing/StatsBar'
@@ -97,12 +95,8 @@ export function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <AppHeader
-        onConnectWallet={handleConnectWallet}
-      />
-
-      <main className="flex-1 max-w-6xl mx-auto px-4 w-full">
+    <>
+      <div className="max-w-6xl mx-auto px-4 w-full">
         <HeroSection
           onConnectWallet={handleConnectWallet}
           onGoToDashboard={handleGoToDashboard}
@@ -137,9 +131,7 @@ export function Home() {
         </section>
 
         <AgentIntegration ref={agentSectionRef} />
-      </main>
-
-      <AppFooter />
+      </div>
 
       {shouldShowProfileCompletion && (
         <ProfileCompletionModal
@@ -148,6 +140,6 @@ export function Home() {
           executor={executor}
         />
       )}
-    </div>
+    </>
   )
 }
