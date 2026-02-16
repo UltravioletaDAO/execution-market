@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-16T10:04:55.669731+00:00",
+  "timestamp": "2026-02-16T15:21:34.794641+00:00",
   "api_base": "https://api.execution.market",
   "fee_model": "credit_card",
   "bounty_usd": 0.1,
@@ -13,7 +13,7 @@
       "name": "health_config",
       "description": "Health & Config Verification",
       "status": "PASS",
-      "elapsed_s": 0.52,
+      "elapsed_s": 0.69,
       "health_status": "healthy",
       "supported_networks": [
         "arbitrum",
@@ -36,8 +36,8 @@
       "name": "task_creation",
       "description": "Task Creation (Balance Check)",
       "status": "PASS",
-      "elapsed_s": 6.59,
-      "task_id": "4eabee24-3780-4d1b-bbc6-e3a165cd931c",
+      "elapsed_s": 91.98,
+      "task_id": "812d1d27-358b-4fd7-afbc-36d8e1cc58ca",
       "task_status": "published",
       "escrow_at_creation": false,
       "fee_model": "credit_card"
@@ -46,19 +46,19 @@
       "name": "worker_registration",
       "description": "Worker Registration & Identity",
       "status": "PASS",
-      "elapsed_s": 11.47,
+      "elapsed_s": 1.97,
       "executor_id": "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4",
-      "erc8004_agent_id": 17841,
-      "erc8004_tx": "0xc77e3209dcba705d8bffebc1c2ed9d099d65433361ca0702dbe5bc2711fed4dc"
+      "erc8004_agent_id": null,
+      "erc8004_tx": null
     },
     "task_lifecycle": {
       "name": "task_lifecycle",
       "description": "Task Lifecycle (Apply -> Assign+Escrow -> Submit)",
       "status": "PASS",
-      "elapsed_s": 26.97,
-      "application_id": "0e35288e-0018-4022-a7be-760f8359625d",
-      "submission_id": "d6275a6d-c4b4-49d6-bfd5-5c7c639dbcc9",
-      "escrow_tx": "0x88837b64962abaaf3ca2f0d1049bbfcc840ea0badd091497c67d008e172bf54a",
+      "elapsed_s": 6.27,
+      "application_id": "058435c1-1b38-4813-93d6-9895738f8a1c",
+      "submission_id": "2b518c1d-4750-41be-b514-e6e13860165e",
+      "escrow_tx": "0xc8c1caf4c765fc9678c864a30383aa890c4da90ce849acf4707a521277b92c59",
       "escrow_verified": true,
       "escrow_mode": "direct_release",
       "fee_model": "credit_card"
@@ -67,16 +67,16 @@
       "name": "payment",
       "description": "Approval & Payment Settlement",
       "status": "PASS",
-      "elapsed_s": 19.49,
+      "elapsed_s": 18.9,
       "payment_mode": "fase2",
-      "escrow_release_tx": "0x5838585d434f35cda943b8e17d4fcce905c83fcfc1ded3ca7bca6702425419dd",
-      "payment_tx": "0x5838585d434f35cda943b8e17d4fcce905c83fcfc1ded3ca7bca6702425419dd",
+      "escrow_release_tx": "0x197c81878b9d548c70c292ecf1d3a8be29ebdf024d4a6850e2fd8763647fa227",
+      "payment_tx": "0x197c81878b9d548c70c292ecf1d3a8be29ebdf024d4a6850e2fd8763647fa227",
       "fee_tx": null,
       "fee_distribute_tx": null,
       "worker_net_usdc": 0.087,
       "platform_fee_usdc": 0.013000000000000012,
       "gross_amount_usdc": 0.1,
-      "approve_time_s": 19.25,
+      "approve_time_s": 18.71,
       "tx_verifications": {
         "escrow_lock": true,
         "escrow_release": true
@@ -87,35 +87,36 @@
     "reputation": {
       "name": "reputation",
       "description": "Bidirectional Reputation",
-      "status": "PARTIAL",
-      "elapsed_s": 2.82,
-      "error": "Worker->Agent: HTTP 200, success=False, error=On-chain signing failed: {'code': -32000, 'message': 'nonce too low: next nonce 47, tx nonce 46'}",
-      "agent_rates_worker_tx": "ebcfccb6294cfeab3ad8d17af95ff529ce810c6c1ddd4998adc27ef55d15a57d",
-      "worker_rates_agent_tx": null
+      "status": "PASS",
+      "elapsed_s": 2.43,
+      "agent_rates_worker_tx": "37d88e3ab72ec14da50c37db9e136f947e1d49b62f4f337d760fd15c970ee3f0",
+      "worker_rates_agent_tx": "555502e31583865ac0d672fa351ddf8348359db0f432e2035af1483cb7378d91",
+      "agent_rates_worker_success": true,
+      "worker_rates_agent_success": true
     },
     "verification": {
       "name": "verification",
       "description": "Final Verification",
       "status": "PASS",
-      "elapsed_s": 0.27,
-      "em_reputation_score": 78.0,
-      "em_reputation_count": 13,
+      "elapsed_s": 0.36,
+      "em_reputation_score": 79.0,
+      "em_reputation_count": 14,
       "feedback_available": true,
       "total_txs": 4,
       "all_tx_hashes": [
-        "0xc77e3209dcba705d8bffebc1c2ed9d099d65433361ca0702dbe5bc2711fed4dc",
-        "0x88837b64962abaaf3ca2f0d1049bbfcc840ea0badd091497c67d008e172bf54a",
-        "0x5838585d434f35cda943b8e17d4fcce905c83fcfc1ded3ca7bca6702425419dd",
-        "ebcfccb6294cfeab3ad8d17af95ff529ce810c6c1ddd4998adc27ef55d15a57d"
+        "0xc8c1caf4c765fc9678c864a30383aa890c4da90ce849acf4707a521277b92c59",
+        "0x197c81878b9d548c70c292ecf1d3a8be29ebdf024d4a6850e2fd8763647fa227",
+        "37d88e3ab72ec14da50c37db9e136f947e1d49b62f4f337d760fd15c970ee3f0",
+        "555502e31583865ac0d672fa351ddf8348359db0f432e2035af1483cb7378d91"
       ]
     }
   },
-  "overall": "PARTIAL",
+  "overall": "PASS",
   "tx_hashes": [
-    "0xc77e3209dcba705d8bffebc1c2ed9d099d65433361ca0702dbe5bc2711fed4dc",
-    "0x88837b64962abaaf3ca2f0d1049bbfcc840ea0badd091497c67d008e172bf54a",
-    "0x5838585d434f35cda943b8e17d4fcce905c83fcfc1ded3ca7bca6702425419dd",
-    "ebcfccb6294cfeab3ad8d17af95ff529ce810c6c1ddd4998adc27ef55d15a57d"
+    "0xc8c1caf4c765fc9678c864a30383aa890c4da90ce849acf4707a521277b92c59",
+    "0x197c81878b9d548c70c292ecf1d3a8be29ebdf024d4a6850e2fd8763647fa227",
+    "37d88e3ab72ec14da50c37db9e136f947e1d49b62f4f337d760fd15c970ee3f0",
+    "555502e31583865ac0d672fa351ddf8348359db0f432e2035af1483cb7378d91"
   ],
-  "total_elapsed_s": 79.18
+  "total_elapsed_s": 133.63
 }

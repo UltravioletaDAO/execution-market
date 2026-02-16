@@ -1,20 +1,20 @@
 # Golden Flow Report -- Definitive E2E Acceptance Test (Fase 5)
 
-> **Date**: 2026-02-16 10:04 UTC
+> **Date**: 2026-02-16 15:21 UTC
 > **Environment**: Production (Base Mainnet, chain 8453)
 > **API**: `https://api.execution.market`
 > **Fee Model**: credit_card (fee deducted from bounty on-chain)
 > **Escrow Mode**: direct_release (escrow at assignment, 1-TX release)
-> **Result**: **PARTIAL**
+> **Result**: **PASS**
 
 ---
 
 ## Executive Summary
 
 The Golden Flow tested the complete Execution Market lifecycle end-to-end 
-on production against Base Mainnet using the Fase 5 credit card fee model. 6/7 phases passed.
+on production against Base Mainnet using the Fase 5 credit card fee model. 7/7 phases passed.
 
-**Overall Result: PARTIAL**
+**Overall Result: PASS**
 
 ---
 
@@ -93,58 +93,56 @@ sequenceDiagram
 
 | # | Phase | Status | Time |
 |---|-------|--------|------|
-| 1 | Health & Config Verification | **PASS** | 0.52s |
-| 2 | Task Creation (Balance Check) | **PASS** | 6.59s |
-| 3 | Worker Registration & Identity | **PASS** | 11.47s |
-| 4 | Task Lifecycle (Apply -> Assign+Escrow -> Submit) | **PASS** | 26.97s |
-| 5 | Approval & Payment Settlement | **PASS** | 19.49s |
-| 6 | Bidirectional Reputation | **PARTIAL** | 2.82s |
-| 7 | Final Verification | **PASS** | 0.27s |
+| 1 | Health & Config Verification | **PASS** | 0.69s |
+| 2 | Task Creation (Balance Check) | **PASS** | 91.98s |
+| 3 | Worker Registration & Identity | **PASS** | 1.97s |
+| 4 | Task Lifecycle (Apply -> Assign+Escrow -> Submit) | **PASS** | 6.27s |
+| 5 | Approval & Payment Settlement | **PASS** | 18.9s |
+| 6 | Bidirectional Reputation | **PASS** | 2.43s |
+| 7 | Final Verification | **PASS** | 0.36s |
 
 ---
 
 ## Health & Config Verification
 
 - **Status**: PASS
-- **Time**: 0.52s
+- **Time**: 0.69s
 
 
 ## Task Creation (Balance Check)
 
 - **Status**: PASS
-- **Time**: 6.59s
+- **Time**: 91.98s
 
-- **Task ID**: `4eabee24-3780-4d1b-bbc6-e3a165cd931c`
+- **Task ID**: `812d1d27-358b-4fd7-afbc-36d8e1cc58ca`
 - **Escrow at creation**: False
 - **Fee model**: credit_card
 
 ## Worker Registration & Identity
 
 - **Status**: PASS
-- **Time**: 11.47s
+- **Time**: 1.97s
 
 - **Executor ID**: `803dfbf1-7b91-4a41-8d31-518f4fa2fcd4`
-- **ERC-8004 Agent ID**: 17841
-- **ERC-8004 TX**: [`0xc77e3209dcba70...`](https://basescan.org/tx/0xc77e3209dcba705d8bffebc1c2ed9d099d65433361ca0702dbe5bc2711fed4dc)
 
 ## Task Lifecycle (Apply -> Assign+Escrow -> Submit)
 
 - **Status**: PASS
-- **Time**: 26.97s
+- **Time**: 6.27s
 
-- **Submission ID**: `d6275a6d-c4b4-49d6-bfd5-5c7c639dbcc9`
-- **Escrow TX (at assignment)**: [`0x88837b64962aba...`](https://basescan.org/tx/0x88837b64962abaaf3ca2f0d1049bbfcc840ea0badd091497c67d008e172bf54a)
+- **Submission ID**: `2b518c1d-4750-41be-b514-e6e13860165e`
+- **Escrow TX (at assignment)**: [`0xc8c1caf4c765fc...`](https://basescan.org/tx/0xc8c1caf4c765fc9678c864a30383aa890c4da90ce849acf4707a521277b92c59)
 - **Escrow Verified**: True
 - **Escrow mode**: direct_release
 
 ## Approval & Payment Settlement
 
 - **Status**: PASS
-- **Time**: 19.49s
+- **Time**: 18.9s
 
 - **Payment Mode**: `fase2`
-- **Worker TX**: [`0x5838585d434f35...`](https://basescan.org/tx/0x5838585d434f35cda943b8e17d4fcce905c83fcfc1ded3ca7bca6702425419dd)
-- **Escrow Release**: [`0x5838585d434f35...`](https://basescan.org/tx/0x5838585d434f35cda943b8e17d4fcce905c83fcfc1ded3ca7bca6702425419dd)
+- **Worker TX**: [`0x197c81878b9d54...`](https://basescan.org/tx/0x197c81878b9d548c70c292ecf1d3a8be29ebdf024d4a6850e2fd8763647fa227)
+- **Escrow Release**: [`0x197c81878b9d54...`](https://basescan.org/tx/0x197c81878b9d548c70c292ecf1d3a8be29ebdf024d4a6850e2fd8763647fa227)
 
 ### Fee Math Verification (Credit Card Model)
 
@@ -156,32 +154,20 @@ sequenceDiagram
 
 ## Bidirectional Reputation
 
-- **Status**: PARTIAL
-- **Time**: 2.82s
-- **Error**: Worker->Agent: HTTP 200, success=False, error=On-chain signing failed: {'code': -32000, 'message': 'nonce too low: next nonce 47, tx nonce 46'}
+- **Status**: PASS
+- **Time**: 2.43s
 
-- **Agent->Worker TX**: [`ebcfccb6294cfeab...`](https://basescan.org/tx/ebcfccb6294cfeab3ad8d17af95ff529ce810c6c1ddd4998adc27ef55d15a57d)
+- **Agent->Worker TX**: [`37d88e3ab72ec14d...`](https://basescan.org/tx/37d88e3ab72ec14da50c37db9e136f947e1d49b62f4f337d760fd15c970ee3f0)
+- **Worker->Agent TX**: [`555502e31583865a...`](https://basescan.org/tx/555502e31583865ac0d672fa351ddf8348359db0f432e2035af1483cb7378d91)
 
 ## Final Verification
 
 - **Status**: PASS
-- **Time**: 0.27s
+- **Time**: 0.36s
 
-- **EM Reputation Score**: 78.0
-- **EM Reputation Count**: 13
+- **EM Reputation Score**: 79.0
+- **EM Reputation Count**: 14
 - **Feedback Available**: True
-
----
-
-## ERC-8004 Identity Verification
-
-| Field | Value |
-|-------|-------|
-| Worker Wallet | `0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15` |
-| ERC-8004 Agent ID | 17841 |
-| Network | base |
-| Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
-| Registration TX | `0xc77e3209dcba705d8bffebc1c2ed9d099d65433361ca0702dbe5bc2711fed4dc` |
 
 ---
 
@@ -189,10 +175,10 @@ sequenceDiagram
 
 | # | TX Hash | BaseScan |
 |---|---------|----------|
-| 1 | `0xc77e3209dcba705d8b...` | [View](https://basescan.org/tx/0xc77e3209dcba705d8bffebc1c2ed9d099d65433361ca0702dbe5bc2711fed4dc) |
-| 2 | `0x88837b64962abaaf3c...` | [View](https://basescan.org/tx/0x88837b64962abaaf3ca2f0d1049bbfcc840ea0badd091497c67d008e172bf54a) |
-| 3 | `0x5838585d434f35cda9...` | [View](https://basescan.org/tx/0x5838585d434f35cda943b8e17d4fcce905c83fcfc1ded3ca7bca6702425419dd) |
-| 4 | `ebcfccb6294cfeab3ad8...` | [View](https://basescan.org/tx/ebcfccb6294cfeab3ad8d17af95ff529ce810c6c1ddd4998adc27ef55d15a57d) |
+| 1 | `0xc8c1caf4c765fc9678...` | [View](https://basescan.org/tx/0xc8c1caf4c765fc9678c864a30383aa890c4da90ce849acf4707a521277b92c59) |
+| 2 | `0x197c81878b9d548c70...` | [View](https://basescan.org/tx/0x197c81878b9d548c70c292ecf1d3a8be29ebdf024d4a6850e2fd8763647fa227) |
+| 3 | `37d88e3ab72ec14da50c...` | [View](https://basescan.org/tx/37d88e3ab72ec14da50c37db9e136f947e1d49b62f4f337d760fd15c970ee3f0) |
+| 4 | `555502e31583865ac0d6...` | [View](https://basescan.org/tx/555502e31583865ac0d672fa351ddf8348359db0f432e2035af1483cb7378d91) |
 
 ---
 
@@ -207,3 +193,4 @@ sequenceDiagram
 - [x] Operator receives $0.013000 (13% on-chain fee calculator)
 - [x] All payment TXs verified on-chain (status: 0x1)
 - [x] Single-TX escrow release (fee split by StaticFeeCalculator 1300bps)
+- [x] Bidirectional reputation: agent rated worker AND worker rated agent
