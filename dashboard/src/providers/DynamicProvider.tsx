@@ -35,14 +35,21 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         environmentId: DYNAMIC_ENVIRONMENT_ID,
         walletConnectors: [EthereumWalletConnectors],
         cssOverrides: dynamicCssOverrides,
-        // connect-only: wallet connection without signature verification.
-        // Session persistence handled by localStorage wallet + Supabase anonymous session.
+        // connect-and-sign: Requires wallet signature to create persistent JWT.
+        // This ensures sessions persist across tab switches and page reloads,
+        // especially critical for mobile browsers. The signature step proves
+        // wallet ownership and enables Dynamic's built-in session management.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        initialAuthenticationMode: 'connect-only' as any,
+        initialAuthenticationMode: 'connect-and-sign' as any,
+        // Enable visit tracking for connect-and-sign mode (not needed but good practice)
+        enableVisitTrackingOnConnectOnly: false,
+        // Ensure shadow DOM is enabled for proper modal behavior
+        shadowDOMEnabled: true,
         events: {
           onAuthSuccess: ({ user }) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             console.log('[Dynamic] Auth success:', (user as any)?.walletPublicKey || 'unknown wallet')
+            console.log('[Dynamic] JWT session created - should persist across tab switches')
           },
           onLogout: () => {
             console.log('[Dynamic] User logged out')
