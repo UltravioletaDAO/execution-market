@@ -166,7 +166,7 @@ const ParticipantPanel = memo(function ParticipantPanel({
         <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
           <span className="text-slate-400 text-lg">?</span>
         </div>
-        <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">
           {t('feed.awaitingWorker', 'Awaiting Worker')}
         </span>
       </div>
@@ -187,7 +187,7 @@ const ParticipantPanel = memo(function ParticipantPanel({
       )}
     >
       {/* Role label */}
-      <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium">
+      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-medium">
         {role}
       </span>
 
@@ -217,7 +217,7 @@ const ParticipantPanel = memo(function ParticipantPanel({
 
       {/* Tasks completed */}
       {participant.tasks_completed != null && participant.tasks_completed > 0 && (
-        <span className="text-[10px] text-slate-400 dark:text-slate-500">
+        <span className="text-[10px] text-slate-500 dark:text-slate-400">
           {participant.tasks_completed} tasks
         </span>
       )}
@@ -256,10 +256,10 @@ function FeedbackPanel({
   if (!feedback || feedback.status === 'pending') {
     return (
       <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-2">
-        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mb-1">{label}</p>
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mb-1">{label}</p>
         <div className="flex items-center gap-1.5">
           <span className="text-amber-400 text-sm">⏳</span>
-          <span className="text-xs text-slate-400 dark:text-slate-500 italic">Pending</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 italic">Pending</span>
         </div>
       </div>
     )
@@ -267,7 +267,7 @@ function FeedbackPanel({
 
   return (
     <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-2">
-      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mb-1">{label}</p>
+      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mb-1">{label}</p>
       {feedback.score != null && (
         <StarRating score={feedback.score} />
       )}
@@ -320,7 +320,7 @@ function TaskCenterContent({
             <span className="text-sm text-slate-400 italic">{t('feed.untitledTask', 'Untitled task')}</span>
           )}
           {data.task_category && (
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">
               {t(`tasks.categories.${data.task_category}`, data.task_category.replace(/_/g, ' '))}
             </p>
           )}
@@ -357,7 +357,7 @@ function TaskCenterContent({
       {/* Reputation Exchange */}
       {(hasFeedback || isCompleted) && (
         <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2 mb-2">
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium mb-2">
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-medium mb-2">
             {t('feed.reputationExchange', 'Reputation Exchange')}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -378,7 +378,7 @@ function TaskCenterContent({
       {/* Transactions */}
       {transactions.length > 0 && (
         <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2 space-y-0.5">
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-medium mb-1">
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-medium mb-1">
             {t('feed.transactions', 'Transactions')}
           </p>
           {transactions.map((tx) => (
@@ -489,7 +489,7 @@ export const TaskFeedCard = memo(function TaskFeedCard({
             />
           )}
         </div>
-        <span className="text-xs text-slate-400 dark:text-slate-500" title={new Date(data.created_at).toLocaleString()}>
+        <span className="text-xs text-slate-500 dark:text-slate-400" title={new Date(data.created_at).toLocaleString()}>
           {formatRelativeTime(data.created_at)}
         </span>
       </div>
