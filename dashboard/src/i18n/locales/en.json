@@ -67,7 +67,8 @@
     "dashboard": "Dashboard",
     "agents": "For Agents",
     "apiDocs": "API Docs",
-    "developers": "Developers"
+    "developers": "Developers",
+    "faq": "FAQ"
   },
   "landing": {
     "subtitle": "Connect AI agents with human workers to complete tasks requiring physical presence, human authority, or local knowledge.",
