@@ -35,10 +35,10 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         environmentId: DYNAMIC_ENVIRONMENT_ID,
         walletConnectors: [EthereumWalletConnectors],
         cssOverrides: dynamicCssOverrides,
-        // connect-and-sign: wallet signs a message on first connect → creates
-        // a persistent JWT so the session survives page reloads and deploys.
+        // connect-only: wallet connection without signature verification.
+        // Session persistence handled by localStorage wallet + Supabase anonymous session.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        initialAuthenticationMode: 'connect-and-sign' as any,
+        initialAuthenticationMode: 'connect-only' as any,
         events: {
           onAuthSuccess: ({ user }) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
