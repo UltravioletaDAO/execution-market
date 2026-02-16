@@ -307,5 +307,30 @@ export function useMyTasks(executorId: string | undefined): UseTasksResult {
     fetchTasks()
   }, [fetchTasks])
 
+  // Subscribe to realtime updates so accepted tasks appear immediately
+  useEffect(() => {
+    if (!executorId) return
+
+    const channel = supabase
+      .channel(`my-tasks-${executorId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tasks' },
+        (payload: { new?: { executor_id?: string }; old?: { executor_id?: string } }) => {
+          // Refetch when any task change involves this executor
+          const newRow = payload.new as { executor_id?: string } | undefined
+          const oldRow = payload.old as { executor_id?: string } | undefined
+          if (newRow?.executor_id === executorId || oldRow?.executor_id === executorId) {
+            fetchTasks()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [executorId, fetchTasks])
+
   return { tasks, loading, error, refetch: fetchTasks }
 }

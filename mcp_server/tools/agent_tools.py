@@ -588,6 +588,12 @@ Use `em_check_submission` to monitor for submitted work."""
         """
         Create multiple tasks in a single operation with escrow calculation.
 
+        ⚠️ **WARNING**: This tool BYPASSES the standard payment flow by calling 
+        db.create_task() directly instead of using the REST API (POST /api/v1/tasks). 
+        This means it skips x402 payment verification and balance checks. 
+        For production use, tasks should be created via the REST API to ensure 
+        proper payment authorization and escrow handling.
+
         Supports two operation modes:
         - ALL_OR_NONE: Atomic creation (all tasks or none)
         - BEST_EFFORT: Create as many as possible
@@ -595,7 +601,7 @@ Use `em_check_submission` to monitor for submitted work."""
         Process:
         1. Validates all tasks in batch
         2. Calculates total escrow required
-        3. Creates tasks (atomic or best-effort)
+        3. Creates tasks (atomic or best-effort) - **BYPASSING PAYMENT FLOW**
         4. Returns summary with all task IDs
 
         Args:
@@ -642,6 +648,9 @@ No tasks were created. Fix errors and retry."""
                         hours=task_def.deadline_hours
                     )
 
+                    # ⚠️ WARNING: This bypasses the x402 payment flow by calling 
+                    # the database directly instead of using REST API (POST /api/v1/tasks).
+                    # Production use should route through the API for proper payment verification.
                     task = await db.create_task(
                         agent_id=params.agent_id,
                         title=task_def.title,

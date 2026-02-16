@@ -11,6 +11,7 @@ import { StatsBar } from '../components/landing/StatsBar'
 import { PublicTaskBrowser } from '../components/landing/PublicTaskBrowser'
 import { HowItWorks } from '../components/landing/HowItWorks'
 import { AgentIntegration } from '../components/landing/AgentIntegration'
+import { ActivityFeedCompact } from '../components/feed'
 
 export function Home() {
   const navigate = useNavigate()
@@ -119,6 +120,20 @@ export function Home() {
         <HowItWorks
           onConnectWallet={handleConnectWallet}
         />
+
+        {/* Live Activity Feed */}
+        <section className="my-12">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            {t('feed.liveActivity', 'Live Activity')}
+          </h2>
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+            <ActivityFeedCompact limit={8} />
+          </div>
+        </section>
 
         <AgentIntegration ref={agentSectionRef} />
       </main>

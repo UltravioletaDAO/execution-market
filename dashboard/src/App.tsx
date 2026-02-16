@@ -4,7 +4,10 @@ import { BrowserRouter, Routes, Route, useNavigate, useSearchParams } from 'reac
 
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { WorkerGuard, AgentGuard } from './components/guards'
+import { AuthGuard, WorkerGuard, AgentGuard } from './components/guards'
+
+// Dynamic.xyz widget — must be rendered in the tree for the auth modal to work
+import { DynamicWidget } from '@dynamic-labs/sdk-react-core'
 
 // Components (eagerly loaded - used in wrappers)
 import { LanguageSwitcher } from './components/LanguageSwitcher'
@@ -21,6 +24,8 @@ const Developers = lazy(() => import('./pages/Developers').then(m => ({ default:
 const FeedbackPage = lazy(() => import('./pages/FeedbackPage').then(m => ({ default: m.FeedbackPage })))
 const TaskManagement = lazy(() => import('./pages/agent/TaskManagement').then(m => ({ default: m.TaskManagement })))
 const CreateTask = lazy(() => import('./pages/agent/CreateTask').then(m => ({ default: m.CreateTask })))
+const PublicProfile = lazy(() => import('./pages/PublicProfile').then(m => ({ default: m.PublicProfile })))
+const Activity = lazy(() => import('./pages/Activity').then(m => ({ default: m.Activity })))
 
 // Lazy-loaded heavy components (modals, charts)
 const ProfilePage = lazy(() => import('./components/profile').then(m => ({ default: m.ProfilePage })))
@@ -273,14 +278,39 @@ function AgentDashboardPage() {
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">&#128188;</span>
-              <span className="font-bold text-lg text-gray-900">Execution Market</span>
+              <button onClick={() => navigate('/')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <span className="text-2xl">&#128188;</span>
+                <span className="font-bold text-lg text-gray-900">Execution Market</span>
+              </button>
               <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
                 Agent
               </span>
             </div>
-            <LanguageSwitcher />
+            <nav className="hidden md:flex items-center gap-1">
+              <button onClick={() => navigate('/agent/dashboard')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium">Dashboard</button>
+              <button onClick={() => navigate('/agent/tasks/new')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">New Task</button>
+              <button onClick={() => navigate('/activity')} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">Activity</button>
+            </nav>
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher />
+              <button
+                onClick={() => { const el = document.getElementById('agent-mobile-menu'); if (el) el.classList.toggle('hidden') }}
+                className="md:hidden p-1.5 text-gray-500 hover:text-gray-900 transition-colors"
+                aria-label="Menu"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
           </div>
+        </div>
+        {/* Mobile menu */}
+        <div id="agent-mobile-menu" className="hidden md:hidden border-t border-gray-200 bg-white px-4 py-2 space-y-1">
+          <button onClick={() => navigate('/agent/dashboard')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Dashboard</button>
+          <button onClick={() => navigate('/agent/tasks/new')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">New Task</button>
+          <button onClick={() => navigate('/activity')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Activity</button>
+          <button onClick={() => navigate('/')} className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">Home</button>
         </div>
       </header>
       <main className="max-w-6xl mx-auto px-4 py-6">
@@ -392,6 +422,15 @@ function AppRoutes() {
       <Route path="/agents" element={<AgentOnboarding />} />
       <Route path="/agent/login" element={<AgentLogin />} />
       <Route path="/developers" element={<Developers />} />
+      <Route
+        path="/activity"
+        element={
+          <AuthGuard>
+            <Activity />
+          </AuthGuard>
+        }
+      />
+      <Route path="/profile/:wallet" element={<PublicProfile />} />
       <Route path="/feedback/:taskId" element={<FeedbackPage />} />
 
       {/* Worker Routes (Protected - Workers Only) */}
@@ -463,6 +502,10 @@ function App() {
       }}
     >
       <AuthProvider>
+        {/* Hidden DynamicWidget — required for setShowAuthFlow(true) to render the modal */}
+        <div className="hidden">
+          <DynamicWidget />
+        </div>
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>

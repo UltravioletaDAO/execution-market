@@ -49,3 +49,14 @@ export const NETWORK_BY_CHAIN_ID = Object.fromEntries(
 
 /** Only live networks */
 export const LIVE_NETWORKS = NETWORKS.filter((n) => n.live)
+
+/**
+ * Get the logo path for a network by its key.
+ * 
+ * @param networkKey - The network key (case-insensitive)
+ * @returns Logo path or fallback for unknown networks
+ */
+export function getNetworkLogo(networkKey: string): string {
+  const network = NETWORK_BY_KEY[networkKey] || NETWORK_BY_KEY[networkKey.toLowerCase()]
+  return network?.logo || '/chain-default.png'
+}

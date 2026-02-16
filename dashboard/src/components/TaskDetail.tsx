@@ -9,7 +9,9 @@ import type { Task, TaskCategory, Executor } from '../types/database'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
 import { TxHashLink } from './TxHashLink'
+import { NetworkBadge } from './ui/NetworkBadge'
 import { useAgentReputation, getReputationTier, getTierColor } from '../hooks/useAgentReputation'
+import { AgentStandardCard } from './agents/AgentStandardCard'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -178,8 +180,18 @@ export function TaskDetail({
             <div className="text-2xl font-bold text-green-600">
               {formatBounty(task.bounty_usd)}
             </div>
-            <div className="text-xs text-gray-400">
-              {task.payment_token}{task.payment_network ? ` on ${getNetworkDisplayName(task.payment_network)}` : ''}
+            <div className="flex items-center justify-end gap-1 mt-1">
+              {task.payment_token && task.payment_network ? (
+                <NetworkBadge
+                  network={task.payment_network}
+                  token={task.payment_token}
+                  size="sm"
+                />
+              ) : (
+                <div className="text-xs text-gray-400">
+                  {task.payment_token}{task.payment_network ? ` on ${getNetworkDisplayName(task.payment_network)}` : ''}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -316,39 +328,23 @@ export function TaskDetail({
           </section>
         )}
 
-        {/* Agent info */}
+        {/* Posted by - Agent Card */}
         <section>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-            Publicado por
-          </h2>
-          <div className="flex items-center gap-2 text-gray-700">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13 7H7v6h6V7z" />
-                <path
-                  fillRule="evenodd"
-                  d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <div className="font-medium">{task.agent_id}</div>
-              {agentReputation ? (
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-xs px-1.5 py-0.5 rounded border ${getTierColor(getReputationTier(agentReputation.score))}`}>
-                    {getReputationTier(agentReputation.score)}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {Math.round(agentReputation.score)}/100 ({agentReputation.count} {agentReputation.count === 1 ? 'valoracion' : 'valoraciones'})
-                  </span>
-                </div>
-              ) : (
-                <div className="text-xs text-gray-500">Agente verificado</div>
-              )}
-            </div>
-          </div>
+          <AgentStandardCard
+            walletAddress={task.agent_id}
+            label={t('tasks.postedBy', 'Posted by')}
+          />
         </section>
+
+        {/* Accepted by - Worker Card (if assigned) */}
+        {task.executor_id && (
+          <section>
+            <AgentStandardCard
+              walletAddress={task.executor_id}
+              label={t('tasks.acceptedBy', 'Accepted by')}
+            />
+          </section>
+        )}
 
         {/* Transaction Details */}
         {(task.escrow_tx || task.refund_tx || task.payment_network) && (
@@ -360,9 +356,10 @@ export function TaskDetail({
               {task.payment_network && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">{t('tasks.network', 'Network')}</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {getNetworkDisplayName(task.payment_network)}
-                  </span>
+                  <NetworkBadge
+                    network={task.payment_network}
+                    size="sm"
+                  />
                 </div>
               )}
               {task.payment_token && (
