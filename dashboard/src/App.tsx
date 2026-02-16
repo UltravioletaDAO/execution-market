@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route, useNavigate, useSearchParams } from 'reac
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { AuthGuard, WorkerGuard, AgentGuard } from './components/guards'
 
+// Dynamic.xyz widget — must be rendered in the tree for the auth modal to work
+import { DynamicWidget } from '@dynamic-labs/sdk-react-core'
+
 // Components (eagerly loaded - used in wrappers)
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 
@@ -499,6 +502,10 @@ function App() {
       }}
     >
       <AuthProvider>
+        {/* Hidden DynamicWidget — required for setShowAuthFlow(true) to render the modal */}
+        <div className="hidden">
+          <DynamicWidget />
+        </div>
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
