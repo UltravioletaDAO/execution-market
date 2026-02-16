@@ -24,23 +24,39 @@ const LANGUAGE_OPTIONS = [
   'Japanese',
 ]
 
+interface ExecutorData {
+  display_name?: string | null
+  bio?: string | null
+  skills?: string[] | null
+  languages?: string[] | null
+  location_city?: string | null
+  location_country?: string | null
+  email?: string | null
+}
+
 interface ProfileCompletionModalProps {
   onComplete: () => void
   onSkip?: () => void
+  /** Pre-fill form with existing executor data (partial profile) */
+  executor?: ExecutorData | null
 }
 
-export function ProfileCompletionModal({ onComplete, onSkip }: ProfileCompletionModalProps) {
+export function ProfileCompletionModal({ onComplete, onSkip, executor }: ProfileCompletionModalProps) {
   const { t } = useTranslation()
   const { updateProfile, saving, error } = useProfileUpdate()
 
-  const [displayName, setDisplayName] = useState('')
-  const [bio, setBio] = useState('')
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([])
+  // Pre-fill from existing data. Don't pre-fill auto-generated names (Worker_XXXX).
+  const existingName = executor?.display_name && !/^Worker_[0-9a-f]{8}$/i.test(executor.display_name)
+    ? executor.display_name : ''
+
+  const [displayName, setDisplayName] = useState(existingName)
+  const [bio, setBio] = useState(executor?.bio || '')
+  const [selectedSkills, setSelectedSkills] = useState<string[]>(executor?.skills || [])
   const [customSkill, setCustomSkill] = useState('')
-  const [languages, setLanguages] = useState<string[]>(['Spanish'])
-  const [locationCity, setLocationCity] = useState('')
-  const [locationCountry, setLocationCountry] = useState('')
-  const [email, setEmail] = useState('')
+  const [languages, setLanguages] = useState<string[]>(executor?.languages?.length ? executor.languages : ['Spanish'])
+  const [locationCity, setLocationCity] = useState(executor?.location_city || '')
+  const [locationCountry, setLocationCountry] = useState(executor?.location_country || '')
+  const [email, setEmail] = useState(executor?.email || '')
 
   const isValid = displayName.trim().length > 0 && bio.trim().length > 0
 

@@ -24,6 +24,7 @@ export function Home() {
     loading,
     openAuthModal,
     refreshExecutor,
+    executor,
   } = useAuth()
   const [showProfileCompletion, setShowProfileCompletion] = useState(false)
   const [wasAuthenticated, setWasAuthenticated] = useState(false)
@@ -144,6 +145,7 @@ export function Home() {
         <ProfileCompletionModal
           onComplete={handleProfileComplete}
           onSkip={handleProfileSkip}
+          executor={executor}
         />
       )}
     </div>
