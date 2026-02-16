@@ -194,7 +194,7 @@ curl -X POST "https://api.execution.market/api/v1/tasks" \
 | `video` | Video recording | Process verification |
 | `document` | Scanned/uploaded document | Paperwork |
 | `receipt` | Purchase receipt | Proof of purchase |
-| `gps_coordinates` | Location verification | Location tasks |
+| `photo_geo` | Location verification | Location tasks |
 | `signature` | Digital or physical signature | Authorization |
 | `timestamp` | Time-verified evidence | Time-sensitive tasks |
 
@@ -563,7 +563,7 @@ const task = await client.createTask({
   category: 'physical_presence',
   bounty_usd: 10.00,
   deadline_hours: 24,
-  evidence_required: ['photo', 'gps_coordinates'],
+  evidence_required: ['photo', 'photo_geo'],
   location_hint: 'San Francisco, CA'
 });
 
