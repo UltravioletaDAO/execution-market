@@ -12,11 +12,11 @@
 #   - Route53 A record: admin.execution.market → CloudFront
 
 locals {
-  admin_bucket_name      = "em-production-admin-dashboard"
-  admin_domain           = "admin.${var.domain}"
-  admin_cloudfront_id    = "E2IUZLTDUFIAQP"
-  admin_oac_id           = "E3HPQ9VBJWQVDR"
-  admin_acm_cert_arn     = "arn:aws:acm:us-east-1:518898403364:certificate/841084f8-b130-4b12-87ee-88ac7d81be24"
+  admin_bucket_name   = "em-production-admin-dashboard"
+  admin_domain        = "admin.${var.domain}"
+  admin_cloudfront_id = "E2IUZLTDUFIAQP"
+  admin_oac_id        = "E3HPQ9VBJWQVDR"
+  admin_acm_cert_arn  = "arn:aws:acm:us-east-1:518898403364:certificate/841084f8-b130-4b12-87ee-88ac7d81be24"
 }
 
 # To import existing resources into Terraform state:
