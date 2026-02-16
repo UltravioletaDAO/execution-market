@@ -1,40 +1,20 @@
 # Reporte Golden Flow -- Prueba de Aceptacion E2E Definitiva (Fase 5)
 
-> **Fecha**: 2026-02-14 17:55 UTC
+> **Fecha**: 2026-02-16 10:04 UTC
 > **Entorno**: Produccion (Base Mainnet, chain 8453)
 > **API**: `https://api.execution.market`
 > **Modelo de fee**: credit_card (fee descontado del bounty on-chain)
 > **Modo escrow**: direct_release (escrow en asignacion, 1-TX release)
-> **Resultado**: **7/7 APROBADO**
+> **Resultado**: **PARTIAL**
 
 ---
 
 ## Resumen Ejecutivo
 
-El Golden Flow probo el ciclo de vida completo de Execution Market end-to-end
-en produccion contra Base Mainnet usando el modelo de fee credit card (Fase 5).
-Las 7 fases pasaron, verificando 4 transacciones on-chain en escrow, pago
-y reputacion bidireccional.
+El Golden Flow probo el ciclo de vida completo de Execution Market end-to-end 
+en produccion contra Base Mainnet usando el modelo de fee credit card (Fase 5). 6/7 fases pasaron.
 
-**Matematica de fees validada por Ali Abdoli** (mantenedor principal de x402r): el modelo
-credit card ($0.087 neto worker / $0.013 fee operador de $0.10 bounty) esta confirmado
-como correcto. Ver [Notas de Validacion de Ali](ALI_VALIDATION_NOTES.md).
-
-**Resultado General: APROBADO (7/7)**
-
----
-
-## Infraestructura On-Chain
-
-| Componente | Direccion | Rol |
-|------------|-----------|-----|
-| PaymentOperator (Fase 5) | [`0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb`](https://basescan.org/address/0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb) | Config escrow inmutable + fee calculator |
-| StaticFeeCalculator (1300bps) | [`0xd643DB63028Cd1852AAFe62A0E3d2A5238d7465A`](https://basescan.org/address/0xd643DB63028Cd1852AAFe62A0E3d2A5238d7465A) | Split 13% on-chain al release |
-| AuthCaptureEscrow | [`0xb9488351E48b23D798f24e8174514F28B741Eb4f`](https://basescan.org/address/0xb9488351E48b23D798f24e8174514F28B741Eb4f) | Singleton escrow compartido (Base) |
-| ERC-8004 Identity Registry | [`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`](https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432) | Identidad agente/worker (CREATE2, todos los mainnets) |
-| ERC-8004 Reputation Registry | [`0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`](https://basescan.org/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63) | Scores de reputacion on-chain |
-| USDC (Base) | [`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`](https://basescan.org/address/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913) | Token de pago |
-| EM Agent ID | 2106 | Identidad de Execution Market en Base |
+**Resultado General: PARTIAL**
 
 ---
 
@@ -96,14 +76,11 @@ sequenceDiagram
     Escrow->>Worker: $0.087000 (87%)
     Escrow->>Operator: $0.013000 (13%)
 
-    Note over Agente,ERC8004: Fase 6: Reputacion Bidireccional (on-chain)
-    Agente->>API: POST /reputation/rate-worker (score: 90)
-    API->>Facilitator: prepare-feedback
-    Facilitator-->>API: TX sin firmar
-    API->>ERC8004: TX3: giveFeedback(worker, 90)
-    Worker->>API: POST /reputation/rate-agent (score: 85)
-    API->>Worker: prepare-feedback
-    Worker->>ERC8004: TX4: giveFeedback(agente, 85) [worker firma directo]
+    Note over Agente,ERC8004: Fase 6: Reputacion
+    Agente->>API: Calificar worker (score: 90)
+    API->>Facilitator: POST /feedback
+    Worker->>API: Calificar agente (score: 85)
+    API->>Facilitator: POST /feedback
 
     Note over Agente,ERC8004: Fase 7: Verificacion
     Agente->>API: GET /reputation/em
@@ -116,120 +93,82 @@ sequenceDiagram
 
 | # | Fase | Estado | Tiempo |
 |---|------|--------|--------|
-| 1 | Salud y Configuracion | **APROBADO** | 0.93s |
-| 2 | Creacion de Tarea (Balance Check) | **APROBADO** | 91.33s |
-| 3 | Registro de Worker e Identidad | **APROBADO** | 7.14s |
-| 4 | Ciclo de Vida (Aplicar -> Asignar+Escrow -> Enviar) | **APROBADO** | 6.26s |
-| 5 | Aprobacion y Pago (1 TX, Credit Card) | **APROBADO** | 27.59s |
-| 6 | Reputacion Bidireccional | **APROBADO** | 8.3s |
-| 7 | Verificacion Final | **APROBADO** | 0.28s |
-
-**Tiempo total**: 152.87s
+| 1 | Salud y Configuracion | **APROBADO** | 0.52s |
+| 2 | Creacion de Tarea (Balance Check) | **APROBADO** | 6.59s |
+| 3 | Registro de Worker e Identidad | **APROBADO** | 11.47s |
+| 4 | Ciclo de Vida (Aplicar -> Asignar+Escrow -> Enviar) | **APROBADO** | 26.97s |
+| 5 | Aprobacion y Pago (1 TX, Credit Card) | **APROBADO** | 19.49s |
+| 6 | Reputacion Bidireccional | **PARCIAL** | 2.82s |
+| 7 | Verificacion Final | **APROBADO** | 0.27s |
 
 ---
 
-## Detalle por Fase
+## Salud y Configuracion
 
-### 1. Salud y Configuracion
+- **Estado**: APROBADO
+- **Tiempo**: 0.52s
 
-- **Estado**: APROBADO (0.93s)
-- Salud: `healthy`
-- Redes: arbitrum, avalanche, base, celo, ethereum, monad, optimism, polygon
-- Red preferida: base
-- Bounty minimo: $0.01
-- ERC-8004: disponible en 18 redes
+## Creacion de Tarea (Balance Check)
 
-### 2. Creacion de Tarea (Balance Check)
+- **Estado**: APROBADO
+- **Tiempo**: 6.59s
+- **Task ID**: `4eabee24-3780-4d1b-bbc6-e3a165cd931c`
+- **Escrow en creacion**: False
+- **Modelo de fee**: credit_card
 
-- **Estado**: APROBADO (91.33s)
-- **Task ID**: `7b4c0175-9ba6-4c93-84e9-36bebe0ec25a`
-- Escrow en creacion: **No** (diferido a asignacion en modo `direct_release`)
-- Modelo de fee: `credit_card`
-- Estado de tarea: `published`
+## Registro de Worker e Identidad
 
-### 3. Registro de Worker e Identidad
-
-- **Estado**: APROBADO (7.14s)
+- **Estado**: APROBADO
+- **Tiempo**: 11.47s
 - **Executor ID**: `803dfbf1-7b91-4a41-8d31-518f4fa2fcd4`
-- Identidad ERC-8004: registrada via Facilitator (gasless)
+- **ERC-8004 Agent ID**: 17841
 
-### 4. Ciclo de Vida (Aplicar -> Asignar+Escrow -> Enviar)
+## Ciclo de Vida (Aplicar -> Asignar+Escrow -> Enviar)
 
-- **Estado**: APROBADO (6.26s)
-- **Submission ID**: `2a68a56e-e5e7-4412-ba9f-7882afec8d90`
-- **TX Escrow (en asignacion)**: [`0xba6f704383a176...`](https://basescan.org/tx/0xba6f704383a176fcb2c2d7e52755c41bdaec1cf626564288637e87875051078a)
-- Verificacion on-chain: **SUCCESS** (gas: 201,192)
-- Modo escrow: `direct_release` (worker = receptor del escrow)
+- **Estado**: APROBADO
+- **Tiempo**: 26.97s
+- **Submission ID**: `d6275a6d-c4b4-49d6-bfd5-5c7c639dbcc9`
+- **TX Escrow (en asignacion)**: [`0x88837b64962aba...`](https://basescan.org/tx/0x88837b64962abaaf3ca2f0d1049bbfcc840ea0badd091497c67d008e172bf54a)
+- **Escrow verificado**: True
+- **Modo escrow**: direct_release
 
-### 5. Aprobacion y Pago
+## Aprobacion y Pago (1 TX, Credit Card)
 
-- **Estado**: APROBADO (27.59s)
-- **TX Release Escrow**: [`0xa86bdcf8b05a6e...`](https://basescan.org/tx/0xa86bdcf8b05a6ebcbf1d2f6b9cfe0777ad66f908f92610bb57099e42ad37f5e6)
-- Liquidacion: **1 TX** (fee calculator divide on-chain al release)
-- Latencia de aprobacion: 27.27s
+- **Estado**: APROBADO
+- **Tiempo**: 19.49s
+- **Modo de pago**: `fase2`
+- **TX Worker**: [`0x5838585d434f35...`](https://basescan.org/tx/0x5838585d434f35cda943b8e17d4fcce905c83fcfc1ded3ca7bca6702425419dd)
 
-#### Verificacion de Fee (Modelo Credit Card)
+### Verificacion de Fee (Modelo Credit Card)
 
 | Metrica | Esperado | Actual | Coincide |
 |---------|----------|--------|----------|
-| Monto bloqueado | $0.100000 | $0.100000 | SI |
 | Neto worker (87%) | $0.087000 | $0.087000 | SI |
 | Fee operador (13%) | $0.013000 | $0.013000 | SI |
-| Cantidad de TXs | 1 | 1 | SI |
+| Monto bloqueado | $0.100000 | $0.100000 | SI |
 
-> Matematica de fees confirmada por **Ali Abdoli** (mantenedor principal de x402r):
-> *"This looks good to me! $0.087 vs $0.113 is a stylistic choice tbh.
-> You can do either one but the math for $0.087 is a bit simpler"*
+## Reputacion Bidireccional
 
-### 6. Reputacion Bidireccional
+- **Estado**: PARCIAL
+- **Tiempo**: 2.82s
+- **Error**: Worker->Agent: HTTP 200, success=False, error=On-chain signing failed: {'code': -32000, 'message': 'nonce too low: next nonce 47, tx nonce 46'}
+- **TX Agente->Worker**: [`ebcfccb6294cfeab...`](https://basescan.org/tx/ebcfccb6294cfeab3ad8d17af95ff529ce810c6c1ddd4998adc27ef55d15a57d)
 
-- **Estado**: APROBADO (8.3s)
-- **TX Agente->Worker**: [`fe74cf95c5d781...`](https://basescan.org/tx/fe74cf95c5d7817a1e677b96a2eb384366df6026717f705348051905729ef12b) -- agente califica worker (score: 90)
-- **TX Worker->Agente**: [`18468ee223fa6b...`](https://basescan.org/tx/18468ee223fa6bc5db24e72a3626228358875ee6d94fd04e33e3cd763c537887) -- worker califica agente (score: 85), **worker firma directamente** (trustless)
+## Verificacion Final
 
-Ambas TXs de feedback llaman `giveFeedback()` en el ERC-8004 Reputation Registry. El worker firma su propia TX — sin relay, sin intermediario. Reputacion bidireccional completamente trustless.
-
-### 7. Verificacion Final
-
-- **Estado**: APROBADO (0.28s)
-- **Score de Reputacion EM**: 77.0
-- **Cantidad de Reputacion EM**: 12
-- **Documento de feedback**: disponible para tarea `7b4c0175-9ba6-4c93-84e9-36bebe0ec25a`
+- **Estado**: APROBADO
+- **Tiempo**: 0.27s
 
 ---
 
 ## Resumen de Transacciones On-Chain
 
-| # | Proposito | TX Hash | BaseScan |
-|---|-----------|---------|----------|
-| 1 | Bloqueo Escrow ($0.10) | `0xba6f704383a176fcb2...` | [Ver](https://basescan.org/tx/0xba6f704383a176fcb2c2d7e52755c41bdaec1cf626564288637e87875051078a) |
-| 2 | Release Escrow (1-TX split) | `0xa86bdcf8b05a6ebcbf...` | [Ver](https://basescan.org/tx/0xa86bdcf8b05a6ebcbf1d2f6b9cfe0777ad66f908f92610bb57099e42ad37f5e6) |
-| 3 | Agente califica Worker (90) | `fe74cf95c5d7817a1e67...` | [Ver](https://basescan.org/tx/fe74cf95c5d7817a1e677b96a2eb384366df6026717f705348051905729ef12b) |
-| 4 | Worker califica Agente (85) | `18468ee223fa6bc5db24...` | [Ver](https://basescan.org/tx/18468ee223fa6bc5db24e72a3626228358875ee6d94fd04e33e3cd763c537887) |
-
----
-
-## Modelo de Confianza
-
-```mermaid
-graph LR
-    A[Wallet Agente] -->|"$0.10 USDC"| E[Contrato Escrow]
-    E -->|"Release (1 TX)"| FC[Fee Calculator]
-    FC -->|"$0.087 (87%)"| W[Wallet Worker]
-    FC -->|"$0.013 (13%)"| O[Contrato Operador]
-    O -->|"distributeFees()"| T[Treasury]
-
-    style E fill:#1a1a2e,color:#fff
-    style FC fill:#16213e,color:#fff
-    style W fill:#0f3460,color:#fff
-    style O fill:#533483,color:#fff
-```
-
-**Propiedades clave de confianza:**
-- **Los fondos del worker nunca pasan por la plataforma.** Receptor del escrow = direccion del worker. El release va directamente al worker via fee calculator on-chain.
-- **El split de fee es inmutable.** StaticFeeCalculator(1300bps) esta desplegado en una direccion fija. Ningun admin puede cambiar el split sin desplegar un nuevo operador (recomendacion de Ali).
-- **La reputacion es trustless.** El worker firma su propia TX `giveFeedback()` directamente en ERC-8004. Sin relay, sin intermediario.
-- **Las condiciones del escrow son on-chain.** Release requiere firma del Facilitator O del Payer. Refund requiere solo el Facilitator (previene auto-refund del payer).
+| # | TX Hash | BaseScan |
+|---|---------|----------|
+| 1 | `0xc77e3209dcba705d8b...` | [Ver](https://basescan.org/tx/0xc77e3209dcba705d8bffebc1c2ed9d099d65433361ca0702dbe5bc2711fed4dc) |
+| 2 | `0x88837b64962abaaf3c...` | [Ver](https://basescan.org/tx/0x88837b64962abaaf3ca2f0d1049bbfcc840ea0badd091497c67d008e172bf54a) |
+| 3 | `0x5838585d434f35cda9...` | [Ver](https://basescan.org/tx/0x5838585d434f35cda943b8e17d4fcce905c83fcfc1ded3ca7bca6702425419dd) |
+| 4 | `ebcfccb6294cfeab3ad8...` | [Ver](https://basescan.org/tx/ebcfccb6294cfeab3ad8d17af95ff529ce810c6c1ddd4998adc27ef55d15a57d) |
 
 ---
 
@@ -237,27 +176,10 @@ graph LR
 
 - [x] API saludable y retornando configuracion correcta
 - [x] Tarea creada exitosamente con status published (solo balance check)
-- [x] Escrow bloqueado en asignacion (direct_release, worker como receptor)
+- [x] Escrow bloqueado en asignacion (direct_release, worker como receiver)
 - [x] TX de escrow verificada on-chain (status: SUCCESS)
-- [x] Worker registrado con executor ID e identidad ERC-8004
+- [x] Worker registrado con executor ID
 - [x] Worker recibe $0.087000 (87% del bounty, modelo credit card)
-- [x] Operador recibe $0.013000 (13% fee calculator on-chain, 1300bps)
-- [x] Las 4 TXs verificadas on-chain (status: 0x1)
-- [x] Release de escrow en 1 TX (fee split por StaticFeeCalculator)
-- [x] Reputacion bidireccional: agente califico worker Y worker califico agente (ambos on-chain)
-- [x] Worker firma su propia TX de reputacion (trustless, sin relay)
-- [x] Matematica de fees validada por mantenedor del protocolo x402r
-
----
-
-## Validacion del Protocolo
-
-Esta implementacion fue revisada y validada por **Ali Abdoli**, mantenedor principal
-del protocolo x402r, el 2026-02-14. Hallazgos clave:
-
-1. **Matematica de fees correcta** -- modelo credit card confirmado como enfoque valido
-2. **Operadores inmutables recomendados** -- desplegar nuevo PaymentOperator por cambio de fee en vez de toggles en runtime (menor superficie de ataque)
-3. **Limite TVL** -- $1,000 para operadores nuevos, $100,000 para establecidos
-4. **Cambio de calculator mid-payment** -- debe evitarse; operadores inmutables eliminan este riesgo
-
-Notas completas de validacion: [`docs/reports/ALI_VALIDATION_NOTES.md`](ALI_VALIDATION_NOTES.md)
+- [x] Operador recibe $0.013000 (13% fee calculator on-chain)
+- [x] Todas las TXs de pago verificadas on-chain (status: 0x1)
+- [x] Release de escrow en 1 TX (fee split por StaticFeeCalculator 1300bps)
