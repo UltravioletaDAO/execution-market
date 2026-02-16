@@ -169,7 +169,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                 {task.escrow_tx && (
                   <div className="bg-gray-50 rounded-lg p-3">
                     <p className="text-gray-500 text-xs">Escrow</p>
-                    <TxHashLink txHash={task.escrow_tx} network={(task as Record<string, unknown>).payment_network as string || 'base'} />
+                    <TxHashLink txHash={task.escrow_tx} network={(task as unknown as Record<string, unknown>).payment_network as string || 'base'} />
                   </div>
                 )}
               </div>
@@ -213,7 +213,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                           </button>
                         )}
                         {sub.payment_tx && (
-                          <TxHashLink txHash={sub.payment_tx} network={(task as Record<string, unknown>).payment_network as string || 'base'} className="text-xs" />
+                          <TxHashLink txHash={sub.payment_tx} network={(task as unknown as Record<string, unknown>).payment_network as string || 'base'} className="text-xs" />
                         )}
                       </div>
                     ))}
