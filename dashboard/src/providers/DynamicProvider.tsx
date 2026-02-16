@@ -35,10 +35,11 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         environmentId: DYNAMIC_ENVIRONMENT_ID,
         walletConnectors: [EthereumWalletConnectors],
         cssOverrides: dynamicCssOverrides,
-        // connect-only: wallet connection without signature verification.
-        // Session persistence handled by localStorage wallet + Supabase anonymous session.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        initialAuthenticationMode: 'connect-only' as any,
+        // connect-and-sign: wallet connects + signs SIWE message → Dynamic creates
+        // a persistent JWT session. This is the SDK default and is required for
+        // session persistence across page reloads and mobile tab switches.
+        // DO NOT change to 'connect-only' — it breaks session persistence.
+        initialAuthenticationMode: 'connect-and-sign',
         events: {
           onAuthSuccess: ({ user }) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
