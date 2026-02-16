@@ -444,22 +444,22 @@ export const TaskFeedCard = memo(function TaskFeedCard({
     return (
       <div className={cn(
         'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
-        'hover:bg-slate-50 dark:hover:bg-slate-800/50',
-        isNew && 'animate-feed-in bg-blue-50/50 dark:bg-blue-900/10',
+        'hover:bg-slate-100 dark:hover:bg-slate-700',
+        isNew && 'animate-feed-in bg-blue-50/50 dark:bg-blue-900/20',
         className,
       )}>
         <span className="text-sm flex-shrink-0">{eventStyle.icon}</span>
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-slate-700 dark:text-slate-300 truncate">
+          <p className="text-xs text-slate-800 dark:text-slate-100 truncate">
             <span className="font-medium">{data.agent.name || truncateWallet(data.agent.wallet || '')}</span>
             {' → '}
             {data.task_title || t('feed.aTask', 'a task')}
             {data.bounty_usd != null && data.bounty_usd > 0 && (
-              <span className="text-emerald-600 dark:text-emerald-400 font-medium"> ${data.bounty_usd.toFixed(2)}</span>
+              <span className="text-emerald-600 dark:text-emerald-300 font-medium"> ${data.bounty_usd.toFixed(2)}</span>
             )}
           </p>
         </div>
-        <span className="text-[10px] text-slate-400 flex-shrink-0">{formatRelativeTime(data.created_at)}</span>
+        <span className="text-[10px] text-slate-500 dark:text-slate-400 flex-shrink-0">{formatRelativeTime(data.created_at)}</span>
       </div>
     )
   }
@@ -469,13 +469,13 @@ export const TaskFeedCard = memo(function TaskFeedCard({
   // ------------------------------------------------------------------
   return (
     <div className={cn(
-      'rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden transition-all duration-300',
-      'hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600',
+      'rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 overflow-hidden transition-all duration-300',
+      'hover:shadow-md hover:border-slate-300 dark:hover:border-slate-500',
       isNew && 'animate-feed-in ring-2 ring-blue-300 dark:ring-blue-600',
       className,
     )}>
       {/* Header bar — event type + chain badge + timestamp */}
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700/50">
+      <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-600/50">
         <div className="flex items-center gap-2">
           <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium', eventStyle.color)}>
             {eventStyle.icon} {t(`feed.event.${data.event_type}`, eventStyle.label)}
