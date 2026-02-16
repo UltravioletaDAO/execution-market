@@ -48,8 +48,9 @@ test.describe('Tasks - Worker View', () => {
   })
 
   test('shows available and my tasks tabs', async ({ workerPage }) => {
-    await expect(workerPage.getByRole('button', { name: TEXT.availableTab })).toBeVisible({ timeout: 15000 })
-    await expect(workerPage.getByRole('button', { name: TEXT.myTasksTab })).toBeVisible({ timeout: 15000 })
+    const main = workerPage.getByRole('main')
+    await expect(main.getByRole('button', { name: TEXT.availableTab })).toBeVisible({ timeout: 15000 })
+    await expect(main.getByRole('button', { name: TEXT.myTasksTab })).toBeVisible({ timeout: 15000 })
   })
 
   test('shows category filters', async ({ workerPage }) => {
