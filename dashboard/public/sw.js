@@ -4,7 +4,7 @@
  * Handles offline caching, push notifications, and background sync.
  */
 
-const CACHE_NAME = 'em-v2-20260205';
+const CACHE_NAME = 'em-v3-20260216';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/offline.html',

@@ -128,7 +128,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Only consider authenticated when Dynamic SDK says user is logged in.
   // persistedWalletAddress is a hint for executor lookup, NOT an auth signal.
   const isAuthenticated = dynamicInitialized && isLoggedIn && !!dynamicWalletAddress
+  // Profile is complete only when the user has explicitly set their display name.
+  // Auto-generated names like "Worker_2b50111b" do NOT count as complete — the
+  // onboarding form must appear so the user fills in their real info.
   const isProfileComplete = !!executor?.display_name
+    && !/^Worker_[0-9a-f]{8}$/i.test(executor.display_name)
 
   // --------------------------------------------------------------------------
   // Ensure we have a Supabase session (anonymous) so RLS can resolve auth.uid()
