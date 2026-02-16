@@ -66,3 +66,4 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
     </DynamicContextProvider>
   )
 }
+
