@@ -24,7 +24,7 @@ jobs:
       e2e: ${{ steps.filter.outputs.e2e }}
       infra: ${{ steps.filter.outputs.infra }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -48,10 +48,10 @@ jobs:
       run:
         working-directory: mcp_server
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -88,10 +88,10 @@ jobs:
       run:
         working-directory: dashboard
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -117,10 +117,10 @@ jobs:
     env:
       TESTING: "true"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -141,7 +141,7 @@ jobs:
             -v
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: mcp_server/coverage.xml
@@ -149,7 +149,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage HTML
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: backend-coverage
           path: mcp_server/htmlcov/
@@ -164,10 +164,10 @@ jobs:
       run:
         working-directory: dashboard
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -180,7 +180,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: dashboard/coverage/lcov.info
@@ -188,7 +188,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage HTML
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend-coverage
           path: dashboard/coverage/
@@ -200,10 +200,10 @@ jobs:
     needs: [detect-changes, test-frontend]
     if: always() && !cancelled() && (needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.e2e == 'true') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -233,7 +233,7 @@ jobs:
     needs: [detect-changes, test-backend, test-frontend, e2e-smoke]
     if: always() && !cancelled() && github.event_name == 'push' && (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true') && !contains(needs.*.result, 'failure')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
