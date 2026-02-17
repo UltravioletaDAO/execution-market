@@ -6,33 +6,15 @@
  */
 
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import { ActivityFeed } from '../components/feed'
 
 export function Activity() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
 
   return (
-    <div className="max-w-3xl mx-auto px-4 w-full py-8">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-6">
-          <button
-            onClick={() => navigate('/')}
-            className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-          >
-            {t('nav.home', 'Home')}
-          </button>
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-slate-900 dark:text-slate-100 font-medium">
-            {t('feed.pageTitle', 'Platform Activity')}
-          </span>
-        </nav>
-
+    <div className="max-w-3xl mx-auto px-4 w-full py-4">
         {/* Title */}
-        <div className="mb-6">
+        <div className="mb-4">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             {t('feed.pageTitle', 'Platform Activity')}
           </h1>
