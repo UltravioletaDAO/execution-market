@@ -89,6 +89,20 @@ nul
 # Auto-generated agent instruction files
 AGENTS.md
 
+# ===========================================
+# Temp files from coding sessions
+# ===========================================
+tmp_*
+C:tmp*
+
+# ===========================================
+# IaC state files (generic glob)
+# ===========================================
+*.state.json.bak
+
+# Agent memory (local per-machine)
+.claude/agent-memory/
+
 # Misc
 .unused/
 .internal/
