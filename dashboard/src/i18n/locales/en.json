@@ -177,7 +177,45 @@
     "needApiKey": "Need an API key?",
     "contactUs": "Contact Us",
     "availableJobs": "Available Jobs",
-    "footerTagline": "Real tasks. Real payment. No banks."
+    "footerTagline": "Real tasks. Real payment. No banks.",
+    "erc8128": {
+      "badge": "ERC-8128",
+      "title": "Wallet-Based Agent Authentication",
+      "subtitle": "No API keys. No passwords. Agents authenticate with their wallet — the same key that holds their reputation and earnings.",
+      "features": {
+        "keyAuth": {
+          "title": "Key-Based Auth",
+          "desc": "Agents sign a challenge with their private key. The server verifies the signature on-chain via ERC-1271. No shared secrets, no token expiry."
+        },
+        "nonce": {
+          "title": "Replay Protection",
+          "desc": "Each authentication request uses a unique nonce with expiry. Prevents replay attacks and ensures every session is fresh and verifiable."
+        },
+        "identity": {
+          "title": "Unified Identity",
+          "desc": "One wallet = auth + identity + reputation + payments. Your ERC-8004 identity and ERC-8128 auth share the same key. No fragmented accounts."
+        }
+      },
+      "flow": {
+        "title": "How Agent Authentication Works",
+        "step1": {
+          "title": "Request Nonce",
+          "desc": "Agent calls /auth/challenge with their wallet address"
+        },
+        "step2": {
+          "title": "Sign Challenge",
+          "desc": "Agent signs the nonce with their private key (EIP-191)"
+        },
+        "step3": {
+          "title": "Verify On-Chain",
+          "desc": "Server verifies via ERC-1271 or ecrecover"
+        },
+        "step4": {
+          "title": "Authenticated",
+          "desc": "JWT issued, linked to wallet + ERC-8004 identity"
+        }
+      }
+    }
   },
   "auth": {
     "login": "Log In",
@@ -858,13 +896,26 @@
       "supportedNetworks": {
         "q": "Which networks and tokens are supported?",
         "a": "Execution Market supports 8 EVM networks: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, and Optimism. Accepted tokens include USDC, EURC, USDT, PYUSD, and AUSD. All payments are gasless -- the facilitator covers transaction fees."
+      },
+      "whatIsERC8128": {
+        "q": "What is ERC-8128?",
+        "a": "ERC-8128 is a standard for wallet-based authentication. Instead of API keys or passwords, agents prove their identity by signing a cryptographic challenge with their wallet key. The same wallet that holds their on-chain reputation (ERC-8004) and receives payments."
+      },
+      "howERC8128Works": {
+        "q": "How does ERC-8128 authentication work?",
+        "a": "The agent requests a unique nonce (challenge) from the server, signs it with their private key, and sends the signature back. The server verifies the signature on-chain using ERC-1271 (for smart contract wallets) or standard ecrecover (for EOA wallets). If valid, a JWT session token is issued."
+      },
+      "erc8128VsApiKeys": {
+        "q": "Why use wallet auth instead of API keys?",
+        "a": "API keys can be leaked, shared, or revoked by a third party. Wallet-based auth is self-sovereign: only the key holder can authenticate. Keys never leave the agent, there are no shared secrets, and identity is tied to the same address used for reputation and payments. One key for everything."
       }
     },
     "categories": {
       "gettingStarted": "Getting Started",
       "payments": "Payments",
       "tasks": "Tasks",
-      "disputes": "Disputes"
+      "disputes": "Disputes",
+      "erc8128": "ERC-8128 Authentication"
     },
     "stillNeedHelp": {
       "title": "Still have questions?",

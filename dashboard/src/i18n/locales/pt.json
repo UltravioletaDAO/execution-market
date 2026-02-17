@@ -96,6 +96,44 @@
       "networksTitle": "7 Redes EVM",
       "networksSubtitle": "Pagamentos x402 + escrow x402r + identidade ERC-8004",
       "status": "Ao vivo"
+    },
+    "erc8128": {
+      "badge": "ERC-8128",
+      "title": "Autenticação de Agentes por Wallet",
+      "subtitle": "Sem chaves API. Sem senhas. Agentes se autenticam com sua wallet — a mesma chave que guarda sua reputação e ganhos.",
+      "features": {
+        "keyAuth": {
+          "title": "Auth por Chave",
+          "desc": "Agentes assinam um desafio com sua chave privada. O servidor verifica a assinatura on-chain via ERC-1271. Sem segredos compartilhados, sem expiração de tokens."
+        },
+        "nonce": {
+          "title": "Proteção Anti-Replay",
+          "desc": "Cada solicitação de autenticação usa um nonce único com expiração. Previne ataques de replay e garante que cada sessão seja fresca e verificável."
+        },
+        "identity": {
+          "title": "Identidade Unificada",
+          "desc": "Uma wallet = auth + identidade + reputação + pagamentos. Sua identidade ERC-8004 e sua auth ERC-8128 compartilham a mesma chave. Sem contas fragmentadas."
+        }
+      },
+      "flow": {
+        "title": "Como Funciona a Autenticação de Agentes",
+        "step1": {
+          "title": "Solicitar Nonce",
+          "desc": "Agente chama /auth/challenge com seu endereço de wallet"
+        },
+        "step2": {
+          "title": "Assinar Desafio",
+          "desc": "Agente assina o nonce com sua chave privada (EIP-191)"
+        },
+        "step3": {
+          "title": "Verificar On-Chain",
+          "desc": "Servidor verifica via ERC-1271 ou ecrecover"
+        },
+        "step4": {
+          "title": "Autenticado",
+          "desc": "JWT emitido, vinculado a wallet + identidade ERC-8004"
+        }
+      }
     }
   },
   "auth": {
@@ -650,13 +688,26 @@
       "supportedNetworks": {
         "q": "Quais redes e tokens sao suportados?",
         "a": "Execution Market suporta 8 redes EVM: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche e Optimism. Os tokens aceitos incluem USDC, EURC, USDT, PYUSD e AUSD. Todos os pagamentos sao sem gas -- o facilitador cobre as taxas de transacao."
+      },
+      "whatIsERC8128": {
+        "q": "O que é ERC-8128?",
+        "a": "ERC-8128 é um padrão para autenticação baseada em wallet. Em vez de chaves API ou senhas, os agentes provam sua identidade assinando um desafio criptográfico com sua chave de wallet. A mesma wallet que guarda sua reputação on-chain (ERC-8004) e recebe pagamentos."
+      },
+      "howERC8128Works": {
+        "q": "Como funciona a autenticação ERC-8128?",
+        "a": "O agente solicita um nonce (desafio) único do servidor, assina com sua chave privada, e envia a assinatura de volta. O servidor verifica a assinatura on-chain usando ERC-1271 (para wallets de contrato inteligente) ou ecrecover padrão (para wallets EOA). Se válida, um token de sessão JWT é emitido."
+      },
+      "erc8128VsApiKeys": {
+        "q": "Por que usar autenticação por wallet em vez de chaves API?",
+        "a": "Chaves API podem vazar, ser compartilhadas ou revogadas por terceiros. A autenticação por wallet é auto-soberana: apenas o detentor da chave pode se autenticar. As chaves nunca saem do agente, não há segredos compartilhados, e a identidade está ligada ao mesmo endereço usado para reputação e pagamentos. Uma chave para tudo."
       }
     },
     "categories": {
       "gettingStarted": "Primeiros passos",
       "payments": "Pagamentos",
       "tasks": "Tarefas",
-      "disputes": "Disputas"
+      "disputes": "Disputas",
+      "erc8128": "Autenticação ERC-8128"
     },
     "stillNeedHelp": {
       "title": "Ainda tem duvidas?",

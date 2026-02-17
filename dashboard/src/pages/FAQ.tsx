@@ -46,6 +46,14 @@ const FAQ_DATA: FAQCategory[] = [
       { key: 'disputeWin' },
     ],
   },
+  {
+    categoryKey: 'erc8128',
+    items: [
+      { key: 'whatIsERC8128' },
+      { key: 'howERC8128Works' },
+      { key: 'erc8128VsApiKeys' },
+    ],
+  },
 ]
 
 /**

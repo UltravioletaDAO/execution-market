@@ -432,6 +432,37 @@
             </div>
         </div>
 
+        <!-- ERC-8128 Auth Section -->
+        <div class="wave-section" id="erc8128">
+            <pre class="wave-ascii" aria-hidden="true">
+ ███████╗██████╗  ██████╗       █████╗  ██╗██████╗  █████╗
+ ██╔════╝██╔══██╗██╔════╝      ██╔══██╗███║╚════██╗██╔══██╗
+ █████╗  ██████╔╝██║     █████╗╚█████╔╝╚██║ █████╔╝╚█████╔╝
+ ██╔══╝  ██╔══██╗██║     ╚════╝██╔══██╗ ██║██╔═══╝ ██╔══██╗
+ ███████╗██║  ██║╚██████╗      ╚█████╔╝ ██║███████╗╚█████╔╝
+ ╚══════╝╚═╝  ╚═╝ ╚═════╝       ╚════╝  ╚═╝╚══════╝ ╚════╝
+            </pre>
+            <p style="max-width:600px;margin:0 auto;color:#94a3b8;font-size:0.95rem;line-height:1.6;">
+                Autenticación por wallet para agentes. Sin claves API, sin contraseñas.
+                Los agentes firman un desafío criptográfico con su clave privada y el servidor
+                verifica on-chain vía ERC-1271. Una sola clave para auth, identidad, reputación y pagos.
+            </p>
+            <div class="info-boxes" style="margin-top:2rem;">
+                <div class="info-box">
+                    <div class="box-title">🔑 Auth por Clave</div>
+                    <p>Firma criptográfica en vez de secretos compartidos. Verificación on-chain vía ERC-1271.</p>
+                </div>
+                <div class="info-box">
+                    <div class="box-title">🛡️ Anti-Replay</div>
+                    <p>Cada autenticación usa un nonce único con expiración. Sin ataques de replay.</p>
+                </div>
+                <div class="info-box">
+                    <div class="box-title">🪪 Identidad Unificada</div>
+                    <p>Una wallet = auth + identidad ERC-8004 + reputación + pagos. Sin cuentas fragmentadas.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- FAQ Section -->
         <div class="faq-section" id="faq">
             <h2 class="section-title">> PREGUNTAS FRECUENTES</h2>

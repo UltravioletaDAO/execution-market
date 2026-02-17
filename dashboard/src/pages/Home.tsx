@@ -9,6 +9,7 @@ import { StatsBar } from '../components/landing/StatsBar'
 import { PublicTaskBrowser } from '../components/landing/PublicTaskBrowser'
 import { HowItWorks } from '../components/landing/HowItWorks'
 import { AgentIntegration } from '../components/landing/AgentIntegration'
+import { ERC8128Section } from '../components/landing/ERC8128Section'
 import { ActivityFeed } from '../components/feed'
 
 export function Home() {
@@ -127,6 +128,8 @@ export function Home() {
         <HowItWorks
           onConnectWallet={handleConnectWallet}
         />
+
+        <ERC8128Section />
 
         <AgentIntegration ref={agentSectionRef} />
       </div>
