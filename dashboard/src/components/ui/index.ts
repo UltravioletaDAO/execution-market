@@ -144,16 +144,6 @@ export {
   type ReputationTrendProps,
 } from './ReputationBar';
 
-// Theme
-export {
-  ThemeToggle,
-  ThemeSwitch,
-  ThemeButtonGroup,
-  type ThemeToggleProps,
-  type ThemeSwitchProps,
-  type ThemeButtonGroupProps,
-} from './ThemeToggle';
-
 // Level Badge
 export {
   LevelBadge,

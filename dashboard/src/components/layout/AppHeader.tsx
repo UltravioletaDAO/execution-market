@@ -13,7 +13,6 @@ export function AppHeader() {
 
   const mainNavLinks = [
     { label: t('nav.activity', 'Activity'), href: '/activity' },
-    { label: t('nav.home', 'Jobs'), href: '/' },
     { label: t('nav.faq', 'FAQ'), href: '/faq' },
   ]
 

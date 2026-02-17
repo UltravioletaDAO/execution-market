@@ -41,9 +41,18 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
         // DO NOT change to 'connect-only' — it breaks session persistence.
         initialAuthenticationMode: 'connect-and-sign',
         events: {
+          onAuthFlowOpen: () => {
+            console.log('[Dynamic] Auth flow opened')
+          },
+          onAuthFlowClose: () => {
+            console.log('[Dynamic] Auth flow closed')
+          },
           onAuthSuccess: ({ user }) => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             console.log('[Dynamic] Auth success:', (user as any)?.walletPublicKey || 'unknown wallet')
+          },
+          onAuthFailure: (_data, reason) => {
+            console.error('[Dynamic] Auth failure:', reason)
           },
           onLogout: () => {
             console.log('[Dynamic] User logged out')

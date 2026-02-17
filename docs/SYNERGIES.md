@@ -609,8 +609,8 @@ async def handle_submission(task_id: str, evidence: dict):
 
 **Reputation Contract Spec**:
 ```solidity
-// ChambaReputation.sol
-contract ChambaReputation is ERC721 {
+// EMReputation.sol
+contract EMReputation is ERC721 {
     struct ExecutorStats {
         uint256 tasksCompleted;
         uint256 tasksDisputed;

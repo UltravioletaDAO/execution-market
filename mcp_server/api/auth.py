@@ -424,7 +424,6 @@ async def verify_agent_owns_submission(agent_id: str, submission_id: str) -> boo
         return False
 
 
-
 # ==========================================================================
 # ERC-8128 Wallet-Based Authentication (Unified Auth)
 # ==========================================================================
@@ -442,7 +441,7 @@ class AgentAuth:
     agent_id: str
     wallet_address: Optional[str] = None
     tier: str = "free"
-    auth_method: str = "api_key"        # "api_key" | "erc8128"
+    auth_method: str = "api_key"  # "api_key" | "erc8128"
     chain_id: Optional[int] = None
     organization_id: Optional[str] = None
     erc8004_registered: bool = False
@@ -467,9 +466,7 @@ def _get_erc8128_nonce_store():
     return _erc8128_nonce_store
 
 
-async def _resolve_erc8004_identity(
-    wallet_address: str, chain_id: int
-) -> dict:
+async def _resolve_erc8004_identity(wallet_address: str, chain_id: int) -> dict:
     """
     Cross-reference a wallet address with ERC-8004 identity.
 
@@ -517,9 +514,7 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
             from integrations.erc8128.verifier import verify_erc8128_request
 
             nonce_store = _get_erc8128_nonce_store()
-            result = await verify_erc8128_request(
-                request, nonce_store=nonce_store
-            )
+            result = await verify_erc8128_request(request, nonce_store=nonce_store)
 
             if result.ok:
                 # Cross-reference with ERC-8004 identity

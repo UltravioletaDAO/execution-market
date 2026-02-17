@@ -133,7 +133,7 @@ curl https://api.execution.market/.well-known/agent.json
 ## Smart Contract
 
 ```
-ChambaEscrow: 0xedA98AF95B76293a17399Af41A499C193A8DB51A
+Legacy Escrow (deprecated): 0xedA98AF95B76293a17399Af41A499C193A8DB51A
 Network: Avalanche C-Chain (43114)
 Verified: snowtrace.io
 ```
