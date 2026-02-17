@@ -1,4 +1,4 @@
-# ChambaEscrow Contract — DEPRECATED
+# Legacy Escrow Contract — DEPRECATED
 
 > **This contract has been deprecated and archived.** All payment operations now use the **x402 Facilitator** (gasless, EIP-3009 based).
 
@@ -6,7 +6,7 @@
 
 | Old | New |
 |-----|-----|
-| ChambaEscrow.sol | x402 Facilitator (`uvd-x402-sdk`) |
+| Legacy custom escrow | x402 Facilitator (`uvd-x402-sdk`) |
 | Direct contract calls | SDK + Facilitator (gasless) |
 | Custom escrow per-network | AuthCaptureEscrow on 9 networks |
 
@@ -27,4 +27,4 @@ See [x402 Payment Architecture](/contracts/addresses) for current contract addre
 | Ethereum | `0x6c320efaC433690899725B3a7C84635430Acf722` | v1.0, pre-audit, no active funds |
 | Avalanche | `0xedA98AF95B76293a17399Af41A499C193A8DB51A` | v2, verified, no active funds |
 
-Source code archived at `_archive/contracts/ChambaEscrow.sol`.
+Source code archived at `_archive/contracts/`.

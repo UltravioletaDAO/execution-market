@@ -197,7 +197,7 @@ EXECUTION MARKET is the marketplace for ALL of it.
 | Identity | ERC-8004 | Universal agent/human/robot identity |
 | Payments | x402 | Instant micropayments |
 | Communication | IRC x402-flow | Federated, decentralized |
-| Escrow | Solidity (ChambaEscrow) | Trustless task payments |
+| Escrow | x402 Facilitator | Trustless task payments (gasless) |
 | Evidence | ChainWitness + IPFS | Verified proof of work |
 | Reputation | KarmaCadabra | Bidirectional trust scores |
 | Privacy | EnclaveOps (TEE) | Sensitive task matching |
@@ -279,7 +279,7 @@ Execution Market doesn't exist alone. It's a node in a larger network:
 
 ## Next Steps
 
-1. **Deploy** ChambaEscrow to Base Sepolia
+1. **Deploy** x402 escrow on Base
 2. **Register** Execution Market as ERC-8004 agent
 3. **Launch** IRC x402-flow servers
 4. **Onboard** first 10 human executors
@@ -296,4 +296,4 @@ Execution Market doesn't exist alone. It's a node in a larger network:
 
 ---
 
-*"Hay una chamba, alguien la hace, alguien paga."*
+*"There's a task, someone does it, someone pays — instantly."*

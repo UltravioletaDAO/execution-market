@@ -310,10 +310,10 @@ docker build \
   ./dashboard
 
 # Tag and push
-docker tag execution-market-dashboard:latest $ECR_REPO/chamba-dashboard:latest
-docker tag execution-market-dashboard:latest $ECR_REPO/chamba-dashboard:$(git rev-parse --short HEAD)
-docker push $ECR_REPO/chamba-dashboard:latest
-docker push $ECR_REPO/chamba-dashboard:$(git rev-parse --short HEAD)
+docker tag execution-market-dashboard:latest $ECR_REPO/em-production-dashboard:latest
+docker tag execution-market-dashboard:latest $ECR_REPO/em-production-dashboard:$(git rev-parse --short HEAD)
+docker push $ECR_REPO/em-production-dashboard:latest
+docker push $ECR_REPO/em-production-dashboard:$(git rev-parse --short HEAD)
 ```
 
 ### Deploy via Terraform
@@ -323,7 +323,7 @@ cd infrastructure/terraform
 
 # Update the dashboard image variable
 terraform apply \
-  -var="dashboard_image=$ECR_REPO/chamba-dashboard:$(git rev-parse --short HEAD)" \
+  -var="dashboard_image=$ECR_REPO/em-production-dashboard:$(git rev-parse --short HEAD)" \
   -var="environment=production"
 ```
 
@@ -334,8 +334,8 @@ If the image tag is `latest` and already pushed:
 ```bash
 # Force new deployment (pulls latest image)
 aws ecs update-service \
-  --cluster chamba-production \
-  --service chamba-dashboard \
+  --cluster em-production-cluster \
+  --service em-production-dashboard \
   --force-new-deployment \
   --region us-east-2
 ```
@@ -363,8 +363,8 @@ After deploying, verify:
 ```bash
 # ECS service status
 aws ecs describe-services \
-  --cluster chamba-production \
-  --services chamba-dashboard \
+  --cluster em-production-cluster \
+  --services em-production-dashboard \
   --query "services[0].{Status:status,Running:runningCount,Desired:desiredCount}"
 
 # HTTP health check

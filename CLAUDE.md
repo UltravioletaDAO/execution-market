@@ -205,7 +205,7 @@ Configure Claude Code (`~/.claude/settings.local.json`):
     "execution-market": {
       "type": "stdio",
       "command": "python",
-      "args": ["Z:/ultravioleta/dao/chamba/mcp_server/server.py"],
+      "args": ["Z:/ultravioleta/dao/execution-market/mcp_server/server.py"],
       "env": {
         "SUPABASE_URL": "https://puyhpytmtkyevnxffksl.supabase.co",
         "SUPABASE_SERVICE_KEY": "your-service-key"
@@ -435,9 +435,9 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 
 **Deploy scripts & dotenv**: All TypeScript scripts in `scripts/` load `.env.local` automatically via `dotenv.config({ path: "../.env.local" })`. The `WALLET_PRIVATE_KEY` from `.env.local` is accepted as `PRIVATE_KEY` alias. No need to set env vars manually — just run `npx tsx script.ts` from `scripts/` directory.
 
-### ChambaEscrow — DEPRECATED (DO NOT USE)
+### Legacy Custom Escrow — DEPRECATED (DO NOT USE)
 
-**NEVER reference, deploy, or interact with ChambaEscrow** (`_archive/contracts/`). Fully replaced by x402 SDK + Facilitator.
+**NEVER reference, deploy, or interact with the legacy custom escrow contract** (`_archive/contracts/`). Fully replaced by x402 SDK + Facilitator.
 
 ### x402 Payment Architecture
 

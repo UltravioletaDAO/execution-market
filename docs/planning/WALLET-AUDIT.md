@@ -38,8 +38,8 @@
 
 ## Previously Checked (Empty)
 - `erc8004-sniper/hotwallet`: 0xD577...32A0 (0 USDC on all chains)
-- `chamba/production`: Contains placeholders, not actual wallets
-- `chamba/admin-key`: API key only, not a wallet
+- `em/production` (formerly `chamba/production`): Contains placeholders, not actual wallets
+- `em/admin-key` (formerly `chamba/admin-key`): API key only, not a wallet
 - EM Treasury: 0xae07...9a6ad (only $0.11 USDC on Base)
 
 ## Not Checked (Non-wallet secrets)

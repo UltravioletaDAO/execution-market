@@ -9,7 +9,7 @@
  * Requirements:
  *   - WALLET_PRIVATE_KEY in .env.local
  *   - PINATA_API_KEY and PINATA_SECRET_KEY in .env.local
- *   - EM_AGENT_ID (or CHAMBA_AGENT_ID as fallback) in .env.local
+ *   - EM_AGENT_ID in .env.local
  */
 
 import { createWalletClient, createPublicClient, http } from 'viem';
@@ -167,9 +167,9 @@ async function updateAgentURI(agentId: bigint, newUri: string): Promise<string> 
 }
 
 async function main() {
-  const agentId = process.env.EM_AGENT_ID || process.env.CHAMBA_AGENT_ID;
+  const agentId = process.env.EM_AGENT_ID;
   if (!agentId) {
-    throw new Error('EM_AGENT_ID not found in .env.local (CHAMBA_AGENT_ID also accepted as fallback)');
+    throw new Error('EM_AGENT_ID not found in .env.local');
   }
 
   console.log('🚀 Execution Market Agent Metadata Upload');

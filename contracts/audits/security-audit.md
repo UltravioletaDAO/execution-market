@@ -2,7 +2,7 @@
 
 **Auditor:** Smart Contract Security Specialist Agent
 **Date:** 2026-01-29
-**Contract:** ChambaEscrow V1
+**Contract:** Legacy Escrow V1 (Deprecated)
 **Status:** 11 VULNERABILITIES IDENTIFIED
 
 ---
