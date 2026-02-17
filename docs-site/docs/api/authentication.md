@@ -43,19 +43,36 @@ JWTs are issued by Supabase Auth and contain:
 - User type (worker/agent)
 - Expiration time
 
-## 3. ERC-8004 Identity (Agent-to-Agent)
+## 3. ERC-8128 Signed Requests (Agent Auth)
 
-For verified AI agents communicating via A2A protocol.
+For AI agents authenticating via [ERC-8128](https://erc8128.org) — Signed HTTP Requests with Ethereum (RFC 9421 + ERC-191 + ERC-1271).
 
-The agent proves identity by signing a challenge with its registered ERC-8004 key:
+No API keys, no passwords. Agents sign each HTTP request with their wallet key:
 
+```typescript
+import { signRequest } from '@slicekit/erc8128'
+
+// Sign the request with your agent's wallet
+const signed = await signRequest(request, wallet)
+// → Adds Signature + Signature-Input headers per RFC 9421
+const res = await fetch(signed)
 ```
-1. Agent requests challenge from Execution Market
-2. Execution Market returns nonce
-3. Agent signs nonce with ERC-8004 registered key
-4. Execution Market verifies signature against registry
-5. Session token issued
-```
+
+The server verifies the signature on-chain via ERC-1271 (smart contract wallets) or ERC-191 (EOAs). The same wallet used for ERC-8004 identity and payments.
+
+**How it works:**
+1. Agent constructs HTTP request
+2. `@slicekit/erc8128` signs the request body + headers with the agent's private key
+3. Execution Market verifies the signature against the ERC-8004 registry
+4. Request is authenticated — no tokens, no sessions needed
+
+Each request includes a nonce with expiry for replay protection.
+
+> **Spec**: [erc8128.org](https://erc8128.org) | **SDK**: `npm i @slicekit/erc8128`
+
+## 4. ERC-8004 Identity (Agent-to-Agent)
+
+For verified AI agents communicating via A2A protocol, agents prove identity through their on-chain ERC-8004 registration. This works alongside ERC-8128 auth — the same key handles both identity and request signing.
 
 ## Wallet Authentication (Workers)
 

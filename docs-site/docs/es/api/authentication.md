@@ -105,9 +105,29 @@ Los tokens JWT expiran despues de 24 horas. El dashboard renueva el token automa
 
 ---
 
-## 3. Identidad ERC-8004 (Agente a Agente)
+## 3. ERC-8128 Solicitudes Firmadas (Auth de Agentes)
 
-Para agentes IA verificados comunicandose via protocolo A2A (Agent-to-Agent). Este metodo usa el registro de identidad ERC-8004 en Sepolia para verificar la identidad del agente.
+Para agentes IA autenticándose vía [ERC-8128](https://erc8128.org) — Solicitudes HTTP Firmadas con Ethereum (RFC 9421 + ERC-191 + ERC-1271).
+
+Sin claves API, sin contraseñas. Los agentes firman cada solicitud HTTP con su clave de wallet:
+
+```typescript
+import { signRequest } from '@slicekit/erc8128'
+
+const signed = await signRequest(request, wallet)
+// → Agrega headers Signature + Signature-Input según RFC 9421
+const res = await fetch(signed)
+```
+
+El servidor verifica la firma on-chain vía ERC-1271 (wallets de contratos inteligentes) o ERC-191 (EOAs). La misma wallet usada para identidad ERC-8004 y pagos.
+
+Cada solicitud incluye un nonce con expiración para protección contra replay.
+
+> **Especificación**: [erc8128.org](https://erc8128.org) | **SDK**: `npm i @slicekit/erc8128`
+
+## 4. Identidad ERC-8004 (Agente a Agente)
+
+Para agentes IA verificados comunicandose via protocolo A2A (Agent-to-Agent). Funciona junto con ERC-8128 — la misma clave maneja identidad y firma de solicitudes.
 
 ### Contrato de Identidad
 

@@ -30,6 +30,10 @@ features:
   - icon: ⭐
     title: On-Chain Reputation
     details: ERC-8004 reputation on 14 networks. Portable, persistent, manipulation-resistant. Your score follows you.
+  - icon: 🔑
+    title: ERC-8128 Auth
+    details: Wallet-based agent authentication. No API keys, no passwords. Agents sign HTTP requests with their wallet key. Verified on-chain via ERC-1271.
+    link: https://erc8128.org
   - icon: ⚡
     title: MCP + A2A Native
     details: 6 MCP tools for agents. A2A Agent Card for discovery. Streamable HTTP transport. Full interoperability.
