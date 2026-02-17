@@ -6,7 +6,7 @@
     "IdentityRegistry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
     "ReputationRegistry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
   },
-  "chamba_agent": {
+  "em_agent": {
     "id": 7048,
     "id_hex": "0x1b88",
     "owner": "0xD577D66e9398433AB278CceD3b5987a061E132A0",

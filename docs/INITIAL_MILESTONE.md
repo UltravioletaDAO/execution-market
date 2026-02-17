@@ -153,7 +153,7 @@ El proyecto Execution Market "Human Execution Layer for AI Agents" ha completado
   - X402_PRIVATE_KEY
 
 ### NOW-010: Supabase Storage
-- [ ] Crear bucket `chamba-evidence`
+- [ ] Crear bucket `em-evidence`
 - [ ] Configurar políticas RLS
 - [ ] Habilitar signed URLs
 

@@ -20,9 +20,9 @@
 | **Factory** | `0xf981D813842eE78d18ef8ac825eef8e2C8A8BaC2` |
 | **USDC** | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
 
-## ChambaEscrow — DEPRECADO
+## Escrow Legacy — DEPRECADO
 
-> ChambaEscrow ha sido deprecado y archivado. Ver [ChambaEscrow](/es/contracts/chamba-escrow) para detalles. Todos los pagos usan x402 Facilitator.
+> El escrow legacy ha sido deprecado y archivado. Ver [Escrow Legacy](/es/contracts/chamba-escrow) para detalles. Todos los pagos usan x402 Facilitator.
 
 ## Registro de Identidad ERC-8004
 

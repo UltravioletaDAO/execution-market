@@ -9,8 +9,8 @@
 ### 1. Which Wallet Is Funded?
 **Problem:** You said AWS Secrets has a wallet funded on all networks with USDC. I checked:
 - `erc8004-sniper/hotwallet` (0xD577...32A0) → **EMPTY on ALL chains**
-- `chamba/production` → Has **PLACEHOLDER** for X402_PRIVATE_KEY
-- `chamba/admin-key` → Just an API key string
+- `em/production` (formerly `chamba/production`) → Has **PLACEHOLDER** for X402_PRIVATE_KEY
+- `em/admin-key` (formerly `chamba/admin-key`) → Just an API key string
 - EM Treasury (0xae07...9a6ad) → **$0.11 USDC** on Base only
 
 **Need:** Which secret has the funded wallet? Or do we need to fund one?
@@ -57,7 +57,7 @@ Wheel built, 420 tests passing. Need `~/.pypirc` credentials to publish.
 **Decision:** Set up PyPI account? Or keep it GitHub-only for now?
 
 ### 7. Escrow Contract Deployment
-- ChambaEscrow deployed on Ethereum + Avalanche
+- Legacy escrow deployed on Ethereum + Avalanche (deprecated)
 - **x402r escrow** (the new one) needs deployment on remaining chains
 - Gas needed on each chain
 **Decision:** Which chains to prioritize? All 7 or just Base + Arbitrum?

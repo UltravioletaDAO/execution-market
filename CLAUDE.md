@@ -130,51 +130,36 @@ See `COMMANDS.md` for complete reference.
 
 ### Backend Test Profiles
 
-The backend test suite (909 tests) is organized with **pytest markers** for selective execution. By default, dormant tests (modules not wired into active endpoints) are auto-skipped.
+The backend test suite (**950 tests**) is organized with **pytest markers** for selective execution. All tests are active — no dormant or redundant markers remain after the 2026-02-17 dead code cleanup.
 
 ```bash
 cd mcp_server
 
-# Default run — skips dormant (111 tests), runs ~800 active tests
+# Default run — all 950 tests
 pytest
 
 # Specific profiles
-pytest -m core                             # Core business logic (213 tests)
-pytest -m erc8004                          # ERC-8004 integration (108 tests)
-pytest -m payments                         # Payment flows (204 tests)
-pytest -m security                         # Fraud, GPS, auth (80 tests)
-pytest -m infrastructure                   # Webhooks, WS, A2A (70 tests)
+pytest -m core                             # Core business logic (276 tests)
+pytest -m erc8004                          # ERC-8004 integration (177 tests)
+pytest -m payments                         # Payment flows (251 tests)
+pytest -m security                         # Fraud, GPS, auth (61 tests)
+pytest -m infrastructure                   # Webhooks, WS, A2A (77 tests)
 
 # Combine profiles
 pytest -m "core or erc8004"                # Core + ERC-8004
 pytest -m "core or payments"               # Core + payments
-pytest -m "not dormant and not redundant"  # Lean suite (~720 tests)
-
-# Include everything (CI full sweep)
-EM_TEST_PROFILE=full pytest                # All 909 tests including dormant
-
-# View dormant tests only
-pytest -m dormant                          # 111 tests for unwired modules
-pytest -m redundant                        # 99 tests (a2a serialization)
 ```
 
 **Marker reference** (`mcp_server/pytest.ini`):
 
 | Marker | Tests | What it covers |
 |--------|-------|----------------|
-| `core` | 213 | Routes, MCP tools, auth, reputation, workers, platform config |
-| `payments` | 204 | PaymentDispatcher, escrow, fees, multichain |
-| `erc8004` | 108 | Scoring, side effects, auto-registration, rejection, reputation tools |
-| `security` | 80 | Fraud detection, GPS antispoofing, safety |
-| `infrastructure` | 70 | Webhooks, WebSocket, A2A, timestamps |
-| `dormant` | 111 | Seals, consensus, protection fund, recon (NOT in active endpoints) |
-| `redundant` | 99 | A2A enum/serialization tests (low value) |
-
-**Dormant tests** are preserved in-place (not deleted) with a `pytestmark = pytest.mark.dormant` marker. They test modules that exist in the codebase but aren't wired into `routes.py` or `server.py`:
-- `test_seals.py` (43) — Seals & Credentials (in `mcp_server/seals/`)
-- `test_consensus.py` (27) — Validator Consensus (in `mcp_server/validation/consensus.py`)
-- `test_protection_fund.py` (30) — Worker Protection Fund (in `mcp_server/protection/fund.py`)
-- `test_recon.py` (11) — Recon task types (in `mcp_server/task_types/recon.py`)
+| `core` | 276 | Routes, MCP tools, auth, reputation, workers, platform config, architecture |
+| `payments` | 251 | PaymentDispatcher, escrow, fees, multichain, protocol fee |
+| `erc8004` | 177 | Scoring, side effects, auto-registration, rejection, reputation tools, ERC-8128 |
+| `security` | 61 | Fraud detection, GPS antispoofing |
+| `infrastructure` | 77 | Webhooks, WebSocket, A2A, timestamps |
+| *(unmarked)* | 153 | A2A protocol, gas dust, prepare feedback, task transactions |
 
 ---
 
@@ -205,7 +190,7 @@ Configure Claude Code (`~/.claude/settings.local.json`):
     "execution-market": {
       "type": "stdio",
       "command": "python",
-      "args": ["Z:/ultravioleta/dao/chamba/mcp_server/server.py"],
+      "args": ["Z:/ultravioleta/dao/execution-market/mcp_server/server.py"],
       "env": {
         "SUPABASE_URL": "https://puyhpytmtkyevnxffksl.supabase.co",
         "SUPABASE_SERVICE_KEY": "your-service-key"
@@ -435,9 +420,9 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 
 **Deploy scripts & dotenv**: All TypeScript scripts in `scripts/` load `.env.local` automatically via `dotenv.config({ path: "../.env.local" })`. The `WALLET_PRIVATE_KEY` from `.env.local` is accepted as `PRIVATE_KEY` alias. No need to set env vars manually — just run `npx tsx script.ts` from `scripts/` directory.
 
-### ChambaEscrow — DEPRECATED (DO NOT USE)
+### Legacy Custom Escrow — DEPRECATED (DO NOT USE)
 
-**NEVER reference, deploy, or interact with ChambaEscrow** (`_archive/contracts/`). Fully replaced by x402 SDK + Facilitator.
+**NEVER reference, deploy, or interact with the legacy custom escrow contract** (`_archive/contracts/`). Fully replaced by x402 SDK + Facilitator.
 
 ### x402 Payment Architecture
 

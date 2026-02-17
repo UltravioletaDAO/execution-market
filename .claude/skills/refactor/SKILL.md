@@ -267,7 +267,7 @@ User: "Refactor dashboard/src/hooks/useWallet.ts"
 
 **Step 1: Read the file**
 ```
-Read /mnt/z/ultravioleta/dao/chamba/dashboard/src/hooks/useWallet.ts
+Read /mnt/z/ultravioleta/dao/execution-market/dashboard/src/hooks/useWallet.ts
 ```
 
 **Step 2: Analyze and create tasks**
@@ -289,7 +289,7 @@ Edit file_path=/mnt/z/.../useWallet.ts
 
 **Step 4: Run tests**
 ```bash
-cd /mnt/z/ultravioleta/dao/chamba/dashboard && npm run test
+cd /mnt/z/ultravioleta/dao/execution-market/dashboard && npm run test
 ```
 
 **Step 5: Mark complete, continue**

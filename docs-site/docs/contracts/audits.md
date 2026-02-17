@@ -1,6 +1,6 @@
 # Audit Summary
 
-**Contract:** ChambaEscrow v1.4.0
+**Contract:** Legacy Escrow v1.4.0 (Deprecated)
 **Status:** Production-Ready
 **Audit Rounds:** 5 complete
 
@@ -108,7 +108,7 @@ Agent Refunds       (-Bond, 24h wait)   (-Bond, 24h wait)
 
 ## Verification
 
-The ChambaEscrow contract on Avalanche is verified on both Snowtrace and Sourcify:
+The legacy escrow contract on Avalanche is verified on both Snowtrace and Sourcify:
 
 - [Snowscan](https://snowscan.xyz/address/0xedA98AF95B76293a17399Af41A499C193A8DB51A)
 - [Sourcify](https://sourcify.dev/#/lookup/0xedA98AF95B76293a17399Af41A499C193A8DB51A)

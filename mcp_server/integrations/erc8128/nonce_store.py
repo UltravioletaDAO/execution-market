@@ -13,6 +13,7 @@ DynamoDB table schema:
   consumed_at: Number (when first seen)
 """
 
+import asyncio
 import logging
 import os
 import time
@@ -26,14 +27,12 @@ logger = logging.getLogger(__name__)
 # Environment configuration
 # ---------------------------------------------------------------------------
 
-ERC8128_NONCE_TABLE = os.environ.get(
-    "ERC8128_NONCE_TABLE", "em-production-nonce-store"
-)
+ERC8128_NONCE_TABLE = os.environ.get("ERC8128_NONCE_TABLE", "em-production-nonce-store")
 ERC8128_NONCE_STORE_TYPE = os.environ.get("ERC8128_NONCE_STORE", "memory")
 
 # Nonce generation defaults
-NONCE_LENGTH = 24          # 24 bytes → 32 chars base64url
-NONCE_DEFAULT_TTL = 300    # 5 minutes
+NONCE_LENGTH = 24  # 24 bytes → 32 chars base64url
+NONCE_DEFAULT_TTL = 300  # 5 minutes
 
 
 # ---------------------------------------------------------------------------
@@ -132,18 +131,14 @@ class DynamoDBNonceStore(NonceStore):
             self._table = dynamodb.Table(self._table_name)
         return self._table
 
-    async def consume(self, key: str, ttl_seconds: int) -> bool:
-        """
-        Atomically consume a nonce using DynamoDB conditional PutItem.
+    def _sync_put_item(self, key: str, ttl_seconds: int) -> bool:
+        """Synchronous DynamoDB put_item — called via asyncio.to_thread()."""
+        from botocore.exceptions import ClientError
 
-        Returns True if fresh (first use), False if replay attempt.
-        """
+        table = self._get_table()
+        now = int(time.time())
+
         try:
-            from botocore.exceptions import ClientError
-
-            table = self._get_table()
-            now = int(time.time())
-
             table.put_item(
                 Item={
                     "nonce_key": key,
@@ -161,6 +156,16 @@ class DynamoDBNonceStore(NonceStore):
             logger.error("DynamoDB nonce store error: %s", e)
             raise
 
+    async def consume(self, key: str, ttl_seconds: int) -> bool:
+        """
+        Atomically consume a nonce using DynamoDB conditional PutItem.
+
+        Returns True if fresh (first use), False if replay attempt.
+        Runs the synchronous boto3 call in a thread to avoid blocking
+        the async event loop.
+        """
+        try:
+            return await asyncio.to_thread(self._sync_put_item, key, ttl_seconds)
         except ImportError:
             logger.error(
                 "boto3/botocore not available — cannot use DynamoDB nonce store"
@@ -193,9 +198,7 @@ def get_nonce_store() -> NonceStore:
     store_type = ERC8128_NONCE_STORE_TYPE.lower()
 
     if store_type == "dynamodb":
-        logger.info(
-            "Initializing DynamoDB nonce store: table=%s", ERC8128_NONCE_TABLE
-        )
+        logger.info("Initializing DynamoDB nonce store: table=%s", ERC8128_NONCE_TABLE)
         _nonce_store = DynamoDBNonceStore()
     else:
         logger.info("Initializing in-memory nonce store (dev mode)")
