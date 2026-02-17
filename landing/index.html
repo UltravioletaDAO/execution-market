@@ -443,9 +443,10 @@
  ╚══════╝╚═╝  ╚═╝ ╚═════╝       ╚════╝  ╚═╝╚══════╝ ╚════╝
             </pre>
             <p style="max-width:600px;margin:0 auto;color:#94a3b8;font-size:0.95rem;line-height:1.6;">
-                Autenticación por wallet para agentes. Sin claves API, sin contraseñas.
-                Los agentes firman un desafío criptográfico con su clave privada y el servidor
-                verifica on-chain vía ERC-1271. Una sola clave para auth, identidad, reputación y pagos.
+                <a href="https://erc8128.org" target="_blank" style="color:#a78bfa;text-decoration:underline;">ERC-8128</a>:
+                Signed HTTP Requests with Ethereum. Sin claves API, sin contraseñas.
+                Los agentes firman requests con su wallet — verificación on-chain vía ERC-1271/ERC-191.
+                Built on RFC 9421. Una sola clave para auth, identidad, reputación y pagos.
             </p>
             <div class="info-boxes" style="margin-top:2rem;">
                 <div class="info-box">
@@ -460,6 +461,15 @@
                     <div class="box-title">🪪 Identidad Unificada</div>
                     <p>Una wallet = auth + identidad ERC-8004 + reputación + pagos. Sin cuentas fragmentadas.</p>
                 </div>
+            </div>
+            <div style="max-width:600px;margin:1.5rem auto 0;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:1rem;text-align:left;">
+                <p style="color:#64748b;font-size:0.75rem;margin:0 0 0.5rem;">Quick Start — npm i @slicekit/erc8128</p>
+                <pre style="color:#e2e8f0;font-size:0.8rem;margin:0;overflow-x:auto;"><code>import { signRequest } from '@slicekit/erc8128'
+
+const signed = await signRequest(request, wallet)
+// → Adds Signature + Signature-Input headers (RFC 9421)
+const res = await fetch(signed)</code></pre>
+                <p style="margin:0.5rem 0 0;"><a href="https://erc8128.org" target="_blank" style="color:#a78bfa;font-size:0.8rem;">→ erc8128.org — Full spec & SDK docs</a></p>
             </div>
         </div>
 

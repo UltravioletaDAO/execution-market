@@ -217,11 +217,18 @@ async def verify_erc8128_request(
             )
 
         if recovered.lower() != claimed_address:
-            return ERC8128Result(
-                ok=False,
-                reason=f"Signer mismatch: recovered {recovered}, expected {claimed_address}",
-                chain_id=chain_id,
+            # ERC-1271 fallback: the claimed address may be a smart contract wallet
+            erc1271_valid = await _try_erc1271_fallback(
+                claimed_address, sig_base, sig_bytes, chain_id
             )
+            if not erc1271_valid:
+                return ERC8128Result(
+                    ok=False,
+                    reason=f"Signer mismatch: recovered {recovered}, expected {claimed_address}",
+                    chain_id=chain_id,
+                )
+            # ERC-1271 verified — use the claimed address
+            recovered = claimed_address
 
         # 11. Consume nonce (replay protection)
         if not is_replayable and nonce_store is not None:
@@ -257,6 +264,45 @@ async def verify_erc8128_request(
     except Exception as exc:
         logger.exception("ERC-8128 verification error: %s", exc)
         return ERC8128Result(ok=False, reason=f"Verification error: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# ERC-1271 Smart Contract Account Fallback
+# ---------------------------------------------------------------------------
+
+
+async def _try_erc1271_fallback(
+    address: str, message: str, signature: bytes, chain_id: int
+) -> bool:
+    """
+    Attempt ERC-1271 on-chain verification when ecrecover doesn't match.
+
+    This handles smart contract wallets (Safe, ERC-4337) that cannot use
+    ecrecover. The contract's isValidSignature method is called instead.
+    """
+    try:
+        from .erc1271 import verify_erc1271_signature
+        from eth_account.messages import encode_defunct
+        from eth_hash.auto import keccak
+
+        # Hash the EIP-191 prefixed message (same as what was signed)
+        msg = encode_defunct(text=message)
+        # keccak256 of the prefixed message
+        message_hash = keccak(
+            b"\x19Ethereum Signed Message:\n"
+            + str(len(message)).encode()
+            + message.encode()
+        )
+
+        return await verify_erc1271_signature(
+            address, message_hash, signature, chain_id
+        )
+    except ImportError:
+        logger.debug("ERC-1271 module not available for fallback")
+        return False
+    except Exception as e:
+        logger.warning("ERC-1271 fallback failed: %s", e)
+        return False
 
 
 # ---------------------------------------------------------------------------

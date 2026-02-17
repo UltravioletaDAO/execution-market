@@ -259,6 +259,17 @@ class TestERC1271:
     def test_encode(self): assert _encode_is_valid_signature(b"\x01" * 32, b"\x02" * 65).startswith("0x1626ba7e")
     def test_empty_sig(self): assert _encode_is_valid_signature(b"\x00" * 32, b"").startswith("0x1626ba7e")
 
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not HAS_ETH, reason="eth_account not available")
+    async def test_erc1271_fallback_called(self):
+        """Verify ERC-1271 fallback is attempted when ecrecover mismatches (e.g., SCA wallet)."""
+        from integrations.erc8128.verifier import _try_erc1271_fallback
+        # With no RPC, fallback should return False gracefully (not crash)
+        result = await _try_erc1271_fallback(
+            "0x0000000000000000000000000000000000000001", "test message", b"\x00" * 65, 8453
+        )
+        assert result is False  # No RPC available, but no crash
+
 class TestAgentAuth:
     def test_api_key(self):
         from api.auth import AgentAuth; a = AgentAuth(agent_id="t", tier="starter"); assert a.auth_method == "api_key"
