@@ -8,7 +8,7 @@ set -e
 AWS_REGION="us-east-2"
 AWS_ACCOUNT_ID="518898403364"
 ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-MCP_REPO="chamba-mcp-server"
+MCP_REPO="em-production-mcp-server"
 DASHBOARD_REPO="chamba-dashboard"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
