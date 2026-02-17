@@ -9,7 +9,7 @@ AWS_REGION="us-east-2"
 AWS_ACCOUNT_ID="YOUR_AWS_ACCOUNT_ID"
 ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 MCP_REPO="em-production-mcp-server"
-DASHBOARD_REPO="chamba-dashboard"
+DASHBOARD_REPO="em-production-dashboard"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"

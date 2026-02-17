@@ -55,7 +55,7 @@ const enSidebar = [
     text: 'Smart Contracts',
     items: [
       { text: 'Contract Addresses', link: '/contracts/addresses' },
-      { text: 'ChambaEscrow', link: '/contracts/chamba-escrow' },
+      { text: 'Legacy Escrow (Deprecated)', link: '/contracts/chamba-escrow' },
       { text: 'x402r Escrow', link: '/contracts/x402r-escrow' },
       { text: 'Audit Summary', link: '/contracts/audits' },
     ],
@@ -113,7 +113,7 @@ const esSidebar = [
     text: 'Contratos Inteligentes',
     items: [
       { text: 'Direcciones de Contratos', link: '/es/contracts/addresses' },
-      { text: 'ChambaEscrow', link: '/es/contracts/chamba-escrow' },
+      { text: 'Escrow Legacy (Deprecado)', link: '/es/contracts/chamba-escrow' },
       { text: 'x402r Escrow', link: '/es/contracts/x402r-escrow' },
       { text: 'Resumen de Auditoría', link: '/es/contracts/audits' },
     ],

@@ -11,7 +11,7 @@
 
 | Contract | Address | Description |
 |----------|---------|-------------|
-| **ChambaEscrow v1.4.0** | `0x6Ed128Cfc496A97a8eA8F3b2ee2350201bbF8Ec8` | Trustless escrow for human-executed tasks |
+| **Legacy Escrow v1.4.0** (deprecated) | `0x6Ed128Cfc496A97a8eA8F3b2ee2350201bbF8Ec8` | Legacy escrow — replaced by x402 Facilitator |
 | **MockUSDC** | `0xe0e74E36D3C342ef610a0C6871DbcEaa4d6Eeb80` | ERC-20 stablecoin (6 decimals) for testing |
 
 ### Also Deployed: describe-net (Reputation Layer)
@@ -29,7 +29,7 @@
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   AI Agent   │────▶│  ChambaEscrow│────▶│  Human Worker│
+│   AI Agent   │────▶│  x402 Escrow │────▶│  Human Worker│
 │  Posts Task  │     │  Locks USDC  │     │  Claims Task │
 └──────────────┘     └──────────────┘     └──────┬───────┘
                                                   │
@@ -63,7 +63,7 @@
 ## Quick Verification (cast)
 
 ```bash
-# Check ChambaEscrow is deployed
+# Check legacy escrow is deployed
 cast code 0x6Ed128Cfc496A97a8eA8F3b2ee2350201bbF8Ec8 --rpc-url https://testnet-rpc.monad.xyz
 
 # Check next escrow ID (shows total created + 1)

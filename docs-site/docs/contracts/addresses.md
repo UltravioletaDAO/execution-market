@@ -20,9 +20,9 @@
 | **Factory** | `0xf981D813842eE78d18ef8ac825eef8e2C8A8BaC2` |
 | **USDC** | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
 
-## ChambaEscrow — DEPRECATED
+## Legacy Escrow — DEPRECATED
 
-> ChambaEscrow has been deprecated and archived. See [ChambaEscrow](/contracts/chamba-escrow) for details. All payments use x402 Facilitator.
+> The legacy escrow has been deprecated and archived. See [Legacy Escrow](/contracts/chamba-escrow) for details. All payments use x402 Facilitator.
 
 ## ERC-8004 Identity Registry
 

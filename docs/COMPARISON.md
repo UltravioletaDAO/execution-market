@@ -363,4 +363,4 @@ Execution Market:
 
 ---
 
-*"Hay una chamba, alguien la hace, alguien paga - al instante."*
+*"There's a task, someone does it, someone pays — instantly."*

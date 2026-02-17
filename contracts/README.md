@@ -21,11 +21,11 @@ See `mcp_server/integrations/x402/sdk_client.py` for the full network/token regi
 
 Registration is gasless via the Facilitator's `/register` endpoint.
 
-## ChambaEscrow — DEPRECATED
+## Legacy Custom Escrow — DEPRECATED
 
-> **ChambaEscrow.sol has been archived to `_archive/contracts/`.** It was a custom Solidity escrow contract used during early development. It has been fully replaced by the x402 Facilitator (gasless, EIP-3009 based).
+> **The legacy custom escrow contract has been archived to `_archive/contracts/`.** It was used during early development. It has been fully replaced by the x402 Facilitator (gasless, EIP-3009 based).
 >
-> **Do not deploy, reference, or interact with ChambaEscrow.** All escrow operations go through `uvd-x402-sdk` + Facilitator.
+> **Do not deploy, reference, or interact with the legacy escrow.** All escrow operations go through `uvd-x402-sdk` + Facilitator.
 
 Historical deployments (read-only, no funds at risk):
 - Ethereum: `0x6c320efaC433690899725B3a7C84635430Acf722` (v1.0, pre-audit)
@@ -42,10 +42,10 @@ contracts/
 ├── MONAD-TESTNET.md    # Monad testnet deployment guide
 └── README.md           # This file
 
-_archive/contracts/     # Deprecated ChambaEscrow files
-├── ChambaEscrow.sol
-├── IChambaEscrow.sol
-├── ChambaEscrow.test.ts
+_archive/contracts/     # Deprecated legacy escrow files (archived)
+├── ChambaEscrow.sol    # Legacy contract (do not use)
+├── IChambaEscrow.sol   # Legacy interface (do not use)
+├── ChambaEscrow.test.ts # Legacy tests (do not use)
 ├── DEPLOYMENT_LOG.md
 └── deployments/        # Historical deployment records
 ```

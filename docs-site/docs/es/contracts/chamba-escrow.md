@@ -1,4 +1,4 @@
-# Contrato ChambaEscrow — DEPRECADO
+# Contrato Escrow Legacy — DEPRECADO
 
 > **Este contrato ha sido deprecado y archivado.** Todas las operaciones de pago ahora usan el **x402 Facilitator** (sin gas, basado en EIP-3009).
 
@@ -6,7 +6,7 @@
 
 | Anterior | Actual |
 |----------|--------|
-| ChambaEscrow.sol | x402 Facilitator (`uvd-x402-sdk`) |
+| Escrow legacy personalizado | x402 Facilitator (`uvd-x402-sdk`) |
 | Llamadas directas al contrato | SDK + Facilitator (sin gas) |
 | Escrow personalizado por red | AuthCaptureEscrow en 9 redes |
 
@@ -27,4 +27,4 @@ Ver [Direcciones de Contratos](/es/contracts/addresses) para las direcciones act
 | Ethereum | `0x6c320efaC433690899725B3a7C84635430Acf722` | v1.0, pre-auditoria, sin fondos activos |
 | Avalanche | `0xedA98AF95B76293a17399Af41A499C193A8DB51A` | v2, verificado, sin fondos activos |
 
-Codigo fuente archivado en `_archive/contracts/ChambaEscrow.sol`.
+Codigo fuente archivado en `_archive/contracts/`.

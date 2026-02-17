@@ -1,6 +1,6 @@
 # Resumen de Auditoria
 
-**Contrato:** ChambaEscrow v1.4.0
+**Contrato:** Legacy Escrow v1.4.0 (Deprecado)
 **Estado:** Listo para Produccion
 **Rondas de Auditoria:** 5 completadas
 
@@ -110,7 +110,7 @@ Se probaron y mitigaron 6 escenarios de ataque:
 
 ## Verificacion
 
-El contrato ChambaEscrow en Avalanche esta verificado tanto en Snowtrace como en Sourcify:
+El contrato legacy escrow en Avalanche esta verificado tanto en Snowtrace como en Sourcify:
 
 - [Snowscan](https://snowscan.xyz/address/0xedA98AF95B76293a17399Af41A499C193A8DB51A)
 - [Sourcify](https://sourcify.dev/#/lookup/0xedA98AF95B76293a17399Af41A499C193A8DB51A)

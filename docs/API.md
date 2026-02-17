@@ -473,7 +473,7 @@ Connect to `wss://api.execution.market/ws` for real-time updates.
 
 ## Smart Contract
 
-### ChambaEscrow (Avalanche C-Chain)
+### Legacy Escrow — DEPRECATED (Avalanche C-Chain)
 
 | Field | Value |
 |-------|-------|

@@ -54,7 +54,7 @@ The x402 facilitator supports **17+ mainnets** including:
 | **Factory** | `0xf981D813842eE78d18ef8ac825eef8e2C8A8BaC2` |
 | **USDC** | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
 
-## ChambaEscrow Deployments
+## Legacy Escrow Deployments (DEPRECATED)
 
 | Network | Address | Status |
 |---------|---------|--------|
