@@ -48,8 +48,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.backend == 'true'
-    outputs:
-      image: ${{ steps.output.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -79,10 +77,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
-
-      - name: Output image tag
-        id: output
-        run: echo "image=${{ env.ECR_REGISTRY }}/${{ env.MCP_SERVER_ECR_REPO }}:${{ github.sha }}" >> $GITHUB_OUTPUT
 
   # ── Build & Deploy Frontend (Vite → S3 → CloudFront) ────────────
   deploy-frontend:
@@ -166,7 +160,7 @@ jobs:
     name: Deploy Backend
     runs-on: ubuntu-latest
     needs: [detect-changes, build-and-push-backend]
-    if: always() && !cancelled() && needs.detect-changes.outputs.backend == 'true' && needs.build-and-push-backend.result == 'success'
+    if: needs.detect-changes.outputs.backend == 'true'
     environment:
       name: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
       url: ${{ env.API_URL }}
@@ -192,7 +186,7 @@ jobs:
         with:
           task-definition: task-def.json
           container-name: ${{ env.MCP_SERVER_CONTAINER }}
-          image: ${{ needs.build-and-push-backend.outputs.image }}
+          image: ${{ env.ECR_REGISTRY }}/${{ env.MCP_SERVER_ECR_REPO }}:${{ github.sha }}
           environment-variables: |
             EM_BASE_URL=${{ env.API_URL }}
 
