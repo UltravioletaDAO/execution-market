@@ -23,7 +23,7 @@ jobs:
     name: Validate Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Validate tag format
         run: |
@@ -55,10 +55,10 @@ jobs:
       backend-image: ${{ steps.output.outputs.backend-image }}
       frontend-image: ${{ steps.output.outputs.frontend-image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_PRODUCTION }}
           aws-region: ${{ env.AWS_REGION }}
@@ -131,10 +131,10 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_PRODUCTION }}
           aws-region: ${{ env.AWS_REGION }}
@@ -207,7 +207,7 @@ jobs:
 
       - name: Upload rollback info
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: rollback-info
           path: |
@@ -292,13 +292,13 @@ jobs:
       contents: read
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_PRODUCTION }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Download rollback info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: rollback-info
 
@@ -332,7 +332,7 @@ jobs:
           echo "Rollback complete"
 
       - name: Notify rollback
-        uses: slackapi/slack-github-action@v1
+        uses: slackapi/slack-github-action@v2
         with:
           payload: |
             {
@@ -359,7 +359,7 @@ jobs:
     steps:
       - name: Notify Slack - Success
         if: needs.health-check.result == 'success'
-        uses: slackapi/slack-github-action@v1
+        uses: slackapi/slack-github-action@v2
         with:
           payload: |
             {
@@ -389,7 +389,7 @@ jobs:
 
       - name: Notify Slack - Failure
         if: needs.health-check.result == 'failure' || needs.deploy.result == 'failure'
-        uses: slackapi/slack-github-action@v1
+        uses: slackapi/slack-github-action@v2
         with:
           payload: |
             {
