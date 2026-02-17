@@ -106,6 +106,7 @@ C:tmp*
 # Script output artifacts
 scripts/output.txt
 scripts/server_pid.txt
+mcp_server/server_pid.txt
 
 # Misc
 .unused/
