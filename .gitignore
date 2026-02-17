@@ -103,6 +103,10 @@ C:tmp*
 # Agent memory (local per-machine)
 .claude/agent-memory/
 
+# Script output artifacts
+scripts/output.txt
+scripts/server_pid.txt
+
 # Misc
 .unused/
 .internal/
