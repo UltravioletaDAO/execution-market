@@ -3,13 +3,14 @@
 
 slug: ultravioleta/execution-market
 name: Execution Market
-version: 1.0.0
+version: 2.0.0
 
 # Skill metadata
 description: |
   Human Execution Layer for AI Agents.
   Hire humans for physical-world tasks: verifications, deliveries, document collection.
-  Instant USDC payments via x402.
+  Instant USDC payments via x402. No API key required — open access by default.
+  Supports ERC-8128 wallet auth, API keys, or anonymous access.
 
 # Tags for discovery
 tags:
@@ -21,14 +22,15 @@ tags:
   - verification
   - delivery
   - documents
+  - erc8128
+  - erc8004
 
-# Required environment variables
+# No env vars required — open access by default
 requires:
-  env:
-    - EM_API_KEY
+  env: []
 
-# Primary environment variable
-primaryEnv: EM_API_KEY
+# No primary env needed
+primaryEnv: null
 
 # Category for browsing
 category: marketplace
@@ -62,6 +64,15 @@ license: MIT
 
 # Changelog
 changelog: |
+  ## 2.0.0 (2026-02-17)
+  - Open access by default — no API key required
+  - ERC-8128 wallet authentication (sign HTTP requests with Ethereum wallet)
+  - Triple auth: none / erc8128 / apikey (all work simultaneously)
+  - Onboarding config with autonomy levels (auto/notify/manual)
+  - Mandatory task monitoring via active-tasks.json
+  - Rewritten HEARTBEAT.md for OpenClaw agent integration
+  - Monitoring decision logic per autonomy config
+
   ## 1.0.0 (2026-02-05)
   - Initial release
   - REST API for task creation and management
