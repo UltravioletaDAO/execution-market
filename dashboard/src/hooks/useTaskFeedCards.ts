@@ -233,26 +233,77 @@ export function useTaskFeedCards(
         .order('updated_at', { ascending: false })
         .range(pageNum * effectiveLimit, (pageNum + 1) * effectiveLimit - 1)
 
-      // Apply filter — map event types back to task statuses
-      // Note: 'reputation' and 'workers' filters have no task-status equivalent
-      // in fallback mode; they only work with the activity_feed table
-      if (filter === 'reputation' || filter === 'workers') {
-        // These filters need the activity_feed table (not fallback)
-        // Return empty with a hint
-        setCards([])
-        setHasMore(false)
-        setLoading(false)
-        return
+      // Handle 'workers' filter: query executors table for recently joined workers
+      if (filter === 'workers') {
+        try {
+          const { data: executors, error: execError } = await supabase
+            .from('executors')
+            .select('id, wallet_address, display_name, agent_type, avatar_url, reputation_score, tasks_completed, created_at')
+            .order('created_at', { ascending: false })
+            .range(pageNum * effectiveLimit, (pageNum + 1) * effectiveLimit - 1)
+
+          if (execError || !executors || executors.length === 0) {
+            if (!append) setCards([])
+            setHasMore(false)
+            return
+          }
+
+          const workerCards: TaskFeedCardData[] = executors.map((exec: Record<string, unknown>) => ({
+            id: `worker-${exec.id}`,
+            event_type: 'worker_joined' as ActivityEventType,
+            agent: {
+              wallet: exec.wallet_address as string,
+              name: exec.display_name as string | null,
+              type: (exec.agent_type as string) || 'human',
+              reputation_score: exec.reputation_score as number | null,
+              tasks_completed: exec.tasks_completed as number | null,
+              avatar_url: exec.avatar_url as string | null,
+            },
+            worker: null,
+            task_id: null,
+            task_title: null,
+            task_category: null,
+            bounty_usd: null,
+            payment_token: null,
+            payment_network: null,
+            created_at: exec.created_at as string,
+            completed_at: null,
+            time_taken_seconds: null,
+            escrow_tx: null,
+            payment_tx: null,
+            refund_tx: null,
+            agent_to_worker_feedback: null,
+            worker_to_agent_feedback: null,
+          }))
+
+          setHasMore(workerCards.length >= effectiveLimit)
+          if (append) {
+            setCards((prev) => [...prev, ...workerCards])
+          } else {
+            setCards(workerCards)
+          }
+          return
+        } catch {
+          if (!append) setCards([])
+          setHasMore(false)
+          return
+        }
       }
 
-      const eventTypes = FILTER_EVENT_MAP[filter]
-      if (eventTypes) {
-        const statuses: string[] = []
-        if (eventTypes.includes('task_created')) statuses.push('published')
-        if (eventTypes.includes('task_accepted')) statuses.push('accepted', 'in_progress', 'submitted', 'verifying')
-        if (eventTypes.includes('task_completed')) statuses.push('completed')
-        if (eventTypes.includes('dispute_opened')) statuses.push('disputed')
-        if (statuses.length > 0) query = query.in('status', statuses)
+      // Handle 'reputation' filter: query completed tasks (which have feedback)
+      if (filter === 'reputation') {
+        query = query.in('status', ['completed', 'disputed'])
+      } else {
+        // Apply filter — map event types back to task statuses
+        const eventTypes = FILTER_EVENT_MAP[filter]
+        if (eventTypes) {
+          const statuses: string[] = []
+          if (eventTypes.includes('task_created')) statuses.push('published')
+          if (eventTypes.includes('task_accepted')) statuses.push('accepted', 'in_progress', 'submitted', 'verifying')
+          if (eventTypes.includes('task_completed')) statuses.push('completed')
+          if (eventTypes.includes('dispute_opened')) statuses.push('disputed')
+          if (statuses.length > 0) query = query.in('status', statuses)
+        }
       }
 
       const { data: tasks, error: queryError } = await query
@@ -268,9 +319,16 @@ export function useTaskFeedCards(
       }
 
       // Build cards with participant data
-      const newCards = await Promise.all(
+      let newCards = await Promise.all(
         tasks.map((task: Record<string, unknown>) => buildCard(task))
       )
+
+      // For reputation filter, only show cards that actually have feedback
+      if (filter === 'reputation') {
+        newCards = newCards
+          .filter((c) => c.agent_to_worker_feedback?.status === 'completed' || c.worker_to_agent_feedback?.status === 'completed')
+          .map((c) => ({ ...c, event_type: 'feedback_given' as ActivityEventType }))
+      }
 
       setHasMore(newCards.length >= effectiveLimit)
 
