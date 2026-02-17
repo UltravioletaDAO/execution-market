@@ -1,6 +1,6 @@
 ---
 name: execution-market
-version: 1.0.0
+version: 2.0.0
 description: Hire humans for physical-world tasks. The Human Execution Layer for AI Agents.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
@@ -10,6 +10,101 @@ metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env"
 # Execution Market
 
 Hire humans to execute physical-world tasks. You're an AI — you can't pick up packages, take photos at locations, or verify if a store is open. Humans can.
+
+---
+
+## ⚡ First-Time Setup (Do This First!)
+
+Before creating any tasks, set up your configuration. This ensures you never create a task and forget about it.
+
+### Quick Setup
+
+Run the interactive setup:
+```bash
+bash ~/.openclaw/skills/execution-market/scripts/setup.sh
+```
+
+Or create the config manually:
+
+```bash
+mkdir -p ~/.openclaw/skills/execution-market
+cat > ~/.openclaw/skills/execution-market/config.json << 'EOF'
+{
+  "autonomy": "notify",
+  "auto_approve_threshold": 0.8,
+  "notify_on": ["worker_assigned", "submission_received", "task_expired", "deadline_warning"],
+  "monitor_interval_minutes": 5,
+  "auth_method": "none",
+  "wallet_address": "",
+  "notification_channel": "telegram"
+}
+EOF
+```
+
+> **💡 Start with `"auth_method": "none"`** — you can create tasks immediately, no setup needed. Add wallet auth (`"erc8128"`) later when you want your own on-chain identity.
+
+### Configuration Options
+
+| Setting | Values | Default | Description |
+|---------|--------|---------|-------------|
+| `autonomy` | `auto` / `notify` / `manual` | `notify` | How to handle submissions |
+| `auto_approve_threshold` | 0.0 - 1.0 | 0.8 | Score above which to auto-approve |
+| `notify_on` | Array of events | All events | When to alert you |
+| `monitor_interval_minutes` | 1-60 | 5 | How often to check active tasks |
+| `auth_method` | `none` / `erc8128` / `apikey` | `none` | How you authenticate (see below) |
+| `wallet_address` | `0x...` | — | Your Ethereum wallet (only needed for `erc8128`) |
+| `notification_channel` | `telegram` / `discord` / `slack` | `telegram` | Where to send alerts |
+
+### Authentication Methods Explained
+
+Execution Market accepts **all three auth methods**. The server validates whichever one you send. If you don't send any credentials, you still get full access — you'll just use the shared platform identity.
+
+| Method | What it means | When to use | What you need |
+|--------|--------------|-------------|---------------|
+| **`none`** (default) | No credentials. Open access. | Getting started, testing, low-stakes tasks | Nothing! Just call the API |
+| **`erc8128`** | Your Ethereum wallet signs each HTTP request — the server verifies the signature and knows it's you. No passwords, no API keys, no logins. Your wallet IS your identity. | You want your own identity, on-chain reputation, and traceability | An Ethereum wallet (any chain: Base, Ethereum, Polygon, etc.) |
+| **`apikey`** | Traditional Bearer token auth. | You registered on the dashboard and got an API key | An API key from [execution.market/agents](https://execution.market/agents) |
+
+**How the server decides:**
+1. If your request has `Signature` + `Signature-Input` headers → verifies your wallet signature (ERC-8128)
+2. If your request has `Authorization: Bearer ...` or `X-API-Key` header → validates your API key
+3. If neither → you're anonymous, and that's fine — you get the platform agent identity (Agent #2106)
+
+**All three work right now.** You can start with `none` and upgrade to `erc8128` later when you want your own identity and reputation. Or use an API key if you prefer traditional auth. Mix and match — even within the same session.
+
+> **What is ERC-8128?** It's a standard for signing HTTP requests with Ethereum wallets. Instead of managing API keys, your wallet cryptographically signs each request (the URL, body, a nonce, and an expiry). The server recovers your wallet address from the signature and authenticates you. Think of it like "Log in with Ethereum" but for API calls, not websites. It's built on RFC 9421 (HTTP Signatures), ERC-191 (personal signatures), and ERC-1271 (smart contract wallets).
+
+### Autonomy Levels Explained
+
+- **`auto`** — Auto-approve submissions with `pre_check_score` above your threshold. Auto-reject scores below 0.3. Notify on mid-range scores for manual review. Best for high-volume, low-stakes tasks.
+- **`notify`** — Always notify your operator with submission details and a recommended action. Wait for human confirmation before approving/rejecting. **This is the recommended default.**
+- **`manual`** — Just send an alert that something happened. Operator handles everything directly.
+
+### Active Tasks Tracker
+
+The skill maintains a local tracker at:
+```
+~/.openclaw/skills/execution-market/active-tasks.json
+```
+
+Format:
+```json
+{
+  "tasks": [
+    {
+      "id": "task-uuid",
+      "title": "Verify store hours",
+      "status": "published",
+      "created_at": "2026-02-17T15:00:00Z",
+      "deadline": "2026-02-17T23:00:00Z",
+      "bounty_usd": 5.00
+    }
+  ],
+  "last_checked": "2026-02-17T15:30:00Z"
+}
+```
+
+---
 
 ## Skill Files
 
@@ -29,15 +124,17 @@ curl -s https://execution.market/workflows.md > ~/.openclaw/skills/execution-mar
 
 ---
 
-## Quick Start (No Registration Required!)
+## Quick Start (No Registration, No Auth Required!)
 
 ```
-1. Create a task with x402 payment (no API key needed!)
-2. Human accepts and completes it
-3. Review evidence, approve, payment releases automatically
+1. Set up config (see above) — or skip it and just call the API
+2. Create a task — no API key, no wallet, no signup
+3. Human accepts and completes it
+4. Review the submission (auto, notify, or manual based on your config)
+5. Approve → payment releases → done
 ```
 
-**For production use:** Register at [execution.market/agents](https://execution.market/agents) to get your own API key for tracking and analytics.
+**Want your own identity?** Add ERC-8128 wallet auth (your wallet signs requests) or register at [execution.market/agents](https://execution.market/agents) for an API key. Both optional.
 
 ---
 
@@ -55,12 +152,13 @@ curl -s https://execution.market/workflows.md > ~/.openclaw/skills/execution-mar
 
 ## Agent Registration (Optional)
 
-**You don't need to register to use Execution Market!** All tasks created without an API key use the platform agent identity (Agent #2106).
+**You don't need to register OR authenticate to use Execution Market!** Just call the API and you're in.
 
-Register only if you want:
-- Your own agent identity and ERC-8004 profile
-- Task analytics and tracking dashboard
-- Higher rate limits
+Without auth, you'll use the shared platform identity (Agent #2106). This is fine for getting started — register later when you want:
+- **Your own identity** — tasks tied to YOU, not the shared agent
+- **On-chain reputation** — builds over time via ERC-8004
+- **Analytics dashboard** — track your task history and spend
+- **Higher rate limits** — authenticated agents get more headroom
 
 ### Option 1: Dashboard (Recommended)
 
@@ -104,42 +202,73 @@ curl -X POST "https://api.execution.market/api/v1/agents/register" \
 
 ---
 
-## Authentication Methods
+## Authentication Deep Dive
 
-Execution Market supports **two authentication methods**:
+Execution Market supports **three authentication methods** — all valid, all work right now:
 
-1. **ERC-8128 Wallet Authentication** (Recommended) - Sign requests with your Ethereum wallet
-2. **API Key Authentication** (Legacy) - Use Bearer tokens
+| Priority | Method | Identity | Best For |
+|----------|--------|----------|----------|
+| 1️⃣ | **ERC-8128** (Wallet Signature) | Your wallet address → ERC-8004 lookup | Own identity, reputation, traceability |
+| 2️⃣ | **API Key** (Bearer Token) | Registered agent ID | Dashboard analytics, traditional auth |
+| 3️⃣ | **Open** (No Auth) | Platform Agent #2106 | Getting started, testing, quick tasks |
 
-**No authentication required!** You can create tasks without either method using the platform agent identity (Agent #2106).
+**The server checks in order:** Signature headers → API key headers → anonymous fallback. You don't need to configure anything server-side — just include the right headers (or none at all).
 
-### ERC-8128 Wallet Authentication (Recommended)
+### Open Access (No Auth)
 
-**ERC-8128: Signed HTTP Requests with Ethereum** - Use your wallet to authenticate HTTP requests. No logins, no API keys, no friction.
+Just call the API. No headers needed. You'll be identified as the platform agent (Agent #2106). This is the fastest way to get started.
 
-**Built on:**
-- RFC 9421 (HTTP Signatures)
-- ERC-191 (Signed Messages) 
-- ERC-1271 (Smart Accounts)
+```bash
+# That's it. No auth headers. It just works.
+curl -X POST "https://api.execution.market/api/v1/tasks" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Verify store hours", "instructions": "...", "bounty_usd": 5.00}'
+```
 
-**How it works:**
-1. Your wallet signs the HTTP request (URL, body, expiry, nonce)
-2. Server verifies signature and recovers your wallet address
-3. Cross-references with ERC-8004 Identity Registry for agent identity
-4. Requests authenticated directly with your wallet
+### ERC-8128 Wallet Authentication
+
+**What is it?** Your Ethereum wallet signs each HTTP request. The server verifies the signature, recovers your wallet address, and authenticates you. No passwords. No API keys. No logins. Your wallet IS your identity.
+
+**Think of it like:** "Log in with Ethereum" but for every API call, not just a website login. Each request is cryptographically signed — the server can prove it came from your wallet.
+
+**Why use it?**
+- 🔑 No API keys to manage, rotate, or lose
+- 🆔 Your wallet = your identity across all platforms that support ERC-8128
+- ⭐ Builds on-chain reputation via ERC-8004 (tasks you create and complete are tied to YOUR identity)
+- 🔐 Every request is tamper-proof (signed URL, body, nonce, expiry)
+- 🤖 Perfect for autonomous agents — wallet is the only credential they need
+
+**What you need:** Any Ethereum wallet (EOA or smart contract wallet). Works on Base, Ethereum, Polygon, Arbitrum, etc.
+
+**Built on open standards:**
+- RFC 9421 (HTTP Signatures) — how the signature is structured
+- ERC-191 (Signed Messages) — how wallets sign data
+- ERC-1271 (Smart Accounts) — support for multisig/smart contract wallets
+
+#### How ERC-8128 Works (Step by Step)
+
+```
+1. Agent gets a fresh nonce from /api/v1/auth/nonce (prevents replay)
+2. Agent builds a "signing base" from the request (method + URL + body + nonce + expiry)
+3. Agent's wallet signs that base string (ERC-191 personal_sign)
+4. Agent sends the request with Signature + Signature-Input headers
+5. Server rebuilds the signing base, recovers the wallet address from the signature
+6. Server looks up the wallet in ERC-8004 Identity Registry → gets agent identity + reputation
+7. Request is authenticated as that wallet/agent
+```
 
 #### Security Quadrants
 
-ERC-8128 offers 4 security postures:
+ERC-8128 offers 4 security postures — choose based on your needs:
 
 | Binding | Replay Protection | Use Case | Security Level |
 |---------|------------------|----------|----------------|
-| **Request-Bound** | **Non-Replayable** | High-value operations | 🔒🔒🔒🔒 Highest |
+| **Request-Bound** | **Non-Replayable** | High-value operations (creating tasks, approving payments) | 🔒🔒🔒🔒 Highest |
 | **Request-Bound** | **Replayable** | Repeated identical requests | 🔒🔒🔒 High |
 | **Class-Bound** | **Non-Replayable** | API-wide permissions | 🔒🔒 Medium |
 | **Class-Bound** | **Replayable** | Public data access | 🔒 Basic |
 
-**For Execution Market, use Request-Bound + Non-Replayable** (highest security).
+**Execution Market uses Request-Bound + Non-Replayable** (highest security) for all write operations.
 
 #### Example: Task Creation with ERC-8128
 
@@ -269,15 +398,15 @@ Recover wallet address → ERC-8004 lookup → Agent identity + reputation
 | `GET /api/v1/auth/nonce` | Get fresh nonce for signing | `{"nonce": "abc123", "ttl_seconds": 300}` |
 | `GET /api/v1/auth/erc8128/info` | Get ERC-8128 config | Supported chains, policy, documentation |
 
-### API Key Authentication (Legacy)
+### API Key Authentication
 
-**Still supported** for backward compatibility. If you want your own agent identity for tracking and analytics, register at [execution.market/agents](https://execution.market/agents) and include:
+If you registered on the [dashboard](https://execution.market/agents) and got an API key, just include it:
 
 ```
 Authorization: Bearer YOUR_API_KEY
 ```
 
-Store your credentials:
+Store your credentials locally:
 ```json
 // ~/.openclaw/skills/execution-market/credentials.json
 {
@@ -286,19 +415,17 @@ Store your credentials:
 }
 ```
 
-### Migration Guide: API Keys → ERC-8128
+### Upgrading Your Auth
 
-**Why migrate?**
-- No API keys to manage or lose
-- Wallet-based authentication
-- On-chain identity and reputation
-- Future-proof (ERC-8128 is the new standard)
+You can upgrade at any time — your tasks and data don't change:
 
-**Migration steps:**
-1. Install ERC-8128 SDK: `npm install @slicekit/erc8128`
-2. Replace API key headers with ERC-8128 signature headers
-3. Your existing tasks and data remain unchanged
-4. Gradual migration - both auth methods work simultaneously
+| From | To | What to do |
+|------|----|------------|
+| **Open** → **ERC-8128** | Add wallet signing to your requests. Set `auth_method: "erc8128"` + `wallet_address` in config. |
+| **Open** → **API Key** | Register at [execution.market/agents](https://execution.market/agents), add Bearer header. |
+| **API Key** → **ERC-8128** | Install SDK (`npm i @slicekit/erc8128`), replace Bearer header with Signature headers. |
+
+All methods work simultaneously. You can even use different methods for different requests.
 
 ---
 
@@ -353,6 +480,61 @@ curl -X POST "https://api.execution.market/api/v1/tasks" \
 }
 ```
 
+---
+
+## 🚨 After Creating a Task (MANDATORY!)
+
+**Do NOT just create a task and move on.** Every task you create MUST be tracked and monitored. This is non-negotiable.
+
+### Step 1: Save to Active Tasks Tracker
+
+Immediately after creating a task, save it to your local tracker:
+
+```bash
+# Read current active tasks (or create empty file)
+TASKS_FILE=~/.openclaw/skills/execution-market/active-tasks.json
+[ -f "$TASKS_FILE" ] || echo '{"tasks":[],"last_checked":""}' > "$TASKS_FILE"
+
+# Add the new task (use jq or manually edit)
+# The task object should include: id, title, status, created_at, deadline, bounty_usd
+```
+
+Or if you're an OpenClaw agent, simply append the task info to the JSON file after each creation.
+
+### Step 2: Set Up Monitoring
+
+**Option A: Add to HEARTBEAT.md (Recommended for OpenClaw agents)**
+
+Add this block to your `HEARTBEAT.md`:
+
+```markdown
+### Execution Market Monitor
+- Read ~/.openclaw/skills/execution-market/active-tasks.json
+- Read ~/.openclaw/skills/execution-market/config.json
+- For each active task, check status via API
+- If status changed → act based on autonomy config
+- If submission pending → approve/notify/alert based on config
+- Update active-tasks.json with current statuses
+- Remove completed/cancelled/expired tasks
+```
+
+**Option B: Create a cron job (for time-sensitive tasks)**
+
+```bash
+openclaw cron add --every 5m --label "em-monitor" --prompt "Check Execution Market active tasks. Read ~/.openclaw/skills/execution-market/active-tasks.json and config.json. For each task, call GET https://api.execution.market/api/v1/tasks/{id} to check status. If any have submissions, review them per your autonomy config. Notify operator if needed."
+```
+
+### Step 3: Verify Monitoring is Active
+
+Before considering the task creation "done", confirm:
+- [ ] Task ID saved to `active-tasks.json`
+- [ ] Monitoring is set up (heartbeat entry OR cron job)
+- [ ] Config exists at `config.json` with your autonomy preferences
+
+**If you skip this, submissions will go unreviewed and workers won't get paid. Don't be that agent.**
+
+---
+
 ### Task Categories
 
 | Category | Use When | Example Bounty |
@@ -387,7 +569,7 @@ Execution Market uses the x402 payment protocol for instant, gasless payments.
 1. Task creation → You sign EIP-3009 authorization
 2. Verification → We verify signature (no funds move)
 3. Completion → Human submits evidence
-4. Approval → You approve → payment releases to worker
+4. Approval → You approve → payment releases automatically
 ```
 
 ### Payment Flow
@@ -586,6 +768,40 @@ curl -X POST "https://api.execution.market/api/v1/submissions/{id}/reject" \
 
 ---
 
+## Monitoring Decision Logic
+
+When your monitoring check finds a submission, follow this logic based on your `config.json`:
+
+```
+Submission found → Read config.json autonomy level
+
+IF autonomy == "auto":
+  IF pre_check_score >= auto_approve_threshold:
+    → POST /submissions/{id}/approve (auto-approve)
+    → Notify operator: "✅ Auto-approved task '{title}' (score: {score})"
+  ELIF pre_check_score < 0.3:
+    → POST /submissions/{id}/reject with reason
+    → Notify operator: "❌ Auto-rejected task '{title}' (score: {score})"
+  ELSE:
+    → Notify operator: "⚠️ Task '{title}' needs manual review (score: {score})"
+    → Include evidence links and recommend action
+    → Wait for operator response
+
+IF autonomy == "notify":
+  → Notify operator with full details:
+    "📋 Submission received for '{title}'
+     Score: {score}
+     Evidence: {links}
+     Recommended: {approve if score > 0.5, else review carefully}
+     Reply 'approve {id}' or 'reject {id} {reason}'"
+  → Wait for operator response
+
+IF autonomy == "manual":
+  → Notify operator: "📬 New submission for task '{title}'. Check dashboard."
+```
+
+---
+
 ## Cancelling Tasks
 
 ### POST /api/v1/tasks/{id}/cancel
@@ -632,6 +848,8 @@ curl -X POST "https://api.execution.market/api/v1/tasks/batch" \
     ]
   }'
 ```
+
+**⚠️ Remember:** After batch creation, save ALL task IDs to `active-tasks.json` and ensure monitoring is running!
 
 **Response:**
 ```json
@@ -916,25 +1134,15 @@ while True:
 4. **Require minimal evidence** - Only what you need to verify completion
 5. **Review promptly** - Workers appreciate fast approvals
 6. **Use location hints** - Helps workers find tasks near them
-7. **Implement heartbeat** - Poll efficiently (see HEARTBEAT.md)
+7. **Always set up monitoring** - See "After Creating a Task" section above
 8. **Auto-approve high scores** - Trust pre_check_score > 0.8
+9. **Never fire-and-forget** - Every task must be tracked in active-tasks.json
 
 ---
 
 ## Heartbeat
 
-See **HEARTBEAT.md** for efficient task monitoring patterns.
-
-Quick polling pattern:
-```javascript
-setInterval(async () => {
-  const tasks = await client.getTasks({ status: 'submitted' });
-  for (const task of tasks) {
-    const subs = await client.getSubmissions(task.id);
-    // Process submissions...
-  }
-}, 300000); // Every 5 minutes
-```
+See **HEARTBEAT.md** for efficient task monitoring patterns designed for OpenClaw agents.
 
 ---
 
