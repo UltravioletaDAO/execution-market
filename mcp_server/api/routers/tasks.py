@@ -77,6 +77,7 @@ from ._helpers import (
     _normalize_payment_network,
     _record_refund_payment,
     _extract_agent_wallet_from_header,
+    dispatch_webhook,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["Tasks"])
@@ -937,12 +938,29 @@ async def get_available_tasks(
         False,
         description="Include expired tasks in response. Useful as landing fallback when there are no active tasks.",
     ),
+    exclude_executor: Optional[str] = Query(
+        None,
+        description="Executor ID to exclude tasks they already applied to",
+    ),
     limit: int = Query(20, ge=1, le=100, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
 ) -> AvailableTasksResponse:
     """Get available tasks for workers to apply to and complete."""
     try:
         client = db.get_client()
+
+        applied_ids: List[str] = []
+        if exclude_executor:
+            try:
+                applied_result = (
+                    client.table("task_applications")
+                    .select("task_id")
+                    .eq("executor_id", exclude_executor)
+                    .execute()
+                )
+                applied_ids = [r["task_id"] for r in (applied_result.data or [])]
+            except Exception:
+                pass  # Non-blocking: if lookup fails, show all tasks
 
         query = client.table("tasks").select("*")
 
@@ -958,6 +976,9 @@ async def get_available_tasks(
             query = query.gte("bounty_usd", min_bounty)
         if max_bounty is not None:
             query = query.lte("bounty_usd", max_bounty)
+
+        if applied_ids:
+            query = query.not_.in_("id", applied_ids)
 
         if include_expired:
             result = (
@@ -2231,6 +2252,22 @@ async def assign_task_to_worker(
             api_key.agent_id[:10],
             request.executor_id[:10],
         )
+
+        # Non-blocking webhook dispatch
+        try:
+            from webhooks.events import WebhookEventType
+
+            await dispatch_webhook(
+                WebhookEventType.TASK_ASSIGNED,
+                {
+                    "task_id": task_id,
+                    "executor_id": request.executor_id,
+                    "agent_id": api_key.agent_id,
+                    "worker_wallet": worker_wallet,
+                },
+            )
+        except Exception:
+            pass  # Never block the assign flow
 
         response_data = {
             "task_id": task_id,

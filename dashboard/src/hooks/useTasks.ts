@@ -11,6 +11,7 @@ interface UseTasksOptions {
 
 interface UseAvailableTasksOptions extends Omit<UseTasksOptions, 'status'> {
   includeExpiredFallback?: boolean
+  executorId?: string
 }
 
 interface UseTasksResult {
@@ -18,6 +19,10 @@ interface UseTasksResult {
   loading: boolean
   error: Error | null
   refetch: () => Promise<void>
+}
+
+interface UseAvailableTasksResult extends UseTasksResult {
+  removeTask: (taskId: string) => void
 }
 
 const normalizeError = (err: unknown): Error => {
@@ -171,7 +176,7 @@ export function useTask(taskId: string | undefined): UseTaskResult {
 }
 
 // Available tasks for executors (published, not accepted)
-export function useAvailableTasks(options: UseAvailableTasksOptions = {}): UseTasksResult {
+export function useAvailableTasks(options: UseAvailableTasksOptions = {}): UseAvailableTasksResult {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -189,12 +194,15 @@ export function useAvailableTasks(options: UseAvailableTasksOptions = {}): UseTa
     } else {
       params.set('limit', '50')
     }
+    if (options.executorId) {
+      params.set('exclude_executor', options.executorId)
+    }
     if (includeExpired) {
       params.set('include_expired', 'true')
     }
 
     return `${path}?${params.toString()}`
-  }, [options.category, options.limit])
+  }, [options.category, options.limit, options.executorId])
 
   const normalizeTask = useCallback((raw: Partial<Task> & { id: string; agent_id: string; category: TaskCategory; title: string; instructions: string; bounty_usd: number; deadline: string; created_at: string }): Task => {
     const normalizedStatus = (raw?.status || 'published') as TaskStatus
@@ -268,7 +276,11 @@ export function useAvailableTasks(options: UseAvailableTasksOptions = {}): UseTa
     return () => window.clearInterval(intervalId)
   }, [fetchAvailableTasks])
 
-  return { tasks, loading, error, refetch: fetchAvailableTasks }
+  const removeTask = useCallback((taskId: string) => {
+    setTasks(prev => prev.filter(t => t.id !== taskId))
+  }, [])
+
+  return { tasks, loading, error, refetch: fetchAvailableTasks, removeTask }
 }
 
 // My tasks (for logged-in executor)

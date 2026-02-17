@@ -23,6 +23,7 @@ from ._helpers import (
     _settle_submission_payment,
     _is_submission_ready_for_instant_payout,
     _auto_approve_submission,
+    dispatch_webhook,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["Workers"])
@@ -60,6 +61,22 @@ async def apply_to_task(
             task_id,
             request.executor_id[:8],
         )
+
+        # Non-blocking webhook dispatch
+        try:
+            from webhooks.events import WebhookEventType
+
+            await dispatch_webhook(
+                WebhookEventType.WORKER_APPLIED,
+                {
+                    "task_id": task_id,
+                    "worker_id": request.executor_id,
+                    "application_id": result["application"]["id"],
+                    "message": request.message,
+                },
+            )
+        except Exception:
+            pass  # Never block the apply flow
 
         return SuccessResponse(
             message="Application submitted successfully",
