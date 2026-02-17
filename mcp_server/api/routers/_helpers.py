@@ -1527,3 +1527,28 @@ def _build_explorer_url(
     base_url = _EXPLORER_TX_URLS.get(net, _EXPLORER_TX_URLS["base"])
     h = tx_hash if tx_hash.startswith("0x") else f"0x{tx_hash}"
     return f"{base_url}{h}"
+
+
+async def dispatch_webhook(
+    event_type: Any,
+    payload: Dict[str, Any],
+) -> None:
+    """Dispatch webhook event to all registered endpoints (non-blocking, never raises)."""
+    try:
+        from webhooks import get_webhook_registry, WebhookEvent
+        from webhooks.sender import send_webhook
+
+        registry = get_webhook_registry()
+        if not registry:
+            return
+        event = WebhookEvent(event_type=event_type, payload=payload)
+        for wh in registry.get_by_event(event_type):
+            secret = registry.get_secret(wh.webhook_id)
+            await send_webhook(
+                url=wh.url,
+                event=event,
+                secret=secret or "",
+                webhook_id=wh.webhook_id,
+            )
+    except Exception as exc:
+        logger.warning("Webhook dispatch failed for %s: %s", event_type, exc)

@@ -100,9 +100,10 @@ export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>
     const [selectedTask, setSelectedTask] = useState<Task | null>(null)
     const [applyingTask, setApplyingTask] = useState<Task | null>(null)
 
-    const { tasks, loading, error, refetch } = useAvailableTasks({
+    const { tasks, loading, error, refetch, removeTask } = useAvailableTasks({
       category: category ?? undefined,
       includeExpiredFallback: true,
+      executorId: executor?.id,
     })
 
     const handleTaskClick = (task: Task) => {
@@ -120,7 +121,11 @@ export const PublicTaskBrowser = forwardRef<HTMLElement, PublicTaskBrowserProps>
     }
 
     const handleApplicationSuccess = () => {
+      if (applyingTask) {
+        removeTask(applyingTask.id)
+      }
       setApplyingTask(null)
+      refetch()
       // Navigate to worker dashboard with "My Tasks" tab active
       navigate('/tasks', { state: { tab: 'mine' } })
     }
