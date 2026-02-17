@@ -41,20 +41,18 @@ REQUEST_BOUND_COMPONENTS = {"@method", "@authority", "@path"}
 #   content-digest — if request has a body
 
 # keyid format: erc8128:<chain-id>:<0x address>
-KEYID_RE = re.compile(
-    r'^erc8128:(\d+):(0x[0-9a-fA-F]{40})$'
-)
+KEYID_RE = re.compile(r"^erc8128:(\d+):(0x[0-9a-fA-F]{40})$")
 
 
 @dataclass
 class VerifyPolicy:
     """Verifier acceptance policy (Section 3.2)."""
 
-    max_validity_sec: int = 300       # 5 minutes max window
-    clock_skew_sec: int = 30          # 30s clock drift tolerance
-    strict_label: bool = False        # Require "eth" label
-    allow_replayable: bool = False    # Reject nonce-less by default
-    allow_class_bound: bool = False   # Reject class-bound by default
+    max_validity_sec: int = 300  # 5 minutes max window
+    clock_skew_sec: int = 30  # 30s clock drift tolerance
+    strict_label: bool = False  # Require "eth" label
+    allow_replayable: bool = False  # Reject nonce-less by default
+    allow_class_bound: bool = False  # Reject class-bound by default
     required_components: set[str] = field(default_factory=set)  # Extra required
 
 
@@ -66,12 +64,12 @@ class ERC8128Result:
     """Result of ERC-8128 verification."""
 
     ok: bool
-    address: Optional[str] = None       # Recovered wallet address (lowercase)
-    chain_id: Optional[int] = None      # From keyid
-    reason: Optional[str] = None        # Error reason if not ok
-    binding: str = "request-bound"      # or "class-bound"
-    replayable: bool = False            # True if no nonce was present
-    label: Optional[str] = None         # Signature label used (e.g. "eth")
+    address: Optional[str] = None  # Recovered wallet address (lowercase)
+    chain_id: Optional[int] = None  # From keyid
+    reason: Optional[str] = None  # Error reason if not ok
+    binding: str = "request-bound"  # or "class-bound"
+    replayable: bool = False  # True if no nonce was present
+    label: Optional[str] = None  # Signature label used (e.g. "eth")
 
 
 class NonceStoreProtocol(Protocol):
@@ -198,9 +196,7 @@ async def verify_erc8128_request(
         if "content-digest" in covered_components:
             digest_err = await _verify_content_digest(request)
             if digest_err:
-                return ERC8128Result(
-                    ok=False, reason=digest_err, chain_id=chain_id
-                )
+                return ERC8128Result(ok=False, reason=digest_err, chain_id=chain_id)
 
         # 9. Reconstruct the signature base (RFC 9421)
         sig_base = await _build_signature_base(
@@ -282,12 +278,9 @@ async def _try_erc1271_fallback(
     """
     try:
         from .erc1271 import verify_erc1271_signature
-        from eth_account.messages import encode_defunct
         from eth_hash.auto import keccak
 
-        # Hash the EIP-191 prefixed message (same as what was signed)
-        msg = encode_defunct(text=message)
-        # keccak256 of the prefixed message
+        # keccak256 of the EIP-191 prefixed message (same as what was signed)
         message_hash = keccak(
             b"\x19Ethereum Signed Message:\n"
             + str(len(message)).encode()
@@ -379,7 +372,7 @@ def _split_dict_members(raw: str) -> dict[str, str]:
         if eq_idx < 0:
             break
         lbl = remaining[:eq_idx].strip()
-        remaining = remaining[eq_idx + 1:]
+        remaining = remaining[eq_idx + 1 :]
 
         value, remaining = _extract_dict_value(remaining)
         result[lbl] = value.strip()
@@ -397,15 +390,15 @@ def _extract_dict_value(s: str) -> tuple[str, str]:
     i = 0
     while i < len(s):
         ch = s[i]
-        if ch == '"' and (i == 0 or s[i - 1] != '\\'):
+        if ch == '"' and (i == 0 or s[i - 1] != "\\"):
             in_quotes = not in_quotes
         elif not in_quotes:
-            if ch == '(':
+            if ch == "(":
                 depth += 1
-            elif ch == ')':
+            elif ch == ")":
                 depth -= 1
-            elif ch == ',' and depth == 0:
-                return s[:i], s[i + 1:]
+            elif ch == "," and depth == 0:
+                return s[:i], s[i + 1 :]
         i += 1
     return s, ""
 
@@ -422,10 +415,10 @@ def _parse_inner_list_with_params(
     if paren_start < 0 or paren_end < 0:
         return [], {}
 
-    inner = value[paren_start + 1: paren_end]
+    inner = value[paren_start + 1 : paren_end]
     components = _parse_component_list(inner)
 
-    params_str = value[paren_end + 1:]
+    params_str = value[paren_end + 1 :]
     params = _parse_params(params_str)
 
     return components, params
@@ -469,7 +462,7 @@ def _split_params(s: str) -> list[str]:
         if ch == '"':
             in_quotes = not in_quotes
             current += ch
-        elif ch == ';' and not in_quotes:
+        elif ch == ";" and not in_quotes:
             if current.strip():
                 parts.append(current)
             current = ""
@@ -530,8 +523,7 @@ def _validate_timestamps(
     validity = expires_ts - created_ts
     if validity > policy.max_validity_sec:
         return (
-            f"Validity window too large: {validity}s "
-            f"(max {policy.max_validity_sec}s)"
+            f"Validity window too large: {validity}s (max {policy.max_validity_sec}s)"
         )
 
     if created_ts > now + policy.clock_skew_sec:
@@ -581,7 +573,7 @@ async def _verify_content_digest(request: Any) -> Optional[str]:
     if not digest_header:
         return "content-digest covered but Content-Digest header missing"
 
-    m = re.match(r'sha-256=:([A-Za-z0-9+/=]+):', digest_header)
+    m = re.match(r"sha-256=:([A-Za-z0-9+/=]+):", digest_header)
     if not m:
         return "Unsupported Content-Digest format (only sha-256 supported)"
 
@@ -684,9 +676,7 @@ async def _resolve_component(request: Any, component: str) -> str:
     return value or ""
 
 
-def _build_signature_params(
-    covered: list[str], params: dict[str, Any]
-) -> str:
+def _build_signature_params(covered: list[str], params: dict[str, Any]) -> str:
     """Build the @signature-params value."""
     comp_str = " ".join(f'"{c}"' for c in covered)
     parts = [f"({comp_str})"]
