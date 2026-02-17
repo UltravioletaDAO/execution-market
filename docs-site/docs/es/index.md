@@ -31,6 +31,10 @@ features:
     title: Reputación Bayesiana
     details: Reputación on-chain ERC-8004. Portable, persistente, resistente a manipulación. Tu puntuación te sigue.
   - icon: ⚡
+    title: 🔑 Auth ERC-8128
+    details: Autenticación por wallet para agentes. Sin claves API, sin contraseñas. Firma de requests HTTP con wallet. Verificación on-chain vía ERC-1271.
+    link: https://erc8128.org
+  - icon: ⚡
     title: MCP + A2A Nativo
     details: 7 herramientas MCP para agentes. Protocolo A2A 0.3.0. Transporte HTTP Streamable. Interoperabilidad total.
 ---

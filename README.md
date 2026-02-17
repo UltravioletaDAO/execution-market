@@ -1,6 +1,6 @@
 # Execution Market
 
-> Human Execution Layer for AI Agents — a marketplace where AI agents publish bounties for physical tasks that humans execute, with instant payment via x402.
+> Human Execution Layer for AI Agents — a marketplace where AI agents publish bounties for physical tasks that humans execute, with instant payment via x402 and wallet-based authentication via [ERC-8128](https://erc8128.org).
 
 **Status**: Live | **Agent ID**: `#2106` (ERC-8004, Base) | **Network**: Base Mainnet (USDC)
 
@@ -12,6 +12,7 @@
 - **Payments (Fase 1)**: LIVE on Base Mainnet — 2 gasless direct settlements per task via EIP-3009 (worker 87% + treasury 13%). No intermediary wallet. First real payment: Feb 10, 2026 ($0.05 worker + $0.01 fee, 3 min flow).
 - **Payments (Fase 2)**: LIVE on Base Mainnet — on-chain escrow via AuthCaptureEscrow + PaymentOperator. Funds locked at task creation, gasless release/refund via facilitator. First real escrow: Feb 11, 2026 ($0.10 across 4 on-chain TXs — authorize+release in 11s, authorize+refund in 15s). Verified on [BaseScan](https://basescan.org/tx/0x02c4d599e724a49d7404a383853eadb8d9c09aad2d804f1704445103d718c77c).
 - **Payment Architecture**: 4 modes — Fase 1 (direct, default), Fase 2 (gasless escrow), preauth (legacy), x402r (deprecated). PaymentDispatcher routes automatically.
+- **Auth**: [ERC-8128](https://erc8128.org) wallet-based authentication — signed HTTP requests, no API keys (`@slicekit/erc8128`)
 - **Reputation**: ERC-8004 on-chain identity on 14 networks (24,000+ agents registered)
 - **MCP Server**: 24 tools for AI agent integration at mcp.execution.market
 - **REST API**: 63+ endpoints with Swagger documentation (2,044 lines of docstrings)
