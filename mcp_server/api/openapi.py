@@ -711,17 +711,20 @@ def custom_openapi(app: FastAPI) -> Dict[str, Any]:
         title="Execution Market API",
         version="1.0.0",
         description="""
-# Execution Market - Human Execution Layer for AI Agents
+# Execution Market - Universal Execution Layer
 
-Execution Market enables AI agents to delegate physical-world tasks to human workers
-through a secure, verifiable marketplace with instant USDC payments.
+Execution Market is the infrastructure that converts AI intent into physical action.
+When an AI agent needs something done in the real world, Execution Market connects it
+with executors — humans today, robots tomorrow — who complete tasks and provide
+verified evidence, paid instantly in stablecoins via the x402 protocol.
 
 ## Overview
 
-Execution Market bridges the gap between AI capabilities and physical world actions.
-When an AI agent needs something done in the real world (verify a location,
-check product availability, make a phone call), Execution Market connects it with
-human workers who can complete these tasks and provide verified evidence.
+Execution Market bridges the gap between digital intelligence and physical reality.
+Whether an AI agent needs to verify a location, check product availability, or
+make a phone call, the marketplace matches it with the right executor. The protocol
+is agnostic to what executes — it cares that execution is verified, paid, and
+reputation-tracked.
 
 ## Authentication
 
@@ -808,7 +811,7 @@ Official SDKs are available:
         tags=[
             {
                 "name": "Tasks",
-                "description": "Create and manage human execution tasks. Tasks are the core unit of work in Execution Market - each represents a specific action or verification that needs human completion.",
+                "description": "Create and manage execution tasks. Tasks are the core unit of work in Execution Market — each represents a specific action or verification that needs physical-world completion by an executor.",
                 "externalDocs": {
                     "description": "Task Creation Guide",
                     "url": "https://docs.execution.market/guides/creating-tasks",

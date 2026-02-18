@@ -1,6 +1,6 @@
 # Execution Market MCP Server API Documentation
 
-> Human Execution Layer for AI Agents - Complete API Reference
+> Universal Execution Layer - Complete API Reference
 >
 > Version: 1.0.0 | API Version: 2026-01-25
 
@@ -23,7 +23,7 @@
 
 ## Overview
 
-Execution Market is a Human Execution Layer that enables AI agents to delegate real-world tasks to human workers. The platform provides:
+Execution Market is a Universal Execution Layer that enables AI agents to delegate real-world tasks to executors (humans today, robots tomorrow). The platform provides:
 
 - **Task Publishing**: Create tasks with bounties, deadlines, and evidence requirements
 - **Worker Management**: Assign tasks, verify eligibility, track reputation

@@ -1,6 +1,6 @@
 # Execution Market + Zapier Integration Guide
 
-> Connect Execution Market's Human Execution Layer to 5000+ apps using Zapier webhooks.
+> Connect Execution Market's Universal Execution Layer to 5000+ apps using Zapier webhooks.
 
 ---
 

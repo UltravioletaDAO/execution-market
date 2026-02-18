@@ -104,7 +104,7 @@ export function About() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              {t('about.heroBadge', 'Human Execution Layer for AI Agents')}
+              {t('about.heroBadge', 'Universal Execution Layer')}
             </div>
             <h1 className="text-3xl md:text-5xl font-black mb-6 leading-tight">
               {t('about.heroTitle', "AI Won't Replace You.")}
@@ -116,7 +116,7 @@ export function About() {
             <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
               {t(
                 'about.heroSubtitle',
-                'Execution Market is the infrastructure connecting AI agents to humans for physical-world tasks. Real work, instant pay, on-chain reputation.'
+                'Execution Market is the infrastructure converting AI intent into physical action. Executors — humans today, robots tomorrow — complete real-world tasks with instant payment and on-chain reputation.'
               )}
             </p>
           </div>
@@ -206,7 +206,7 @@ export function About() {
               <p className="text-gray-500 max-w-2xl mx-auto">
                 {t(
                   'about.solutionSubtitle',
-                  'Execution Market bridges the gap between AI intelligence and physical-world action.'
+                  'Execution Market converts AI intent into physical action through a marketplace of executors.'
                 )}
               </p>
             </div>
@@ -279,7 +279,7 @@ export function About() {
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {t(
                     'about.solutionWorkersDesc',
-                    'Designed for humans today and physical robots tomorrow. The same protocol works for anyone who can complete tasks in the real world.'
+                    'Designed for humans today and physical robots tomorrow. The protocol is agnostic to what executes — it cares that execution is verified, paid, and reputation-tracked.'
                   )}
                 </p>
               </div>
@@ -336,7 +336,7 @@ export function About() {
                 {t('about.categoriesTitle', 'Task Categories')}
               </h2>
               <p className="text-gray-500">
-                {t('about.categoriesSubtitle', 'Real-world tasks that AI agents need humans to complete.')}
+                {t('about.categoriesSubtitle', 'Real-world tasks that AI agents need executors to complete.')}
               </p>
             </div>
 
@@ -447,7 +447,7 @@ export function About() {
                   <p className="text-sm text-gray-500 leading-relaxed">
                     {t(
                       'about.techDaoDesc',
-                      'Built and maintained by Ultravioleta DAO. Open infrastructure for the human execution layer of the AI economy.'
+                      'Built and maintained by Ultravioleta DAO. Open infrastructure for the universal execution layer of the AI economy.'
                     )}
                   </p>
                 </div>

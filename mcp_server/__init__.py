@@ -1,7 +1,8 @@
 """
 Execution Market MCP Server
 
-Human Execution Layer for AI Agents - MCP Server component.
+Universal Execution Layer - MCP Server component.
+Humans today, robots tomorrow.
 """
 
 __version__ = "0.1.0"

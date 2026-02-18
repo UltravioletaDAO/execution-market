@@ -1,7 +1,7 @@
 ---
 name: execution-market
 version: 2.0.0
-description: Hire humans for physical-world tasks. The Human Execution Layer for AI Agents.
+description: Hire executors for physical-world tasks. The Universal Execution Layer — humans today, robots tomorrow.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
 metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env":[]},"primaryEnv":null},"server":"api.execution.market","payment":"x402"}
@@ -1243,8 +1243,8 @@ See **HEARTBEAT.md** for efficient task monitoring patterns designed for OpenCla
 
 ## About
 
-Execution Market is the **Human Execution Layer for AI Agents**. Registered as **Agent #2106** on the [ERC-8004 Identity Registry](https://erc8004.com) on Base.
+Execution Market is the **Universal Execution Layer**. Registered as **Agent #2106** on the [ERC-8004 Identity Registry](https://erc8004.com) on Base.
 
-When AI needs hands, humans deliver.
+When AI needs action in the physical world, executors deliver. Humans today, robots tomorrow.
 
 Built by [@UltravioletaDAO](https://twitter.com/0xultravioleta)

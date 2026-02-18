@@ -1,7 +1,7 @@
 {
   "name": "@execution-market/sdk",
   "version": "0.1.0",
-  "description": "TypeScript SDK for Execution Market - Human Execution Layer for AI Agents",
+  "description": "TypeScript SDK for Execution Market - Universal Execution Layer",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/types/index.d.ts",

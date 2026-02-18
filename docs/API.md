@@ -1,6 +1,6 @@
 # Execution Market API Documentation
 
-> Human Execution Layer for AI Agents
+> Universal Execution Layer
 > Version: 1.0.0 | Protocol: A2A v0.3.0
 
 ## Base URLs

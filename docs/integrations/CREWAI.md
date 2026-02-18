@@ -70,7 +70,7 @@ em_tool = ExecutionMarketTool(
 researcher = Agent(
     role="Field Research Coordinator",
     goal="Verify physical locations and gather real-world evidence",
-    backstory="Expert at coordinating field research through human workers",
+    backstory="Expert at coordinating field research through executors",
     tools=[em_tool],
     verbose=True
 )
@@ -136,20 +136,20 @@ class ExecutionMarketTaskInput(BaseModel):
 
 class ExecutionMarketTool(BaseTool):
     """
-    Execution Market Tool for CrewAI - Dispatch physical tasks to human workers.
+    Execution Market Tool for CrewAI - Dispatch physical tasks to executors.
 
     Use this tool when you need to:
     - Verify something exists in the physical world
     - Get photos or evidence from a specific location
-    - Have a human perform a simple physical action
+    - Have someone perform a simple physical action
     - Access knowledge that isn't available online
     """
 
     name: str = "em_dispatch_task"
     description: str = """
-    Dispatch a task to a human worker in the physical world.
+    Dispatch a task to an executor in the physical world.
     Use when you need real-world verification, photos, or physical actions.
-    Returns evidence (photos, text, documents) from the human worker.
+    Returns evidence (photos, text, documents) from the executor.
     """
     args_schema: type[BaseModel] = ExecutionMarketTaskInput
 
@@ -343,14 +343,14 @@ class ExecutionMarketDispatchTool(BaseTool):
 
     name = "em_dispatch"
     description = """
-    Dispatch a physical task to a human worker via Execution Market.
+    Dispatch a physical task to an executor via Execution Market.
     Use this when you need:
     - Physical verification of locations/objects
     - Photos from specific places
     - Document scanning or physical knowledge access
     - Simple physical actions (delivery, purchase, etc.)
 
-    Returns evidence (photos, text) from the human worker.
+    Returns evidence (photos, text) from the executor.
     """
     args_schema: Type[BaseModel] = ExecutionMarketInput
 
@@ -531,13 +531,13 @@ from typing import Any, Dict, List, Optional, Tuple, TypeVar
 PromptGenerator = TypeVar("PromptGenerator")
 
 class ExecutionMarketPlugin(AutoGPTPluginTemplate):
-    """AutoGPT plugin for Execution Market - Human Execution Layer."""
+    """AutoGPT plugin for Execution Market - Universal Execution Layer."""
 
     def __init__(self):
         super().__init__()
         self._name = "ExecutionMarket-Plugin"
         self._version = "1.0.0"
-        self._description = "Dispatch physical tasks to human workers"
+        self._description = "Dispatch physical tasks to executors"
         self.api_key = None
         self.agent_id = None
 
@@ -545,7 +545,7 @@ class ExecutionMarketPlugin(AutoGPTPluginTemplate):
         """Add Execution Market commands to AutoGPT's capabilities."""
         prompt.add_command(
             "em_dispatch",
-            "Dispatch a physical task to a human worker",
+            "Dispatch a physical task to an executor",
             {
                 "title": "<task title>",
                 "instructions": "<detailed instructions>",
@@ -663,7 +663,7 @@ import json
 EXECUTION_MARKET_TOOL = {
     "name": "em_dispatch",
     "description": """
-    Dispatch a physical-world task to a human worker via Execution Market.
+    Dispatch a physical-world task to an executor via Execution Market.
 
     Use this tool when you need:
     - Verification that something exists in the real world
@@ -671,7 +671,7 @@ EXECUTION_MARKET_TOOL = {
     - Physical actions like delivery or pickup
     - Access to physical documents or knowledge
 
-    The tool creates a task, waits for a human to complete it, and returns evidence.
+    The tool creates a task, waits for an executor to complete it, and returns evidence.
     """,
     "input_schema": {
         "type": "object",

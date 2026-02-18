@@ -1,6 +1,6 @@
 # Execution Market + n8n Integration Guide
 
-> Self-hosted workflow automation with Execution Market's Human Execution Layer.
+> Self-hosted workflow automation with Execution Market's Universal Execution Layer.
 
 ---
 

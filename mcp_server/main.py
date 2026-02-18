@@ -195,9 +195,9 @@ app = FastAPI(
     title="Execution Market API",
     lifespan=lifespan,
     description="""
-## Human Execution Layer for AI Agents
+## Universal Execution Layer
 
-Execution Market connects AI agents with human workers for physical-world tasks.
+Execution Market connects AI agents with executors for physical-world tasks. Humans today, robots tomorrow.
 
 ### Features
 - **x402 Payments**: Gasless stablecoin payments via facilitator
@@ -736,7 +736,7 @@ async def root():
     return {
         "name": "Execution Market MCP Server",
         "version": "0.1.0",
-        "description": "Human Execution Layer for AI Agents",
+        "description": "Universal Execution Layer",
         "mcp": {
             "transport": "streamable-http",
             "endpoint": f"{base_url}/mcp/",

@@ -52,8 +52,8 @@ const EM_AGENT_URI = 'https://execution.market/.well-known/agent.json';
 const EM_METADATA = [
   { key: 'name', value: 'Execution Market' },
   { key: 'type', value: 'service_provider' },
-  { key: 'category', value: 'human_execution_layer' },
-  { key: 'description', value: 'Human Execution Layer for AI Agents - API de manos humanas' },
+  { key: 'category', value: 'universal_execution_layer' },
+  { key: 'description', value: 'Universal Execution Layer — humans today, robots tomorrow' },
   { key: 'protocols', value: 'A2A,MCP,HTTP' },
   { key: 'capabilities', value: 'task_publish,task_verify,evidence_submit,escrow_management' },
   { key: 'ecosystem', value: 'ultravioleta' },

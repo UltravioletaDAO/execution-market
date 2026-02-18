@@ -1,11 +1,11 @@
 {
   "name": "Execution Market",
-  "description": "Human Execution Layer for AI Agents - API de manos humanas para agentes. Execution Market conecta agentes de IA con trabajadores humanos para ejecutar tareas del mundo físico.",
+  "description": "Universal Execution Layer — the infrastructure that converts AI intent into physical action. Execution Market connects AI agents with executors (humans today, robots tomorrow) for real-world tasks with instant gasless payments and on-chain reputation.",
   "image": "https://execution.market/icon.png",
   "external_url": "https://execution.market",
 
   "agent_type": "service_provider",
-  "category": "human_execution_layer",
+  "category": "universal_execution_layer",
   "ecosystem": "ultravioletadao",
 
   "capabilities": [
@@ -14,36 +14,61 @@
     "evidence_submit",
     "escrow_management",
     "dispute_resolution",
-    "reputation_tracking"
+    "reputation_tracking",
+    "bidirectional_marketplace",
+    "gasless_payments",
+    "multichain_identity",
+    "batch_operations",
+    "worker_management",
+    "h2a_marketplace"
   ],
 
   "protocols": {
-    "a2a": "a2a://execution.market",
-    "mcp": "mcp://execution.market/mcp",
-    "http": "https://execution.market/api/v1",
-    "websocket": "wss://execution.market/ws"
+    "a2a": "a2a://api.execution.market",
+    "mcp": "mcp://mcp.execution.market/mcp",
+    "http": "https://api.execution.market/api/v1",
+    "websocket": "wss://api.execution.market/ws"
   },
 
   "endpoints": [
     {
       "name": "A2A",
-      "version": "0.30",
-      "endpoint": "https://execution.market/.well-known/agent.json"
+      "version": "0.3.0",
+      "transport": "JSONRPC",
+      "endpoint": "https://api.execution.market/.well-known/agent.json"
     },
     {
       "name": "MCP",
       "version": "1.20.0",
       "transport": "STREAMABLE_HTTP",
-      "endpoint": "https://execution.market/mcp/"
+      "endpoint": "https://mcp.execution.market/mcp/"
     },
     {
-      "name": "HTTP",
+      "name": "REST API",
       "version": "1.0",
-      "endpoint": "https://execution.market/api/v1"
+      "transport": "HTTP+JSON",
+      "endpoint": "https://api.execution.market/api/v1"
+    },
+    {
+      "name": "Swagger UI",
+      "version": "1.0",
+      "transport": "HTTP+JSON",
+      "endpoint": "https://api.execution.market/docs"
+    },
+    {
+      "name": "WebSocket",
+      "version": "1.0",
+      "transport": "WEBSOCKET",
+      "endpoint": "wss://api.execution.market/ws"
     }
   ],
 
   "task_categories": [
+    "physical_presence",
+    "knowledge_access",
+    "human_authority",
+    "simple_action",
+    "digital_physical",
     "location_based",
     "verification",
     "social_proof",
@@ -56,26 +81,52 @@
     "creative"
   ],
 
+  "payment": {
+    "networks": ["base", "ethereum", "polygon", "arbitrum", "celo", "monad", "avalanche", "optimism"],
+    "tokens": ["USDC", "EURC", "DAI"],
+    "protocol": "x402",
+    "escrow": "x402r (AuthCaptureEscrow + PaymentOperator)",
+    "fee": "13% (credit card model, deducted on-chain)",
+    "gasless": true,
+    "minimum_bounty_usd": 0.25
+  },
+
+  "identity": {
+    "standard": "ERC-8004",
+    "agent_id": 2106,
+    "network": "base",
+    "registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+    "reputation_registry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
+    "networks_supported": 15,
+    "reputation": "bidirectional (agent<->worker, agent<->agent)"
+  },
+
   "integrations": {
     "escrow": "x402r",
     "identity": "erc-8004",
-    "verification": "chainwitness"
+    "payments": "x402 + EIP-3009",
+    "facilitator": "https://facilitator.ultravioletadao.xyz"
   },
 
   "links": {
-    "documentation": "https://docs.execution.market",
+    "dashboard": "https://execution.market",
+    "api_docs": "https://api.execution.market/docs",
     "github": "https://github.com/ultravioletadao/execution-market",
-    "discord": "https://discord.gg/ultravioletadao"
+    "dao": "https://ultravioletadao.xyz"
   },
 
-  "version": "1.0.0",
-  "updated_at": "2026-02-07T18:00:00.000Z",
+  "version": "2.0.0",
+  "updated_at": "2026-02-18T00:00:00.000Z",
 
   "_deployment": {
     "network": "base",
+    "chain_id": 8453,
     "agent_id": 2106,
     "registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
-    "registration_tx": "0xd28908e1a51ea tried to register agent on Base mainnet"
+    "payment_operator": "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb",
+    "fee_calculator": "0xd643DB63028Cd1852AAFe62A0E3d2A5238d7465A",
+    "escrow": "0xb9488351E48b23D798f24e8174514F28B741Eb4f",
+    "facilitator": "0x103040545AC5031A11E8C03dd11324C7333a13C7"
   },
   "_legacy_deployment": {
     "network": "sepolia",

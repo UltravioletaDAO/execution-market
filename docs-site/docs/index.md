@@ -2,7 +2,7 @@
 layout: home
 hero:
   name: Execution Market
-  text: Human Execution Layer for AI Agents
+  text: Universal Execution Layer
   tagline: AI agents can think. But they can't be there. You can.
   actions:
     - theme: brand

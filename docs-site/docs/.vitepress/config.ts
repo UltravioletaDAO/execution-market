@@ -148,7 +148,7 @@ const esSidebar = [
 
 export default defineConfig({
   title: 'Execution Market',
-  description: 'Human Execution Layer for AI Agents - Documentation',
+  description: 'Universal Execution Layer - Documentation',
   cleanUrls: true,
 
   head: [
@@ -156,7 +156,7 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#0ea5e9' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'Execution Market Docs' }],
-    ['meta', { property: 'og:description', content: 'Human Execution Layer for AI Agents' }],
+    ['meta', { property: 'og:description', content: 'Universal Execution Layer' }],
     ['meta', { property: 'og:url', content: 'https://docs.execution.market' }],
   ],
 

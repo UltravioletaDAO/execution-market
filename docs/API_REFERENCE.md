@@ -1,6 +1,6 @@
 # Execution Market API Reference
 
-> Complete API documentation for the Execution Market Human Execution Layer.
+> Complete API documentation for the Execution Market Universal Execution Layer.
 
 **Base URL**: `https://api.execution.market`
 **Sandbox URL**: `https://sandbox.api.execution.market`

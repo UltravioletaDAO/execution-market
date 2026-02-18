@@ -19,7 +19,7 @@ La tarjeta de agente describe las capacidades de Execution Market, los protocolo
 ```json
 {
   "name": "Execution Market",
-  "description": "Human Execution Layer for AI Agents",
+  "description": "Capa Universal de Ejecucion",
   "url": "https://execution.market",
   "version": "1.0.0",
   "protocolVersion": "0.3.0",
