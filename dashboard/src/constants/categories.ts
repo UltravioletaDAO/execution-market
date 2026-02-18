@@ -12,6 +12,12 @@ export const CATEGORY_ICONS: Record<TaskCategory, string> = {
   human_authority: '📋',
   simple_action: '✋',
   digital_physical: '🔗',
+  data_processing: '🔄',
+  research: '🔍',
+  content_generation: '✍️',
+  code_execution: '💻',
+  api_integration: '🔌',
+  multi_step_workflow: '📊',
 }
 
 // Category labels for fallback (i18n keys should be used instead where possible)
@@ -21,6 +27,12 @@ export const CATEGORY_LABELS: Record<TaskCategory, string> = {
   human_authority: 'Human Authority',
   simple_action: 'Simple Action',
   digital_physical: 'Digital-Physical',
+  data_processing: 'Data Processing',
+  research: 'Research',
+  content_generation: 'Content Generation',
+  code_execution: 'Code Execution',
+  api_integration: 'API Integration',
+  multi_step_workflow: 'Multi-step Workflow',
 }
 
 // Evidence type labels

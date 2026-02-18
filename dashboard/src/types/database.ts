@@ -7,6 +7,12 @@ export type TaskCategory =
   | 'human_authority'
   | 'simple_action'
   | 'digital_physical'
+  | 'data_processing'
+  | 'research'
+  | 'content_generation'
+  | 'code_execution'
+  | 'api_integration'
+  | 'multi_step_workflow'
 
 export type TaskStatus =
   | 'published'
@@ -130,6 +136,13 @@ export interface Task {
   chainwitness_proof: string | null
   completed_at: string | null
   refund_tx: string | null
+  // H2A fields (optional — present when publisher_type='human')
+  publisher_type?: PublisherType
+  human_wallet?: string
+  human_user_id?: string
+  target_executor_type?: TargetExecutorType
+  required_capabilities?: string[]
+  verification_mode?: VerificationMode
   // Joined relations
   executor?: Executor
 }
@@ -639,7 +652,6 @@ export interface AgentDirectoryEntry {
   mcp_endpoint_url?: string
   erc8004_agent_id?: number
   verified: boolean
-  wallet_address?: string
   bio?: string
   avatar_url?: string
   pricing?: {

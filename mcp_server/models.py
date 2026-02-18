@@ -699,7 +699,6 @@ class AgentDirectoryEntry(BaseModel):
     mcp_endpoint_url: Optional[str] = None
     erc8004_agent_id: Optional[int] = None
     verified: bool = False
-    wallet_address: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     pricing: Optional[Dict] = None

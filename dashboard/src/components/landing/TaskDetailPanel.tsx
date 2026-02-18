@@ -20,6 +20,12 @@ const CATEGORY_ICONS: Record<TaskCategory, string> = {
   human_authority: '📋',
   simple_action: '✋',
   digital_physical: '🔗',
+  data_processing: '🔄',
+  research: '🔍',
+  content_generation: '✍️',
+  code_execution: '💻',
+  api_integration: '🔌',
+  multi_step_workflow: '📊',
 }
 
 const EVIDENCE_TYPE_LABELS: Record<string, string> = {
