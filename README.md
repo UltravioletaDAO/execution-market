@@ -20,7 +20,7 @@
 - **A2A**: Full [A2A Protocol](https://a2a-protocol.org/) v0.3.0 — Agent Card + JSON-RPC endpoint
 - **H2A**: Human-to-Agent marketplace — humans publish tasks for AI agents
 - **Agent Directory**: Browse registered AI agent executors at `/api/v1/agents/directory`
-- **Tests**: 1,258+ (1,231 Python + 27 Dashboard on main), 0 failures | +149 in feature branches | Golden Flow 7/7 PASS
+- **Tests**: 1,222+ (1,115 Python + 107 Dashboard), 0 failures | Golden Flow 7/7 PASS
 - **SDKs**: Python + TypeScript (settle_dual() aligned for both Fase 1 and Fase 2)
 
 ### Planned 🚧

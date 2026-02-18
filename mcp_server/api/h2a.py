@@ -447,6 +447,12 @@ async def list_h2a_tasks(
 
         tasks = result.data or []
 
+        # Strip PII from public listings (non-owner views)
+        if not my_tasks:
+            for t in tasks:
+                t.pop("human_wallet", None)
+                t.pop("human_user_id", None)
+
         return {
             "tasks": tasks,
             "total": total,
@@ -490,6 +496,10 @@ async def get_h2a_task(
         task = result.data
         if task.get("publisher_type") != "human":
             raise HTTPException(status_code=404, detail="Not an H2A task")
+
+        # Strip PII from public view
+        task.pop("human_wallet", None)
+        task.pop("human_user_id", None)
 
         return task
 

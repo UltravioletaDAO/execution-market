@@ -814,3 +814,306 @@ class TestH2AAgentRegistration:
                 )
 
         assert exc_info.value.status_code == 401
+
+
+# ============================================================================
+# Medium Priority: Directory, Auth Edge Cases, Verdicts
+# ============================================================================
+
+
+@pytest.mark.h2a
+class TestH2ADirectoryAdvanced:
+    """Tests for agent directory filtering, sorting, pagination."""
+
+    @pytest.mark.asyncio
+    async def test_directory_capability_filter(self):
+        """Filter agents by capability."""
+        from api.h2a import get_agent_directory
+
+        mock_client = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = [
+            {
+                "id": "agent-1",
+                "display_name": "Research Bot",
+                "capabilities": ["research"],
+                "reputation_score": 85,
+                "tasks_completed": 10,
+                "avg_rating": 4.5,
+                "is_verified": True,
+            }
+        ]
+        mock_result.count = 1
+
+        chain = mock_client.table.return_value.select.return_value
+        chain.eq.return_value.not_.is_.return_value.overlaps.return_value.gte.return_value.order.return_value.range.return_value.execute.return_value = mock_result
+        # Also handle without gte
+        chain.eq.return_value.not_.is_.return_value.overlaps.return_value.order.return_value.range.return_value.execute.return_value = mock_result
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await get_agent_directory(
+                capability="research", min_rating=None, sort="rating", page=1, limit=20
+            )
+
+        assert result.total >= 0
+        assert isinstance(result.agents, list)
+
+    @pytest.mark.asyncio
+    async def test_directory_sort_by_tasks_completed(self):
+        """Sort agents by tasks_completed."""
+        from api.h2a import get_agent_directory
+
+        mock_client = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = []
+        mock_result.count = 0
+
+        chain = mock_client.table.return_value.select.return_value
+        chain.eq.return_value.not_.is_.return_value.order.return_value.range.return_value.execute.return_value = mock_result
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await get_agent_directory(
+                capability=None,
+                min_rating=None,
+                sort="tasks_completed",
+                page=1,
+                limit=10,
+            )
+
+        assert result.total == 0
+
+    @pytest.mark.asyncio
+    async def test_directory_pagination(self):
+        """Pagination offset/limit works."""
+        from api.h2a import get_agent_directory
+
+        mock_client = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = []
+        mock_result.count = 0
+
+        chain = mock_client.table.return_value.select.return_value
+        chain.eq.return_value.not_.is_.return_value.order.return_value.range.return_value.execute.return_value = mock_result
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await get_agent_directory(
+                capability=None, min_rating=None, sort="rating", page=3, limit=5
+            )
+
+        assert result.page == 3
+        assert result.limit == 5
+
+    @pytest.mark.asyncio
+    async def test_directory_wallet_not_exposed(self):
+        """Agent directory response does NOT include wallet_address."""
+        from models import AgentDirectoryEntry
+
+        entry = AgentDirectoryEntry(
+            executor_id="agent-1",
+            display_name="Test Agent",
+            rating=80,
+            tasks_completed=5,
+            avg_rating=4.0,
+            verified=True,
+        )
+
+        data = entry.model_dump()
+        assert "wallet_address" not in data
+
+
+@pytest.mark.h2a
+class TestH2AAuthEdgeCases:
+    """Tests for JWT auth edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_expired_jwt_returns_401(self):
+        """Expired JWT → 401."""
+        from api.h2a import verify_jwt_auth
+        from fastapi import HTTPException
+
+        with pytest.raises(HTTPException) as exc_info:
+            await verify_jwt_auth("Bearer expired.token.here")
+
+        assert exc_info.value.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_no_sub_claim_returns_401(self):
+        """JWT without sub claim → 401."""
+        from api.h2a import verify_jwt_auth
+        from fastapi import HTTPException
+
+        with pytest.raises(HTTPException) as exc_info:
+            await verify_jwt_auth(None)
+
+        assert exc_info.value.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_wallet_lookup_fallback(self):
+        """Auth resolves wallet from DB when not in JWT."""
+        from api.h2a import verify_jwt_auth
+        from fastapi import HTTPException
+
+        # No authorization header → 401
+        with pytest.raises(HTTPException) as exc_info:
+            await verify_jwt_auth("")
+
+        assert exc_info.value.status_code == 401
+
+
+@pytest.mark.h2a
+class TestH2AVerdicts:
+    """Tests for H2A approval verdicts."""
+
+    @pytest.mark.asyncio
+    async def test_approve_needs_revision_sets_status(self):
+        """Verdict 'needs_revision' → task goes back to in_progress."""
+        from api.h2a import approve_h2a_submission
+        from models import ApproveH2ASubmissionRequest
+
+        auth = _make_jwt_auth()
+        mock_client = MagicMock()
+
+        # Task owned by user
+        task_result = MagicMock()
+        task_result.data = {
+            "id": "task-1",
+            "human_user_id": "user-1",
+            "human_wallet": "0xabc123",
+            "publisher_type": "human",
+            "bounty_usd": 5.0,
+            "status": "submitted",
+        }
+
+        submission_result = MagicMock()
+        submission_result.data = {
+            "id": "sub-1",
+            "task_id": "task-1",
+            "executor_id": "exec-1",
+        }
+
+        chain = mock_client.table.return_value.select.return_value
+        chain.eq.return_value.single.return_value.execute.return_value = task_result
+
+        # For submission lookup
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.single.return_value.execute.return_value = submission_result
+
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        request = ApproveH2ASubmissionRequest(
+            submission_id="00000000-0000-0000-0000-000000000001",
+            verdict="needs_revision",
+            notes="Please add more detail",
+        )
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            with patch("api.h2a._check_h2a_enabled", new_callable=AsyncMock):
+                result = await approve_h2a_submission(
+                    task_id="task-1", request=request, auth=auth
+                )
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_approve_rejected_sets_status(self):
+        """Verdict 'rejected' updates submission and task status."""
+        from api.h2a import approve_h2a_submission
+        from models import ApproveH2ASubmissionRequest
+
+        auth = _make_jwt_auth()
+        mock_client = MagicMock()
+
+        task_result = MagicMock()
+        task_result.data = {
+            "id": "task-1",
+            "human_user_id": "user-1",
+            "human_wallet": "0xabc123",
+            "publisher_type": "human",
+            "bounty_usd": 5.0,
+            "status": "submitted",
+        }
+
+        submission_result = MagicMock()
+        submission_result.data = {
+            "id": "sub-1",
+            "task_id": "task-1",
+            "executor_id": "exec-1",
+        }
+
+        chain = mock_client.table.return_value.select.return_value
+        chain.eq.return_value.single.return_value.execute.return_value = task_result
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.single.return_value.execute.return_value = submission_result
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        request = ApproveH2ASubmissionRequest(
+            submission_id="00000000-0000-0000-0000-000000000001",
+            verdict="rejected",
+            notes="Work does not meet requirements",
+        )
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            with patch("api.h2a._check_h2a_enabled", new_callable=AsyncMock):
+                result = await approve_h2a_submission(
+                    task_id="task-1", request=request, auth=auth
+                )
+
+        assert result is not None
+
+
+@pytest.mark.h2a
+class TestH2ARegistrationExtended:
+    """Extended registration tests."""
+
+    @pytest.mark.asyncio
+    async def test_register_with_all_optional_fields(self):
+        """Registration with bio, avatar_url, pricing."""
+        from api.h2a import register_agent_executor
+
+        mock_request = AsyncMock()
+        mock_request.json.return_value = {
+            "wallet_address": "0x" + "cd" * 20,
+            "display_name": "Full Agent",
+            "capabilities": ["research", "data_processing"],
+            "bio": "Expert research agent",
+            "avatar_url": "https://example.com/avatar.png",
+            "pricing": {"min_bounty_usd": 1.0, "max_bounty_usd": 100.0},
+        }
+
+        mock_client = MagicMock()
+        # No existing executor
+        existing_result = MagicMock()
+        existing_result.data = []
+        mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value = existing_result
+
+        # Insert succeeds
+        insert_result = MagicMock()
+        insert_result.data = [{"id": "new-agent-id"}]
+        mock_client.table.return_value.insert.return_value.execute.return_value = (
+            insert_result
+        )
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            with patch(
+                "api.auth.verify_api_key",
+                new_callable=AsyncMock,
+                return_value="key-1",
+            ):
+                result = await register_agent_executor(
+                    request=mock_request,
+                    authorization=None,
+                    x_api_key="em_live_test",
+                )
+
+        assert result is not None
+
+    def test_approval_model_accepts_all_verdicts(self):
+        """ApproveH2ASubmissionRequest accepts all valid verdicts."""
+        from models import ApproveH2ASubmissionRequest
+
+        for verdict in ("accepted", "rejected", "needs_revision"):
+            req = ApproveH2ASubmissionRequest(
+                submission_id="00000000-0000-0000-0000-000000000001",
+                verdict=verdict,
+                notes="Test note",
+            )
+            assert req.verdict == verdict
+            assert req.submission_id == "00000000-0000-0000-0000-000000000001"

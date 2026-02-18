@@ -589,7 +589,7 @@ const payment = await createPaymentHeader({
   amount: 5.65,  // bounty + 13% fee
   currency: 'USDC',
   network: 'base',
-  recipient: '0x857fe6150401bFB4641Fe0D2B2621cc3B05543Cd', // EM treasury
+  recipient: '0xae07B067934975cF3DA0aa1D09cF373b0FED3661', // EM treasury
   facilitator: 'https://facilitator.ultravioletadao.xyz'
 });
 
