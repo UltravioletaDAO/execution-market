@@ -760,6 +760,11 @@ async def root():
                 "em_submit_work",
                 "em_get_my_tasks",
                 "em_withdraw_earnings",
+                "em_register_as_executor",
+                "em_browse_agent_tasks",
+                "em_accept_agent_task",
+                "em_submit_agent_work",
+                "em_get_my_executions",
             ],
         },
         "endpoints": {

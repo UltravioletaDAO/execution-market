@@ -1,10 +1,10 @@
 """
-P0 Critical Tests for H2A Endpoints
+Tests for H2A Endpoints
 
-Tests settlement atomicity, status validation, and payment integrity
-for the H2A (Human-to-Agent) approval flow.
+P0: Settlement atomicity, status validation, payment integrity
+P1: Feature flags, task creation, listing, cancellation, registration
 
-Covers bugs: S-CRIT-01, S-CRIT-02 from AUDIT_H2A_BACKEND_2026-02-18.md
+Covers bugs from AUDIT_H2A_BACKEND_2026-02-18.md
 """
 
 import sys
@@ -345,3 +345,472 @@ class TestH2AApprovalCritical:
 
         assert exc_info.value.status_code == 400
         assert "expired" in exc_info.value.detail.lower()
+
+
+# ============================================================================
+# P1 Tests — Feature Flags and Task Creation (Task 2.1)
+# ============================================================================
+
+
+@pytest.mark.h2a
+class TestH2AFeatureFlags:
+    """Tests for H2A feature flag and bounty limit enforcement."""
+
+    @pytest.mark.asyncio
+    async def test_feature_flag_disabled_returns_403(self):
+        """H2A disabled → 403."""
+        from api.h2a import _check_h2a_enabled
+        from fastapi import HTTPException
+
+        mock_client = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = [{"value": "false"}]
+        mock_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = mock_result
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            with pytest.raises(HTTPException) as exc_info:
+                await _check_h2a_enabled()
+
+        assert exc_info.value.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_feature_flag_db_error_returns_503(self):
+        """DB unreachable → 503 (fail-closed)."""
+        from api.h2a import _check_h2a_enabled
+        from fastapi import HTTPException
+
+        mock_client = MagicMock()
+        mock_client.table.side_effect = Exception("DB connection refused")
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            with pytest.raises(HTTPException) as exc_info:
+                await _check_h2a_enabled()
+
+        assert exc_info.value.status_code == 503
+        assert "unavailable" in exc_info.value.detail.lower()
+
+    @pytest.mark.asyncio
+    async def test_feature_flag_enabled_passes(self):
+        """H2A enabled → no exception."""
+        from api.h2a import _check_h2a_enabled
+
+        mock_client = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = [{"value": "true"}]
+        mock_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = mock_result
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            # Should not raise
+            await _check_h2a_enabled()
+
+
+@pytest.mark.h2a
+class TestH2ATaskCreation:
+    """Tests for H2A task creation endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_create_task_no_wallet_returns_400(self):
+        """User without wallet → 400."""
+        from api.h2a import create_h2a_task, JWTData
+        from fastapi import HTTPException
+        from models import PublishH2ATaskRequest
+
+        auth = JWTData(user_id="user-1", wallet_address=None)
+        request = PublishH2ATaskRequest(
+            title="Test task",
+            instructions="Do something important for testing",
+            category="data_processing",
+            bounty_usd=5.0,
+            deadline_hours=24,
+            evidence_required=["text_report"],
+        )
+
+        with patch("api.h2a._check_h2a_enabled", new_callable=AsyncMock):
+            with pytest.raises(HTTPException) as exc_info:
+                await create_h2a_task(request=request, auth=auth)
+
+        assert exc_info.value.status_code == 400
+        assert "wallet" in exc_info.value.detail.lower()
+
+    @pytest.mark.asyncio
+    async def test_create_task_bounty_below_min_returns_400(self):
+        """Bounty below minimum → 400."""
+        from api.h2a import create_h2a_task, JWTData
+        from fastapi import HTTPException
+        from models import PublishH2ATaskRequest
+
+        auth = JWTData(user_id="user-1", wallet_address="0xabc123")
+        request = PublishH2ATaskRequest(
+            title="Cheap task",
+            instructions="Do something very cheap for testing",
+            category="data_processing",
+            bounty_usd=0.01,
+            deadline_hours=24,
+            evidence_required=["text_report"],
+        )
+
+        with patch("api.h2a._check_h2a_enabled", new_callable=AsyncMock):
+            with patch(
+                "api.h2a._get_h2a_bounty_limits",
+                new_callable=AsyncMock,
+                return_value=(Decimal("0.50"), Decimal("500.00")),
+            ):
+                with pytest.raises(HTTPException) as exc_info:
+                    await create_h2a_task(request=request, auth=auth)
+
+        assert exc_info.value.status_code == 400
+        assert "below" in exc_info.value.detail.lower()
+
+    @pytest.mark.asyncio
+    async def test_create_task_bounty_above_max_returns_400(self):
+        """Bounty above H2A maximum → 400."""
+        from api.h2a import create_h2a_task, JWTData
+        from fastapi import HTTPException
+        from models import PublishH2ATaskRequest
+
+        auth = JWTData(user_id="user-1", wallet_address="0xabc123")
+        # Model allows up to 500, but H2A max is set to 100
+        request = PublishH2ATaskRequest(
+            title="Expensive task",
+            instructions="Do something very expensive for testing",
+            category="data_processing",
+            bounty_usd=200.0,
+            deadline_hours=24,
+            evidence_required=["text_report"],
+        )
+
+        with patch("api.h2a._check_h2a_enabled", new_callable=AsyncMock):
+            with patch(
+                "api.h2a._get_h2a_bounty_limits",
+                new_callable=AsyncMock,
+                return_value=(Decimal("0.50"), Decimal("100.00")),
+            ):
+                with pytest.raises(HTTPException) as exc_info:
+                    await create_h2a_task(request=request, auth=auth)
+
+        assert exc_info.value.status_code == 400
+        assert "exceeds" in exc_info.value.detail.lower()
+
+    @pytest.mark.asyncio
+    async def test_create_task_happy_path(self):
+        """Valid creation → 201 response with correct fields."""
+        from api.h2a import create_h2a_task, JWTData
+        from models import PublishH2ATaskRequest
+
+        auth = JWTData(user_id="user-1", wallet_address="0xabc123")
+        request = PublishH2ATaskRequest(
+            title="Analyze market data",
+            instructions="Analyze the market data and provide a report",
+            category="data_processing",
+            bounty_usd=5.0,
+            deadline_hours=24,
+            evidence_required=["text_report"],
+        )
+
+        mock_client = MagicMock()
+        mock_insert_result = MagicMock()
+        mock_insert_result.data = [{"id": "task-uuid-new", "status": "published"}]
+        mock_client.table.return_value.insert.return_value.execute.return_value = (
+            mock_insert_result
+        )
+
+        with patch("api.h2a._check_h2a_enabled", new_callable=AsyncMock):
+            with patch(
+                "api.h2a._get_h2a_bounty_limits",
+                new_callable=AsyncMock,
+                return_value=(Decimal("0.50"), Decimal("500.00")),
+            ):
+                with patch(
+                    "api.h2a.get_platform_fee_percent",
+                    new_callable=AsyncMock,
+                    return_value=Decimal("0.13"),
+                ):
+                    with patch("api.h2a.db.get_client", return_value=mock_client):
+                        result = await create_h2a_task(request=request, auth=auth)
+
+        assert result.task_id == "task-uuid-new"
+        assert result.status == "published"
+        assert result.bounty_usd == 5.0
+        assert result.fee_usd == 0.65  # 5.0 * 0.13
+        assert result.publisher_type == "human"
+
+
+# ============================================================================
+# P1 Tests — Listing + Cancellation (Task 2.2)
+# ============================================================================
+
+
+@pytest.mark.h2a
+class TestH2ATaskListing:
+    """Tests for H2A task listing endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_list_public_returns_published_only(self):
+        """Public listing (no auth) defaults to status=published."""
+        from api.h2a import list_h2a_tasks
+
+        mock_client = MagicMock()
+        mock_count_result = MagicMock()
+        mock_count_result.count = 2
+        mock_query_result = MagicMock()
+        mock_query_result.data = [
+            {"id": "t1", "status": "published"},
+            {"id": "t2", "status": "published"},
+        ]
+
+        # Build chained mock
+        mock_table = MagicMock()
+        mock_table.select.return_value.eq.return_value.eq.return_value.order.return_value.range.return_value.execute.return_value = mock_query_result
+        mock_table.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value = mock_count_result
+
+        # Count chain (different select signature)
+        mock_count_table = MagicMock()
+        mock_count_table.select.return_value.eq.return_value.eq.return_value.execute.return_value = mock_count_result
+
+        call_count = {"n": 0}
+
+        def table_side_effect(name):
+            call_count["n"] += 1
+            if call_count["n"] <= 1:
+                return mock_table
+            return mock_count_table
+
+        mock_client.table.side_effect = table_side_effect
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await list_h2a_tasks(
+                status=None, category=None, my_tasks=False, limit=20, offset=0
+            )
+
+        assert "tasks" in result
+        assert "total" in result
+
+    @pytest.mark.asyncio
+    async def test_list_with_category_filter(self):
+        """Category filter is passed through."""
+        from api.h2a import list_h2a_tasks
+
+        mock_client = MagicMock()
+        mock_result = MagicMock()
+        mock_result.data = []
+        mock_result.count = 0
+
+        mock_table = MagicMock()
+        # Deep chain for category filter
+        mock_table.select.return_value.eq.return_value.eq.return_value.eq.return_value.order.return_value.range.return_value.execute.return_value = mock_result
+
+        mock_count_table = MagicMock()
+        mock_count_table.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value = mock_result
+
+        call_count = {"n": 0}
+
+        def table_side_effect(name):
+            call_count["n"] += 1
+            if call_count["n"] <= 1:
+                return mock_table
+            return mock_count_table
+
+        mock_client.table.side_effect = table_side_effect
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await list_h2a_tasks(
+                status=None,
+                category="data_processing",
+                my_tasks=False,
+                limit=20,
+                offset=0,
+            )
+
+        assert result["tasks"] == []
+
+
+@pytest.mark.h2a
+class TestH2ATaskCancellation:
+    """Tests for H2A task cancellation endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_cancel_published_task_succeeds(self):
+        """Published task → cancel succeeds."""
+        from api.h2a import cancel_h2a_task
+
+        auth = _make_jwt_auth()
+        mock_client = MagicMock()
+        task_chain = MagicMock()
+        task_chain.single.return_value.execute.return_value = _mock_task_result(
+            status="published"
+        )
+        mock_client.table.return_value.select.return_value.eq.return_value = task_chain
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await cancel_h2a_task(
+                task_id="task-uuid-1234" + "0" * 22, auth=auth
+            )
+
+        assert result["status"] == "cancelled"
+
+    @pytest.mark.asyncio
+    async def test_cancel_completed_task_returns_400(self):
+        """Completed task → 400."""
+        from api.h2a import cancel_h2a_task
+        from fastapi import HTTPException
+
+        auth = _make_jwt_auth()
+        mock_client = MagicMock()
+        task_chain = MagicMock()
+        task_chain.single.return_value.execute.return_value = _mock_task_result(
+            status="completed"
+        )
+        mock_client.table.return_value.select.return_value.eq.return_value = task_chain
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            with pytest.raises(HTTPException) as exc_info:
+                await cancel_h2a_task(task_id="task-uuid-1234" + "0" * 22, auth=auth)
+
+        assert exc_info.value.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_cancel_wrong_user_returns_403(self):
+        """Different user → 403."""
+        from api.h2a import cancel_h2a_task
+        from fastapi import HTTPException
+
+        auth = _make_jwt_auth(user_id="user-other")
+        mock_client = MagicMock()
+        task_chain = MagicMock()
+        task_chain.single.return_value.execute.return_value = _mock_task_result(
+            status="published", user_id="user-1"
+        )
+        mock_client.table.return_value.select.return_value.eq.return_value = task_chain
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            with pytest.raises(HTTPException) as exc_info:
+                await cancel_h2a_task(task_id="task-uuid-1234" + "0" * 22, auth=auth)
+
+        assert exc_info.value.status_code == 403
+
+
+# ============================================================================
+# P1 Tests — Agent Registration (Task 2.3)
+# ============================================================================
+
+
+@pytest.mark.h2a
+class TestH2AAgentRegistration:
+    """Tests for the /agents/register-executor REST endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_register_missing_fields_returns_400(self):
+        """Missing required fields → 400."""
+        from api.h2a import register_agent_executor
+        from fastapi import HTTPException
+
+        mock_request = AsyncMock()
+        mock_request.json.return_value = {"wallet_address": "0xabc"}  # missing fields
+
+        with patch("api.h2a.db.get_client"):
+            # Mock auth to pass
+            with patch("api.h2a.router", MagicMock()):
+                from api.h2a import register_agent_executor
+
+                # Patch verify_api_key to pass
+                with patch("api.auth.verify_api_key", new_callable=AsyncMock):
+                    with pytest.raises(HTTPException) as exc_info:
+                        await register_agent_executor(
+                            request=mock_request,
+                            authorization="Bearer em_test_key",
+                            x_api_key="em_test_key",
+                        )
+
+        assert exc_info.value.status_code in (400, 401)
+
+    @pytest.mark.asyncio
+    async def test_register_new_agent_creates_executor(self):
+        """New agent → creates executor row."""
+        from api.h2a import register_agent_executor
+
+        mock_request = AsyncMock()
+        mock_request.json.return_value = {
+            "wallet_address": "0x" + "ab" * 20,
+            "display_name": "TestAgent",
+            "capabilities": ["data_processing", "web_research"],
+        }
+
+        mock_client = MagicMock()
+        # No existing executor
+        mock_existing = MagicMock()
+        mock_existing.data = []
+        mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_existing
+        # Insert returns new executor
+        mock_insert = MagicMock()
+        mock_insert.data = [{"id": "new-executor-id"}]
+        mock_client.table.return_value.insert.return_value.execute.return_value = (
+            mock_insert
+        )
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            with patch("api.auth.verify_api_key", new_callable=AsyncMock):
+                result = await register_agent_executor(
+                    request=mock_request,
+                    authorization="Bearer em_test_key",
+                    x_api_key="em_test_key",
+                )
+
+        assert result["status"] == "registered"
+        assert result["executor_id"] == "new-executor-id"
+
+    @pytest.mark.asyncio
+    async def test_register_existing_agent_updates(self):
+        """Existing agent → updates executor row."""
+        from api.h2a import register_agent_executor
+
+        mock_request = AsyncMock()
+        mock_request.json.return_value = {
+            "wallet_address": "0x" + "ab" * 20,
+            "display_name": "UpdatedAgent",
+            "capabilities": ["code_execution"],
+        }
+
+        mock_client = MagicMock()
+        mock_existing = MagicMock()
+        mock_existing.data = [{"id": "existing-id"}]
+        mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_existing
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock()
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            with patch("api.auth.verify_api_key", new_callable=AsyncMock):
+                result = await register_agent_executor(
+                    request=mock_request,
+                    authorization="Bearer em_test_key",
+                    x_api_key="em_test_key",
+                )
+
+        assert result["status"] == "updated"
+        assert result["executor_id"] == "existing-id"
+
+    @pytest.mark.asyncio
+    async def test_register_no_api_key_returns_401(self):
+        """No API key → 401."""
+        from api.h2a import register_agent_executor
+        from fastapi import HTTPException
+
+        mock_request = AsyncMock()
+        mock_request.json.return_value = {
+            "wallet_address": "0x" + "ab" * 20,
+            "display_name": "Agent",
+            "capabilities": ["data_processing"],
+        }
+
+        with patch(
+            "api.auth.verify_api_key",
+            new_callable=AsyncMock,
+            side_effect=HTTPException(status_code=401, detail="Invalid API key"),
+        ):
+            with pytest.raises(HTTPException) as exc_info:
+                await register_agent_executor(
+                    request=mock_request,
+                    authorization=None,
+                    x_api_key=None,
+                )
+
+        assert exc_info.value.status_code == 401

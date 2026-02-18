@@ -140,18 +140,7 @@ def _calculate_fee_breakdown(bounty_usd: float, category: str) -> Dict[str, Any]
         }
 
 
-def format_bounty(amount: float) -> str:
-    return f"${amount:.2f}"
-
-
-def format_datetime(dt_str: str) -> str:
-    if not dt_str:
-        return "N/A"
-    try:
-        dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
-        return dt.strftime("%Y-%m-%d %H:%M UTC")
-    except Exception:
-        return dt_str
+from utils.formatting import format_bounty  # noqa: E402
 
 
 def register_agent_executor_tools(
@@ -170,10 +159,28 @@ def register_agent_executor_tools(
         ResponseFormat,
     )
 
-    @mcp.tool(name="em_register_as_executor")
+    @mcp.tool(
+        name="em_register_as_executor",
+        annotations={
+            "title": "Register as Agent Executor",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": True,
+        },
+    )
     async def em_register_as_executor(params: RegisterAgentExecutorInput) -> str:
         """Register as an agent executor on Execution Market."""
         try:
+            # Validate capabilities against known set (warn, don't block)
+            unknown_caps = set(params.capabilities) - KNOWN_CAPABILITIES
+            cap_warning = ""
+            if unknown_caps:
+                cap_warning = (
+                    f"\n\n> **Warning**: Unknown capabilities: {', '.join(sorted(unknown_caps))}. "
+                    f"Known: {', '.join(sorted(KNOWN_CAPABILITIES))}"
+                )
+
             client = db_module.get_client()
             existing = (
                 client.table("executors")
@@ -196,7 +203,7 @@ def register_agent_executor_tools(
                 client.table("executors").update(updates).eq(
                     "id", executor["id"]
                 ).execute()
-                return f"# Agent Executor Updated\n\n**Executor ID**: `{executor['id']}`\n**Capabilities**: {', '.join(params.capabilities)}"
+                return f"# Agent Executor Updated\n\n**Executor ID**: `{executor['id']}`\n**Capabilities**: {', '.join(params.capabilities)}{cap_warning}"
 
             executor_data = {
                 "wallet_address": params.wallet_address,
@@ -216,11 +223,20 @@ def register_agent_executor_tools(
             if not result.data:
                 return "Error: Failed to create executor"
             executor = result.data[0]
-            return f"# Agent Executor Registered\n\n**Executor ID**: `{executor['id']}`\n**Capabilities**: {', '.join(params.capabilities)}"
+            return f"# Agent Executor Registered\n\n**Executor ID**: `{executor['id']}`\n**Capabilities**: {', '.join(params.capabilities)}{cap_warning}"
         except Exception as e:
             return f"Error: {str(e)}"
 
-    @mcp.tool(name="em_browse_agent_tasks")
+    @mcp.tool(
+        name="em_browse_agent_tasks",
+        annotations={
+            "title": "Browse Agent Tasks",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
     async def em_browse_agent_tasks(params: BrowseAgentTasksInput) -> str:
         """Browse tasks available for agent execution."""
         try:
@@ -279,7 +295,16 @@ def register_agent_executor_tools(
         except Exception as e:
             return f"Error: {str(e)}"
 
-    @mcp.tool(name="em_accept_agent_task")
+    @mcp.tool(
+        name="em_accept_agent_task",
+        annotations={
+            "title": "Accept Agent Task",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": True,
+        },
+    )
     async def em_accept_agent_task(params: AcceptAgentTaskInput) -> str:
         """Accept a task as an agent executor.
 
@@ -346,7 +371,16 @@ def register_agent_executor_tools(
         except Exception as e:
             return f"Error: {str(e)}"
 
-    @mcp.tool(name="em_submit_agent_work")
+    @mcp.tool(
+        name="em_submit_agent_work",
+        annotations={
+            "title": "Submit Agent Work",
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": True,
+        },
+    )
     async def em_submit_agent_work(params: SubmitAgentWorkInput) -> str:
         """Submit completed work as an agent executor.
 
@@ -478,7 +512,16 @@ def register_agent_executor_tools(
         except Exception as e:
             return f"Error: {str(e)}"
 
-    @mcp.tool(name="em_get_my_executions")
+    @mcp.tool(
+        name="em_get_my_executions",
+        annotations={
+            "title": "Get My Agent Executions",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
     async def em_get_my_executions(params: GetAgentExecutionsInput) -> str:
         """Get tasks the agent has accepted/completed."""
         try:

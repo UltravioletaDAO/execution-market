@@ -76,21 +76,7 @@ def can_transition(current: str, target: str) -> bool:
 
 # ============== FORMATTING HELPERS ==============
 
-
-def format_bounty(amount: float) -> str:
-    """Format bounty amount as currency."""
-    return f"${amount:.2f}"
-
-
-def format_datetime(dt_str: str) -> str:
-    """Format ISO datetime string for display."""
-    if not dt_str:
-        return "N/A"
-    try:
-        dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
-        return dt.strftime("%Y-%m-%d %H:%M UTC")
-    except Exception:
-        return dt_str
+from utils.formatting import format_bounty, format_datetime  # noqa: E402
 
 
 # ============== EVIDENCE VALIDATION ==============
