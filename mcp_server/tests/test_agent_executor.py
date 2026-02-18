@@ -1,17 +1,22 @@
 """Tests for Agent Executor (A2A) functionality."""
 
-import json, pytest, importlib.util
-from datetime import datetime, timezone, timedelta
+import pytest
+import importlib.util
 from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from models import (
-    ExecutorType, TargetExecutorType, VerificationMode,
-    TaskCategory, EvidenceType,
-    RegisterAgentExecutorInput, BrowseAgentTasksInput,
-    AcceptAgentTaskInput, SubmitAgentWorkInput, GetAgentExecutionsInput,
+    ExecutorType,
+    TargetExecutorType,
+    VerificationMode,
+    TaskCategory,
+    EvidenceType,
+    RegisterAgentExecutorInput,
+    BrowseAgentTasksInput,
+    AcceptAgentTaskInput,
+    SubmitAgentWorkInput,
 )
 
 _spec = importlib.util.spec_from_file_location(
@@ -29,10 +34,16 @@ AgentExecutorToolsConfig = _aet.AgentExecutorToolsConfig
 
 
 class TestExecutorType:
-    def test_human(self): assert ExecutorType.HUMAN == "human"
-    def test_agent(self): assert ExecutorType.AGENT == "agent"
+    def test_human(self):
+        assert ExecutorType.HUMAN == "human"
+
+    def test_agent(self):
+        assert ExecutorType.AGENT == "agent"
+
     def test_invalid(self):
-        with pytest.raises(ValueError): ExecutorType("robot")
+        with pytest.raises(ValueError):
+            ExecutorType("robot")
+
 
 class TestTargetExecutorType:
     def test_values(self):
@@ -40,41 +51,57 @@ class TestTargetExecutorType:
         assert TargetExecutorType.AGENT == "agent"
         assert TargetExecutorType.ANY == "any"
 
+
 class TestVerificationMode:
     def test_values(self):
         assert VerificationMode.MANUAL == "manual"
         assert VerificationMode.AUTO == "auto"
         assert VerificationMode.ORACLE == "oracle"
 
+
 class TestDigitalCategories:
     def test_exist(self):
         assert TaskCategory.DATA_PROCESSING == "data_processing"
         assert TaskCategory.CODE_EXECUTION == "code_execution"
         assert TaskCategory.RESEARCH == "research"
+
     def test_physical_still_exist(self):
         assert TaskCategory.PHYSICAL_PRESENCE == "physical_presence"
+
 
 class TestDigitalEvidence:
     def test_exist(self):
         assert EvidenceType.JSON_RESPONSE == "json_response"
         assert EvidenceType.CODE_OUTPUT == "code_output"
         assert EvidenceType.TEXT_REPORT == "text_report"
+
     def test_physical_still_exist(self):
         assert EvidenceType.PHOTO == "photo"
+
 
 class TestRegisterInput:
     def test_valid(self):
         d = RegisterAgentExecutorInput(
             wallet_address="0x1234567890abcdef1234567890abcdef12345678",
-            capabilities=["data_processing"], display_name="Bot",
+            capabilities=["data_processing"],
+            display_name="Bot",
         )
         assert d.display_name == "Bot"
+
     def test_wallet_too_short(self):
         with pytest.raises(Exception):
-            RegisterAgentExecutorInput(wallet_address="0x1234", capabilities=["x"], display_name="Bot")
+            RegisterAgentExecutorInput(
+                wallet_address="0x1234", capabilities=["x"], display_name="Bot"
+            )
+
     def test_empty_caps(self):
         with pytest.raises(Exception):
-            RegisterAgentExecutorInput(wallet_address="0x1234567890abcdef1234567890abcdef12345678", capabilities=[], display_name="Bot")
+            RegisterAgentExecutorInput(
+                wallet_address="0x1234567890abcdef1234567890abcdef12345678",
+                capabilities=[],
+                display_name="Bot",
+            )
+
 
 class TestBrowseInput:
     def test_defaults(self):
@@ -82,65 +109,112 @@ class TestBrowseInput:
         assert d.limit == 20
         assert d.offset == 0
 
+
 class TestAcceptInput:
     def test_valid(self):
-        d = AcceptAgentTaskInput(task_id="a"*36, executor_id="b"*36)
+        d = AcceptAgentTaskInput(task_id="a" * 36, executor_id="b" * 36)
         assert d.message is None
+
 
 class TestSubmitInput:
     def test_valid(self):
-        d = SubmitAgentWorkInput(task_id="a"*36, executor_id="b"*36, result_data={"x": 1})
+        d = SubmitAgentWorkInput(
+            task_id="a" * 36, executor_id="b" * 36, result_data={"x": 1}
+        )
         assert d.result_type == "json_response"
 
+
 class TestCapabilitiesMatch:
-    def test_no_req(self): assert capabilities_match(["x"], None) is True
-    def test_no_req_empty(self): assert capabilities_match(["x"], []) is True
-    def test_exact(self): assert capabilities_match(["a","b"], ["a","b"]) is True
-    def test_superset(self): assert capabilities_match(["a","b","c"], ["a"]) is True
-    def test_subset_fail(self): assert capabilities_match(["a"], ["a","b"]) is False
-    def test_different(self): assert capabilities_match(["c"], ["a","b"]) is False
-    def test_empty_exec(self): assert capabilities_match([], ["a"]) is False
+    def test_no_req(self):
+        assert capabilities_match(["x"], None) is True
+
+    def test_no_req_empty(self):
+        assert capabilities_match(["x"], []) is True
+
+    def test_exact(self):
+        assert capabilities_match(["a", "b"], ["a", "b"]) is True
+
+    def test_superset(self):
+        assert capabilities_match(["a", "b", "c"], ["a"]) is True
+
+    def test_subset_fail(self):
+        assert capabilities_match(["a"], ["a", "b"]) is False
+
+    def test_different(self):
+        assert capabilities_match(["c"], ["a", "b"]) is False
+
+    def test_empty_exec(self):
+        assert capabilities_match([], ["a"]) is False
+
 
 class TestAutoVerification:
     def test_empty(self):
         ok, _ = _passes_auto_verification({"x": 1}, {})
         assert ok is True
+
     def test_none(self):
         ok, _ = _passes_auto_verification({"x": 1}, None)
         assert ok is True
+
     def test_required_present(self):
-        ok, _ = _passes_auto_verification({"a": 1, "b": 2}, {"required_fields": ["a", "b"]})
+        ok, _ = _passes_auto_verification(
+            {"a": 1, "b": 2}, {"required_fields": ["a", "b"]}
+        )
         assert ok is True
+
     def test_required_missing(self):
         ok, r = _passes_auto_verification({"a": 1}, {"required_fields": ["a", "b"]})
         assert ok is False and "b" in r
+
     def test_min_length_pass(self):
-        ok, _ = _passes_auto_verification({"data": "x"*100}, {"min_length": 50})
+        ok, _ = _passes_auto_verification({"data": "x" * 100}, {"min_length": 50})
         assert ok is True
+
     def test_min_length_fail(self):
         ok, r = _passes_auto_verification({"a": "b"}, {"min_length": 1000})
         assert ok is False and "short" in r.lower()
+
     def test_type_object(self):
         ok, _ = _passes_auto_verification({"a": 1}, {"required_type": "object"})
         assert ok is True
+
     def test_type_mismatch(self):
         ok, _ = _passes_auto_verification({"a": 1}, {"required_type": "array"})
         assert ok is False
+
     def test_keywords(self):
-        ok, _ = _passes_auto_verification({"r": "market growth"}, {"contains_keywords": ["market", "growth"]})
-        assert ok is True
-    def test_keywords_missing(self):
-        ok, r = _passes_auto_verification({"r": "weather"}, {"contains_keywords": ["market"]})
-        assert ok is False and "market" in r.lower()
-    def test_keywords_case(self):
-        ok, _ = _passes_auto_verification({"r": "MARKET GROWTH"}, {"contains_keywords": ["market"]})
-        assert ok is True
-    def test_combined(self):
         ok, _ = _passes_auto_verification(
-            {"summary": "Market shows 15% growth", "data": [1,2,3], "conclusion": "Good"},
-            {"required_fields": ["summary","data","conclusion"], "min_length": 50, "contains_keywords": ["growth"]},
+            {"r": "market growth"}, {"contains_keywords": ["market", "growth"]}
         )
         assert ok is True
+
+    def test_keywords_missing(self):
+        ok, r = _passes_auto_verification(
+            {"r": "weather"}, {"contains_keywords": ["market"]}
+        )
+        assert ok is False and "market" in r.lower()
+
+    def test_keywords_case(self):
+        ok, _ = _passes_auto_verification(
+            {"r": "MARKET GROWTH"}, {"contains_keywords": ["market"]}
+        )
+        assert ok is True
+
+    def test_combined(self):
+        ok, _ = _passes_auto_verification(
+            {
+                "summary": "Market shows 15% growth",
+                "data": [1, 2, 3],
+                "conclusion": "Good",
+            },
+            {
+                "required_fields": ["summary", "data", "conclusion"],
+                "min_length": 50,
+                "contains_keywords": ["growth"],
+            },
+        )
+        assert ok is True
+
 
 class TestConfig:
     def test_defaults(self):
@@ -195,10 +269,12 @@ class TestPaymentEventLogging:
 
     def test_log_event_success(self):
         """Mock client that accepts inserts."""
+
         class MockTable:
             def insert(self, data):
                 self._inserted = data
                 return self
+
             def execute(self):
                 return type("R", (), {"data": [self._inserted]})()
 
@@ -212,6 +288,7 @@ class TestPaymentEventLogging:
 
     def test_log_event_failure_doesnt_raise(self):
         """Payment event logging should never crash the main flow."""
+
         class MockClient:
             def table(self, name):
                 raise Exception("DB down")
@@ -219,19 +296,39 @@ class TestPaymentEventLogging:
         # Should NOT raise — just logs a warning
         _log_payment_event(MockClient(), "task-123", "auto_approved", {})
 
+
 class TestKnownCaps:
     def test_core(self):
         assert "data_processing" in KNOWN_CAPABILITIES
         assert "web_research" in KNOWN_CAPABILITIES
+
     def test_is_set(self):
         assert isinstance(KNOWN_CAPABILITIES, set)
 
+
 class TestMigration031:
     def test_exists(self):
-        p = Path(__file__).parent.parent.parent / "supabase" / "migrations" / "031_agent_executor_support.sql"
+        p = (
+            Path(__file__).parent.parent.parent
+            / "supabase"
+            / "migrations"
+            / "031_agent_executor_support.sql"
+        )
         assert p.exists()
+
     def test_content(self):
-        p = Path(__file__).parent.parent.parent / "supabase" / "migrations" / "031_agent_executor_support.sql"
+        p = (
+            Path(__file__).parent.parent.parent
+            / "supabase"
+            / "migrations"
+            / "031_agent_executor_support.sql"
+        )
         c = p.read_text()
-        for kw in ["executor_type", "capabilities", "target_executor_type", "verification_mode", "data_processing"]:
+        for kw in [
+            "executor_type",
+            "capabilities",
+            "target_executor_type",
+            "verification_mode",
+            "data_processing",
+        ]:
             assert kw in c, f"Missing: {kw}"

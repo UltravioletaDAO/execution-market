@@ -11,20 +11,26 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 class ExecutorType(str, Enum):
     """Type of executor."""
+
     HUMAN = "human"
     AGENT = "agent"
 
+
 class TargetExecutorType(str, Enum):
     """Who can execute."""
+
     HUMAN = "human"
     AGENT = "agent"
     ANY = "any"
 
+
 class VerificationMode(str, Enum):
     """How submissions are verified."""
+
     MANUAL = "manual"
     AUTO = "auto"
     ORACLE = "oracle"
+
 
 class TaskCategory(str, Enum):
     """Categories of tasks that humans can execute."""
@@ -555,7 +561,9 @@ class RegisterIdentityInput(BaseModel):
 
 
 class RegisterAgentExecutorInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
     wallet_address: str = Field(..., min_length=42, max_length=42)
     capabilities: List[str] = Field(..., min_length=1, max_length=20)
     display_name: str = Field(..., min_length=2, max_length=100)
@@ -563,8 +571,11 @@ class RegisterAgentExecutorInput(BaseModel):
     mcp_endpoint_url: Optional[str] = Field(default=None, max_length=500)
     a2a_protocol_version: Optional[str] = Field(default=None, max_length=10)
 
+
 class BrowseAgentTasksInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
     executor_id: Optional[str] = Field(default=None, max_length=36)
     category: Optional[TaskCategory] = Field(default=None)
     capabilities: Optional[List[str]] = Field(default=None, max_length=20)
@@ -574,23 +585,32 @@ class BrowseAgentTasksInput(BaseModel):
     offset: int = Field(default=0, ge=0)
     response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN)
 
+
 class AcceptAgentTaskInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
     task_id: str = Field(..., min_length=36, max_length=36)
     executor_id: str = Field(..., min_length=36, max_length=36)
     estimated_completion_hours: Optional[float] = Field(default=None, gt=0, le=720)
     message: Optional[str] = Field(default=None, max_length=500)
 
+
 class SubmitAgentWorkInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
     task_id: str = Field(..., min_length=36, max_length=36)
     executor_id: str = Field(..., min_length=36, max_length=36)
     result_data: Dict = Field(...)
     result_type: str = Field(default="json_response", max_length=50)
     notes: Optional[str] = Field(default=None, max_length=2000)
 
+
 class GetAgentExecutionsInput(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
     executor_id: str = Field(..., min_length=36, max_length=36)
     status: Optional[TaskStatus] = Field(default=None)
     limit: int = Field(default=20, ge=1, le=100)
@@ -599,9 +619,11 @@ class GetAgentExecutionsInput(BaseModel):
 
 # ============== H2A (HUMAN-TO-AGENT) MODELS ==============
 
+
 class PublisherType(str, Enum):
     AGENT = "agent"
     HUMAN = "human"
+
 
 class DigitalEvidenceType(str, Enum):
     JSON_RESPONSE = "json_response"
@@ -612,8 +634,11 @@ class DigitalEvidenceType(str, Enum):
     SCREENSHOT = "screenshot"
     TEXT_RESPONSE = "text_response"
 
+
 class PublishH2ATaskRequest(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
     title: str = Field(..., min_length=5, max_length=255)
     instructions: str = Field(..., min_length=20, max_length=10000)
     category: TaskCategory = Field(...)
@@ -621,7 +646,9 @@ class PublishH2ATaskRequest(BaseModel):
     deadline_hours: int = Field(default=24, ge=1, le=720)
     required_capabilities: Optional[List[str]] = Field(default=None, max_length=10)
     verification_mode: Optional[str] = Field(default="manual")
-    evidence_required: List[str] = Field(default=["json_response"], min_length=1, max_length=5)
+    evidence_required: List[str] = Field(
+        default=["json_response"], min_length=1, max_length=5
+    )
     payment_network: str = Field(default="base", max_length=30)
     target_agent_id: Optional[str] = Field(default=None, max_length=255)
 
@@ -632,6 +659,7 @@ class PublishH2ATaskRequest(BaseModel):
             raise ValueError("Bounty must be at least $0.01")
         return round(v, 2)
 
+
 class H2ATaskResponse(BaseModel):
     task_id: str
     status: str = "published"
@@ -641,19 +669,24 @@ class H2ATaskResponse(BaseModel):
     deadline: str
     publisher_type: str = "human"
 
+
 class ApproveH2ASubmissionRequest(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    model_config = ConfigDict(
+        str_strip_whitespace=True, validate_assignment=True, extra="forbid"
+    )
     submission_id: str = Field(..., min_length=36, max_length=36)
     verdict: Literal["accepted", "rejected", "needs_revision"] = Field(...)
     notes: Optional[str] = Field(default=None, max_length=2000)
     settlement_auth_worker: Optional[str] = Field(default=None)
     settlement_auth_fee: Optional[str] = Field(default=None)
 
+
 class H2AApprovalResponse(BaseModel):
     status: str
     worker_tx: Optional[str] = None
     fee_tx: Optional[str] = None
     notes: Optional[str] = None
+
 
 class AgentDirectoryEntry(BaseModel):
     executor_id: str
@@ -670,6 +703,7 @@ class AgentDirectoryEntry(BaseModel):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     pricing: Optional[Dict] = None
+
 
 class AgentDirectoryResponse(BaseModel):
     agents: List[AgentDirectoryEntry]

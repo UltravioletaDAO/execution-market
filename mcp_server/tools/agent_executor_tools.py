@@ -36,13 +36,26 @@ class AgentExecutorToolsConfig:
 
 
 KNOWN_CAPABILITIES = {
-    "data_processing", "web_research", "code_execution",
-    "content_generation", "api_integration", "text_analysis",
-    "translation", "summarization", "image_analysis",
-    "document_processing", "math_computation", "data_extraction",
-    "report_generation", "code_review", "testing",
-    "scheduling", "email_drafting", "social_media",
-    "market_research", "competitive_analysis",
+    "data_processing",
+    "web_research",
+    "code_execution",
+    "content_generation",
+    "api_integration",
+    "text_analysis",
+    "translation",
+    "summarization",
+    "image_analysis",
+    "document_processing",
+    "math_computation",
+    "data_extraction",
+    "report_generation",
+    "code_review",
+    "testing",
+    "scheduling",
+    "email_drafting",
+    "social_media",
+    "market_research",
+    "competitive_analysis",
 }
 
 
@@ -90,15 +103,19 @@ def _passes_auto_verification(
     return True, "All criteria passed"
 
 
-def _log_payment_event(client: Any, task_id: str, event_type: str, details: Dict[str, Any]) -> None:
+def _log_payment_event(
+    client: Any, task_id: str, event_type: str, details: Dict[str, Any]
+) -> None:
     """Log a payment event to the audit trail (mirrors main flow)."""
     try:
-        client.table("payment_events").insert({
-            "task_id": task_id,
-            "event_type": event_type,
-            "details": details,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }).execute()
+        client.table("payment_events").insert(
+            {
+                "task_id": task_id,
+                "event_type": event_type,
+                "details": details,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).execute()
     except Exception as e:
         logger.warning(f"Failed to log payment event for task {task_id}: {e}")
 
@@ -107,6 +124,7 @@ def _calculate_fee_breakdown(bounty_usd: float, category: str) -> Dict[str, Any]
     """Calculate Fase 5 fee breakdown for a task bounty."""
     try:
         from payments.fees import calculate_platform_fee, TaskCategory
+
         cat = TaskCategory(category)
         return calculate_platform_fee(bounty_usd, cat)
     except Exception as e:
@@ -167,12 +185,17 @@ def register_agent_executor_tools(
 
             if existing.data and len(existing.data) > 0:
                 executor = existing.data[0]
-                updates = {"capabilities": params.capabilities, "display_name": params.display_name}
+                updates = {
+                    "capabilities": params.capabilities,
+                    "display_name": params.display_name,
+                }
                 if params.agent_card_url:
                     updates["agent_card_url"] = params.agent_card_url
                 if params.mcp_endpoint_url:
                     updates["mcp_endpoint_url"] = params.mcp_endpoint_url
-                client.table("executors").update(updates).eq("id", executor["id"]).execute()
+                client.table("executors").update(updates).eq(
+                    "id", executor["id"]
+                ).execute()
                 return f"# Agent Executor Updated\n\n**Executor ID**: `{executor['id']}`\n**Capabilities**: {', '.join(params.capabilities)}"
 
             executor_data = {
@@ -202,7 +225,12 @@ def register_agent_executor_tools(
         """Browse tasks available for agent execution."""
         try:
             client = db_module.get_client()
-            query = client.table("tasks").select("*").eq("status", "published").in_("target_executor_type", ["agent", "any"])
+            query = (
+                client.table("tasks")
+                .select("*")
+                .eq("status", "published")
+                .in_("target_executor_type", ["agent", "any"])
+            )
             if params.category:
                 query = query.eq("category", params.category.value)
             if params.min_bounty is not None:
@@ -210,15 +238,25 @@ def register_agent_executor_tools(
             if params.max_bounty is not None:
                 query = query.lte("bounty_usd", params.max_bounty)
 
-            result = query.order("created_at", desc=True).range(params.offset, params.offset + params.limit - 1).execute()
+            result = (
+                query.order("created_at", desc=True)
+                .range(params.offset, params.offset + params.limit - 1)
+                .execute()
+            )
             tasks = result.data or []
 
             filter_caps = params.capabilities
             if filter_caps:
-                tasks = [t for t in tasks if capabilities_match(filter_caps, t.get("required_capabilities"))]
+                tasks = [
+                    t
+                    for t in tasks
+                    if capabilities_match(filter_caps, t.get("required_capabilities"))
+                ]
 
             if params.response_format == ResponseFormat.JSON:
-                return json.dumps({"count": len(tasks), "tasks": tasks}, indent=2, default=str)
+                return json.dumps(
+                    {"count": len(tasks), "tasks": tasks}, indent=2, default=str
+                )
 
             if not tasks:
                 return "# No Agent Tasks Available\n\nNo tasks match your criteria."
@@ -227,14 +265,16 @@ def register_agent_executor_tools(
             for task in tasks:
                 min_rep = task.get("min_reputation", 0)
                 rep_str = f" | Min Rep: {min_rep}" if min_rep > 0 else ""
-                lines.extend([
-                    f"### {task['title']}",
-                    f"- **ID**: `{task['id']}`",
-                    f"- **Bounty**: {format_bounty(task.get('bounty_usd', 0))}",
-                    f"- **Category**: {task.get('category', 'N/A')}",
-                    f"- **Verification**: {task.get('verification_mode', 'manual')}{rep_str}",
-                    "",
-                ])
+                lines.extend(
+                    [
+                        f"### {task['title']}",
+                        f"- **ID**: `{task['id']}`",
+                        f"- **Bounty**: {format_bounty(task.get('bounty_usd', 0))}",
+                        f"- **Category**: {task.get('category', 'N/A')}",
+                        f"- **Verification**: {task.get('verification_mode', 'manual')}{rep_str}",
+                        "",
+                    ]
+                )
             return "\n".join(lines)
         except Exception as e:
             return f"Error: {str(e)}"
@@ -261,7 +301,13 @@ def register_agent_executor_tools(
                 return "Error: This task is only for human executors"
 
             try:
-                exec_result = client.table("executors").select("*").eq("id", params.executor_id).single().execute()
+                exec_result = (
+                    client.table("executors")
+                    .select("*")
+                    .eq("id", params.executor_id)
+                    .single()
+                    .execute()
+                )
                 executor = exec_result.data
             except Exception:
                 return f"Error: Executor {params.executor_id} not found"
@@ -287,11 +333,14 @@ def register_agent_executor_tools(
                     missing = set(required_caps) - set(executor_caps)
                     return f"Error: Missing capabilities: {', '.join(missing)}"
 
-            await db_module.update_task(params.task_id, {
-                "status": "accepted",
-                "executor_id": params.executor_id,
-                "assigned_at": datetime.now(timezone.utc).isoformat(),
-            })
+            await db_module.update_task(
+                params.task_id,
+                {
+                    "status": "accepted",
+                    "executor_id": params.executor_id,
+                    "assigned_at": datetime.now(timezone.utc).isoformat(),
+                },
+            )
 
             return f"# Task Accepted\n\n**Task**: {task['title']}\n**Bounty**: {format_bounty(task.get('bounty_usd', 0))}\n\n## Instructions\n{task.get('instructions', 'N/A')}"
         except Exception as e:
@@ -345,7 +394,10 @@ def register_agent_executor_tools(
             await db_module.update_task(params.task_id, {"status": "submitted"})
 
             # Auto-verification
-            if task.get("verification_mode") == "auto" and config.auto_verification_enabled:
+            if (
+                task.get("verification_mode") == "auto"
+                and config.auto_verification_enabled
+            ):
                 criteria = task.get("verification_criteria", {})
                 passed, reason = _passes_auto_verification(params.result_data, criteria)
                 if passed:
@@ -354,19 +406,26 @@ def register_agent_executor_tools(
                     category = task.get("category", "simple_action")
                     fee_info = _calculate_fee_breakdown(bounty, category)
 
-                    client.table("submissions").update({
-                        "status": "approved",
-                        "agent_verdict": "accepted",
-                        "fee_breakdown": fee_info,
-                    }).eq("id", submission_id).execute()
+                    client.table("submissions").update(
+                        {
+                            "status": "approved",
+                            "agent_verdict": "accepted",
+                            "fee_breakdown": fee_info,
+                        }
+                    ).eq("id", submission_id).execute()
                     await db_module.update_task(params.task_id, {"status": "completed"})
 
                     # Log to payment events audit trail
-                    _log_payment_event(client, params.task_id, "auto_approved", {
-                        "submission_id": submission_id,
-                        "executor_type": "agent",
-                        "fee_breakdown": fee_info,
-                    })
+                    _log_payment_event(
+                        client,
+                        params.task_id,
+                        "auto_approved",
+                        {
+                            "submission_id": submission_id,
+                            "executor_type": "agent",
+                            "fee_breakdown": fee_info,
+                        },
+                    )
 
                     worker_amt = fee_info.get("worker_amount", bounty)
                     fee_amt = fee_info.get("fee_amount", 0)
@@ -374,7 +433,7 @@ def register_agent_executor_tools(
                         f"# Work Submitted & Auto-Approved\n\n"
                         f"**Submission ID**: `{submission_id}`\n"
                         f"**Bounty**: {format_bounty(bounty)}\n"
-                        f"**Fee ({fee_info.get('fee_rate', 0.13)*100:.0f}%)**: {format_bounty(fee_amt)}\n"
+                        f"**Fee ({fee_info.get('fee_rate', 0.13) * 100:.0f}%)**: {format_bounty(fee_amt)}\n"
                         f"**You receive**: {format_bounty(worker_amt)}"
                     )
                 else:
@@ -382,23 +441,32 @@ def register_agent_executor_tools(
                     rejection_details = {
                         "rejection_reason": reason,
                         "verification_criteria": criteria,
-                        "result_summary": {k: type(v).__name__ for k, v in params.result_data.items()},
+                        "result_summary": {
+                            k: type(v).__name__ for k, v in params.result_data.items()
+                        },
                     }
-                    client.table("submissions").update({
-                        "status": "rejected",
-                        "agent_verdict": "rejected",
-                        "notes": f"Auto-verification failed: {reason}",
-                        "rejection_feedback": rejection_details,
-                    }).eq("id", submission_id).execute()
+                    client.table("submissions").update(
+                        {
+                            "status": "rejected",
+                            "agent_verdict": "rejected",
+                            "notes": f"Auto-verification failed: {reason}",
+                            "rejection_feedback": rejection_details,
+                        }
+                    ).eq("id", submission_id).execute()
 
                     # Revert task to accepted so agent can retry
                     await db_module.update_task(params.task_id, {"status": "accepted"})
 
-                    _log_payment_event(client, params.task_id, "auto_rejected", {
-                        "submission_id": submission_id,
-                        "executor_type": "agent",
-                        "rejection_reason": reason,
-                    })
+                    _log_payment_event(
+                        client,
+                        params.task_id,
+                        "auto_rejected",
+                        {
+                            "submission_id": submission_id,
+                            "executor_type": "agent",
+                            "rejection_reason": reason,
+                        },
+                    )
 
                     return (
                         f"# Auto-Verification Failed\n\n"
@@ -415,21 +483,27 @@ def register_agent_executor_tools(
         """Get tasks the agent has accepted/completed."""
         try:
             client = db_module.get_client()
-            query = client.table("tasks").select("*").eq("executor_id", params.executor_id)
+            query = (
+                client.table("tasks").select("*").eq("executor_id", params.executor_id)
+            )
             if params.status:
                 query = query.eq("status", params.status.value)
             result = query.order("created_at", desc=True).limit(params.limit).execute()
             tasks = result.data or []
 
             if params.response_format == ResponseFormat.JSON:
-                return json.dumps({"count": len(tasks), "tasks": tasks}, indent=2, default=str)
+                return json.dumps(
+                    {"count": len(tasks), "tasks": tasks}, indent=2, default=str
+                )
 
             if not tasks:
                 return "# My Executions\n\n*No tasks found.*"
 
             lines = [f"# My Executions ({len(tasks)} tasks)\n"]
             for t in tasks:
-                lines.append(f"- [{t['status'].upper()}] **{t['title']}** - {format_bounty(t.get('bounty_usd', 0))}")
+                lines.append(
+                    f"- [{t['status'].upper()}] **{t['title']}** - {format_bounty(t.get('bounty_usd', 0))}"
+                )
             return "\n".join(lines)
         except Exception as e:
             return f"Error: {str(e)}"
