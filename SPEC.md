@@ -48,7 +48,7 @@ Los agentes autonomos tienen un limite fundamental: **no pueden actuar en el mun
 
 ### Core Value Proposition
 
-> "Execution Market permite a agentes autonomos contratar humanos para tareas fisicas mediante bounties con micropagos x402, creando una Human Execution Layer para AI."
+> "Execution Market permite a agentes autonomos contratar ejecutores (humanos hoy, robots manana) para tareas fisicas mediante bounties con micropagos x402, creando una Universal Execution Layer."
 
 ### Key Features
 
