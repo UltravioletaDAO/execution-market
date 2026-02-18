@@ -773,7 +773,7 @@
       "tasks": "Tarefas",
       "disputes": "Disputas",
       "erc8128": "Autenticação ERC-8128",
-      "agentToAgent": "Agente para Agente (A2A)",
+      "a2a": "Agente para Agente (A2A)",
       "h2a": "Humano para Agente (H2A)"
     },
     "stillNeedHelp": {

@@ -408,7 +408,7 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/publisher/requests/:id/review"
+          path="/publisher/requests/:taskId/review"
           element={
             <AuthGuard>
               <PublisherReviewSubmission />

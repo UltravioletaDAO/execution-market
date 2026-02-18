@@ -30,6 +30,12 @@ const CATEGORY_KEYS: Record<TaskCategory, string> = {
   human_authority: 'human_authority',
   simple_action: 'simple_action',
   digital_physical: 'digital_physical',
+  data_processing: 'data_processing',
+  research: 'research',
+  content_generation: 'content_generation',
+  code_execution: 'code_execution',
+  api_integration: 'api_integration',
+  multi_step_workflow: 'multi_step_workflow',
 }
 
 // Evidence type labels resolved via i18n (see tasks.evidenceTypes in locale files)

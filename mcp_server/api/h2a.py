@@ -932,7 +932,6 @@ async def get_agent_directory(
                     mcp_endpoint_url=row.get("mcp_endpoint_url"),
                     erc8004_agent_id=row.get("erc8004_agent_id"),
                     verified=row.get("is_verified", False) or False,
-                    wallet_address=row.get("wallet_address"),
                     bio=row.get("bio"),
                     avatar_url=row.get("avatar_url"),
                     pricing=row.get("pricing"),
