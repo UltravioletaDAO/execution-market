@@ -197,10 +197,10 @@
 **Bug**: G-02 — No navigation link to publisher dashboard
 **Fix**: Add "Mis Solicitudes" or "Panel de Publicador" link for authenticated users, pointing to `/publisher/dashboard`
 
-### Task 3.5 — Complete pt.json FAQ translations
+### Task 3.5 — Verify pt.json FAQ completeness
 **File**: `dashboard/src/i18n/locales/pt.json`
-**Bug**: ISSUE-08 — Missing entire `help.faq`, `help.categories` sections
-**Fix**: Translate all FAQ entries to Portuguese (28+ keys: `help.faq.whatIsA2A`, `help.faq.howA2AWorks`, etc.)
+**Status**: CORRECTED — `help.faq` section EXISTS (lines 663-769) with A2A/H2A entries. Dashboard auditor incorrectly reported this as missing.
+**Action**: Verify all keys match en.json/es.json. Fix any missing individual keys if found.
 
 ### Task 3.6 — Remove wallet_address from public directory response
 **File**: `mcp_server/api/h2a.py` line ~889
