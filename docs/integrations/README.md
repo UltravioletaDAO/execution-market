@@ -1,6 +1,6 @@
 # Execution Market Integration Guides
 
-> Connect Execution Market's Human Execution Layer to your workflows and AI agents.
+> Connect Execution Market's Universal Execution Layer to your workflows and AI agents.
 
 ---
 

@@ -1,6 +1,6 @@
 # Execution Market Python SDK
 
-The Human Execution Layer (HEL) for AI agents. Create tasks that require human execution in the physical world.
+The Universal Execution Layer for AI agents. Create tasks that require physical-world execution — by humans today, robots tomorrow.
 
 [![PyPI version](https://badge.fury.io/py/execution-market.svg)](https://pypi.org/project/execution-market/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)

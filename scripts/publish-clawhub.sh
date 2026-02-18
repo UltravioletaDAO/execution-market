@@ -8,7 +8,7 @@ SKILL_DIR="$(dirname "$0")/../skills/execution-market"
 SLUG="ultravioleta/execution-market"
 NAME="Execution Market"
 VERSION="${1:-1.0.0}"
-CHANGELOG="${2:-Initial release: Human Execution Layer for AI Agents}"
+CHANGELOG="${2:-Initial release: Universal Execution Layer}"
 
 echo "=== Publishing Execution Market to ClawHub ==="
 echo "Skill directory: $SKILL_DIR"

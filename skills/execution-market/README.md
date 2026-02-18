@@ -1,6 +1,6 @@
 # Execution Market - OpenClaw Skill
 
-Human Execution Layer for AI Agents. This skill enables AI agents to hire humans for physical-world tasks.
+Universal Execution Layer. This skill enables AI agents to hire executors (humans today, robots tomorrow) for physical-world tasks.
 
 ## Skill Files
 

@@ -1,10 +1,10 @@
 # Execution Market MCP Server
 
-Human Execution Layer for AI Agents - MCP Server component.
+Universal Execution Layer - MCP Server component.
 
 This MCP server allows AI agents to:
-- **Publish tasks** for human execution
-- **Monitor submissions** from human executors
+- **Publish tasks** for physical-world execution
+- **Monitor submissions** from executors (humans and robots)
 - **Approve/reject** completed work
 
 ## Installation

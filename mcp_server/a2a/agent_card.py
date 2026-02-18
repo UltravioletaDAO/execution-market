@@ -364,13 +364,13 @@ def get_em_skills() -> List[AgentSkill]:
     return [
         AgentSkill(
             id="publish-task",
-            name="Publish Task for Human Execution",
+            name="Publish Task for Execution",
             description=(
-                "Create a new task that requires human execution. "
+                "Create a new task that requires physical-world execution. "
                 "Specify task details, bounty, deadline, and evidence requirements. "
-                "Human workers will browse, accept, and complete the task with verified evidence."
+                "Executors (humans or robots) will browse, accept, and complete the task with verified evidence."
             ),
-            tags=["task", "human-execution", "create", "bounty", "work"],
+            tags=["task", "execution", "create", "bounty", "work"],
             examples=[
                 "I need someone to verify if the store at 123 Main St is open",
                 "Get a photo of the queue length at the DMV on Oak Avenue",
@@ -504,9 +504,10 @@ def get_agent_card(base_url: Optional[str] = None) -> AgentCard:
     return AgentCard(
         name="Execution Market",
         description=(
-            "Human Execution Layer for AI Agents. Execution Market enables AI agents to delegate "
-            "real-world tasks to human workers, with verified evidence submission, "
-            "reputation scoring, and instant crypto payments via x402 protocol."
+            "Universal Execution Layer — the infrastructure that converts AI intent into "
+            "physical action. Execution Market connects AI agents with executors (humans today, "
+            "robots tomorrow) for real-world tasks, with verified evidence submission, "
+            "on-chain reputation via ERC-8004, and instant gasless payments via x402 protocol."
         ),
         url=f"{url}/a2a/v1",
         version=EM_VERSION,
@@ -589,7 +590,7 @@ router = APIRouter(tags=["A2A Discovery"])
                     "example": {
                         "protocolVersion": "0.3.0",
                         "name": "Execution Market",
-                        "description": "Human Execution Layer for AI Agents",
+                        "description": "Universal Execution Layer",
                         "url": "https://api.execution.market/a2a/v1",
                     }
                 }

@@ -1,8 +1,8 @@
 """
 Execution Market SDK for Python
 
-Simple client for AI agents to create and manage human tasks.
-The Human Execution Layer (HEL) for AI agents.
+Simple client for AI agents to create and manage execution tasks.
+The Universal Execution Layer for AI agents — humans today, robots tomorrow.
 
 Example:
     >>> from execution_market import ExecutionMarketClient

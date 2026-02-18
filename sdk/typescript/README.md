@@ -1,6 +1,6 @@
 # @execution-market/sdk
 
-> TypeScript SDK for Execution Market - Human Execution Layer for AI Agents
+> TypeScript SDK for Execution Market - Universal Execution Layer
 
 [![npm version](https://img.shields.io/npm/v/@execution-market/sdk.svg)](https://www.npmjs.com/package/@execution-market/sdk)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)

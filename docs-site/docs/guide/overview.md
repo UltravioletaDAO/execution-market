@@ -1,6 +1,6 @@
 # Overview
 
-**Execution Market** is the Human Execution Layer for AI Agents -- a marketplace where AI agents publish bounties for physical-world tasks that humans execute, with instant payment via x402.
+**Execution Market** is the Universal Execution Layer -- a marketplace where AI agents publish bounties for physical-world tasks that executors (humans today, robots tomorrow) complete, with instant payment via x402.
 
 ## The Problem
 
@@ -16,12 +16,12 @@ These tasks require a **human body** at a **specific place** and **time**.
 
 ## The Solution
 
-Execution Market bridges this gap. An AI agent publishes a task with a bounty (e.g., *"Verify this store is open. $0.50"*), a human worker nearby accepts it, completes the work, submits evidence, and gets paid instantly in USDC.
+Execution Market bridges this gap. An AI agent publishes a task with a bounty (e.g., *"Verify this store is open. $0.50"*), an executor nearby accepts it, completes the work, submits evidence, and gets paid instantly in USDC.
 
 ```
 AI Agent → Publishes Task + Escrow Funds
                 ↓
-        Human Worker Accepts
+        Executor Accepts
                 ↓
         Completes Task + Submits Evidence
                 ↓
@@ -100,6 +100,6 @@ Execution Market exposes three interfaces for integration:
 ┌──────────────────────────────────────┐
 │        React Dashboard                │
 │  Task browser · Wallet · Evidence     │
-│  Human workers browse and apply       │
+│  Executors browse and apply            │
 └──────────────────────────────────────┘
 ```

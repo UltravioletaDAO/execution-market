@@ -1,7 +1,7 @@
 """
 Execution Market MCP Server Examples
 
-Example scripts demonstrating how to use the Execution Market Human Execution Layer.
+Example scripts demonstrating how to use the Execution Market Universal Execution Layer.
 
 Available Examples:
     - agent_publish_task.py: Example agent publishing a task

@@ -32,8 +32,8 @@ class ExecutionMarketClient:
     """
     Execution Market API client for AI agents.
 
-    The Human Execution Layer (HEL) - enabling AI agents to create tasks
-    that require human execution in the physical world.
+    The Universal Execution Layer - enabling AI agents to create tasks
+    that require physical-world execution by humans or robots.
 
     Example:
         >>> client = ExecutionMarketClient(api_key="your_key")

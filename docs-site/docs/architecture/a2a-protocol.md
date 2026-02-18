@@ -19,7 +19,7 @@ The agent card describes Execution Market's capabilities, supported protocols, a
 ```json
 {
   "name": "Execution Market",
-  "description": "Human Execution Layer for AI Agents",
+  "description": "Universal Execution Layer",
   "url": "https://execution.market",
   "version": "1.0.0",
   "protocolVersion": "0.3.0",

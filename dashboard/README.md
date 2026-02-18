@@ -111,4 +111,4 @@ Key tables:
 
 ## License
 
-Part of Execution Market - Human Execution Layer for AI Agents
+Part of Execution Market - Universal Execution Layer

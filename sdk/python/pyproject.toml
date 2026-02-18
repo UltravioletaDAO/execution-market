@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "execution-market"
 version = "0.1.0"
-description = "Execution Market SDK - Human Execution Layer for AI Agents"
+description = "Execution Market SDK - Universal Execution Layer"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"

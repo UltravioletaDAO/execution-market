@@ -1,14 +1,14 @@
 [project]
 name = "execution-market"
 version = "0.1.0"
-description = "Execution Market MCP Server - Human Execution Layer for AI Agents"
+description = "Execution Market MCP Server - Universal Execution Layer"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
     { name = "Ultravioleta DAO", email = "dev@ultravioleta.xyz" }
 ]
-keywords = ["mcp", "ai-agents", "human-execution", "execution-market"]
+keywords = ["mcp", "ai-agents", "universal-execution", "execution-market", "a2a"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

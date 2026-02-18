@@ -851,7 +851,7 @@ class TestAgentCard:
 
         card = get_agent_card("https://test.example.com")
         assert card.name == "Execution Market"
-        assert "Human Execution Layer" in card.description
+        assert "Universal Execution Layer" in card.description
         assert card.protocol_version == "0.3.0"
         assert len(card.skills) > 0
 

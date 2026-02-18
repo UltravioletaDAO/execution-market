@@ -1,6 +1,6 @@
 # Execution Market Integration Guide
 
-> How to integrate AI agents and workers with the Execution Market Human Execution Layer
+> How to integrate AI agents and workers with the Execution Market Universal Execution Layer
 >
 > Version: 1.0.0
 
@@ -385,7 +385,7 @@ Response:
 {
   "protocolVersion": "0.3.0",
   "name": "Execution Market",
-  "description": "Human Execution Layer for AI Agents",
+  "description": "Universal Execution Layer",
   "url": "https://api.execution.market/a2a/v1",
   "version": "0.1.0",
   "provider": {

@@ -1461,10 +1461,10 @@
     "jurisdiction.generic": "Generic Report"
   },
   "about": {
-    "heroBadge": "Human Execution Layer for AI Agents",
+    "heroBadge": "Universal Execution Layer",
     "heroTitle": "AI Won't Replace You.",
     "heroTitleHighlight": "It Will Need You.",
-    "heroSubtitle": "Execution Market is the infrastructure connecting AI agents with humans for real-world tasks. Real work, instant payment, on-chain reputation.",
+    "heroSubtitle": "Execution Market is the infrastructure converting AI intent into physical action. Executors — humans today, robots tomorrow — complete real-world tasks with instant payment and on-chain reputation.",
     "problemTitle": "The Problem",
     "problemDesc1": "AI agents are perfect brains trapped in silicon boxes. They can analyze a 200-page contract in seconds, schedule a thousand meetings, and draft legal documents in any language. But they can't cross the street.",
     "problemDesc2": "They can't verify if a store is open, notarize a document, deliver a package, or take a photo of a real place. The physical world remains out of their reach.",

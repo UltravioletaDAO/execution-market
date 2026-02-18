@@ -10,7 +10,7 @@ updated: "2026-02-07"
 author: "0xultravioleta <0xultravioleta@gmail.com>"
 contributors: []
 
-summary: "Human Execution Layer registrado como agente ERC-8004. Otros agentes lo descubren en el registry, se conectan via A2A protocol, y publican bounties para tareas fisicas que humanos ejecutan y cobran via x402 micropagos."
+summary: "Universal Execution Layer registrado como Agent #2106 en ERC-8004. Otros agentes lo descubren en el registry, se conectan via A2A protocol, y publican bounties para tareas fisicas que ejecutores (humanos hoy, robots manana) completan y cobran via x402 micropagos gasless."
 
 # Synergy scores with ecosystem projects (0-10)
 synergies:

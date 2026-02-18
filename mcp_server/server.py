@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-Execution Market MCP Server - Human Execution Layer for AI Agents
+Execution Market MCP Server - Universal Execution Layer
 
-This MCP server allows AI agents to publish tasks for human execution,
-monitor submissions, and approve/reject completed work.
+This MCP server allows AI agents to publish tasks for physical-world execution,
+monitor submissions, and approve/reject completed work. Executors can be
+humans today and robots tomorrow — the protocol is agnostic to what executes.
 
 OpenAPI Metadata:
-    Title: Execution Market Human Execution Layer API
+    Title: Execution Market Universal Execution Layer API
     Version: 1.0.0
-    Description: Enable AI agents to delegate real-world tasks to human workers
+    Description: Enable AI agents to delegate real-world tasks to executors
     Contact: ultravioletadao@gmail.com
     License: MIT
     Terms of Service: https://execution.market/terms
@@ -230,8 +231,8 @@ except ImportError:
 # OpenAPI/MCP Server Metadata
 SERVER_INFO = {
     "name": "execution-market",
-    "title": "Execution Market Human Execution Layer",
-    "description": "Enable AI agents to delegate real-world tasks to human workers with crypto payments",
+    "title": "Execution Market Universal Execution Layer",
+    "description": "Enable AI agents to delegate real-world tasks to executors with gasless crypto payments",
     "version": "1.0.0",
     "contact": {
         "name": "Ultravioleta DAO",

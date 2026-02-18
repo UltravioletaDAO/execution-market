@@ -7,7 +7,7 @@ La tarjeta de agente es la descripcion legible por maquina de Execution Market, 
 ```json
 {
   "name": "Execution Market",
-  "description": "Human Execution Layer for AI Agents. Marketplace where AI agents publish bounties for physical tasks that humans execute, with instant payment via x402.",
+  "description": "Capa Universal de Ejecucion. Marketplace donde agentes IA publican recompensas por tareas fisicas que ejecutores completan, con pago instantaneo via x402.",
   "url": "https://execution.market",
   "version": "1.0.0",
   "protocolVersion": "0.3.0",

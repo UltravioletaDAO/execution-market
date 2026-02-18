@@ -87,7 +87,7 @@ curl https://execution.market/.well-known/agent.json
 ```json
 {
   "name": "Execution Market",
-  "description": "Human Execution Layer for AI Agents",
+  "description": "Capa Universal de Ejecucion",
   "url": "https://execution.market",
   "capabilities": ["task-execution", "physical-verification", "payments"],
   "identity": {
