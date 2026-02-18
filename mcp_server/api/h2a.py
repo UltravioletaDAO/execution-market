@@ -21,10 +21,9 @@ import os
 import logging
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
-from typing import Optional, Dict, Any
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Path, Header, Request
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 import supabase_client as db
@@ -35,7 +34,6 @@ from models import (
     H2AApprovalResponse,
     AgentDirectoryEntry,
     AgentDirectoryResponse,
-    TaskStatus,
 )
 
 # Payment event audit trail
@@ -54,7 +52,7 @@ logger = logging.getLogger(__name__)
 # Default fee (overridden by config system when available)
 DEFAULT_PLATFORM_FEE_PERCENT = Decimal("0.13")
 TREASURY_ADDRESS = os.environ.get(
-    "EM_TREASURY_ADDRESS", "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+    "EM_TREASURY_ADDRESS", "0xae07B067934975cF3DA0aa1D09cF373b0FED3661"
 )
 
 
@@ -112,9 +110,7 @@ async def verify_jwt_auth(
         )
 
         if not jwt_secret:
-            raise HTTPException(
-                status_code=500, detail="JWT secret not configured"
-            )
+            raise HTTPException(status_code=500, detail="JWT secret not configured")
 
         payload = pyjwt.decode(
             token,
@@ -171,14 +167,16 @@ async def verify_auth_method(
     This dual-auth helper allows endpoints that both humans and agents
     can access (e.g., viewing task details).
     """
-    from .auth import verify_api_key, APIKeyData
+    from .auth import verify_api_key
 
     # Try API key first (agents)
     if x_api_key and x_api_key.startswith("em_"):
         return await verify_api_key(authorization=None, x_api_key=x_api_key)
 
     if authorization:
-        bearer_token = authorization[7:].strip() if authorization.startswith("Bearer ") else ""
+        bearer_token = (
+            authorization[7:].strip() if authorization.startswith("Bearer ") else ""
+        )
 
         # API key via Bearer
         if bearer_token.startswith("em_") or bearer_token.startswith("sk_em_"):
@@ -215,7 +213,10 @@ async def _check_h2a_enabled():
     except HTTPException:
         raise
     except Exception:
-        pass  # If config check fails, allow (fail open)
+        raise HTTPException(
+            status_code=503,
+            detail="Service temporarily unavailable — unable to verify feature status",
+        )
 
 
 async def _get_h2a_bounty_limits() -> tuple[Decimal, Decimal]:
@@ -320,7 +321,9 @@ async def create_h2a_task(
             "agent_id": f"human:{auth.user_id}",  # Tag for H2A identification
             "title": request.title,
             "instructions": request.instructions,
-            "category": request.category.value if hasattr(request.category, 'value') else request.category,
+            "category": request.category.value
+            if hasattr(request.category, "value")
+            else request.category,
             "bounty_usd": float(bounty),
             "deadline": deadline.isoformat(),
             "evidence_schema": evidence_schema,
@@ -376,7 +379,9 @@ async def create_h2a_task(
 async def list_h2a_tasks(
     status: Optional[str] = Query(None, description="Filter by status"),
     category: Optional[str] = Query(None, description="Filter by category"),
-    my_tasks: bool = Query(False, description="Only show my published tasks (requires auth)"),
+    my_tasks: bool = Query(
+        False, description="Only show my published tasks (requires auth)"
+    ),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     authorization: Optional[str] = Header(None),
@@ -389,9 +394,13 @@ async def list_h2a_tasks(
     """
     try:
         client = db.get_client()
-        query = client.table("tasks").select(
-            "*, executor:executors(id, display_name, reputation_score, capabilities, executor_type)"
-        ).eq("publisher_type", "human")
+        query = (
+            client.table("tasks")
+            .select(
+                "*, executor:executors(id, display_name, reputation_score, capabilities, executor_type)"
+            )
+            .eq("publisher_type", "human")
+        )
 
         if my_tasks:
             auth = await verify_jwt_auth(authorization)
@@ -408,7 +417,11 @@ async def list_h2a_tasks(
             query = query.eq("category", category)
 
         # Count
-        count_query = client.table("tasks").select("id", count="exact").eq("publisher_type", "human")
+        count_query = (
+            client.table("tasks")
+            .select("id", count="exact")
+            .eq("publisher_type", "human")
+        )
         if my_tasks and authorization:
             try:
                 auth_data = await verify_jwt_auth(authorization)
@@ -568,7 +581,9 @@ async def approve_h2a_submission(
         client = db.get_client()
         task_result = (
             client.table("tasks")
-            .select("id, human_user_id, human_wallet, publisher_type, bounty_usd, status")
+            .select(
+                "id, human_user_id, human_wallet, publisher_type, bounty_usd, status"
+            )
             .eq("id", task_id)
             .single()
             .execute()
@@ -582,6 +597,16 @@ async def approve_h2a_submission(
             raise HTTPException(status_code=404, detail="Not an H2A task")
         if task.get("human_user_id") != auth.user_id:
             raise HTTPException(status_code=403, detail="Not your task")
+
+        # Validate task is in an approvable status
+        approvable_statuses = {"submitted", "in_progress"}
+        current_status = task.get("status")
+        if current_status not in approvable_statuses:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot approve task in status '{current_status}'. "
+                f"Only tasks in {approvable_statuses} can be approved.",
+            )
 
         # Get submission
         sub_result = (
@@ -642,9 +667,27 @@ async def approve_h2a_submission(
                         )
             except Exception as e:
                 logger.error("H2A payment settlement failed: %s", str(e))
-                # Log but don't fail — store the auth headers for retry
-                worker_tx = f"pending:{request.settlement_auth_worker[:20]}..."
-                fee_tx = f"pending:{request.settlement_auth_fee[:20]}..."
+                # Log the failure as a payment event
+                try:
+                    await log_payment_event(
+                        event_type="h2a_settle_error",
+                        task_id=task_id,
+                        tx_hash=None,
+                        amount_usdc=task.get("bounty_usd"),
+                        from_address=task.get("human_wallet"),
+                        to_address=agent_wallet,
+                        metadata={
+                            "submission_id": request.submission_id,
+                            "error": str(e),
+                        },
+                    )
+                except Exception:
+                    pass
+                # Settlement failed — do NOT update task/submission status
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Payment settlement failed: {str(e)}. Task status unchanged.",
+                )
 
             # Log payment events
             try:
@@ -681,7 +724,10 @@ async def approve_h2a_submission(
             # Update task + submission status
             try:
                 client.table("tasks").update(
-                    {"status": "completed", "completed_at": datetime.now(timezone.utc).isoformat()}
+                    {
+                        "status": "completed",
+                        "completed_at": datetime.now(timezone.utc).isoformat(),
+                    }
                 ).eq("id", task_id).execute()
 
                 client.table("submissions").update(
@@ -736,9 +782,9 @@ async def approve_h2a_submission(
             ).eq("id", request.submission_id).execute()
 
             # Move task back to in_progress so agent can resubmit
-            client.table("tasks").update(
-                {"status": "in_progress"}
-            ).eq("id", task_id).execute()
+            client.table("tasks").update({"status": "in_progress"}).eq(
+                "id", task_id
+            ).execute()
 
             logger.info(
                 "H2A submission needs revision: task=%s, submission=%s",
@@ -796,9 +842,9 @@ async def cancel_h2a_task(
                 f"Only tasks in {cancellable} can be cancelled.",
             )
 
-        client.table("tasks").update(
-            {"status": "cancelled"}
-        ).eq("id", task_id).execute()
+        client.table("tasks").update({"status": "cancelled"}).eq(
+            "id", task_id
+        ).execute()
 
         logger.info("H2A task cancelled: task=%s, user=%s", task_id, auth.user_id)
 
@@ -928,9 +974,8 @@ async def register_agent_executor(
     from .auth import verify_api_key
 
     # Require API key for registration
-    api_key_data = None
     try:
-        api_key_data = await verify_api_key(authorization, x_api_key)
+        await verify_api_key(authorization, x_api_key)
     except HTTPException:
         raise HTTPException(
             status_code=401, detail="API key required for agent registration"

@@ -18,9 +18,8 @@ Tests cover:
 
 import os
 import sys
-import json
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, PropertyMock
+from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -44,6 +43,7 @@ from models import (
 # ============================================================================
 # Model Validation Tests
 # ============================================================================
+
 
 class TestH2AModels:
     """Test H2A Pydantic models."""
@@ -213,6 +213,7 @@ class TestH2AModels:
 # JWT Auth Tests
 # ============================================================================
 
+
 class TestH2AAuth:
     """Test JWT authentication for human publishers."""
 
@@ -292,6 +293,7 @@ class TestH2AAuth:
 # Fee Calculation Tests
 # ============================================================================
 
+
 class TestH2AFees:
     """Test fee calculation for H2A tasks."""
 
@@ -327,21 +329,30 @@ class TestH2AFees:
 # Task Category Tests
 # ============================================================================
 
+
 class TestH2ACategories:
     """Test digital task categories for H2A."""
 
     def test_digital_categories_exist(self):
         """All digital categories from the plan should exist."""
         digital_cats = [
-            "data_processing", "api_integration", "content_generation",
-            "code_execution", "research", "multi_step_workflow",
+            "data_processing",
+            "api_integration",
+            "content_generation",
+            "code_execution",
+            "research",
+            "multi_step_workflow",
         ]
         for cat in digital_cats:
             assert TaskCategory(cat) is not None
 
     def test_h2a_task_with_digital_category(self):
         """H2A tasks should accept digital categories."""
-        for cat in [TaskCategory.DATA_PROCESSING, TaskCategory.RESEARCH, TaskCategory.CODE_EXECUTION]:
+        for cat in [
+            TaskCategory.DATA_PROCESSING,
+            TaskCategory.RESEARCH,
+            TaskCategory.CODE_EXECUTION,
+        ]:
             req = PublishH2ATaskRequest(
                 title=f"Test task for {cat.value}",
                 instructions="Detailed instructions for the agent to follow when executing this task.",
@@ -354,6 +365,7 @@ class TestH2ACategories:
 # ============================================================================
 # Integration Smoke Tests
 # ============================================================================
+
 
 @pytest.mark.core
 class TestH2AIntegration:

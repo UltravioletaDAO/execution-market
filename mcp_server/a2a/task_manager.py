@@ -36,6 +36,78 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+# ============== PAYMENT BRIDGE ==============
+
+
+async def _a2a_execute_approval_payment(task: Dict[str, Any]) -> bool:
+    """
+    Execute payment settlement for an A2A task approval.
+
+    Delegates to the PaymentDispatcher (same as REST API approval path).
+    Returns True if payment succeeded, False otherwise.
+    """
+    try:
+        from api.routers._helpers import get_payment_dispatcher, EM_PAYMENT_MODE
+
+        dispatcher = get_payment_dispatcher()
+        if dispatcher and EM_PAYMENT_MODE != "fase1":
+            # Fase 2+: release escrow via dispatcher
+            result = await dispatcher.release_payment(
+                task_id=task.get("id"),
+                worker_wallet=task.get("executor", {}).get("wallet_address")
+                or task.get("worker_wallet"),
+            )
+            return bool(result)
+        elif EM_PAYMENT_MODE == "fase1":
+            # Fase 1: direct settlement handled by approval endpoint
+            # A2A approve in fase1 is a no-op payment-wise (no auth signed)
+            logger.info(
+                "A2A approve in fase1 mode — no payment action (sign-on-approval)"
+            )
+            return True
+        else:
+            logger.warning("No PaymentDispatcher available for A2A approval")
+            return True  # Allow status change if no payment system configured
+    except ImportError:
+        logger.warning("Payment modules not available for A2A approval")
+        return True
+    except Exception as e:
+        logger.error("A2A approval payment failed for task %s: %s", task.get("id"), e)
+        return False
+
+
+async def _a2a_execute_cancel_refund(task: Dict[str, Any]) -> bool:
+    """
+    Execute escrow refund for an A2A task cancellation.
+
+    Returns True if refund succeeded (or no escrow to refund), False otherwise.
+    """
+    try:
+        from api.routers._helpers import get_payment_dispatcher, EM_PAYMENT_MODE
+
+        dispatcher = get_payment_dispatcher()
+        if dispatcher and EM_PAYMENT_MODE != "fase1":
+            # Check if task has escrow
+            escrow_status = task.get("escrow_status") or task.get("metadata", {}).get(
+                "escrow_status"
+            )
+            if escrow_status in ("locked", "authorized"):
+                result = await dispatcher.refund_payment(task_id=task.get("id"))
+                return bool(result)
+            else:
+                # No escrow locked — cancel is safe
+                return True
+        else:
+            # Fase 1 or no dispatcher: no escrow to refund
+            return True
+    except ImportError:
+        logger.warning("Payment modules not available for A2A cancel refund")
+        return True
+    except Exception as e:
+        logger.error("A2A cancel refund failed for task %s: %s", task.get("id"), e)
+        return False
+
+
 # ============== TASK PARSING ==============
 
 
@@ -444,6 +516,15 @@ class A2ATaskManager:
                 )
                 return None
 
+            # Attempt escrow refund before cancelling
+            refund_ok = await _a2a_execute_cancel_refund(task)
+            if not refund_ok:
+                logger.error(
+                    "A2A cancel refund failed for task %s — status unchanged",
+                    task_id,
+                )
+                return None
+
             # Cancel
             db.update_task(
                 task_id,
@@ -535,8 +616,14 @@ class A2ATaskManager:
                     if text_lower.startswith("approve") or text_lower.startswith(
                         "accept"
                     ):
-                        # This is an approval — delegate to the review flow
-                        # For now, update status
+                        # Execute payment before marking complete
+                        payment_ok = await _a2a_execute_approval_payment(task)
+                        if not payment_ok:
+                            logger.error(
+                                "A2A approve payment failed for task %s — status unchanged",
+                                task_id,
+                            )
+                            return _em_task_to_a2a(task, include_history=True)
                         db.update_task(
                             task_id,
                             {
@@ -569,6 +656,13 @@ class A2ATaskManager:
                 elif isinstance(part, DataPart):
                     action = part.data.get("action")
                     if action == "approve":
+                        payment_ok = await _a2a_execute_approval_payment(task)
+                        if not payment_ok:
+                            logger.error(
+                                "A2A approve (DataPart) payment failed for task %s — status unchanged",
+                                task_id,
+                            )
+                            return _em_task_to_a2a(task, include_history=True)
                         db.update_task(
                             task_id,
                             {
