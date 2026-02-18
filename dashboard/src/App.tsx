@@ -26,6 +26,10 @@ const TaskManagement = lazy(() => import('./pages/agent/TaskManagement').then(m 
 const CreateTask = lazy(() => import('./pages/agent/CreateTask').then(m => ({ default: m.CreateTask })))
 const PublicProfile = lazy(() => import('./pages/PublicProfile').then(m => ({ default: m.PublicProfile })))
 const Activity = lazy(() => import('./pages/Activity').then(m => ({ default: m.Activity })))
+const AgentDirectory = lazy(() => import('./pages/AgentDirectory').then(m => ({ default: m.AgentDirectory })))
+const PublisherDashboard = lazy(() => import('./pages/publisher/Dashboard').then(m => ({ default: m.default })))
+const PublisherCreateRequest = lazy(() => import('./pages/publisher/CreateRequest').then(m => ({ default: m.default })))
+const PublisherReviewSubmission = lazy(() => import('./pages/publisher/ReviewSubmission').then(m => ({ default: m.default })))
 
 // Lazy-loaded heavy components (modals, charts)
 const ProfilePage = lazy(() => import('./components/profile').then(m => ({ default: m.ProfilePage })))
@@ -386,6 +390,31 @@ function AppRoutes() {
         />
         <Route path="/profile/:wallet" element={<PublicProfile />} />
         <Route path="/feedback/:taskId" element={<FeedbackPage />} />
+        <Route path="/agents/directory" element={<AgentDirectory />} />
+        <Route
+          path="/publisher/dashboard"
+          element={
+            <AuthGuard>
+              <PublisherDashboard />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/publisher/requests/new"
+          element={
+            <AuthGuard>
+              <PublisherCreateRequest />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/publisher/requests/:id/review"
+          element={
+            <AuthGuard>
+              <PublisherReviewSubmission />
+            </AuthGuard>
+          }
+        />
 
         {/* Worker Routes (Protected - Workers Only) */}
         <Route

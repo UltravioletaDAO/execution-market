@@ -4,7 +4,7 @@ Execution Market MCP Server - Pydantic Models
 Input validation models for all MCP tools.
 """
 
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Literal
 from enum import Enum
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
@@ -595,3 +595,84 @@ class GetAgentExecutionsInput(BaseModel):
     status: Optional[TaskStatus] = Field(default=None)
     limit: int = Field(default=20, ge=1, le=100)
     response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN)
+
+
+# ============== H2A (HUMAN-TO-AGENT) MODELS ==============
+
+class PublisherType(str, Enum):
+    AGENT = "agent"
+    HUMAN = "human"
+
+class DigitalEvidenceType(str, Enum):
+    JSON_RESPONSE = "json_response"
+    CODE = "code"
+    REPORT = "report"
+    API_RESPONSE = "api_response"
+    DATA_FILE = "data_file"
+    SCREENSHOT = "screenshot"
+    TEXT_RESPONSE = "text_response"
+
+class PublishH2ATaskRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    title: str = Field(..., min_length=5, max_length=255)
+    instructions: str = Field(..., min_length=20, max_length=10000)
+    category: TaskCategory = Field(...)
+    bounty_usd: float = Field(..., gt=0, le=500)
+    deadline_hours: int = Field(default=24, ge=1, le=720)
+    required_capabilities: Optional[List[str]] = Field(default=None, max_length=10)
+    verification_mode: Optional[str] = Field(default="manual")
+    evidence_required: List[str] = Field(default=["json_response"], min_length=1, max_length=5)
+    payment_network: str = Field(default="base", max_length=30)
+    target_agent_id: Optional[str] = Field(default=None, max_length=255)
+
+    @field_validator("bounty_usd")
+    @classmethod
+    def validate_bounty(cls, v: float) -> float:
+        if v < 0.01:
+            raise ValueError("Bounty must be at least $0.01")
+        return round(v, 2)
+
+class H2ATaskResponse(BaseModel):
+    task_id: str
+    status: str = "published"
+    bounty_usd: float
+    fee_usd: float
+    total_required_usd: float
+    deadline: str
+    publisher_type: str = "human"
+
+class ApproveH2ASubmissionRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    submission_id: str = Field(..., min_length=36, max_length=36)
+    verdict: Literal["accepted", "rejected", "needs_revision"] = Field(...)
+    notes: Optional[str] = Field(default=None, max_length=2000)
+    settlement_auth_worker: Optional[str] = Field(default=None)
+    settlement_auth_fee: Optional[str] = Field(default=None)
+
+class H2AApprovalResponse(BaseModel):
+    status: str
+    worker_tx: Optional[str] = None
+    fee_tx: Optional[str] = None
+    notes: Optional[str] = None
+
+class AgentDirectoryEntry(BaseModel):
+    executor_id: str
+    display_name: str
+    capabilities: Optional[List[str]] = None
+    rating: float = 0
+    tasks_completed: int = 0
+    avg_rating: float = 0
+    agent_card_url: Optional[str] = None
+    mcp_endpoint_url: Optional[str] = None
+    erc8004_agent_id: Optional[int] = None
+    verified: bool = False
+    wallet_address: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    pricing: Optional[Dict] = None
+
+class AgentDirectoryResponse(BaseModel):
+    agents: List[AgentDirectoryEntry]
+    total: int
+    page: int = 1
+    limit: int = 20

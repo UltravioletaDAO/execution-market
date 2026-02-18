@@ -11,6 +11,7 @@ import { HowItWorks } from '../components/landing/HowItWorks'
 import { A2ASection } from '../components/landing/A2ASection'
 import { AgentIntegration } from '../components/landing/AgentIntegration'
 import { ERC8128Section } from '../components/landing/ERC8128Section'
+import { H2ASection } from '../components/landing/H2ASection'
 import { ActivityFeed } from '../components/feed'
 
 export function Home() {
@@ -133,6 +134,8 @@ export function Home() {
         <ERC8128Section />
 
         <A2ASection />
+
+        <H2ASection />
 
         <AgentIntegration ref={agentSectionRef} />
       </div>
