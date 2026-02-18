@@ -692,7 +692,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from datetime import datetime, timedelta
 
-mcp = FastMCP("Execution Market - Human Execution Layer")
+mcp = FastMCP("Execution Market - Universal Execution Layer")
 
 # ============== SCHEMAS ==============
 

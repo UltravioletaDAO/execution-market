@@ -218,7 +218,7 @@ AGENT_CARD_URL = "https://mcp.execution.market/.well-known/agent.json"
 # {
 #   "id": "execution.market",
 #   "name": "Execution Market",
-#   "description": "Human Execution Layer for AI Agents",
+#   "description": "Universal Execution Layer",
 #   "capabilities": ["task_execution", "payment_escrow", "reputation"],
 #   "protocols": ["x402", "ERC8004", "MCP"],
 #   "mcp_endpoint": "https://mcp.execution.market"
