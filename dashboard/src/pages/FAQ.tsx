@@ -62,6 +62,14 @@ const FAQ_DATA: FAQCategory[] = [
       { key: 'a2aReputation' },
     ],
   },
+  {
+    categoryKey: 'h2a',
+    items: [
+      { key: 'whatIsH2A' },
+      { key: 'howH2AWorks' },
+      { key: 'h2aPricing' },
+    ],
+  },
 ]
 
 /**

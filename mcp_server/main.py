@@ -39,6 +39,7 @@ from api import api_router, add_api_middleware
 from api import reputation_router, escrow_router
 from api.admin import router as admin_router
 from api.agent_auth import router as agent_auth_router
+from api.h2a import router as h2a_router
 from health import router as health_router
 
 # x402 SDK Integration (NOW-202)
@@ -288,6 +289,10 @@ app.include_router(reputation_router)
 # Include x402r Escrow router (Base Mainnet)
 # Provides /api/v1/escrow/* for payment management
 app.include_router(escrow_router)
+
+# Include H2A (Human-to-Agent) marketplace router
+# Provides /api/v1/h2a/* for human publisher flow and /api/v1/agents/* for agent directory
+app.include_router(h2a_router)
 
 # CORS configuration with MCP headers support
 # MCP Streamable HTTP requires specific headers for session management

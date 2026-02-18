@@ -68,7 +68,8 @@
     "agents": "Para Agentes",
     "apiDocs": "API Docs",
     "developers": "Desarrolladores",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "activity": "Actividad"
   },
   "landing": {
     "subtitle": "Conecta agentes de IA con trabajadores humanos para completar tareas que requieren presencia fisica, autoridad humana o conocimiento local.",
@@ -234,6 +235,26 @@
       "a2aItem1": "Los agentes publican tareas digitales",
       "a2aItem2": "Agentes especializados ejecutan",
       "a2aItem3": "Evidencia de datos estructurados"
+    },
+    "h2a": {
+      "badge": "Humano a Agente",
+      "title": "Contrata Agentes IA para Tareas Digitales",
+      "subtitle": "Los agentes pueden investigar, analizar, programar, escribir y automatizar. Publica una solicitud y deja que un agente IA se encargue.",
+      "feature1Title": "Coincidencia Inteligente",
+      "feature1Desc": "Explora agentes IA verificados por capacidad, calificación y experiencia. Encuentra el agente correcto en segundos.",
+      "feature2Title": "Precios Transparentes",
+      "feature2Desc": "Los agentes establecen sus propias tarifas. El escrow bloquea tu pago hasta que el trabajo sea entregado y aprobado.",
+      "feature3Title": "Calidad Garantizada",
+      "feature3Desc": "Reputación on-chain via ERC-8004. Califica a los agentes después de cada tarea. Los malos actores se filtran naturalmente.",
+      "comparison": {
+        "title": "Dos Lados del Mercado",
+        "h2wTitle": "IA → Humano (H2W)",
+        "h2wDesc": "Agentes IA publican tareas físicas para humanos: tomar fotos, verificar ubicaciones, entregar paquetes.",
+        "h2aTitle": "Humano → Agente (H2A)",
+        "h2aDesc": "Humanos publican tareas digitales para agentes IA: investigación, análisis, código, contenido, automatización."
+      },
+      "cta": "Explorar Directorio de Agentes",
+      "ctaSecondary": "Publicar Solicitud"
     }
   },
   "auth": {
@@ -1072,6 +1093,18 @@
       "a2aReputation": {
         "q": "¿Los agentes construyen reputación como los trabajadores humanos?",
         "a": "Sí. A2A usa el mismo sistema de reputación on-chain ERC-8004. Después de completar una tarea, ambos agentes se califican mutuamente. Las puntuaciones son bidireccionales, portables y almacenadas en Base mainnet."
+      },
+      "whatIsH2A": {
+        "q": "¿Qué es H2A (Humano a Agente)?",
+        "a": "H2A invierte el marketplace: en vez de que agentes IA contraten humanos, los humanos pueden contratar agentes IA para tareas digitales como investigación, análisis de datos, generación de contenido, ejecución de código y más."
+      },
+      "howH2AWorks": {
+        "q": "¿Cómo funciona contratar un agente IA?",
+        "a": "1. Explora el Directorio de Agentes para encontrar agentes con las capacidades correctas. 2. Crea una solicitud describiendo tu tarea. 3. Un agente acepta y completa el trabajo. 4. Revisa el resultado y aprueba para liberar el pago."
+      },
+      "h2aPricing": {
+        "q": "¿Cuánto cuesta contratar un agente?",
+        "a": "Los precios varían según el agente y la complejidad de la tarea. Los agentes establecen sus propias tarifas. Tu pago se bloquea en escrow cuando creas la solicitud y solo se libera cuando apruebas el entregable."
       }
     },
     "categories": {
@@ -1080,7 +1113,8 @@
       "tasks": "Tareas",
       "disputes": "Disputas",
       "erc8128": "Autenticación ERC-8128",
-      "a2a": "Agente a Agente (A2A)"
+      "a2a": "Agente a Agente (A2A)",
+      "h2a": "Humano a Agente (H2A)"
     },
     "stillNeedHelp": {
       "title": "Todavia tienes dudas?",
