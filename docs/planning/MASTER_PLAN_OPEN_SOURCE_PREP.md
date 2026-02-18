@@ -2,7 +2,7 @@
 
 > **Created**: 2026-02-18
 > **Status**: READY FOR EXECUTION
-> **Total Tasks**: 42 tasks across 5 phases
+> **Total Tasks**: 39 tasks across 5 phases
 > **Estimated**: ~3 sessions to complete
 > **Audit Source**: Secret audit + repo hygiene audit (2026-02-18)
 
@@ -113,6 +113,31 @@
 - **Bug**: SEC-LOW-01 — `SECRET_KEY_BASE=UpNVntn3cDx...` is a full 64-char secret baked into example
 - **Fix**: Replace with `SECRET_KEY_BASE=generate-a-random-64-char-secret-here`
 - **Validation**: `grep "UpNVntn3" .env.example` returns empty
+
+### Task 1.9 — Clean scattered hardcoded Supabase anon keys from source files
+- **File**: Multiple files with 3+ different Supabase anon JWTs hardcoded:
+  - `.claude/scripts/deploy.sh:54` — hardcoded anon key + Dynamic.xyz env ID in build args
+  - `scripts/task-factory.ts:68` — hardcoded production anon key as fallback
+  - `mcp_server/supabase_client.py:16` — production URL as default fallback
+- **Bug**: SEC-MED-01 — Supabase anon keys scattered as hardcoded fallbacks instead of env vars. 3 different JWTs exist (different `iat` timestamps), some may be stale.
+- **Fix**: Replace all hardcoded anon keys with `os.environ["SUPABASE_ANON_KEY"]` / `process.env.SUPABASE_ANON_KEY` (no fallback). Remove stale keys. Deploy script should read from env, not hardcode.
+- **Validation**: `git grep "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" -- '*.py' '*.ts' '*.sh'` returns only `.env.example` and `.env.docker.example` files
+
+### Task 1.10 — Replace AWS infrastructure identifiers in docs/scripts
+- **File**: Multiple files (40+ references)
+- **Bug**: SEC-LOW-02 — AWS account ID `518898403364`, ACM certificate ARNs, API Gateway URLs hardcoded in:
+  - `CLAUDE.md` (covered in Task 1.5)
+  - `README.md` (Infrastructure section)
+  - `infrastructure/terraform/*.tf`
+  - `.claude/scripts/deploy.sh`, `scripts/deploy-docs.sh`
+  - `docs/planning/HANDOFF_OPEN_SOURCE_PREP.md`
+  - API Gateway URL: `vhvwpq0lu0.execute-api.us-east-2.amazonaws.com`
+- **Fix**:
+  - In documentation: replace with `YOUR_AWS_ACCOUNT_ID`, `YOUR_ACM_ARN`, `YOUR_API_GATEWAY_URL`
+  - In Terraform: use variables (`var.aws_account_id`) instead of hardcoded values
+  - In deploy scripts: read from env vars
+  - Exception: `README.md` infrastructure section can be removed entirely (internal detail, not useful for contributors)
+- **Validation**: `git grep "518898403364" -- ':!docs/planning/MASTER_PLAN_OPEN_SOURCE_PREP.md'` returns 0 matches (excluding this plan file)
 
 ---
 
@@ -481,12 +506,12 @@ The public CLAUDE.md should keep: payment architecture, task lifecycle, contract
 
 | Phase | Tasks | Priority | Depends On |
 |-------|-------|----------|------------|
-| Phase 1: Secret Scrubbing | 8 | P0 (BLOCKING) | Nothing |
+| Phase 1: Secret Scrubbing | 10 | P0 (BLOCKING) | Nothing |
 | Phase 2: Core Files | 7 | P0 (Required) | Phase 1 |
 | Phase 3: Repo Hygiene | 10 | P1 | Phase 2 |
 | Phase 4: Documentation | 7 | P1 | Phase 2-3 |
 | Phase 5: Launch | 5 | P2 | Phase 1-4 |
-| **TOTAL** | **37** | | |
+| **TOTAL** | **39** | | |
 
 ---
 
