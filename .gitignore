@@ -103,6 +103,11 @@ C:tmp*
 # Agent memory (local per-machine)
 .claude/agent-memory/
 
+# Claude session files (local per-machine)
+.claude/.irc-nick
+.claude/teams/
+.claude/tasks/
+
 # Script output artifacts
 scripts/output.txt
 scripts/server_pid.txt
