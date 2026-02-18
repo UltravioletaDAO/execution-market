@@ -9,6 +9,23 @@ from enum import Enum
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
+class ExecutorType(str, Enum):
+    """Type of executor."""
+    HUMAN = "human"
+    AGENT = "agent"
+
+class TargetExecutorType(str, Enum):
+    """Who can execute."""
+    HUMAN = "human"
+    AGENT = "agent"
+    ANY = "any"
+
+class VerificationMode(str, Enum):
+    """How submissions are verified."""
+    MANUAL = "manual"
+    AUTO = "auto"
+    ORACLE = "oracle"
+
 class TaskCategory(str, Enum):
     """Categories of tasks that humans can execute."""
 
@@ -17,6 +34,12 @@ class TaskCategory(str, Enum):
     HUMAN_AUTHORITY = "human_authority"
     SIMPLE_ACTION = "simple_action"
     DIGITAL_PHYSICAL = "digital_physical"
+    DATA_PROCESSING = "data_processing"
+    API_INTEGRATION = "api_integration"
+    CONTENT_GENERATION = "content_generation"
+    CODE_EXECUTION = "code_execution"
+    RESEARCH = "research"
+    MULTI_STEP_WORKFLOW = "multi_step_workflow"
 
 
 class TaskStatus(str, Enum):
@@ -47,6 +70,13 @@ class EvidenceType(str, Enum):
     TEXT_RESPONSE = "text_response"
     MEASUREMENT = "measurement"
     SCREENSHOT = "screenshot"
+    JSON_RESPONSE = "json_response"
+    API_RESPONSE = "api_response"
+    CODE_OUTPUT = "code_output"
+    FILE_ARTIFACT = "file_artifact"
+    URL_REFERENCE = "url_reference"
+    STRUCTURED_DATA = "structured_data"
+    TEXT_REPORT = "text_report"
 
 
 class PaymentStrategy(str, Enum):
@@ -522,3 +552,46 @@ class RegisterIdentityInput(BaseModel):
         default="gasless", description="Registration mode (only 'gasless' supported)"
     )
     network: str = Field(default="base", description="ERC-8004 network", max_length=30)
+
+
+class RegisterAgentExecutorInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    wallet_address: str = Field(..., min_length=42, max_length=42)
+    capabilities: List[str] = Field(..., min_length=1, max_length=20)
+    display_name: str = Field(..., min_length=2, max_length=100)
+    agent_card_url: Optional[str] = Field(default=None, max_length=500)
+    mcp_endpoint_url: Optional[str] = Field(default=None, max_length=500)
+    a2a_protocol_version: Optional[str] = Field(default=None, max_length=10)
+
+class BrowseAgentTasksInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    executor_id: Optional[str] = Field(default=None, max_length=36)
+    category: Optional[TaskCategory] = Field(default=None)
+    capabilities: Optional[List[str]] = Field(default=None, max_length=20)
+    min_bounty: Optional[float] = Field(default=None, ge=0)
+    max_bounty: Optional[float] = Field(default=None, le=100000)
+    limit: int = Field(default=20, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+    response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN)
+
+class AcceptAgentTaskInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    task_id: str = Field(..., min_length=36, max_length=36)
+    executor_id: str = Field(..., min_length=36, max_length=36)
+    estimated_completion_hours: Optional[float] = Field(default=None, gt=0, le=720)
+    message: Optional[str] = Field(default=None, max_length=500)
+
+class SubmitAgentWorkInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    task_id: str = Field(..., min_length=36, max_length=36)
+    executor_id: str = Field(..., min_length=36, max_length=36)
+    result_data: Dict = Field(...)
+    result_type: str = Field(default="json_response", max_length=50)
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+class GetAgentExecutionsInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True, extra="forbid")
+    executor_id: str = Field(..., min_length=36, max_length=36)
+    status: Optional[TaskStatus] = Field(default=None)
+    limit: int = Field(default=20, ge=1, le=100)
+    response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN)
