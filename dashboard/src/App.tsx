@@ -66,7 +66,7 @@ function PageLoader() {
 
 function ProfilePageWrapper() {
   const navigate = useNavigate()
-  const { executor, loading, refreshExecutor } = useAuth()
+  const { executor, loading, refreshExecutor, logout } = useAuth()
   const [showEditModal, setShowEditModal] = useState(false)
 
   const handleEditSaved = useCallback(() => {
@@ -120,6 +120,7 @@ function ProfilePageWrapper() {
         executor={executor}
         onBack={() => navigate('/tasks')}
         onEditProfile={() => setShowEditModal(true)}
+        onLogout={() => { logout(); navigate('/') }}
       />
       {showEditModal && (
         <Suspense fallback={null}>
