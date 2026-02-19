@@ -1,0 +1,236 @@
+{
+  "category": "physical-verification",
+  "description": "Tasks that require physical presence to verify business information, locations, or conditions",
+  "tasks": [
+    {
+      "title": "Verify Restaurant Hours - Mario's Pizza Downtown",
+      "description": "Visit Mario's Pizza at 123 Main St and confirm their current operating hours. Take a photo of their posted hours sign and verify if they're actually open during posted times. Note any discrepancies from online listings.",
+      "category": "physical-verification",
+      "bounty_usd": 0.75,
+      "deadline_hours": 48,
+      "location_hint": "123 Main St, Downtown area",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Photo of posted hours sign",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Confirmed operating hours and current status (open/closed)",
+          "required": true
+        }
+      ],
+      "tags": ["restaurant", "hours", "verification"]
+    },
+    {
+      "title": "Check if Construction Site is Active - Oak Street Bridge",
+      "description": "Visit the Oak Street Bridge construction project and verify if work is currently ongoing. Document worker presence, active equipment, and progress since last month. Useful for traffic planning and project tracking.",
+      "category": "physical-verification",
+      "bounty_usd": 1.00,
+      "deadline_hours": 24,
+      "location_hint": "Oak Street Bridge, near Highway 101",
+      "evidence_schema": [
+        {
+          "type": "photo_geo",
+          "description": "Photo of construction site with GPS coordinates",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Activity level: none/light/moderate/heavy construction activity",
+          "required": true
+        }
+      ],
+      "tags": ["construction", "infrastructure", "traffic"]
+    },
+    {
+      "title": "Confirm Business Closure - Tech Repair Shop",
+      "description": "TechFix Repair at 456 Elm Ave appears closed based on online reviews. Visit location to confirm if permanently closed, temporarily closed, or relocated. Check for forwarding signs or contact information.",
+      "category": "physical-verification",
+      "bounty_usd": 0.50,
+      "deadline_hours": 72,
+      "location_hint": "456 Elm Ave, Shopping District",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Storefront showing current status",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Status: open/temporarily closed/permanently closed/relocated",
+          "required": true
+        }
+      ],
+      "tags": ["business", "closure", "directory-update"]
+    },
+    {
+      "title": "Verify ATM Functionality - First National Bank",
+      "description": "Check if the ATM at First National Bank (789 Pine St) is working properly. Test basic functions like balance inquiry if possible, note any out-of-order signs, and verify cash availability indicator.",
+      "category": "physical-verification",
+      "bounty_usd": 0.50,
+      "deadline_hours": 12,
+      "location_hint": "789 Pine St, Financial District",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "ATM screen showing operational status",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Functional status and any error messages",
+          "required": true
+        }
+      ],
+      "tags": ["atm", "banking", "service-check"]
+    },
+    {
+      "title": "Count Available Parking Spaces - City Mall",
+      "description": "Count the number of available parking spaces in the City Mall parking garage (Level 2) between 2-4 PM on a weekday. Document peak usage patterns for mall management planning.",
+      "category": "physical-verification",
+      "bounty_usd": 1.25,
+      "deadline_hours": 96,
+      "location_hint": "City Mall, Level 2 Parking Garage",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Overview photo of parking level",
+          "required": true
+        },
+        {
+          "type": "measurement",
+          "description": "Count of available spaces and total spaces",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Time of count and occupancy percentage",
+          "required": true
+        }
+      ],
+      "tags": ["parking", "capacity", "mall"]
+    },
+    {
+      "title": "Verify New Store Opening - Organic Grocery Co",
+      "description": "Organic Grocery Co is supposed to open this week at 321 Market St. Confirm if they're open for business, check their hours, and note what products they carry (focus on local/organic items).",
+      "category": "physical-verification",
+      "bounty_usd": 1.00,
+      "deadline_hours": 48,
+      "location_hint": "321 Market St, near Farmer's Market",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Store entrance and any grand opening signs",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Opening status, hours, and brief product overview",
+          "required": true
+        }
+      ],
+      "tags": ["new-business", "grocery", "opening"]
+    },
+    {
+      "title": "Check Playground Equipment Safety - Riverside Park",
+      "description": "Inspect the children's playground at Riverside Park for any obvious safety issues. Look for broken equipment, sharp edges, or hazardous conditions. This helps maintain safe recreational spaces.",
+      "category": "physical-verification",
+      "bounty_usd": 1.50,
+      "deadline_hours": 72,
+      "location_hint": "Riverside Park, children's playground area",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "General playground overview",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Any safety concerns or damaged equipment",
+          "required": false
+        },
+        {
+          "type": "text_response",
+          "description": "Safety assessment: safe/minor concerns/major concerns with details",
+          "required": true
+        }
+      ],
+      "tags": ["safety", "playground", "public-spaces"]
+    },
+    {
+      "title": "Confirm Bus Stop Schedule Accuracy - Route 42",
+      "description": "Check if the posted schedule at the Route 42 bus stop (corner of 5th and Broadway) matches actual bus arrival times. Document 3-4 bus arrivals during morning rush hour.",
+      "category": "physical-verification",
+      "bounty_usd": 2.00,
+      "deadline_hours": 24,
+      "location_hint": "Corner of 5th St and Broadway, Bus Stop #1847",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Posted bus schedule",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Scheduled vs actual arrival times for 3-4 buses",
+          "required": true
+        }
+      ],
+      "tags": ["transit", "schedule", "public-transport"]
+    },
+    {
+      "title": "Verify Trail Condition - Mountain View Hiking Trail",
+      "description": "Hike the first 0.5 miles of Mountain View Trail and report on path conditions. Note any fallen trees, erosion, or accessibility issues. Helps park maintenance prioritize repairs.",
+      "category": "physical-verification",
+      "bounty_usd": 2.50,
+      "deadline_hours": 120,
+      "location_hint": "Mountain View Trail entrance, State Park Area",
+      "evidence_schema": [
+        {
+          "type": "photo_geo",
+          "description": "Trail entrance with GPS marker",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Any trail hazards or maintenance issues",
+          "required": false
+        },
+        {
+          "type": "text_response",
+          "description": "Trail condition summary and difficulty level",
+          "required": true
+        }
+      ],
+      "tags": ["trails", "hiking", "maintenance"]
+    },
+    {
+      "title": "Check Loading Zone Compliance - Delivery District",
+      "description": "Monitor the 30-minute loading zone on Commerce Ave (between 2nd and 3rd St) during peak hours. Document any violations or misuse by non-commercial vehicles.",
+      "category": "physical-verification",
+      "bounty_usd": 1.75,
+      "deadline_hours": 48,
+      "location_hint": "Commerce Ave between 2nd and 3rd St",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Loading zone signage",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Current usage of loading zone",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Compliance level and types of vehicles using zone",
+          "required": true
+        }
+      ],
+      "tags": ["loading-zone", "parking", "compliance"]
+    }
+  ]
+}

@@ -1,0 +1,236 @@
+{
+  "category": "mystery-shopping",
+  "description": "Tasks that require evaluating customer service, product quality, or business operations from a customer perspective",
+  "tasks": [
+    {
+      "title": "Evaluate Coffee Shop Service - Morning Rush Hour",
+      "description": "Visit Brew & Bean Coffee during morning rush (7-9 AM) as a regular customer. Evaluate service speed, staff friendliness, coffee quality, and cleanliness. Order a medium latte and pastry.",
+      "category": "mystery-shopping",
+      "bounty_usd": 3.00,
+      "deadline_hours": 48,
+      "location_hint": "Brew & Bean Coffee, downtown location",
+      "evidence_schema": [
+        {
+          "type": "receipt",
+          "description": "Purchase receipt showing date, time, and items ordered",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Coffee and pastry purchased (quality check)",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Service evaluation: wait time, staff behavior, cleanliness, coffee quality (1-10 scale for each)",
+          "required": true
+        }
+      ],
+      "tags": ["coffee-shop", "service", "rush-hour"]
+    },
+    {
+      "title": "Test Fast Food Drive-Through Efficiency",
+      "description": "Mystery shop the drive-through at Burger Palace during lunch hour. Time the service from order to pickup, evaluate order accuracy, food temperature, and staff communication.",
+      "category": "mystery-shopping",
+      "bounty_usd": 2.50,
+      "deadline_hours": 72,
+      "location_hint": "Burger Palace, main street location",
+      "evidence_schema": [
+        {
+          "type": "receipt",
+          "description": "Drive-through receipt with timestamp",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Service timing, order accuracy, food quality, staff politeness ratings",
+          "required": true
+        },
+        {
+          "type": "measurement",
+          "description": "Total drive-through time from order placement to food receipt",
+          "required": true
+        }
+      ],
+      "tags": ["fast-food", "drive-through", "efficiency"]
+    },
+    {
+      "title": "Assess Retail Store Customer Service - Electronics",
+      "description": "Visit TechMart as a customer seeking help choosing a laptop under $800. Evaluate staff knowledge, helpfulness, and sales approach. Don't feel pressured to purchase.",
+      "category": "mystery-shopping",
+      "bounty_usd": 2.00,
+      "deadline_hours": 96,
+      "location_hint": "TechMart, shopping center location",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Store interior and electronics section (discrete photos)",
+          "required": false
+        },
+        {
+          "type": "text_response",
+          "description": "Staff knowledge level, helpfulness, pressure tactics, product recommendations quality",
+          "required": true
+        }
+      ],
+      "tags": ["retail", "electronics", "customer-service"]
+    },
+    {
+      "title": "Evaluate Restaurant Dining Experience - Casual Dining",
+      "description": "Dine at Olive Garden Family Restaurant during dinner hours. Assess greeting, seating time, server attentiveness, food quality, and overall experience. Order from lunch menu.",
+      "category": "mystery-shopping",
+      "bounty_usd": 4.00,
+      "deadline_hours": 120,
+      "location_hint": "Olive Garden Family Restaurant, westside location",
+      "evidence_schema": [
+        {
+          "type": "receipt",
+          "description": "Dining receipt with date, time, server name if available",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Food presentation and dining area ambiance",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Comprehensive dining evaluation: service timing, food quality, cleanliness, value for money",
+          "required": true
+        }
+      ],
+      "tags": ["restaurant", "dining", "casual"]
+    },
+    {
+      "title": "Test Bank Customer Service - New Account Inquiry",
+      "description": "Visit First National Bank to inquire about opening a checking account. Evaluate staff professionalism, wait time, information provided, and sales approach. No need to actually open account.",
+      "category": "mystery-shopping",
+      "bounty_usd": 2.25,
+      "deadline_hours": 72,
+      "location_hint": "First National Bank, main branch",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Bank lobby and customer service area (if permitted)",
+          "required": false
+        },
+        {
+          "type": "text_response",
+          "description": "Wait time, staff knowledge, information accuracy, pressure to open account, overall professionalism",
+          "required": true
+        }
+      ],
+      "tags": ["banking", "customer-service", "financial"]
+    },
+    {
+      "title": "Evaluate Grocery Store Self-Checkout Experience",
+      "description": "Shop at SuperMarket Plus and use self-checkout for 5-8 small items. Evaluate ease of use, staff assistance availability, machine reliability, and overall customer experience.",
+      "category": "mystery-shopping",
+      "bounty_usd": 1.75,
+      "deadline_hours": 48,
+      "location_hint": "SuperMarket Plus, any location",
+      "evidence_schema": [
+        {
+          "type": "receipt",
+          "description": "Self-checkout receipt showing successful transaction",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Self-checkout usability, technical issues, staff help availability, comparison to staffed checkout",
+          "required": true
+        }
+      ],
+      "tags": ["grocery", "self-checkout", "technology"]
+    },
+    {
+      "title": "Test Pharmacy Drive-Through Service",
+      "description": "Visit MediCare Pharmacy drive-through to pick up an over-the-counter item (like vitamins). Evaluate service speed, staff communication, and convenience factors.",
+      "category": "mystery-shopping",
+      "bounty_usd": 1.50,
+      "deadline_hours": 96,
+      "location_hint": "MediCare Pharmacy, drive-through location",
+      "evidence_schema": [
+        {
+          "type": "receipt",
+          "description": "Purchase receipt from drive-through transaction",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Drive-through efficiency, staff clarity, wait time, ease of transaction",
+          "required": true
+        },
+        {
+          "type": "measurement",
+          "description": "Total time from arrival to departure",
+          "required": true
+        }
+      ],
+      "tags": ["pharmacy", "drive-through", "healthcare"]
+    },
+    {
+      "title": "Assess Hotel Lobby and Front Desk Service",
+      "description": "Visit Grand Plaza Hotel lobby as a potential guest inquiring about room rates and amenities for next month. Evaluate staff professionalism and information provided.",
+      "category": "mystery-shopping",
+      "bounty_usd": 1.25,
+      "deadline_hours": 72,
+      "location_hint": "Grand Plaza Hotel, downtown location",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Hotel lobby area and front desk (if permitted)",
+          "required": false
+        },
+        {
+          "type": "text_response",
+          "description": "Front desk service quality, information accuracy, staff professionalism, lobby cleanliness",
+          "required": true
+        }
+      ],
+      "tags": ["hotel", "hospitality", "front-desk"]
+    },
+    {
+      "title": "Evaluate Auto Service Center Customer Experience",
+      "description": "Visit QuickLube Express for an oil change quote and inspection of waiting area. Assess customer service, facility cleanliness, and estimated service time without committing to service.",
+      "category": "mystery-shopping",
+      "bounty_usd": 2.00,
+      "deadline_hours": 120,
+      "location_hint": "QuickLube Express, automotive service area",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Waiting area and service bay visibility",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Staff knowledge, service estimates, facility cleanliness, customer amenities",
+          "required": true
+        }
+      ],
+      "tags": ["automotive", "service-center", "customer-experience"]
+    },
+    {
+      "title": "Test Mobile Phone Store Sales Approach",
+      "description": "Visit Wireless World as a customer looking to upgrade phone plan. Evaluate sales tactics, plan explanation clarity, and pressure to purchase accessories. Gather information only.",
+      "category": "mystery-shopping",
+      "bounty_usd": 2.75,
+      "deadline_hours": 96,
+      "location_hint": "Wireless World, shopping mall location",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Store layout and phone displays (discrete photos)",
+          "required": false
+        },
+        {
+          "type": "text_response",
+          "description": "Sales approach quality, plan explanation clarity, pushy tactics, staff knowledge level",
+          "required": true
+        }
+      ],
+      "tags": ["wireless", "sales", "mobile-phones"]
+    }
+  ]
+}

@@ -1,0 +1,256 @@
+{
+  "category": "photo-documentation",
+  "description": "Tasks that require photographing specific locations, events, conditions, or progress for documentation purposes",
+  "tasks": [
+    {
+      "title": "Document Storm Damage - Maple Street Neighborhood",
+      "description": "Photograph storm damage throughout Maple Street neighborhood after last night's windstorm. Focus on downed trees, property damage, and blocked roads. Helps insurance companies and city planning assess damage extent.",
+      "category": "photo-documentation",
+      "bounty_usd": 2.00,
+      "deadline_hours": 24,
+      "location_hint": "Maple Street area, residential neighborhood",
+      "evidence_schema": [
+        {
+          "type": "photo_geo",
+          "description": "Overview photo of damaged area with GPS location",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Specific damage examples (trees, property, infrastructure)",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Brief damage assessment and affected area description",
+          "required": true
+        }
+      ],
+      "tags": ["storm-damage", "insurance", "assessment"]
+    },
+    {
+      "title": "Photograph New Mural - Arts District",
+      "description": "Document the new community mural on the side of Miller's Coffee House in the Arts District. Capture full mural and detail shots for community art archive and artist portfolio.",
+      "category": "photo-documentation",
+      "bounty_usd": 0.75,
+      "deadline_hours": 72,
+      "location_hint": "Miller's Coffee House, Arts District",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Full mural from appropriate distance",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Close-up detail shots of artwork",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Mural theme/subject and approximate dimensions",
+          "required": true
+        }
+      ],
+      "tags": ["art", "mural", "community"]
+    },
+    {
+      "title": "Document Construction Progress - Metro Station",
+      "description": "Take progress photos of the new Metro station construction at 42nd and Grand. Compare with previous month's progress. Focus on structural elements and completion percentage.",
+      "category": "photo-documentation",
+      "bounty_usd": 1.50,
+      "deadline_hours": 48,
+      "location_hint": "42nd Street and Grand Avenue intersection",
+      "evidence_schema": [
+        {
+          "type": "photo_geo",
+          "description": "Construction site overview with GPS coordinates",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Key structural elements and progress details",
+          "required": true
+        },
+        {
+          "type": "measurement",
+          "description": "Estimated completion percentage",
+          "required": true
+        }
+      ],
+      "tags": ["construction", "progress", "metro"]
+    },
+    {
+      "title": "Photograph Farmers Market Setup - Saturday Morning",
+      "description": "Document the weekly farmers market setup process at Central Plaza. Capture vendor stalls, product displays, and crowd attendance between 8-10 AM for market analysis.",
+      "category": "photo-documentation",
+      "bounty_usd": 1.25,
+      "deadline_hours": 120,
+      "location_hint": "Central Plaza, Saturday mornings",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Market overview showing vendor layout",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Variety of products and vendor displays",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Estimated vendor count and customer attendance",
+          "required": true
+        }
+      ],
+      "tags": ["farmers-market", "community", "vendors"]
+    },
+    {
+      "title": "Document Pothole Conditions - Industrial Avenue",
+      "description": "Photograph significant potholes along Industrial Avenue between 1st and 5th Streets. Mark locations with GPS for city maintenance department road repair prioritization.",
+      "category": "photo-documentation",
+      "bounty_usd": 1.00,
+      "deadline_hours": 96,
+      "location_hint": "Industrial Avenue, 1st to 5th Street stretch",
+      "evidence_schema": [
+        {
+          "type": "photo_geo",
+          "description": "Each significant pothole with GPS location",
+          "required": true
+        },
+        {
+          "type": "measurement",
+          "description": "Approximate size/severity of each pothole",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Priority level for repairs (low/medium/high/urgent)",
+          "required": true
+        }
+      ],
+      "tags": ["infrastructure", "roads", "maintenance"]
+    },
+    {
+      "title": "Capture Sunset from Harbor Viewpoint",
+      "description": "Photograph tonight's sunset from Harbor Viewpoint for tourism board promotional materials. Include harbor boats and city skyline in frame. Golden hour timing preferred.",
+      "category": "photo-documentation",
+      "bounty_usd": 1.00,
+      "deadline_hours": 12,
+      "location_hint": "Harbor Viewpoint, scenic overlook area",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "High-quality sunset photo with harbor and skyline",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Exact time of sunset and weather conditions",
+          "required": true
+        }
+      ],
+      "tags": ["tourism", "sunset", "harbor"]
+    },
+    {
+      "title": "Document Food Truck Festival - University Campus",
+      "description": "Photograph the monthly food truck festival at University Campus. Capture food truck variety, student crowds, and popular items for event planning and marketing purposes.",
+      "category": "photo-documentation",
+      "bounty_usd": 1.75,
+      "deadline_hours": 72,
+      "location_hint": "University Campus, main quad area",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Festival overview showing all food trucks",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Popular food items and student engagement",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Truck count, cuisine types, and crowd estimate",
+          "required": true
+        }
+      ],
+      "tags": ["food-trucks", "university", "festival"]
+    },
+    {
+      "title": "Photograph Historic Building Restoration - City Hall",
+      "description": "Document the ongoing restoration work on the historic City Hall building facade. Focus on architectural details being preserved and modern additions being made.",
+      "category": "photo-documentation",
+      "bounty_usd": 1.50,
+      "deadline_hours": 96,
+      "location_hint": "City Hall, downtown government district",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Building facade showing restoration progress",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Architectural detail preservation work",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Restoration techniques and materials being used",
+          "required": true
+        }
+      ],
+      "tags": ["historic", "restoration", "architecture"]
+    },
+    {
+      "title": "Document Street Art Changes - Underground District",
+      "description": "Photograph the current state of street art in the Underground District. Compare with previous photos to track changes, new additions, and removed pieces for urban art documentation.",
+      "category": "photo-documentation",
+      "bounty_usd": 2.00,
+      "deadline_hours": 120,
+      "location_hint": "Underground District, known street art corridors",
+      "evidence_schema": [
+        {
+          "type": "photo_geo",
+          "description": "Multiple street art pieces with locations",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "New or recently modified artwork",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Changes since last documentation and artist info if visible",
+          "required": true
+        }
+      ],
+      "tags": ["street-art", "urban-culture", "documentation"]
+    },
+    {
+      "title": "Capture Holiday Light Display - Residential Contest",
+      "description": "Photograph the top 5 entries in the neighborhood holiday light display contest on Christmas Tree Lane. Document displays for contest judging and community newsletter.",
+      "category": "photo-documentation",
+      "bounty_usd": 1.25,
+      "deadline_hours": 168,
+      "location_hint": "Christmas Tree Lane, residential area",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Each of the 5 nominated house displays",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "House addresses and brief description of each display",
+          "required": true
+        }
+      ],
+      "tags": ["holiday", "contest", "residential"]
+    }
+  ]
+}

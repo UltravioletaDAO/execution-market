@@ -1,0 +1,216 @@
+{
+  "category": "price-collection",
+  "description": "Tasks that require gathering current prices from local businesses for market research and price comparison services",
+  "tasks": [
+    {
+      "title": "Gas Prices Survey - Highway 101 Stations",
+      "description": "Collect current gas prices (regular, mid-grade, premium) from all 4 gas stations along Highway 101 between exits 15-18. Data used for fuel price tracking app and traveler planning.",
+      "category": "price-collection",
+      "bounty_usd": 0.75,
+      "deadline_hours": 24,
+      "location_hint": "Highway 101, exits 15-18 corridor",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Price display board at each station",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Station name, address, and all fuel prices per gallon",
+          "required": true
+        }
+      ],
+      "tags": ["gas-prices", "fuel", "travel"]
+    },
+    {
+      "title": "Coffee Shop Price Comparison - Downtown Core",
+      "description": "Survey coffee prices at 5 downtown coffee shops: basic coffee, latte, cappuccino, and pastry prices. Helps consumers find best value and shops understand competitive pricing.",
+      "category": "price-collection",
+      "bounty_usd": 1.00,
+      "deadline_hours": 48,
+      "location_hint": "Downtown core area, within 6-block radius",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Menu board or price list at each location",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Shop name, location, and prices for requested items",
+          "required": true
+        }
+      ],
+      "tags": ["coffee", "comparison", "downtown"]
+    },
+    {
+      "title": "Grocery Store Produce Prices - Weekly Basket",
+      "description": "Check prices for a standard produce basket (bananas, apples, tomatoes, lettuce, onions) at 3 major grocery stores in the metro area. Weekly price tracking for budget planning.",
+      "category": "price-collection",
+      "bounty_usd": 1.25,
+      "deadline_hours": 72,
+      "location_hint": "3 major grocery chains in metro area",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Price tags for each produce item at each store",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Store name, item prices per lb/unit, total basket cost",
+          "required": true
+        }
+      ],
+      "tags": ["grocery", "produce", "budget"]
+    },
+    {
+      "title": "Movie Theater Ticket Pricing - Weekend Rates",
+      "description": "Collect weekend ticket prices for adult, child, and senior at Cinema Complex and Riverside Theater. Include matinee vs evening pricing and any special format surcharges (IMAX, 3D).",
+      "category": "price-collection",
+      "bounty_usd": 0.50,
+      "deadline_hours": 96,
+      "location_hint": "Cinema Complex and Riverside Theater",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Price display at box office or kiosk",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Theater name and complete pricing structure",
+          "required": true
+        }
+      ],
+      "tags": ["movies", "entertainment", "pricing"]
+    },
+    {
+      "title": "Fast Food Value Menu Survey",
+      "description": "Compare value menu pricing at McDonald's, Burger King, and Taco Bell on University Ave. Focus on meals under $5 and any current promotions or app deals.",
+      "category": "price-collection",
+      "bounty_usd": 0.75,
+      "deadline_hours": 48,
+      "location_hint": "University Ave commercial strip",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Value menu board at each restaurant",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Restaurant, menu items, prices, and any promotions",
+          "required": true
+        }
+      ],
+      "tags": ["fast-food", "value-menu", "promotions"]
+    },
+    {
+      "title": "Parking Meter Rates - Business District",
+      "description": "Survey parking meter rates throughout the Business District. Document hourly rates, maximum stay limits, and payment methods accepted (coins, cards, app).",
+      "category": "price-collection",
+      "bounty_usd": 0.50,
+      "deadline_hours": 72,
+      "location_hint": "Business District, main commercial streets",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Parking meter rate displays",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Location, hourly rate, time limits, payment methods",
+          "required": true
+        }
+      ],
+      "tags": ["parking", "rates", "business-district"]
+    },
+    {
+      "title": "Car Wash Service Pricing - Local Competitors",
+      "description": "Check pricing at 4 local car wash services: basic wash, full service, and any specialty treatments. Include wait times and service quality observations.",
+      "category": "price-collection",
+      "bounty_usd": 1.00,
+      "deadline_hours": 96,
+      "location_hint": "Local car wash services within 10 miles",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Service menu and pricing at each location",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Business name, location, services, prices, wait time",
+          "required": true
+        }
+      ],
+      "tags": ["car-wash", "services", "comparison"]
+    },
+    {
+      "title": "Pizza Delivery Price Check - Local vs Chain",
+      "description": "Compare pizza prices for large pepperoni pizza delivery from 2 local pizzerias and 2 chain stores (Domino's, Pizza Hut). Include delivery fees and estimated delivery times.",
+      "category": "price-collection",
+      "bounty_usd": 0.75,
+      "deadline_hours": 48,
+      "location_hint": "Local area pizza delivery options",
+      "evidence_schema": [
+        {
+          "type": "screenshot",
+          "description": "Online ordering screen showing prices and delivery fees",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Restaurant name, pizza price, delivery fee, total cost, delivery time",
+          "required": true
+        }
+      ],
+      "tags": ["pizza", "delivery", "comparison"]
+    },
+    {
+      "title": "Pharmacy Generic Drug Pricing - Common Medications",
+      "description": "Check generic prices for 5 common medications (ibuprofen 200mg, acetaminophen 500mg, loratadine 10mg, omeprazole 20mg, multivitamin) at 3 local pharmacies.",
+      "category": "price-collection",
+      "bounty_usd": 1.50,
+      "deadline_hours": 72,
+      "location_hint": "3 local pharmacies (chain and independent)",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Price tags or shelf labels for each medication",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Pharmacy name, medication brand, size, price per unit",
+          "required": true
+        }
+      ],
+      "tags": ["pharmacy", "generic", "medication"]
+    },
+    {
+      "title": "Gym Membership Pricing Survey - Fitness Centers",
+      "description": "Collect membership pricing information from 3 local gyms: monthly rates, annual discounts, initiation fees, and included amenities. No commitment required, just pricing info.",
+      "category": "price-collection",
+      "bounty_usd": 1.25,
+      "deadline_hours": 120,
+      "location_hint": "3 local fitness centers/gyms",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Membership pricing display or brochure",
+          "required": false
+        },
+        {
+          "type": "text_response",
+          "description": "Gym name, membership tiers, prices, fees, amenities included",
+          "required": true
+        }
+      ],
+      "tags": ["gym", "membership", "fitness"]
+    }
+  ]
+}

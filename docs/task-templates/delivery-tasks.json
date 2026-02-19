@@ -1,0 +1,266 @@
+{
+  "category": "delivery-tasks",
+  "description": "Tasks involving pickup and delivery of items, documents, or small packages within local area",
+  "tasks": [
+    {
+      "title": "Deliver Legal Documents - Law Office to Courthouse",
+      "description": "Pick up sealed legal documents from Patterson Law Office (123 Attorney St) and deliver to County Courthouse filing window by 3 PM today. Time-sensitive court filing deadline.",
+      "category": "delivery-tasks",
+      "bounty_usd": 3.00,
+      "deadline_hours": 6,
+      "location_hint": "Patterson Law Office to County Courthouse, downtown area",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Package pickup confirmation at law office",
+          "required": true
+        },
+        {
+          "type": "signature",
+          "description": "Delivery receipt from courthouse filing clerk",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Pickup and delivery times with any special instructions followed",
+          "required": true
+        }
+      ],
+      "tags": ["legal", "courthouse", "urgent"]
+    },
+    {
+      "title": "Pickup Prescription - Elderly Assistance",
+      "description": "Pick up prescription medication for elderly resident Mrs. Johnson at Riverside Pharmacy (456 Oak St) and deliver to her apartment at Sunset Manor (789 Elm Ave, Apt 12B).",
+      "category": "delivery-tasks",
+      "bounty_usd": 2.50,
+      "deadline_hours": 24,
+      "location_hint": "Riverside Pharmacy to Sunset Manor senior living",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Prescription bag pickup (without personal information visible)",
+          "required": true
+        },
+        {
+          "type": "signature",
+          "description": "Delivery confirmation from recipient or authorized person",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Delivery completed successfully with recipient confirmation",
+          "required": true
+        }
+      ],
+      "tags": ["prescription", "elderly", "healthcare"]
+    },
+    {
+      "title": "Deliver Birthday Cake - Surprise Party",
+      "description": "Pick up custom birthday cake from Sweet Dreams Bakery (321 Sugar St) at 2 PM and deliver to birthday party at Community Center (654 Park Ave) by 3:30 PM. Handle with care!",
+      "category": "delivery-tasks",
+      "bounty_usd": 2.00,
+      "deadline_hours": 8,
+      "location_hint": "Sweet Dreams Bakery to Community Center",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Cake pickup and secure transport setup",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Cake delivered in good condition",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Pickup time, delivery time, cake condition upon delivery",
+          "required": true
+        }
+      ],
+      "tags": ["bakery", "birthday", "fragile"]
+    },
+    {
+      "title": "Return Rental Equipment - Same Day Service",
+      "description": "Pick up carpet cleaner from residential customer (147 Maple Dr) and return to Action Rental (852 Industrial Blvd) before 5 PM to avoid late fees.",
+      "category": "delivery-tasks",
+      "bounty_usd": 1.75,
+      "deadline_hours": 12,
+      "location_hint": "Maple Dr residential to Action Rental industrial area",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Equipment condition at pickup",
+          "required": true
+        },
+        {
+          "type": "receipt",
+          "description": "Return receipt from rental company",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Equipment returned on time and in acceptable condition",
+          "required": true
+        }
+      ],
+      "tags": ["rental", "equipment", "deadline"]
+    },
+    {
+      "title": "Deliver Repair Parts - Auto Shop Emergency",
+      "description": "Auto shop needs urgent brake pads for customer's car. Pick up parts from AutoZone (963 Commerce St) and deliver to Mike's Garage (741 Service Rd) ASAP.",
+      "category": "delivery-tasks",
+      "bounty_usd": 2.25,
+      "deadline_hours": 3,
+      "location_hint": "AutoZone to Mike's Garage, automotive district",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Parts package at pickup",
+          "required": true
+        },
+        {
+          "type": "signature",
+          "description": "Delivery receipt from garage mechanic",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Urgent delivery completed, part numbers confirmed correct",
+          "required": true
+        }
+      ],
+      "tags": ["auto-parts", "urgent", "repair"]
+    },
+    {
+      "title": "Pickup Dry Cleaning - Business Professional",
+      "description": "Pick up business suits and dress shirts from Premier Cleaners (258 Fashion Ave) and deliver to office building at 159 Corporate Plaza, Suite 420. Professional appearance required.",
+      "category": "delivery-tasks",
+      "bounty_usd": 1.50,
+      "deadline_hours": 48,
+      "location_hint": "Fashion Ave to Corporate Plaza business district",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Dry cleaning pickup with order number visible",
+          "required": true
+        },
+        {
+          "type": "signature",
+          "description": "Delivery confirmation from office recipient",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Professional delivery completed, items in perfect condition",
+          "required": true
+        }
+      ],
+      "tags": ["dry-cleaning", "professional", "office"]
+    },
+    {
+      "title": "Deliver Art Supplies - Art Class Emergency",
+      "description": "Art teacher needs supplies urgently. Pick up canvases and paint from Art World (456 Creative St) and deliver to Lincoln Elementary School art room before 1 PM class starts.",
+      "category": "delivery-tasks",
+      "bounty_usd": 2.00,
+      "deadline_hours": 4,
+      "location_hint": "Art World to Lincoln Elementary School",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Art supplies package at pickup",
+          "required": true
+        },
+        {
+          "type": "signature",
+          "description": "School office or teacher delivery receipt",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Supplies delivered before class time, teacher satisfied",
+          "required": true
+        }
+      ],
+      "tags": ["school", "art-supplies", "education"]
+    },
+    {
+      "title": "Key Exchange Service - Real Estate Closing",
+      "description": "Pick up house keys from seller at 789 Willow Lane and deliver to real estate agent at Century 21 office (321 Realty Row) for property closing tomorrow.",
+      "category": "delivery-tasks",
+      "bounty_usd": 1.25,
+      "deadline_hours": 24,
+      "location_hint": "Willow Lane residential to Century 21 office",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Key handoff with seller (keys only, no personal info)",
+          "required": true
+        },
+        {
+          "type": "signature",
+          "description": "Real estate agent receipt for keys",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Secure key transfer completed, chain of custody maintained",
+          "required": true
+        }
+      ],
+      "tags": ["real-estate", "keys", "closing"]
+    },
+    {
+      "title": "Deliver Lunch Order - Office Team",
+      "description": "Pick up catered lunch order from Italian Garden Restaurant (654 Pasta Ave) and deliver to marketing team at Tech Solutions office (987 Innovation Dr, 3rd floor) by noon.",
+      "category": "delivery-tasks",
+      "bounty_usd": 1.75,
+      "deadline_hours": 6,
+      "location_hint": "Italian Garden Restaurant to Tech Solutions office",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Catered lunch pickup with order confirmation",
+          "required": true
+        },
+        {
+          "type": "photo",
+          "description": "Food delivered hot and complete to office",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Lunch delivered on time, team satisfied with order completeness",
+          "required": true
+        }
+      ],
+      "tags": ["catering", "office", "lunch"]
+    },
+    {
+      "title": "Transport Pet Supplies - Veterinary Emergency",
+      "description": "Emergency pet medication needed. Pick up special prescription food and medications from VetMed Supply (147 Animal Ave) and deliver to Happy Paws Veterinary (258 Pet Care Blvd).",
+      "category": "delivery-tasks",
+      "bounty_usd": 2.75,
+      "deadline_hours": 2,
+      "location_hint": "VetMed Supply to Happy Paws Veterinary",
+      "evidence_schema": [
+        {
+          "type": "photo",
+          "description": "Veterinary supplies pickup confirmation",
+          "required": true
+        },
+        {
+          "type": "signature",
+          "description": "Veterinarian or staff delivery receipt",
+          "required": true
+        },
+        {
+          "type": "text_response",
+          "description": "Emergency supplies delivered quickly, proper cold chain maintained if needed",
+          "required": true
+        }
+      ],
+      "tags": ["veterinary", "emergency", "pet-care"]
+    }
+  ]
+}
