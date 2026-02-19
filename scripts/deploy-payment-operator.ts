@@ -42,7 +42,7 @@ const FACILITATOR_ADDRESS: Address = "0x103040545AC5031A11E8C03dd11324C7333a13C7
 const ZERO_ADDRESS: Address = "0x0000000000000000000000000000000000000000";
 
 // EM-specific constant (same on all chains)
-const EM_TREASURY: Address = "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad";
+const EM_TREASURY: Address = "0xaE07cEB6b395BC685a776a0b4c489E8d9cE9A6ad";
 
 // Custom Monad chain definition (not in viem yet)
 const monad: Chain = defineChain({
@@ -94,35 +94,35 @@ const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     rpcUrl: "https://eth.llamarpc.com",
     escrow: "0xc1256Bb30bd0cdDa07D8C8Cf67a59105f2EA1b98",
     paymentOperatorFactory: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
-    staticAddressConditionFactory: "0x6a7E26c3E47AEe7f7E97f7A3cBdA3562b1Db0a2B",
-    orConditionFactory: "0x32471d31A19e06b79A5f40dBFC4A1a26e5f44A5b",
-    staticFeeCalculatorFactory: "0xc5a96DaBD0A0e35e86E0b53e8e5B7e4b25d99c9c",
+    staticAddressConditionFactory: "0x6A7E26C3e47AeE7f7e97f7A3CBda3562B1dB0A2B",
+    orConditionFactory: "0x32471d31A19e06b79a5F40DbFc4a1a26E5F44a5B",
+    staticFeeCalculatorFactory: "0xc5a96dAbD0a0E35E86e0B53E8E5B7E4b25d99c9C",
     protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
     usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
     tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
-    payerCondition: "0xB68C0233e5b27deA08C2e4d4F9BD8B884f7e0476",
+    payerCondition: "0xB68c0233E5B27DeA08c2E4d4F9bD8b884F7E0476",
   },
   polygon: {
     chain: polygon,
-    rpcUrl: "https://polygon-rpc.com",
+    rpcUrl: "https://polygon-bor-rpc.publicnode.com",
     escrow: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
     paymentOperatorFactory: "0xb33D6502EdBbC47201cd1E53C49d703EC0a660b8",
-    staticAddressConditionFactory: "0xc5a96DaBD0A0e35e86E0b53e8e5B7e4b25d99c9c",
-    orConditionFactory: "0x19a798c72A92CfB42aa74b0e7B5Ce7F3a92c1C3F",
-    staticFeeCalculatorFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+    staticAddressConditionFactory: "0xc5a96dAbD0a0E35E86e0B53E8E5B7E4b25d99c9C",
+    orConditionFactory: "0x19a798c72A92cFb42aa74b0e7b5Ce7f3A92C1C3f",
+    staticFeeCalculatorFactory: "0xE968AA75E5B13c7E21f21bfF8A5e3CaE2FB13c2c",
     protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
     usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
     tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
-    payerCondition: "0x2714EA3e1c1A0eB7f7D8c0E52F00B8C78Be35f52",
+    payerCondition: "0x2714Ea3E1C1a0eb7f7d8C0E52f00b8C78BE35F52",
   },
   arbitrum: {
     chain: arbitrum,
     rpcUrl: "https://arb1.arbitrum.io/rpc",
     escrow: "0x320a3c35F131E5D2Fb36af56345726B298936037",
     paymentOperatorFactory: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
-    staticAddressConditionFactory: "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
-    orConditionFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
-    staticFeeCalculatorFactory: "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+    staticAddressConditionFactory: "0x0DdF51E6c64eac0dF8a3E4b5C74bF5C57fe39c65",
+    orConditionFactory: "0xE968AA75E5B13c7E21f21bfF8A5e3CaE2FB13c2c",
+    staticFeeCalculatorFactory: "0x89257cA13b7e21B2F3dBe5bc8E4e09a7DfA83b39",
     protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
     usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
     tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
@@ -133,9 +133,9 @@ const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     rpcUrl: "https://forno.celo.org",
     escrow: "0x320a3c35F131E5D2Fb36af56345726B298936037",
     paymentOperatorFactory: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
-    staticAddressConditionFactory: "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
-    orConditionFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
-    staticFeeCalculatorFactory: "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+    staticAddressConditionFactory: "0x0DdF51E6c64eac0dF8a3E4b5C74bF5C57fe39c65",
+    orConditionFactory: "0xE968AA75E5B13c7E21f21bfF8A5e3CaE2FB13c2c",
+    staticFeeCalculatorFactory: "0x89257cA13b7e21B2F3dBe5bc8E4e09a7DfA83b39",
     protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
     usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
     tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
@@ -146,9 +146,9 @@ const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     rpcUrl: "https://rpc.monad.xyz",
     escrow: "0x320a3c35F131E5D2Fb36af56345726B298936037",
     paymentOperatorFactory: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
-    staticAddressConditionFactory: "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
-    orConditionFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
-    staticFeeCalculatorFactory: "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+    staticAddressConditionFactory: "0x0DdF51E6c64eac0dF8a3E4b5C74bF5C57fe39c65",
+    orConditionFactory: "0xE968AA75E5B13c7E21f21bfF8A5e3CaE2FB13c2c",
+    staticFeeCalculatorFactory: "0x89257cA13b7e21B2F3dBe5bc8E4e09a7DfA83b39",
     protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
     usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
     tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
@@ -159,9 +159,9 @@ const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
     escrow: "0x320a3c35F131E5D2Fb36af56345726B298936037",
     paymentOperatorFactory: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
-    staticAddressConditionFactory: "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
-    orConditionFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
-    staticFeeCalculatorFactory: "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+    staticAddressConditionFactory: "0x0DdF51E6c64eac0dF8a3E4b5C74bF5C57fe39c65",
+    orConditionFactory: "0xE968AA75E5B13c7E21f21bfF8A5e3CaE2FB13c2c",
+    staticFeeCalculatorFactory: "0x89257cA13b7e21B2F3dBe5bc8E4e09a7DfA83b39",
     protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
     usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
     tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
@@ -172,9 +172,9 @@ const CHAIN_CONFIGS: Record<string, ChainConfig> = {
     rpcUrl: "https://mainnet.optimism.io",
     escrow: "0x320a3c35F131E5D2Fb36af56345726B298936037",
     paymentOperatorFactory: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
-    staticAddressConditionFactory: "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
-    orConditionFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
-    staticFeeCalculatorFactory: "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+    staticAddressConditionFactory: "0x0DdF51E6c64eac0dF8a3E4b5C74bF5C57fe39c65",
+    orConditionFactory: "0xE968AA75E5B13c7E21f21bfF8A5e3CaE2FB13c2c",
+    staticFeeCalculatorFactory: "0x89257cA13b7e21B2F3dBe5bc8E4e09a7DfA83b39",
     protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
     usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
     tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
@@ -916,6 +916,29 @@ async function deployFase5(
   chainConfig: ChainConfig = CHAIN_CONFIGS.base,
   networkName: string = "base",
 ) {
+  // ============================================================
+  // Pre-check: Verify all required factories exist on-chain
+  // (Prevents wasted TXs if BackTrack hasn't deployed sub-factories yet)
+  // ============================================================
+  console.log("\n--- Pre-check: Verifying factory contracts on-chain ---");
+  const factoriesToCheck = [
+    { name: "StaticFeeCalculatorFactory", addr: chainConfig.staticFeeCalculatorFactory },
+    { name: "StaticAddressConditionFactory", addr: chainConfig.staticAddressConditionFactory },
+    { name: "OrConditionFactory", addr: chainConfig.orConditionFactory },
+    { name: "PaymentOperatorFactory", addr: chainConfig.paymentOperatorFactory },
+  ];
+  for (const f of factoriesToCheck) {
+    const code = await publicClient.getCode({ address: f.addr });
+    if (!code || code === "0x" || code.length <= 2) {
+      console.error(`FATAL: ${f.name} at ${f.addr} has no bytecode on ${networkName}.`);
+      console.error(`  BackTrack has not deployed this factory on ${networkName} yet.`);
+      console.error(`  Ask Ali to deploy sub-factories before deploying EM operators.`);
+      process.exit(1);
+    }
+    console.log(`  ${f.name}: OK (${(code.length - 2) / 2} bytes)`);
+  }
+  console.log("  All factories verified.\n");
+
   // ============================================================
   // Step 1: Deploy or reuse StaticFeeCalculator
   // ============================================================
