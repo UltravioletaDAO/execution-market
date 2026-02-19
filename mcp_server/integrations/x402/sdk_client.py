@@ -263,8 +263,8 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         "tokens": {
             "USDC": {
                 "address": "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
-                "name": "USD Coin",
-                "version": "1",
+                "name": "USDC",
+                "version": "2",
                 "decimals": 6,
             },
             "USDT": {
@@ -293,8 +293,8 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         "tokens": {
             "USDC": {
                 "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
-                "name": "USD Coin",
-                "version": "1",
+                "name": "USDC",
+                "version": "2",
                 "decimals": 6,
             },
             "AUSD": {

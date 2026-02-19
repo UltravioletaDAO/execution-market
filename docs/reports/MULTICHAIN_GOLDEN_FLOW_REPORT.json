@@ -1,0 +1,200 @@
+{
+  "timestamp": "2026-02-19T17:54:01.738729+00:00",
+  "api_base": "https://api.execution.market",
+  "fee_model": "credit_card",
+  "bounty_per_chain_usd": 0.1,
+  "fee_per_chain_usd": 0.013,
+  "worker_net_per_chain_usd": 0.087,
+  "total_chains": 7,
+  "total_cost_usd": 0.7000000000000001,
+  "worker_wallet": "0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15",
+  "treasury_wallet": "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad",
+  "health_ok": true,
+  "executor_id": "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4",
+  "reputation_status": "PARTIAL",
+  "chains": {
+    "base": {
+      "network": "base",
+      "display_name": "Base",
+      "chain_id": 8453,
+      "status": "PASS",
+      "error": null,
+      "elapsed_s": 37.95,
+      "task_id": "dc3e1ff6-ed94-4b8e-843e-ec97583d5b6d",
+      "escrow_tx": "0xd4e0300d025eb1ecd86f82e7ba20839f22d72d0054b24a5e7e0e166002dba2e9",
+      "payment_tx": "0xd2bab27cf0b1ce698b852be913d528391f067890eb90ba823e73314508a3d0ca",
+      "fee_distribute_tx": null,
+      "escrow_verified": true,
+      "payment_verified": true,
+      "worker_net_usdc": 0.087,
+      "platform_fee_usdc": 0.013000000000000012,
+      "payment_mode": "fase2",
+      "tx_hashes": [
+        "0xd4e0300d025eb1ecd86f82e7ba20839f22d72d0054b24a5e7e0e166002dba2e9",
+        "0xd2bab27cf0b1ce698b852be913d528391f067890eb90ba823e73314508a3d0ca"
+      ],
+      "phases": {
+        "create": "PASS",
+        "apply": "PASS",
+        "assign": "PASS",
+        "submit": "PASS",
+        "approve": "PASS"
+      }
+    },
+    "polygon": {
+      "network": "polygon",
+      "display_name": "Polygon",
+      "chain_id": 137,
+      "status": "PASS",
+      "error": null,
+      "elapsed_s": 50.14,
+      "task_id": "181e89f4-50c2-484c-9a87-65d901926b49",
+      "escrow_tx": "0x781e08f4b2ab1130416cb8ac2a1d8c9a4df338923d2ea2e1bb437ec87539a192",
+      "payment_tx": "0xb93190a576ad429b1a3051697e05cbfb4cbcb4e4c075b4f7b3acb2bdb7c36532",
+      "fee_distribute_tx": null,
+      "escrow_verified": true,
+      "payment_verified": true,
+      "worker_net_usdc": 0.087,
+      "platform_fee_usdc": 0.013000000000000012,
+      "payment_mode": "fase2",
+      "tx_hashes": [
+        "0x781e08f4b2ab1130416cb8ac2a1d8c9a4df338923d2ea2e1bb437ec87539a192",
+        "0xb93190a576ad429b1a3051697e05cbfb4cbcb4e4c075b4f7b3acb2bdb7c36532"
+      ],
+      "phases": {
+        "create": "PASS",
+        "apply": "PASS",
+        "assign": "PASS",
+        "submit": "PASS",
+        "approve": "PASS"
+      }
+    },
+    "arbitrum": {
+      "network": "arbitrum",
+      "display_name": "Arbitrum",
+      "chain_id": 42161,
+      "status": "PASS",
+      "error": null,
+      "elapsed_s": 50.47,
+      "task_id": "561a4495-87bb-4411-878e-3aec8e49558c",
+      "escrow_tx": "0xfb471b4d807faa08d2c8c71feb5cad619b9b85798c827d13ab9d7083904e3e3c",
+      "payment_tx": "0xeb7557d811f390c24a49567571779915dfe6e3ded5cabea5460e6d7424ccf52d",
+      "fee_distribute_tx": null,
+      "escrow_verified": true,
+      "payment_verified": true,
+      "worker_net_usdc": 0.087,
+      "platform_fee_usdc": 0.013000000000000012,
+      "payment_mode": "fase2",
+      "tx_hashes": [
+        "0xfb471b4d807faa08d2c8c71feb5cad619b9b85798c827d13ab9d7083904e3e3c",
+        "0xeb7557d811f390c24a49567571779915dfe6e3ded5cabea5460e6d7424ccf52d"
+      ],
+      "phases": {
+        "create": "PASS",
+        "apply": "PASS",
+        "assign": "PASS",
+        "submit": "PASS",
+        "approve": "PASS"
+      }
+    },
+    "avalanche": {
+      "network": "avalanche",
+      "display_name": "Avalanche",
+      "chain_id": 43114,
+      "status": "PASS",
+      "error": null,
+      "elapsed_s": 43.95,
+      "task_id": "77005092-1964-4f9e-b35f-7115d44bfef3",
+      "escrow_tx": "0xfae22be2707484bc1216fc7dcd97e4a05dc0de957cfcc3d91449827e54214b46",
+      "payment_tx": "0x07a4e92d8f06f18a79f9f5bbee7843d57d92f22e3b451605a38751ef91066550",
+      "fee_distribute_tx": null,
+      "escrow_verified": true,
+      "payment_verified": true,
+      "worker_net_usdc": 0.087,
+      "platform_fee_usdc": 0.013000000000000012,
+      "payment_mode": "fase2",
+      "tx_hashes": [
+        "0xfae22be2707484bc1216fc7dcd97e4a05dc0de957cfcc3d91449827e54214b46",
+        "0x07a4e92d8f06f18a79f9f5bbee7843d57d92f22e3b451605a38751ef91066550"
+      ],
+      "phases": {
+        "create": "PASS",
+        "apply": "PASS",
+        "assign": "PASS",
+        "submit": "PASS",
+        "approve": "PASS"
+      }
+    },
+    "monad": {
+      "network": "monad",
+      "display_name": "Monad",
+      "chain_id": 143,
+      "status": "FAIL",
+      "error": "Assign failed: Escrow lock failed during assignment: Escrow authorize failed: Escrow scheme error: Contract call failed: ContractCall(\"ErrorResp(ErrorPayload { code: -32603, message: \\\"execution reverted: FiatTokenV2: invalid signature\\\", data: Some(RawValue(\\\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e46696174546f6b656e56323a20696e76616c6964207369676e61747572650000\\\")) })\"). Task remains published.",
+      "elapsed_s": 5.37,
+      "task_id": "de00ace1-1201-442a-b645-ddb74e0c78b5",
+      "escrow_tx": null,
+      "payment_tx": null,
+      "fee_distribute_tx": null,
+      "escrow_verified": false,
+      "payment_verified": false,
+      "worker_net_usdc": null,
+      "platform_fee_usdc": null,
+      "payment_mode": null,
+      "tx_hashes": [],
+      "phases": {
+        "create": "PASS",
+        "apply": "PASS",
+        "assign": "FAIL"
+      }
+    },
+    "celo": {
+      "network": "celo",
+      "display_name": "Celo",
+      "chain_id": 42220,
+      "status": "FAIL",
+      "error": "Assign failed: Escrow lock failed during assignment: Escrow authorize failed: Escrow scheme error: Contract call failed: ContractCall(\"ErrorResp(ErrorPayload { code: 3, message: \\\"execution reverted: FiatTokenV2: invalid signature\\\", data: Some(RawValue(\\\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e46696174546f6b656e56323a20696e76616c6964207369676e61747572650000\\\")) })\"). Task remains published.",
+      "elapsed_s": 5.31,
+      "task_id": "029f031b-3e2d-497d-8691-c7af496d1d22",
+      "escrow_tx": null,
+      "payment_tx": null,
+      "fee_distribute_tx": null,
+      "escrow_verified": false,
+      "payment_verified": false,
+      "worker_net_usdc": null,
+      "platform_fee_usdc": null,
+      "payment_mode": null,
+      "tx_hashes": [],
+      "phases": {
+        "create": "PASS",
+        "apply": "PASS",
+        "assign": "FAIL"
+      }
+    },
+    "optimism": {
+      "network": "optimism",
+      "display_name": "Optimism",
+      "chain_id": 10,
+      "status": "FAIL",
+      "error": "Assign failed: Escrow lock failed during assignment: Escrow authorize failed: Escrow scheme error: PaymentInfo validation failed: operator address mismatch: client=0xa06958d93135bed7e43893897c0d9fa931ef051c, allowed=[0xc2377a9db1de2520bd6b2756ed012f4e82f7938e]. Task remains published.",
+      "elapsed_s": 6.11,
+      "task_id": "336cf47e-5367-4aad-92c5-54df153b47bf",
+      "escrow_tx": null,
+      "payment_tx": null,
+      "fee_distribute_tx": null,
+      "escrow_verified": false,
+      "payment_verified": false,
+      "worker_net_usdc": null,
+      "platform_fee_usdc": null,
+      "payment_mode": null,
+      "tx_hashes": [],
+      "phases": {
+        "create": "PASS",
+        "apply": "PASS",
+        "assign": "FAIL"
+      }
+    }
+  },
+  "overall": "FAIL",
+  "total_elapsed_s": 224.77
+}
