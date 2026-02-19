@@ -1,0 +1,4 @@
+# Pipeline outputs — regenerable from source logs
+# Run: python aggregate-logs.py && python user-stats.py && python extract-skills.py && python extract-voice.py && python generate-soul.py
+*
+!.gitignore
