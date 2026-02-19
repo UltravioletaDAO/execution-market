@@ -13,7 +13,11 @@
     "test:smoke": "tsx smoke-test.ts",
     "test:smoke:live": "tsx smoke-test.ts --live",
     "report:sanity": "tsx report-sanity-warnings.ts",
-    "report:sanity:strict": "tsx report-sanity-warnings.ts --fail-on-warning"
+    "report:sanity:strict": "tsx report-sanity-warnings.ts --fail-on-warning",
+    "kk:wallets": "tsx kk/generate-wallets.ts",
+    "kk:distribute": "tsx kk/distribute-funds.ts",
+    "kk:bridge": "tsx kk/fund-agents.ts",
+    "kk:balances": "tsx kk/check-balances.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
