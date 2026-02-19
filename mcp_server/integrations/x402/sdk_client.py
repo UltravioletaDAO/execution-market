@@ -276,7 +276,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         },
         "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
-        "operator": None,
+        "operator": "0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e",
         "x402r_infra": {
             "staticAddressConditionFactory": "0x0DdF51E62DDD41B5f67BEaF2DCE9F2E99E2C5aF5",
             "orConditionFactory": "0xe968AA7530b9C3336FED14FD5D5D4dD3Cf82655D",
@@ -372,7 +372,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         },
         "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
-        "operator": None,
+        "operator": "0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e",
         "x402r_infra": {
             "staticAddressConditionFactory": "0x0DdF51E62DDD41B5f67BEaF2DCE9F2E99E2C5aF5",
             "orConditionFactory": "0xe968AA7530b9C3336FED14FD5D5D4dD3Cf82655D",
