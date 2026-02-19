@@ -17,7 +17,8 @@
     "kk:wallets": "tsx kk/generate-wallets.ts",
     "kk:distribute": "tsx kk/distribute-funds.ts",
     "kk:bridge": "tsx kk/fund-agents.ts",
-    "kk:balances": "tsx kk/check-balances.ts"
+    "kk:balances": "tsx kk/check-balances.ts",
+    "kk:register": "tsx kk/register-agents-erc8004.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
