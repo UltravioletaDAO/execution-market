@@ -1,0 +1,24 @@
+# Core dependencies for Execution Market OpenAI Agents integration
+
+# OpenAI Agents SDK
+openai-agents>=0.2.0
+
+# OpenAI API client (required by openai-agents)
+openai>=1.0.0
+
+# HTTP requests for Execution Market API
+requests>=2.28.0
+
+# Data validation and parsing
+pydantic>=2.0.0
+
+# Decimal handling for financial calculations
+# (built-in to Python, but noting for clarity)
+
+# Optional: Enhanced development experience
+python-dotenv>=0.19.0  # For .env file support
+
+# Optional: Testing dependencies (uncomment for development)
+# pytest>=7.0.0
+# pytest-asyncio>=0.21.0
+# responses>=0.23.0  # For mocking HTTP requests in tests
