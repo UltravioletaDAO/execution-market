@@ -273,6 +273,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism`)
 - `X402_NETWORK` - Default payment network (default: `base`)
 - **To add a new chain or stablecoin**: Use the **`add-network` skill** (`.claude/skills/add-network/SKILL.md`) — it has the complete step-by-step checklist
+- **To deploy/redeploy PaymentOperators**: Use the **`deploy-operator` skill** (`.claude/skills/deploy-operator/SKILL.md`) — deploys Fase 5 operators on any supported chain
 - Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — single source of truth, 15 EVM networks, 5 stablecoins, 10 with x402r escrow)
 - Other Python files (facilitator_client, tests, platform_config) **auto-derive** from sdk_client.py — no manual updates needed
 
@@ -289,6 +290,10 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Arbitrum, Avalanche, Celo, Monad, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
 | **EM PaymentOperator (Fase 5 Trustless Fee Split)** | **Base** | **`0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb`** |
+| **EM PaymentOperator (Fase 5)** | **Polygon** | **`0xB87F1ECC85f074e50df3DD16A1F40e4e1EC4102e`** |
+| **EM PaymentOperator (Fase 5)** | **Arbitrum** | **`0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`** |
+| **EM PaymentOperator (Fase 5)** | **Avalanche** | **`0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`** |
+| **EM PaymentOperator (Fase 5)** | **Monad** | **`0x9620Dbe2BB549E1d080Dc8e7982623A9e1Df8cC3`** |
 | StaticFeeCalculator(1300bps) | Base | `0xd643DB63028Cd1852AAFe62A0E3d2A5238d7465A` |
 | StaticFeeCalculator(1150bps, unused) | Base | `0x256eb4454a440767aE688a257ff8EadcBF180EF0` |
 | PaymentOperator (Fase 5 1150bps, unused) | Base | `0x466191B6830f23BB6A7A99a62F8dee9CC48e2Cd9` |
@@ -503,7 +508,7 @@ Wrong Flow (DO NOT USE):
 
 **Deployment script:** `scripts/deploy-payment-operator.ts` — deploys via x402r factory contracts. Use `--fase3`, `--fase3-clean`, or `--fase4` flag.
 
-**Status:** Fase 5 Operator deployed on Base (2026-02-13, `0x271f...D8F0Eb`). Credit card model: bounty = lock amount, fee deducted on-chain at release (13% of gross). Facilitator v1.33.6 live with operator in allowlist. ECS deployed. **Next**: Golden Flow E2E test. Other 7 networks pending.
+**Status:** Fase 5 Operators deployed on **5 chains** (2026-02-18): Base (`0x271f...D8F0Eb`), Polygon (`0xB87F...102e`), Arbitrum (`0xC237...938e`), Avalanche (`0xC237...938e`), Monad (`0x9620...8cC3`). Credit card model: bounty = lock amount, fee deducted on-chain at release (13% of gross). Base operator active in Facilitator allowlist. **Pending**: Register 4 new operators in Facilitator allowlist. Ethereum deployment pending (L1 RPC timeout). Celo/Optimism blocked (no gas on deployer). See `docs/reports/MULTICHAIN_DEPLOYMENT_REPORT_2026-02-18.md`.
 
 **Key upstream repos:**
 | Repo | URL | Stack |
