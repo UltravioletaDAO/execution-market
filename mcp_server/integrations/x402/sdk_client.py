@@ -114,6 +114,11 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     # x402r escrow = authorize/release/refund lifecycle for task payments.
     # Factory = deploys PaymentOperator instances per merchant.
     # BSC is excluded from escrow (no stables deployed on x402r yet).
+    #
+    # Per-network fields (escrow networks only):
+    #   "operator": EM PaymentOperator address (None = not deployed yet, Fase 2 unavailable)
+    #   "x402r_infra": Sub-factory and singleton addresses from @x402r/sdk source of truth
+    #     Used by deploy-payment-operator.ts and for on-chain reads.
     "base": {
         "chain_id": 8453,
         "rpc_url": "https://mainnet.base.org",
@@ -133,6 +138,16 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         },
         "escrow": "0xb9488351E48b23D798f24e8174514F28B741Eb4f",
         "factory": "0x3D0837fF8Ea36F417261577b9BA568400A840260",
+        "operator": "0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb",
+        "x402r_infra": {
+            "staticAddressConditionFactory": "0x206D4DbB6E7b876e4B5EFAAD2a04e7d7813FB6ba",
+            "orConditionFactory": "0x1e52a74cE6b69F04a506eF815743E1052A1BD28F",
+            "staticFeeCalculatorFactory": "0x9D4146EF898c8E60B3e865AE254ef438E7cEd2A0",
+            "protocolFeeConfig": "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+            "usdcTvlLimit": "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+            "tokenCollector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+            "payerCondition": "0x7254b68D1AaAbd118C8A8b15756b4654c10a16d2",
+        },
     },
     "ethereum": {
         "chain_id": 1,
@@ -164,7 +179,17 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
             },
         },
         "escrow": "0xc1256Bb30bd0cdDa07D8C8Cf67a59105f2EA1b98",
-        "factory": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+        "factory": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+        "operator": None,
+        "x402r_infra": {
+            "staticAddressConditionFactory": "0x6a7E26c3E47AEe7f7E97f7A3cBdA3562b1Db0a2B",
+            "orConditionFactory": "0x32471d31A19e06b79A5f40dBFC4A1a26e5f44A5b",
+            "staticFeeCalculatorFactory": "0xc5a96DaBD0A0e35e86E0b53e8e5B7e4b25d99c9c",
+            "protocolFeeConfig": "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+            "usdcTvlLimit": "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+            "tokenCollector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+            "payerCondition": "0xB68C0233e5b27deA08C2e4d4F9BD8B884f7e0476",
+        },
     },
     "polygon": {
         "chain_id": 137,
@@ -185,6 +210,16 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         },
         "escrow": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
         "factory": "0xb33D6502EdBbC47201cd1E53C49d703EC0a660b8",
+        "operator": None,
+        "x402r_infra": {
+            "staticAddressConditionFactory": "0xc5a96DaBD0A0e35e86E0b53e8e5B7e4b25d99c9c",
+            "orConditionFactory": "0x19a798c72A92CfB42aa74b0e7B5Ce7F3a92c1C3F",
+            "staticFeeCalculatorFactory": "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+            "protocolFeeConfig": "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+            "usdcTvlLimit": "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+            "tokenCollector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+            "payerCondition": "0x2714EA3e1c1A0eB7f7D8c0E52F00B8C78Be35f52",
+        },
     },
     "arbitrum": {
         "chain_id": 42161,
@@ -211,6 +246,16 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         },
         "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+        "operator": None,
+        "x402r_infra": {
+            "staticAddressConditionFactory": "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
+            "orConditionFactory": "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+            "staticFeeCalculatorFactory": "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+            "protocolFeeConfig": "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+            "usdcTvlLimit": "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+            "tokenCollector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+            "payerCondition": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+        },
     },
     "celo": {
         "chain_id": 42220,
@@ -231,6 +276,16 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         },
         "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+        "operator": None,
+        "x402r_infra": {
+            "staticAddressConditionFactory": "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
+            "orConditionFactory": "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+            "staticFeeCalculatorFactory": "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+            "protocolFeeConfig": "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+            "usdcTvlLimit": "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+            "tokenCollector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+            "payerCondition": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+        },
     },
     "monad": {
         "chain_id": 143,
@@ -251,6 +306,16 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         },
         "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+        "operator": None,
+        "x402r_infra": {
+            "staticAddressConditionFactory": "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
+            "orConditionFactory": "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+            "staticFeeCalculatorFactory": "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+            "protocolFeeConfig": "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+            "usdcTvlLimit": "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+            "tokenCollector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+            "payerCondition": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+        },
     },
     "avalanche": {
         "chain_id": 43114,
@@ -277,6 +342,16 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         },
         "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+        "operator": None,
+        "x402r_infra": {
+            "staticAddressConditionFactory": "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
+            "orConditionFactory": "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+            "staticFeeCalculatorFactory": "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+            "protocolFeeConfig": "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+            "usdcTvlLimit": "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+            "tokenCollector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+            "payerCondition": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+        },
     },
     "optimism": {
         "chain_id": 10,
@@ -297,6 +372,16 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         },
         "escrow": "0x320a3c35F131E5D2Fb36af56345726B298936037",
         "factory": "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+        "operator": None,
+        "x402r_infra": {
+            "staticAddressConditionFactory": "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
+            "orConditionFactory": "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+            "staticFeeCalculatorFactory": "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+            "protocolFeeConfig": "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+            "usdcTvlLimit": "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+            "tokenCollector": "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+            "payerCondition": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+        },
     },
     "hyperevm": {
         "chain_id": 999,
@@ -425,6 +510,19 @@ def get_enabled_networks() -> list:
 def get_escrow_networks() -> list:
     """Return list of networks with x402r escrow contracts deployed."""
     return sorted(n for n, c in NETWORK_CONFIG.items() if c.get("escrow"))
+
+
+def get_operator_networks() -> list:
+    """Return list of networks with an EM PaymentOperator deployed."""
+    return sorted(n for n, c in NETWORK_CONFIG.items() if c.get("operator"))
+
+
+def get_operator_address(network: str) -> Optional[str]:
+    """Get the EM PaymentOperator address for a network, or None if not deployed."""
+    net_config = NETWORK_CONFIG.get(network)
+    if not net_config:
+        return None
+    return net_config.get("operator")
 
 
 def get_escrow_config(network: str) -> Optional[Dict[str, str]]:
