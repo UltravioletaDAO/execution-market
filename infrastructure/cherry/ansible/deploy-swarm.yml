@@ -1,0 +1,256 @@
+# Karma Kadabra V2 — Task 6.2: Ansible Deployment Playbook
+#
+# Installs OpenClaw, deploys agent workspaces, configures and starts the swarm.
+#
+# Usage:
+#   ansible-playbook -i inventory.ini deploy-swarm.yml
+#   ansible-playbook -i inventory.ini deploy-swarm.yml --tags provision
+#   ansible-playbook -i inventory.ini deploy-swarm.yml --tags deploy
+#   ansible-playbook -i inventory.ini deploy-swarm.yml --tags start
+#   ansible-playbook -i inventory.ini deploy-swarm.yml --limit kk-swarm-01
+
+---
+- name: Karma Kadabra V2 — Swarm Deployment
+  hosts: kk_swarm
+  become: true
+  vars:
+    openclaw_version: "latest"
+    node_version: "22"
+    kk_user: "kk"
+    kk_home: "/home/kk"
+    openclaw_dir: "{{ kk_home }}/openclaw"
+    workspaces_dir: "{{ kk_home }}/workspaces"
+    config_dir: "{{ kk_home }}/config"
+    log_dir: "/var/log/kk"
+    # Set via inventory: server_index, agents_start, agents_end
+
+  tasks:
+    # -----------------------------------------------------------------------
+    # Phase 1: System provisioning
+    # -----------------------------------------------------------------------
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      tags: [provision]
+
+    - name: Install system dependencies
+      apt:
+        name:
+          - curl
+          - git
+          - build-essential
+          - python3
+          - python3-pip
+          - ufw
+          - fail2ban
+          - jq
+          - htop
+          - unzip
+        state: present
+      tags: [provision]
+
+    - name: Install Node.js {{ node_version }}
+      shell: |
+        curl -fsSL https://deb.nodesource.com/setup_{{ node_version }}.x | bash -
+        apt-get install -y nodejs
+      args:
+        creates: /usr/bin/node
+      tags: [provision]
+
+    - name: Install pnpm
+      npm:
+        name: pnpm
+        global: yes
+        state: present
+      tags: [provision]
+
+    - name: Configure UFW
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - "22"     # SSH
+        - "6667"   # IRC
+        - "18789"  # OpenClaw gateway
+      tags: [provision]
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        default: deny
+        direction: incoming
+      tags: [provision]
+
+    - name: Enable fail2ban
+      systemd:
+        name: fail2ban
+        enabled: yes
+        state: started
+      tags: [provision]
+
+    # -----------------------------------------------------------------------
+    # Phase 2: User and directory setup
+    # -----------------------------------------------------------------------
+    - name: Create KK user
+      user:
+        name: "{{ kk_user }}"
+        shell: /bin/bash
+        create_home: yes
+      tags: [provision]
+
+    - name: Create directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ kk_user }}"
+        group: "{{ kk_user }}"
+        mode: "0755"
+      loop:
+        - "{{ openclaw_dir }}"
+        - "{{ workspaces_dir }}"
+        - "{{ config_dir }}"
+        - "{{ log_dir }}"
+      tags: [provision]
+
+    # -----------------------------------------------------------------------
+    # Phase 3: Install OpenClaw
+    # -----------------------------------------------------------------------
+    - name: Install OpenClaw CLI
+      become_user: "{{ kk_user }}"
+      shell: |
+        cd {{ openclaw_dir }}
+        pnpm init -y 2>/dev/null || true
+        pnpm add @openclaw/cli@{{ openclaw_version }}
+      args:
+        creates: "{{ openclaw_dir }}/node_modules/.pnpm"
+      tags: [deploy]
+
+    # -----------------------------------------------------------------------
+    # Phase 4: Deploy configuration and workspaces
+    # -----------------------------------------------------------------------
+    - name: Copy OpenClaw gateway config
+      copy:
+        src: "{{ playbook_dir }}/../openclaw.json.template"
+        dest: "{{ config_dir }}/openclaw.json"
+        owner: "{{ kk_user }}"
+        group: "{{ kk_user }}"
+        mode: "0644"
+      tags: [deploy]
+
+    - name: Patch config with server index
+      replace:
+        path: "{{ config_dir }}/openclaw.json"
+        regexp: '\$\{SERVER_INDEX\}'
+        replace: "{{ server_index }}"
+      tags: [deploy]
+
+    - name: Sync agent workspaces (slice for this server)
+      synchronize:
+        src: "workspaces/"
+        dest: "{{ workspaces_dir }}/"
+        delete: no
+        recursive: yes
+      tags: [deploy]
+
+    - name: Set workspace permissions
+      file:
+        path: "{{ workspaces_dir }}"
+        owner: "{{ kk_user }}"
+        group: "{{ kk_user }}"
+        recurse: yes
+      tags: [deploy]
+
+    # -----------------------------------------------------------------------
+    # Phase 5: Copy environment secrets
+    # -----------------------------------------------------------------------
+    - name: Deploy agent environment file
+      template:
+        src: "agent-env.j2"
+        dest: "{{ kk_home }}/.env"
+        owner: "{{ kk_user }}"
+        group: "{{ kk_user }}"
+        mode: "0600"
+      tags: [deploy]
+
+    # -----------------------------------------------------------------------
+    # Phase 6: Systemd service
+    # -----------------------------------------------------------------------
+    - name: Install OpenClaw systemd service
+      copy:
+        content: |
+          [Unit]
+          Description=Karma Kadabra V2 — OpenClaw Gateway (Server {{ server_index }})
+          After=network.target
+
+          [Service]
+          Type=simple
+          User={{ kk_user }}
+          WorkingDirectory={{ openclaw_dir }}
+          ExecStart={{ openclaw_dir }}/node_modules/.bin/openclaw gateway \
+            --config {{ config_dir }}/openclaw.json \
+            --workspaces {{ workspaces_dir }}
+          Restart=on-failure
+          RestartSec=10
+          StandardOutput=append:{{ log_dir }}/gateway.log
+          StandardError=append:{{ log_dir }}/gateway-error.log
+          Environment="NODE_ENV=production"
+          EnvironmentFile={{ kk_home }}/.env
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/openclaw-gateway.service
+        mode: "0644"
+      tags: [start]
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+      tags: [start]
+
+    - name: Start OpenClaw gateway
+      systemd:
+        name: openclaw-gateway
+        enabled: yes
+        state: started
+      tags: [start]
+
+    # -----------------------------------------------------------------------
+    # Phase 7: Install daily cron
+    # -----------------------------------------------------------------------
+    - name: Copy daily routine script
+      copy:
+        src: "{{ playbook_dir }}/../../../scripts/kk/cron/daily_routine.py"
+        dest: "{{ kk_home }}/daily_routine.py"
+        owner: "{{ kk_user }}"
+        group: "{{ kk_user }}"
+        mode: "0755"
+      tags: [deploy]
+
+    - name: Install pip dependencies for cron scripts
+      become_user: "{{ kk_user }}"
+      pip:
+        name:
+          - httpx
+          - python-dotenv
+        extra_args: "--user"
+      tags: [deploy]
+
+    - name: Install daily cron
+      cron:
+        name: "KK Daily Routine"
+        user: "{{ kk_user }}"
+        minute: "0"
+        hour: "6"
+        job: >
+          cd {{ kk_home }} &&
+          python3 daily_routine.py --daemon
+          >> {{ log_dir }}/daily-routine.log 2>&1
+      tags: [deploy]
+
+  handlers:
+    - name: restart openclaw
+      systemd:
+        name: openclaw-gateway
+        state: restarted
