@@ -1,0 +1,21 @@
+# Karma Kadabra V2 — Agent Environment (Server {{ server_index }})
+# Managed by Ansible — do not edit manually.
+
+# Execution Market
+EM_API_URL=https://api.execution.market
+EM_API_KEY={{ em_api_key | default('') }}
+
+# Wallet (derived from HD mnemonic at runtime)
+AGENT_MNEMONIC={{ agent_mnemonic | default('') }}
+
+# MCP Server
+EM_MCP_URL=https://mcp.execution.market/mcp/
+
+# IRC
+IRC_SERVER=irc.meshrelay.xyz
+IRC_PORT=6667
+
+# Swarm config
+SERVER_INDEX={{ server_index }}
+AGENTS_START={{ agents_start }}
+AGENTS_END={{ agents_end }}

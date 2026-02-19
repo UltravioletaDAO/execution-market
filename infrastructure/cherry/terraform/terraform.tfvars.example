@@ -1,0 +1,10 @@
+# Karma Kadabra V2 — Terraform Variables
+# Copy to terraform.tfvars and fill in your values.
+
+cherry_api_key = "YOUR_CHERRY_API_KEY"
+project_id     = "YOUR_PROJECT_ID"
+ssh_public_key = "~/.ssh/id_ed25519.pub"
+region         = "eu_nord_1"
+plan           = "cloud_vds_2"
+server_count   = 2
+agents_per_server = 25
