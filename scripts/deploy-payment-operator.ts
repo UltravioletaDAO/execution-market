@@ -1,38 +1,34 @@
 /**
- * Deploy PaymentOperator for Execution Market on Base Mainnet
+ * Deploy PaymentOperator for Execution Market (Multi-chain)
  *
- * This script deploys a PaymentOperator via the x402r factory contracts.
+ * This script deploys a PaymentOperator via the x402r factory contracts on any supported network.
  *
- * Fase 2 (default): Facilitator-only release/refund, no protocol fees.
- * Fase 3 (--fase3):  OR(Payer, Facilitator) release/refund + StaticFeeCalculator (1% operator fee to EM treasury).
- * Fase 3 Clean (--fase3-clean): OR(Payer, Facilitator) release/refund, feeCalculator=address(0) (no on-chain operator fee).
- *                                Reuses existing OrCondition. x402r earns protocol fees via ProtocolFeeConfig, not operator fees.
- * Fase 4 (--fase4):  SECURE operator — OR(Payer|Facilitator) release, Facilitator-ONLY refund, feeCalculator=address(0).
- *                    Fixes security vulnerability: payer can no longer call refundInEscrow() directly on-chain.
+ * Supported networks: base, ethereum, polygon, arbitrum, celo, monad, avalanche, optimism
+ *
+ * Fase 2 (default): Facilitator-only release/refund, no protocol fees. (Base only — legacy)
+ * Fase 3 (--fase3):  OR(Payer, Facilitator) + StaticFeeCalculator. (Base only — legacy)
+ * Fase 3 Clean (--fase3-clean): OR(Payer, Facilitator), feeCalculator=address(0). (Base only — legacy)
+ * Fase 4 (--fase4):  SECURE — OR(Payer|Facilitator) release, Facilitator-ONLY refund. (Base only — legacy)
  * Fase 5 (--fase5):  TRUSTLESS FEE SPLIT — OR(Payer|Facilitator) release, Facilitator-ONLY refund,
- *                    StaticFeeCalculator(1150 BPS = 11.5%). At release, escrow auto-splits: worker gets 88.5%,
- *                    operator holds 11.5%. distributeFees() flushes operator balance to EM treasury.
- *                    Why 1150 BPS? Our fee is 13% of bounty. Agent pays bounty*1.13. 11.5% of total = 13% of bounty.
+ *                    StaticFeeCalculator(1300 BPS = 13%). At release, escrow auto-splits: worker gets 87%,
+ *                    operator holds 13%. distributeFees() flushes operator balance to EM treasury.
+ *                    Auto-deploys missing conditions (FacilitatorCondition, OrCondition) on new chains.
+ *                    MULTI-CHAIN: works on all 8 supported networks.
  *
  * Usage:
- *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts
- *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --dry-run
- *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase3
- *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase3 --dry-run
- *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase3-clean
- *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase3-clean --dry-run
- *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase4
- *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase4 --dry-run
- *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase5
- *   PRIVATE_KEY=0x... npx tsx deploy-payment-operator.ts --fase5 --dry-run
+ *   npx tsx deploy-payment-operator.ts --fase5 --network base --dry-run
+ *   npx tsx deploy-payment-operator.ts --fase5 --network ethereum
+ *   npx tsx deploy-payment-operator.ts --fase5 --network polygon --dry-run
+ *   npx tsx deploy-payment-operator.ts --fase5 --network arbitrum
+ *   npx tsx deploy-payment-operator.ts --fase2                          # Base only (legacy)
  *
  * Environment:
- *   PRIVATE_KEY  - Wallet with ETH on Base for gas (~$2-5)
- *   RPC_URL      - (optional) Base RPC URL, defaults to https://mainnet.base.org
+ *   PRIVATE_KEY  - Wallet with native tokens on target chain for gas (~$2-5)
+ *   RPC_URL      - (optional) Override RPC URL for target chain
  */
 
-import { createPublicClient, createWalletClient, http, parseAbi, getAddress, type Hex, type Address } from "viem";
-import { base } from "viem/chains";
+import { createPublicClient, createWalletClient, http, parseAbi, getAddress, defineChain, type Hex, type Address, type Chain } from "viem";
+import { base, mainnet, polygon, arbitrum, celo, avalanche, optimism } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import * as dotenv from "dotenv";
 
@@ -45,34 +41,155 @@ dotenv.config({ path: "../.env.local" });
 const FACILITATOR_ADDRESS: Address = "0x103040545AC5031A11E8C03dd11324C7333a13C7";
 const ZERO_ADDRESS: Address = "0x0000000000000000000000000000000000000000";
 
-// Base Mainnet x402r contract addresses (from @x402r/core config)
+// EM-specific constant (same on all chains)
+const EM_TREASURY: Address = "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad";
+
+// Custom Monad chain definition (not in viem yet)
+const monad: Chain = defineChain({
+  id: 143,
+  name: "Monad",
+  nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.monad.xyz"] } },
+});
+
+// Per-chain x402r infrastructure addresses (from @x402r/sdk source of truth)
+// Sub-factory addresses are DIFFERENT per chain (not CREATE2-identical).
+// Pattern: Arb/Celo/Monad/Avax/Op share identical addresses. Ethereum and Polygon each unique.
+type ChainConfig = {
+  chain: Chain;
+  rpcUrl: string;
+  escrow: Address;
+  paymentOperatorFactory: Address;
+  staticAddressConditionFactory: Address;
+  orConditionFactory: Address;
+  staticFeeCalculatorFactory: Address;
+  protocolFeeConfig: Address;
+  usdcTvlLimit: Address;
+  tokenCollector: Address;
+  payerCondition: Address;
+  // Existing deployments on Base (may not exist on other chains)
+  facilitatorCondition?: Address;
+  orConditionPayerFacilitator?: Address;
+};
+
+const CHAIN_CONFIGS: Record<string, ChainConfig> = {
+  base: {
+    chain: base,
+    rpcUrl: "https://mainnet.base.org",
+    escrow: "0xb9488351E48b23D798f24e8174514F28B741Eb4f",
+    paymentOperatorFactory: "0x3D0837fF8Ea36F417261577b9BA568400A840260",
+    staticAddressConditionFactory: "0x206D4DbB6E7b876e4B5EFAAD2a04e7d7813FB6ba",
+    orConditionFactory: "0x1e52a74cE6b69F04a506eF815743E1052A1BD28F",
+    staticFeeCalculatorFactory: "0x9D4146EF898c8E60B3e865AE254ef438E7cEd2A0",
+    protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+    usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+    tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+    payerCondition: "0x7254b68D1AaAbd118C8A8b15756b4654c10a16d2",
+    // Existing Base deployments
+    facilitatorCondition: "0x9d03c03c15563E72CF2186E9FDB859A00ea661fc",
+    orConditionPayerFacilitator: "0xb365717C35004089996F72939b0C5b32Fa2ef8aE",
+  },
+  ethereum: {
+    chain: mainnet,
+    rpcUrl: "https://eth.llamarpc.com",
+    escrow: "0xc1256Bb30bd0cdDa07D8C8Cf67a59105f2EA1b98",
+    paymentOperatorFactory: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+    staticAddressConditionFactory: "0x6a7E26c3E47AEe7f7E97f7A3cBdA3562b1Db0a2B",
+    orConditionFactory: "0x32471d31A19e06b79A5f40dBFC4A1a26e5f44A5b",
+    staticFeeCalculatorFactory: "0xc5a96DaBD0A0e35e86E0b53e8e5B7e4b25d99c9c",
+    protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+    usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+    tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+    payerCondition: "0xB68C0233e5b27deA08C2e4d4F9BD8B884f7e0476",
+  },
+  polygon: {
+    chain: polygon,
+    rpcUrl: "https://polygon-rpc.com",
+    escrow: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+    paymentOperatorFactory: "0xb33D6502EdBbC47201cd1E53C49d703EC0a660b8",
+    staticAddressConditionFactory: "0xc5a96DaBD0A0e35e86E0b53e8e5B7e4b25d99c9c",
+    orConditionFactory: "0x19a798c72A92CfB42aa74b0e7B5Ce7F3a92c1C3F",
+    staticFeeCalculatorFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+    protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+    usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+    tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+    payerCondition: "0x2714EA3e1c1A0eB7f7D8c0E52F00B8C78Be35f52",
+  },
+  arbitrum: {
+    chain: arbitrum,
+    rpcUrl: "https://arb1.arbitrum.io/rpc",
+    escrow: "0x320a3c35F131E5D2Fb36af56345726B298936037",
+    paymentOperatorFactory: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+    staticAddressConditionFactory: "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
+    orConditionFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+    staticFeeCalculatorFactory: "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+    protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+    usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+    tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+    payerCondition: "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+  },
+  celo: {
+    chain: celo,
+    rpcUrl: "https://forno.celo.org",
+    escrow: "0x320a3c35F131E5D2Fb36af56345726B298936037",
+    paymentOperatorFactory: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+    staticAddressConditionFactory: "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
+    orConditionFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+    staticFeeCalculatorFactory: "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+    protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+    usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+    tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+    payerCondition: "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+  },
+  monad: {
+    chain: monad,
+    rpcUrl: "https://rpc.monad.xyz",
+    escrow: "0x320a3c35F131E5D2Fb36af56345726B298936037",
+    paymentOperatorFactory: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+    staticAddressConditionFactory: "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
+    orConditionFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+    staticFeeCalculatorFactory: "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+    protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+    usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+    tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+    payerCondition: "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+  },
+  avalanche: {
+    chain: avalanche,
+    rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
+    escrow: "0x320a3c35F131E5D2Fb36af56345726B298936037",
+    paymentOperatorFactory: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+    staticAddressConditionFactory: "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
+    orConditionFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+    staticFeeCalculatorFactory: "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+    protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+    usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+    tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+    payerCondition: "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+  },
+  optimism: {
+    chain: optimism,
+    rpcUrl: "https://mainnet.optimism.io",
+    escrow: "0x320a3c35F131E5D2Fb36af56345726B298936037",
+    paymentOperatorFactory: "0x32d6AC59BCe8DFB3026F10BcaDB8D00AB218f5b6",
+    staticAddressConditionFactory: "0x0DdF51E6C64EaC0Df8A3e4b5C74bF5c57fE39c65",
+    orConditionFactory: "0xe968AA75e5B13C7E21f21BFf8a5e3cAe2Fb13c2C",
+    staticFeeCalculatorFactory: "0x89257cA13b7E21B2F3dBe5bC8E4E09a7dFa83B39",
+    protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6",
+    usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944",
+    tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8",
+    payerCondition: "0xed02d3E5167BCc9582D851885A89b050AB816a56",
+  },
+};
+
+// Legacy: Base-only ADDRESSES alias for backward compat with Fase 2/3/4 functions
 const ADDRESSES = {
-  // Factories
-  paymentOperatorFactory: "0x3D0837fF8Ea36F417261577b9BA568400A840260" as Address,
-  staticAddressConditionFactory: "0x206D4DbB6E7b876e4B5EFAAD2a04e7d7813FB6ba" as Address,
+  ...CHAIN_CONFIGS.base,
   escrowPeriodFactory: "0x12EDefd4549c53497689067f165c0f101796Eb6D" as Address,
-  orConditionFactory: "0x1e52a74cE6b69F04a506eF815743E1052A1BD28F" as Address,
-  staticFeeCalculatorFactory: "0x9D4146EF898c8E60B3e865AE254ef438E7cEd2A0" as Address,
-
-  // Protocol singletons
-  authCaptureEscrow: "0xb9488351E48b23D798f24e8174514F28B741Eb4f" as Address,
-  protocolFeeConfig: "0x59314674BAbb1a24Eb2704468a9cCdD50668a1C6" as Address,
-  usdcTvlLimit: "0x67B63Af4bcdCD3E4263d9995aB04563fbC229944" as Address,
-  tokenCollector: "0x48ADf6E37F9b31dC2AAD0462C5862B5422C736B8" as Address,
-
-  // Condition singletons (verified on-chain — have bytecode)
-  payerCondition: "0x7254b68D1AaAbd118C8A8b15756b4654c10a16d2" as Address,
+  authCaptureEscrow: CHAIN_CONFIGS.base.escrow,
   receiverCondition: "0x6926c05193c714ED4bA3867Ee93d6816Fdc14128" as Address,
   alwaysTrueCondition: "0xBAF68176FF94CAdD403EF7FbB776bbca548AC09D" as Address,
-
-  // Existing Fase 2 deployment (StaticAddressCondition for Facilitator)
-  facilitatorCondition: "0x9d03c03c15563E72CF2186E9FDB859A00ea661fc" as Address,
-
-  // Existing Fase 3 deployment: OrCondition(PayerCondition, FacilitatorCondition)
-  orConditionPayerFacilitator: "0xb365717C35004089996F72939b0C5b32Fa2ef8aE" as Address,
-
-  // EM-specific
-  emTreasury: "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad" as Address,
+  emTreasury: EM_TREASURY,
 };
 
 // Fase 3: 1% operator fee (100 basis points)
@@ -143,6 +260,24 @@ async function main() {
   const isFase4 = process.argv.includes("--fase4");
   const isFase5 = process.argv.includes("--fase5");
 
+  // Parse --network flag (default: base)
+  const networkIdx = process.argv.indexOf("--network");
+  const networkName = networkIdx >= 0 && process.argv[networkIdx + 1]
+    ? process.argv[networkIdx + 1]
+    : "base";
+
+  const chainConfig = CHAIN_CONFIGS[networkName];
+  if (!chainConfig) {
+    console.error(`ERROR: Unknown network '${networkName}'. Supported: ${Object.keys(CHAIN_CONFIGS).join(", ")}`);
+    process.exit(1);
+  }
+
+  // Legacy modes (Fase 2/3/4) only work on Base
+  if (!isFase5 && networkName !== "base") {
+    console.error(`ERROR: Fase 2/3/4 modes only work on Base. Use --fase5 for multi-chain deployment.`);
+    process.exit(1);
+  }
+
   const modeLabel = isFase5
     ? "Fase 5 (Trustless Fee Split)"
     : isFase4
@@ -171,12 +306,12 @@ async function main() {
   }
 
   const account = privateKeyToAccount(privateKey);
-  const rpcUrl = process.env.RPC_URL || process.env.X402_RPC_URL || "https://mainnet.base.org";
+  const rpcUrl = process.env.RPC_URL || process.env.X402_RPC_URL || chainConfig.rpcUrl;
 
   console.log("=".repeat(60));
   console.log(`Deploy PaymentOperator for Execution Market (${modeLabel})`);
   console.log("=".repeat(60));
-  console.log(`Network:      Base Mainnet (chain ${base.id})`);
+  console.log(`Network:      ${networkName} (chain ${chainConfig.chain.id})`);
   console.log(`RPC:          ${rpcUrl}`);
   console.log(`Deployer:     ${account.address}`);
   console.log(`Facilitator:  ${FACILITATOR_ADDRESS}`);
@@ -185,27 +320,27 @@ async function main() {
   console.log("");
 
   const publicClient = createPublicClient({
-    chain: base,
+    chain: chainConfig.chain,
     transport: http(rpcUrl),
   });
 
   const walletClient = createWalletClient({
     account,
-    chain: base,
+    chain: chainConfig.chain,
     transport: http(rpcUrl),
   });
 
-  // Check deployer ETH balance
+  // Check deployer native balance
   const balance = await publicClient.getBalance({ address: account.address });
-  const ethBalance = Number(balance) / 1e18;
-  console.log(`Deployer ETH: ${ethBalance.toFixed(6)} ETH`);
-  if (ethBalance < 0.001) {
-    console.error("ERROR: Insufficient ETH for gas. Need at least 0.001 ETH.");
+  const nativeBalance = Number(balance) / 1e18;
+  console.log(`Deployer balance: ${nativeBalance.toFixed(6)} ${chainConfig.chain.nativeCurrency.symbol}`);
+  if (nativeBalance < 0.001) {
+    console.error(`ERROR: Insufficient ${chainConfig.chain.nativeCurrency.symbol} for gas. Need at least 0.001.`);
     process.exit(1);
   }
 
   if (isFase5) {
-    await deployFase5(publicClient, walletClient, isDryRun);
+    await deployFase5(publicClient, walletClient, isDryRun, chainConfig, networkName);
   } else if (isFase4) {
     await deployFase4(publicClient, walletClient, isDryRun);
   } else if (isFase3Clean) {
@@ -778,17 +913,19 @@ async function deployFase5(
   publicClient: ReturnType<typeof createPublicClient>,
   walletClient: ReturnType<typeof createWalletClient>,
   isDryRun: boolean,
+  chainConfig: ChainConfig = CHAIN_CONFIGS.base,
+  networkName: string = "base",
 ) {
   // ============================================================
-  // Step 1: Deploy or reuse StaticFeeCalculator(1150 BPS)
+  // Step 1: Deploy or reuse StaticFeeCalculator
   // ============================================================
   console.log(`\n--- Step 1: StaticFeeCalculator(${FASE5_FEE_BPS}bps = ${FASE5_FEE_BPS / 100}%) ---`);
-  console.log(`  Fee goes to FEE_RECIPIENT on operator (EM treasury ${ADDRESSES.emTreasury})`);
+  console.log(`  Fee goes to FEE_RECIPIENT on operator (EM treasury ${EM_TREASURY})`);
 
   let feeCalculator: Address;
   try {
     const existing = await publicClient.readContract({
-      address: ADDRESSES.staticFeeCalculatorFactory,
+      address: chainConfig.staticFeeCalculatorFactory,
       abi: StaticFeeCalculatorFactoryABI,
       functionName: "getDeployed",
       args: [BigInt(FASE5_FEE_BPS)],
@@ -809,7 +946,7 @@ async function deployFase5(
       console.log("Deploying StaticFeeCalculator...");
       console.log(`  feeBps: ${FASE5_FEE_BPS} (${FASE5_FEE_BPS / 100}%)`);
       const hash = await walletClient.writeContract({
-        address: ADDRESSES.staticFeeCalculatorFactory,
+        address: chainConfig.staticFeeCalculatorFactory,
         abi: StaticFeeCalculatorFactoryABI,
         functionName: "deploy",
         args: [BigInt(FASE5_FEE_BPS)],
@@ -819,7 +956,7 @@ async function deployFase5(
       console.log(`Gas used: ${receipt.gasUsed} (${receipt.status})`);
 
       feeCalculator = await publicClient.readContract({
-        address: ADDRESSES.staticFeeCalculatorFactory,
+        address: chainConfig.staticFeeCalculatorFactory,
         abi: StaticFeeCalculatorFactoryABI,
         functionName: "getDeployed",
         args: [BigInt(FASE5_FEE_BPS)],
@@ -840,31 +977,146 @@ async function deployFase5(
   }
 
   // ============================================================
-  // Step 2: Verify existing conditions on-chain (reuse from Fase 4)
+  // Step 2: Deploy or reuse FacilitatorCondition + OrCondition
+  // On Base these already exist; on new chains we deploy them.
   // ============================================================
-  console.log("\n--- Step 2: Verify existing conditions ---");
-  console.log(`  OrCondition(Payer, Facilitator):    ${ADDRESSES.orConditionPayerFacilitator}`);
-  console.log(`  StaticAddressCondition(Facilitator): ${ADDRESSES.facilitatorCondition}`);
+  console.log("\n--- Step 2: Conditions (FacilitatorCondition + OrCondition) ---");
 
-  const orCondition = ADDRESSES.orConditionPayerFacilitator;
-  const facilitatorOnly = ADDRESSES.facilitatorCondition;
+  let facilitatorOnly: Address;
+  let orCondition: Address;
 
-  if (!isDryRun) {
-    const orBytecode = await publicClient.getCode({ address: orCondition });
-    if (!orBytecode || orBytecode === "0x") {
-      console.error(`FATAL: OrCondition at ${orCondition} has no bytecode`);
-      process.exit(1);
+  if (chainConfig.facilitatorCondition && chainConfig.orConditionPayerFacilitator) {
+    // Reuse existing deployments (Base)
+    facilitatorOnly = chainConfig.facilitatorCondition;
+    orCondition = chainConfig.orConditionPayerFacilitator;
+    console.log(`  Using existing FacilitatorCondition: ${facilitatorOnly}`);
+    console.log(`  Using existing OrCondition:          ${orCondition}`);
+
+    if (!isDryRun) {
+      const orBytecode = await publicClient.getCode({ address: orCondition });
+      if (!orBytecode || orBytecode === "0x") {
+        console.error(`FATAL: OrCondition at ${orCondition} has no bytecode`);
+        process.exit(1);
+      }
+      console.log(`  OrCondition verified: contract exists (${orBytecode.length / 2 - 1} bytes)`);
+
+      const facBytecode = await publicClient.getCode({ address: facilitatorOnly });
+      if (!facBytecode || facBytecode === "0x") {
+        console.error(`FATAL: StaticAddressCondition at ${facilitatorOnly} has no bytecode`);
+        process.exit(1);
+      }
+      console.log(`  FacilitatorCondition verified: contract exists (${facBytecode.length / 2 - 1} bytes)`);
     }
-    console.log(`  OrCondition verified: contract exists (${orBytecode.length / 2 - 1} bytes)`);
-
-    const facBytecode = await publicClient.getCode({ address: facilitatorOnly });
-    if (!facBytecode || facBytecode === "0x") {
-      console.error(`FATAL: StaticAddressCondition at ${facilitatorOnly} has no bytecode`);
-      process.exit(1);
-    }
-    console.log(`  FacilitatorCondition verified: contract exists (${facBytecode.length / 2 - 1} bytes)`);
   } else {
-    console.log(`  DRY RUN: Would verify bytecode at both addresses`);
+    // New chain — deploy FacilitatorCondition then OrCondition
+    console.log(`  New chain (${networkName}) — deploying conditions...`);
+
+    // Step 2a: StaticAddressCondition(Facilitator)
+    console.log(`\n  --- Step 2a: StaticAddressCondition(Facilitator) ---`);
+    try {
+      const existing = await publicClient.readContract({
+        address: chainConfig.staticAddressConditionFactory,
+        abi: StaticAddressConditionFactoryABI,
+        functionName: "getDeployed",
+        args: [FACILITATOR_ADDRESS],
+      });
+      if (existing && existing !== ZERO_ADDRESS) {
+        facilitatorOnly = existing;
+        console.log(`  Already deployed at: ${facilitatorOnly}`);
+      } else {
+        throw new Error("Not deployed");
+      }
+    } catch {
+      if (isDryRun) {
+        console.log("  DRY RUN: Would deploy StaticAddressCondition(Facilitator)");
+        facilitatorOnly = "0x_DRY_RUN_FAC_COND" as Address;
+      } else {
+        console.log("  Deploying StaticAddressCondition for Facilitator...");
+        const hash = await walletClient.writeContract({
+          address: chainConfig.staticAddressConditionFactory,
+          abi: StaticAddressConditionFactoryABI,
+          functionName: "deploy",
+          args: [FACILITATOR_ADDRESS],
+        });
+        console.log(`  TX: ${hash}`);
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        console.log(`  Gas used: ${receipt.gasUsed} (${receipt.status})`);
+
+        facilitatorOnly = await publicClient.readContract({
+          address: chainConfig.staticAddressConditionFactory,
+          abi: StaticAddressConditionFactoryABI,
+          functionName: "getDeployed",
+          args: [FACILITATOR_ADDRESS],
+        });
+
+        if (!facilitatorOnly || facilitatorOnly === ZERO_ADDRESS) {
+          const deployed = extractDeployedAddress(receipt);
+          if (deployed) {
+            facilitatorOnly = deployed;
+          } else {
+            console.error("FATAL: Could not determine FacilitatorCondition address");
+            process.exit(1);
+          }
+        }
+        console.log(`  Deployed at: ${facilitatorOnly}`);
+      }
+    }
+
+    // Step 2b: OrCondition(PayerCondition, FacilitatorCondition)
+    console.log(`\n  --- Step 2b: OrCondition(Payer, Facilitator) ---`);
+    const orConditions: Address[] = [chainConfig.payerCondition, facilitatorOnly];
+    try {
+      const existing = await publicClient.readContract({
+        address: chainConfig.orConditionFactory,
+        abi: OrConditionFactoryABI,
+        functionName: "getDeployed",
+        args: [orConditions],
+      });
+      if (existing && existing !== ZERO_ADDRESS) {
+        orCondition = existing;
+        console.log(`  Already deployed at: ${orCondition}`);
+      } else {
+        throw new Error("Not deployed");
+      }
+    } catch {
+      if (isDryRun) {
+        console.log("  DRY RUN: Would deploy OrCondition(Payer, Facilitator)");
+        console.log(`    conditions[0]: ${chainConfig.payerCondition} (PayerCondition)`);
+        console.log(`    conditions[1]: ${facilitatorOnly} (FacilitatorCondition)`);
+        orCondition = "0x_DRY_RUN_OR_COND" as Address;
+      } else {
+        console.log("  Deploying OrCondition...");
+        console.log(`    conditions[0]: ${chainConfig.payerCondition} (PayerCondition)`);
+        console.log(`    conditions[1]: ${facilitatorOnly} (FacilitatorCondition)`);
+        const hash = await walletClient.writeContract({
+          address: chainConfig.orConditionFactory,
+          abi: OrConditionFactoryABI,
+          functionName: "deploy",
+          args: [orConditions],
+        });
+        console.log(`  TX: ${hash}`);
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        console.log(`  Gas used: ${receipt.gasUsed} (${receipt.status})`);
+
+        orCondition = await publicClient.readContract({
+          address: chainConfig.orConditionFactory,
+          abi: OrConditionFactoryABI,
+          functionName: "getDeployed",
+          args: [orConditions],
+        });
+
+        if (!orCondition || orCondition === ZERO_ADDRESS) {
+          const deployed = extractDeployedAddress(receipt);
+          if (deployed) {
+            orCondition = deployed;
+          } else {
+            console.error("FATAL: Could not determine OrCondition address");
+            process.exit(1);
+          }
+        }
+        console.log(`  Deployed at: ${orCondition}`);
+      }
+    }
   }
 
   // ============================================================
@@ -877,24 +1129,16 @@ async function deployFase5(
     process.exit(1);
   }
 
-  // Fase 5 config:
-  // - feeRecipient: EM Treasury (receives operator fees via distributeFees())
-  // - feeCalculator: StaticFeeCalculator(1150 BPS) — auto-splits at release
-  // - authorizeCondition: UsdcTvlLimit (protocol safety)
-  // - releaseCondition: OR(Payer, Facilitator) — payer OR facilitator can release
-  // - refundInEscrowCondition: StaticAddressCondition(Facilitator) — ONLY facilitator (Fase 4 security)
-  // - Everything else: address(0) (permissive/unused)
-
   const operatorConfig = {
-    feeRecipient: ADDRESSES.emTreasury,
+    feeRecipient: EM_TREASURY,
     feeCalculator: feeCalculator,
-    authorizeCondition: ADDRESSES.usdcTvlLimit,
+    authorizeCondition: chainConfig.usdcTvlLimit,
     authorizeRecorder: ZERO_ADDRESS,
     chargeCondition: ZERO_ADDRESS,
     chargeRecorder: ZERO_ADDRESS,
     releaseCondition: orCondition,
     releaseRecorder: ZERO_ADDRESS,
-    refundInEscrowCondition: facilitatorOnly,  // Facilitator-ONLY (Fase 4 security retained)
+    refundInEscrowCondition: facilitatorOnly,
     refundInEscrowRecorder: ZERO_ADDRESS,
     refundPostEscrowCondition: ZERO_ADDRESS,
     refundPostEscrowRecorder: ZERO_ADDRESS,
@@ -904,11 +1148,11 @@ async function deployFase5(
     [feeCalculator]: `(StaticFeeCalculator ${FASE5_FEE_BPS}bps)`,
     [orCondition]: "(OR: Payer | Facilitator)",
     [facilitatorOnly]: "(Facilitator-ONLY — SECURE)",
-    [ADDRESSES.usdcTvlLimit]: "(UsdcTvlLimit)",
-    [ADDRESSES.emTreasury]: "(EM Treasury)",
+    [chainConfig.usdcTvlLimit]: "(UsdcTvlLimit)",
+    [EM_TREASURY]: "(EM Treasury)",
   });
 
-  const operatorAddress = await deployOrGetOperator(publicClient, walletClient, operatorConfig, isDryRun);
+  const operatorAddress = await deployOrGetOperator(publicClient, walletClient, operatorConfig, isDryRun, chainConfig);
 
   // ============================================================
   // Step 4: On-chain verification
@@ -937,7 +1181,6 @@ async function deployFase5(
       functionName: "REFUND_IN_ESCROW_CONDITION",
     });
 
-    // Read FEE_BPS from the fee calculator contract
     const feeBps = await publicClient.readContract({
       address: feeCalc,
       abi: StaticFeeCalculatorReadABI,
@@ -946,7 +1189,7 @@ async function deployFase5(
 
     const checks = [
       { name: `FEE_CALCULATOR() != address(0)`, actual: feeCalc, expected: feeCalculator },
-      { name: `FEE_RECIPIENT() == EM Treasury`, actual: feeRecipient, expected: ADDRESSES.emTreasury },
+      { name: `FEE_RECIPIENT() == EM Treasury`, actual: feeRecipient, expected: EM_TREASURY },
       { name: "RELEASE_CONDITION() == OrCondition(Payer|Facilitator)", actual: releaseCond, expected: orCondition },
       { name: "REFUND_IN_ESCROW_CONDITION() == StaticAddressCondition(Facilitator)", actual: refundCond, expected: facilitatorOnly },
     ];
@@ -960,7 +1203,6 @@ async function deployFase5(
       if (!passed) allPassed = false;
     }
 
-    // Verify fee BPS
     const bpsMatch = Number(feeBps) === FASE5_FEE_BPS;
     console.log(`  ${bpsMatch ? "PASS" : "FAIL"}: FEE_BPS() == ${FASE5_FEE_BPS}`);
     console.log(`         got:      ${feeBps}`);
@@ -973,7 +1215,6 @@ async function deployFase5(
     }
     console.log("\n  All on-chain checks passed.");
 
-    // Security check: refund condition is NOT the OR condition
     if (refundCond.toLowerCase() === orCondition.toLowerCase()) {
       console.error("\nSECURITY ALERT: REFUND_IN_ESCROW_CONDITION is OrCondition — payer can still refund directly!");
       process.exit(1);
@@ -987,6 +1228,10 @@ async function deployFase5(
     feeCalculator,
     orCondition,
     operatorAddress,
+    networkName,
+    chainId: chainConfig.chain.id,
+    escrow: chainConfig.escrow,
+    tokenCollector: chainConfig.tokenCollector,
   });
 
   console.log("");
@@ -1015,7 +1260,9 @@ async function deployOrGetOperator(
   walletClient: ReturnType<typeof createWalletClient>,
   config: Record<string, Address>,
   isDryRun: boolean,
+  chainConfig: ChainConfig = CHAIN_CONFIGS.base,
 ): Promise<Address> {
+  const factoryAddress = chainConfig.paymentOperatorFactory;
   const configTuple = [
     config.feeRecipient,
     config.feeCalculator,
@@ -1033,7 +1280,7 @@ async function deployOrGetOperator(
 
   try {
     const existing = await publicClient.readContract({
-      address: ADDRESSES.paymentOperatorFactory,
+      address: factoryAddress,
       abi: PaymentOperatorFactoryABI,
       functionName: "getOperator",
       args: [configTuple],
@@ -1052,7 +1299,7 @@ async function deployOrGetOperator(
 
     console.log("\nDeploying PaymentOperator...");
     const hash = await walletClient.writeContract({
-      address: ADDRESSES.paymentOperatorFactory,
+      address: factoryAddress,
       abi: PaymentOperatorFactoryABI,
       functionName: "deployOperator",
       args: [configTuple],
@@ -1063,7 +1310,7 @@ async function deployOrGetOperator(
 
     // Wait for RPC to index, then look up via factory
     let deployed = await publicClient.readContract({
-      address: ADDRESSES.paymentOperatorFactory,
+      address: factoryAddress,
       abi: PaymentOperatorFactoryABI,
       functionName: "getOperator",
       args: [configTuple],
@@ -1113,12 +1360,21 @@ function printSummary(params: {
   feeCalculator?: Address;
   orCondition?: Address;
   operatorAddress: Address;
+  networkName?: string;
+  chainId?: number;
+  escrow?: Address;
+  tokenCollector?: Address;
 }) {
+  const networkLabel = params.networkName || "base";
+  const chainId = params.chainId || base.id;
+  const escrow = params.escrow || CHAIN_CONFIGS.base.escrow;
+  const tokenCollector = params.tokenCollector || CHAIN_CONFIGS.base.tokenCollector;
+
   console.log("\n" + "=".repeat(60));
   console.log("DEPLOYMENT SUMMARY");
   console.log("=".repeat(60));
   console.log(`Mode:                      ${params.mode}`);
-  console.log(`Network:                   Base Mainnet (${base.id})`);
+  console.log(`Network:                   ${networkLabel} (chain ${chainId})`);
   if (params.facilitatorCondition) {
     console.log(`StaticAddressCondition:    ${params.facilitatorCondition}`);
   }
@@ -1129,19 +1385,20 @@ function printSummary(params: {
     console.log(`OrCondition:               ${params.orCondition}`);
   }
   console.log(`PaymentOperator:           ${params.operatorAddress}`);
-  console.log(`AuthCaptureEscrow:         ${ADDRESSES.authCaptureEscrow}`);
-  console.log(`TokenCollector:            ${ADDRESSES.tokenCollector}`);
+  console.log(`AuthCaptureEscrow:         ${escrow}`);
+  console.log(`TokenCollector:            ${tokenCollector}`);
   console.log(`Facilitator (authorized):  ${FACILITATOR_ADDRESS}`);
-  console.log(`EM Treasury (feeRecipient):${ADDRESSES.emTreasury}`);
+  console.log(`EM Treasury (feeRecipient):${EM_TREASURY}`);
   console.log("");
   console.log("Next steps:");
   console.log("1. Register operatorAddress in facilitator addresses.rs");
   console.log("2. Rebuild + redeploy facilitator");
   console.log("3. Test escrow lifecycle: authorize -> release / refundInEscrow");
+  console.log(`4. Update NETWORK_CONFIG['${networkLabel}']['operator'] in sdk_client.py`);
   console.log("");
   console.log("Facilitator addresses.rs entry:");
   console.log(`  payment_operator: Some("${params.operatorAddress}"),`);
-  console.log(`  token_collector: Some("${ADDRESSES.tokenCollector}"),`);
+  console.log(`  token_collector: Some("${tokenCollector}"),`);
 }
 
 main().catch((err) => {

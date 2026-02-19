@@ -64,6 +64,7 @@ try:
         EM_TREASURY,
         FACILITATOR_URL,
         NETWORK_CONFIG,
+        get_operator_address,
     )
 except ImportError:
     SDK_AVAILABLE = False
@@ -74,6 +75,7 @@ except ImportError:
     EM_TREASURY = "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad"
     FACILITATOR_URL = "https://facilitator.ultravioletadao.xyz"
     NETWORK_CONFIG = {}  # type: ignore[assignment]
+    get_operator_address = lambda network: None  # type: ignore[assignment]  # noqa: E731
 
 # --- fase2 backend (AdvancedEscrowClient from SDK, gasless via facilitator) ---
 try:
@@ -129,6 +131,20 @@ _SELECTOR_FEE_BPS = "0xbf333f2c"  # FEE_BPS()
 # Cache: {bps: int, expires: float}
 _protocol_fee_cache: Dict[str, Any] = {"bps": 0, "expires": 0.0}
 _CACHE_TTL = 300  # 5 minutes
+
+
+def _get_operator_for_network(network: str) -> str:
+    """Resolve EM PaymentOperator address for a given network.
+
+    Priority:
+    1. NETWORK_CONFIG[network]["operator"] — per-chain hardcoded address
+    2. EM_PAYMENT_OPERATOR env var — global override
+    3. EM_OPERATOR module default — Base Mainnet Fase 5 operator
+    """
+    per_chain = get_operator_address(network)
+    if per_chain:
+        return per_chain
+    return os.environ.get("EM_PAYMENT_OPERATOR", EM_OPERATOR)
 
 
 async def _get_protocol_fee_bps() -> int:
@@ -408,7 +424,7 @@ class PaymentDispatcher:
                 )
 
             rpc_url = config.get("rpc_url", "https://mainnet.base.org")
-            operator = os.environ.get("EM_PAYMENT_OPERATOR", EM_OPERATOR)
+            operator = _get_operator_for_network(network)
 
             self._fase2_clients[chain_id] = AdvancedEscrowClient(
                 private_key=pk,
@@ -1372,7 +1388,7 @@ class PaymentDispatcher:
         token_clean = token_address.lower().replace("0x", "")
         calldata = _SELECTOR_DISTRIBUTE_FEES + token_clean.zfill(64)
 
-        operator = os.environ.get("EM_PAYMENT_OPERATOR", EM_OPERATOR)
+        operator = _get_operator_for_network(network)
 
         try:
             from eth_account import Account
@@ -2535,7 +2551,7 @@ class PaymentDispatcher:
             # Fase 5: Also check operator contract USDC balance (fees pending distributeFees)
             operator_fees_usdc = Decimal("0")
             try:
-                operator_address = os.environ.get("EM_PAYMENT_OPERATOR", EM_OPERATOR)
+                operator_address = _get_operator_for_network(network)
                 operator_balance = await sdk.check_agent_balance(
                     agent_address=operator_address,
                     required_amount=Decimal("0"),
@@ -2553,7 +2569,7 @@ class PaymentDispatcher:
                 "sweepable_usdc": float(sweepable),
                 "accrued_from_tasks_usdc": float(accrued_total),
                 "operator_fees_pending_usdc": float(operator_fees_usdc),
-                "operator_address": os.environ.get("EM_PAYMENT_OPERATOR", EM_OPERATOR),
+                "operator_address": _get_operator_for_network(network),
                 "treasury_address": EM_TREASURY,
                 "network": network,
                 "token": token,
