@@ -155,7 +155,26 @@ This plan covers the implementation of **12 novel test scenarios** discovered du
   - Link to `em-rate-counterparty` skill
 - **Validation**: Generated SOUL.md files contain reputation instructions
 
-### Task 3.4: Create reputation leaderboard query
+### Task 3.4: Generate relay wallets for autonomous agent-to-agent reputation
+- **File**: `scripts/kk/generate-wallets.ts` (MODIFY)
+- **Issue**: Current `rate_agent()` returns `pending_signature` — worker must manually sign TX. With 24 autonomous agents, this blocks the entire reputation flow. Each agent needs a **relay wallet** that can sign `giveFeedback()` directly without triggering the ERC-8004 self-feedback revert.
+- **Fix**: For each agent wallet, derive a second "relay" wallet at index `agent_index + 100` (e.g., agent 0 → relay at m/44'/60'/0'/0/100). Store in `config/wallets.json` as `relay_address` + `relay_index` per agent.
+- **Validation**: Each agent has 2 addresses in wallets.json: `address` (main) + `relay_address` (reputation)
+- **Reference**: `mcp_server/integrations/erc8004/direct_reputation.py:83-210` (give_feedback_direct accepts private_key override)
+
+### Task 3.5: Modify `rate_agent()` for autonomous direct signing
+- **File**: `mcp_server/integrations/erc8004/facilitator_client.py:866-934` (MODIFY)
+- **Issue**: `rate_agent()` always returns `pending_signature`. For autonomous agents, it should accept an optional `relay_private_key` and call `give_feedback_direct()` when provided.
+- **Fix**: Add `relay_private_key: Optional[str] = None` parameter. If provided, call `give_feedback_direct(agent_id, ..., private_key=relay_private_key)` and return `success=True, transaction_hash=tx_hash`.
+- **Validation**: `test_rate_agent_with_relay_wallet` — relay wallet signs directly, TX hash returned
+
+### Task 3.6: Update MCP tool `em_rate_agent` for autonomous flow
+- **File**: `mcp_server/tools/reputation_tools.py:216-316` (MODIFY)
+- **Issue**: MCP tool returns pending_signature. Autonomous agents calling via MCP need full on-chain completion.
+- **Fix**: In `em_rate_agent()`, check if calling agent has relay key in env/config. If yes, pass to `rate_agent(relay_private_key=key)`. Return TX hash.
+- **Validation**: MCP tool returns TX hash, not pending_signature
+
+### Task 3.7: Create reputation leaderboard query
 - **File**: `scripts/kk/lib/reputation-query.ts` (NEW)
 - **Issue**: No way to see reputation standings across all 24 agents
 - **Fix**: Script that queries `GET /api/v1/reputation/score/{wallet}` for each agent wallet and outputs a sorted leaderboard
@@ -327,11 +346,11 @@ Phase 1 (Foundation) ──┬──> Phase 2 (Security) ──┬──> Phase 
 |-------|-------|----------|------------|
 | 1. Missing Skills + Agent Auth | 6 | P0 | None |
 | 2. Self-Protection + Race Conditions | 5 | P0 | None |
-| 3. ERC-8004 Bulk Registration | 4 | P0 | Phase 1 (skills) |
+| 3. ERC-8004 Bulk Registration + Relay Wallets | 7 | P0 | Phase 1 (skills) |
 | 4. Test Scenarios 1-6 | 6 | P1 | Phase 2 (guards) |
 | 5. Test Scenarios 7-12 | 6 | P1 | Phase 1, 2, 3 |
 | 6. Integration Harness | 5 | P1 | Phase 4, 5 |
-| **TOTAL** | **32** | | |
+| **TOTAL** | **35** | | |
 
 ## Notes
 
@@ -340,3 +359,5 @@ Phase 1 (Foundation) ──┬──> Phase 2 (Security) ──┬──> Phase 
 - **Self-application prevention does NOT exist** — will be hit immediately with 24 agents.
 - **`payment_token` field does NOT exist** on tasks — all tasks default to USDC. Must add for multi-token testing.
 - **Concurrent application protection** relies on Supabase RPC `apply_to_task` — needs verification of atomicity guarantees.
+- **Autonomous agent-to-agent reputation BLOCKED**: `rate_agent()` returns `pending_signature` requiring manual wallet signing. Fix: relay wallets that sign `giveFeedback()` directly (Tasks 3.4-3.6).
+- **Relay wallet architecture**: Each agent gets a second wallet at BIP-44 index+100. The relay wallet doesn't own any agent NFT, so it can call `giveFeedback()` without self-feedback revert. Reference: `direct_reputation.py:83-210`.
