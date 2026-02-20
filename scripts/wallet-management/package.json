@@ -1,0 +1,20 @@
+{
+  "name": "karmacadabra-wallet-management",
+  "version": "1.0.0",
+  "description": "HD wallet generation and fund distribution for KarmaCadabra agents",
+  "main": "index.js",
+  "scripts": {
+    "generate-wallets": "node generate-wallets.js",
+    "distribute-funds": "node distribute-funds.js",
+    "check-balances": "node check-balances.js"
+  },
+  "dependencies": {
+    "ethers": "^6.10.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "author": "UltravioletaDAO",
+  "license": "MIT"
+}
