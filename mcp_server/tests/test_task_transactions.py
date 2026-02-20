@@ -85,7 +85,7 @@ async def test_transactions_returns_empty_for_new_task(monkeypatch):
     )
     monkeypatch.setattr(routes.db, "get_client", lambda: _MockClient())
 
-    result = await routes.get_task_transactions(task_id=TASK_ID, api_key=None)
+    result = await routes.get_task_transactions(task_id=TASK_ID, auth=None)
 
     assert result.task_id == TASK_ID
     assert result.total_count == 0
@@ -109,7 +109,7 @@ async def test_transactions_returns_404_for_missing_task(monkeypatch):
     from fastapi import HTTPException
 
     with pytest.raises(HTTPException) as exc:
-        await routes.get_task_transactions(task_id=TASK_ID, api_key=None)
+        await routes.get_task_transactions(task_id=TASK_ID, auth=None)
     assert exc.value.status_code == 404
 
 
@@ -162,7 +162,7 @@ async def test_transactions_happy_path_full_lifecycle(monkeypatch):
         routes.db, "get_client", lambda: _MockClient(payment_events=events)
     )
 
-    result = await routes.get_task_transactions(task_id=TASK_ID, api_key=None)
+    result = await routes.get_task_transactions(task_id=TASK_ID, auth=None)
 
     assert result.total_count == 3
     assert result.summary["total_locked"] == 0.10
@@ -226,7 +226,7 @@ async def test_transactions_refund_flow(monkeypatch):
         routes.db, "get_client", lambda: _MockClient(payment_events=events)
     )
 
-    result = await routes.get_task_transactions(task_id=TASK_ID, api_key=None)
+    result = await routes.get_task_transactions(task_id=TASK_ID, auth=None)
 
     assert result.total_count == 2
     assert result.summary["total_locked"] == 0.10
@@ -269,7 +269,7 @@ async def test_transactions_injects_reputation_from_escrow_metadata(monkeypatch)
         lambda: _MockClient(payment_events=events, escrows=escrows),
     )
 
-    result = await routes.get_task_transactions(task_id=TASK_ID, api_key=None)
+    result = await routes.get_task_transactions(task_id=TASK_ID, auth=None)
 
     assert result.total_count == 3  # 1 payment + 2 reputation
     event_types = [t.event_type for t in result.transactions]
@@ -316,7 +316,7 @@ async def test_transactions_no_duplicates_from_escrow_metadata(monkeypatch):
         lambda: _MockClient(payment_events=events, escrows=escrows),
     )
 
-    result = await routes.get_task_transactions(task_id=TASK_ID, api_key=None)
+    result = await routes.get_task_transactions(task_id=TASK_ID, auth=None)
 
     # Should NOT duplicate — only 1 reputation event
     rep_count = sum(1 for t in result.transactions if "reputation" in t.event_type)
@@ -346,7 +346,7 @@ async def test_transactions_failed_events_not_counted_in_summary(monkeypatch):
         routes.db, "get_client", lambda: _MockClient(payment_events=events)
     )
 
-    result = await routes.get_task_transactions(task_id=TASK_ID, api_key=None)
+    result = await routes.get_task_transactions(task_id=TASK_ID, auth=None)
 
     assert result.total_count == 1
     assert result.transactions[0].status == "failed"
@@ -383,7 +383,7 @@ async def test_transactions_explorer_url_per_network(monkeypatch):
         routes.db, "get_client", lambda: _MockClient(payment_events=events)
     )
 
-    result = await routes.get_task_transactions(task_id=TASK_ID, api_key=None)
+    result = await routes.get_task_transactions(task_id=TASK_ID, auth=None)
 
     assert "polygonscan.com/tx/" in result.transactions[0].explorer_url
     assert "arbiscan.io/tx/" in result.transactions[1].explorer_url
@@ -418,7 +418,7 @@ async def test_transactions_handles_payment_events_query_failure(monkeypatch):
     monkeypatch.setattr(routes.db, "get_task", AsyncMock(return_value=SAMPLE_TASK))
     monkeypatch.setattr(routes.db, "get_client", lambda: _FailingClient())
 
-    result = await routes.get_task_transactions(task_id=TASK_ID, api_key=None)
+    result = await routes.get_task_transactions(task_id=TASK_ID, auth=None)
 
     # Should return empty, not crash
     assert result.total_count == 0
@@ -445,7 +445,7 @@ async def test_transactions_tx_without_0x_prefix_gets_normalized(monkeypatch):
         routes.db, "get_client", lambda: _MockClient(payment_events=events)
     )
 
-    result = await routes.get_task_transactions(task_id=TASK_ID, api_key=None)
+    result = await routes.get_task_transactions(task_id=TASK_ID, auth=None)
 
     assert result.transactions[0].explorer_url.startswith("https://basescan.org/tx/0x")
 

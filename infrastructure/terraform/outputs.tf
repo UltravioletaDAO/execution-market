@@ -79,3 +79,13 @@ output "evidence_presign_api_url" {
   description = "HTTP API invoke URL for presigned upload/download URL generation"
   value       = var.enable_evidence_pipeline ? aws_apigatewayv2_stage.evidence_default[0].invoke_url : null
 }
+
+output "nonce_store_table_arn" {
+  description = "DynamoDB table ARN for ERC-8128 nonce store"
+  value       = aws_dynamodb_table.nonce_store.arn
+}
+
+output "nonce_store_table_name" {
+  description = "DynamoDB table name for ERC-8128 nonce store"
+  value       = aws_dynamodb_table.nonce_store.name
+}

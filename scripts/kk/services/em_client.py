@@ -16,13 +16,18 @@ All agent operations go through this client:
 import json
 import logging
 import os
+import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import httpx
 from dotenv import load_dotenv
+
+# Add lib/ to path so we can import the EIP-8128 signer
+_lib_dir = str(Path(__file__).parent.parent / "lib")
+if _lib_dir not in sys.path:
+    sys.path.insert(0, _lib_dir)
 
 _project_root = Path(__file__).parent.parent.parent.parent
 load_dotenv(_project_root / ".env.local")
@@ -41,6 +46,8 @@ class AgentContext:
     wallet_address: str
     workspace_dir: Path
     api_key: str = ""
+    private_key: str = ""
+    chain_id: int = 8453
     erc8004_agent_id: int | None = None
     executor_id: str | None = None
 
@@ -61,21 +68,62 @@ class AgentContext:
 
 
 class EMClient:
-    """Async HTTP client for the Execution Market API."""
+    """Async HTTP client for the Execution Market API.
+
+    Authentication priority:
+      1. EIP-8128 wallet signatures (if ``agent.private_key`` is set)
+      2. API key header (if ``agent.api_key`` is set)
+      3. Plain ``X-Agent-Wallet`` header (fallback)
+    """
 
     def __init__(self, agent: AgentContext, timeout: float = 30.0):
         self.agent = agent
-        headers = {
-            "Content-Type": "application/json",
-            "X-Agent-Wallet": agent.wallet_address,
-        }
-        if agent.api_key:
-            headers["X-API-Key"] = agent.api_key
+        self._signer = None
+
+        # Try to set up EIP-8128 signer if private key is available
+        if agent.private_key:
+            try:
+                from eip8128_signer import EIP8128Signer
+
+                self._signer = EIP8128Signer(
+                    private_key=agent.private_key,
+                    chain_id=agent.chain_id,
+                    api_base=API_BASE,
+                )
+                logger.info(
+                    "EIP-8128 auth enabled for %s (%s)",
+                    agent.name,
+                    self._signer.address_lower,
+                )
+            except ImportError:
+                logger.warning(
+                    "eip8128_signer not available — falling back to header auth"
+                )
+
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if not self._signer:
+            # Fallback: static headers
+            headers["X-Agent-Wallet"] = agent.wallet_address
+            if agent.api_key:
+                headers["X-API-Key"] = agent.api_key
+
         self._client = httpx.AsyncClient(
             base_url=API_V1,
             headers=headers,
             timeout=timeout,
         )
+
+    def _sign_headers(
+        self, method: str, url: str, body: str = ""
+    ) -> dict[str, str]:
+        """Compute EIP-8128 signature headers for a request.
+
+        Returns an empty dict when the signer is not configured, so
+        callers can always do ``headers.update(self._sign_headers(...))``.
+        """
+        if self._signer is None:
+            return {}
+        return self._signer.sign_request(method, url, body)
 
     async def close(self) -> None:
         await self._client.aclose()
@@ -115,13 +163,20 @@ class EMClient:
         if evidence_required:
             payload["evidence_required"] = evidence_required
 
-        resp = await self._client.post("/tasks", json=payload)
+        body_str = json.dumps(payload)
+        url = f"{API_V1}/tasks"
+        sig_headers = self._sign_headers("POST", url, body_str)
+        resp = await self._client.post(
+            "/tasks", content=body_str, headers=sig_headers
+        )
         resp.raise_for_status()
         return resp.json()
 
     async def get_task(self, task_id: str) -> dict[str, Any]:
         """Get details of a specific task."""
-        resp = await self._client.get(f"/tasks/{task_id}")
+        url = f"{API_V1}/tasks/{task_id}"
+        sig_headers = self._sign_headers("GET", url)
+        resp = await self._client.get(f"/tasks/{task_id}", headers=sig_headers)
         resp.raise_for_status()
         return resp.json()
 
@@ -135,7 +190,11 @@ class EMClient:
         params: dict[str, Any] = {"status": status, "limit": limit}
         if category:
             params["category"] = category
-        resp = await self._client.get("/tasks/available", params=params)
+        url = f"{API_V1}/tasks/available"
+        sig_headers = self._sign_headers("GET", url)
+        resp = await self._client.get(
+            "/tasks/available", params=params, headers=sig_headers
+        )
         resp.raise_for_status()
         data = resp.json()
         return data.get("tasks", data if isinstance(data, list) else [])
@@ -152,14 +211,20 @@ class EMClient:
             params["agent_wallet"] = agent_wallet
         if status:
             params["status"] = status
-        resp = await self._client.get("/tasks", params=params)
+        url = f"{API_V1}/tasks"
+        sig_headers = self._sign_headers("GET", url)
+        resp = await self._client.get("/tasks", params=params, headers=sig_headers)
         resp.raise_for_status()
         data = resp.json()
         return data.get("tasks", data if isinstance(data, list) else [])
 
     async def cancel_task(self, task_id: str) -> dict[str, Any]:
         """Cancel a published task."""
-        resp = await self._client.post(f"/tasks/{task_id}/cancel")
+        url = f"{API_V1}/tasks/{task_id}/cancel"
+        sig_headers = self._sign_headers("POST", url)
+        resp = await self._client.post(
+            f"/tasks/{task_id}/cancel", headers=sig_headers
+        )
         resp.raise_for_status()
         return resp.json()
 
@@ -177,7 +242,12 @@ class EMClient:
         }
         if message:
             payload["message"] = message
-        resp = await self._client.post(f"/tasks/{task_id}/apply", json=payload)
+        body_str = json.dumps(payload)
+        url = f"{API_V1}/tasks/{task_id}/apply"
+        sig_headers = self._sign_headers("POST", url, body_str)
+        resp = await self._client.post(
+            f"/tasks/{task_id}/apply", content=body_str, headers=sig_headers
+        )
         resp.raise_for_status()
         return resp.json()
 
@@ -198,7 +268,12 @@ class EMClient:
             "executor_id": executor_id,
             "evidence": evidence or {},
         }
-        resp = await self._client.post(f"/tasks/{task_id}/submit", json=payload)
+        body_str = json.dumps(payload)
+        url = f"{API_V1}/tasks/{task_id}/submit"
+        sig_headers = self._sign_headers("POST", url, body_str)
+        resp = await self._client.post(
+            f"/tasks/{task_id}/submit", content=body_str, headers=sig_headers
+        )
         resp.raise_for_status()
         return resp.json()
 
@@ -206,9 +281,12 @@ class EMClient:
 
     async def assign_task(self, task_id: str, executor_id: str) -> dict[str, Any]:
         """Assign an applicant to a task."""
+        payload = {"executor_id": executor_id}
+        body_str = json.dumps(payload)
+        url = f"{API_V1}/tasks/{task_id}/assign"
+        sig_headers = self._sign_headers("POST", url, body_str)
         resp = await self._client.post(
-            f"/tasks/{task_id}/assign",
-            json={"executor_id": executor_id},
+            f"/tasks/{task_id}/assign", content=body_str, headers=sig_headers
         )
         resp.raise_for_status()
         return resp.json()
@@ -231,9 +309,13 @@ class EMClient:
             payload["rating_score"] = rating_score
         if notes:
             payload["notes"] = notes
+        body_str = json.dumps(payload)
+        url = f"{API_V1}/submissions/{submission_id}/approve"
+        sig_headers = self._sign_headers("POST", url, body_str)
         resp = await self._client.post(
             f"/submissions/{submission_id}/approve",
-            json=payload,
+            content=body_str,
+            headers=sig_headers,
         )
         resp.raise_for_status()
         return resp.json()
@@ -251,16 +333,25 @@ class EMClient:
             notes: Rejection reason (min 10 characters).
             severity: "minor" or "major".
         """
+        payload = {"notes": notes, "severity": severity}
+        body_str = json.dumps(payload)
+        url = f"{API_V1}/submissions/{submission_id}/reject"
+        sig_headers = self._sign_headers("POST", url, body_str)
         resp = await self._client.post(
             f"/submissions/{submission_id}/reject",
-            json={"notes": notes, "severity": severity},
+            content=body_str,
+            headers=sig_headers,
         )
         resp.raise_for_status()
         return resp.json()
 
     async def get_submissions(self, task_id: str) -> list[dict[str, Any]]:
         """Get submissions for a task."""
-        resp = await self._client.get(f"/tasks/{task_id}/submissions")
+        url = f"{API_V1}/tasks/{task_id}/submissions"
+        sig_headers = self._sign_headers("GET", url)
+        resp = await self._client.get(
+            f"/tasks/{task_id}/submissions", headers=sig_headers
+        )
         resp.raise_for_status()
         data = resp.json()
         return data.get("submissions", data if isinstance(data, list) else [])
@@ -269,7 +360,9 @@ class EMClient:
 
     async def health(self) -> dict[str, Any]:
         """Check API health."""
-        resp = await self._client.get("/health")
+        url = f"{API_V1}/health"
+        sig_headers = self._sign_headers("GET", url)
+        resp = await self._client.get("/health", headers=sig_headers)
         resp.raise_for_status()
         return resp.json()
 
@@ -289,4 +382,6 @@ def load_agent_context(workspace_dir: Path) -> AgentContext:
         wallet_address=wallet_data.get("address", ""),
         workspace_dir=workspace_dir,
         api_key=os.environ.get("EM_API_KEY", ""),
+        private_key=wallet_data.get("private_key", ""),
+        chain_id=int(wallet_data.get("chain_id", 8453)),
     )

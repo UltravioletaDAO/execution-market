@@ -233,7 +233,7 @@ async def test_approve_submission_returns_idempotent_success(monkeypatch):
     result = await routes.approve_submission(
         submission_id=submission_id,
         request=None,
-        api_key=api_key,
+        auth=api_key,
     )
 
     assert result.data["idempotent"] is True
@@ -278,7 +278,7 @@ async def test_approve_submission_requires_tx_before_marking_accepted(monkeypatc
         await routes.approve_submission(
             submission_id=submission_id,
             request=routes.ApprovalRequest(notes="approve"),
-            api_key=api_key,
+            auth=api_key,
         )
 
     assert exc.value.status_code == 502
@@ -441,7 +441,7 @@ async def test_approve_submission_rejects_when_task_is_cancelled(monkeypatch):
         await routes.approve_submission(
             submission_id=submission_id,
             request=None,
-            api_key=api_key,
+            auth=api_key,
         )
 
     assert exc.value.status_code == 409
@@ -471,7 +471,7 @@ async def test_cancel_task_returns_idempotent_when_already_cancelled(monkeypatch
     result = await routes.cancel_task(
         task_id=task_id,
         request=None,
-        api_key=api_key,
+        auth=api_key,
     )
 
     assert result.data["idempotent"] is True
@@ -519,7 +519,7 @@ async def test_cancel_task_refunds_when_escrow_is_deposited(monkeypatch):
     result = await routes.cancel_task(
         task_id=task_id,
         request=None,
-        api_key=api_key,
+        auth=api_key,
     )
 
     assert result.data["escrow"]["status"] == "refunded"
@@ -563,7 +563,7 @@ async def test_cancel_task_rejects_when_escrow_is_already_released(monkeypatch):
         await routes.cancel_task(
             task_id=task_id,
             request=None,
-            api_key=api_key,
+            auth=api_key,
         )
 
     assert exc.value.status_code == 409
@@ -608,7 +608,7 @@ async def test_cancel_task_uses_authorization_expiry_when_not_funded(monkeypatch
     result = await routes.cancel_task(
         task_id=task_id,
         request=None,
-        api_key=api_key,
+        auth=api_key,
     )
 
     assert result.data["escrow"]["status"] == "authorization_expired"
@@ -652,7 +652,7 @@ async def test_cancel_task_already_refunded_is_noop(monkeypatch):
     result = await routes.cancel_task(
         task_id=task_id,
         request=None,
-        api_key=api_key,
+        auth=api_key,
     )
 
     assert result.data["escrow"]["status"] == "already_refunded"
@@ -702,7 +702,7 @@ async def test_cancel_task_unknown_status_attempts_refund(monkeypatch):
     result = await routes.cancel_task(
         task_id=task_id,
         request=None,
-        api_key=api_key,
+        auth=api_key,
     )
 
     assert result.data["escrow"]["status"] == "refunded"
@@ -748,7 +748,7 @@ async def test_cancel_task_unknown_status_falls_back_to_expired_on_failure(monke
     result = await routes.cancel_task(
         task_id=task_id,
         request=None,
-        api_key=api_key,
+        auth=api_key,
     )
 
     assert result.data["escrow"]["status"] == "authorization_expired"
@@ -786,7 +786,7 @@ async def test_payment_timeline_shows_refund_event(monkeypatch):
         ),
     )
 
-    result = await routes.get_task_payment(task_id=task_id, api_key=None)
+    result = await routes.get_task_payment(task_id=task_id, auth=None)
 
     assert result.status == "refunded"
     refund_events = [e for e in result.events if e.type == "refund"]
@@ -827,7 +827,7 @@ async def test_payment_timeline_shows_auth_expired_for_cancelled_without_refund(
         ),
     )
 
-    result = await routes.get_task_payment(task_id=task_id, api_key=None)
+    result = await routes.get_task_payment(task_id=task_id, auth=None)
 
     assert result.status == "refunded"
     auth_expired_events = [
@@ -859,7 +859,7 @@ async def test_create_task_requires_x402_sdk_available(monkeypatch):
         await routes.create_task(
             http_request=http_request,
             request=request,
-            api_key=api_key,
+            auth=api_key,
         )
 
     assert exc.value.status_code == 503
@@ -1005,7 +1005,7 @@ async def test_get_task_payment_returns_canonical_timeline(monkeypatch):
         ),
     )
 
-    result = await routes.get_task_payment(task_id=task_id, api_key=None)
+    result = await routes.get_task_payment(task_id=task_id, auth=None)
 
     assert result.task_id == task_id
     assert result.status == "completed"
@@ -1053,7 +1053,7 @@ async def test_get_task_payment_falls_back_when_payments_table_missing(monkeypat
         ),
     )
 
-    result = await routes.get_task_payment(task_id=task_id, api_key=None)
+    result = await routes.get_task_payment(task_id=task_id, auth=None)
 
     assert result.status == "completed"
     assert result.total_amount == 3.0
@@ -1075,7 +1075,7 @@ async def test_get_task_payment_returns_404_when_task_is_missing(monkeypatch):
     )
 
     with pytest.raises(HTTPException) as exc:
-        await routes.get_task_payment(task_id=task_id, api_key=None)
+        await routes.get_task_payment(task_id=task_id, auth=None)
 
     assert exc.value.status_code == 404
 
@@ -1128,7 +1128,7 @@ async def test_side_effect_failure_never_flips_approval_success(monkeypatch):
     result = await routes.approve_submission(
         submission_id=submission_id,
         request=routes.ApprovalRequest(notes="lgtm"),
-        api_key=api_key,
+        auth=api_key,
     )
 
     # Approval MUST succeed despite side-effect explosion
@@ -1174,7 +1174,7 @@ async def test_approve_twice_returns_idempotent_no_duplicate_state_write(monkeyp
     result1 = await routes.approve_submission(
         submission_id=submission_id,
         request=None,
-        api_key=api_key,
+        auth=api_key,
     )
     assert result1.data["idempotent"] is True
     assert result1.data["payment_tx"] == "0xoriginal_tx"
@@ -1183,7 +1183,7 @@ async def test_approve_twice_returns_idempotent_no_duplicate_state_write(monkeyp
     result2 = await routes.approve_submission(
         submission_id=submission_id,
         request=None,
-        api_key=api_key,
+        auth=api_key,
     )
     assert result2.data["idempotent"] is True
 
@@ -1233,7 +1233,7 @@ async def test_feature_flags_disable_side_effects(monkeypatch):
     result = await routes.approve_submission(
         submission_id=submission_id,
         request=routes.ApprovalRequest(notes="approved"),
-        api_key=api_key,
+        auth=api_key,
     )
 
     assert result.data["verdict"] == "accepted"

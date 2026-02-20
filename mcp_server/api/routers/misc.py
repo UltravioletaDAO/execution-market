@@ -469,6 +469,22 @@ async def get_auth_nonce():
 
 
 @router.get(
+    "/auth/erc8128/nonce",
+    responses={
+        200: {"description": "Fresh nonce for ERC-8128 request signing"},
+    },
+    summary="Get ERC-8128 Nonce",
+    description="Generate a fresh nonce for EIP-8128 request signing (alias for /auth/nonce)",
+    tags=["Authentication"],
+)
+async def get_erc8128_nonce():
+    """Generate a fresh nonce for EIP-8128 request signing."""
+    from ..auth import generate_auth_nonce
+
+    return await generate_auth_nonce()
+
+
+@router.get(
     "/auth/erc8128/info",
     responses={
         200: {"description": "ERC-8128 authentication configuration"},
@@ -494,7 +510,7 @@ async def get_erc8128_info():
             "require_request_bound": True,
             "require_nonce": True,
         },
-        "nonce_endpoint": "/api/v1/auth/nonce",
+        "nonce_endpoint": "/api/v1/auth/erc8128/nonce",
         "erc8004_cross_reference": True,
         "documentation": "https://eip.tools/eip/8128",
     }

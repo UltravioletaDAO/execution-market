@@ -11,8 +11,8 @@ from fastapi import APIRouter, HTTPException, Depends, Path, Request
 import supabase_client as db
 
 from ..auth import (
-    verify_api_key_if_required,
-    APIKeyData,
+    verify_agent_auth,
+    AgentAuth,
     verify_agent_owns_task,
     verify_agent_owns_submission,
 )
@@ -63,7 +63,7 @@ router = APIRouter(prefix="/api/v1", tags=["Submissions"])
 )
 async def get_submissions(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> SubmissionListResponse:
     """
     Get all submissions for a specific task.
@@ -73,7 +73,7 @@ async def get_submissions(
     to the agent who created the task.
     """
     # Verify ownership
-    if not await verify_agent_owns_task(api_key.agent_id, task_id):
+    if not await verify_agent_owns_task(auth.agent_id, task_id):
         task = await db.get_task(task_id)
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
@@ -153,7 +153,7 @@ async def approve_submission(
         ..., description="UUID of the submission", pattern=UUID_PATTERN
     ),
     request: ApprovalRequest = None,
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> SuccessResponse:
     """
     Approve a worker's submission and trigger payment settlement.
@@ -173,7 +173,7 @@ async def approve_submission(
             "X-Payment-Fee"
         ) or http_request.headers.get("x-payment-fee")
     # Verify ownership
-    if not await verify_agent_owns_submission(api_key.agent_id, submission_id):
+    if not await verify_agent_owns_submission(auth.agent_id, submission_id):
         submission = await db.get_submission(submission_id)
         if not submission:
             raise HTTPException(status_code=404, detail="Submission not found")
@@ -252,7 +252,7 @@ async def approve_submission(
     try:
         await db.update_submission(
             submission_id=submission_id,
-            agent_id=api_key.agent_id,
+            agent_id=auth.agent_id,
             verdict="accepted",
             notes=notes,
         )
@@ -275,7 +275,7 @@ async def approve_submission(
     logger.info(
         "Submission approved and paid: id=%s, agent=%s, tx=%s",
         submission_id,
-        api_key.agent_id,
+        auth.agent_id,
         release_tx,
     )
 
@@ -345,7 +345,7 @@ async def reject_submission(
         ..., description="UUID of the submission", pattern=UUID_PATTERN
     ),
     request: RejectionRequest = ...,
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> SuccessResponse:
     """
     Reject a worker's submission and return the task to available status.
@@ -355,7 +355,7 @@ async def reject_submission(
     can apply and complete it properly.
     """
     # Verify ownership
-    if not await verify_agent_owns_submission(api_key.agent_id, submission_id):
+    if not await verify_agent_owns_submission(auth.agent_id, submission_id):
         submission = await db.get_submission(submission_id)
         if not submission:
             raise HTTPException(status_code=404, detail="Submission not found")
@@ -382,7 +382,7 @@ async def reject_submission(
     # Update submission
     await db.update_submission(
         submission_id=submission_id,
-        agent_id=api_key.agent_id,
+        agent_id=auth.agent_id,
         verdict="rejected",
         notes=request.notes,
     )
@@ -390,7 +390,7 @@ async def reject_submission(
     logger.info(
         "Submission rejected: id=%s, agent=%s, severity=%s, reason=%s",
         submission_id,
-        api_key.agent_id,
+        auth.agent_id,
         request.severity,
         request.notes[:50],
     )
@@ -431,7 +431,7 @@ async def reject_submission(
                     agent_count = sum(
                         1
                         for r in (all_rows.data or [])
-                        if (r.get("payload") or {}).get("agent_id") == api_key.agent_id
+                        if (r.get("payload") or {}).get("agent_id") == auth.agent_id
                     )
                     if agent_count >= 3:
                         raise HTTPException(
@@ -452,7 +452,7 @@ async def reject_submission(
             task = submission.get("task") or {}
             executor = submission.get("executor") or {}
 
-            agent_id_for_feedback = api_key.agent_id
+            agent_id_for_feedback = auth.agent_id
             try:
                 agent_id_int = int(agent_id_for_feedback)
                 from integrations.erc8004.identity import verify_agent_identity
@@ -471,7 +471,7 @@ async def reject_submission(
             except (ValueError, TypeError):
                 logger.warning(
                     "Rejection feedback skip: agent_id %s not numeric",
-                    api_key.agent_id,
+                    auth.agent_id,
                 )
                 agent_id_for_feedback = None
             except Exception as vc_err:
@@ -553,7 +553,7 @@ async def request_more_info_submission(
         ..., description="UUID of the submission", pattern=UUID_PATTERN
     ),
     request: RequestMoreInfoRequest = ...,
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> SuccessResponse:
     """
     Request additional evidence or clarification from the assigned worker.
@@ -562,7 +562,7 @@ async def request_more_info_submission(
     evidence or clarification, the agent can request more information instead
     of rejecting outright.
     """
-    if not await verify_agent_owns_submission(api_key.agent_id, submission_id):
+    if not await verify_agent_owns_submission(auth.agent_id, submission_id):
         submission = await db.get_submission(submission_id)
         if not submission:
             raise HTTPException(status_code=404, detail="Submission not found")
@@ -590,7 +590,7 @@ async def request_more_info_submission(
 
     await db.update_submission(
         submission_id=submission_id,
-        agent_id=api_key.agent_id,
+        agent_id=auth.agent_id,
         verdict="more_info_requested",
         notes=request.notes,
     )
@@ -600,7 +600,7 @@ async def request_more_info_submission(
         "More info requested: submission=%s, task=%s, agent=%s",
         submission_id,
         task_id,
-        api_key.agent_id,
+        auth.agent_id,
     )
 
     return SuccessResponse(
