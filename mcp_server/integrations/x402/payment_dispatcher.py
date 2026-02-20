@@ -825,7 +825,15 @@ class PaymentDispatcher:
         )
 
         # Authorize (lock funds) via facilitator — synchronous, run in thread
-        auth_result = await asyncio.to_thread(client.authorize, pi)
+        # Ethereum L1 needs longer timeout (blocks ~12s vs ~2s on L2s)
+        config_chain = NETWORK_CONFIG.get(network, {})
+        chain_id_check = config_chain.get("chain_id", 8453)
+        if chain_id_check == 1:  # Ethereum mainnet
+            auth_result = await asyncio.to_thread(
+                self._authorize_with_extended_timeout, client, pi, 300
+            )
+        else:
+            auth_result = await asyncio.to_thread(client.authorize, pi)
 
         if not auth_result.success:
             await log_payment_event(
@@ -907,6 +915,35 @@ class PaymentDispatcher:
     # =========================================================================
     # Trustless Direct Release (EM_ESCROW_MODE=direct_release)
     # =========================================================================
+
+    @staticmethod
+    def _authorize_with_extended_timeout(client, pi, timeout_seconds: int = 300):
+        """Authorize escrow with extended HTTP timeout for slow chains (Ethereum L1)."""
+        return PaymentDispatcher._call_with_extended_timeout(
+            client.authorize, pi, timeout_seconds
+        )
+
+    @staticmethod
+    def _call_with_extended_timeout(func, pi, timeout_seconds: int = 300):
+        """Call an SDK method with extended HTTP timeout for slow chains (Ethereum L1).
+
+        The SDK hardcodes httpx.post timeout=120. For Ethereum L1 (blocks ~12s),
+        the Facilitator may need 120-180s to confirm the TX on-chain, which exceeds
+        the SDK default. This wrapper monkey-patches httpx.post temporarily.
+        """
+        import httpx as _httpx
+
+        _original_post = _httpx.post
+
+        def _patched_post(*args, **kwargs):
+            kwargs["timeout"] = timeout_seconds
+            return _original_post(*args, **kwargs)
+
+        try:
+            _httpx.post = _patched_post
+            return func(pi)
+        finally:
+            _httpx.post = _original_post
 
     async def authorize_escrow_for_worker(
         self,
@@ -990,7 +1027,15 @@ class PaymentDispatcher:
         )
 
         # Authorize (lock funds) via facilitator — gasless
-        auth_result = await asyncio.to_thread(client.authorize, pi)
+        # Ethereum L1 needs longer timeout (blocks ~12s vs ~2s on L2s)
+        config_chain = NETWORK_CONFIG.get(network, {})
+        chain_id = config_chain.get("chain_id", 8453)
+        if chain_id == 1:  # Ethereum mainnet
+            auth_result = await asyncio.to_thread(
+                self._authorize_with_extended_timeout, client, pi, 300
+            )
+        else:
+            auth_result = await asyncio.to_thread(client.authorize, pi)
 
         if not auth_result.success:
             await log_payment_event(
@@ -1136,7 +1181,17 @@ class PaymentDispatcher:
             "trustless: Releasing escrow for task %s directly to worker via facilitator...",
             task_id,
         )
-        release_result = await asyncio.to_thread(client.release_via_facilitator, pi)
+        config_chain = NETWORK_CONFIG.get(stored_network, {})
+        chain_id_check = config_chain.get("chain_id", 8453)
+        if chain_id_check == 1:  # Ethereum L1 needs longer timeout
+            release_result = await asyncio.to_thread(
+                self._call_with_extended_timeout,
+                client.release_via_facilitator,
+                pi,
+                300,
+            )
+        else:
+            release_result = await asyncio.to_thread(client.release_via_facilitator, pi)
 
         if not release_result.success:
             await log_payment_event(
@@ -1854,7 +1909,17 @@ class PaymentDispatcher:
 
         # Step 2: Release from escrow via facilitator (gasless)
         logger.info("fase2: Releasing escrow for task %s via facilitator...", task_id)
-        release_result = await asyncio.to_thread(client.release_via_facilitator, pi)
+        config_chain = NETWORK_CONFIG.get(stored_network, {})
+        chain_id_check = config_chain.get("chain_id", 8453)
+        if chain_id_check == 1:  # Ethereum L1 needs longer timeout
+            release_result = await asyncio.to_thread(
+                self._call_with_extended_timeout,
+                client.release_via_facilitator,
+                pi,
+                300,
+            )
+        else:
+            release_result = await asyncio.to_thread(client.release_via_facilitator, pi)
 
         if not release_result.success:
             await log_payment_event(
