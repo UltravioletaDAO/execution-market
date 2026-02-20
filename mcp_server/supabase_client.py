@@ -444,6 +444,14 @@ async def apply_to_task(
     if not executor.data:
         raise Exception(f"Executor {executor_id} not found")
 
+    # Self-application guard: agent cannot apply to its own task
+    executor_wallet = (executor.data.get("wallet_address") or "").lower()
+    task_agent_id = (task.get("agent_id") or "").lower()
+    if executor_wallet and task_agent_id and executor_wallet == task_agent_id:
+        raise Exception(
+            "Cannot apply to your own task: executor wallet matches task agent"
+        )
+
     # Check minimum reputation
     min_rep = task.get("min_reputation", 0)
     executor_rep = executor.data.get("reputation_score", 0)
@@ -481,7 +489,12 @@ async def apply_to_task(
             )
             break
         except Exception as e:
-            missing_column = _extract_missing_column(str(e))
+            error_msg = str(e)
+            # Catch unique constraint violation (PostgreSQL 23505) —
+            # race condition where two agents insert between the read-check above.
+            if "duplicate key" in error_msg or "23505" in error_msg:
+                raise Exception("Already applied to this task") from e
+            missing_column = _extract_missing_column(error_msg)
             if missing_column and missing_column in pending_application_data:
                 logger.warning(
                     "%s.%s missing in current schema; retrying application insert without it",

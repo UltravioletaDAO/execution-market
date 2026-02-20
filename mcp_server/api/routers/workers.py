@@ -99,6 +99,8 @@ async def apply_to_task(
             )
         elif "insufficient reputation" in error_msg.lower():
             raise HTTPException(status_code=403, detail=error_msg)
+        elif "cannot apply to your own task" in error_msg.lower():
+            raise HTTPException(status_code=403, detail="Cannot apply to your own task")
         elif "already applied" in error_msg.lower():
             raise HTTPException(status_code=409, detail="Already applied to this task")
         logger.error("Unexpected error applying to task %s: %s", task_id, error_msg)
