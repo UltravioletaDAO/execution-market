@@ -19,7 +19,7 @@ Each agent wakes every 15 minutes and follows this cycle:
 Stagger Schedule (prevents API thundering herd):
   :00  kk-coordinator
   :02  kk-karma-hello
-  :04  kk-abracadabra (future)
+  :04  kk-abracadabra
   :06  kk-skill-extractor
   :08  kk-voice-extractor
   :09  kk-soul-extractor
@@ -59,6 +59,12 @@ from lib.working_state import (
     write_working_md,
 )
 from services.em_client import AgentContext, EMClient, load_agent_context
+from services.abracadabra_service import (
+    discover_offerings as ab_discover,
+    buy_offerings as ab_buy,
+    generate_content as ab_generate,
+    sell_content as ab_sell,
+)
 from services.karma_hello_service import run_service as run_karma_hello_service
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
@@ -358,6 +364,34 @@ async def heartbeat_once(
                 result = f"cycles=[{cycles}] {'; '.join(parts)}"
             except Exception as e:
                 result = f"karma_hello_service error: {e}"
+
+        # -- Special heartbeat for kk-abracadabra: content intelligence cycle
+        elif name == "kk-abracadabra":
+            action = "abracadabra_service"
+            try:
+                parts = []
+                # Phase 1+2: Discover and buy data from Karma Hello
+                offerings = await ab_discover(client)
+                parts.append(f"{len(offerings)} offerings found")
+
+                purchased = []
+                if offerings:
+                    purchased = await ab_buy(client, offerings, dry_run=dry_run)
+                    parts.append(f"{len(purchased)} purchased")
+
+                # Phase 3: Generate content products from local data
+                generated = await ab_generate(data_dir, dry_run=dry_run)
+                parts.append(f"{len(generated)} generated")
+
+                # Phase 4: Publish content products on EM
+                published = []
+                if generated:
+                    published = await ab_sell(client, generated, dry_run=dry_run)
+                    parts.append(f"{len(published)} published")
+
+                result = "; ".join(parts)
+            except Exception as e:
+                result = f"abracadabra_service error: {e}"
 
         elif state.has_active_task:
             action = f"resume:{state.active_task.status}"
