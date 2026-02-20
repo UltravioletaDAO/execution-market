@@ -3417,3 +3417,813 @@ class TestInsufficientFundsDuringSettlement:
         # Critically: update_submission must NOT have been called because
         # settlement failed before we reach the state update
         update_submission_mock.assert_not_called()
+
+
+# ============================================================================
+# Task 5.1: Reputation without transaction
+#
+# Scenario: Agent tries to rate another agent without a completed task.
+#
+# KNOWN GAP (documented, NOT fixed in this PR):
+#   rate_worker_endpoint only rejects statuses: published, cancelled, expired.
+#   It does NOT check that the task reached "completed" status or that an
+#   approved submission exists. Therefore, rating a worker whose task is
+#   "accepted" or "in_progress" (no submission) succeeds at the HTTP layer.
+#   The on-chain call may still fail if the worker has no ERC-8004 identity.
+#
+#   Similarly, rate_agent_endpoint accepts any status not in
+#   {published, cancelled, expired}.
+#
+# These tests PROVE the gap exists. A future PR should add a check:
+#   if task_status != "completed":
+#       raise HTTPException(status_code=409, detail="Task not completed")
+# ============================================================================
+
+REPUTATION_TASK_ID = "51515151-aaaa-bbbb-cccc-ddddeeee0001"
+REPUTATION_WORKER_WALLET = "0xWorkerWalletForRepTest0123456789abcdef00"
+
+
+class TestReputationWithoutTransaction:
+    """Task 5.1: Rating without a completed task -- proves validation gap."""
+
+    @pytest.mark.asyncio
+    async def test_rate_without_completed_task(self):
+        """
+        Agent rates worker for a task that was never completed (status='accepted').
+
+        KNOWN GAP: rate_worker_endpoint allows this because it only blocks
+        {published, cancelled, expired}. The 'accepted' status slips through.
+        The test proves the endpoint does NOT reject the request -- it proceeds
+        to call rate_worker() in the facilitator_client. The on-chain call is
+        mocked to succeed, showing no server-side validation prevents this.
+        """
+        from api.reputation import rate_worker_endpoint, WorkerFeedbackRequest
+
+        # Task in 'accepted' status -- worker assigned but never submitted evidence
+        task = _make_task(
+            id=REPUTATION_TASK_ID,
+            agent_id=AGENT_WALLET,
+            status="accepted",
+            executor_id=OTHER_EXECUTOR_ID,
+            executor={
+                "wallet_address": REPUTATION_WORKER_WALLET,
+                "erc8004_agent_id": 999,
+            },
+        )
+
+        mock_api_key = SimpleNamespace(agent_id=AGENT_WALLET)
+
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
+        mock_feedback = FeedbackResult(
+            success=True,
+            transaction_hash=FAKE_TX_HASH,
+            network="base",
+            feedback_index=1,
+        )
+
+        request = WorkerFeedbackRequest(
+            task_id=REPUTATION_TASK_ID,
+            score=85,
+            worker_address=REPUTATION_WORKER_WALLET,
+            comment="Rating without completion",
+        )
+
+        with (
+            patch(
+                "api.reputation.ERC8004_AVAILABLE",
+                True,
+            ),
+            patch(
+                "api.reputation._get_task_or_404",
+                new_callable=AsyncMock,
+                return_value=task,
+            ),
+            patch(
+                "api.reputation.rate_worker",
+                new_callable=AsyncMock,
+                return_value=mock_feedback,
+                create=True,
+            ) as mock_rate,
+            patch(
+                "api.reputation.db",
+            ) as mock_db,
+            patch(
+                "api.reputation.log_payment_event",
+                new_callable=AsyncMock,
+            ),
+        ):
+            mock_db.get_client.return_value.table.return_value.update.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
+                data=[]
+            )
+
+            # GAP: This should raise HTTPException(409, "Task not completed")
+            # but it SUCCEEDS because 'accepted' is not in the blocked set.
+            response = await rate_worker_endpoint(request, mock_api_key)
+
+            assert response.success is True
+            assert response.transaction_hash == FAKE_TX_HASH
+            # rate_worker was actually called -- no pre-check stopped it
+            mock_rate.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_rate_for_nonexistent_task(self):
+        """
+        Agent rates worker for a task_id that does not exist.
+
+        Expected: HTTP 404 from _get_task_or_404().
+        """
+        from api.reputation import rate_worker_endpoint, WorkerFeedbackRequest
+
+        nonexistent_task_id = "00000000-0000-0000-0000-000000000000"
+        mock_api_key = SimpleNamespace(agent_id=AGENT_WALLET)
+
+        request = WorkerFeedbackRequest(
+            task_id=nonexistent_task_id,
+            score=75,
+            worker_address=REPUTATION_WORKER_WALLET,
+        )
+
+        with (
+            patch(
+                "api.reputation.ERC8004_AVAILABLE",
+                True,
+            ),
+            patch(
+                "api.reputation._get_task_or_404",
+                new_callable=AsyncMock,
+                side_effect=HTTPException(
+                    status_code=404,
+                    detail=f"Task {nonexistent_task_id} not found",
+                ),
+            ),
+        ):
+            with pytest.raises(HTTPException) as exc_info:
+                await rate_worker_endpoint(request, mock_api_key)
+
+            assert exc_info.value.status_code == 404
+            assert "not found" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_rate_after_rejection(self):
+        """
+        Agent rates worker after submission was rejected (task status='submitted',
+        submission verdict='rejected' but task not yet returned to in_progress).
+
+        KNOWN GAP: The endpoint does NOT check submission verdict. A task in
+        'submitted' status (or even 'in_progress' after rejection rollback)
+        can be rated. There is no check that an approved submission exists.
+
+        This test proves the gap: rating succeeds for a task whose only
+        submission was rejected.
+        """
+        from api.reputation import rate_worker_endpoint, WorkerFeedbackRequest
+
+        # Task in 'submitted' status -- but the submission was rejected
+        task = _make_task(
+            id=REPUTATION_TASK_ID,
+            agent_id=AGENT_WALLET,
+            status="submitted",
+            executor_id=OTHER_EXECUTOR_ID,
+            executor={
+                "wallet_address": REPUTATION_WORKER_WALLET,
+                "erc8004_agent_id": 888,
+            },
+        )
+
+        mock_api_key = SimpleNamespace(agent_id=AGENT_WALLET)
+
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
+        mock_feedback = FeedbackResult(
+            success=True,
+            transaction_hash=FAKE_TX_HASH,
+            network="base",
+            feedback_index=2,
+        )
+
+        request = WorkerFeedbackRequest(
+            task_id=REPUTATION_TASK_ID,
+            score=20,
+            worker_address=REPUTATION_WORKER_WALLET,
+            comment="Rating after rejection",
+        )
+
+        with (
+            patch(
+                "api.reputation.ERC8004_AVAILABLE",
+                True,
+            ),
+            patch(
+                "api.reputation._get_task_or_404",
+                new_callable=AsyncMock,
+                return_value=task,
+            ),
+            patch(
+                "api.reputation.rate_worker",
+                new_callable=AsyncMock,
+                return_value=mock_feedback,
+                create=True,
+            ) as mock_rate,
+            patch(
+                "api.reputation.db",
+            ) as mock_db,
+            patch(
+                "api.reputation.log_payment_event",
+                new_callable=AsyncMock,
+            ),
+        ):
+            mock_db.get_client.return_value.table.return_value.update.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
+                data=[]
+            )
+
+            # GAP: This succeeds even though no approved submission exists.
+            # A correct implementation would check submission verdict.
+            response = await rate_worker_endpoint(request, mock_api_key)
+
+            assert response.success is True
+            mock_rate.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_rate_blocked_for_published_status(self):
+        """
+        Sanity check: rating IS correctly blocked for 'published' status.
+        Confirms the existing validation works for the statuses it does check.
+        """
+        from api.reputation import rate_worker_endpoint, WorkerFeedbackRequest
+
+        task = _make_task(
+            id=REPUTATION_TASK_ID,
+            agent_id=AGENT_WALLET,
+            status="published",
+        )
+
+        mock_api_key = SimpleNamespace(agent_id=AGENT_WALLET)
+
+        request = WorkerFeedbackRequest(
+            task_id=REPUTATION_TASK_ID,
+            score=50,
+            worker_address=REPUTATION_WORKER_WALLET,
+        )
+
+        with (
+            patch(
+                "api.reputation.ERC8004_AVAILABLE",
+                True,
+            ),
+            patch(
+                "api.reputation._get_task_or_404",
+                new_callable=AsyncMock,
+                return_value=task,
+            ),
+        ):
+            with pytest.raises(HTTPException) as exc_info:
+                await rate_worker_endpoint(request, mock_api_key)
+
+            assert exc_info.value.status_code == 409
+            assert "published" in exc_info.value.detail
+
+
+# ============================================================================
+# Task 5.2: Bilateral task economy
+#
+# Scenario: Agent A creates a task for B, Agent B creates a task for A.
+# Both complete successfully. Circular economy validated.
+#
+# Tests prove that:
+#   1. Two agents can each publish tasks and work on the other's.
+#   2. Both tasks complete independently without conflicts.
+#   3. Bidirectional reputation works (both rate each other).
+#   4. An entity can be publisher and worker simultaneously.
+# ============================================================================
+
+AGENT_A_WALLET = "0xAgentA_Wallet_aaaa1111bbbb2222cccc3333dddd"
+AGENT_B_WALLET = "0xAgentB_Wallet_eeee4444ffff5555aaaa6666bbbb"
+AGENT_A_EXECUTOR_ID = "aa-aa-aaaa-1111-bbbb-2222-ccccddddeeee"
+AGENT_B_EXECUTOR_ID = "bb-bb-eeee-4444-ffff-5555-aaaa6666bbbb"
+TASK_A_ID = "52520001-aaaa-1111-bbbb-000000000001"
+TASK_B_ID = "52520002-bbbb-2222-cccc-000000000002"
+
+
+class TestBilateralTaskEconomy:
+    """Task 5.2: Full circular flow -- A tasks B, B tasks A, both complete."""
+
+    @pytest.mark.asyncio
+    async def test_bilateral_task_economy(self):
+        """
+        Full circular flow:
+          1. Agent A publishes task, Agent B applies and completes it.
+          2. Agent B publishes task, Agent A applies and completes it.
+          3. Both tasks reach COMPLETED.
+          4. Both agents rate each other.
+          5. Both reputation scores updated.
+        """
+        import supabase_client as sdb
+
+        # =================================================================
+        # Phase 1: Agent A publishes task -> Agent B completes
+        # =================================================================
+        task_a = _make_task(
+            id=TASK_A_ID,
+            agent_id=AGENT_A_WALLET,
+            status="accepted",
+            executor_id=AGENT_B_EXECUTOR_ID,
+            deadline="2099-12-31T23:59:59Z",
+        )
+
+        # B submits evidence for A's task
+        sub_a = {
+            "id": "sub-bilateral-a-111111111111",
+            "task_id": TASK_A_ID,
+            "executor_id": AGENT_B_EXECUTOR_ID,
+            "evidence": {"screenshot": "https://cdn.example.com/b_for_a.jpg"},
+            "notes": "Agent B completed task for Agent A",
+            "submitted_at": "2026-02-20T10:00:00+00:00",
+            "agent_verdict": "pending",
+        }
+        mock_client_1 = MagicMock()
+        mock_client_1.table.return_value.insert.return_value.execute.return_value = (
+            MagicMock(data=[sub_a])
+        )
+
+        with (
+            patch.object(sdb, "get_task", new_callable=AsyncMock, return_value=task_a),
+            patch.object(sdb, "get_client", return_value=mock_client_1),
+            patch.object(sdb, "update_task", new_callable=AsyncMock),
+        ):
+            result_a = await sdb.submit_work(
+                task_id=TASK_A_ID,
+                executor_id=AGENT_B_EXECUTOR_ID,
+                evidence={"screenshot": "https://cdn.example.com/b_for_a.jpg"},
+                notes="Agent B completed task for Agent A",
+            )
+            assert result_a["submission"]["id"] == sub_a["id"]
+
+        # A approves B's submission
+        sub_a_for_approve = {
+            **sub_a,
+            "task": {**task_a, "status": "submitted"},
+        }
+        approval_a = {
+            **sub_a,
+            "agent_verdict": "accepted",
+            "verified_at": "2026-02-20T10:30:00+00:00",
+        }
+        mock_client_2 = MagicMock()
+        mock_client_2.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[approval_a]
+        )
+        mock_client_2.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={"reputation_score": 80}
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=sub_a_for_approve,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client_2),
+            patch.object(sdb, "update_task", new_callable=AsyncMock) as mock_ut_a,
+        ):
+            updated_a = await sdb.update_submission(
+                submission_id=sub_a["id"],
+                agent_id=AGENT_A_WALLET,
+                verdict="accepted",
+                notes="Good work, approved",
+            )
+            assert updated_a["agent_verdict"] == "accepted"
+            mock_ut_a.assert_called_once()
+            assert mock_ut_a.call_args[0][1]["status"] == "completed"
+
+        # =================================================================
+        # Phase 2: Agent B publishes task -> Agent A completes
+        # =================================================================
+        task_b = _make_task(
+            id=TASK_B_ID,
+            agent_id=AGENT_B_WALLET,
+            status="accepted",
+            executor_id=AGENT_A_EXECUTOR_ID,
+            deadline="2099-12-31T23:59:59Z",
+        )
+
+        sub_b = {
+            "id": "sub-bilateral-b-222222222222",
+            "task_id": TASK_B_ID,
+            "executor_id": AGENT_A_EXECUTOR_ID,
+            "evidence": {"screenshot": "https://cdn.example.com/a_for_b.jpg"},
+            "notes": "Agent A completed task for Agent B",
+            "submitted_at": "2026-02-20T11:00:00+00:00",
+            "agent_verdict": "pending",
+        }
+        mock_client_3 = MagicMock()
+        mock_client_3.table.return_value.insert.return_value.execute.return_value = (
+            MagicMock(data=[sub_b])
+        )
+
+        with (
+            patch.object(sdb, "get_task", new_callable=AsyncMock, return_value=task_b),
+            patch.object(sdb, "get_client", return_value=mock_client_3),
+            patch.object(sdb, "update_task", new_callable=AsyncMock),
+        ):
+            result_b = await sdb.submit_work(
+                task_id=TASK_B_ID,
+                executor_id=AGENT_A_EXECUTOR_ID,
+                evidence={"screenshot": "https://cdn.example.com/a_for_b.jpg"},
+                notes="Agent A completed task for Agent B",
+            )
+            assert result_b["submission"]["id"] == sub_b["id"]
+
+        # B approves A's submission
+        sub_b_for_approve = {
+            **sub_b,
+            "task": {**task_b, "status": "submitted"},
+        }
+        approval_b = {
+            **sub_b,
+            "agent_verdict": "accepted",
+            "verified_at": "2026-02-20T11:30:00+00:00",
+        }
+        mock_client_4 = MagicMock()
+        mock_client_4.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[approval_b]
+        )
+        mock_client_4.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={"reputation_score": 75}
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=sub_b_for_approve,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client_4),
+            patch.object(sdb, "update_task", new_callable=AsyncMock) as mock_ut_b,
+        ):
+            updated_b = await sdb.update_submission(
+                submission_id=sub_b["id"],
+                agent_id=AGENT_B_WALLET,
+                verdict="accepted",
+                notes="Well done, approved",
+            )
+            assert updated_b["agent_verdict"] == "accepted"
+            mock_ut_b.assert_called_once()
+            assert mock_ut_b.call_args[0][1]["status"] == "completed"
+
+        # =================================================================
+        # Phase 3: Bidirectional reputation -- both rate each other
+        # =================================================================
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
+        # A rates B (as worker on task A)
+        mock_fb_a_rates_b = FeedbackResult(
+            success=True,
+            transaction_hash="0xrate_a_to_b_" + "a" * 52,
+            network="base",
+            feedback_index=10,
+        )
+
+        # B rates A (as worker on task B)
+        mock_fb_b_rates_a = FeedbackResult(
+            success=True,
+            transaction_hash="0xrate_b_to_a_" + "b" * 52,
+            network="base",
+            feedback_index=11,
+        )
+
+        with patch(
+            "integrations.erc8004.feedback_store.persist_and_hash_feedback",
+            new_callable=AsyncMock,
+            return_value=("https://cdn.example.com/fb.json", "0xhash"),
+        ):
+            # A rates B (worker on task A) via direct_reputation
+            with patch(
+                "integrations.erc8004.direct_reputation.give_feedback_direct",
+                new_callable=AsyncMock,
+                return_value=mock_fb_a_rates_b,
+            ) as mock_direct_ab:
+                from integrations.erc8004.facilitator_client import rate_worker
+
+                result_ab = await rate_worker(
+                    task_id=TASK_A_ID,
+                    score=90,
+                    worker_address=AGENT_B_WALLET,
+                    comment="B did great work on my task",
+                    worker_agent_id=200,
+                )
+                assert result_ab.success is True
+                assert result_ab.feedback_index == 10
+                mock_direct_ab.assert_called_once()
+
+            # B rates A (worker on task B)
+            with patch(
+                "integrations.erc8004.direct_reputation.give_feedback_direct",
+                new_callable=AsyncMock,
+                return_value=mock_fb_b_rates_a,
+            ) as mock_direct_ba:
+                result_ba = await rate_worker(
+                    task_id=TASK_B_ID,
+                    score=85,
+                    worker_address=AGENT_A_WALLET,
+                    comment="A did great work on my task",
+                    worker_agent_id=100,
+                )
+                assert result_ba.success is True
+                assert result_ba.feedback_index == 11
+                mock_direct_ba.assert_called_once()
+
+        # Both directions succeeded independently
+        assert result_ab.transaction_hash != result_ba.transaction_hash
+
+    @pytest.mark.asyncio
+    async def test_bilateral_same_category(self):
+        """
+        Both tasks in the same category -- verify no conflicts.
+
+        When two agents create tasks in the same category and work on each
+        other's tasks, the category field should not cause any collision or
+        uniqueness constraint violation.
+        """
+        import supabase_client as sdb
+
+        shared_category = "physical_presence"
+
+        task_a = _make_task(
+            id=TASK_A_ID,
+            agent_id=AGENT_A_WALLET,
+            status="accepted",
+            category=shared_category,
+            executor_id=AGENT_B_EXECUTOR_ID,
+            deadline="2099-12-31T23:59:59Z",
+        )
+        task_b = _make_task(
+            id=TASK_B_ID,
+            agent_id=AGENT_B_WALLET,
+            status="accepted",
+            category=shared_category,
+            executor_id=AGENT_A_EXECUTOR_ID,
+            deadline="2099-12-31T23:59:59Z",
+        )
+
+        sub_a = {
+            "id": "sub-same-cat-a-111111111111",
+            "task_id": TASK_A_ID,
+            "executor_id": AGENT_B_EXECUTOR_ID,
+            "evidence": {"photo": "https://cdn.example.com/same_cat_a.jpg"},
+            "notes": "Same category, task A",
+            "submitted_at": "2026-02-20T10:00:00+00:00",
+            "agent_verdict": "pending",
+        }
+        sub_b = {
+            "id": "sub-same-cat-b-222222222222",
+            "task_id": TASK_B_ID,
+            "executor_id": AGENT_A_EXECUTOR_ID,
+            "evidence": {"photo": "https://cdn.example.com/same_cat_b.jpg"},
+            "notes": "Same category, task B",
+            "submitted_at": "2026-02-20T10:05:00+00:00",
+            "agent_verdict": "pending",
+        }
+
+        # Submit evidence for task A (B is worker)
+        mock_client_a = MagicMock()
+        mock_client_a.table.return_value.insert.return_value.execute.return_value = (
+            MagicMock(data=[sub_a])
+        )
+        with (
+            patch.object(sdb, "get_task", new_callable=AsyncMock, return_value=task_a),
+            patch.object(sdb, "get_client", return_value=mock_client_a),
+            patch.object(sdb, "update_task", new_callable=AsyncMock),
+        ):
+            result_a = await sdb.submit_work(
+                task_id=TASK_A_ID,
+                executor_id=AGENT_B_EXECUTOR_ID,
+                evidence={"photo": "https://cdn.example.com/same_cat_a.jpg"},
+                notes="Same category, task A",
+            )
+            assert result_a["submission"]["id"] == sub_a["id"]
+
+        # Submit evidence for task B (A is worker)
+        mock_client_b = MagicMock()
+        mock_client_b.table.return_value.insert.return_value.execute.return_value = (
+            MagicMock(data=[sub_b])
+        )
+        with (
+            patch.object(sdb, "get_task", new_callable=AsyncMock, return_value=task_b),
+            patch.object(sdb, "get_client", return_value=mock_client_b),
+            patch.object(sdb, "update_task", new_callable=AsyncMock),
+        ):
+            result_b = await sdb.submit_work(
+                task_id=TASK_B_ID,
+                executor_id=AGENT_A_EXECUTOR_ID,
+                evidence={"photo": "https://cdn.example.com/same_cat_b.jpg"},
+                notes="Same category, task B",
+            )
+            assert result_b["submission"]["id"] == sub_b["id"]
+
+        # Approve both -- task A
+        sub_a_approve = {
+            **sub_a,
+            "task": {**task_a, "status": "submitted"},
+        }
+        approved_a = {**sub_a, "agent_verdict": "accepted"}
+        mock_ca = MagicMock()
+        mock_ca.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[approved_a]
+        )
+        mock_ca.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={"reputation_score": 80}
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=sub_a_approve,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_ca),
+            patch.object(sdb, "update_task", new_callable=AsyncMock) as mock_ut_a,
+        ):
+            ua = await sdb.update_submission(
+                submission_id=sub_a["id"],
+                agent_id=AGENT_A_WALLET,
+                verdict="accepted",
+                notes="Approved",
+            )
+            assert ua["agent_verdict"] == "accepted"
+            assert mock_ut_a.call_args[0][1]["status"] == "completed"
+
+        # Approve both -- task B
+        sub_b_approve = {
+            **sub_b,
+            "task": {**task_b, "status": "submitted"},
+        }
+        approved_b = {**sub_b, "agent_verdict": "accepted"}
+        mock_cb = MagicMock()
+        mock_cb.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[approved_b]
+        )
+        mock_cb.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={"reputation_score": 70}
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=sub_b_approve,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_cb),
+            patch.object(sdb, "update_task", new_callable=AsyncMock) as mock_ut_b,
+        ):
+            ub = await sdb.update_submission(
+                submission_id=sub_b["id"],
+                agent_id=AGENT_B_WALLET,
+                verdict="accepted",
+                notes="Approved",
+            )
+            assert ub["agent_verdict"] == "accepted"
+            assert mock_ut_b.call_args[0][1]["status"] == "completed"
+
+        # Both tasks completed with the same category -- no conflicts
+        assert task_a["category"] == task_b["category"] == shared_category
+
+    @pytest.mark.asyncio
+    async def test_agent_can_be_both_publisher_and_worker(self):
+        """
+        Same agent is publisher on task A and worker on task B simultaneously.
+
+        This validates that the system doesn't conflate roles: an agent
+        creating a task is not prevented from accepting work on another agent's
+        task. The self-application prevention only blocks applying to your OWN
+        task, not to tasks from other agents.
+        """
+        import supabase_client as sdb
+
+        # Agent A is publisher on task A
+        task_a_published = _make_task(
+            id=TASK_A_ID,
+            agent_id=AGENT_A_WALLET,
+            status="published",
+        )
+
+        # Agent A is also worker on task B (published by B)
+        task_b_with_a_as_worker = _make_task(
+            id=TASK_B_ID,
+            agent_id=AGENT_B_WALLET,
+            status="accepted",
+            executor_id=AGENT_A_EXECUTOR_ID,
+            deadline="2099-12-31T23:59:59Z",
+        )
+
+        # A can submit evidence on B's task while A's own task is still published
+        sub_for_b = {
+            "id": "sub-dual-role-a-333333333333",
+            "task_id": TASK_B_ID,
+            "executor_id": AGENT_A_EXECUTOR_ID,
+            "evidence": {"screenshot": "https://cdn.example.com/a_works_for_b.jpg"},
+            "notes": "A working on B's task while publishing own task",
+            "submitted_at": "2026-02-20T12:00:00+00:00",
+            "agent_verdict": "pending",
+        }
+        mock_client = MagicMock()
+        mock_client.table.return_value.insert.return_value.execute.return_value = (
+            MagicMock(data=[sub_for_b])
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=task_b_with_a_as_worker,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client),
+            patch.object(sdb, "update_task", new_callable=AsyncMock),
+        ):
+            result = await sdb.submit_work(
+                task_id=TASK_B_ID,
+                executor_id=AGENT_A_EXECUTOR_ID,
+                evidence={"screenshot": "https://cdn.example.com/a_works_for_b.jpg"},
+                notes="A working on B's task while publishing own task",
+            )
+            assert result["submission"]["id"] == sub_for_b["id"]
+
+        # Verify self-application prevention: A cannot apply to A's own task
+        executor_a = _make_executor(
+            wallet_address=AGENT_A_WALLET,
+            executor_id=AGENT_A_EXECUTOR_ID,
+        )
+
+        mock_client_self = MagicMock()
+        mock_client_self.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data=executor_a
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=task_a_published,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client_self),
+        ):
+            with pytest.raises(Exception, match="[Cc]annot apply.*own task"):
+                await sdb.apply_to_task(
+                    task_id=TASK_A_ID,
+                    executor_id=AGENT_A_EXECUTOR_ID,
+                    message="Trying to self-apply",
+                )
+
+        # But A CAN apply to B's task (different agent)
+        task_b_published = _make_task(
+            id=TASK_B_ID,
+            agent_id=AGENT_B_WALLET,
+            status="published",
+        )
+
+        # Mock for apply_to_task on B's task
+        application_result = {
+            "id": "app-dual-role-001",
+            "task_id": TASK_B_ID,
+            "executor_id": AGENT_A_EXECUTOR_ID,
+            "message": "I can help with this",
+            "status": "pending",
+        }
+
+        mock_client_apply = MagicMock()
+        # Executor lookup: table("executors").select("*").eq(id).single().execute()
+        mock_client_apply.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data=executor_a
+        )
+        # Existing application check: table(apps).select("*").eq(task_id).eq(exec_id).execute()
+        mock_client_apply.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
+        # Insert application: table(apps).insert({...}).execute()
+        mock_client_apply.table.return_value.insert.return_value.execute.return_value = MagicMock(
+            data=[application_result]
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=task_b_published,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client_apply),
+        ):
+            app_result = await sdb.apply_to_task(
+                task_id=TASK_B_ID,
+                executor_id=AGENT_A_EXECUTOR_ID,
+                message="I can help with this",
+            )
+            # Application succeeded -- A is both publisher (on own task)
+            # and worker (on B's task)
+            assert app_result is not None
