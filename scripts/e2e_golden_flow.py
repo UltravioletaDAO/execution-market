@@ -12,6 +12,7 @@ Usage:
     python scripts/e2e_golden_flow.py
     python scripts/e2e_golden_flow.py --dry-run          # Config check only
     python scripts/e2e_golden_flow.py --bounty 0.05       # Custom bounty
+    python scripts/e2e_golden_flow.py --token EURC        # Test with EURC instead of USDC
 
 Environment:
     EM_API_KEY           -- Agent API key (optional when EM_REQUIRE_API_KEY=false)
@@ -67,8 +68,18 @@ EXISTING_EXECUTOR_ID = os.environ.get("EM_TEST_EXECUTOR_ID", "")
 
 # Blockchain
 BASE_RPC = "https://mainnet.base.org"
-USDC_CONTRACT = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 BASESCAN_TX = "https://basescan.org/tx"
+
+# Token contracts on Base (for on-chain transfer verification)
+TOKEN_CONTRACTS = {
+    "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "EURC": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
+    "USDbC": "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
+}
+
+# Default token and contract (overridden by --token flag)
+PAYMENT_TOKEN = "USDC"
+TOKEN_CONTRACT = TOKEN_CONTRACTS["USDC"]
 
 # ERC-20 Transfer event topic
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
@@ -207,6 +218,8 @@ class GoldenFlowResults:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "api_base": API_BASE,
             "fee_model": "credit_card",
+            "payment_token": PAYMENT_TOKEN,
+            "token_contract": TOKEN_CONTRACT,
             "bounty_usd": bounty,
             "fee_usd": fee,
             "worker_net_usd": worker_net,
@@ -269,7 +282,7 @@ async def raw_get(client: httpx.AsyncClient, path: str) -> dict:
 # On-chain TX verification
 # ---------------------------------------------------------------------------
 async def verify_tx_onchain(client: httpx.AsyncClient, tx_hash: str) -> Dict[str, Any]:
-    """Verify a transaction on Base via RPC and parse USDC Transfer events."""
+    """Verify a transaction on Base via RPC and parse token Transfer events."""
     try:
         resp = await client.post(
             BASE_RPC,
@@ -291,19 +304,19 @@ async def verify_tx_onchain(client: httpx.AsyncClient, tx_hash: str) -> Dict[str
         from_addr = result.get("from", "")
         to_addr = result.get("to", "")
 
-        # Parse USDC Transfer events
+        # Parse token Transfer events (USDC/EURC/USDbC — all 6-decimal ERC-20)
         transfers = []
         for log in result.get("logs", []):
             topics = log.get("topics", [])
             if (
                 len(topics) >= 3
                 and topics[0].lower() == TRANSFER_TOPIC.lower()
-                and log.get("address", "").lower() == USDC_CONTRACT.lower()
+                and log.get("address", "").lower() == TOKEN_CONTRACT.lower()
             ):
                 sender = "0x" + topics[1][-40:]
                 receiver = "0x" + topics[2][-40:]
                 raw_amount = int(log.get("data", "0x0"), 16)
-                amount_usdc = raw_amount / 1_000_000  # USDC has 6 decimals
+                amount_usdc = raw_amount / 1_000_000  # 6 decimals (USDC/EURC/USDbC)
                 transfers.append(
                     {
                         "from": sender.lower(),
@@ -455,9 +468,10 @@ async def phase_task_creation(
     fee = float(Decimal(str(bounty)) * PLATFORM_FEE_PCT)
 
     _print_header("PHASE 2: TASK CREATION (BALANCE CHECK)")
-    print(f"    Bounty:      ${bounty:.2f} USDC (lock amount)")
-    print(f"    Worker net:  ${worker_net:.6f} USDC (87%)")
-    print(f"    Fee:         ${fee:.6f} USDC (13%, on-chain fee calculator)")
+    print(f"    Token:       {PAYMENT_TOKEN} ({TOKEN_CONTRACT})")
+    print(f"    Bounty:      ${bounty:.2f} {PAYMENT_TOKEN} (lock amount)")
+    print(f"    Worker net:  ${worker_net:.6f} {PAYMENT_TOKEN} (87%)")
+    print(f"    Fee:         ${fee:.6f} {PAYMENT_TOKEN} (13%, on-chain fee calculator)")
     print(f"    Fee model:   credit_card (fee deducted from bounty)")
     print(f"    Escrow:      deferred to assignment (direct_release mode)")
 
@@ -476,7 +490,7 @@ async def phase_task_creation(
                 "evidence_required": ["text_response"],
                 "location_hint": "Any location",
                 "payment_network": "base",
-                "payment_token": "USDC",
+                "payment_token": PAYMENT_TOKEN,
             },
         )
 
@@ -837,11 +851,11 @@ async def phase_approval_payment(
             print(f"  |    {BASESCAN_TX}/{fee_tx}")
         if worker_net_actual is not None:
             print(
-                f"  |  Worker net:    ${worker_net_actual:.6f} USDC (87%)            |"
+                f"  |  Worker net:    ${worker_net_actual:.6f} {PAYMENT_TOKEN} (87%)            |"
             )
         if platform_fee_actual is not None:
             print(
-                f"  |  Operator fee:  ${platform_fee_actual:.6f} USDC (13%)            |"
+                f"  |  Operator fee:  ${platform_fee_actual:.6f} {PAYMENT_TOKEN} (13%)            |"
             )
         print("  +-----------------------------------------------------------+")
 
@@ -1302,6 +1316,7 @@ def generate_report_en(results: GoldenFlowResults, bounty: float) -> str:
         f"> **API**: `{API_BASE}`",
         "> **Fee Model**: credit_card (fee deducted from bounty on-chain)",
         "> **Escrow Mode**: direct_release (escrow at assignment, 1-TX release)",
+        f"> **Token**: {PAYMENT_TOKEN} (`{TOKEN_CONTRACT}`)",
         f"> **Result**: **{overall}**",
         "",
         "---",
@@ -1309,7 +1324,7 @@ def generate_report_en(results: GoldenFlowResults, bounty: float) -> str:
         "## Executive Summary",
         "",
         "The Golden Flow tested the complete Execution Market lifecycle end-to-end ",
-        f"on production against Base Mainnet using the Fase 5 credit card fee model. {results.pass_count}/{len(results.phases)} phases passed.",
+        f"on production against Base Mainnet using the Fase 5 credit card fee model with **{PAYMENT_TOKEN}**. {results.pass_count}/{len(results.phases)} phases passed.",
         "",
         f"**Overall Result: {overall}**",
         "",
@@ -1319,10 +1334,12 @@ def generate_report_en(results: GoldenFlowResults, bounty: float) -> str:
         "",
         "| Parameter | Value |",
         "|-----------|-------|",
-        f"| Bounty (lock amount) | ${bounty:.2f} USDC |",
-        f"| Worker Net (87%) | ${worker_net:.6f} USDC |",
-        f"| Operator Fee (13%) | ${fee:.6f} USDC |",
-        f"| Total Cost to Agent | ${bounty:.2f} USDC |",
+        f"| Payment Token | {PAYMENT_TOKEN} |",
+        f"| Token Contract | `{TOKEN_CONTRACT}` |",
+        f"| Bounty (lock amount) | ${bounty:.2f} {PAYMENT_TOKEN} |",
+        f"| Worker Net (87%) | ${worker_net:.6f} {PAYMENT_TOKEN} |",
+        f"| Operator Fee (13%) | ${fee:.6f} {PAYMENT_TOKEN} |",
+        f"| Total Cost to Agent | ${bounty:.2f} {PAYMENT_TOKEN} |",
         "| Fee Model | credit_card |",
         "| Escrow Mode | direct_release |",
         f"| Worker Wallet | `{WORKER_WALLET}` |",
@@ -1626,6 +1643,7 @@ def generate_report_es(results: GoldenFlowResults, bounty: float) -> str:
         f"> **API**: `{API_BASE}`",
         "> **Modelo de fee**: credit_card (fee descontado del bounty on-chain)",
         "> **Modo escrow**: direct_release (escrow en asignacion, 1-TX release)",
+        f"> **Token**: {PAYMENT_TOKEN} (`{TOKEN_CONTRACT}`)",
         f"> **Resultado**: **{overall}**",
         "",
         "---",
@@ -1633,7 +1651,7 @@ def generate_report_es(results: GoldenFlowResults, bounty: float) -> str:
         "## Resumen Ejecutivo",
         "",
         "El Golden Flow probo el ciclo de vida completo de Execution Market end-to-end ",
-        f"en produccion contra Base Mainnet usando el modelo de fee credit card (Fase 5). {results.pass_count}/{len(results.phases)} fases pasaron.",
+        f"en produccion contra Base Mainnet usando el modelo de fee credit card (Fase 5) con **{PAYMENT_TOKEN}**. {results.pass_count}/{len(results.phases)} fases pasaron.",
         "",
         f"**Resultado General: {overall}**",
         "",
@@ -1643,10 +1661,12 @@ def generate_report_es(results: GoldenFlowResults, bounty: float) -> str:
         "",
         "| Parametro | Valor |",
         "|-----------|-------|",
-        f"| Bounty (monto bloqueado) | ${bounty:.2f} USDC |",
-        f"| Worker neto (87%) | ${worker_net:.6f} USDC |",
-        f"| Fee operador (13%) | ${fee:.6f} USDC |",
-        f"| Costo total para agente | ${bounty:.2f} USDC |",
+        f"| Token de pago | {PAYMENT_TOKEN} |",
+        f"| Contrato del token | `{TOKEN_CONTRACT}` |",
+        f"| Bounty (monto bloqueado) | ${bounty:.2f} {PAYMENT_TOKEN} |",
+        f"| Worker neto (87%) | ${worker_net:.6f} {PAYMENT_TOKEN} |",
+        f"| Fee operador (13%) | ${fee:.6f} {PAYMENT_TOKEN} |",
+        f"| Costo total para agente | ${bounty:.2f} {PAYMENT_TOKEN} |",
         "| Modelo de fee | credit_card |",
         "| Modo escrow | direct_release |",
         f"| Wallet del Worker | `{WORKER_WALLET}` |",
@@ -1919,6 +1939,8 @@ def generate_report_es(results: GoldenFlowResults, bounty: float) -> str:
 # Main
 # ---------------------------------------------------------------------------
 async def main() -> int:
+    global PAYMENT_TOKEN, TOKEN_CONTRACT
+
     bounty = DEFAULT_BOUNTY
     dry_run = "--dry-run" in sys.argv
 
@@ -1931,6 +1953,16 @@ async def main() -> int:
                 print(f"Invalid bounty: {sys.argv[i + 1]}")
                 return 1
 
+    # Parse --token
+    for i, arg in enumerate(sys.argv):
+        if arg == "--token" and i + 1 < len(sys.argv):
+            token = sys.argv[i + 1].upper()
+            if token not in TOKEN_CONTRACTS:
+                print(f"Unknown token: {token}. Supported: {', '.join(TOKEN_CONTRACTS.keys())}")
+                return 1
+            PAYMENT_TOKEN = token
+            TOKEN_CONTRACT = TOKEN_CONTRACTS[token]
+
     worker_net = float(Decimal(str(bounty)) * WORKER_PCT)
     fee = float(Decimal(str(bounty)) * PLATFORM_FEE_PCT)
 
@@ -1940,9 +1972,10 @@ async def main() -> int:
     _print_kv("API", API_BASE, 2)
     _print_kv("Time", ts(), 2)
     _print_kv("Fee model", "credit_card (fee deducted from bounty on-chain)", 2)
-    _print_kv("Bounty", f"${bounty:.2f} USDC (= lock amount)", 2)
-    _print_kv("Worker net", f"${worker_net:.6f} USDC (87%)", 2)
-    _print_kv("Fee", f"${fee:.6f} USDC (13%)", 2)
+    _print_kv("Token", f"{PAYMENT_TOKEN} ({TOKEN_CONTRACT})", 2)
+    _print_kv("Bounty", f"${bounty:.2f} {PAYMENT_TOKEN} (= lock amount)", 2)
+    _print_kv("Worker net", f"${worker_net:.6f} {PAYMENT_TOKEN} (87%)", 2)
+    _print_kv("Fee", f"${fee:.6f} {PAYMENT_TOKEN} (13%)", 2)
     _print_kv("Escrow mode", "direct_release (escrow at assignment)", 2)
     _print_kv("Worker", WORKER_WALLET, 2)
     _print_kv("Treasury", TREASURY_WALLET, 2)
