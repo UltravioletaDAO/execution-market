@@ -1,0 +1,445 @@
+{
+  "metadata": {
+    "generated": "2026-02-20T05:12:25.955Z",
+    "agentCount": 24,
+    "derivationPathBase": "m/44'/60'/0'/0/",
+    "seedUsed": true,
+    "networks": {
+      "base": {
+        "chainId": 8453,
+        "name": "Base Mainnet",
+        "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+      },
+      "polygon": {
+        "chainId": 137,
+        "name": "Polygon Mainnet",
+        "usdc": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+      },
+      "arbitrum": {
+        "chainId": 42161,
+        "name": "Arbitrum One",
+        "usdc": "0xA0b86991c431e59F77b5B65a5d8E7C73C6fDe5a5"
+      }
+    }
+  },
+  "wallets": [
+    {
+      "index": 0,
+      "name": "aurora",
+      "address": "0x2cF434B713047d713750484AC9196A3C2F4497e8",
+      "personality": "builder",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 1,
+      "name": "blaze",
+      "address": "0x6d02a44f6De6B86a7fd79d8368dA74e1c5f9c392",
+      "personality": "explorer",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 2,
+      "name": "cipher",
+      "address": "0xB3a4BDFfd91021c60cA219A52F6B974C67ea5aF0",
+      "personality": "analyst",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 3,
+      "name": "drift",
+      "address": "0xf3B4d01b7d3c0C1BAeAdc8de90aD94dE198FF2aC",
+      "personality": "connector",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 4,
+      "name": "echo",
+      "address": "0x9edEe892f7E3fbB4039132F693aD74A37A6A6189",
+      "personality": "creator",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 5,
+      "name": "flux",
+      "address": "0xc3491810c843058Be363Bf35FCA77CAadE3da587",
+      "personality": "guardian",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 6,
+      "name": "galaxy",
+      "address": "0x9eDc42ba1DA897Aab9Cf1a95cf17600013477768",
+      "personality": "maverick",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 7,
+      "name": "horizon",
+      "address": "0xA550eFfC0bF438Ca07c6d7558351d6881B999229",
+      "personality": "strategist",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 8,
+      "name": "ion",
+      "address": "0xf8284B99Ae68F19C1C74729Fc5837Bda668Bdf09",
+      "personality": "teacher",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 9,
+      "name": "jinx",
+      "address": "0xe7F0b85D2402FA76B5489617bEF4Cb1dfBdA4373",
+      "personality": "builder",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 10,
+      "name": "kinetic",
+      "address": "0x6099887FFB1d9bd241B8422c5D27B06Efc4547b6",
+      "personality": "explorer",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 11,
+      "name": "lunar",
+      "address": "0xD32b2536baB8D6daB6Cd1073dEf43860440A5fa3",
+      "personality": "analyst",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 12,
+      "name": "matrix",
+      "address": "0xb27b0C5dd18D73bf7Db85ba8193Eff367e038ddb",
+      "personality": "connector",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 13,
+      "name": "nova",
+      "address": "0x9A61d878c52F3B6afCd73a744Af6Fd934A8f194b",
+      "personality": "creator",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 14,
+      "name": "orbit",
+      "address": "0x88fE2CDdD6d4dd7855057990CCFEe29703506a44",
+      "personality": "guardian",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 15,
+      "name": "prism",
+      "address": "0x23f7c38b9145d60D745E3EbA3f594578B7f5CbCF",
+      "personality": "maverick",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 16,
+      "name": "quantum",
+      "address": "0x3F166E329A18F539e8dAE260CCf4c4a50b6703e6",
+      "personality": "strategist",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 17,
+      "name": "raven",
+      "address": "0x316F7E0a82418bD94032ab577E0667ce0BF47b5a",
+      "personality": "teacher",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 18,
+      "name": "stellar",
+      "address": "0xb8643Ae0aa8da8ef4BCb7A5cCb2044f8d6F848A3",
+      "personality": "builder",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 19,
+      "name": "titan",
+      "address": "0x6369114F2eE4bf93C2AB60920f988f6dE515A596",
+      "personality": "explorer",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 20,
+      "name": "umbra",
+      "address": "0xdD3E30D84A662F5C60882EC9D4172Ba392703688",
+      "personality": "analyst",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 21,
+      "name": "vortex",
+      "address": "0xc8B2Cf6D8783D8E0319Dad04f71830Ddc65aF51e",
+      "personality": "connector",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 22,
+      "name": "wave",
+      "address": "0x68Ae3adbbFEf1EFf6C46446080cC2C9C6C2b4B05",
+      "personality": "creator",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    },
+    {
+      "index": 23,
+      "name": "xenon",
+      "address": "0xc74A451eC8693bB8A2c955e004CaAc3Bcf5D4865",
+      "personality": "guardian",
+      "balances": {
+        "base": {
+          "usdc": "0.00"
+        },
+        "polygon": {
+          "usdc": "0.00"
+        },
+        "arbitrum": {
+          "usdc": "0.00"
+        }
+      }
+    }
+  ],
+  "funding": {
+    "sourceWallet": "0xD3868E1eD738CED6945A574a7c769433BeD5d474",
+    "totalBudget": "200.00",
+    "perAgentBudget": "8.33",
+    "distribution": {
+      "base": "6.67",
+      "polygon": "1.25",
+      "arbitrum": "0.41"
+    }
+  }
+}

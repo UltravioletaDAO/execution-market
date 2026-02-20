@@ -1,0 +1,38 @@
+# =============================================================================
+# KarmaCadabra Swarm — Example Variables
+# =============================================================================
+# Copy this to terraform.tfvars and fill in your values.
+# The ONLY required value is anthropic_api_key.
+# =============================================================================
+
+# REQUIRED — Your Anthropic API key
+anthropic_api_key = "sk-ant-your-key-here"
+
+# OPTIONAL — All have sensible defaults
+
+# Number of agents (default: 5)
+# agent_count = 5
+
+# LLM model (default: anthropic/claude-haiku-4-5)
+# agent_model = "anthropic/claude-haiku-4-5"
+
+# AWS region (default: us-east-2)
+# aws_region = "us-east-2"
+
+# Use Fargate Spot for 70% savings (default: true)
+# use_spot = true
+
+# Environment (default: production)
+# environment = "production"
+
+# CPU per agent in units (default: 256 = 0.25 vCPU)
+# agent_cpu = 256
+
+# Memory per agent in MiB (default: 512)
+# agent_memory = 512
+
+# CloudWatch Container Insights (default: false, saves ~$3/mo)
+# enable_container_insights = false
+
+# Log retention in days (default: 14)
+# log_retention_days = 14
