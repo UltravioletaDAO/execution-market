@@ -22,6 +22,8 @@ Stagger Schedule (prevents API thundering herd):
   :04  kk-abracadabra (future)
   :06  kk-skill-extractor
   :08  kk-voice-extractor
+  :09  kk-soul-extractor
+  :10  kk-validator
   :10  community agents 1-10 (2s apart)
   :12  community agents 11-20
   :14  community agents 21-34
@@ -47,6 +49,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lib.memory import append_daily_note, get_daily_summary, init_memory_stack
+from lib.swarm_state import poll_notifications, report_heartbeat
 from lib.working_state import (
     WorkingState,
     clear_active_task,
@@ -308,6 +311,28 @@ async def heartbeat_once(
     result = "no action needed"
 
     try:
+        # 1b. Check for coordinator notifications (non-fatal)
+        try:
+            notifications = await poll_notifications(name)
+            for notif in notifications:
+                content = notif.get("content", "")
+                # Parse JSON notifications from coordinator
+                try:
+                    data = json.loads(content)
+                    if data.get("type") == "task_assignment" and data.get("task_id"):
+                        set_active_task(
+                            state,
+                            task_id=data["task_id"],
+                            title=data.get("title", "coordinator assignment"),
+                            status="applied",
+                            next_step="Wait for assignment confirmation",
+                        )
+                        logger.info(f"  [{name}] Coordinator assigned: {data.get('title', '?')}")
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        except Exception as e:
+            logger.debug(f"  [{name}] Notification poll failed (non-fatal): {e}")
+
         # 2. Decide and execute action
         if state.has_active_task:
             action = f"resume:{state.active_task.status}"
@@ -345,6 +370,19 @@ async def heartbeat_once(
     # 5. Append daily note
     if not dry_run:
         append_daily_note(memory_dir, action, result)
+
+    # 6. Report to shared swarm state (non-fatal)
+    if not dry_run:
+        try:
+            swarm_status = "busy" if state.has_active_task else "idle"
+            await report_heartbeat(
+                agent_name=name,
+                status=swarm_status,
+                task_id=state.active_task.task_id if state.has_active_task else None,
+                daily_spent=state.daily_spent,
+            )
+        except Exception as e:
+            logger.debug(f"  [{name}] Swarm state report failed (non-fatal): {e}")
 
     logger.info(f"  [{name}] {action} -> {result}")
 
