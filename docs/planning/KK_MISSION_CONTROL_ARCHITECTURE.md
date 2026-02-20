@@ -594,3 +594,5 @@ Week 5: Phase 11 (Operations)
 5. **Budget source?** — Los agents necesitan USDC para operar. Puede venir de: (a) Treasury, (b) Data sales revenue, (c) EM task earnings. Idealmente self-sustaining despues de Phase 10.
 
 6. **Soul profile pricing strategy?** — Fixed $0.10 per profile vs. dynamic pricing based on profile richness. Dynamic rewards agents with more chat data but adds complexity.
+
+7. **Coinbase Agentic Wallets migration?** — Launched Feb 11, 2026. TEE-secured wallets (no key exposure), built-in spending limits, Python SDK (`cdp-sdk`), free tier covers our scale (5,000 ops/month). **Current blocker: Monad + Celo not confirmed on CDP.** Plan to evaluate in Phase 12+ when: (a) budget exceeds $2K in agent wallets, (b) Coinbase confirms all 8 chains, (c) product stabilizes (3+ months). Migration path: replace `eth_account.sign_typed_data()` with `cdp.evm.sign_typed_data()`, feature flag `WALLET_PROVIDER=cdp|local`. See research: [AgentKit docs](https://docs.cdp.coinbase.com/agent-kit/welcome), [CDP Server Wallets v2](https://docs.cdp.coinbase.com/server-wallets/v2/introduction/welcome).
