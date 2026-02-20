@@ -95,7 +95,7 @@
         "standard": "Escrow Programavel",
         "description": "Recompensas bloqueadas na criacao, liberadas na aprovacao. Liquidacao sem gas via o Facilitador Ultravioleta."
       },
-      "networksTitle": "7 Redes EVM",
+      "networksTitle": "8 Redes EVM",
       "networksSubtitle": "Pagamentos x402 + escrow x402r + identidade ERC-8004",
       "status": "Ao vivo"
     },
