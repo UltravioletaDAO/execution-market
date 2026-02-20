@@ -1,20 +1,20 @@
 # Multichain Golden Flow Report
 
-> **Date**: 2026-02-20 19:25 UTC
+> **Date**: 2026-02-20 20:13 UTC
 > **API**: `https://api.execution.market`
 > **Fee Model**: credit_card (fee deducted from bounty on-chain)
 > **Escrow Mode**: direct_release (Fase 5, 1-TX release)
 > **Chains tested**: 7
-> **Result**: **FAIL**
+> **Result**: **PASS**
 
 ---
 
 ## Executive Summary
 
 Tested the complete Execution Market lifecycle across **7 blockchains** 
-using the Fase 5 credit card model. 5/7 chains passed.
+using the Fase 5 credit card model. 7/7 chains passed.
 
-**Overall Result: FAIL**
+**Overall Result: PASS**
 
 | Metric | Value |
 |--------|-------|
@@ -22,8 +22,8 @@ using the Fase 5 credit card model. 5/7 chains passed.
 | Worker net (87%) | $0.087000 USDC |
 | Fee (13%) | $0.013000 USDC |
 | Total cost | $0.70 USDC |
-| Total on-chain TXs | 11 |
-| Reputation | SKIP |
+| Total on-chain TXs | 14 |
+| Reputation | PARTIAL |
 
 ---
 
@@ -31,13 +31,13 @@ using the Fase 5 credit card model. 5/7 chains passed.
 
 | Chain | Chain ID | Status | Escrow TX | Release TX | Worker Net | Time |
 |-------|----------|--------|-----------|------------|------------|------|
-| **Base** | 8453 | **PASS** | [View](https://basescan.org/tx/0x911588224312256ae178c637483d1a52fd22b0f86c958ac14d4483edb2b4aee9) | [View](https://basescan.org/tx/0xb465fe66b6c2b302e0a0710d28f59f17b0c8391f890c7db19b2c99c0e97f1b41) | $0.087000 | 42.21s |
-| **Polygon** | 137 | **FAIL** | [View](https://polygonscan.com/tx/0x16cc7c093898f2e12ff249b9e2a2f7856c557c8292d2d3122d871f4d899e2e6d) | N/A | N/A | 29.0s |
-| **Arbitrum** | 42161 | **PASS** | [View](https://arbiscan.io/tx/0x3ec638ccb7d9a600fe1a73b757b3cb6a8a10320896f9cc0fb33deb88d5e49b1e) | [View](https://arbiscan.io/tx/0xd3bdf5c2cdfba9f0c25a91ed3d0e09be412a0ffd8b7626fa8955f55203138307) | $0.087000 | 52.99s |
-| **Avalanche** | 43114 | **PASS** | [View](https://snowtrace.io/tx/0x1ee5a4a2ee6a4241504ad0e4e7ca97d44148aae6cf834e22c5a26e99deefc190) | [View](https://snowtrace.io/tx/0xc8a229ca33d42cb2de8221efd2536ab32bb5de520901c7e9d5ab955ac6fa007c) | $0.087000 | 41.71s |
-| **Monad** | 143 | **PASS** | [View](https://explorer.monad.xyz/tx/0xb71dc8abb6901d6b745228769a0e8b5d60e3a9c555ab142cd921319291bc842a) | [View](https://explorer.monad.xyz/tx/0x0d82823686f81e3c882d6fd9e9c4ee03f67e3df458f08e24bb8978b777b925f4) | $0.087000 | 50.29s |
-| **Celo** | 42220 | **PASS** | [View](https://celoscan.io/tx/0xdde62451bb4a8b9cce03bd22036d89fa1d4b71b908c7d8a398923090423222bc) | [View](https://celoscan.io/tx/0xe8373658076200e166f0e6ec4734a941d4e9f1e08c65cf3240ace9fa60583141) | $0.087000 | 44.08s |
-| **Optimism** | 10 | **FAIL** | N/A | N/A | N/A | 5.2s |
+| **Base** | 8453 | **PASS** | [View](https://basescan.org/tx/0x484593ce95e12421753a36469bc3b1f624416603eed8299af6e730404ae1ec8d) | [View](https://basescan.org/tx/0xcaf6b4ed10cc77fa543ca8031ebddf2d5b1f9fa8b2fe737a7c2be412e66a67ea) | $0.087000 | 29.12s |
+| **Polygon** | 137 | **PASS** | [View](https://polygonscan.com/tx/0xaf889084dfd5b73b3a8b57d213a95c09e21a8c672cb6bd852f39761b6739cc2c) | [View](https://polygonscan.com/tx/0xd9236abca08c5d017a7b0e51dfd847d47df25fb206300f47b6daebaf857acf36) | $0.087000 | 43.91s |
+| **Arbitrum** | 42161 | **PASS** | [View](https://arbiscan.io/tx/0x305062d9fa6c1d53e8cdd6c8854c0a93e20cc032f13da53eb6cdbe6e7031c3ec) | [View](https://arbiscan.io/tx/0xc04bc5edc695f6ccd0cc3af7b5095d89fe2efea2d0e8723bd3f9d3ceeb15888d) | $0.087000 | 49.73s |
+| **Avalanche** | 43114 | **PASS** | [View](https://snowtrace.io/tx/0x870a77e86abd5132cfea2a76c2a8e168bceb115ceaf089cbcef2e5c151784ce3) | [View](https://snowtrace.io/tx/0xbe81636a22062d9386e2902fd1db3211431883945b91da0090fa2b04659bcf3f) | $0.087000 | 40.35s |
+| **Monad** | 143 | **PASS** | [View](https://explorer.monad.xyz/tx/0xaeb4658dbf7678b952034a5f5ea3daecef20993ce29e89b6dd1aa8e6b75fab89) | [View](https://explorer.monad.xyz/tx/0x3c38056a1eac9bf6cc4d38185f007ee72148f60559cf7c298df200950996e9dd) | $0.087000 | 50.1s |
+| **Celo** | 42220 | **PASS** | [View](https://celoscan.io/tx/0x55263f8d72198e901d28595feb86ab94eda117e63ac38ca912e5f2522188622d) | [View](https://celoscan.io/tx/0xe08700c201c5ad1f4744551d11d1fc508d0becefb037fde0b9bd339e36999e63) | $0.087000 | 40.53s |
+| **Optimism** | 10 | **PASS** | [View](https://optimistic.etherscan.io/tx/0x23a29894e48129358819d22515c055376d6cca1aa46fd83febd6c2e398a929f4) | [View](https://optimistic.etherscan.io/tx/0x08796a7395cab8b338cfe8c26fb51d3ffc495f44abf0df1baebcd0d4c0c611a9) | $0.087000 | 44.46s |
 
 ---
 
@@ -46,7 +46,7 @@ using the Fase 5 credit card model. 5/7 chains passed.
 - **Status**: PASS
 - **Operator**: `0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb`
 - **USDC**: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
-- **Task ID**: `1d3820fb-7bd3-403f-a92d-130c69ea1780`
+- **Task ID**: `1049710b-4223-44f2-b4e2-b5453e7f61b8`
 - **Payment Mode**: `fase2`
 
 | Phase | Status |
@@ -58,8 +58,8 @@ using the Fase 5 credit card model. 5/7 chains passed.
 | approve | PASS |
 
 **Transactions:**
-- TX 1: [`0x911588224312256ae1...`](https://basescan.org/tx/0x911588224312256ae178c637483d1a52fd22b0f86c958ac14d4483edb2b4aee9)
-- TX 2: [`0xb465fe66b6c2b302e0...`](https://basescan.org/tx/0xb465fe66b6c2b302e0a0710d28f59f17b0c8391f890c7db19b2c99c0e97f1b41)
+- TX 1: [`0x484593ce95e1242175...`](https://basescan.org/tx/0x484593ce95e12421753a36469bc3b1f624416603eed8299af6e730404ae1ec8d)
+- TX 2: [`0xcaf6b4ed10cc77fa54...`](https://basescan.org/tx/0xcaf6b4ed10cc77fa543ca8031ebddf2d5b1f9fa8b2fe737a7c2be412e66a67ea)
 
 | Metric | Expected | Actual | Match |
 |--------|----------|--------|-------|
@@ -68,30 +68,10 @@ using the Fase 5 credit card model. 5/7 chains passed.
 
 ### Polygon (chain 137)
 
-- **Status**: FAIL
+- **Status**: PASS
 - **Operator**: `0xB87F1ECC85f074e50df3DD16A1F40e4e1EC4102e`
 - **USDC**: `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359`
-- **Error**: Approval failed: HTTP 502 - Could not settle payment before approval: Escrow release failed: Escrow scheme error: Contract call failed: ContractCall("TransportError(NullResp)")
-- **Task ID**: `1d1d2d7d-8e3c-42ad-bdd4-d21335e6714c`
-- **Payment Mode**: `direct_release`
-
-| Phase | Status |
-|-------|--------|
-| create | PASS |
-| apply | PASS |
-| assign | PASS |
-| submit | PASS |
-| approve | FAIL |
-
-**Transactions:**
-- TX 1: [`0x16cc7c093898f2e12f...`](https://polygonscan.com/tx/0x16cc7c093898f2e12ff249b9e2a2f7856c557c8292d2d3122d871f4d899e2e6d)
-
-### Arbitrum (chain 42161)
-
-- **Status**: PASS
-- **Operator**: `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`
-- **USDC**: `0xaf88d065e77c8cC2239327C5EDb3A432268e5831`
-- **Task ID**: `b7bc596b-9a1b-4744-9324-3dd4899f0928`
+- **Task ID**: `26af2fd6-b439-4db9-8c0d-d8c6ca82beff`
 - **Payment Mode**: `fase2`
 
 | Phase | Status |
@@ -103,8 +83,33 @@ using the Fase 5 credit card model. 5/7 chains passed.
 | approve | PASS |
 
 **Transactions:**
-- TX 1: [`0x3ec638ccb7d9a600fe...`](https://arbiscan.io/tx/0x3ec638ccb7d9a600fe1a73b757b3cb6a8a10320896f9cc0fb33deb88d5e49b1e)
-- TX 2: [`0xd3bdf5c2cdfba9f0c2...`](https://arbiscan.io/tx/0xd3bdf5c2cdfba9f0c25a91ed3d0e09be412a0ffd8b7626fa8955f55203138307)
+- TX 1: [`0xaf889084dfd5b73b3a...`](https://polygonscan.com/tx/0xaf889084dfd5b73b3a8b57d213a95c09e21a8c672cb6bd852f39761b6739cc2c)
+- TX 2: [`0xd9236abca08c5d017a...`](https://polygonscan.com/tx/0xd9236abca08c5d017a7b0e51dfd847d47df25fb206300f47b6daebaf857acf36)
+
+| Metric | Expected | Actual | Match |
+|--------|----------|--------|-------|
+| Worker (87%) | $0.087000 | $0.087000 | YES |
+| Fee (13%) | $0.013000 | $0.013000 | YES |
+
+### Arbitrum (chain 42161)
+
+- **Status**: PASS
+- **Operator**: `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`
+- **USDC**: `0xaf88d065e77c8cC2239327C5EDb3A432268e5831`
+- **Task ID**: `6dd585ef-1d3e-4b85-9e9f-b7bbe99de114`
+- **Payment Mode**: `fase2`
+
+| Phase | Status |
+|-------|--------|
+| create | PASS |
+| apply | PASS |
+| assign | PASS |
+| submit | PASS |
+| approve | PASS |
+
+**Transactions:**
+- TX 1: [`0x305062d9fa6c1d53e8...`](https://arbiscan.io/tx/0x305062d9fa6c1d53e8cdd6c8854c0a93e20cc032f13da53eb6cdbe6e7031c3ec)
+- TX 2: [`0xc04bc5edc695f6ccd0...`](https://arbiscan.io/tx/0xc04bc5edc695f6ccd0cc3af7b5095d89fe2efea2d0e8723bd3f9d3ceeb15888d)
 
 | Metric | Expected | Actual | Match |
 |--------|----------|--------|-------|
@@ -116,7 +121,7 @@ using the Fase 5 credit card model. 5/7 chains passed.
 - **Status**: PASS
 - **Operator**: `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`
 - **USDC**: `0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E`
-- **Task ID**: `0b4ec810-a5aa-430e-943b-46a901499539`
+- **Task ID**: `165f65a1-be73-49b7-a73f-27ca3ee25ea1`
 - **Payment Mode**: `fase2`
 
 | Phase | Status |
@@ -128,8 +133,8 @@ using the Fase 5 credit card model. 5/7 chains passed.
 | approve | PASS |
 
 **Transactions:**
-- TX 1: [`0x1ee5a4a2ee6a424150...`](https://snowtrace.io/tx/0x1ee5a4a2ee6a4241504ad0e4e7ca97d44148aae6cf834e22c5a26e99deefc190)
-- TX 2: [`0xc8a229ca33d42cb2de...`](https://snowtrace.io/tx/0xc8a229ca33d42cb2de8221efd2536ab32bb5de520901c7e9d5ab955ac6fa007c)
+- TX 1: [`0x870a77e86abd5132cf...`](https://snowtrace.io/tx/0x870a77e86abd5132cfea2a76c2a8e168bceb115ceaf089cbcef2e5c151784ce3)
+- TX 2: [`0xbe81636a22062d9386...`](https://snowtrace.io/tx/0xbe81636a22062d9386e2902fd1db3211431883945b91da0090fa2b04659bcf3f)
 
 | Metric | Expected | Actual | Match |
 |--------|----------|--------|-------|
@@ -141,7 +146,7 @@ using the Fase 5 credit card model. 5/7 chains passed.
 - **Status**: PASS
 - **Operator**: `0x9620Dbe2BB549E1d080Dc8e7982623A9e1Df8cC3`
 - **USDC**: `0x754704Bc059F8C67012fEd69BC8A327a5aafb603`
-- **Task ID**: `e1183cbf-2afc-42b8-8644-55aa3c4ec27d`
+- **Task ID**: `39d204e8-0162-4989-9ab1-f1cdbed9e4b7`
 - **Payment Mode**: `fase2`
 
 | Phase | Status |
@@ -153,8 +158,8 @@ using the Fase 5 credit card model. 5/7 chains passed.
 | approve | PASS |
 
 **Transactions:**
-- TX 1: [`0xb71dc8abb6901d6b74...`](https://explorer.monad.xyz/tx/0xb71dc8abb6901d6b745228769a0e8b5d60e3a9c555ab142cd921319291bc842a)
-- TX 2: [`0x0d82823686f81e3c88...`](https://explorer.monad.xyz/tx/0x0d82823686f81e3c882d6fd9e9c4ee03f67e3df458f08e24bb8978b777b925f4)
+- TX 1: [`0xaeb4658dbf7678b952...`](https://explorer.monad.xyz/tx/0xaeb4658dbf7678b952034a5f5ea3daecef20993ce29e89b6dd1aa8e6b75fab89)
+- TX 2: [`0x3c38056a1eac9bf6cc...`](https://explorer.monad.xyz/tx/0x3c38056a1eac9bf6cc4d38185f007ee72148f60559cf7c298df200950996e9dd)
 
 | Metric | Expected | Actual | Match |
 |--------|----------|--------|-------|
@@ -166,7 +171,7 @@ using the Fase 5 credit card model. 5/7 chains passed.
 - **Status**: PASS
 - **Operator**: `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`
 - **USDC**: `0xcebA9300f2b948710d2653dD7B07f33A8B32118C`
-- **Task ID**: `63a16a50-f8f4-443b-80a5-615cf4b9baec`
+- **Task ID**: `c1e0e607-9e7b-4734-a9da-a73ade83592d`
 - **Payment Mode**: `fase2`
 
 | Phase | Status |
@@ -178,8 +183,8 @@ using the Fase 5 credit card model. 5/7 chains passed.
 | approve | PASS |
 
 **Transactions:**
-- TX 1: [`0xdde62451bb4a8b9cce...`](https://celoscan.io/tx/0xdde62451bb4a8b9cce03bd22036d89fa1d4b71b908c7d8a398923090423222bc)
-- TX 2: [`0xe8373658076200e166...`](https://celoscan.io/tx/0xe8373658076200e166f0e6ec4734a941d4e9f1e08c65cf3240ace9fa60583141)
+- TX 1: [`0x55263f8d72198e901d...`](https://celoscan.io/tx/0x55263f8d72198e901d28595feb86ab94eda117e63ac38ca912e5f2522188622d)
+- TX 2: [`0xe08700c201c5ad1f47...`](https://celoscan.io/tx/0xe08700c201c5ad1f4744551d11d1fc508d0becefb037fde0b9bd339e36999e63)
 
 | Metric | Expected | Actual | Match |
 |--------|----------|--------|-------|
@@ -188,30 +193,41 @@ using the Fase 5 credit card model. 5/7 chains passed.
 
 ### Optimism (chain 10)
 
-- **Status**: FAIL
+- **Status**: PASS
 - **Operator**: `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`
 - **USDC**: `0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85`
-- **Error**: Assign failed: Escrow lock failed during assignment: Escrow authorize failed: Escrow scheme error: PaymentInfo validation failed: token_collector mismatch: client=0x0ddf51e62ddd41b5f67beaf2dce9f2e99e2c5af5, expected=0x230fd3a171750fa45db2976121376b7f47cba308. Task remains published.
-- **Task ID**: `d3ef5b42-9e73-4a25-9e44-f35593c57d11`
+- **Task ID**: `35b91ab2-7a09-402e-9b4e-89a16e34a666`
+- **Payment Mode**: `fase2`
 
 | Phase | Status |
 |-------|--------|
 | create | PASS |
 | apply | PASS |
-| assign | FAIL |
+| assign | PASS |
+| submit | PASS |
+| approve | PASS |
+
+**Transactions:**
+- TX 1: [`0x23a29894e481293588...`](https://optimistic.etherscan.io/tx/0x23a29894e48129358819d22515c055376d6cca1aa46fd83febd6c2e398a929f4)
+- TX 2: [`0x08796a7395cab8b338...`](https://optimistic.etherscan.io/tx/0x08796a7395cab8b338cfe8c26fb51d3ffc495f44abf0df1baebcd0d4c0c611a9)
+
+| Metric | Expected | Actual | Match |
+|--------|----------|--------|-------|
+| Worker (87%) | $0.087000 | $0.087000 | YES |
+| Fee (13%) | $0.013000 | $0.013000 | YES |
 
 ---
 
 ## Invariants Verified
 
 - [x] Base: Full lifecycle (create -> escrow -> release -> verify)
-- [ ] Polygon: Failed (Approval failed: HTTP 502 - Could not settle payment before approval: Escrow release failed: Escrow scheme error: Contract call failed: ContractCall("TransportError(NullResp)"))
+- [x] Polygon: Full lifecycle (create -> escrow -> release -> verify)
 - [x] Arbitrum: Full lifecycle (create -> escrow -> release -> verify)
 - [x] Avalanche: Full lifecycle (create -> escrow -> release -> verify)
 - [x] Monad: Full lifecycle (create -> escrow -> release -> verify)
 - [x] Celo: Full lifecycle (create -> escrow -> release -> verify)
-- [ ] Optimism: Failed (Assign failed: Escrow lock failed during assignment: Escrow authorize failed: Escrow scheme error: PaymentInfo validation failed: token_collector mismatch: client=0x0ddf51e62ddd41b5f67beaf2dce9f2e99e2c5af5, expected=0x230fd3a171750fa45db2976121376b7f47cba308. Task remains published.)
-- [ ] Reputation: SKIP
+- [x] Optimism: Full lifecycle (create -> escrow -> release -> verify)
+- [~] Reputation: partial (one direction only)
 
 ---
 
