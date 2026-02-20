@@ -10,10 +10,15 @@ Covers:
   Validated at: model defaults, route-level validation, standalone function.
 - Autonomous agent rating via relay wallet (Task 3.5 + 3.6): rate_agent() supports
   relay_private_key for direct on-chain signing. MCP tool reads EM_RELAY_PRIVATE_KEY env var.
+- Cross-chain task lifecycle (Task 4.1): Task on non-default network preserves
+  payment_network through create -> approve -> settlement.
+- Token mismatch on approval (Task 4.4): Settlement uses the task's payment_token
+  (e.g. EURC) instead of hardcoding USDC. Bug fix + regression tests.
 """
 
 import os
 import sys
+from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -1240,3 +1245,494 @@ class TestMCPRateAgentRelayWallet:
             mock_rate.assert_called_once()
             call_kwargs = mock_rate.call_args
             assert call_kwargs.kwargs.get("relay_private_key") is None
+
+
+# ============================================================================
+# Task 4.1: Cross-chain task lifecycle
+# Task 4.4: Token mismatch on approval (payment_token flow)
+# ============================================================================
+
+SUBMISSION_ID = "cccccccc-dddd-eeee-ffff-000000000001"
+WORKER_WALLET = "0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15"
+
+
+def _make_submission(task_overrides=None, executor_overrides=None, **overrides):
+    """Return a minimal submission dict with embedded task and executor."""
+    task = _make_task(**(task_overrides or {}))
+    executor = _make_executor(
+        wallet_address=WORKER_WALLET, executor_id=OTHER_EXECUTOR_ID
+    )
+    if executor_overrides:
+        executor.update(executor_overrides)
+    base = {
+        "id": SUBMISSION_ID,
+        "task_id": task["id"],
+        "executor_id": executor["id"],
+        "agent_verdict": "pending",
+        "evidence": {"screenshot": "https://cdn.example.com/evidence.jpg"},
+        "submitted_at": "2026-02-20T12:00:00Z",
+        "task": task,
+        "executor": executor,
+    }
+    base.update(overrides)
+    return base
+
+
+class TestCrossChainTaskLifecycle:
+    """Task 4.1: Agent publishes task on Polygon, lifecycle preserves payment_network."""
+
+    @pytest.mark.asyncio
+    async def test_create_task_with_polygon_network(self, monkeypatch):
+        """Task created with payment_network=polygon is stored correctly."""
+        from api import routes
+
+        task_return = {
+            "id": "task-polygon-001",
+            "agent_id": "agent_kk_test",
+            "title": "Photo verification in Bogota",
+            "status": "published",
+            "category": "simple_action",
+            "bounty_usd": 0.10,
+            "deadline": "2026-02-21T00:00:00+00:00",
+            "created_at": "2026-02-20T00:00:00+00:00",
+            "evidence_schema": {"required": ["screenshot"], "optional": []},
+            "payment_network": "polygon",
+            "payment_token": "USDC",
+            "location_hint": None,
+            "min_reputation": 0,
+            "erc8004_agent_id": None,
+            "escrow_tx": None,
+            "refund_tx": None,
+            "executor_id": None,
+            "instructions": "Take a photo.",
+            "metadata": None,
+        }
+
+        request = _make_create_request(payment_network="polygon")
+        mock_create = _patch_create_task_deps(monkeypatch, task_return=task_return)
+
+        await routes.create_task(
+            http_request=_fake_http_request(),
+            request=request,
+            auth=_fake_auth(),
+        )
+
+        mock_create.assert_called_once()
+        call_kwargs = mock_create.call_args
+        assert call_kwargs.kwargs.get("payment_network") == "polygon"
+
+    @pytest.mark.asyncio
+    async def test_cross_chain_task_lifecycle(self, monkeypatch):
+        """
+        Full lifecycle: create on Polygon, verify settlement uses polygon network.
+
+        Steps:
+        1. Create task with payment_network="polygon"
+        2. Simulate approval flow
+        3. Verify _settle_submission_payment passes network=polygon to SDK
+        """
+        from api.routers._helpers import _settle_submission_payment
+
+        submission = _make_submission(
+            task_overrides={"payment_network": "polygon", "status": "submitted"}
+        )
+
+        mock_sdk = MagicMock()
+        mock_sdk.settle_task_payment = AsyncMock(
+            return_value={
+                "success": True,
+                "tx_hash": "0xpolygontx" + "0" * 54,
+                "mode": "fase1",
+            }
+        )
+
+        mock_dispatcher = MagicMock()
+        mock_dispatcher.get_mode.return_value = "fase1"
+
+        with (
+            patch(
+                "api.routers._helpers.get_payment_dispatcher",
+                return_value=mock_dispatcher,
+            ),
+            patch("api.routers._helpers.get_sdk", return_value=mock_sdk),
+            patch("api.routers._helpers.X402_AVAILABLE", True),
+            patch(
+                "api.routers._helpers._get_existing_submission_payment",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers._resolve_task_payment_header",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers.get_platform_fee_percent",
+                new_callable=AsyncMock,
+                return_value=Decimal("0.13"),
+            ),
+            patch("api.routers._helpers.db") as mock_db,
+        ):
+            mock_db.get_client.return_value.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+                data=[]
+            )
+
+            await _settle_submission_payment(
+                submission_id=SUBMISSION_ID,
+                submission=submission,
+            )
+
+            # Verify SDK was called with polygon network
+            mock_sdk.settle_task_payment.assert_called_once()
+            call_kwargs = mock_sdk.settle_task_payment.call_args
+            assert call_kwargs.kwargs.get("network") == "polygon"
+
+    @pytest.mark.asyncio
+    async def test_network_preserved_through_direct_release(self, monkeypatch):
+        """
+        For direct_release escrow mode, verify the task's payment_network
+        is passed to release_direct_to_worker.
+        """
+        from api.routers._helpers import _settle_submission_payment
+
+        submission = _make_submission(
+            task_overrides={
+                "payment_network": "arbitrum",
+                "status": "submitted",
+                "escrow_id": "esc-arb-001",
+            }
+        )
+
+        mock_dispatcher = MagicMock()
+        mock_dispatcher.get_mode.return_value = "fase2"
+        mock_dispatcher.release_direct_to_worker = AsyncMock(
+            return_value={
+                "success": True,
+                "tx_hash": "0xarbitrum" + "0" * 56,
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+            }
+        )
+
+        with (
+            patch(
+                "api.routers._helpers.get_payment_dispatcher",
+                return_value=mock_dispatcher,
+            ),
+            patch("api.routers._helpers.X402_AVAILABLE", True),
+            patch(
+                "api.routers._helpers._get_existing_submission_payment",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers._resolve_task_payment_header",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers.get_platform_fee_percent",
+                new_callable=AsyncMock,
+                return_value=Decimal("0.13"),
+            ),
+            patch("api.routers._helpers.db") as mock_db,
+        ):
+            # Simulate escrow metadata with direct_release mode
+            mock_db.get_client.return_value.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+                data=[{"metadata": {"escrow_mode": "direct_release"}}]
+            )
+
+            await _settle_submission_payment(
+                submission_id=SUBMISSION_ID,
+                submission=submission,
+            )
+
+            # Verify dispatcher was called with arbitrum network
+            mock_dispatcher.release_direct_to_worker.assert_called_once()
+            call_kwargs = mock_dispatcher.release_direct_to_worker.call_args
+            assert call_kwargs.kwargs.get("network") == "arbitrum"
+
+
+class TestTokenPreservedInTaskCreation:
+    """Task 4.4 part 1: payment_token is stored in DB at task creation."""
+
+    @pytest.mark.asyncio
+    async def test_token_preserved_in_task_creation(self, monkeypatch):
+        """Create task with EURC, verify it is passed to db.create_task."""
+        from api import routes
+
+        task_return = {
+            "id": "task-eurc-001",
+            "agent_id": "agent_kk_test",
+            "title": "EURC test task",
+            "status": "published",
+            "category": "simple_action",
+            "bounty_usd": 0.10,
+            "deadline": "2026-02-21T00:00:00+00:00",
+            "created_at": "2026-02-20T00:00:00+00:00",
+            "evidence_schema": {"required": ["screenshot"], "optional": []},
+            "payment_network": "base",
+            "payment_token": "EURC",
+            "location_hint": None,
+            "min_reputation": 0,
+            "erc8004_agent_id": None,
+            "escrow_tx": None,
+            "refund_tx": None,
+            "executor_id": None,
+            "instructions": "Take a photo.",
+            "metadata": None,
+        }
+
+        request = _make_create_request(payment_token="EURC")
+        mock_create = _patch_create_task_deps(monkeypatch, task_return=task_return)
+
+        await routes.create_task(
+            http_request=_fake_http_request(),
+            request=request,
+            auth=_fake_auth(),
+        )
+
+        mock_create.assert_called_once()
+        call_kwargs = mock_create.call_args
+        assert call_kwargs.kwargs.get("payment_token") == "EURC"
+
+    @pytest.mark.asyncio
+    async def test_ausd_on_polygon_preserved(self, monkeypatch):
+        """Create task with AUSD on Polygon, verify stored correctly."""
+        from api import routes
+
+        task_return = {
+            "id": "task-ausd-poly-001",
+            "agent_id": "agent_kk_test",
+            "title": "AUSD Polygon task",
+            "status": "published",
+            "category": "simple_action",
+            "bounty_usd": 0.10,
+            "deadline": "2026-02-21T00:00:00+00:00",
+            "created_at": "2026-02-20T00:00:00+00:00",
+            "evidence_schema": {"required": ["screenshot"], "optional": []},
+            "payment_network": "polygon",
+            "payment_token": "AUSD",
+            "location_hint": None,
+            "min_reputation": 0,
+            "erc8004_agent_id": None,
+            "escrow_tx": None,
+            "refund_tx": None,
+            "executor_id": None,
+            "instructions": "Verify the store.",
+            "metadata": None,
+        }
+
+        request = _make_create_request(payment_network="polygon", payment_token="AUSD")
+        mock_create = _patch_create_task_deps(monkeypatch, task_return=task_return)
+
+        await routes.create_task(
+            http_request=_fake_http_request(),
+            request=request,
+            auth=_fake_auth(),
+        )
+
+        mock_create.assert_called_once()
+        call_kwargs = mock_create.call_args
+        assert call_kwargs.kwargs.get("payment_token") == "AUSD"
+        assert call_kwargs.kwargs.get("payment_network") == "polygon"
+
+
+class TestTokenMismatchOnApproval:
+    """Task 4.4 part 2: settlement must use the task's payment_token, not hardcoded USDC."""
+
+    @pytest.mark.asyncio
+    async def test_token_mismatch_on_approval(self):
+        """
+        Approve task with payment_token=EURC.
+        Verify settlement calls SDK with token=EURC (not default USDC).
+
+        This test validates the fix in _settle_submission_payment that reads
+        task_token = task.get("payment_token") and passes it to the SDK.
+        """
+        from api.routers._helpers import _settle_submission_payment
+
+        submission = _make_submission(
+            task_overrides={
+                "payment_token": "EURC",
+                "payment_network": "base",
+                "status": "submitted",
+            }
+        )
+
+        mock_sdk = MagicMock()
+        mock_sdk.settle_task_payment = AsyncMock(
+            return_value={
+                "success": True,
+                "tx_hash": "0xeurc_settlement" + "0" * 50,
+                "mode": "fase1",
+            }
+        )
+
+        mock_dispatcher = MagicMock()
+        mock_dispatcher.get_mode.return_value = "fase1"
+
+        with (
+            patch(
+                "api.routers._helpers.get_payment_dispatcher",
+                return_value=mock_dispatcher,
+            ),
+            patch("api.routers._helpers.get_sdk", return_value=mock_sdk),
+            patch("api.routers._helpers.X402_AVAILABLE", True),
+            patch(
+                "api.routers._helpers._get_existing_submission_payment",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers._resolve_task_payment_header",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers.get_platform_fee_percent",
+                new_callable=AsyncMock,
+                return_value=Decimal("0.13"),
+            ),
+            patch("api.routers._helpers.db") as mock_db,
+        ):
+            mock_db.get_client.return_value.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+                data=[]
+            )
+
+            await _settle_submission_payment(
+                submission_id=SUBMISSION_ID,
+                submission=submission,
+            )
+
+            # KEY ASSERTION: SDK must be called with token="EURC", not "USDC"
+            mock_sdk.settle_task_payment.assert_called_once()
+            call_kwargs = mock_sdk.settle_task_payment.call_args
+            assert call_kwargs.kwargs.get("token") == "EURC", (
+                f"Expected token='EURC' but got token='{call_kwargs.kwargs.get('token')}'. "
+                "Settlement is using hardcoded USDC instead of the task's payment_token."
+            )
+
+    @pytest.mark.asyncio
+    async def test_default_token_on_approval(self):
+        """
+        Approve task without explicit payment_token (defaults to USDC).
+        Verify settlement uses USDC.
+        """
+        from api.routers._helpers import _settle_submission_payment
+
+        # Task without payment_token field (simulates old tasks before multi-token)
+        submission = _make_submission(
+            task_overrides={
+                "status": "submitted",
+            }
+        )
+        # Remove payment_token to simulate missing field
+        del submission["task"]["payment_token"]
+
+        mock_sdk = MagicMock()
+        mock_sdk.settle_task_payment = AsyncMock(
+            return_value={
+                "success": True,
+                "tx_hash": "0xusdc_settlement" + "0" * 50,
+                "mode": "fase1",
+            }
+        )
+
+        mock_dispatcher = MagicMock()
+        mock_dispatcher.get_mode.return_value = "fase1"
+
+        with (
+            patch(
+                "api.routers._helpers.get_payment_dispatcher",
+                return_value=mock_dispatcher,
+            ),
+            patch("api.routers._helpers.get_sdk", return_value=mock_sdk),
+            patch("api.routers._helpers.X402_AVAILABLE", True),
+            patch(
+                "api.routers._helpers._get_existing_submission_payment",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers._resolve_task_payment_header",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers.get_platform_fee_percent",
+                new_callable=AsyncMock,
+                return_value=Decimal("0.13"),
+            ),
+            patch("api.routers._helpers.db") as mock_db,
+        ):
+            mock_db.get_client.return_value.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+                data=[]
+            )
+
+            await _settle_submission_payment(
+                submission_id=SUBMISSION_ID,
+                submission=submission,
+            )
+
+            mock_sdk.settle_task_payment.assert_called_once()
+            call_kwargs = mock_sdk.settle_task_payment.call_args
+            assert call_kwargs.kwargs.get("token") == "USDC", (
+                f"Expected token='USDC' (default) but got token='{call_kwargs.kwargs.get('token')}'."
+            )
+
+    @pytest.mark.asyncio
+    async def test_eurc_token_in_direct_release(self):
+        """
+        Direct release escrow with EURC token passes token to dispatcher.
+        """
+        from api.routers._helpers import _settle_submission_payment
+
+        submission = _make_submission(
+            task_overrides={
+                "payment_token": "EURC",
+                "payment_network": "base",
+                "status": "submitted",
+                "escrow_id": "esc-eurc-001",
+            }
+        )
+
+        mock_dispatcher = MagicMock()
+        mock_dispatcher.get_mode.return_value = "fase2"
+        mock_dispatcher.release_direct_to_worker = AsyncMock(
+            return_value={
+                "success": True,
+                "tx_hash": "0xeurc_direct" + "0" * 54,
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+            }
+        )
+
+        with (
+            patch(
+                "api.routers._helpers.get_payment_dispatcher",
+                return_value=mock_dispatcher,
+            ),
+            patch("api.routers._helpers.X402_AVAILABLE", True),
+            patch(
+                "api.routers._helpers._get_existing_submission_payment",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers._resolve_task_payment_header",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers.get_platform_fee_percent",
+                new_callable=AsyncMock,
+                return_value=Decimal("0.13"),
+            ),
+            patch("api.routers._helpers.db") as mock_db,
+        ):
+            # Simulate escrow metadata with direct_release mode
+            mock_db.get_client.return_value.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+                data=[{"metadata": {"escrow_mode": "direct_release"}}]
+            )
+
+            await _settle_submission_payment(
+                submission_id=SUBMISSION_ID,
+                submission=submission,
+            )
+
+            mock_dispatcher.release_direct_to_worker.assert_called_once()
+            call_kwargs = mock_dispatcher.release_direct_to_worker.call_args
+            assert call_kwargs.kwargs.get("token") == "EURC", (
+                f"Expected token='EURC' but got token='{call_kwargs.kwargs.get('token')}'."
+            )

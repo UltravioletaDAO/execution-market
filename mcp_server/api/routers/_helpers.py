@@ -1187,6 +1187,7 @@ async def _settle_submission_payment(
         # Use PaymentDispatcher to route to x402r escrow, preauth, or fase1
         dispatcher = get_payment_dispatcher()
         task_network = task.get("payment_network") or "base"
+        task_token = task.get("payment_token") or "USDC"
 
         # Check if this task uses trustless direct_release escrow
         is_direct_release_task = False
@@ -1215,6 +1216,7 @@ async def _settle_submission_payment(
             result = await dispatcher.release_direct_to_worker(
                 task_id=task_id or "",
                 network=task_network,
+                token=task_token,
             )
         elif dispatcher:
             # Fallback: direct SDK settlement (preauth behavior)
@@ -1225,6 +1227,7 @@ async def _settle_submission_payment(
                 worker_address=worker_address,
                 bounty_amount=bounty,
                 network=task_network,
+                token=task_token,
             )
 
         if result.get("success"):
