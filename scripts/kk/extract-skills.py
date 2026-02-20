@@ -76,15 +76,29 @@ def extract_skills_keyword(username: str, messages: list[str], stats: dict) -> d
     word_set = set(words)
 
     skills = {}
+    # Pre-compile word boundary patterns for short keywords to avoid false positives
+    # (e.g., "ai" matching "chain", "ts" matching "its")
+    import re as _re
+
+    def _kw_in_text(kw: str, text: str) -> bool:
+        if len(kw) <= 3:
+            return bool(_re.search(rf"\b{_re.escape(kw)}\b", text))
+        return kw in text
+
+    def _kw_count(kw: str, text: str) -> int:
+        if len(kw) <= 3:
+            return len(_re.findall(rf"\b{_re.escape(kw)}\b", text))
+        return text.count(kw)
+
     for category, subcategories in SKILL_TAXONOMY.items():
         cat_score = 0
         sub_skills = []
 
         for skill_name, keywords in subcategories.items():
-            # Count keyword matches
-            matches = sum(1 for kw in keywords if kw in all_text)
+            # Count keyword matches using word-boundary for short keywords
+            matches = sum(1 for kw in keywords if _kw_in_text(kw, all_text))
             # Weight by frequency
-            frequency = sum(all_text.count(kw) for kw in keywords)
+            frequency = sum(_kw_count(kw, all_text) for kw in keywords)
 
             if matches > 0:
                 # Score: 0-1 based on keyword diversity + frequency
@@ -92,7 +106,7 @@ def extract_skills_keyword(username: str, messages: list[str], stats: dict) -> d
                 frequency_score = min(frequency / (len(messages) * 0.5), 1.0)
                 score = round(diversity_score * 0.6 + frequency_score * 0.4, 2)
 
-                evidence = [kw for kw in keywords if kw in all_text][:5]
+                evidence = [kw for kw in keywords if _kw_in_text(kw, all_text)][:5]
                 sub_skills.append(
                     {
                         "name": skill_name,

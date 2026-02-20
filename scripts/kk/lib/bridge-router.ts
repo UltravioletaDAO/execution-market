@@ -99,20 +99,8 @@ export function selectBridge(srcChain: string, dstChain: string): BridgeRoute {
     };
   }
 
-  // Monad destination — must use deBridge (Squid doesn't support Monad)
+  // Monad — must use deBridge (Squid doesn't support Monad)
   if (dstChain === "monad" || srcChain === "monad") {
-    if (!src.debridgeChainId && srcChain === "monad") {
-      return {
-        provider: "debridge",
-        srcChain,
-        dstChain,
-        srcToken: src.usdc,
-        dstToken: dst.usdc,
-        estimatedFeePercent: 0.08,
-        estimatedTimeSec: 10,
-        available: true,
-      };
-    }
     return {
       provider: "debridge",
       srcChain,

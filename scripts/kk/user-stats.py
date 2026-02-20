@@ -11,7 +11,6 @@ Usage:
 
 import argparse
 import json
-import math
 import sys
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -108,14 +107,13 @@ def compute_user_stats(messages: list[dict]) -> dict:
         # Top interactions
         top_interactions = dict(ud["replies_to"].most_common(5))
 
-        # Engagement score: weighted composite
-        # messages * 0.4 + active_dates * 0.3 + avg_length * 0.15 + interactions * 0.15
+        # Engagement score: weighted composite (all components capped 0-10)
         interaction_count = sum(ud["replies_to"].values()) + sum(ud["replied_by"].values())
         engagement_raw = (
-            n_messages * 0.4
-            + n_dates * 10 * 0.3  # Scale dates (max 6) to be comparable
-            + min(avg_msg_len / 50, 10) * 0.15  # Cap at 10
-            + min(interaction_count / 5, 10) * 0.15  # Cap at 10
+            min(n_messages / 10, 10) * 0.4  # Cap messages at 100 → score 10
+            + min(n_dates * 10 / 6, 10) * 0.3  # Cap at 6 dates → score 10
+            + min(avg_msg_len / 50, 10) * 0.15  # Cap at 500 chars → score 10
+            + min(interaction_count / 5, 10) * 0.15  # Cap at 50 interactions → score 10
         )
 
         stats[username] = {

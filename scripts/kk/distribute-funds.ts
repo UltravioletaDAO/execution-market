@@ -194,7 +194,7 @@ async function distribute(
     // SEQUENTIAL FALLBACK — N+N TXs
     console.log(`  Using sequential transfers (Disperse not available on ${chainName})...`);
 
-    // USDC transfers
+    // USDC transfers (wait for receipt before marking confirmed)
     for (let i = 0; i < wallets.length; i++) {
       try {
         console.log(`  [USDC ${i + 1}/${wallets.length}] ${formatUnits(usdcAmount, 6)} -> ${wallets[i].name}`);
@@ -204,6 +204,7 @@ async function distribute(
           functionName: "transfer",
           args: [wallets[i].address, usdcAmount],
         });
+        await publicClient.waitForTransactionReceipt({ hash: tx });
         results.push({ type: "usdc_single", txHash: tx, recipients: 1, amount: formatUnits(usdcAmount, 6), status: "confirmed" });
       } catch (err: any) {
         console.error(`    FAILED: ${err.message}`);
@@ -211,7 +212,7 @@ async function distribute(
       }
     }
 
-    // Native transfers
+    // Native transfers (wait for receipt before marking confirmed)
     if (gasAmount > 0n) {
       for (let i = 0; i < wallets.length; i++) {
         try {
@@ -220,6 +221,7 @@ async function distribute(
             to: wallets[i].address,
             value: gasAmount,
           });
+          await publicClient.waitForTransactionReceipt({ hash: tx });
           results.push({ type: "native_single", txHash: tx, recipients: 1, amount: formatEther(gasAmount), status: "confirmed" });
         } catch (err: any) {
           console.error(`    FAILED: ${err.message}`);

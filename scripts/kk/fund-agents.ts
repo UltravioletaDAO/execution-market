@@ -109,12 +109,13 @@ async function executeBridge(
       transport: http(srcInfo.rpcUrl),
     });
 
-    // Approve USDC first
+    // Approve USDC — approve the bridge contract's required amount (may include fees)
+    const approveAmount = BigInt(quote.estimation.srcChainTokenIn.amount || atomicAmount);
     const approveTx = await walletClient.writeContract({
       address: srcInfo.usdc,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [getAddress(quote.tx.to) as Address, BigInt(atomicAmount)],
+      args: [getAddress(quote.tx.to) as Address, approveAmount],
     });
 
     const publicClient = createPublicClient({
@@ -154,13 +155,14 @@ async function executeBridge(
       transport: http(srcInfo.rpcUrl),
     });
 
-    // Approve USDC
+    // Approve USDC — use fromAmount from the route estimate (includes fees)
     const target = getAddress(quote.route.transactionRequest.target) as Address;
+    const squidApproveAmount = BigInt(quote.route.estimate?.toAmount ? atomicAmount : atomicAmount);
     const approveTx = await walletClient.writeContract({
       address: srcInfo.usdc,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [target, BigInt(atomicAmount)],
+      args: [target, squidApproveAmount],
     });
 
     const publicClient = createPublicClient({
@@ -263,8 +265,11 @@ async function main() {
     console.log(`\n--- Cross-chain bridges from ${fundConfig.sourceChain} ---`);
 
     for (const dstChain of crossChainTargets) {
-      const totalUsdc = parseFloat(fundConfig.perAgent.usdc) * manifest.count;
-      console.log(`\n  Bridging $${totalUsdc.toFixed(2)} USDC to ${dstChain}...`);
+      // Use parseUnits for USDC math to avoid floating-point precision issues
+      const perAgentAtomic = parseUnits(fundConfig.perAgent.usdc, 6);
+      const totalAtomic = perAgentAtomic * BigInt(manifest.count);
+      const totalUsdcStr = formatUnits(totalAtomic, 6);
+      console.log(`\n  Bridging $${totalUsdcStr} USDC to ${dstChain}...`);
 
       // For now, bridge total amount to a single address (the funder on that chain)
       // Then distribute locally on that chain
@@ -274,7 +279,7 @@ async function main() {
         const result = await executeBridge(
           fundConfig.sourceChain,
           dstChain,
-          totalUsdc.toFixed(2),
+          totalUsdcStr,
           account.address,
           funderKey,
           dryRun,

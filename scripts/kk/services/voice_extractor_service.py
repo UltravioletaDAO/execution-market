@@ -24,7 +24,11 @@ import argparse
 import asyncio
 import json
 import logging
+import sys
 from pathlib import Path
+
+# Ensure services package is importable
+sys.path.insert(0, str(Path(__file__).parent))
 
 from em_client import AgentContext, EMClient, load_agent_context
 
@@ -95,11 +99,12 @@ async def process_voices(data_dir: Path) -> dict | None:
 
     for path in profiles:
         profile = json.loads(path.read_text(encoding="utf-8"))
-        tone = profile.get("tone", "unknown")
+        # tone is a dict with "primary" key, not a string
+        tone = profile.get("tone", {}).get("primary", "unknown")
         tone_counts[tone] = tone_counts.get(tone, 0) + 1
-        role = profile.get("social_role", "unknown")
+        role = profile.get("communication_style", {}).get("social_role", "unknown")
         role_counts[role] = role_counts.get(role, 0) + 1
-        slang_total += len(profile.get("slang_profile", {}))
+        slang_total += len(profile.get("vocabulary", {}).get("slang_usage", {}))
 
     top_tones = sorted(tone_counts.items(), key=lambda x: -x[1])
     logger.info(f"  Tone distribution: {', '.join(f'{t[0]}({t[1]})' for t in top_tones[:4])}")
@@ -146,10 +151,11 @@ async def publish_personality_profiles(
 
     result = await client.publish_task(
         title=title,
-        description=description,
+        instructions=description,
         category="knowledge_access",
-        bounty_usdc=bounty,
-        deadline_minutes=1440,
+        bounty_usd=bounty,
+        deadline_hours=24,
+        evidence_required=["text"],
     )
 
     task_id = result.get("task", {}).get("id") or result.get("id", "unknown")

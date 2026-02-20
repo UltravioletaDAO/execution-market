@@ -8,7 +8,7 @@
  * Monad uses DLN chain ID 100000030 (not 143).
  */
 
-import type { Address, Hex } from "viem";
+import type { Address } from "viem";
 
 const DLN_API = "https://dln.debridge.finance/v1.0";
 

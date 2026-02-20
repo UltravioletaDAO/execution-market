@@ -23,7 +23,11 @@ import argparse
 import asyncio
 import json
 import logging
+import sys
 from pathlib import Path
+
+# Ensure services package is importable
+sys.path.insert(0, str(Path(__file__).parent))
 
 from em_client import AgentContext, EMClient, load_agent_context
 
@@ -143,10 +147,11 @@ async def publish_enriched_profiles(
 
     result = await client.publish_task(
         title=title,
-        description=description,
+        instructions=description,
         category="knowledge_access",
-        bounty_usdc=bounty,
-        deadline_minutes=1440,
+        bounty_usd=bounty,
+        deadline_hours=24,
+        evidence_required=["text"],
     )
 
     task_id = result.get("task", {}).get("id") or result.get("id", "unknown")

@@ -32,9 +32,8 @@ variable "cherry_api_key" {
 }
 
 variable "project_id" {
-  description = "Cherry Servers project ID"
-  type        = string
-  default     = ""
+  description = "Cherry Servers project ID (numeric)"
+  type        = number
 }
 
 variable "ssh_public_key" {
@@ -72,7 +71,7 @@ variable "agents_per_server" {
 # ---------------------------------------------------------------------------
 
 provider "cherryservers" {
-  auth_token = var.cherry_api_key
+  api_token = var.cherry_api_key
 }
 
 # ---------------------------------------------------------------------------
@@ -114,7 +113,7 @@ output "server_ips" {
   description = "Public IPs of KK swarm servers"
   value = {
     for i, server in cherryservers_server.kk_swarm :
-    server.hostname => server.primary_ip
+    server.hostname => server.ip_addresses[0].address
   }
 }
 
@@ -122,7 +121,7 @@ output "ssh_commands" {
   description = "SSH commands for each server"
   value = [
     for server in cherryservers_server.kk_swarm :
-    "ssh root@${server.primary_ip}"
+    "ssh root@${server.ip_addresses[0].address}"
   ]
 }
 
@@ -132,7 +131,7 @@ output "ansible_inventory" {
     "[kk_swarm]",
     join("\n", [
       for i, server in cherryservers_server.kk_swarm :
-      "${server.hostname} ansible_host=${server.primary_ip} server_index=${i} agents_start=${i * var.agents_per_server} agents_end=${(i + 1) * var.agents_per_server - 1}"
+      "${server.hostname} ansible_host=${server.ip_addresses[0].address} server_index=${i} agents_start=${i * var.agents_per_server} agents_end=${(i + 1) * var.agents_per_server - 1}"
     ]),
   ])
 }

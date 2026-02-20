@@ -131,7 +131,7 @@ async def phase_review(client: EMClient, dry_run: bool) -> dict:
 
             if evidence:
                 try:
-                    await client.approve_submission(sub_id, rating=4)
+                    await client.approve_submission(sub_id, rating_score=80)
                     reviewed += 1
                 except Exception as e:
                     logger.warning(f"    Approve failed: {e}")
@@ -180,10 +180,11 @@ async def phase_publish(client: EMClient, skills: dict, dry_run: bool) -> dict:
     try:
         result = await client.publish_task(
             title=title,
-            description=description,
+            instructions=description,
             category="knowledge_access",
-            bounty_usdc=bounty,
-            deadline_minutes=720,
+            bounty_usd=bounty,
+            deadline_hours=12,
+            evidence_required=["text"],
         )
         agent.record_spend(bounty)
         published = 1
@@ -355,15 +356,24 @@ async def daemon_loop(
     logger.info("Starting daemon mode...")
     last_run: dict[str, str] = {}  # phase -> date string of last run
 
+    # Pre-populate already-passed phases for today to avoid firing all on startup
+    now = datetime.now(timezone.utc)
+    today = now.strftime("%Y-%m-%d")
+    for phase_name, phase_config in PHASES.items():
+        if now.hour > phase_config["hour"]:
+            run_key = f"{phase_name}:{today}"
+            last_run[run_key] = now.isoformat()
+            logger.info(f"Daemon: skipping already-passed phase '{phase_name}' (hour {phase_config['hour']})")
+
     while True:
         now = datetime.now(timezone.utc)
         current_hour = now.hour
         today = now.strftime("%Y-%m-%d")
 
-        for phase_name, config in PHASES.items():
+        for phase_name, phase_config in PHASES.items():
             run_key = f"{phase_name}:{today}"
-            if current_hour >= config["hour"] and run_key not in last_run:
-                logger.info(f"Daemon: triggering phase '{phase_name}' (scheduled at {config['hour']}:00 UTC)")
+            if current_hour >= phase_config["hour"] and run_key not in last_run:
+                logger.info(f"Daemon: triggering phase '{phase_name}' (scheduled at {phase_config['hour']}:00 UTC)")
                 await run_all_agents(workspaces_dir, data_dir, phase_name, None, max_agents, dry_run)
                 last_run[run_key] = now.isoformat()
 
