@@ -6,6 +6,7 @@
   "scripts": {
     "generate-wallets": "node generate-wallets.js",
     "distribute-funds": "node distribute-funds.js",
+    "distribute-phase0": "node distribute-phase0.js",
     "check-balances": "node check-balances.js"
   },
   "dependencies": {
