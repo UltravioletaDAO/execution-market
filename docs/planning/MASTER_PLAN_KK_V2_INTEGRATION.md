@@ -81,6 +81,33 @@ This plan covers the implementation of **12 novel test scenarios** discovered du
 - **Fix**: Replace `X-Agent-Wallet` with EIP-8128 signed headers using Task 1.5's library. Accept `private_key` parameter in constructor.
 - **Validation**: Client can create tasks on production API with EIP-8128 auth
 
+### Task 1.7: Migrate API routes to `verify_agent_auth()`
+- **File**: `mcp_server/api/routers/tasks.py:18-22`, `submissions.py`, `workers.py`, `misc.py` (MODIFY)
+- **Issue**: Routes still use old `verify_api_key_if_required()` / `verify_api_key_optional()`. The unified `verify_agent_auth()` function exists at `auth.py:492-570` but is NOT wired into any route. EIP-8128 signed requests will authenticate but route dependencies won't use the result.
+- **Fix**: In each router file:
+  1. Replace `from ..auth import verify_api_key_if_required, APIKeyData` with `from ..auth import verify_agent_auth, AgentAuth`
+  2. Change `Depends(verify_api_key_if_required)` → `Depends(verify_agent_auth)`
+  3. Update function signatures: `api_key_data: APIKeyData` → `auth: AgentAuth`
+  4. Access `auth.agent_id`, `auth.wallet_address`, `auth.auth_method`
+- **Validation**: `test_erc8128_auth_on_task_creation` — EIP-8128 signed POST to `/api/v1/tasks` returns 200
+
+### Task 1.8: Add nonce endpoint for EIP-8128
+- **File**: `mcp_server/api/routers/misc.py` (MODIFY)
+- **Issue**: No `GET /api/v1/auth/erc8128/nonce` endpoint. Agents need fresh nonces for replay protection. Function `generate_auth_nonce()` exists at `auth.py:578-589` but has no route.
+- **Fix**: Add route:
+  ```python
+  @router.get("/api/v1/auth/erc8128/nonce")
+  async def get_erc8128_nonce():
+      return await generate_auth_nonce()
+  ```
+- **Validation**: `GET /api/v1/auth/erc8128/nonce` returns `{"nonce": "...", "ttl_seconds": 300}`
+
+### Task 1.9: Deploy DynamoDB nonce table (Terraform)
+- **File**: `infrastructure/terraform/dynamodb.tf` (NEW)
+- **Issue**: `nonce_store.py` references DynamoDB table `em-production-nonce-store` but table doesn't exist in AWS. Currently falls back to in-memory store.
+- **Fix**: Terraform resource for DynamoDB table with TTL on `expires_at`, PAY_PER_REQUEST billing. Add IAM policy to ECS task role.
+- **Validation**: `aws dynamodb describe-table --table-name em-production-nonce-store` returns table info
+
 ---
 
 ## Phase 2: Self-Protection + Race Conditions (P0 — Security)
@@ -344,17 +371,17 @@ Phase 1 (Foundation) ──┬──> Phase 2 (Security) ──┬──> Phase 
 
 | Phase | Tasks | Priority | Depends On |
 |-------|-------|----------|------------|
-| 1. Missing Skills + Agent Auth | 6 | P0 | None |
+| 1. Missing Skills + Agent Auth + Route Migration | 9 | P0 | None |
 | 2. Self-Protection + Race Conditions | 5 | P0 | None |
 | 3. ERC-8004 Bulk Registration + Relay Wallets | 7 | P0 | Phase 1 (skills) |
 | 4. Test Scenarios 1-6 | 6 | P1 | Phase 2 (guards) |
 | 5. Test Scenarios 7-12 | 6 | P1 | Phase 1, 2, 3 |
 | 6. Integration Harness | 5 | P1 | Phase 4, 5 |
-| **TOTAL** | **35** | | |
+| **TOTAL** | **38** | | |
 
 ## Notes
 
-- **EIP-8128 is FULLY IMPLEMENTED** server-side (`mcp_server/integrations/erc8128/verifier.py`, 721 lines). Agents only need the signing client.
+- **EIP-8128 verifier is FULLY IMPLEMENTED** server-side (721 lines, 80 tests). BUT: routes NOT migrated to `verify_agent_auth()`, nonce endpoint missing, DynamoDB table not deployed. Tasks 1.7-1.9 cover these gaps.
 - **ERC-8004 reputation is FULLY IMPLEMENTED** server-side (rate_worker, rate_agent, prepare-feedback, confirm-feedback). Agents need skills + registration.
 - **Self-application prevention does NOT exist** — will be hit immediately with 24 agents.
 - **`payment_token` field does NOT exist** on tasks — all tasks default to USDC. Must add for multi-token testing.
