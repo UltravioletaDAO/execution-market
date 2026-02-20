@@ -20,7 +20,10 @@
     "kk:bridge-from-source": "tsx kk/bridge-from-source.ts",
     "kk:balances": "tsx kk/check-balances.ts",
     "kk:register": "tsx kk/register-agents-erc8004.ts",
-    "kk:sweep": "tsx kk/sweep-funds.ts"
+    "kk:sweep": "tsx kk/sweep-funds.ts",
+    "kk:relay-wallets": "tsx kk/generate-relay-wallets.ts",
+    "kk:leaderboard": "tsx kk/lib/reputation-query.ts",
+    "kk:leaderboard:json": "tsx kk/lib/reputation-query.ts --json"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

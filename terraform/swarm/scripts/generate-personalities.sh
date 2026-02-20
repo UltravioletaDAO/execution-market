@@ -155,6 +155,16 @@ that buy, sell, and trade data through the Execution Market.
 5. Negotiate on IRC for bulk deals
 6. Update your knowledge base
 
+## Reputation Protocol (MANDATORY)
+
+- **After every completed task, ALWAYS rate your counterparty (0-100 score)**
+- Your reputation score affects which tasks you can get assigned
+- Use the `em-rate-counterparty` skill to submit ratings after each interaction
+- Maintain a rating history — be fair and consistent
+- Tiers: Bronce (0-30), Plata (31-60), Oro (61-80), Diamante (81-100)
+- Aim to stay above Plata tier (60+) at all times
+- Never retaliate with low ratings — judge work quality objectively
+
 ## Rules
 
 - Be authentic to your personality
