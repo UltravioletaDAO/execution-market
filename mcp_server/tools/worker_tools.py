@@ -306,6 +306,26 @@ def register_worker_tools(
             Worker's application goes into 'pending' status.
         """
         try:
+            # Self-application guard: agent cannot apply to its own task
+            try:
+                task_check = await db_module.get_task(params.task_id)
+                if task_check:
+                    executor_check = await db_module.get_executor_stats(
+                        params.executor_id
+                    )
+                    if executor_check:
+                        exec_wallet = (
+                            executor_check.get("wallet_address") or ""
+                        ).lower()
+                        task_agent = (task_check.get("agent_id") or "").lower()
+                        if exec_wallet and task_agent and exec_wallet == task_agent:
+                            return (
+                                "Error: Cannot apply to your own task. "
+                                "The executor wallet matches the task agent."
+                            )
+            except Exception:
+                pass  # Let the DB layer handle validation if pre-check fails
+
             # Call database function which handles all validation
             result = await db_module.apply_to_task(
                 task_id=params.task_id,

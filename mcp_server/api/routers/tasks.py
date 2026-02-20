@@ -367,10 +367,17 @@ async def create_task(
         try:
             from integrations.x402.sdk_client import (
                 validate_payment_network,
+                validate_payment_token,
                 get_enabled_networks,
             )
 
             validate_payment_network(request.payment_network)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        # Validate payment token exists on the selected network
+        try:
+            validate_payment_token(request.payment_network, request.payment_token)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 

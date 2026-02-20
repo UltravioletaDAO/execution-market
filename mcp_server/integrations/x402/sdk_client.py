@@ -573,6 +573,38 @@ def validate_payment_network(network: str) -> str:
     return network
 
 
+def validate_payment_token(network: str, token: str) -> str:
+    """
+    Validate that a token is available on a given network.
+
+    Args:
+        network: Network name (must already be validated via validate_payment_network)
+        token: Token symbol (e.g., 'USDC', 'EURC', 'PYUSD')
+
+    Returns:
+        The token symbol if valid
+
+    Raises:
+        ValueError: If token is not available on the network
+    """
+    net_config = NETWORK_CONFIG.get(network)
+    if not net_config:
+        supported = ", ".join(sorted(NETWORK_CONFIG.keys()))
+        raise ValueError(
+            f"Network '{network}' not recognized. Known networks: {supported}"
+        )
+
+    available_tokens = net_config.get("tokens", {})
+    if token not in available_tokens:
+        supported_tokens = ", ".join(sorted(available_tokens.keys()))
+        raise ValueError(
+            f"Token '{token}' is not available on {network}. "
+            f"Available tokens on {network}: {supported_tokens}"
+        )
+
+    return token
+
+
 def get_rpc_url(network: str) -> str:
     """Get RPC URL for network. Env override: {NETWORK}_RPC_URL."""
     env_key = f"{network.upper().replace('-', '_')}_RPC_URL"
