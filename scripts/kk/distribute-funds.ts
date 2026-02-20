@@ -1,13 +1,15 @@
 /**
- * Karma Kadabra V2 — Task 1.2 + 1.3: Same-Chain Batch Distribution
+ * Karma Kadabra V2 — Multi-Token Batch Distribution
  *
- * Distributes USDC + native gas tokens to N wallets on a SINGLE chain.
+ * Distributes multiple stablecoins + native gas tokens to N wallets on a SINGLE chain.
  * Uses Disperse.app (1 TX for all recipients) where available,
  * falls back to sequential transfers where Disperse isn't deployed.
  *
  * Usage:
- *   npx tsx distribute-funds.ts --chain base --wallets config/wallets.json --usdc 3.00 --gas 0.0005
+ *   npx tsx distribute-funds.ts --chain base --wallets config/wallets.json --amount 3.00 --gas 0.0005
+ *   npx tsx distribute-funds.ts --chain arbitrum --tokens USDC,AUSD --amount 1.00
  *   npx tsx distribute-funds.ts --chain base --wallets config/wallets.json --dry-run
+ *   npx tsx distribute-funds.ts --chain polygon --tokens USDC --usdc 5.00  # --usdc is alias for --amount
  */
 
 import {
@@ -28,11 +30,13 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { config } from "dotenv";
 import {
-  CHAINS,
   DISPERSE_ADDRESS,
   DISPERSE_ABI,
   ERC20_ABI,
   getChain,
+  getTokens,
+  getTokenSymbols,
+  type TokenInfo,
 } from "./lib/chains.js";
 import type { WalletManifest } from "./generate-wallets.js";
 
@@ -44,27 +48,39 @@ config({ path: resolve(__dirname, "../../.env.local") });
 // ---------------------------------------------------------------------------
 
 interface TxResult {
-  type: "approve" | "usdc_batch" | "native_batch" | "usdc_single" | "native_single";
+  type: "approve" | "token_batch" | "native_batch" | "token_single" | "native_single";
   txHash: string;
   recipients: number;
   amount: string;
+  token?: string;
   status: "confirmed" | "failed";
   error?: string;
 }
 
+interface TokenDistResult {
+  symbol: string;
+  address: string;
+  decimals: number;
+  amountPerWallet: string;
+  totalAmount: string;
+  txs: TxResult[];
+}
+
 // ---------------------------------------------------------------------------
-// Distribution
+// Distribution (multi-token)
 // ---------------------------------------------------------------------------
 
 async function distribute(
   chainName: string,
   wallets: Array<{ name: string; address: Address }>,
-  usdcPerWallet: string,
+  tokensToDistribute: TokenInfo[],
+  amountPerWallet: string,
   gasPerWallet: string,
   dryRun: boolean,
-): Promise<TxResult[]> {
+): Promise<{ tokenResults: TokenDistResult[]; gasResults: TxResult[] }> {
   const chainInfo = getChain(chainName);
-  const results: TxResult[] = [];
+  const tokenResults: TokenDistResult[] = [];
+  const gasResults: TxResult[] = [];
 
   const privateKey = (process.env.WALLET_PRIVATE_KEY || process.env.PRIVATE_KEY) as Hex;
   if (!privateKey) {
@@ -86,154 +102,175 @@ async function distribute(
     transport: http(chainInfo.rpcUrl),
   });
 
-  // Calculate totals
-  const usdcAmount = parseUnits(usdcPerWallet, 6);
-  const gasAmount = parseEther(gasPerWallet);
-  const totalUsdc = usdcAmount * BigInt(wallets.length);
-  const totalGas = gasAmount * BigInt(wallets.length);
   const addresses = wallets.map((w) => w.address);
-  const usdcAmounts = wallets.map(() => usdcAmount);
-  const gasAmounts = wallets.map(() => gasAmount);
+  const gasAmount = parseEther(gasPerWallet);
+  const totalGas = gasAmount * BigInt(wallets.length);
 
-  // Check balances
-  const [nativeBalance, usdcBalance] = await Promise.all([
-    publicClient.getBalance({ address: account.address }),
-    publicClient.readContract({
-      address: chainInfo.usdc,
+  // Check native balance upfront
+  const nativeBalance = await publicClient.getBalance({ address: account.address });
+
+  console.log(`\n=== ${chainInfo.name} (${wallets.length} wallets, ${tokensToDistribute.length} token(s)) ===`);
+  console.log(`  Funder:     ${account.address}`);
+  console.log(`  Native bal: ${formatEther(nativeBalance)} ${chainInfo.nativeSymbol}`);
+  console.log(`  Need gas:   ${formatEther(totalGas)} ${chainInfo.nativeSymbol}`);
+  console.log(`  Tokens:     ${tokensToDistribute.map((t) => t.symbol).join(", ")}`);
+
+  // ---- Distribute each token ----
+  for (const token of tokensToDistribute) {
+    console.log(`\n--- ${token.symbol} (${token.name}) ---`);
+
+    const tokenAmount = parseUnits(amountPerWallet, token.decimals);
+    const totalToken = tokenAmount * BigInt(wallets.length);
+    const tokenAmounts = wallets.map(() => tokenAmount);
+
+    const tokenBalance = (await publicClient.readContract({
+      address: token.address,
       abi: ERC20_ABI,
       functionName: "balanceOf",
       args: [account.address],
-    }),
-  ]);
+    })) as bigint;
 
-  console.log(`\n--- ${chainInfo.name} (${wallets.length} wallets) ---`);
-  console.log(`  Funder:     ${account.address}`);
-  console.log(`  USDC bal:   ${formatUnits(usdcBalance, 6)}`);
-  console.log(`  Native bal: ${formatEther(nativeBalance)} ${chainInfo.nativeSymbol}`);
-  console.log(`  Need USDC:  ${formatUnits(totalUsdc, 6)}`);
-  console.log(`  Need gas:   ${formatEther(totalGas)} ${chainInfo.nativeSymbol}`);
+    console.log(`  ${token.symbol} bal:  ${formatUnits(tokenBalance, token.decimals)}`);
+    console.log(`  Need:       ${formatUnits(totalToken, token.decimals)}`);
 
-  if (usdcBalance < totalUsdc) {
-    console.error(`  INSUFFICIENT USDC: need ${formatUnits(totalUsdc, 6)}, have ${formatUnits(usdcBalance, 6)}`);
-    return results;
-  }
+    const result: TokenDistResult = {
+      symbol: token.symbol,
+      address: token.address,
+      decimals: token.decimals,
+      amountPerWallet,
+      totalAmount: formatUnits(totalToken, token.decimals),
+      txs: [],
+    };
 
-  // Add gas buffer for the distribution TXs themselves
-  const gasBuffer = parseEther("0.005");
-  if (nativeBalance < totalGas + gasBuffer) {
-    console.error(`  INSUFFICIENT NATIVE: need ${formatEther(totalGas + gasBuffer)}, have ${formatEther(nativeBalance)}`);
-    return results;
-  }
-
-  if (dryRun) {
-    console.log(`  [DRY RUN] Would distribute ${formatUnits(totalUsdc, 6)} USDC + ${formatEther(totalGas)} ${chainInfo.nativeSymbol}`);
-    return results;
-  }
-
-  // --- Execute ---
-  if (chainInfo.disperseAvailable) {
-    // DISPERSE PATH — 3 TXs total
-    console.log(`  Using Disperse.app (batch mode)...`);
-
-    // 1. Approve USDC
-    console.log(`  [1/3] Approving ${formatUnits(totalUsdc, 6)} USDC...`);
-    try {
-      const approveTx = await walletClient.writeContract({
-        address: chainInfo.usdc,
-        abi: ERC20_ABI,
-        functionName: "approve",
-        args: [DISPERSE_ADDRESS, totalUsdc],
-      });
-      await publicClient.waitForTransactionReceipt({ hash: approveTx });
-      console.log(`        TX: ${approveTx}`);
-      results.push({ type: "approve", txHash: approveTx, recipients: 1, amount: formatUnits(totalUsdc, 6), status: "confirmed" });
-    } catch (err: any) {
-      console.error(`  APPROVE FAILED: ${err.message}`);
-      results.push({ type: "approve", txHash: "", recipients: 1, amount: "0", status: "failed", error: err.message });
-      return results;
+    if (tokenBalance < totalToken) {
+      console.error(`  INSUFFICIENT ${token.symbol}: need ${formatUnits(totalToken, token.decimals)}, have ${formatUnits(tokenBalance, token.decimals)}`);
+      tokenResults.push(result);
+      continue;
     }
 
-    // 2. Disperse USDC
-    console.log(`  [2/3] Dispersing USDC to ${addresses.length} wallets...`);
-    try {
-      const usdcTx = await walletClient.writeContract({
-        address: DISPERSE_ADDRESS,
-        abi: DISPERSE_ABI,
-        functionName: "disperseToken",
-        args: [chainInfo.usdc, addresses, usdcAmounts],
-      });
-      await publicClient.waitForTransactionReceipt({ hash: usdcTx });
-      console.log(`        TX: ${usdcTx}`);
-      results.push({ type: "usdc_batch", txHash: usdcTx, recipients: addresses.length, amount: formatUnits(totalUsdc, 6), status: "confirmed" });
-    } catch (err: any) {
-      console.error(`  USDC DISPERSE FAILED: ${err.message}`);
-      results.push({ type: "usdc_batch", txHash: "", recipients: 0, amount: "0", status: "failed", error: err.message });
-      return results;
+    if (dryRun) {
+      console.log(`  [DRY RUN] Would distribute ${formatUnits(totalToken, token.decimals)} ${token.symbol}`);
+      tokenResults.push(result);
+      continue;
     }
 
-    // 3. Disperse native gas
-    if (gasAmount > 0n) {
-      console.log(`  [3/3] Dispersing ${chainInfo.nativeSymbol} to ${addresses.length} wallets...`);
+    // --- Execute token distribution ---
+    if (chainInfo.disperseAvailable) {
+      console.log(`  Using Disperse.app (batch mode)...`);
+
+      // 1. Approve
+      console.log(`  [1/2] Approving ${formatUnits(totalToken, token.decimals)} ${token.symbol}...`);
       try {
-        const nativeTx = await walletClient.writeContract({
+        const approveTx = await walletClient.writeContract({
+          address: token.address,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [DISPERSE_ADDRESS, totalToken],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: approveTx });
+        console.log(`        TX: ${approveTx}`);
+        result.txs.push({ type: "approve", txHash: approveTx, recipients: 1, amount: formatUnits(totalToken, token.decimals), token: token.symbol, status: "confirmed" });
+      } catch (err: any) {
+        console.error(`  APPROVE FAILED: ${err.message}`);
+        result.txs.push({ type: "approve", txHash: "", recipients: 1, amount: "0", token: token.symbol, status: "failed", error: err.message });
+        tokenResults.push(result);
+        continue;
+      }
+
+      // 2. Disperse token
+      console.log(`  [2/2] Dispersing ${token.symbol} to ${addresses.length} wallets...`);
+      try {
+        const tokenTx = await walletClient.writeContract({
           address: DISPERSE_ADDRESS,
           abi: DISPERSE_ABI,
-          functionName: "disperseEther",
-          args: [addresses, gasAmounts],
-          value: totalGas,
+          functionName: "disperseToken",
+          args: [token.address, addresses, tokenAmounts],
         });
-        await publicClient.waitForTransactionReceipt({ hash: nativeTx });
-        console.log(`        TX: ${nativeTx}`);
-        results.push({ type: "native_batch", txHash: nativeTx, recipients: addresses.length, amount: formatEther(totalGas), status: "confirmed" });
+        await publicClient.waitForTransactionReceipt({ hash: tokenTx });
+        console.log(`        TX: ${tokenTx}`);
+        result.txs.push({ type: "token_batch", txHash: tokenTx, recipients: addresses.length, amount: formatUnits(totalToken, token.decimals), token: token.symbol, status: "confirmed" });
       } catch (err: any) {
-        console.error(`  NATIVE DISPERSE FAILED: ${err.message}`);
-        results.push({ type: "native_batch", txHash: "", recipients: 0, amount: "0", status: "failed", error: err.message });
+        console.error(`  ${token.symbol} DISPERSE FAILED: ${err.message}`);
+        result.txs.push({ type: "token_batch", txHash: "", recipients: 0, amount: "0", token: token.symbol, status: "failed", error: err.message });
       }
-    }
-  } else {
-    // SEQUENTIAL FALLBACK — N+N TXs
-    console.log(`  Using sequential transfers (Disperse not available on ${chainName})...`);
+    } else {
+      // SEQUENTIAL FALLBACK
+      console.log(`  Using sequential transfers (Disperse not available on ${chainName})...`);
 
-    // USDC transfers (wait for receipt before marking confirmed)
-    for (let i = 0; i < wallets.length; i++) {
-      try {
-        console.log(`  [USDC ${i + 1}/${wallets.length}] ${formatUnits(usdcAmount, 6)} -> ${wallets[i].name}`);
-        const tx = await walletClient.writeContract({
-          address: chainInfo.usdc,
-          abi: ERC20_ABI,
-          functionName: "transfer",
-          args: [wallets[i].address, usdcAmount],
-        });
-        await publicClient.waitForTransactionReceipt({ hash: tx });
-        results.push({ type: "usdc_single", txHash: tx, recipients: 1, amount: formatUnits(usdcAmount, 6), status: "confirmed" });
-      } catch (err: any) {
-        console.error(`    FAILED: ${err.message}`);
-        results.push({ type: "usdc_single", txHash: "", recipients: 1, amount: "0", status: "failed", error: err.message });
-      }
-    }
-
-    // Native transfers (wait for receipt before marking confirmed)
-    if (gasAmount > 0n) {
       for (let i = 0; i < wallets.length; i++) {
         try {
-          console.log(`  [GAS ${i + 1}/${wallets.length}] ${formatEther(gasAmount)} -> ${wallets[i].name}`);
-          const tx = await walletClient.sendTransaction({
-            to: wallets[i].address,
-            value: gasAmount,
+          console.log(`  [${token.symbol} ${i + 1}/${wallets.length}] ${formatUnits(tokenAmount, token.decimals)} -> ${wallets[i].name}`);
+          const tx = await walletClient.writeContract({
+            address: token.address,
+            abi: ERC20_ABI,
+            functionName: "transfer",
+            args: [wallets[i].address, tokenAmount],
           });
           await publicClient.waitForTransactionReceipt({ hash: tx });
-          results.push({ type: "native_single", txHash: tx, recipients: 1, amount: formatEther(gasAmount), status: "confirmed" });
+          result.txs.push({ type: "token_single", txHash: tx, recipients: 1, amount: formatUnits(tokenAmount, token.decimals), token: token.symbol, status: "confirmed" });
         } catch (err: any) {
           console.error(`    FAILED: ${err.message}`);
-          results.push({ type: "native_single", txHash: "", recipients: 1, amount: "0", status: "failed", error: err.message });
+          result.txs.push({ type: "token_single", txHash: "", recipients: 1, amount: "0", token: token.symbol, status: "failed", error: err.message });
+        }
+      }
+    }
+
+    tokenResults.push(result);
+  }
+
+  // ---- Distribute native gas (once, after all tokens) ----
+  if (gasAmount > 0n) {
+    const gasBuffer = parseEther("0.005");
+    if (nativeBalance < totalGas + gasBuffer) {
+      console.error(`\n  INSUFFICIENT NATIVE: need ${formatEther(totalGas + gasBuffer)}, have ${formatEther(nativeBalance)}`);
+    } else if (dryRun) {
+      console.log(`\n  [DRY RUN] Would distribute ${formatEther(totalGas)} ${chainInfo.nativeSymbol}`);
+    } else {
+      console.log(`\n--- ${chainInfo.nativeSymbol} (gas) ---`);
+
+      if (chainInfo.disperseAvailable) {
+        console.log(`  Dispersing ${chainInfo.nativeSymbol} to ${addresses.length} wallets...`);
+        const gasAmounts = wallets.map(() => gasAmount);
+        try {
+          const nativeTx = await walletClient.writeContract({
+            address: DISPERSE_ADDRESS,
+            abi: DISPERSE_ABI,
+            functionName: "disperseEther",
+            args: [addresses, gasAmounts],
+            value: totalGas,
+          });
+          await publicClient.waitForTransactionReceipt({ hash: nativeTx });
+          console.log(`        TX: ${nativeTx}`);
+          gasResults.push({ type: "native_batch", txHash: nativeTx, recipients: addresses.length, amount: formatEther(totalGas), status: "confirmed" });
+        } catch (err: any) {
+          console.error(`  NATIVE DISPERSE FAILED: ${err.message}`);
+          gasResults.push({ type: "native_batch", txHash: "", recipients: 0, amount: "0", status: "failed", error: err.message });
+        }
+      } else {
+        for (let i = 0; i < wallets.length; i++) {
+          try {
+            console.log(`  [GAS ${i + 1}/${wallets.length}] ${formatEther(gasAmount)} -> ${wallets[i].name}`);
+            const tx = await walletClient.sendTransaction({
+              to: wallets[i].address,
+              value: gasAmount,
+            });
+            await publicClient.waitForTransactionReceipt({ hash: tx });
+            gasResults.push({ type: "native_single", txHash: tx, recipients: 1, amount: formatEther(gasAmount), status: "confirmed" });
+          } catch (err: any) {
+            console.error(`    FAILED: ${err.message}`);
+            gasResults.push({ type: "native_single", txHash: "", recipients: 1, amount: "0", status: "failed", error: err.message });
+          }
         }
       }
     }
   }
 
-  const success = results.filter((r) => r.status === "confirmed").length;
-  console.log(`\n  Done: ${success}/${results.length} TXs confirmed on ${chainName}`);
-  return results;
+  // Summary
+  const allTxs = [...tokenResults.flatMap((t) => t.txs), ...gasResults];
+  const success = allTxs.filter((r) => r.status === "confirmed").length;
+  console.log(`\n  Done: ${success}/${allTxs.length} TXs confirmed on ${chainName}`);
+
+  return { tokenResults, gasResults };
 }
 
 // ---------------------------------------------------------------------------
@@ -247,9 +284,36 @@ async function main() {
   const walletsFile = args.includes("--wallets")
     ? args[args.indexOf("--wallets") + 1]
     : resolve(__dirname, "config", "wallets.json");
-  const usdcPerWallet = args.includes("--usdc") ? args[args.indexOf("--usdc") + 1] : "3.00";
+
+  // --amount is the primary flag, --usdc is a backward-compat alias
+  const amountPerWallet = args.includes("--amount")
+    ? args[args.indexOf("--amount") + 1]
+    : args.includes("--usdc")
+      ? args[args.indexOf("--usdc") + 1]
+      : "1.00";
+
   const gasPerWallet = args.includes("--gas") ? args[args.indexOf("--gas") + 1] : "0.0005";
   const dryRun = args.includes("--dry-run");
+
+  // --tokens flag: comma-separated list, or default to ALL tokens on chain
+  const availableSymbols = getTokenSymbols(chainName);
+  let selectedSymbols: string[];
+
+  if (args.includes("--tokens")) {
+    const raw = args[args.indexOf("--tokens") + 1];
+    selectedSymbols = raw.split(",").map((s) => s.trim().toUpperCase());
+    // Validate
+    for (const sym of selectedSymbols) {
+      if (!availableSymbols.includes(sym)) {
+        console.error(`ERROR: Token ${sym} not available on ${chainName}. Available: ${availableSymbols.join(", ")}`);
+        process.exit(1);
+      }
+    }
+  } else {
+    selectedSymbols = availableSymbols;
+  }
+
+  const tokensToDistribute = getTokens(chainName).filter((t) => selectedSymbols.includes(t.symbol));
 
   // Load wallets
   let manifest: WalletManifest;
@@ -266,21 +330,30 @@ async function main() {
   }));
 
   console.log(`\nDistributing to ${wallets.length} wallets on ${chainName}`);
-  console.log(`  USDC/wallet: ${usdcPerWallet}`);
-  console.log(`  Gas/wallet:  ${gasPerWallet}`);
+  console.log(`  Tokens:       ${tokensToDistribute.map((t) => t.symbol).join(", ")}`);
+  console.log(`  Amount/token: ${amountPerWallet}`);
+  console.log(`  Gas/wallet:   ${gasPerWallet}`);
   if (dryRun) console.log(`  ** DRY RUN **`);
 
-  const results = await distribute(chainName, wallets, usdcPerWallet, gasPerWallet, dryRun);
+  const { tokenResults, gasResults } = await distribute(
+    chainName,
+    wallets,
+    tokensToDistribute,
+    amountPerWallet,
+    gasPerWallet,
+    dryRun,
+  );
 
   // Save report
   const report = {
     timestamp: new Date().toISOString(),
     chain: chainName,
     walletCount: wallets.length,
-    usdcPerWallet,
+    amountPerWallet,
     gasPerWallet,
     dryRun,
-    results,
+    tokens: tokenResults,
+    gas: gasResults,
   };
   const reportFile = resolve(__dirname, `report-distribute-${chainName}-${Date.now()}.json`);
   writeFileSync(reportFile, JSON.stringify(report, null, 2));
