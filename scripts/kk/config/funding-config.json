@@ -4,11 +4,16 @@
   "wallets": "config/wallets.json",
   "perAgent": {
     "defaultAmount": "1.00",
-    "chains": ["base", "polygon", "arbitrum"],
+    "chains": ["base", "polygon", "arbitrum", "avalanche", "optimism", "celo", "monad", "ethereum"],
     "tokens": {
       "base": ["USDC"],
+      "ethereum": ["USDC", "PYUSD", "AUSD"],
       "polygon": ["USDC", "AUSD"],
-      "arbitrum": ["USDC", "USDT", "AUSD"]
+      "arbitrum": ["USDC", "USDT", "AUSD"],
+      "avalanche": ["USDC", "AUSD"],
+      "optimism": ["USDC", "USDT"],
+      "celo": ["USDC", "USDT"],
+      "monad": ["USDC", "AUSD"]
     }
   },
   "gasAmounts": {
