@@ -91,7 +91,7 @@ const CHAIN_CONFIGS: Record<string, ChainConfig> = {
   },
   ethereum: {
     chain: mainnet,
-    rpcUrl: "https://eth.llamarpc.com",
+    rpcUrl: "https://ethereum-rpc.publicnode.com",
     escrow: "0x9D4146EF898c8E60B3e865AE254ef438E7cEd2A0",
     paymentOperatorFactory: "0x1e52a74cE6b69F04a506eF815743E1052A1BD28F",
     staticAddressConditionFactory: "0xE55a88ffE86E35Ec76D6B75CFA42F912FEBAdd9f",

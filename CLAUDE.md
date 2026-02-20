@@ -290,6 +290,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | x402r Escrow (AuthCaptureEscrow) | Arbitrum, Avalanche, Celo, Monad, Optimism | `0x320a3c35F131E5D2Fb36af56345726B298936037` |
 | x402r Escrow (legacy, deprecated) | Base | `0xC409e6da89E54253fbA86C1CE3E553d24E03f6bC` |
 | **EM PaymentOperator (Fase 5 Trustless Fee Split)** | **Base** | **`0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb`** |
+| **EM PaymentOperator (Fase 5)** | **Ethereum** | **`0x69B67962ffb7c5C7078ff348a87DF604dfA8001b`** |
 | **EM PaymentOperator (Fase 5)** | **Polygon** | **`0xB87F1ECC85f074e50df3DD16A1F40e4e1EC4102e`** |
 | **EM PaymentOperator (Fase 5)** | **Arbitrum** | **`0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`** |
 | **EM PaymentOperator (Fase 5)** | **Avalanche** | **`0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e`** |
@@ -510,7 +511,7 @@ Wrong Flow (DO NOT USE):
 
 **Deployment script:** `scripts/deploy-payment-operator.ts` — deploys via x402r factory contracts. Use `--fase3`, `--fase3-clean`, or `--fase4` flag.
 
-**Status:** Fase 5 Operators deployed on **5 chains** (2026-02-18): Base (`0x271f...D8F0Eb`), Polygon (`0xB87F...102e`), Arbitrum (`0xC237...938e`), Avalanche (`0xC237...938e`), Monad (`0x9620...8cC3`). Credit card model: bounty = lock amount, fee deducted on-chain at release (13% of gross). Base operator active in Facilitator allowlist. **Pending**: Register 4 new operators in Facilitator allowlist. Ethereum deployment pending (L1 RPC timeout). Celo/Optimism blocked (no gas on deployer). See `docs/reports/MULTICHAIN_DEPLOYMENT_REPORT_2026-02-18.md`.
+**Status:** Fase 5 Operators deployed on **8 chains** (2026-02-20): Base (`0x271f...D8F0Eb`), Ethereum (`0x69B6...001b`), Polygon (`0xB87F...102e`), Arbitrum (`0xC237...938e`), Avalanche (`0xC237...938e`), Monad (`0x9620...8cC3`), Celo (`0xC237...938e`), Optimism (`0xC237...938e`). Credit card model: bounty = lock amount, fee deducted on-chain at release (13% of gross). Base operator active in Facilitator allowlist. **Pending**: Register 7 new operators in Facilitator allowlist (Ethereum, Polygon, Arbitrum, Avalanche, Monad, Celo, Optimism).
 
 **Key upstream repos:**
 | Repo | URL | Stack |

@@ -151,7 +151,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "ethereum": {
         "chain_id": 1,
-        "rpc_url": "https://eth.llamarpc.com",
+        "rpc_url": "https://ethereum-rpc.publicnode.com",
         "tokens": {
             "USDC": {
                 "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
@@ -180,7 +180,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
         },
         "escrow": "0x9D4146EF898c8E60B3e865AE254ef438E7cEd2A0",
         "factory": "0x1e52a74cE6b69F04a506eF815743E1052A1BD28F",
-        "operator": None,
+        "operator": "0x69B67962ffb7c5C7078ff348a87DF604dfA8001b",
         "x402r_infra": {
             "staticAddressConditionFactory": "0xE55a88ffE86E35Ec76D6B75CFA42F912FEBAdd9f",
             "orConditionFactory": "0x9E00E54684f70fc698EB0718336719FaCAC3DcFd",
