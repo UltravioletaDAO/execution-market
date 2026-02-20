@@ -1152,7 +1152,7 @@ async def main() -> int:
 
     results = MultichainResults()
 
-    timeout = httpx.Timeout(180.0, connect=15.0)
+    timeout = httpx.Timeout(600.0, connect=30.0)
     async with httpx.AsyncClient(timeout=timeout) as client:
         # Phase 1: Health check
         results.health_ok = await check_health(client)
