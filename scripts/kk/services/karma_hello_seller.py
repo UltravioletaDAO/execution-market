@@ -21,8 +21,12 @@ import argparse
 import asyncio
 import json
 import logging
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Ensure services package is importable
+sys.path.insert(0, str(Path(__file__).parent))
 
 from em_client import AgentContext, EMClient, load_agent_context
 
@@ -98,13 +102,14 @@ def load_data_stats(data_dir: Path) -> dict:
         "date_range": "unknown",
     }
 
-    # Aggregate stats
-    agg_file = data_dir / "aggregated_logs.json"
+    # Aggregate stats — file is "aggregated.json" not "aggregated_logs.json"
+    agg_file = data_dir / "aggregated.json"
     if agg_file.exists():
         agg = json.loads(agg_file.read_text(encoding="utf-8"))
-        stats["total_messages"] = agg.get("total_messages", 0)
-        stats["total_dates"] = len(agg.get("dates", []))
-        dates = sorted(agg.get("dates", []))
+        agg_stats = agg.get("stats", {})
+        stats["total_messages"] = agg_stats.get("total_messages", 0)
+        stats["total_dates"] = agg_stats.get("date_count", 0)
+        dates = sorted(agg_stats.get("dates", []))
         if dates:
             stats["date_range"] = f"{dates[0]} to {dates[-1]}"
 
@@ -141,11 +146,11 @@ async def publish_product(
 
     result = await client.publish_task(
         title=title,
-        description=description,
+        instructions=description,
         category=product["category"],
-        bounty_usdc=bounty,
-        deadline_minutes=1440,  # 24 hours
-        evidence_requirements=[{"type": product["evidence_type"], "description": "Data file URL"}],
+        bounty_usd=bounty,
+        deadline_hours=24,
+        evidence_required=["text"],
     )
 
     task_id = result.get("task", {}).get("id") or result.get("id", "unknown")
@@ -178,7 +183,7 @@ async def check_and_fulfill_purchases(
             sub_id = sub.get("id", "")
             # Auto-approve data deliveries from our own pipeline
             logger.info(f"    Approving submission {sub_id}")
-            await client.approve_submission(sub_id, rating=5, feedback="Data delivered successfully")
+            await client.approve_submission(sub_id, rating_score=90, notes="Data delivered successfully")
 
 
 async def main():

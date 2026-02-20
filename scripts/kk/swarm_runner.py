@@ -26,8 +26,12 @@ import asyncio
 import json
 import logging
 import random
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Ensure imports work regardless of CWD
+sys.path.insert(0, str(Path(__file__).parent))
 
 from services.em_client import AgentContext, EMClient, load_agent_context
 
@@ -179,10 +183,11 @@ async def agent_publish_tasks(
     try:
         result = await client.publish_task(
             title=title,
-            description=description,
+            instructions=description,
             category=template["category"],
-            bounty_usdc=bounty,
-            deadline_minutes=720,  # 12 hours
+            bounty_usd=bounty,
+            deadline_hours=12,
+            evidence_required=["text"],
         )
         task_id = result.get("task", {}).get("id") or result.get("id", "unknown")
         logger.info(f"  [{agent.name}] Published: {title} → {task_id}")
@@ -227,14 +232,14 @@ async def agent_review_submissions(
             # Simple auto-review: approve if evidence URL is present
             evidence_url = sub.get("evidence_url", "")
             if evidence_url:
-                rating = random.randint(3, 5)
+                rating_score = random.randint(60, 95)
                 try:
                     await client.approve_submission(
                         sub_id,
-                        rating=rating,
-                        feedback=f"KK agent {agent.name} approved. Rating: {rating}/5.",
+                        rating_score=rating_score,
+                        notes=f"KK agent {agent.name} approved. Score: {rating_score}/100.",
                     )
-                    logger.info(f"  [{agent.name}] Approved submission {sub_id} (rating={rating})")
+                    logger.info(f"  [{agent.name}] Approved submission {sub_id} (score={rating_score})")
                     reviewed += 1
                 except Exception as e:
                     logger.warning(f"  [{agent.name}] Approve failed: {e}")

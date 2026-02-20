@@ -85,27 +85,35 @@ class EMClient:
     async def publish_task(
         self,
         title: str,
-        description: str,
+        instructions: str,
         category: str,
-        bounty_usdc: float,
-        deadline_minutes: int = 60,
-        evidence_requirements: list[dict] | None = None,
-        location: dict | None = None,
+        bounty_usd: float,
+        deadline_hours: int = 1,
+        evidence_required: list[str] | None = None,
         payment_network: str = "base",
     ) -> dict[str, Any]:
-        """Publish a new task (bounty) on Execution Market."""
+        """Publish a new task (bounty) on Execution Market.
+
+        Args:
+            title: Brief task title.
+            instructions: Detailed description (API field: ``instructions``).
+            category: One of physical_presence, knowledge_access, human_authority,
+                      simple_action, digital_physical.
+            bounty_usd: Bounty in USD (float, e.g. 0.10).
+            deadline_hours: Hours until deadline (1-720).
+            evidence_required: List of evidence type strings, e.g. ["text", "photo"].
+            payment_network: Chain name (default "base").
+        """
         payload: dict[str, Any] = {
             "title": title,
-            "description": description,
+            "instructions": instructions,
             "category": category,
-            "bounty_usdc": bounty_usdc,
-            "deadline_minutes": deadline_minutes,
+            "bounty_usd": bounty_usd,
+            "deadline_hours": deadline_hours,
             "payment_network": payment_network,
         }
-        if evidence_requirements:
-            payload["evidence_requirements"] = evidence_requirements
-        if location:
-            payload["location"] = location
+        if evidence_required:
+            payload["evidence_required"] = evidence_required
 
         resp = await self._client.post("/tasks", json=payload)
         resp.raise_for_status()
@@ -177,18 +185,19 @@ class EMClient:
         self,
         task_id: str,
         executor_id: str,
-        evidence_url: str,
-        evidence_type: str = "text",
-        notes: str = "",
+        evidence: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Submit evidence for a task."""
+        """Submit evidence for a task.
+
+        Args:
+            task_id: The task UUID.
+            executor_id: The executor UUID (not wallet address).
+            evidence: Evidence dict, e.g. {"url": "...", "type": "text", "notes": "..."}.
+        """
         payload: dict[str, Any] = {
             "executor_id": executor_id,
-            "evidence_url": evidence_url,
-            "evidence_type": evidence_type,
+            "evidence": evidence or {},
         }
-        if notes:
-            payload["notes"] = notes
         resp = await self._client.post(f"/tasks/{task_id}/submit", json=payload)
         resp.raise_for_status()
         return resp.json()
@@ -207,13 +216,21 @@ class EMClient:
     async def approve_submission(
         self,
         submission_id: str,
-        rating: int = 5,
-        feedback: str = "",
+        rating_score: int = 80,
+        notes: str = "",
     ) -> dict[str, Any]:
-        """Approve a submission."""
-        payload: dict[str, Any] = {"rating": rating}
-        if feedback:
-            payload["feedback"] = feedback
+        """Approve a submission.
+
+        Args:
+            submission_id: Submission UUID.
+            rating_score: 0-100 rating (not 1-5 stars).
+            notes: Optional approval notes.
+        """
+        payload: dict[str, Any] = {}
+        if rating_score is not None:
+            payload["rating_score"] = rating_score
+        if notes:
+            payload["notes"] = notes
         resp = await self._client.post(
             f"/submissions/{submission_id}/approve",
             json=payload,
@@ -224,12 +241,19 @@ class EMClient:
     async def reject_submission(
         self,
         submission_id: str,
-        reason: str = "",
+        notes: str = "Does not meet requirements.",
+        severity: str = "minor",
     ) -> dict[str, Any]:
-        """Reject a submission."""
+        """Reject a submission.
+
+        Args:
+            submission_id: Submission UUID.
+            notes: Rejection reason (min 10 characters).
+            severity: "minor" or "major".
+        """
         resp = await self._client.post(
             f"/submissions/{submission_id}/reject",
-            json={"reason": reason},
+            json={"notes": notes, "severity": severity},
         )
         resp.raise_for_status()
         return resp.json()

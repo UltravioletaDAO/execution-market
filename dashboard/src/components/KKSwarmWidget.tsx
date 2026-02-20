@@ -65,7 +65,7 @@ async function fetchSwarmMetrics(): Promise<SwarmMetrics> {
     ).length
 
     const totalBounty = kkTasks.reduce(
-      (sum: number, t: any) => sum + (t.bounty_usdc || 0),
+      (sum: number, t: any) => sum + (t.bounty_usd || 0),
       0
     )
 
@@ -77,7 +77,7 @@ async function fetchSwarmMetrics(): Promise<SwarmMetrics> {
         agentActivity[wallet] = { tasks: 0, earned: 0 }
       }
       agentActivity[wallet].tasks++
-      agentActivity[wallet].earned += task.bounty_usdc || 0
+      agentActivity[wallet].earned += task.bounty_usd || 0
     }
 
     const topAgents = Object.entries(agentActivity)
@@ -92,7 +92,7 @@ async function fetchSwarmMetrics(): Promise<SwarmMetrics> {
     const recentTasks = kkTasks.slice(0, 5).map((t: any) => ({
       id: t.id || '',
       title: t.title || '',
-      bounty: t.bounty_usdc || 0,
+      bounty: t.bounty_usd || 0,
       status: t.status || 'unknown',
       created: t.created_at || '',
     }))

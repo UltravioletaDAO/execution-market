@@ -22,8 +22,9 @@ from pathlib import Path
 # Log line parser
 # ---------------------------------------------------------------------------
 
+# Support both single and double-digit month/day (e.g., 1/2/2026 or 01/02/2026)
 LOG_PATTERN = re.compile(
-    r"\[(\d{2}/\d{2}/\d{4}\s+\d{1,2}:\d{2}:\d{2}\s+[AP]M)\]\s+(\S+?):\s+(.*)"
+    r"\[(\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2}:\d{2}\s+[AP]M)\]\s+(\S+?):\s+(.*)"
 )
 
 # Filter out raw IRC protocol lines (PRIVMSG with full prefix)
@@ -142,7 +143,7 @@ def main():
     parser.add_argument(
         "--logs-dir",
         type=str,
-        default="Z:/ultravioleta/dao/karmacadabra/agents/karma-hello/logs",
+        default=None,
         help="Path to karma-hello logs directory",
     )
     parser.add_argument(
@@ -153,7 +154,11 @@ def main():
     )
     args = parser.parse_args()
 
-    logs_dir = Path(args.logs_dir)
+    # Default: look for karmacadabra sibling repo relative to execution-market
+    if args.logs_dir:
+        logs_dir = Path(args.logs_dir)
+    else:
+        logs_dir = Path(__file__).parent.parent.parent.parent / "karmacadabra" / "agents" / "karma-hello" / "logs"
     if not logs_dir.exists():
         print(f"ERROR: Logs directory not found: {logs_dir}")
         sys.exit(1)

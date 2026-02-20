@@ -46,21 +46,27 @@ async function registerAgent(
   agentName: string,
   network: string,
 ): Promise<{ agentId: number; txHash: string }> {
-  const domain = `${agentName}.kk.ultravioletadao.xyz`;
+  const agentUri = `${agentName}.kk.ultravioletadao.xyz`;
 
+  // Facilitator /register expects: recipient, agentUri, x402Version, network,
+  // and metadata as an array of {key, value} objects (not a nested dict).
   const response = await fetch(`${FACILITATOR_URL}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      address,
-      domain,
+      recipient: address,
+      agentUri,
+      x402Version: "1",
       network,
-      metadata: {
-        name: `KK Agent: ${agentName}`,
-        description: `Karma Kadabra swarm agent representing ${agentName} from Ultravioleta DAO community`,
-        swarm: "karma-kadabra-v2",
-        version: "1.0",
-      },
+      metadata: [
+        { key: "name", value: `KK Agent: ${agentName}` },
+        {
+          key: "description",
+          value: `Karma Kadabra swarm agent representing ${agentName} from Ultravioleta DAO community`,
+        },
+        { key: "swarm", value: "karma-kadabra-v2" },
+        { key: "version", value: "1.0" },
+      ],
     }),
   });
 
@@ -81,8 +87,9 @@ async function checkIdentity(
   network: string,
 ): Promise<{ registered: boolean; agentId?: number }> {
   try {
+    // Facilitator identity endpoint: GET /identity/{address}?network={network}
     const response = await fetch(
-      `${FACILITATOR_URL}/identity?address=${address}&network=${network}`,
+      `${FACILITATOR_URL}/identity/${address}?network=${network}`,
     );
     if (response.ok) {
       const data = await response.json();

@@ -23,9 +23,12 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 # Greeting patterns (detect greeting style)
+# Order matters: longer/more-specific patterns first to avoid shadowing
 GREETING_PATTERNS = [
-    (r"\bgm\b", "gm"),
     (r"\bgm gm\b", "gm gm"),
+    (r"\bbuenas tardes\b", "buenas tardes"),
+    (r"\bque mas\b", "que mas"),
+    (r"\bgm\b", "gm"),
     (r"\bbuenas?\b", "buenas"),
     (r"\bhola\b", "hola"),
     (r"\boe\b", "oe"),
@@ -33,8 +36,6 @@ GREETING_PATTERNS = [
     (r"\boeoe\b", "oeoe"),
     (r"\bhey\b", "hey"),
     (r"\byo\b", "yo"),
-    (r"\bque mas\b", "que mas"),
-    (r"\bbuenas tardes\b", "buenas tardes"),
 ]
 
 # Slang/informal markers (colombian + latam)
@@ -46,8 +47,9 @@ SLANG_MARKERS = {
 }
 
 # Emoji/emoticon patterns
+# Unicode emoji blocks (standard ranges — avoids matching normal punctuation)
 EMOJI_PATTERN = re.compile(
-    r"[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF\U00002702-\U000027B0\U000024C2-\U0001F251]+"
+    r"[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF\U0001F900-\U0001F9FF\U0001FA00-\U0001FA6F\U0001FA70-\U0001FAFF]+"
 )
 EMOTICON_PATTERN = re.compile(r"[:;]-?[)(DPp/\\|]|<3|xd|XD|\^\^|>_<|:v|:3")
 
@@ -134,9 +136,6 @@ def extract_voice(username: str, messages: list[str], stats: dict) -> dict:
     # Filter to phrases used 3+ times and remove subphrases
     repeated_phrases = {p: c for p, c in phrase_counter.items() if c >= 3}
     signature_phrases = sorted(repeated_phrases.items(), key=lambda x: x[1], reverse=True)[:10]
-
-    # --- Activity pattern ---
-    hours = [msg.get("hour", 12) for msg in messages] if isinstance(messages[0], dict) else []
 
     # --- Risk tolerance ---
     risk_keywords = {

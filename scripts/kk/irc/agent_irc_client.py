@@ -100,7 +100,7 @@ class IRCAgent:
         await self._send(f"NICK {self.nick}")
         await self._send(f"USER {self.nick} 0 * :KK Agent {self.nick}")
 
-        # Wait for welcome (001)
+        # Wait for welcome (001), handle NICK-in-use (433)
         while True:
             line = await self._recv()
             if not line:
@@ -109,6 +109,11 @@ class IRCAgent:
                 self._connected = True
                 logger.info(f"  [{self.nick}] Connected!")
                 break
+            if " 433 " in line:
+                # Nick already in use — append underscore and retry
+                self.nick = self.nick + "_"
+                logger.warning(f"  Nick in use, retrying as {self.nick}")
+                await self._send(f"NICK {self.nick}")
             if "PING" in line:
                 await self._handle_ping(line)
 

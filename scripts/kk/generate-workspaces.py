@@ -193,6 +193,15 @@ You coordinate and support the community agents.
         )
         (ws_dir / "AGENTS.md").write_text(agents_md, encoding="utf-8")
 
+        # Copy shared EM skills to system agents too
+        if shared_skills_dir.exists():
+            for skill_dir in shared_skills_dir.iterdir():
+                if skill_dir.is_dir():
+                    dest = ws_dir / "skills" / skill_dir.name
+                    if dest.exists():
+                        shutil.rmtree(dest)
+                    shutil.copytree(skill_dir, dest)
+
         # Save wallet info
         (ws_dir / "data" / "wallet.json").write_text(
             json.dumps({"index": sa["index"], "address": wallet.get("address", "pending"), "type": "system"}, indent=2),
@@ -281,7 +290,7 @@ You coordinate and support the community agents.
         print(f"  [{user['rank']:>3}] kk-{username:<24} index={wallet_index} skill={top_skill}")
 
     # Save workspace manifest
-    manifest = {
+    ws_manifest = {
         "version": "1.0",
         "generated_at": datetime.now().isoformat(),
         "total_agents": generated,
@@ -304,7 +313,7 @@ You coordinate and support the community agents.
     }
     manifest_path = output_dir / "_manifest.json"
     with open(manifest_path, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
+        json.dump(ws_manifest, f, ensure_ascii=False, indent=2)
 
     print(f"\nDone! {generated} workspaces created in {output_dir}/")
     print(f"  System agents: {len(system_agents)}")

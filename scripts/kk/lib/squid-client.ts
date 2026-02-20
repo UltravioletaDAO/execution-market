@@ -129,7 +129,8 @@ export async function waitForTransaction(
   pollMs: number = 10_000,
 ): Promise<SquidStatus> {
   const start = Date.now();
-  const terminal = new Set(["success", "partial_success", "needs_gas", "not_found", "refund"]);
+  // not_found is NOT terminal — Squid may take time to index the TX
+  const terminal = new Set(["success", "partial_success", "needs_gas", "refund"]);
 
   while (Date.now() - start < timeoutMs) {
     try {

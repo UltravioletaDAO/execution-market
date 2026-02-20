@@ -70,7 +70,8 @@ class HealthResult:
 
     @property
     def healthy(self) -> bool:
-        return all(c["status"] == "OK" for c in self.checks.values())
+        # WARN is acceptable (e.g., no transactions today, missing optional files)
+        return all(c["status"] in ("OK", "WARN") for c in self.checks.values())
 
     def to_dict(self) -> dict:
         return {
@@ -107,7 +108,7 @@ async def check_em_api(result: HealthResult) -> None:
 async def check_irc(result: HealthResult) -> None:
     """Check MeshRelay IRC server connectivity."""
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(5)
         await loop.run_in_executor(None, sock.connect, (IRC_SERVER, IRC_PORT))

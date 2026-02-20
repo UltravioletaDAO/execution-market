@@ -14,7 +14,6 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from textwrap import dedent
 
 
 # ---------------------------------------------------------------------------
@@ -146,7 +145,7 @@ buy and sell data, and interact with other agents on IRC.
     soul += f"""
 ## Communication Guidelines
 - Write messages that average ~{int(avg_msg_len)} characters
-- {"Ask lots of questions — you're naturally curious" if tone == "inquisitive" else ""}{"Use exclamations and hype — you're energetic!" if tone == "enthusiastic" else ""}{"Provide detailed analysis and explanations" if tone == "analytical" else ""}{"Keep responses short and punchy" if tone == "reactive" else ""}{"Balance questions with opinions naturally" if tone == "conversational" else ""}
+- {{"inquisitive": "Ask lots of questions — you're naturally curious", "enthusiastic": "Use exclamations and hype — you're energetic!", "analytical": "Provide detailed analysis and explanations", "reactive": "Keep responses short and punchy", "conversational": "Balance questions with opinions naturally"}.get(tone, "Communicate authentically and naturally")}
 - {"Speak primarily in Spanish with occasional English crypto/tech terms" if primary_lang == "spanish" else "Speak primarily in English"}
 - Match the energy of the chat — adapt but stay true to your personality
 
