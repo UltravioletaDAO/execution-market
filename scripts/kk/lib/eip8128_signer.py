@@ -36,8 +36,8 @@ logger = logging.getLogger("kk.eip8128_signer")
 # Methods that carry a request body per HTTP semantics
 _BODY_METHODS = {"POST", "PUT", "PATCH"}
 
-# Default validity window in seconds
-_DEFAULT_VALIDITY_SEC = 60
+# Default validity window in seconds (matches TypeScript signer and server max)
+_DEFAULT_VALIDITY_SEC = 300
 
 
 class EIP8128Signer:
@@ -116,10 +116,11 @@ class EIP8128Signer:
             covered.append("content-digest")
 
         # --- 3. Signature parameters -----------------------------------------
-        nonce = self._fetch_nonce()
+        nonce, server_ttl = self._fetch_nonce()
         now = int(time.time())
         created = now
-        expires = now + self._validity_sec
+        validity = server_ttl if server_ttl else self._validity_sec
+        expires = now + min(validity, 300)
 
         params: dict[str, object] = {
             "created": created,
@@ -157,30 +158,31 @@ class EIP8128Signer:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _fetch_nonce(self) -> str:
+    def _fetch_nonce(self) -> tuple[str, int | None]:
         """Fetch a fresh nonce from the server.
 
-        Calls ``GET /api/v1/auth/nonce`` on the Execution Market API.
+        Calls ``GET /api/v1/auth/erc8128/nonce`` on the Execution Market API.
         If the endpoint is unavailable (404, network error, etc.),
         falls back to a locally generated nonce.
 
         Returns:
-            A nonce string suitable for the ``nonce`` parameter in
-            Signature-Input.
+            Tuple of (nonce_string, ttl_seconds). ttl_seconds is None when
+            the server did not provide a TTL or the endpoint was unavailable.
         """
-        nonce_url = f"{self._api_base}/api/v1/auth/nonce"
+        nonce_url = f"{self._api_base}/api/v1/auth/erc8128/nonce"
         try:
             resp = requests.get(nonce_url, timeout=5)
             if resp.status_code == 200:
                 data = resp.json()
                 nonce = data.get("nonce")
                 if nonce:
-                    return str(nonce)
+                    ttl = data.get("ttl_seconds")
+                    return str(nonce), ttl if isinstance(ttl, int) else None
         except Exception as exc:
             logger.debug("Nonce endpoint unavailable (%s), using local nonce", exc)
 
         # Fallback: generate a locally unique nonce
-        return secrets.token_urlsafe(24)
+        return secrets.token_urlsafe(24), None
 
     def _build_signature_base(
         self,
