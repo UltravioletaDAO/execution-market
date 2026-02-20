@@ -1,7 +1,7 @@
 /**
  * Karma Kadabra V2 — Chain Configuration
  *
- * Single source of truth for all 8 supported EVM chains.
+ * Single source of truth for all 8 supported EVM chains + stablecoins.
  * Mirrors NETWORK_CONFIG from mcp_server/integrations/x402/sdk_client.py.
  */
 
@@ -29,6 +29,17 @@ export const monad: Chain = defineChain({
 });
 
 // ---------------------------------------------------------------------------
+// Token Info
+// ---------------------------------------------------------------------------
+
+export interface TokenInfo {
+  symbol: string;
+  address: Address;
+  decimals: number;
+  name: string;
+}
+
+// ---------------------------------------------------------------------------
 // Chain Info
 // ---------------------------------------------------------------------------
 
@@ -37,7 +48,10 @@ export interface ChainInfo {
   chain: Chain;
   chainId: number;
   rpcUrl: string;
+  /** @deprecated Use tokens["USDC"].address instead */
   usdc: Address;
+  /** All supported stablecoins on this chain */
+  tokens: Record<string, TokenInfo>;
   nativeSymbol: string;
   /** Disperse.app deployed and verified on this chain */
   disperseAvailable: boolean;
@@ -119,7 +133,7 @@ export const ERC20_ABI = [
 ] as const;
 
 // ---------------------------------------------------------------------------
-// The 8 Target Chains
+// The 8 Target Chains — with full stablecoin registry
 // ---------------------------------------------------------------------------
 
 export const CHAINS: Record<string, ChainInfo> = {
@@ -129,6 +143,14 @@ export const CHAINS: Record<string, ChainInfo> = {
     chainId: 8453,
     rpcUrl: "https://mainnet.base.org",
     usdc: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    tokens: {
+      USDC: {
+        symbol: "USDC",
+        address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        decimals: 6,
+        name: "USD Coin",
+      },
+    },
     nativeSymbol: "ETH",
     disperseAvailable: true,
     debridgeChainId: "8453",
@@ -140,6 +162,26 @@ export const CHAINS: Record<string, ChainInfo> = {
     chainId: 1,
     rpcUrl: "https://eth.llamarpc.com",
     usdc: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    tokens: {
+      USDC: {
+        symbol: "USDC",
+        address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        decimals: 6,
+        name: "USD Coin",
+      },
+      PYUSD: {
+        symbol: "PYUSD",
+        address: "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
+        decimals: 6,
+        name: "PayPal USD",
+      },
+      AUSD: {
+        symbol: "AUSD",
+        address: "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        decimals: 6,
+        name: "Agora Dollar",
+      },
+    },
     nativeSymbol: "ETH",
     disperseAvailable: true,
     debridgeChainId: "1",
@@ -151,6 +193,20 @@ export const CHAINS: Record<string, ChainInfo> = {
     chainId: 137,
     rpcUrl: "https://polygon-bor-rpc.publicnode.com",
     usdc: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+    tokens: {
+      USDC: {
+        symbol: "USDC",
+        address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+        decimals: 6,
+        name: "USD Coin",
+      },
+      AUSD: {
+        symbol: "AUSD",
+        address: "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        decimals: 6,
+        name: "Agora Dollar",
+      },
+    },
     nativeSymbol: "POL",
     disperseAvailable: true,
     debridgeChainId: "137",
@@ -162,6 +218,26 @@ export const CHAINS: Record<string, ChainInfo> = {
     chainId: 42161,
     rpcUrl: "https://arb1.arbitrum.io/rpc",
     usdc: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    tokens: {
+      USDC: {
+        symbol: "USDC",
+        address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        decimals: 6,
+        name: "USD Coin",
+      },
+      USDT: {
+        symbol: "USDT",
+        address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+        decimals: 6,
+        name: "Tether USD",
+      },
+      AUSD: {
+        symbol: "AUSD",
+        address: "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        decimals: 6,
+        name: "Agora Dollar",
+      },
+    },
     nativeSymbol: "ETH",
     disperseAvailable: true,
     debridgeChainId: "42161",
@@ -173,6 +249,20 @@ export const CHAINS: Record<string, ChainInfo> = {
     chainId: 43114,
     rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
     usdc: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+    tokens: {
+      USDC: {
+        symbol: "USDC",
+        address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+        decimals: 6,
+        name: "USD Coin",
+      },
+      AUSD: {
+        symbol: "AUSD",
+        address: "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        decimals: 6,
+        name: "Agora Dollar",
+      },
+    },
     nativeSymbol: "AVAX",
     disperseAvailable: true,
     debridgeChainId: "43114",
@@ -184,6 +274,20 @@ export const CHAINS: Record<string, ChainInfo> = {
     chainId: 10,
     rpcUrl: "https://mainnet.optimism.io",
     usdc: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+    tokens: {
+      USDC: {
+        symbol: "USDC",
+        address: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+        decimals: 6,
+        name: "USD Coin",
+      },
+      USDT: {
+        symbol: "USDT",
+        address: "0x01bff41798a0bcf287b996046ca68b395dbc1071",
+        decimals: 6,
+        name: "Tether USD",
+      },
+    },
     nativeSymbol: "ETH",
     disperseAvailable: true,
     debridgeChainId: "10",
@@ -195,9 +299,23 @@ export const CHAINS: Record<string, ChainInfo> = {
     chainId: 42220,
     rpcUrl: "https://forno.celo.org",
     usdc: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
+    tokens: {
+      USDC: {
+        symbol: "USDC",
+        address: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
+        decimals: 6,
+        name: "USDC",
+      },
+      USDT: {
+        symbol: "USDT",
+        address: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
+        decimals: 6,
+        name: "Tether USD",
+      },
+    },
     nativeSymbol: "CELO",
-    disperseAvailable: false, // Not verified — fallback to sequential
-    debridgeChainId: null, // NOT supported by deBridge
+    disperseAvailable: false,
+    debridgeChainId: null,
     squidSupported: true,
   },
   monad: {
@@ -206,10 +324,24 @@ export const CHAINS: Record<string, ChainInfo> = {
     chainId: 143,
     rpcUrl: "https://rpc.monad.xyz",
     usdc: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+    tokens: {
+      USDC: {
+        symbol: "USDC",
+        address: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+        decimals: 6,
+        name: "USDC",
+      },
+      AUSD: {
+        symbol: "AUSD",
+        address: "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+        decimals: 6,
+        name: "Agora Dollar",
+      },
+    },
     nativeSymbol: "MON",
-    disperseAvailable: false, // Not verified — fallback to sequential
-    debridgeChainId: "100000030", // DLN internal ID, NOT 143
-    squidSupported: false, // NOT supported by Squid
+    disperseAvailable: false,
+    debridgeChainId: "100000030",
+    squidSupported: false,
   },
 };
 
@@ -225,6 +357,9 @@ export const DEFAULT_GAS_AMOUNTS: Record<string, string> = {
   monad: "0.01",       // ~$0.01 in MON
 };
 
+/** Default stablecoin amount per agent per token per chain */
+export const DEFAULT_TOKEN_AMOUNT = "1.00";
+
 /** Get chain names sorted for consistent iteration */
 export function getChainNames(): string[] {
   return Object.keys(CHAINS);
@@ -235,4 +370,35 @@ export function getChain(name: string): ChainInfo {
   const info = CHAINS[name];
   if (!info) throw new Error(`Unknown chain: ${name}. Valid: ${getChainNames().join(", ")}`);
   return info;
+}
+
+/** Get USDC address for a chain (backward-compat helper) */
+export function getUsdc(chainName: string): Address {
+  return getChain(chainName).usdc;
+}
+
+/** Get all token infos for a chain */
+export function getTokens(chainName: string): TokenInfo[] {
+  return Object.values(getChain(chainName).tokens);
+}
+
+/** Get specific token on a chain, or null if not available */
+export function getToken(chainName: string, symbol: string): TokenInfo | null {
+  return getChain(chainName).tokens[symbol] ?? null;
+}
+
+/** Get token symbols available on a chain */
+export function getTokenSymbols(chainName: string): string[] {
+  return Object.keys(getChain(chainName).tokens);
+}
+
+/** Get all unique stablecoin symbols across all chains */
+export function getAllTokenSymbols(): string[] {
+  const symbols = new Set<string>();
+  for (const chain of Object.values(CHAINS)) {
+    for (const symbol of Object.keys(chain.tokens)) {
+      symbols.add(symbol);
+    }
+  }
+  return Array.from(symbols).sort();
 }
