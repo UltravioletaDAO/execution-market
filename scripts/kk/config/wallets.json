@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "generated": "2026-02-20T01:54:35.788Z",
+  "generated": "2026-02-20T02:41:35.070Z",
   "derivationPath": "m/44'/60'/0'/0/{index}",
-  "count": 40,
+  "count": 24,
   "systemAgents": 6,
-  "userAgents": 34,
+  "userAgents": 18,
   "wallets": [
     {
       "index": 0,
@@ -148,102 +148,6 @@
       "index": 23,
       "name": "kk-painbrayan",
       "address": "0xc059B9cd5B7421a28f9259AdB4511418fd548b5E",
-      "type": "user"
-    },
-    {
-      "index": 24,
-      "name": "kk-f3l1p3_bx",
-      "address": "0x76e9BE89A3BE6c1BF581A1F4519CB82dCa9C57B3",
-      "type": "user"
-    },
-    {
-      "index": 25,
-      "name": "kk-dogonpayy",
-      "address": "0xaF95B213f44F0177E3A82e2D959524dd1e2a1174",
-      "type": "user"
-    },
-    {
-      "index": 26,
-      "name": "kk-juanpkante",
-      "address": "0x945659F0eb9C34487B0C0f61eD7e9d279acE8f09",
-      "type": "user"
-    },
-    {
-      "index": 27,
-      "name": "kk-0xj4an",
-      "address": "0xD5791860Ca10A6F39749FB499931c79c7c35071A",
-      "type": "user"
-    },
-    {
-      "index": 28,
-      "name": "kk-0xyuls",
-      "address": "0x01F90369170C917A2c0E9d26D54c6A3A400984D3",
-      "type": "user"
-    },
-    {
-      "index": 29,
-      "name": "kk-detx8",
-      "address": "0x6e5306c83602B204ACAa65ceB05eC178120Ea265",
-      "type": "user"
-    },
-    {
-      "index": 30,
-      "name": "kk-byparcero",
-      "address": "0x09C32b8FC0a94A1EeD424499A42180e29667bEeE",
-      "type": "user"
-    },
-    {
-      "index": 31,
-      "name": "kk-dzepequeno",
-      "address": "0xfA349Fa115142cb1029648ae1Fe61436Ef9e3164",
-      "type": "user"
-    },
-    {
-      "index": 32,
-      "name": "kk-juan_ccf",
-      "address": "0x7052cA449702e5ffafbE3dc63b74C7b7d8aF402B",
-      "type": "user"
-    },
-    {
-      "index": 33,
-      "name": "kk-yoki_s4",
-      "address": "0xb0AFB77608A668b903fbea41eB3Cc89C1764d1A2",
-      "type": "user"
-    },
-    {
-      "index": 34,
-      "name": "kk-jitussy",
-      "address": "0xf752f8f2F7932A38e85d0885293D9f8f079bb5eA",
-      "type": "user"
-    },
-    {
-      "index": 35,
-      "name": "kk-alej0lr420",
-      "address": "0x56034023316B07E55b62EA611742061d13647eba",
-      "type": "user"
-    },
-    {
-      "index": 36,
-      "name": "kk-imguarnizo",
-      "address": "0xE7c78817209B8B57223814242738b731DBF3c6BB",
-      "type": "user"
-    },
-    {
-      "index": 37,
-      "name": "kk-0xpineda",
-      "address": "0x4150B2e255c8F0D4Cf0e2Ec1155903Eb769cC336",
-      "type": "user"
-    },
-    {
-      "index": 38,
-      "name": "kk-saemtwentytwo",
-      "address": "0x678c61445DC67F0F2aB0bA00713E7f1a7882D6eb",
-      "type": "user"
-    },
-    {
-      "index": 39,
-      "name": "kk-nezzcold",
-      "address": "0x11c5add6380957F10028c9D6699029bF38Dc0619",
       "type": "user"
     }
   ]

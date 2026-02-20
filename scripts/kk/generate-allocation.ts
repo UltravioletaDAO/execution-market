@@ -21,10 +21,19 @@
 import { readFileSync, writeFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
-import { DEFAULT_GAS_AMOUNTS } from "./lib/chains.js";
+import { CHAINS, DEFAULT_GAS_AMOUNTS } from "./lib/chains.js";
 import type { WalletManifest } from "./generate-wallets.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ---------------------------------------------------------------------------
+// Token registry per chain (derived from chains.ts — Facilitator source of truth)
+// ---------------------------------------------------------------------------
+
+function getAvailableTokens(chainName: string): string[] {
+  const chain = CHAINS[chainName];
+  return chain ? Object.keys(chain.tokens) : ["USDC"];
+}
 
 // ---------------------------------------------------------------------------
 // Chain Budgets (USD) — must sum to stablecoin portion of total budget
@@ -210,35 +219,73 @@ function main() {
   console.log(`  Min/agent/chain: $${MIN_PER_AGENT_PER_CHAIN.toFixed(2)}`);
   console.log(`  Multiplier range: ${MULTIPLIER_LOW}x - ${MULTIPLIER_HIGH}x`);
 
-  // Generate allocations per chain
-  const chains: Record<string, { total_usd: number; token: string; agents: Record<string, string> }> = {};
+  // Generate allocations per chain (multi-token)
+  const chains: Record<string, {
+    total_usd: number;
+    agents: Record<string, { amount: string; token: string }>;
+  }> = {};
   const agentTotals: Record<string, number> = {};
   for (const addr of addresses) agentTotals[addr] = 0;
 
   let globalMin = Infinity;
   let globalMax = 0;
 
+  // Token distribution stats
+  const tokenStats: Record<string, { count: number; total: number }> = {};
+
   for (const chainName of chainNames) {
     const budget = CHAIN_BUDGETS[chainName];
     const agentAmounts = generateChainAllocation(addresses, budget, rng);
+    const availableTokens = getAvailableTokens(chainName);
+
+    // Assign random token per agent (weighted: 60% USDC, 40% other)
+    const agentsWithTokens: Record<string, { amount: string; token: string }> = {};
+    for (const [addr, amt] of Object.entries(agentAmounts)) {
+      let token = "USDC";
+      if (availableTokens.length > 1) {
+        const roll = rng();
+        if (roll > 0.6) {
+          // Pick a non-USDC token randomly
+          const others = availableTokens.filter((t) => t !== "USDC");
+          token = others[Math.floor(rng() * others.length)];
+        }
+      }
+      agentsWithTokens[addr] = { amount: amt, token };
+
+      // Stats
+      if (!tokenStats[token]) tokenStats[token] = { count: 0, total: 0 };
+      tokenStats[token].count++;
+      tokenStats[token].total += parseFloat(amt);
+    }
 
     chains[chainName] = {
       total_usd: budget,
-      token: "USDC",
-      agents: agentAmounts,
+      agents: agentsWithTokens,
     };
 
     // Track per-agent totals and min/max
-    for (const [addr, amt] of Object.entries(agentAmounts)) {
-      const val = parseFloat(amt);
+    for (const [addr, { amount }] of Object.entries(agentsWithTokens)) {
+      const val = parseFloat(amount);
       agentTotals[addr] += val;
       if (val < globalMin) globalMin = val;
       if (val > globalMax) globalMax = val;
     }
 
-    // Verify chain sum
-    const chainSum = Object.values(agentAmounts).reduce((a, b) => a + parseFloat(b), 0);
-    console.log(`  ${chainName}: $${budget.toFixed(2)} budget, sum = $${chainSum.toFixed(2)}`);
+    // Verify chain sum + show token breakdown
+    const chainSum = Object.values(agentsWithTokens).reduce((a, b) => a + parseFloat(b.amount), 0);
+    const tokenBreakdown = Object.entries(
+      Object.values(agentsWithTokens).reduce((acc, { token }) => {
+        acc[token] = (acc[token] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+    ).map(([t, n]) => `${t}:${n}`).join(" ");
+    console.log(`  ${chainName}: $${budget.toFixed(2)} — ${tokenBreakdown}`);
+  }
+
+  // Token summary
+  console.log(`\n  Token Distribution:`);
+  for (const [token, stats] of Object.entries(tokenStats).sort((a, b) => b[1].total - a[1].total)) {
+    console.log(`    ${token}: ${stats.count} allocations, $${stats.total.toFixed(2)}`);
   }
 
   // Gas amounts: use overrides first, then DEFAULT_GAS_AMOUNTS from chains.ts
