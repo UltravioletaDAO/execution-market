@@ -49,8 +49,8 @@ const DEFAULT_VALIDITY_SEC = 300;
 /** Signature label used in Signature / Signature-Input headers */
 const SIGNATURE_LABEL = "eth";
 
-/** API endpoint for server-issued nonces */
-const NONCE_ENDPOINT = "/api/v1/auth/nonce";
+/** API endpoint for server-issued nonces (canonical ERC-8128 path) */
+const NONCE_ENDPOINT = "/api/v1/auth/erc8128/nonce";
 
 /** HTTP methods that carry a request body */
 const BODY_METHODS = new Set(["POST", "PUT", "PATCH"]);
