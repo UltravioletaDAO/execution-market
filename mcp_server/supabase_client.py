@@ -346,6 +346,10 @@ async def update_submission(
                 reason="Task completed successfully",
             )
 
+        # If rejected, return task to in_progress so worker can resubmit
+        elif verdict == "rejected":
+            await update_task(task["id"], {"status": "in_progress"})
+
         return result.data[0]
 
     raise Exception("Failed to update submission")
@@ -534,6 +538,23 @@ async def submit_work(
     # Verify executor is assigned
     if task.get("executor_id") != executor_id:
         raise Exception("You are not assigned to this task")
+
+    # Reject submissions past the task deadline
+    task_deadline = task.get("deadline")
+    if task_deadline:
+        try:
+            if isinstance(task_deadline, str):
+                deadline_dt = datetime.fromisoformat(
+                    task_deadline.replace("Z", "+00:00")
+                )
+            else:
+                deadline_dt = task_deadline
+            if datetime.now(timezone.utc) > deadline_dt:
+                raise Exception(
+                    "Task deadline has passed. Cannot submit or resubmit evidence."
+                )
+        except (ValueError, TypeError):
+            pass  # If deadline parsing fails, allow submission
 
     if task["status"] not in ["accepted", "in_progress"]:
         raise Exception(

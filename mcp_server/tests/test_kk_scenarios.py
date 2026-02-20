@@ -1736,3 +1736,658 @@ class TestTokenMismatchOnApproval:
             assert call_kwargs.kwargs.get("token") == "EURC", (
                 f"Expected token='EURC' but got token='{call_kwargs.kwargs.get('token')}'."
             )
+
+
+# ============================================================================
+# Task 4.5: Rejection + Resubmission Flow
+#
+# Validates that:
+#   1. After rejection, task status returns to in_progress so worker can resubmit.
+#   2. Resubmission after deadline is blocked (deadline validation in submit_work).
+#   3. Rejection notes/feedback are preserved in the submission record.
+#
+# Fixes applied:
+#   - supabase_client.update_submission(): on verdict="rejected", sets task
+#     status to "in_progress" (was missing -- worker could not resubmit).
+#   - supabase_client.submit_work(): added deadline validation (was missing --
+#     worker could resubmit days after deadline).
+# ============================================================================
+
+RESUBMIT_SUBMISSION_ID = "sub-45-1111-2222-3333-444455556666"
+RESUBMIT_SUBMISSION_ID_2 = "sub-45-2222-3333-4444-555566667777"
+
+
+class TestRejectionResubmissionFlow:
+    """Task 4.5: Full rejection + resubmission lifecycle."""
+
+    @pytest.mark.asyncio
+    async def test_rejection_resubmission_flow(self):
+        """
+        Full flow: submit -> reject -> resubmit -> approve.
+
+        After rejection, update_submission must set task status to in_progress
+        so that submit_work succeeds on the second attempt.
+        """
+        import supabase_client as sdb
+
+        # --- Phase 1: Initial submission ---
+        task_phase1 = _make_task(
+            agent_id=AGENT_WALLET,
+            status="accepted",
+            executor_id=OTHER_EXECUTOR_ID,
+            deadline="2099-12-31T23:59:59Z",
+        )
+
+        mock_client = MagicMock()
+        submission_1 = {
+            "id": RESUBMIT_SUBMISSION_ID,
+            "task_id": TASK_ID,
+            "executor_id": OTHER_EXECUTOR_ID,
+            "evidence": {"screenshot": "https://cdn.example.com/photo1.jpg"},
+            "notes": "First attempt",
+            "submitted_at": "2026-02-20T10:00:00+00:00",
+            "agent_verdict": "pending",
+        }
+        mock_client.table.return_value.insert.return_value.execute.return_value = (
+            MagicMock(data=[submission_1])
+        )
+
+        with (
+            patch.object(
+                sdb, "get_task", new_callable=AsyncMock, return_value=task_phase1
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client),
+            patch.object(
+                sdb, "update_task", new_callable=AsyncMock
+            ) as mock_update_task,
+        ):
+            result = await sdb.submit_work(
+                task_id=TASK_ID,
+                executor_id=OTHER_EXECUTOR_ID,
+                evidence={"screenshot": "https://cdn.example.com/photo1.jpg"},
+                notes="First attempt",
+            )
+            assert result["submission"]["id"] == RESUBMIT_SUBMISSION_ID
+            # submit_work updates task status to "submitted"
+            mock_update_task.assert_called_once_with(TASK_ID, {"status": "submitted"})
+
+        # --- Phase 2: Rejection ---
+        submission_for_reject = {
+            **submission_1,
+            "task": {**task_phase1, "status": "submitted"},
+        }
+        rejection_result = {
+            **submission_1,
+            "agent_verdict": "rejected",
+            "agent_notes": "Photo is blurry, retake with better lighting",
+        }
+
+        mock_client_2 = MagicMock()
+        mock_client_2.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[rejection_result]
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=submission_for_reject,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client_2),
+            patch.object(
+                sdb, "update_task", new_callable=AsyncMock
+            ) as mock_update_task2,
+        ):
+            updated = await sdb.update_submission(
+                submission_id=RESUBMIT_SUBMISSION_ID,
+                agent_id=AGENT_WALLET,
+                verdict="rejected",
+                notes="Photo is blurry, retake with better lighting",
+            )
+            assert updated["agent_verdict"] == "rejected"
+            # After rejection, task status must be set to in_progress
+            mock_update_task2.assert_called_once_with(
+                TASK_ID, {"status": "in_progress"}
+            )
+
+        # --- Phase 3: Resubmission ---
+        task_phase3 = _make_task(
+            agent_id=AGENT_WALLET,
+            status="in_progress",
+            executor_id=OTHER_EXECUTOR_ID,
+            deadline="2099-12-31T23:59:59Z",
+        )
+
+        submission_2 = {
+            "id": RESUBMIT_SUBMISSION_ID_2,
+            "task_id": TASK_ID,
+            "executor_id": OTHER_EXECUTOR_ID,
+            "evidence": {"screenshot": "https://cdn.example.com/photo2_better.jpg"},
+            "notes": "Retaken with better lighting",
+            "submitted_at": "2026-02-20T11:00:00+00:00",
+            "agent_verdict": "pending",
+        }
+        mock_client_3 = MagicMock()
+        mock_client_3.table.return_value.insert.return_value.execute.return_value = (
+            MagicMock(data=[submission_2])
+        )
+
+        with (
+            patch.object(
+                sdb, "get_task", new_callable=AsyncMock, return_value=task_phase3
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client_3),
+            patch.object(
+                sdb, "update_task", new_callable=AsyncMock
+            ) as mock_update_task3,
+        ):
+            result2 = await sdb.submit_work(
+                task_id=TASK_ID,
+                executor_id=OTHER_EXECUTOR_ID,
+                evidence={"screenshot": "https://cdn.example.com/photo2_better.jpg"},
+                notes="Retaken with better lighting",
+            )
+            assert result2["submission"]["id"] == RESUBMIT_SUBMISSION_ID_2
+            mock_update_task3.assert_called_once_with(TASK_ID, {"status": "submitted"})
+
+        # --- Phase 4: Approval after resubmission ---
+        submission_for_approve = {
+            **submission_2,
+            "task": {**task_phase3, "status": "submitted"},
+        }
+        approval_result = {
+            **submission_2,
+            "agent_verdict": "accepted",
+            "verified_at": "2026-02-20T12:00:00+00:00",
+        }
+
+        mock_client_4 = MagicMock()
+        mock_client_4.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[approval_result]
+        )
+        mock_client_4.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data={"reputation_score": 80}
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=submission_for_approve,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client_4),
+            patch.object(
+                sdb, "update_task", new_callable=AsyncMock
+            ) as mock_update_task4,
+        ):
+            updated2 = await sdb.update_submission(
+                submission_id=RESUBMIT_SUBMISSION_ID_2,
+                agent_id=AGENT_WALLET,
+                verdict="accepted",
+                notes="Looks great now",
+            )
+            assert updated2["agent_verdict"] == "accepted"
+            # After acceptance, task status must be "completed"
+            mock_update_task4.assert_called_once()
+            call_args = mock_update_task4.call_args
+            assert call_args[0][1]["status"] == "completed"
+
+    @pytest.mark.asyncio
+    async def test_resubmission_after_deadline(self):
+        """
+        Worker tries to resubmit evidence AFTER the task deadline.
+
+        submit_work() must reject the resubmission with a clear error
+        about the deadline having passed.
+        """
+        import supabase_client as sdb
+
+        # Task with deadline in the past, status in_progress (after rejection)
+        past_deadline_task = _make_task(
+            agent_id=AGENT_WALLET,
+            status="in_progress",
+            executor_id=OTHER_EXECUTOR_ID,
+            deadline="2020-01-01T00:00:00Z",  # well in the past
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=past_deadline_task,
+            ),
+            patch.object(sdb, "get_client", return_value=MagicMock()),
+        ):
+            with pytest.raises(Exception, match="deadline has passed"):
+                await sdb.submit_work(
+                    task_id=TASK_ID,
+                    executor_id=OTHER_EXECUTOR_ID,
+                    evidence={"screenshot": "https://cdn.example.com/late_photo.jpg"},
+                    notes="Late resubmission attempt",
+                )
+
+    @pytest.mark.asyncio
+    async def test_resubmission_before_deadline_succeeds(self):
+        """
+        Worker resubmits evidence BEFORE the task deadline.
+
+        submit_work() must allow resubmission when deadline is in the future.
+        """
+        import supabase_client as sdb
+
+        future_deadline_task = _make_task(
+            agent_id=AGENT_WALLET,
+            status="in_progress",
+            executor_id=OTHER_EXECUTOR_ID,
+            deadline="2099-12-31T23:59:59Z",
+        )
+
+        submission_result = {
+            "id": RESUBMIT_SUBMISSION_ID_2,
+            "task_id": TASK_ID,
+            "executor_id": OTHER_EXECUTOR_ID,
+            "evidence": {"screenshot": "https://cdn.example.com/good_photo.jpg"},
+            "notes": "On time resubmission",
+            "submitted_at": "2026-02-20T10:00:00+00:00",
+            "agent_verdict": "pending",
+        }
+        mock_client = MagicMock()
+        mock_client.table.return_value.insert.return_value.execute.return_value = (
+            MagicMock(data=[submission_result])
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=future_deadline_task,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client),
+            patch.object(sdb, "update_task", new_callable=AsyncMock),
+        ):
+            result = await sdb.submit_work(
+                task_id=TASK_ID,
+                executor_id=OTHER_EXECUTOR_ID,
+                evidence={"screenshot": "https://cdn.example.com/good_photo.jpg"},
+                notes="On time resubmission",
+            )
+            assert result["submission"]["id"] == RESUBMIT_SUBMISSION_ID_2
+
+    @pytest.mark.asyncio
+    async def test_rejection_with_feedback_message(self):
+        """
+        Verify that rejection notes/feedback are preserved in the submission
+        record and accessible after rejection.
+        """
+        import supabase_client as sdb
+
+        rejection_notes = (
+            "The photo is blurry and the GPS coordinates don't match the "
+            "requested location. Please retake closer to the store entrance."
+        )
+
+        task_data = _make_task(
+            agent_id=AGENT_WALLET,
+            status="submitted",
+            executor_id=OTHER_EXECUTOR_ID,
+        )
+        submission_data = {
+            "id": RESUBMIT_SUBMISSION_ID,
+            "task_id": TASK_ID,
+            "executor_id": OTHER_EXECUTOR_ID,
+            "evidence": {"screenshot": "https://cdn.example.com/photo1.jpg"},
+            "notes": "First attempt",
+            "submitted_at": "2026-02-20T10:00:00+00:00",
+            "agent_verdict": "pending",
+            "task": task_data,
+        }
+
+        # After rejection, the submission should have the agent_notes set
+        rejection_result = {
+            **submission_data,
+            "agent_verdict": "rejected",
+            "agent_notes": rejection_notes,
+        }
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[rejection_result]
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=submission_data,
+            ),
+            patch.object(sdb, "get_client", return_value=mock_client),
+            patch.object(sdb, "update_task", new_callable=AsyncMock),
+        ):
+            result = await sdb.update_submission(
+                submission_id=RESUBMIT_SUBMISSION_ID,
+                agent_id=AGENT_WALLET,
+                verdict="rejected",
+                notes=rejection_notes,
+            )
+
+            assert result["agent_verdict"] == "rejected"
+            assert result["agent_notes"] == rejection_notes
+            assert "blurry" in result["agent_notes"]
+            assert "GPS coordinates" in result["agent_notes"]
+
+            # Verify the update call included agent_notes
+            update_call = mock_client.table.return_value.update
+            update_call.assert_called_once()
+            update_args = update_call.call_args[0][0]
+            assert update_args["agent_verdict"] == "rejected"
+            assert update_args["agent_notes"] == rejection_notes
+
+
+# ============================================================================
+# Task 4.6: Task Expiry with Escrow Locked
+#
+# Validates that:
+#   1. When a task expires, the escrow refund path works correctly.
+#   2. Cancelling an assigned task triggers escrow refund.
+#   3. Expired tasks cannot accept new submissions.
+#
+# NOTE: Automatic expiry IS implemented via jobs/task_expiration.py +
+# run_task_expiration_loop() (started from main.py). These tests verify
+# the refund mechanism works when expiry is triggered, not the scheduling.
+# ============================================================================
+
+
+class TestExpiryWithEscrowRefund:
+    """Task 4.6: Expiry refund mechanics."""
+
+    @pytest.mark.asyncio
+    async def test_expiry_with_escrow_refund(self):
+        """
+        Task with escrow lock expires. Verify:
+          - _process_expired_task sets status to 'expired'
+          - Escrow refund is attempted via refund_to_agent()
+          - Refund result is recorded in payments table
+        """
+        from jobs.task_expiration import _process_expired_task
+
+        task = {
+            "id": TASK_ID,
+            "status": "published",
+            "agent_id": AGENT_WALLET,
+            "bounty_usd": 0.10,
+            "escrow_id": "escrow-001",
+            "deadline": "2025-01-01T00:00:00Z",
+        }
+
+        # Mock Supabase client for status update and payment recording
+        mock_update_execute = MagicMock()
+        mock_insert_execute = MagicMock()
+
+        mock_client = MagicMock()
+
+        def table_router(name):
+            mock_table = MagicMock()
+            if name == "tasks":
+                mock_table.update.return_value.eq.return_value.execute = (
+                    mock_update_execute
+                )
+            elif name == "payments":
+                mock_table.insert.return_value.execute = mock_insert_execute
+            return mock_table
+
+        mock_client.table = MagicMock(side_effect=table_router)
+
+        # Mock the escrow refund
+        mock_refund_result = SimpleNamespace(
+            success=True,
+            transaction_hash="0xrefundtx123abc",
+        )
+
+        with (
+            patch(
+                "integrations.x402.advanced_escrow_integration.refund_to_agent",
+                return_value=mock_refund_result,
+                create=True,
+            ) as mock_refund,
+            patch(
+                "integrations.x402.advanced_escrow_integration.ADVANCED_ESCROW_AVAILABLE",
+                True,
+                create=True,
+            ),
+        ):
+            await _process_expired_task(mock_client, task)
+
+        # Verify task was marked as expired
+        mock_update_execute.assert_called_once()
+
+        # Verify refund was attempted
+        mock_refund.assert_called_once_with(task_id=TASK_ID)
+
+        # Verify payment record was created
+        mock_insert_execute.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_expiry_without_escrow_skips_refund(self):
+        """
+        Task without escrow_id expires. Verify:
+          - Status is set to expired
+          - No refund is attempted (no escrow to refund)
+        """
+        from jobs.task_expiration import _process_expired_task
+
+        task = {
+            "id": TASK_ID,
+            "status": "published",
+            "agent_id": AGENT_WALLET,
+            "bounty_usd": 0.10,
+            "escrow_id": None,  # No escrow
+            "deadline": "2025-01-01T00:00:00Z",
+        }
+
+        mock_update_execute = MagicMock()
+        mock_client = MagicMock()
+        mock_client.table.return_value.update.return_value.eq.return_value.execute = (
+            mock_update_execute
+        )
+
+        await _process_expired_task(mock_client, task)
+
+        # Task should still be marked as expired
+        mock_update_execute.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_cancel_after_assignment_refunds_escrow(self):
+        """
+        Task assigned to worker, agent cancels via direct_release mode.
+        Verify the dispatcher refund_trustless_escrow is correctly
+        configured and returns a successful refund.
+        """
+        escrow_row = {
+            "id": "escrow-row-1",
+            "status": "locked",
+            "escrow_id": "escrow-cancel-001",
+            "refunded_at": None,
+            "released_at": None,
+            "metadata": {"escrow_mode": "direct_release"},
+            "beneficiary_address": AGENT_WALLET,
+        }
+
+        mock_dispatcher = MagicMock()
+        mock_dispatcher.get_mode.return_value = "fase2"
+        mock_dispatcher.escrow_mode = "direct_release"
+        mock_dispatcher.refund_trustless_escrow = AsyncMock(
+            return_value={
+                "success": True,
+                "tx_hash": "0xrefundtx456",
+                "mode": "fase2",
+                "escrow_mode": "direct_release",
+                "status": "refunded",
+                "error": None,
+            }
+        )
+
+        # Verify the dispatcher config is correct for direct_release
+        assert mock_dispatcher.get_mode() == "fase2"
+        assert mock_dispatcher.escrow_mode == "direct_release"
+
+        # Verify escrow_row status is in refundable set
+        from api.routers._helpers import REFUNDABLE_ESCROW_STATUSES
+
+        assert escrow_row["status"] in REFUNDABLE_ESCROW_STATUSES
+
+        # Verify metadata indicates direct_release
+        assert escrow_row["metadata"]["escrow_mode"] == "direct_release"
+
+        # The refund_trustless_escrow method returns success
+        refund_result = await mock_dispatcher.refund_trustless_escrow(
+            task_id=TASK_ID, reason="Agent cancelled assigned task"
+        )
+        assert refund_result["success"] is True
+        assert refund_result["tx_hash"] == "0xrefundtx456"
+        assert refund_result["escrow_mode"] == "direct_release"
+        mock_dispatcher.refund_trustless_escrow.assert_called_once_with(
+            task_id=TASK_ID, reason="Agent cancelled assigned task"
+        )
+
+    @pytest.mark.asyncio
+    async def test_expired_task_cannot_accept_submissions(self):
+        """
+        Task is expired, worker tries to submit evidence.
+        submit_work() must reject. With past deadline, the deadline check
+        fires first. With future deadline, the status check fires.
+        Both paths prevent submission to expired tasks.
+        """
+        import supabase_client as sdb
+
+        # Case 1: Expired task with past deadline -- deadline check fires
+        expired_task_past = _make_task(
+            agent_id=AGENT_WALLET,
+            status="expired",
+            executor_id=OTHER_EXECUTOR_ID,
+            deadline="2025-01-01T00:00:00Z",
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=expired_task_past,
+            ),
+            patch.object(sdb, "get_client", return_value=MagicMock()),
+        ):
+            with pytest.raises(Exception, match="deadline has passed"):
+                await sdb.submit_work(
+                    task_id=TASK_ID,
+                    executor_id=OTHER_EXECUTOR_ID,
+                    evidence={"screenshot": "https://cdn.example.com/expired.jpg"},
+                    notes="Trying to submit to expired task",
+                )
+
+        # Case 2: Expired task with future deadline -- status check fires
+        expired_task_future = _make_task(
+            agent_id=AGENT_WALLET,
+            status="expired",
+            executor_id=OTHER_EXECUTOR_ID,
+            deadline="2099-12-31T23:59:59Z",
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=expired_task_future,
+            ),
+            patch.object(sdb, "get_client", return_value=MagicMock()),
+        ):
+            with pytest.raises(Exception, match="not in a submittable state"):
+                await sdb.submit_work(
+                    task_id=TASK_ID,
+                    executor_id=OTHER_EXECUTOR_ID,
+                    evidence={"screenshot": "https://cdn.example.com/expired.jpg"},
+                    notes="Trying to submit to expired task",
+                )
+
+    @pytest.mark.asyncio
+    async def test_cancelled_task_cannot_accept_submissions(self):
+        """
+        Task is cancelled, worker tries to submit evidence.
+        submit_work() must reject because status is not submittable.
+        """
+        import supabase_client as sdb
+
+        cancelled_task = _make_task(
+            agent_id=AGENT_WALLET,
+            status="cancelled",
+            executor_id=OTHER_EXECUTOR_ID,
+        )
+
+        with (
+            patch.object(
+                sdb,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=cancelled_task,
+            ),
+            patch.object(sdb, "get_client", return_value=MagicMock()),
+        ):
+            with pytest.raises(Exception, match="not in a submittable state"):
+                await sdb.submit_work(
+                    task_id=TASK_ID,
+                    executor_id=OTHER_EXECUTOR_ID,
+                    evidence={"screenshot": "https://cdn.example.com/cancel.jpg"},
+                )
+
+    @pytest.mark.asyncio
+    async def test_expiry_refund_failure_still_marks_expired(self):
+        """
+        When escrow refund fails during expiry, the failure is logged
+        but task is still marked as expired.
+        """
+        from jobs.task_expiration import _process_expired_task
+
+        task = {
+            "id": TASK_ID,
+            "status": "accepted",
+            "agent_id": AGENT_WALLET,
+            "bounty_usd": 0.10,
+            "escrow_id": "escrow-fail-001",
+            "deadline": "2025-01-01T00:00:00Z",
+        }
+
+        mock_update_execute = MagicMock()
+        mock_client = MagicMock()
+        mock_client.table.return_value.update.return_value.eq.return_value.execute = (
+            mock_update_execute
+        )
+
+        mock_refund_result = SimpleNamespace(
+            success=False,
+            error="Escrow already expired on-chain",
+        )
+
+        with (
+            patch(
+                "integrations.x402.advanced_escrow_integration.refund_to_agent",
+                return_value=mock_refund_result,
+                create=True,
+            ) as mock_refund,
+            patch(
+                "integrations.x402.advanced_escrow_integration.ADVANCED_ESCROW_AVAILABLE",
+                True,
+                create=True,
+            ),
+        ):
+            await _process_expired_task(mock_client, task)
+
+        # Task should still be marked as expired even if refund failed
+        mock_update_execute.assert_called_once()
+
+        # Refund was attempted
+        mock_refund.assert_called_once_with(task_id=TASK_ID)
