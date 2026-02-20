@@ -59,6 +59,7 @@ from lib.working_state import (
     write_working_md,
 )
 from services.em_client import AgentContext, EMClient, load_agent_context
+from services.karma_hello_service import run_service as run_karma_hello_service
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("kk.heartbeat")
@@ -334,7 +335,31 @@ async def heartbeat_once(
             logger.debug(f"  [{name}] Notification poll failed (non-fatal): {e}")
 
         # 2. Decide and execute action
-        if state.has_active_task:
+        # -- Special heartbeat for kk-karma-hello: run service cycles
+        if name == "kk-karma-hello":
+            action = "karma_hello_service"
+            try:
+                svc_result = await run_karma_hello_service(
+                    data_dir=data_dir,
+                    workspace_dir=workspace_dir,
+                    run_collect=True,
+                    run_publish=True,
+                    run_fulfill=True,
+                    dry_run=dry_run,
+                )
+                cycles = ", ".join(svc_result.get("cycles_run", []))
+                parts = []
+                if "collect" in svc_result:
+                    parts.append(f"{svc_result['collect']['new_messages']} new msgs")
+                if "publish" in svc_result:
+                    parts.append(f"{svc_result['publish']['published']} published")
+                if "fulfill" in svc_result:
+                    parts.append(f"{svc_result['fulfill']['approved']} approved")
+                result = f"cycles=[{cycles}] {'; '.join(parts)}"
+            except Exception as e:
+                result = f"karma_hello_service error: {e}"
+
+        elif state.has_active_task:
             action = f"resume:{state.active_task.status}"
             result = await action_resume_task(client, state, dry_run)
 
