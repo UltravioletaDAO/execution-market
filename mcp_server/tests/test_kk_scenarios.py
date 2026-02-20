@@ -2989,3 +2989,431 @@ class TestTokenDenominationMismatch:
                 f"token='{call_kwargs.kwargs.get('token')}'. "
                 "Old tasks without payment_token should default to USDC."
             )
+
+
+# ============================================================================
+# Task 5.3: EIP-8128 auth without ERC-8004 identity
+#
+# Scenario: Agent signs request with EIP-8128 but has no ERC-8004 on-chain
+# registration. Auth should still succeed (wallet-based ID), but the
+# erc8004_registered flag must be False.
+# ============================================================================
+
+
+class TestEIP8128AuthWithoutERC8004:
+    """Task 5.3: EIP-8128 wallet auth when agent has no ERC-8004 identity."""
+
+    @pytest.mark.asyncio
+    async def test_eip8128_auth_without_erc8004(self):
+        """
+        Agent authenticates via EIP-8128 (valid signature) but has no
+        ERC-8004 registration. Auth succeeds, erc8004_registered == False,
+        agent_id falls back to wallet address.
+        """
+        from api.auth import verify_agent_auth, AgentAuth
+
+        wallet = "0x857fe6150401bfb4641fe0d2b2621cc3b05543cd"
+
+        # Build a request with Signature and Signature-Input headers
+        header_dict = {
+            "signature": "sig1=:base64signature:",
+            "signature-input": (
+                'sig1=("@method" "@authority" "@path");'
+                f'keyid="erc8128:8453:{wallet}";'
+                'nonce="abc123";created=1700000000'
+            ),
+        }
+        mock_request = MagicMock()
+        mock_request.headers = MagicMock()
+        mock_request.headers.get = lambda key, default=None: header_dict.get(
+            key, default
+        )
+
+        # ERC-8128 verification succeeds
+        erc8128_result = SimpleNamespace(
+            ok=True, address=wallet, chain_id=8453, reason=None
+        )
+
+        # ERC-8004 identity check returns NOT registered
+        identity_result = SimpleNamespace(
+            status=SimpleNamespace(value="not_registered"),
+            agent_id=None,
+        )
+
+        with (
+            patch(
+                "integrations.erc8128.verifier.verify_erc8128_request",
+                new_callable=AsyncMock,
+                return_value=erc8128_result,
+            ),
+            patch(
+                "api.auth._get_erc8128_nonce_store",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "integrations.erc8004.identity.check_worker_identity",
+                new_callable=AsyncMock,
+                return_value=identity_result,
+            ),
+        ):
+            auth = await verify_agent_auth(mock_request)
+
+        assert isinstance(auth, AgentAuth)
+        assert auth.auth_method == "erc8128"
+        assert auth.wallet_address == wallet
+        assert auth.erc8004_registered is False
+        assert auth.erc8004_agent_id is None
+        # Falls back to wallet address when no ERC-8004 identity
+        assert auth.agent_id == wallet
+        assert auth.chain_id == 8453
+
+    @pytest.mark.asyncio
+    async def test_eip8128_auth_with_erc8004(self):
+        """
+        Agent authenticates via EIP-8128 and HAS ERC-8004 registration.
+        erc8004_registered == True, agent_id is the numeric ERC-8004 ID.
+        """
+        from api.auth import verify_agent_auth, AgentAuth
+
+        wallet = "0xd3868e1ed738ced6945a574a7c769433bed5d474"
+        erc8004_id = 2106
+
+        header_dict = {
+            "signature": "sig1=:base64sig:",
+            "signature-input": (
+                'sig1=("@method" "@authority" "@path");'
+                f'keyid="erc8128:8453:{wallet}";'
+                'nonce="def456";created=1700000000'
+            ),
+        }
+        mock_request = MagicMock()
+        mock_request.headers = MagicMock()
+        mock_request.headers.get = lambda key, default=None: header_dict.get(
+            key, default
+        )
+
+        erc8128_result = SimpleNamespace(
+            ok=True, address=wallet, chain_id=8453, reason=None
+        )
+
+        # ERC-8004 check returns registered with numeric agent_id
+        identity_result = SimpleNamespace(
+            status=SimpleNamespace(value="registered"),
+            agent_id=erc8004_id,
+        )
+
+        with (
+            patch(
+                "integrations.erc8128.verifier.verify_erc8128_request",
+                new_callable=AsyncMock,
+                return_value=erc8128_result,
+            ),
+            patch(
+                "api.auth._get_erc8128_nonce_store",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "integrations.erc8004.identity.check_worker_identity",
+                new_callable=AsyncMock,
+                return_value=identity_result,
+            ),
+        ):
+            auth = await verify_agent_auth(mock_request)
+
+        assert isinstance(auth, AgentAuth)
+        assert auth.auth_method == "erc8128"
+        assert auth.wallet_address == wallet
+        assert auth.erc8004_registered is True
+        assert auth.erc8004_agent_id == erc8004_id
+        assert auth.agent_id == str(erc8004_id)
+        assert auth.chain_id == 8453
+
+    @pytest.mark.asyncio
+    async def test_api_key_auth_still_works(self):
+        """
+        Backwards compatibility: agent using API key header authenticates
+        correctly via the legacy path. When no Signature header is present,
+        verify_agent_auth falls through to API key validation.
+        """
+        from api.auth import verify_agent_auth, AgentAuth, APIKeyData, APITier
+
+        # Request has NO Signature headers -- only API key
+        header_dict = {
+            "authorization": "Bearer em_free_testkey12345678901234567890ab",
+            "x-api-key": None,
+        }
+        mock_request = MagicMock()
+        mock_request.headers = MagicMock()
+        mock_request.headers.get = lambda key, default=None: header_dict.get(
+            key, default
+        )
+
+        mock_api_key_data = APIKeyData(
+            key_hash="abc123hash",
+            agent_id="agent_007",
+            tier=APITier.FREE,
+            is_valid=True,
+        )
+
+        with patch(
+            "api.auth.verify_api_key_if_required",
+            new_callable=AsyncMock,
+            return_value=mock_api_key_data,
+        ):
+            auth = await verify_agent_auth(mock_request)
+
+        assert isinstance(auth, AgentAuth)
+        assert auth.auth_method == "api_key"
+        assert auth.agent_id == "agent_007"
+        assert auth.tier == APITier.FREE
+        # ERC-8128 specific fields should be empty/default
+        assert auth.wallet_address is None
+        assert auth.erc8004_registered is False
+        assert auth.chain_id is None
+
+
+# ============================================================================
+# Task 5.4: Insufficient funds during escrow release
+#
+# Scenario: Agent creates task, escrow is locked. Before approval, agent's
+# balance drops. Test that:
+# - Fase 1: settlement failure returns clear error, task not completed
+# - Fase 2: funds already in escrow, release succeeds regardless
+# - Settlement failure does NOT mark submission as completed
+# ============================================================================
+
+
+class TestInsufficientFundsDuringSettlement:
+    """Task 5.4: Payment failures during settlement must not mark tasks completed."""
+
+    @pytest.mark.asyncio
+    async def test_insufficient_funds_during_settlement(self):
+        """
+        Fase 1 (direct): Agent creates task (balance OK), but at approval
+        the settlement call fails due to insufficient funds. Verify: clear
+        error returned, task NOT marked completed.
+        """
+        from api.routers._helpers import _settle_submission_payment
+
+        submission = _make_submission(
+            task_overrides={
+                "status": "submitted",
+                "bounty_usd": 0.10,
+                "payment_network": "base",
+                "payment_token": "USDC",
+            }
+        )
+
+        # Mock dispatcher reports fase1 mode
+        mock_dispatcher = MagicMock()
+        mock_dispatcher.get_mode.return_value = "fase1"
+
+        # SDK settle_task_payment returns failure (insufficient funds)
+        mock_sdk = MagicMock()
+        mock_sdk.settle_task_payment = AsyncMock(
+            return_value={
+                "success": False,
+                "error": "Insufficient USDC balance: have 0.000000, need 0.100000",
+                "task_id": TASK_ID,
+            }
+        )
+
+        mock_db_client = MagicMock()
+        # No existing payment rows
+        mock_db_client.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
+        mock_db_client.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
+
+        with (
+            patch(
+                "api.routers._helpers.get_payment_dispatcher",
+                return_value=mock_dispatcher,
+            ),
+            patch("api.routers._helpers.get_sdk", return_value=mock_sdk),
+            patch("api.routers._helpers.X402_AVAILABLE", True),
+            patch("api.routers._helpers.db") as mock_db,
+            patch(
+                "api.routers._helpers._get_existing_submission_payment",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers._resolve_task_payment_header",
+                return_value=None,
+            ),
+            patch(
+                "api.routers._helpers.get_platform_fee_percent",
+                new_callable=AsyncMock,
+                return_value=Decimal("0.13"),
+            ),
+        ):
+            mock_db.get_client.return_value = mock_db_client
+
+            result = await _settle_submission_payment(
+                submission_id=SUBMISSION_ID,
+                submission=submission,
+                note="Test settlement",
+            )
+
+        # Settlement must report failure with clear error
+        assert result["payment_tx"] is None
+        assert result["payment_error"] is not None
+        assert (
+            "insufficient" in result["payment_error"].lower()
+            or "failed" in result["payment_error"].lower()
+        )
+
+    @pytest.mark.asyncio
+    async def test_escrow_release_succeeds_regardless_of_balance(self):
+        """
+        Fase 2 (escrow): Funds already locked on-chain. Even if agent's
+        balance dropped, release succeeds because funds are in escrow.
+
+        release_direct_to_worker does NOT check agent balance; it
+        reconstructs PaymentInfo from DB and calls facilitator release.
+        """
+        from integrations.x402.payment_dispatcher import PaymentDispatcher
+
+        mock_fase2_client = MagicMock()
+
+        # Facilitator release succeeds (funds came from escrow, not wallet)
+        mock_release_result = SimpleNamespace(
+            success=True,
+            transaction_hash="0x" + "ab" * 32,
+            error=None,
+        )
+        mock_fase2_client.release_via_facilitator.return_value = mock_release_result
+
+        # PaymentInfo reconstructed from DB
+        mock_pi = MagicMock()
+        mock_pi.receiver = WORKER_WALLET
+        mock_pi.salt = "salt" + "0" * 18
+
+        pi_meta = {
+            "worker_address": WORKER_WALLET,
+            "bounty_usdc": "0.10",
+            "network": "base",
+            "lock_amount_usdc": "0.10",
+            "fee_model": "credit_card",
+        }
+
+        with (
+            patch.dict(
+                os.environ,
+                {"EM_PAYMENT_MODE": "fase2", "EM_ESCROW_MODE": "direct_release"},
+            ),
+            patch("integrations.x402.payment_dispatcher.FASE2_SDK_AVAILABLE", True),
+            patch("integrations.x402.payment_dispatcher.SDK_AVAILABLE", True),
+            patch(
+                "integrations.x402.payment_dispatcher.get_sdk",
+                return_value=MagicMock(),
+            ),
+        ):
+            dispatcher = PaymentDispatcher(mode="fase2")
+            dispatcher._fase2_clients = {8453: mock_fase2_client}
+
+            with (
+                patch.object(
+                    dispatcher,
+                    "_reconstruct_fase2_state",
+                    new_callable=AsyncMock,
+                    return_value=(mock_pi, pi_meta),
+                ),
+                patch(
+                    "integrations.x402.payment_dispatcher.log_payment_event",
+                    new_callable=AsyncMock,
+                ),
+            ):
+                result = await dispatcher.release_direct_to_worker(
+                    task_id=TASK_ID,
+                    network="base",
+                    token="USDC",
+                )
+
+        # Release succeeds -- funds were already locked in escrow
+        assert result["success"] is True
+        assert result["tx_hash"] is not None
+        assert result["tx_hash"].startswith("0x")
+        assert result["escrow_mode"] == "direct_release"
+        assert result["method"] == "direct_release"
+
+    @pytest.mark.asyncio
+    async def test_settlement_failure_does_not_mark_completed(self):
+        """
+        When payment fails during approval, the task must NOT be marked
+        as completed. approve_submission returns HTTP 502 and does NOT
+        call db.update_submission to set verdict.
+        """
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from api.routers.submissions import router
+        from api.auth import AgentAuth
+
+        app = FastAPI()
+        app.include_router(router)
+        test_client = TestClient(app)
+
+        submission = _make_submission(
+            task_overrides={
+                "status": "submitted",
+                "bounty_usd": 0.10,
+                "payment_network": "base",
+                "payment_token": "USDC",
+            }
+        )
+
+        mock_auth = AgentAuth(
+            agent_id=AGENT_WALLET,
+            auth_method="api_key",
+            tier="free",
+        )
+
+        # Track calls to update_submission
+        update_submission_mock = AsyncMock()
+
+        with (
+            patch(
+                "api.routers.submissions.verify_agent_auth",
+                return_value=mock_auth,
+            ),
+            patch(
+                "api.routers.submissions.verify_agent_owns_submission",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch(
+                "api.routers.submissions.db.get_submission",
+                new_callable=AsyncMock,
+                return_value=submission,
+            ),
+            patch(
+                "api.routers.submissions.db.update_submission",
+                update_submission_mock,
+            ),
+            patch(
+                "api.routers.submissions._settle_submission_payment",
+                new_callable=AsyncMock,
+                return_value={
+                    "payment_tx": None,
+                    "payment_error": "Insufficient USDC balance",
+                },
+            ),
+        ):
+            resp = test_client.post(
+                f"/api/v1/submissions/{SUBMISSION_ID}/approve",
+                json={"notes": "Looks good"},
+            )
+
+        # Should return 502 (payment settlement failure)
+        assert resp.status_code == 502
+        body = resp.json()
+        assert (
+            "settle payment" in body["detail"].lower()
+            or "insufficient" in body["detail"].lower()
+        )
+
+        # Critically: update_submission must NOT have been called because
+        # settlement failed before we reach the state update
+        update_submission_mock.assert_not_called()
