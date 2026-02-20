@@ -316,12 +316,12 @@ async def verify_tx_onchain(client: httpx.AsyncClient, tx_hash: str) -> Dict[str
                 sender = "0x" + topics[1][-40:]
                 receiver = "0x" + topics[2][-40:]
                 raw_amount = int(log.get("data", "0x0"), 16)
-                amount_usdc = raw_amount / 1_000_000  # 6 decimals (USDC/EURC/USDbC)
+                amount_token = raw_amount / 1_000_000  # 6 decimals (USDC/EURC/USDbC)
                 transfers.append(
                     {
                         "from": sender.lower(),
                         "to": receiver.lower(),
-                        "amount_usdc": amount_usdc,
+                        "amount_token": amount_token,
                     }
                 )
 
@@ -362,7 +362,7 @@ def _fetch_payment_from_supabase(task_id: str) -> Optional[Dict[str, Any]]:
         result: Dict[str, Any] = {
             "to_address": payment.get("to_address"),
             "fee_usdc": payment.get("fee_usdc"),
-            "amount_usdc": payment.get("amount_usdc"),
+            "amount_token": payment.get("amount_usdc"),
             "settlement_method": payment.get("settlement_method"),
         }
         # Extract fee_tx from note: "... | fee_tx=0xabc..."
@@ -720,7 +720,7 @@ async def phase_task_lifecycle(
             if receipt.get("transfers"):
                 for t in receipt["transfers"]:
                     print(
-                        f"         Transfer: {t['from'][:10]}... -> {t['to'][:10]}... : ${t['amount_usdc']:.6f}"
+                        f"         Transfer: {t['from'][:10]}... -> {t['to'][:10]}... : ${t['amount_token']:.6f}"
                     )
         else:
             print("  [3/4] No escrow TX to verify (may be balance-check only mode)")
@@ -896,7 +896,7 @@ async def phase_approval_payment(
                 if receipt.get("transfers"):
                     for t in receipt["transfers"]:
                         print(
-                            f"           Transfer: ...{t['from'][-6:]} -> ...{t['to'][-6:]} : ${t['amount_usdc']:.6f}"
+                            f"           Transfer: ...{t['from'][-6:]} -> ...{t['to'][-6:]} : ${t['amount_token']:.6f}"
                         )
         else:
             print("\n  [2/3] No TXs to verify on-chain")
@@ -934,7 +934,7 @@ async def phase_approval_payment(
                 print("         Inferring from on-chain transfers:")
                 for t in release_receipt["transfers"]:
                     print(
-                        f"           ...{t['from'][-6:]} -> ...{t['to'][-6:]} : ${t['amount_usdc']:.6f}"
+                        f"           ...{t['from'][-6:]} -> ...{t['to'][-6:]} : ${t['amount_token']:.6f}"
                     )
 
         # Determine overall status
@@ -952,7 +952,7 @@ async def phase_approval_payment(
                 fee_distribute_tx=fee_distribute_tx,
                 worker_net_usdc=worker_net_actual,
                 platform_fee_usdc=platform_fee_actual,
-                gross_amount_usdc=gross_actual,
+                gross_amount_token=gross_actual,
                 approve_time_s=round(t_approve, 2),
                 tx_verifications={
                     k: v.get("success") for k, v in tx_verifications.items()
@@ -1065,6 +1065,7 @@ async def phase_reputation(
                 print("  [3/4] Worker signing giveFeedback() on-chain...")
                 try:
                     from web3 import Web3
+
                     try:
                         from web3.middleware import ExtraDataToPOAMiddleware as _poa
                     except ImportError:
@@ -1077,22 +1078,24 @@ async def phase_reputation(
                     except Exception:
                         pass
 
-                    GIVE_FEEDBACK_ABI = [{
-                        "inputs": [
-                            {"name": "agentId", "type": "uint256"},
-                            {"name": "value", "type": "int128"},
-                            {"name": "valueDecimals", "type": "uint8"},
-                            {"name": "tag1", "type": "string"},
-                            {"name": "tag2", "type": "string"},
-                            {"name": "endpoint", "type": "string"},
-                            {"name": "feedbackURI", "type": "string"},
-                            {"name": "feedbackHash", "type": "bytes32"},
-                        ],
-                        "name": "giveFeedback",
-                        "outputs": [],
-                        "stateMutability": "nonpayable",
-                        "type": "function",
-                    }]
+                    GIVE_FEEDBACK_ABI = [
+                        {
+                            "inputs": [
+                                {"name": "agentId", "type": "uint256"},
+                                {"name": "value", "type": "int128"},
+                                {"name": "valueDecimals", "type": "uint8"},
+                                {"name": "tag1", "type": "string"},
+                                {"name": "tag2", "type": "string"},
+                                {"name": "endpoint", "type": "string"},
+                                {"name": "feedbackURI", "type": "string"},
+                                {"name": "feedbackHash", "type": "bytes32"},
+                            ],
+                            "name": "giveFeedback",
+                            "outputs": [],
+                            "stateMutability": "nonpayable",
+                            "type": "function",
+                        }
+                    ]
 
                     registry = w3.eth.contract(
                         address=Web3.to_checksum_address(contract_address),
@@ -1105,7 +1108,9 @@ async def phase_reputation(
 
                     # Ensure feedback_hash is bytes32
                     if isinstance(feedback_hash, str):
-                        fb_hash_bytes = bytes.fromhex(feedback_hash.replace("0x", "").ljust(64, "0"))
+                        fb_hash_bytes = bytes.fromhex(
+                            feedback_hash.replace("0x", "").ljust(64, "0")
+                        )
                     else:
                         fb_hash_bytes = feedback_hash
 
@@ -1113,8 +1118,12 @@ async def phase_reputation(
                     max_retries = 3
                     for attempt in range(max_retries):
                         if attempt > 0:
-                            print(f"         Retry {attempt}/{max_retries - 1}: refreshing nonce...")
-                            nonce = w3.eth.get_transaction_count(acct.address, "pending")
+                            print(
+                                f"         Retry {attempt}/{max_retries - 1}: refreshing nonce..."
+                            )
+                            nonce = w3.eth.get_transaction_count(
+                                acct.address, "pending"
+                            )
 
                         tx = registry.functions.giveFeedback(
                             agent_id_param,
@@ -1125,18 +1134,22 @@ async def phase_reputation(
                             endpoint_param,
                             feedback_uri,
                             fb_hash_bytes,
-                        ).build_transaction({
-                            "from": acct.address,
-                            "nonce": nonce,
-                            "gas": 250000,
-                            "maxFeePerGas": w3.to_wei(0.5, "gwei"),
-                            "maxPriorityFeePerGas": w3.to_wei(0.1, "gwei"),
-                            "chainId": chain_id,
-                        })
+                        ).build_transaction(
+                            {
+                                "from": acct.address,
+                                "nonce": nonce,
+                                "gas": 250000,
+                                "maxFeePerGas": w3.to_wei(0.5, "gwei"),
+                                "maxPriorityFeePerGas": w3.to_wei(0.1, "gwei"),
+                                "chainId": chain_id,
+                            }
+                        )
 
                         signed = acct.sign_transaction(tx)
                         try:
-                            tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+                            tx_hash = w3.eth.send_raw_transaction(
+                                signed.raw_transaction
+                            )
                             worker_rates_agent_tx = tx_hash.hex()
                             print(f"         TX sent: {worker_rates_agent_tx}")
                             break  # Success — exit retry loop
@@ -1145,13 +1158,18 @@ async def phase_reputation(
                             if "nonce too low" in err_str and attempt < max_retries - 1:
                                 # Extract expected nonce from error if possible
                                 import re as _re
+
                                 m = _re.search(r"next nonce (\d+)", err_str)
                                 if m:
                                     nonce = int(m.group(1))
-                                    print(f"         Nonce too low, retrying with nonce {nonce}...")
+                                    print(
+                                        f"         Nonce too low, retrying with nonce {nonce}..."
+                                    )
                                 else:
                                     nonce += 1
-                                    print(f"         Nonce too low, incrementing to {nonce}...")
+                                    print(
+                                        f"         Nonce too low, incrementing to {nonce}..."
+                                    )
                                 continue
                             raise  # Non-nonce error or final attempt — propagate
                     else:
@@ -1189,9 +1207,13 @@ async def phase_reputation(
                     ra_status = 200  # Overall success
             else:
                 # No worker private key — can only prepare, not sign
-                ra_error = "EM_WORKER_PRIVATE_KEY not set — worker cannot sign on-chain TX"
+                ra_error = (
+                    "EM_WORKER_PRIVATE_KEY not set — worker cannot sign on-chain TX"
+                )
                 print(f"         ⚠️  {ra_error}")
-                print("         Set EM_WORKER_PRIVATE_KEY to enable full bidirectional reputation")
+                print(
+                    "         Set EM_WORKER_PRIVATE_KEY to enable full bidirectional reputation"
+                )
                 ra_success = False
                 ra_status = 200  # API worked, but no TX
         else:
@@ -1958,7 +1980,9 @@ async def main() -> int:
         if arg == "--token" and i + 1 < len(sys.argv):
             token = sys.argv[i + 1].upper()
             if token not in TOKEN_CONTRACTS:
-                print(f"Unknown token: {token}. Supported: {', '.join(TOKEN_CONTRACTS.keys())}")
+                print(
+                    f"Unknown token: {token}. Supported: {', '.join(TOKEN_CONTRACTS.keys())}"
+                )
                 return 1
             PAYMENT_TOKEN = token
             TOKEN_CONTRACT = TOKEN_CONTRACTS[token]

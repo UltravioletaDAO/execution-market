@@ -379,7 +379,9 @@ async def simulate_swarm(verbose: bool = False) -> SimulationResults:
         results.tasks_created += 1
 
         if verbose:
-            print(f"  [CREATE] {task.creator} -> '{task.title}' (${task.bounty_usd:.2f})")
+            print(
+                f"  [CREATE] {task.creator} -> '{task.title}' (${task.bounty_usd:.2f})"
+            )
 
     # -----------------------------------------------------------------------
     # Step 2: 18 community agents apply (3 per task, skill-matched)
@@ -411,6 +413,7 @@ async def simulate_swarm(verbose: bool = False) -> SimulationResults:
 
     # -----------------------------------------------------------------------
     # Step 3: Assign first applicant (highest skill match) to each task
+    #         with deduplication — same agent cannot be assigned to multiple tasks
     # -----------------------------------------------------------------------
     assigned_agents: List[str] = []
 
@@ -420,23 +423,34 @@ async def simulate_swarm(verbose: bool = False) -> SimulationResults:
                 print(f"  [SKIP]   No applicants for '{task.title}'")
             continue
 
-        # First applicant wins (already sorted by score)
-        winner = task.applicants[0]
+        # Pick highest-ranked applicant not already assigned to another task
+        winner = None
+        for applicant in task.applicants:
+            if applicant not in assigned_agents:
+                winner = applicant
+                break
+        if winner is None:
+            # Fallback: all applicants already assigned elsewhere
+            winner = task.applicants[0]
+
         task.assigned_to = winner
         task.status = "accepted"
-        all_agents[winner].tasks_completed += 1  # Will be incremented below
         assigned_agents.append(winner)
         results.assignments_made += 1
 
         # The other applicants are rejected
-        for rejected in task.applicants[1:]:
-            results.rejected_applications += 1
+        for rejected in task.applicants:
+            if rejected != winner:
+                results.rejected_applications += 1
 
         if verbose:
-            print(
-                f"  [ASSIGN] {winner} <- '{task.title[:40]}' "
-                f"(rejected: {task.applicants[1:]})"
-            )
+            others = [a for a in task.applicants if a != winner]
+            print(f"  [ASSIGN] {winner} <- '{task.title[:40]}' (rejected: {others})")
+
+    # Invariant: all assigned agents are unique
+    assert len(set(assigned_agents)) == len(assigned_agents), (
+        f"Deduplication failed: duplicate assignments in {assigned_agents}"
+    )
 
     # -----------------------------------------------------------------------
     # Step 4: All 6 assigned agents complete their tasks
@@ -445,9 +459,10 @@ async def simulate_swarm(verbose: bool = False) -> SimulationResults:
         if not task.assigned_to:
             continue
 
-        # Simulate submission
+        # Simulate submission + completion
         task.submission_id = str(uuid.uuid4())
         task.status = "completed"
+        all_agents[task.assigned_to].tasks_completed += 1
         results.tasks_completed += 1
 
         if verbose:
@@ -566,9 +581,7 @@ def print_summary(results: SimulationResults, verbose: bool = False) -> None:
                 marker = " (+)"
             elif delta < 0:
                 marker = " (-)"
-            print(
-                f"  {name:<22s} {before:>8.2f} {after:>8.2f} {delta:>+8.2f}{marker}"
-            )
+            print(f"  {name:<22s} {before:>8.2f} {after:>8.2f} {delta:>+8.2f}{marker}")
 
     # Top 5 leaderboard
     print()
@@ -596,29 +609,19 @@ def validate_results(results: SimulationResults) -> List[str]:
     errors = []
 
     if results.tasks_created != 6:
-        errors.append(
-            f"Expected 6 tasks created, got {results.tasks_created}"
-        )
+        errors.append(f"Expected 6 tasks created, got {results.tasks_created}")
 
     if results.applications_received != 18:
-        errors.append(
-            f"Expected 18 applications, got {results.applications_received}"
-        )
+        errors.append(f"Expected 18 applications, got {results.applications_received}")
 
     if results.assignments_made != 6:
-        errors.append(
-            f"Expected 6 assignments, got {results.assignments_made}"
-        )
+        errors.append(f"Expected 6 assignments, got {results.assignments_made}")
 
     if results.rejected_applications != 12:
-        errors.append(
-            f"Expected 12 rejections, got {results.rejected_applications}"
-        )
+        errors.append(f"Expected 12 rejections, got {results.rejected_applications}")
 
     if results.tasks_completed != 6:
-        errors.append(
-            f"Expected 6 completions, got {results.tasks_completed}"
-        )
+        errors.append(f"Expected 6 completions, got {results.tasks_completed}")
 
     if results.ratings_submitted != 12:
         errors.append(
@@ -638,9 +641,7 @@ def validate_results(results: SimulationResults) -> List[str]:
     for name, scores in results.reputation_changes.items():
         after = scores.get("after", 50.0)
         if after < 0 or after > 100:
-            errors.append(
-                f"Agent {name} has out-of-bounds reputation: {after}"
-            )
+            errors.append(f"Agent {name} has out-of-bounds reputation: {after}")
 
     return errors
 

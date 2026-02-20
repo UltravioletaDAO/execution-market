@@ -53,6 +53,9 @@ _project_root = _script_dir.parent.parent.parent
 load_dotenv(_project_root / "mcp_server" / ".env")
 load_dotenv(_project_root / ".env.local")
 
+# Ensure sibling test module is importable regardless of working directory
+sys.path.insert(0, str(_script_dir))
+
 # Import from sibling test module
 from test_integration import (
     DEFAULT_BOUNTY,
@@ -151,9 +154,7 @@ class MultichainResults:
             "chains_failed": self.chains_failed,
             "overall": self.overall,
             "total_elapsed_s": round(time.time() - self.start_time, 2),
-            "per_chain": {
-                net: r.to_dict() for net, r in self.chain_results.items()
-            },
+            "per_chain": {net: r.to_dict() for net, r in self.chain_results.items()},
         }
 
 
@@ -272,7 +273,9 @@ def _print_multichain_summary(results: MultichainResults) -> None:
                     print(f"           -> {p.name}: {p.error}")
 
     if results.overall == "PASS":
-        print(f"\n  ** KK V2 MULTI-CHAIN: PASS ({results.chains_passed}/{len(results.chain_results)} chains) **")
+        print(
+            f"\n  ** KK V2 MULTI-CHAIN: PASS ({results.chains_passed}/{len(results.chain_results)} chains) **"
+        )
     elif results.overall == "PARTIAL":
         print(
             f"\n  ** KK V2 MULTI-CHAIN: PARTIAL "
@@ -289,9 +292,7 @@ def _save_multichain_report(results: MultichainResults) -> None:
 
     json_path = report_dir / "KK_MULTICHAIN_INTEGRATION_REPORT.json"
     json_data = results.to_dict()
-    json_path.write_text(
-        json.dumps(json_data, indent=2, default=str), encoding="utf-8"
-    )
+    json_path.write_text(json.dumps(json_data, indent=2, default=str), encoding="utf-8")
     print(f"\n  Report (JSON): {json_path}")
 
 
@@ -358,21 +359,16 @@ try:
     @pytest.mark.asyncio
     async def test_multichain_base_mock():
         """Run multi-chain integration on Base in mock mode (free)."""
-        results = await run_multichain_test(
-            networks=["base"], bounty=0.10, live=False
-        )
-        assert results.chains_failed == 0, (
-            f"Base integration failed: "
-            + str(
-                {
-                    net: [
-                        f"{p.name}: {p.error}"
-                        for p in r.phases.values()
-                        if p.status == "FAIL"
-                    ]
-                    for net, r in results.chain_results.items()
-                }
-            )
+        results = await run_multichain_test(networks=["base"], bounty=0.10, live=False)
+        assert results.chains_failed == 0, f"Base integration failed: " + str(
+            {
+                net: [
+                    f"{p.name}: {p.error}"
+                    for p in r.phases.values()
+                    if p.status == "FAIL"
+                ]
+                for net, r in results.chain_results.items()
+            }
         )
 
     @pytest.mark.asyncio
@@ -400,9 +396,7 @@ try:
     @pytest.mark.parametrize("network", list(SUPPORTED_CHAINS.keys()))
     async def test_multichain_per_chain_mock(network: str):
         """Parameterized: run integration test per chain in mock mode."""
-        results = await run_multichain_test(
-            networks=[network], bounty=0.10, live=False
-        )
+        results = await run_multichain_test(networks=[network], bounty=0.10, live=False)
         chain_result = results.chain_results.get(network)
         assert chain_result is not None, f"No results for {network}"
         assert chain_result.fail_count == 0, (
