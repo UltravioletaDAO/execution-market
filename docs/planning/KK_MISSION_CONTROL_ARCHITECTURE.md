@@ -23,7 +23,7 @@ Sin daily standup               →      Standup report → Telegram/IRC
 
 ## Agents del Swarm
 
-### System Agents (5)
+### System Agents (7)
 
 | Agent | Rol | Session Key | Heartbeat |
 |-------|-----|-------------|-----------|
@@ -32,6 +32,8 @@ Sin daily standup               →      Standup report → Telegram/IRC
 | **kk-abracadabra** | Content Intelligence — genera blogs, clips, predictions, trending topics | `kk:abracadabra:main` | :04 |
 | **kk-skill-extractor** | Data Refinery — extrae skills de logs y vende perfiles | `kk:skill-extractor:main` | :06 |
 | **kk-voice-extractor** | Personality Profiler — analiza patrones de comunicación y vende perfiles | `kk:voice-extractor:main` | :08 |
+| **kk-soul-extractor** | Soul Profiler — fusiona skills + voice en SOUL.md completos, vende perfiles premium | `kk:soul-extractor:main` | :09 |
+| **kk-validator** | Quality Assurance — verifica evidencia de tareas y comportamiento de agentes | `kk:validator:main` | :10 |
 
 ### Community Agents (34+)
 
@@ -60,6 +62,7 @@ graph TD
         AB[kk-abracadabra<br/>Content Intelligence]
         SE[kk-skill-extractor<br/>Skill Profiler]
         VE[kk-voice-extractor<br/>Voice Profiler]
+        SE_SOUL[kk-soul-extractor<br/>Soul Profiles]
     end
 
     subgraph "Community Swarm (34 agents)"
@@ -88,6 +91,9 @@ graph TD
     AB -->|sell content| EM
     SE -->|sell profiles| EM
     VE -->|sell profiles| EM
+    SE_SOUL -->|sell SOUL.md| EM
+    SE -->|skill profiles| SE_SOUL
+    VE -->|voice profiles| SE_SOUL
 
     A1 --> EM
     A2 --> EM
@@ -271,11 +277,15 @@ graph LR
         IRC_LOGS[MeshRelay IRC<br/>agent conversations]
     end
 
-    subgraph "Data Agents"
+    subgraph "Tier 1 — Data Agents"
         KH[Karma Hello<br/>$0.01-0.05/log]
         AB[Abracadabra<br/>$0.05-0.10/analysis]
         SE[Skill Extractor<br/>$0.02/profile]
         VE[Voice Extractor<br/>$0.02/profile]
+    end
+
+    subgraph "Tier 2 — Data Refineries"
+        SOUL[Soul Extractor<br/>$0.08-0.15/SOUL.md]
     end
 
     subgraph "Consumers"
@@ -288,6 +298,10 @@ graph LR
     KH -->|raw logs| SE
     KH -->|raw logs| VE
     KH -->|raw logs| AB
+    SE -->|skill profiles| SOUL
+    VE -->|voice profiles| SOUL
+    SOUL -->|complete SOUL.md| COMM
+    SOUL -->|complete SOUL.md| EXT
     AB -->|trending topics| COMM
     SE -->|skill profiles| COMM
     VE -->|voice profiles| COMM
@@ -307,6 +321,8 @@ graph LR
 | Clip suggestions | Abracadabra | $0.03 | Daily |
 | Skill profile | Skill Extractor | $0.02 | Weekly |
 | Voice/personality profile | Voice Extractor | $0.02 | Weekly |
+| Complete SOUL.md profile | Soul Extractor | $0.08-0.15 | On-demand |
+| Profile update (delta) | Soul Extractor | $0.04 | On-demand |
 
 ## Karma Hello Integration
 
@@ -563,12 +579,14 @@ Week 1: Phase 7 (Heartbeat + Memory) — DONE
   └── lib/memory.py → MEMORY.md + daily notes
   └── generate-workspaces.py → init_memory_stack()
 
-Week 2: Phase 8 (Soul Extractor + Coordinator Foundation)
-  └── kk-soul-extractor system agent (workspace, SOUL.md, service)
-  └── soul_fusion.py pure library + unit tests
-  └── Supabase tables (kk_swarm_state, kk_task_claims, kk_notifications)
-  └── Coordinator heartbeat skeleton
-  └── Heartbeat → swarm state integration
+Week 2: Phase 8 (Soul Extractor + Coordinator Foundation) — DONE
+  └── lib/soul_fusion.py → pure fusion library (fuse, rank, price)
+  └── tests/test_soul_fusion.py → 15 unit tests
+  └── services/coordinator_service.py → coordinator heartbeat skeleton
+  └── lib/swarm_state.py → Supabase client (heartbeat, claims, notifications)
+  └── migration 036_kk_swarm_state.sql → 3 tables (state, claims, notifications)
+  └── heartbeat.py → swarm state integration + notification polling
+  └── architecture doc → Soul Extractor in diagrams + pricing matrix
 
 Week 3-4: Phase 9 + 10 (Integrations)
   └── Karma Hello → Base mainnet
