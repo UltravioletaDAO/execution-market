@@ -84,7 +84,13 @@ cleanup() {
 }
 trap cleanup SIGTERM SIGINT
 
-# ── Step 6: Start OpenClaw ──────────────────────────────────────────────────
+# ── Step 6: Start Agent Economic Loop (background) ──────────────────────────
+echo "[boot] Starting autonomous economic agent loop"
+/agent/scripts/agent-loop.sh &
+AGENT_LOOP_PID=$!
+echo "[boot] Agent loop started (PID: ${AGENT_LOOP_PID})"
+
+# ── Step 7: Start OpenClaw ──────────────────────────────────────────────────
 echo "[boot] Starting OpenClaw Gateway for agent: ${AGENT_NAME}"
 echo "[boot] Model: ${AGENT_MODEL:-anthropic/claude-haiku-4-5}"
 echo "[boot] Workspace: ${WORKSPACE}"
@@ -95,18 +101,18 @@ cd "${WORKSPACE}"
 
 # If openclaw binary exists, use it; otherwise use node directly
 if command -v openclaw &> /dev/null; then
-    exec openclaw gateway start --port 18789 &
+    openclaw gateway start --port 18789 &
 elif command -v claude &> /dev/null; then
-    exec claude gateway start --port 18789 &
+    claude gateway start --port 18789 &
 else
     echo "[boot] OpenClaw CLI not found — running in standby mode"
     echo "[boot] Install OpenClaw: npm install -g @anthropic-ai/claude-code"
     # Keep container alive for debugging
-    exec tail -f /dev/null &
+    tail -f /dev/null &
 fi
 
 GATEWAY_PID=$!
 echo "[boot] OpenClaw Gateway started (PID: ${GATEWAY_PID})"
 
-# Wait for gateway process
-wait ${GATEWAY_PID}
+# Wait for either process to exit
+wait -n ${GATEWAY_PID} ${AGENT_LOOP_PID} 2>/dev/null || wait ${GATEWAY_PID}
