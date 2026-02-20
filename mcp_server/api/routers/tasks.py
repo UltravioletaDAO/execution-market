@@ -16,9 +16,8 @@ import supabase_client as db
 from models import TaskCategory, TaskStatus
 
 from ..auth import (
-    verify_api_key_optional,
-    verify_api_key_if_required,
-    APIKeyData,
+    verify_agent_auth,
+    AgentAuth,
 )
 
 from ._models import (
@@ -335,7 +334,7 @@ async def get_public_platform_metrics():
 async def create_task(
     http_request: Request,
     request: CreateTaskRequest,
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> TaskResponse:
     """
     Create a new task with automatic payment handling.
@@ -402,7 +401,7 @@ async def create_task(
 
             payment_result = TaskPaymentResult(
                 success=True,
-                payer_address=api_key.agent_id,
+                payer_address=auth.agent_id,
                 amount_usd=total_required,
                 network=request.payment_network or "base",
                 timestamp=datetime.now(timezone.utc),
@@ -447,13 +446,13 @@ async def create_task(
         if ERC8004_IDENTITY_AVAILABLE and verify_agent_identity is not None:
             try:
                 erc8004_identity = await verify_agent_identity(
-                    api_key.agent_id,
+                    auth.agent_id,
                     network="base",
                 )
                 if erc8004_identity and erc8004_identity.get("registered"):
                     logger.info(
                         "ERC-8004 identity verified for agent %s: agent_id=%s, owner=%s",
-                        api_key.agent_id,
+                        auth.agent_id,
                         erc8004_identity.get("agent_id"),
                         erc8004_identity.get("owner"),
                     )
@@ -461,12 +460,12 @@ async def create_task(
                     logger.warning(
                         "ERC-8004 identity NOT registered for agent %s (network=base). "
                         "Task creation will proceed without on-chain identity.",
-                        api_key.agent_id,
+                        auth.agent_id,
                     )
             except Exception as e:
                 logger.warning(
                     "ERC-8004 identity check failed (non-blocking) for agent %s: %s",
-                    api_key.agent_id,
+                    auth.agent_id,
                     e,
                 )
 
@@ -475,7 +474,7 @@ async def create_task(
 
         # Create task
         task = await db.create_task(
-            agent_id=api_key.agent_id,
+            agent_id=auth.agent_id,
             title=request.title,
             instructions=request.instructions,
             category=request.category.value,
@@ -544,7 +543,7 @@ async def create_task(
 
                 auth_result = await dispatcher.authorize_payment(
                     task_id=task["id"],
-                    receiver=api_key.agent_id,
+                    receiver=auth.agent_id,
                     amount_usdc=total_required,
                     network=request.payment_network or "base",
                     token=request.payment_token or "USDC",
@@ -562,7 +561,7 @@ async def create_task(
                 _insert_escrow_record(
                     {
                         "task_id": task["id"],
-                        "agent_id": api_key.agent_id,
+                        "agent_id": auth.agent_id,
                         "escrow_id": escrow_ref,
                         "funding_tx": None,
                         "status": "pending_assignment",
@@ -615,7 +614,7 @@ async def create_task(
                 if dispatcher and dispatcher.get_mode() == "fase2":
                     auth_result = await dispatcher.authorize_payment(
                         task_id=task["id"],
-                        receiver=api_key.agent_id,
+                        receiver=auth.agent_id,
                         amount_usdc=bounty,
                         network=request.payment_network or "base",
                         token=request.payment_token or "USDC",
@@ -634,7 +633,7 @@ async def create_task(
                     _insert_escrow_record(
                         {
                             "task_id": task["id"],
-                            "agent_id": api_key.agent_id,
+                            "agent_id": auth.agent_id,
                             "escrow_id": escrow_ref,
                             "funding_tx": escrow_tx,
                             "status": auth_result.get("escrow_status", "deposited"),
@@ -670,7 +669,7 @@ async def create_task(
                             escrow_error,
                         )
                         try:
-                            await db.cancel_task(task["id"], api_key.agent_id)
+                            await db.cancel_task(task["id"], auth.agent_id)
                         except Exception:
                             try:
                                 await db.update_task(
@@ -707,7 +706,7 @@ async def create_task(
                     _insert_escrow_record(
                         {
                             "task_id": task["id"],
-                            "agent_id": api_key.agent_id,
+                            "agent_id": auth.agent_id,
                             "escrow_id": escrow_ref,
                             "funding_tx": escrow_tx,
                             "status": escrow_status,
@@ -749,7 +748,7 @@ async def create_task(
                             escrow_error,
                         )
                         try:
-                            await db.cancel_task(task["id"], api_key.agent_id)
+                            await db.cancel_task(task["id"], auth.agent_id)
                         except Exception:
                             try:
                                 await db.update_task(
@@ -764,7 +763,7 @@ async def create_task(
                 elif dispatcher and dispatcher.get_mode() == "fase1":
                     auth_result = await dispatcher.authorize_payment(
                         task_id=task["id"],
-                        receiver=api_key.agent_id,
+                        receiver=auth.agent_id,
                         amount_usdc=total_required,
                         network=request.payment_network or "base",
                         token=request.payment_token or "USDC",
@@ -782,7 +781,7 @@ async def create_task(
                     _insert_escrow_record(
                         {
                             "task_id": task["id"],
-                            "agent_id": api_key.agent_id,
+                            "agent_id": auth.agent_id,
                             "escrow_id": escrow_ref,
                             "funding_tx": None,
                             "status": auth_result.get(
@@ -830,7 +829,7 @@ async def create_task(
                     _insert_escrow_record(
                         {
                             "task_id": task["id"],
-                            "agent_id": api_key.agent_id,
+                            "agent_id": auth.agent_id,
                             "escrow_id": escrow_ref,
                             "funding_tx": None,
                             "status": "authorized",
@@ -871,7 +870,7 @@ async def create_task(
         logger.info(
             "Task created: id=%s, agent=%s, bounty=%.2f, paid_via_x402=%s",
             task["id"],
-            api_key.agent_id,
+            auth.agent_id,
             request.bounty_usd,
             X402_AVAILABLE,
         )
@@ -1038,7 +1037,7 @@ async def get_available_tasks(
 )
 async def get_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> TaskResponse:
     """Get detailed information about a specific task."""
     task = await db.get_task(task_id)
@@ -1046,7 +1045,7 @@ async def get_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if task["agent_id"] != api_key.agent_id:
+    if task["agent_id"] != auth.agent_id:
         raise HTTPException(status_code=403, detail="Not authorized to view this task")
 
     return TaskResponse(
@@ -1092,7 +1091,7 @@ async def get_task(
 )
 async def get_task_payment(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    api_key: Optional[APIKeyData] = Depends(verify_api_key_optional),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> TaskPaymentResponse:
     """Get comprehensive payment timeline and status for a specific task."""
     try:
@@ -1112,7 +1111,7 @@ async def get_task_payment(
         raise HTTPException(status_code=404, detail="Task not found")
 
     task_status = _normalize_status(task.get("status"))
-    requester_is_owner = bool(api_key and task.get("agent_id") == api_key.agent_id)
+    requester_is_owner = bool(auth and task.get("agent_id") == auth.agent_id)
     if task_status == "draft" and not requester_is_owner:
         raise HTTPException(
             status_code=403,
@@ -1408,7 +1407,7 @@ async def get_task_payment(
 )
 async def get_task_transactions(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
-    api_key: Optional[APIKeyData] = Depends(verify_api_key_optional),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> TaskTransactionsResponse:
     """Get all on-chain transactions for a task, ordered chronologically."""
     try:
@@ -1569,11 +1568,11 @@ async def list_tasks(
     category: Optional[TaskCategory] = Query(None, description="Filter by category"),
     limit: int = Query(20, ge=1, le=100, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> TaskListResponse:
     """List tasks for the authenticated agent with filtering and pagination."""
     result = await db.get_tasks(
-        agent_id=api_key.agent_id,
+        agent_id=auth.agent_id,
         status=status.value if status else None,
         category=category.value if category else None,
         limit=limit,
@@ -1652,7 +1651,7 @@ async def list_tasks(
 async def cancel_task(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: CancelRequest = None,
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> SuccessResponse:
     """Cancel a task and handle payment refunds automatically."""
     refund_info = None
@@ -1663,7 +1662,7 @@ async def cancel_task(
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
 
-        if task.get("agent_id") != api_key.agent_id:
+        if task.get("agent_id") != auth.agent_id:
             raise HTTPException(
                 status_code=403, detail="Not authorized to cancel this task"
             )
@@ -1806,7 +1805,7 @@ async def cancel_task(
                                 )
                             _record_refund_payment(
                                 task=task,
-                                agent_id=api_key.agent_id,
+                                agent_id=auth.agent_id,
                                 refund_tx=refund_tx_hash,
                                 reason=reason,
                                 settlement_method=refund_result.get("mode"),
@@ -1929,7 +1928,7 @@ async def cancel_task(
                                         pass
                                 _record_refund_payment(
                                     task=task,
-                                    agent_id=api_key.agent_id,
+                                    agent_id=auth.agent_id,
                                     refund_tx=refund_tx_hash,
                                     reason=reason,
                                     settlement_method=refund_result.get("method"),
@@ -1967,7 +1966,7 @@ async def cancel_task(
 
         # Cancel the task in database
         try:
-            await db.cancel_task(task_id, api_key.agent_id)
+            await db.cancel_task(task_id, auth.agent_id)
         except Exception as cancel_err:
             cancel_error = str(cancel_err).lower()
             if (
@@ -1979,7 +1978,7 @@ async def cancel_task(
         logger.info(
             "Task cancelled: id=%s, agent=%s, reason=%s, escrow=%s",
             task_id,
-            api_key.agent_id,
+            auth.agent_id,
             reason,
             refund_info,
         )
@@ -2041,13 +2040,13 @@ async def cancel_task(
 )
 async def get_analytics(
     days: int = Query(30, ge=1, le=365, description="Number of days to analyze"),
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ):
     """Get comprehensive analytics for the authenticated agent."""
     from ._models import AnalyticsResponse
 
     result = await db.get_agent_analytics(
-        agent_id=api_key.agent_id,
+        agent_id=auth.agent_id,
         days=days,
     )
 
@@ -2092,13 +2091,13 @@ async def get_analytics(
 async def assign_task_to_worker(
     task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
     request: WorkerAssignRequest = ...,
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> SuccessResponse:
     """Assign a published task to a specific worker executor."""
     try:
         result = await db.assign_task(
             task_id=task_id,
-            agent_id=api_key.agent_id,
+            agent_id=auth.agent_id,
             executor_id=request.executor_id,
             notes=request.notes,
         )
@@ -2122,7 +2121,7 @@ async def assign_task_to_worker(
                 bounty = Decimal(str(task.get("bounty_usd", 0)))
                 network = task.get("payment_network") or "base"
                 token = "USDC"
-                agent_address = task.get("agent_id", api_key.agent_id)
+                agent_address = task.get("agent_id", auth.agent_id)
 
                 try:
                     client = db.get_client()
@@ -2249,7 +2248,7 @@ async def assign_task_to_worker(
         logger.info(
             "Task assigned: task=%s, agent=%s, executor=%s",
             task_id,
-            api_key.agent_id[:10],
+            auth.agent_id[:10],
             request.executor_id[:10],
         )
 
@@ -2262,7 +2261,7 @@ async def assign_task_to_worker(
                 {
                     "task_id": task_id,
                     "executor_id": request.executor_id,
-                    "agent_id": api_key.agent_id,
+                    "agent_id": auth.agent_id,
                     "worker_wallet": worker_wallet,
                 },
             )
@@ -2333,7 +2332,7 @@ async def assign_task_to_worker(
 )
 async def batch_create_tasks(
     request: BatchCreateRequest,
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> BatchCreateResponse:
     """Create multiple tasks in a single request for efficiency."""
     created_tasks = []
@@ -2347,7 +2346,7 @@ async def batch_create_tasks(
             )
 
             task = await db.create_task(
-                agent_id=api_key.agent_id,
+                agent_id=auth.agent_id,
                 title=task_def.title,
                 instructions=task_def.instructions,
                 category=task_def.category.value,
@@ -2382,7 +2381,7 @@ async def batch_create_tasks(
 
     logger.info(
         "Batch create: agent=%s, created=%d, failed=%d, total_bounty=%.2f",
-        api_key.agent_id,
+        auth.agent_id,
         len(created_tasks),
         len(errors),
         total_bounty,

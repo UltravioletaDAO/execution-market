@@ -45,6 +45,7 @@ EXPECTED_ROUTES = {
     "/api/v1/evidence/verify",
     "/api/v1/health",
     "/api/v1/auth/nonce",
+    "/api/v1/auth/erc8128/nonce",
     "/api/v1/auth/erc8128/info",
     "/api/v1/executors/{executor_id}/identity",
     "/api/v1/executors/{executor_id}/confirm-identity",

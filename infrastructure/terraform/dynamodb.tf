@@ -32,10 +32,12 @@ resource "aws_dynamodb_table" "nonce_store" {
     enabled = false # Not needed for ephemeral nonces
   }
 
-  tags = merge(local.common_tags, {
-    Name    = "${local.name_prefix}-nonce-store"
-    Purpose = "ERC-8128 nonce replay protection"
-  })
+  tags = {
+    Name        = "${local.name_prefix}-nonce-store"
+    Project     = "Execution Market"
+    Environment = var.environment
+    Purpose     = "ERC-8128 nonce replay protection"
+  }
 }
 
 # IAM policy for ECS task role to access nonce store

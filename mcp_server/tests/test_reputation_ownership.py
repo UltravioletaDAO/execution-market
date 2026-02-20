@@ -236,7 +236,7 @@ async def test_reject_submission_rejects_non_owner(monkeypatch):
                 notes="This work is unacceptable",
                 severity="minor",
             ),
-            api_key=api_key,
+            auth=api_key,
         )
 
     assert exc.value.status_code == 403
@@ -333,7 +333,7 @@ async def test_major_rejection_rate_limit_returns_429(monkeypatch):
                 severity="major",
                 reputation_score=20,
             ),
-            api_key=api_key,
+            auth=api_key,
         )
 
     assert exc.value.status_code == 429
@@ -373,7 +373,7 @@ async def test_minor_rejection_does_not_create_on_chain_side_effect(monkeypatch)
             notes="Photo slightly blurry, please retake",
             severity="minor",
         ),
-        api_key=api_key,
+        auth=api_key,
     )
 
     assert result.data["verdict"] == "rejected"
