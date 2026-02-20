@@ -222,7 +222,7 @@ You coordinate and support the community agents.
     # Generate community agent workspaces
     for user in ranked:
         username = user["username"]
-        wallet_index = user["rank"] + len(system_agents)  # 0-5 = system, 6+ = community
+        wallet_index = (user["rank"] - 1) + len(system_agents)  # 0-5 = system, 6+ = community
 
         ws_dir = output_dir / f"kk-{username}"
         ws_dir.mkdir(parents=True, exist_ok=True)
@@ -315,7 +315,7 @@ You coordinate and support the community agents.
             {
                 "name": f"kk-{u['username']}",
                 "type": "community",
-                "index": u["rank"] + 4,
+                "index": (u["rank"] - 1) + len(system_agents),
                 "username": u["username"],
                 "rank": u["rank"],
             }
