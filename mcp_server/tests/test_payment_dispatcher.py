@@ -144,6 +144,21 @@ class FakeSDK:
     async def refund_task_payment(self, **kwargs):
         return {"success": True, "tx_hash": "0x" + "f" * 64, "status": "refunded"}
 
+    async def check_agent_balance(self, **kwargs):
+        return {
+            "sufficient": True,
+            "balance": 100.0,
+            "required": kwargs.get("required_amount", 0),
+            "network": kwargs.get("network", "base"),
+            "token": kwargs.get("token", "USDC"),
+            "agent_address": kwargs.get("agent_address", "0xAgent"),
+        }
+
+    def _get_agent_account(self):
+        mock_account = MagicMock()
+        mock_account.address = "0xAgentAddr"
+        return mock_account
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -257,6 +272,43 @@ class TestAuthorizePayment:
                 amount_usdc=Decimal("5.00"),
             )
             assert result["mode"] == mode
+
+    @pytest.mark.asyncio
+    async def test_balance_check_only_bypasses_escrow_lock(self):
+        """balance_check_only=True should use fase1 logic even when mode=fase2."""
+        d = _make_dispatcher("fase2")
+
+        result = await d.authorize_payment(
+            task_id="task-bc",
+            receiver="0xAgent",
+            amount_usdc=Decimal("0.10"),
+            agent_address="0xAgentAddr",
+            network="base",
+            balance_check_only=True,
+        )
+
+        assert result["success"] is True
+        assert result["mode"] == "fase1"
+        assert result["tx_hash"] is None
+        assert result["escrow_status"] in ("balance_verified", "insufficient_balance")
+
+    @pytest.mark.asyncio
+    async def test_balance_check_only_with_x402r_mode(self):
+        """balance_check_only should override even x402r mode."""
+        d = _make_dispatcher("x402r")
+
+        result = await d.authorize_payment(
+            task_id="task-bc2",
+            receiver="0xAgent",
+            amount_usdc=Decimal("1.00"),
+            agent_address="0xAgentAddr",
+            network="base",
+            balance_check_only=True,
+        )
+
+        assert result["success"] is True
+        assert result["mode"] == "fase1"
+        assert result["tx_hash"] is None
 
 
 # ===========================================================================

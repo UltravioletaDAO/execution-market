@@ -455,6 +455,7 @@ class PaymentDispatcher:
         agent_address: Optional[str] = None,
         network: Optional[str] = None,
         token: str = "USDC",
+        balance_check_only: bool = False,
     ) -> Dict[str, Any]:
         """
         Authorize (lock or verify) a payment for a task.
@@ -472,11 +473,17 @@ class PaymentDispatcher:
             agent_address: Agent wallet address (for fase1 balance check)
             network: Payment network (for fase1)
             token: Payment token (for fase1)
+            balance_check_only: Force balance-check mode regardless of dispatcher mode.
+                Used for direct_release at task creation (escrow lock deferred to assignment).
 
         Returns:
             Uniform dict with success, tx_hash, mode, escrow_status, payment_info, error.
         """
         try:
+            if balance_check_only:
+                return await self._authorize_fase1(
+                    task_id, amount_usdc, agent_address, network, token
+                )
             if self.mode == "x402r":
                 return await self._authorize_x402r(
                     task_id, receiver, amount_usdc, strategy, x_payment_header

@@ -552,8 +552,10 @@ async def create_task(
                     task_id=task["id"],
                     receiver=auth.agent_id,
                     amount_usdc=total_required,
+                    agent_address=auth.agent_id,
                     network=request.payment_network or "base",
                     token=request.payment_token or "USDC",
+                    balance_check_only=True,
                 )
 
                 escrow_updates = {
