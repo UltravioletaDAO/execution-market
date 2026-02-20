@@ -150,6 +150,12 @@ export const CHAINS: Record<string, ChainInfo> = {
         decimals: 6,
         name: "USD Coin",
       },
+      EURC: {
+        symbol: "EURC",
+        address: "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
+        decimals: 6,
+        name: "EURC",
+      },
     },
     nativeSymbol: "ETH",
     disperseAvailable: true,
@@ -174,6 +180,12 @@ export const CHAINS: Record<string, ChainInfo> = {
         address: "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
         decimals: 6,
         name: "PayPal USD",
+      },
+      EURC: {
+        symbol: "EURC",
+        address: "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c",
+        decimals: 6,
+        name: "Euro Coin",
       },
       AUSD: {
         symbol: "AUSD",
@@ -255,6 +267,12 @@ export const CHAINS: Record<string, ChainInfo> = {
         address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
         decimals: 6,
         name: "USD Coin",
+      },
+      EURC: {
+        symbol: "EURC",
+        address: "0xC891EB4cbdEFf6e073e859e987815Ed1505c2ACD",
+        decimals: 6,
+        name: "Euro Coin",
       },
       AUSD: {
         symbol: "AUSD",

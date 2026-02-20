@@ -166,6 +166,12 @@ def main():
         for w in manifest.get("wallets", []):
             wallet_map[w["index"]] = w
         print(f"  Loaded {len(wallet_map)} wallets from manifest")
+
+        # Limit community agents to match wallet count
+        max_community = manifest.get("userAgents", len(ranked))
+        if len(ranked) > max_community:
+            print(f"  Limiting community agents to {max_community} (wallets available)")
+            ranked = ranked[:max_community]
     else:
         print(f"  WARNING: No wallet manifest at {wallets_file} — using placeholder addresses")
 
