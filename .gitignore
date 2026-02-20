@@ -112,6 +112,7 @@ C:tmp*
 scripts/output.txt
 scripts/server_pid.txt
 mcp_server/server_pid.txt
+scripts/kk/report-erc8004-registration-*.json
 
 # Misc
 .unused/

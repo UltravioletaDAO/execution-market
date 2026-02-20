@@ -8,8 +8,11 @@ Covers:
   Validated at: DB layer (constraint violation catch), HTTP API layer (409 response).
 - Payment token validation (Task 2.4 + 2.5): Token must exist on the target network.
   Validated at: model defaults, route-level validation, standalone function.
+- Autonomous agent rating via relay wallet (Task 3.5 + 3.6): rate_agent() supports
+  relay_private_key for direct on-chain signing. MCP tool reads EM_RELAY_PRIVATE_KEY env var.
 """
 
+import os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -908,3 +911,332 @@ class TestValidatePaymentTokenFunction:
 
         eth_tokens = set(NETWORK_CONFIG["ethereum"]["tokens"].keys())
         assert eth_tokens == {"USDC", "EURC", "PYUSD", "AUSD"}
+
+
+# ============================================================================
+# Task 3.5 + 3.6: Autonomous agent rating via relay wallet
+#
+# Module stubbing: The integrations.erc8004 __init__.py imports register.py
+# which uses web3.middleware.ExtraDataToPOAMiddleware (may not exist in all
+# web3 versions). We pre-stub problematic modules so our imports of the
+# specific leaf modules (facilitator_client, direct_reputation) succeed.
+# ============================================================================
+
+import importlib
+from types import ModuleType
+
+_packages_to_stub = {
+    "integrations": str(Path(__file__).parent.parent / "integrations"),
+    "integrations.erc8004": str(
+        Path(__file__).parent.parent / "integrations" / "erc8004"
+    ),
+    "integrations.x402": str(Path(__file__).parent.parent / "integrations" / "x402"),
+}
+for _pkg, _pkg_path in _packages_to_stub.items():
+    if _pkg not in sys.modules:
+        _stub = ModuleType(_pkg)
+        _stub.__path__ = [_pkg_path]
+        _stub.__package__ = _pkg
+        sys.modules[_pkg] = _stub
+
+_leaf_stubs = {
+    "integrations.erc8004.register": {"ERC8004Registry": None},
+    "integrations.erc8004.reputation": {"ReputationManager": None},
+    "integrations.erc8004.identity": {
+        "verify_agent_identity": None,
+        "check_worker_identity": None,
+        "register_worker_gasless": None,
+        "update_executor_identity": None,
+    },
+    "integrations.erc8004.feedback_store": {"persist_and_hash_feedback": None},
+}
+for _mod_name, _attrs in _leaf_stubs.items():
+    if _mod_name not in sys.modules:
+        _stub = ModuleType(_mod_name)
+        for _k, _v in _attrs.items():
+            setattr(_stub, _k, _v)
+        sys.modules[_mod_name] = _stub
+
+# Load the real modules we test (facilitator_client and direct_reputation)
+_fc_mod = importlib.import_module("integrations.erc8004.facilitator_client")
+importlib.reload(_fc_mod)
+sys.modules["integrations.erc8004.facilitator_client"] = _fc_mod
+
+_dr_mod = importlib.import_module("integrations.erc8004.direct_reputation")
+importlib.reload(_dr_mod)
+sys.modules["integrations.erc8004.direct_reputation"] = _dr_mod
+
+RELAY_PRIVATE_KEY = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+FAKE_TX_HASH = "0xabc123def456789012345678901234567890123456789012345678901234abcd"
+AGENT_ERC8004_ID = 2106
+
+
+class TestRateAgentRelayWallet:
+    """Task 3.5: rate_agent() with relay_private_key for autonomous on-chain signing."""
+
+    @pytest.mark.asyncio
+    async def test_rate_agent_with_relay_key(self):
+        """rate_agent() called with relay_private_key signs on-chain and returns tx_hash."""
+        from integrations.erc8004.facilitator_client import rate_agent, FeedbackResult
+
+        mock_feedback_result = FeedbackResult(
+            success=True,
+            transaction_hash=FAKE_TX_HASH,
+            network="base",
+        )
+
+        with (
+            patch(
+                "integrations.erc8004.feedback_store.persist_and_hash_feedback",
+                new_callable=AsyncMock,
+                return_value=(
+                    "https://cdn.example.com/feedback/test.json",
+                    "0xfeedbackhash",
+                ),
+            ),
+            patch(
+                "integrations.erc8004.direct_reputation.give_feedback_direct",
+                new_callable=AsyncMock,
+                return_value=mock_feedback_result,
+            ) as mock_direct,
+        ):
+            result = await rate_agent(
+                agent_id=AGENT_ERC8004_ID,
+                task_id=TASK_ID,
+                score=85,
+                comment="Great agent",
+                relay_private_key=RELAY_PRIVATE_KEY,
+            )
+
+            assert result.success is True
+            assert result.transaction_hash == FAKE_TX_HASH
+            assert result.network == "base"
+
+            # Verify give_feedback_direct was called with the relay key
+            mock_direct.assert_called_once()
+            call_kwargs = mock_direct.call_args
+            assert call_kwargs.kwargs["private_key"] == RELAY_PRIVATE_KEY
+            assert call_kwargs.kwargs["agent_id"] == AGENT_ERC8004_ID
+            assert call_kwargs.kwargs["value"] == 85
+            assert call_kwargs.kwargs["tag1"] == "agent_rating"
+
+    @pytest.mark.asyncio
+    async def test_rate_agent_without_relay_key(self):
+        """rate_agent() called without relay_private_key returns pending_signature."""
+        from integrations.erc8004.facilitator_client import rate_agent
+
+        with patch(
+            "integrations.erc8004.feedback_store.persist_and_hash_feedback",
+            new_callable=AsyncMock,
+            return_value=(
+                "https://cdn.example.com/feedback/test.json",
+                "0xfeedbackhash",
+            ),
+        ):
+            result = await rate_agent(
+                agent_id=AGENT_ERC8004_ID,
+                task_id=TASK_ID,
+                score=90,
+                comment="Nice work",
+            )
+
+            assert result.success is True
+            assert result.transaction_hash is None  # Pending worker signature
+
+    @pytest.mark.asyncio
+    async def test_rate_agent_relay_key_feedback_persist_fails(self):
+        """rate_agent() with relay key works even if S3 persistence fails."""
+        from integrations.erc8004.facilitator_client import rate_agent, FeedbackResult
+
+        mock_feedback_result = FeedbackResult(
+            success=True,
+            transaction_hash=FAKE_TX_HASH,
+            network="base",
+        )
+
+        with (
+            patch(
+                "integrations.erc8004.feedback_store.persist_and_hash_feedback",
+                new_callable=AsyncMock,
+                side_effect=Exception("S3 unavailable"),
+            ),
+            patch(
+                "integrations.erc8004.direct_reputation.give_feedback_direct",
+                new_callable=AsyncMock,
+                return_value=mock_feedback_result,
+            ) as mock_direct,
+        ):
+            result = await rate_agent(
+                agent_id=AGENT_ERC8004_ID,
+                task_id=TASK_ID,
+                score=70,
+                relay_private_key=RELAY_PRIVATE_KEY,
+            )
+
+            assert result.success is True
+            assert result.transaction_hash == FAKE_TX_HASH
+            # Fallback URI used when S3 fails
+            call_kwargs = mock_direct.call_args
+            assert "api.execution.market" in call_kwargs.kwargs["feedback_uri"]
+
+    @pytest.mark.asyncio
+    async def test_rate_agent_relay_key_direct_call_fails(self):
+        """rate_agent() returns failure when give_feedback_direct fails."""
+        from integrations.erc8004.facilitator_client import rate_agent, FeedbackResult
+
+        mock_failure = FeedbackResult(
+            success=False,
+            error="Transaction reverted",
+            network="base",
+        )
+
+        with (
+            patch(
+                "integrations.erc8004.feedback_store.persist_and_hash_feedback",
+                new_callable=AsyncMock,
+                return_value=("https://cdn.example.com/fb.json", "0xhash"),
+            ),
+            patch(
+                "integrations.erc8004.direct_reputation.give_feedback_direct",
+                new_callable=AsyncMock,
+                return_value=mock_failure,
+            ),
+        ):
+            result = await rate_agent(
+                agent_id=AGENT_ERC8004_ID,
+                task_id=TASK_ID,
+                score=50,
+                relay_private_key=RELAY_PRIVATE_KEY,
+            )
+
+            assert result.success is False
+            assert "reverted" in result.error.lower()
+
+
+class TestMCPRateAgentRelayWallet:
+    """Task 3.6: MCP em_rate_agent tool with EM_RELAY_PRIVATE_KEY env var."""
+
+    @pytest.mark.asyncio
+    async def test_mcp_rate_agent_with_relay_env(self):
+        """MCP tool with EM_RELAY_PRIVATE_KEY env var passes relay key to rate_agent."""
+        from mcp.server.fastmcp import FastMCP
+        from tools.reputation_tools import register_reputation_tools
+
+        mock_db = MagicMock()
+        mock_db.get_task = AsyncMock(
+            return_value=_make_task(agent_id="2106", status="completed")
+        )
+        mock_db.get_client.return_value.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[{"payment_tx": "0xpaymenttx"}]
+        )
+
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
+        mock_feedback = FeedbackResult(
+            success=True,
+            transaction_hash=FAKE_TX_HASH,
+            network="base",
+        )
+
+        mcp_server = FastMCP("test_reputation_tools")
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "EM_RELAY_PRIVATE_KEY": RELAY_PRIVATE_KEY,
+                    "EM_ERC8004_MCP_TOOLS_ENABLED": "true",
+                },
+            ),
+            patch(
+                "tools.reputation_tools._rate_agent",
+                new_callable=AsyncMock,
+                return_value=mock_feedback,
+            ) as mock_rate,
+            patch(
+                "tools.reputation_tools.ERC8004_AVAILABLE",
+                True,
+            ),
+        ):
+            # Reset the cached feature flag to pick up env var
+            import tools.reputation_tools as rt
+
+            rt._ERC8004_MCP_TOOLS_ENABLED = None
+
+            register_reputation_tools(mcp_server, db_module=mock_db)
+
+            result = await mcp_server.call_tool(
+                "em_rate_agent",
+                {"task_id": TASK_ID, "score": 85, "comment": "Great agent"},
+            )
+
+            result_text = str(result)
+            assert "Agent Rated Successfully" in result_text
+            assert FAKE_TX_HASH in result_text
+            assert "autonomous (relay wallet)" in result_text
+
+            # Verify relay key was passed to rate_agent
+            mock_rate.assert_called_once()
+            call_kwargs = mock_rate.call_args
+            assert call_kwargs.kwargs.get("relay_private_key") == RELAY_PRIVATE_KEY
+
+    @pytest.mark.asyncio
+    async def test_mcp_rate_agent_without_relay_env(self):
+        """MCP tool without EM_RELAY_PRIVATE_KEY passes None as relay key."""
+        from mcp.server.fastmcp import FastMCP
+        from tools.reputation_tools import register_reputation_tools
+
+        mock_db = MagicMock()
+        mock_db.get_task = AsyncMock(
+            return_value=_make_task(agent_id="2106", status="completed")
+        )
+        mock_db.get_client.return_value.table.return_value.select.return_value.eq.return_value.eq.return_value.limit.return_value.execute.return_value = MagicMock(
+            data=[]
+        )
+
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
+        mock_feedback = FeedbackResult(
+            success=True,
+            transaction_hash=None,  # pending_signature
+            network="base",
+        )
+
+        mcp_server = FastMCP("test_reputation_tools")
+
+        # Ensure EM_RELAY_PRIVATE_KEY is NOT set
+        env_copy = {k: v for k, v in os.environ.items() if k != "EM_RELAY_PRIVATE_KEY"}
+        env_copy["EM_ERC8004_MCP_TOOLS_ENABLED"] = "true"
+
+        with (
+            patch.dict(os.environ, env_copy, clear=True),
+            patch(
+                "tools.reputation_tools._rate_agent",
+                new_callable=AsyncMock,
+                return_value=mock_feedback,
+            ) as mock_rate,
+            patch(
+                "tools.reputation_tools.ERC8004_AVAILABLE",
+                True,
+            ),
+        ):
+            # Reset cached feature flag
+            import tools.reputation_tools as rt
+
+            rt._ERC8004_MCP_TOOLS_ENABLED = None
+
+            register_reputation_tools(mcp_server, db_module=mock_db)
+
+            result = await mcp_server.call_tool(
+                "em_rate_agent",
+                {"task_id": TASK_ID, "score": 75},
+            )
+
+            result_text = str(result)
+            assert "Agent Rated Successfully" in result_text
+            assert "pending worker signature" in result_text
+
+            # Verify relay key was NOT passed (None)
+            mock_rate.assert_called_once()
+            call_kwargs = mock_rate.call_args
+            assert call_kwargs.kwargs.get("relay_private_key") is None
