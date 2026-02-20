@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-20T18:39:09.023498+00:00",
+  "timestamp": "2026-02-20T19:25:36.316873+00:00",
   "api_base": "https://api.execution.market",
   "fee_model": "credit_card",
   "bounty_per_chain_usd": 0.1,
@@ -19,10 +19,10 @@
       "chain_id": 8453,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 41.86,
-      "task_id": "a82c7076-922d-4114-812e-019c89314934",
-      "escrow_tx": "0xf9334d6d9a0eb20cd1f857dc3badafb5c89a8b4b49e824546aed78b0a887e93d",
-      "payment_tx": "0x8af3fc9ee8e3f0b1f38e1be2f775b5e1753ac9b01f09c4f4ac4b1eefabec4ccb",
+      "elapsed_s": 42.21,
+      "task_id": "1d3820fb-7bd3-403f-a92d-130c69ea1780",
+      "escrow_tx": "0x911588224312256ae178c637483d1a52fd22b0f86c958ac14d4483edb2b4aee9",
+      "payment_tx": "0xb465fe66b6c2b302e0a0710d28f59f17b0c8391f890c7db19b2c99c0e97f1b41",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -30,8 +30,8 @@
       "platform_fee_usdc": 0.013000000000000012,
       "payment_mode": "fase2",
       "tx_hashes": [
-        "0xf9334d6d9a0eb20cd1f857dc3badafb5c89a8b4b49e824546aed78b0a887e93d",
-        "0x8af3fc9ee8e3f0b1f38e1be2f775b5e1753ac9b01f09c4f4ac4b1eefabec4ccb"
+        "0x911588224312256ae178c637483d1a52fd22b0f86c958ac14d4483edb2b4aee9",
+        "0xb465fe66b6c2b302e0a0710d28f59f17b0c8391f890c7db19b2c99c0e97f1b41"
       ],
       "phases": {
         "create": "PASS",
@@ -45,28 +45,27 @@
       "network": "polygon",
       "display_name": "Polygon",
       "chain_id": 137,
-      "status": "PASS",
-      "error": null,
-      "elapsed_s": 50.14,
-      "task_id": "6e77f20d-ee08-456a-ab2b-23c2f36bf1ac",
-      "escrow_tx": "0x858b4c894b4568c48fc96baa3f2c084bee4c5c50af19eb1888304ad25423f270",
-      "payment_tx": "0x5d458cf09604da8f6f852aa9b1b70f53f1d50c018129727c24a888be38bbc37b",
+      "status": "FAIL",
+      "error": "Approval failed: HTTP 502 - Could not settle payment before approval: Escrow release failed: Escrow scheme error: Contract call failed: ContractCall(\"TransportError(NullResp)\")",
+      "elapsed_s": 29.0,
+      "task_id": "1d1d2d7d-8e3c-42ad-bdd4-d21335e6714c",
+      "escrow_tx": "0x16cc7c093898f2e12ff249b9e2a2f7856c557c8292d2d3122d871f4d899e2e6d",
+      "payment_tx": null,
       "fee_distribute_tx": null,
       "escrow_verified": true,
-      "payment_verified": true,
-      "worker_net_usdc": 0.087,
-      "platform_fee_usdc": 0.013000000000000012,
-      "payment_mode": "fase2",
+      "payment_verified": false,
+      "worker_net_usdc": null,
+      "platform_fee_usdc": null,
+      "payment_mode": "direct_release",
       "tx_hashes": [
-        "0x858b4c894b4568c48fc96baa3f2c084bee4c5c50af19eb1888304ad25423f270",
-        "0x5d458cf09604da8f6f852aa9b1b70f53f1d50c018129727c24a888be38bbc37b"
+        "0x16cc7c093898f2e12ff249b9e2a2f7856c557c8292d2d3122d871f4d899e2e6d"
       ],
       "phases": {
         "create": "PASS",
         "apply": "PASS",
         "assign": "PASS",
         "submit": "PASS",
-        "approve": "PASS"
+        "approve": "FAIL"
       }
     },
     "arbitrum": {
@@ -75,10 +74,10 @@
       "chain_id": 42161,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 50.77,
-      "task_id": "d9e8eb59-0db9-472c-9ee1-68f0fd96d8b2",
-      "escrow_tx": "0xc5a1ad3a1557bc34b88d7f309e186a1f2d5ad80a3ef3b7a50b8335cc995f770a",
-      "payment_tx": "0x23d0ca911c9e63fa6c35c849c3daf45dcad7adeada9624a48f9ea9ea64747d7a",
+      "elapsed_s": 52.99,
+      "task_id": "b7bc596b-9a1b-4744-9324-3dd4899f0928",
+      "escrow_tx": "0x3ec638ccb7d9a600fe1a73b757b3cb6a8a10320896f9cc0fb33deb88d5e49b1e",
+      "payment_tx": "0xd3bdf5c2cdfba9f0c25a91ed3d0e09be412a0ffd8b7626fa8955f55203138307",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -86,8 +85,8 @@
       "platform_fee_usdc": 0.013000000000000012,
       "payment_mode": "fase2",
       "tx_hashes": [
-        "0xc5a1ad3a1557bc34b88d7f309e186a1f2d5ad80a3ef3b7a50b8335cc995f770a",
-        "0x23d0ca911c9e63fa6c35c849c3daf45dcad7adeada9624a48f9ea9ea64747d7a"
+        "0x3ec638ccb7d9a600fe1a73b757b3cb6a8a10320896f9cc0fb33deb88d5e49b1e",
+        "0xd3bdf5c2cdfba9f0c25a91ed3d0e09be412a0ffd8b7626fa8955f55203138307"
       ],
       "phases": {
         "create": "PASS",
@@ -103,10 +102,10 @@
       "chain_id": 43114,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 37.08,
-      "task_id": "fd388423-d6ee-4688-981c-58a43bfcdb70",
-      "escrow_tx": "0xe24d49490dcc56985785d4be66c5e90075880cf7322f029b0b26471e9c446bab",
-      "payment_tx": "0x9700290168efab89036b0b2bda815f2cae13eb3f2fcbc78177d4d6c4eeae075a",
+      "elapsed_s": 41.71,
+      "task_id": "0b4ec810-a5aa-430e-943b-46a901499539",
+      "escrow_tx": "0x1ee5a4a2ee6a4241504ad0e4e7ca97d44148aae6cf834e22c5a26e99deefc190",
+      "payment_tx": "0xc8a229ca33d42cb2de8221efd2536ab32bb5de520901c7e9d5ab955ac6fa007c",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -114,8 +113,8 @@
       "platform_fee_usdc": 0.013000000000000012,
       "payment_mode": "fase2",
       "tx_hashes": [
-        "0xe24d49490dcc56985785d4be66c5e90075880cf7322f029b0b26471e9c446bab",
-        "0x9700290168efab89036b0b2bda815f2cae13eb3f2fcbc78177d4d6c4eeae075a"
+        "0x1ee5a4a2ee6a4241504ad0e4e7ca97d44148aae6cf834e22c5a26e99deefc190",
+        "0xc8a229ca33d42cb2de8221efd2536ab32bb5de520901c7e9d5ab955ac6fa007c"
       ],
       "phases": {
         "create": "PASS",
@@ -129,46 +128,56 @@
       "network": "monad",
       "display_name": "Monad",
       "chain_id": 143,
-      "status": "FAIL",
-      "error": "Assign failed: Escrow lock failed during assignment: Escrow authorize failed: Escrow scheme error: Contract call failed: ContractCall(\"ErrorResp(ErrorPayload { code: -32603, message: \\\"execution reverted: FiatTokenV2: invalid signature\\\", data: Some(RawValue(\\\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e46696174546f6b656e56323a20696e76616c6964207369676e61747572650000\\\")) })\"). Task remains published.",
-      "elapsed_s": 5.99,
-      "task_id": "1fa379b0-97e3-4c28-b0d4-4a596f8fe5ba",
-      "escrow_tx": null,
-      "payment_tx": null,
+      "status": "PASS",
+      "error": null,
+      "elapsed_s": 50.29,
+      "task_id": "e1183cbf-2afc-42b8-8644-55aa3c4ec27d",
+      "escrow_tx": "0xb71dc8abb6901d6b745228769a0e8b5d60e3a9c555ab142cd921319291bc842a",
+      "payment_tx": "0x0d82823686f81e3c882d6fd9e9c4ee03f67e3df458f08e24bb8978b777b925f4",
       "fee_distribute_tx": null,
-      "escrow_verified": false,
-      "payment_verified": false,
-      "worker_net_usdc": null,
-      "platform_fee_usdc": null,
-      "payment_mode": null,
-      "tx_hashes": [],
+      "escrow_verified": true,
+      "payment_verified": true,
+      "worker_net_usdc": 0.087,
+      "platform_fee_usdc": 0.013000000000000012,
+      "payment_mode": "fase2",
+      "tx_hashes": [
+        "0xb71dc8abb6901d6b745228769a0e8b5d60e3a9c555ab142cd921319291bc842a",
+        "0x0d82823686f81e3c882d6fd9e9c4ee03f67e3df458f08e24bb8978b777b925f4"
+      ],
       "phases": {
         "create": "PASS",
         "apply": "PASS",
-        "assign": "FAIL"
+        "assign": "PASS",
+        "submit": "PASS",
+        "approve": "PASS"
       }
     },
     "celo": {
       "network": "celo",
       "display_name": "Celo",
       "chain_id": 42220,
-      "status": "FAIL",
-      "error": "Assign failed: Escrow lock failed during assignment: Escrow authorize failed: Escrow scheme error: Contract call failed: ContractCall(\"ErrorResp(ErrorPayload { code: 3, message: \\\"execution reverted: FiatTokenV2: invalid signature\\\", data: Some(RawValue(\\\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e46696174546f6b656e56323a20696e76616c6964207369676e61747572650000\\\")) })\"). Task remains published.",
-      "elapsed_s": 5.35,
-      "task_id": "55b4d270-a42d-4416-ad19-629d3b8916c8",
-      "escrow_tx": null,
-      "payment_tx": null,
+      "status": "PASS",
+      "error": null,
+      "elapsed_s": 44.08,
+      "task_id": "63a16a50-f8f4-443b-80a5-615cf4b9baec",
+      "escrow_tx": "0xdde62451bb4a8b9cce03bd22036d89fa1d4b71b908c7d8a398923090423222bc",
+      "payment_tx": "0xe8373658076200e166f0e6ec4734a941d4e9f1e08c65cf3240ace9fa60583141",
       "fee_distribute_tx": null,
-      "escrow_verified": false,
-      "payment_verified": false,
-      "worker_net_usdc": null,
-      "platform_fee_usdc": null,
-      "payment_mode": null,
-      "tx_hashes": [],
+      "escrow_verified": true,
+      "payment_verified": true,
+      "worker_net_usdc": 0.087,
+      "platform_fee_usdc": 0.013000000000000012,
+      "payment_mode": "fase2",
+      "tx_hashes": [
+        "0xdde62451bb4a8b9cce03bd22036d89fa1d4b71b908c7d8a398923090423222bc",
+        "0xe8373658076200e166f0e6ec4734a941d4e9f1e08c65cf3240ace9fa60583141"
+      ],
       "phases": {
         "create": "PASS",
         "apply": "PASS",
-        "assign": "FAIL"
+        "assign": "PASS",
+        "submit": "PASS",
+        "approve": "PASS"
       }
     },
     "optimism": {
@@ -176,9 +185,9 @@
       "display_name": "Optimism",
       "chain_id": 10,
       "status": "FAIL",
-      "error": "Assign failed: Escrow lock failed during assignment: Escrow authorize failed: Escrow scheme error: PaymentInfo validation failed: operator address mismatch: client=0xa06958d93135bed7e43893897c0d9fa931ef051c, allowed=[0xc2377a9db1de2520bd6b2756ed012f4e82f7938e]. Task remains published.",
-      "elapsed_s": 5.11,
-      "task_id": "5e2fb891-990e-40da-bfba-504efd025dec",
+      "error": "Assign failed: Escrow lock failed during assignment: Escrow authorize failed: Escrow scheme error: PaymentInfo validation failed: token_collector mismatch: client=0x0ddf51e62ddd41b5f67beaf2dce9f2e99e2c5af5, expected=0x230fd3a171750fa45db2976121376b7f47cba308. Task remains published.",
+      "elapsed_s": 5.2,
+      "task_id": "d3ef5b42-9e73-4a25-9e44-f35593c57d11",
       "escrow_tx": null,
       "payment_tx": null,
       "fee_distribute_tx": null,
@@ -196,5 +205,5 @@
     }
   },
   "overall": "FAIL",
-  "total_elapsed_s": 216.87
+  "total_elapsed_s": 286.04
 }
