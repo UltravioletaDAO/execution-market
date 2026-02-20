@@ -872,16 +872,21 @@ async def rate_agent(
     task_title: str = "",
     task_category: str = "",
     bounty_usd: float = 0.0,
+    relay_private_key: Optional[str] = None,
 ) -> FeedbackResult:
     """
-    Prepare agent rating data (human rates agent).
+    Rate an agent (human/worker rates agent).
 
     Persists feedback document to S3 with keccak256 hash.
-    Returns pending_worker_signature=True — the actual on-chain TX must be
-    signed by the worker's wallet directly via the dashboard (trustless).
 
-    The worker calls giveFeedback() on the ReputationRegistry from their
-    own wallet, so msg.sender = worker address (not a relay or Facilitator).
+    If relay_private_key is provided, submits the on-chain giveFeedback() TX
+    autonomously using the relay wallet (a secondary wallet at BIP-44 index+100
+    that does NOT own any agent NFT, avoiding the self-feedback revert).
+    This enables fully autonomous agent rating in the KK V2 swarm flow.
+
+    If relay_private_key is NOT provided, returns pending_worker_signature=True
+    — the actual on-chain TX must be signed by the worker's wallet directly
+    via the dashboard (trustless, original behavior).
 
     Args:
         agent_id: Agent's ERC-8004 token ID
@@ -892,16 +897,20 @@ async def rate_agent(
         task_title: Task title for context
         task_category: Task category
         bounty_usd: Task bounty amount
+        relay_private_key: Optional relay wallet private key for autonomous
+            on-chain signing. If provided, giveFeedback() is called directly.
 
     Returns:
-        FeedbackResult with success=True (data persisted, pending worker TX)
+        FeedbackResult with transaction_hash if relay key provided,
+        or pending (transaction_hash=None) if not.
     """
     # Persist feedback document to S3 and compute hash
     feedback_uri = ""
+    feedback_hash = None
     try:
         from integrations.erc8004.feedback_store import persist_and_hash_feedback
 
-        feedback_uri, _feedback_hash = await persist_and_hash_feedback(
+        feedback_uri, feedback_hash = await persist_and_hash_feedback(
             task_id=task_id,
             feedback_type="agent_rating",
             score=score,
@@ -919,6 +928,27 @@ async def rate_agent(
         logger.warning("Feedback persistence failed (continuing): %s", exc)
         feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
 
+    # Autonomous path: relay wallet signs giveFeedback() directly on-chain
+    if relay_private_key:
+        logger.info(
+            "Agent rating via relay wallet (autonomous): agent=%d, task=%s",
+            agent_id,
+            task_id,
+        )
+        from integrations.erc8004.direct_reputation import give_feedback_direct
+
+        return await give_feedback_direct(
+            agent_id=agent_id,
+            value=score,
+            tag1="agent_rating",
+            tag2=f"task:{task_id[:8]}",
+            endpoint=f"task:{task_id}",
+            feedback_uri=feedback_uri,
+            feedback_hash=feedback_hash,
+            private_key=relay_private_key,
+        )
+
+    # Manual path: worker signs giveFeedback() from dashboard
     logger.info(
         "Agent rating prepared (pending worker signature): agent=%d, task=%s, uri=%s",
         agent_id,

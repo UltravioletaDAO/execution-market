@@ -288,16 +288,27 @@ On-chain reputation feedback recorded in the ERC-8004 Reputation Registry."""
             except Exception:
                 pass
 
+            # Check for relay wallet key — enables autonomous on-chain signing
+            # (KK V2 swarm flow: each agent has a relay wallet at BIP-44 index+100)
+            relay_key = os.environ.get("EM_RELAY_PRIVATE_KEY")
+
             feedback = await _rate_agent(
                 agent_id=agent_id_int,
                 task_id=task_id,
                 score=score,
                 comment=comment or "",
                 proof_tx=proof_tx,
+                relay_private_key=relay_key,
             )
 
             if not feedback.success:
                 return f"Error: Rating failed - {feedback.error}"
+
+            # Determine signing mode for the response
+            if relay_key and feedback.transaction_hash:
+                signing_mode = "autonomous (relay wallet)"
+            else:
+                signing_mode = "pending worker signature"
 
             return f"""# Agent Rated Successfully
 
@@ -306,6 +317,7 @@ On-chain reputation feedback recorded in the ERC-8004 Reputation Registry."""
 **Score**: {score}/100
 **Transaction**: `{feedback.transaction_hash or "N/A"}`
 **Network**: {feedback.network}
+**Signing Mode**: {signing_mode}
 
 {f"**Comment**: {comment}" if comment else ""}
 
