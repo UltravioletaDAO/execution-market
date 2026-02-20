@@ -31,7 +31,7 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { config } from "dotenv";
-import { CHAINS, ERC20_ABI, getChain, getChainNames } from "./lib/chains.js";
+import { CHAINS, ERC20_ABI, getChain, getChainNames, getTokenSymbols } from "./lib/chains.js";
 import { selectBridge, summarizePlan, planDistribution } from "./lib/bridge-router.js";
 import * as debridge from "./lib/debridge-client.js";
 import * as squid from "./lib/squid-client.js";
@@ -49,8 +49,13 @@ interface FundingConfig {
   sourceChain: string;
   wallets: string;
   perAgent: {
-    usdc: string;
+    /** v2.0: amount per token per agent */
+    defaultAmount: string;
+    /** v1.0 compat: flat USDC amount */
+    usdc?: string;
     chains: string[];
+    /** v2.0: per-chain token list. If absent, defaults to ["USDC"] per chain */
+    tokens?: Record<string, string[]>;
   };
   gasAmounts: Record<string, string>;
 }
@@ -237,14 +242,48 @@ async function main() {
     ? [chainFilter]
     : fundConfig.perAgent.chains;
 
+  // Resolve per-agent amount (v2: defaultAmount, v1 compat: usdc)
+  const amountPerToken = fundConfig.perAgent.defaultAmount || fundConfig.perAgent.usdc || "1.00";
+
+  // Resolve per-chain token lists
+  const chainTokens: Record<string, string[]> = {};
+  let totalTokenSlots = 0;
+  const uniqueTokens = new Set<string>();
+  for (const chain of targetChains) {
+    const tokens = fundConfig.perAgent.tokens?.[chain] || ["USDC"];
+    // Validate tokens exist on chain
+    const available = getTokenSymbols(chain);
+    const valid = tokens.filter((t) => {
+      if (!available.includes(t)) {
+        console.warn(`  WARN: ${t} not available on ${chain}, skipping`);
+        return false;
+      }
+      return true;
+    });
+    chainTokens[chain] = valid;
+    totalTokenSlots += valid.length;
+    valid.forEach((t) => uniqueTokens.add(t));
+  }
+
+  // Budget summary
+  const totalStablecoin = parseFloat(amountPerToken) * manifest.count * totalTokenSlots;
+
   console.log(`\n${"=".repeat(60)}`);
   console.log(`  Karma Kadabra V2 — Fund ${manifest.count} Agents`);
   console.log(`  Source: ${fundConfig.sourceChain}`);
   console.log(`  Targets: ${targetChains.join(", ")}`);
-  console.log(`  USDC/agent: $${fundConfig.perAgent.usdc}`);
-  console.log(`  Total USDC needed: $${(parseFloat(fundConfig.perAgent.usdc) * manifest.count * targetChains.length).toFixed(2)}`);
+  console.log(`  Amount/token/agent: $${amountPerToken}`);
+  console.log(`  Total: $${totalStablecoin.toFixed(2)} across ${targetChains.length} chains, ${uniqueTokens.size} stablecoins`);
   if (dryRun) console.log(`  ** DRY RUN — no transactions **`);
-  console.log(`${"=".repeat(60)}\n`);
+  console.log(`${"=".repeat(60)}`);
+
+  // Per-chain per-token distribution plan
+  console.log(`\n  Distribution Plan:`);
+  for (const chain of targetChains) {
+    const tokens = chainTokens[chain];
+    const chainTotal = parseFloat(amountPerToken) * manifest.count * tokens.length;
+    console.log(`    ${chain}: ${tokens.join(", ")} ($${chainTotal.toFixed(2)} total)`);
+  }
 
   // Show bridge plan
   const routes = planDistribution(fundConfig.sourceChain, targetChains);
@@ -256,8 +295,10 @@ async function main() {
 
   // Same-chain: handled by distribute-funds.ts logic
   for (const chain of sameChainTargets) {
+    const tokens = chainTokens[chain];
     console.log(`\n--- Same-chain distribution on ${chain} ---`);
-    console.log(`  (Run: npx tsx distribute-funds.ts --chain ${chain} --wallets ${fundConfig.wallets} --usdc ${fundConfig.perAgent.usdc} --gas ${fundConfig.gasAmounts[chain] || "0.0005"})`);
+    console.log(`  Tokens: ${tokens.join(", ")} ($${amountPerToken}/token/agent)`);
+    console.log(`  (Run: npx tsx distribute-funds.ts --chain ${chain} --wallets ${fundConfig.wallets} --amount ${amountPerToken} --tokens ${tokens.join(",")} --gas ${fundConfig.gasAmounts[chain] || "0.0005"})`);
   }
 
   // Cross-chain: bridge from source to each target
@@ -265,21 +306,21 @@ async function main() {
     console.log(`\n--- Cross-chain bridges from ${fundConfig.sourceChain} ---`);
 
     for (const dstChain of crossChainTargets) {
-      // Use parseUnits for USDC math to avoid floating-point precision issues
-      const perAgentAtomic = parseUnits(fundConfig.perAgent.usdc, 6);
-      const totalAtomic = perAgentAtomic * BigInt(manifest.count);
-      const totalUsdcStr = formatUnits(totalAtomic, 6);
-      console.log(`\n  Bridging $${totalUsdcStr} USDC to ${dstChain}...`);
+      const tokens = chainTokens[dstChain];
+      // Total USDC needed on this chain = amount * agents * num_tokens
+      const perTokenAtomic = parseUnits(amountPerToken, 6);
+      const totalAtomic = perTokenAtomic * BigInt(manifest.count) * BigInt(tokens.length);
+      const totalStr = formatUnits(totalAtomic, 6);
+      console.log(`\n  Bridging $${totalStr} to ${dstChain} (${tokens.join(", ")})...`);
 
-      // For now, bridge total amount to a single address (the funder on that chain)
-      // Then distribute locally on that chain
+      // Bridge total amount to funder address on destination chain
       const account = privateKeyToAccount(funderKey as Hex);
 
       try {
         const result = await executeBridge(
           fundConfig.sourceChain,
           dstChain,
-          totalUsdcStr,
+          totalStr,
           account.address,
           funderKey,
           dryRun,
@@ -292,7 +333,7 @@ async function main() {
       // After bridge, distribute locally
       if (!dryRun) {
         console.log(`  After bridge completes, run:`);
-        console.log(`    npx tsx distribute-funds.ts --chain ${dstChain} --wallets ${fundConfig.wallets} --usdc ${fundConfig.perAgent.usdc} --gas ${fundConfig.gasAmounts[dstChain] || "0.0005"}`);
+        console.log(`    npx tsx distribute-funds.ts --chain ${dstChain} --wallets ${fundConfig.wallets} --amount ${amountPerToken} --tokens ${tokens.join(",")} --gas ${fundConfig.gasAmounts[dstChain] || "0.0005"}`);
       }
     }
   }
