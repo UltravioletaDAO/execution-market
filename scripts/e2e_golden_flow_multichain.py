@@ -3,8 +3,8 @@
 """
 Multichain Golden Flow -- E2E Acceptance Test across ALL deployed chains
 
-Tests the COMPLETE platform flow on 7 blockchains (Fase 5 credit card model):
-  Base, Polygon, Arbitrum, Avalanche, Monad, Celo, Optimism
+Tests the COMPLETE platform flow on 8 blockchains (Fase 5 credit card model):
+  Base, Polygon, Arbitrum, Avalanche, Monad, Celo, Optimism, Ethereum
 
 For each chain: Task(balance-check) -> Lifecycle(escrow@assign) -> Payment(1-TX release) -> On-chain verification
 
@@ -24,7 +24,7 @@ Environment:
     EM_WORKER_PRIVATE_KEY -- Worker private key (for on-chain reputation signing)
     EM_TEST_EXECUTOR_ID  -- Existing executor UUID (skips registration if set)
 
-Cost: ~$0.10 per chain * 7 chains = ~$0.70 total
+Cost: ~$0.10 per chain * 8 chains = ~$0.80 total
   Per chain: Worker receives bounty * 87%, Operator receives bounty * 13%
 """
 
@@ -130,6 +130,14 @@ CHAIN_CONFIGS: Dict[str, Dict[str, Any]] = {
         "operator": "0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e",
         "explorer_tx": "https://optimistic.etherscan.io/tx",
         "display_name": "Optimism",
+    },
+    "ethereum": {
+        "chain_id": 1,
+        "rpc_url": "https://ethereum-rpc.publicnode.com",
+        "usdc_address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "operator": "0x69B67962ffb7c5C7078ff348a87DF604dfA8001b",
+        "explorer_tx": "https://etherscan.io/tx",
+        "display_name": "Ethereum",
     },
 }
 
