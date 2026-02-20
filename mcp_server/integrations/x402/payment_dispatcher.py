@@ -944,7 +944,20 @@ class PaymentDispatcher:
 
         def _patched_post(*args, **kwargs):
             kwargs["timeout"] = timeout_seconds
-            return _original_post(*args, **kwargs)
+            resp = _original_post(*args, **kwargs)
+            if resp.status_code >= 400:
+                logger.error(
+                    "Facilitator returned HTTP %d for slow-chain call: %s",
+                    resp.status_code,
+                    resp.text[:500],
+                )
+            else:
+                logger.info(
+                    "Facilitator responded HTTP %d for slow-chain call (%d bytes)",
+                    resp.status_code,
+                    len(resp.text),
+                )
+            return resp
 
         try:
             _httpx.post = _patched_post
