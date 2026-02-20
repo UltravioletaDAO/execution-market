@@ -114,17 +114,17 @@ This plan covers the implementation of **12 novel test scenarios** discovered du
 
 > Critical bugs that 24 agents will hit immediately.
 
-### Task 2.1: Add self-application prevention
-- **File**: `mcp_server/api/routers/workers.py:43-58` (MODIFY)
-- **Issue**: No check prevents an agent from applying to its own task. With 24 agents, this WILL happen.
-- **Fix**: In `apply_to_task()`, after fetching the task, check `task["agent_wallet"]` against the applicant's wallet. Return 403 if they match.
+### Task 2.1: Add self-application prevention (agent_id level)
+- **File**: `mcp_server/supabase_client.py:417-505` + `mcp_server/api/routers/workers.py:43-58` (MODIFY)
+- **Issue**: `apply_to_task()` at `supabase_client.py:456-465` checks `executor_id` against existing applications but does NOT compare `executor_id != task.agent_id`. An agent can apply to its own task because the check only prevents duplicate applications, not self-applications. With 24 agents sharing the same API, this WILL happen.
+- **Fix**: Add guard at `supabase_client.py:430` (after task fetch):
   ```python
-  task = await db.get_task(task_id)
-  if task.get("agent_wallet") and request.executor_wallet:
-      if task["agent_wallet"].lower() == request.executor_wallet.lower():
-          raise HTTPException(403, "Cannot apply to your own task")
+  # Block self-application: agent cannot execute own task
+  if str(executor_id).lower() == str(task.get("agent_id", "")).lower():
+      raise Exception("Cannot apply to your own task")
   ```
-- **Validation**: `test_self_application_rejected` — agent creates task, tries to apply, gets 403
+  Also add HTTP-level guard in `workers.py:apply_to_task()` to return clean 403 before hitting DB.
+- **Validation**: `test_self_application_rejected` — agent creates task, tries to apply with same wallet, gets 403
 
 ### Task 2.2: Add self-application prevention in MCP tool
 - **File**: `mcp_server/server.py` (MODIFY, find `em_apply_task` tool)
@@ -133,10 +133,16 @@ This plan covers the implementation of **12 novel test scenarios** discovered du
 - **Validation**: `test_mcp_self_application_rejected`
 
 ### Task 2.3: Race condition protection on task application
-- **File**: `mcp_server/supabase_client.py` (MODIFY, `apply_to_task` function)
-- **Issue**: 5 agents applying simultaneously could cause duplicate assignments. Current `apply_to_task` RPC doesn't use advisory locks.
-- **Fix**: Verify the Supabase RPC function `apply_to_task` uses `SELECT FOR UPDATE` or similar. If not, add a unique constraint on `(task_id, executor_id)` in applications table and handle conflict.
-- **Validation**: `test_concurrent_applications` — 5 parallel applies, only valid ones succeed
+- **File**: `supabase/migrations/` (NEW migration) + `mcp_server/supabase_client.py:460-478` (MODIFY)
+- **Issue**: `apply_to_task()` reads existing applications at line 460 then inserts at line 478 — NO transaction isolation, NO `SELECT FOR UPDATE`, NO unique constraint. Between check and insert, another agent can insert. All 5 succeed. PostgreSQL RLS is enabled but doesn't prevent this race.
+- **Fix**:
+  1. Add unique constraint migration:
+     ```sql
+     ALTER TABLE task_applications
+     ADD CONSTRAINT unique_task_executor UNIQUE(task_id, executor_id);
+     ```
+  2. Catch constraint violation in `supabase_client.py:493` and return HTTP 409 "Already applied"
+- **Validation**: `test_concurrent_applications` — 5 parallel applies, exactly 5 unique applications created, no duplicates
 
 ### Task 2.4: Add `payment_token` field to task creation
 - **File**: `mcp_server/api/routers/_models.py:75` (MODIFY `CreateTaskRequest`)
@@ -238,22 +244,25 @@ This plan covers the implementation of **12 novel test scenarios** discovered du
 - **File**: `mcp_server/tests/test_kk_scenarios.py` (ADD)
 - **Scenario**: Task created with `payment_token=EURC`, but approval tries to settle with USDC
 - **Test**: `test_token_mismatch_on_approval`
-- **What to verify**: PaymentDispatcher uses task's token, not a default
-- **Reference**: `mcp_server/integrations/x402/payment_dispatcher.py`
+- **What to verify**: PaymentDispatcher uses task's token, not a default. `payment_dispatcher.py:486-509` (`_authorize_fase1`) does balance check but doesn't verify token type. Line 549 reads `request.payment_token or "USDC"` without cross-referencing task's token.
+- **Reference**: `mcp_server/integrations/x402/payment_dispatcher.py:450-550`
+- **Fix needed**: Pass `task.payment_token` to `release_payment()` and validate in settlement flow
 
 ### Task 4.5: Test — Rejection + resubmission flow
 - **File**: `mcp_server/tests/test_kk_scenarios.py` (ADD)
 - **Scenario**: Worker submits, agent rejects with feedback, worker resubmits improved evidence
 - **Test**: `test_rejection_resubmission_flow`
 - **What to verify**: Task goes submitted→rejected→submitted→completed. Worker can resubmit after rejection. Rating still works after resubmission.
-- **Reference**: `mcp_server/api/routers/submissions.py` (reject_submission)
+- **Gap found**: `supabase_client.py:543-544` validates evidence but has NO deadline re-check on resubmission. Worker can resubmit 3 days after deadline.
+- **Reference**: `mcp_server/api/routers/submissions.py` (reject_submission), `supabase_client.py:507-575` (submit_work)
 
 ### Task 4.6: Test — Task expiry with escrow locked
 - **File**: `mcp_server/tests/test_kk_scenarios.py` (ADD)
 - **Scenario**: Task created with escrow lock, deadline passes, task expires
 - **Test**: `test_expiry_with_escrow_refund`
 - **What to verify**: Escrow refund triggered on expiry. Agent gets funds back. Task status = expired.
-- **Reference**: `mcp_server/api/routers/_helpers.py:1189` (escrow handling on cancel/expire)
+- **Gap found**: NO automatic expiry background job exists. `expire_tasks()` RPC exists in Supabase but nothing calls it. Tasks stay PUBLISHED forever if no one cancels. Refund is async/best-effort only.
+- **Reference**: `mcp_server/api/routers/_helpers.py:1189` (escrow handling), `payment_dispatcher.py:135-220` (REFUNDABLE_ESCROW_STATUSES)
 
 ---
 
@@ -265,8 +274,9 @@ This plan covers the implementation of **12 novel test scenarios** discovered du
 - **File**: `mcp_server/tests/test_kk_scenarios.py` (ADD)
 - **Scenario**: Agent tries to rate another agent without having completed a task together
 - **Test**: `test_rate_without_transaction`
-- **What to verify**: Rating endpoint rejects or accepts (document current behavior). If no guard exists, add task_id validation.
-- **Reference**: `mcp_server/api/reputation.py:572-630` (rate_worker requires task_id)
+- **What to verify**: Rating endpoint should reject if no completed submission exists for the task. Currently `POST /api/v1/reputation/rate-worker` accepts ANY task_id without verifying `submission.agent_verdict == "accepted"`. No transaction hash check either.
+- **Gap found**: No proof-of-work requirement. Agent can rate worker who never did work → ERC-8004 reputation inflation.
+- **Reference**: `mcp_server/api/reputation.py:572-630`, needs `submission_id` validation
 
 ### Task 5.2: Test — Bilateral task economy
 - **File**: `mcp_server/tests/test_kk_scenarios.py` (ADD)
@@ -285,19 +295,25 @@ This plan covers the implementation of **12 novel test scenarios** discovered du
 - **File**: `mcp_server/tests/test_kk_scenarios.py` (ADD)
 - **Scenario**: Agent creates task, escrow locked. Before approval, agent's balance drops (spent on another task).
 - **Test**: `test_insufficient_funds_during_release`
-- **What to verify**: Fase 2 (escrow): release succeeds (funds already locked). Fase 1 (direct): settlement fails with clear error. Document both modes.
+- **What to verify**: Fase 2 (escrow): release succeeds (funds already locked). Fase 1 (direct): settlement fails with clear error.
+- **Gap found**: `payment_dispatcher.py:486-509` does balance check at CREATION but NOT at approval. `_settle_submission_payment()` at line 550 calls `_compute_treasury_remainder()` without verifying agent still has funds. Task gets marked COMPLETED but payment never settles.
+- **Fix needed**: Add balance re-check in `_settle_submission_payment()` before settlement. If insufficient, mark task FAILED_PAYMENT.
 
 ### Task 5.5: Test — Cross-chain approval
 - **File**: `mcp_server/tests/test_kk_scenarios.py` (ADD)
 - **Scenario**: Task published on Base, but the approval request comes with payment context from Polygon
 - **Test**: `test_cross_chain_approval_mismatch`
-- **What to verify**: System uses task's `payment_network` for settlement, not the approval request's context. Payment settles on the correct chain.
+- **What to verify**: System uses task's `payment_network` for settlement, not the approval request's context.
+- **Gap found**: `submissions.py:150-250` reads `task.get("payment_network")` but NEVER verifies the EIP-3009 settlement signature is for that chain. Chain-specific signatures fail silently. Reputation feedback at line 462 hardcodes `network=task.get("payment_network", "base")` without validating settlement happened on that network.
+- **Fix needed**: Add `X-Settlement-Chain` header validation or derive chain from EIP-8128 auth `chain_id`.
 
 ### Task 5.6: Test — Token denomination mismatch
 - **File**: `mcp_server/tests/test_kk_scenarios.py` (ADD)
 - **Scenario**: Task bounty in EURC ($0.10), worker only has USDC. Can the worker receive payment in EURC?
 - **Test**: `test_token_denomination_mismatch`
-- **What to verify**: Worker receives EURC (task's token), not USDC. If worker has no EURC, they still receive it (new balance). Document if cross-token swap is needed for future (NEAR Intents).
+- **What to verify**: Worker receives EURC (task's token), not USDC.
+- **Gap found**: `payment_dispatcher.py:450-509` doesn't validate token parameter matches task. Settlement defaults to USDC. No token parameter passed to `release_payment()`. Worker could receive wrong stablecoin.
+- **Fix needed**: Pass `task.payment_token` through entire settlement pipeline. Validate token exists on network in SDK call.
 
 ---
 
