@@ -1,0 +1,46 @@
+{
+  "timestamp": "2026-02-20T05:13:41.664Z",
+  "sourceWallet": {
+    "address": "YOUR_PLATFORM_WALLET",
+    "balances": {
+      "base": "12.909652",
+      "polygon": "0.00",
+      "arbitrum": "0.00"
+    },
+    "total": "12.91"
+  },
+  "sampleAgents": [
+    {
+      "name": "aurora",
+      "address": "0x2cF434B713047d713750484AC9196A3C2F4497e8",
+      "personality": "builder"
+    },
+    {
+      "name": "blaze",
+      "address": "0x6d02a44f6De6B86a7fd79d8368dA74e1c5f9c392",
+      "personality": "explorer"
+    },
+    {
+      "name": "cipher",
+      "address": "0xB3a4BDFfd91021c60cA219A52F6B974C67ea5aF0",
+      "personality": "analyst"
+    },
+    {
+      "name": "drift",
+      "address": "0xf3B4d01b7d3c0C1BAeAdc8de90aD94dE198FF2aC",
+      "personality": "connector"
+    },
+    {
+      "name": "echo",
+      "address": "0x9edEe892f7E3fbB4039132F693aD74A37A6A6189",
+      "personality": "creator"
+    }
+  ],
+  "summary": {
+    "totalAgents": 24,
+    "budgetPerAgent": "8.33",
+    "totalBudgetNeeded": "200.00",
+    "sourceBalanceTotal": "12.91",
+    "readyForDistribution": false
+  }
+}
