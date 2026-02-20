@@ -17,6 +17,10 @@ from datetime import datetime
 from pathlib import Path
 from string import Template
 
+# Add parent to path for lib imports
+sys.path.insert(0, str(Path(__file__).parent))
+from lib.memory import init_memory_stack
+
 
 # ---------------------------------------------------------------------------
 # Task category mapping based on skills
@@ -150,13 +154,14 @@ def main():
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # System agents (indices 0-4)
+    # System agents (indices 0-5)
     system_agents = [
         {"name": "kk-coordinator", "index": 0},
         {"name": "kk-karma-hello", "index": 1},
         {"name": "kk-skill-extractor", "index": 2},
         {"name": "kk-voice-extractor", "index": 3},
         {"name": "kk-validator", "index": 4},
+        {"name": "kk-soul-extractor", "index": 5},
     ]
 
     total_agents = len(ranked) + len(system_agents)
@@ -179,7 +184,7 @@ You are **{sa['name']}**, a system agent in the Karma Kadabra swarm.
 You coordinate and support the community agents.
 
 ## Role
-{"Swarm coordinator — route messages, manage budgets, monitor health." if sa['name'] == "kk-coordinator" else ""}{"Karma Hello — sell chat log data to other agents via x402 payments." if sa['name'] == "kk-karma-hello" else ""}{"Skill Extractor — analyze chat logs and extract skill profiles." if sa['name'] == "kk-skill-extractor" else ""}{"Voice Extractor — analyze communication patterns and personality." if sa['name'] == "kk-voice-extractor" else ""}{"Validator — verify task evidence quality and agent behavior." if sa['name'] == "kk-validator" else ""}
+{"Swarm coordinator — route messages, manage budgets, monitor health." if sa['name'] == "kk-coordinator" else ""}{"Karma Hello — sell chat log data to other agents via x402 payments." if sa['name'] == "kk-karma-hello" else ""}{"Skill Extractor — analyze chat logs and extract skill profiles." if sa['name'] == "kk-skill-extractor" else ""}{"Voice Extractor — analyze communication patterns and personality." if sa['name'] == "kk-voice-extractor" else ""}{"Soul Extractor — merge skills + voice + stats into complete SOUL.md agent profiles. Sells profiling data to other agents." if sa['name'] == "kk-soul-extractor" else ""}{"Validator — verify task evidence quality and agent behavior." if sa['name'] == "kk-validator" else ""}
 
 ## Communication
 - Language: Spanish (primary), English (secondary)
@@ -208,13 +213,16 @@ You coordinate and support the community agents.
             encoding="utf-8",
         )
 
+        # Initialize memory stack (WORKING.md + MEMORY.md + notes/)
+        init_memory_stack(ws_dir, daily_budget=2.0)
+
         generated += 1
         print(f"  [SYS] {sa['name']:<28} index={sa['index']}")
 
     # Generate community agent workspaces
     for user in ranked:
         username = user["username"]
-        wallet_index = user["rank"] + 4  # 0-4 = system, 5+ = community
+        wallet_index = user["rank"] + len(system_agents)  # 0-5 = system, 6+ = community
 
         ws_dir = output_dir / f"kk-{username}"
         ws_dir.mkdir(parents=True, exist_ok=True)
@@ -284,6 +292,9 @@ You coordinate and support the community agents.
             ),
             encoding="utf-8",
         )
+
+        # Initialize memory stack (WORKING.md + MEMORY.md + notes/)
+        init_memory_stack(ws_dir, daily_budget=2.0)
 
         generated += 1
         top_skill = skills.get("top_skills", [{}])[0].get("skill", "Community") if skills.get("top_skills") else "Community"

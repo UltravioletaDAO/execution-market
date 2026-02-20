@@ -411,16 +411,80 @@ HEALTH
 - 7.6 Add MEMORY.md (mutable long-term preferences)
 - 7.7 Add daily notes (notes/{date}.md)
 
-### Phase 8: Coordinator Agent
+### Phase 8: Soul Extractor + Coordinator Foundation
+
+> **Goal**: Deploy kk-soul-extractor as a premium data agent that merges skill + voice
+> extraction into complete SOUL.md profiles and sells them on EM. Simultaneously lay the
+> Supabase tables and coordinator heartbeat needed for Phase 9+ orchestration.
+> Soul Extractor is the first agent that both BUYS and SELLS data on EM — validating the
+> full data economy loop.
+
 **Tasks:**
-- 8.1 Create kk_swarm_state table in Supabase
-- 8.2 Create kk_task_claims table
-- 8.3 Create kk_notifications table
-- 8.4 Implement coordinator heartbeat (browse EM + assign)
-- 8.5 Skill-based task matching algorithm
-- 8.6 Budget-aware assignment (don't exceed daily limit)
-- 8.7 Conflict prevention (atomic claims via DB)
-- 8.8 IRC @mention notification delivery
+
+#### 8.1 Create kk-soul-extractor workspace
+- **File**: `scripts/kk/data/workspaces/kk-soul-extractor/` (directory + SOUL.md + data/)
+- **Description**: Create the workspace directory for the Soul Extractor system agent. Generate a system-agent SOUL.md (not a community member — it has its own identity). Add `data/wallet.json` (index 5, after coordinator=0, karma-hello=1, abracadabra=2, skill-extractor=3, voice-extractor=4) and `data/profile.json` with agent metadata. Initialize the memory stack (WORKING.md, MEMORY.md, notes/). Update `_manifest.json` to include kk-soul-extractor in the system agents list with heartbeat offset `:09` (after voice-extractor at `:08`).
+- **Validation**: `ls scripts/kk/data/workspaces/kk-soul-extractor/` shows SOUL.md, memory/WORKING.md, memory/MEMORY.md, data/wallet.json. `_manifest.json` lists kk-soul-extractor. `heartbeat.py --agent kk-soul-extractor --dry-run` executes without errors.
+
+#### 8.2 Write kk-soul-extractor SOUL.md
+- **File**: `scripts/kk/data/workspaces/kk-soul-extractor/SOUL.md`
+- **Description**: Write a full system-agent SOUL.md that defines the Soul Extractor's identity, capabilities, and economic behavior. Unlike community agent SOULs (extracted from chat), this is hand-crafted. Identity: "You are kk-soul-extractor, the profiling engine of the Karma Kadabra swarm. You combine skill data + voice data + engagement stats into complete OpenClaw SOUL.md profiles." Skills: data fusion, profile generation, LLM orchestration, JSON/Markdown formatting. Economic behavior: buys raw logs from Karma Hello ($0.01), buys skill profiles from kk-skill-extractor ($0.02), buys voice profiles from kk-voice-extractor ($0.02), sells complete SOUL.md profiles ($0.08-0.15). Daily budget: $3.00 (higher than community agents because it trades in bulk).
+- **Validation**: SOUL.md contains all sections (Identity, Personality, Skills, Economic Behavior, Monetizable Capabilities, Agent Rules). Prices are consistent with the pricing matrix in the architecture doc.
+
+#### 8.3 Implement soul_extractor_service.py
+- **File**: `scripts/kk/services/soul_extractor_service.py` (NEW)
+- **Description**: Main service that orchestrates the Soul Extractor's 4-phase cycle: (1) **Discover** — browse EM for skill profiles from kk-skill-extractor and voice profiles from kk-voice-extractor (filter by `[KK Data]` prefix + `Skill Profile` or `Personality` in title). (2) **Buy** — apply to purchase both profiles for the same user (cost: $0.02 + $0.02 = $0.04 per user). (3) **Fuse** — combine skill JSON + voice JSON + user stats into a merged profile dict, then call `generate_soul_md()` from `generate-soul.py` to produce a complete SOUL.md. (4) **Sell** — publish the fused SOUL.md on EM as a premium data product at $0.08-0.15 per profile (title: `[KK Data] Complete SOUL.md Profile — {username}`). Use the same `EMClient` pattern from skill/voice extractors. Include `--discover`, `--buy`, `--fuse`, `--sell`, `--dry-run` CLI flags. Store intermediate data in `scripts/kk/data/soul-profiles/{username}/` with `skills.json`, `voice.json`, `fused.json`, `SOUL.md`.
+- **Validation**: `python soul_extractor_service.py --dry-run` completes all 4 phases without errors. `--discover` finds at least 1 skill and 1 voice offering. Fused profile contains all sections from the SOUL.md template.
+
+#### 8.4 Implement soul profile fusion logic
+- **File**: `scripts/kk/lib/soul_fusion.py` (NEW)
+- **Description**: Pure function library that merges skill + voice + stats data into a unified profile dict suitable for `generate_soul_md()`. Functions: `fuse_profiles(username, skills_json, voice_json, user_stats) -> dict` — merges skill categories with voice tone to compute composite confidence scores (skill confidence boosted if voice shows enthusiasm in that domain). `rank_monetizable_capabilities(fused) -> list[dict]` — ranks services by market demand (DeFi > NFT > Community for this swarm). `compute_soul_price(fused) -> float` — dynamic pricing: base $0.08 + $0.01 per high-confidence skill + $0.02 if personality profile is rich (>5 signature phrases, >3 slang categories). Max $0.15. This module has no EM dependencies — pure data transformation, fully unit-testable.
+- **Validation**: Unit test with 3 sample users (one power user with many skills, one average, one minimal) produces correct fused profiles. Price computation returns values in $0.08-0.15 range. `pytest scripts/kk/tests/test_soul_fusion.py` passes.
+
+#### 8.5 Add unit tests for soul fusion
+- **File**: `scripts/kk/tests/test_soul_fusion.py` (NEW)
+- **Description**: Unit tests for `soul_fusion.py`. Test cases: (a) full fusion with rich skill+voice data produces all SOUL.md sections, (b) fusion with missing voice data falls back to defaults, (c) fusion with missing skills data falls back to defaults, (d) dynamic pricing returns $0.08 for minimal profile and $0.15 for rich profile, (e) monetizable capabilities are ranked by market demand, (f) composite confidence scores are boosted when voice matches skill domain. Use fixtures with real data from existing `scripts/kk/data/skills/` and `scripts/kk/data/voices/` JSON files.
+- **Validation**: `pytest scripts/kk/tests/test_soul_fusion.py -v` passes all 6+ test cases.
+
+#### 8.6 Register kk-soul-extractor in heartbeat stagger schedule
+- **File**: `scripts/kk/cron/heartbeat.py`
+- **Description**: Add `"kk-soul-extractor": 9` to the `SYSTEM_AGENT_OFFSETS` dict (line 66-71). This places Soul Extractor at :09 in the stagger schedule, after voice-extractor at :08 and before community agents at :10. Also update the docstring stagger table (line 23-27) to include `:09 kk-soul-extractor`.
+- **Validation**: `heartbeat.py --agent kk-soul-extractor --dry-run` runs at correct offset. `get_stagger_offset("kk-soul-extractor", 0)` returns `9.0`.
+
+#### 8.7 Add soul-extractor.py standalone entry point
+- **File**: `scripts/kk/soul-extractor.py` (NEW)
+- **Description**: Standalone CLI script (like `extract-skills.py` and `extract-voice.py`) that runs the full Soul Extractor pipeline from the command line without the heartbeat system. Usage: `python soul-extractor.py --user juanjumagalp` (single user) or `python soul-extractor.py --all` (all users with available skill+voice data). Reads from `data/skills/` and `data/voices/`, writes to `data/soul-profiles/`. Does NOT interact with EM (offline mode for batch generation). Outputs summary: profiles generated, average price, total estimated revenue.
+- **Validation**: `python soul-extractor.py --user juanjumagalp --dry-run` produces a valid SOUL.md preview. `python soul-extractor.py --all` processes all users with both skill+voice data.
+
+#### 8.8 Create kk_swarm_state Supabase table
+- **File**: `supabase/migrations/033_kk_swarm_state.sql` (NEW)
+- **Description**: Create the shared state table for coordinator and all agents. Schema: `kk_swarm_state (id UUID PK, agent_name TEXT NOT NULL UNIQUE, task_id TEXT, status TEXT DEFAULT 'idle', last_heartbeat TIMESTAMPTZ, daily_spent_usd DECIMAL(10,2) DEFAULT 0, current_chain TEXT DEFAULT 'base', notes TEXT, updated_at TIMESTAMPTZ DEFAULT NOW())`. Add index on `agent_name`. Add index on `status` for coordinator queries. Add `kk_task_claims (id UUID PK, em_task_id TEXT NOT NULL UNIQUE, claimed_by TEXT NOT NULL, claimed_at TIMESTAMPTZ DEFAULT NOW(), status TEXT DEFAULT 'claimed')`. Add `kk_notifications (id UUID PK, target_agent TEXT NOT NULL, from_agent TEXT NOT NULL, content TEXT NOT NULL, delivered BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW())`. Add index on `(target_agent, delivered)` for notification polling.
+- **Validation**: Migration applies cleanly to Supabase: `supabase db push` or manual SQL execution. Tables visible in Supabase dashboard. INSERT + SELECT works for all 3 tables.
+
+#### 8.9 Implement shared state client library
+- **File**: `scripts/kk/lib/swarm_state.py` (NEW)
+- **Description**: Python client for the `kk_swarm_state`, `kk_task_claims`, and `kk_notifications` tables. Uses `supabase-py` (already in project dependencies). Functions: `report_heartbeat(agent_name, status, task_id, daily_spent, notes)` — upsert to kk_swarm_state. `claim_task(em_task_id, agent_name) -> bool` — atomic INSERT to kk_task_claims (returns False on UNIQUE violation = already claimed). `release_claim(em_task_id)` — update status to 'released'. `get_agent_states(status=None) -> list[dict]` — read all agents or filter by status. `send_notification(target, from_agent, content)` — INSERT to kk_notifications. `poll_notifications(agent_name) -> list[dict]` — SELECT WHERE target=agent AND delivered=FALSE, then UPDATE delivered=TRUE. All functions are async, use the same Supabase URL/key from environment.
+- **Validation**: `pytest scripts/kk/tests/test_swarm_state.py` passes with mocked Supabase client. Integration test: write heartbeat + read back returns correct data.
+
+#### 8.10 Implement coordinator heartbeat skeleton
+- **File**: `scripts/kk/services/coordinator_service.py` (NEW)
+- **Description**: The coordinator agent's heartbeat action. On each wake cycle: (1) Read all agent states from `kk_swarm_state` — identify idle agents, stale agents (no heartbeat in 30+ min), and agents with tasks. (2) Browse EM for published tasks that are unassigned and unclaimed. (3) For each unassigned task, run skill matching against idle agents (read SOUL.md from workspace to get skills). (4) Assign best match: write to `kk_task_claims` + `kk_notifications`. (5) Generate health summary dict (agents_online, agents_offline, tasks_assigned, tasks_pending). Does NOT execute tasks itself. Uses `swarm_state.py` for all DB operations and `em_client.py` for EM API. CLI: `python coordinator_service.py --dry-run` previews assignments without writing to DB.
+- **Validation**: `python coordinator_service.py --dry-run` reads agent states (or shows empty if no agents registered yet), browses EM tasks, and prints proposed assignments. No DB writes in dry-run mode.
+
+#### 8.11 Integrate swarm state reporting into heartbeat
+- **File**: `scripts/kk/cron/heartbeat.py`
+- **Description**: After each agent's heartbeat cycle completes (line 337-346 in `heartbeat_once()`), call `swarm_state.report_heartbeat()` to write the agent's status to kk_swarm_state. Import `swarm_state` at top. Make the call non-blocking and failure-tolerant (try/except with warning log — if Supabase is down, the agent should still function with local WORKING.md). Also check `swarm_state.poll_notifications()` at the start of each heartbeat for coordinator assignments. If a notification contains a task_id, set it as the active task via `set_active_task()`.
+- **Validation**: After running `heartbeat.py --agent kk-juanjumagalp --dry-run`, kk_swarm_state table shows a row for kk-juanjumagalp (if Supabase is accessible). If Supabase is down, heartbeat still completes without error.
+
+#### 8.12 Update architecture diagram with Soul Extractor
+- **File**: `docs/planning/KK_MISSION_CONTROL_ARCHITECTURE.md`
+- **Description**: Update the "System Agents" table (line 28-34) to add kk-soul-extractor as the 6th system agent: `| **kk-soul-extractor** | Soul Profiler — fuses skills + voice into complete SOUL.md profiles, sells premium data | kk:soul-extractor:main | :09 |`. Update the Mermaid architecture diagram (line 46-103) to add SE_SOUL node in the "Data Agents" subgraph: `SE_SOUL[kk-soul-extractor<br/>Soul Profiles]` with edges `SE -->|skill profiles| SE_SOUL`, `VE -->|voice profiles| SE_SOUL`, `SE_SOUL -->|sell SOUL.md| EM`. Update the Data Economy Mermaid diagram (line 268-296) to show Soul Extractor as a second-tier refinery that buys from both extractors and sells premium fused profiles. Update the Pricing Matrix table to add: `| Complete SOUL.md profile | Soul Extractor | $0.08-0.15 | On-demand |`. Update the stagger schedule comment block (line 143-153) to add `:09 kk-soul-extractor`.
+- **Validation**: Mermaid diagrams render correctly on GitHub. Soul Extractor appears in all relevant tables and diagrams. No broken Mermaid syntax.
+
+#### 8.13 Update migration path and open questions
+- **File**: `docs/planning/KK_MISSION_CONTROL_ARCHITECTURE.md`
+- **Description**: Update the Migration Path section (line 495-514) to reflect the new Phase 8 scope: `Week 2: Phase 8 (Soul Extractor + Coordinator Foundation) └── kk-soul-extractor workspace + service └── Supabase tables (kk_swarm_state, kk_task_claims, kk_notifications) └── Coordinator heartbeat skeleton └── Heartbeat → swarm state integration`. Renumber subsequent phases: old Phase 9 (Karma Hello) → Phase 9, old Phase 10 (Abracadabra) → Phase 10, old Phase 11 (Standup) → Phase 11 (numbers stay the same since we replaced the old Phase 8). Add new open question: "6. **Soul profile pricing strategy?** — Fixed $0.10 per profile vs. dynamic pricing based on profile richness. Dynamic rewards agents with more chat data but adds complexity."
+- **Validation**: Migration Path timeline is internally consistent. Phase numbering has no gaps or duplicates.
 
 ### Phase 9: Karma Hello Integration
 **Tasks:**
@@ -493,14 +557,18 @@ HEALTH
 ## Migration Path
 
 ```
-Week 1: Phase 7 (Heartbeat + Memory)
-  └── daily_routine.py → 15-min loop
-  └── WORKING.md + MEMORY.md templates
+Week 1: Phase 7 (Heartbeat + Memory) — DONE
+  └── heartbeat.py → 15-min loop with stagger
+  └── lib/working_state.py → WORKING.md parser/writer
+  └── lib/memory.py → MEMORY.md + daily notes
+  └── generate-workspaces.py → init_memory_stack()
 
-Week 2: Phase 8 (Coordinator)
-  └── Supabase tables
-  └── Coordinator logic
-  └── @mention delivery
+Week 2: Phase 8 (Soul Extractor + Coordinator Foundation)
+  └── kk-soul-extractor system agent (workspace, SOUL.md, service)
+  └── soul_fusion.py pure library + unit tests
+  └── Supabase tables (kk_swarm_state, kk_task_claims, kk_notifications)
+  └── Coordinator heartbeat skeleton
+  └── Heartbeat → swarm state integration
 
 Week 3-4: Phase 9 + 10 (Integrations)
   └── Karma Hello → Base mainnet
@@ -524,3 +592,5 @@ Week 5: Phase 11 (Operations)
 4. **IRC vs Supabase Realtime para notifications?** — IRC es mas compatible con el ecosistema (MeshRelay). Supabase Realtime es mas confiable pero requiere WebSocket clients en cada agent.
 
 5. **Budget source?** — Los agents necesitan USDC para operar. Puede venir de: (a) Treasury, (b) Data sales revenue, (c) EM task earnings. Idealmente self-sustaining despues de Phase 10.
+
+6. **Soul profile pricing strategy?** — Fixed $0.10 per profile vs. dynamic pricing based on profile richness. Dynamic rewards agents with more chat data but adds complexity.
