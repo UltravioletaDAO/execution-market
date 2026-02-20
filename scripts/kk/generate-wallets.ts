@@ -16,7 +16,7 @@
  */
 
 import { mnemonicToAccount } from "viem/accounts";
-import { writeFileSync } from "fs";
+import { writeFileSync, readFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { config } from "dotenv";
@@ -34,6 +34,7 @@ const SYSTEM_AGENTS = [
   "kk-skill-extractor",
   "kk-voice-extractor",
   "kk-validator",
+  "kk-soul-extractor",
 ];
 
 // ---------------------------------------------------------------------------
@@ -119,6 +120,11 @@ function main() {
     ? args[outputIdx + 1]
     : resolve(__dirname, "config", "wallets.json");
 
+  const statsIdx = args.indexOf("--stats");
+  const statsFile = statsIdx >= 0
+    ? args[statsIdx + 1]
+    : resolve(__dirname, "data", "user-stats.json");
+
   const mnemonic = process.env.AGENT_MNEMONIC;
   if (!mnemonic) {
     console.error("ERROR: AGENT_MNEMONIC not set.");
@@ -129,6 +135,18 @@ function main() {
     process.exit(1);
   }
 
+  // Load user names from stats file if available
+  let userNames: string[] | undefined;
+  if (existsSync(statsFile)) {
+    try {
+      const stats = JSON.parse(readFileSync(statsFile, "utf-8"));
+      userNames = stats.ranking.map((u: { username: string }) => u.username);
+      console.log(`Loaded ${userNames!.length} user names from ${statsFile}`);
+    } catch (e) {
+      console.warn(`Warning: Could not parse stats file: ${statsFile}`);
+    }
+  }
+
   if (count < 1 || count > 200) {
     console.error(`ERROR: Count must be 1-200, got ${count}`);
     process.exit(1);
@@ -137,7 +155,7 @@ function main() {
   console.log(`\nGenerating ${count} HD wallets...`);
   console.log(`Path: m/44'/60'/0'/0/{0..${count - 1}}\n`);
 
-  const manifest = generateWallets(mnemonic, count);
+  const manifest = generateWallets(mnemonic, count, userNames);
 
   writeFileSync(outputFile, JSON.stringify(manifest, null, 2));
   console.log(`Manifest written to: ${outputFile}`);
