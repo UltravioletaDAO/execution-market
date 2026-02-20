@@ -220,20 +220,28 @@ async def chaos_double_submit(
     # Precondition: create -> apply -> assign -> submit (first time)
     status, body = await _create_task(client, api_url, api_key, "double-submit")
     if status != 201:
-        return ChaosResult(name, expected, status, False, f"Setup: task creation failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: task creation failed ({status})"
+        )
     task_id = body.get("id")
 
     status, _ = await _apply_to_task(client, api_url, api_key, task_id)
     if status not in (200, 201):
-        return ChaosResult(name, expected, status, False, f"Setup: apply failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: apply failed ({status})"
+        )
 
     status, _ = await _assign_worker(client, api_url, api_key, task_id)
     if status not in (200, 201):
-        return ChaosResult(name, expected, status, False, f"Setup: assign failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: assign failed ({status})"
+        )
 
     status, _ = await _submit_evidence(client, api_url, api_key, task_id)
     if status not in (200, 201):
-        return ChaosResult(name, expected, status, False, f"Setup: first submit failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: first submit failed ({status})"
+        )
 
     # Chaos: submit again
     status2, body2 = await _submit_evidence(client, api_url, api_key, task_id)
@@ -256,7 +264,9 @@ async def chaos_apply_after_deadline(
 
     status, body = await _create_task(client, api_url, api_key, "apply-expired")
     if status != 201:
-        return ChaosResult(name, expected, status, False, f"Setup: task creation failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: task creation failed ({status})"
+        )
     task_id = body.get("id")
 
     # Cancel the task so it's no longer available
@@ -264,7 +274,13 @@ async def chaos_apply_after_deadline(
         client, "POST", f"/tasks/{task_id}/cancel", api_url=api_url, api_key=api_key
     )
     if status_cancel != 200:
-        return ChaosResult(name, expected, status_cancel, False, f"Setup: cancel failed ({status_cancel})")
+        return ChaosResult(
+            name,
+            expected,
+            status_cancel,
+            False,
+            f"Setup: cancel failed ({status_cancel})",
+        )
 
     # Chaos: try to apply to the cancelled/expired task
     status2, body2 = await _apply_to_task(client, api_url, api_key, task_id)
@@ -309,25 +325,37 @@ async def chaos_cancel_after_assignment(
 
     status, body = await _create_task(client, api_url, api_key, "cancel-assigned")
     if status != 201:
-        return ChaosResult(name, expected, status, False, f"Setup: task creation failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: task creation failed ({status})"
+        )
     task_id = body.get("id")
 
     status, _ = await _apply_to_task(client, api_url, api_key, task_id)
     if status not in (200, 201):
-        return ChaosResult(name, expected, status, False, f"Setup: apply failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: apply failed ({status})"
+        )
 
     status, _ = await _assign_worker(client, api_url, api_key, task_id)
     if status not in (200, 201):
-        return ChaosResult(name, expected, status, False, f"Setup: assign failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: assign failed ({status})"
+        )
 
     # Chaos: try to cancel
     status2, body2 = await api(
         client, "POST", f"/tasks/{task_id}/cancel", api_url=api_url, api_key=api_key
     )
-    # In direct_release mode 'accepted' IS cancellable (200), otherwise 409
-    passed = status2 in (200, 409)
+    # Strict: only 409 means the guard is active. HTTP 200 means no guard
+    # triggered (possible in direct_release mode where accepted tasks are
+    # cancellable — but that should still be tested separately, not here).
+    passed = status2 == 409
     detail = body2.get("detail", body2.get("message", str(body2)[:200]))
-    extra = " (direct_release mode allows accepted cancels)" if status2 == 200 else ""
+    extra = ""
+    if status2 == 200:
+        extra = (
+            " (NOTE: direct_release mode may allow accepted cancels — verify config)"
+        )
     return ChaosResult(name, expected, status2, passed, f"{detail}{extra}")
 
 
@@ -397,7 +425,9 @@ async def chaos_self_application(
 
     status, body = await _create_task(client, api_url, api_key, "self-apply")
     if status != 201:
-        return ChaosResult(name, expected, status, False, f"Setup: task creation failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: task creation failed ({status})"
+        )
     task_id = body.get("id")
 
     # The agent_id used for this task is the API key's identity.
@@ -411,7 +441,9 @@ async def chaos_self_application(
     elif status2 in (200, 201):
         # Self-application prevention does not exist yet -- document this
         passed = False
-        detail = "KNOWN GAP: self-application prevention not implemented (see MEMORY.md)"
+        detail = (
+            "KNOWN GAP: self-application prevention not implemented (see MEMORY.md)"
+        )
     else:
         passed = status2 in (400, 409)
         detail = body2.get("detail", str(body2)[:200])
@@ -442,7 +474,9 @@ async def chaos_submit_without_assignment(
     # Create task but do NOT assign anyone
     status, body = await _create_task(client, api_url, api_key, "submit-unassigned")
     if status != 201:
-        return ChaosResult(name, expected, status, False, f"Setup: task creation failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: task creation failed ({status})"
+        )
     task_id = body.get("id")
 
     # Chaos: submit evidence without being assigned
@@ -492,16 +526,22 @@ async def chaos_empty_evidence(
     # Need an assigned task first
     status, body = await _create_task(client, api_url, api_key, "empty-evidence")
     if status != 201:
-        return ChaosResult(name, expected, status, False, f"Setup: task creation failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: task creation failed ({status})"
+        )
     task_id = body.get("id")
 
     status, _ = await _apply_to_task(client, api_url, api_key, task_id)
     if status not in (200, 201):
-        return ChaosResult(name, expected, status, False, f"Setup: apply failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: apply failed ({status})"
+        )
 
     status, _ = await _assign_worker(client, api_url, api_key, task_id)
     if status not in (200, 201):
-        return ChaosResult(name, expected, status, False, f"Setup: assign failed ({status})")
+        return ChaosResult(
+            name, expected, status, False, f"Setup: assign failed ({status})"
+        )
 
     # Chaos: submit with empty evidence
     status2, body2 = await _submit_evidence(
