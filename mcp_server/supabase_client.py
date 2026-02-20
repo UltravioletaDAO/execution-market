@@ -311,7 +311,7 @@ async def update_submission(
         raise Exception(f"Submission {submission_id} not found")
 
     task = submission.get("task")
-    if not task or task["agent_id"] != agent_id:
+    if not task or (task.get("agent_id") or "").lower() != (agent_id or "").lower():
         raise Exception("Not authorized to update this submission")
 
     # Update submission
@@ -347,8 +347,12 @@ async def update_submission(
             )
 
         # If rejected, return task to in_progress so worker can resubmit
+        # Guard: only roll back if the task is in a submittable state;
+        # never resurrect cancelled/expired/completed tasks.
         elif verdict == "rejected":
-            await update_task(task["id"], {"status": "in_progress"})
+            current_status = task.get("status", "")
+            if current_status in ("submitted", "verifying", "in_progress"):
+                await update_task(task["id"], {"status": "in_progress"})
 
         return result.data[0]
 
@@ -449,9 +453,20 @@ async def apply_to_task(
         raise Exception(f"Executor {executor_id} not found")
 
     # Self-application guard: agent cannot apply to its own task
+    # Handles both wallet-address agent_ids and numeric ERC-8004 agent_ids
     executor_wallet = (executor.data.get("wallet_address") or "").lower()
-    task_agent_id = (task.get("agent_id") or "").lower()
+    executor_agent_id = str(executor.data.get("erc8004_agent_id") or "")
+    task_agent_id = str(task.get("agent_id") or "").lower()
+
+    is_self = False
+    # Case 1: wallet matches (case-insensitive)
     if executor_wallet and task_agent_id and executor_wallet == task_agent_id:
+        is_self = True
+    # Case 2: executor's ERC-8004 ID matches task's agent_id (numeric comparison)
+    if executor_agent_id and task_agent_id and executor_agent_id == task_agent_id:
+        is_self = True
+
+    if is_self:
         raise Exception(
             "Cannot apply to your own task: executor wallet matches task agent"
         )
@@ -553,8 +568,12 @@ async def submit_work(
                 raise Exception(
                     "Task deadline has passed. Cannot submit or resubmit evidence."
                 )
-        except (ValueError, TypeError):
-            pass  # If deadline parsing fails, allow submission
+        except (ValueError, TypeError) as e:
+            logger.warning(
+                "Failed to parse deadline '%s': %s — allowing submission",
+                task_deadline,
+                e,
+            )
 
     if task["status"] not in ["accepted", "in_progress"]:
         raise Exception(

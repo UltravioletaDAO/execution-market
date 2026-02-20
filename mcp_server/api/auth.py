@@ -577,9 +577,14 @@ async def verify_agent_auth(request: Request) -> AgentAuth:
 
 async def generate_auth_nonce() -> dict:
     """Generate a fresh nonce for ERC-8128 authentication."""
+    from fastapi.responses import JSONResponse
+
     store = _get_erc8128_nonce_store()
     if store is None:
-        return {"error": "Nonce store not available", "nonce": None}
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Nonce store not available", "nonce": None},
+        )
 
     nonce = await store.generate()
     return {

@@ -1,4 +1,4 @@
--- Migration 037: Update payment_token column to store token symbols
+-- Migration 038: Update payment_token column to store token symbols
 -- The original schema (001) stored contract addresses in payment_token.
 -- The application code now uses token symbols (USDC, EURC, AUSD, PYUSD, USDT).
 -- This migration:

@@ -2835,21 +2835,20 @@ class TestTokenDenominationMismatch:
         }
 
         request = _make_create_request(payment_network="polygon", payment_token="AUSD")
-        mock_create = _patch_create_task_deps(
-            pytest.MonkeyPatch(), task_return=task_return
-        )
+        with pytest.MonkeyPatch.context() as mp:
+            mock_create = _patch_create_task_deps(mp, task_return=task_return)
 
-        await routes.create_task(
-            http_request=_fake_http_request(),
-            request=request,
-            auth=_fake_auth(),
-        )
+            await routes.create_task(
+                http_request=_fake_http_request(),
+                request=request,
+                auth=_fake_auth(),
+            )
 
-        # Verify creation stored AUSD
-        mock_create.assert_called_once()
-        create_kwargs = mock_create.call_args
-        assert create_kwargs.kwargs.get("payment_token") == "AUSD"
-        assert create_kwargs.kwargs.get("payment_network") == "polygon"
+            # Verify creation stored AUSD
+            mock_create.assert_called_once()
+            create_kwargs = mock_create.call_args
+            assert create_kwargs.kwargs.get("payment_token") == "AUSD"
+            assert create_kwargs.kwargs.get("payment_network") == "polygon"
 
         # Part 2: Approval reads task from DB (simulated) and settles with AUSD
         from api.routers._helpers import _settle_submission_payment
@@ -3446,16 +3445,18 @@ REPUTATION_WORKER_WALLET = "0xWorkerWalletForRepTest0123456789abcdef00"
 class TestReputationWithoutTransaction:
     """Task 5.1: Rating without a completed task -- proves validation gap."""
 
+    @pytest.mark.xfail(
+        reason="Known gap: rate_worker does not validate completed submission — 'accepted' status slips through",
+        strict=False,
+    )
     @pytest.mark.asyncio
     async def test_rate_without_completed_task(self):
         """
         Agent rates worker for a task that was never completed (status='accepted').
 
-        KNOWN GAP: rate_worker_endpoint allows this because it only blocks
-        {published, cancelled, expired}. The 'accepted' status slips through.
-        The test proves the endpoint does NOT reject the request -- it proceeds
-        to call rate_worker() in the facilitator_client. The on-chain call is
-        mocked to succeed, showing no server-side validation prevents this.
+        DESIRED BEHAVIOR: Should raise HTTPException(409) because 'accepted'
+        means no submission was ever completed. When the gap is fixed, this
+        test will pass naturally and the xfail marker can be removed.
         """
         from api.reputation import rate_worker_endpoint, WorkerFeedbackRequest
 
@@ -3504,27 +3505,20 @@ class TestReputationWithoutTransaction:
                 new_callable=AsyncMock,
                 return_value=mock_feedback,
                 create=True,
-            ) as mock_rate,
+            ),
             patch(
                 "api.reputation.db",
-            ) as mock_db,
+            ),
             patch(
                 "api.reputation.log_payment_event",
                 new_callable=AsyncMock,
             ),
         ):
-            mock_db.get_client.return_value.table.return_value.update.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
-                data=[]
-            )
+            # DESIRED: Should raise HTTPException(409, "Task not completed")
+            with pytest.raises(HTTPException) as exc_info:
+                await rate_worker_endpoint(request, mock_api_key)
 
-            # GAP: This should raise HTTPException(409, "Task not completed")
-            # but it SUCCEEDS because 'accepted' is not in the blocked set.
-            response = await rate_worker_endpoint(request, mock_api_key)
-
-            assert response.success is True
-            assert response.transaction_hash == FAKE_TX_HASH
-            # rate_worker was actually called -- no pre-check stopped it
-            mock_rate.assert_called_once()
+            assert exc_info.value.status_code == 409
 
     @pytest.mark.asyncio
     async def test_rate_for_nonexistent_task(self):
@@ -3564,18 +3558,19 @@ class TestReputationWithoutTransaction:
             assert exc_info.value.status_code == 404
             assert "not found" in exc_info.value.detail
 
+    @pytest.mark.xfail(
+        reason="Known gap: rate_worker does not check submission verdict — rejected submissions can be rated",
+        strict=False,
+    )
     @pytest.mark.asyncio
     async def test_rate_after_rejection(self):
         """
         Agent rates worker after submission was rejected (task status='submitted',
         submission verdict='rejected' but task not yet returned to in_progress).
 
-        KNOWN GAP: The endpoint does NOT check submission verdict. A task in
-        'submitted' status (or even 'in_progress' after rejection rollback)
-        can be rated. There is no check that an approved submission exists.
-
-        This test proves the gap: rating succeeds for a task whose only
-        submission was rejected.
+        DESIRED BEHAVIOR: Should raise HTTPException(409) because no approved
+        submission exists. When the gap is fixed, this test will pass naturally
+        and the xfail marker can be removed.
         """
         from api.reputation import rate_worker_endpoint, WorkerFeedbackRequest
 
@@ -3624,25 +3619,20 @@ class TestReputationWithoutTransaction:
                 new_callable=AsyncMock,
                 return_value=mock_feedback,
                 create=True,
-            ) as mock_rate,
+            ),
             patch(
                 "api.reputation.db",
-            ) as mock_db,
+            ),
             patch(
                 "api.reputation.log_payment_event",
                 new_callable=AsyncMock,
             ),
         ):
-            mock_db.get_client.return_value.table.return_value.update.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
-                data=[]
-            )
+            # DESIRED: Should raise HTTPException(409) because submission was rejected
+            with pytest.raises(HTTPException) as exc_info:
+                await rate_worker_endpoint(request, mock_api_key)
 
-            # GAP: This succeeds even though no approved submission exists.
-            # A correct implementation would check submission verdict.
-            response = await rate_worker_endpoint(request, mock_api_key)
-
-            assert response.success is True
-            mock_rate.assert_called_once()
+            assert exc_info.value.status_code == 409
 
     @pytest.mark.asyncio
     async def test_rate_blocked_for_published_status(self):
@@ -4227,3 +4217,485 @@ class TestBilateralTaskEconomy:
             # Application succeeded -- A is both publisher (on own task)
             # and worker (on B's task)
             assert app_result is not None
+
+
+# ============================================================================
+# Audit Bug Fixes: Self-application with numeric agent_id, rejection rollback,
+# case-insensitive agent_id matching
+# ============================================================================
+
+
+class TestSelfApplicationNumericAgentId:
+    """BUG 1: Self-application guard must work when agent_id is numeric (ERC-8004)."""
+
+    @pytest.mark.asyncio
+    async def test_self_application_numeric_agent_id_db(self):
+        """
+        apply_to_task() raises when task.agent_id is a numeric ERC-8004 ID
+        and executor.erc8004_agent_id matches.
+        """
+        import supabase_client as db
+
+        # Task created by agent with numeric ID "2106"
+        task = _make_task(agent_id="2106")
+        # Executor whose erc8004_agent_id is 2106 (same agent)
+        executor_data = _make_executor(
+            wallet_address=OTHER_WALLET,
+            executor_id=EXECUTOR_ID,
+        )
+        executor_data["erc8004_agent_id"] = 2106
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data=executor_data,
+        )
+
+        with (
+            patch.object(
+                db,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=task,
+            ),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(
+                db,
+                "_resolve_applications_table",
+                return_value="task_applications",
+            ),
+        ):
+            with pytest.raises(Exception, match="Cannot apply to your own task"):
+                await db.apply_to_task(
+                    task_id=TASK_ID,
+                    executor_id=EXECUTOR_ID,
+                )
+
+    @pytest.mark.asyncio
+    async def test_self_application_numeric_agent_id_mcp_tool(self):
+        """
+        MCP tool em_apply_to_task returns error when task.agent_id is numeric
+        and executor.erc8004_agent_id matches.
+        """
+        task = _make_task(agent_id="2106")
+        executor_stats = _make_executor(
+            wallet_address=OTHER_WALLET,
+            executor_id=EXECUTOR_ID,
+        )
+        executor_stats["erc8004_agent_id"] = 2106
+
+        mock_db = MagicMock()
+        mock_db.get_task = AsyncMock(return_value=task)
+        mock_db.get_executor_stats = AsyncMock(return_value=executor_stats)
+        # apply_to_task should NOT be called if pre-check catches it
+        mock_db.apply_to_task = AsyncMock()
+
+        mcp_server = MagicMock()
+        tools = {}
+
+        def capture_tool(**kwargs):
+            def decorator(fn):
+                tools[kwargs.get("name", fn.__name__)] = fn
+                return fn
+
+            return decorator
+
+        mcp_server.tool = capture_tool
+
+        from tools.worker_tools import register_worker_tools
+
+        register_worker_tools(mcp_server, mock_db)
+
+        apply_fn = tools["em_apply_to_task"]
+
+        params = SimpleNamespace(
+            task_id=TASK_ID,
+            executor_id=EXECUTOR_ID,
+            message=None,
+        )
+
+        result = await apply_fn(params)
+        assert "Cannot apply to your own task" in result
+        # DB apply_to_task should never be called
+        mock_db.apply_to_task.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_wallet_based_agent_id_still_works(self):
+        """
+        Self-application guard still works for wallet-based agent_id (original case).
+        """
+        import supabase_client as db
+
+        task = _make_task(agent_id=AGENT_WALLET)
+        executor_data = _make_executor(
+            wallet_address=AGENT_WALLET,
+            executor_id=EXECUTOR_ID,
+        )
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data=executor_data,
+        )
+
+        with (
+            patch.object(
+                db,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=task,
+            ),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(
+                db,
+                "_resolve_applications_table",
+                return_value="task_applications",
+            ),
+        ):
+            with pytest.raises(Exception, match="Cannot apply to your own task"):
+                await db.apply_to_task(
+                    task_id=TASK_ID,
+                    executor_id=EXECUTOR_ID,
+                )
+
+    @pytest.mark.asyncio
+    async def test_different_numeric_agent_id_allowed(self):
+        """
+        Executor with erc8004_agent_id=999 can apply to task with agent_id="2106".
+        """
+        import supabase_client as db
+
+        task = _make_task(agent_id="2106")
+        executor_data = _make_executor(
+            wallet_address=OTHER_WALLET,
+            executor_id=EXECUTOR_ID,
+        )
+        executor_data["erc8004_agent_id"] = 999
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data=executor_data,
+        )
+        # Existing application check returns empty
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[],
+        )
+        # Insert application
+        mock_client.table.return_value.insert.return_value.execute.return_value = (
+            MagicMock(
+                data=[
+                    {
+                        "id": "app-1",
+                        "task_id": TASK_ID,
+                        "executor_id": EXECUTOR_ID,
+                    }
+                ],
+            )
+        )
+
+        with (
+            patch.object(
+                db,
+                "get_task",
+                new_callable=AsyncMock,
+                return_value=task,
+            ),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(
+                db,
+                "_resolve_applications_table",
+                return_value="task_applications",
+            ),
+        ):
+            result = await db.apply_to_task(
+                task_id=TASK_ID,
+                executor_id=EXECUTOR_ID,
+            )
+            assert result is not None
+
+
+class TestRejectionRollbackGuard:
+    """BUG 2: Rejection must not resurrect cancelled/expired/completed tasks."""
+
+    @pytest.mark.asyncio
+    async def test_rejection_does_not_resurrect_cancelled_task(self):
+        """
+        When a submission is rejected but the task is already cancelled,
+        the task status should NOT be changed back to in_progress.
+        """
+        import supabase_client as db
+
+        cancelled_task = _make_task(status="cancelled")
+        submission = {
+            "id": "sub-1",
+            "task_id": TASK_ID,
+            "executor_id": EXECUTOR_ID,
+            "task": cancelled_task,
+        }
+
+        mock_client = MagicMock()
+        # update submission
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[
+                {
+                    "id": "sub-1",
+                    "agent_verdict": "rejected",
+                    "agent_notes": None,
+                    "verified_at": None,
+                }
+            ],
+        )
+
+        mock_update_task = AsyncMock()
+
+        with (
+            patch.object(
+                db,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=submission,
+            ),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(db, "update_task", mock_update_task),
+        ):
+            result = await db.update_submission(
+                submission_id="sub-1",
+                agent_id=cancelled_task["agent_id"],
+                verdict="rejected",
+            )
+            assert result is not None
+            # update_task should NOT have been called -- task is cancelled
+            mock_update_task.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rejection_does_not_resurrect_expired_task(self):
+        """
+        When a submission is rejected but the task is expired,
+        the task status should NOT be changed.
+        """
+        import supabase_client as db
+
+        expired_task = _make_task(status="expired")
+        submission = {
+            "id": "sub-2",
+            "task_id": TASK_ID,
+            "executor_id": EXECUTOR_ID,
+            "task": expired_task,
+        }
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[
+                {
+                    "id": "sub-2",
+                    "agent_verdict": "rejected",
+                    "agent_notes": None,
+                    "verified_at": None,
+                }
+            ],
+        )
+
+        mock_update_task = AsyncMock()
+
+        with (
+            patch.object(
+                db,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=submission,
+            ),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(db, "update_task", mock_update_task),
+        ):
+            result = await db.update_submission(
+                submission_id="sub-2",
+                agent_id=expired_task["agent_id"],
+                verdict="rejected",
+            )
+            assert result is not None
+            mock_update_task.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rejection_does_not_resurrect_completed_task(self):
+        """
+        When a submission is rejected but the task is completed,
+        the task status should NOT be changed.
+        """
+        import supabase_client as db
+
+        completed_task = _make_task(status="completed")
+        submission = {
+            "id": "sub-3",
+            "task_id": TASK_ID,
+            "executor_id": EXECUTOR_ID,
+            "task": completed_task,
+        }
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[
+                {
+                    "id": "sub-3",
+                    "agent_verdict": "rejected",
+                    "agent_notes": None,
+                    "verified_at": None,
+                }
+            ],
+        )
+
+        mock_update_task = AsyncMock()
+
+        with (
+            patch.object(
+                db,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=submission,
+            ),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(db, "update_task", mock_update_task),
+        ):
+            result = await db.update_submission(
+                submission_id="sub-3",
+                agent_id=completed_task["agent_id"],
+                verdict="rejected",
+            )
+            assert result is not None
+            mock_update_task.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rejection_rolls_back_submitted_task(self):
+        """
+        Normal case: rejection on a submitted task DOES roll back to in_progress.
+        """
+        import supabase_client as db
+
+        submitted_task = _make_task(status="submitted")
+        submission = {
+            "id": "sub-4",
+            "task_id": TASK_ID,
+            "executor_id": EXECUTOR_ID,
+            "task": submitted_task,
+        }
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[
+                {
+                    "id": "sub-4",
+                    "agent_verdict": "rejected",
+                    "agent_notes": None,
+                    "verified_at": None,
+                }
+            ],
+        )
+
+        mock_update_task = AsyncMock(return_value=_make_task(status="in_progress"))
+
+        with (
+            patch.object(
+                db,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=submission,
+            ),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(db, "update_task", mock_update_task),
+        ):
+            result = await db.update_submission(
+                submission_id="sub-4",
+                agent_id=submitted_task["agent_id"],
+                verdict="rejected",
+            )
+            assert result is not None
+            # update_task SHOULD be called to roll back to in_progress
+            mock_update_task.assert_called_once_with(TASK_ID, {"status": "in_progress"})
+
+
+class TestUpdateSubmissionCaseInsensitive:
+    """BUG 3: agent_id comparison in update_submission must be case-insensitive."""
+
+    @pytest.mark.asyncio
+    async def test_update_submission_case_insensitive_agent_id(self):
+        """
+        update_submission() should succeed when agent_id differs only in case
+        (e.g., checksummed vs lowercase).
+        """
+        import supabase_client as db
+
+        # Task with checksummed agent_id
+        checksummed_agent = "0xD3868E1eD738CED6945A574a7c769433BeD5d474"
+        lowercase_agent = checksummed_agent.lower()
+
+        task = _make_task(agent_id=checksummed_agent, status="submitted")
+        submission = {
+            "id": "sub-case",
+            "task_id": TASK_ID,
+            "executor_id": EXECUTOR_ID,
+            "task": task,
+        }
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[
+                {
+                    "id": "sub-case",
+                    "agent_verdict": "accepted",
+                    "agent_notes": None,
+                    "verified_at": "2026-02-20T00:00:00Z",
+                }
+            ],
+        )
+
+        mock_update_task = AsyncMock(return_value=_make_task(status="completed"))
+        mock_update_rep = AsyncMock()
+
+        with (
+            patch.object(
+                db,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=submission,
+            ),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(db, "update_task", mock_update_task),
+            patch.object(db, "_update_executor_reputation", mock_update_rep),
+        ):
+            # Use lowercase agent_id -- should still be authorized
+            result = await db.update_submission(
+                submission_id="sub-case",
+                agent_id=lowercase_agent,
+                verdict="accepted",
+            )
+            assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_update_submission_wrong_agent_rejected(self):
+        """
+        update_submission() should still reject a completely different agent.
+        """
+        import supabase_client as db
+
+        task = _make_task(agent_id=AGENT_WALLET, status="submitted")
+        submission = {
+            "id": "sub-wrong",
+            "task_id": TASK_ID,
+            "executor_id": EXECUTOR_ID,
+            "task": task,
+        }
+
+        mock_client = MagicMock()
+
+        with (
+            patch.object(
+                db,
+                "get_submission",
+                new_callable=AsyncMock,
+                return_value=submission,
+            ),
+            patch.object(db, "get_client", return_value=mock_client),
+        ):
+            with pytest.raises(Exception, match="Not authorized"):
+                await db.update_submission(
+                    submission_id="sub-wrong",
+                    agent_id=OTHER_WALLET,
+                    verdict="accepted",
+                )
