@@ -307,6 +307,7 @@ def register_worker_tools(
         """
         try:
             # Self-application guard: agent cannot apply to its own task
+            # Handles both wallet-address agent_ids and numeric ERC-8004 agent_ids
             try:
                 task_check = await db_module.get_task(params.task_id)
                 if task_check:
@@ -317,8 +318,20 @@ def register_worker_tools(
                         exec_wallet = (
                             executor_check.get("wallet_address") or ""
                         ).lower()
-                        task_agent = (task_check.get("agent_id") or "").lower()
+                        exec_agent_id = str(
+                            executor_check.get("erc8004_agent_id") or ""
+                        )
+                        task_agent = str(task_check.get("agent_id") or "").lower()
+
+                        is_self = False
+                        # Case 1: wallet matches (case-insensitive)
                         if exec_wallet and task_agent and exec_wallet == task_agent:
+                            is_self = True
+                        # Case 2: ERC-8004 numeric ID matches
+                        if exec_agent_id and task_agent and exec_agent_id == task_agent:
+                            is_self = True
+
+                        if is_self:
                             return (
                                 "Error: Cannot apply to your own task. "
                                 "The executor wallet matches the task agent."

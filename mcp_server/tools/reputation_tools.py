@@ -290,7 +290,7 @@ On-chain reputation feedback recorded in the ERC-8004 Reputation Registry."""
 
             # Check for relay wallet key — enables autonomous on-chain signing
             # (KK V2 swarm flow: each agent has a relay wallet at BIP-44 index+100)
-            relay_key = os.environ.get("EM_RELAY_PRIVATE_KEY")
+            relay_key = os.environ.get("EM_RELAY_PRIVATE_KEY") or None
 
             feedback = await _rate_agent(
                 agent_id=agent_id_int,
