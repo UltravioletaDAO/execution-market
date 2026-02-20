@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-02-20T20:13:27.256466+00:00",
+  "timestamp": "2026-02-20T21:16:11.134109+00:00",
   "api_base": "https://api.execution.market",
   "fee_model": "credit_card",
   "bounty_per_chain_usd": 0.1,
   "fee_per_chain_usd": 0.013,
   "worker_net_per_chain_usd": 0.087,
-  "total_chains": 7,
-  "total_cost_usd": 0.7000000000000001,
+  "total_chains": 8,
+  "total_cost_usd": 0.8,
   "worker_wallet": "0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15",
   "treasury_wallet": "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad",
   "health_ok": true,
@@ -19,10 +19,10 @@
       "chain_id": 8453,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 29.12,
-      "task_id": "1049710b-4223-44f2-b4e2-b5453e7f61b8",
-      "escrow_tx": "0x484593ce95e12421753a36469bc3b1f624416603eed8299af6e730404ae1ec8d",
-      "payment_tx": "0xcaf6b4ed10cc77fa543ca8031ebddf2d5b1f9fa8b2fe737a7c2be412e66a67ea",
+      "elapsed_s": 44.37,
+      "task_id": "157b1744-4268-4fb6-97cd-ab6e25d8cf3e",
+      "escrow_tx": "0x3de54e6d3d04a56e12f97a6743bc54cbd583b4bace4a5044fbe24a8efe32d765",
+      "payment_tx": "0x5bc8be993d926c2a836293f7c7c31329012b4a0490c77cded899fc2436f851de",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -30,8 +30,8 @@
       "platform_fee_usdc": 0.013000000000000012,
       "payment_mode": "fase2",
       "tx_hashes": [
-        "0x484593ce95e12421753a36469bc3b1f624416603eed8299af6e730404ae1ec8d",
-        "0xcaf6b4ed10cc77fa543ca8031ebddf2d5b1f9fa8b2fe737a7c2be412e66a67ea"
+        "0x3de54e6d3d04a56e12f97a6743bc54cbd583b4bace4a5044fbe24a8efe32d765",
+        "0x5bc8be993d926c2a836293f7c7c31329012b4a0490c77cded899fc2436f851de"
       ],
       "phases": {
         "create": "PASS",
@@ -47,10 +47,10 @@
       "chain_id": 137,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 43.91,
-      "task_id": "26af2fd6-b439-4db9-8c0d-d8c6ca82beff",
-      "escrow_tx": "0xaf889084dfd5b73b3a8b57d213a95c09e21a8c672cb6bd852f39761b6739cc2c",
-      "payment_tx": "0xd9236abca08c5d017a7b0e51dfd847d47df25fb206300f47b6daebaf857acf36",
+      "elapsed_s": 43.88,
+      "task_id": "20380b6e-b3c5-4acc-a0e6-837c7c469ef3",
+      "escrow_tx": "0x65143e3898ff023d9ead398164720db4628a6e4bed1fb6af32aadb2f80a29f9b",
+      "payment_tx": "0xf761dedfb9619011417253c90d427e64074be1585d7b9156bb789a1813dcd3b9",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -58,8 +58,8 @@
       "platform_fee_usdc": 0.013000000000000012,
       "payment_mode": "fase2",
       "tx_hashes": [
-        "0xaf889084dfd5b73b3a8b57d213a95c09e21a8c672cb6bd852f39761b6739cc2c",
-        "0xd9236abca08c5d017a7b0e51dfd847d47df25fb206300f47b6daebaf857acf36"
+        "0x65143e3898ff023d9ead398164720db4628a6e4bed1fb6af32aadb2f80a29f9b",
+        "0xf761dedfb9619011417253c90d427e64074be1585d7b9156bb789a1813dcd3b9"
       ],
       "phases": {
         "create": "PASS",
@@ -75,10 +75,10 @@
       "chain_id": 42161,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 49.73,
-      "task_id": "6dd585ef-1d3e-4b85-9e9f-b7bbe99de114",
-      "escrow_tx": "0x305062d9fa6c1d53e8cdd6c8854c0a93e20cc032f13da53eb6cdbe6e7031c3ec",
-      "payment_tx": "0xc04bc5edc695f6ccd0cc3af7b5095d89fe2efea2d0e8723bd3f9d3ceeb15888d",
+      "elapsed_s": 50.19,
+      "task_id": "e8d36125-15a1-4d75-8477-961aacb5145d",
+      "escrow_tx": "0xa1c8161dfe308a8bf32d151e2cd5238f83840b18b83ed0beef67478a6a9109dc",
+      "payment_tx": "0x3f197d09f085c74230718909e937444e900611ad64643800bda369de45be5930",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -86,8 +86,8 @@
       "platform_fee_usdc": 0.013000000000000012,
       "payment_mode": "fase2",
       "tx_hashes": [
-        "0x305062d9fa6c1d53e8cdd6c8854c0a93e20cc032f13da53eb6cdbe6e7031c3ec",
-        "0xc04bc5edc695f6ccd0cc3af7b5095d89fe2efea2d0e8723bd3f9d3ceeb15888d"
+        "0xa1c8161dfe308a8bf32d151e2cd5238f83840b18b83ed0beef67478a6a9109dc",
+        "0x3f197d09f085c74230718909e937444e900611ad64643800bda369de45be5930"
       ],
       "phases": {
         "create": "PASS",
@@ -103,10 +103,10 @@
       "chain_id": 43114,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 40.35,
-      "task_id": "165f65a1-be73-49b7-a73f-27ca3ee25ea1",
-      "escrow_tx": "0x870a77e86abd5132cfea2a76c2a8e168bceb115ceaf089cbcef2e5c151784ce3",
-      "payment_tx": "0xbe81636a22062d9386e2902fd1db3211431883945b91da0090fa2b04659bcf3f",
+      "elapsed_s": 41.01,
+      "task_id": "b6a6346e-513e-46e7-8230-38ccb5f2c7d5",
+      "escrow_tx": "0x09d7eb0e5b7b4169c8fed2ea40b21a942911bfc15c6729a7b18f59b1f28e70a7",
+      "payment_tx": "0x7b79f94670faff72e35a12f7ec66b3c079cd4a497cae2d7eba37609088c486cc",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -114,8 +114,8 @@
       "platform_fee_usdc": 0.013000000000000012,
       "payment_mode": "fase2",
       "tx_hashes": [
-        "0x870a77e86abd5132cfea2a76c2a8e168bceb115ceaf089cbcef2e5c151784ce3",
-        "0xbe81636a22062d9386e2902fd1db3211431883945b91da0090fa2b04659bcf3f"
+        "0x09d7eb0e5b7b4169c8fed2ea40b21a942911bfc15c6729a7b18f59b1f28e70a7",
+        "0x7b79f94670faff72e35a12f7ec66b3c079cd4a497cae2d7eba37609088c486cc"
       ],
       "phases": {
         "create": "PASS",
@@ -131,10 +131,10 @@
       "chain_id": 143,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 50.1,
-      "task_id": "39d204e8-0162-4989-9ab1-f1cdbed9e4b7",
-      "escrow_tx": "0xaeb4658dbf7678b952034a5f5ea3daecef20993ce29e89b6dd1aa8e6b75fab89",
-      "payment_tx": "0x3c38056a1eac9bf6cc4d38185f007ee72148f60559cf7c298df200950996e9dd",
+      "elapsed_s": 50.71,
+      "task_id": "1b7e2b51-b7dd-4db7-85c3-693ecd3fffb7",
+      "escrow_tx": "0x7e9f51454046bdf7cfdec1970d8372c2fddbc19db1c47b005ff3beeb7f4160c3",
+      "payment_tx": "0x00700af53410089ead5953f581a60ee825b2e4ad95062db52486ccd3fbcdc7fa",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -142,8 +142,8 @@
       "platform_fee_usdc": 0.013000000000000012,
       "payment_mode": "fase2",
       "tx_hashes": [
-        "0xaeb4658dbf7678b952034a5f5ea3daecef20993ce29e89b6dd1aa8e6b75fab89",
-        "0x3c38056a1eac9bf6cc4d38185f007ee72148f60559cf7c298df200950996e9dd"
+        "0x7e9f51454046bdf7cfdec1970d8372c2fddbc19db1c47b005ff3beeb7f4160c3",
+        "0x00700af53410089ead5953f581a60ee825b2e4ad95062db52486ccd3fbcdc7fa"
       ],
       "phases": {
         "create": "PASS",
@@ -159,10 +159,10 @@
       "chain_id": 42220,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 40.53,
-      "task_id": "c1e0e607-9e7b-4734-a9da-a73ade83592d",
-      "escrow_tx": "0x55263f8d72198e901d28595feb86ab94eda117e63ac38ca912e5f2522188622d",
-      "payment_tx": "0xe08700c201c5ad1f4744551d11d1fc508d0becefb037fde0b9bd339e36999e63",
+      "elapsed_s": 54.14,
+      "task_id": "b67475d7-06b6-49a4-b986-066776b619fc",
+      "escrow_tx": "0x78c75f4b6a215c1d5f621bc055703094b262a45985525b160ddddcce589ac716",
+      "payment_tx": "0x0f7e3e67b1c6b40b01e7b859cb6111ca8fcd56e75a85cd2153e621dfd1e65a72",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -170,8 +170,8 @@
       "platform_fee_usdc": 0.013000000000000012,
       "payment_mode": "fase2",
       "tx_hashes": [
-        "0x55263f8d72198e901d28595feb86ab94eda117e63ac38ca912e5f2522188622d",
-        "0xe08700c201c5ad1f4744551d11d1fc508d0becefb037fde0b9bd339e36999e63"
+        "0x78c75f4b6a215c1d5f621bc055703094b262a45985525b160ddddcce589ac716",
+        "0x0f7e3e67b1c6b40b01e7b859cb6111ca8fcd56e75a85cd2153e621dfd1e65a72"
       ],
       "phases": {
         "create": "PASS",
@@ -187,10 +187,10 @@
       "chain_id": 10,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 44.46,
-      "task_id": "35b91ab2-7a09-402e-9b4e-89a16e34a666",
-      "escrow_tx": "0x23a29894e48129358819d22515c055376d6cca1aa46fd83febd6c2e398a929f4",
-      "payment_tx": "0x08796a7395cab8b338cfe8c26fb51d3ffc495f44abf0df1baebcd0d4c0c611a9",
+      "elapsed_s": 72.38,
+      "task_id": "cb6c2a44-b922-415f-9297-6fabba4fec6f",
+      "escrow_tx": "0x1179ee3f92241c55f6fff436b91849a9b94cf78cdc8c45d3ec9f65eeea18b5f8",
+      "payment_tx": "0x825ebd374024b65d9f482eb544ec63782db7ac4ee66d3122a54422761202d2a9",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -198,8 +198,8 @@
       "platform_fee_usdc": 0.013000000000000012,
       "payment_mode": "fase2",
       "tx_hashes": [
-        "0x23a29894e48129358819d22515c055376d6cca1aa46fd83febd6c2e398a929f4",
-        "0x08796a7395cab8b338cfe8c26fb51d3ffc495f44abf0df1baebcd0d4c0c611a9"
+        "0x1179ee3f92241c55f6fff436b91849a9b94cf78cdc8c45d3ec9f65eeea18b5f8",
+        "0x825ebd374024b65d9f482eb544ec63782db7ac4ee66d3122a54422761202d2a9"
       ],
       "phases": {
         "create": "PASS",
@@ -208,8 +208,31 @@
         "submit": "PASS",
         "approve": "PASS"
       }
+    },
+    "ethereum": {
+      "network": "ethereum",
+      "display_name": "Ethereum",
+      "chain_id": 1,
+      "status": "FAIL",
+      "error": "Assign failed: Escrow lock failed during assignment: Escrow authorize failed: Escrow scheme error: Contract call failed: ContractCall(\"TxWatcher(Timeout)\"). Task remains published.",
+      "elapsed_s": 67.28,
+      "task_id": "59d4b636-e935-42c8-b573-bf2e6f9d95ad",
+      "escrow_tx": null,
+      "payment_tx": null,
+      "fee_distribute_tx": null,
+      "escrow_verified": false,
+      "payment_verified": false,
+      "worker_net_usdc": null,
+      "platform_fee_usdc": null,
+      "payment_mode": null,
+      "tx_hashes": [],
+      "phases": {
+        "create": "PASS",
+        "apply": "PASS",
+        "assign": "FAIL"
+      }
     }
   },
-  "overall": "PASS",
-  "total_elapsed_s": 323.76
+  "overall": "FAIL",
+  "total_elapsed_s": 452.72
 }
