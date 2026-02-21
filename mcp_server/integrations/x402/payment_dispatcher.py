@@ -837,7 +837,7 @@ class PaymentDispatcher:
         chain_id_check = config_chain.get("chain_id", 8453)
         if chain_id_check == 1:  # Ethereum mainnet
             auth_result = await asyncio.to_thread(
-                self._authorize_with_extended_timeout, client, pi, 300
+                self._authorize_with_extended_timeout, client, pi, 600
             )
         else:
             auth_result = await asyncio.to_thread(client.authorize, pi)
@@ -924,19 +924,19 @@ class PaymentDispatcher:
     # =========================================================================
 
     @staticmethod
-    def _authorize_with_extended_timeout(client, pi, timeout_seconds: int = 300):
+    def _authorize_with_extended_timeout(client, pi, timeout_seconds: int = 600):
         """Authorize escrow with extended HTTP timeout for slow chains (Ethereum L1)."""
         return PaymentDispatcher._call_with_extended_timeout(
             client.authorize, pi, timeout_seconds
         )
 
     @staticmethod
-    def _call_with_extended_timeout(func, pi, timeout_seconds: int = 300):
+    def _call_with_extended_timeout(func, pi, timeout_seconds: int = 600):
         """Call an SDK method with extended HTTP timeout for slow chains (Ethereum L1).
 
         The SDK hardcodes httpx.post timeout=120. For Ethereum L1 (blocks ~12s),
-        the Facilitator may need 120-180s to confirm the TX on-chain, which exceeds
-        the SDK default. This wrapper monkey-patches httpx.post temporarily.
+        the Facilitator may need up to 300s+ to confirm the TX on-chain. This
+        wrapper monkey-patches httpx.post temporarily.
         """
         import httpx as _httpx
 
@@ -1052,7 +1052,7 @@ class PaymentDispatcher:
         chain_id = config_chain.get("chain_id", 8453)
         if chain_id == 1:  # Ethereum mainnet
             auth_result = await asyncio.to_thread(
-                self._authorize_with_extended_timeout, client, pi, 300
+                self._authorize_with_extended_timeout, client, pi, 600
             )
         else:
             auth_result = await asyncio.to_thread(client.authorize, pi)
@@ -1208,7 +1208,7 @@ class PaymentDispatcher:
                 self._call_with_extended_timeout,
                 client.release_via_facilitator,
                 pi,
-                300,
+                600,
             )
         else:
             release_result = await asyncio.to_thread(client.release_via_facilitator, pi)
@@ -1936,7 +1936,7 @@ class PaymentDispatcher:
                 self._call_with_extended_timeout,
                 client.release_via_facilitator,
                 pi,
-                300,
+                600,
             )
         else:
             release_result = await asyncio.to_thread(client.release_via_facilitator, pi)

@@ -324,7 +324,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
             "USDC": {
                 "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
                 "name": "USD Coin",
-                "version": "1",
+                "version": "2",
                 "decimals": 6,
             },
             "EURC": {
