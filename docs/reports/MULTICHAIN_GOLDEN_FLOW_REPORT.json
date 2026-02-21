@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-21T12:25:15.054669+00:00",
+  "timestamp": "2026-02-21T13:24:18.821354+00:00",
   "api_base": "https://api.execution.market",
   "fee_model": "credit_card",
   "bounty_per_chain_usd": 0.1,
@@ -13,16 +13,16 @@
   "executor_id": "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4",
   "reputation_status": "SKIP",
   "chains": {
-    "monad": {
-      "network": "monad",
-      "display_name": "Monad",
-      "chain_id": 143,
+    "ethereum": {
+      "network": "ethereum",
+      "display_name": "Ethereum",
+      "chain_id": 1,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 53.98,
-      "task_id": "07099231-f94d-4742-be86-83c9e62cdff0",
-      "escrow_tx": "0x38e906b7571c9cc716183f124e43758c06a05f21ec44e3451fcf3b0e2e4d0062",
-      "payment_tx": "0x938232eeb1b6f4e7b6194e287a1784f947f730e91f712eb5e598aa32b3477e63",
+      "elapsed_s": 191.71,
+      "task_id": "b6ed8e14-cbd3-46a9-bd11-2cf09bc916c5",
+      "escrow_tx": "0x5cbdfca6cad5cb584b9aa5857160a67a2bf6b873a9b0793e984c7c599d7712b7",
+      "payment_tx": "0x67a69545b6f536e6db5ba2a9c167e91ade50aa1becf44e584bb2eb51c2a0cdf4",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -30,8 +30,8 @@
       "platform_fee_usdc": 0.013,
       "payment_mode": "direct_release",
       "tx_hashes": [
-        "0x38e906b7571c9cc716183f124e43758c06a05f21ec44e3451fcf3b0e2e4d0062",
-        "0x938232eeb1b6f4e7b6194e287a1784f947f730e91f712eb5e598aa32b3477e63"
+        "0x5cbdfca6cad5cb584b9aa5857160a67a2bf6b873a9b0793e984c7c599d7712b7",
+        "0x67a69545b6f536e6db5ba2a9c167e91ade50aa1becf44e584bb2eb51c2a0cdf4"
       ],
       "phases": {
         "create": "PASS",
@@ -43,5 +43,5 @@
     }
   },
   "overall": "PASS",
-  "total_elapsed_s": 56.47
+  "total_elapsed_s": 194.26
 }

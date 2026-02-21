@@ -1,6 +1,6 @@
 # Multichain Golden Flow Report
 
-> **Date**: 2026-02-21 12:25 UTC
+> **Date**: 2026-02-21 13:24 UTC
 > **API**: `https://api.execution.market`
 > **Fee Model**: credit_card (fee deducted from bounty on-chain)
 > **Escrow Mode**: direct_release (Fase 5, 1-TX release)
@@ -31,16 +31,16 @@ using the Fase 5 credit card model. 1/1 chains passed.
 
 | Chain | Chain ID | Status | Escrow TX | Release TX | Worker Net | Time |
 |-------|----------|--------|-----------|------------|------------|------|
-| **Monad** | 143 | **PASS** | [View](https://explorer.monad.xyz/tx/0x38e906b7571c9cc716183f124e43758c06a05f21ec44e3451fcf3b0e2e4d0062) | [View](https://explorer.monad.xyz/tx/0x938232eeb1b6f4e7b6194e287a1784f947f730e91f712eb5e598aa32b3477e63) | N/A | 53.98s |
+| **Ethereum** | 1 | **PASS** | [View](https://etherscan.io/tx/0x5cbdfca6cad5cb584b9aa5857160a67a2bf6b873a9b0793e984c7c599d7712b7) | [View](https://etherscan.io/tx/0x67a69545b6f536e6db5ba2a9c167e91ade50aa1becf44e584bb2eb51c2a0cdf4) | N/A | 191.71s |
 
 ---
 
-### Monad (chain 143)
+### Ethereum (chain 1)
 
 - **Status**: PASS
-- **Operator**: `0x9620Dbe2BB549E1d080Dc8e7982623A9e1Df8cC3`
-- **USDC**: `0x754704Bc059F8C67012fEd69BC8A327a5aafb603`
-- **Task ID**: `07099231-f94d-4742-be86-83c9e62cdff0`
+- **Operator**: `0x69B67962ffb7c5C7078ff348a87DF604dfA8001b`
+- **USDC**: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`
+- **Task ID**: `b6ed8e14-cbd3-46a9-bd11-2cf09bc916c5`
 - **Payment Mode**: `direct_release`
 
 | Phase | Status |
@@ -52,14 +52,14 @@ using the Fase 5 credit card model. 1/1 chains passed.
 | approve | PASS |
 
 **Transactions:**
-- TX 1: [`0x38e906b7571c9cc716...`](https://explorer.monad.xyz/tx/0x38e906b7571c9cc716183f124e43758c06a05f21ec44e3451fcf3b0e2e4d0062)
-- TX 2: [`0x938232eeb1b6f4e7b6...`](https://explorer.monad.xyz/tx/0x938232eeb1b6f4e7b6194e287a1784f947f730e91f712eb5e598aa32b3477e63)
+- TX 1: [`0x5cbdfca6cad5cb584b...`](https://etherscan.io/tx/0x5cbdfca6cad5cb584b9aa5857160a67a2bf6b873a9b0793e984c7c599d7712b7)
+- TX 2: [`0x67a69545b6f536e6db...`](https://etherscan.io/tx/0x67a69545b6f536e6db5ba2a9c167e91ade50aa1becf44e584bb2eb51c2a0cdf4)
 
 ---
 
 ## Invariants Verified
 
-- [x] Monad: Full lifecycle (create -> escrow -> release -> verify)
+- [x] Ethereum: Full lifecycle (create -> escrow -> release -> verify)
 - [ ] Reputation: SKIP
 
 ---
