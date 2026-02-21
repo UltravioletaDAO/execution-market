@@ -118,5 +118,9 @@ export type {
   RetryOptions,
 } from './utils';
 
+// ERC-8128 HTTP Message Signature Signer
+export { signRequest, fetchNonce, createSignedFetch } from './erc8128';
+export type { SignRequestOptions, SignatureHeaders } from './erc8128';
+
 // Version
 export const VERSION = '0.1.0';
