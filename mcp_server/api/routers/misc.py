@@ -504,6 +504,20 @@ async def get_erc8128_info():
         "supported": True,
         "version": "ERC-8128 Draft",
         "supported_chains": [1, 8453, 11155111, 84532],
+        "signing": {
+            "algorithm": "EIP-191 personal_sign",
+            "signature_format": "base64 (RFC 8941 byte sequence)",
+            "covered_components": [
+                "@method",
+                "@authority",
+                "@path",
+                "@query",
+                "content-digest",
+            ],
+            "content_digest": "sha-256 (RFC 9530)",
+            "label": "eth",
+            "keyid_format": "erc8128:{chain_id}:{address}",
+        },
         "policy": {
             "max_validity_sec": 300,
             "clock_skew_sec": 30,
