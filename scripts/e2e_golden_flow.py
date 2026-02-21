@@ -29,6 +29,7 @@ Cost: ~$0.10 per run (credit card model: fee deducted from bounty on-chain)
 """
 
 import asyncio
+import io
 import json
 import os
 import re
@@ -38,6 +39,14 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+# Force UTF-8 stdout on Windows to avoid charmap encoding errors
+if sys.platform == "win32" and not isinstance(sys.stdout, io.TextIOWrapper):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+elif sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 import httpx
 from dotenv import load_dotenv
