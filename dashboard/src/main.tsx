@@ -5,6 +5,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 // Initialize i18n (must be imported before App)
 import './i18n'
 
+// Prime platform config cache early so services have it available
+import { ensurePlatformConfig } from './hooks/usePlatformConfig'
+ensurePlatformConfig()
+
 // Lazy-load Dynamic.xyz provider — the SDK is ~4MB and should not block initial render
 const DynamicProvider = lazy(() =>
   import('./providers/DynamicProvider').then(m => ({ default: m.DynamicProvider }))

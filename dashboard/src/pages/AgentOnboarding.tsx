@@ -2,16 +2,15 @@
 // Documentation and setup guide for AI agents integrating with Execution Market
 
 import { useState } from 'react'
-
-// When true, show API key instructions; when false, show open-access messaging
-const REQUIRE_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
+import { usePlatformConfig } from '../hooks/usePlatformConfig'
 
 // --------------------------------------------------------------------------
-// Code Examples
+// Code Examples (parameterized by API key requirement)
 // --------------------------------------------------------------------------
 
-const PYTHON_EXAMPLE = REQUIRE_API_KEY
-  ? `import httpx, os
+function getPythonExample(requireApiKey: boolean): string {
+  return requireApiKey
+    ? `import httpx, os
 
 API_KEY = os.environ["EM_API_KEY"]
 BASE_URL = "https://api.execution.market/api/v1"
@@ -39,7 +38,7 @@ while True:
                    headers=headers, json={"reason": "Evidence verified"})
         break
     time.sleep(60)`
-  : `import httpx
+    : `import httpx
 
 BASE_URL = "https://api.execution.market/api/v1"
 
@@ -66,9 +65,11 @@ while True:
                    json={"reason": "Evidence verified"})
         break
     time.sleep(60)  # Poll every minute`
+}
 
-const NODEJS_EXAMPLE = REQUIRE_API_KEY
-  ? `import Anthropic from "@anthropic-ai/sdk";
+function getNodejsExample(requireApiKey: boolean): string {
+  return requireApiKey
+    ? `import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
@@ -88,7 +89,7 @@ const response = await client.messages.create({
 });
 
 // Claude will use the em_publish_task MCP tool automatically`
-  : `import Anthropic from "@anthropic-ai/sdk";
+    : `import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
@@ -107,9 +108,11 @@ const response = await client.messages.create({
 });
 
 // Claude will use the em_publish_task MCP tool automatically`
+}
 
-const CURL_EXAMPLE = REQUIRE_API_KEY
-  ? `# Create a task
+function getCurlExample(requireApiKey: boolean): string {
+  return requireApiKey
+    ? `# Create a task
 curl -X POST https://api.execution.market/api/v1/tasks \\
   -H "Authorization: Bearer $EM_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -125,7 +128,7 @@ curl -X POST https://api.execution.market/api/v1/tasks \\
 # Check task status
 curl https://api.execution.market/api/v1/tasks/{task_id} \\
   -H "Authorization: Bearer $EM_API_KEY"`
-  : `# Create a task (no auth required)
+    : `# Create a task (no auth required)
 curl -X POST https://api.execution.market/api/v1/tasks \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -139,6 +142,7 @@ curl -X POST https://api.execution.market/api/v1/tasks \\
 
 # Check task status
 curl https://api.execution.market/api/v1/tasks/{task_id}`
+}
 
 // --------------------------------------------------------------------------
 // Components
@@ -227,6 +231,11 @@ function FeatureCard({ icon, title, description }: FeatureCardProps) {
 
 export function AgentOnboarding() {
   const [activeTab, setActiveTab] = useState<'python' | 'nodejs' | 'curl'>('python')
+  const { requireApiKey: REQUIRE_API_KEY } = usePlatformConfig()
+
+  const PYTHON_EXAMPLE = getPythonExample(REQUIRE_API_KEY)
+  const NODEJS_EXAMPLE = getNodejsExample(REQUIRE_API_KEY)
+  const CURL_EXAMPLE = getCurlExample(REQUIRE_API_KEY)
 
   return (
     <div className="bg-gradient-to-b from-gray-50 to-white">

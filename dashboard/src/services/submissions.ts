@@ -17,7 +17,7 @@ import type {
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
 const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'
-const REQUIRE_AGENT_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
+import { getRequireApiKey } from '../hooks/usePlatformConfig'
 const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined
 
 function buildWorkerSubmitUrl(taskId: string): string {
@@ -399,8 +399,8 @@ export async function approveSubmission(data: ApproveSubmissionData): Promise<Su
   if (!hasAgentApiKey()) {
     if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
       throw new Error(
-        REQUIRE_AGENT_API_KEY
-          ? 'VITE_API_KEY is required for submission approval when VITE_REQUIRE_AGENT_API_KEY=true'
+        getRequireApiKey()
+          ? 'VITE_API_KEY is required for submission approval when VITE_getRequireApiKey()=true'
           : 'Direct Supabase submission approval is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
       )
     }
@@ -492,8 +492,8 @@ export async function rejectSubmission(data: RejectSubmissionData): Promise<Subm
   if (!hasAgentApiKey()) {
     if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
       throw new Error(
-        REQUIRE_AGENT_API_KEY
-          ? 'VITE_API_KEY is required for submission rejection when VITE_REQUIRE_AGENT_API_KEY=true'
+        getRequireApiKey()
+          ? 'VITE_API_KEY is required for submission rejection when VITE_getRequireApiKey()=true'
           : 'Direct Supabase submission rejection is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
       )
     }
@@ -581,8 +581,8 @@ export async function requestMoreInfo(submissionId: string, agentId: string, not
   if (!hasAgentApiKey()) {
     if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
       throw new Error(
-        REQUIRE_AGENT_API_KEY
-          ? 'VITE_API_KEY is required for request-more-info when VITE_REQUIRE_AGENT_API_KEY=true'
+        getRequireApiKey()
+          ? 'VITE_API_KEY is required for request-more-info when VITE_getRequireApiKey()=true'
           : 'Direct Supabase request-more-info is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
       )
     }

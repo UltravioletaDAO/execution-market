@@ -35,6 +35,35 @@ async function fetchConfig(): Promise<PlatformConfig> {
   return resp.json()
 }
 
+/**
+ * Non-hook accessor for services that can't use React hooks.
+ * Returns the cached require_api_key value (defaults to true if not yet fetched).
+ * Call ensurePlatformConfig() early in app boot to prime the cache.
+ */
+export function getRequireApiKey(): boolean {
+  return cachedConfig?.require_api_key ?? true
+}
+
+/**
+ * Prime the config cache. Call once at app startup (e.g. in main.tsx).
+ * Safe to call multiple times — deduplicates automatically.
+ */
+export function ensurePlatformConfig(): Promise<PlatformConfig | null> {
+  if (cachedConfig) return Promise.resolve(cachedConfig)
+  if (!fetchPromise) {
+    fetchPromise = fetchConfig()
+  }
+  return fetchPromise
+    .then((data) => {
+      cachedConfig = data
+      return data
+    })
+    .catch(() => null)
+    .finally(() => {
+      fetchPromise = null
+    })
+}
+
 export function usePlatformConfig(): UsePlatformConfigReturn {
   const [config, setConfig] = useState<PlatformConfig | null>(cachedConfig)
   const [loading, setLoading] = useState(!cachedConfig)

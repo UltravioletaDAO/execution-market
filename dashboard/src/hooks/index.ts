@@ -21,4 +21,4 @@ export {
   type PublicPlatformMetrics,
 } from './usePublicMetrics'
 
-export { usePlatformConfig } from './usePlatformConfig'
+export { usePlatformConfig, getRequireApiKey, ensurePlatformConfig } from './usePlatformConfig'
