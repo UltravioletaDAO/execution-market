@@ -1,5 +1,6 @@
 import { forwardRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { usePlatformConfig } from '../../hooks/usePlatformConfig'
 
 interface AgentIntegrationProps {
   onLearnMore?: () => void
@@ -9,7 +10,7 @@ export const AgentIntegration = forwardRef<HTMLElement, AgentIntegrationProps>(
   function AgentIntegration({ onLearnMore: _onLearnMore }, ref) {
     const { t } = useTranslation()
     const [copiedCommand, setCopiedCommand] = useState<string | null>(null)
-    const REQUIRE_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
+    const { requireApiKey: REQUIRE_API_KEY } = usePlatformConfig()
 
     const copyToClipboard = async (text: string, id: string) => {
       await navigator.clipboard.writeText(text)

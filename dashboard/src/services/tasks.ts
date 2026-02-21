@@ -24,7 +24,7 @@ import type {
 const db = supabase as any
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
 const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'
-const REQUIRE_AGENT_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
+import { getRequireApiKey } from '../hooks/usePlatformConfig'
 const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined
 
 function buildApplyTaskUrl(taskId: string): string {
@@ -217,8 +217,8 @@ export async function createTask(data: CreateTaskData): Promise<Task> {
   if (!hasAgentApiKey()) {
     if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
       throw new Error(
-        REQUIRE_AGENT_API_KEY
-          ? 'VITE_API_KEY is required for agent task creation when VITE_REQUIRE_AGENT_API_KEY=true'
+        getRequireApiKey()
+          ? 'VITE_API_KEY is required for agent task creation when VITE_getRequireApiKey()=true'
           : 'Direct Supabase task creation is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
       )
     }
@@ -466,8 +466,8 @@ export async function cancelTask(data: CancelTaskData): Promise<Task> {
   if (!hasAgentApiKey()) {
     if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
       throw new Error(
-        REQUIRE_AGENT_API_KEY
-          ? 'VITE_API_KEY is required for agent task cancellation when VITE_REQUIRE_AGENT_API_KEY=true'
+        getRequireApiKey()
+          ? 'VITE_API_KEY is required for agent task cancellation when VITE_getRequireApiKey()=true'
           : 'Direct Supabase task cancellation is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
       )
     }
@@ -594,8 +594,8 @@ export async function assignTask(data: AssignTaskData): Promise<{ task: Task; ex
   if (!hasAgentApiKey()) {
     if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
       throw new Error(
-        REQUIRE_AGENT_API_KEY
-          ? 'VITE_API_KEY is required for agent task assignment when VITE_REQUIRE_AGENT_API_KEY=true'
+        getRequireApiKey()
+          ? 'VITE_API_KEY is required for agent task assignment when VITE_getRequireApiKey()=true'
           : 'Direct Supabase task assignment is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
       )
     }
