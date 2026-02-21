@@ -42,6 +42,10 @@ resource "aws_lb" "main" {
 
   enable_deletion_protection = var.environment == "production"
 
+  # Ethereum L1 TXs can take 600-900s to confirm.
+  # Must exceed Facilitator TxWatcher (900s) + margin.
+  idle_timeout = 960
+
   tags = {
     Name = "${local.name_prefix}-alb"
   }
