@@ -1,6 +1,6 @@
 # Reporte Golden Flow -- Prueba de Aceptacion E2E Definitiva (Fase 5)
 
-> **Fecha**: 2026-02-21 09:14 UTC
+> **Fecha**: 2026-02-21 16:42 UTC
 > **Entorno**: Produccion (Base Mainnet, chain 8453)
 > **API**: `https://api.execution.market`
 > **Modelo de fee**: credit_card (fee descontado del bounty on-chain)
@@ -96,64 +96,71 @@ sequenceDiagram
 
 | # | Fase | Estado | Tiempo |
 |---|------|--------|--------|
-| 1 | Salud y Configuracion | **APROBADO** | 0.5s |
-| 2 | Creacion de Tarea (Balance Check) | **APROBADO** | 1.51s |
-| 3 | Registro de Worker e Identidad | **APROBADO** | 14.01s |
-| 4 | Ciclo de Vida (Aplicar -> Asignar+Escrow -> Enviar) | **APROBADO** | 13.11s |
-| 5 | Aprobacion y Pago (1 TX, Credit Card) | **APROBADO** | 26.08s |
-| 6 | Reputacion Bidireccional | **PARCIAL** | 1.51s |
-| 7 | Verificacion Final | **APROBADO** | 0.25s |
+| 1 | Salud y Configuracion | **APROBADO** | 0.68s |
+| 2 | Creacion de Tarea (Balance Check) | **APROBADO** | 1.79s |
+| 3 | Registro de Worker e Identidad | **APROBADO** | 14.77s |
+| 4 | Ciclo de Vida (Aplicar -> Asignar+Escrow -> Enviar) | **APROBADO** | 6.35s |
+| 5 | Aprobacion y Pago (1 TX, Credit Card) | **APROBADO** | 9.17s |
+| 6 | Reputacion Bidireccional | **PARCIAL** | 10.39s |
+| 7 | Verificacion Final | **APROBADO** | 0.28s |
 
 ---
 
 ## Salud y Configuracion
 
 - **Estado**: APROBADO
-- **Tiempo**: 0.5s
+- **Tiempo**: 0.68s
 
 ## Creacion de Tarea (Balance Check)
 
 - **Estado**: APROBADO
-- **Tiempo**: 1.51s
-- **Task ID**: `2a78dfa3-f190-406c-8376-132b560ab449`
+- **Tiempo**: 1.79s
+- **Task ID**: `f268ca0e-58ee-4098-9c62-a5c50377aace`
 - **Escrow en creacion**: False
 - **Modelo de fee**: credit_card
 
 ## Registro de Worker e Identidad
 
 - **Estado**: APROBADO
-- **Tiempo**: 14.01s
+- **Tiempo**: 14.77s
 - **Executor ID**: `803dfbf1-7b91-4a41-8d31-518f4fa2fcd4`
-- **ERC-8004 Agent ID**: 18644
+- **ERC-8004 Agent ID**: 18703
 
 ## Ciclo de Vida (Aplicar -> Asignar+Escrow -> Enviar)
 
 - **Estado**: APROBADO
-- **Tiempo**: 13.11s
-- **Submission ID**: `80f66105-3dfa-4d45-9b10-4e0f34c01997`
-- **TX Escrow (en asignacion)**: [`0xd48cb139bb4328...`](https://basescan.org/tx/0xd48cb139bb43282b00908cac7ca58a43ec6f21ad68877a89aeefd42be5916d0b)
+- **Tiempo**: 6.35s
+- **Submission ID**: `9c944a3d-0b9e-4007-ae85-f3732c465ed5`
+- **TX Escrow (en asignacion)**: [`0xe4ef496f0f6650...`](https://basescan.org/tx/0xe4ef496f0f6650917bb673c8512ab70a4ac41c073234234d38a0aff179101ed3)
 - **Escrow verificado**: True
 - **Modo escrow**: direct_release
 
 ## Aprobacion y Pago (1 TX, Credit Card)
 
 - **Estado**: APROBADO
-- **Tiempo**: 26.08s
-- **Modo de pago**: `unknown`
-- **TX Worker**: [`0x1decddb3d26043...`](https://basescan.org/tx/0x1decddb3d2604327290723cf940e8c4447e9510d41a3f69ad9276618da51704d)
-- **TX Fee**: [`0xa58c717ab94950...`](https://basescan.org/tx/0xa58c717ab94950786c9c42ce1df6f4e0396130ca8bfa80aa840b3277b214b473)
+- **Tiempo**: 9.17s
+- **Modo de pago**: `fase2`
+- **TX Worker**: [`0x28b06ffaaa0578...`](https://basescan.org/tx/0x28b06ffaaa0578e0215539fc3295eec9b87fdf053bc671e82de6ea0889079b17)
+
+### Verificacion de Fee (Modelo Credit Card)
+
+| Metrica | Esperado | Actual | Coincide |
+|---------|----------|--------|----------|
+| Neto worker (87%) | $0.087000 | $0.087000 | SI |
+| Fee operador (13%) | $0.013000 | $0.013000 | SI |
+| Monto bloqueado | $0.100000 | $0.100000 | SI |
 
 ## Reputacion Bidireccional
 
 - **Estado**: PARCIAL
-- **Tiempo**: 1.51s
-- **Error**: Worker->Agent: HTTP 200, success=False, error=EM_WORKER_PRIVATE_KEY not set — worker cannot sign on-chain TX
-- **TX Agente->Worker**: [`8e1d50d8d685d503...`](https://basescan.org/tx/8e1d50d8d685d503ce28ec60e4ebc176bd5fce1ab50267a42d48260b25839685)
+- **Tiempo**: 10.39s
+- **Error**: Worker->Agent: HTTP 200, success=False, error=On-chain signing failed: 'SignedTransaction' object has no attribute 'raw_transaction'
+- **TX Agente->Worker**: [`e4082b0580729763...`](https://basescan.org/tx/e4082b05807297631989924c654207d8b83e07f358291b3e8958d1a845a58b43)
 
 ## Verificacion Final
 
 - **Estado**: APROBADO
-- **Tiempo**: 0.25s
+- **Tiempo**: 0.28s
 
 ---
 
@@ -161,11 +168,10 @@ sequenceDiagram
 
 | # | TX Hash | BaseScan |
 |---|---------|----------|
-| 1 | `0xeb86981298d733dd40...` | [Ver](https://basescan.org/tx/0xeb86981298d733dd40f1f113692f422cb1aa04f3aa8223670804eb4c1d9d71fd) |
-| 2 | `0xd48cb139bb43282b00...` | [Ver](https://basescan.org/tx/0xd48cb139bb43282b00908cac7ca58a43ec6f21ad68877a89aeefd42be5916d0b) |
-| 3 | `0x1decddb3d260432729...` | [Ver](https://basescan.org/tx/0x1decddb3d2604327290723cf940e8c4447e9510d41a3f69ad9276618da51704d) |
-| 4 | `0xa58c717ab94950786c...` | [Ver](https://basescan.org/tx/0xa58c717ab94950786c9c42ce1df6f4e0396130ca8bfa80aa840b3277b214b473) |
-| 5 | `8e1d50d8d685d503ce28...` | [Ver](https://basescan.org/tx/8e1d50d8d685d503ce28ec60e4ebc176bd5fce1ab50267a42d48260b25839685) |
+| 1 | `0xbe4b7d498d7077b37c...` | [Ver](https://basescan.org/tx/0xbe4b7d498d7077b37c57618ab32e4b2e80214dc9b2ba6058d11ae179707d781c) |
+| 2 | `0xe4ef496f0f6650917b...` | [Ver](https://basescan.org/tx/0xe4ef496f0f6650917bb673c8512ab70a4ac41c073234234d38a0aff179101ed3) |
+| 3 | `0x28b06ffaaa0578e021...` | [Ver](https://basescan.org/tx/0x28b06ffaaa0578e0215539fc3295eec9b87fdf053bc671e82de6ea0889079b17) |
+| 4 | `e4082b05807297631989...` | [Ver](https://basescan.org/tx/e4082b05807297631989924c654207d8b83e07f358291b3e8958d1a845a58b43) |
 
 ---
 
@@ -176,6 +182,7 @@ sequenceDiagram
 - [x] Escrow bloqueado en asignacion (direct_release, worker como receiver)
 - [x] TX de escrow verificada on-chain (status: SUCCESS)
 - [x] Worker registrado con executor ID
+- [x] Worker recibe $0.087000 (87% del bounty, modelo credit card)
 - [x] Operador recibe $0.013000 (13% fee calculator on-chain)
 - [x] Todas las TXs de pago verificadas on-chain (status: 0x1)
 - [x] Release de escrow en 1 TX (fee split por StaticFeeCalculator 1300bps)
