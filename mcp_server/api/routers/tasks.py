@@ -2160,25 +2160,50 @@ async def assign_task_to_worker(
 
                     if auth_result.get("success"):
                         escrow_tx = auth_result.get("tx_hash")
+                        escrow_metadata = {
+                            "payment_mode": "fase2",
+                            "escrow_mode": "direct_release",
+                            "payment_info": auth_result.get("payment_info_serialized"),
+                            "worker_address": worker_wallet,
+                            "fee_method": auth_result.get(
+                                "fee_method", "on_chain_fee_calculator"
+                            ),
+                        }
                         try:
                             client = db.get_client()
-                            client.table("escrows").update(
-                                {
-                                    "status": "deposited",
-                                    "funding_tx": escrow_tx,
-                                    "metadata": {
-                                        "payment_mode": "fase2",
-                                        "escrow_mode": "direct_release",
-                                        "payment_info": auth_result.get(
-                                            "payment_info_serialized"
+                            upd = (
+                                client.table("escrows")
+                                .update(
+                                    {
+                                        "status": "deposited",
+                                        "funding_tx": escrow_tx,
+                                        "metadata": escrow_metadata,
+                                    }
+                                )
+                                .eq("task_id", task_id)
+                                .execute()
+                            )
+                            # If no row was updated, insert one
+                            if not upd.data:
+                                _insert_escrow_record(
+                                    {
+                                        "task_id": task_id,
+                                        "escrow_id": task.get(
+                                            "escrow_id",
+                                            f"escrow_{task_id[:8]}",
                                         ),
-                                        "worker_address": worker_wallet,
-                                        "fee_method": auth_result.get(
-                                            "fee_method", "on_chain_fee_calculator"
+                                        "funding_tx": escrow_tx,
+                                        "status": "deposited",
+                                        "total_amount_usdc": float(bounty),
+                                        "platform_fee_usdc": float(
+                                            bounty * Decimal("0.13")
                                         ),
-                                    },
-                                }
-                            ).eq("task_id", task_id).execute()
+                                        "metadata": escrow_metadata,
+                                        "created_at": datetime.now(
+                                            timezone.utc
+                                        ).isoformat(),
+                                    }
+                                )
 
                             await db.update_task(
                                 task_id,
