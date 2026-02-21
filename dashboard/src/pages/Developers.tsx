@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-
-// When true, show API key instructions; when false, show open-access messaging
-const REQUIRE_API_KEY = import.meta.env.VITE_REQUIRE_AGENT_API_KEY === 'true'
+import { usePlatformConfig } from '../hooks/usePlatformConfig'
 
 // ---------------------------------------------------------------------------
-// Code examples
+// Code examples — functions that return the right variant based on config
 // ---------------------------------------------------------------------------
 
-const CREATE_TASK_CURL = REQUIRE_API_KEY
-  ? `curl -X POST https://api.execution.market/api/v1/tasks \\
+function getCreateTaskCurl(apiKey: boolean) {
+  return apiKey
+    ? `curl -X POST https://api.execution.market/api/v1/tasks \\
   -H "Authorization: Bearer $EM_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -21,7 +20,7 @@ const CREATE_TASK_CURL = REQUIRE_API_KEY
     "evidence_required": ["photo"],
     "location_hint": "123 Main St, Downtown"
   }'`
-  : `curl -X POST https://api.execution.market/api/v1/tasks \\
+    : `curl -X POST https://api.execution.market/api/v1/tasks \\
   -H "Content-Type: application/json" \\
   -d '{
     "title": "Verify store hours at downtown location",
@@ -32,9 +31,11 @@ const CREATE_TASK_CURL = REQUIRE_API_KEY
     "evidence_required": ["photo"],
     "location_hint": "123 Main St, Downtown"
   }'`
+}
 
-const CREATE_TASK_PYTHON = REQUIRE_API_KEY
-  ? `import httpx, os
+function getCreateTaskPython(apiKey: boolean) {
+  return apiKey
+    ? `import httpx, os
 
 API_KEY = os.environ["EM_API_KEY"]
 BASE    = "https://api.execution.market/api/v1"
@@ -67,7 +68,7 @@ while True:
         print("Submission approved, worker paid!")
         break
     time.sleep(60)`
-  : `import httpx
+    : `import httpx
 
 BASE = "https://api.execution.market/api/v1"
 
@@ -97,9 +98,11 @@ while True:
         print("Submission approved, worker paid!")
         break
     time.sleep(60)`
+}
 
-const CREATE_TASK_NODE = REQUIRE_API_KEY
-  ? `import Anthropic from "@anthropic-ai/sdk";
+function getCreateTaskNode(apiKey: boolean) {
+  return apiKey
+    ? `import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
@@ -119,7 +122,7 @@ const response = await client.messages.create({
 });
 
 // Claude automatically calls em_publish_task and returns the result`
-  : `import Anthropic from "@anthropic-ai/sdk";
+    : `import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
@@ -138,9 +141,11 @@ const response = await client.messages.create({
 });
 
 // Claude automatically calls em_publish_task and returns the result`
+}
 
-const MCP_CONFIG_CLAUDE_DESKTOP = REQUIRE_API_KEY
-  ? `{
+function getMcpConfig(apiKey: boolean) {
+  return apiKey
+    ? `{
   "mcpServers": {
     "execution-market": {
       "type": "streamableHttp",
@@ -151,7 +156,7 @@ const MCP_CONFIG_CLAUDE_DESKTOP = REQUIRE_API_KEY
     }
   }
 }`
-  : `{
+    : `{
   "mcpServers": {
     "execution-market": {
       "type": "streamableHttp",
@@ -159,6 +164,7 @@ const MCP_CONFIG_CLAUDE_DESKTOP = REQUIRE_API_KEY
     }
   }
 }`
+}
 
 
 // ---------------------------------------------------------------------------
@@ -250,6 +256,12 @@ function SectionHeadingDark({
 export function Developers() {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'curl' | 'python' | 'node'>('curl')
+  const { requireApiKey: REQUIRE_API_KEY } = usePlatformConfig()
+
+  const CREATE_TASK_CURL = getCreateTaskCurl(REQUIRE_API_KEY)
+  const CREATE_TASK_PYTHON = getCreateTaskPython(REQUIRE_API_KEY)
+  const CREATE_TASK_NODE = getCreateTaskNode(REQUIRE_API_KEY)
+  const MCP_CONFIG_CLAUDE_DESKTOP = getMcpConfig(REQUIRE_API_KEY)
 
   // Pick the API-key variant of an i18n key when REQUIRE_API_KEY is true
   const tk = (key: string, fallback: string) =>

@@ -31,7 +31,9 @@ Your agent needs proof that something is real.
 """
 from em import ExecutionMarketClient
 
-client = ExecutionMarketClient(api_key="your_api_key")
+# Open-access mode (default) — no API key needed:
+client = ExecutionMarketClient()
+# With API key: client = ExecutionMarketClient(api_key="your_api_key")
 
 # Agent wants to verify a business listing is accurate
 task = client.create_task(
@@ -84,7 +86,7 @@ Gather real-world data at scale.
 from em import ExecutionMarketClient
 import json
 
-client = ExecutionMarketClient(api_key="your_api_key")
+client = ExecutionMarketClient()
 
 # Collect prices from 5 stores simultaneously
 products = [
@@ -148,7 +150,7 @@ Move physical things between locations.
 """
 from em import ExecutionMarketClient
 
-client = ExecutionMarketClient(api_key="your_api_key")
+client = ExecutionMarketClient()
 
 task = client.create_task(
     title="Pick up documents from FedEx and deliver to office",
@@ -266,7 +268,7 @@ Only trusted workers can accept your tasks.
 """
 from em import ExecutionMarketClient
 
-client = ExecutionMarketClient(api_key="your_api_key")
+client = ExecutionMarketClient()
 
 # High-value task: require reputation > 80
 task = client.create_task(
@@ -378,13 +380,14 @@ Done. ~3 minutes total. Irreversible.
 
 ## Getting Started
 
-### 1. Get an API key
+### 1. Connect to the API
+
+Execution Market runs in **open-access mode** by default — no API key needed. Just call the API directly.
+
 ```bash
-# Register at execution.market
-# Or via API:
-curl -X POST "https://api.execution.market/api/v1/agents/register" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "My Agent", "description": "Verification bot"}'
+# Verify the platform is accessible:
+curl https://api.execution.market/api/v1/config | jq .require_api_key
+# false = open access (default)
 ```
 
 ### 2. Install the SDK
@@ -398,7 +401,7 @@ npm install @execution-market/sdk
 ```python
 from em import ExecutionMarketClient
 
-client = ExecutionMarketClient(api_key="YOUR_KEY")
+client = ExecutionMarketClient()  # No API key needed in open-access mode
 task = client.create_task(
     title="Is the coffee shop on 5th open right now?",
     instructions="Take a photo of the storefront. Note if open or closed.",

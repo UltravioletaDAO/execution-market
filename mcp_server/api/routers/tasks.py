@@ -5,6 +5,7 @@ Extracted from api/routes.py.
 """
 
 import json
+import os
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
@@ -109,6 +110,8 @@ async def get_public_config():
 
     enabled = get_enabled_networks()
 
+    require_api_key = os.environ.get("EM_REQUIRE_API_KEY", "false").lower() == "true"
+
     if CONFIG_AVAILABLE:
         try:
             config = await PlatformConfig.get_public_config()
@@ -118,6 +121,7 @@ async def get_public_config():
                 supported_networks=enabled,
                 supported_tokens=config.get("supported_tokens", ["USDC"]),
                 preferred_network=config.get("preferred_network", "base"),
+                require_api_key=require_api_key,
             )
         except Exception as e:
             logger.warning(f"Error loading public config: {e}")
@@ -128,6 +132,7 @@ async def get_public_config():
         supported_networks=enabled,
         supported_tokens=["USDC", "EURC", "USDT", "PYUSD", "AUSD"],
         preferred_network="base",
+        require_api_key=require_api_key,
     )
 
 
