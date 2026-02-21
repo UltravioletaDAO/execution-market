@@ -526,16 +526,52 @@ def register_agent_tools(mcp, db):
                 )
 
                 if eligibility.status != WorkerEligibilityStatus.ELIGIBLE:
+                    status_guidance = {
+                        WorkerEligibilityStatus.INELIGIBLE_REPUTATION: (
+                            "Worker's reputation score is below the task requirement. "
+                            "Consider: (1) assign a higher-rated worker, "
+                            "(2) lower the task's `min_reputation` if appropriate, "
+                            "or (3) use `skip_eligibility_check=True` to override."
+                        ),
+                        WorkerEligibilityStatus.INELIGIBLE_LOCATION: (
+                            "Worker is outside the task's required location radius. "
+                            "This worker cannot physically reach the task area. "
+                            "Use `em_get_tasks` with location filters to find nearby workers, "
+                            "or use `skip_eligibility_check=True` if location is flexible."
+                        ),
+                        WorkerEligibilityStatus.INELIGIBLE_STATUS: (
+                            "Worker account is suspended or inactive. "
+                            "This worker cannot accept tasks until their status is restored. "
+                            "Choose a different worker."
+                        ),
+                        WorkerEligibilityStatus.NOT_FOUND: (
+                            "No executor found with this ID. "
+                            "Verify the executor_id is correct. "
+                            "Use `em_get_tasks` to see available workers, "
+                            "or register the worker first via POST /api/v1/workers/register."
+                        ),
+                    }
+                    guidance = status_guidance.get(
+                        eligibility.status,
+                        "Use `skip_eligibility_check=True` to override.",
+                    )
+
+                    rep_line = ""
+                    if eligibility.reputation_score is not None:
+                        rep_line = (
+                            f"\n**Reputation**: {eligibility.reputation_score}"
+                            f" / {eligibility.required_reputation} required"
+                        )
+
                     return f"""# Worker Not Eligible
 
 **Worker ID**: `{params.executor_id}`
 **Status**: {eligibility.status.value}
-**Reason**: {eligibility.reason}
+**Reason**: {eligibility.reason}{rep_line}
 
-Worker reputation: {eligibility.reputation_score}
-Required reputation: {eligibility.required_reputation}
+## What To Do
 
-Use `skip_eligibility_check=True` to override (not recommended)."""
+{guidance}"""
 
             # Perform assignment
             result = await db.assign_task(
