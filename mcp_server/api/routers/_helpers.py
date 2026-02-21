@@ -220,9 +220,17 @@ def _insert_escrow_record(record: Dict[str, Any]) -> bool:
                 )
                 payload.pop(missing_column, None)
                 continue
-            logger.warning("Could not create escrow record: %s", err_msg)
+            logger.warning(
+                "Could not create escrow record (task=%s): %s",
+                record.get("task_id", "?"),
+                err_msg,
+            )
             return False
 
+    logger.warning(
+        "Escrow insert exhausted all columns for task %s — record NOT persisted",
+        record.get("task_id", "?"),
+    )
     return False
 
 
@@ -1192,6 +1200,7 @@ async def _settle_submission_payment(
         # Check if this task uses trustless direct_release escrow
         is_direct_release_task = False
         if dispatcher and task_id:
+            # Strategy 1: Check escrows table metadata
             try:
                 client = db.get_client()
                 esc_check = (
@@ -1208,8 +1217,29 @@ async def _settle_submission_payment(
                     is_direct_release_task = (
                         esc_meta.get("escrow_mode") == "direct_release"
                     )
-            except Exception:
-                pass
+            except Exception as esc_err:
+                logger.warning(
+                    "Could not read escrow metadata for task %s: %s",
+                    task_id,
+                    esc_err,
+                )
+
+            # Strategy 2: Fallback — if dispatcher is in direct_release mode
+            # AND the task has an escrow_tx (on-chain escrow was locked),
+            # treat as direct_release regardless of DB state.
+            if (
+                not is_direct_release_task
+                and getattr(dispatcher, "escrow_mode", "") == "direct_release"
+                and task.get("escrow_tx")
+            ):
+                logger.info(
+                    "direct_release fallback: task %s has escrow_tx=%s "
+                    "and dispatcher.escrow_mode=direct_release — "
+                    "routing to escrow release",
+                    task_id,
+                    task.get("escrow_tx", "")[:20],
+                )
+                is_direct_release_task = True
 
         if dispatcher and is_direct_release_task:
             # Trustless: 1-TX release directly to worker from escrow

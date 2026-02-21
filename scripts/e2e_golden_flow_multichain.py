@@ -916,7 +916,12 @@ async def test_reputation(
                     )
 
                     signed = acct.sign_transaction(tx)
-                    tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+                    raw = getattr(
+                        signed,
+                        "rawTransaction",
+                        getattr(signed, "raw_transaction", None),
+                    )
+                    tx_hash = w3.eth.send_raw_transaction(raw)
                     ra_tx = tx_hash.hex()
                     print(f"         TX: {ra_tx}")
 
@@ -1191,7 +1196,11 @@ async def main() -> int:
         if not skip_reputation:
             # Find a Base task for reputation (or first successful task)
             rep_task_id = None
-            if "base" in results.chains and results.chains["base"].task_id:
+            if (
+                "base" in results.chains
+                and results.chains["base"].status == "PASS"
+                and results.chains["base"].task_id
+            ):
                 rep_task_id = results.chains["base"].task_id
             else:
                 for cr in results.chains.values():
