@@ -39,7 +39,7 @@ except ImportError:
     ERC8004_SUPPORTED_NETWORKS = []
     EM_AGENT_ID = 0
 
-from .auth import verify_api_key_if_required, APIKeyData
+from .auth import verify_agent_auth, AgentAuth
 
 logger = logging.getLogger(__name__)
 
@@ -571,7 +571,7 @@ async def register_agent_endpoint(
 )
 async def rate_worker_endpoint(
     request: WorkerFeedbackRequest,
-    api_key: APIKeyData = Depends(verify_api_key_if_required),
+    auth: AgentAuth = Depends(verify_agent_auth),
 ) -> FeedbackResponse:
     """
     Rate a worker after task completion (agent → worker).
@@ -588,7 +588,7 @@ async def rate_worker_endpoint(
         )
 
     task = await _get_task_or_404(request.task_id)
-    if task.get("agent_id") != api_key.agent_id:
+    if task.get("agent_id") != auth.agent_id:
         raise HTTPException(
             status_code=403, detail="Not authorized to rate worker for this task"
         )
@@ -635,14 +635,14 @@ async def rate_worker_endpoint(
 
     logger.info(
         "Agent %s rated worker for task %s: score=%d, success=%s",
-        api_key.agent_id,
+        auth.agent_id,
         request.task_id,
         request.score,
         result.success,
     )
     logger.info(
         "SECURITY_AUDIT action=reputation.rate_worker actor=%s task=%s worker=%s score=%d success=%s",
-        api_key.agent_id,
+        auth.agent_id,
         request.task_id,
         worker_address,
         request.score,
