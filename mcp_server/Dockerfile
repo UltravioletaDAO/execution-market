@@ -38,11 +38,6 @@ RUN pip install --no-cache /wheels/*
 # Copy application code
 COPY . .
 
-# Hotfix: Patch SDK to include USDC domain name/version in settle payloads
-# (fixes Avalanche release "invalid signature" — SDK v0.14.0 omits extra.version).
-# Remove this COPY once uvd-x402-sdk >= 0.14.1 is published with the fix.
-COPY patches/advanced_escrow.py /usr/local/lib/python3.11/site-packages/uvd_x402_sdk/advanced_escrow.py
-
 # Set ownership
 RUN chown -R em:em /app
 
