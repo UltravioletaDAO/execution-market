@@ -1,12 +1,12 @@
 # Golden Flow Report -- Definitive E2E Acceptance Test (Fase 5)
 
-> **Date**: 2026-02-21 03:51 UTC
+> **Date**: 2026-02-21 04:10 UTC
 > **Environment**: Production (Base Mainnet, chain 8453)
 > **API**: `https://api.execution.market`
 > **Fee Model**: credit_card (fee deducted from bounty on-chain)
 > **Escrow Mode**: direct_release (escrow at assignment, 1-TX release)
 > **Token**: USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
-> **Result**: **FAIL**
+> **Result**: **PARTIAL**
 
 ---
 
@@ -15,7 +15,7 @@
 The Golden Flow tested the complete Execution Market lifecycle end-to-end 
 on production against Base Mainnet using the Fase 5 credit card fee model with **USDC**. 6/7 phases passed.
 
-**Overall Result: FAIL**
+**Overall Result: PARTIAL**
 
 ---
 
@@ -96,69 +96,71 @@ sequenceDiagram
 
 | # | Phase | Status | Time |
 |---|-------|--------|------|
-| 1 | Health & Config Verification | **PASS** | 0.69s |
-| 2 | Task Creation (Balance Check) | **PASS** | 1.34s |
-| 3 | Worker Registration & Identity | **PASS** | 14.78s |
-| 4 | Task Lifecycle (Apply -> Assign+Escrow -> Submit) | **PASS** | 3.37s |
-| 5 | Approval & Payment Settlement | **PASS** | 21.82s |
-| 6 | Bidirectional Reputation | **FAIL** | 1.56s |
-| 7 | Final Verification | **PASS** | 0.25s |
+| 1 | Health & Config Verification | **PASS** | 0.83s |
+| 2 | Task Creation (Balance Check) | **PASS** | 1.28s |
+| 3 | Worker Registration & Identity | **PASS** | 13.51s |
+| 4 | Task Lifecycle (Apply -> Assign+Escrow -> Submit) | **PASS** | 10.34s |
+| 5 | Approval & Payment Settlement | **PASS** | 26.02s |
+| 6 | Bidirectional Reputation | **PARTIAL** | 1.76s |
+| 7 | Final Verification | **PASS** | 0.29s |
 
 ---
 
 ## Health & Config Verification
 
 - **Status**: PASS
-- **Time**: 0.69s
+- **Time**: 0.83s
 
 
 ## Task Creation (Balance Check)
 
 - **Status**: PASS
-- **Time**: 1.34s
+- **Time**: 1.28s
 
-- **Task ID**: `bb163aa1-ced1-453b-a776-92dc08798a64`
+- **Task ID**: `15b43386-6221-4e0d-84e3-dd3866648f84`
 - **Escrow at creation**: False
 - **Fee model**: credit_card
 
 ## Worker Registration & Identity
 
 - **Status**: PASS
-- **Time**: 14.78s
+- **Time**: 13.51s
 
 - **Executor ID**: `803dfbf1-7b91-4a41-8d31-518f4fa2fcd4`
-- **ERC-8004 Agent ID**: 18613
-- **ERC-8004 TX**: [`0x3a6920303c335f...`](https://basescan.org/tx/0x3a6920303c335fd6d9fa3e47a4b21aa282e04b1d7522eb042efa215968c4c923)
+- **ERC-8004 Agent ID**: 18616
+- **ERC-8004 TX**: [`0xdb6cea7b1d34ab...`](https://basescan.org/tx/0xdb6cea7b1d34ab3f875253fc94e7af997f5a4c79c39c36d4544542baa161b960)
 
 ## Task Lifecycle (Apply -> Assign+Escrow -> Submit)
 
 - **Status**: PASS
-- **Time**: 3.37s
+- **Time**: 10.34s
 
-- **Submission ID**: `746e2d05-821d-4293-b795-6b95e3433840`
-- **Escrow TX (at assignment)**: [`0xe1b35ff5308811...`](https://basescan.org/tx/0xe1b35ff5308811201323e7e5cc12fe25d2e812a7cd196564a62c86f7f8540665)
+- **Submission ID**: `7852a41d-dbbe-4eb4-87de-5f5e1cf6eb5f`
+- **Escrow TX (at assignment)**: [`0x43e5d75cc11d43...`](https://basescan.org/tx/0x43e5d75cc11d43d468a468d9279da52947726069b28dece9de106c5ad097075c)
 - **Escrow Verified**: True
 - **Escrow mode**: direct_release
 
 ## Approval & Payment Settlement
 
 - **Status**: PASS
-- **Time**: 21.82s
+- **Time**: 26.02s
 
 - **Payment Mode**: `unknown`
-- **Worker TX**: [`0x4e65280ba444f5...`](https://basescan.org/tx/0x4e65280ba444f55e1d5971ad2e54026cb4003ee33296f99f7bb6aa58973b0499)
+- **Worker TX**: [`0xb6229e82316a5c...`](https://basescan.org/tx/0xb6229e82316a5c56285845b16f0fa0979780c370f28f8be3549839d49d8108e2)
+- **Fee TX**: [`0xc4c7b9ba3a990d...`](https://basescan.org/tx/0xc4c7b9ba3a990d8ffb1edfde869a5f17cba4503d93aaeb9d0f6797ca22c48f17)
 
 ## Bidirectional Reputation
 
-- **Status**: FAIL
-- **Time**: 1.56s
-- **Error**: Unexpected error: 'charmap' codec can't encode characters in position 9-10: character maps to <undefined>
+- **Status**: PARTIAL
+- **Time**: 1.76s
+- **Error**: Worker->Agent: HTTP 200, success=False, error=EM_WORKER_PRIVATE_KEY not set — worker cannot sign on-chain TX
 
+- **Agent->Worker TX**: [`51cd777c225d6155...`](https://basescan.org/tx/51cd777c225d6155458d5e271aa28ba7cdcc7311e35916faa4a39b0d89f450c8)
 
 ## Final Verification
 
 - **Status**: PASS
-- **Time**: 0.25s
+- **Time**: 0.29s
 
 - **EM Reputation Score**: 79.0
 - **EM Reputation Count**: 14
@@ -171,10 +173,10 @@ sequenceDiagram
 | Field | Value |
 |-------|-------|
 | Worker Wallet | `0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15` |
-| ERC-8004 Agent ID | 18613 |
+| ERC-8004 Agent ID | 18616 |
 | Network | base |
 | Identity Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
-| Registration TX | `0x3a6920303c335fd6d9fa3e47a4b21aa282e04b1d7522eb042efa215968c4c923` |
+| Registration TX | `0xdb6cea7b1d34ab3f875253fc94e7af997f5a4c79c39c36d4544542baa161b960` |
 
 ---
 
@@ -182,10 +184,11 @@ sequenceDiagram
 
 | # | TX Hash | BaseScan |
 |---|---------|----------|
-| 1 | `0x3a6920303c335fd6d9...` | [View](https://basescan.org/tx/0x3a6920303c335fd6d9fa3e47a4b21aa282e04b1d7522eb042efa215968c4c923) |
-| 2 | `0xe1b35ff53088112013...` | [View](https://basescan.org/tx/0xe1b35ff5308811201323e7e5cc12fe25d2e812a7cd196564a62c86f7f8540665) |
-| 3 | `0x4e65280ba444f55e1d...` | [View](https://basescan.org/tx/0x4e65280ba444f55e1d5971ad2e54026cb4003ee33296f99f7bb6aa58973b0499) |
-| 4 | `db0d363f119ebd91ef69...` | [View](https://basescan.org/tx/db0d363f119ebd91ef696c7eef1fc5b67db9e4e7fc42a69f6c1d467db7e8aca2) |
+| 1 | `0xdb6cea7b1d34ab3f87...` | [View](https://basescan.org/tx/0xdb6cea7b1d34ab3f875253fc94e7af997f5a4c79c39c36d4544542baa161b960) |
+| 2 | `0x43e5d75cc11d43d468...` | [View](https://basescan.org/tx/0x43e5d75cc11d43d468a468d9279da52947726069b28dece9de106c5ad097075c) |
+| 3 | `0xb6229e82316a5c5628...` | [View](https://basescan.org/tx/0xb6229e82316a5c56285845b16f0fa0979780c370f28f8be3549839d49d8108e2) |
+| 4 | `0xc4c7b9ba3a990d8ffb...` | [View](https://basescan.org/tx/0xc4c7b9ba3a990d8ffb1edfde869a5f17cba4503d93aaeb9d0f6797ca22c48f17) |
+| 5 | `51cd777c225d6155458d...` | [View](https://basescan.org/tx/51cd777c225d6155458d5e271aa28ba7cdcc7311e35916faa4a39b0d89f450c8) |
 
 ---
 
