@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-02-21T13:24:18.821354+00:00",
+  "timestamp": "2026-02-21T13:26:00.707671+00:00",
   "api_base": "https://api.execution.market",
   "fee_model": "credit_card",
   "bounty_per_chain_usd": 0.1,
@@ -17,31 +17,26 @@
       "network": "ethereum",
       "display_name": "Ethereum",
       "chain_id": 1,
-      "status": "PASS",
-      "error": null,
-      "elapsed_s": 191.71,
-      "task_id": "b6ed8e14-cbd3-46a9-bd11-2cf09bc916c5",
-      "escrow_tx": "0x5cbdfca6cad5cb584b9aa5857160a67a2bf6b873a9b0793e984c7c599d7712b7",
-      "payment_tx": "0x67a69545b6f536e6db5ba2a9c167e91ade50aa1becf44e584bb2eb51c2a0cdf4",
+      "status": "FAIL",
+      "error": "Assign failed: Escrow lock failed during assignment: Escrow authorize failed: The read operation timed out. Task remains published.",
+      "elapsed_s": 925.01,
+      "task_id": "ce215f20-de06-4b74-b5b0-f25c08cc5691",
+      "escrow_tx": null,
+      "payment_tx": null,
       "fee_distribute_tx": null,
-      "escrow_verified": true,
-      "payment_verified": true,
+      "escrow_verified": false,
+      "payment_verified": false,
       "worker_net_usdc": null,
-      "platform_fee_usdc": 0.013,
-      "payment_mode": "direct_release",
-      "tx_hashes": [
-        "0x5cbdfca6cad5cb584b9aa5857160a67a2bf6b873a9b0793e984c7c599d7712b7",
-        "0x67a69545b6f536e6db5ba2a9c167e91ade50aa1becf44e584bb2eb51c2a0cdf4"
-      ],
+      "platform_fee_usdc": null,
+      "payment_mode": null,
+      "tx_hashes": [],
       "phases": {
         "create": "PASS",
         "apply": "PASS",
-        "assign": "PASS",
-        "submit": "PASS",
-        "approve": "PASS"
+        "assign": "FAIL"
       }
     }
   },
-  "overall": "PASS",
-  "total_elapsed_s": 194.26
+  "overall": "FAIL",
+  "total_elapsed_s": 927.6
 }

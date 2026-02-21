@@ -1,20 +1,20 @@
 # Multichain Golden Flow Report
 
-> **Date**: 2026-02-21 13:24 UTC
+> **Date**: 2026-02-21 13:26 UTC
 > **API**: `https://api.execution.market`
 > **Fee Model**: credit_card (fee deducted from bounty on-chain)
 > **Escrow Mode**: direct_release (Fase 5, 1-TX release)
 > **Chains tested**: 1
-> **Result**: **PASS**
+> **Result**: **FAIL**
 
 ---
 
 ## Executive Summary
 
 Tested the complete Execution Market lifecycle across **1 blockchains** 
-using the Fase 5 credit card model. 1/1 chains passed.
+using the Fase 5 credit card model. 0/1 chains passed.
 
-**Overall Result: PASS**
+**Overall Result: FAIL**
 
 | Metric | Value |
 |--------|-------|
@@ -22,7 +22,7 @@ using the Fase 5 credit card model. 1/1 chains passed.
 | Worker net (87%) | $0.087000 USDC |
 | Fee (13%) | $0.013000 USDC |
 | Total cost | $0.10 USDC |
-| Total on-chain TXs | 2 |
+| Total on-chain TXs | 0 |
 | Reputation | SKIP |
 
 ---
@@ -31,35 +31,29 @@ using the Fase 5 credit card model. 1/1 chains passed.
 
 | Chain | Chain ID | Status | Escrow TX | Release TX | Worker Net | Time |
 |-------|----------|--------|-----------|------------|------------|------|
-| **Ethereum** | 1 | **PASS** | [View](https://etherscan.io/tx/0x5cbdfca6cad5cb584b9aa5857160a67a2bf6b873a9b0793e984c7c599d7712b7) | [View](https://etherscan.io/tx/0x67a69545b6f536e6db5ba2a9c167e91ade50aa1becf44e584bb2eb51c2a0cdf4) | N/A | 191.71s |
+| **Ethereum** | 1 | **FAIL** | N/A | N/A | N/A | 925.01s |
 
 ---
 
 ### Ethereum (chain 1)
 
-- **Status**: PASS
+- **Status**: FAIL
 - **Operator**: `0x69B67962ffb7c5C7078ff348a87DF604dfA8001b`
 - **USDC**: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`
-- **Task ID**: `b6ed8e14-cbd3-46a9-bd11-2cf09bc916c5`
-- **Payment Mode**: `direct_release`
+- **Error**: Assign failed: Escrow lock failed during assignment: Escrow authorize failed: The read operation timed out. Task remains published.
+- **Task ID**: `ce215f20-de06-4b74-b5b0-f25c08cc5691`
 
 | Phase | Status |
 |-------|--------|
 | create | PASS |
 | apply | PASS |
-| assign | PASS |
-| submit | PASS |
-| approve | PASS |
-
-**Transactions:**
-- TX 1: [`0x5cbdfca6cad5cb584b...`](https://etherscan.io/tx/0x5cbdfca6cad5cb584b9aa5857160a67a2bf6b873a9b0793e984c7c599d7712b7)
-- TX 2: [`0x67a69545b6f536e6db...`](https://etherscan.io/tx/0x67a69545b6f536e6db5ba2a9c167e91ade50aa1becf44e584bb2eb51c2a0cdf4)
+| assign | FAIL |
 
 ---
 
 ## Invariants Verified
 
-- [x] Ethereum: Full lifecycle (create -> escrow -> release -> verify)
+- [ ] Ethereum: Failed (Assign failed: Escrow lock failed during assignment: Escrow authorize failed: The read operation timed out. Task remains published.)
 - [ ] Reputation: SKIP
 
 ---
