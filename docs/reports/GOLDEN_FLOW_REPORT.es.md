@@ -1,6 +1,6 @@
 # Reporte Golden Flow -- Prueba de Aceptacion E2E Definitiva (Fase 5)
 
-> **Fecha**: 2026-02-21 04:10 UTC
+> **Fecha**: 2026-02-21 09:14 UTC
 > **Entorno**: Produccion (Base Mainnet, chain 8453)
 > **API**: `https://api.execution.market`
 > **Modelo de fee**: credit_card (fee descontado del bounty on-chain)
@@ -96,64 +96,64 @@ sequenceDiagram
 
 | # | Fase | Estado | Tiempo |
 |---|------|--------|--------|
-| 1 | Salud y Configuracion | **APROBADO** | 0.83s |
-| 2 | Creacion de Tarea (Balance Check) | **APROBADO** | 1.28s |
-| 3 | Registro de Worker e Identidad | **APROBADO** | 13.51s |
-| 4 | Ciclo de Vida (Aplicar -> Asignar+Escrow -> Enviar) | **APROBADO** | 10.34s |
-| 5 | Aprobacion y Pago (1 TX, Credit Card) | **APROBADO** | 26.02s |
-| 6 | Reputacion Bidireccional | **PARCIAL** | 1.76s |
-| 7 | Verificacion Final | **APROBADO** | 0.29s |
+| 1 | Salud y Configuracion | **APROBADO** | 0.5s |
+| 2 | Creacion de Tarea (Balance Check) | **APROBADO** | 1.51s |
+| 3 | Registro de Worker e Identidad | **APROBADO** | 14.01s |
+| 4 | Ciclo de Vida (Aplicar -> Asignar+Escrow -> Enviar) | **APROBADO** | 13.11s |
+| 5 | Aprobacion y Pago (1 TX, Credit Card) | **APROBADO** | 26.08s |
+| 6 | Reputacion Bidireccional | **PARCIAL** | 1.51s |
+| 7 | Verificacion Final | **APROBADO** | 0.25s |
 
 ---
 
 ## Salud y Configuracion
 
 - **Estado**: APROBADO
-- **Tiempo**: 0.83s
+- **Tiempo**: 0.5s
 
 ## Creacion de Tarea (Balance Check)
 
 - **Estado**: APROBADO
-- **Tiempo**: 1.28s
-- **Task ID**: `15b43386-6221-4e0d-84e3-dd3866648f84`
+- **Tiempo**: 1.51s
+- **Task ID**: `2a78dfa3-f190-406c-8376-132b560ab449`
 - **Escrow en creacion**: False
 - **Modelo de fee**: credit_card
 
 ## Registro de Worker e Identidad
 
 - **Estado**: APROBADO
-- **Tiempo**: 13.51s
+- **Tiempo**: 14.01s
 - **Executor ID**: `803dfbf1-7b91-4a41-8d31-518f4fa2fcd4`
-- **ERC-8004 Agent ID**: 18616
+- **ERC-8004 Agent ID**: 18644
 
 ## Ciclo de Vida (Aplicar -> Asignar+Escrow -> Enviar)
 
 - **Estado**: APROBADO
-- **Tiempo**: 10.34s
-- **Submission ID**: `7852a41d-dbbe-4eb4-87de-5f5e1cf6eb5f`
-- **TX Escrow (en asignacion)**: [`0x43e5d75cc11d43...`](https://basescan.org/tx/0x43e5d75cc11d43d468a468d9279da52947726069b28dece9de106c5ad097075c)
+- **Tiempo**: 13.11s
+- **Submission ID**: `80f66105-3dfa-4d45-9b10-4e0f34c01997`
+- **TX Escrow (en asignacion)**: [`0xd48cb139bb4328...`](https://basescan.org/tx/0xd48cb139bb43282b00908cac7ca58a43ec6f21ad68877a89aeefd42be5916d0b)
 - **Escrow verificado**: True
 - **Modo escrow**: direct_release
 
 ## Aprobacion y Pago (1 TX, Credit Card)
 
 - **Estado**: APROBADO
-- **Tiempo**: 26.02s
+- **Tiempo**: 26.08s
 - **Modo de pago**: `unknown`
-- **TX Worker**: [`0xb6229e82316a5c...`](https://basescan.org/tx/0xb6229e82316a5c56285845b16f0fa0979780c370f28f8be3549839d49d8108e2)
-- **TX Fee**: [`0xc4c7b9ba3a990d...`](https://basescan.org/tx/0xc4c7b9ba3a990d8ffb1edfde869a5f17cba4503d93aaeb9d0f6797ca22c48f17)
+- **TX Worker**: [`0x1decddb3d26043...`](https://basescan.org/tx/0x1decddb3d2604327290723cf940e8c4447e9510d41a3f69ad9276618da51704d)
+- **TX Fee**: [`0xa58c717ab94950...`](https://basescan.org/tx/0xa58c717ab94950786c9c42ce1df6f4e0396130ca8bfa80aa840b3277b214b473)
 
 ## Reputacion Bidireccional
 
 - **Estado**: PARCIAL
-- **Tiempo**: 1.76s
+- **Tiempo**: 1.51s
 - **Error**: Worker->Agent: HTTP 200, success=False, error=EM_WORKER_PRIVATE_KEY not set — worker cannot sign on-chain TX
-- **TX Agente->Worker**: [`51cd777c225d6155...`](https://basescan.org/tx/51cd777c225d6155458d5e271aa28ba7cdcc7311e35916faa4a39b0d89f450c8)
+- **TX Agente->Worker**: [`8e1d50d8d685d503...`](https://basescan.org/tx/8e1d50d8d685d503ce28ec60e4ebc176bd5fce1ab50267a42d48260b25839685)
 
 ## Verificacion Final
 
 - **Estado**: APROBADO
-- **Tiempo**: 0.29s
+- **Tiempo**: 0.25s
 
 ---
 
@@ -161,11 +161,11 @@ sequenceDiagram
 
 | # | TX Hash | BaseScan |
 |---|---------|----------|
-| 1 | `0xdb6cea7b1d34ab3f87...` | [Ver](https://basescan.org/tx/0xdb6cea7b1d34ab3f875253fc94e7af997f5a4c79c39c36d4544542baa161b960) |
-| 2 | `0x43e5d75cc11d43d468...` | [Ver](https://basescan.org/tx/0x43e5d75cc11d43d468a468d9279da52947726069b28dece9de106c5ad097075c) |
-| 3 | `0xb6229e82316a5c5628...` | [Ver](https://basescan.org/tx/0xb6229e82316a5c56285845b16f0fa0979780c370f28f8be3549839d49d8108e2) |
-| 4 | `0xc4c7b9ba3a990d8ffb...` | [Ver](https://basescan.org/tx/0xc4c7b9ba3a990d8ffb1edfde869a5f17cba4503d93aaeb9d0f6797ca22c48f17) |
-| 5 | `51cd777c225d6155458d...` | [Ver](https://basescan.org/tx/51cd777c225d6155458d5e271aa28ba7cdcc7311e35916faa4a39b0d89f450c8) |
+| 1 | `0xeb86981298d733dd40...` | [Ver](https://basescan.org/tx/0xeb86981298d733dd40f1f113692f422cb1aa04f3aa8223670804eb4c1d9d71fd) |
+| 2 | `0xd48cb139bb43282b00...` | [Ver](https://basescan.org/tx/0xd48cb139bb43282b00908cac7ca58a43ec6f21ad68877a89aeefd42be5916d0b) |
+| 3 | `0x1decddb3d260432729...` | [Ver](https://basescan.org/tx/0x1decddb3d2604327290723cf940e8c4447e9510d41a3f69ad9276618da51704d) |
+| 4 | `0xa58c717ab94950786c...` | [Ver](https://basescan.org/tx/0xa58c717ab94950786c9c42ce1df6f4e0396130ca8bfa80aa840b3277b214b473) |
+| 5 | `8e1d50d8d685d503ce28...` | [Ver](https://basescan.org/tx/8e1d50d8d685d503ce28ec60e4ebc176bd5fce1ab50267a42d48260b25839685) |
 
 ---
 

@@ -83,6 +83,7 @@ try:
         AdvancedEscrowClient,
         PaymentInfo as EscrowPaymentInfo,
         TaskTier,
+        TransactionResult,
     )
 
     FASE2_SDK_AVAILABLE = True
@@ -91,6 +92,7 @@ except ImportError:
     AdvancedEscrowClient = None  # type: ignore[assignment,misc]
     EscrowPaymentInfo = None  # type: ignore[assignment,misc]
     TaskTier = None  # type: ignore[assignment,misc]
+    TransactionResult = None  # type: ignore[assignment,misc]
 
 # EM PaymentOperator address (Base Mainnet). Fase 5: Credit card model fee split.
 # StaticFeeCalculator(1300 BPS = 13%) auto-splits at release: worker 87%, operator 13%.
@@ -835,9 +837,9 @@ class PaymentDispatcher:
         # Ethereum L1 needs longer timeout (blocks ~12s vs ~2s on L2s)
         config_chain = NETWORK_CONFIG.get(network, {})
         chain_id_check = config_chain.get("chain_id", 8453)
-        if chain_id_check == 1:  # Ethereum mainnet
+        if chain_id_check == 1:  # Ethereum mainnet — 900s margin over Facilitator 600s
             auth_result = await asyncio.to_thread(
-                self._authorize_with_extended_timeout, client, pi, 600
+                self._authorize_with_extended_timeout, client, pi, 900
             )
         else:
             auth_result = await asyncio.to_thread(client.authorize, pi)
@@ -1060,14 +1062,85 @@ class PaymentDispatcher:
 
         # Authorize (lock funds) via facilitator — gasless
         # Ethereum L1 needs longer timeout (blocks ~12s vs ~2s on L2s)
+        # 900s gives margin above the Facilitator's 600s TxWatcher timeout
         config_chain = NETWORK_CONFIG.get(network, {})
         chain_id = config_chain.get("chain_id", 8453)
         if chain_id == 1:  # Ethereum mainnet
             auth_result = await asyncio.to_thread(
-                self._authorize_with_extended_timeout, client, pi, 600
+                self._authorize_with_extended_timeout, client, pi, 900
             )
         else:
             auth_result = await asyncio.to_thread(client.authorize, pi)
+
+        if not auth_result.success:
+            # On-chain fallback: if authorize timed out, the TX may have mined
+            # despite the HTTP timeout. Query escrow state to verify.
+            is_timeout = "timed out" in (auth_result.error or "").lower()
+            if is_timeout:
+                logger.warning(
+                    "trustless: Authorize timed out for task %s on %s "
+                    "— checking on-chain escrow state...",
+                    task_id,
+                    network,
+                )
+                try:
+                    await asyncio.sleep(20)  # give TX time to mine
+                    state = await asyncio.to_thread(client.query_escrow_state, pi)
+                    capturable = int(state.get("capturableAmount", "0"))
+                    logger.info(
+                        "trustless: Escrow state after authorize timeout: "
+                        "capturableAmount=%d, full=%s",
+                        capturable,
+                        state,
+                    )
+                    if capturable > 0:
+                        logger.info(
+                            "trustless: Escrow capturableAmount=%d > 0 — "
+                            "authorize confirmed on-chain despite timeout "
+                            "for task %s",
+                            capturable,
+                            task_id,
+                        )
+                        # Override auth_result with success
+                        if TransactionResult is not None:
+                            auth_result = TransactionResult(
+                                success=True,
+                                transaction_hash="timeout-verified-onchain",
+                                error=None,
+                            )
+                        else:
+                            # SDK class not available — create a mock
+                            class _MockResult:
+                                success = True
+                                transaction_hash = "timeout-verified-onchain"
+                                error = None
+                                gas_used = None
+
+                            auth_result = _MockResult()
+                        await log_payment_event(
+                            task_id=task_id,
+                            event_type="escrow_authorize",
+                            status="timeout_recovered",
+                            tx_hash="timeout-verified-onchain",
+                            from_address=agent_address,
+                            to_address=worker_address,
+                            amount_usdc=lock_amount,
+                            network=network,
+                            token=token,
+                            metadata={
+                                "mode": "fase2",
+                                "escrow_mode": "direct_release",
+                                "timeout_recovery": True,
+                                "escrow_state": state,
+                            },
+                        )
+                except Exception as state_err:
+                    logger.error(
+                        "trustless: Escrow state query failed after authorize "
+                        "timeout for task %s: %s",
+                        task_id,
+                        state_err,
+                    )
 
         if not auth_result.success:
             await log_payment_event(
@@ -1217,7 +1290,7 @@ class PaymentDispatcher:
         chain_id_check = config_chain.get("chain_id", 8453)
         # Use extended timeout for ALL chains — SDK default 120s is too low.
         # Ethereum L1 gets 600s; other chains get 300s (any chain can be slow).
-        release_timeout = 600 if chain_id_check == 1 else 300
+        release_timeout = 900 if chain_id_check == 1 else 300
         logger.info(
             "trustless: Release for task %s on %s (chain_id=%s) with timeout=%ds",
             task_id,
@@ -1233,6 +1306,66 @@ class PaymentDispatcher:
         )
 
         if not release_result.success:
+            # ------------------------------------------------------------------
+            # Timeout fallback: If the release timed out, the Facilitator may
+            # have completed the TX on-chain but the HTTP response was cut by a
+            # proxy (observed on Ethereum L1 at ~90s).  Before reporting failure
+            # we query the escrow state.  If capturableAmount == 0 the release
+            # went through.
+            # ------------------------------------------------------------------
+            is_timeout = "timed out" in (release_result.error or "").lower()
+            if is_timeout:
+                logger.warning(
+                    "trustless: Release timed out for task %s — checking on-chain escrow state...",
+                    task_id,
+                )
+                try:
+                    await asyncio.sleep(15)  # give the TX time to mine
+                    state = await asyncio.to_thread(client.query_escrow_state, pi)
+                    capturable = int(state.get("capturableAmount", "1"))
+                    logger.info(
+                        "trustless: Escrow state after timeout: capturableAmount=%d, full=%s",
+                        capturable,
+                        state,
+                    )
+                    if capturable == 0:
+                        # Release DID succeed on-chain — the proxy just ate the response
+                        logger.info(
+                            "trustless: Escrow capturableAmount=0 — release confirmed on-chain despite timeout for task %s",
+                            task_id,
+                        )
+                        await log_payment_event(
+                            task_id=task_id,
+                            event_type="escrow_release",
+                            status="released_to_worker",
+                            tx_hash="timeout-verified-onchain",
+                            network=stored_network,
+                            token=token,
+                            metadata={
+                                "mode": "fase2",
+                                "escrow_mode": "direct_release",
+                                "timeout_recovery": True,
+                                "escrow_state": state,
+                            },
+                        )
+                        worker_address = pi_meta.get("worker_address", pi.receiver)
+                        bounty_usdc = pi_meta.get("bounty_usdc", "0")
+                        return {
+                            "success": True,
+                            "tx_hash": "timeout-verified-onchain",
+                            "mode": "fase2",
+                            "escrow_mode": "direct_release",
+                            "worker_address": worker_address,
+                            "bounty_usdc": str(bounty_usdc),
+                            "timeout_recovery": True,
+                        }
+                except Exception as state_err:
+                    logger.error(
+                        "trustless: Escrow state query failed after timeout for task %s: %s",
+                        task_id,
+                        state_err,
+                    )
+
             await log_payment_event(
                 task_id=task_id,
                 event_type="escrow_release",
@@ -1949,7 +2082,7 @@ class PaymentDispatcher:
         # Step 2: Release from escrow via facilitator (gasless)
         config_chain = NETWORK_CONFIG.get(stored_network, {})
         chain_id_check = config_chain.get("chain_id", 8453)
-        release_timeout = 600 if chain_id_check == 1 else 300
+        release_timeout = 900 if chain_id_check == 1 else 300
         logger.info(
             "fase2: Releasing escrow for task %s via facilitator (chain_id=%s, timeout=%ds)...",
             task_id,
@@ -1964,21 +2097,54 @@ class PaymentDispatcher:
         )
 
         if not release_result.success:
-            await log_payment_event(
-                task_id=task_id,
-                event_type="escrow_release",
-                status="failed",
-                network=stored_network,
-                token=token,
-                error=release_result.error,
-                metadata={"mode": "fase2"},
-            )
-            return {
-                "success": False,
-                "tx_hash": None,
-                "mode": "fase2",
-                "error": f"Escrow release failed: {release_result.error}",
-            }
+            # Timeout fallback: check on-chain state (same as direct_release)
+            is_timeout = "timed out" in (release_result.error or "").lower()
+            if is_timeout:
+                logger.warning(
+                    "fase2: Release timed out for task %s — checking on-chain escrow state...",
+                    task_id,
+                )
+                try:
+                    await asyncio.sleep(15)
+                    state = await asyncio.to_thread(client.query_escrow_state, pi)
+                    capturable = int(state.get("capturableAmount", "1"))
+                    logger.info(
+                        "fase2: Escrow state after timeout: capturableAmount=%d",
+                        capturable,
+                    )
+                    if capturable == 0:
+                        logger.info(
+                            "fase2: Release confirmed on-chain despite timeout for task %s",
+                            task_id,
+                        )
+                        # Treat as success — continue the normal post-release flow
+                        release_result = TransactionResult(
+                            success=True,
+                            transaction_hash="timeout-verified-onchain",
+                            error=None,
+                        )
+                except Exception as state_err:
+                    logger.error(
+                        "fase2: Escrow state query failed after timeout: %s",
+                        state_err,
+                    )
+
+            if not release_result.success:
+                await log_payment_event(
+                    task_id=task_id,
+                    event_type="escrow_release",
+                    status="failed",
+                    network=stored_network,
+                    token=token,
+                    error=release_result.error,
+                    metadata={"mode": "fase2"},
+                )
+                return {
+                    "success": False,
+                    "tx_hash": None,
+                    "mode": "fase2",
+                    "error": f"Escrow release failed: {release_result.error}",
+                }
 
         escrow_tx = release_result.transaction_hash
         await log_payment_event(

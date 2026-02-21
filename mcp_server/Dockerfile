@@ -35,6 +35,14 @@ COPY --from=builder /app/requirements.txt .
 # Install dependencies
 RUN pip install --no-cache /wheels/*
 
+# Patch SDK timeout: Ethereum L1 needs up to 600s+ for TX confirmation.
+# The SDK hardcodes httpx.post timeout=120s which is insufficient.
+# Change all timeout=120 to timeout=900 in the escrow module.
+# 900s gives margin above the Facilitator's 600s TxWatcher timeout.
+RUN sed -i 's/timeout=120/timeout=900/g' \
+    /usr/local/lib/python3.11/site-packages/uvd_x402_sdk/advanced_escrow.py \
+    && python -c "import uvd_x402_sdk.advanced_escrow; print('SDK timeout patched OK')"
+
 # Copy application code
 COPY . .
 

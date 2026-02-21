@@ -1,139 +1,28 @@
 {
-  "timestamp": "2026-02-21T01:19:18.188239+00:00",
+  "timestamp": "2026-02-21T12:25:15.054669+00:00",
   "api_base": "https://api.execution.market",
   "fee_model": "credit_card",
   "bounty_per_chain_usd": 0.1,
   "fee_per_chain_usd": 0.013,
   "worker_net_per_chain_usd": 0.087,
-  "total_chains": 8,
-  "total_cost_usd": 0.8,
+  "total_chains": 1,
+  "total_cost_usd": 0.1,
   "worker_wallet": "0x52E05C8e45a32eeE169639F6d2cA40f8887b5A15",
   "treasury_wallet": "0xae07ceb6b395bc685a776a0b4c489e8d9ce9a6ad",
   "health_ok": true,
   "executor_id": "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4",
-  "reputation_status": "PARTIAL",
+  "reputation_status": "SKIP",
   "chains": {
-    "base": {
-      "network": "base",
-      "display_name": "Base",
-      "chain_id": 8453,
-      "status": "PASS",
-      "error": null,
-      "elapsed_s": 23.67,
-      "task_id": "ea88196c-d171-467b-ac07-73e15793c60d",
-      "escrow_tx": "0x10790298e9153f7e3338f958a787520de3461d5a18904b7d58b3bc45cf7a373a",
-      "payment_tx": "0xa084af11c5bac4e503c80a8547d849c00c8214405e5cc7b32f6375a9cee1d043",
-      "fee_distribute_tx": null,
-      "escrow_verified": true,
-      "payment_verified": true,
-      "worker_net_usdc": null,
-      "platform_fee_usdc": 0.013,
-      "payment_mode": "direct_release",
-      "tx_hashes": [
-        "0x10790298e9153f7e3338f958a787520de3461d5a18904b7d58b3bc45cf7a373a",
-        "0xa084af11c5bac4e503c80a8547d849c00c8214405e5cc7b32f6375a9cee1d043"
-      ],
-      "phases": {
-        "create": "PASS",
-        "apply": "PASS",
-        "assign": "PASS",
-        "submit": "PASS",
-        "approve": "PASS"
-      }
-    },
-    "polygon": {
-      "network": "polygon",
-      "display_name": "Polygon",
-      "chain_id": 137,
-      "status": "PASS",
-      "error": null,
-      "elapsed_s": 47.72,
-      "task_id": "bc7b01da-a9b1-4469-8fec-d51c444e5da6",
-      "escrow_tx": "0x630827b31281d6b53cbe0ad6f1a3c42f6a31d6afdb40ea2f0044ef8af784bad8",
-      "payment_tx": "0x7aa3b3dad79429102f9de4b9bfe1c410cb7fd195d8309d2b661cf5566bf819fe",
-      "fee_distribute_tx": null,
-      "escrow_verified": true,
-      "payment_verified": true,
-      "worker_net_usdc": null,
-      "platform_fee_usdc": 0.013,
-      "payment_mode": "direct_release",
-      "tx_hashes": [
-        "0x630827b31281d6b53cbe0ad6f1a3c42f6a31d6afdb40ea2f0044ef8af784bad8",
-        "0x7aa3b3dad79429102f9de4b9bfe1c410cb7fd195d8309d2b661cf5566bf819fe"
-      ],
-      "phases": {
-        "create": "PASS",
-        "apply": "PASS",
-        "assign": "PASS",
-        "submit": "PASS",
-        "approve": "PASS"
-      }
-    },
-    "arbitrum": {
-      "network": "arbitrum",
-      "display_name": "Arbitrum",
-      "chain_id": 42161,
-      "status": "PASS",
-      "error": null,
-      "elapsed_s": 50.32,
-      "task_id": "f71b8ded-5387-44cb-87bc-10f2346f2b67",
-      "escrow_tx": "0x24b1f03301aa7faa6000184e63f494746a7408acd93b06f6917414dfd7fd0f65",
-      "payment_tx": "0xeeec542ad0c3caa5482b7a9d5638ca428788f20fd724d9bffadc30acd7f2076a",
-      "fee_distribute_tx": null,
-      "escrow_verified": true,
-      "payment_verified": true,
-      "worker_net_usdc": null,
-      "platform_fee_usdc": 0.013,
-      "payment_mode": "direct_release",
-      "tx_hashes": [
-        "0x24b1f03301aa7faa6000184e63f494746a7408acd93b06f6917414dfd7fd0f65",
-        "0xeeec542ad0c3caa5482b7a9d5638ca428788f20fd724d9bffadc30acd7f2076a"
-      ],
-      "phases": {
-        "create": "PASS",
-        "apply": "PASS",
-        "assign": "PASS",
-        "submit": "PASS",
-        "approve": "PASS"
-      }
-    },
-    "avalanche": {
-      "network": "avalanche",
-      "display_name": "Avalanche",
-      "chain_id": 43114,
-      "status": "FAIL",
-      "error": "Approval failed: HTTP 502 - Could not settle payment before approval: Facilitator HTTP 400: {\"error\":\"Contract call failed: ErrorResp(ErrorPayload { code: 3, message: \\\"execution reverted: FiatTokenV2: invalid signature\\\", data: Some(RawValue(\\\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001e46696174546f6b656e56323a20696e76616c6964207369676e61747572650000\\\")) })\"}",
-      "elapsed_s": 19.24,
-      "task_id": "4ac95838-c586-410b-b67c-cad28bbc7555",
-      "escrow_tx": "0x512028b0bcb015f4934999192fd504cbdde84954d214fa34cf676e4a496fd935",
-      "payment_tx": null,
-      "fee_distribute_tx": null,
-      "escrow_verified": true,
-      "payment_verified": false,
-      "worker_net_usdc": null,
-      "platform_fee_usdc": null,
-      "payment_mode": "direct_release",
-      "tx_hashes": [
-        "0x512028b0bcb015f4934999192fd504cbdde84954d214fa34cf676e4a496fd935"
-      ],
-      "phases": {
-        "create": "PASS",
-        "apply": "PASS",
-        "assign": "PASS",
-        "submit": "PASS",
-        "approve": "FAIL"
-      }
-    },
     "monad": {
       "network": "monad",
       "display_name": "Monad",
       "chain_id": 143,
       "status": "PASS",
       "error": null,
-      "elapsed_s": 42.03,
-      "task_id": "95b73392-f5c3-4248-96ea-48f80bbba9ee",
-      "escrow_tx": "0x7c747695ccb7c76a2d612a84cb78631987c897119332ad626b0ee89e4e90c7d8",
-      "payment_tx": "0xa3f0de7e5c2ae8beeb02a65e8159453744763f3122a44f7d1c4b366d70535fa5",
+      "elapsed_s": 53.98,
+      "task_id": "07099231-f94d-4742-be86-83c9e62cdff0",
+      "escrow_tx": "0x38e906b7571c9cc716183f124e43758c06a05f21ec44e3451fcf3b0e2e4d0062",
+      "payment_tx": "0x938232eeb1b6f4e7b6194e287a1784f947f730e91f712eb5e598aa32b3477e63",
       "fee_distribute_tx": null,
       "escrow_verified": true,
       "payment_verified": true,
@@ -141,8 +30,8 @@
       "platform_fee_usdc": 0.013,
       "payment_mode": "direct_release",
       "tx_hashes": [
-        "0x7c747695ccb7c76a2d612a84cb78631987c897119332ad626b0ee89e4e90c7d8",
-        "0xa3f0de7e5c2ae8beeb02a65e8159453744763f3122a44f7d1c4b366d70535fa5"
+        "0x38e906b7571c9cc716183f124e43758c06a05f21ec44e3451fcf3b0e2e4d0062",
+        "0x938232eeb1b6f4e7b6194e287a1784f947f730e91f712eb5e598aa32b3477e63"
       ],
       "phases": {
         "create": "PASS",
@@ -150,88 +39,9 @@
         "assign": "PASS",
         "submit": "PASS",
         "approve": "PASS"
-      }
-    },
-    "celo": {
-      "network": "celo",
-      "display_name": "Celo",
-      "chain_id": 42220,
-      "status": "PASS",
-      "error": null,
-      "elapsed_s": 48.12,
-      "task_id": "84f8861d-95a3-4ca5-b5a0-a1000f4a11a8",
-      "escrow_tx": "0x6e33c0953eefa7193c3bf35d33a7b6acb4ebaa15488454e515652c129f5ac136",
-      "payment_tx": "0x61d8e7cee6a74b01a7d3b63075a6265714dd615b0b223e265d8a4b9ba9efdf85",
-      "fee_distribute_tx": null,
-      "escrow_verified": true,
-      "payment_verified": true,
-      "worker_net_usdc": null,
-      "platform_fee_usdc": 0.013,
-      "payment_mode": "direct_release",
-      "tx_hashes": [
-        "0x6e33c0953eefa7193c3bf35d33a7b6acb4ebaa15488454e515652c129f5ac136",
-        "0x61d8e7cee6a74b01a7d3b63075a6265714dd615b0b223e265d8a4b9ba9efdf85"
-      ],
-      "phases": {
-        "create": "PASS",
-        "apply": "PASS",
-        "assign": "PASS",
-        "submit": "PASS",
-        "approve": "PASS"
-      }
-    },
-    "optimism": {
-      "network": "optimism",
-      "display_name": "Optimism",
-      "chain_id": 10,
-      "status": "PASS",
-      "error": null,
-      "elapsed_s": 28.37,
-      "task_id": "e6f4f24a-4360-4dd6-ba95-62f66dd30670",
-      "escrow_tx": "0xc9ffa7bb46e7cfc338e7cd5890fb51c731b0657ef7ddeac135eea743027e1530",
-      "payment_tx": "0xa9ea07e24c7e1eb877baf4f599d7228229334248a2aaa59e4be36873920855f2",
-      "fee_distribute_tx": null,
-      "escrow_verified": true,
-      "payment_verified": true,
-      "worker_net_usdc": null,
-      "platform_fee_usdc": 0.013,
-      "payment_mode": "direct_release",
-      "tx_hashes": [
-        "0xc9ffa7bb46e7cfc338e7cd5890fb51c731b0657ef7ddeac135eea743027e1530",
-        "0xa9ea07e24c7e1eb877baf4f599d7228229334248a2aaa59e4be36873920855f2"
-      ],
-      "phases": {
-        "create": "PASS",
-        "apply": "PASS",
-        "assign": "PASS",
-        "submit": "PASS",
-        "approve": "PASS"
-      }
-    },
-    "ethereum": {
-      "network": "ethereum",
-      "display_name": "Ethereum",
-      "chain_id": 1,
-      "status": "FAIL",
-      "error": "Assign failed: Escrow lock failed during assignment: Escrow authorize failed: The read operation timed out. Task remains published.",
-      "elapsed_s": 304.9,
-      "task_id": "1980bba0-1491-4d2b-a86c-86a17b005693",
-      "escrow_tx": null,
-      "payment_tx": null,
-      "fee_distribute_tx": null,
-      "escrow_verified": false,
-      "payment_verified": false,
-      "worker_net_usdc": null,
-      "platform_fee_usdc": null,
-      "payment_mode": null,
-      "tx_hashes": [],
-      "phases": {
-        "create": "PASS",
-        "apply": "PASS",
-        "assign": "FAIL"
       }
     }
   },
-  "overall": "FAIL",
-  "total_elapsed_s": 592.65
+  "overall": "PASS",
+  "total_elapsed_s": 56.47
 }
