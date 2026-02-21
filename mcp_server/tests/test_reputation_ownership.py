@@ -43,7 +43,7 @@ async def test_rate_worker_rejects_non_owner_agent(monkeypatch):
     api_key = SimpleNamespace(agent_id="another_agent")
 
     with pytest.raises(HTTPException) as exc:
-        await reputation.rate_worker_endpoint(request=request, api_key=api_key)
+        await reputation.rate_worker_endpoint(request=request, auth=api_key)
 
     assert exc.value.status_code == 403
 
@@ -85,7 +85,7 @@ async def test_rate_worker_uses_assigned_executor_wallet(monkeypatch):
     )
     api_key = SimpleNamespace(agent_id="agent_owner")
 
-    result = await reputation.rate_worker_endpoint(request=request, api_key=api_key)
+    result = await reputation.rate_worker_endpoint(request=request, auth=api_key)
 
     assert result.success is True
     assert rate_worker_mock.await_count == 1
