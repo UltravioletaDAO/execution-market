@@ -741,6 +741,20 @@ async def assign_task(
     if not executor.data:
         raise Exception(f"Executor {executor_id} not found")
 
+    # Self-assignment guard: agent cannot assign task to itself
+    executor_wallet = (executor.data.get("wallet_address") or "").lower()
+    executor_agent_id = str(executor.data.get("erc8004_agent_id") or "")
+    task_agent_id = str(task.get("agent_id") or "").lower()
+
+    is_self = False
+    if executor_wallet and task_agent_id and executor_wallet == task_agent_id:
+        is_self = True
+    if executor_agent_id and task_agent_id and executor_agent_id == task_agent_id:
+        is_self = True
+
+    if is_self:
+        raise Exception("Cannot assign task to yourself: executor matches task agent")
+
     # Check minimum reputation
     min_rep = task.get("min_reputation", 0)
     if executor.data.get("reputation_score", 0) < min_rep:

@@ -502,6 +502,23 @@ def register_agent_tools(mcp, db):
             if task["status"] != "published":
                 return f"Error: Task cannot be assigned (status: {task['status']})"
 
+            # Self-assignment guard
+            executor_data = (
+                client.table("executors")
+                .select("wallet_address,erc8004_agent_id")
+                .eq("id", params.executor_id)
+                .maybe_single()
+                .execute()
+            )
+            if executor_data.data:
+                exec_wallet = (executor_data.data.get("wallet_address") or "").lower()
+                exec_agent_id = str(executor_data.data.get("erc8004_agent_id") or "")
+                task_agent = str(task.get("agent_id") or "").lower()
+                if (exec_wallet and task_agent and exec_wallet == task_agent) or (
+                    exec_agent_id and task_agent and exec_agent_id == task_agent
+                ):
+                    return "Error: Cannot assign task to yourself. The executor's wallet matches the task agent."
+
             # Check worker eligibility unless skipped
             if not params.skip_eligibility_check:
                 eligibility = await check_worker_eligibility(
