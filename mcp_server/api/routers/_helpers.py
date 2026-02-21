@@ -188,6 +188,17 @@ def _extract_missing_column_name(error_msg: str) -> Optional[str]:
     return None
 
 
+def _sanitize_for_json(obj: Any) -> Any:
+    """Recursively convert Decimal/non-JSON-serializable types to JSON-safe equivalents."""
+    if isinstance(obj, Decimal):
+        return float(obj)
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_json(item) for item in obj]
+    return obj
+
+
 def _insert_escrow_record(record: Dict[str, Any]) -> bool:
     """
     Persist escrow rows with schema-drift tolerance.
@@ -196,7 +207,7 @@ def _insert_escrow_record(record: Dict[str, Any]) -> bool:
     columns one by one and retries so we can at least persist metadata
     (`x_payment_header`) required for settlement.
     """
-    payload = dict(record)
+    payload = _sanitize_for_json(dict(record))
     if not payload:
         return False
 
