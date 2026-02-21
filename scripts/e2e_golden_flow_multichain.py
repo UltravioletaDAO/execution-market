@@ -555,61 +555,81 @@ async def test_chain(
 
     # --- Step 3: Assign worker (escrow lock) ---
     print(f"\n  [3/5] Assigning worker (+ escrow lock on {network})...")
-    try:
-        assign_data = await api_call(
-            client,
-            "POST",
-            f"/tasks/{task_id}/assign",
-            {
-                "executor_id": executor_id,
-                "notes": f"Multichain GF assignment -- {network}",
-            },
-        )
-        assign_status = assign_data.get("_http_status")
-        print(f"         HTTP {assign_status}")
+    max_assign_retries = 2
+    for assign_attempt in range(1, max_assign_retries + 1):
+        try:
+            assign_data = await api_call(
+                client,
+                "POST",
+                f"/tasks/{task_id}/assign",
+                {
+                    "executor_id": executor_id,
+                    "notes": f"Multichain GF assignment -- {network}",
+                },
+            )
+            assign_status = assign_data.get("_http_status")
+            print(f"         HTTP {assign_status}")
 
-        if assign_status not in (200, 201):
-            err = assign_data.get("detail", str(assign_data)[:200])
-            print(f"         [FAIL] {err}")
-            result.error = f"Assign failed: {err}"
+            if assign_status not in (200, 201):
+                err = assign_data.get("detail", str(assign_data)[:200])
+                # Retry on TxWatcher timeout (intermittent Facilitator issue)
+                if "TxWatcher" in str(err) and assign_attempt < max_assign_retries:
+                    print(
+                        f"         [RETRY] TxWatcher timeout, attempt {assign_attempt}/{max_assign_retries}. Waiting 10s..."
+                    )
+                    await asyncio.sleep(10)
+                    continue
+                print(f"         [FAIL] {err}")
+                result.error = f"Assign failed: {err}"
+                result.phases["assign"] = "FAIL"
+                result.finish()
+                return result
+
+            # Extract escrow info
+            assign_resp = assign_data.get("data") or {}
+            escrow_info = assign_resp.get("escrow") or {}
+            escrow_tx = escrow_info.get("escrow_tx")
+            result.payment_mode = escrow_info.get("escrow_mode")
+
+            if escrow_tx:
+                result.escrow_tx = escrow_tx
+                result.add_tx(escrow_tx)
+                print(f"         Escrow TX: {escrow_tx}")
+                print(f"         Mode:      {result.payment_mode}")
+                print(f"         Explorer:  {explorer}/{escrow_tx}")
+
+                # Verify on-chain
+                receipt = await verify_tx_onchain(
+                    client, escrow_tx, rpc_url, usdc_addr
+                )
+                result.escrow_verified = receipt.get("success", False)
+                print(
+                    f"         On-chain:  {'SUCCESS' if result.escrow_verified else 'FAILED'}"
+                )
+                if receipt.get("transfers"):
+                    for t in receipt["transfers"]:
+                        print(
+                            f"         Transfer:  ...{t['from'][-6:]} -> ...{t['to'][-6:]} : ${t['amount_usdc']:.6f}"
+                        )
+            else:
+                print(
+                    "         No escrow TX returned (may be balance-check only mode)"
+                )
+                result.escrow_verified = True  # No TX to verify
+
+            result.phases["assign"] = "PASS"
+            break  # Success — exit retry loop
+        except Exception as e:
+            if assign_attempt < max_assign_retries:
+                print(
+                    f"         [RETRY] Error: {e}, attempt {assign_attempt}/{max_assign_retries}. Waiting 10s..."
+                )
+                await asyncio.sleep(10)
+                continue
+            result.error = f"Assign error: {e}"
             result.phases["assign"] = "FAIL"
             result.finish()
             return result
-
-        # Extract escrow info
-        assign_resp = assign_data.get("data") or {}
-        escrow_info = assign_resp.get("escrow") or {}
-        escrow_tx = escrow_info.get("escrow_tx")
-        result.payment_mode = escrow_info.get("escrow_mode")
-
-        if escrow_tx:
-            result.escrow_tx = escrow_tx
-            result.add_tx(escrow_tx)
-            print(f"         Escrow TX: {escrow_tx}")
-            print(f"         Mode:      {result.payment_mode}")
-            print(f"         Explorer:  {explorer}/{escrow_tx}")
-
-            # Verify on-chain
-            receipt = await verify_tx_onchain(client, escrow_tx, rpc_url, usdc_addr)
-            result.escrow_verified = receipt.get("success", False)
-            print(
-                f"         On-chain:  {'SUCCESS' if result.escrow_verified else 'FAILED'}"
-            )
-            if receipt.get("transfers"):
-                for t in receipt["transfers"]:
-                    print(
-                        f"         Transfer:  ...{t['from'][-6:]} -> ...{t['to'][-6:]} : ${t['amount_usdc']:.6f}"
-                    )
-        else:
-            print("         No escrow TX returned (may be balance-check only mode)")
-            result.escrow_verified = True  # No TX to verify
-
-        result.phases["assign"] = "PASS"
-    except Exception as e:
-        result.error = f"Assign error: {e}"
-        result.phases["assign"] = "FAIL"
-        result.finish()
-        return result
 
     await asyncio.sleep(1)
 
