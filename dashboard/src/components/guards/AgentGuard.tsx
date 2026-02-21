@@ -2,12 +2,14 @@
 // Allows agents to access routes via either:
 //   1. Dynamic.xyz wallet auth (existing flow, userType === 'agent')
 //   2. API key JWT auth (new agent login flow)
-// Redirects unauthenticated agents to /agent/login
+//   3. Open access when EM_REQUIRE_API_KEY=false on backend
+// Redirects unauthenticated agents to /agent/login only when API key is required
 
 import { type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { isAgentLoggedIn } from '../../utils/agentAuth'
+import { usePlatformConfig } from '../../hooks/usePlatformConfig'
 
 // --------------------------------------------------------------------------
 // Types
@@ -50,6 +52,7 @@ export function AgentGuard({
 }: AgentGuardProps) {
   const { isAuthenticated, userType, loading } = useAuth()
   const location = useLocation()
+  const { requireApiKey, loading: configLoading } = usePlatformConfig()
 
   // Check API key JWT auth (independent of Dynamic.xyz)
   const hasAgentJwt = isAgentLoggedIn()
@@ -59,8 +62,13 @@ export function AgentGuard({
     return <>{children}</>
   }
 
-  // Show loading state while checking wallet authentication
-  if (loading) {
+  // If API key is not required, allow open access
+  if (!configLoading && !requireApiKey) {
+    return <>{children}</>
+  }
+
+  // Show loading state while checking wallet authentication or config
+  if (loading || configLoading) {
     return <LoadingSpinner />
   }
 

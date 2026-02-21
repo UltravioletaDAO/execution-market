@@ -328,6 +328,10 @@ class PublicConfigResponse(BaseModel):
     )
     supported_tokens: List[str] = Field(..., description="Supported stablecoin tokens")
     preferred_network: str = Field(..., description="Default payment network")
+    require_api_key: bool = Field(
+        ...,
+        description="Whether agent endpoints require API key authentication",
+    )
 
 
 class PublicPlatformMetricsResponse(BaseModel):

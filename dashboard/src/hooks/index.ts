@@ -20,3 +20,5 @@ export {
   usePublicMetrics,
   type PublicPlatformMetrics,
 } from './usePublicMetrics'
+
+export { usePlatformConfig } from './usePlatformConfig'

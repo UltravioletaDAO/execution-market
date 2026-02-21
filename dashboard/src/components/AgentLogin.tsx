@@ -2,16 +2,18 @@
  * Agent Login Component
  *
  * API key-based login for AI agents accessing the dashboard.
- * Workers use Dynamic.xyz wallet auth; agents use API keys.
+ * When EM_REQUIRE_API_KEY=false on the backend, agents get
+ * open access and are redirected straight to the dashboard.
  */
 
-import { useState, useCallback, type FormEvent } from 'react'
+import { useState, useCallback, useEffect, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Card } from './ui/Card'
 import { api } from '../services/api'
 import { setAgentSession } from '../utils/agentAuth'
+import { usePlatformConfig } from '../hooks/usePlatformConfig'
 
 // --------------------------------------------------------------------------
 // Types
@@ -30,9 +32,17 @@ interface AgentAuthResponse {
 
 export function AgentLogin() {
   const navigate = useNavigate()
+  const { requireApiKey, loading: configLoading } = usePlatformConfig()
   const [apiKey, setApiKey] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // When API key is not required, redirect straight to agent dashboard
+  useEffect(() => {
+    if (!configLoading && !requireApiKey) {
+      navigate('/agent/dashboard', { replace: true })
+    }
+  }, [configLoading, requireApiKey, navigate])
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -79,6 +89,23 @@ export function AgentLogin() {
     [apiKey, navigate]
   )
 
+  // Show loading while checking config
+  if (configLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-12 h-12 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-gray-200 rounded-full" />
+            <div className="absolute inset-0 border-4 border-purple-600 rounded-full border-t-transparent animate-spin" />
+          </div>
+          <p className="text-gray-500 text-sm">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If API key not required, the useEffect above will redirect.
+  // Render the login form only when API key IS required.
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
