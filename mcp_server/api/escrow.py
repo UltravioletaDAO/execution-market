@@ -21,7 +21,7 @@ except ImportError:
 
 # x402r direct escrow (REMOVED — all payments go through SDK + facilitator now)
 
-from .auth import verify_api_key_if_required, APIKeyData
+from .auth import verify_agent_auth, AgentAuth
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +269,7 @@ async def get_merchant_balance(
     deprecated=True,
 )
 async def release_to_worker(
-    request: ReleaseRequest, api_key: APIKeyData = Depends(verify_api_key_if_required)
+    request: ReleaseRequest, auth: AgentAuth = Depends(verify_agent_auth)
 ) -> ReleaseResponse:
     """
     Release escrowed funds to a worker.
@@ -295,7 +295,7 @@ async def release_to_worker(
     },
 )
 async def refund_to_agent(
-    request: RefundRequest, api_key: APIKeyData = Depends(verify_api_key_if_required)
+    request: RefundRequest, auth: AgentAuth = Depends(verify_agent_auth)
 ) -> RefundResponse:
     """
     Refund escrowed funds to the original payer (agent).
@@ -318,7 +318,7 @@ async def refund_to_agent(
         result = await sdk.refund_task_payment(
             task_id=f"escrow-{request.deposit_id[:16]}",
             escrow_id=request.deposit_id,
-            reason=f"Refund requested by agent {api_key.agent_id}",
+            reason=f"Refund requested by agent {auth.agent_id}",
         )
 
         tx_hash = result.get("tx_hash")
@@ -328,7 +328,7 @@ async def refund_to_agent(
         logger.info(
             "Refund via %s by %s: deposit=%s, success=%s, tx=%s",
             method,
-            api_key.agent_id,
+            auth.agent_id,
             request.deposit_id[:16],
             success,
             tx_hash,
