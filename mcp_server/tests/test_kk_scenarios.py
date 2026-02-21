@@ -4699,3 +4699,100 @@ class TestUpdateSubmissionCaseInsensitive:
                     agent_id=OTHER_WALLET,
                     verdict="accepted",
                 )
+
+
+class TestSelfAssignmentPrevention:
+    """Task 0.1: Self-assignment guard in assign_task() — mirrors TestSelfApplicationDB."""
+
+    @pytest.mark.asyncio
+    async def test_self_assignment_rejected_wallet_match(self):
+        """assign_task() raises when executor wallet == task agent_id."""
+        import supabase_client as db
+
+        task = _make_task(agent_id=AGENT_WALLET)
+        executor_data = _make_executor(wallet_address=AGENT_WALLET)
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data=executor_data
+        )
+
+        with (
+            patch.object(db, "get_task", new_callable=AsyncMock, return_value=task),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(
+                db,
+                "_resolve_applications_table",
+                return_value="task_applications",
+            ),
+        ):
+            with pytest.raises(Exception, match="Cannot assign task to yourself"):
+                await db.assign_task(
+                    task_id=TASK_ID,
+                    agent_id=AGENT_WALLET,
+                    executor_id=EXECUTOR_ID,
+                )
+
+    @pytest.mark.asyncio
+    async def test_self_assignment_rejected_numeric_agent_id(self):
+        """assign_task() raises when executor erc8004_agent_id matches task agent_id."""
+        import supabase_client as db
+
+        task = _make_task(agent_id="2106")
+        executor_data = _make_executor(wallet_address=OTHER_WALLET)
+        executor_data["erc8004_agent_id"] = 2106
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data=executor_data
+        )
+
+        with (
+            patch.object(db, "get_task", new_callable=AsyncMock, return_value=task),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(
+                db,
+                "_resolve_applications_table",
+                return_value="task_applications",
+            ),
+        ):
+            with pytest.raises(Exception, match="Cannot assign task to yourself"):
+                await db.assign_task(
+                    task_id=TASK_ID,
+                    agent_id="2106",
+                    executor_id=EXECUTOR_ID,
+                )
+
+    @pytest.mark.asyncio
+    async def test_assignment_allowed_different_agent(self):
+        """assign_task() succeeds when executor is a different agent."""
+        import supabase_client as db
+
+        task = _make_task(agent_id=AGENT_WALLET)
+        executor_data = _make_executor(
+            wallet_address=OTHER_WALLET, executor_id=EXECUTOR_ID
+        )
+
+        mock_client = MagicMock()
+        mock_client.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
+            data=executor_data
+        )
+
+        mock_update = AsyncMock(return_value=_make_task(status="accepted"))
+
+        with (
+            patch.object(db, "get_task", new_callable=AsyncMock, return_value=task),
+            patch.object(db, "get_client", return_value=mock_client),
+            patch.object(db, "update_task", mock_update),
+            patch.object(
+                db,
+                "_resolve_applications_table",
+                return_value="task_applications",
+            ),
+        ):
+            result = await db.assign_task(
+                task_id=TASK_ID,
+                agent_id=AGENT_WALLET,
+                executor_id=EXECUTOR_ID,
+            )
+            assert result is not None
