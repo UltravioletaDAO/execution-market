@@ -68,7 +68,7 @@ export function usePlatformConfig(): UsePlatformConfigReturn {
 
   return {
     config,
-    requireApiKey: config?.require_api_key ?? false,
+    requireApiKey: config?.require_api_key ?? true,
     loading,
     error,
   }

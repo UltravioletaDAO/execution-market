@@ -426,6 +426,25 @@ export async function setupMocks(
   })
 
   // --------------------------------------------------------------------------
+  // Platform config (/api/v1/config)
+  // --------------------------------------------------------------------------
+  await page.route('**/api/v1/config*', async (route) => {
+    await wait()
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        min_bounty_usd: 0.25,
+        max_bounty_usd: 10000,
+        supported_networks: ['base'],
+        supported_tokens: ['USDC'],
+        preferred_network: 'base',
+        require_api_key: true,
+      }),
+    })
+  })
+
+  // --------------------------------------------------------------------------
   // Supabase Auth (anonymous sign-in, session)
   // --------------------------------------------------------------------------
   await page.route('**/auth/v1/**', async (route) => {
