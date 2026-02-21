@@ -938,3 +938,186 @@ class TestFactory:
         from integrations.erc8128.nonce_store import get_nonce_store
 
         assert get_nonce_store() is get_nonce_store()
+
+
+# =============================================================================
+# Signer Tests (Task 0.5)
+# =============================================================================
+
+# Aliases for clarity in signer tests
+PRIVATE_KEY = PK
+EXPECTED_ADDR = ADDR
+
+
+def FakeRequest(method, headers, path, body_bytes):
+    """Create a MockRequest compatible with the verifier."""
+    return MockRequest(
+        method=method,
+        url=MockURL(path=path),
+        headers=headers,
+        _body=body_bytes,
+    )
+
+
+class TestSigner:
+    """Test ERC-8128 signer module."""
+
+    def test_sign_request_returns_headers(self):
+        from integrations.erc8128.signer import sign_request
+
+        headers = sign_request(
+            private_key=PRIVATE_KEY,
+            method="POST",
+            url="https://api.execution.market/api/v1/tasks",
+            body='{"title": "test"}',
+            nonce="test-nonce-1",
+            chain_id=8453,
+        )
+        assert "Signature" in headers
+        assert "Signature-Input" in headers
+        assert "Content-Digest" in headers
+        assert headers["Signature"].startswith("eth=:")
+        assert headers["Signature-Input"].startswith("eth=")
+
+    def test_sign_request_no_body(self):
+        from integrations.erc8128.signer import sign_request
+
+        headers = sign_request(
+            private_key=PRIVATE_KEY,
+            method="GET",
+            url="https://api.execution.market/api/v1/tasks",
+            nonce="test-nonce-2",
+            chain_id=8453,
+        )
+        assert "Signature" in headers
+        assert "Signature-Input" in headers
+        assert "Content-Digest" not in headers
+
+    def test_sign_request_includes_query(self):
+        from integrations.erc8128.signer import sign_request
+
+        headers = sign_request(
+            private_key=PRIVATE_KEY,
+            method="GET",
+            url="https://api.execution.market/api/v1/tasks?status=published",
+            nonce="test-nonce-3",
+            chain_id=8453,
+        )
+        assert "@query" in headers["Signature-Input"]
+
+
+class TestSignerRoundtrip:
+    """Sign with signer, verify with verifier — full roundtrip."""
+
+    @pytest.mark.asyncio
+    async def test_roundtrip_post_with_body(self):
+        from integrations.erc8128.signer import sign_request
+
+        body = '{"title": "roundtrip test", "bounty": 0.10}'
+        url = "https://api.execution.market/api/v1/tasks"
+        nonce_val = f"roundtrip-{int(time.time())}"
+
+        headers = sign_request(
+            private_key=PRIVATE_KEY,
+            method="POST",
+            url=url,
+            body=body,
+            nonce=nonce_val,
+            chain_id=8453,
+        )
+
+        # Build a fake request that the verifier can process
+        request = FakeRequest(
+            method="POST",
+            headers={
+                "signature": headers["Signature"],
+                "signature-input": headers["Signature-Input"],
+                "content-digest": headers["Content-Digest"],
+                "host": "api.execution.market",
+            },
+            path="/api/v1/tasks",
+            body_bytes=body.encode("utf-8"),
+        )
+
+        result = await verify_erc8128_request(
+            request, policy=VerifyPolicy(allow_replayable=True)
+        )
+        assert result.ok, f"Verification failed: {result.reason}"
+        assert result.address == EXPECTED_ADDR.lower()
+        assert result.chain_id == 8453
+
+    @pytest.mark.asyncio
+    async def test_roundtrip_get_no_body(self):
+        from integrations.erc8128.signer import sign_request
+
+        url = "https://api.execution.market/api/v1/tasks"
+        nonce_val = f"roundtrip-get-{int(time.time())}"
+
+        headers = sign_request(
+            private_key=PRIVATE_KEY,
+            method="GET",
+            url=url,
+            nonce=nonce_val,
+            chain_id=8453,
+        )
+
+        request = FakeRequest(
+            method="GET",
+            headers={
+                "signature": headers["Signature"],
+                "signature-input": headers["Signature-Input"],
+                "host": "api.execution.market",
+            },
+            path="/api/v1/tasks",
+            body_bytes=b"",
+        )
+
+        result = await verify_erc8128_request(
+            request, policy=VerifyPolicy(allow_replayable=True)
+        )
+        assert result.ok, f"Verification failed: {result.reason}"
+        assert result.address == EXPECTED_ADDR.lower()
+
+    @pytest.mark.asyncio
+    async def test_roundtrip_with_nonce_store(self):
+        """Roundtrip using the in-memory nonce store (nonce consumed on first verify)."""
+        from integrations.erc8128.signer import sign_request
+
+        nonce_val = f"nonce-store-{int(time.time())}"
+        body = '{"test": true}'
+        url = "https://api.execution.market/api/v1/tasks"
+
+        headers = sign_request(
+            private_key=PRIVATE_KEY,
+            method="POST",
+            url=url,
+            body=body,
+            nonce=nonce_val,
+            chain_id=8453,
+        )
+
+        nonce_store = InMemoryNonceStore()
+
+        request = FakeRequest(
+            method="POST",
+            headers={
+                "signature": headers["Signature"],
+                "signature-input": headers["Signature-Input"],
+                "content-digest": headers["Content-Digest"],
+                "host": "api.execution.market",
+            },
+            path="/api/v1/tasks",
+            body_bytes=body.encode("utf-8"),
+        )
+
+        # First verification should succeed
+        result = await verify_erc8128_request(request, nonce_store=nonce_store)
+        assert result.ok, f"First verify failed: {result.reason}"
+
+        # Replay should fail (nonce already consumed)
+        result2 = await verify_erc8128_request(request, nonce_store=nonce_store)
+        assert not result2.ok
+        assert (
+            "nonce" in (result2.reason or "").lower()
+            or "replay" in (result2.reason or "").lower()
+        )
