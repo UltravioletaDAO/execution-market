@@ -23,6 +23,16 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
+// Mock usePlatformConfig — simulate API key required mode for login form tests
+vi.mock('../../hooks/usePlatformConfig', () => ({
+  usePlatformConfig: () => ({
+    config: { require_api_key: true },
+    requireApiKey: true,
+    loading: false,
+    error: null,
+  }),
+}))
+
 // Create a proper in-memory localStorage mock
 const storageMap = new Map<string, string>()
 const localStorageMock = {
