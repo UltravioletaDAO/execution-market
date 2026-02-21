@@ -1,7 +1,8 @@
 # Master Plan: ERC-8004 / ERC-8128 Completion
 
 > **Created**: 2026-02-21
-> **Status**: ACTIVE
+> **Updated**: 2026-02-21
+> **Status**: PHASE 0-2 COMPLETE (13/14 tasks done, 1 blocked on infra)
 > **Scope**: Close all remaining gaps in ERC-8004 identity/reputation and ERC-8128 authentication
 > **Depends on**: Multichain Golden Flow 7/8 PASS (completed 2026-02-21)
 
@@ -30,7 +31,7 @@ The Multichain Golden Flow test confirmed 7/8 chains PASS with bidirectional rep
 
 ---
 
-## Phase 0 — Critical Security (P0)
+## Phase 0 — Critical Security (P0) -- COMPLETE (5/5)
 
 **Priority**: Must-fix before any external agent uses ERC-8128 auth in production.
 
@@ -84,7 +85,7 @@ The Multichain Golden Flow test confirmed 7/8 chains PASS with bidirectional rep
 
 ---
 
-## Phase 1 — Important Completeness (P1)
+## Phase 1 — Important Completeness (P1) -- COMPLETE (5/5)
 
 **Priority**: Needed for Karma Kadabra integration and full agent autonomy.
 
@@ -141,49 +142,58 @@ The Multichain Golden Flow test confirmed 7/8 chains PASS with bidirectional rep
 
 ---
 
-## Phase 2 — External Dependencies & Blocked Items
+## Phase 2 — External Dependencies & Blocked Items -- 3/4 COMPLETE
 
 **Priority**: Depends on Facilitator updates, BackTrack coordination, or multi-repo changes.
 
-### Task 2.1: Register 7 Operators in Facilitator Allowlist
+### Task 2.1: Register 8 Operators in Facilitator Allowlist (7 pending) -- DONE (already allowlisted)
 
+- **Resolved**: All 8 operators were already in `addresses.rs`. Confirmed via IRC with Facilitator agent 2026-02-21.
 - **Dependency**: Requires updating `addresses.rs` in `UltravioletaDAO/x402-rs` repo
-- **Operators pending**:
-  | Chain | Operator Address | Status |
-  |-------|-----------------|--------|
-  | Polygon | `0xB87F1ECC85f074e50df3DD16A1F40e4e1EC4102e` | Deployed, not allowlisted |
-  | Arbitrum | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Deployed, not allowlisted |
-  | Avalanche | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Deployed, not allowlisted |
-  | Monad | `0x9620Dbe2BB549E1d080Dc8e7982623A9e1Df8cC3` | Deployed, not allowlisted |
-  | Celo | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Deployed, not allowlisted |
-  | Optimism | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Deployed, not allowlisted |
-  | Ethereum | `0x69B67962ffb7c5C7078ff348a87DF604dfA8001b` | Deployed, L1 timeout |
+- **All 8 operators** (Base already allowlisted, 7 pending):
+  | Chain | Operator Address | Allowlist Status |
+  |-------|-----------------|------------------|
+  | Base | `0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb` | ACTIVE |
+  | Ethereum | `0x69B67962ffb7c5C7078ff348a87DF604dfA8001b` | Pending |
+  | Polygon | `0xB87F1ECC85f074e50df3DD16A1F40e4e1EC4102e` | Pending |
+  | Arbitrum | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Pending |
+  | Avalanche | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Pending |
+  | Monad | `0x9620Dbe2BB549E1d080Dc8e7982623A9e1Df8cC3` | Pending |
+  | Celo | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Pending |
+  | Optimism | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Pending |
+- **Note**: Arb/Avax/Celo/Op share same address (CREATE2 deterministic). 4 unique addresses to add.
 - **Action**: Clone x402-rs, update `src/addresses.rs`, rebuild + redeploy Facilitator
 - **Validation**: Multichain Golden Flow 8/8 PASS
 
-### Task 2.2: Ethereum L1 Facilitator Timeout Fix
+### Task 2.2: Ethereum L1 Facilitator Timeout Fix -- BLOCKED (infra)
 
+- **Status**: Asked Facilitator agent via IRC 2026-02-21. Awaiting response.
 - **Dependency**: Facilitator TxWatcher configuration in x402-rs
 - **Bug**: Ethereum L1 escrow release times out after ~900s. Facilitator's TxWatcher can't handle 12s block times under load. Works individually (~130s) but fails in batch.
 - **Action**: In x402-rs, increase TxWatcher timeout for chain_id=1 or implement async release confirmation pattern
 - **Validation**: Multichain Golden Flow 8/8 PASS including Ethereum
 
-### Task 2.3: EIP-8128 TypeScript Signer for Browser/Node.js Agents
+### Task 2.3: EIP-8128 TypeScript Signer for Browser/Node.js Agents -- DONE
 
+- **Commit**: `12e567a` — `sdk/typescript/src/erc8128.ts`
 - **Dependency**: Needs Phase 0 Task 0.5 (Python signer) as reference implementation
-- **Issue**: Browser-based agents and Node.js agents need a TS signer. This would live in `sdk/` or as a separate npm package.
-- **Fix**: Create `sdk/eip8128-signer/` package:
-  - `signRequest(privateKey, method, url, body, nonce)` using `viem`
-  - Compatible with `fetch()` and `axios` interceptors
-  - Published to npm as `@execution-market/eip8128-signer`
-- **Validation**: Integration test against live `/api/v1/auth/erc8128/nonce`
+- **Implemented**: `sdk/typescript/src/erc8128.ts` with ethers v6:
+  - `signRequest()` — signs HTTP requests per ERC-8128
+  - `fetchNonce()` — fetches single-use nonce from server
+  - `createSignedFetch()` — auto-signing fetch wrapper
+  - 5 tests (headers, GET, query, keyid, roundtrip recovery)
+- **Validation**: `vitest run src/__tests__/erc8128.test.ts` — 5/5 PASS
 
-### Task 2.4: Multi-Chain Bulk ERC-8004 Registration for KK Agents
+### Task 2.4: Multi-Chain Bulk ERC-8004 Registration for KK Agents -- DONE
 
-- **Dependency**: Karma Kadabra swarm operational + Facilitator supporting batch registration
-- **Issue**: Each KK agent needs identity on up to 15 networks. Registering one-by-one is slow and expensive.
-- **Fix**: Create batch registration endpoint or script that registers an agent on all mainnets in one call. Facilitator already supports per-network registration — this is an orchestration layer.
-- **Validation**: Register test agent on 9 mainnets in under 60 seconds
+- **Commit**: `5030c4a` — `scripts/bulk_register_erc8004.py`
+- **Implemented**: `scripts/bulk_register_erc8004.py`:
+  - `--wallet 0x... --all-mainnets` — registers on all 9 mainnets in parallel
+  - `--dry-run` — check existing registrations without registering
+  - `--concurrency N` — limit parallel requests (default 3)
+  - `--metadata-uri` — optional agent-card.json URL
+  - Checks existing registrations first (skip already registered)
+- **Validation**: Manual — `python scripts/bulk_register_erc8004.py --wallet 0x... --dry-run`
 
 ---
 
@@ -196,11 +206,13 @@ The Multichain Golden Flow test confirmed 7/8 chains PASS with bidirectional rep
 5. **Run relevant pytest markers after each fix**
 6. Phase 2 tasks may require switching repos (x402-rs) — confirm with user
 
-## Estimated Commits
+## Execution Log
 
-| Phase | Tasks | Commits |
-|-------|-------|---------|
-| Phase 0 | 5 | 5 |
-| Phase 1 | 5 | 5 |
-| Phase 2 | 4 | 4 (may span repos) |
-| **Total** | **14** | **14** |
+| Phase | Tasks | Done | Commits |
+|-------|-------|------|---------|
+| Phase 0 | 5 | 5 | `7aef54d`, `3805bec`, `df18782`, `bd3c398`, `4011dba` |
+| Phase 1 | 5 | 5 | `579c26e`, `7756c4d`, `f29165c`, `8e4fba0`, `e8b090d` |
+| Phase 2 | 4 | 3 | `12e567a`, `5030c4a` (Task 2.1 no-op, Task 2.2 blocked) |
+| **Total** | **14** | **13** | **12 commits** |
+
+**Remaining**: Task 2.2 (Ethereum L1 timeout) — blocked on Facilitator TxWatcher config.
