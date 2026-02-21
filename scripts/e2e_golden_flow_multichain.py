@@ -1152,7 +1152,9 @@ async def main() -> int:
 
     results = MultichainResults()
 
-    timeout = httpx.Timeout(600.0, connect=30.0)
+    # 1200s: Ethereum L1 TXs can take 600s+ to confirm. Facilitator TxWatcher=900s,
+    # SDK timeout=900s, ALB idle=960s. Client must exceed all of these.
+    timeout = httpx.Timeout(1200.0, connect=30.0)
     async with httpx.AsyncClient(timeout=timeout) as client:
         # Phase 1: Health check
         results.health_ok = await check_health(client)
