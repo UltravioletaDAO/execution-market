@@ -150,18 +150,18 @@ Then update `sdk_client.py` with all new addresses and register in Facilitator.
 https://github.com/BackTrackCo/x402r-sdk/blob/main/packages/core/src/config/index.ts
 ```
 
-## Currently Deployed Operators (2026-02-18)
+## Currently Deployed Operators (2026-02-21)
 
 | Chain | Operator | Status |
 |-------|----------|--------|
 | Base | `0x271f9fa7f8907aCf178CCFB470076D9129D8F0Eb` | Active |
-| Polygon | `0xB87F1ECC85f074e50df3DD16A1F40e4e1EC4102e` | Deployed, pending Facilitator allowlist |
-| Arbitrum | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Deployed, pending Facilitator allowlist |
-| Avalanche | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Deployed, pending Facilitator allowlist |
-| Monad | `0x9620Dbe2BB549E1d080Dc8e7982623A9e1Df8cC3` | Deployed, pending Facilitator allowlist |
-| Ethereum | — | Pending (L1 RPC too slow, needs retry) |
-| Celo | — | Blocked (0 CELO on deployer) |
-| Optimism | — | Blocked (0 ETH on deployer) |
+| Ethereum | `0x69B67962ffb7c5C7078ff348a87DF604dfA8001b` | Active |
+| Polygon | `0xB87F1ECC85f074e50df3DD16A1F40e4e1EC4102e` | Active |
+| Arbitrum | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Active |
+| Avalanche | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Active |
+| Monad | `0x9620Dbe2BB549E1d080Dc8e7982623A9e1Df8cC3` | Active |
+| Celo | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Active |
+| Optimism | `0xC2377a9Db1de2520BD6b2756eD012f4E82F7938e` | Active |
 
 ## Troubleshooting
 

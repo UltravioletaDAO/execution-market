@@ -3,7 +3,7 @@ Focused tests for submitted-task timeout handling in expiration job.
 """
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -124,3 +124,193 @@ async def test_submitted_timeout_without_submission_falls_back_to_expire():
         {"id": "task-timeout-3", "status": "submitted"},
     )
     assert handled is False
+
+
+# ---------------------------------------------------------------------------
+# Helper: mock Supabase client that supports update + insert for expiration
+# ---------------------------------------------------------------------------
+
+
+class _ChainMock:
+    """Supports chained .eq() / .execute() / .insert() calls."""
+
+    def __init__(self):
+        self.calls = []
+
+    def eq(self, *args, **kwargs):
+        self.calls.append(("eq", args, kwargs))
+        return self
+
+    def execute(self):
+        self.calls.append(("execute",))
+        return SimpleNamespace(data=[])
+
+    def update(self, *args, **kwargs):
+        self.calls.append(("update", args, kwargs))
+        return self
+
+    def insert(self, *args, **kwargs):
+        self.calls.append(("insert", args, kwargs))
+        return self
+
+
+class _ExpirationClient:
+    """Fake Supabase client supporting tasks + payments tables."""
+
+    def __init__(self):
+        self.tasks_mock = _ChainMock()
+        self.payments_mock = _ChainMock()
+
+    def table(self, name: str):
+        if name == "tasks":
+            return self.tasks_mock
+        if name == "payments":
+            return self.payments_mock
+        raise AssertionError(f"Unexpected table access: {name}")
+
+
+# ---------------------------------------------------------------------------
+# Fase 5 (direct_release) refund path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_expired_task_fase5_uses_payment_dispatcher(monkeypatch):
+    """Task with escrow in direct_release mode uses PaymentDispatcher for refund."""
+    monkeypatch.setenv("EM_ESCROW_MODE", "direct_release")
+
+    task = {
+        "id": "task-expire-fase5",
+        "status": "published",
+        "agent_id": "agent_test",
+        "bounty_usd": 0.10,
+        "escrow_id": "escrow-123",
+    }
+
+    client = _ExpirationClient()
+
+    # Mock PaymentDispatcher
+    refund_mock = AsyncMock(
+        return_value={
+            "success": True,
+            "tx_hash": "0x" + "b" * 64,
+            "mode": "fase2",
+            "escrow_mode": "direct_release",
+        }
+    )
+
+    import integrations.x402.payment_dispatcher as pd_module
+
+    mock_dispatcher = MagicMock()
+    mock_dispatcher.refund_trustless_escrow = refund_mock
+    monkeypatch.setattr(pd_module, "PaymentDispatcher", lambda: mock_dispatcher)
+
+    await task_expiration._process_expired_task(client, task)
+
+    refund_mock.assert_awaited_once_with(
+        task_id="task-expire-fase5",
+        reason="Auto-refund: task expired past deadline",
+    )
+
+    # Verify payment record was inserted
+    insert_calls = [c for c in client.payments_mock.calls if c[0] == "insert"]
+    assert len(insert_calls) == 1
+    record = insert_calls[0][1][0]
+    assert record["task_id"] == "task-expire-fase5"
+    assert record["type"] == "refund"
+    assert "Fase 5 trustless" in record["note"]
+
+
+@pytest.mark.asyncio
+async def test_expired_task_fase5_failed_refund_logs_warning(monkeypatch):
+    """Fase 5 refund failure is logged but does not raise."""
+    monkeypatch.setenv("EM_ESCROW_MODE", "direct_release")
+
+    task = {
+        "id": "task-expire-fail",
+        "status": "published",
+        "agent_id": "agent_test",
+        "bounty_usd": 0.10,
+        "escrow_id": "escrow-456",
+    }
+
+    client = _ExpirationClient()
+
+    refund_mock = AsyncMock(
+        return_value={"success": False, "error": "escrow already refunded"}
+    )
+
+    import integrations.x402.payment_dispatcher as pd_module
+
+    mock_dispatcher = MagicMock()
+    mock_dispatcher.refund_trustless_escrow = refund_mock
+    monkeypatch.setattr(pd_module, "PaymentDispatcher", lambda: mock_dispatcher)
+
+    # Should not raise
+    await task_expiration._process_expired_task(client, task)
+
+    refund_mock.assert_awaited_once()
+    # No payment record should be inserted on failure
+    insert_calls = [c for c in client.payments_mock.calls if c[0] == "insert"]
+    assert len(insert_calls) == 0
+
+
+# ---------------------------------------------------------------------------
+# Legacy (platform_release) refund path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_expired_task_legacy_uses_advanced_escrow(monkeypatch):
+    """Task with escrow in platform_release mode uses legacy refund_to_agent."""
+    monkeypatch.setenv("EM_ESCROW_MODE", "platform_release")
+
+    task = {
+        "id": "task-expire-legacy",
+        "status": "published",
+        "agent_id": "agent_test",
+        "bounty_usd": 0.10,
+        "escrow_id": "escrow-789",
+    }
+
+    client = _ExpirationClient()
+
+    mock_result = SimpleNamespace(success=True, transaction_hash="0x" + "c" * 64)
+
+    # Patch the lazy import inside the else branch
+    import integrations.x402.advanced_escrow_integration as aei_module
+
+    monkeypatch.setattr(aei_module, "ADVANCED_ESCROW_AVAILABLE", True)
+    monkeypatch.setattr(aei_module, "refund_to_agent", lambda task_id: mock_result)
+
+    await task_expiration._process_expired_task(client, task)
+
+    # Verify payment record was inserted with legacy note
+    insert_calls = [c for c in client.payments_mock.calls if c[0] == "insert"]
+    assert len(insert_calls) == 1
+    record = insert_calls[0][1][0]
+    assert record["task_id"] == "task-expire-legacy"
+    assert record["type"] == "refund"
+    assert "via SDK" in record["note"]
+
+
+@pytest.mark.asyncio
+async def test_expired_task_no_escrow_skips_refund(monkeypatch):
+    """Task without escrow_id skips refund entirely."""
+    monkeypatch.setenv("EM_ESCROW_MODE", "direct_release")
+
+    task = {
+        "id": "task-no-escrow",
+        "status": "published",
+        "agent_id": "agent_test",
+        "bounty_usd": 0.10,
+        "escrow_id": None,
+    }
+
+    client = _ExpirationClient()
+
+    await task_expiration._process_expired_task(client, task)
+
+    # No payment inserts — refund was skipped
+    insert_calls = [c for c in client.payments_mock.calls if c[0] == "insert"]
+    assert len(insert_calls) == 0
