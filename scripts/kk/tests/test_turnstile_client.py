@@ -2,6 +2,8 @@
 Tests for TurnstileClient — MeshRelay premium channel access.
 
 Tests both mocked (unit) and live (integration) scenarios.
+Aligned with MeshRelay official SDK (Unified API, x402 accepts[] format).
+
 Run with: pytest scripts/kk/tests/test_turnstile_client.py -v
 """
 
@@ -24,6 +26,7 @@ from lib.turnstile_client import (
     ChannelInfo,
     HealthStatus,
     TurnstileClient,
+    USDC_EIP712_DOMAIN,
 )
 
 
@@ -35,6 +38,12 @@ from lib.turnstile_client import (
 @pytest.fixture
 def client():
     return TurnstileClient(base_url="http://localhost:8090")
+
+
+@pytest.fixture
+def unified_client():
+    """Client configured for Unified API (production paths)."""
+    return TurnstileClient(base_url="https://api.meshrelay.xyz")
 
 
 @pytest.fixture
@@ -85,28 +94,87 @@ def mock_access_success():
         "status": "granted",
         "channel": "#alpha-test",
         "nick": "kk-coordinator",
-        "expiresAt": "2026-02-21T23:00:00Z",
+        "expiresAt": "2026-02-22T05:30:00.000Z",
         "durationSeconds": 1800,
-        "txHash": "0xabc123def456",
+        "sessionId": 1,
     }
 
 
 @pytest.fixture
 def mock_access_402():
+    """402 response with x402 accepts[] format (matches official SDK)."""
     return {
-        "status": "payment_required",
-        "channel": "#alpha-test",
-        "price": "0.10",
-        "currency": "USDC",
-        "network": "eip155:8453",
-        "payTo": "0xe4dc963c56979E0260fc146b87eE24F18220e545",
-        "facilitator": "https://facilitator.ultravioletadao.xyz",
+        "status": 402,
+        "accepts": [
+            {
+                "scheme": "exact",
+                "network": "eip155:8453",
+                "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                "amount": "100000",
+                "payTo": "0xe4dc963c56979E0260fc146b87eE24F18220e545",
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def mock_sessions_response():
+    return {
+        "sessions": [
+            {
+                "channel": "#alpha-test",
+                "nick": "kk-coordinator",
+                "expires_at": "2026-02-22T05:30:00.000Z",
+                "session_id": 1,
+            }
+        ]
     }
 
 
 # ---------------------------------------------------------------------------
 # Unit Tests (Mocked)
 # ---------------------------------------------------------------------------
+
+
+class TestURLDetection:
+    """Test auto-detection of URL prefix based on base_url."""
+
+    def test_unified_api_prefix(self):
+        client = TurnstileClient(base_url="https://api.meshrelay.xyz")
+        assert client._prefix == "/payments"
+
+    def test_direct_api_prefix(self):
+        client = TurnstileClient(base_url="http://54.156.88.5:8090")
+        assert client._prefix == "/api"
+
+    def test_localhost_prefix(self):
+        client = TurnstileClient(base_url="http://localhost:8090")
+        assert client._prefix == "/api"
+
+    def test_url_construction(self):
+        client = TurnstileClient(base_url="https://api.meshrelay.xyz")
+        assert client._url("/channels") == "https://api.meshrelay.xyz/payments/channels"
+        assert client._url("/access/alpha-test") == "https://api.meshrelay.xyz/payments/access/alpha-test"
+
+    def test_url_construction_direct(self):
+        client = TurnstileClient(base_url="http://54.156.88.5:8090")
+        assert client._url("/channels") == "http://54.156.88.5:8090/api/channels"
+
+
+class TestEIP712Domain:
+    """Test that EIP-712 domain constants match official SDK."""
+
+    def test_domain_name(self):
+        assert USDC_EIP712_DOMAIN["name"] == "USD Coin"
+
+    def test_domain_version(self):
+        assert USDC_EIP712_DOMAIN["version"] == "2"
+
+    def test_domain_chain_id(self):
+        assert USDC_EIP712_DOMAIN["chainId"] == 8453
+
+    def test_domain_verifying_contract(self):
+        assert USDC_EIP712_DOMAIN["verifyingContract"] == "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 
 class TestHealthCheck:
@@ -167,6 +235,37 @@ class TestListChannels:
             assert channels[1].available_slots == 45
 
 
+class TestGetSessions:
+    @pytest.mark.asyncio
+    async def test_get_sessions(self, client, mock_sessions_response):
+        with patch("aiohttp.ClientSession") as mock_session_cls:
+            mock_resp = AsyncMock()
+            mock_resp.status = 200
+            mock_resp.json = AsyncMock(return_value=mock_sessions_response)
+
+            mock_session = AsyncMock()
+            mock_session.get = MagicMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_resp), __aexit__=AsyncMock()))
+            mock_session_cls.return_value = AsyncMock(__aenter__=AsyncMock(return_value=mock_session), __aexit__=AsyncMock())
+
+            sessions = await client.get_sessions("kk-coordinator")
+            assert len(sessions) == 1
+            assert sessions[0]["channel"] == "#alpha-test"
+            assert sessions[0]["nick"] == "kk-coordinator"
+
+    @pytest.mark.asyncio
+    async def test_get_sessions_empty(self, client):
+        with patch("aiohttp.ClientSession") as mock_session_cls:
+            mock_resp = AsyncMock()
+            mock_resp.status = 404
+
+            mock_session = AsyncMock()
+            mock_session.get = MagicMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_resp), __aexit__=AsyncMock()))
+            mock_session_cls.return_value = AsyncMock(__aenter__=AsyncMock(return_value=mock_session), __aexit__=AsyncMock())
+
+            sessions = await client.get_sessions("unknown-nick")
+            assert sessions == []
+
+
 class TestRequestAccess:
     @pytest.mark.asyncio
     async def test_access_success(self, client, mock_access_success):
@@ -187,11 +286,12 @@ class TestRequestAccess:
             assert result.success is True
             assert result.channel == "#alpha-test"
             assert result.nick == "kk-coordinator"
-            assert result.tx_hash == "0xabc123def456"
+            assert result.session_id == 1
             assert result.duration_seconds == 1800
 
     @pytest.mark.asyncio
-    async def test_access_payment_required(self, client, mock_access_402):
+    async def test_access_payment_required_accepts_format(self, client, mock_access_402):
+        """Test 402 response with x402 accepts[] array format."""
         with patch("aiohttp.ClientSession") as mock_session_cls:
             mock_resp = AsyncMock()
             mock_resp.status = 402
@@ -208,8 +308,9 @@ class TestRequestAccess:
             )
             assert result.success is False
             assert result.error == "Payment required"
-            assert result.price == "0.10"
+            assert result.amount_raw == "100000"
             assert result.pay_to == "0xe4dc963c56979E0260fc146b87eE24F18220e545"
+            assert result.network == "eip155:8453"
 
 
 class TestChannelInfo:
@@ -244,6 +345,36 @@ class TestChannelInfo:
         assert ch.available_slots == 0
 
 
+class TestAccessResult:
+    def test_default_values(self):
+        r = AccessResult(success=True)
+        assert r.channel == ""
+        assert r.nick == ""
+        assert r.session_id == 0
+        assert r.error == ""
+
+    def test_success_result(self):
+        r = AccessResult(
+            success=True,
+            channel="#alpha-test",
+            nick="test-nick",
+            expires_at="2026-02-22T06:00:00Z",
+            duration_seconds=1800,
+            session_id=42,
+        )
+        assert r.success is True
+        assert r.session_id == 42
+
+    def test_error_result(self):
+        r = AccessResult(
+            success=False,
+            channel="#alpha-test",
+            error="Nick not connected to IRC",
+        )
+        assert r.success is False
+        assert "not connected" in r.error
+
+
 # ---------------------------------------------------------------------------
 # Live Integration Tests (require Turnstile running)
 # ---------------------------------------------------------------------------
@@ -254,19 +385,21 @@ class TestChannelInfo:
     reason="aiohttp required",
 )
 class TestLiveIntegration:
-    """Run against live Turnstile. Skip if unreachable."""
+    """Run against live Turnstile via Unified API. Skip if unreachable."""
 
     @pytest.fixture
     def live_client(self):
-        return TurnstileClient()  # Uses default production URL
+        return TurnstileClient()  # Default: https://api.meshrelay.xyz
 
     @pytest.mark.asyncio
     async def test_live_health(self, live_client):
         health = await live_client.check_health()
         if not health.ok:
             pytest.skip("Turnstile not reachable")
-        assert health.irc_connected is True
-        assert health.facilitator_reachable is True
+        # Unified API /health reports gateway status, not Turnstile IRC status.
+        # IRC details may be absent when going through the proxy.
+        assert health.ok is True
+        assert health.uptime > 0
 
     @pytest.mark.asyncio
     async def test_live_list_channels(self, live_client):
@@ -297,4 +430,18 @@ class TestLiveIntegration:
             pytest.skip("Turnstile not reachable")
         if reqs is None:
             pytest.skip("Could not get payment requirements")
-        assert "price" in reqs or "status" in reqs
+        # Verify x402 accepts[] format
+        assert "accepts" in reqs
+        accepts = reqs["accepts"]
+        assert len(accepts) >= 1
+        assert "payTo" in accepts[0]
+        assert "amount" in accepts[0]
+        assert "network" in accepts[0]
+
+    @pytest.mark.asyncio
+    async def test_live_sessions_unknown_nick(self, live_client):
+        try:
+            sessions = await live_client.get_sessions("nonexistent-nick-12345")
+        except Exception:
+            pytest.skip("Turnstile not reachable")
+        assert isinstance(sessions, list)

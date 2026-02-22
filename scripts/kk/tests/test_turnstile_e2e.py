@@ -49,7 +49,7 @@ logger = logging.getLogger("turnstile-e2e")
 # Test config
 TEST_CHANNEL = os.environ.get("TEST_CHANNEL", "alpha-test")
 TEST_NICK = os.environ.get("TEST_NICK", "kk-e2e-test")
-TURNSTILE_URL = os.environ.get("TURNSTILE_URL", "http://54.156.88.5:8090")
+TURNSTILE_URL = os.environ.get("TURNSTILE_URL", "https://api.meshrelay.xyz")
 
 
 class TurnstileE2ETest:
@@ -138,13 +138,28 @@ class TurnstileE2ETest:
 
         reqs = await client.get_payment_requirements(self.channel)
         if reqs:
-            self._record(
-                "payment_requirements",
-                True,
-                f"Price: ${reqs.get('price', '?')} {reqs.get('currency', '?')} "
-                f"on {reqs.get('network', '?')}",
-                reqs,
-            )
+            # Parse x402 accepts[] format
+            accepts = reqs.get("accepts", [])
+            if accepts:
+                r = accepts[0]
+                amount_raw = r.get("amount", "0")
+                # Convert raw USDC (6 decimals) to readable
+                amount_human = f"{int(amount_raw) / 1_000_000:.2f}" if amount_raw.isdigit() else amount_raw
+                self._record(
+                    "payment_requirements",
+                    True,
+                    f"Amount: {amount_raw} raw (${amount_human} USDC) "
+                    f"on {r.get('network', '?')} "
+                    f"payTo: {r.get('payTo', '?')[:16]}...",
+                    reqs,
+                )
+            else:
+                self._record(
+                    "payment_requirements",
+                    True,
+                    f"Got 402 response (no accepts[] array): {json.dumps(reqs)[:100]}",
+                    reqs,
+                )
         else:
             self._record(
                 "payment_requirements",
