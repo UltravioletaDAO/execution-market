@@ -209,9 +209,11 @@ async function bridgeToChain(
     }
 
     // Step 1: Approve USDC to deBridge contract
-    const approveAmount = BigInt(
+    // Add 2% buffer — deBridge execution fee can vary between quote and TX
+    const rawApprove = BigInt(
       quote.estimation?.srcChainTokenIn?.amount || atomicAmount,
     );
+    const approveAmount = rawApprove + (rawApprove * 2n) / 100n;
     console.log(
       "    Approving " + formatUnits(approveAmount, 6) + " USDC to " + quote.tx.to + "...",
     );
