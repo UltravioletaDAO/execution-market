@@ -113,6 +113,9 @@ scripts/output.txt
 scripts/server_pid.txt
 mcp_server/server_pid.txt
 scripts/kk/report-erc8004-registration-*.json
+scripts/kk/report-distribute-*.json
+scripts/kk/report-bridge-*.json
+scripts/kk/report-sweep-*.json
 
 # Misc
 .unused/
