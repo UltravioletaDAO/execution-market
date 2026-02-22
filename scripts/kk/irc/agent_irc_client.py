@@ -175,6 +175,9 @@ class IRCAgent:
     async def join_premium_channel(self, channel_name: str, wallet_key: str | None = None) -> bool:
         """Pay x402 and join a premium channel via Turnstile.
 
+        Uses the full 402 → sign EIP-3009 → pay flow matching the official
+        MeshRelay SDK (TurnstileClient.js).
+
         Args:
             channel_name: Channel name (e.g., "kk-alpha" or "#kk-alpha").
             wallet_key: Hex private key for signing x402 payment.
@@ -209,26 +212,17 @@ class IRCAgent:
             f"(${channel_info.price} {channel_info.currency} / {channel_info.duration_seconds // 60}min)"
         )
 
-        # Sign EIP-3009 payment
-        try:
-            payment_sig = await self._sign_x402_payment(
-                key, channel_info.price, channel_info.network
-            )
-        except Exception as e:
-            logger.error(f"  [{self.nick}] Payment signing failed: {e}")
-            return False
-
-        # Request access
-        result = await client.request_access(
+        # Full flow: 402 → sign EIP-3009 → pay (matches official SDK)
+        result = await client.request_access_with_wallet(
             channel=channel_name,
             nick=self.nick,
-            payment_signature=payment_sig,
+            private_key=key,
         )
 
         if result.success:
             logger.info(
                 f"  [{self.nick}] Access granted to {result.channel} "
-                f"until {result.expires_at} (TX: {result.tx_hash[:16]}...)"
+                f"until {result.expires_at} (session: {result.session_id})"
             )
             if result.channel not in self.channels:
                 self.channels.append(result.channel)
@@ -236,50 +230,6 @@ class IRCAgent:
         else:
             logger.error(f"  [{self.nick}] Access denied: {result.error}")
             return False
-
-    async def _sign_x402_payment(
-        self, wallet_key: str, amount: str, network: str
-    ) -> str:
-        """Sign an EIP-3009 payment for Turnstile.
-
-        This creates the PAYMENT-SIGNATURE header value that Turnstile expects.
-        Uses the Facilitator's /verify flow for gasless settlement.
-
-        Returns base64-encoded payment signature string.
-        """
-        # Import here to avoid circular deps
-        try:
-            from eth_account import Account
-            from eth_account.messages import encode_defunct
-        except ImportError:
-            raise ImportError("eth_account required for x402 payments: pip install eth-account")
-
-        import hashlib
-        import os
-
-        account = Account.from_key(wallet_key)
-
-        # Build payment payload (simplified x402 format)
-        # The actual EIP-3009 signing is done by the Facilitator
-        # We just need to prove we control the wallet
-        nonce = "0x" + os.urandom(32).hex()
-        payload = {
-            "from": account.address,
-            "value": str(int(float(amount) * 1_000_000)),  # USDC 6 decimals
-            "nonce": nonce,
-            "network": network,
-            "timestamp": int(time.time()),
-        }
-
-        # Sign the payload
-        message_hash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
-        msg = encode_defunct(text=message_hash)
-        signed = Account.sign_message(msg, private_key=wallet_key)
-
-        payload["signature"] = signed.signature.hex()
-
-        import base64
-        return base64.b64encode(json.dumps(payload).encode()).decode()
 
     async def list_premium_channels(self) -> list:
         """List available premium channels from Turnstile."""
