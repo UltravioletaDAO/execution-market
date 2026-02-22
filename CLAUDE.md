@@ -210,6 +210,27 @@ npm run upload:metadata      # Update IPFS metadata
 npm run register:x402r       # Register as x402r merchant (pending)
 ```
 
+### KK V2 Fund Distribution Scripts
+
+Scripts in `scripts/kk/` for managing 24 Karma Kadabra V2 agent wallets across 8 EVM chains. **All 24 agents funded — 8/8 chains PASS** (2026-02-22). Postmortem: `docs/planning/KK_FUND_DISTRIBUTION_POSTMORTEM.md`.
+
+| Script | Purpose |
+|--------|---------|
+| `distribute-funds.ts` | Multi-token batch distribution (Disperse or sequential) |
+| `distribute-gas-only.ts` | Gas-only distribution (Disperse or sequential) |
+| `distribute-eth-gas.ts` | Ethereum L1 gas via private RPC + manual polling |
+| `spot-check-agents.ts` | **Source of truth** — verify all 24 wallets across all chains |
+| `check-full-inventory.ts` | Master wallet balances before distribution |
+| `sweep-funds.ts` | Emergency: recover all funds from agents |
+
+**Disperse.app (`0xD152f549545093347A162Dce210e7293f1452150`) deployment**:
+- **Deployed**: Base, Ethereum, Polygon, Arbitrum, Optimism (3562 bytes)
+- **NOT deployed**: Avalanche, Celo, Monad (`0x` bytecode)
+- **CRITICAL**: Calls to empty address return `success` but do nothing. Always verify with `getCode()` before interacting.
+- Config: `scripts/kk/lib/chains.ts` — `disperseAvailable: false` for Avalanche/Celo/Monad
+
+**RPC Policy**: Always prefer QuikNode private RPCs from `.env.local` (`BASE_RPC_URL`, `ETHEREUM_RPC_URL`, etc.). Only use public RPCs (LlamaRPC, etc.) when QuikNode fails for specific known issues (e.g., Ethereum L1 large TX mempool drop).
+
 ## Architecture
 
 ### Data Flow
@@ -217,7 +238,7 @@ npm run register:x402r       # Register as x402r merchant (pending)
 ```
 AI Agent → MCP Server → Supabase → Dashboard → Human Worker
                 ↓
-           x402r Escrow (8 networks: 1 live + 7 pending)
+           x402r Escrow (8 networks, all live)
                 ↓
            Payment Release
 ```
