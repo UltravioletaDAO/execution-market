@@ -197,7 +197,9 @@ class EMClient:
         )
         resp.raise_for_status()
         data = resp.json()
-        return data.get("tasks", data if isinstance(data, list) else [])
+        if isinstance(data, list):
+            return data
+        return data.get("tasks", [])
 
     async def list_tasks(
         self,
@@ -216,7 +218,9 @@ class EMClient:
         resp = await self._client.get("/tasks", params=params, headers=sig_headers)
         resp.raise_for_status()
         data = resp.json()
-        return data.get("tasks", data if isinstance(data, list) else [])
+        if isinstance(data, list):
+            return data
+        return data.get("tasks", [])
 
     async def cancel_task(self, task_id: str) -> dict[str, Any]:
         """Cancel a published task."""
@@ -354,7 +358,9 @@ class EMClient:
         )
         resp.raise_for_status()
         data = resp.json()
-        return data.get("submissions", data if isinstance(data, list) else [])
+        if isinstance(data, list):
+            return data
+        return data.get("submissions", [])
 
     # -- Health ----------------------------------------------------------------
 
