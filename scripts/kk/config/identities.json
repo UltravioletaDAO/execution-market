@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-02-22T03:00:52.305Z",
+  "updated_at": "2026-02-22T16:33:51.054068+00:00",
   "api_url": "https://api.execution.market",
   "agents": [
     {
@@ -89,7 +89,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T03:00:50.303Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -104,7 +104,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:13:22.615Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -119,7 +119,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:13:54.714Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -134,7 +134,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:14:39.220Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -149,7 +149,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:15:11.291Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -164,7 +164,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:15:54.588Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -179,7 +179,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:16:26.644Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -194,7 +194,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:17:10.411Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -209,7 +209,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:17:42.465Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -224,7 +224,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:18:27.010Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -239,7 +239,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:18:59.066Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -254,7 +254,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:19:42.083Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -269,7 +269,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:20:14.138Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -284,7 +284,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:20:59.614Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -299,7 +299,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:21:31.753Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -314,7 +314,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:22:15.987Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -329,7 +329,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:22:48.046Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -344,7 +344,7 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:23:32.418Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     },
@@ -359,9 +359,10 @@
           "agent_id": null,
           "transaction": null,
           "registered_at": "2026-02-22T02:24:04.477Z",
-          "status": "success"
+          "status": "executor_only"
         }
       }
     }
-  ]
+  ],
+  "verification_note": "On-chain verified 2026-02-22: 5/24 have ERC-8004 NFTs (indices 0-4, agent IDs 18775-18779). 19/24 registered as executors only (no on-chain identity)."
 }
