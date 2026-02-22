@@ -3,7 +3,19 @@
  *
  * Single source of truth for all 8 supported EVM chains + stablecoins.
  * Mirrors NETWORK_CONFIG from mcp_server/integrations/x402/sdk_client.py.
+ *
+ * IMPORTANT: This file loads .env.local at module-load time so that
+ * private RPC URLs from env vars are available when CHAINS is initialized.
+ * Consumer scripts do NOT need to call dotenv before importing this module.
  */
+
+import { config } from "dotenv";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+// Load .env.local before anything else so rpc() picks up private RPC URLs
+const __chains_dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(__chains_dirname, "../../../.env.local") });
 
 import {
   type Chain,

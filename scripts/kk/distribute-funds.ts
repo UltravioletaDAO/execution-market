@@ -198,18 +198,25 @@ async function distribute(
     if (chainInfo.disperseAvailable) {
       console.log(`  Using Disperse.app (batch mode)...`);
 
-      // 1. Approve
-      console.log(`  [1/2] Approving ${formatUnits(totalToken, token.decimals)} ${token.symbol}...`);
+      // 1. Approve (with 10% buffer to avoid race conditions on fast chains)
+      const approveAmount = totalToken + (totalToken / 10n);
+      console.log(`  [1/2] Approving ${formatUnits(approveAmount, token.decimals)} ${token.symbol}...`);
       try {
         const approveTx = await walletClient.writeContract({
           address: token.address,
           abi: ERC20_ABI,
           functionName: "approve",
-          args: [DISPERSE_ADDRESS, totalToken],
+          args: [DISPERSE_ADDRESS, approveAmount],
         });
-        await publicClient.waitForTransactionReceipt({ hash: approveTx });
+        // Ethereum L1 needs longer timeout (up to 5 min per TX)
+        const isL1 = chainInfo.chainId === 1;
+        await publicClient.waitForTransactionReceipt({
+          hash: approveTx,
+          confirmations: isL1 ? 1 : 2,
+          timeout: isL1 ? 300_000 : 60_000,
+        });
         console.log(`        TX: ${approveTx}`);
-        result.txs.push({ type: "approve", txHash: approveTx, recipients: 1, amount: formatUnits(totalToken, token.decimals), token: token.symbol, status: "confirmed" });
+        result.txs.push({ type: "approve", txHash: approveTx, recipients: 1, amount: formatUnits(approveAmount, token.decimals), token: token.symbol, status: "confirmed" });
       } catch (err: any) {
         console.error(`  APPROVE FAILED: ${err.message}`);
         result.txs.push({ type: "approve", txHash: "", recipients: 1, amount: "0", token: token.symbol, status: "failed", error: err.message });
@@ -226,7 +233,10 @@ async function distribute(
           functionName: "disperseToken",
           args: [token.address, addresses, tokenAmounts],
         });
-        await publicClient.waitForTransactionReceipt({ hash: tokenTx });
+        await publicClient.waitForTransactionReceipt({
+          hash: tokenTx,
+          timeout: isL1 ? 300_000 : 60_000,
+        });
         console.log(`        TX: ${tokenTx}`);
         result.txs.push({ type: "token_batch", txHash: tokenTx, recipients: addresses.length, amount: formatUnits(totalToken, token.decimals), token: token.symbol, status: "confirmed" });
       } catch (err: any) {
@@ -261,7 +271,7 @@ async function distribute(
 
   // ---- Distribute native gas (once, after all tokens) ----
   if (gasAmount > 0n) {
-    const gasBuffer = parseEther("0.005");
+    const gasBuffer = parseEther("0.0005"); // ~$1.25 buffer for the Disperse TX itself
     if (nativeBalance < totalGas + gasBuffer) {
       console.error(`\n  INSUFFICIENT NATIVE: need ${formatEther(totalGas + gasBuffer)}, have ${formatEther(nativeBalance)}`);
     } else if (dryRun) {
@@ -269,6 +279,7 @@ async function distribute(
     } else {
       console.log(`\n--- ${chainInfo.nativeSymbol} (gas) ---`);
 
+      const isL1Gas = chainInfo.chainId === 1;
       if (chainInfo.disperseAvailable) {
         console.log(`  Dispersing ${chainInfo.nativeSymbol} to ${addresses.length} wallets...`);
         const gasAmounts = wallets.map(() => gasAmount);
@@ -280,7 +291,10 @@ async function distribute(
             args: [addresses, gasAmounts],
             value: totalGas,
           });
-          await publicClient.waitForTransactionReceipt({ hash: nativeTx });
+          await publicClient.waitForTransactionReceipt({
+            hash: nativeTx,
+            timeout: isL1Gas ? 300_000 : 60_000,
+          });
           console.log(`        TX: ${nativeTx}`);
           gasResults.push({ type: "native_batch", txHash: nativeTx, recipients: addresses.length, amount: formatEther(totalGas), status: "confirmed" });
         } catch (err: any) {
