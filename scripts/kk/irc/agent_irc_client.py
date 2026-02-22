@@ -31,6 +31,13 @@ import ssl
 import time
 from pathlib import Path
 
+# Turnstile integration (premium channel access)
+try:
+    from lib.turnstile_client import TurnstileClient, ChannelInfo, AccessResult
+    HAS_TURNSTILE = True
+except ImportError:
+    HAS_TURNSTILE = False
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("kk.irc")
 
@@ -61,6 +68,7 @@ class IRCAgent:
         self._writer: asyncio.StreamWriter | None = None
         self._connected = False
         self._running = True
+        self._wallet_key: str | None = None
 
         # Load agent profile for personality
         self._profile: dict = {}
@@ -160,9 +168,158 @@ class IRCAgent:
         msg = f"Hey! I'm {self.nick} from KK swarm. Skills: {skills_str}. Browsing tasks on EM."
         await self.send_message(channel, msg)
 
+    # ------------------------------------------------------------------
+    # Turnstile — Premium channel access
+    # ------------------------------------------------------------------
+
+    async def join_premium_channel(self, channel_name: str, wallet_key: str | None = None) -> bool:
+        """Pay x402 and join a premium channel via Turnstile.
+
+        Args:
+            channel_name: Channel name (e.g., "kk-alpha" or "#kk-alpha").
+            wallet_key: Hex private key for signing x402 payment.
+                If None, uses self._wallet_key (set via --wallet-key arg).
+
+        Returns:
+            True if access was granted.
+        """
+        if not HAS_TURNSTILE:
+            logger.error(f"  [{self.nick}] Turnstile client not available (install aiohttp)")
+            return False
+
+        key = wallet_key or getattr(self, "_wallet_key", None)
+        if not key:
+            logger.error(f"  [{self.nick}] No wallet key for Turnstile payment")
+            return False
+
+        client = TurnstileClient()
+
+        # Check channel exists and has slots
+        channel_info = await client.get_channel(channel_name)
+        if not channel_info:
+            logger.error(f"  [{self.nick}] Channel {channel_name} not found on Turnstile")
+            return False
+
+        if not channel_info.is_available:
+            logger.error(f"  [{self.nick}] Channel {channel_name} is full ({channel_info.active_slots}/{channel_info.max_slots})")
+            return False
+
+        logger.info(
+            f"  [{self.nick}] Requesting access to {channel_info.name} "
+            f"(${channel_info.price} {channel_info.currency} / {channel_info.duration_seconds // 60}min)"
+        )
+
+        # Sign EIP-3009 payment
+        try:
+            payment_sig = await self._sign_x402_payment(
+                key, channel_info.price, channel_info.network
+            )
+        except Exception as e:
+            logger.error(f"  [{self.nick}] Payment signing failed: {e}")
+            return False
+
+        # Request access
+        result = await client.request_access(
+            channel=channel_name,
+            nick=self.nick,
+            payment_signature=payment_sig,
+        )
+
+        if result.success:
+            logger.info(
+                f"  [{self.nick}] Access granted to {result.channel} "
+                f"until {result.expires_at} (TX: {result.tx_hash[:16]}...)"
+            )
+            if result.channel not in self.channels:
+                self.channels.append(result.channel)
+            return True
+        else:
+            logger.error(f"  [{self.nick}] Access denied: {result.error}")
+            return False
+
+    async def _sign_x402_payment(
+        self, wallet_key: str, amount: str, network: str
+    ) -> str:
+        """Sign an EIP-3009 payment for Turnstile.
+
+        This creates the PAYMENT-SIGNATURE header value that Turnstile expects.
+        Uses the Facilitator's /verify flow for gasless settlement.
+
+        Returns base64-encoded payment signature string.
+        """
+        # Import here to avoid circular deps
+        try:
+            from eth_account import Account
+            from eth_account.messages import encode_defunct
+        except ImportError:
+            raise ImportError("eth_account required for x402 payments: pip install eth-account")
+
+        import hashlib
+        import os
+
+        account = Account.from_key(wallet_key)
+
+        # Build payment payload (simplified x402 format)
+        # The actual EIP-3009 signing is done by the Facilitator
+        # We just need to prove we control the wallet
+        nonce = "0x" + os.urandom(32).hex()
+        payload = {
+            "from": account.address,
+            "value": str(int(float(amount) * 1_000_000)),  # USDC 6 decimals
+            "nonce": nonce,
+            "network": network,
+            "timestamp": int(time.time()),
+        }
+
+        # Sign the payload
+        message_hash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+        msg = encode_defunct(text=message_hash)
+        signed = Account.sign_message(msg, private_key=wallet_key)
+
+        payload["signature"] = signed.signature.hex()
+
+        import base64
+        return base64.b64encode(json.dumps(payload).encode()).decode()
+
+    async def list_premium_channels(self) -> list:
+        """List available premium channels from Turnstile."""
+        if not HAS_TURNSTILE:
+            return []
+        client = TurnstileClient()
+        try:
+            return await client.list_channels()
+        except Exception as e:
+            logger.error(f"  [{self.nick}] Failed to list channels: {e}")
+            return []
+
     async def handle_message(self, sender: str, channel: str, message: str) -> None:
         """Handle an incoming IRC message."""
         msg_lower = message.lower()
+
+        # Handle premium channel commands
+        if msg_lower.startswith("!join-premium "):
+            target_channel = message.split(" ", 1)[1].strip()
+            if hasattr(self, "_wallet_key") and self._wallet_key:
+                success = await self.join_premium_channel(target_channel)
+                status = "Joined!" if success else "Failed to join"
+                await self.send_message(channel, f"{sender}: {status} {target_channel}")
+            else:
+                await self.send_message(channel, f"{sender}: No wallet key configured for payments")
+            return
+
+        if msg_lower.strip() == "!channels":
+            channels_list = await self.list_premium_channels()
+            if channels_list:
+                for ch in channels_list:
+                    await self.send_message(
+                        channel,
+                        f"  {ch.name}: ${ch.price} {ch.currency} / "
+                        f"{ch.duration_seconds // 60}min "
+                        f"[{ch.available_slots} slots] — {ch.description}",
+                    )
+            else:
+                await self.send_message(channel, "No premium channels available")
+            return
 
         # Respond to direct mentions
         if self.nick.lower() in msg_lower:
@@ -223,6 +380,8 @@ async def run_agent(
     channels: list[str],
     introduce: bool = True,
     duration: int = 0,
+    wallet_key: str | None = None,
+    premium_channels: list[str] | None = None,
 ) -> None:
     """Run a single IRC agent."""
     agent = IRCAgent(
@@ -230,6 +389,8 @@ async def run_agent(
         channels=channels,
         workspace_dir=workspace_dir,
     )
+    if wallet_key:
+        agent._wallet_key = wallet_key
 
     try:
         await agent.connect()
@@ -238,6 +399,13 @@ async def run_agent(
             await asyncio.sleep(2)
             for ch in channels:
                 await agent.introduce(ch)
+
+        # Auto-join premium channels if configured
+        if premium_channels and wallet_key:
+            for pch in premium_channels:
+                logger.info(f"  [{agent_name}] Auto-joining premium channel: {pch}")
+                await agent.join_premium_channel(pch, wallet_key)
+                await asyncio.sleep(2)  # Rate limit between payments
 
         if duration > 0:
             # Run for specified duration
@@ -271,6 +439,8 @@ async def main():
     parser.add_argument("--duration", type=int, default=0, help="Run duration in seconds (0=forever)")
     parser.add_argument("--no-intro", action="store_true", help="Skip channel introduction")
     parser.add_argument("--list-agents", action="store_true")
+    parser.add_argument("--wallet-key-env", type=str, default=None, help="Env var name containing wallet private key (never pass key directly)")
+    parser.add_argument("--premium-channel", type=str, action="append", help="Premium channel to auto-join on connect (requires --wallet-key-env)")
     args = parser.parse_args()
 
     base = Path(__file__).parent.parent
@@ -298,12 +468,22 @@ async def main():
     print(f"  Channels: {', '.join(channels)}")
     print(f"{'=' * 60}\n")
 
+    # Load wallet key from env var (NEVER from CLI arg — streaming safe)
+    wallet_key = None
+    if args.wallet_key_env:
+        import os
+        wallet_key = os.environ.get(args.wallet_key_env)
+        if not wallet_key:
+            print(f"WARNING: Env var {args.wallet_key_env} not set. Premium channels disabled.")
+
     await run_agent(
         agent_name=args.agent,
         workspace_dir=workspace_dir if workspace_dir.exists() else None,
         channels=channels,
         introduce=not args.no_intro,
         duration=args.duration,
+        wallet_key=wallet_key,
+        premium_channels=args.premium_channel,
     )
 
 
