@@ -1,0 +1,91 @@
+{
+  "timestamp": "2026-02-22T06:12:02.526497+00:00",
+  "chains_tested": [
+    "avalanche"
+  ],
+  "chains_passed": 1,
+  "chains_failed": 0,
+  "overall": "PASS",
+  "total_elapsed_s": 2.83,
+  "per_chain": {
+    "avalanche": {
+      "timestamp": "2026-02-22T06:12:02.526530+00:00",
+      "network": "avalanche",
+      "api_base": "https://api.execution.market",
+      "phases": {
+        "health": {
+          "name": "health",
+          "description": "API Health Check",
+          "status": "PASS",
+          "elapsed_s": 0.4,
+          "health_status": "healthy",
+          "supported_networks": [
+            "arbitrum",
+            "avalanche",
+            "base",
+            "celo",
+            "ethereum",
+            "monad",
+            "optimism",
+            "polygon"
+          ]
+        },
+        "worker_registration": {
+          "name": "worker_registration",
+          "description": "Agent B Worker Registration",
+          "status": "PASS",
+          "elapsed_s": 0.15,
+          "executor_id": "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4"
+        },
+        "task_browsing": {
+          "name": "task_browsing",
+          "description": "Agent C Browses Tasks",
+          "status": "PASS",
+          "elapsed_s": 0.26,
+          "available_tasks": 0,
+          "em_agent_id": 2106
+        },
+        "task_publication": {
+          "name": "task_publication",
+          "description": "Agent A Publishes Task ($0.1, avalanche)",
+          "status": "SKIP",
+          "elapsed_s": 0.0,
+          "error": "Mock mode: task publication skipped to avoid spending USDC"
+        },
+        "task_lifecycle": {
+          "name": "task_lifecycle",
+          "description": "Task Lifecycle (Apply -> Assign -> Submit)",
+          "status": "SKIP",
+          "elapsed_s": 0.0,
+          "error": "Mock mode: skipped (requires live task)"
+        },
+        "approval_payment": {
+          "name": "approval_payment",
+          "description": "Agent A Approves + Payment",
+          "status": "SKIP",
+          "elapsed_s": 0.0,
+          "error": "Mock mode: skipped (requires live task)"
+        },
+        "reputation": {
+          "name": "reputation",
+          "description": "Bidirectional Reputation (A rates B, B rates A)",
+          "status": "SKIP",
+          "elapsed_s": 0.0,
+          "error": "Mock mode: skipped (requires live task)"
+        },
+        "reputation_verification": {
+          "name": "reputation_verification",
+          "description": "Reputation Score Verification",
+          "status": "SKIP",
+          "elapsed_s": 0.0,
+          "error": "Mock mode: skipped (requires live task)"
+        }
+      },
+      "overall": "PASS",
+      "pass_count": 3,
+      "fail_count": 0,
+      "skip_count": 5,
+      "total_elapsed_s": 2.83
+    }
+  }
+}
