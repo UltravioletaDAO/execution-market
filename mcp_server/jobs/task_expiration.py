@@ -58,71 +58,121 @@ async def _process_expired_task(client, task: dict) -> None:
         logger.info("[expiration] Task %s has no escrow_id, skipping refund", task_id)
         return
 
-    try:
-        from integrations.x402.advanced_escrow_integration import (
-            refund_to_agent,
-            ADVANCED_ESCROW_AVAILABLE,
-        )
+    escrow_mode = os.environ.get("EM_ESCROW_MODE", "platform_release")
 
-        if not ADVANCED_ESCROW_AVAILABLE:
-            logger.warning(
-                "[expiration] Advanced escrow SDK not available, cannot refund task %s",
-                task_id,
-            )
-            return
+    if escrow_mode == "direct_release":
+        # Fase 5 trustless: use PaymentDispatcher
+        try:
+            from integrations.x402.payment_dispatcher import PaymentDispatcher
 
-        result = refund_to_agent(task_id=task_id)
-
-        if result.success:
-            logger.info(
-                "[expiration] Refund successful for task %s: tx=%s",
-                task_id,
-                getattr(result, "transaction_hash", "N/A"),
+            dispatcher = PaymentDispatcher()
+            result = await dispatcher.refund_trustless_escrow(
+                task_id=task_id,
+                reason="Auto-refund: task expired past deadline",
             )
 
-            # 3. Record the refund as a payment entry
-            try:
-                client.table("payments").insert(
-                    {
-                        "task_id": task_id,
-                        "agent_id": agent_id,
-                        "type": "refund",
-                        "status": "confirmed",
-                        "tx_hash": getattr(result, "transaction_hash", ""),
-                        "escrow_id": escrow_id,
-                        "note": "Auto-refund: task expired past deadline (via SDK)",
-                        "created_at": datetime.now(timezone.utc).isoformat(),
-                    }
-                ).execute()
+            if result.get("success"):
                 logger.info(
-                    "[expiration] Payment record created for task %s refund",
+                    "[expiration] Fase 5 refund successful for task %s: tx=%s",
                     task_id,
+                    result.get("tx_hash", "N/A"),
                 )
-            except Exception as exc:
-                # Non-fatal: the on-chain refund already succeeded
-                logger.error(
-                    "[expiration] Failed to record payment for task %s: %s",
+                try:
+                    client.table("payments").insert(
+                        {
+                            "task_id": task_id,
+                            "agent_id": agent_id,
+                            "type": "refund",
+                            "status": "confirmed",
+                            "tx_hash": result.get("tx_hash", ""),
+                            "escrow_id": escrow_id,
+                            "note": "Auto-refund: task expired past deadline (Fase 5 trustless)",
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    ).execute()
+                except Exception as exc:
+                    logger.error(
+                        "[expiration] Failed to record payment for task %s: %s",
+                        task_id,
+                        exc,
+                    )
+            else:
+                logger.warning(
+                    "[expiration] Fase 5 refund failed for task %s: %s",
                     task_id,
-                    exc,
+                    result.get("error"),
                 )
-        else:
+        except ImportError:
             logger.warning(
-                "[expiration] Refund failed for task %s (escrow_id=%s): %s",
+                "[expiration] PaymentDispatcher not available for Fase 5, skipping refund for task %s",
                 task_id,
-                escrow_id,
-                result.error,
             )
-    except ImportError:
-        logger.warning(
-            "[expiration] x402r escrow not available, skipping refund for task %s",
-            task_id,
-        )
-    except Exception as exc:
-        logger.error(
-            "[expiration] Unexpected error refunding task %s: %s",
-            task_id,
-            exc,
-        )
+        except Exception as exc:
+            logger.error(
+                "[expiration] Unexpected error in Fase 5 refund for task %s: %s",
+                task_id,
+                exc,
+            )
+    else:
+        # Legacy platform_release: use advanced_escrow_integration
+        try:
+            from integrations.x402.advanced_escrow_integration import (
+                refund_to_agent,
+                ADVANCED_ESCROW_AVAILABLE,
+            )
+
+            if not ADVANCED_ESCROW_AVAILABLE:
+                logger.warning(
+                    "[expiration] Advanced escrow SDK not available, cannot refund task %s",
+                    task_id,
+                )
+                return
+
+            result = refund_to_agent(task_id=task_id)
+
+            if result.success:
+                logger.info(
+                    "[expiration] Refund successful for task %s: tx=%s",
+                    task_id,
+                    getattr(result, "transaction_hash", "N/A"),
+                )
+                try:
+                    client.table("payments").insert(
+                        {
+                            "task_id": task_id,
+                            "agent_id": agent_id,
+                            "type": "refund",
+                            "status": "confirmed",
+                            "tx_hash": getattr(result, "transaction_hash", ""),
+                            "escrow_id": escrow_id,
+                            "note": "Auto-refund: task expired past deadline (via SDK)",
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    ).execute()
+                except Exception as exc:
+                    logger.error(
+                        "[expiration] Failed to record payment for task %s: %s",
+                        task_id,
+                        exc,
+                    )
+            else:
+                logger.warning(
+                    "[expiration] Refund failed for task %s (escrow_id=%s): %s",
+                    task_id,
+                    escrow_id,
+                    result.error,
+                )
+        except ImportError:
+            logger.warning(
+                "[expiration] x402r escrow not available, skipping refund for task %s",
+                task_id,
+            )
+        except Exception as exc:
+            logger.error(
+                "[expiration] Unexpected error refunding task %s: %s",
+                task_id,
+                exc,
+            )
 
 
 async def _process_submitted_timeout_task(client, task: dict) -> bool:

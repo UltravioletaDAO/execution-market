@@ -512,7 +512,7 @@ Wrong Flow (DO NOT USE):
 
 **Deployment script:** `scripts/deploy-payment-operator.ts` — deploys via x402r factory contracts. Use `--fase3`, `--fase3-clean`, or `--fase4` flag.
 
-**Status:** Fase 5 Operators deployed on **8 chains** (2026-02-20): Base (`0x271f...D8F0Eb`), Ethereum (`0x69B6...001b`), Polygon (`0xB87F...102e`), Arbitrum (`0xC237...938e`), Avalanche (`0xC237...938e`), Monad (`0x9620...8cC3`), Celo (`0xC237...938e`), Optimism (`0xC237...938e`). Credit card model: bounty = lock amount, fee deducted on-chain at release (13% of gross). Base operator active in Facilitator allowlist. **Pending**: Register 7 new operators in Facilitator allowlist (Ethereum, Polygon, Arbitrum, Avalanche, Monad, Celo, Optimism).
+**Status:** Fase 5 Operators deployed on **8 chains** (2026-02-20): Base (`0x271f...D8F0Eb`), Ethereum (`0x69B6...001b`), Polygon (`0xB87F...102e`), Arbitrum (`0xC237...938e`), Avalanche (`0xC237...938e`), Monad (`0x9620...8cC3`), Celo (`0xC237...938e`), Optimism (`0xC237...938e`). Credit card model: bounty = lock amount, fee deducted on-chain at release (13% of gross). ALL 8 operators active in Facilitator allowlist. Golden Flow 7/8 PASS consolidated (2026-02-21).
 
 **Key upstream repos:**
 | Repo | URL | Stack |
