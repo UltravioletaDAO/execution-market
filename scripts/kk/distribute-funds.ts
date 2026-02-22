@@ -22,6 +22,7 @@ import {
   http,
   parseUnits,
   parseEther,
+  parseGwei,
   formatUnits,
   formatEther,
   getAddress,
@@ -98,6 +99,7 @@ async function distribute(
   gasPerWallet: string,
   dryRun: boolean,
   perWalletAmounts?: Record<string, string>,
+  priorityFeeGwei?: number,
 ): Promise<{ tokenResults: TokenDistResult[]; gasResults: TxResult[] }> {
   const chainInfo = getChain(chainName);
   const tokenResults: TokenDistResult[] = [];
@@ -130,11 +132,24 @@ async function distribute(
   // Check native balance upfront
   const nativeBalance = await publicClient.getBalance({ address: account.address });
 
+  // Priority fee override for L1 (makes TXs confirm faster)
+  const txOverrides: Record<string, any> = {};
+  if (priorityFeeGwei) {
+    txOverrides.maxPriorityFeePerGas = parseGwei(String(priorityFeeGwei));
+    console.log(`\n  Priority fee override: ${priorityFeeGwei} gwei`);
+  }
+
+  // L1 gets 10-minute timeout, L2s get 60s
+  const isL1 = chainInfo.chainId === 1;
+  const txTimeout = isL1 ? 600_000 : 60_000;
+  const txConfirmations = isL1 ? 1 : 2;
+
   console.log(`\n=== ${chainInfo.name} (${wallets.length} wallets, ${tokensToDistribute.length} token(s)) ===`);
   console.log(`  Funder:     ${account.address}`);
   console.log(`  Native bal: ${formatEther(nativeBalance)} ${chainInfo.nativeSymbol}`);
   console.log(`  Need gas:   ${formatEther(totalGas)} ${chainInfo.nativeSymbol}`);
   console.log(`  Tokens:     ${tokensToDistribute.map((t) => t.symbol).join(", ")}`);
+  if (isL1) console.log(`  Timeout:    ${txTimeout / 1000}s (Ethereum L1)`);
 
   // ---- Distribute each token ----
   for (const token of tokensToDistribute) {
@@ -207,13 +222,12 @@ async function distribute(
           abi: ERC20_ABI,
           functionName: "approve",
           args: [DISPERSE_ADDRESS, approveAmount],
+          ...txOverrides,
         });
-        // Ethereum L1 needs longer timeout (up to 5 min per TX)
-        const isL1 = chainInfo.chainId === 1;
         await publicClient.waitForTransactionReceipt({
           hash: approveTx,
-          confirmations: isL1 ? 1 : 2,
-          timeout: isL1 ? 300_000 : 60_000,
+          confirmations: txConfirmations,
+          timeout: txTimeout,
         });
         console.log(`        TX: ${approveTx}`);
         result.txs.push({ type: "approve", txHash: approveTx, recipients: 1, amount: formatUnits(approveAmount, token.decimals), token: token.symbol, status: "confirmed" });
@@ -232,10 +246,12 @@ async function distribute(
           abi: DISPERSE_ABI,
           functionName: "disperseToken",
           args: [token.address, addresses, tokenAmounts],
+          ...txOverrides,
         });
         await publicClient.waitForTransactionReceipt({
           hash: tokenTx,
-          timeout: isL1 ? 300_000 : 60_000,
+          confirmations: txConfirmations,
+          timeout: txTimeout,
         });
         console.log(`        TX: ${tokenTx}`);
         result.txs.push({ type: "token_batch", txHash: tokenTx, recipients: addresses.length, amount: formatUnits(totalToken, token.decimals), token: token.symbol, status: "confirmed" });
@@ -279,7 +295,6 @@ async function distribute(
     } else {
       console.log(`\n--- ${chainInfo.nativeSymbol} (gas) ---`);
 
-      const isL1Gas = chainInfo.chainId === 1;
       if (chainInfo.disperseAvailable) {
         console.log(`  Dispersing ${chainInfo.nativeSymbol} to ${addresses.length} wallets...`);
         const gasAmounts = wallets.map(() => gasAmount);
@@ -290,10 +305,12 @@ async function distribute(
             functionName: "disperseEther",
             args: [addresses, gasAmounts],
             value: totalGas,
+            ...txOverrides,
           });
           await publicClient.waitForTransactionReceipt({
             hash: nativeTx,
-            timeout: isL1Gas ? 300_000 : 60_000,
+            confirmations: txConfirmations,
+            timeout: txTimeout,
           });
           console.log(`        TX: ${nativeTx}`);
           gasResults.push({ type: "native_batch", txHash: nativeTx, recipients: addresses.length, amount: formatEther(totalGas), status: "confirmed" });
@@ -337,6 +354,11 @@ async function main() {
 
   const chainName = args.includes("--chain") ? args[args.indexOf("--chain") + 1] : "base";
   const dryRun = args.includes("--dry-run");
+
+  // Priority fee in gwei (e.g. --priority-fee 5 for 5 gwei tip — faster L1 confirmation)
+  const priorityFeeGwei = args.includes("--priority-fee")
+    ? parseFloat(args[args.indexOf("--priority-fee") + 1])
+    : undefined;
 
   // --- Allocation mode: per-agent amounts from allocation.json ---
   const allocationFile = args.includes("--allocation")
@@ -412,6 +434,7 @@ async function main() {
       gasPerWallet,
       dryRun,
       perWalletAmounts,
+      priorityFeeGwei,
     );
 
     const report = {
@@ -493,6 +516,8 @@ async function main() {
     amountPerWallet,
     gasPerWallet,
     dryRun,
+    undefined,
+    priorityFeeGwei,
   );
 
   // Save report
