@@ -315,7 +315,7 @@ export const CHAINS: Record<string, ChainInfo> = {
       },
     },
     nativeSymbol: "AVAX",
-    disperseAvailable: true,
+    disperseAvailable: false, // Disperse.app NOT deployed at 0xD152...2150 on Avalanche C-Chain
     debridgeChainId: "43114",
     squidSupported: true,
   },
