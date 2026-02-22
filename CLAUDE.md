@@ -274,6 +274,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - `X402_NETWORK` - Default payment network (default: `base`)
 - **To add a new chain or stablecoin**: Use the **`add-network` skill** (`.claude/skills/add-network/SKILL.md`) — it has the complete step-by-step checklist
 - **To deploy/redeploy PaymentOperators**: Use the **`deploy-operator` skill** (`.claude/skills/deploy-operator/SKILL.md`) — deploys Fase 5 operators on any supported chain
+- **To distribute/bridge/rebalance funds**: Use the **`fund-distribution` skill** (`.claude/skills/fund-distribution/SKILL.md`) — full lifecycle: inventory, bridge, fan-out, rebalance, sweep. Reference doc: `docs/planning/KK_FUND_DISTRIBUTION_REFERENCE.md`
 - Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — single source of truth, 15 EVM networks, 5 stablecoins, 10 with x402r escrow)
 - Other Python files (facilitator_client, tests, platform_config) **auto-derive** from sdk_client.py — no manual updates needed
 
@@ -427,6 +428,23 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 | `X402_RPC_URL` | AWS SM `em/x402:X402_RPC_URL` | **QuikNode private Base RPC** (avoid public rate limits) |
 
 **Deploy scripts & dotenv**: All TypeScript scripts in `scripts/` load `.env.local` automatically via `dotenv.config({ path: "../.env.local" })`. The `WALLET_PRIVATE_KEY` from `.env.local` is accepted as `PRIVATE_KEY` alias. No need to set env vars manually — just run `npx tsx script.ts` from `scripts/` directory.
+
+**>>> CRITICAL: NEVER SHOW PRIVATE KEYS IN LOGS <<<**
+- **NEVER** display private keys in terminal output, bash commands, or logs — user is ALWAYS streaming
+- To use the master wallet key, load it from AWS SM without displaying it:
+  ```bash
+  node -e "
+  const { execSync } = require('child_process');
+  const raw = execSync('aws secretsmanager get-secret-value --secret-id em/x402 --query SecretString --output text --region us-east-2', {encoding:'utf8'});
+  const pk = JSON.parse(raw).PRIVATE_KEY;
+  execSync('npx tsx <script>.ts <args>', {
+    stdio: 'inherit',
+    env: { ...process.env, WALLET_PRIVATE_KEY: pk, PRIVATE_KEY: pk }
+  });
+  "
+  ```
+- For KK swarm mnemonic: AWS SM `kk/swarm-seed`
+- Scripts must ONLY print public addresses, NEVER private keys
 
 ### Legacy Custom Escrow — DEPRECATED (DO NOT USE)
 
