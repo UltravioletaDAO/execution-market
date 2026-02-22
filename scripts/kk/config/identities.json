@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2026-02-22T02:24:06.478Z",
+  "updated_at": "2026-02-22T03:00:52.305Z",
   "api_url": "https://api.execution.market",
   "agents": [
     {
@@ -88,9 +88,8 @@
         "base": {
           "agent_id": null,
           "transaction": null,
-          "registered_at": "2026-02-22T02:12:46.210Z",
-          "status": "failed",
-          "error": "Failed to send registration transaction: server returned an error response: error code 3: execution reverted"
+          "registered_at": "2026-02-22T03:00:50.303Z",
+          "status": "success"
         }
       }
     },
