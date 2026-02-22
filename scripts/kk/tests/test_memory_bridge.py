@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from scripts.kk.lib.memory_bridge import (
+from lib.memory_bridge import (
     AgentContext,
     AcontextBackend,
     LocalBackend,

@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.kk.lib.observability import (
+from lib.observability import (
     AgentHealthSnapshot,
     HealthStatus,
     SwarmMetrics,
