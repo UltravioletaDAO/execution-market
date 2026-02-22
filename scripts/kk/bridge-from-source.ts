@@ -66,6 +66,7 @@ function parseArgs(): {
   source: string;
   allocationPath: string;
   filterChains: string[] | null;
+  amountOverride: string | null;
 } {
   const args = process.argv.slice(2);
 
@@ -89,7 +90,13 @@ function parseArgs(): {
     filterChains = args[chainsIdx + 1].split(",").map((c) => c.trim());
   }
 
-  return { dryRun, source, allocationPath, filterChains };
+  let amountOverride: string | null = null;
+  const amtIdx = args.indexOf("--amount");
+  if (amtIdx !== -1 && args[amtIdx + 1]) {
+    amountOverride = args[amtIdx + 1];
+  }
+
+  return { dryRun, source, allocationPath, filterChains, amountOverride };
 }
 
 // ---------------------------------------------------------------------------
@@ -361,7 +368,7 @@ async function bridgeToChain(
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const { dryRun, source, allocationPath, filterChains } = parseArgs();
+  const { dryRun, source, allocationPath, filterChains, amountOverride } = parseArgs();
 
   console.log("=".repeat(70));
   console.log("  Karma Kadabra V2 -- Bridge from Source Chain");
@@ -371,6 +378,9 @@ async function main() {
   console.log("  Mode:          " + (dryRun ? "DRY RUN" : "LIVE"));
   if (filterChains) {
     console.log("  Filter chains: " + filterChains.join(", "));
+  }
+  if (amountOverride) {
+    console.log("  Amount override: $" + amountOverride);
   }
 
   // Load allocation
@@ -394,9 +404,15 @@ async function main() {
   }
 
   // Determine which chains to bridge to
-  let targetChains = Object.entries(targets);
-  if (filterChains) {
-    targetChains = targetChains.filter(([chain]) => filterChains.includes(chain));
+  // --amount + --chains allows ad-hoc bridges not in allocation (e.g., reverse bridges)
+  let targetChains: [string, string][];
+  if (amountOverride && filterChains) {
+    targetChains = filterChains.map((c) => [c, amountOverride]);
+  } else {
+    targetChains = Object.entries(targets);
+    if (filterChains) {
+      targetChains = targetChains.filter(([chain]) => filterChains.includes(chain));
+    }
   }
 
   // Skip source chain (no bridge needed)
