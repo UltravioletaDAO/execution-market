@@ -133,6 +133,27 @@ export const ERC20_ABI = [
 ] as const;
 
 // ---------------------------------------------------------------------------
+// RPC Override: use private QuikNode endpoints from .env.local when available
+// Env var format: {CHAIN_UPPER}_RPC_URL (e.g., AVALANCHE_RPC_URL, BASE_MAINNET_RPC_URL)
+// ---------------------------------------------------------------------------
+
+const RPC_ENV_MAP: Record<string, string> = {
+  base: "BASE_MAINNET_RPC_URL",
+  ethereum: "ETHEREUM_RPC_URL",
+  polygon: "POLYGON_RPC_URL",
+  arbitrum: "ARBITRUM_RPC_URL",
+  avalanche: "AVALANCHE_RPC_URL",
+  optimism: "OPTIMISM_RPC_URL",
+  celo: "CELO_RPC_URL",
+  monad: "MONAD_RPC_URL",
+};
+
+function rpc(chain: string, fallback: string): string {
+  const envVar = RPC_ENV_MAP[chain];
+  return (envVar && process.env[envVar]) || fallback;
+}
+
+// ---------------------------------------------------------------------------
 // The 8 Target Chains — with full stablecoin registry
 // ---------------------------------------------------------------------------
 
@@ -141,7 +162,7 @@ export const CHAINS: Record<string, ChainInfo> = {
     name: "Base",
     chain: base,
     chainId: 8453,
-    rpcUrl: "https://mainnet.base.org",
+    rpcUrl: rpc("base", "https://mainnet.base.org"),
     usdc: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     tokens: {
       USDC: {
@@ -166,7 +187,7 @@ export const CHAINS: Record<string, ChainInfo> = {
     name: "Ethereum",
     chain: mainnet,
     chainId: 1,
-    rpcUrl: "https://eth.llamarpc.com",
+    rpcUrl: rpc("ethereum", "https://eth.llamarpc.com"),
     usdc: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     tokens: {
       USDC: {
@@ -203,7 +224,7 @@ export const CHAINS: Record<string, ChainInfo> = {
     name: "Polygon",
     chain: polygon,
     chainId: 137,
-    rpcUrl: "https://polygon-bor-rpc.publicnode.com",
+    rpcUrl: rpc("polygon", "https://polygon-bor-rpc.publicnode.com"),
     usdc: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
     tokens: {
       USDC: {
@@ -228,7 +249,7 @@ export const CHAINS: Record<string, ChainInfo> = {
     name: "Arbitrum",
     chain: arbitrum,
     chainId: 42161,
-    rpcUrl: "https://arb1.arbitrum.io/rpc",
+    rpcUrl: rpc("arbitrum", "https://arb1.arbitrum.io/rpc"),
     usdc: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     tokens: {
       USDC: {
@@ -259,7 +280,7 @@ export const CHAINS: Record<string, ChainInfo> = {
     name: "Avalanche",
     chain: avalanche,
     chainId: 43114,
-    rpcUrl: "https://api.avax.network/ext/bc/C/rpc",
+    rpcUrl: rpc("avalanche", "https://api.avax.network/ext/bc/C/rpc"),
     usdc: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
     tokens: {
       USDC: {
@@ -290,7 +311,7 @@ export const CHAINS: Record<string, ChainInfo> = {
     name: "Optimism",
     chain: optimism,
     chainId: 10,
-    rpcUrl: "https://mainnet.optimism.io",
+    rpcUrl: rpc("optimism", "https://mainnet.optimism.io"),
     usdc: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
     tokens: {
       USDC: {
@@ -315,7 +336,7 @@ export const CHAINS: Record<string, ChainInfo> = {
     name: "Celo",
     chain: celo,
     chainId: 42220,
-    rpcUrl: "https://forno.celo.org",
+    rpcUrl: rpc("celo", "https://forno.celo.org"),
     usdc: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
     tokens: {
       USDC: {
@@ -340,7 +361,7 @@ export const CHAINS: Record<string, ChainInfo> = {
     name: "Monad",
     chain: monad,
     chainId: 143,
-    rpcUrl: "https://rpc.monad.xyz",
+    rpcUrl: rpc("monad", "https://rpc.monad.xyz"),
     usdc: "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
     tokens: {
       USDC: {
