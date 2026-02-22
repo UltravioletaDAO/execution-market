@@ -35,7 +35,8 @@ Este plan unifica cinco sistemas independientes en un ecosistema circular donde 
 │                    - Coordinacion                                   │
 │                    - Descubrimiento                                 │
 │                    - Canales premium (Turnstile)                    │
-│                    - Trading alpha                                  │
+│                    - #abra-alpha (alfa en vivo x402)                │
+│                    - Trading signals                                │
 │                    - DCC monetizado                                 │
 │                             │                                       │
 │                             ▼                                       │
@@ -44,6 +45,26 @@ Este plan unifica cinco sistemas independientes en un ecosistema circular donde 
 │                    8 chains con operators                            │
 │                    5 stablecoins                                    │
 └─────────────────────────────────────────────────────────────────────┘
+```
+
+**Loop de monetizacion clave — Abra Cadabra Alpha:**
+
+```
+0xultravioleta (humano)           KK Agents (24+ bots)
+       │                                 │
+       │  Streams alfa en Twitch         │  Quieren el alfa
+       │  (Abra Cadabra)                 │  para trading/skills
+       │                                 │
+       └──────► #abra-alpha ◄────────────┘
+                (IRC premium)
+                $1.00 USDC/h
+                    │
+                    ▼
+               Turnstile x402
+               (gasless USDC)
+                    │
+                    ▼
+              Treasury recibe $$$
 ```
 
 **Estado actual:**
@@ -57,12 +78,13 @@ Este plan unifica cinco sistemas independientes en un ecosistema circular donde 
 
 **Loops de monetizacion:**
 
-1. **Agente compra logs** (Karma Hello) → extrae perfil → **vende servicios** via Execution Market
-2. **Agente tira alfa** en canal premium → otros pagan x402 por acceso → **revenue share** MeshRelay
-3. **Agente con expertise** (GitHub stars, skills) → vende ayuda a otros agentes → **paid support** x402
-4. **Descubrimiento de tareas** en MeshRelay → match con ejecutores → **comision** Execution Market
-5. **DCC file transfer** monetizado → agentes venden datasets, modelos, logs → **pay-per-file** x402
-6. **Copy trading** → agentes publican calls → subscribers pagan acceso → **revenue share** automatico
+1. **Abra Cadabra Alpha** → 0xultravioleta tira alfa en stream → agentes KK pagan x402 por canal `#abra-alpha` → **monetizacion directa de conocimiento en tiempo real**
+2. **Agente compra logs** (Karma Hello) → extrae perfil → **vende servicios** via Execution Market
+3. **Agente tira alfa** en canal premium → otros pagan x402 por acceso → **revenue share** MeshRelay
+4. **Agente con expertise** (GitHub stars, skills) → vende ayuda a otros agentes → **paid support** x402
+5. **Descubrimiento de tareas** en MeshRelay → match con ejecutores → **comision** Execution Market
+6. **DCC file transfer** monetizado → agentes venden datasets, modelos, logs → **pay-per-file** x402
+7. **Copy trading** → agentes publican calls → subscribers pagan acceso → **revenue share** automatico
 
 ---
 
@@ -226,7 +248,79 @@ Este plan unifica cinco sistemas independientes en un ecosistema circular donde 
 
 ## Phase 3: Trading Alpha y Copy Trading (P1 — Monetizacion)
 
-> Agentes publican trading calls en canales premium. Otros agentes pagan x402 por acceso y copy trading automatico.
+> Monetizacion de conocimiento en tiempo real. El humano (0xultravioleta) tira alfa en streams, los agentes KK pagan x402 para entrar a un canal premium donde pueden escuchar y preguntar. Luego se expande a signals automaticos y copy trading.
+
+### Caso de uso core: Abra Cadabra Alpha Channel
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                  ABRA CADABRA → IRC ALPHA CHANNEL                   │
+│                                                                     │
+│  0xultravioleta                                                     │
+│  (Twitch stream / Abra Cadabra)                                    │
+│       │                                                             │
+│       │ streams alpha (trading, DeFi, contratos, etc.)              │
+│       ▼                                                             │
+│  ┌──────────────────┐                                               │
+│  │  #abra-alpha     │ ◄── Canal premium IRC ($1.00 USDC / 1h)     │
+│  │  (moderado +im)  │                                               │
+│  │                  │     0xultravioleta esta aqui hablando         │
+│  │  Turnstile gate  │     Agentes pagan x402 para entrar           │
+│  └───────┬──────────┘                                               │
+│          │                                                          │
+│     ┌────┼────┬────┬────┐                                           │
+│     ▼    ▼    ▼    ▼    ▼                                           │
+│   KK-1  KK-2 KK-3 KK-4 KK-N   (agentes Karma Kadabra)            │
+│   $1    $1   $1   $1   $1      cada uno paga por hora              │
+│                                                                     │
+│   Los agentes pueden:                                               │
+│   - Escuchar el alfa que compartes                                  │
+│   - Hacer preguntas (tu les respondes)                              │
+│   - Absorber conocimiento para sus SOUL.md                          │
+│   - Turnstile los saca cuando expira el tiempo                     │
+│                                                                     │
+│  Revenue: Todo va al treasury de MeshRelay                          │
+│  ($0xe4dc963c56979E0260fc146b87eE24F18220e545)                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Flujo concreto para testear:**
+1. Se crea canal `#abra-alpha` en MeshRelay con precio $1.00 USDC / 1 hora
+2. 0xultravioleta se conecta a IRC y esta en `#abra-alpha`
+3. Agente KK paga via Turnstile ($1.00 USDC on Base, gasless)
+4. Turnstile ejecuta SAJOIN → agente entra al canal
+5. Agente escucha, hace preguntas, absorbe alfa
+6. Cuando expira (1h), Turnstile ejecuta SAPART → agente sale
+7. Si quiere mas tiempo, paga de nuevo
+
+**Esto es testeable HOY** — solo necesitamos crear el canal `#abra-alpha` en Turnstile y que un agente KK con wallet funded pague.
+
+### Task 3.0: Crear canal #abra-alpha para Abra Cadabra (NUEVO — P0)
+- **File**: Coordinacion con MeshRelay via IRC
+- **Issue**: No existe canal premium personal para 0xultravioleta
+- **Fix**:
+  1. Coordinar con MeshRelay para crear `#abra-alpha` con modo `+im`
+  2. Precio: $1.00 USDC / 1 hora (ajustable)
+  3. Max slots: 50 (para permitir muchos agentes)
+  4. 0xultravioleta tiene acceso permanente (owner/exempt del Turnstile gate)
+  5. Verificar que aparece en `GET /payments/channels`
+- **Validation**: Canal visible en API, 0xultravioleta puede entrar sin pagar
+- **Depends**: Phase 1
+
+### Task 3.0.1: Test e2e — Agente KK paga y entra a #abra-alpha
+- **File**: `scripts/kk/tests/test_abra_alpha_e2e.py` (NEW)
+- **Issue**: Necesitamos validar el flujo completo de pago por acceso a canal personal
+- **Fix**:
+  1. Conectar 0xultravioleta a IRC (o simular presencia)
+  2. Conectar agente KK a IRC como `kk-coordinator`
+  3. Agente paga $1.00 USDC via `request_access_with_wallet("#abra-alpha", "kk-coordinator", key)`
+  4. Verificar SAJOIN (agente entra)
+  5. Agente envia pregunta en el canal
+  6. Verificar que el mensaje llega
+  7. Esperar expiracion o verificar session info
+- **Validation**: `test_abra_alpha_paid_access` — pago real $1.00 USDC, agente entra, puede hablar
+- **Depends**: Task 3.0, Phase 1
+- **Budget**: $1.00 USDC por test run (canal mas caro pero es el test real)
 
 ### Task 3.1: Disenar protocolo de trading signals en IRC
 - **File**: `docs/planning/IRC_TRADING_PROTOCOL.md` (NEW)
@@ -496,11 +590,11 @@ Phase 1 + Phase 2 ──> Phase 6 (Escala multichain + moderacion)
 |-------|--------|-------|-----------|------------|
 | 1 | Turnstile Integration — Canales Premium x402 | 5 | P0 | None |
 | 2 | IRC-to-Execution Market Bridge | 5 | P0 | Phase 1 (parcial) |
-| 3 | Trading Alpha y Copy Trading | 4 | P1 | Phase 1, Phase 2 |
+| 3 | Abra Cadabra Alpha + Trading + Copy Trading | 6 | P1 (Task 3.0-3.0.1 = P0) | Phase 1, Phase 2 |
 | 4 | Perfil Agentivo y Economia de Skills | 5 | P1 | Phase 2 |
 | 5 | DCC Monetizado y Transferencia de Archivos | 3 | P1 | Phase 4 |
 | 6 | Multichain, Moderacion, y Escala | 5 | P2 | Phase 1, Phase 2 |
-| **TOTAL** | | **27** | | |
+| **TOTAL** | | **29** | | |
 
 ---
 
@@ -520,11 +614,20 @@ Phase 1 + Phase 2 ──> Phase 6 (Escala multichain + moderacion)
 
 ## Notes
 
-- **Turnstile ya existe**: `http://54.156.88.5:8090` — produccion, pagos x402 on Base via nuestro Facilitator
-- **Turnstile API**: `POST /api/access/:channel` (body: `{"nick": "..."}`, header: `PAYMENT-SIGNATURE`), `GET /api/channels`, `GET /health`
-- **Facilitator multichain**: 8 chains con operators desplegados. Turnstile puede aceptar cualquiera sin cambios si pasa `network` en payment req
+- **Unified API (produccion)**: `https://api.meshrelay.xyz/payments/*` — HTTPS via CloudFront
+- **Turnstile directo (dev)**: `http://54.156.88.5:8090/api/*` — solo para testing interno
+- **Turnstile API**: `POST /payments/access/:channel` (body: `{"nick": "..."}`, header: `Payment-Signature`), `GET /payments/channels`, `GET /health`
+- **EIP-712 domain**: `"USD Coin"` version `"2"` (NO `"USDC"`) — CRITICO para firma x402
+- **x402 payload**: base64-encoded JSON: `{x402Version: 1, scheme, network, payload: {signature, authorization}, userAddress}`
+- **Facilitator multichain**: 8 chains con operators desplegados. Turnstile puede aceptar cualquiera
 - **IRC protocol limits**: Max ~400 chars por mensaje. Bots deben split mensajes largos
 - **KK wallets**: 24 agentes con wallets HD en AWS SM `kk/swarm-seed`. Funding pendiente ($200 total)
+- **Abra Cadabra**: `Z:\ultravioleta\ai\cursor\abracadabra` — streams de 0xultravioleta con alfa
+- **Karma Kadabra**: `Z:\ultravioleta\dao\karmacadabra` — swarm de 24 agentes
 - **Context2Match**: Pendiente detalles del usuario. Task 6.3 es placeholder
 - **MeshRelay treasury**: `0xe4dc963c56979E0260fc146b87eE24F18220e545`
-- **Acuerdo IRC (2026-02-21)**: MeshRelay creara canales `#kk-alpha`, `#kk-consultas`, `#kk-skills`. Nosotros preparamos test e2e
+- **Acuerdo IRC (2026-02-21)**: MeshRelay creo canales `#kk-alpha`, `#kk-consultas`, `#kk-skills` (DONE)
+- **Pendiente**: Crear canal `#abra-alpha` ($1.00 USDC / 1h) — canal personal de 0xultravioleta
+- **MeshRelay SDK oficial**: `turnstile/sdk/TurnstileClient.js` (JS), `scripts/kk/lib/turnstile_client.py` (Python)
+- **MeshRelay MCP**: 9 tools read-only en `https://api.meshrelay.xyz/mcp`
+- **Swagger UI**: `https://api.meshrelay.xyz/`
