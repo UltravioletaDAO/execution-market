@@ -420,7 +420,7 @@ def sign_eip3009_payment(
     """
     try:
         from eth_account import Account
-        from eth_account.messages import encode_structured_data
+        from eth_account.messages import encode_typed_data
     except ImportError:
         raise ImportError(
             "eth_account required for x402 payments: pip install eth-account"
@@ -430,9 +430,11 @@ def sign_eip3009_payment(
     from_addr = account.address
 
     now_sec = int(time.time())
-    nonce = "0x" + os.urandom(32).hex()
+    nonce_bytes = os.urandom(32)
+    nonce_hex = "0x" + nonce_bytes.hex()
 
     # Build EIP-712 typed data
+    # NOTE: eth_account expects bytes for bytes32, not hex string
     typed_data = {
         "types": {
             "EIP712Domain": [
@@ -458,28 +460,34 @@ def sign_eip3009_payment(
             "value": int(amount),
             "validAfter": 0,
             "validBefore": now_sec + 3600,  # 1 hour validity
-            "nonce": nonce,
+            "nonce": nonce_bytes,  # bytes, not hex string
         },
     }
 
-    # Sign
-    signable = encode_structured_data(typed_data)
+    # Sign using the full_message parameter of encode_typed_data
+    signable = encode_typed_data(full_message=typed_data)
     signed = Account.sign_message(signable, private_key=private_key)
 
     # Build x402 payload (matches official JS SDK format)
+    # Authorization fields are strings for JSON serialization
+    # Facilitator expects signature WITHOUT "0x" prefix
+    sig_hex = signed.signature.hex()
+    if sig_hex.startswith("0x"):
+        sig_hex = sig_hex[2:]
+
     payload = {
         "x402Version": 1,
         "scheme": scheme,
         "network": network,
         "payload": {
-            "signature": signed.signature.hex(),
+            "signature": sig_hex,
             "authorization": {
                 "from": from_addr,
                 "to": pay_to,
                 "value": str(amount),
                 "validAfter": "0",
                 "validBefore": str(now_sec + 3600),
-                "nonce": nonce,
+                "nonce": nonce_hex,
             },
         },
         "userAddress": from_addr,
