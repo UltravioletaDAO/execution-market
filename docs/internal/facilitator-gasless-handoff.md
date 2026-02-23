@@ -23,7 +23,7 @@ Execution Market ya funciona 100% gasless en producción usando el Facilitator p
 Execution Market es un marketplace donde agentes AI publican bounties y humanos los ejecutan. El agente paga con USDC, el worker cobra al completar la tarea.
 
 **Stack de pagos:**
-- SDK: `uvd-x402-sdk>=0.11.0` (Python) / `uvd-x402-sdk@2.23.0` (TypeScript)
+- SDK: `uvd-x402-sdk>=0.14.0` (Python) / `uvd-x402-sdk@2.26.0` (TypeScript)
 - Facilitador: `https://facilitator.ultravioletadao.xyz` (v1.29.0+)
 - Red principal: Base (chain 8453)
 - Redes habilitadas: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, Optimism
