@@ -55,6 +55,27 @@ RATE_LIMIT_SIGNAL_WINDOW = 3600  # 1 hour
 RATE_LIMIT_COMMANDS = 10
 RATE_LIMIT_CMD_WINDOW = 60  # seconds
 
+# Copy trading subscription plans: plan -> (price_usdc, label)
+SUBSCRIPTION_PLANS: dict[str, tuple[float, str]] = {
+    "daily": (0.50, "1 day"),
+    "weekly": (2.00, "7 days"),
+    "monthly": (5.00, "30 days"),
+}
+
+# Revenue split percentages
+REVENUE_SPLIT = {
+    "trader": 70,
+    "meshrelay": 20,
+    "em_treasury": 10,
+}
+
+# Plan duration in seconds
+PLAN_DURATION_SECONDS: dict[str, int] = {
+    "daily": 86400,
+    "weekly": 604800,
+    "monthly": 2592000,
+}
+
 # CoinGecko ID mapping for common pairs
 COINGECKO_IDS: dict[str, str] = {
     "BTC": "bitcoin",
@@ -234,6 +255,128 @@ class SignalStore:
 
     def all_authors(self) -> set[str]:
         return {s.author for s in self._signals.values()}
+
+
+# ---------------------------------------------------------------------------
+# Subscription store (JSON file persistence for copy trading)
+# ---------------------------------------------------------------------------
+
+
+class SubscriptionStore:
+    """Persist copy trading subscriptions to JSON files."""
+
+    def __init__(self, data_dir: Path):
+        self.data_dir = data_dir / "trading_signals"
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self._subs: list[dict] = []
+        self._load()
+
+    def _subs_file(self) -> Path:
+        return self.data_dir / "subscriptions.json"
+
+    def _load(self) -> None:
+        path = self._subs_file()
+        if not path.exists():
+            return
+        try:
+            self._subs = json.loads(path.read_text(encoding="utf-8"))
+            logger.info(f"  Loaded {len(self._subs)} subscriptions from disk")
+        except Exception as e:
+            logger.warning(f"  Failed to load subscriptions: {e}")
+
+    def _save(self) -> None:
+        self._subs_file().write_text(
+            json.dumps(self._subs, indent=2, default=str), encoding="utf-8"
+        )
+
+    def add_subscription(
+        self, subscriber: str, trader: str, plan: str
+    ) -> dict:
+        """Add or renew a subscription."""
+        now = datetime.now(timezone.utc).isoformat()
+        duration = PLAN_DURATION_SECONDS.get(plan, 86400)
+        price, _ = SUBSCRIPTION_PLANS.get(plan, (0.50, "1 day"))
+
+        # Cancel any existing active sub
+        for s in self._subs:
+            if (
+                s["subscriber"] == subscriber
+                and s["trader"] == trader
+                and s["status"] == "active"
+            ):
+                s["status"] = "replaced"
+
+        sub = {
+            "subscriber": subscriber,
+            "trader": trader,
+            "plan": plan,
+            "price_usdc": price,
+            "status": "active",
+            "created_at": now,
+            "expires_at": datetime.fromtimestamp(
+                time.time() + duration, tz=timezone.utc
+            ).isoformat(),
+        }
+        self._subs.append(sub)
+        self._save()
+        return sub
+
+    def cancel_subscription(self, subscriber: str, trader: str) -> bool:
+        """Cancel an active subscription."""
+        for s in self._subs:
+            if (
+                s["subscriber"] == subscriber
+                and s["trader"] == trader
+                and s["status"] == "active"
+            ):
+                s["status"] = "cancelled"
+                s["cancelled_at"] = datetime.now(timezone.utc).isoformat()
+                self._save()
+                return True
+        return False
+
+    def get_subscription(
+        self, subscriber: str, trader: str
+    ) -> dict | None:
+        """Get active subscription between subscriber and trader."""
+        for s in self._subs:
+            if (
+                s["subscriber"] == subscriber
+                and s["trader"] == trader
+                and s["status"] == "active"
+            ):
+                return s
+        return None
+
+    def get_trader_subscribers(self, trader: str) -> list[dict]:
+        """Get all subscriptions for a trader."""
+        return [s for s in self._subs if s["trader"] == trader]
+
+    def active_subscribers_for(self, trader: str) -> list[str]:
+        """Get list of active subscriber nicks for a trader."""
+        now = datetime.now(timezone.utc).isoformat()
+        return [
+            s["subscriber"]
+            for s in self._subs
+            if s["trader"] == trader
+            and s["status"] == "active"
+            and s.get("expires_at", "") > now
+        ]
+
+    def expire_subscriptions(self) -> list[dict]:
+        """Mark expired subscriptions. Returns list of newly expired."""
+        now = datetime.now(timezone.utc).isoformat()
+        expired = []
+        for s in self._subs:
+            if s["status"] == "active" and s.get("expires_at", "") <= now:
+                s["status"] = "expired"
+                expired.append(s)
+        if expired:
+            self._save()
+        return expired
+
+    def all_subscriptions(self) -> list[dict]:
+        return list(self._subs)
 
 
 # ---------------------------------------------------------------------------
@@ -677,8 +820,91 @@ async def handle_help(store: SignalStore, nick: str, args: str) -> str:
         "!ts close <id> [price] -- close signal | "
         "!ts leaderboard [7d|30d|all] -- top traders | "
         "!ts stats [@nick] -- performance | "
+        "!ts subscribe @nick [daily|weekly|monthly] -- copy trading | "
+        "!ts unsubscribe @nick | "
+        "!ts subscribers -- your sub count | "
         "!ts help"
     )
+
+
+async def handle_subscribe(store: SignalStore, nick: str, args: str) -> str:
+    """Handle !ts subscribe @trader [daily|weekly|monthly]"""
+    parts = args.split() if args else []
+    if not parts:
+        return (
+            "[ERR] Usage: !ts subscribe @trader [daily|weekly|monthly] — "
+            "daily $0.50 | weekly $2.00 | monthly $5.00"
+        )
+
+    trader = parts[0].lstrip("@").strip()
+    if not trader:
+        return "[ERR] Must specify a trader nick"
+    if trader == nick:
+        return "[ERR] Cannot subscribe to yourself"
+
+    plan = parts[1].lower() if len(parts) > 1 else "daily"
+    if plan not in SUBSCRIPTION_PLANS:
+        return f"[ERR] Invalid plan: {plan}. Options: daily, weekly, monthly"
+
+    price, duration_label = SUBSCRIPTION_PLANS[plan]
+
+    # Check if trader has signals
+    sigs = store.signals_by_author(trader)
+    if not sigs:
+        return f"[ERR] @{trader} has no signals — nothing to subscribe to"
+
+    # Check existing subscription
+    sub_store = getattr(store, "_sub_store", None)
+    if sub_store:
+        existing = sub_store.get_subscription(nick, trader)
+        if existing and existing.get("status") == "active":
+            return f"[ERR] Already subscribed to @{trader} ({existing.get('plan', '?')})"
+
+    return (
+        f"[SUBSCRIBE] To subscribe to @{trader}'s signals ({plan} = ${price:.2f} USDC):\n"
+        f"  Pay via Turnstile in #abra-alpha or send ${price:.2f} USDC to MeshRelay treasury.\n"
+        f"  After payment, signals from @{trader} will be DM'd to you.\n"
+        f"  Revenue split: 70% trader / 20% MeshRelay / 10% EM treasury"
+    )
+
+
+async def handle_unsubscribe(store: SignalStore, nick: str, args: str) -> str:
+    """Handle !ts unsubscribe @trader"""
+    if not args:
+        return "[ERR] Usage: !ts unsubscribe @trader"
+
+    trader = args.split()[0].lstrip("@").strip()
+    if not trader:
+        return "[ERR] Must specify a trader nick"
+
+    sub_store = getattr(store, "_sub_store", None)
+    if sub_store:
+        existing = sub_store.get_subscription(nick, trader)
+        if existing and existing.get("status") == "active":
+            sub_store.cancel_subscription(nick, trader)
+            return f"[OK] Unsubscribed from @{trader}. No further signals will be DM'd."
+
+    return f"[ERR] No active subscription to @{trader}"
+
+
+async def handle_subscribers(store: SignalStore, nick: str, args: str) -> str:
+    """Handle !ts subscribers — show your subscriber count (for traders)"""
+    sub_store = getattr(store, "_sub_store", None)
+    if not sub_store:
+        return f"[SUBS] @{nick}: 0 subscribers (copy trading not yet active)"
+
+    subs = sub_store.get_trader_subscribers(nick)
+    active = [s for s in subs if s.get("status") == "active"]
+    if not active:
+        return f"[SUBS] @{nick}: 0 active subscribers"
+
+    plans = {}
+    for s in active:
+        p = s.get("plan", "daily")
+        plans[p] = plans.get(p, 0) + 1
+
+    plan_str = " | ".join(f"{v}x {k}" for k, v in sorted(plans.items()))
+    return f"[SUBS] @{nick}: {len(active)} subscribers ({plan_str})"
 
 
 COMMANDS: dict[str, callable] = {
@@ -690,6 +916,9 @@ COMMANDS: dict[str, callable] = {
     "cancel": handle_cancel,
     "leaderboard": handle_leaderboard,
     "stats": handle_stats,
+    "subscribe": handle_subscribe,
+    "unsubscribe": handle_unsubscribe,
+    "subscribers": handle_subscribers,
     "help": handle_help,
 }
 
@@ -821,17 +1050,22 @@ class TradingSignalBot:
         nick: str,
         channels: list[str],
         store: SignalStore,
+        sub_store: SubscriptionStore | None = None,
         price_interval: int = PRICE_POLL_INTERVAL,
     ):
         self.nick = nick
         self.channels = channels
         self.store = store
+        self.sub_store = sub_store
         self.price_interval = price_interval
         self._reader: asyncio.StreamReader | None = None
         self._writer: asyncio.StreamWriter | None = None
         self._connected = False
         self._running = True
         self._monitor = PriceMonitor(store, self.send_message)
+        # Attach sub_store to signal store so handlers can access it
+        if sub_store:
+            self.store._sub_store = sub_store  # type: ignore[attr-defined]
 
     async def connect(self) -> None:
         logger.info(f"  [{self.nick}] Connecting to {IRC_SERVER}:{IRC_PORT}...")
@@ -938,6 +1172,8 @@ class TradingSignalBot:
                     channel,
                     f"[OK] Signal tracked: {sig.id} {sig.direction} {sig.pair} @ {sig.entry_price}",
                 )
+                # Forward to copy trading subscribers
+                await self._notify_subscribers(sig)
             return
 
         # Rate limit commands
@@ -958,6 +1194,32 @@ class TradingSignalBot:
         if len(response) > MAX_MSG_LEN:
             response = response[: MAX_MSG_LEN - 3] + "..."
         await self.send_message(channel, f"{sender}: {response}")
+
+        # Forward to subscribers if this was a signal command
+        if command == "signal" and response.startswith("[OK] Signal"):
+            open_sigs = self.store.open_signals(author=sender)
+            if open_sigs:
+                await self._notify_subscribers(open_sigs[0])
+
+    async def _notify_subscribers(self, sig: TradingSignal) -> None:
+        """DM all active subscribers when a trader publishes a signal."""
+        if not self.sub_store:
+            return
+        subscribers = self.sub_store.active_subscribers_for(sig.author)
+        if not subscribers:
+            return
+
+        dm_msg = (
+            f"[COPY-SIGNAL] @{sig.author}: {sig.direction} {sig.pair} @ {sig.entry_price} | "
+            f"SL: {sig.stop_loss} | TP: {sig.take_profit} | {sig.confidence}% {sig.timeframe}"
+        )
+        for sub_nick in subscribers:
+            try:
+                await self.send_message(sub_nick, dm_msg)
+                logger.info(f"  DM signal to subscriber {sub_nick}")
+            except Exception as e:
+                logger.debug(f"  Failed to DM {sub_nick}: {e}")
+            await asyncio.sleep(0.3)
 
     async def _price_loop(self) -> None:
         """Periodically check prices and close signals."""
@@ -1028,13 +1290,16 @@ async def main():
     print(f"{'=' * 60}\n")
 
     store = SignalStore(data_dir)
+    sub_store = SubscriptionStore(data_dir)
     open_count = len(store.open_signals())
-    logger.info(f"  {open_count} open signals loaded")
+    active_subs = len([s for s in sub_store.all_subscriptions() if s.get("status") == "active"])
+    logger.info(f"  {open_count} open signals, {active_subs} active subscriptions loaded")
 
     bot = TradingSignalBot(
         nick=args.nick,
         channels=channels,
         store=store,
+        sub_store=sub_store,
         price_interval=args.price_interval,
     )
 
