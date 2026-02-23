@@ -19,11 +19,10 @@ Architecture:
     └──────────────┘          └─────────────────┘
 """
 
-import json
 import logging
 import time
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, Dict, List
 
@@ -33,10 +32,11 @@ logger = logging.getLogger(__name__)
 
 class ReputationSource(str, Enum):
     """Where a reputation score originates."""
-    EM_INTERNAL = "em_internal"        # EM's Bayesian calculator
+
+    EM_INTERNAL = "em_internal"  # EM's Bayesian calculator
     ERC8004_ONCHAIN = "erc8004_chain"  # On-chain ERC-8004
     CROSS_PLATFORM = "cross_platform"  # Aggregated from multiple sources
-    SELF_REPORTED = "self_reported"    # Agent's own claim (lowest trust)
+    SELF_REPORTED = "self_reported"  # Agent's own claim (lowest trust)
 
 
 @dataclass
@@ -81,6 +81,7 @@ class BridgedReputation:
 @dataclass
 class SyncResult:
     """Result of a reputation sync operation."""
+
     wallet: str
     direction: str
     success: bool
@@ -95,7 +96,7 @@ class SyncResult:
 class ReputationBridge:
     """
     Bridges EM internal reputation with ERC-8004 on-chain reputation.
-    
+
     Design principles:
     - EM is the source of truth for task-based reputation
     - On-chain is the source of truth for cross-platform reputation
@@ -109,8 +110,8 @@ class ReputationBridge:
     BASE_RPC = "https://mainnet.base.org"
 
     # Composite scoring weights
-    EM_WEIGHT = 0.6       # EM reputation weight
-    CHAIN_WEIGHT = 0.4    # On-chain reputation weight
+    EM_WEIGHT = 0.6  # EM reputation weight
+    CHAIN_WEIGHT = 0.4  # On-chain reputation weight
     MIN_TASKS_FOR_CHAIN_WEIGHT = 5  # Need at least 5 tasks before chain counts
 
     # Bayesian parameters (shared with EM reputation system)
@@ -119,7 +120,7 @@ class ReputationBridge:
 
     # Sync thresholds
     MIN_SCORE_DELTA_FOR_SYNC = 2.0  # Don't sync if score changed less than this
-    SYNC_COOLDOWN_SECONDS = 3600    # Don't sync more than once per hour per wallet
+    SYNC_COOLDOWN_SECONDS = 3600  # Don't sync more than once per hour per wallet
 
     def __init__(
         self,
@@ -164,7 +165,7 @@ class ReputationBridge:
             BridgedReputation with composite score
         """
         wallet = wallet.lower()
-        
+
         # Check cache first
         if not force_chain_read and wallet in self._cache:
             cached = self._cache[wallet]
@@ -256,7 +257,9 @@ class ReputationBridge:
         # Check delta threshold
         delta = abs(em_score - chain_score)
         if delta < self.MIN_SCORE_DELTA_FOR_SYNC:
-            result.error = f"Score delta too small: {delta:.1f} < {self.MIN_SCORE_DELTA_FOR_SYNC}"
+            result.error = (
+                f"Score delta too small: {delta:.1f} < {self.MIN_SCORE_DELTA_FOR_SYNC}"
+            )
             result.success = True  # Not an error, just skipped
             return result
 
@@ -264,7 +267,9 @@ class ReputationBridge:
             result.chain_score_after = em_score
             result.success = True
             result.error = "dry_run: would have synced"
-            logger.info(f"[DRY RUN] Would sync {wallet}: {chain_score:.1f} → {em_score:.1f}")
+            logger.info(
+                f"[DRY RUN] Would sync {wallet}: {chain_score:.1f} → {em_score:.1f}"
+            )
             return result
 
         # Write to chain
@@ -281,7 +286,9 @@ class ReputationBridge:
             result.tx_hash = tx_hash
             result.chain_score_after = em_score
             self._last_sync[wallet] = time.time()
-            logger.info(f"Synced {wallet} to chain: {chain_score:.1f} → {em_score:.1f} (tx: {tx_hash})")
+            logger.info(
+                f"Synced {wallet} to chain: {chain_score:.1f} → {em_score:.1f} (tx: {tx_hash})"
+            )
         else:
             result.error = "Failed to write to chain"
 
@@ -363,7 +370,9 @@ class ReputationBridge:
         for wallet in wallets:
             em_rep = em_reputations.get(wallet.lower())
             if em_rep:
-                result = await self.sync_em_to_chain(wallet, em_rep, reason="batch_sync")
+                result = await self.sync_em_to_chain(
+                    wallet, em_rep, reason="batch_sync"
+                )
                 results.append(result)
 
         synced = sum(1 for r in results if r.success and r.tx_hash)
@@ -398,6 +407,7 @@ class ReputationBridge:
         # Try describe-net SealRegistry first (richer reputation data)
         try:
             from .describenet_reader import read_describenet_for_bridge
+
             bridge_data = await read_describenet_for_bridge(wallet)
             if bridge_data and bridge_data.get("total_ratings", 0) > 0:
                 logger.info(
@@ -464,17 +474,19 @@ class ReputationBridge:
             chain_weight = self.CHAIN_WEIGHT
             if rep.chain_total_ratings < self.MIN_TASKS_FOR_CHAIN_WEIGHT:
                 # Reduce chain weight for few ratings
-                chain_weight *= rep.chain_total_ratings / self.MIN_TASKS_FOR_CHAIN_WEIGHT
-            
+                chain_weight *= (
+                    rep.chain_total_ratings / self.MIN_TASKS_FOR_CHAIN_WEIGHT
+                )
+
             em_weight = 1.0 - chain_weight
-            return (em_weight * rep.em_bayesian_score + chain_weight * rep.chain_score)
-        
+            return em_weight * rep.em_bayesian_score + chain_weight * rep.chain_score
+
         elif has_em:
             return rep.em_bayesian_score
-        
+
         elif has_chain:
             return rep.chain_score
-        
+
         else:
             return 50.0  # Default neutral
 
@@ -489,7 +501,9 @@ class ReputationBridge:
         """
         # Base confidence from task volume
         em_conf = min(1.0, rep.em_total_tasks / 50)  # 50 tasks = max EM confidence
-        chain_conf = min(1.0, rep.chain_total_ratings / 20)  # 20 ratings = max chain confidence
+        chain_conf = min(
+            1.0, rep.chain_total_ratings / 20
+        )  # 20 ratings = max chain confidence
 
         # Combine with source count bonus
         source_count = len(rep.sources)

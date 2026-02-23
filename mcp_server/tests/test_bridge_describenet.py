@@ -9,27 +9,24 @@ This closes the evidence triangle:
 """
 
 import pytest
-import asyncio
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from datetime import datetime, timezone
 
 from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
-    BridgedReputation,
     ReputationSource,
 )
 from mcp_server.swarm.describenet_reader import (
     DescribeNetReader,
     DescribeNetReputation,
     SealScore,
-    Quadrant,
-    read_describenet_for_bridge,
 )
 
 
 # ══════════════════════════════════════════════
 # DescribeNetReader Unit Tests
 # ══════════════════════════════════════════════
+
 
 class TestDescribeNetReputation:
     """Test the DescribeNetReputation data model."""
@@ -43,8 +40,7 @@ class TestDescribeNetReputation:
 
     def test_total_seals(self):
         rep = DescribeNetReputation(
-            wallet="0xabc",
-            h2h_count=5, h2a_count=10, a2h_count=3, a2a_count=8
+            wallet="0xabc", h2h_count=5, h2a_count=10, a2h_count=3, a2a_count=8
         )
         assert rep.total_seals == 26
 
@@ -52,15 +48,19 @@ class TestDescribeNetReputation:
         """Agents have more H2A + A2A seals than H2H + A2H."""
         agent_rep = DescribeNetReputation(
             wallet="0xagent",
-            h2a_count=15, a2a_count=10,
-            h2h_count=2, a2h_count=3,
+            h2a_count=15,
+            a2a_count=10,
+            h2h_count=2,
+            a2h_count=3,
         )
         assert agent_rep.is_agent is True
 
         human_rep = DescribeNetReputation(
             wallet="0xhuman",
-            h2h_count=20, a2h_count=5,
-            h2a_count=1, a2a_count=0,
+            h2h_count=20,
+            a2h_count=5,
+            h2a_count=1,
+            a2a_count=0,
         )
         assert human_rep.is_agent is False
 
@@ -69,15 +69,21 @@ class TestDescribeNetReputation:
         assert rep.trust_level == "none"
 
     def test_trust_level_low(self):
-        rep = DescribeNetReputation(wallet="0x", overall_active_seals=3, overall_score=50)
+        rep = DescribeNetReputation(
+            wallet="0x", overall_active_seals=3, overall_score=50
+        )
         assert rep.trust_level == "low"
 
     def test_trust_level_medium(self):
-        rep = DescribeNetReputation(wallet="0x", overall_active_seals=10, overall_score=70)
+        rep = DescribeNetReputation(
+            wallet="0x", overall_active_seals=10, overall_score=70
+        )
         assert rep.trust_level == "medium"
 
     def test_trust_level_high(self):
-        rep = DescribeNetReputation(wallet="0x", overall_active_seals=25, overall_score=85)
+        rep = DescribeNetReputation(
+            wallet="0x", overall_active_seals=25, overall_score=85
+        )
         assert rep.trust_level == "high"
 
     def test_to_dict(self):
@@ -133,8 +139,10 @@ class TestBridgeFormatConversion:
         reader = DescribeNetReader()
         rep = DescribeNetReputation(
             wallet="0xworker",
-            h2a_score=80.0, h2a_count=10,
-            a2a_score=90.0, a2a_count=5,
+            h2a_score=80.0,
+            h2a_count=10,
+            a2a_score=90.0,
+            a2a_count=5,
             overall_active_seals=15,
         )
         result = reader.to_bridged_format(rep)
@@ -147,7 +155,8 @@ class TestBridgeFormatConversion:
         reader = DescribeNetReader()
         rep = DescribeNetReputation(
             wallet="0xreq",
-            a2h_score=75.0, a2h_count=8,
+            a2h_score=75.0,
+            a2h_count=8,
             overall_active_seals=8,
         )
         result = reader.to_bridged_format(rep)
@@ -181,10 +190,14 @@ class TestBridgeFormatConversion:
         reader = DescribeNetReader()
         rep = DescribeNetReputation(
             wallet="0x",
-            h2h_score=60, h2h_count=3,
-            h2a_score=80, h2a_count=10,
-            a2h_score=70, a2h_count=5,
-            a2a_score=85, a2a_count=7,
+            h2h_score=60,
+            h2h_count=3,
+            h2a_score=80,
+            h2a_count=10,
+            a2h_score=70,
+            a2h_count=5,
+            a2a_score=85,
+            a2a_count=7,
             overall_active_seals=25,
         )
         result = reader.to_bridged_format(rep)
@@ -242,7 +255,8 @@ class TestEvidenceWeightFromSeals:
         rep = DescribeNetReputation(
             wallet="0x",
             overall_active_seals=10,
-            h2a_count=5, a2a_count=5,  # 2 quadrants
+            h2a_count=5,
+            a2a_count=5,  # 2 quadrants
         )
         weight = reader.evidence_weight_from_seals(rep)
         assert weight == 0.82  # 0.80 base + 0.02 bonus
@@ -252,7 +266,9 @@ class TestEvidenceWeightFromSeals:
         rep = DescribeNetReputation(
             wallet="0x",
             overall_active_seals=10,
-            h2h_count=2, h2a_count=5, a2a_count=3,  # 3 quadrants
+            h2h_count=2,
+            h2a_count=5,
+            a2a_count=3,  # 3 quadrants
         )
         weight = reader.evidence_weight_from_seals(rep)
         assert weight == 0.85  # 0.80 base + 0.05 bonus
@@ -262,7 +278,10 @@ class TestEvidenceWeightFromSeals:
         rep = DescribeNetReputation(
             wallet="0x",
             overall_active_seals=100,
-            h2h_count=25, h2a_count=25, a2h_count=25, a2a_count=25,
+            h2h_count=25,
+            h2a_count=25,
+            a2h_count=25,
+            a2a_count=25,
         )
         assert reader.evidence_weight_from_seals(rep) <= 0.98
 
@@ -297,6 +316,7 @@ class TestFunctionSelector:
 # Bridge Integration Tests (describe-net → reputation_bridge)
 # ══════════════════════════════════════════════
 
+
 class TestBridgeDescribeNetIntegration:
     """Test that ReputationBridge properly reads from describe-net."""
 
@@ -313,10 +333,14 @@ class TestBridgeDescribeNetIntegration:
             overall_active_seals=25,
             overall_total_seals=30,
             time_weighted_score=85.0,
-            h2h_score=0.0, h2h_count=0,
-            h2a_score=80.0, h2a_count=15,
-            a2h_score=75.0, a2h_count=3,
-            a2a_score=90.0, a2a_count=7,
+            h2h_score=0.0,
+            h2h_count=0,
+            h2a_score=80.0,
+            h2a_count=15,
+            a2h_score=75.0,
+            a2h_count=3,
+            a2a_score=90.0,
+            a2a_count=7,
             top_seal_types=[
                 SealScore(seal_type="SKILLFUL", average_score=88, count=10),
                 SealScore(seal_type="RELIABLE", average_score=85, count=8),
@@ -455,8 +479,13 @@ class TestBridgeDescribeNetIntegration:
         ):
             result = await bridge.get_bridged_reputation(
                 "0xtest_wallet",
-                em_reputation={"raw_score": 80, "bayesian_score": 75, "total_tasks": 30,
-                               "successful_tasks": 28, "disputed_tasks": 0},
+                em_reputation={
+                    "raw_score": 80,
+                    "bayesian_score": 75,
+                    "total_tasks": 30,
+                    "successful_tasks": 28,
+                    "disputed_tasks": 0,
+                },
             )
 
             # With 30 EM tasks + 25 chain ratings, evidence weight should be high
@@ -468,9 +497,13 @@ class TestBridgeDescribeNetIntegration:
         with patch(
             "mcp_server.swarm.describenet_reader.read_describenet_for_bridge",
             new_callable=AsyncMock,
-            return_value={"score": 80.0, "total_ratings": 10,
-                         "as_worker_avg": 80.0, "as_requester_avg": 0.0,
-                         "source": "describe_net"},
+            return_value={
+                "score": 80.0,
+                "total_ratings": 10,
+                "as_worker_avg": 80.0,
+                "as_requester_avg": 0.0,
+                "source": "describe_net",
+            },
         ):
             em_rep = {"bayesian_score": 80.5, "total_tasks": 15}
             result = await bridge.sync_em_to_chain("0xtest", em_rep)
@@ -484,9 +517,13 @@ class TestBridgeDescribeNetIntegration:
         with patch(
             "mcp_server.swarm.describenet_reader.read_describenet_for_bridge",
             new_callable=AsyncMock,
-            return_value={"score": 0.0, "total_ratings": 0,
-                         "as_worker_avg": 0.0, "as_requester_avg": 0.0,
-                         "source": "describe_net"},
+            return_value={
+                "score": 0.0,
+                "total_ratings": 0,
+                "as_worker_avg": 0.0,
+                "as_requester_avg": 0.0,
+                "source": "describe_net",
+            },
         ):
             result = await bridge._read_chain_reputation("0xnewwallet")
             # Should return None because total_ratings is 0
@@ -496,6 +533,7 @@ class TestBridgeDescribeNetIntegration:
 # ══════════════════════════════════════════════
 # End-to-End: Evidence Triangle Tests
 # ══════════════════════════════════════════════
+
 
 class TestEvidenceTriangle:
     """
@@ -527,10 +565,12 @@ class TestEvidenceTriangle:
         assert reader.evidence_weight_from_seals(strong) == 0.85
 
         # Each level is strictly higher
-        assert (reader.evidence_weight_from_seals(no_data) <
-                reader.evidence_weight_from_seals(few) <
-                reader.evidence_weight_from_seals(est) <
-                reader.evidence_weight_from_seals(strong))
+        assert (
+            reader.evidence_weight_from_seals(no_data)
+            < reader.evidence_weight_from_seals(few)
+            < reader.evidence_weight_from_seals(est)
+            < reader.evidence_weight_from_seals(strong)
+        )
 
     def test_quadrant_to_role_mapping(self):
         """Quadrants correctly map to worker/requester roles."""
@@ -539,9 +579,12 @@ class TestEvidenceTriangle:
         # Agent that mostly works (H2A high = humans like this agent)
         worker_agent = DescribeNetReputation(
             wallet="0xworker_agent",
-            h2a_score=90.0, h2a_count=20,  # Humans rating this agent's work
-            a2a_score=85.0, a2a_count=10,  # Other agents rating this agent
-            a2h_score=0.0, a2h_count=0,    # Not rating humans
+            h2a_score=90.0,
+            h2a_count=20,  # Humans rating this agent's work
+            a2a_score=85.0,
+            a2a_count=10,  # Other agents rating this agent
+            a2h_score=0.0,
+            a2h_count=0,  # Not rating humans
             overall_active_seals=30,
         )
         result = reader.to_bridged_format(worker_agent)
@@ -551,8 +594,10 @@ class TestEvidenceTriangle:
         # Agent that mostly requests (A2H high = agents rate its task quality)
         requester_agent = DescribeNetReputation(
             wallet="0xrequester_agent",
-            a2h_score=78.0, a2h_count=15,  # Agents rating this agent as requester
-            h2a_score=0.0, h2a_count=0,
+            a2h_score=78.0,
+            a2h_count=15,  # Agents rating this agent as requester
+            h2a_score=0.0,
+            h2a_count=0,
             overall_active_seals=15,
         )
         result = reader.to_bridged_format(requester_agent)
@@ -678,6 +723,7 @@ class TestEvidenceTriangle:
 # Caching and Performance Tests
 # ══════════════════════════════════════════════
 
+
 class TestCachingBehavior:
     """Test that caching works correctly for describe-net reads."""
 
@@ -731,6 +777,7 @@ class TestCachingBehavior:
 # Edge Cases
 # ══════════════════════════════════════════════
 
+
 class TestEdgeCases:
     """Edge cases and boundary conditions."""
 
@@ -739,7 +786,8 @@ class TestEdgeCases:
         reader = DescribeNetReader()
         rep = DescribeNetReputation(
             wallet="0x",
-            h2a_count=0, a2a_count=0,
+            h2a_count=0,
+            a2a_count=0,
             overall_active_seals=5,
         )
         result = reader.to_bridged_format(rep)
@@ -750,8 +798,10 @@ class TestEdgeCases:
         reader = DescribeNetReader()
         rep = DescribeNetReputation(
             wallet="0x",
-            h2a_score=90.0, h2a_count=10,
-            a2a_score=0.0, a2a_count=0,
+            h2a_score=90.0,
+            h2a_count=10,
+            a2a_score=0.0,
+            a2a_count=0,
             overall_active_seals=10,
         )
         result = reader.to_bridged_format(rep)
@@ -779,7 +829,9 @@ class TestEdgeCases:
 
     def test_seal_score_dataclass(self):
         """SealScore stores type-level data correctly."""
-        s = SealScore(seal_type="SKILLFUL", average_score=88.5, count=12, quadrant="H2A")
+        s = SealScore(
+            seal_type="SKILLFUL", average_score=88.5, count=12, quadrant="H2A"
+        )
         assert s.seal_type == "SKILLFUL"
         assert s.average_score == 88.5
         assert s.count == 12

@@ -17,7 +17,6 @@ Unlike unit tests, these tests verify the INTEGRATION between:
 import pytest
 import time
 from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, patch
 
 from mcp_server.swarm.reputation_bridge import (
     ReputationBridge,
@@ -26,23 +25,21 @@ from mcp_server.swarm.reputation_bridge import (
 )
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
-    AgentState,
     AgentStatus,
     ResourceBudget,
-    ResourceUsage,
 )
 from mcp_server.swarm.swarm_orchestrator import (
     SwarmOrchestrator,
     AgentProfile,
     TaskAssignment,
     AssignmentStrategy,
-    TASK_CATEGORY_SKILLS,
 )
 
 
 # ══════════════════════════════════════════════
 # Helpers
 # ══════════════════════════════════════════════
+
 
 class SwarmTestHarness:
     """Reusable test harness for swarm E2E tests."""
@@ -83,27 +80,60 @@ class SwarmTestHarness:
     def add_kk_roster(self, count=6):
         """Add a mini KarmaKadabra roster (subset of the 24)."""
         agents = [
-            ("aurora", ["research", "documentation", "analysis"], ["data_collection", "research"], "explorer"),
-            ("blaze", ["writing", "creativity", "documentation"], ["content_creation"], "creator"),
-            ("cipher", ["code_review", "security", "testing", "automation"], ["code_review", "testing"], "auditor"),
-            ("delta", ["research", "data_entry", "documentation"], ["data_collection"], "collector"),
-            ("echo", ["languages", "communication", "documentation"], ["translation"], "communicator"),
-            ("forge", ["qa_testing", "automation", "documentation"], ["testing"], "tester"),
+            (
+                "aurora",
+                ["research", "documentation", "analysis"],
+                ["data_collection", "research"],
+                "explorer",
+            ),
+            (
+                "blaze",
+                ["writing", "creativity", "documentation"],
+                ["content_creation"],
+                "creator",
+            ),
+            (
+                "cipher",
+                ["code_review", "security", "testing", "automation"],
+                ["code_review", "testing"],
+                "auditor",
+            ),
+            (
+                "delta",
+                ["research", "data_entry", "documentation"],
+                ["data_collection"],
+                "collector",
+            ),
+            (
+                "echo",
+                ["languages", "communication", "documentation"],
+                ["translation"],
+                "communicator",
+            ),
+            (
+                "forge",
+                ["qa_testing", "automation", "documentation"],
+                ["testing"],
+                "tester",
+            ),
         ]
         profiles = []
         for agent_id, skills, specs, personality in agents[:count]:
-            profiles.append(self.add_agent(
-                agent_id=agent_id,
-                skills=skills,
-                specializations=specs,
-                personality=personality,
-            ))
+            profiles.append(
+                self.add_agent(
+                    agent_id=agent_id,
+                    skills=skills,
+                    specializations=specs,
+                    personality=personality,
+                )
+            )
         return profiles
 
 
 # ══════════════════════════════════════════════
 # E2E: Full Task Pipeline
 # ══════════════════════════════════════════════
+
 
 class TestFullTaskPipeline:
     """Tests the complete lifecycle of tasks through the swarm."""
@@ -210,6 +240,7 @@ class TestFullTaskPipeline:
 # E2E: Multi-Agent Competition
 # ══════════════════════════════════════════════
 
+
 class TestMultiAgentCompetition:
     """Tests task distribution across multiple agents."""
 
@@ -279,13 +310,17 @@ class TestMultiAgentCompetition:
         """Round-robin strategy distributes tasks more evenly."""
         # Give aurora a history of many tasks
         self.harness.orch.task_history = [
-            {"agent_id": "aurora", "success": True,
-             "completed_at": datetime.now(timezone.utc).isoformat()}
+            {
+                "agent_id": "aurora",
+                "success": True,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            }
             for _ in range(10)
         ]
 
         a = await self.harness.orch.assign_task(
-            "t_rr", category="data_collection",
+            "t_rr",
+            category="data_collection",
             strategy=AssignmentStrategy.ROUND_ROBIN,
         )
         # Round-robin should pick agent with fewer tasks
@@ -296,6 +331,7 @@ class TestMultiAgentCompetition:
 # E2E: Failover & Recovery
 # ══════════════════════════════════════════════
 
+
 class TestFailoverAndRecovery:
     """Tests failure handling and agent recovery."""
 
@@ -305,10 +341,14 @@ class TestFailoverAndRecovery:
     @pytest.mark.asyncio
     async def test_failover_to_next_agent(self):
         """When one agent fails, tasks route to next best."""
-        self.harness.add_agent("primary", skills=["research", "documentation"],
-                               specializations=["data_collection"])
-        self.harness.add_agent("backup", skills=["research"],
-                               specializations=["data_collection"])
+        self.harness.add_agent(
+            "primary",
+            skills=["research", "documentation"],
+            specializations=["data_collection"],
+        )
+        self.harness.add_agent(
+            "backup", skills=["research"], specializations=["data_collection"]
+        )
 
         # Primary takes first task
         a1 = await self.harness.orch.assign_task("t1", category="data_collection")
@@ -349,9 +389,9 @@ class TestFailoverAndRecovery:
         self.harness.lifecycle.error_agent("aurora", "transient failure")
 
         # Set error time to 6 minutes ago (past the 5-min recovery threshold)
-        self.harness.lifecycle.agents["aurora"].status_since = (
-            datetime.now(timezone.utc) - timedelta(minutes=6)
-        )
+        self.harness.lifecycle.agents["aurora"].status_since = datetime.now(
+            timezone.utc
+        ) - timedelta(minutes=6)
 
         actions = self.harness.lifecycle.auto_manage()
         assert "aurora" in actions["recovered"]
@@ -377,7 +417,6 @@ class TestFailoverAndRecovery:
         assert a1.assigned_agent is not None
 
         # Simulate claim expiry (set timestamp to past)
-        first_agent = a1.assigned_agent
         self.harness.orch._claim_timestamps["t1"] = time.time() - 700  # >600s timeout
 
         # Task can now be reassigned
@@ -388,6 +427,7 @@ class TestFailoverAndRecovery:
 # ══════════════════════════════════════════════
 # E2E: Budget Enforcement
 # ══════════════════════════════════════════════
+
 
 class TestBudgetEnforcement:
     """Tests budget limits across the full pipeline."""
@@ -408,7 +448,9 @@ class TestBudgetEnforcement:
 
         # Expensive task should fail (0.45 + 0.10 > 0.50)
         a = await self.harness.orch.assign_task(
-            "t_expensive", category="data_collection", bounty_usd=0.10,
+            "t_expensive",
+            category="data_collection",
+            bounty_usd=0.10,
         )
         assert a.assigned_agent is None
 
@@ -424,7 +466,9 @@ class TestBudgetEnforcement:
 
         # Cheap task should succeed (0.45 + 0.04 < 0.50)
         a = await self.harness.orch.assign_task(
-            "t_cheap", category="data_collection", bounty_usd=0.04,
+            "t_cheap",
+            category="data_collection",
+            bounty_usd=0.04,
         )
         assert a.assigned_agent == "aurora"
 
@@ -451,10 +495,18 @@ class TestBudgetEnforcement:
         budget_low = ResourceBudget(max_usd_spend_per_day=0.20)
         budget_high = ResourceBudget(max_usd_spend_per_day=5.00)
 
-        self.harness.add_agent("primary", skills=["research"],
-                               specializations=["data_collection"], budget=budget_low)
-        self.harness.add_agent("backup", skills=["research"],
-                               specializations=["data_collection"], budget=budget_high)
+        self.harness.add_agent(
+            "primary",
+            skills=["research"],
+            specializations=["data_collection"],
+            budget=budget_low,
+        )
+        self.harness.add_agent(
+            "backup",
+            skills=["research"],
+            specializations=["data_collection"],
+            budget=budget_high,
+        )
 
         # Exhaust primary's budget
         agent = self.harness.lifecycle.agents["primary"]
@@ -463,7 +515,9 @@ class TestBudgetEnforcement:
 
         # Task that exceeds primary's remaining budget
         a = await self.harness.orch.assign_task(
-            "t1", category="data_collection", bounty_usd=0.05,
+            "t1",
+            category="data_collection",
+            bounty_usd=0.05,
         )
         assert a.assigned_agent == "backup"
 
@@ -471,6 +525,7 @@ class TestBudgetEnforcement:
 # ══════════════════════════════════════════════
 # E2E: Reputation Flow
 # ══════════════════════════════════════════════
+
 
 class TestReputationFlow:
     """Tests reputation scoring through the task lifecycle."""
@@ -487,10 +542,12 @@ class TestReputationFlow:
     @pytest.mark.asyncio
     async def test_reputation_affects_matching(self):
         """Higher reputation agent wins when skills are equal."""
-        self.harness.add_agent("veteran", skills=["research"],
-                               specializations=["data_collection"])
-        self.harness.add_agent("newbie", skills=["research"],
-                               specializations=["data_collection"])
+        self.harness.add_agent(
+            "veteran", skills=["research"], specializations=["data_collection"]
+        )
+        self.harness.add_agent(
+            "newbie", skills=["research"], specializations=["data_collection"]
+        )
 
         # Boost veteran's reputation
         self.harness.orch.profiles["veteran"].reputation_score = 90.0
@@ -528,7 +585,9 @@ class TestReputationFlow:
         assert bridge._calculate_evidence_weight(rep_new) == 0.3
 
         # Some EM tasks
-        rep_some = BridgedReputation(wallet="0x2", em_total_tasks=5, em_successful_tasks=5)
+        rep_some = BridgedReputation(
+            wallet="0x2", em_total_tasks=5, em_successful_tasks=5
+        )
         ew_some = bridge._calculate_evidence_weight(rep_some)
         assert ew_some > 0.3
 
@@ -577,7 +636,10 @@ class TestReputationFlow:
         # Assign and complete with rating
         await self.harness.orch.assign_task("t1", category="data_collection")
         result = await self.harness.orch.complete_task(
-            "t1", success=True, earnings_usd=0.25, rating=90.0,
+            "t1",
+            success=True,
+            earnings_usd=0.25,
+            rating=90.0,
         )
 
         assert result["success"]
@@ -594,7 +656,10 @@ class TestReputationFlow:
         results = await bridge.batch_sync(
             wallets=["0xaaa", "0xbbb"],
             em_reputations={
-                "0xaaa": {"bayesian_score": 51.0, "total_tasks": 5},  # Small delta from 50
+                "0xaaa": {
+                    "bayesian_score": 51.0,
+                    "total_tasks": 5,
+                },  # Small delta from 50
                 "0xbbb": {"bayesian_score": 75.0, "total_tasks": 20},  # Large delta
             },
         )
@@ -606,6 +671,7 @@ class TestReputationFlow:
 # ══════════════════════════════════════════════
 # E2E: Swarm Operations
 # ══════════════════════════════════════════════
+
 
 class TestSwarmOperations:
     """Tests swarm-level operations and observability."""
@@ -637,12 +703,18 @@ class TestSwarmOperations:
         """Metrics reflect task processing accurately."""
         # Process several tasks
         for i in range(10):
-            category = ["data_collection", "content_creation", "code_review",
-                        "translation", "testing"][i % 5]
+            category = [
+                "data_collection",
+                "content_creation",
+                "code_review",
+                "translation",
+                "testing",
+            ][i % 5]
             a = await self.harness.orch.assign_task(f"t_{i}", category=category)
             if a.assigned_agent:
                 await self.harness.orch.complete_task(
-                    f"t_{i}", success=(i != 7),  # One failure
+                    f"t_{i}",
+                    success=(i != 7),  # One failure
                     earnings_usd=0.10,
                     rating=80.0 + i,
                 )
@@ -658,15 +730,21 @@ class TestSwarmOperations:
         """Economic summary tracks top earners correctly."""
         # Aurora does more tasks
         for i in range(5):
-            await self.harness.orch.assign_task(f"t_aurora_{i}", category="data_collection")
+            await self.harness.orch.assign_task(
+                f"t_aurora_{i}", category="data_collection"
+            )
             await self.harness.orch.complete_task(
-                f"t_aurora_{i}", success=True, earnings_usd=0.20,
+                f"t_aurora_{i}",
+                success=True,
+                earnings_usd=0.20,
             )
 
         # Blaze does fewer
         await self.harness.orch.assign_task("t_blaze_0", category="content_creation")
         await self.harness.orch.complete_task(
-            "t_blaze_0", success=True, earnings_usd=0.10,
+            "t_blaze_0",
+            success=True,
+            earnings_usd=0.10,
         )
 
         summary = self.harness.orch.economic_summary()
@@ -675,7 +753,10 @@ class TestSwarmOperations:
 
         # Aurora should be top earner
         top = summary["top_earners"][0]
-        assert top["agent_id"] in ("aurora", "delta")  # Either could take data_collection tasks
+        assert top["agent_id"] in (
+            "aurora",
+            "delta",
+        )  # Either could take data_collection tasks
 
     def test_swarm_full_capacity(self):
         """Swarm handles capacity limits correctly."""
@@ -703,8 +784,12 @@ class TestSwarmOperations:
     async def test_cheapest_strategy(self):
         """Cheapest strategy picks agent with lowest model cost."""
         harness = SwarmTestHarness()
-        harness.add_agent("cheap", skills=["research"], model="anthropic/claude-haiku-4-5")
-        harness.add_agent("expensive", skills=["research"], model="anthropic/claude-opus-4-6")
+        harness.add_agent(
+            "cheap", skills=["research"], model="anthropic/claude-haiku-4-5"
+        )
+        harness.add_agent(
+            "expensive", skills=["research"], model="anthropic/claude-opus-4-6"
+        )
 
         a = await harness.orch.assign_task(
             "t_cheap",
@@ -718,6 +803,7 @@ class TestSwarmOperations:
 # E2E: Stress & Edge Cases
 # ══════════════════════════════════════════════
 
+
 class TestStressAndEdgeCases:
     """Tests unusual scenarios and edge cases."""
 
@@ -728,7 +814,9 @@ class TestStressAndEdgeCases:
     async def test_complete_unknown_task(self):
         """Completing a task that was never assigned."""
         result = await self.harness.orch.complete_task(
-            "nonexistent", success=True, earnings_usd=0.10,
+            "nonexistent",
+            success=True,
+            earnings_usd=0.10,
         )
         assert "error" in result
 
@@ -740,12 +828,20 @@ class TestStressAndEdgeCases:
 
         completed = 0
         for i in range(50):
-            category = ["data_collection", "content_creation", "code_review",
-                        "translation", "testing", "research"][i % 6]
+            category = [
+                "data_collection",
+                "content_creation",
+                "code_review",
+                "translation",
+                "testing",
+                "research",
+            ][i % 6]
             a = await self.harness.orch.assign_task(f"stress_{i}", category=category)
             if a.assigned_agent:
                 await self.harness.orch.complete_task(
-                    f"stress_{i}", success=True, earnings_usd=0.05,
+                    f"stress_{i}",
+                    success=True,
+                    earnings_usd=0.05,
                 )
                 completed += 1
 
@@ -827,7 +923,8 @@ class TestStressAndEdgeCases:
         self.harness.orch.profiles["low_rep"].reputation_score = 45.0
 
         a = await self.harness.orch.assign_task(
-            "t_rep", category="data_collection",
+            "t_rep",
+            category="data_collection",
             strategy=AssignmentStrategy.REPUTATION,
         )
         assert a.assigned_agent == "high_rep"
@@ -836,6 +933,7 @@ class TestStressAndEdgeCases:
 # ══════════════════════════════════════════════
 # E2E: Full Swarm Day Simulation
 # ══════════════════════════════════════════════
+
 
 class TestFullDaySimulation:
     """Simulates a full day of swarm operation."""
@@ -853,7 +951,9 @@ class TestFullDaySimulation:
             a = await harness.orch.assign_task(f"morning_{i}", category=category)
             if a.assigned_agent:
                 await harness.orch.complete_task(
-                    f"morning_{i}", success=True, earnings_usd=0.10,
+                    f"morning_{i}",
+                    success=True,
+                    earnings_usd=0.10,
                 )
                 morning_completed += 1
 
@@ -883,7 +983,8 @@ class TestFullDaySimulation:
             a = await harness.orch.assign_task(f"afternoon_{i}", category=category)
             if a.assigned_agent:
                 await harness.orch.complete_task(
-                    f"afternoon_{i}", success=(i != 5),  # one failure
+                    f"afternoon_{i}",
+                    success=(i != 5),  # one failure
                     earnings_usd=0.08,
                 )
                 afternoon_completed += 1

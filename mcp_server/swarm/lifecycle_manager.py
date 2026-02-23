@@ -34,7 +34,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, Dict, List, Callable
 
@@ -44,23 +44,25 @@ logger = logging.getLogger(__name__)
 
 class AgentStatus(str, Enum):
     """Agent lifecycle states."""
-    INACTIVE = "inactive"     # Not yet booted
-    BOOTING = "booting"       # Starting up, loading context
-    ACTIVE = "active"         # Running, processing tasks
-    SLEEPING = "sleeping"     # Suspended (budget/schedule)
-    WAKING = "waking"         # Transitioning from sleep to active
-    ERROR = "error"           # Unhealthy, needs attention
-    RETIRED = "retired"       # Permanently stopped
+
+    INACTIVE = "inactive"  # Not yet booted
+    BOOTING = "booting"  # Starting up, loading context
+    ACTIVE = "active"  # Running, processing tasks
+    SLEEPING = "sleeping"  # Suspended (budget/schedule)
+    WAKING = "waking"  # Transitioning from sleep to active
+    ERROR = "error"  # Unhealthy, needs attention
+    RETIRED = "retired"  # Permanently stopped
 
 
 @dataclass
 class ResourceBudget:
     """Daily resource limits for an agent."""
-    max_tokens_per_day: int = 500_000       # ~$0.50 on Haiku, ~$7.50 on Sonnet
-    max_usd_spend_per_day: float = 1.00     # USDC spend on EM tasks
-    max_api_calls_per_hour: int = 60        # Rate limit guard
-    max_tasks_per_day: int = 20             # EM task creation limit
-    max_errors_per_hour: int = 5            # Error threshold before auto-sleep
+
+    max_tokens_per_day: int = 500_000  # ~$0.50 on Haiku, ~$7.50 on Sonnet
+    max_usd_spend_per_day: float = 1.00  # USDC spend on EM tasks
+    max_api_calls_per_hour: int = 60  # Rate limit guard
+    max_tasks_per_day: int = 20  # EM task creation limit
+    max_errors_per_hour: int = 5  # Error threshold before auto-sleep
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -69,6 +71,7 @@ class ResourceBudget:
 @dataclass
 class ResourceUsage:
     """Current resource usage tracking."""
+
     tokens_today: int = 0
     usd_spent_today: float = 0.0
     api_calls_this_hour: int = 0
@@ -98,11 +101,11 @@ class ResourceUsage:
 @dataclass
 class AgentState:
     """Complete state of a swarm agent."""
-    
+
     # Identity
-    agent_id: str               # e.g., "agent_aurora"
-    wallet: str                 # Ethereum wallet address
-    personality: str = ""       # Personality archetype (explorer, builder, etc.)
+    agent_id: str  # e.g., "agent_aurora"
+    wallet: str  # Ethereum wallet address
+    personality: str = ""  # Personality archetype (explorer, builder, etc.)
     erc8004_id: Optional[int] = None  # On-chain identity token ID
 
     # Status
@@ -159,9 +162,12 @@ class AgentState:
         self.usage.reset_daily()
         return {
             "tokens": self.usage.tokens_today / max(1, self.budget.max_tokens_per_day),
-            "usd": self.usage.usd_spent_today / max(0.01, self.budget.max_usd_spend_per_day),
-            "api_calls": self.usage.api_calls_this_hour / max(1, self.budget.max_api_calls_per_hour),
-            "tasks": self.usage.tasks_created_today / max(1, self.budget.max_tasks_per_day),
+            "usd": self.usage.usd_spent_today
+            / max(0.01, self.budget.max_usd_spend_per_day),
+            "api_calls": self.usage.api_calls_this_hour
+            / max(1, self.budget.max_api_calls_per_hour),
+            "tasks": self.usage.tasks_created_today
+            / max(1, self.budget.max_tasks_per_day),
         }
 
     def to_dict(self) -> dict:
@@ -255,18 +261,20 @@ class LifecycleManager:
         self._persist_state()
         self._emit_event("agent_registered", agent_id)
 
-        logger.info(f"Registered agent {agent_id} (wallet={wallet[:10]}..., model={model})")
+        logger.info(
+            f"Registered agent {agent_id} (wallet={wallet[:10]}..., model={model})"
+        )
         return state
 
     def unregister_agent(self, agent_id: str) -> bool:
         """Remove agent from swarm."""
         if agent_id not in self.agents:
             return False
-        
+
         agent = self.agents[agent_id]
         if agent.status == AgentStatus.ACTIVE:
             self.sleep_agent(agent_id, reason="unregistered")
-        
+
         del self.agents[agent_id]
         self._persist_state()
         self._emit_event("agent_unregistered", agent_id)
@@ -404,12 +412,17 @@ class LifecycleManager:
 
         # Auto-retire after 10 consecutive failures
         if agent.consecutive_failures >= 10:
-            self.retire_agent(agent_id, f"Auto-retired: {agent.consecutive_failures} consecutive failures")
+            self.retire_agent(
+                agent_id,
+                f"Auto-retired: {agent.consecutive_failures} consecutive failures",
+            )
             return True
 
         self._persist_state()
         self._emit_event("agent_error", agent_id, error=error)
-        logger.error(f"Agent {agent_id} ERROR: {error} (failures: {agent.consecutive_failures})")
+        logger.error(
+            f"Agent {agent_id} ERROR: {error} (failures: {agent.consecutive_failures})"
+        )
         return True
 
     def retire_agent(self, agent_id: str, reason: str = "manual") -> bool:
@@ -478,7 +491,11 @@ class LifecycleManager:
             return {"action": "sleep", "reason": "outside_active_hours"}
 
         # Agent is sleeping but should be active
-        if agent.status == AgentStatus.SLEEPING and agent.is_active_hour() and agent.is_within_budget():
+        if (
+            agent.status == AgentStatus.SLEEPING
+            and agent.is_active_hour()
+            and agent.is_within_budget()
+        ):
             return {"action": "wake"}
 
         self._persist_state()
@@ -518,17 +535,22 @@ class LifecycleManager:
             total_budget_used += agent.usage.usd_spent_today
             total_budget_max += agent.budget.max_usd_spend_per_day
 
-            agent_summaries.append({
-                "agent_id": agent_id,
-                "status": status,
-                "healthy": agent.is_healthy(),
-                "budget_pct": round(
-                    agent.usage.usd_spent_today / max(0.01, agent.budget.max_usd_spend_per_day),
-                    3
-                ),
-                "tasks_today": agent.usage.tasks_created_today,
-                "last_heartbeat": agent.last_heartbeat.isoformat() if agent.last_heartbeat else None,
-            })
+            agent_summaries.append(
+                {
+                    "agent_id": agent_id,
+                    "status": status,
+                    "healthy": agent.is_healthy(),
+                    "budget_pct": round(
+                        agent.usage.usd_spent_today
+                        / max(0.01, agent.budget.max_usd_spend_per_day),
+                        3,
+                    ),
+                    "tasks_today": agent.usage.tasks_created_today,
+                    "last_heartbeat": agent.last_heartbeat.isoformat()
+                    if agent.last_heartbeat
+                    else None,
+                }
+            )
 
         budget_remaining = 1.0 - (total_budget_used / max(0.01, total_budget_max))
 
@@ -572,7 +594,9 @@ class LifecycleManager:
                 elif not agent.is_healthy():
                     # Unhealthy for more than 30 minutes
                     if agent.last_heartbeat:
-                        age = (datetime.now(timezone.utc) - agent.last_heartbeat).total_seconds()
+                        age = (
+                            datetime.now(timezone.utc) - agent.last_heartbeat
+                        ).total_seconds()
                         if age > 1800:
                             to_sleep.append(agent_id)
         return to_sleep
@@ -607,14 +631,16 @@ class LifecycleManager:
                 reason = f"budget_exceeded: {self._identify_budget_violation(agent)}"
             elif not agent.is_healthy():
                 reason = "unhealthy"
-            
+
             if self.sleep_agent(agent_id, reason=reason):
                 actions["slept"].append(agent_id)
 
         # Recover errored agents (if they've been errored for > 5 min)
         for agent_id, agent in self.agents.items():
             if agent.status == AgentStatus.ERROR and agent.status_since:
-                error_duration = (datetime.now(timezone.utc) - agent.status_since).total_seconds()
+                error_duration = (
+                    datetime.now(timezone.utc) - agent.status_since
+                ).total_seconds()
                 if error_duration > 300 and agent.consecutive_failures < 5:
                     # Try to recover
                     agent.status = AgentStatus.SLEEPING
@@ -622,10 +648,10 @@ class LifecycleManager:
                     actions["recovered"].append(agent_id)
 
         self._persist_state()
-        
+
         if any(v for v in actions.values()):
             logger.info(f"Auto-manage: {actions}")
-        
+
         return actions
 
     # ── Helpers ──
@@ -680,7 +706,7 @@ class LifecycleManager:
             data = {}
             for agent_id, agent in self.agents.items():
                 data[agent_id] = agent.to_dict()
-            
+
             with open(self.state_file, "w") as f:
                 json.dump(data, f, indent=2, default=str)
         except Exception as e:

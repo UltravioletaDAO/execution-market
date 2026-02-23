@@ -28,12 +28,10 @@ Contract functions called:
 
 import json
 import logging
-import struct
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from enum import IntEnum
 from typing import Optional, Dict, List, Tuple
-from hashlib import sha3_256
 
 
 logger = logging.getLogger(__name__)
@@ -65,6 +63,7 @@ SELECTORS = {
 
 class Quadrant(IntEnum):
     """SealRegistry quadrants (matches Solidity enum)."""
+
     H2H = 0  # Human to Human
     H2A = 1  # Human to Agent
     A2H = 2  # Agent to Human
@@ -74,7 +73,6 @@ class Quadrant(IntEnum):
 # Seal type hashes (keccak256 of type name)
 def _keccak256(text: str) -> bytes:
     """Compute keccak256 hash (same as Solidity's keccak256)."""
-    from hashlib import sha3_256 as _sha3  # sha3_256 != keccak256
     # Python's hashlib sha3_256 is the NIST SHA-3, not Ethereum's keccak256
     # For production, use pysha3 or web3.py. For now, we store precomputed values.
     # These are the actual keccak256 values from Solidity:
@@ -86,19 +84,45 @@ def _keccak256(text: str) -> bytes:
 # values from the Solidity contract using `cast keccak "SKILLFUL"` or similar.
 # The exact values don't matter for the bridge logic — only for on-chain calls.
 SEAL_TYPE_HASHES = {
-    "SKILLFUL":     bytes.fromhex("a15bc60c955c405d20d9149c709e2460f1c2d9a497496a7f46004d1772c3054c"),
-    "RELIABLE":     bytes.fromhex("68d7e3bece2dc1f4e4071f47a5e31c52d1eb49b6e23bf8bff31e2f10f6417c60"),
-    "THOROUGH":     bytes.fromhex("c9fcf5c2e3eff4c2f1e5b9a8d1f3b2a400e8d0f2a1b3c5d7e9f0a2b4c6d8e0f2"),
-    "ENGAGED":      bytes.fromhex("b87213121f97cc01b3f55d2eec1e6e8bbf395a096b3d43e3c6b8eb6e8f1c0e3a"),
-    "HELPFUL":      bytes.fromhex("e1d9c5fb7dc9b72a5e3f8c2d1a4b7e6f009d0c3b2a8e7f5d4c6b9a1e0f3d2c5b"),
-    "CURIOUS":      bytes.fromhex("f2c4d6e8a0b1c3d5e7f9a2b4c6d8e0f100a3b5c7d9e1f0a2b4c6d8e0f2a4b6c8"),
-    "FAIR":         bytes.fromhex("d1e3f5a7b9c0d2e4f6a8b0c1d3e5f7a900b1c2d4e6f8a0b2c3d5e7f9a1b3c5d7"),
-    "ACCURATE":     bytes.fromhex("a3b5c7d9e1f2a4b6c8d0e2f3a5b7c9d100e3f4a6b8c0d2e4f5a7b9c1d3e5f6a8"),
-    "RESPONSIVE":   bytes.fromhex("c5d7e9f1a3b4c6d8e0f2a4b5c7d9e1f300a5b6c8d0e2f4a6b7c9d1e3f5a7b8c0"),
-    "ETHICAL":      bytes.fromhex("e7f9a1b3c5d6e8f0a2b4c5d7e9f1a3b500c6d8e0f2a4b6c7d9e1f3a5b7c8d0e2"),
-    "CREATIVE":     bytes.fromhex("f9a1b3c5d7e8f0a2b4c6d7e9f1a3b5c700d8e0f2a4b6c8d9e1f3a5b7c9d0e2f4"),
-    "PROFESSIONAL": bytes.fromhex("a1b3c5d7e9f0a2b4c6d8e9f1a3b5c7d900e0f2a4b6c8d0e1f3a5b7c9d1e2f4a6"),
-    "FRIENDLY":     bytes.fromhex("b3c5d7e9f1a2b4c6d8e0f1a3b5c7d9e100f2a4b6c8d0e2f3a5b7c9d1e3f4a6b8"),
+    "SKILLFUL": bytes.fromhex(
+        "a15bc60c955c405d20d9149c709e2460f1c2d9a497496a7f46004d1772c3054c"
+    ),
+    "RELIABLE": bytes.fromhex(
+        "68d7e3bece2dc1f4e4071f47a5e31c52d1eb49b6e23bf8bff31e2f10f6417c60"
+    ),
+    "THOROUGH": bytes.fromhex(
+        "c9fcf5c2e3eff4c2f1e5b9a8d1f3b2a400e8d0f2a1b3c5d7e9f0a2b4c6d8e0f2"
+    ),
+    "ENGAGED": bytes.fromhex(
+        "b87213121f97cc01b3f55d2eec1e6e8bbf395a096b3d43e3c6b8eb6e8f1c0e3a"
+    ),
+    "HELPFUL": bytes.fromhex(
+        "e1d9c5fb7dc9b72a5e3f8c2d1a4b7e6f009d0c3b2a8e7f5d4c6b9a1e0f3d2c5b"
+    ),
+    "CURIOUS": bytes.fromhex(
+        "f2c4d6e8a0b1c3d5e7f9a2b4c6d8e0f100a3b5c7d9e1f0a2b4c6d8e0f2a4b6c8"
+    ),
+    "FAIR": bytes.fromhex(
+        "d1e3f5a7b9c0d2e4f6a8b0c1d3e5f7a900b1c2d4e6f8a0b2c3d5e7f9a1b3c5d7"
+    ),
+    "ACCURATE": bytes.fromhex(
+        "a3b5c7d9e1f2a4b6c8d0e2f3a5b7c9d100e3f4a6b8c0d2e4f5a7b9c1d3e5f6a8"
+    ),
+    "RESPONSIVE": bytes.fromhex(
+        "c5d7e9f1a3b4c6d8e0f2a4b5c7d9e1f300a5b6c8d0e2f4a6b7c9d1e3f5a7b8c0"
+    ),
+    "ETHICAL": bytes.fromhex(
+        "e7f9a1b3c5d6e8f0a2b4c5d7e9f1a3b500c6d8e0f2a4b6c7d9e1f3a5b7c8d0e2"
+    ),
+    "CREATIVE": bytes.fromhex(
+        "f9a1b3c5d7e8f0a2b4c6d7e9f1a3b5c700d8e0f2a4b6c8d9e1f3a5b7c9d0e2f4"
+    ),
+    "PROFESSIONAL": bytes.fromhex(
+        "a1b3c5d7e9f0a2b4c6d8e9f1a3b5c7d900e0f2a4b6c8d0e1f3a5b7c9d1e2f4a6"
+    ),
+    "FRIENDLY": bytes.fromhex(
+        "b3c5d7e9f1a2b4c6d8e0f1a3b5c7d9e100f2a4b6c8d0e2f3a5b7c9d1e3f4a6b8"
+    ),
 }
 
 # Quadrant groupings for analysis
@@ -113,6 +137,7 @@ QUADRANT_LABELS = {
 @dataclass
 class SealScore:
     """Score for a specific seal type."""
+
     seal_type: str
     average_score: float  # 0-100
     count: int
@@ -122,6 +147,7 @@ class SealScore:
 @dataclass
 class DescribeNetReputation:
     """Complete describe-net reputation profile for a wallet."""
+
     wallet: str
 
     # Composite scores
@@ -251,7 +277,9 @@ class DescribeNetReader:
 
         if self.registry_address == SEAL_REGISTRY_ADDRESS:
             # Contract not yet deployed — return empty reputation
-            logger.debug(f"SealRegistry not deployed, returning empty reputation for {wallet}")
+            logger.debug(
+                f"SealRegistry not deployed, returning empty reputation for {wallet}"
+            )
             rep.read_at = datetime.now(timezone.utc)
             self._cache[wallet] = rep
             return rep
@@ -291,11 +319,13 @@ class DescribeNetReader:
                 for type_name, type_hash in SEAL_TYPE_HASHES.items():
                     result = await self._call_reputation_by_type(wallet, type_hash)
                     if result and result[1] > 0:  # count > 0
-                        type_scores.append(SealScore(
-                            seal_type=type_name,
-                            average_score=result[0],
-                            count=result[1],
-                        ))
+                        type_scores.append(
+                            SealScore(
+                                seal_type=type_name,
+                                average_score=result[0],
+                                count=result[1],
+                            )
+                        )
                 # Sort by count (most seals first), take top 5
                 type_scores.sort(key=lambda s: -s.count)
                 rep.top_seal_types = type_scores[:5]
@@ -328,12 +358,13 @@ class DescribeNetReader:
         # Worker reputation = H2A (humans rating this agent) + A2A (agents rating this agent)
         # Requester reputation = A2H (this agent's ratings as requester)
         worker_count = rep.h2a_count + rep.a2a_count
-        requester_count = rep.a2h_count
 
         worker_avg = 0.0
         if worker_count > 0:
             # Weighted average of H2A and A2A scores
-            total_weighted = rep.h2a_score * rep.h2a_count + rep.a2a_score * rep.a2a_count
+            total_weighted = (
+                rep.h2a_score * rep.h2a_count + rep.a2a_score * rep.a2a_count
+            )
             worker_avg = total_weighted / worker_count
 
         requester_avg = rep.a2h_score if rep.a2h_count > 0 else 0.0
@@ -384,9 +415,11 @@ class DescribeNetReader:
             base = 0.70
 
         # Multi-quadrant bonus (cross-validation from different perspectives)
-        quadrants_with_data = sum(1 for c in [
-            rep.h2h_count, rep.h2a_count, rep.a2h_count, rep.a2a_count
-        ] if c > 0)
+        quadrants_with_data = sum(
+            1
+            for c in [rep.h2h_count, rep.h2a_count, rep.a2h_count, rep.a2a_count]
+            if c > 0
+        )
 
         if quadrants_with_data >= 3:
             base += 0.05
@@ -487,15 +520,20 @@ class DescribeNetReader:
         import urllib.request
         import urllib.error
 
-        payload = json.dumps({
-            "jsonrpc": "2.0",
-            "method": "eth_call",
-            "params": [{
-                "to": self.registry_address,
-                "data": data,
-            }, "latest"],
-            "id": 1,
-        }).encode()
+        payload = json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "method": "eth_call",
+                "params": [
+                    {
+                        "to": self.registry_address,
+                        "data": data,
+                    },
+                    "latest",
+                ],
+                "id": 1,
+            }
+        ).encode()
 
         try:
             req = urllib.request.Request(
@@ -537,6 +575,7 @@ class DescribeNetReader:
         # Fallback: try pysha3 if available
         try:
             import sha3
+
             return sha3.keccak_256(signature.encode()).hexdigest()[:8]
         except ImportError:
             pass
@@ -544,6 +583,7 @@ class DescribeNetReader:
         # Last resort: try pycryptodome
         try:
             from Crypto.Hash import keccak
+
             k = keccak.new(digest_bits=256)
             k.update(signature.encode())
             return k.hexdigest()[:8]
@@ -557,6 +597,7 @@ class DescribeNetReader:
 
 
 # ── Integration with ReputationBridge ──
+
 
 async def read_describenet_for_bridge(
     wallet: str,
