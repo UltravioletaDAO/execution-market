@@ -380,18 +380,42 @@ class ReputationBridge:
 
     async def _read_chain_reputation(self, wallet: str) -> Optional[dict]:
         """
-        Read reputation from ERC-8004 on Base.
+        Read reputation from on-chain sources.
 
-        In production, this calls the ERC-8004 Reputation contract.
-        For now, uses a stub that returns cached/mock data.
+        Tries describe-net SealRegistry first (richer data with quadrant
+        breakdown), then falls back to ERC-8004 Reputation contract.
+
+        The describe-net reader provides:
+        - Composite scores per quadrant (H2H, H2A, A2H, A2A)
+        - Time-weighted scoring with configurable half-life
+        - Seal type breakdown (SKILLFUL, RELIABLE, etc.)
+        - Evidence weight for AutoJob integration
+
+        Returns dict with: score, total_ratings, as_worker_avg, as_requester_avg
         """
-        # TODO: Implement actual ERC-8004 contract call
+        wallet = wallet.lower()
+
+        # Try describe-net SealRegistry first (richer reputation data)
+        try:
+            from .describenet_reader import read_describenet_for_bridge
+            bridge_data = await read_describenet_for_bridge(wallet)
+            if bridge_data and bridge_data.get("total_ratings", 0) > 0:
+                logger.info(
+                    f"Read describe-net reputation for {wallet}: "
+                    f"score={bridge_data.get('score', 0):.1f}, "
+                    f"ratings={bridge_data.get('total_ratings', 0)}"
+                )
+                return bridge_data
+        except ImportError:
+            logger.debug("describenet_reader not available, falling back to ERC-8004")
+        except Exception as e:
+            logger.warning(f"describe-net read failed for {wallet}: {e}")
+
+        # Fallback: direct ERC-8004 Reputation contract
+        # TODO: Implement direct ERC-8004 contract call
         # The contract at 0x8004BAa17C55a88189AE136b182e5fdA19dE9b63
         # has a getReputation(address) view function
-        #
-        # For now, return None to indicate no on-chain data
-        # The bridge handles this gracefully by using EM-only scores
-        logger.debug(f"Would read chain reputation for {wallet}")
+        logger.debug(f"No on-chain reputation found for {wallet}")
         return None
 
     async def _write_chain_reputation(
