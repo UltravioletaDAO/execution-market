@@ -277,9 +277,19 @@ def compute_enhanced_match_score(
     text = (task_title + " " + task_description).lower()
 
     # 1. Skill match (35%)
+    # Tokenize skills: replace underscores/hyphens with spaces for natural language matching
     skill_score = 0.0
     if agent_skills:
-        matches = sum(1 for skill in agent_skills if skill in text)
+        matches = 0
+        for skill in agent_skills:
+            # Match both the raw skill name and the space-separated version
+            skill_lower = skill.lower()
+            skill_spaced = skill_lower.replace("_", " ").replace("-", " ")
+            if skill_lower in text or skill_spaced in text:
+                matches += 1
+            elif any(word in text.split() for word in skill_spaced.split() if len(word) > 3):
+                # Partial match: at least one significant word matches
+                matches += 0.5
         if matches == 0:
             # KK-tagged tasks get a baseline
             skill_score = 0.3 if "[kk" in text else 0.0
