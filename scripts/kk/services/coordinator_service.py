@@ -6,11 +6,11 @@ The coordinator agent's heartbeat action. On each wake cycle:
   1. Read all agent states from kk_swarm_state
   2. Identify idle, stale, and busy agents
   3. Browse EM for unassigned tasks
-  4. Match tasks to idle agents via **5-factor enhanced matching**:
-     - 35% skill keywords, 25% reliability, 20% category experience,
-       10% chain experience, 10% budget fit
+  4. Match tasks to idle agents via **6-factor enhanced matching**:
+     - 30% skill keywords, 20% reliability, 15% category experience,
+       10% chain experience, 10% budget fit, 15% unified reputation
   5. Assign via kk_task_claims + kk_notifications
-  6. Generate health summary + performance-enriched report
+  6. Generate health summary with lifecycle + reputation data
 
 The coordinator does NOT execute tasks itself — it routes and monitors.
 
@@ -39,6 +39,13 @@ from lib.performance_tracker import (
     extract_performance_from_notes,
     rank_agents_for_task,
     save_performance,
+)
+from lib.reputation_bridge import (
+    UnifiedReputation,
+    compute_swarm_reputation,
+    load_latest_snapshot,
+    reputation_boost_for_matching,
+    save_reputation_snapshot,
 )
 from lib.swarm_state import (
     claim_task,
@@ -190,8 +197,9 @@ async def coordination_cycle(
 
     logger.info(f"  Agents: {len(all_agents)} total, {len(idle_agents)} idle, {len(stale_agents)} stale")
 
-    # 2. Load performance profiles (enhanced matching)
+    # 2. Load performance profiles + reputation data (enhanced matching)
     performance_profiles: dict[str, AgentPerformance] = {}
+    reputation_data: dict[str, UnifiedReputation] = {}
     if not use_legacy_matching:
         performance_profiles = load_performance_profiles(workspaces_dir)
         agents_with_data = sum(
@@ -201,6 +209,20 @@ async def coordination_cycle(
             f"  Performance data: {len(performance_profiles)} profiles, "
             f"{agents_with_data} with history"
         )
+
+        # Load reputation snapshots (graceful — may not exist yet)
+        rep_dir = workspaces_dir.parent / "data" / "reputation"
+        rep_snapshot = load_latest_snapshot(rep_dir)
+        if rep_snapshot:
+            # Build UnifiedReputation objects from snapshot data
+            for name, rep_data in rep_snapshot.items():
+                reputation_data[name] = UnifiedReputation(
+                    agent_name=name,
+                    composite_score=rep_data.get("composite_score", 50.0),
+                    effective_confidence=rep_data.get("confidence", 0.0),
+                    sources_available=rep_data.get("sources_available", []),
+                )
+            logger.info(f"  Reputation data: {len(reputation_data)} agents from snapshot")
 
     # 3. Browse EM for unassigned tasks
     try:
@@ -272,6 +294,21 @@ async def coordination_cycle(
                 exclude_agents=system_agents | assigned_agents,
                 min_score=0.01,
             )
+
+            # Apply reputation boost (6th factor) if reputation data available
+            if reputation_data and ranked:
+                boosted_ranked = []
+                for agent_n, base_score in ranked:
+                    rep = reputation_data.get(agent_n)
+                    if rep and rep.effective_confidence > 0:
+                        boosted = reputation_boost_for_matching(
+                            rep, base_score, reputation_weight=0.15,
+                        )
+                        boosted_ranked.append((agent_n, boosted))
+                    else:
+                        boosted_ranked.append((agent_n, base_score))
+                boosted_ranked.sort(key=lambda x: x[1], reverse=True)
+                ranked = boosted_ranked
 
         if not ranked:
             continue
@@ -382,7 +419,7 @@ async def main():
             workspace_dir=workspace_dir,
         )
 
-    matching_mode = "legacy" if args.legacy else "enhanced (5-factor)"
+    matching_mode = "legacy" if args.legacy else "enhanced (6-factor + reputation)"
     print(f"\n{'=' * 60}")
     print(f"  Karma Kadabra — Coordinator")
     print(f"  Agent: {agent.name}")
