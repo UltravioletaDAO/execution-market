@@ -27,6 +27,7 @@ const CreateTask = lazy(() => import('./pages/agent/CreateTask').then(m => ({ de
 const PublicProfile = lazy(() => import('./pages/PublicProfile').then(m => ({ default: m.PublicProfile })))
 const Activity = lazy(() => import('./pages/Activity').then(m => ({ default: m.Activity })))
 const AgentDirectory = lazy(() => import('./pages/AgentDirectory').then(m => ({ default: m.AgentDirectory })))
+const TradingLeaderboard = lazy(() => import('./pages/TradingLeaderboard').then(m => ({ default: m.TradingLeaderboard })))
 const PublisherDashboard = lazy(() => import('./pages/publisher/Dashboard').then(m => ({ default: m.default })))
 const PublisherCreateRequest = lazy(() => import('./pages/publisher/CreateRequest').then(m => ({ default: m.default })))
 const PublisherReviewSubmission = lazy(() => import('./pages/publisher/ReviewSubmission').then(m => ({ default: m.default })))
@@ -392,6 +393,7 @@ function AppRoutes() {
         <Route path="/profile/:wallet" element={<PublicProfile />} />
         <Route path="/feedback/:taskId" element={<FeedbackPage />} />
         <Route path="/agents/directory" element={<AgentDirectory />} />
+        <Route path="/trading" element={<TradingLeaderboard />} />
         <Route
           path="/publisher/dashboard"
           element={

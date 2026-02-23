@@ -19,9 +19,13 @@ sys.path.insert(0, str(_kk_root / "lib"))
 from trading_signal_bot import (
     COMMANDS,
     COINGECKO_IDS,
+    PLAN_DURATION_SECONDS,
+    REVENUE_SPLIT,
+    SUBSCRIPTION_PLANS,
     TIMEFRAME_SECONDS,
     PriceMonitor,
     SignalStore,
+    SubscriptionStore,
     TraderStats,
     TradingSignal,
     _format_duration,
@@ -38,6 +42,9 @@ from trading_signal_bot import (
     handle_open,
     handle_signal,
     handle_stats,
+    handle_subscribe,
+    handle_subscribers,
+    handle_unsubscribe,
     parse_command,
     parse_signal,
     _signal_buckets,
@@ -681,7 +688,10 @@ class TestHelpers:
 
 class TestCommandRegistration:
     def test_all_commands_registered(self):
-        expected = {"signal", "open", "history", "detail", "close", "cancel", "leaderboard", "stats", "help"}
+        expected = {
+            "signal", "open", "history", "detail", "close", "cancel",
+            "leaderboard", "stats", "subscribe", "unsubscribe", "subscribers", "help",
+        }
         assert set(COMMANDS.keys()) == expected
 
     def test_all_handlers_callable(self):
@@ -699,3 +709,192 @@ class TestConstants:
         assert "4H" in TIMEFRAME_SECONDS
         assert "1D" in TIMEFRAME_SECONDS
         assert "1W" in TIMEFRAME_SECONDS
+
+    def test_subscription_plans_have_required_fields(self):
+        for plan_name, (price, label) in SUBSCRIPTION_PLANS.items():
+            assert isinstance(price, float)
+            assert isinstance(label, str)
+            assert price > 0
+            assert plan_name in PLAN_DURATION_SECONDS
+
+    def test_revenue_split_totals_100(self):
+        assert sum(REVENUE_SPLIT.values()) == 100
+
+    def test_plan_duration_seconds(self):
+        assert PLAN_DURATION_SECONDS["daily"] == 86400
+        assert PLAN_DURATION_SECONDS["weekly"] == 604800
+        assert PLAN_DURATION_SECONDS["monthly"] == 2592000
+
+
+# ---------------------------------------------------------------------------
+# Subscription Store Tests
+# ---------------------------------------------------------------------------
+
+
+class TestSubscriptionStore:
+    def test_empty_store(self, tmp_path):
+        store = SubscriptionStore(tmp_path)
+        assert store.all_subscriptions() == []
+
+    def test_add_subscription(self, tmp_path):
+        store = SubscriptionStore(tmp_path)
+        sub = store.add_subscription("buyer", "trader1", "daily")
+        assert sub["subscriber"] == "buyer"
+        assert sub["trader"] == "trader1"
+        assert sub["plan"] == "daily"
+        assert sub["status"] == "active"
+        assert sub["price_usdc"] == 0.50
+
+    def test_cancel_subscription(self, tmp_path):
+        store = SubscriptionStore(tmp_path)
+        store.add_subscription("buyer", "trader1", "daily")
+        assert store.cancel_subscription("buyer", "trader1")
+        sub = store.get_subscription("buyer", "trader1")
+        assert sub is None  # No longer active
+
+    def test_cancel_nonexistent_returns_false(self, tmp_path):
+        store = SubscriptionStore(tmp_path)
+        assert store.cancel_subscription("nobody", "trader1") is False
+
+    def test_get_trader_subscribers(self, tmp_path):
+        store = SubscriptionStore(tmp_path)
+        store.add_subscription("buyer1", "trader1", "daily")
+        store.add_subscription("buyer2", "trader1", "weekly")
+        store.add_subscription("buyer1", "trader2", "monthly")
+        subs = store.get_trader_subscribers("trader1")
+        assert len(subs) == 2
+
+    def test_active_subscribers_for(self, tmp_path):
+        store = SubscriptionStore(tmp_path)
+        store.add_subscription("buyer1", "trader1", "daily")
+        store.add_subscription("buyer2", "trader1", "weekly")
+        active = store.active_subscribers_for("trader1")
+        assert "buyer1" in active
+        assert "buyer2" in active
+
+    def test_expire_subscriptions(self, tmp_path):
+        store = SubscriptionStore(tmp_path)
+        sub = store.add_subscription("buyer1", "trader1", "daily")
+        # Manually set expiry to the past
+        store._subs[0]["expires_at"] = "2020-01-01T00:00:00+00:00"
+        expired = store.expire_subscriptions()
+        assert len(expired) == 1
+        assert expired[0]["subscriber"] == "buyer1"
+
+    def test_persistence(self, tmp_path):
+        store1 = SubscriptionStore(tmp_path)
+        store1.add_subscription("buyer", "trader", "weekly")
+
+        store2 = SubscriptionStore(tmp_path)
+        assert len(store2.all_subscriptions()) == 1
+        assert store2.all_subscriptions()[0]["subscriber"] == "buyer"
+
+    def test_replace_on_duplicate(self, tmp_path):
+        store = SubscriptionStore(tmp_path)
+        store.add_subscription("buyer", "trader", "daily")
+        store.add_subscription("buyer", "trader", "weekly")
+        active = [s for s in store.all_subscriptions() if s["status"] == "active"]
+        assert len(active) == 1
+        assert active[0]["plan"] == "weekly"
+
+
+# ---------------------------------------------------------------------------
+# Copy Trading Command Handler Tests
+# ---------------------------------------------------------------------------
+
+
+class TestHandleSubscribe:
+    @pytest.fixture
+    def store_with_signals(self, tmp_path):
+        store = SignalStore(tmp_path)
+        sig = TradingSignal(
+            id="s-test01", author="trader1", direction="BUY",
+            pair="ETH/USDC", entry_price=3500, stop_loss=3400,
+            take_profit=3700, confidence=85, timeframe="4H",
+            status="open", created_at=datetime.now(timezone.utc).isoformat(),
+        )
+        store.add(sig)
+        return store
+
+    @pytest.mark.asyncio
+    async def test_subscribe_no_args(self, tmp_path):
+        store = SignalStore(tmp_path)
+        result = await handle_subscribe(store, "buyer", "")
+        assert "[ERR]" in result
+        assert "Usage" in result
+
+    @pytest.mark.asyncio
+    async def test_subscribe_to_self(self, tmp_path):
+        store = SignalStore(tmp_path)
+        result = await handle_subscribe(store, "trader1", "@trader1")
+        assert "[ERR]" in result
+        assert "yourself" in result
+
+    @pytest.mark.asyncio
+    async def test_subscribe_invalid_plan(self, store_with_signals):
+        result = await handle_subscribe(store_with_signals, "buyer", "@trader1 hourly")
+        assert "[ERR]" in result
+        assert "Invalid plan" in result
+
+    @pytest.mark.asyncio
+    async def test_subscribe_no_signals(self, tmp_path):
+        store = SignalStore(tmp_path)
+        result = await handle_subscribe(store, "buyer", "@trader1")
+        assert "[ERR]" in result
+        assert "no signals" in result
+
+    @pytest.mark.asyncio
+    async def test_subscribe_success(self, store_with_signals):
+        result = await handle_subscribe(store_with_signals, "buyer", "@trader1 daily")
+        assert "[SUBSCRIBE]" in result
+        assert "$0.50" in result
+        assert "70% trader" in result
+
+    @pytest.mark.asyncio
+    async def test_subscribe_default_plan(self, store_with_signals):
+        result = await handle_subscribe(store_with_signals, "buyer", "@trader1")
+        assert "[SUBSCRIBE]" in result
+        assert "daily" in result
+
+
+class TestHandleUnsubscribe:
+    @pytest.mark.asyncio
+    async def test_unsubscribe_no_args(self, tmp_path):
+        store = SignalStore(tmp_path)
+        result = await handle_unsubscribe(store, "buyer", "")
+        assert "[ERR]" in result
+
+    @pytest.mark.asyncio
+    async def test_unsubscribe_no_active(self, tmp_path):
+        store = SignalStore(tmp_path)
+        result = await handle_unsubscribe(store, "buyer", "@trader1")
+        assert "[ERR]" in result
+        assert "No active" in result
+
+    @pytest.mark.asyncio
+    async def test_unsubscribe_with_active(self, tmp_path):
+        store = SignalStore(tmp_path)
+        sub_store = SubscriptionStore(tmp_path)
+        sub_store.add_subscription("buyer", "trader1", "daily")
+        store._sub_store = sub_store
+        result = await handle_unsubscribe(store, "buyer", "@trader1")
+        assert "[OK]" in result
+        assert "Unsubscribed" in result
+
+
+class TestHandleSubscribers:
+    @pytest.mark.asyncio
+    async def test_no_sub_store(self, tmp_path):
+        store = SignalStore(tmp_path)
+        result = await handle_subscribers(store, "trader1", "")
+        assert "0 subscribers" in result
+
+    @pytest.mark.asyncio
+    async def test_with_subscribers(self, tmp_path):
+        store = SignalStore(tmp_path)
+        sub_store = SubscriptionStore(tmp_path)
+        sub_store.add_subscription("buyer1", "trader1", "daily")
+        sub_store.add_subscription("buyer2", "trader1", "weekly")
+        store._sub_store = sub_store
+        result = await handle_subscribers(store, "trader1", "")
+        assert "2 subscribers" in result or "2 active" in result

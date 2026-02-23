@@ -1,7 +1,7 @@
 # MASTER PLAN: Ecosistema Unificado — Karma Kadabra + Execution Market + MeshRelay + Facilitator x402
 
 > La convergencia de todas las piezas: extraccion de conocimiento, identidad agentiva, ejecucion de tareas, pagos gasless multichain, y coordinacion via IRC monetizado.
-> Created: 2026-02-21 | Status: PENDING APPROVAL
+> Created: 2026-02-21 | Updated: 2026-02-22 | Status: IN PROGRESS (Phase 1 DONE, Phase 2 DONE, Phase 3 DONE)
 
 ---
 
@@ -586,15 +586,15 @@ Phase 1 + Phase 2 ──> Phase 6 (Escala multichain + moderacion)
 
 ## Summary
 
-| Phase | Nombre | Tasks | Prioridad | Depende de |
-|-------|--------|-------|-----------|------------|
-| 1 | Turnstile Integration — Canales Premium x402 | 5 | P0 | None |
-| 2 | IRC-to-Execution Market Bridge | 5 | P0 | Phase 1 (parcial) |
-| 3 | Abra Cadabra Alpha + Trading + Copy Trading | 6 | P1 (Task 3.0-3.0.1 = P0) | Phase 1, Phase 2 |
-| 4 | Perfil Agentivo y Economia de Skills | 5 | P1 | Phase 2 |
-| 5 | DCC Monetizado y Transferencia de Archivos | 3 | P1 | Phase 4 |
-| 6 | Multichain, Moderacion, y Escala | 5 | P2 | Phase 1, Phase 2 |
-| **TOTAL** | | **29** | | |
+| Phase | Nombre | Tasks | Prioridad | Status |
+|-------|--------|-------|-----------|--------|
+| 1 | Turnstile Integration — Canales Premium x402 | 5 | P0 | **DONE** (5/5) |
+| 2 | IRC-to-Execution Market Bridge | 5 | P0 | **DONE** (3/5, 2.3+2.5 deferred) |
+| 3 | Abra Cadabra Alpha + Trading + Copy Trading | 6 | P1 | **DONE** (5/6 — 3.0+3.1+3.2+3.3+3.4 DONE, 3.0.1 deferred: live E2E) |
+| 4 | Perfil Agentivo y Economia de Skills | 5 | P1 | PENDING |
+| 5 | DCC Monetizado y Transferencia de Archivos | 3 | P1 | PENDING |
+| 6 | Multichain, Moderacion, y Escala | 5 | P2 | PENDING |
+| **TOTAL** | | **29** | | **13 DONE / 16 pending** |
 
 ---
 
@@ -627,7 +627,7 @@ Phase 1 + Phase 2 ──> Phase 6 (Escala multichain + moderacion)
 - **Context2Match**: Pendiente detalles del usuario. Task 6.3 es placeholder
 - **MeshRelay treasury**: `0xe4dc963c56979E0260fc146b87eE24F18220e545`
 - **Acuerdo IRC (2026-02-21)**: MeshRelay creo canales `#kk-alpha`, `#kk-consultas`, `#kk-skills` (DONE)
-- **Pendiente**: Crear canal `#abra-alpha` ($1.00 USDC / 1h) — canal personal de 0xultravioleta
+- **DONE (2026-02-22)**: Canal `#abra-alpha` LIVE — $1.00 USDC/hora, Base, 50 slots, 60 min, +imnst, zeroxultravioleta+LorDHelLRiSer exempt (+I), Turnstile oper adentro. Commit MeshRelay: `4f2ce2e`
 - **MeshRelay SDK oficial**: `turnstile/sdk/TurnstileClient.js` (JS), `scripts/kk/lib/turnstile_client.py` (Python)
 - **MeshRelay MCP**: 9 tools read-only en `https://api.meshrelay.xyz/mcp`
 - **Swagger UI**: `https://api.meshrelay.xyz/`
