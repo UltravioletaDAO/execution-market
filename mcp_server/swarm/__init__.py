@@ -10,14 +10,14 @@ Components:
 
 Usage:
     >>> from mcp_server.swarm import SwarmOrchestrator, LifecycleManager, ReputationBridge
-    >>> 
+    >>>
     >>> bridge = ReputationBridge(network="base")
     >>> lifecycle = LifecycleManager(max_agents=48)
     >>> orchestrator = SwarmOrchestrator(lifecycle=lifecycle, bridge=bridge)
-    >>> 
+    >>>
     >>> # Register agents
     >>> orchestrator.register_agent("agent_aurora", wallet="0x...", personality="explorer")
-    >>> 
+    >>>
     >>> # Distribute a task to the best-matched agent
     >>> assignment = await orchestrator.assign_task(task_id="task_abc")
 """

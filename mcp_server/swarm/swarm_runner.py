@@ -85,7 +85,6 @@ KK_ROSTER = [
         "budget": {"max_tokens_per_day": 200_000, "max_usd_spend_per_day": 0.25},
         "tier": "system",
     },
-
     # ── Core Agents (primary workers, moderate budget) ──
     {
         "agent_id": "aurora",
@@ -141,7 +140,6 @@ KK_ROSTER = [
         "budget": {"max_tokens_per_day": 400_000, "max_usd_spend_per_day": 0.50},
         "tier": "core",
     },
-
     # ── User Agents (specialized, lower budget) ──
     {
         "agent_id": "glitch",
@@ -294,6 +292,7 @@ KK_ROSTER = [
 # Runner
 # ══════════════════════════════════════════════
 
+
 class SwarmRunner:
     """
     CLI runner for the KarmaKadabra swarm.
@@ -372,12 +371,18 @@ class SwarmRunner:
                     # Build budget
                     budget_spec = spec.get("budget", {})
                     budget = ResourceBudget(
-                        max_tokens_per_day=budget_spec.get("max_tokens_per_day", 200_000),
-                        max_usd_spend_per_day=budget_spec.get("max_usd_spend_per_day", 0.25),
+                        max_tokens_per_day=budget_spec.get(
+                            "max_tokens_per_day", 200_000
+                        ),
+                        max_usd_spend_per_day=budget_spec.get(
+                            "max_usd_spend_per_day", 0.25
+                        ),
                     )
 
                     # Wallet: use spec wallet or generate deterministic one
-                    wallet = spec.get("wallet", f"0x{agent_id}_{hash(agent_id) % 10**8:08x}")
+                    wallet = spec.get(
+                        "wallet", f"0x{agent_id}_{hash(agent_id) % 10**8:08x}"
+                    )
 
                     # Register in orchestrator (which registers in lifecycle too)
                     self.orchestrator.register_agent(
@@ -534,7 +539,7 @@ class SwarmRunner:
             f"║  Tasks Assigned: {metrics['tasks']['total_assigned']:>6}             ║",
             f"║  Tasks Done:     {metrics['tasks']['total_completed']:>6}             ║",
             f"║  Active Tasks:   {metrics['tasks']['active']:>6}             ║",
-            f"║  Success Rate:   {metrics['tasks']['success_rate']*100:>5.1f}%            ║",
+            f"║  Success Rate:   {metrics['tasks']['success_rate'] * 100:>5.1f}%            ║",
             "╠══════════════════════════════════════╣",
             f"║  💰 Earned: ${metrics['economics']['total_earned_usd']:>8.2f}            ║",
             f"║  💸 Spent:  ${metrics['economics']['total_spent_usd']:>8.2f}            ║",
@@ -551,7 +556,7 @@ class SwarmRunner:
             f"   Total: {health['total_agents']} | "
             f"Active: {health['active']} | "
             f"Healthy: {health['healthy']} | "
-            f"Budget: {health['budget_remaining_pct']*100:.0f}% remaining",
+            f"Budget: {health['budget_remaining_pct'] * 100:.0f}% remaining",
             "",
             "   Agent          Status     Healthy  Budget%  Tasks",
             "   " + "─" * 55,
@@ -572,7 +577,7 @@ class SwarmRunner:
                 f"   {status_emoji} {agent['agent_id']:<12s} "
                 f"{agent['status']:<10s} "
                 f"{'yes' if agent['healthy'] else 'no':>7s} "
-                f"{agent['budget_pct']*100:>6.1f}% "
+                f"{agent['budget_pct'] * 100:>6.1f}% "
                 f"{agent['tasks_today']:>5d}"
             )
 
@@ -624,7 +629,7 @@ class SwarmRunner:
             "",
             f"   Total Tasks Assigned:  {summary['total_assigned']}",
             f"   Total Tasks Completed: {summary['total_completed']}",
-            f"   Completion Rate:       {summary['completion_rate']*100:.1f}%",
+            f"   Completion Rate:       {summary['completion_rate'] * 100:.1f}%",
             f"   Avg Earnings/Task:     ${summary['avg_earnings_per_task']:.4f}",
             "",
             f"   Total Earned: ${summary['total_earned_usd']:.2f}",
@@ -633,14 +638,16 @@ class SwarmRunner:
             "",
             "   Fleet: "
             f"{summary['fleet_health']['active']}/{summary['fleet_health']['total']} active, "
-            f"{summary['fleet_health']['budget_remaining_pct']*100:.0f}% budget remaining",
+            f"{summary['fleet_health']['budget_remaining_pct'] * 100:.0f}% budget remaining",
         ]
 
         if summary["top_earners"]:
             lines.append("")
             lines.append("   🏆 Top Earners:")
             for i, earner in enumerate(summary["top_earners"], 1):
-                lines.append(f"      {i}. {earner['agent_id']}: ${earner['earned_usd']:.2f}")
+                lines.append(
+                    f"      {i}. {earner['agent_id']}: ${earner['earned_usd']:.2f}"
+                )
 
         return "\n".join(lines)
 
@@ -732,6 +739,7 @@ class SwarmRunner:
 # CLI
 # ══════════════════════════════════════════════
 
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="KarmaKadabra Swarm Runner — Coordinate AI Agent Swarms",
@@ -753,20 +761,36 @@ Examples:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--status", action="store_true", help="Show swarm status")
     group.add_argument("--health", action="store_true", help="Show agent health")
-    group.add_argument("--bootstrap", action="store_true", help="Bootstrap agent roster")
-    group.add_argument("--cycle", action="store_true", help="Run one coordination cycle")
+    group.add_argument(
+        "--bootstrap", action="store_true", help="Bootstrap agent roster"
+    )
+    group.add_argument(
+        "--cycle", action="store_true", help="Run one coordination cycle"
+    )
     group.add_argument("--daemon", action="store_true", help="Run continuous daemon")
     group.add_argument("--economics", action="store_true", help="Show economic summary")
-    group.add_argument("--leaderboard", action="store_true", help="Show reputation leaderboard")
+    group.add_argument(
+        "--leaderboard", action="store_true", help="Show reputation leaderboard"
+    )
     group.add_argument("--export", metavar="FILE", help="Export state to JSON file")
 
     # Options
-    parser.add_argument("--dry-run", action="store_true", help="Don't make real API calls")
-    parser.add_argument("--interval", type=int, default=60, help="Daemon cycle interval (seconds)")
-    parser.add_argument("--max-cycles", type=int, default=0, help="Max daemon cycles (0=unlimited)")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Don't make real API calls"
+    )
+    parser.add_argument(
+        "--interval", type=int, default=60, help="Daemon cycle interval (seconds)"
+    )
+    parser.add_argument(
+        "--max-cycles", type=int, default=0, help="Max daemon cycles (0=unlimited)"
+    )
     parser.add_argument("--state-dir", type=str, help="State directory path")
-    parser.add_argument("--tiers", nargs="+", choices=["system", "core", "user"],
-                       help="Which agent tiers to bootstrap")
+    parser.add_argument(
+        "--tiers",
+        nargs="+",
+        choices=["system", "core", "user"],
+        help="Which agent tiers to bootstrap",
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
 
     return parser.parse_args()
