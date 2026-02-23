@@ -43,19 +43,17 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional, List
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
-    AgentState,
-    AgentStatus,
     ResourceBudget,
 )
-from mcp_server.swarm.reputation_bridge import ReputationBridge, BridgedReputation
-from mcp_server.swarm.swarm_orchestrator import SwarmOrchestrator, AssignmentStrategy
+from mcp_server.swarm.reputation_bridge import ReputationBridge
+from mcp_server.swarm.swarm_orchestrator import SwarmOrchestrator
 
 
 logger = logging.getLogger("swarm_runner")

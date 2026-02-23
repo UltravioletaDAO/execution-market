@@ -25,7 +25,6 @@ Architecture:
     └───────────────────────────────────┘
 """
 
-import json
 import logging
 import time
 from dataclasses import dataclass, field, asdict
@@ -38,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 # Import siblings
-from .lifecycle_manager import LifecycleManager, AgentState, AgentStatus
+from .lifecycle_manager import LifecycleManager, AgentStatus
 from .reputation_bridge import ReputationBridge, BridgedReputation
 
 
@@ -91,18 +90,19 @@ TASK_CATEGORY_SKILLS = {
 @dataclass
 class AgentProfile:
     """Agent capabilities and match readiness."""
+
     agent_id: str
     wallet: str
     personality: str
     skills: List[str] = field(default_factory=list)
     specializations: List[str] = field(default_factory=list)
     reputation: Optional[BridgedReputation] = None
-    
+
     # Match scoring
     availability_score: float = 1.0  # 0-1: how available (active + within budget)
-    reputation_score: float = 50.0   # From reputation bridge
-    skill_match_score: float = 0.0   # How well skills match a task
-    recency_bonus: float = 0.0       # Bonus for recent good completions
+    reputation_score: float = 50.0  # From reputation bridge
+    skill_match_score: float = 0.0  # How well skills match a task
+    recency_bonus: float = 0.0  # Bonus for recent good completions
 
     @property
     def composite_match_score(self) -> float:
@@ -118,6 +118,7 @@ class AgentProfile:
 @dataclass
 class TaskAssignment:
     """Result of orchestrator's task→agent matching."""
+
     task_id: str
     assigned_agent: Optional[str] = None
     score: float = 0.0
@@ -137,11 +138,12 @@ class TaskAssignment:
 
 class AssignmentStrategy(str, Enum):
     """How tasks get assigned to agents."""
-    BEST_MATCH = "best_match"       # Highest skill match score
-    ROUND_ROBIN = "round_robin"     # Distribute evenly
-    REPUTATION = "reputation"       # Highest reputation first
-    CHEAPEST = "cheapest"           # Lowest model cost agent
-    RANDOM = "random"               # Random from eligible
+
+    BEST_MATCH = "best_match"  # Highest skill match score
+    ROUND_ROBIN = "round_robin"  # Distribute evenly
+    REPUTATION = "reputation"  # Highest reputation first
+    CHEAPEST = "cheapest"  # Lowest model cost agent
+    RANDOM = "random"  # Random from eligible
 
 
 class SwarmOrchestrator:
@@ -182,7 +184,7 @@ class SwarmOrchestrator:
 
         # Task tracking
         self.active_tasks: Dict[str, str] = {}  # task_id → agent_id
-        self.task_history: List[dict] = []       # completed assignments
+        self.task_history: List[dict] = []  # completed assignments
 
         # Economics
         self.total_tasks_assigned: int = 0
@@ -221,7 +223,7 @@ class SwarmOrchestrator:
             AgentProfile
         """
         # Register in lifecycle manager
-        state = self.lifecycle.register_agent(
+        self.lifecycle.register_agent(
             agent_id=agent_id,
             wallet=wallet,
             personality=personality,
@@ -360,6 +362,7 @@ class SwarmOrchestrator:
             winner = scored_agents[0]
         else:
             import random
+
             winner = random.choice(scored_agents)
 
         winning_profile, winning_score, winning_reasons = winner
@@ -372,11 +375,13 @@ class SwarmOrchestrator:
 
         # Record alternatives (top 3 excluding winner)
         for profile, score, reasons in scored_agents[1:4]:
-            assignment.alternatives.append({
-                "agent_id": profile.agent_id,
-                "score": round(score * 100, 1),
-                "reasons": reasons[:2],
-            })
+            assignment.alternatives.append(
+                {
+                    "agent_id": profile.agent_id,
+                    "score": round(score * 100, 1),
+                    "reasons": reasons[:2],
+                }
+            )
 
         # Claim the task
         self._claims[task_id] = winning_profile.agent_id
@@ -431,14 +436,16 @@ class SwarmOrchestrator:
         self.total_usd_earned += earnings_usd
 
         # Record in history
-        self.task_history.append({
-            "task_id": task_id,
-            "agent_id": agent_id,
-            "success": success,
-            "earnings_usd": earnings_usd,
-            "rating": rating,
-            "completed_at": datetime.now(timezone.utc).isoformat(),
-        })
+        self.task_history.append(
+            {
+                "task_id": task_id,
+                "agent_id": agent_id,
+                "success": success,
+                "earnings_usd": earnings_usd,
+                "rating": rating,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
         # Sync reputation if rating provided
         if rating is not None and agent:
@@ -448,7 +455,8 @@ class SwarmOrchestrator:
                     wallet=profile.wallet,
                     em_reputation={
                         "bayesian_score": rating,
-                        "total_tasks": agent.total_tasks_completed + agent.total_tasks_failed,
+                        "total_tasks": agent.total_tasks_completed
+                        + agent.total_tasks_failed,
                     },
                     task_id=task_id,
                     reason="task_completed" if success else "task_failed",
@@ -486,18 +494,16 @@ class SwarmOrchestrator:
                 "budget_status": {...}
             }
         """
-        completion_rate = (
-            self.total_tasks_completed / max(1, self.total_tasks_assigned)
-        )
-        avg_earnings = (
-            self.total_usd_earned / max(1, self.total_tasks_completed)
-        )
+        completion_rate = self.total_tasks_completed / max(1, self.total_tasks_assigned)
+        avg_earnings = self.total_usd_earned / max(1, self.total_tasks_completed)
 
         # Top earners
         agent_earnings: Dict[str, float] = {}
         for entry in self.task_history:
             aid = entry.get("agent_id", "")
-            agent_earnings[aid] = agent_earnings.get(aid, 0) + entry.get("earnings_usd", 0)
+            agent_earnings[aid] = agent_earnings.get(aid, 0) + entry.get(
+                "earnings_usd", 0
+            )
 
         top_earners = sorted(
             agent_earnings.items(),
@@ -539,8 +545,10 @@ class SwarmOrchestrator:
 
         # Task rate (last hour)
         recent_completions = [
-            e for e in self.task_history
-            if datetime.fromisoformat(e["completed_at"]).replace(tzinfo=timezone.utc) > now - timedelta(hours=1)
+            e
+            for e in self.task_history
+            if datetime.fromisoformat(e["completed_at"]).replace(tzinfo=timezone.utc)
+            > now - timedelta(hours=1)
         ]
         tasks_per_hour = len(recent_completions)
 
@@ -603,11 +611,14 @@ class SwarmOrchestrator:
                 "preferred": [],
                 "agent_capable": True,
             }
-        return TASK_CATEGORY_SKILLS.get(category, {
-            "required": [],
-            "preferred": [],
-            "agent_capable": True,
-        })
+        return TASK_CATEGORY_SKILLS.get(
+            category,
+            {
+                "required": [],
+                "preferred": [],
+                "agent_capable": True,
+            },
+        )
 
     async def _get_eligible_agents(
         self,
@@ -631,13 +642,15 @@ class SwarmOrchestrator:
                 continue
 
             # Must have budget for the bounty
-            if state.usage.usd_spent_today + bounty_usd > state.budget.max_usd_spend_per_day:
+            if (
+                state.usage.usd_spent_today + bounty_usd
+                > state.budget.max_usd_spend_per_day
+            ):
                 continue
 
             # Must not be at max concurrent tasks
             current_tasks = sum(
-                1 for tid, aid in self.active_tasks.items()
-                if aid == agent_id
+                1 for tid, aid in self.active_tasks.items() if aid == agent_id
             )
             if current_tasks >= self.max_concurrent_tasks:
                 continue
@@ -680,7 +693,9 @@ class SwarmOrchestrator:
             if required_matches == len(required):
                 reasons.append(f"All {len(required)} required skills match")
             elif required_matches > 0:
-                reasons.append(f"{required_matches}/{len(required)} required skills match")
+                reasons.append(
+                    f"{required_matches}/{len(required)} required skills match"
+                )
         else:
             skill_score = 0.5  # No requirements = neutral
             reasons.append("No specific skill requirements")
@@ -714,7 +729,8 @@ class SwarmOrchestrator:
         recency = 0.0
         recent = self.task_history[-50:]
         same_category_completions = [
-            e for e in recent
+            e
+            for e in recent
             if e.get("agent_id") == profile.agent_id and e.get("success", False)
         ]
         if same_category_completions:
@@ -723,10 +739,7 @@ class SwarmOrchestrator:
 
         # Composite
         composite = (
-            skill_score * 0.35
-            + rep_score * 0.30
-            + avail_score * 0.20
-            + recency * 0.15
+            skill_score * 0.35 + rep_score * 0.30 + avail_score * 0.20 + recency * 0.15
         )
 
         return composite, reasons
@@ -742,9 +755,7 @@ class SwarmOrchestrator:
             aid = entry.get("agent_id", "")
             task_counts[aid] = task_counts.get(aid, 0) + 1
 
-        scored_agents.sort(
-            key=lambda x: task_counts.get(x[0].agent_id, 0)
-        )
+        scored_agents.sort(key=lambda x: task_counts.get(x[0].agent_id, 0))
         return scored_agents[0]
 
     def _model_cost(self, model: str) -> float:

@@ -14,7 +14,6 @@ Tests cover:
 
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, patch, MagicMock
 
 from mcp_server.swarm.describenet_reader import (
     DescribeNetReader,
@@ -30,6 +29,7 @@ from mcp_server.swarm.describenet_reader import (
 # ══════════════════════════════════════════════
 # DescribeNetReputation Model
 # ══════════════════════════════════════════════
+
 
 class TestDescribeNetReputation:
     """Tests for the reputation data model."""
@@ -145,6 +145,7 @@ class TestDescribeNetReputation:
 # Evidence Weight Computation
 # ══════════════════════════════════════════════
 
+
 class TestEvidenceWeight:
     """Tests for evidence weight from seal data."""
 
@@ -225,6 +226,7 @@ class TestEvidenceWeight:
 # Bridge Format Conversion
 # ══════════════════════════════════════════════
 
+
 class TestBridgeConversion:
     """Tests for converting to reputation bridge format."""
 
@@ -246,9 +248,12 @@ class TestBridgeConversion:
             overall_score=80.0,
             overall_active_seals=30,
             time_weighted_score=78.0,
-            h2a_score=85.0, h2a_count=15,
-            a2a_score=75.0, a2a_count=10,
-            a2h_score=70.0, a2h_count=5,
+            h2a_score=85.0,
+            h2a_count=15,
+            a2a_score=75.0,
+            a2a_count=10,
+            a2h_score=70.0,
+            a2h_count=5,
         )
         bridge = self.reader.to_bridged_format(rep)
 
@@ -280,8 +285,10 @@ class TestBridgeConversion:
         """Bridge format includes quadrant breakdown."""
         rep = DescribeNetReputation(
             wallet="0x1234",
-            h2h_score=60.0, h2h_count=5,
-            h2a_score=80.0, h2a_count=10,
+            h2h_score=60.0,
+            h2h_count=5,
+            h2a_score=80.0,
+            h2a_count=10,
         )
         bridge = self.reader.to_bridged_format(rep)
         assert "quadrant_breakdown" in bridge
@@ -304,7 +311,8 @@ class TestBridgeConversion:
         """Worker avg is 0 when no H2A or A2A seals."""
         rep = DescribeNetReputation(
             wallet="0xhuman",
-            h2h_score=75.0, h2h_count=20,
+            h2h_score=75.0,
+            h2h_count=20,
         )
         bridge = self.reader.to_bridged_format(rep)
         assert bridge["as_worker_avg"] == 0.0
@@ -313,6 +321,7 @@ class TestBridgeConversion:
 # ══════════════════════════════════════════════
 # Reader Initialization & Cache
 # ══════════════════════════════════════════════
+
 
 class TestReaderInit:
     """Tests for reader initialization and configuration."""
@@ -378,6 +387,7 @@ class TestReaderInit:
 # RPC Encoding
 # ══════════════════════════════════════════════
 
+
 class TestRPCEncoding:
     """Tests for ABI encoding of RPC calls."""
 
@@ -409,6 +419,7 @@ class TestRPCEncoding:
 # ══════════════════════════════════════════════
 # Constants & Configuration
 # ══════════════════════════════════════════════
+
 
 class TestConstants:
     """Tests for module constants and configuration."""
@@ -445,6 +456,7 @@ class TestConstants:
 # Integration: read_describenet_for_bridge()
 # ══════════════════════════════════════════════
 
+
 class TestBridgeIntegration:
     """Tests for the convenience bridge integration function."""
 
@@ -472,8 +484,10 @@ class TestBridgeIntegration:
             overall_score=85.0,
             overall_active_seals=20,
             time_weighted_score=82.0,
-            h2a_score=88.0, h2a_count=12,
-            a2a_score=80.0, a2a_count=8,
+            h2a_score=88.0,
+            h2a_count=12,
+            a2a_score=80.0,
+            a2a_count=8,
             read_at=datetime.now(timezone.utc),
         )
         reader._cache["0xrich"] = mock_rep
@@ -489,6 +503,7 @@ class TestBridgeIntegration:
 # Quadrant Analysis
 # ══════════════════════════════════════════════
 
+
 class TestQuadrantAnalysis:
     """Tests for quadrant-specific reputation analysis."""
 
@@ -500,8 +515,10 @@ class TestQuadrantAnalysis:
         # AI agent: rated by humans (H2A) and other agents (A2A)
         ai_agent = DescribeNetReputation(
             wallet="0xbot",
-            h2a_score=90.0, h2a_count=50,
-            a2a_score=85.0, a2a_count=30,
+            h2a_score=90.0,
+            h2a_count=50,
+            a2a_score=85.0,
+            a2a_count=30,
             h2h_count=0,
             a2h_count=5,
         )
@@ -510,8 +527,10 @@ class TestQuadrantAnalysis:
         # Human worker: rated by humans (H2H) and agents (A2H)
         human = DescribeNetReputation(
             wallet="0xhuman",
-            h2h_score=75.0, h2h_count=40,
-            a2h_score=80.0, a2h_count=20,
+            h2h_score=75.0,
+            h2h_count=40,
+            a2h_score=80.0,
+            a2h_count=20,
             h2a_count=0,
             a2a_count=0,
         )
@@ -521,8 +540,10 @@ class TestQuadrantAnalysis:
         """Worker score weights H2A and A2A by count."""
         rep = DescribeNetReputation(
             wallet="0xworker",
-            h2a_score=90.0, h2a_count=30,  # 90 * 30 = 2700
-            a2a_score=70.0, a2a_count=10,  # 70 * 10 = 700
+            h2a_score=90.0,
+            h2a_count=30,  # 90 * 30 = 2700
+            a2a_score=70.0,
+            a2a_count=10,  # 70 * 10 = 700
         )
         bridge = self.reader.to_bridged_format(rep)
         # Expected: (2700 + 700) / 40 = 85.0
@@ -532,7 +553,8 @@ class TestQuadrantAnalysis:
         """Requester reputation comes from A2H quadrant."""
         rep = DescribeNetReputation(
             wallet="0xrequester",
-            a2h_score=92.0, a2h_count=15,
+            a2h_score=92.0,
+            a2h_count=15,
         )
         bridge = self.reader.to_bridged_format(rep)
         assert bridge["as_requester_avg"] == 92.0
@@ -541,8 +563,10 @@ class TestQuadrantAnalysis:
         """Wallet can be both worker and requester."""
         rep = DescribeNetReputation(
             wallet="0xboth",
-            h2a_score=85.0, h2a_count=20,  # Worker rating
-            a2h_score=78.0, a2h_count=10,  # Requester rating
+            h2a_score=85.0,
+            h2a_count=20,  # Worker rating
+            a2h_score=78.0,
+            a2h_count=10,  # Requester rating
         )
         bridge = self.reader.to_bridged_format(rep)
         assert bridge["as_worker_avg"] == 85.0

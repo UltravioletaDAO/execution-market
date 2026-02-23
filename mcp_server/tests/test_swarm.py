@@ -8,7 +8,6 @@ Tests cover:
 """
 
 import pytest
-import time
 from datetime import datetime, timezone, timedelta
 
 from mcp_server.swarm.reputation_bridge import (
@@ -21,12 +20,9 @@ from mcp_server.swarm.lifecycle_manager import (
     AgentState,
     AgentStatus,
     ResourceBudget,
-    ResourceUsage,
 )
 from mcp_server.swarm.swarm_orchestrator import (
     SwarmOrchestrator,
-    AgentProfile,
-    TaskAssignment,
     AssignmentStrategy,
 )
 
@@ -34,6 +30,7 @@ from mcp_server.swarm.swarm_orchestrator import (
 # ══════════════════════════════════════════════
 # ReputationBridge Tests
 # ══════════════════════════════════════════════
+
 
 class TestReputationBridge:
     """Tests for the reputation bridge."""
@@ -216,6 +213,7 @@ class TestReputationBridge:
 # LifecycleManager Tests
 # ══════════════════════════════════════════════
 
+
 class TestLifecycleManager:
     """Tests for the agent lifecycle manager."""
 
@@ -325,7 +323,8 @@ class TestLifecycleManager:
     def test_heartbeat_budget_exceeded(self):
         """Agent exceeding budget gets 'sleep'."""
         self.lm.register_agent(
-            "aurora", "0x1234",
+            "aurora",
+            "0x1234",
             budget=ResourceBudget(max_tokens_per_day=1000),
         )
         self.lm.boot_agent("aurora")
@@ -373,10 +372,12 @@ class TestLifecycleManager:
         self.lm.boot_agent("aurora")
         self.lm.activate_agent("aurora")
         self.lm.error_agent("aurora", "test error")
-        
+
         # Set error time to 6 minutes ago
-        self.lm.agents["aurora"].status_since = datetime.now(timezone.utc) - timedelta(minutes=6)
-        
+        self.lm.agents["aurora"].status_since = datetime.now(timezone.utc) - timedelta(
+            minutes=6
+        )
+
         actions = self.lm.auto_manage()
         assert "aurora" in actions["recovered"]
 
@@ -384,6 +385,7 @@ class TestLifecycleManager:
 # ══════════════════════════════════════════════
 # SwarmOrchestrator Tests
 # ══════════════════════════════════════════════
+
 
 class TestSwarmOrchestrator:
     """Tests for the swarm orchestrator."""
@@ -500,7 +502,9 @@ class TestSwarmOrchestrator:
 
         await self.orch.assign_task(task_id="t1", category="data_collection")
         await self.orch.assign_task(task_id="t2", category="data_collection")
-        assignment3 = await self.orch.assign_task(task_id="t3", category="data_collection")
+        assignment3 = await self.orch.assign_task(
+            task_id="t3", category="data_collection"
+        )
 
         # Third task should fail (aurora at capacity)
         assert assignment3.assigned_agent is None
@@ -525,9 +529,11 @@ class TestSwarmOrchestrator:
 
     def test_model_cost(self):
         """Model cost returns correct values."""
-        assert self.orch._model_cost("anthropic/claude-haiku-4-5") < \
-               self.orch._model_cost("anthropic/claude-sonnet-4-20250514") < \
-               self.orch._model_cost("anthropic/claude-opus-4-6")
+        assert (
+            self.orch._model_cost("anthropic/claude-haiku-4-5")
+            < self.orch._model_cost("anthropic/claude-sonnet-4-20250514")
+            < self.orch._model_cost("anthropic/claude-opus-4-6")
+        )
 
     @pytest.mark.asyncio
     async def test_round_robin_strategy(self):
@@ -537,8 +543,16 @@ class TestSwarmOrchestrator:
 
         # Manually add history favoring aurora
         self.orch.task_history = [
-            {"agent_id": "aurora", "success": True, "completed_at": datetime.now(timezone.utc).isoformat()},
-            {"agent_id": "aurora", "success": True, "completed_at": datetime.now(timezone.utc).isoformat()},
+            {
+                "agent_id": "aurora",
+                "success": True,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            },
+            {
+                "agent_id": "aurora",
+                "success": True,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            },
         ]
 
         assignment = await self.orch.assign_task(
@@ -562,6 +576,7 @@ class TestSwarmOrchestrator:
 # ══════════════════════════════════════════════
 # Integration Tests
 # ══════════════════════════════════════════════
+
 
 class TestSwarmIntegration:
     """Integration tests across all swarm components."""
