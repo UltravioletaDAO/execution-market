@@ -120,3 +120,6 @@ scripts/kk/report-sweep-*.json
 # Misc
 .unused/
 .internal/
+
+# KK agent workspace data (generated)
+scripts/kk/data/workspaces/
