@@ -3,7 +3,7 @@
 // and file inputs for non-photo types (video, document, etc.)
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Task, EvidenceType, Executor } from '../types/database'
+import type { Task, EvidenceType, TaskCategory, Executor } from '../types/database'
 import {
   uploadEvidenceFile,
   collectForensicMetadata,
@@ -49,12 +49,23 @@ interface EvidenceFile {
   verification?: VerificationResult
 }
 
-// Types that benefit from camera capture + GPS
-const CAMERA_TYPES: EvidenceType[] = ['photo', 'photo_geo']
+// Task categories where camera + GPS are the primary evidence mode
+const PHYSICAL_TASK_CATEGORIES: TaskCategory[] = [
+  'physical_presence',
+  'simple_action',
+]
 
-const isCameraType = (type: EvidenceType) => CAMERA_TYPES.includes(type)
+// Determine if photo types should use camera (physical tasks) or file upload (digital tasks)
+function isCameraType(type: EvidenceType, category?: TaskCategory): boolean {
+  if (type === 'photo_geo') return true // Always camera + GPS
+  if (type === 'photo') {
+    return category ? PHYSICAL_TASK_CATEGORIES.includes(category) : false
+  }
+  return false
+}
 
 const EVIDENCE_TYPE_CONFIG: Record<string, { accept: string; icon: string }> = {
+  photo: { accept: 'image/*', icon: '📷' },
   video: { accept: 'video/*', icon: '🎥' },
   document: { accept: '.pdf,.doc,.docx', icon: '📄' },
   receipt: { accept: 'image/*,.pdf', icon: '🧾' },
@@ -64,6 +75,27 @@ const EVIDENCE_TYPE_CONFIG: Record<string, { accept: string; icon: string }> = {
   screenshot: { accept: 'image/*', icon: '🖥️' },
   text_response: { accept: '', icon: '📝' },
   measurement: { accept: '', icon: '📏' },
+  json_response: { accept: '', icon: '{}' },
+  api_response: { accept: '', icon: '🔌' },
+  code_output: { accept: '', icon: '💻' },
+  file_artifact: { accept: '*/*', icon: '📦' },
+  url_reference: { accept: '', icon: '🔗' },
+  structured_data: { accept: '.json,.csv,.xml', icon: '📊' },
+  text_report: { accept: '', icon: '📄' },
+}
+
+// Category-specific guidance messages (Spanish)
+const CATEGORY_GUIDANCE: Partial<Record<TaskCategory, string>> = {
+  physical_presence: 'Esta tarea requiere presencia fisica. Usa la camara y GPS para verificar tu ubicacion.',
+  simple_action: 'Documenta la accion con fotos o video. GPS ayuda a verificar la entrega.',
+  knowledge_access: 'Sube capturas de pantalla, documentos o texto desde tu computador.',
+  digital_physical: 'Puedes subir fotos, archivos o capturas de pantalla desde cualquier dispositivo.',
+  research: 'Envia tu investigacion como texto, documentos o enlaces.',
+  content_generation: 'Sube el contenido generado como archivo, texto o enlace.',
+  code_execution: 'Envia el output del codigo, logs o archivos resultantes.',
+  data_processing: 'Sube los datos procesados como archivo o respuesta estructurada.',
+  api_integration: 'Envia capturas, logs de API o respuestas JSON.',
+  human_authority: 'Sube documentos firmados, notarizados o certificados.',
 }
 
 const isImageType = (fileType: string) => fileType.startsWith('image/')
@@ -90,11 +122,12 @@ export function SubmissionForm({
   const allOptional = task.evidence_schema.optional || []
   const [forensicMetadata, setForensicMetadata] = useState<EvidenceMetadata | null>(null)
 
-  // Categorize evidence types
-  const cameraRequired = allRequired.filter(isCameraType)
-  const cameraOptional = allOptional.filter(isCameraType)
-  const fileRequired = allRequired.filter((t) => !isCameraType(t) && !isTextType(t))
-  const fileOptional = allOptional.filter((t) => !isCameraType(t) && !isTextType(t))
+  // Categorize evidence types based on task category
+  const category = task.category as TaskCategory
+  const cameraRequired = allRequired.filter((t) => isCameraType(t, category))
+  const cameraOptional = allOptional.filter((t) => isCameraType(t, category))
+  const fileRequired = allRequired.filter((t) => !isCameraType(t, category) && !isTextType(t))
+  const fileOptional = allOptional.filter((t) => !isCameraType(t, category) && !isTextType(t))
   const textRequired = allRequired.filter(isTextType)
   const textOptional = allOptional.filter(isTextType)
 
@@ -250,7 +283,7 @@ export function SubmissionForm({
       const cameraEvidenceTypes = new Set(cameraEvidence.map((e) => e.evidenceType))
       const missingRequired = allRequired.filter((evType) => {
         if (isTextType(evType)) return !textResponses.get(evType)?.trim()
-        if (isCameraType(evType)) return !cameraEvidenceTypes.has(evType)
+        if (isCameraType(evType, category)) return !cameraEvidenceTypes.has(evType)
         return !files.has(evType)
       })
 
@@ -563,6 +596,13 @@ export function SubmissionForm({
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Category-specific guidance */}
+        {CATEGORY_GUIDANCE[category] && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-700">{CATEGORY_GUIDANCE[category]}</p>
+          </div>
+        )}
+
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-start gap-3">
@@ -652,5 +692,12 @@ export function SubmissionForm({
 }
 
 function isTextType(type: EvidenceType): boolean {
-  return type === 'text_response' || type === 'measurement'
+  return (
+    type === 'text_response' ||
+    type === 'measurement' ||
+    type === 'json_response' ||
+    type === 'code_output' ||
+    type === 'url_reference' ||
+    type === 'text_report'
+  )
 }
