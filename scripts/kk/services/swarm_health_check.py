@@ -41,7 +41,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 EM_API_BASE = os.environ.get("EM_API_BASE", "https://api.execution.market")
 ERC8004_IDENTITY = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
 ERC8004_REPUTATION = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
-BASE_RPC = "https://mainnet.base.org"
+BASE_RPC = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
 USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 # Known system agent IDs on ERC-8004
@@ -65,8 +65,6 @@ MIN_USDC_RAW = 100_000             # 0.1 USDC (6 decimals)
 def _http_get(url: str, timeout: int = 15) -> dict:
     """GET request with SSL context, returns parsed JSON."""
     ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
     req = urllib.request.Request(url)
     req.add_header("User-Agent", "KK-HealthCheck/1.0")
     with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
@@ -76,8 +74,6 @@ def _http_get(url: str, timeout: int = 15) -> dict:
 def _http_post_json(url: str, data: dict, timeout: int = 15) -> dict:
     """POST JSON request, returns parsed JSON."""
     ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
     body = json.dumps(data).encode("utf-8")
     req = urllib.request.Request(url, data=body, method="POST")
     req.add_header("Content-Type", "application/json")
