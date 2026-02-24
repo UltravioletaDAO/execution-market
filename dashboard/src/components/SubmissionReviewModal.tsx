@@ -214,32 +214,96 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {Object.entries(submission.evidence as Record<string, any>).map(([key, ev]) => (
                       <div key={key} className="border border-gray-200 rounded-lg p-3">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{key}</p>
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">{key}</p>
+                          {ev?.type && (
+                            <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                              {ev.type}
+                            </span>
+                          )}
+                        </div>
                         {ev?.fileUrl ? (
                           <div>
                             {ev.mimeType?.startsWith('image/') || ev.fileUrl?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                              <img
+                              <a href={ev.fileUrl} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={ev.fileUrl}
+                                  alt={key}
+                                  className="max-w-full max-h-64 rounded-lg object-contain hover:opacity-90 transition-opacity cursor-zoom-in"
+                                />
+                              </a>
+                            ) : ev.mimeType?.startsWith('video/') ? (
+                              <video
                                 src={ev.fileUrl}
-                                alt={key}
-                                className="max-w-full max-h-64 rounded-lg object-contain"
+                                controls
+                                className="max-w-full max-h-64 rounded-lg"
                               />
                             ) : (
                               <a
                                 href={ev.fileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline text-sm"
+                                className="inline-flex items-center gap-1.5 text-blue-600 hover:underline text-sm"
                               >
-                                {ev.filename || 'View file'}
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                {ev.filename || 'Descargar archivo'}
                               </a>
                             )}
                           </div>
                         ) : ev?.value ? (
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{ev.value}</p>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 rounded p-2">{ev.value}</p>
                         ) : (
                           <p className="text-sm text-gray-400 italic">
                             {typeof ev === 'string' ? ev : JSON.stringify(ev)}
                           </p>
+                        )}
+                        {/* Metadata badges */}
+                        {ev?.metadata && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {ev.metadata.gps && (
+                              <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                                GPS: {Number(ev.metadata.gps.latitude || ev.metadata.gps.lat).toFixed(4)}, {Number(ev.metadata.gps.longitude || ev.metadata.gps.lng).toFixed(4)}
+                              </span>
+                            )}
+                            {ev.metadata.captureTimestamp && (
+                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                {new Date(ev.metadata.captureTimestamp).toLocaleString()}
+                              </span>
+                            )}
+                            {ev.metadata.source && (
+                              <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
+                                {ev.metadata.source === 'camera' ? 'Camara' : ev.metadata.source === 'gallery' ? 'Galeria' : ev.metadata.source}
+                              </span>
+                            )}
+                            {ev.metadata.deviceInfo?.model && (
+                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                {ev.metadata.deviceInfo.model}
+                              </span>
+                            )}
+                            {ev.metadata.size && (
+                              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                                {ev.metadata.size > 1048576
+                                  ? `${(ev.metadata.size / 1048576).toFixed(1)} MB`
+                                  : `${Math.round(ev.metadata.size / 1024)} KB`}
+                              </span>
+                            )}
+                            {ev.metadata.checksum && (
+                              <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full" title={ev.metadata.checksum}>
+                                SHA: {String(ev.metadata.checksum).slice(0, 8)}...
+                              </span>
+                            )}
+                            {ev.metadata.ai_verification?.verified !== undefined && (
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                ev.metadata.ai_verification.verified
+                                  ? 'bg-green-50 text-green-700'
+                                  : 'bg-yellow-50 text-yellow-700'
+                              }`}>
+                                AI: {ev.metadata.ai_verification.verified ? 'Verificado' : 'Revision'}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     ))}
@@ -280,18 +344,67 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                 </div>
               )}
 
-              {/* Auto-check status */}
+              {/* Auto-check verification results */}
               {submission.auto_check_passed !== null && submission.auto_check_passed !== undefined && (
-                <div className={`flex items-center gap-2 p-3 rounded-lg ${
-                  submission.auto_check_passed ? 'bg-green-50' : 'bg-orange-50'
+                <div className={`rounded-lg border ${
+                  submission.auto_check_passed ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
                 }`}>
-                  <span className={`text-sm font-medium ${
-                    submission.auto_check_passed ? 'text-green-700' : 'text-orange-700'
-                  }`}>
-                    {submission.auto_check_passed
-                      ? 'Verificacion automatica: Aprobada'
-                      : 'Verificacion automatica: No aprobada'}
-                  </span>
+                  <div className="flex items-center justify-between p-3">
+                    <span className={`text-sm font-medium ${
+                      submission.auto_check_passed ? 'text-green-700' : 'text-orange-700'
+                    }`}>
+                      {submission.auto_check_passed
+                        ? 'Verificacion automatica: Aprobada'
+                        : 'Verificacion automatica: Requiere revision'}
+                    </span>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {(submission.auto_check_details as any)?.score !== undefined && (
+                      <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
+                        submission.auto_check_passed ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'
+                      }`}>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        Score: {((submission.auto_check_details as any).score * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                  {/* Individual check details */}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {Array.isArray((submission.auto_check_details as any)?.checks) && (
+                    <div className="px-3 pb-3 space-y-1">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {((submission.auto_check_details as any).checks as Array<{name: string; passed: boolean; score: number; reason?: string}>).map((check) => (
+                        <div key={check.name} className="flex items-center gap-2 text-xs">
+                          <span className={check.passed ? 'text-green-600' : 'text-red-500'}>
+                            {check.passed ? '\u2713' : '\u2717'}
+                          </span>
+                          <span className="text-gray-600 capitalize w-24">{check.name}</span>
+                          <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full ${
+                                check.score >= 0.7 ? 'bg-green-500' : check.score >= 0.4 ? 'bg-yellow-500' : 'bg-red-400'
+                              }`}
+                              style={{ width: `${Math.round(check.score * 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-gray-400 font-mono w-8 text-right">
+                            {Math.round(check.score * 100)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Warnings */}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {Array.isArray((submission.auto_check_details as any)?.warnings) &&
+                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                    ((submission.auto_check_details as any).warnings as string[]).length > 0 && (
+                    <div className="px-3 pb-3">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {((submission.auto_check_details as any).warnings as string[]).map((w, i) => (
+                        <p key={i} className="text-xs text-amber-600">{w}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
