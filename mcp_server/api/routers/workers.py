@@ -9,6 +9,7 @@ from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Path
 
 import supabase_client as db
+from verification.pipeline import run_verification_pipeline
 
 from ._models import (
     WorkerApplicationRequest,
@@ -158,11 +159,50 @@ async def submit_work(
             submission_id,
         )
 
+        # --- Automated evidence verification (non-blocking) ---
+        verification_result = None
+        try:
+            task = await db.get_task(task_id)
+            if task:
+                submission_data = {
+                    "id": submission_id,
+                    "evidence": request.evidence,
+                    "submitted_at": result["submission"].get("submitted_at"),
+                    "notes": request.notes,
+                }
+                verification_result = await run_verification_pipeline(
+                    submission=submission_data, task=task
+                )
+                await db.update_submission_auto_check(
+                    submission_id=submission_id,
+                    auto_check_passed=verification_result.passed,
+                    auto_check_details=verification_result.to_dict(),
+                )
+                logger.info(
+                    "Auto-check for submission %s: passed=%s, score=%.2f",
+                    submission_id,
+                    verification_result.passed,
+                    verification_result.score,
+                )
+        except Exception as verify_err:
+            logger.warning(
+                "Evidence verification failed for submission %s: %s",
+                submission_id,
+                verify_err,
+            )
+
         response_data: Dict[str, Any] = {
             "submission_id": submission_id,
             "task_id": task_id,
             "status": "submitted",
         }
+        if verification_result:
+            response_data["verification"] = {
+                "passed": verification_result.passed,
+                "score": round(verification_result.score, 3),
+                "checks": len(verification_result.checks),
+                "warnings": verification_result.warnings,
+            }
         response_message = "Work submitted successfully. Awaiting agent review."
 
         # Attempt instant payout at submission time when x402 settlement context exists.
