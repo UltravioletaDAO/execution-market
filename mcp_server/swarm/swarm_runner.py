@@ -703,7 +703,7 @@ class SwarmRunner:
             import urllib.request
             import urllib.error
 
-            url = f"{self.EM_API_BASE}/api/v1/tasks?status=open&limit=10"
+            url = f"{self.EM_API_BASE}/api/v1/tasks?status=published&limit=10"
             headers = {}
             if self.em_api_key:
                 headers["Authorization"] = f"Bearer {self.em_api_key}"
