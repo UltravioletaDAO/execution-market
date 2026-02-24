@@ -28,6 +28,7 @@ Contract functions called:
 
 import json
 import logging
+import os
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from enum import IntEnum
@@ -39,9 +40,13 @@ logger = logging.getLogger(__name__)
 
 # ── Constants ──
 
-# describe-net SealRegistry deployment on Base Sepolia (testnet)
-# TODO: Update to Base Mainnet after deployment
-SEAL_REGISTRY_ADDRESS = "0x0000000000000000000000000000000000000000"  # TBD
+# describe-net SealRegistry deployment
+# Base Mainnet: Not yet deployed — set via DESCRIBENET_SEAL_REGISTRY env var when ready
+# Base Sepolia (testnet): deployed via Monad testnet (see describe-net-contracts repo)
+SEAL_REGISTRY_ADDRESS = os.environ.get(
+    "DESCRIBENET_SEAL_REGISTRY",
+    "0x0000000000000000000000000000000000000000",  # Placeholder until mainnet deploy
+)
 
 # Base RPC endpoints
 BASE_MAINNET_RPC = "https://mainnet.base.org"
