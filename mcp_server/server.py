@@ -388,6 +388,29 @@ def format_submission_markdown(submission: Dict[str, Any]) -> str:
         else:
             lines.append(f"- **{key}**: {value}")
 
+    # Auto-check verification results
+    if submission.get("auto_check_passed") is not None:
+        passed = submission["auto_check_passed"]
+        details = submission.get("auto_check_details") or {}
+        score = details.get("score", 0)
+        status_emoji = "PASS" if passed else "NEEDS REVIEW"
+        lines.extend(
+            [
+                "",
+                f"### Automated Verification: {status_emoji} (score: {score:.0%})",
+            ]
+        )
+        checks = details.get("checks", [])
+        for check in checks:
+            check_icon = "PASS" if check.get("passed") else "FAIL"
+            lines.append(
+                f"- {check_icon} **{check.get('name', '?')}**: "
+                f"{check.get('score', 0):.0%} — {check.get('reason', '')}"
+            )
+        warnings = details.get("warnings", [])
+        for w in warnings:
+            lines.append(f"- WARNING: {w}")
+
     if submission.get("agent_notes"):
         lines.extend(["", f"**Agent Notes**: {submission['agent_notes']}"])
 
