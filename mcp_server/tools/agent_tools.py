@@ -729,13 +729,28 @@ No tasks were created. Fix errors and retry."""
 
                     # In ALL_OR_NONE mode, rollback and fail
                     if params.operation_mode == BatchOperationMode.ALL_OR_NONE:
-                        # TODO: Implement rollback of created tasks
+                        # Rollback: cancel all previously created tasks
+                        rollback_errors = []
+                        for created in created_tasks:
+                            try:
+                                await db.update_task_status(
+                                    created.task_id, "cancelled"
+                                )
+                            except Exception as rb_err:
+                                rollback_errors.append(
+                                    f"  - Task {created.task_id}: {rb_err}"
+                                )
+                        rollback_note = (
+                            f"\n\n⚠️ Rollback issues:\n"
+                            + "\n".join(rollback_errors)
+                            if rollback_errors
+                            else "\n\nAll previously created tasks were cancelled."
+                        )
                         return f"""# Batch Creation Failed (ALL_OR_NONE mode)
 
 Task #{i + 1} ({task_def.title}) failed: {str(e)}
 
-No tasks were created due to atomic mode.
-Previously created tasks were rolled back."""
+No tasks were created due to atomic mode.{rollback_note}"""
 
             # Build response
             lines = [
@@ -967,8 +982,31 @@ Previously created tasks were rolled back."""
                 if analytics.total_tasks > 0
                 else 0
             )
-            analytics.resubmission_rate = 5.0  # TODO: Calculate from submissions
-            analytics.worker_satisfaction_score = 4.2  # TODO: Calculate from ratings
+            # Resubmission rate: tasks that were submitted more than once
+            resubmission_count = sum(
+                1 for t in tasks
+                if t.get("submission_count", 0) > 1
+                or t.get("status") == "revision_requested"
+            )
+            submitted_count = sum(
+                1 for t in tasks
+                if t.get("status") in ("submitted", "completed", "revision_requested")
+            )
+            analytics.resubmission_rate = (
+                (resubmission_count / submitted_count * 100)
+                if submitted_count > 0
+                else 0.0
+            )
+
+            # Worker satisfaction: average of task ratings (1-5 scale)
+            ratings = [
+                float(t.get("rating", 0))
+                for t in tasks
+                if t.get("rating") and float(t.get("rating", 0)) > 0
+            ]
+            analytics.worker_satisfaction_score = (
+                sum(ratings) / len(ratings) if ratings else 0.0
+            )
 
             # Get top workers
             if params.include_worker_details and analytics.completed_tasks > 0:

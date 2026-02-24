@@ -686,6 +686,9 @@ class TestSwarmIntegration:
 
     def test_budget_enforcement_flow(self):
         """Budget enforcement prevents overspending."""
+        from unittest.mock import patch
+        from datetime import datetime as _dt, timezone as _tz
+
         self.orch.register_agent(
             agent_id="aurora",
             wallet="0x1234",
@@ -694,25 +697,26 @@ class TestSwarmIntegration:
         self.lifecycle.boot_agent("aurora")
         self.lifecycle.activate_agent("aurora")
 
+        # Use a consistent mock date for all heartbeats to avoid
+        # time-dependent failures (reset_daily resets on date change)
+        mock_dt = _dt(2026, 6, 15, 12, 0, 0, tzinfo=_tz.utc)
+        mock_date_str = "2026-06-15"
+
         # Simulate spending up to limit
         agent = self.lifecycle.agents["aurora"]
         agent.usage.usd_spent_today = 0.48
-        agent.usage.last_reset_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        agent.usage.last_reset_date = mock_date_str
 
-        # Heartbeat should still be ok (0.48 < 0.50)
-        # Mock time to be within active hours (6-22 UTC)
-        from unittest.mock import patch
-        from datetime import datetime as _dt, timezone as _tz
-
-        mock_dt = _dt(2026, 2, 23, 12, 0, 0, tzinfo=_tz.utc)
         with patch(
             "mcp_server.swarm.lifecycle_manager.datetime"
         ) as mock_datetime:
             mock_datetime.now.return_value = mock_dt
             mock_datetime.side_effect = lambda *a, **kw: _dt(*a, **kw)
-            result = self.lifecycle.heartbeat("aurora", {"usd": 0.01})
-        assert result["action"] == "continue"
 
-        # Now exceed budget
-        result = self.lifecycle.heartbeat("aurora", {"usd": 0.05})
-        assert result["action"] == "sleep"
+            # Heartbeat should still be ok (0.48 + 0.01 = 0.49 < 0.50)
+            result = self.lifecycle.heartbeat("aurora", {"usd": 0.01})
+            assert result["action"] == "continue"
+
+            # Now exceed budget (0.49 + 0.05 = 0.54 > 0.50)
+            result = self.lifecycle.heartbeat("aurora", {"usd": 0.05})
+            assert result["action"] == "sleep"
