@@ -296,6 +296,34 @@ async def get_submission(submission_id: str) -> Optional[Dict[str, Any]]:
     return result.data
 
 
+async def update_submission_auto_check(
+    submission_id: str,
+    auto_check_passed: bool,
+    auto_check_details: Dict[str, Any],
+) -> None:
+    """
+    Update a submission with automated verification results.
+
+    Populates the auto_check_passed and auto_check_details columns.
+    Non-blocking: logs errors but never raises.
+    """
+    client = get_client()
+    try:
+        client.table("submissions").update(
+            {
+                "auto_check_passed": auto_check_passed,
+                "auto_check_details": auto_check_details,
+            }
+        ).eq("id", submission_id).execute()
+    except Exception as e:
+        # Non-blocking — some schemas may not have these columns yet
+        logger.warning(
+            "Failed to update auto_check for submission %s: %s",
+            submission_id,
+            e,
+        )
+
+
 async def update_submission(
     submission_id: str,
     agent_id: str,
