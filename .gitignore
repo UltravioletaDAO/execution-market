@@ -123,3 +123,9 @@ scripts/kk/report-sweep-*.json
 
 # KK agent workspace data (generated)
 scripts/kk/data/workspaces/
+
+# Private keys and secrets (NEVER commit)
+*.keys.json
+*private*.json
+*secret*.json
+scripts/wallet-management/.keys.json
