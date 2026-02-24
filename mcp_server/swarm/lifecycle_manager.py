@@ -719,8 +719,27 @@ class LifecycleManager:
         try:
             with open(self.state_file) as f:
                 data = json.load(f)
-            # TODO: Deserialize AgentState objects from dict
-            logger.info(f"Loaded state for {len(data)} agents")
+            for agent_id, agent_dict in data.items():
+                try:
+                    # Restore enum
+                    if "status" in agent_dict and isinstance(agent_dict["status"], str):
+                        agent_dict["status"] = AgentStatus(agent_dict["status"])
+                    # Restore datetimes
+                    for dt_key in ("status_since", "last_heartbeat", "created_at"):
+                        if agent_dict.get(dt_key) and isinstance(agent_dict[dt_key], str):
+                            agent_dict[dt_key] = datetime.fromisoformat(agent_dict[dt_key])
+                    # Remove computed fields (not part of dataclass)
+                    for computed in ("is_healthy", "is_within_budget", "budget_utilization"):
+                        agent_dict.pop(computed, None)
+                    # Restore nested dataclasses
+                    if "budget" in agent_dict and isinstance(agent_dict["budget"], dict):
+                        agent_dict["budget"] = ResourceBudget(**agent_dict["budget"])
+                    if "usage" in agent_dict and isinstance(agent_dict["usage"], dict):
+                        agent_dict["usage"] = ResourceUsage(**agent_dict["usage"])
+                    self.agents[agent_id] = AgentState(**agent_dict)
+                except Exception as e:
+                    logger.warning(f"Failed to deserialize agent {agent_id}: {e}")
+            logger.info(f"Loaded state for {len(self.agents)} agents")
         except FileNotFoundError:
             logger.info("No state file found, starting fresh")
         except Exception as e:
