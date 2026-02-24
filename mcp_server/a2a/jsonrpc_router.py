@@ -45,11 +45,16 @@ async def _extract_agent_id(request: Request) -> Optional[str]:
     if erc8004_id:
         return f"erc8004:{erc8004_id}"
 
-    # Try API key
+    # Try API key — resolve to agent_id via auth module
     api_key = request.headers.get("X-API-Key")
     if api_key:
-        # TODO: resolve API key to agent_id via api/auth.py in Phase 5
-        return f"apikey:{api_key[:8]}"
+        try:
+            from ..api.auth import verify_api_key
+            key_data = await verify_api_key(authorization=None, x_api_key=api_key)
+            return f"agent:{key_data.agent_id}"
+        except Exception:
+            # Auth failed or unavailable — fall back to truncated key identifier
+            return f"apikey:{api_key[:8]}"
 
     # Try Bearer token
     auth_header = request.headers.get("Authorization", "")
