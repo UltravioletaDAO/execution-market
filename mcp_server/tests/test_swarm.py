@@ -317,7 +317,17 @@ class TestLifecycleManager:
         self.lm.boot_agent("aurora")
         self.lm.activate_agent("aurora")
 
-        result = self.lm.heartbeat("aurora", {"tokens": 100})
+        # Mock time to be within default active hours (6-22 UTC)
+        from unittest.mock import patch
+        from datetime import datetime as _dt, timezone as _tz
+
+        mock_dt = _dt(2026, 2, 23, 12, 0, 0, tzinfo=_tz.utc)
+        with patch(
+            "mcp_server.swarm.lifecycle_manager.datetime"
+        ) as mock_datetime:
+            mock_datetime.now.return_value = mock_dt
+            mock_datetime.side_effect = lambda *a, **kw: _dt(*a, **kw)
+            result = self.lm.heartbeat("aurora", {"tokens": 100})
         assert result["action"] == "continue"
 
     def test_heartbeat_budget_exceeded(self):
@@ -690,7 +700,17 @@ class TestSwarmIntegration:
         agent.usage.last_reset_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         # Heartbeat should still be ok (0.48 < 0.50)
-        result = self.lifecycle.heartbeat("aurora", {"usd": 0.01})
+        # Mock time to be within active hours (6-22 UTC)
+        from unittest.mock import patch
+        from datetime import datetime as _dt, timezone as _tz
+
+        mock_dt = _dt(2026, 2, 23, 12, 0, 0, tzinfo=_tz.utc)
+        with patch(
+            "mcp_server.swarm.lifecycle_manager.datetime"
+        ) as mock_datetime:
+            mock_datetime.now.return_value = mock_dt
+            mock_datetime.side_effect = lambda *a, **kw: _dt(*a, **kw)
+            result = self.lifecycle.heartbeat("aurora", {"usd": 0.01})
         assert result["action"] == "continue"
 
         # Now exceed budget
