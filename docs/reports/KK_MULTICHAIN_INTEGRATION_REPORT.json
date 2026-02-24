@@ -1,15 +1,15 @@
 {
-  "timestamp": "2026-02-24T05:02:25.872328+00:00",
+  "timestamp": "2026-02-24T05:09:50.799995+00:00",
   "chains_tested": [
     "avalanche"
   ],
   "chains_passed": 1,
   "chains_failed": 0,
   "overall": "PASS",
-  "total_elapsed_s": 2.75,
+  "total_elapsed_s": 2.79,
   "per_chain": {
     "avalanche": {
-      "timestamp": "2026-02-24T05:02:25.872373+00:00",
+      "timestamp": "2026-02-24T05:09:50.800040+00:00",
       "network": "avalanche",
       "api_base": "https://api.execution.market",
       "phases": {
@@ -17,7 +17,7 @@
           "name": "health",
           "description": "API Health Check",
           "status": "PASS",
-          "elapsed_s": 0.31,
+          "elapsed_s": 0.36,
           "health_status": "healthy",
           "supported_networks": [
             "arbitrum",
@@ -34,14 +34,14 @@
           "name": "worker_registration",
           "description": "Agent B Worker Registration",
           "status": "PASS",
-          "elapsed_s": 0.19,
+          "elapsed_s": 0.14,
           "executor_id": "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4"
         },
         "task_browsing": {
           "name": "task_browsing",
           "description": "Agent C Browses Tasks",
           "status": "PASS",
-          "elapsed_s": 0.24,
+          "elapsed_s": 0.27,
           "available_tasks": 1,
           "em_agent_id": 2106
         },
@@ -85,7 +85,7 @@
       "pass_count": 3,
       "fail_count": 0,
       "skip_count": 5,
-      "total_elapsed_s": 2.75
+      "total_elapsed_s": 2.79
     }
   }
 }
