@@ -35,8 +35,6 @@ from ._helpers import (
     _execute_post_approval_side_effects,
 )
 
-from verification.ai_review import calculate_auto_score
-
 router = APIRouter(prefix="/api/v1", tags=["Submissions"])
 
 
@@ -85,13 +83,11 @@ async def get_submissions(
 
     result = []
     for sub in submissions:
-        # Calculate pre-check score if evidence exists
+        # Use auto_check_details from verification pipeline (Phase 1)
         pre_check_score = None
-        if sub.get("evidence"):
-            # Get auto-check results if available
-            auto_checks = sub.get("auto_checks", {})
-            if auto_checks:
-                pre_check_score = calculate_auto_score(auto_checks)
+        auto_check_details = sub.get("auto_check_details")
+        if isinstance(auto_check_details, dict) and "score" in auto_check_details:
+            pre_check_score = auto_check_details["score"]
 
         result.append(
             SubmissionResponse(
