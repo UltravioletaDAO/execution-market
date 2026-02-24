@@ -37,6 +37,13 @@ export type EvidenceType =
   | 'text_response'
   | 'measurement'
   | 'screenshot'
+  | 'json_response'
+  | 'api_response'
+  | 'code_output'
+  | 'file_artifact'
+  | 'url_reference'
+  | 'structured_data'
+  | 'text_report'
 
 export type DisputeStatus =
   | 'open'
