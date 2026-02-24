@@ -1,531 +1,524 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Karma Kadabra V2 — Tests for performance_tracker.py
+Tests for AgentPerformanceTracker — Observability and Success Metrics
 
-Tests for performance-aware agent matching:
-  - Performance data extraction from notes and JSON
-  - Enhanced match scoring (skills + performance)
-  - Agent ranking for task assignment
-  - Data persistence (save/load)
-
-Usage:
-    pytest scripts/kk/tests/test_performance_tracker.py -v
+Tests cover:
+- Task recording (start, complete, timeout)
+- Agent-level metrics computation
+- Swarm-wide report generation
+- Trend detection (improving/declining/stable)
+- Anomaly detection
+- Category breakdown
+- AutoJob export format
+- Persistence (save/load)
 """
 
 import json
 import tempfile
+import time
 from pathlib import Path
 
 import pytest
 
+# Adjust path for imports
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from lib.performance_tracker import (
-    AgentPerformance,
-    compute_enhanced_match_score,
-    extract_performance_from_json,
-    extract_performance_from_notes,
-    rank_agents_for_task,
-    save_performance,
+from lib.agent_performance_tracker import (
+    AgentPerformanceTracker,
+    TaskRecord,
+    AgentMetrics,
+    SwarmReport,
 )
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
+# ── Fixtures ──
+
+@pytest.fixture
+def tracker():
+    """Fresh tracker with no persistence."""
+    return AgentPerformanceTracker()
 
 
 @pytest.fixture
-def tmp_dir():
-    with tempfile.TemporaryDirectory() as d:
-        yield Path(d)
+def tracker_with_data():
+    """Tracker pre-loaded with sample data."""
+    t = AgentPerformanceTracker()
+    
+    # Simulate 20 tasks across 3 agents
+    agents = ["aurora", "blaze", "cipher"]
+    categories = ["data_collection", "research", "code_review", "photo_verification"]
+    
+    for i in range(20):
+        agent = agents[i % 3]
+        category = categories[i % 4]
+        task_id = f"task_{i:03d}"
+        
+        record = TaskRecord(
+            task_id=task_id,
+            agent_id=agent,
+            category=category,
+            started_at=time.time() - (20 - i) * 3600,  # Spread over 20 hours
+            completed_at=time.time() - (20 - i) * 3600 + 300,  # 5 min each
+            success=i % 5 != 0,  # 80% success rate
+            rating=4.0 + (i % 5) * 0.2 if i % 5 != 0 else None,
+            bounty_usd=0.50,
+            cost_usd=0.05,
+            chain="base" if i % 2 == 0 else "polygon",
+        )
+        t.records.append(record)
+    
+    return t
 
 
 @pytest.fixture
-def workspace_with_structured_notes(tmp_dir):
-    """Workspace with structured [TAG] log entries."""
-    ws = tmp_dir / "workspaces"
-
-    # Experienced agent: alpha
-    alpha_notes = ws / "kk-alpha" / "memory" / "notes"
-    alpha_notes.mkdir(parents=True)
-    (alpha_notes / "2026-02-19.md").write_text(
-        "- [COMPLETED] task-1 category:simple_action chain:base bounty:$0.10\n"
-        "- [RATED] 4/5 by kk-coordinator\n"
-        "- [EARNED] $0.10 from task-1\n"
-    )
-    (alpha_notes / "2026-02-20.md").write_text(
-        "- [COMPLETED] task-2 category:knowledge_access chain:polygon bounty:$0.15\n"
-        "- [RATED] 5/5 by kk-auditor\n"
-        "- [EARNED] $0.15 from task-2\n"
-        "- [APPLIED] task-3 category:digital_physical\n"
-    )
-    (alpha_notes / "2026-02-21.md").write_text(
-        "- [COMPLETED] task-4 category:simple_action chain:base\n"
-        "- [RATED] 4/5 by kk-treasurer\n"
-        "- [EARNED] $0.10 from task-4\n"
-    )
-
-    # Newer agent: beta (fewer tasks, lower ratings)
-    beta_notes = ws / "kk-beta" / "memory" / "notes"
-    beta_notes.mkdir(parents=True)
-    (beta_notes / "2026-02-21.md").write_text(
-        "- [COMPLETED] task-5 category:simple_action chain:base bounty:$0.10\n"
-        "- [RATED] 3/5 by kk-coordinator\n"
-        "- [EARNED] $0.10 from task-5\n"
-        "- applied to task-6 category:knowledge_access\n"
-        "- task expired for task-6\n"
-    )
-
-    # Agent with no activity: gamma
-    gamma_dir = ws / "kk-gamma"
-    gamma_dir.mkdir(parents=True)
-
-    return ws
+def persistent_tracker(tmp_path):
+    """Tracker with file persistence."""
+    path = tmp_path / "performance.json"
+    return AgentPerformanceTracker(persist_path=str(path))
 
 
-@pytest.fixture
-def workspace_with_json_profiles(tmp_dir):
-    """Workspace with data/performance.json files."""
-    ws = tmp_dir / "workspaces"
+# ── Task Recording Tests ──
 
-    # Alpha: experienced
-    alpha_data = ws / "kk-alpha" / "data"
-    alpha_data.mkdir(parents=True)
-    (alpha_data / "performance.json").write_text(json.dumps({
-        "agent_name": "kk-alpha",
-        "tasks_completed": 15,
-        "tasks_attempted": 18,
-        "tasks_failed": 3,
-        "avg_completion_hours": 2.5,
-        "total_earned_usd": 2.50,
-        "total_spent_usd": 0.30,
-        "avg_rating_received": 85.0,
-        "rating_count": 12,
-        "category_completions": {"simple_action": 8, "knowledge_access": 5, "digital_physical": 2},
-        "category_attempts": {"simple_action": 9, "knowledge_access": 6, "digital_physical": 3},
-        "chain_tasks": {"base": 10, "polygon": 5, "arbitrum": 3},
-    }))
+class TestTaskRecording:
+    def test_record_start(self, tracker):
+        tracker.record_task_start("aurora", "task_001", "research", bounty_usd=0.50)
+        assert "task_001" in tracker.active_tasks
+        assert tracker.active_tasks["task_001"].agent_id == "aurora"
+        assert tracker.active_tasks["task_001"].category == "research"
+        assert tracker.active_tasks["task_001"].bounty_usd == 0.50
 
-    # Beta: less experienced
-    beta_data = ws / "kk-beta" / "data"
-    beta_data.mkdir(parents=True)
-    (beta_data / "performance.json").write_text(json.dumps({
-        "agent_name": "kk-beta",
-        "tasks_completed": 3,
-        "tasks_attempted": 5,
-        "tasks_failed": 2,
-        "avg_completion_hours": 5.0,
-        "total_earned_usd": 0.30,
-        "total_spent_usd": 0.10,
-        "avg_rating_received": 60.0,
-        "rating_count": 3,
-        "category_completions": {"simple_action": 2, "knowledge_access": 1},
-        "category_attempts": {"simple_action": 3, "knowledge_access": 2},
-        "chain_tasks": {"base": 5},
-    }))
+    def test_record_complete_success(self, tracker):
+        tracker.record_task_start("aurora", "task_001", "research")
+        tracker.record_task_complete("aurora", "task_001", success=True, rating=4.5)
+        
+        assert "task_001" not in tracker.active_tasks
+        assert len(tracker.records) == 1
+        assert tracker.records[0].success is True
+        assert tracker.records[0].rating == 4.5
 
-    return ws
-
-
-# ---------------------------------------------------------------------------
-# AgentPerformance Model Tests
-# ---------------------------------------------------------------------------
-
-
-class TestAgentPerformance:
-    """Tests for AgentPerformance dataclass."""
-
-    def test_completion_rate_with_data(self):
-        perf = AgentPerformance("test", tasks_completed=8, tasks_attempted=10)
-        assert perf.completion_rate == 0.8
-
-    def test_completion_rate_no_data(self):
-        perf = AgentPerformance("test")
-        assert perf.completion_rate == 0.5  # Neutral for new agents
-
-    def test_completion_rate_perfect(self):
-        perf = AgentPerformance("test", tasks_completed=10, tasks_attempted=10)
-        assert perf.completion_rate == 1.0
-
-    def test_reliability_score_good_agent(self):
-        perf = AgentPerformance(
-            "test",
-            tasks_completed=9,
-            tasks_attempted=10,
-            avg_rating_received=90.0,
+    def test_record_complete_failure(self, tracker):
+        tracker.record_task_start("aurora", "task_001", "research")
+        tracker.record_task_complete(
+            "aurora", "task_001", 
+            success=False, 
+            error_reason="Evidence rejected"
         )
-        score = perf.reliability_score
-        assert score > 0.7
+        
+        assert tracker.records[0].success is False
+        assert tracker.records[0].error_reason == "Evidence rejected"
 
-    def test_reliability_score_new_agent(self):
-        perf = AgentPerformance("test")
-        assert perf.reliability_score == 0.5
+    def test_record_complete_without_start(self, tracker):
+        """Should create a retroactive record."""
+        tracker.record_task_complete("aurora", "task_001", success=True)
+        
+        assert len(tracker.records) == 1
+        assert tracker.records[0].agent_id == "aurora"
+        assert tracker.records[0].category == "unknown"
 
-    def test_category_strength_experienced(self):
-        perf = AgentPerformance("test")
-        perf.category_completions = {"simple_action": 8}
-        perf.category_attempts = {"simple_action": 10}
-        assert perf.category_strength("simple_action") == 0.8
+    def test_record_timeout(self, tracker):
+        tracker.record_task_start("aurora", "task_001", "research")
+        tracker.record_task_timeout("task_001", timeout_seconds=600)
+        
+        assert "task_001" not in tracker.active_tasks
+        assert len(tracker.records) == 1
+        assert tracker.records[0].success is False
+        assert "Timeout" in tracker.records[0].error_reason
 
-    def test_category_strength_no_experience(self):
-        perf = AgentPerformance("test")
-        assert perf.category_strength("unknown") == 0.0
+    def test_task_duration(self, tracker):
+        tracker.record_task_start("aurora", "task_001", "research")
+        time.sleep(0.01)  # Small delay
+        tracker.record_task_complete("aurora", "task_001", success=True)
+        
+        duration = tracker.records[0].duration_seconds
+        assert duration is not None
+        assert duration >= 0.01
 
-    def test_chain_experience_experienced(self):
-        perf = AgentPerformance("test")
-        perf.chain_tasks = {"base": 10}
-        assert perf.chain_experience("base") > 0.5
-
-    def test_chain_experience_no_experience(self):
-        perf = AgentPerformance("test")
-        assert perf.chain_experience("base") == 0.1
-
-
-# ---------------------------------------------------------------------------
-# Notes Extraction Tests
-# ---------------------------------------------------------------------------
-
-
-class TestExtractPerformanceFromNotes:
-    """Tests for extract_performance_from_notes()."""
-
-    def test_extracts_completions(self, workspace_with_structured_notes):
-        profiles = extract_performance_from_notes(workspace_with_structured_notes)
-        alpha = profiles["kk-alpha"]
-        assert alpha.tasks_completed == 3
-
-    def test_extracts_failures(self, workspace_with_structured_notes):
-        profiles = extract_performance_from_notes(workspace_with_structured_notes)
-        beta = profiles["kk-beta"]
-        assert beta.tasks_failed >= 1
-
-    def test_extracts_earnings(self, workspace_with_structured_notes):
-        profiles = extract_performance_from_notes(workspace_with_structured_notes)
-        alpha = profiles["kk-alpha"]
-        assert abs(alpha.total_earned_usd - 0.35) < 0.01  # $0.10 + $0.15 + $0.10
-
-    def test_extracts_categories(self, workspace_with_structured_notes):
-        profiles = extract_performance_from_notes(workspace_with_structured_notes)
-        alpha = profiles["kk-alpha"]
-        assert "simple_action" in alpha.category_completions
-        assert alpha.category_completions["simple_action"] == 2
-
-    def test_extracts_chains(self, workspace_with_structured_notes):
-        profiles = extract_performance_from_notes(workspace_with_structured_notes)
-        alpha = profiles["kk-alpha"]
-        assert "base" in alpha.chain_tasks
-        assert alpha.chain_tasks["base"] == 2
-        assert "polygon" in alpha.chain_tasks
-
-    def test_extracts_ratings(self, workspace_with_structured_notes):
-        profiles = extract_performance_from_notes(workspace_with_structured_notes)
-        alpha = profiles["kk-alpha"]
-        assert alpha.rating_count == 3
-        assert alpha.avg_rating_received > 0
-
-    def test_empty_agent_has_default(self, workspace_with_structured_notes):
-        profiles = extract_performance_from_notes(workspace_with_structured_notes)
-        gamma = profiles["kk-gamma"]
-        assert gamma.tasks_completed == 0
-        assert gamma.completion_rate == 0.5
-
-    def test_nonexistent_dir(self, tmp_dir):
-        profiles = extract_performance_from_notes(tmp_dir / "nope")
-        assert profiles == {}
-
-
-# ---------------------------------------------------------------------------
-# JSON Extraction Tests
-# ---------------------------------------------------------------------------
-
-
-class TestExtractPerformanceFromJson:
-    """Tests for extract_performance_from_json()."""
-
-    def test_loads_structured_data(self, workspace_with_json_profiles):
-        profiles = extract_performance_from_json(workspace_with_json_profiles)
-        alpha = profiles["kk-alpha"]
-        assert alpha.tasks_completed == 15
-        assert alpha.tasks_attempted == 18
-        assert alpha.avg_rating_received == 85.0
-
-    def test_loads_categories(self, workspace_with_json_profiles):
-        profiles = extract_performance_from_json(workspace_with_json_profiles)
-        alpha = profiles["kk-alpha"]
-        assert alpha.category_completions["simple_action"] == 8
-
-    def test_loads_chain_data(self, workspace_with_json_profiles):
-        profiles = extract_performance_from_json(workspace_with_json_profiles)
-        alpha = profiles["kk-alpha"]
-        assert alpha.chain_tasks["base"] == 10
-
-
-# ---------------------------------------------------------------------------
-# Enhanced Matching Tests
-# ---------------------------------------------------------------------------
-
-
-class TestComputeEnhancedMatchScore:
-    """Tests for compute_enhanced_match_score()."""
-
-    def test_experienced_agent_scores_higher(self):
-        """Agent with good track record scores higher than one without."""
-        experienced = AgentPerformance(
-            "exp",
-            tasks_completed=10,
-            tasks_attempted=12,
-            avg_rating_received=90,
-            rating_count=8,
-            category_completions={"simple_action": 8},
-            category_attempts={"simple_action": 10},
-            chain_tasks={"base": 10},
-            total_earned_usd=2.0,
+    def test_task_profit(self):
+        record = TaskRecord(
+            task_id="t1", agent_id="aurora", category="research",
+            started_at=100.0, bounty_usd=0.50, cost_usd=0.05
         )
-        newbie = AgentPerformance("new")
-
-        skills = {"monitoring", "analytics"}
-        exp_score = compute_enhanced_match_score(
-            experienced, skills,
-            "[KK] Audit heartbeat logs", "Check for anomalies",
-            task_category="simple_action", task_chain="base",
-        )
-        new_score = compute_enhanced_match_score(
-            newbie, skills,
-            "[KK] Audit heartbeat logs", "Check for anomalies",
-            task_category="simple_action", task_chain="base",
-        )
-        assert exp_score > new_score
-
-    def test_skill_match_contributes(self):
-        """Skills matching boosts score."""
-        perf = AgentPerformance("test")
-        with_skills = compute_enhanced_match_score(
-            perf, {"auditing", "analytics"},
-            "Audit on-chain distribution", "Check auditing results",
-        )
-        without_skills = compute_enhanced_match_score(
-            perf, {"cooking", "farming"},
-            "Audit on-chain distribution", "Check auditing results",
-        )
-        assert with_skills > without_skills
-
-    def test_kk_tagged_tasks_get_baseline(self):
-        """KK-tagged tasks give baseline score even without skill match."""
-        perf = AgentPerformance("test")
-        score = compute_enhanced_match_score(
-            perf, {"random_skill"},
-            "[KK] Community task for everyone", "Anyone can do this",
-        )
-        assert score > 0
-
-    def test_score_bounded_0_1(self):
-        """Score never exceeds 1.0 or goes below 0.0."""
-        perf = AgentPerformance(
-            "max",
-            tasks_completed=100,
-            tasks_attempted=100,
-            avg_rating_received=100,
-            total_earned_usd=50,
-        )
-        score = compute_enhanced_match_score(
-            perf, {"everything"},
-            "everything match", "perfect match everything",
-            task_category="simple_action",
-        )
-        assert 0 <= score <= 1.0
-
-    def test_category_experience_matters(self):
-        """Agent experienced in task category scores higher."""
-        cat_expert = AgentPerformance(
-            "expert",
-            tasks_completed=5,
-            tasks_attempted=5,
-            category_completions={"knowledge_access": 5},
-            category_attempts={"knowledge_access": 5},
-        )
-        cat_newbie = AgentPerformance(
-            "newbie",
-            tasks_completed=5,
-            tasks_attempted=5,
-            # No category track record
-        )
-
-        expert_score = compute_enhanced_match_score(
-            cat_expert, set(),
-            "Research task", "Investigate this topic",
-            task_category="knowledge_access",
-        )
-        newbie_score = compute_enhanced_match_score(
-            cat_newbie, set(),
-            "Research task", "Investigate this topic",
-            task_category="knowledge_access",
-        )
-        assert expert_score > newbie_score
-
-    def test_chain_experience_matters(self):
-        """Agent experienced on task's chain scores higher."""
-        chain_expert = AgentPerformance("expert")
-        chain_expert.chain_tasks = {"polygon": 20}
-
-        chain_newbie = AgentPerformance("newbie")
-
-        expert_score = compute_enhanced_match_score(
-            chain_expert, {"testing"},
-            "Test polygon task", "Verify on polygon",
-            task_chain="polygon",
-        )
-        newbie_score = compute_enhanced_match_score(
-            chain_newbie, {"testing"},
-            "Test polygon task", "Verify on polygon",
-            task_chain="polygon",
-        )
-        assert expert_score > newbie_score
-
-    def test_no_skills_minimal_score(self):
-        """Agent with no skills gets minimal score."""
-        perf = AgentPerformance("test")
-        score = compute_enhanced_match_score(
-            perf, set(),
-            "Any task", "Some description",
-        )
-        assert score > 0  # Should still get reliability + baseline scores
+        assert record.profit_usd == 0.45
 
 
-# ---------------------------------------------------------------------------
-# Ranking Tests
-# ---------------------------------------------------------------------------
+# ── Agent Metrics Tests ──
 
+class TestAgentMetrics:
+    def test_empty_agent(self, tracker):
+        m = tracker.agent_metrics("nonexistent")
+        assert m.total_tasks == 0
+        assert m.success_rate == 0.0
 
-class TestRankAgentsForTask:
-    """Tests for rank_agents_for_task()."""
+    def test_basic_metrics(self, tracker_with_data):
+        m = tracker_with_data.agent_metrics("aurora")
+        assert m.total_tasks > 0
+        assert m.successful_tasks > 0
+        assert m.success_rate > 0
 
-    def test_ranking_order(self):
-        """Agents ranked by score descending."""
-        profiles = {
-            "alpha": AgentPerformance(
-                "alpha", tasks_completed=10, tasks_attempted=10,
-                avg_rating_received=90, rating_count=8,
-            ),
-            "beta": AgentPerformance(
-                "beta", tasks_completed=2, tasks_attempted=5,
-                avg_rating_received=50, rating_count=2,
-            ),
-            "gamma": AgentPerformance("gamma"),
-        }
-        skills_map = {
-            "alpha": {"analytics"},
-            "beta": {"analytics"},
-            "gamma": set(),
-        }
-
-        rankings = rank_agents_for_task(
-            profiles, skills_map,
-            "[KK] Analytics task", "Run analytics monitoring",
-        )
-        assert len(rankings) >= 2
-        # Alpha should rank first — same skills but much better track record
-        assert rankings[0][0] == "alpha"
-        assert rankings[0][1] >= rankings[1][1]
-
-    def test_exclude_agents(self):
-        """Excluded agents don't appear in rankings."""
-        profiles = {
-            "alpha": AgentPerformance("alpha"),
-            "beta": AgentPerformance("beta"),
-        }
-        skills_map = {"alpha": set(), "beta": set()}
-
-        rankings = rank_agents_for_task(
-            profiles, skills_map,
-            "Task", "Description",
-            exclude_agents={"alpha"},
-        )
-        agent_names = [r[0] for r in rankings]
-        assert "alpha" not in agent_names
-
-    def test_min_score_threshold(self):
-        """Only agents above min_score included."""
-        profiles = {
-            "alpha": AgentPerformance("alpha"),
-            "beta": AgentPerformance("beta"),
-        }
-        skills_map = {"alpha": set(), "beta": set()}
-
-        # Very high threshold should filter most agents
-        rankings = rank_agents_for_task(
-            profiles, skills_map,
-            "Task", "Description",
-            min_score=0.99,
-        )
-        assert len(rankings) == 0
-
-    def test_empty_profiles(self):
-        rankings = rank_agents_for_task({}, {}, "Task", "Desc")
-        assert rankings == []
-
-
-# ---------------------------------------------------------------------------
-# Save/Load Tests
-# ---------------------------------------------------------------------------
-
-
-class TestSavePerformance:
-    """Tests for save_performance()."""
-
-    def test_save_creates_json(self, tmp_dir):
-        ws = tmp_dir / "workspaces" / "kk-alpha"
-        ws.mkdir(parents=True)
-
-        profiles = {
-            "kk-alpha": AgentPerformance(
-                "kk-alpha",
-                tasks_completed=5,
-                tasks_attempted=6,
-                total_earned_usd=0.50,
+    def test_success_rate(self, tracker):
+        for i in range(10):
+            record = TaskRecord(
+                task_id=f"t{i}", agent_id="aurora", category="research",
+                started_at=time.time() - i * 60,
+                completed_at=time.time() - i * 60 + 30,
+                success=i < 7,  # 7/10 = 70% success
             )
-        }
+            tracker.records.append(record)
+        
+        m = tracker.agent_metrics("aurora")
+        assert m.total_tasks == 10
+        assert m.successful_tasks == 7
+        assert abs(m.success_rate - 0.7) < 0.01
 
-        saved = save_performance(tmp_dir / "workspaces", profiles)
-        assert saved == 1
+    def test_rating_average(self, tracker):
+        ratings = [4.0, 4.5, 5.0, 3.5, 4.0]
+        for i, rating in enumerate(ratings):
+            record = TaskRecord(
+                task_id=f"t{i}", agent_id="aurora", category="research",
+                started_at=time.time(), completed_at=time.time() + 60,
+                success=True, rating=rating,
+            )
+            tracker.records.append(record)
+        
+        m = tracker.agent_metrics("aurora")
+        expected_avg = sum(ratings) / len(ratings)
+        assert abs(m.avg_rating - expected_avg) < 0.01
 
-        perf_file = ws / "data" / "performance.json"
-        assert perf_file.exists()
+    def test_economics(self, tracker):
+        for i in range(5):
+            record = TaskRecord(
+                task_id=f"t{i}", agent_id="aurora", category="research",
+                started_at=time.time(), completed_at=time.time() + 60,
+                success=True, bounty_usd=0.50, cost_usd=0.05,
+            )
+            tracker.records.append(record)
+        
+        m = tracker.agent_metrics("aurora")
+        assert abs(m.total_earned_usd - 2.50) < 0.01
+        assert abs(m.total_cost_usd - 0.25) < 0.01
+        assert abs(m.net_profit_usd - 2.25) < 0.01
+        assert m.cost_efficiency == 10.0  # $2.50 / $0.25
 
-        data = json.loads(perf_file.read_text())
-        assert data["tasks_completed"] == 5
-        assert data["total_earned_usd"] == 0.50
-        assert "completion_rate" in data
-        assert "reliability_score" in data
+    def test_category_breakdown(self, tracker):
+        categories = ["research", "research", "code_review", "research", "code_review"]
+        successes = [True, True, True, False, True]
+        
+        for i, (cat, success) in enumerate(zip(categories, successes)):
+            record = TaskRecord(
+                task_id=f"t{i}", agent_id="aurora", category=cat,
+                started_at=time.time(), completed_at=time.time() + 60,
+                success=success,
+            )
+            tracker.records.append(record)
+        
+        m = tracker.agent_metrics("aurora")
+        assert m.category_counts["research"] == 3
+        assert m.category_counts["code_review"] == 2
+        assert abs(m.category_success_rates["research"] - 2/3) < 0.01
+        assert abs(m.category_success_rates["code_review"] - 1.0) < 0.01
 
-    def test_save_roundtrip(self, tmp_dir):
-        """Save then load produces same data."""
-        ws = tmp_dir / "workspaces" / "kk-alpha"
-        ws.mkdir(parents=True)
+    def test_consecutive_failures(self, tracker):
+        for i in range(5):
+            record = TaskRecord(
+                task_id=f"t{i}", agent_id="aurora", category="research",
+                started_at=time.time() - (5-i) * 60,
+                completed_at=time.time() - (5-i) * 60 + 30,
+                success=i < 2,  # First 2 succeed, last 3 fail
+            )
+            tracker.records.append(record)
+        
+        m = tracker.agent_metrics("aurora")
+        assert m.consecutive_failures == 3
 
-        original = AgentPerformance(
-            "kk-alpha",
-            tasks_completed=10,
-            tasks_attempted=12,
-            avg_rating_received=85.0,
-            rating_count=8,
-            category_completions={"simple_action": 7},
-            category_attempts={"simple_action": 8},
-            chain_tasks={"base": 10, "polygon": 5},
+    def test_cost_efficiency_no_cost(self, tracker):
+        """Agent with earnings but no cost → infinite efficiency."""
+        record = TaskRecord(
+            task_id="t1", agent_id="aurora", category="research",
+            started_at=time.time(), completed_at=time.time() + 60,
+            success=True, bounty_usd=0.50, cost_usd=0.0,
         )
+        tracker.records.append(record)
+        
+        m = tracker.agent_metrics("aurora")
+        assert m.cost_efficiency == float('inf')
 
-        save_performance(tmp_dir / "workspaces", {"kk-alpha": original})
-        loaded = extract_performance_from_json(tmp_dir / "workspaces")
+    def test_window_filtering(self, tracker):
+        """Only count tasks within the window."""
+        # Old task (15 days ago)
+        tracker.records.append(TaskRecord(
+            task_id="old", agent_id="aurora", category="research",
+            started_at=time.time() - 15 * 86400,
+            completed_at=time.time() - 15 * 86400 + 60,
+            success=True,
+        ))
+        # Recent task (1 day ago)
+        tracker.records.append(TaskRecord(
+            task_id="new", agent_id="aurora", category="research",
+            started_at=time.time() - 86400,
+            completed_at=time.time() - 86400 + 60,
+            success=True,
+        ))
+        
+        m_all = tracker.agent_metrics("aurora")
+        m_week = tracker.agent_metrics("aurora", window_days=7)
+        
+        assert m_all.total_tasks == 2
+        assert m_week.total_tasks == 1
 
-        assert "kk-alpha" in loaded
-        loaded_alpha = loaded["kk-alpha"]
-        assert loaded_alpha.tasks_completed == original.tasks_completed
-        assert loaded_alpha.avg_rating_received == original.avg_rating_received
-        assert loaded_alpha.chain_tasks == original.chain_tasks
+    def test_anomaly_consecutive_failures(self, tracker):
+        for i in range(5):
+            tracker.records.append(TaskRecord(
+                task_id=f"t{i}", agent_id="aurora", category="research",
+                started_at=time.time() - (5-i) * 60,
+                completed_at=time.time() - (5-i) * 60 + 30,
+                success=False,
+            ))
+        
+        m = tracker.agent_metrics("aurora")
+        assert any("CONSECUTIVE_FAILURES" in f for f in m.anomaly_flags)
 
-    def test_save_skips_nonexistent_workspace(self, tmp_dir):
-        profiles = {"nonexistent": AgentPerformance("nonexistent")}
-        saved = save_performance(tmp_dir / "workspaces", profiles)
-        assert saved == 0
+    def test_anomaly_low_success_rate(self, tracker):
+        for i in range(10):
+            tracker.records.append(TaskRecord(
+                task_id=f"t{i}", agent_id="aurora", category="research",
+                started_at=time.time() - i * 60,
+                completed_at=time.time() - i * 60 + 30,
+                success=i < 3,  # 30% success rate
+            ))
+        
+        m = tracker.agent_metrics("aurora")
+        assert any("LOW_SUCCESS_RATE" in f for f in m.anomaly_flags)
+
+
+# ── Swarm Report Tests ──
+
+class TestSwarmReport:
+    def test_empty_report(self, tracker):
+        report = tracker.swarm_report()
+        assert report.total_agents == 0
+        assert report.total_tasks == 0
+        assert report.swarm_success_rate == 0
+
+    def test_basic_report(self, tracker_with_data):
+        report = tracker_with_data.swarm_report()
+        assert report.total_agents == 3
+        assert report.total_tasks == 20
+        assert report.active_agents == 3
+        assert report.swarm_success_rate > 0
+        assert report.total_earned_usd > 0
+
+    def test_top_performers(self, tracker_with_data):
+        report = tracker_with_data.swarm_report()
+        # Should have top agents (may or may not have enough rated tasks)
+        assert isinstance(report.top_agents_by_volume, list)
+        assert len(report.top_agents_by_volume) > 0
+
+    def test_category_breakdown(self, tracker_with_data):
+        report = tracker_with_data.swarm_report()
+        assert len(report.category_breakdown) > 0
+        for cat, data in report.category_breakdown.items():
+            assert "count" in data
+            assert "success_rate" in data
+            assert "total_earned" in data
+
+    def test_report_markdown(self, tracker_with_data):
+        report = tracker_with_data.swarm_report()
+        md = report.to_markdown()
+        assert "# KK V2 Swarm Performance Report" in md
+        assert "Fleet Summary" in md
+        assert "Active Agents" in md
+
+    def test_report_dict(self, tracker_with_data):
+        report = tracker_with_data.swarm_report()
+        d = report.to_dict()
+        assert "total_agents" in d
+        assert "total_tasks" in d
+        assert "category_breakdown" in d
+
+    def test_window_filtering(self, tracker):
+        """Swarm report respects window_days."""
+        # Old task
+        tracker.records.append(TaskRecord(
+            task_id="old", agent_id="aurora", category="research",
+            started_at=time.time() - 30 * 86400,
+            completed_at=time.time() - 30 * 86400 + 60,
+            success=True, bounty_usd=1.00,
+        ))
+        # Recent task
+        tracker.records.append(TaskRecord(
+            task_id="new", agent_id="aurora", category="research",
+            started_at=time.time() - 86400,
+            completed_at=time.time() - 86400 + 60,
+            success=True, bounty_usd=0.50,
+        ))
+        
+        report_all = tracker.swarm_report()
+        report_week = tracker.swarm_report(window_days=7)
+        
+        assert report_all.total_tasks == 2
+        assert report_week.total_tasks == 1
+
+
+# ── Persistence Tests ──
+
+class TestPersistence:
+    def test_persist_and_load(self, tmp_path):
+        path = tmp_path / "perf.json"
+        
+        # Create and populate
+        t1 = AgentPerformanceTracker(persist_path=str(path))
+        t1.record_task_start("aurora", "task_001", "research", bounty_usd=0.50)
+        t1.record_task_complete("aurora", "task_001", success=True, rating=4.5)
+        
+        assert path.exists()
+        
+        # Load in new tracker
+        t2 = AgentPerformanceTracker(persist_path=str(path))
+        assert len(t2.records) == 1
+        assert t2.records[0].task_id == "task_001"
+        assert t2.records[0].success is True
+        assert t2.records[0].rating == 4.5
+
+    def test_persist_truncates(self, tmp_path):
+        """Should keep only last 10K records."""
+        path = tmp_path / "perf.json"
+        t = AgentPerformanceTracker(persist_path=str(path))
+        
+        # Add many records
+        for i in range(100):
+            t.records.append(TaskRecord(
+                task_id=f"t{i}", agent_id="aurora", category="research",
+                started_at=time.time(), completed_at=time.time() + 60,
+                success=True,
+            ))
+        t._persist()
+        
+        data = json.loads(path.read_text())
+        assert len(data) == 100  # Under 10K limit
+
+    def test_no_persist_path(self, tracker):
+        """Should not fail when no persist path."""
+        tracker.record_task_start("aurora", "task_001", "research")
+        tracker.record_task_complete("aurora", "task_001", success=True)
+        # No error
+
+
+# ── AutoJob Export Tests ──
+
+class TestAutoJobExport:
+    def test_export_format(self, tracker):
+        tracker.records.append(TaskRecord(
+            task_id="task_001", agent_id="aurora", category="research",
+            started_at=time.time() - 3600, completed_at=time.time(),
+            success=True, bounty_usd=0.50, chain="base",
+        ))
+        tracker.records.append(TaskRecord(
+            task_id="task_002", agent_id="aurora", category="code_review",
+            started_at=time.time() - 1800, completed_at=time.time(),
+            success=False, bounty_usd=0.25, chain="polygon",
+        ))
+        
+        export = tracker.export_for_autojob("aurora")
+        
+        # Only successful tasks
+        assert len(export) == 1
+        assert export[0]["task_id"] == "task_001"
+        assert export[0]["category"] == "research"
+        assert export[0]["bounty_usd"] == 0.50
+        assert export[0]["payment_network"] == "base"
+        assert export[0]["status"] == "completed"
+        assert "created_at" in export[0]
+
+    def test_export_empty(self, tracker):
+        export = tracker.export_for_autojob("nonexistent")
+        assert export == []
+
+
+# ── TaskRecord Tests ──
+
+class TestTaskRecord:
+    def test_to_dict(self):
+        record = TaskRecord(
+            task_id="t1", agent_id="aurora", category="research",
+            started_at=100.0, completed_at=400.0,
+            success=True, bounty_usd=0.50, cost_usd=0.05,
+        )
+        d = record.to_dict()
+        assert d["duration_seconds"] == 300.0
+        assert d["profit_usd"] == 0.45
+
+    def test_no_completion(self):
+        record = TaskRecord(
+            task_id="t1", agent_id="aurora", category="research",
+            started_at=100.0,
+        )
+        assert record.duration_seconds is None
+        assert record.profit_usd == 0.0
+
+
+# ── Trend Detection Tests ──
+
+class TestTrends:
+    def test_improving_trend(self, tracker):
+        now = time.time()
+        
+        # Older records (2 weeks ago) — low ratings
+        for i in range(5):
+            tracker.records.append(TaskRecord(
+                task_id=f"old_{i}", agent_id="aurora", category="research",
+                started_at=now - 12 * 86400 + i * 3600,
+                completed_at=now - 12 * 86400 + i * 3600 + 300,
+                success=True, rating=3.0,
+            ))
+        
+        # Recent records (3 days ago) — high ratings
+        for i in range(5):
+            tracker.records.append(TaskRecord(
+                task_id=f"new_{i}", agent_id="aurora", category="research",
+                started_at=now - 3 * 86400 + i * 3600,
+                completed_at=now - 3 * 86400 + i * 3600 + 300,
+                success=True, rating=4.8,
+            ))
+        
+        m = tracker.agent_metrics("aurora")
+        assert m.rating_trend == "improving"
+
+    def test_declining_trend(self, tracker):
+        now = time.time()
+        
+        # Older records — high ratings
+        for i in range(5):
+            tracker.records.append(TaskRecord(
+                task_id=f"old_{i}", agent_id="aurora", category="research",
+                started_at=now - 12 * 86400 + i * 3600,
+                completed_at=now - 12 * 86400 + i * 3600 + 300,
+                success=True, rating=4.8,
+            ))
+        
+        # Recent records — low ratings
+        for i in range(5):
+            tracker.records.append(TaskRecord(
+                task_id=f"new_{i}", agent_id="aurora", category="research",
+                started_at=now - 3 * 86400 + i * 3600,
+                completed_at=now - 3 * 86400 + i * 3600 + 300,
+                success=True, rating=3.0,
+            ))
+        
+        m = tracker.agent_metrics("aurora")
+        assert m.rating_trend == "declining"
+
+    def test_stable_trend(self, tracker):
+        now = time.time()
+        
+        # All records have similar ratings
+        for week_offset in [12, 3]:
+            for i in range(5):
+                tracker.records.append(TaskRecord(
+                    task_id=f"t_{week_offset}_{i}", agent_id="aurora",
+                    category="research",
+                    started_at=now - week_offset * 86400 + i * 3600,
+                    completed_at=now - week_offset * 86400 + i * 3600 + 300,
+                    success=True, rating=4.2,
+                ))
+        
+        m = tracker.agent_metrics("aurora")
+        assert m.rating_trend == "stable"
