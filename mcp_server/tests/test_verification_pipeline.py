@@ -683,7 +683,7 @@ class TestVerificationPipeline:
 
     @pytest.mark.asyncio
     async def test_weights_sum_to_one(self):
-        """CHECK_WEIGHTS should cover all 5 checks and sum to 1.0."""
+        """CHECK_WEIGHTS (Phase A) should cover all 5 sync checks and sum to 0.50."""
         assert set(CHECK_WEIGHTS.keys()) == {
             "schema",
             "gps",
@@ -691,7 +691,8 @@ class TestVerificationPipeline:
             "evidence_hash",
             "metadata",
         }
-        assert sum(CHECK_WEIGHTS.values()) == pytest.approx(1.0)
+        # Phase A subtotal = 0.50 (Phase B adds another 0.50)
+        assert sum(CHECK_WEIGHTS.values()) == pytest.approx(0.50)
 
     @pytest.mark.asyncio
     async def test_digital_task_without_gps_no_warning(self):
