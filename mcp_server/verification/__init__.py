@@ -29,9 +29,16 @@ from .providers import (
     AnthropicProvider,
     OpenAIProvider,
     BedrockProvider,
+    GeminiProvider,
     get_provider,
     list_available_providers,
 )
+from .image_downloader import (
+    extract_photo_urls,
+    download_images_to_temp,
+    cleanup_temp_files,
+)
+from .background_runner import run_phase_b_verification
 from .gps_antispoofing import (
     GPSAntiSpoofing,
     SpoofingResult,
@@ -72,8 +79,14 @@ __all__ = [
     "AnthropicProvider",
     "OpenAIProvider",
     "BedrockProvider",
+    "GeminiProvider",
     "get_provider",
     "list_available_providers",
+    # Image download + Phase B
+    "extract_photo_urls",
+    "download_images_to_temp",
+    "cleanup_temp_files",
+    "run_phase_b_verification",
     # GPS anti-spoofing (NOW-108, NOW-109, NOW-111)
     "GPSAntiSpoofing",
     "SpoofingResult",
