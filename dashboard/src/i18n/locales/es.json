@@ -1639,5 +1639,27 @@
     "jurisdiction.mx": "Mexico (SAT)",
     "jurisdiction.us": "Estados Unidos (IRS)",
     "jurisdiction.generic": "Reporte Generico"
+  },
+  "autoCheck": {
+    "title": "Verificacion automatica",
+    "phaseBPending": "Verificacion por IA en progreso. Los resultados se actualizaran automaticamente.",
+    "phaseComplete": "Verificacion completa",
+    "phasePartial": "Verificacion parcial — IA pendiente",
+    "guidanceHigh": "Todos los checks pasaron. Puedes aprobar con confianza.",
+    "guidanceMedium": "La mayoria de checks pasaron. Revisa las advertencias antes de aprobar.",
+    "guidanceLow": "Varios checks fallaron. Revisa la evidencia cuidadosamente.",
+    "guidanceVeryLow": "Score bajo. Revisa cada check antes de tomar una decision.",
+    "checks": {
+      "schema": "Campos requeridos",
+      "gps": "Ubicacion GPS",
+      "timestamp": "Tiempo de entrega",
+      "evidence_hash": "Integridad",
+      "metadata": "Metadatos",
+      "ai_semantic": "IA: Coincidencia",
+      "tampering": "Manipulacion",
+      "genai_detection": "Deteccion IA",
+      "photo_source": "Origen de foto",
+      "duplicate": "Duplicados"
+    }
   }
 }
