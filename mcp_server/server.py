@@ -411,6 +411,37 @@ def format_submission_markdown(submission: Dict[str, Any]) -> str:
         for w in warnings:
             lines.append(f"- WARNING: {w}")
 
+        phase = details.get("phase", "A")
+        if phase == "A":
+            lines.append(
+                "- NOTE: Phase B (AI image analysis) pending"
+                " — results will update automatically"
+            )
+        elif phase == "AB":
+            lines.append("- Phase: AB (complete)")
+
+        if score >= 0.95:
+            lines.append("\nRECOMMENDATION: All checks passed. Safe to approve.")
+        elif score >= 0.70:
+            lines.append(
+                "\nRECOMMENDATION: Most checks passed."
+                " Review warnings before approving."
+            )
+        elif score >= 0.40:
+            lines.append(
+                "\nRECOMMENDATION: Several checks failed. Inspect evidence carefully."
+            )
+        else:
+            lines.append(
+                "\nRECOMMENDATION: Low score. Review each check before deciding."
+            )
+
+        if details.get("auto_approved"):
+            lines.append(
+                "\nAUTO-APPROVED: This submission was automatically"
+                " approved by AI verification."
+            )
+
     if submission.get("agent_notes"):
         lines.extend(["", f"**Agent Notes**: {submission['agent_notes']}"])
 
