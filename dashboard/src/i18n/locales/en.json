@@ -1639,5 +1639,27 @@
     "ctaContact": "Contact Us",
     "ctaRequestKey": "Request API Key",
     "ctaExploreDocs": "Explore API Docs"
+  },
+  "autoCheck": {
+    "title": "Automatic verification",
+    "phaseBPending": "AI verification in progress. Results will update automatically.",
+    "phaseComplete": "Verification complete",
+    "phasePartial": "Partial verification — AI pending",
+    "guidanceHigh": "All checks passed. Safe to approve.",
+    "guidanceMedium": "Most checks passed. Review warnings before approving.",
+    "guidanceLow": "Several checks failed. Review evidence carefully.",
+    "guidanceVeryLow": "Low score. Review each check before deciding.",
+    "checks": {
+      "schema": "Required fields",
+      "gps": "GPS location",
+      "timestamp": "Delivery time",
+      "evidence_hash": "Integrity",
+      "metadata": "Metadata",
+      "ai_semantic": "AI: Match",
+      "tampering": "Tampering",
+      "genai_detection": "AI detection",
+      "photo_source": "Photo source",
+      "duplicate": "Duplicates"
+    }
   }
 }
