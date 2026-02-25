@@ -324,6 +324,135 @@ async def update_submission_auto_check(
         )
 
 
+async def get_existing_perceptual_hashes(
+    exclude_task_id: Optional[str] = None,
+    limit: int = 100,
+) -> List[Dict[str, Any]]:
+    """
+    Query recent submissions with perceptual hashes for duplicate detection.
+
+    Returns list of dicts: [{"id": sub_id, "hashes": {...}, "task_id": ...}]
+    """
+    client = get_client()
+    try:
+        query = (
+            client.table("submissions")
+            .select("id, task_id, perceptual_hashes")
+            .not_.is_("perceptual_hashes", "null")
+            .order("submitted_at", desc=True)
+            .limit(limit)
+        )
+        if exclude_task_id:
+            query = query.neq("task_id", exclude_task_id)
+
+        result = query.execute()
+        return [
+            {
+                "id": row["id"],
+                "task_id": row.get("task_id"),
+                "hashes": row["perceptual_hashes"],
+            }
+            for row in (result.data or [])
+            if row.get("perceptual_hashes")
+        ]
+    except Exception as e:
+        logger.warning("Failed to query perceptual hashes: %s", e)
+        return []
+
+
+async def update_submission_perceptual_hashes(
+    submission_id: str,
+    hashes: Dict[str, Any],
+) -> None:
+    """Store perceptual hash data for a submission."""
+    client = get_client()
+    try:
+        client.table("submissions").update({"perceptual_hashes": hashes}).eq(
+            "id", submission_id
+        ).execute()
+    except Exception as e:
+        logger.warning(
+            "Failed to store perceptual hashes for submission %s: %s",
+            submission_id,
+            e,
+        )
+
+
+async def update_submission_ai_verification(
+    submission_id: str,
+    result: Dict[str, Any],
+) -> None:
+    """Store AI verification result for a submission."""
+    client = get_client()
+    try:
+        client.table("submissions").update({"ai_verification_result": result}).eq(
+            "id", submission_id
+        ).execute()
+    except Exception as e:
+        logger.warning(
+            "Failed to store AI verification result for submission %s: %s",
+            submission_id,
+            e,
+        )
+
+
+async def auto_approve_submission(
+    submission_id: str,
+    score: float,
+    agent_notes: str,
+) -> bool:
+    """
+    Auto-approve a submission if it hasn't been reviewed yet.
+
+    Sets agent_verdict='accepted' only when current verdict is null or 'pending'.
+    Returns True if the submission was auto-approved.
+    """
+    client = get_client()
+    try:
+        # Fetch current verdict
+        current = (
+            client.table("submissions")
+            .select("agent_verdict, task_id")
+            .eq("id", submission_id)
+            .single()
+            .execute()
+        )
+        if not current.data:
+            return False
+
+        verdict = current.data.get("agent_verdict")
+        if verdict not in (None, "pending"):
+            logger.info(
+                "Skipping auto-approve for %s: already reviewed (verdict=%s)",
+                submission_id,
+                verdict,
+            )
+            return False
+
+        client.table("submissions").update(
+            {
+                "agent_verdict": "accepted",
+                "agent_notes": agent_notes,
+                "verified_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).eq("id", submission_id).execute()
+
+        logger.info(
+            "Auto-approved submission %s with score %.3f",
+            submission_id,
+            score,
+        )
+        return True
+
+    except Exception as e:
+        logger.warning(
+            "Failed to auto-approve submission %s: %s",
+            submission_id,
+            e,
+        )
+        return False
+
+
 async def update_submission(
     submission_id: str,
     agent_id: str,
