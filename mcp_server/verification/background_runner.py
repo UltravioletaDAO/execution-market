@@ -239,7 +239,8 @@ async def _run_ai_semantic_check(
         # Compute commitment hash for auditability
         prompt_text = f"task:{task.get('id', '')}"
         response_text = result.explanation or ""
-        commitment_hash = Web3.keccak(text=f"{prompt_text}|{response_text}").hex()
+        raw_hex = Web3.keccak(text=f"{prompt_text}|{response_text}").hex()
+        commitment_hash = raw_hex if raw_hex.startswith("0x") else f"0x{raw_hex}"
 
         return CheckResult(
             name="ai_semantic",
