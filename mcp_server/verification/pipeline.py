@@ -25,14 +25,29 @@ logger = logging.getLogger(__name__)
 # Categories that require physical presence (GPS verification)
 PHYSICAL_CATEGORIES = {"physical_presence", "simple_action"}
 
-# Weights for calculating aggregate score
-CHECK_WEIGHTS = {
-    "schema": 0.30,
-    "gps": 0.25,
-    "timestamp": 0.20,
-    "evidence_hash": 0.15,
-    "metadata": 0.10,
+# Phase A weights (sync checks, subtotal = 0.50)
+PHASE_A_WEIGHTS = {
+    "schema": 0.15,
+    "gps": 0.15,
+    "timestamp": 0.10,
+    "evidence_hash": 0.05,
+    "metadata": 0.05,
 }
+
+# Phase B weights (async checks, subtotal = 0.50)
+PHASE_B_WEIGHTS = {
+    "ai_semantic": 0.25,
+    "tampering": 0.10,
+    "genai_detection": 0.05,
+    "photo_source": 0.05,
+    "duplicate": 0.05,
+}
+
+# Combined weights for full scoring
+ALL_WEIGHTS = {**PHASE_A_WEIGHTS, **PHASE_B_WEIGHTS}
+
+# Legacy alias for backward compatibility
+CHECK_WEIGHTS = PHASE_A_WEIGHTS
 
 
 @dataclass
@@ -54,6 +69,7 @@ class VerificationResult:
     score: float  # 0.0 to 1.0 weighted aggregate
     checks: List[CheckResult] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
+    phase: str = "A"  # "A", "B", or "AB"
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict for JSONB storage."""
@@ -62,6 +78,7 @@ class VerificationResult:
             "score": round(self.score, 3),
             "checks": [asdict(c) for c in self.checks],
             "warnings": self.warnings,
+            "phase": self.phase,
         }
 
 
@@ -113,12 +130,12 @@ async def run_verification_pipeline(
     metadata_result = _run_metadata_check(evidence, category)
     checks.append(metadata_result)
 
-    # --- Aggregate score ---
+    # --- Aggregate score (Phase A only — Phase B runs async) ---
     total_weight = 0.0
     weighted_score = 0.0
 
     for check in checks:
-        weight = CHECK_WEIGHTS.get(check.name, 0.10)
+        weight = PHASE_A_WEIGHTS.get(check.name, 0.10)
         weighted_score += check.score * weight
         total_weight += weight
 
@@ -133,10 +150,11 @@ async def run_verification_pipeline(
         score=aggregate_score,
         checks=checks,
         warnings=warnings,
+        phase="A",
     )
 
     logger.info(
-        "Verification pipeline: passed=%s, score=%.2f, checks=%d, warnings=%d",
+        "Verification pipeline (Phase A): passed=%s, score=%.2f, checks=%d, warnings=%d",
         result.passed,
         result.score,
         len(checks),
@@ -462,3 +480,73 @@ def _parse_datetime(value: Any) -> Optional[datetime]:
             pass
 
     return None
+
+
+def recompute_aggregate(
+    phase_a_checks: List[CheckResult],
+    phase_b_checks: List[CheckResult],
+) -> tuple:
+    """
+    Recompute the aggregate score using ALL_WEIGHTS across both phases.
+
+    Returns:
+        (aggregate_score, pipeline_passed)
+    """
+    all_checks = phase_a_checks + phase_b_checks
+    total_weight = 0.0
+    weighted_score = 0.0
+
+    for check in all_checks:
+        weight = ALL_WEIGHTS.get(check.name, 0.05)
+        weighted_score += check.score * weight
+        total_weight += weight
+
+    aggregate_score = weighted_score / total_weight if total_weight > 0 else 0.0
+
+    schema_passed = any(c.name == "schema" and c.passed for c in all_checks)
+    pipeline_passed = aggregate_score >= 0.5 and schema_passed
+
+    return aggregate_score, pipeline_passed
+
+
+def merge_phase_b(
+    existing_dict: Dict[str, Any],
+    phase_b_checks: List[CheckResult],
+) -> Dict[str, Any]:
+    """
+    Merge Phase B check results into existing auto_check_details dict.
+
+    Recomputes the aggregate score using all checks from both phases.
+
+    Returns:
+        Updated auto_check_details dict with phase="AB".
+    """
+    # Reconstruct Phase A CheckResults from existing dict
+    phase_a_checks = []
+    for c in existing_dict.get("checks", []):
+        phase_a_checks.append(
+            CheckResult(
+                name=c["name"],
+                passed=c["passed"],
+                score=c["score"],
+                reason=c.get("reason"),
+                details=c.get("details", {}),
+            )
+        )
+
+    # Recompute aggregate
+    aggregate_score, pipeline_passed = recompute_aggregate(
+        phase_a_checks, phase_b_checks
+    )
+
+    # Build merged dict
+    all_checks = phase_a_checks + phase_b_checks
+    warnings = list(existing_dict.get("warnings", []))
+
+    return {
+        "passed": pipeline_passed,
+        "score": round(aggregate_score, 3),
+        "checks": [asdict(c) for c in all_checks],
+        "warnings": warnings,
+        "phase": "AB",
+    }
