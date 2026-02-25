@@ -212,10 +212,19 @@ async def submit_work(
             response_data["verification"] = {
                 "passed": verification_result.passed,
                 "score": round(verification_result.score, 3),
-                "checks": len(verification_result.checks),
+                "checks": [
+                    {
+                        "name": c.name,
+                        "passed": c.passed,
+                        "score": round(c.score, 3),
+                        "reason": c.reason,
+                    }
+                    for c in verification_result.checks
+                ],
                 "warnings": verification_result.warnings,
                 "phase": "A",
                 "phase_b_status": "pending",
+                "summary": _build_verification_summary(verification_result),
             }
         response_message = "Work submitted successfully. Awaiting agent review."
 
@@ -292,3 +301,24 @@ async def submit_work(
         raise HTTPException(
             status_code=500, detail="Internal error while submitting work"
         )
+
+
+def _build_verification_summary(result) -> str:
+    """Build a human-readable one-liner for verification results."""
+    total = len(result.checks)
+    passed = sum(1 for c in result.checks if c.passed)
+    pct = round(result.score * 100)
+
+    failed_names = [c.name for c in result.checks if not c.passed]
+
+    base = f"Verificacion inicial: {passed}/{total} checks pasaron ({pct}%)."
+    if result.passed and not failed_names:
+        return f"{base} Verificacion por IA en progreso..."
+    if failed_names:
+        reasons = ", ".join(
+            c.reason for c in result.checks if not c.passed and c.reason
+        )
+        if reasons:
+            return f"{base} {reasons}"
+        return f"{base} Fallaron: {', '.join(failed_names)}"
+    return f"{base} Verificacion por IA en progreso..."
