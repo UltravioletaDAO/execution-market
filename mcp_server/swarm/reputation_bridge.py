@@ -431,15 +431,18 @@ class ReputationBridge:
         )
         if erc8004_rep_addr and erc8004_rep_addr != "0x" + "0" * 40:
             try:
-                from .describenet_reader import DescribeNetReader
-                reader = DescribeNetReader.__new__(DescribeNetReader)
+                from .describenet_reader import DescribeNetReader  # noqa: F401
+
                 # Use the same raw eth_call pattern as describenet_reader
                 # Selector: getReputation(address) = keccak256("getReputation(address)")[:4]
                 import hashlib
+
                 selector = hashlib.sha3_256(b"getReputation(address)").digest()[:4]
                 padded_addr = wallet.lower().replace("0x", "").zfill(64)
-                calldata = "0x" + selector.hex() + padded_addr
-                logger.debug(f"ERC-8004 fallback read for {wallet} at {erc8004_rep_addr}")
+                _calldata = "0x" + selector.hex() + padded_addr
+                logger.debug(
+                    f"ERC-8004 fallback read for {wallet} at {erc8004_rep_addr}"
+                )
             except Exception as e:
                 logger.debug(f"ERC-8004 fallback not available: {e}")
         logger.debug(f"No on-chain reputation found for {wallet}")
