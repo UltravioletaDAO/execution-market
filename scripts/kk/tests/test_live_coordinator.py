@@ -14,7 +14,10 @@ import pytest
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# execution-market root (for mcp_server imports)
+_em_root = str(Path(__file__).parent.parent.parent.parent)
+if _em_root not in sys.path:
+    sys.path.insert(0, _em_root)
 
 from lib.swarm_live_coordinator import (
     SwarmLiveCoordinator,
