@@ -9,7 +9,10 @@ from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Path
 
 import supabase_client as db
+import asyncio
+
 from verification.pipeline import run_verification_pipeline
+from verification.background_runner import run_phase_b_verification
 
 from ._models import (
     WorkerApplicationRequest,
@@ -179,10 +182,19 @@ async def submit_work(
                     auto_check_details=verification_result.to_dict(),
                 )
                 logger.info(
-                    "Auto-check for submission %s: passed=%s, score=%.2f",
+                    "Auto-check (Phase A) for submission %s: passed=%s, score=%.2f",
                     submission_id,
                     verification_result.passed,
                     verification_result.score,
+                )
+
+                # Launch Phase B (async, non-blocking)
+                asyncio.create_task(
+                    run_phase_b_verification(
+                        submission_id=submission_id,
+                        submission=submission_data,
+                        task=task,
+                    )
                 )
         except Exception as verify_err:
             logger.warning(
@@ -202,6 +214,8 @@ async def submit_work(
                 "score": round(verification_result.score, 3),
                 "checks": len(verification_result.checks),
                 "warnings": verification_result.warnings,
+                "phase": "A",
+                "phase_b_status": "pending",
             }
         response_message = "Work submitted successfully. Awaiting agent review."
 
