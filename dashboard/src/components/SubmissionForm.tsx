@@ -10,7 +10,7 @@ import {
   type EvidenceMetadata,
   type UploadResult,
 } from '../services/evidence'
-import { submitWork } from '../services/submissions'
+import { submitWork, type VerificationResponse } from '../services/submissions'
 import type { Evidence } from '../services/types'
 import {
   EvidenceUpload,
@@ -23,7 +23,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://api.execution.market'
 interface SubmissionFormProps {
   task: Task
   executor: Executor
-  onSubmit?: () => void
+  onSubmit?: (verification?: VerificationResponse | null) => void
   onCancel?: () => void
 }
 
@@ -366,13 +366,13 @@ export function SubmissionForm({
         }
       }
 
-      await submitWork({
+      const result = await submitWork({
         taskId: task.id,
         executorId: executor.id,
         evidence,
       })
 
-      onSubmit?.()
+      onSubmit?.(result.verification)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('submission.submitError'))
     } finally {
