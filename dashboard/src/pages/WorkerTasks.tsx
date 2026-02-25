@@ -9,15 +9,31 @@ import { TaskList, CategoryFilter } from '../components/TaskList'
 import { TaskDetail } from '../components/TaskDetail'
 import { SubmissionForm } from '../components/SubmissionForm'
 import { PaymentStatus } from '../components/PaymentStatus'
+import type { VerificationResponse } from '../services/submissions'
 import type { Task, TaskCategory } from '../types/database'
 
 type TasksView = 'list' | 'detail' | 'submit' | 'submitted'
 
+const CHECK_LABELS: Record<string, string> = {
+  schema: 'Campos requeridos',
+  gps: 'Ubicacion GPS',
+  timestamp: 'Tiempo de entrega',
+  evidence_hash: 'Integridad',
+  metadata: 'Metadatos',
+  ai_semantic: 'IA: Coincidencia',
+  tampering: 'Manipulacion',
+  genai_detection: 'Deteccion IA',
+  photo_source: 'Origen de foto',
+  duplicate: 'Duplicados',
+}
+
 function SubmissionConfirmation({
   task,
+  verification,
   onBack,
 }: {
   task: Task
+  verification?: VerificationResponse | null
   onBack: () => void
 }) {
   const { t } = useTranslation()
@@ -39,6 +55,53 @@ function SubmissionConfirmation({
           {task.title}
         </p>
       </div>
+
+      {/* Verification results */}
+      {verification && (
+        <div className={`bg-white rounded-lg border p-4 ${verification.passed ? 'border-green-200' : 'border-orange-200'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-700">
+              {t('autoCheck.title', 'Verificacion automatica')}
+            </span>
+            <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
+              verification.passed ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+            }`}>
+              {Math.round(verification.score * 100)}%
+            </span>
+          </div>
+          {verification.summary && (
+            <p className="text-sm text-gray-600 mb-3">{verification.summary}</p>
+          )}
+          <div className="space-y-1">
+            {verification.checks.map(check => (
+              <div key={check.name} className="flex items-center gap-2 text-xs">
+                <span className={check.passed ? 'text-green-600' : 'text-red-500'}>
+                  {check.passed ? '\u2713' : '\u2717'}
+                </span>
+                <span className="text-gray-600 w-28">
+                  {t(`autoCheck.checks.${check.name}`, CHECK_LABELS[check.name] || check.name)}
+                </span>
+                <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                  <div
+                    className={`h-1.5 rounded-full ${
+                      check.score >= 0.7 ? 'bg-green-500' : check.score >= 0.4 ? 'bg-yellow-500' : 'bg-red-400'
+                    }`}
+                    style={{ width: `${Math.round(check.score * 100)}%` }}
+                  />
+                </div>
+                <span className="text-gray-400 font-mono w-8 text-right">
+                  {Math.round(check.score * 100)}%
+                </span>
+              </div>
+            ))}
+          </div>
+          {verification.phase_b_status === 'pending' && (
+            <p className="text-xs text-blue-600 mt-2">
+              {t('autoCheck.phaseBPending', 'Verificacion por IA en progreso. Los resultados se actualizaran automaticamente.')}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Payment status */}
       {loading ? (
@@ -132,7 +195,10 @@ export function WorkerTasks() {
     setView('submit')
   }, [])
 
-  const handleSubmissionComplete = useCallback(() => {
+  const [verification, setVerification] = useState<VerificationResponse | null>(null)
+
+  const handleSubmissionComplete = useCallback((v?: VerificationResponse | null) => {
+    setVerification(v ?? null)
     setView('submitted')
   }, [])
 
@@ -164,10 +230,12 @@ export function WorkerTasks() {
       return (
         <SubmissionConfirmation
           task={selectedTask}
+          verification={verification}
           onBack={() => {
             setView('list')
             setSelectedTask(null)
             setActiveTab('mine')
+            setVerification(null)
           }}
         />
       )
