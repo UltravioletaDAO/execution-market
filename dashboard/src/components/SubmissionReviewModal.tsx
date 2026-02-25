@@ -345,11 +345,29 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
               )}
 
               {/* Auto-check verification results */}
-              {submission.auto_check_passed !== null && submission.auto_check_passed !== undefined && (
+              {submission.auto_check_passed !== null && submission.auto_check_passed !== undefined && (() => {
+                /* eslint-disable @typescript-eslint/no-explicit-any */
+                const details = submission.auto_check_details as any
+                const score = details?.score ?? 0
+                const phase = details?.phase
+                const CHECK_LABELS: Record<string, string> = {
+                  schema: 'Campos requeridos',
+                  gps: 'Ubicacion GPS',
+                  timestamp: 'Tiempo de entrega',
+                  evidence_hash: 'Integridad',
+                  metadata: 'Metadatos',
+                  ai_semantic: 'IA: Coincidencia',
+                  tampering: 'Manipulacion',
+                  genai_detection: 'Deteccion IA',
+                  photo_source: 'Origen de foto',
+                  duplicate: 'Duplicados',
+                }
+                /* eslint-enable @typescript-eslint/no-explicit-any */
+                return (
                 <div className={`rounded-lg border ${
                   submission.auto_check_passed ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
                 }`}>
-                  <div className="flex items-center justify-between p-3">
+                  <div className="flex items-center justify-between gap-2 p-3 flex-wrap">
                     <span className={`text-sm font-medium ${
                       submission.auto_check_passed ? 'text-green-700' : 'text-orange-700'
                     }`}>
@@ -357,56 +375,75 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         ? 'Verificacion automatica: Aprobada'
                         : 'Verificacion automatica: Requiere revision'}
                     </span>
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {(submission.auto_check_details as any)?.score !== undefined && (
-                      <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
-                        submission.auto_check_passed ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'
-                      }`}>
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        Score: {((submission.auto_check_details as any).score * 100).toFixed(0)}%
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {phase && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          phase === 'AB'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {phase === 'AB'
+                            ? 'Verificacion completa'
+                            : 'Verificacion parcial — IA pendiente'}
+                        </span>
+                      )}
+                      {score !== undefined && (
+                        <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
+                          submission.auto_check_passed ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'
+                        }`}>
+                          Score: {(score * 100).toFixed(0)}%
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {/* Individual check details */}
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {Array.isArray((submission.auto_check_details as any)?.checks) && (
+                  {Array.isArray(details?.checks) && (
                     <div className="px-3 pb-3 space-y-1">
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      {((submission.auto_check_details as any).checks as Array<{name: string; passed: boolean; score: number; reason?: string}>).map((check) => (
-                        <div key={check.name} className="flex items-center gap-2 text-xs">
-                          <span className={check.passed ? 'text-green-600' : 'text-red-500'}>
-                            {check.passed ? '\u2713' : '\u2717'}
-                          </span>
-                          <span className="text-gray-600 capitalize w-24">{check.name}</span>
-                          <div className="flex-1 bg-gray-200 rounded-full h-1.5">
-                            <div
-                              className={`h-1.5 rounded-full ${
-                                check.score >= 0.7 ? 'bg-green-500' : check.score >= 0.4 ? 'bg-yellow-500' : 'bg-red-400'
-                              }`}
-                              style={{ width: `${Math.round(check.score * 100)}%` }}
-                            />
+                      {(details.checks as Array<{name: string; passed: boolean; score: number; reason?: string}>).map((check) => (
+                        <div key={check.name}>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className={check.passed ? 'text-green-600' : 'text-red-500'}>
+                              {check.passed ? '\u2713' : '\u2717'}
+                            </span>
+                            <span className="text-gray-600 w-28">{CHECK_LABELS[check.name] || check.name}</span>
+                            <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full ${
+                                  check.score >= 0.7 ? 'bg-green-500' : check.score >= 0.4 ? 'bg-yellow-500' : 'bg-red-400'
+                                }`}
+                                style={{ width: `${Math.round(check.score * 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-gray-400 font-mono w-8 text-right">
+                              {Math.round(check.score * 100)}%
+                            </span>
                           </div>
-                          <span className="text-gray-400 font-mono w-8 text-right">
-                            {Math.round(check.score * 100)}%
-                          </span>
+                          {check.reason && (
+                            <p className="text-xs text-gray-400 ml-5 mt-0.5">{check.reason}</p>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
                   {/* Warnings */}
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {Array.isArray((submission.auto_check_details as any)?.warnings) &&
-                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                    ((submission.auto_check_details as any).warnings as string[]).length > 0 && (
+                  {Array.isArray(details?.warnings) &&
+                    (details.warnings as string[]).length > 0 && (
                     <div className="px-3 pb-3">
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      {((submission.auto_check_details as any).warnings as string[]).map((w, i) => (
+                      {(details.warnings as string[]).map((w: string, i: number) => (
                         <p key={i} className="text-xs text-amber-600">{w}</p>
                       ))}
                     </div>
                   )}
+                  {/* Score guidance */}
+                  <div className="px-3 pb-3 text-xs text-gray-500">
+                    {score >= 0.95 ? 'Todos los checks pasaron. Puedes aprobar con confianza.' :
+                     score >= 0.70 ? 'La mayoria de checks pasaron. Revisa las advertencias antes de aprobar.' :
+                     score >= 0.40 ? 'Varios checks fallaron. Revisa la evidencia cuidadosamente.' :
+                     'Score bajo. Revisa cada check antes de tomar una decision.'}
+                  </div>
                 </div>
-              )}
+                )
+              })()}
 
               {/* Result message */}
               {result && (
