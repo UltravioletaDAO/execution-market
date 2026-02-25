@@ -53,16 +53,20 @@ BASE_MAINNET_RPC = "https://mainnet.base.org"
 BASE_SEPOLIA_RPC = "https://sepolia.base.org"
 
 # EVM function selectors (first 4 bytes of keccak256 of function signature)
-# Pre-computed for efficiency
+# Verified via pycryptodome keccak256 computation (Feb 25, 2026)
 SELECTORS = {
     # compositeScore(address,bool,uint8) → (uint256,uint256,uint256)
-    "compositeScore": None,  # Computed in __init__
+    "compositeScore": "128a1985",
     # reputationByType(address,bytes32) → (uint256,uint256)
-    "reputationByType": None,
+    "reputationByType": "f51e4a82",
     # timeWeightedScore(address,uint256,bool,uint8) → (uint256,uint256)
-    "timeWeightedScore": None,
+    "timeWeightedScore": "673c5673",
     # totalSeals() → uint256
-    "totalSeals": None,
+    "totalSeals": "d9ff054e",
+    # getSubjectSeals(address) → uint256[]
+    "getSubjectSeals": "cb8e44e1",
+    # getSeal(uint256) → Seal
+    "getSeal": "2c945c75",
 }
 
 
@@ -84,49 +88,48 @@ def _keccak256(text: str) -> bytes:
     raise NotImplementedError("Use SEAL_TYPE_HASHES instead")
 
 
-# Pre-computed keccak256 hashes of seal type names (from Solidity)
-# NOTE: These are placeholder hashes. In production, compute actual keccak256
-# values from the Solidity contract using `cast keccak "SKILLFUL"` or similar.
-# The exact values don't matter for the bridge logic — only for on-chain calls.
+# Pre-computed keccak256 hashes of seal type names
+# Verified via pycryptodome keccak.new(digest_bits=256) on Feb 25, 2026
+# These must match the Solidity contract's keccak256("SKILLFUL") etc.
 SEAL_TYPE_HASHES = {
     "SKILLFUL": bytes.fromhex(
-        "a15bc60c955c405d20d9149c709e2460f1c2d9a497496a7f46004d1772c3054c"
+        "2b59625bf1c70ce0b0748af64d0663a0fbc490114b90652fd5cad97253a118c3"
     ),
     "RELIABLE": bytes.fromhex(
-        "68d7e3bece2dc1f4e4071f47a5e31c52d1eb49b6e23bf8bff31e2f10f6417c60"
+        "9977334e03f06fb00a398ef525cb94a37bebd15cb58d9c546a372b9b9bef277d"
     ),
     "THOROUGH": bytes.fromhex(
-        "c9fcf5c2e3eff4c2f1e5b9a8d1f3b2a400e8d0f2a1b3c5d7e9f0a2b4c6d8e0f2"
+        "75b850ff1980c810bf47e3a7a5c14300b5f280d2c30dc33d679b8a22eb8a8f09"
     ),
     "ENGAGED": bytes.fromhex(
-        "b87213121f97cc01b3f55d2eec1e6e8bbf395a096b3d43e3c6b8eb6e8f1c0e3a"
+        "1c773b59cc2a31a7035eb6a5dde9f985e1767bf5af2663023e8eb6f4b1a50198"
     ),
     "HELPFUL": bytes.fromhex(
-        "e1d9c5fb7dc9b72a5e3f8c2d1a4b7e6f009d0c3b2a8e7f5d4c6b9a1e0f3d2c5b"
+        "3f627fd8e1c60714e3c5a52c7ce1141560656c60dd8fe0bf6638bd52ee4d3dd0"
     ),
     "CURIOUS": bytes.fromhex(
-        "f2c4d6e8a0b1c3d5e7f9a2b4c6d8e0f100a3b5c7d9e1f0a2b4c6d8e0f2a4b6c8"
+        "24d11c4400d998406a337e977ad524cfbdd6759bb6a39ccf384205ba81c27e31"
     ),
     "FAIR": bytes.fromhex(
-        "d1e3f5a7b9c0d2e4f6a8b0c1d3e5f7a900b1c2d4e6f8a0b2c3d5e7f9a1b3c5d7"
+        "0053ea2dc4b7dbdadfce0e9ae827a7300872b8194f54ad6fa1bed272d8aea726"
     ),
     "ACCURATE": bytes.fromhex(
-        "a3b5c7d9e1f2a4b6c8d0e2f3a5b7c9d100e3f4a6b8c0d2e4f5a7b9c1d3e5f6a8"
+        "efa5454e441ab80ed3716aae139f48dc461ae5e8ff52ed8dbacb43a57aa81d8a"
     ),
     "RESPONSIVE": bytes.fromhex(
-        "c5d7e9f1a3b4c6d8e0f2a4b5c7d9e1f300a5b6c8d0e2f4a6b7c9d1e3f5a7b8c0"
+        "f0f4e083fe075a1104503f0e58bbba9c6146479f2d5f909112fd19d3e7120de8"
     ),
     "ETHICAL": bytes.fromhex(
-        "e7f9a1b3c5d6e8f0a2b4c5d7e9f1a3b500c6d8e0f2a4b6c7d9e1f3a5b7c8d0e2"
+        "ed4226489ecbaaf7a380d1cdadeac7e159062273f5f2f2cf0de1c3c4246c41e3"
     ),
     "CREATIVE": bytes.fromhex(
-        "f9a1b3c5d7e8f0a2b4c6d7e9f1a3b5c700d8e0f2a4b6c8d9e1f3a5b7c9d0e2f4"
+        "a5181ad8d41a4b9860ed1a7bf3aa6c5db2c06d4132ca94f900fc3340d8bd81bf"
     ),
     "PROFESSIONAL": bytes.fromhex(
-        "a1b3c5d7e9f0a2b4c6d8e9f1a3b5c7d900e0f2a4b6c8d0e1f3a5b7c9d1e2f4a6"
+        "87d60cd54fcc80ebf1c7463cbd8d67a09ac7cc464ce823e1058ee954208951b0"
     ),
     "FRIENDLY": bytes.fromhex(
-        "b3c5d7e9f1a2b4c6d8e0f1a3b5c7d9e100f2a4b6c8d0e2f3a5b7c9d1e3f4a6b8"
+        "b2a744d783fc58fdd58bd87840dc47a203ce2de0042b2a061a39340656cdce86"
     ),
 }
 
@@ -566,12 +569,17 @@ class DescribeNetReader:
         Since Python's hashlib doesn't have keccak256, we use a
         lookup table for known selectors.
         """
-        # Pre-computed keccak256 selectors for our contract functions
+        # Pre-computed keccak256 selectors — verified via pycryptodome (Feb 25, 2026)
         known_selectors = {
-            "compositeScore(address,bool,uint8)": "8f6a5e28",
-            "reputationByType(address,bytes32)": "c2f1a9d6",
-            "timeWeightedScore(address,uint256,bool,uint8)": "e4b7c832",
-            "totalSeals()": "a7f3d21c",
+            "compositeScore(address,bool,uint8)": "128a1985",
+            "reputationByType(address,bytes32)": "f51e4a82",
+            "timeWeightedScore(address,uint256,bool,uint8)": "673c5673",
+            "totalSeals()": "d9ff054e",
+            "getSubjectSeals(address)": "cb8e44e1",
+            "getSeal(uint256)": "2c945c75",
+            "ownerOf(uint256)": "6352211e",
+            "balanceOf(address)": "70a08231",
+            "tokenURI(uint256)": "c87b56dd",
         }
 
         if signature in known_selectors:
