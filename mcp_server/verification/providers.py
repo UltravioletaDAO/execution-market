@@ -2,12 +2,14 @@
 Multi-Provider AI Verification for Evidence Analysis
 
 Supports multiple AI providers for evidence verification:
-- Anthropic (Claude Vision) — default
+- Google Gemini (cheapest, ~$0.25/1K images) — default
+- Anthropic (Claude Vision)
 - OpenAI (GPT-4 Vision)
 - AWS Bedrock (Claude, Titan)
 
 Configuration via environment variables:
-  AI_VERIFICATION_PROVIDER=anthropic|openai|bedrock  (default: anthropic)
+  AI_VERIFICATION_PROVIDER=gemini|anthropic|openai|bedrock  (default: gemini)
+  GOOGLE_API_KEY=...
   ANTHROPIC_API_KEY=sk-ant-...
   OPENAI_API_KEY=sk-...
   AWS_BEDROCK_REGION=us-east-1  (default: us-east-2)
@@ -255,8 +257,62 @@ class BedrockProvider(VerificationProvider):
         )
 
 
+class GeminiProvider(VerificationProvider):
+    """Google Gemini provider (cheapest vision model)."""
+
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+        self.api_key = api_key or os.environ.get("GOOGLE_API_KEY")
+        self.model_id = model or os.environ.get(
+            "AI_VERIFICATION_MODEL", "gemini-2.5-flash"
+        )
+
+    @property
+    def name(self) -> str:
+        return "gemini"
+
+    def is_available(self) -> bool:
+        return bool(self.api_key)
+
+    async def analyze(self, request: VisionRequest) -> VisionResponse:
+        import google.generativeai as genai
+
+        genai.configure(api_key=self.api_key)
+        model = genai.GenerativeModel(self.model_id)
+
+        parts = []
+        for img_data, mime_type in zip(request.images, request.image_types):
+            parts.append({"mime_type": mime_type, "data": img_data})
+        parts.append(request.prompt)
+
+        response = model.generate_content(
+            parts,
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=request.max_tokens,
+            ),
+        )
+
+        usage = {}
+        if hasattr(response, "usage_metadata") and response.usage_metadata:
+            usage = {
+                "input_tokens": getattr(
+                    response.usage_metadata, "prompt_token_count", 0
+                ),
+                "output_tokens": getattr(
+                    response.usage_metadata, "candidates_token_count", 0
+                ),
+            }
+
+        return VisionResponse(
+            text=response.text,
+            model=self.model_id,
+            provider=self.name,
+            usage=usage,
+        )
+
+
 # Provider registry
 PROVIDERS = {
+    "gemini": GeminiProvider,
     "anthropic": AnthropicProvider,
     "openai": OpenAIProvider,
     "bedrock": BedrockProvider,
@@ -278,7 +334,7 @@ def get_provider(
 
     Raises ValueError if no provider is available.
     """
-    name = provider_name or os.environ.get("AI_VERIFICATION_PROVIDER", "anthropic")
+    name = provider_name or os.environ.get("AI_VERIFICATION_PROVIDER", "gemini")
 
     # Try requested provider first
     if name in PROVIDERS:
