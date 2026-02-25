@@ -50,6 +50,7 @@ async def _extract_agent_id(request: Request) -> Optional[str]:
     if api_key:
         try:
             from ..api.auth import verify_api_key
+
             key_data = await verify_api_key(authorization=None, x_api_key=api_key)
             return f"agent:{key_data.agent_id}"
         except Exception:

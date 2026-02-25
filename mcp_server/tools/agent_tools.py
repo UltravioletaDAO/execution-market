@@ -741,8 +741,7 @@ No tasks were created. Fix errors and retry."""
                                     f"  - Task {created.task_id}: {rb_err}"
                                 )
                         rollback_note = (
-                            f"\n\n⚠️ Rollback issues:\n"
-                            + "\n".join(rollback_errors)
+                            "\n\n⚠️ Rollback issues:\n" + "\n".join(rollback_errors)
                             if rollback_errors
                             else "\n\nAll previously created tasks were cancelled."
                         )
@@ -984,12 +983,14 @@ No tasks were created due to atomic mode.{rollback_note}"""
             )
             # Resubmission rate: tasks that were submitted more than once
             resubmission_count = sum(
-                1 for t in tasks
+                1
+                for t in tasks
                 if t.get("submission_count", 0) > 1
                 or t.get("status") == "revision_requested"
             )
             submitted_count = sum(
-                1 for t in tasks
+                1
+                for t in tasks
                 if t.get("status") in ("submitted", "completed", "revision_requested")
             )
             analytics.resubmission_rate = (

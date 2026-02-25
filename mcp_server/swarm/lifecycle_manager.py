@@ -726,13 +726,23 @@ class LifecycleManager:
                         agent_dict["status"] = AgentStatus(agent_dict["status"])
                     # Restore datetimes
                     for dt_key in ("status_since", "last_heartbeat", "created_at"):
-                        if agent_dict.get(dt_key) and isinstance(agent_dict[dt_key], str):
-                            agent_dict[dt_key] = datetime.fromisoformat(agent_dict[dt_key])
+                        if agent_dict.get(dt_key) and isinstance(
+                            agent_dict[dt_key], str
+                        ):
+                            agent_dict[dt_key] = datetime.fromisoformat(
+                                agent_dict[dt_key]
+                            )
                     # Remove computed fields (not part of dataclass)
-                    for computed in ("is_healthy", "is_within_budget", "budget_utilization"):
+                    for computed in (
+                        "is_healthy",
+                        "is_within_budget",
+                        "budget_utilization",
+                    ):
                         agent_dict.pop(computed, None)
                     # Restore nested dataclasses
-                    if "budget" in agent_dict and isinstance(agent_dict["budget"], dict):
+                    if "budget" in agent_dict and isinstance(
+                        agent_dict["budget"], dict
+                    ):
                         agent_dict["budget"] = ResourceBudget(**agent_dict["budget"])
                     if "usage" in agent_dict and isinstance(agent_dict["usage"], dict):
                         agent_dict["usage"] = ResourceUsage(**agent_dict["usage"])
