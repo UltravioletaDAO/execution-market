@@ -211,6 +211,10 @@ resource "aws_ecs_task_definition" "mcp_server" {
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/supabase:SUPABASE_SERVICE_ROLE_KEY::"
         },
         {
+          name      = "SUPABASE_JWT_SECRET"
+          valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/supabase-jwt:SUPABASE_JWT_SECRET::"
+        },
+        {
           name      = "EM_ADMIN_KEY"
           valueFrom = "arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:em/admin-key"
         },
