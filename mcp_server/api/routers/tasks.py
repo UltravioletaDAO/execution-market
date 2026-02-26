@@ -83,6 +83,42 @@ from ._helpers import (
 router = APIRouter(prefix="/api/v1", tags=["Tasks"])
 
 
+def _auto_register_agent_executor(
+    client, wallet: str, erc8004_agent_id=None, agent_name: str = None
+):
+    """Auto-register an agent as executor in the directory (non-blocking upsert)."""
+    wallet_lower = wallet.lower()
+    existing = (
+        client.table("executors")
+        .select("id, erc8004_agent_id")
+        .eq("wallet_address", wallet_lower)
+        .eq("executor_type", "agent")
+        .execute()
+    )
+    if existing.data:
+        # Update erc8004_agent_id if missing
+        row = existing.data[0]
+        if erc8004_agent_id and not row.get("erc8004_agent_id"):
+            client.table("executors").update(
+                {"erc8004_agent_id": int(erc8004_agent_id)}
+            ).eq("id", row["id"]).execute()
+        return
+
+    # Create new executor record
+    display = agent_name or f"Agent {wallet[:6]}...{wallet[-4:]}"
+    client.table("executors").insert(
+        {
+            "wallet_address": wallet_lower,
+            "executor_type": "agent",
+            "display_name": display,
+            "erc8004_agent_id": int(erc8004_agent_id) if erc8004_agent_id else None,
+        }
+    ).execute()
+    logger.info(
+        "Auto-registered agent executor: wallet=%s, name=%s", wallet_lower, display
+    )
+
+
 # =============================================================================
 # CONFIG ENDPOINTS (PUBLIC)
 # =============================================================================
@@ -888,6 +924,19 @@ async def create_task(
             request.bounty_usd,
             X402_AVAILABLE,
         )
+
+        # ---- Auto-register agent in executor directory (non-blocking) ----
+        try:
+            _auto_register_agent_executor(
+                client=db.get_client(),
+                wallet=auth.agent_id,
+                erc8004_agent_id=erc8004_identity.get("agent_id")
+                if erc8004_identity and erc8004_identity.get("registered")
+                else None,
+                agent_name=erc8004_identity.get("name") if erc8004_identity else None,
+            )
+        except Exception as e:
+            logger.warning("Auto-register agent executor failed (non-blocking): %s", e)
 
         return TaskResponse(
             id=task["id"],

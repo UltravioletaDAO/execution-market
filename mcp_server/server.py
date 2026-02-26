@@ -667,6 +667,36 @@ def _resolve_mcp_payment_header(
     return escrow_tx
 
 
+def _auto_register_agent_executor_mcp(wallet: str):
+    """Auto-register an agent as executor in the directory (non-blocking)."""
+    wallet_lower = wallet.lower()
+    try:
+        existing = (
+            db.client.table("executors")
+            .select("id")
+            .eq("wallet_address", wallet_lower)
+            .eq("executor_type", "agent")
+            .execute()
+        )
+        if existing.data:
+            return
+        display = (
+            f"Agent {wallet[:6]}...{wallet[-4:]}"
+            if len(wallet) >= 10
+            else f"Agent {wallet}"
+        )
+        db.client.table("executors").insert(
+            {
+                "wallet_address": wallet_lower,
+                "executor_type": "agent",
+                "display_name": display,
+            }
+        ).execute()
+        logger.info("Auto-registered agent executor (MCP): wallet=%s", wallet_lower)
+    except Exception as e:
+        logger.warning("Auto-register agent executor (MCP) failed: %s", e)
+
+
 # ============== MCP TOOLS ==============
 
 
@@ -851,6 +881,12 @@ async def em_publish_task(params: PublishTaskInput) -> str:
                 "deposit_tx": "",
             }
             logger.info("Escrow recorded (SDK-only) for task %s", task["id"])
+
+        # ---- Auto-register agent in executor directory (non-blocking) ----
+        try:
+            _auto_register_agent_executor_mcp(params.agent_id)
+        except Exception as e:
+            logger.warning("Auto-register agent executor failed (non-blocking): %s", e)
 
         # Dispatch webhook
         if WebhookEventType:
