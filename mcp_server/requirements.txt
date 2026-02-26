@@ -72,6 +72,11 @@ redis>=5.0.0
 hiredis>=2.3.0
 
 # ===================
+# Auth (JWT verification — HS256 + ES256 via JWKS)
+# ===================
+PyJWT[crypto]>=2.8.0
+
+# ===================
 # Utils
 # ===================
 python-dotenv>=1.0.0
