@@ -353,10 +353,13 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 |--------|----------|
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `WALLET_PRIVATE_KEY`, `SUPABASE_DB_PASSWORD` | `.env.local` |
 | `SUPABASE_SERVICE_KEY` | `mcp_server/.env` (bypasses RLS) |
+| `SUPABASE_JWT_SECRET` | AWS SM `em/supabase-jwt:SUPABASE_JWT_SECRET` (needed for H2A publisher auth) |
 | Supabase Management API | `~/.supabase/access-token` |
 | `X402_RPC_URL` | AWS SM `em/x402:X402_RPC_URL` (QuikNode private Base RPC) |
 | Platform wallet key | AWS SM `em/x402:PRIVATE_KEY` |
 | KK swarm mnemonic | AWS SM `kk/swarm-seed` |
+
+**ECS Task Definition Secrets Checklist**: When adding new features that require env vars, ALWAYS verify they are in the ECS task definition (`em-production-mcp-server`). Current revision: **144**. Missing secrets cause silent 500 errors. Full checklist in memory file `aws-ecs-operations.md`.
 
 **Deploy scripts**: All TS scripts in `scripts/` auto-load `.env.local` (`WALLET_PRIVATE_KEY` aliased as `PRIVATE_KEY`).
 
