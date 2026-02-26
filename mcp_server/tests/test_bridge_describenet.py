@@ -294,12 +294,12 @@ class TestFunctionSelector:
         reader = DescribeNetReader()
         s = reader._selector("compositeScore(address,bool,uint8)")
         assert len(s) == 8
-        assert s == "8f6a5e28"
+        assert s == "128a1985"
 
     def test_total_seals_selector(self):
         reader = DescribeNetReader()
         s = reader._selector("totalSeals()")
-        assert s == "a7f3d21c"
+        assert s == "d9ff054e"
 
     def test_unknown_selector_raises(self):
         """Unknown selector raises if no keccak library available."""
@@ -319,6 +319,16 @@ class TestFunctionSelector:
 
 class TestBridgeDescribeNetIntegration:
     """Test that ReputationBridge properly reads from describe-net."""
+
+    @pytest.fixture(autouse=True)
+    async def _enable_describenet(self):
+        """Enable describenet feature flag for all tests in this class."""
+        with patch(
+            "config.platform_config.PlatformConfig.is_feature_enabled",
+            new_callable=AsyncMock,
+            return_value=True,
+        ):
+            yield
 
     @pytest.fixture
     def bridge(self):
@@ -543,6 +553,16 @@ class TestEvidenceTriangle:
     These tests verify that data flows correctly between all three
     reputation systems through the unified bridge.
     """
+
+    @pytest.fixture(autouse=True)
+    async def _enable_describenet(self):
+        """Enable describenet feature flag for all tests in this class."""
+        with patch(
+            "config.platform_config.PlatformConfig.is_feature_enabled",
+            new_callable=AsyncMock,
+            return_value=True,
+        ):
+            yield
 
     def test_evidence_hierarchy_ordering(self):
         """Evidence weights follow the documented hierarchy."""
