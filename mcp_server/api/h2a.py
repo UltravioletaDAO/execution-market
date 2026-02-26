@@ -168,6 +168,8 @@ def _decode_supabase_jwt(token: str, pyjwt) -> dict:
     """
     Decode a Supabase JWT, trying ES256 (JWKS) first, then HS256 fallback.
     """
+    decode_opts = {"verify_exp": True, "verify_aud": False}
+
     # --- Attempt 1: ES256 via JWKS (new Supabase default) ---
     jwks = _get_jwks_client()
     if jwks is not None:
@@ -177,7 +179,7 @@ def _decode_supabase_jwt(token: str, pyjwt) -> dict:
                 token,
                 signing_key.key,
                 algorithms=["ES256"],
-                options={"verify_exp": True},
+                options=decode_opts,
             )
         except (pyjwt.InvalidTokenError, Exception) as e:
             logger.debug("ES256/JWKS decode failed, trying HS256: %s", e)
@@ -194,7 +196,7 @@ def _decode_supabase_jwt(token: str, pyjwt) -> dict:
         token,
         jwt_secret,
         algorithms=["HS256"],
-        options={"verify_exp": True},
+        options=decode_opts,
     )
 
 
