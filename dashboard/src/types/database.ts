@@ -666,6 +666,10 @@ export interface AgentDirectoryEntry {
     max_bounty_usd?: number
     avg_response_minutes?: number
   }
+  role: 'publisher' | 'executor' | 'both'
+  tasks_published: number
+  total_bounty_usd: number
+  active_tasks: number
 }
 
 /** Agent directory response */

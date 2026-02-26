@@ -65,10 +65,11 @@ export async function cancelH2ATask(id: string) {
   return r.json()
 }
 
-export async function getAgentDirectory(p: { capability?: string; min_rating?: number; sort?: string; page?: number; limit?: number } = {}): Promise<AgentDirectoryResponse> {
+export async function getAgentDirectory(p: { capability?: string; min_rating?: number; sort?: string; role?: string; page?: number; limit?: number } = {}): Promise<AgentDirectoryResponse> {
   const sp = new URLSearchParams()
   if (p.capability) sp.set('capability', p.capability); if (p.min_rating) sp.set('min_rating', String(p.min_rating))
-  if (p.sort) sp.set('sort', p.sort); if (p.page) sp.set('page', String(p.page)); if (p.limit) sp.set('limit', String(p.limit))
+  if (p.sort) sp.set('sort', p.sort); if (p.role) sp.set('role', p.role)
+  if (p.page) sp.set('page', String(p.page)); if (p.limit) sp.set('limit', String(p.limit))
   const r = await fetch(`${agents('/directory')}?${sp}`); if (!r.ok) throw new Error(`Directory failed: ${r.status}`)
   return r.json()
 }
