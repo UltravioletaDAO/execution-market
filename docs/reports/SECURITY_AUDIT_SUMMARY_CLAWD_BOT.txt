@@ -1,0 +1,196 @@
+================================================================================
+SECURITY AUDIT: CLAWD BOT OVERNIGHT COMMITS
+================================================================================
+Date: 2026-02-24
+Auditor: Claude Code
+Scope: 4 commits on origin/main
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+VERDICT: 2 COMMITS SAFE, 1 NEEDS REVIEW, 1 CRITICAL REJECT
+
+Critical Issue Found: 24 unencrypted private keys in commit 52edb52
+
+================================================================================
+COMMIT-BY-COMMIT VERDICTS
+================================================================================
+
+1. COMMIT 52edb52 - "PHASE 1 COMPLETE: HD Wallet System + Agent Generation"
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   VERDICT: ❌ REJECT
+   Risk Level: CRITICAL
+
+   Issue: scripts/wallet-management/.keys.json contains 24 UNENCRYPTED PRIVATE KEYS
+
+   Exposed wallets (agents):
+   - aurora, blaze, cipher, drift, echo, flux, galaxy, horizon
+   - ion, jinx, kinetic, lunar, matrix, nova, orbit, prism
+   - quantum, raven, stellar, titan, umbra, vortex, wave, xenon
+
+   Impact:
+   - All 24 wallets are permanently compromised
+   - If ANY funds were sent to these addresses, they can be stolen
+   - Git history contains keys forever (need git-filter-repo)
+   - Contradicts "security audit" commit f965d3f from 5 days earlier
+
+   Action Required:
+   ✗ DO NOT MERGE
+   ✗ Run git-filter-repo to purge from history
+   ✗ Check blockchain explorers for any fund movements
+   ✗ Update .gitignore to prevent future exposure
+   ✗ Rotate Karma Kadabra to AWS Secrets Manager seed only
+
+---
+
+2. COMMIT b66c2f1 - "fix: persist Supabase session across page reloads"
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   VERDICT: ✅ ACCEPT
+   Risk Level: LOW
+
+   Change: Enable persistSession=true and autoRefreshToken=true in Supabase config
+
+   Analysis:
+   ✓ Standard practice for persistent login across page reloads
+   ✓ No secrets exposed
+   ✓ Web Locks API deadlock risk mitigated by noOpLock workaround
+   ✓ RLS policies protect data
+   ✓ Well-justified commit message
+
+   Status: Ready to merge
+
+---
+
+3. COMMIT f965d3f - "docs: pre-public security audit"
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   VERDICT: ✅ ACCEPT (with caveat)
+   Risk Level: LOW
+
+   Content: Comprehensive security audit claiming "SAFE TO MAKE PUBLIC"
+
+   Accuracy: ✓ CORRECT on Feb 15, 2026 (when audit was performed)
+
+   Caveat: This audit became STALE on Feb 20 when commit 52edb52 added 24 keys
+
+   Impact: Report must be retracted/updated after cleanup of 52edb52
+
+   Status: Audit was professionally done and accurate at time of creation
+           Will require disclaimer if 52edb52 merged without purging
+
+---
+
+4. COMMIT c704c49 - "fix: resolve remaining TODOs + fix time-dependent test"
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   VERDICT: ✅ ACCEPT
+   Risk Level: MEDIUM (minor concerns, no blockers)
+
+   Changes:
+   1. jsonrpc_router.py: Resolve API key to agent_id (was TODO)
+      ✓ Properly calls auth.verify_api_key()
+      ✓ Graceful fallback on auth failure
+      ⚠ Missing exception logging (minor)
+
+   2. agent_tools.py: Implement batch rollback (was TODO)
+      ✓ Cancels all tasks on failure in ALL_OR_NONE mode
+      ⚠ Payment reversal not verified (needs review)
+
+   3. agent_tools.py: Calculate actual metrics (were hardcoded)
+      ✓ resubmission_rate: calculated from submission_count
+      ✓ worker_satisfaction_score: calculated from ratings
+      ✓ Both have safe division-by-zero checks
+
+   4. test_swarm.py: Fix time-dependent test failure
+      ✓ Uses consistent mock date throughout
+      ✓ Correctly patches datetime module
+      ✓ All 1357 tests passing
+
+   Minor Concerns:
+   - Confirm payment reversal in batch rollback
+   - Add logging to exception handlers
+   - Document ratings schema (1-5 scale assumption)
+
+   Status: Ready to merge (low-risk improvements)
+
+================================================================================
+SECURITY ISSUE DETAILS: Commit 52edb52
+================================================================================
+
+File: scripts/wallet-management/.keys.json
+Lines: 122 (entire file)
+Type: JSON with agent names, addresses, and private keys
+
+Sample:
+{
+  "0x2cF434B713047d713750484AC9196A3C2F4497e8": {
+    "name": "aurora",
+    "privateKey": "0x92ebfcf5e904bc1602b710cc472b8ff6ede893bfcb7f360f5083331951db16b5",
+    "index": 0
+  },
+  ...24 total wallets
+}
+
+Affected Scripts:
+- distribute-funds.js — Loads and uses .keys.json (281 lines)
+- check-balances.js — Loads .keys.json (193 lines)
+- generate-wallets.js — Generates these keys (227 lines)
+
+Git History Impact:
+- Commit 52edb52 added file to repo
+- .gitignore does NOT exclude .keys.json
+- Can be recovered from history: `git show 52edb52:scripts/wallet-management/.keys.json`
+- Requires git-filter-repo to remove permanently
+
+Blockchain Risk:
+Check each address on:
+- Base: https://basescan.org/address/{address}
+- Ethereum: https://etherscan.io/address/{address}
+- Polygon: https://polygonscan.com/address/{address}
+- Arbitrum: https://arbiscan.io/address/{address}
+
+If ANY activity found, those wallets are STOLEN.
+
+================================================================================
+REMEDIATION STEPS
+================================================================================
+
+IMMEDIATE (Do NOW):
+[ ] Do not merge commit 52edb52
+[ ] Run: git-filter-repo --invert-paths --path scripts/wallet-management/.keys.json
+[ ] Verify: git log --all -- scripts/wallet-management/.keys.json returns nothing
+[ ] Check BlockScope for fund movements on all 24 addresses
+
+URGENT (24 hours):
+[ ] If funds found on any address: drain immediately
+[ ] Verify AWS Secrets Manager kk/swarm-seed is only key source
+[ ] Regenerate Karma Kadabra wallets from AWS seed only
+[ ] Discard these 24 agent keys permanently
+
+SHORT-TERM (This sprint):
+[ ] Add to .gitignore:
+    .keys.json
+    *private*.json
+    *secret*.json
+    *.privkey
+[ ] Update PRE_PUBLIC_SECURITY_AUDIT_2026-02-15.md with disclaimer
+[ ] Add CI/CD scan for private key patterns (pre-commit hook)
+
+================================================================================
+MERGE RECOMMENDATIONS
+================================================================================
+
+Commit 52edb52: ❌ REJECT — Do not merge until fixed
+Commit b66c2f1: ✅ CAN MERGE — Safe, correct, ready
+Commit f965d3f: ✅ CAN MERGE — Safe, will need disclaimer later
+Commit c704c49: ✅ CAN MERGE — Safe, minor improvements
+
+Suggested Action:
+1. Cherry-pick commits b66c2f1, f965d3f, c704c49 (skip 52edb52)
+2. Purge 52edb52 from history using git-filter-repo
+3. Check blockchain for compromised wallets
+4. If clean: recreate commit 52edb52 without .keys.json and with proper .gitignore
+5. Merge all 4 commits in proper order
+
+================================================================================
+Audit complete. Full report: docs/reports/SECURITY_AUDIT_CLAWD_BOT_COMMITS_2026-02-24.md
+================================================================================
