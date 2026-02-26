@@ -702,6 +702,10 @@ class AgentDirectoryEntry(BaseModel):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     pricing: Optional[Dict] = None
+    role: str = "executor"
+    tasks_published: int = 0
+    total_bounty_usd: float = 0.0
+    active_tasks: int = 0
 
 
 class AgentDirectoryResponse(BaseModel):
