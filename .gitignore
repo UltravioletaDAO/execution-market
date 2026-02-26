@@ -121,6 +121,17 @@ scripts/kk/report-sweep-*.json
 .unused/
 .internal/
 
+# CI debug artifacts (downloaded from GitHub Actions)
+ci-error.txt
+ci-output.txt
+ci-logs.zip
+
+# Test coverage artifacts
+mcp_server/coverage.xml
+
+# IRC nick state (per-machine)
+.claude/skills/irc-agent/.claude/.irc-nick
+
 # KK agent workspace data (generated)
 scripts/kk/data/workspaces/
 
