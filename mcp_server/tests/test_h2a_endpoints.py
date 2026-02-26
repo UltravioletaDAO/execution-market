@@ -922,6 +922,332 @@ class TestH2ADirectoryAdvanced:
 
 
 @pytest.mark.h2a
+class TestH2ADirectoryPublishers:
+    """Tests for agent directory with publishers + executors merge."""
+
+    def _make_mock_client(self, exec_rows, task_rows):
+        """Create a mock Supabase client that handles executors + tasks queries."""
+        mock_client = MagicMock()
+
+        exec_result = MagicMock()
+        exec_result.data = exec_rows
+
+        task_result = MagicMock()
+        task_result.data = task_rows
+
+        def table_side_effect(name):
+            mock_table = MagicMock()
+            if name == "executors":
+                # Chain: .select().eq().not_.is_().execute()
+                end = MagicMock()
+                end.execute.return_value = exec_result
+                mock_table.select.return_value.eq.return_value.not_ = MagicMock()
+                mock_table.select.return_value.eq.return_value.not_.is_.return_value = (
+                    end
+                )
+            elif name == "tasks":
+                # Chain: .select().neq().execute()
+                end = MagicMock()
+                end.execute.return_value = task_result
+                mock_table.select.return_value.neq.return_value = end
+            return mock_table
+
+        mock_client.table.side_effect = table_side_effect
+        return mock_client
+
+    @pytest.mark.asyncio
+    async def test_directory_includes_publishers(self):
+        """Publisher agents appear in directory even without executor record."""
+        from api.h2a import get_agent_directory
+
+        mock_client = self._make_mock_client(
+            exec_rows=[],
+            task_rows=[
+                {
+                    "agent_id": "0xPublisher123",
+                    "bounty_usd": 5.0,
+                    "status": "completed",
+                    "agent_name": "TestBot",
+                    "erc8004_agent_id": 2106,
+                }
+            ],
+        )
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await get_agent_directory(
+                capability=None, min_rating=None, sort="rating", page=1, limit=20
+            )
+
+        assert result.total == 1
+        assert result.agents[0].display_name == "TestBot"
+        assert result.agents[0].role == "publisher"
+        assert result.agents[0].tasks_published == 1
+        assert result.agents[0].total_bounty_usd == 5.0
+
+    @pytest.mark.asyncio
+    async def test_directory_role_filter(self):
+        """Filter by role returns only matching agents."""
+        from api.h2a import get_agent_directory
+
+        mock_client = self._make_mock_client(
+            exec_rows=[
+                {
+                    "id": "exec-1",
+                    "wallet_address": "0xexecutor",
+                    "display_name": "Exec Bot",
+                    "capabilities": None,
+                    "reputation_score": 80,
+                    "tasks_completed": 5,
+                    "avg_rating": 4.0,
+                    "is_verified": False,
+                }
+            ],
+            task_rows=[
+                {
+                    "agent_id": "0xpublisher",
+                    "bounty_usd": 10.0,
+                    "status": "published",
+                    "agent_name": "Pub Bot",
+                    "erc8004_agent_id": None,
+                }
+            ],
+        )
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await get_agent_directory(
+                capability=None,
+                min_rating=None,
+                sort="rating",
+                role="publisher",
+                page=1,
+                limit=20,
+            )
+
+        assert result.total == 1
+        assert all(a.role == "publisher" for a in result.agents)
+
+    @pytest.mark.asyncio
+    async def test_directory_role_both(self):
+        """Agent in both executors AND publishers gets role='both'."""
+        from api.h2a import get_agent_directory
+
+        wallet = "0xbothagent"
+        mock_client = self._make_mock_client(
+            exec_rows=[
+                {
+                    "id": "exec-both",
+                    "wallet_address": wallet,
+                    "display_name": "Both Bot",
+                    "capabilities": ["research"],
+                    "reputation_score": 90,
+                    "tasks_completed": 10,
+                    "avg_rating": 4.5,
+                    "is_verified": True,
+                }
+            ],
+            task_rows=[
+                {
+                    "agent_id": wallet,
+                    "bounty_usd": 3.0,
+                    "status": "completed",
+                    "agent_name": None,
+                    "erc8004_agent_id": None,
+                },
+                {
+                    "agent_id": wallet,
+                    "bounty_usd": 7.0,
+                    "status": "published",
+                    "agent_name": None,
+                    "erc8004_agent_id": None,
+                },
+            ],
+        )
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await get_agent_directory(
+                capability=None, min_rating=None, sort="rating", page=1, limit=20
+            )
+
+        assert result.total == 1
+        agent = result.agents[0]
+        assert agent.role == "both"
+        assert agent.tasks_published == 2
+        assert agent.total_bounty_usd == 10.0
+        assert agent.tasks_completed == 10
+        assert agent.active_tasks == 1
+
+    @pytest.mark.asyncio
+    async def test_directory_publisher_stats(self):
+        """Publisher stats (tasks_published, total_bounty_usd, active_tasks) are correct."""
+        from api.h2a import get_agent_directory
+
+        mock_client = self._make_mock_client(
+            exec_rows=[],
+            task_rows=[
+                {
+                    "agent_id": "0xAgent",
+                    "bounty_usd": 1.5,
+                    "status": "completed",
+                    "agent_name": "A",
+                    "erc8004_agent_id": None,
+                },
+                {
+                    "agent_id": "0xAgent",
+                    "bounty_usd": 2.5,
+                    "status": "published",
+                    "agent_name": "A",
+                    "erc8004_agent_id": None,
+                },
+                {
+                    "agent_id": "0xAgent",
+                    "bounty_usd": 3.0,
+                    "status": "in_progress",
+                    "agent_name": "A",
+                    "erc8004_agent_id": None,
+                },
+            ],
+        )
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await get_agent_directory(
+                capability=None, min_rating=None, sort="rating", page=1, limit=20
+            )
+
+        agent = result.agents[0]
+        assert agent.tasks_published == 3
+        assert agent.total_bounty_usd == 7.0
+        assert agent.active_tasks == 2  # published + in_progress
+
+    @pytest.mark.asyncio
+    async def test_directory_sort_tasks_published(self):
+        """Sort by tasks_published works."""
+        from api.h2a import get_agent_directory
+
+        mock_client = self._make_mock_client(
+            exec_rows=[],
+            task_rows=[
+                {
+                    "agent_id": "0xa",
+                    "bounty_usd": 1.0,
+                    "status": "completed",
+                    "agent_name": "Bot A",
+                    "erc8004_agent_id": None,
+                },
+                {
+                    "agent_id": "0xb",
+                    "bounty_usd": 1.0,
+                    "status": "completed",
+                    "agent_name": "Bot B",
+                    "erc8004_agent_id": None,
+                },
+                {
+                    "agent_id": "0xb",
+                    "bounty_usd": 2.0,
+                    "status": "completed",
+                    "agent_name": "Bot B",
+                    "erc8004_agent_id": None,
+                },
+            ],
+        )
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await get_agent_directory(
+                capability=None,
+                min_rating=None,
+                sort="tasks_published",
+                page=1,
+                limit=20,
+            )
+
+        assert result.agents[0].display_name == "Bot B"
+        assert result.agents[0].tasks_published == 2
+        assert result.agents[1].tasks_published == 1
+
+    @pytest.mark.asyncio
+    async def test_human_publishers_excluded(self):
+        """Tasks with publisher_type='human' are excluded from publisher stats."""
+        from api.h2a import get_agent_directory
+
+        mock_client = self._make_mock_client(exec_rows=[], task_rows=[])
+
+        with patch("api.h2a.db.get_client", return_value=mock_client):
+            result = await get_agent_directory(
+                capability=None, min_rating=None, sort="rating", page=1, limit=20
+            )
+
+        assert result.total == 0
+
+    @pytest.mark.asyncio
+    async def test_directory_new_fields_in_model(self):
+        """AgentDirectoryEntry includes new publisher fields with defaults."""
+        from models import AgentDirectoryEntry
+
+        entry = AgentDirectoryEntry(
+            executor_id="agent-1",
+            display_name="Test Agent",
+            rating=80,
+            tasks_completed=5,
+            avg_rating=4.0,
+            verified=True,
+        )
+
+        data = entry.model_dump()
+        assert data["role"] == "executor"
+        assert data["tasks_published"] == 0
+        assert data["total_bounty_usd"] == 0.0
+        assert data["active_tasks"] == 0
+
+
+@pytest.mark.h2a
+class TestAutoRegisterAgent:
+    """Tests for auto-registration of agent executors on task publish."""
+
+    def test_auto_register_creates_executor(self):
+        """First task publish creates an executor record."""
+        from api.routers.tasks import _auto_register_agent_executor
+
+        mock_client = MagicMock()
+        # No existing executor
+        exec_result = MagicMock()
+        exec_result.data = []
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = exec_result
+
+        _auto_register_agent_executor(
+            client=mock_client,
+            wallet="0xNewAgent123",
+            erc8004_agent_id=2106,
+            agent_name="Test Bot",
+        )
+
+        # Verify insert was called
+        mock_client.table.return_value.insert.assert_called_once()
+        call_args = mock_client.table.return_value.insert.call_args[0][0]
+        assert call_args["wallet_address"] == "0xnewagent123"
+        assert call_args["executor_type"] == "agent"
+        assert call_args["display_name"] == "Test Bot"
+        assert call_args["erc8004_agent_id"] == 2106
+
+    def test_auto_register_no_duplicate(self):
+        """Second task publish does not create duplicate executor."""
+        from api.routers.tasks import _auto_register_agent_executor
+
+        mock_client = MagicMock()
+        # Existing executor found
+        exec_result = MagicMock()
+        exec_result.data = [{"id": "existing-id", "erc8004_agent_id": 2106}]
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = exec_result
+
+        _auto_register_agent_executor(
+            client=mock_client,
+            wallet="0xExistingAgent",
+            erc8004_agent_id=2106,
+        )
+
+        # Verify insert was NOT called
+        mock_client.table.return_value.insert.assert_not_called()
+
+
+@pytest.mark.h2a
 class TestH2AAuthEdgeCases:
     """Tests for JWT auth edge cases."""
 
