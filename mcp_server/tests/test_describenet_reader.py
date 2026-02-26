@@ -14,6 +14,7 @@ Tests cover:
 
 import pytest
 from datetime import datetime, timezone, timedelta
+from unittest.mock import AsyncMock, patch
 
 from mcp_server.swarm.describenet_reader import (
     DescribeNetReader,
@@ -492,7 +493,12 @@ class TestBridgeIntegration:
         )
         reader._cache["0xrich"] = mock_rep
 
-        result = await read_describenet_for_bridge("0xrich", reader=reader)
+        with patch(
+            "config.platform_config.PlatformConfig.is_feature_enabled",
+            new_callable=AsyncMock,
+            return_value=True,
+        ):
+            result = await read_describenet_for_bridge("0xrich", reader=reader)
         assert result is not None
         assert result["score"] == 82.0
         assert result["total_ratings"] == 20

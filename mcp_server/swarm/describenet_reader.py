@@ -628,6 +628,11 @@ async def read_describenet_for_bridge(
     Returns:
         Dict in bridge-compatible format, or None if no data
     """
+    from config.platform_config import PlatformConfig
+
+    if not await PlatformConfig.is_feature_enabled("describenet"):
+        return None
+
     reader = reader or DescribeNetReader()
     rep = await reader.get_reputation(wallet)
 

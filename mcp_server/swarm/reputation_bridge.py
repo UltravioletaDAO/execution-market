@@ -406,21 +406,30 @@ class ReputationBridge:
         wallet = wallet.lower()
 
         # Try describe-net SealRegistry first (richer reputation data)
-        try:
-            from .describenet_reader import read_describenet_for_bridge
+        # Gated by feature.describenet_enabled (default False — not yet deployed)
+        from config.platform_config import PlatformConfig
 
-            bridge_data = await read_describenet_for_bridge(wallet)
-            if bridge_data and bridge_data.get("total_ratings", 0) > 0:
-                logger.info(
-                    f"Read describe-net reputation for {wallet}: "
-                    f"score={bridge_data.get('score', 0):.1f}, "
-                    f"ratings={bridge_data.get('total_ratings', 0)}"
+        describenet_enabled = await PlatformConfig.is_feature_enabled("describenet")
+        if not describenet_enabled:
+            logger.debug("describe-net disabled by feature flag, skipping")
+        else:
+            try:
+                from .describenet_reader import read_describenet_for_bridge
+
+                bridge_data = await read_describenet_for_bridge(wallet)
+                if bridge_data and bridge_data.get("total_ratings", 0) > 0:
+                    logger.info(
+                        f"Read describe-net reputation for {wallet}: "
+                        f"score={bridge_data.get('score', 0):.1f}, "
+                        f"ratings={bridge_data.get('total_ratings', 0)}"
+                    )
+                    return bridge_data
+            except ImportError:
+                logger.debug(
+                    "describenet_reader not available, falling back to ERC-8004"
                 )
-                return bridge_data
-        except ImportError:
-            logger.debug("describenet_reader not available, falling back to ERC-8004")
-        except Exception as e:
-            logger.warning(f"describe-net read failed for {wallet}: {e}")
+            except Exception as e:
+                logger.warning(f"describe-net read failed for {wallet}: {e}")
 
         # Fallback: direct ERC-8004 Reputation contract read
         # Contract: 0x8004BAa17C55a88189AE136b182e5fdA19dE9b63 on Base

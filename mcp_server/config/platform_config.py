@@ -102,6 +102,7 @@ class PlatformConfig:
         "feature.erc8004_auto_rate_agent_enabled": True,
         "feature.erc8004_dynamic_scoring_enabled": True,
         "feature.erc8004_rejection_feedback_enabled": False,
+        "feature.describenet_enabled": False,
         # Payments
         "x402.supported_networks": [
             "base",
