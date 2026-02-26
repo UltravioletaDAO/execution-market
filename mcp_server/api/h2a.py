@@ -86,6 +86,7 @@ async def verify_jwt_auth(
     """
     Verify Supabase JWT for human publisher authentication.
 
+    Supports both ES256 (JWKS, new Supabase default) and HS256 (legacy).
     Humans authenticate via their browser session (Dynamic.xyz / Supabase).
     The JWT contains user_id and wallet_address claims.
     """
@@ -100,34 +101,18 @@ async def verify_jwt_auth(
     if not token:
         raise HTTPException(status_code=401, detail="Empty token")
 
-    # Try Supabase JWT verification
     try:
         import jwt as pyjwt
 
-        jwt_secret = os.environ.get(
-            "SUPABASE_JWT_SECRET",
-            os.environ.get("EM_JWT_SECRET", ""),
-        )
-
-        if not jwt_secret:
-            raise HTTPException(status_code=500, detail="JWT secret not configured")
-
-        payload = pyjwt.decode(
-            token,
-            jwt_secret,
-            algorithms=["HS256"],
-            options={"verify_exp": True},
-        )
+        payload = _decode_supabase_jwt(token, pyjwt)
 
         user_id = payload.get("sub") or payload.get("user_id")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token: no user_id")
 
-        # Try to get wallet from the token or from Supabase user metadata
         wallet_address = payload.get("wallet_address")
         email = payload.get("email")
 
-        # If wallet not in JWT, look it up from the executor profile
         if not wallet_address:
             try:
                 client = db.get_client()
@@ -151,10 +136,66 @@ async def verify_jwt_auth(
 
     except ImportError:
         raise HTTPException(status_code=500, detail="JWT library not available")
+    except HTTPException:
+        raise
     except pyjwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except pyjwt.InvalidTokenError as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+
+
+# Cache the JWKS client to avoid fetching keys on every request
+_jwks_client: object | None = None
+
+
+def _get_jwks_client():
+    """Lazy-init a PyJWKClient for the Supabase JWKS endpoint."""
+    global _jwks_client
+    if _jwks_client is None:
+        from jwt import PyJWKClient
+
+        supabase_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+        if supabase_url:
+            _jwks_client = PyJWKClient(
+                f"{supabase_url}/auth/v1/.well-known/jwks.json",
+                cache_keys=True,
+                lifespan=3600,
+            )
+    return _jwks_client
+
+
+def _decode_supabase_jwt(token: str, pyjwt) -> dict:
+    """
+    Decode a Supabase JWT, trying ES256 (JWKS) first, then HS256 fallback.
+    """
+    # --- Attempt 1: ES256 via JWKS (new Supabase default) ---
+    jwks = _get_jwks_client()
+    if jwks is not None:
+        try:
+            signing_key = jwks.get_signing_key_from_jwt(token)
+            return pyjwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["ES256"],
+                options={"verify_exp": True},
+            )
+        except (pyjwt.InvalidTokenError, Exception) as e:
+            logger.debug("ES256/JWKS decode failed, trying HS256: %s", e)
+
+    # --- Attempt 2: HS256 with shared secret (legacy) ---
+    jwt_secret = os.environ.get(
+        "SUPABASE_JWT_SECRET",
+        os.environ.get("EM_JWT_SECRET", ""),
+    )
+    if not jwt_secret:
+        raise HTTPException(status_code=500, detail="JWT secret not configured")
+
+    return pyjwt.decode(
+        token,
+        jwt_secret,
+        algorithms=["HS256"],
+        options={"verify_exp": True},
+    )
 
 
 async def verify_auth_method(
