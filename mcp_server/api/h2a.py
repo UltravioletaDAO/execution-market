@@ -915,11 +915,28 @@ async def cancel_h2a_task(
 # ---------------------------------------------------------------------------
 
 
+def _format_wallet_display(wallet: str) -> str:
+    """Format wallet as 'Agent 0x857f...3a2B'."""
+    if not wallet or len(wallet) < 10:
+        return f"Agent {wallet}"
+    return f"Agent {wallet[:6]}...{wallet[-4:]}"
+
+
+def _parse_int_safe(val) -> int:
+    """Parse value to int, returning 0 on failure."""
+    if val is None:
+        return 0
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return 0
+
+
 @router.get(
     "/api/v1/agents/directory",
     response_model=AgentDirectoryResponse,
     summary="Agent Directory",
-    description="Browse AI agents available for H2A task execution. Public endpoint.",
+    description="Browse AI agents: publishers and executors. Public endpoint.",
     tags=["Agent Directory"],
 )
 async def get_agent_directory(
@@ -928,7 +945,11 @@ async def get_agent_directory(
     ),
     min_rating: Optional[float] = Query(None, ge=0, le=100),
     sort: str = Query(
-        "rating", description="Sort by: rating, tasks_completed, display_name"
+        "rating",
+        description="Sort by: rating, tasks_completed, display_name, tasks_published, total_bounty",
+    ),
+    role: Optional[str] = Query(
+        None, description="Filter by role: publisher, executor, both"
     ),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
@@ -936,66 +957,197 @@ async def get_agent_directory(
     """
     Browse the public AI agent directory.
 
-    Returns agents registered as executor_type='agent' with aggregated stats.
-    No authentication required — discovery drives adoption.
+    Returns agents that are registered executors AND/OR task publishers.
+    Merges both datasets by wallet address. No authentication required.
     """
     try:
         client = db.get_client()
-        offset = (page - 1) * limit
 
-        # Query executors with executor_type='agent'
-        query = (
-            client.table("executors")
-            .select("*", count="exact")
-            .eq("executor_type", "agent")
-            .not_.is_("display_name", "null")
-        )
+        # --- 1. Query executor agents ---
+        executor_map: dict = {}  # wallet_lower -> entry_dict
+        try:
+            eq_query = (
+                client.table("executors")
+                .select("*")
+                .eq("executor_type", "agent")
+                .not_.is_("display_name", "null")
+            )
+            exec_result = eq_query.execute()
+            for row in exec_result.data or []:
+                wallet = (row.get("wallet_address") or "").lower()
+                if not wallet:
+                    wallet = row["id"].lower()
+                executor_map[wallet] = {
+                    "executor_id": row["id"],
+                    "display_name": row.get("display_name", "Unknown Agent"),
+                    "capabilities": row.get("capabilities"),
+                    "rating": row.get("reputation_score", 0) or 0,
+                    "tasks_completed": row.get("tasks_completed", 0) or 0,
+                    "avg_rating": row.get("avg_rating", 0) or 0,
+                    "agent_card_url": row.get("agent_card_url"),
+                    "mcp_endpoint_url": row.get("mcp_endpoint_url"),
+                    "erc8004_agent_id": row.get("erc8004_agent_id"),
+                    "verified": row.get("is_verified", False) or False,
+                    "bio": row.get("bio"),
+                    "avatar_url": row.get("avatar_url"),
+                    "pricing": row.get("pricing"),
+                    "is_executor": True,
+                    "is_publisher": False,
+                    "tasks_published": 0,
+                    "total_bounty_usd": 0.0,
+                    "active_tasks": 0,
+                }
+        except Exception as e:
+            logger.warning("Failed to query executor agents: %s", e)
 
-        # Capability filter (check array overlap)
+        # --- 2. Query publisher agents from tasks ---
+        publisher_map: dict = {}  # wallet_lower -> stats
+        try:
+            # Get all tasks NOT published by humans, grouped by agent_id
+            pub_query = (
+                client.table("tasks")
+                .select("agent_id, bounty_usd, status, agent_name, erc8004_agent_id")
+                .neq("publisher_type", "human")
+            )
+            pub_result = pub_query.execute()
+            for row in pub_result.data or []:
+                agent_id = (row.get("agent_id") or "").lower()
+                if not agent_id:
+                    continue
+                if agent_id not in publisher_map:
+                    publisher_map[agent_id] = {
+                        "tasks_published": 0,
+                        "total_bounty_usd": 0.0,
+                        "active_tasks": 0,
+                        "agent_name": row.get("agent_name"),
+                        "erc8004_agent_id": row.get("erc8004_agent_id"),
+                    }
+                publisher_map[agent_id]["tasks_published"] += 1
+                publisher_map[agent_id]["total_bounty_usd"] += float(
+                    row.get("bounty_usd", 0) or 0
+                )
+                status = row.get("status", "")
+                if status in ("published", "accepted", "in_progress"):
+                    publisher_map[agent_id]["active_tasks"] += 1
+        except Exception as e:
+            logger.warning("Failed to query publisher tasks: %s", e)
+
+        # --- 3. Merge datasets ---
+        merged: dict = {}
+
+        # Add executors
+        for wallet, data in executor_map.items():
+            merged[wallet] = data.copy()
+
+        # Add/merge publishers
+        for agent_id, stats in publisher_map.items():
+            if agent_id in merged:
+                # Agent exists as executor — merge publisher stats
+                merged[agent_id]["is_publisher"] = True
+                merged[agent_id]["tasks_published"] = stats["tasks_published"]
+                merged[agent_id]["total_bounty_usd"] = stats["total_bounty_usd"]
+                merged[agent_id]["active_tasks"] = stats["active_tasks"]
+                if stats.get("erc8004_agent_id") and not merged[agent_id].get(
+                    "erc8004_agent_id"
+                ):
+                    merged[agent_id]["erc8004_agent_id"] = _parse_int_safe(
+                        stats["erc8004_agent_id"]
+                    )
+            else:
+                # Publisher-only agent — create entry
+                display = stats.get("agent_name") or _format_wallet_display(agent_id)
+                merged[agent_id] = {
+                    "executor_id": agent_id,
+                    "display_name": display,
+                    "capabilities": None,
+                    "rating": 0,
+                    "tasks_completed": 0,
+                    "avg_rating": 0,
+                    "agent_card_url": None,
+                    "mcp_endpoint_url": None,
+                    "erc8004_agent_id": _parse_int_safe(stats.get("erc8004_agent_id"))
+                    or None,
+                    "verified": False,
+                    "bio": None,
+                    "avatar_url": None,
+                    "pricing": None,
+                    "is_executor": False,
+                    "is_publisher": True,
+                    "tasks_published": stats["tasks_published"],
+                    "total_bounty_usd": stats["total_bounty_usd"],
+                    "active_tasks": stats["active_tasks"],
+                }
+
+        # --- 4. Assign roles ---
+        for wallet, data in merged.items():
+            if data.get("is_executor") and data.get("is_publisher"):
+                data["role"] = "both"
+            elif data.get("is_publisher"):
+                data["role"] = "publisher"
+            else:
+                data["role"] = "executor"
+
+        # --- 5. Apply filters ---
+        entries = list(merged.values())
+
+        if role and isinstance(role, str) and role != "all":
+            entries = [e for e in entries if e["role"] == role]
+
         if capability:
             caps = [c.strip() for c in capability.split(",")]
-            query = query.overlaps("capabilities", caps)
+            entries = [
+                e
+                for e in entries
+                if e.get("capabilities") and any(c in e["capabilities"] for c in caps)
+            ]
 
-        # Rating filter
         if min_rating is not None:
-            query = query.gte("reputation_score", min_rating)
+            entries = [e for e in entries if e.get("rating", 0) >= min_rating]
 
-        # Sort
+        # --- 6. Sort ---
         if sort == "tasks_completed":
-            query = query.order("tasks_completed", desc=True)
+            entries.sort(key=lambda e: e.get("tasks_completed", 0), reverse=True)
         elif sort == "display_name":
-            query = query.order("display_name")
+            entries.sort(key=lambda e: (e.get("display_name") or "").lower())
+        elif sort == "tasks_published":
+            entries.sort(key=lambda e: e.get("tasks_published", 0), reverse=True)
+        elif sort == "total_bounty":
+            entries.sort(key=lambda e: e.get("total_bounty_usd", 0), reverse=True)
         else:
-            query = query.order("reputation_score", desc=True)
+            entries.sort(key=lambda e: e.get("rating", 0), reverse=True)
 
-        # Paginate
-        result = query.range(offset, offset + limit - 1).execute()
+        # --- 7. Paginate ---
+        total_count = len(entries)
+        offset = (page - 1) * limit
+        page_entries = entries[offset : offset + limit]
 
         agents = []
-        for row in result.data or []:
+        for data in page_entries:
             agents.append(
                 AgentDirectoryEntry(
-                    executor_id=row["id"],
-                    display_name=row.get("display_name", "Unknown Agent"),
-                    capabilities=row.get("capabilities"),
-                    rating=row.get("reputation_score", 0),
-                    tasks_completed=row.get("tasks_completed", 0),
-                    avg_rating=row.get("avg_rating", 0) or 0,
-                    agent_card_url=row.get("agent_card_url"),
-                    mcp_endpoint_url=row.get("mcp_endpoint_url"),
-                    erc8004_agent_id=row.get("erc8004_agent_id"),
-                    verified=row.get("is_verified", False) or False,
-                    bio=row.get("bio"),
-                    avatar_url=row.get("avatar_url"),
-                    pricing=row.get("pricing"),
+                    executor_id=data["executor_id"],
+                    display_name=data["display_name"],
+                    capabilities=data.get("capabilities"),
+                    rating=data.get("rating", 0),
+                    tasks_completed=data.get("tasks_completed", 0),
+                    avg_rating=data.get("avg_rating", 0) or 0,
+                    agent_card_url=data.get("agent_card_url"),
+                    mcp_endpoint_url=data.get("mcp_endpoint_url"),
+                    erc8004_agent_id=data.get("erc8004_agent_id"),
+                    verified=data.get("verified", False),
+                    bio=data.get("bio"),
+                    avatar_url=data.get("avatar_url"),
+                    pricing=data.get("pricing"),
+                    role=data.get("role", "executor"),
+                    tasks_published=data.get("tasks_published", 0),
+                    total_bounty_usd=data.get("total_bounty_usd", 0.0),
+                    active_tasks=data.get("active_tasks", 0),
                 )
             )
 
-        total = result.count if result.count else len(agents)
-
         return AgentDirectoryResponse(
             agents=agents,
-            total=total,
+            total=total_count,
             page=page,
             limit=limit,
         )
