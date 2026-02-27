@@ -1,0 +1,12 @@
+{
+  "useMarkdownLinks": false,
+  "newFileLocation": "folder",
+  "newFileFolderPath": "00-home",
+  "attachmentFolderPath": "_attachments",
+  "showLineNumber": true,
+  "strictLineBreaks": true,
+  "readableLineLength": true,
+  "alwaysUpdateLinks": true,
+  "promptDelete": false,
+  "defaultViewMode": "source"
+}

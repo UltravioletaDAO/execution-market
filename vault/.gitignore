@@ -1,0 +1,10 @@
+# Obsidian - device-specific (changes every session)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/plugins/*/data.json
+.obsidian-git-data
+
+# System files
+.trash/
+.DS_Store
+Thumbs.db
