@@ -322,6 +322,46 @@ Dashboard Docker build: `docker build --no-cache -f dashboard/Dockerfile -t em-d
 
 ## Documentation Standards
 
+### Obsidian-Compatible Markdown (MANDATORY)
+
+**ALL `.md` files created or modified MUST follow Obsidian vault conventions.** This ensures every document is interconnected and navigable in the Obsidian knowledge graph.
+
+**YAML Frontmatter** — Every `.md` file MUST start with frontmatter:
+```yaml
+---
+date: YYYY-MM-DD
+tags:
+  - type/<type>       # concept, adr, incident, runbook, report, plan, guide
+  - domain/<domain>   # payments, identity, infrastructure, blockchain, testing, agents, business, integrations, security, operations
+status: active        # draft | active | completed | archived | deprecated
+aliases:
+  - alternate name    # Optional: other names for this concept
+related-files:        # Optional: source code paths
+  - mcp_server/path/to/file.py
+---
+```
+
+**Wikilinks** — Use `[[wikilinks]]` to connect related concepts:
+- When mentioning a concept that has (or should have) its own note, wrap it: `[[x402r-escrow]]`, `[[golden-flow]]`, `[[erc-8004]]`
+- Use aliases for display: `[[erc-8004|ERC-8004 Identity Registry]]`
+- Every note should link to at least 2-3 related notes
+
+**Naming** — kebab-case for all filenames:
+- Concepts: `x402r-escrow.md`, `payment-operator.md`
+- ADRs: `ADR-NNN-short-title.md`
+- Runbooks: `runbook-short-title.md`
+- Incidents: `INC-YYYY-MM-DD-title.md`
+- Reports: `REPORT-YYYY-MM-DD-title.md` (existing `UPPER_SNAKE` reports in `docs/reports/` are grandfathered)
+
+**Tags taxonomy**:
+- `type/` → concept, adr, incident, runbook, meeting, sprint, moc, report, plan, guide
+- `domain/` → payments, identity, infrastructure, blockchain, testing, agents, business, integrations, security, operations
+- `chain/` → base, ethereum, polygon, arbitrum, avalanche, monad, celo, optimism
+- `status/` → draft, active, completed, archived, deprecated
+- `priority/` → p0, p1, p2
+
+**Vault location**: `vault/` — Obsidian knowledge graph lives here. When creating new documentation, prefer creating in the vault with proper interlinking. Update the relevant MOC in `vault/01-moc/` when adding new notes.
+
 ### Mermaid Diagrams
 **All docs describing flows, state machines, or architecture MUST include Mermaid diagrams** (GitHub-flavored, triple-backtick `mermaid` blocks). Use `sequenceDiagram` for multi-actor flows, `stateDiagram-v2` for state machines, `graph LR/TD` for architecture. Reference: `docs/planning/PAYMENT_ARCHITECTURE.md`.
 
