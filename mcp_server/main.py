@@ -21,9 +21,10 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, field_validator
 from pathlib import Path
 
@@ -233,6 +234,33 @@ Supports 19 mainnets including Ethereum, Base, Polygon, Optimism, Arbitrum, Aval
     redoc_url="/redoc",
     openapi_url="/openapi.json",
 )
+
+
+# Custom 422 handler: return field-level validation errors instead of generic message
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    errors = []
+    for error in exc.errors():
+        loc = error.get("loc", ())
+        # Skip "body" prefix in location path
+        field_path = ".".join(str(p) for p in loc if p != "body")
+        errors.append(
+            {
+                "field": field_path or "(unknown)",
+                "message": error.get("msg", "Validation error"),
+                "type": error.get("type", "unknown"),
+            }
+        )
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Validation error",
+            "errors": errors,
+        },
+    )
+
 
 # Add API middleware (rate limiting, logging, error handling)
 add_api_middleware(app)
