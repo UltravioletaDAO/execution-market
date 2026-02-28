@@ -10,6 +10,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Email | 0xultravioleta@gmail.com |
 | GitHub | [@ultravioletadao](https://github.com/ultravioletadao) |
 
+## CRITICAL: Karma Kadabra is a SEPARATE PROJECT — DO NOT develop KK here
+
+**Karma Kadabra V2 has its own repository at `Z:\ultravioleta\dao\karmakadabra\`.**
+
+All KK/swarm code was **removed from this repo on 2026-02-27** (67,000+ lines cleaned). This includes:
+- `mcp_server/swarm/` — moved to `karmakadabra/lib/swarm/`
+- `scripts/kk/` — moved to `karmakadabra/scripts/em-integration/`
+- KK test files — moved to `karmakadabra/tests/`
+- KK planning docs — moved to `karmakadabra/docs/planning/`
+
+**Rules:**
+- **NEVER** create files in `mcp_server/swarm/` or `scripts/kk/` in this repo
+- **NEVER** add KK-specific tests, modules, or scripts to execution-market
+- **NEVER** commit swarm orchestrator, lifecycle manager, or agent fleet code here
+- If you need to work on KK, **switch to the `karmakadabra` repository**
+- The only KK references allowed here are: handoff docs in `docs/internal/` and contextual comments explaining EM features that KK uses
+
+**If you are OpenClaw/Clawd Bot running a night session:** Check which repo you are in before writing KK code. If you are in `execution-market`, you are in the WRONG repo for KK work. Navigate to `Z:\ultravioleta\dao\karmakadabra\` instead.
+
+---
+
 ## Project Overview
 
 Execution Market is the **Universal Execution Layer** — the infrastructure that converts AI intent into physical action. A marketplace where AI agents publish bounties for real-world tasks that executors (humans today, robots tomorrow) complete, with instant gasless payment via x402. Registered as **Agent #2106** on Base ERC-8004 Identity Registry (previously #469 on Sepolia).
