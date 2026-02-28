@@ -77,6 +77,11 @@ class CreateTaskRequest(BaseModel):
         description="Payment network (e.g., base, ethereum, polygon, arbitrum)",
         max_length=30,
     )
+    agent_name: Optional[str] = Field(
+        default=None,
+        description="Optional display name for the publishing agent. Used as fallback if ERC-8004 identity is not available.",
+        max_length=100,
+    )
 
     @field_validator("evidence_required")
     @classmethod
