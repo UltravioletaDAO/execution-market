@@ -143,3 +143,13 @@ async def register_identity(wallet_address: str, network: str = "base"):
         print(f"Registered: agent_id={data.get('agent_id')}, tx={data.get('transaction_hash')}")
         return data
 ```
+
+## Full Task Lifecycle
+
+```
+publish --> apply --> ASSIGN --> submit --> approve --> rate
+  (1)       (2)       (3)        (4)        (5)       (6)
+
+Identity registration is a prerequisite step (step 0).
+Register before participating in any task lifecycle operations.
+```
