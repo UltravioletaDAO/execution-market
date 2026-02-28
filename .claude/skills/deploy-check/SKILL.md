@@ -57,9 +57,9 @@ aws ecs describe-task-definition \
   --query 'taskDefinition.{rev:revision,image:containerDefinitions[0].image}'
 ```
 
-**Expected MCP (rev 23):**
-- Env: PORT, ENVIRONMENT, ERC8004_NETWORK, EM_AGENT_ID
-- Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY, EM_ADMIN_KEY, WALLET_PRIVATE_KEY, X402_NETWORK, X402_RPC_URL, X402_FACILITATOR_URL, EM_ESCROW_ADDRESS, USDC_ADDRESS, EM_TREASURY_ADDRESS, ANTHROPIC_API_KEY
+**Expected MCP (rev 150+):**
+- Env: PORT, ENVIRONMENT, ERC8004_NETWORK, EM_AGENT_ID, EM_PAYMENT_MODE, EM_ESCROW_MODE, EM_PAYMENT_OPERATOR, EM_FEE_MODEL, EM_ENABLED_NETWORKS, EM_BASE_URL, EM_FEEDBACK_BASE_URL, ERC8128_NONCE_STORE, EVIDENCE_BUCKET, EVIDENCE_PUBLIC_BASE_URL
+- Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY, SUPABASE_JWT_SECRET, EM_ADMIN_KEY, WALLET_PRIVATE_KEY, X402_NETWORK, X402_RPC_URL, X402_FACILITATOR_URL, EM_ESCROW_ADDRESS, USDC_ADDRESS, EM_TREASURY_ADDRESS, ANTHROPIC_API_KEY, EM_WORKER_PRIVATE_KEY
 - Image: `518898403364.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest`
 
 ### Step 3: Health Endpoints
@@ -143,5 +143,5 @@ aws ecs describe-services --cluster em-production-cluster --services em-producti
 | Dashboard Service | em-production-dashboard |
 | MCP ECR | em-production-mcp-server |
 | Dashboard ECR | em-production-dashboard |
-| MCP Task Def Rev | 23 |
+| MCP Task Def Rev | 150+ (`:latest` tag) |
 | Dashboard Task Def Rev | 12 |
