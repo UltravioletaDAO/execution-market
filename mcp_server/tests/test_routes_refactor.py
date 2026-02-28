@@ -29,6 +29,7 @@ EXPECTED_ROUTES = {
     "/api/v1/tasks/available",
     "/api/v1/tasks/batch",
     "/api/v1/tasks/{task_id}",
+    "/api/v1/tasks/{task_id}/applications",
     "/api/v1/tasks/{task_id}/apply",
     "/api/v1/tasks/{task_id}/assign",
     "/api/v1/tasks/{task_id}/cancel",

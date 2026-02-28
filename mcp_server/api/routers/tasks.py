@@ -34,6 +34,8 @@ from ._models import (
     WorkerAssignRequest,
     BatchCreateRequest,
     BatchCreateResponse,
+    ApplicationResponse,
+    ApplicationListResponse,
     SuccessResponse,
     ErrorResponse,
 )
@@ -1104,12 +1106,12 @@ async def get_available_tasks(
         },
         403: {
             "model": ErrorResponse,
-            "description": "Not authorized to view this task - agent doesn't own it",
+            "description": "Not authorized to view this task",
         },
         404: {"model": ErrorResponse, "description": "Task not found"},
     },
     summary="Get Task Details",
-    description="Retrieve detailed information about a specific task",
+    description="Retrieve detailed information about a specific task. Owners can see all their tasks. Other agents can see published/accepted/in_progress tasks.",
     tags=["Tasks", "Agent"],
 )
 async def get_task(
@@ -1122,7 +1124,11 @@ async def get_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if task["agent_id"] != auth.agent_id:
+    is_owner = task["agent_id"] == auth.agent_id
+    task_status = _normalize_status(task.get("status"))
+    public_statuses = {"published", "accepted", "in_progress", "submitted", "completed"}
+
+    if not is_owner and task_status not in public_statuses:
         raise HTTPException(status_code=403, detail="Not authorized to view this task")
 
     return TaskResponse(
@@ -1145,6 +1151,71 @@ async def get_task(
         escrow_tx=task.get("escrow_tx"),
         refund_tx=task.get("refund_tx"),
     )
+
+
+@router.get(
+    "/tasks/{task_id}/applications",
+    response_model=ApplicationListResponse,
+    responses={
+        200: {"description": "Applications for this task"},
+        401: {
+            "model": ErrorResponse,
+            "description": "Unauthorized - invalid or missing API key",
+        },
+        403: {
+            "model": ErrorResponse,
+            "description": "Not authorized - only the task publisher can view applications",
+        },
+        404: {"model": ErrorResponse, "description": "Task not found"},
+    },
+    summary="Get Task Applications",
+    description="List all applications submitted by workers for a task. Only the task publisher can view applications.",
+    tags=["Tasks", "Agent"],
+)
+async def get_task_applications(
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
+    auth: AgentAuth = Depends(verify_agent_auth),
+) -> ApplicationListResponse:
+    """Get all applications for a task. Only the task publisher can view."""
+    task = await db.get_task(task_id)
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task["agent_id"] != auth.agent_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized - only the task publisher can view applications",
+        )
+
+    try:
+        client = db.get_client()
+        result = (
+            client.table("task_applications")
+            .select("id, task_id, executor_id, message, status, created_at")
+            .eq("task_id", task_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+        applications = result.data or []
+
+        return ApplicationListResponse(
+            applications=[
+                ApplicationResponse(
+                    id=app["id"],
+                    task_id=app["task_id"],
+                    executor_id=app["executor_id"],
+                    message=app.get("message"),
+                    status=app.get("status", "pending"),
+                    created_at=app["created_at"],
+                )
+                for app in applications
+            ],
+            count=len(applications),
+        )
+    except Exception as e:
+        logger.error("Failed to get applications for task %s: %s", task_id, str(e))
+        raise HTTPException(status_code=500, detail="Failed to retrieve applications")
 
 
 @router.get(
