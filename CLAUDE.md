@@ -387,25 +387,23 @@ related-files:        # Optional: source code paths
 **All docs describing flows, state machines, or architecture MUST include Mermaid diagrams** (GitHub-flavored, triple-backtick `mermaid` blocks). Use `sequenceDiagram` for multi-actor flows, `stateDiagram-v2` for state machines, `graph LR/TD` for architecture. Reference: `docs/planning/PAYMENT_ARCHITECTURE.md`.
 
 
-## Operational State (as of 2026-02-13)
+## Operational State (as of 2026-02-28)
 
 **CRITICAL: ECS Image Tag Rules**
-- Always use the `:latest` tag for all images. ECS task definitions MUST reference `:latest`.
-- CI/CD may create specific tags (`ship-*`) but the task definition must use `:latest` so manual deploys work.
-- If a task definition references a specific tag (e.g., `ship-20260206-*`), update it to `:latest` by registering a new revision.
-- When deploying from multiple sessions in parallel, always build from the latest code and push as `:latest`.
-- After `docker push :latest`, always verify the ECS task definition references `:latest` (not a `ship-*` tag).
+- Task definition revision **150+** uses `:latest` tag. CI/CD may create SHA-tagged revisions — always verify and fix with `deploy-mcp` skill.
+- **Use the `deploy-mcp` skill** for all deployments — it handles build, ECR push, force deploy, and health verification.
+- **Use the `deploy-check` skill** to verify deployment state without deploying.
 
-**ECR deploy** (always `us-east-2`, `:latest` tag):
+**ECR deploy** (use skill or manual):
 ```bash
-aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com
-# Dashboard
-docker build --no-cache -f dashboard/Dockerfile -t em-dashboard ./dashboard && docker tag em-dashboard:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest && docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
+MSYS_NO_PATHCONV=1 aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com
 # MCP Server
 docker build --no-cache -f mcp_server/Dockerfile -t em-mcp ./mcp_server && docker tag em-mcp:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest && docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest
+# Dashboard
+docker build --no-cache -f dashboard/Dockerfile -t em-dashboard ./dashboard && docker tag em-dashboard:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest && docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
 # Force new deployment
-aws ecs update-service --cluster em-production-cluster --service em-production-dashboard --force-new-deployment --region us-east-2
-aws ecs update-service --cluster em-production-cluster --service em-production-mcp-server --force-new-deployment --region us-east-2
+MSYS_NO_PATHCONV=1 aws ecs update-service --cluster em-production-cluster --service em-production-mcp-server --force-new-deployment --region us-east-2
+MSYS_NO_PATHCONV=1 aws ecs update-service --cluster em-production-cluster --service em-production-dashboard --force-new-deployment --region us-east-2
 ```
 
 ### Secrets & Credentials
@@ -418,9 +416,12 @@ aws ecs update-service --cluster em-production-cluster --service em-production-m
 | Supabase Management API | `~/.supabase/access-token` |
 | `X402_RPC_URL` | AWS SM `em/x402:X402_RPC_URL` (QuikNode private Base RPC) |
 | Platform wallet key | AWS SM `em/x402:PRIVATE_KEY` |
+| Test worker key | AWS SM `em/test-worker:private_key` (worker-side reputation signing) |
 | KK swarm mnemonic | AWS SM `kk/swarm-seed` |
 
-**ECS Task Definition Secrets Checklist**: When adding new features that require env vars, ALWAYS verify they are in the ECS task definition (`em-production-mcp-server`). Current revision: **144**. Missing secrets cause silent 500 errors. Full checklist in memory file `aws-ecs-operations.md`.
+**ECS Task Definition Secrets Checklist**: When adding new features that require env vars, ALWAYS verify they are in the ECS task definition (`em-production-mcp-server`). Current revision: **150** (`:latest` tag, 14 secrets). Missing secrets cause silent 500 errors. Full checklist in memory file `aws-ecs-operations.md`.
+
+**Deploy skill**: Use the **`deploy-mcp` skill** (`.claude/skills/deploy-mcp/SKILL.md`) for the full deploy workflow: build → ECR push → force deploy → verify health. Use the **`deploy-check` skill** (`.claude/skills/deploy-check/SKILL.md`) to verify deployment state without deploying.
 
 **Deploy scripts**: All TS scripts in `scripts/` auto-load `.env.local` (`WALLET_PRIVATE_KEY` aliased as `PRIVATE_KEY`).
 
