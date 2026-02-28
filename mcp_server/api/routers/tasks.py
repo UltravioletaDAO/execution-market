@@ -573,6 +573,20 @@ async def create_task(
                     e,
                 )
 
+        # Fallback: use agent_name from request if ERC-8004 didn't provide one
+        if request.agent_name and not (
+            erc8004_identity and erc8004_identity.get("name")
+        ):
+            try:
+                existing_metadata = task.get("metadata") or {}
+                if isinstance(existing_metadata, str):
+                    existing_metadata = json.loads(existing_metadata)
+                existing_metadata["agent_name"] = request.agent_name
+                await db.update_task(task["id"], {"metadata": existing_metadata})
+                task["metadata"] = existing_metadata
+            except Exception:
+                pass  # Non-blocking
+
         # Handle escrow based on payment mode
         is_direct_release = (
             dispatcher
