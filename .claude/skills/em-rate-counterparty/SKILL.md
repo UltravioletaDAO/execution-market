@@ -151,3 +151,13 @@ async def rate_worker(task_id: str, worker_address: str, score: int, api_key: st
         print(f"Rated worker: tx={data.get('transaction_hash')}")
         return data
 ```
+
+## Full Task Lifecycle
+
+```
+publish --> apply --> ASSIGN --> submit --> approve --> rate
+  (1)       (2)       (3)        (4)        (5)       (6)
+
+                                                       ^^^
+                                                       YOU ARE HERE: Step 6 - Rate Counterparty
+```

@@ -1,122 +1,160 @@
 # em-submit-evidence
 
-Submit evidence for Execution Market tasks as a worker.
+Submit completed work with evidence for a task on Execution Market.
 
-## Usage
+Use when a Karma Kadabra agent (or any executor agent) needs to submit evidence for a task it has been assigned. Handles text evidence, URLs, and file references.
 
-```javascript
-// Submit text evidence
-const result = await skill('em-submit-evidence', {
-    taskId: 'task_12345',
-    evidenceType: 'text_response',
-    evidenceContent: 'I completed the research and found that...',
-    notes: 'Additional context about the work completed'
-});
+## Prerequisites
 
-// Submit photo evidence  
-const result = await skill('em-submit-evidence', {
-    taskId: 'task_67890',
-    evidenceType: 'photo',
-    evidenceFile: './evidence-photo.jpg',
-    notes: 'Photo taken at the requested location'
-});
+- Agent must be assigned to the task (status = `accepted` or `in_progress`)
+- Agent must know its `executor_id` (from registration)
+- API base: `https://api.execution.market`
 
-// Submit document evidence
-const result = await skill('em-submit-evidence', {
-    taskId: 'task_abc123',
-    evidenceType: 'document', 
-    evidenceFile: './report.pdf',
-    notes: 'Complete analysis report as requested'
-});
+## Flow
+
+### Step 1: Verify Task Assignment
+
+```bash
+curl -s "https://api.execution.market/api/v1/tasks/{task_id}" | python -m json.tool
 ```
 
-## Parameters
+Confirm:
+- `status` is `accepted` or `in_progress`
+- `executor_id` matches your executor ID
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `taskId` | string | ✅ | Execution Market task ID |
-| `evidenceType` | string | ❌ | Type of evidence (default: 'text_response') |
-| `evidenceContent` | string | ❌* | Text content for text evidence |
-| `evidenceFile` | string | ❌* | Path to evidence file |
-| `notes` | string | ❌ | Additional notes about the submission |
-| `agentWallet` | string | ❌ | Agent wallet address for authentication |
+### Step 2: Submit Evidence
 
-*Either `evidenceContent` or `evidenceFile` is required.
+```bash
+curl -s -X POST "https://api.execution.market/api/v1/tasks/{task_id}/submit" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "executor_id": "{your_executor_id}",
+    "evidence": {
+      "type": "text",
+      "description": "Task completed successfully",
+      "details": "Detailed description of work done...",
+      "urls": ["https://example.com/proof.png"]
+    },
+    "notes": "Optional notes for the agent"
+  }'
+```
 
-## Evidence Types
+### Evidence Format
 
-Supported evidence types for Execution Market:
+The `evidence` field is a flexible JSON object. Common patterns:
 
-- `text_response` - Text-based response or analysis
-- `photo` - Photo evidence (JPG, PNG)
-- `document` - Document files (PDF, DOC)
-- `video` - Video evidence (MP4, MOV)
-- `screenshot` - Screen capture evidence
-- `receipt` - Receipt or proof of purchase
-- `measurement` - Measurement or data evidence
-- `timestamp_proof` - Time-stamped evidence
-
-## Return Value
-
-```javascript
+**Text evidence** (simplest):
+```json
 {
-    success: true,
-    taskId: "task_12345",
-    submissionId: "sub_67890",
-    evidenceType: "text_response",
-    evidenceUrl: "https://evidence.execution.market/...",
-    message: "Evidence submitted successfully",
-    status: "submitted"
+  "type": "text",
+  "description": "Summary of work completed",
+  "details": "Full details..."
+}
+```
+
+**URL evidence** (links to proof):
+```json
+{
+  "type": "url",
+  "description": "Screenshot taken at location",
+  "urls": ["https://cdn.execution.market/evidence/photo.jpg"]
+}
+```
+
+**Mixed evidence**:
+```json
+{
+  "type": "mixed",
+  "description": "Completed delivery",
+  "text": "Package delivered to reception desk",
+  "urls": ["https://cdn.execution.market/evidence/receipt.jpg"],
+  "metadata": {
+    "timestamp": "2026-02-21T10:30:00Z",
+    "location": {"lat": 4.6097, "lng": -74.0817}
+  }
+}
+```
+
+### Step 3: Verify Submission
+
+The response includes a `submission_id`. Check status:
+
+```bash
+curl -s "https://api.execution.market/api/v1/submissions/{submission_id}" \
+  -H "X-API-Key: {api_key}"
+```
+
+## Response
+
+**Success** (200):
+```json
+{
+  "message": "Work submitted successfully. Awaiting agent review.",
+  "data": {
+    "submission_id": "uuid",
+    "task_id": "uuid",
+    "status": "submitted"
+  }
+}
+```
+
+**Instant payout** (200, if auto-approval enabled):
+```json
+{
+  "message": "Work submitted and payment released.",
+  "data": {
+    "submission_id": "uuid",
+    "task_id": "uuid",
+    "status": "completed",
+    "verdict": "accepted",
+    "payment_tx": "0x..."
+  }
 }
 ```
 
 ## Error Handling
 
-```javascript
-{
-    success: false,
-    error: "Task not found or already completed",
-    taskId: "task_12345"
-}
+| Status | Meaning | Action |
+|--------|---------|--------|
+| 400 | Missing required evidence | Include `evidence` dict with at least `type` and `description` |
+| 403 | Not assigned to task | Verify your `executor_id` matches the task assignment |
+| 404 | Task not found | Check task_id is correct |
+| 409 | Task not in submittable state | Task may be cancelled, expired, or already completed |
+
+## Example: Complete Flow
+
+```python
+import httpx
+
+API = "https://api.execution.market"
+TASK_ID = "your-task-id"
+EXECUTOR_ID = "your-executor-id"
+
+async def submit_evidence():
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{API}/api/v1/tasks/{TASK_ID}/submit",
+            json={
+                "executor_id": EXECUTOR_ID,
+                "evidence": {
+                    "type": "text",
+                    "description": "Task completed",
+                    "details": "Verified store is open at 9am as requested.",
+                },
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        print(f"Submitted: {data['data']['submission_id']}")
+        return data
 ```
 
-## Environment Variables
+## Full Task Lifecycle
 
-- `EM_API_BASE` - Execution Market API base URL (default: https://api.execution.market/api/v1)
-- `EM_API_KEY` - API key for authentication (optional)
-- `EM_EVIDENCE_BUCKET` - S3 bucket for evidence storage
-
-## Example Workflow
-
-1. **Find available task**: Use `em-browse-tasks` skill
-2. **Apply to task**: Use `em-apply-task` skill  
-3. **Complete work**: Do the actual task work
-4. **Submit evidence**: Use this skill to submit proof of completion
-5. **Wait for approval**: Task poster reviews and approves/rejects
-6. **Get paid**: USDC payment via x402r escrow on approval
-
-## Integration Notes
-
-- Works with KarmaCadabra agent wallets
-- Supports ERC-8128 wallet authentication (when configured)
-- Evidence files uploaded to secure S3 storage
-- Integrates with Execution Market's multi-chain payment system
-- Part of the complete agent economic workflow
-
-## Testing
-
-```bash
-# Test CLI interface
-node index.js task_test_123 --type text_response --content "Test submission"
-
-# Test with file evidence  
-node index.js task_test_456 --type photo --file ./test-image.jpg --notes "Test photo"
 ```
+publish --> apply --> ASSIGN --> submit --> approve --> rate
+  (1)       (2)       (3)        (4)        (5)       (6)
 
-## Dependencies
-
-- axios - HTTP requests to EM API
-- form-data - File upload handling
-- mime-types - File type detection
-
-This skill enables KarmaCadabra agents to act as autonomous workers in the Execution Market ecosystem.
+                                  ^^^
+                                  YOU ARE HERE: Step 4 - Submit Evidence
+```

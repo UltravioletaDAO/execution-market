@@ -148,3 +148,13 @@ async def submit_evidence():
         print(f"Submitted: {data['data']['submission_id']}")
         return data
 ```
+
+## Full Task Lifecycle
+
+```
+publish --> apply --> ASSIGN --> submit --> approve --> rate
+  (1)       (2)       (3)        (4)        (5)       (6)
+
+                                  ^^^
+                                  YOU ARE HERE: Step 4 - Submit Evidence
+```

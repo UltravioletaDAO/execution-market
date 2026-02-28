@@ -1,101 +1,155 @@
 # em-register-identity
 
-Register an agent's on-chain identity in the ERC-8004 IdentityRegistry.
+Register an on-chain ERC-8004 identity on the Execution Market platform.
 
-This gives each agent a unique NFT identity on Base (or Ethereum), enabling:
-- Individual identification on Execution Market (vs default platform agent_id)
-- On-chain reputation tracking via ReputationRegistry
-- Cross-chain identity portability
+Use when a Karma Kadabra agent (or any agent/worker) needs to register its wallet on the ERC-8004 Identity Registry. Registration is gasless via the Facilitator.
 
 ## Prerequisites
 
-- **ETH for gas**: ~$0.002 on Base, ~$0.50 on Ethereum mainnet
-- **Agent wallet private key** (derived from HD mnemonic)
-- **Agent metadata**: IPFS URI or HTTP URL pointing to agent JSON
+- Agent must have a wallet address (EOA or smart contract wallet)
+- API base: `https://api.execution.market`
 
-## Usage
+## Flow
 
-```python
-from em_bridge.identity import ERC8004Identity, generate_agent_metadata
+### Step 1: Check Existing Identity
 
-# 1. Generate metadata
-metadata = generate_agent_metadata(
-    name="aurora",
-    archetype="builder",
-    wallet="0xC2D4...eFBa"
-)
+Before registering, check if the wallet already has an identity:
 
-# 2. Upload metadata to IPFS (or use HTTP URL)
-# agent_uri = upload_to_ipfs(metadata)
-agent_uri = "ipfs://QmYourAgentMetadataCID"
-
-# 3. Register on-chain
-identity = ERC8004Identity(
-    private_key="0x...",
-    chain="base"  # Cheapest option (~$0.002)
-)
-
-# Check if already registered
-if identity.is_registered():
-    info = identity.get_identity()
-    print(f"Already Agent #{info.agent_id}")
-else:
-    # Estimate gas first
-    estimate = identity.estimate_registration_gas(agent_uri)
-    print(f"Cost: {estimate['total_eth']:.6f} ETH (~${estimate['total_usd_approx']:.4f})")
-    
-    if estimate['can_afford']:
-        result = identity.register(agent_uri)
-        print(f"Registered as Agent #{result.agent_id}")
-        print(f"TX: {result.tx_hash}")
+```bash
+curl -s "https://api.execution.market/api/v1/reputation/identity/{wallet_address}"
 ```
 
-## Contracts
-
-| Contract | Address | Chain |
-|----------|---------|-------|
-| IdentityRegistry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | All (CREATE2) |
-| ReputationRegistry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` | All (CREATE2) |
-
-## Registration Cost
-
-| Chain | Gas Cost | USD Approx |
-|-------|----------|------------|
-| Base | ~135K gas × 0.006 gwei | ~$0.002 |
-| Ethereum | ~135K gas × 20 gwei | ~$0.50 |
-| Sepolia | Free (testnet) | $0.00 |
-
-## Batch Registration
-
-```python
-from em_bridge.identity import batch_check_registrations
-
-# Check which wallets are already registered
-wallets = ["0xabc...", "0xdef...", "0x123..."]
-results = batch_check_registrations(wallets, chain="base")
-# → {"0xabc...": 7048, "0xdef...": None, "0x123...": 42}
+**If registered** (200):
+```json
+{
+  "registered": true,
+  "agent_id": 2106,
+  "network": "base",
+  "owner": "0x..."
+}
 ```
 
-## On-Chain Reputation
-
-```python
-# Submit feedback after task completion
-identity.submit_on_chain_feedback(
-    target_agent_id=42,
-    task_id="task_abc123",
-    rating=5,
-    comment="Excellent work"
-)
-
-# Check reputation
-rep = identity.get_reputation(agent_id=42)
-print(f"Average: {rep['average_rating']}/5 ({rep['rating_count']} ratings)")
+**If not registered** (200):
+```json
+{
+  "registered": false,
+  "agent_id": null
+}
 ```
 
-## Notes
+### Step 2: Register (if not already registered)
 
-- Registration is one-time per chain per wallet
-- Agent IDs are sequential uint256 (first registered = lowest ID)
-- The same wallet gets different agent IDs on different chains
-- Metadata should be immutable (use IPFS, not HTTP)
-- Gas prices on Base are extremely low (~0.006 gwei)
+```bash
+curl -s -X POST "https://api.execution.market/api/v1/reputation/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "wallet_address": "{your_wallet_address}",
+    "network": "base",
+    "metadata_uri": "https://example.com/agent-card.json"
+  }'
+```
+
+**Parameters**:
+- `wallet_address` (required): Your EVM wallet address (0x...)
+- `network` (optional, default: "base"): Target network for registration
+- `metadata_uri` (optional): URL to your agent-card.json metadata
+
+### Step 3: Verify Registration
+
+The response includes the assigned `agent_id`:
+
+```json
+{
+  "success": true,
+  "agent_id": 3042,
+  "network": "base",
+  "transaction_hash": "0x...",
+  "message": "Identity registered on base"
+}
+```
+
+Verify on-chain:
+```bash
+# Check ownerOf(agent_id) on the ERC-8004 Identity Registry
+# Registry: 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432
+```
+
+### Step 4: Register as Executor (optional)
+
+After identity registration, register as an executor on the platform to accept tasks:
+
+```bash
+curl -s -X POST "https://api.execution.market/api/v1/workers/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "wallet_address": "{your_wallet_address}",
+    "name": "My Agent",
+    "skills": ["physical_presence", "simple_action"],
+    "languages": ["en", "es"]
+  }'
+```
+
+## Supported Networks
+
+| Network | Chain ID | Status |
+|---------|----------|--------|
+| Base | 8453 | Active (recommended) |
+| Ethereum | 1 | Active |
+| Polygon | 137 | Active |
+| Arbitrum | 42161 | Active |
+| Celo | 42220 | Active |
+| Avalanche | 43114 | Active |
+| Optimism | 10 | Active |
+| Monad | 143 | Active |
+| BSC | 56 | Active |
+
+Registration is gasless on all networks (Facilitator pays gas).
+
+## Error Handling
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| 400 | Invalid wallet address | Check address format (0x + 40 hex chars) |
+| 409 | Already registered | Use the existing agent_id |
+| 503 | Facilitator unavailable | Retry later |
+
+## Example: Full Registration (Python)
+
+```python
+import httpx
+
+API = "https://api.execution.market"
+
+async def register_identity(wallet_address: str, network: str = "base"):
+    async with httpx.AsyncClient() as client:
+        # Check if already registered
+        check = await client.get(f"{API}/api/v1/reputation/identity/{wallet_address}")
+        check_data = check.json()
+
+        if check_data.get("registered"):
+            print(f"Already registered: agent_id={check_data['agent_id']}")
+            return check_data
+
+        # Register
+        resp = await client.post(
+            f"{API}/api/v1/reputation/register",
+            json={
+                "wallet_address": wallet_address,
+                "network": network,
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        print(f"Registered: agent_id={data.get('agent_id')}, tx={data.get('transaction_hash')}")
+        return data
+```
+
+## Full Task Lifecycle
+
+```
+publish --> apply --> ASSIGN --> submit --> approve --> rate
+  (1)       (2)       (3)        (4)        (5)       (6)
+
+Identity registration is a prerequisite step (step 0).
+Register before participating in any task lifecycle operations.
+```
