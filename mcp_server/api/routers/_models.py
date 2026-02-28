@@ -383,6 +383,28 @@ class AvailableTasksResponse(BaseModel):
     )
 
 
+class ApplicationResponse(BaseModel):
+    """Response model for a single task application."""
+
+    id: str = Field(..., description="Application UUID")
+    task_id: str = Field(..., description="Task UUID")
+    executor_id: str = Field(..., description="Worker/executor UUID")
+    message: Optional[str] = Field(None, description="Application message from worker")
+    status: str = Field(
+        ..., description="Application status (pending, accepted, rejected)"
+    )
+    created_at: str = Field(..., description="ISO 8601 timestamp")
+
+
+class ApplicationListResponse(BaseModel):
+    """Response model for listing task applications."""
+
+    applications: List[ApplicationResponse] = Field(
+        ..., description="List of applications for this task"
+    )
+    count: int = Field(..., description="Number of applications")
+
+
 # =============================================================================
 # GENERIC RESPONSES
 # =============================================================================
