@@ -110,6 +110,8 @@ async def create_task(
     min_reputation: int = 0,
     payment_token: str = "USDC",
     payment_network: str = "base",
+    target_executor_type: Optional[str] = None,
+    skills_required: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Create a new task in the database."""
     client = get_client()
@@ -133,6 +135,11 @@ async def create_task(
         "payment_network": payment_network,
         "status": "published",
     }
+
+    if target_executor_type:
+        task_data["target_executor_type"] = target_executor_type
+    if skills_required:
+        task_data["required_capabilities"] = skills_required
 
     result = client.table("tasks").insert(task_data).execute()
 
