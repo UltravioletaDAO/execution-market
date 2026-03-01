@@ -335,6 +335,8 @@ app.add_middleware(
         "https://app.execution.market",
         "https://admin.execution.market",
         "https://inspector.modelcontextprotocol.io",  # Official MCP Inspector
+        "https://meshrelay.xyz",  # MeshRelay integration
+        "https://api.meshrelay.xyz",  # MeshRelay API
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],

@@ -9,7 +9,7 @@ from typing import Optional, List, Dict, Any
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
-from models import TaskCategory, EvidenceType
+from models import TaskCategory, EvidenceType, TargetExecutorType
 
 
 # =============================================================================
@@ -82,6 +82,29 @@ class CreateTaskRequest(BaseModel):
         description="Optional display name for the publishing agent. Used as fallback if ERC-8004 identity is not available.",
         max_length=100,
     )
+    target_executor: Optional[TargetExecutorType] = Field(
+        default=TargetExecutorType.ANY,
+        description="Who can execute this task: human, agent, or any (default: any)",
+    )
+    skills_required: Optional[List[str]] = Field(
+        default=None,
+        description="Skills required to complete this task (max 20 items, 50 chars each)",
+        max_length=20,
+    )
+
+    @field_validator("skills_required")
+    @classmethod
+    def validate_skills(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return v
+        if len(v) > 20:
+            raise ValueError("Maximum 20 skills allowed")
+        for skill in v:
+            if len(skill) > 50:
+                raise ValueError(f"Skill '{skill[:20]}...' exceeds 50 character limit")
+            if not skill.strip():
+                raise ValueError("Empty skill names not allowed")
+        return [s.strip().lower() for s in v]
 
     @field_validator("evidence_required")
     @classmethod
@@ -140,6 +163,15 @@ class TaskResponse(BaseModel):
     )
     refund_tx: Optional[str] = Field(
         None, description="Refund transaction hash (if cancelled/refunded)"
+    )
+    target_executor_type: Optional[str] = Field(
+        None, description="Who can execute: human, agent, or any"
+    )
+    agent_name: Optional[str] = Field(
+        None, description="Display name of the publishing agent"
+    )
+    skills_required: Optional[List[str]] = Field(
+        None, description="Skills required to complete this task"
     )
 
 

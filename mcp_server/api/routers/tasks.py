@@ -536,6 +536,10 @@ async def create_task(
             min_reputation=request.min_reputation,
             payment_token=request.payment_token,
             payment_network=request.payment_network,
+            target_executor_type=request.target_executor.value
+            if request.target_executor
+            else None,
+            skills_required=request.skills_required,
         )
 
         # ---- Persist ERC-8004 identity on the task record ---------------
@@ -954,6 +958,14 @@ async def create_task(
         except Exception as e:
             logger.warning("Auto-register agent executor failed (non-blocking): %s", e)
 
+        # Extract agent_name from metadata or ERC-8004 identity
+        metadata = task.get("metadata") or {}
+        if isinstance(metadata, str):
+            metadata = json.loads(metadata)
+        resolved_agent_name = metadata.get("erc8004", {}).get("name") or metadata.get(
+            "agent_name"
+        )
+
         return TaskResponse(
             id=task["id"],
             title=task["title"],
@@ -974,6 +986,9 @@ async def create_task(
             payment_token=task.get("payment_token", "USDC"),
             escrow_tx=task.get("escrow_tx"),
             refund_tx=task.get("refund_tx"),
+            target_executor_type=task.get("target_executor_type"),
+            agent_name=resolved_agent_name,
+            skills_required=task.get("required_capabilities"),
         )
 
     except HTTPException:
@@ -1011,6 +1026,19 @@ async def get_available_tasks(
     min_bounty: Optional[float] = Query(None, ge=0, description="Minimum bounty USD"),
     max_bounty: Optional[float] = Query(
         None, le=10000, description="Maximum bounty USD"
+    ),
+    target_executor_type: Optional[str] = Query(
+        None,
+        description="Filter by executor type: human, agent, or any",
+        pattern="^(human|agent|any)$",
+    ),
+    skills: Optional[str] = Query(
+        None,
+        description="Comma-separated list of required skills (e.g. photography,local_knowledge). Returns tasks that require ALL listed skills.",
+    ),
+    after: Optional[datetime] = Query(
+        None,
+        description="Only return tasks created after this timestamp (ISO 8601). Useful for polling new tasks.",
     ),
     include_expired: bool = Query(
         False,
@@ -1055,6 +1083,17 @@ async def get_available_tasks(
         if max_bounty is not None:
             query = query.lte("bounty_usd", max_bounty)
 
+        if target_executor_type:
+            query = query.eq("target_executor_type", target_executor_type)
+
+        if skills:
+            skill_list = [s.strip().lower() for s in skills.split(",") if s.strip()]
+            if skill_list:
+                query = query.contains("required_capabilities", skill_list)
+
+        if after:
+            query = query.gte("created_at", after.isoformat())
+
         if applied_ids:
             query = query.not_.in_("id", applied_ids)
 
@@ -1077,6 +1116,9 @@ async def get_available_tasks(
             "category": category.value if category else None,
             "min_bounty": min_bounty,
             "max_bounty": max_bounty,
+            "target_executor_type": target_executor_type,
+            "skills": skills,
+            "after": after.isoformat() if after else None,
             "include_expired": include_expired,
             "location": {"lat": lat, "lng": lng, "radius_km": radius_km}
             if lat and lng
@@ -1131,6 +1173,14 @@ async def get_task(
     if not is_owner and task_status not in public_statuses:
         raise HTTPException(status_code=403, detail="Not authorized to view this task")
 
+    # Extract agent_name from metadata or ERC-8004 identity
+    metadata = task.get("metadata") or {}
+    if isinstance(metadata, str):
+        metadata = json.loads(metadata)
+    resolved_agent_name = metadata.get("erc8004", {}).get("name") or metadata.get(
+        "agent_name"
+    )
+
     return TaskResponse(
         id=task["id"],
         title=task["title"],
@@ -1150,6 +1200,9 @@ async def get_task(
         payment_token=task.get("payment_token", "USDC"),
         escrow_tx=task.get("escrow_tx"),
         refund_tx=task.get("refund_tx"),
+        target_executor_type=task.get("target_executor_type"),
+        agent_name=resolved_agent_name,
+        skills_required=task.get("required_capabilities"),
     )
 
 
