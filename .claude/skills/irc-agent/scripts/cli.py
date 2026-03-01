@@ -345,7 +345,7 @@ def cmd_read(args):
                 last_read = 0
         messages = messages[last_read:]
         # Update marker
-        total = sum(1 for line in open(inbox_path, encoding="utf-8", errors="replace") if line.strip())
+        total = sum(1 for line in open(inbox_path) if line.strip())
         marker_path.write_text(str(total))
     elif args.tail:
         messages = messages[-args.tail :]
@@ -474,7 +474,7 @@ def cmd_status(args):
     inbox_path = session_dir / "inbox.jsonl"
     inbox_count = 0
     if inbox_path.exists():
-        inbox_count = sum(1 for line in open(inbox_path, encoding="utf-8", errors="replace") if line.strip())
+        inbox_count = sum(1 for line in open(inbox_path) if line.strip())
 
     # Unread count
     marker_path = session_dir / "read_marker.txt"
@@ -528,7 +528,7 @@ def cmd_clear(args):
     marker_path = session_dir / "read_marker.txt"
 
     if inbox_path.exists():
-        count = sum(1 for line in open(inbox_path, encoding="utf-8", errors="replace") if line.strip())
+        count = sum(1 for line in open(inbox_path) if line.strip())
         inbox_path.write_text("")
         if marker_path.exists():
             marker_path.write_text("0")
