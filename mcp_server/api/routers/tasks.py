@@ -1166,7 +1166,12 @@ async def get_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    is_owner = task["agent_id"] == auth.agent_id
+    # Ownership: match by agent_id OR wallet_address (EIP-8128 resolves
+    # agent_id to ERC-8004 token ID, but DB stores wallet address)
+    is_owner = task["agent_id"] == auth.agent_id or (
+        getattr(auth, "wallet_address", None)
+        and task["agent_id"] == auth.wallet_address
+    )
     task_status = _normalize_status(task.get("status"))
     public_statuses = {"published", "accepted", "in_progress", "submitted", "completed"}
 
@@ -1235,7 +1240,13 @@ async def get_task_applications(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if task["agent_id"] != auth.agent_id:
+    # Ownership: match by agent_id OR wallet_address (EIP-8128 resolves
+    # agent_id to ERC-8004 token ID, but DB stores wallet address)
+    is_owner = task["agent_id"] == auth.agent_id or (
+        getattr(auth, "wallet_address", None)
+        and task["agent_id"] == auth.wallet_address
+    )
+    if not is_owner:
         raise HTTPException(
             status_code=403,
             detail="Not authorized - only the task publisher can view applications",
@@ -1312,7 +1323,13 @@ async def get_task_payment(
         raise HTTPException(status_code=404, detail="Task not found")
 
     task_status = _normalize_status(task.get("status"))
-    requester_is_owner = bool(auth and task.get("agent_id") == auth.agent_id)
+    requester_is_owner = bool(
+        auth
+        and (
+            task.get("agent_id") == auth.agent_id
+            or (auth.wallet_address and task.get("agent_id") == auth.wallet_address)
+        )
+    )
     if task_status == "draft" and not requester_is_owner:
         raise HTTPException(
             status_code=403,
@@ -1863,7 +1880,11 @@ async def cancel_task(
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
 
-        if task.get("agent_id") != auth.agent_id:
+        is_owner = task.get("agent_id") == auth.agent_id or (
+            getattr(auth, "wallet_address", None)
+            and task.get("agent_id") == auth.wallet_address
+        )
+        if not is_owner:
             raise HTTPException(
                 status_code=403, detail="Not authorized to cancel this task"
             )

@@ -588,7 +588,11 @@ async def rate_worker_endpoint(
         )
 
     task = await _get_task_or_404(request.task_id)
-    if task.get("agent_id") != auth.agent_id:
+    is_owner = task.get("agent_id") == auth.agent_id or (
+        getattr(auth, "wallet_address", None)
+        and task.get("agent_id") == auth.wallet_address
+    )
+    if not is_owner:
         raise HTTPException(
             status_code=403, detail="Not authorized to rate worker for this task"
         )
