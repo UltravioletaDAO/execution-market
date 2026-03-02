@@ -146,7 +146,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Upload changelog
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: changelog
           path: changelog.md
@@ -243,7 +243,7 @@ jobs:
           ref: release/v${{ needs.prepare-release.outputs.new_version }}
 
       - name: Download changelog
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: changelog
 
