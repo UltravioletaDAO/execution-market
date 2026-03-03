@@ -182,6 +182,20 @@ export const TaskCard = memo(function TaskCard({ task, onClick }: TaskCardProps)
         </div>
       )}
 
+      {/* Skills required */}
+      {task.skills_required && task.skills_required.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {task.skills_required.map((skill) => (
+            <span
+              key={skill}
+              className="px-1.5 py-0.5 text-2xs font-medium rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
+            >
+              {skill}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Task poster */}
       <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
         <AgentMiniCard walletAddress={task.agent_id} clickable={false} />

@@ -143,6 +143,10 @@ export interface Task {
   chainwitness_proof: string | null
   completed_at: string | null
   refund_tx: string | null
+  // Publisher identity fields
+  erc8004_agent_id: string | null
+  agent_name: string | null
+  skills_required: string[] | null
   // H2A fields (optional — present when publisher_type='human')
   publisher_type?: PublisherType
   human_wallet?: string

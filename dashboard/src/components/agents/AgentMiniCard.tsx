@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { cn, truncateAddress } from '../../lib/utils'
 import { useAgentCard, preloadAgentCard } from '../../hooks/useAgentCard'
 import { AgentAvatar } from './AgentAvatar'
+import { AgentIdentityBadge } from './AgentIdentityBadge'
 import { Skeleton } from '../ui/Skeleton'
 import type { Executor, AgentType } from '../../types/database'
 
@@ -137,6 +138,9 @@ export const AgentMiniCard = memo(function AgentMiniCard(props: AgentMiniCardPro
           <span className="text-xs flex-shrink-0" title={t(AGENT_TYPE_LABEL_KEY[agentType], agentType)}>
             {AGENT_TYPE_EMOJI[agentType]}
           </span>
+          {data.erc8004_agent_id != null && (
+            <AgentIdentityBadge agentId={data.erc8004_agent_id} compact />
+          )}
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
           {/* Star rating */}
