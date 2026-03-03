@@ -16,6 +16,7 @@ export interface AgentCardData {
   avatar_url: string | null
   bio: string | null
   agent_type: AgentType
+  erc8004_agent_id: number | null
   reputation_score: number
   tasks_completed: number
   tasks_posted: number
@@ -63,7 +64,7 @@ export function useAgentCard(walletAddress?: string | null) {
         // Fetch executor profile
         const { data: executor, error: execError } = await supabase
           .from('executors')
-          .select('wallet_address, display_name, avatar_url, bio, agent_type, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, created_at')
+          .select('wallet_address, display_name, avatar_url, bio, agent_type, erc8004_agent_id, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, created_at')
           .eq('wallet_address', wallet)
           .single()
 
@@ -71,7 +72,7 @@ export function useAgentCard(walletAddress?: string | null) {
           // Try matching by ID in case walletAddress is actually an executor ID
           const { data: execById, error: byIdError } = await supabase
             .from('executors')
-            .select('wallet_address, display_name, avatar_url, bio, agent_type, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, created_at')
+            .select('wallet_address, display_name, avatar_url, bio, agent_type, erc8004_agent_id, reputation_score, tasks_completed, tasks_disputed, avg_rating, skills, created_at')
             .eq('id', wallet)
             .single()
 
@@ -126,6 +127,7 @@ function buildCardData(executor: Record<string, unknown>, tasksPosted: number): 
     avatar_url: (executor.avatar_url as string | null) ?? null,
     bio: (executor.bio as string | null) ?? null,
     agent_type: (executor.agent_type as AgentType) ?? 'human',
+    erc8004_agent_id: (executor.erc8004_agent_id as number | null) ?? null,
     reputation_score: (executor.reputation_score as number) ?? 0,
     tasks_completed: (executor.tasks_completed as number) ?? 0,
     tasks_posted: tasksPosted,
@@ -144,6 +146,7 @@ export function preloadAgentCard(executor: Executor, tasksPosted = 0) {
     avatar_url: executor.avatar_url,
     bio: executor.bio,
     agent_type: executor.agent_type ?? 'human',
+    erc8004_agent_id: executor.erc8004_agent_id ?? null,
     reputation_score: executor.reputation_score,
     tasks_completed: executor.tasks_completed,
     tasks_posted: tasksPosted,
