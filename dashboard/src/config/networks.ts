@@ -14,12 +14,14 @@ export interface NetworkInfo {
   key: string
   /** Display name */
   name: string
-  /** EVM chain ID */
-  chainId: number
+  /** Chain ID (null for non-EVM networks like Solana) */
+  chainId: number | null
   /** Logo path (relative to /public) */
   logo: string
   /** Whether this network is currently live for payments */
   live: boolean
+  /** Network type: EVM (default) or SVM (Solana) */
+  networkType?: 'evm' | 'svm'
 }
 
 /**
@@ -35,6 +37,7 @@ export const NETWORKS: NetworkInfo[] = [
   { key: 'monad', name: 'Monad', chainId: 143, logo: '/monad.png', live: true },
   { key: 'avalanche', name: 'Avalanche', chainId: 43114, logo: '/avalanche.png', live: true },
   { key: 'optimism', name: 'Optimism', chainId: 10, logo: '/optimism.png', live: true },
+  { key: 'solana', name: 'Solana', chainId: null, logo: '/solana.png', live: true, networkType: 'svm' },
 ]
 
 /** Quick lookup by network key */
@@ -42,9 +45,9 @@ export const NETWORK_BY_KEY = Object.fromEntries(
   NETWORKS.map((n) => [n.key, n])
 ) as Record<string, NetworkInfo>
 
-/** Quick lookup by chain ID */
+/** Quick lookup by chain ID (excludes non-EVM networks with null chainId) */
 export const NETWORK_BY_CHAIN_ID = Object.fromEntries(
-  NETWORKS.map((n) => [n.chainId, n])
+  NETWORKS.filter((n) => n.chainId !== null).map((n) => [n.chainId, n])
 ) as Record<number, NetworkInfo>
 
 /** Only live networks */

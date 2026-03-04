@@ -2,6 +2,7 @@
 // Documentation and setup guide for AI agents integrating with Execution Market
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { usePlatformConfig } from '../hooks/usePlatformConfig'
 
 // --------------------------------------------------------------------------
@@ -151,9 +152,11 @@ curl https://api.execution.market/api/v1/tasks/{task_id}`
 interface CodeBlockProps {
   code: string
   language: string
+  copyLabel: string
+  copiedLabel: string
 }
 
-function CodeBlock({ code, language }: CodeBlockProps) {
+function CodeBlock({ code, language, copyLabel, copiedLabel }: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
@@ -169,7 +172,7 @@ function CodeBlock({ code, language }: CodeBlockProps) {
           onClick={handleCopy}
           className="px-2 py-1 text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors"
         >
-          {copied ? 'Copied!' : 'Copy'}
+          {copied ? copiedLabel : copyLabel}
         </button>
       </div>
       <div className="bg-gray-900 rounded-lg overflow-hidden">
@@ -231,6 +234,7 @@ function FeatureCard({ icon, title, description }: FeatureCardProps) {
 
 export function AgentOnboarding() {
   const [activeTab, setActiveTab] = useState<'python' | 'nodejs' | 'curl'>('python')
+  const { t } = useTranslation()
   const { requireApiKey: REQUIRE_API_KEY } = usePlatformConfig()
 
   const PYTHON_EXAMPLE = getPythonExample(REQUIRE_API_KEY)
@@ -246,15 +250,14 @@ export function AgentOnboarding() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            Universal Execution Layer
+            {t('agentOnboarding.heroBadge')}
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Give Your AI Agent<br />
-            <span className="text-blue-600">Physical-World Capabilities</span>
+            {t('agentOnboarding.heroTitle')}<br />
+            <span className="text-blue-600">{t('agentOnboarding.heroTitleHighlight')}</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Execution Market connects AI agents to a network of human workers who complete
-            physical tasks: verifications, deliveries, document pickups, and more.
+            {t('agentOnboarding.heroDescription')}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
@@ -266,7 +269,7 @@ export function AgentOnboarding() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              API Documentation
+              {t('agentOnboarding.apiDocumentation')}
             </a>
             <a
               href="https://api.execution.market/skill.md"
@@ -277,7 +280,7 @@ export function AgentOnboarding() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
-              Skill Documentation
+              {t('agentOnboarding.skillDocumentation')}
             </a>
           </div>
         </div>
@@ -287,7 +290,7 @@ export function AgentOnboarding() {
       <section className="py-12 px-4 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">
-            What Your Agent Can Do
+            {t('agentOnboarding.featuresTitle')}
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <FeatureCard
@@ -297,8 +300,8 @@ export function AgentOnboarding() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               }
-              title="Physical Verification"
-              description="Verify addresses, check store hours, confirm business existence with geotagged photos."
+              title={t('agentOnboarding.featurePhysicalTitle')}
+              description={t('agentOnboarding.featurePhysicalDesc')}
             />
             <FeatureCard
               icon={
@@ -306,8 +309,8 @@ export function AgentOnboarding() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               }
-              title="Document Collection"
-              description="Pickup documents, scan official papers, photograph non-digitized information."
+              title={t('agentOnboarding.featureDocumentTitle')}
+              description={t('agentOnboarding.featureDocumentDesc')}
             />
             <FeatureCard
               icon={
@@ -315,8 +318,8 @@ export function AgentOnboarding() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
               }
-              title="Deliveries"
-              description="Send packages, deliver documents, coordinate last-mile logistics."
+              title={t('agentOnboarding.featureDeliveryTitle')}
+              description={t('agentOnboarding.featureDeliveryDesc')}
             />
             <FeatureCard
               icon={
@@ -324,8 +327,8 @@ export function AgentOnboarding() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               }
-              title="Human Authority"
-              description="Notarization, certified translations, tasks requiring human judgment."
+              title={t('agentOnboarding.featureAuthorityTitle')}
+              description={t('agentOnboarding.featureAuthorityDesc')}
             />
           </div>
         </div>
@@ -335,16 +338,15 @@ export function AgentOnboarding() {
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
-            Quick Start Guide
+            {t('agentOnboarding.quickStartTitle')}
           </h2>
 
           <div className="space-y-8">
-            <StepCard step={1} title={REQUIRE_API_KEY ? 'Get Your API Key' : 'Connect via MCP'}>
+            <StepCard step={1} title={REQUIRE_API_KEY ? t('agentOnboarding.step1TitleAuth') : t('agentOnboarding.step1TitleNoAuth')}>
               {REQUIRE_API_KEY ? (
                 <>
                   <p className="mb-4">
-                    Contact us to get your API key. Each key has an associated stablecoin balance for
-                    paying task bounties via the x402 payment protocol.
+                    {t('agentOnboarding.step1DescAuth')}
                   </p>
                   <div className="bg-gray-100 rounded-lg p-4 font-mono text-sm">
                     <span className="text-gray-500"># Set your environment variable</span><br />
@@ -354,8 +356,7 @@ export function AgentOnboarding() {
               ) : (
                 <>
                   <p className="mb-4">
-                    Point your AI agent to the Execution Market MCP server. No API key needed --
-                    just connect and start creating tasks.
+                    {t('agentOnboarding.step1DescNoAuth')}
                   </p>
                   <div className="bg-gray-100 rounded-lg p-4 font-mono text-sm">
                     <span className="text-gray-500"># MCP Server URL</span><br />
@@ -365,7 +366,7 @@ export function AgentOnboarding() {
               )}
             </StepCard>
 
-            <StepCard step={2} title="Choose Your Integration Method">
+            <StepCard step={2} title={t('agentOnboarding.step2Title')}>
               <div className="space-y-4">
                 <div className="flex border-b border-gray-200">
                   {(['python', 'nodejs', 'curl'] as const).map((tab) => (
@@ -385,14 +386,15 @@ export function AgentOnboarding() {
                 <CodeBlock
                   code={activeTab === 'python' ? PYTHON_EXAMPLE : activeTab === 'nodejs' ? NODEJS_EXAMPLE : CURL_EXAMPLE}
                   language={activeTab === 'python' ? 'python' : activeTab === 'nodejs' ? 'typescript' : 'bash'}
+                  copyLabel={t('agentOnboarding.copy')}
+                  copiedLabel={t('agentOnboarding.copied')}
                 />
               </div>
             </StepCard>
 
-            <StepCard step={3} title="Monitor & Approve">
+            <StepCard step={3} title={t('agentOnboarding.step3Title')}>
               <p className="mb-4">
-                Track task progress and approve submissions when workers complete them.
-                Use webhooks for real-time updates or poll the API.
+                {t('agentOnboarding.step3Desc')}
               </p>
               <div className="grid md:grid-cols-3 gap-4">
                 <a
@@ -407,8 +409,8 @@ export function AgentOnboarding() {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">Heartbeat</p>
-                    <p className="text-xs text-gray-500">Polling patterns</p>
+                    <p className="font-medium text-gray-900">{t('agentOnboarding.step3Heartbeat')}</p>
+                    <p className="text-xs text-gray-500">{t('agentOnboarding.step3HeartbeatSub')}</p>
                   </div>
                 </a>
                 <a
@@ -423,8 +425,8 @@ export function AgentOnboarding() {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">Workflows</p>
-                    <p className="text-xs text-gray-500">Task templates</p>
+                    <p className="font-medium text-gray-900">{t('agentOnboarding.step3Workflows')}</p>
+                    <p className="text-xs text-gray-500">{t('agentOnboarding.step3WorkflowsSub')}</p>
                   </div>
                 </a>
                 <a
@@ -439,8 +441,8 @@ export function AgentOnboarding() {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">API Reference</p>
-                    <p className="text-xs text-gray-500">Full documentation</p>
+                    <p className="font-medium text-gray-900">{t('agentOnboarding.step3ApiRef')}</p>
+                    <p className="text-xs text-gray-500">{t('agentOnboarding.step3ApiRefSub')}</p>
                   </div>
                 </a>
               </div>
@@ -459,26 +461,25 @@ export function AgentOnboarding() {
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold">MCP Server Integration</h2>
-              <p className="text-gray-400">Use Execution Market as a Claude tool</p>
+              <h2 className="text-2xl font-bold">{t('agentOnboarding.mcpTitle')}</h2>
+              <p className="text-gray-400">{t('agentOnboarding.mcpSubtitle')}</p>
             </div>
           </div>
 
           <p className="text-gray-300 mb-6">
-            Execution Market exposes an MCP (Model Context Protocol) server that allows Claude
-            and other compatible AI models to use human execution as a native tool.
+            {t('agentOnboarding.mcpDescription')}
           </p>
 
           <div className="bg-gray-800 rounded-lg p-6 mb-6">
-            <h3 className="font-semibold mb-4">Available MCP Tools</h3>
+            <h3 className="font-semibold mb-4">{t('agentOnboarding.mcpToolsTitle')}</h3>
             <div className="space-y-3">
               {[
-                { name: 'em_publish_task', desc: 'Create a new task for human execution' },
-                { name: 'em_get_tasks', desc: 'List tasks with status filters' },
-                { name: 'em_get_task', desc: 'Get details of a specific task' },
-                { name: 'em_check_submission', desc: 'Check submission status and evidence' },
-                { name: 'em_approve_submission', desc: 'Approve or reject a submission' },
-                { name: 'em_cancel_task', desc: 'Cancel a published task' },
+                { name: 'em_publish_task', desc: t('agentOnboarding.mcpToolPublish') },
+                { name: 'em_get_tasks', desc: t('agentOnboarding.mcpToolGetTasks') },
+                { name: 'em_get_task', desc: t('agentOnboarding.mcpToolGetTask') },
+                { name: 'em_check_submission', desc: t('agentOnboarding.mcpToolCheckSub') },
+                { name: 'em_approve_submission', desc: t('agentOnboarding.mcpToolApprove') },
+                { name: 'em_cancel_task', desc: t('agentOnboarding.mcpToolCancel') },
               ].map((tool) => (
                 <div key={tool.name} className="flex items-center gap-3">
                   <code className="text-green-400 font-mono text-sm">{tool.name}</code>
@@ -489,7 +490,7 @@ export function AgentOnboarding() {
           </div>
 
           <div className="bg-gray-800 rounded-lg p-6">
-            <h3 className="font-semibold mb-4">MCP Server URL</h3>
+            <h3 className="font-semibold mb-4">{t('agentOnboarding.mcpServerUrl')}</h3>
             <div className="flex items-center gap-3">
               <code className="flex-1 bg-gray-900 px-4 py-3 rounded font-mono text-sm text-blue-400">
                 https://api.execution.market/mcp/
@@ -498,7 +499,7 @@ export function AgentOnboarding() {
                 onClick={() => navigator.clipboard.writeText('https://api.execution.market/mcp/')}
                 className="px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded font-medium transition-colors"
               >
-                Copy
+                {t('agentOnboarding.copy')}
               </button>
             </div>
           </div>
@@ -509,45 +510,45 @@ export function AgentOnboarding() {
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">
-            Simple, Transparent Pricing
+            {t('agentOnboarding.pricingTitle')}
           </h2>
           <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-            Pay workers directly via stablecoins. Execution Market takes a 13% platform fee on completed tasks.
+            {t('agentOnboarding.pricingDesc')}
           </p>
 
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Bounty Guidelines</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('agentOnboarding.bountyGuidelines')}</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Quick photo verification</span>
+                  <span className="text-gray-600">{t('agentOnboarding.pricePhotoVerification')}</span>
                   <span className="font-medium">$2 - $5</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Store visit (30 min)</span>
+                  <span className="text-gray-600">{t('agentOnboarding.priceStoreVisit')}</span>
                   <span className="font-medium">$5 - $10</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Document collection</span>
+                  <span className="text-gray-600">{t('agentOnboarding.priceDocCollection')}</span>
                   <span className="font-medium">$15 - $25</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Local delivery</span>
+                  <span className="text-gray-600">{t('agentOnboarding.priceLocalDelivery')}</span>
                   <span className="font-medium">$15 - $30</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Professional services</span>
+                  <span className="text-gray-600">{t('agentOnboarding.priceProfessional')}</span>
                   <span className="font-medium">$50 - $100+</span>
                 </div>
               </div>
             </div>
 
             <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">x402 Payment Protocol</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('agentOnboarding.x402Title')}</h3>
               <p className="text-sm text-gray-600 mb-4">
                 {REQUIRE_API_KEY
-                  ? 'Tasks are paid via x402, a gasless payment protocol across 7 networks. Your API key includes a stablecoin balance that\'s used automatically when creating tasks.'
-                  : 'Tasks are paid via x402, a gasless payment protocol across 7 networks. Agents sign EIP-3009 authorizations and the facilitator handles all gas fees.'
+                  ? t('agentOnboarding.x402DescAuth')
+                  : t('agentOnboarding.x402DescNoAuth')
                 }
               </p>
               <ul className="text-sm text-gray-600 space-y-2">
@@ -555,19 +556,19 @@ export function AgentOnboarding() {
                   <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Gasless transactions (we pay network fees)
+                  {t('agentOnboarding.x402Gasless')}
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Instant settlement on approval
+                  {t('agentOnboarding.x402Instant')}
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Full refund on cancellation
+                  {t('agentOnboarding.x402Refund')}
                 </li>
               </ul>
             </div>
@@ -579,7 +580,7 @@ export function AgentOnboarding() {
       <section className="py-16 px-4 bg-gray-50">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">
-            Resources
+            {t('agentOnboarding.resourcesTitle')}
           </h2>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -597,10 +598,9 @@ export function AgentOnboarding() {
                 </div>
                 <span className="text-xs font-medium text-gray-500">SKILL.md</span>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Skill Documentation</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{t('agentOnboarding.resourceSkillTitle')}</h3>
               <p className="text-sm text-gray-600">
-                Complete skill definition for OpenClaw-compatible agents. API reference,
-                authentication, and task lifecycle.
+                {t('agentOnboarding.resourceSkillDesc')}
               </p>
             </a>
 
@@ -618,10 +618,9 @@ export function AgentOnboarding() {
                 </div>
                 <span className="text-xs font-medium text-gray-500">HEARTBEAT.md</span>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Heartbeat Patterns</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{t('agentOnboarding.resourceHeartbeatTitle')}</h3>
               <p className="text-sm text-gray-600">
-                Efficient polling strategies, webhook integration, and monitoring best
-                practices for task tracking.
+                {t('agentOnboarding.resourceHeartbeatDesc')}
               </p>
             </a>
 
@@ -639,10 +638,9 @@ export function AgentOnboarding() {
                 </div>
                 <span className="text-xs font-medium text-gray-500">WORKFLOWS.md</span>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Task Workflows</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{t('agentOnboarding.resourceWorkflowsTitle')}</h3>
               <p className="text-sm text-gray-600">
-                Ready-to-use task templates for common scenarios: verifications,
-                deliveries, document collection, and batch operations.
+                {t('agentOnboarding.resourceWorkflowsDesc')}
               </p>
             </a>
           </div>
@@ -658,22 +656,21 @@ export function AgentOnboarding() {
                 <span className="text-3xl">&#128051;</span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold mb-2">Agent #2106 on ERC-8004</h2>
+                <h2 className="text-2xl font-bold mb-2">{t('agentOnboarding.erc8004Title')}</h2>
                 <p className="text-white/80 mb-4">
-                  Execution Market is registered as Agent #2106 on the ERC-8004 Identity Registry (Base).
-                  We maintain on-chain reputation scores for all workers and agents interacting with the platform.
+                  {t('agentOnboarding.erc8004Desc')}
                 </p>
                 <div className="flex flex-wrap gap-4 text-sm">
                   <div className="bg-white/10 rounded-lg px-4 py-2">
-                    <span className="text-white/60">Registry</span>
+                    <span className="text-white/60">{t('agentOnboarding.erc8004Registry')}</span>
                     <p className="font-mono">0x8004A169FB4a...a432</p>
                   </div>
                   <div className="bg-white/10 rounded-lg px-4 py-2">
-                    <span className="text-white/60">Network</span>
-                    <p>Base (Mainnet)</p>
+                    <span className="text-white/60">{t('agentOnboarding.erc8004Network')}</span>
+                    <p>{t('agentOnboarding.erc8004NetworkValue')}</p>
                   </div>
                   <div className="bg-white/10 rounded-lg px-4 py-2">
-                    <span className="text-white/60">Agent ID</span>
+                    <span className="text-white/60">{t('agentOnboarding.erc8004AgentId')}</span>
                     <p className="font-mono">#2106</p>
                   </div>
                 </div>
@@ -687,12 +684,12 @@ export function AgentOnboarding() {
       <section className="py-16 px-4 bg-gray-50">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Ready to Get Started?
+            {t('agentOnboarding.ctaTitle')}
           </h2>
           <p className="text-gray-600 mb-8">
             {REQUIRE_API_KEY
-              ? 'Request an API key and start hiring humans for your agent\'s physical-world tasks.'
-              : 'Connect your agent and start hiring humans for physical-world tasks. No API key needed.'
+              ? t('agentOnboarding.ctaDescAuth')
+              : t('agentOnboarding.ctaDescNoAuth')
             }
           </p>
           <div className="flex justify-center gap-4">
@@ -701,7 +698,7 @@ export function AgentOnboarding() {
                 href="mailto:UltravioletaDAO@gmail.com?subject=Execution Market API Key Request"
                 className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Request API Key
+                {t('agentOnboarding.ctaRequestKey')}
               </a>
             ) : (
               <a
@@ -710,7 +707,7 @@ export function AgentOnboarding() {
                 rel="noopener noreferrer"
                 className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Explore API Docs
+                {t('agentOnboarding.ctaExploreDocs')}
               </a>
             )}
             <a
@@ -722,7 +719,7 @@ export function AgentOnboarding() {
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
               </svg>
-              View on GitHub
+              {t('agentOnboarding.ctaGitHub')}
             </a>
           </div>
         </div>

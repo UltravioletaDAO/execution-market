@@ -96,7 +96,7 @@ EM_SETTLEMENT_ADDRESS = os.environ.get("EM_SETTLEMENT_ADDRESS")
 # To enable more: fund the platform wallet with USDC on that chain, then add to this list.
 _enabled_raw = os.environ.get(
     "EM_ENABLED_NETWORKS",
-    "base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism",
+    "base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,solana",
 )
 ENABLED_NETWORKS = [n.strip() for n in _enabled_raw.split(",") if n.strip()]
 
@@ -121,6 +121,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     #     Used by deploy-payment-operator.ts and for on-chain reads.
     "base": {
         "chain_id": 8453,
+        "network_type": "evm",
         "rpc_url": "https://mainnet.base.org",
         "tokens": {
             "USDC": {
@@ -151,6 +152,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "ethereum": {
         "chain_id": 1,
+        "network_type": "evm",
         "rpc_url": "https://ethereum-rpc.publicnode.com",
         "tokens": {
             "USDC": {
@@ -193,6 +195,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "polygon": {
         "chain_id": 137,
+        "network_type": "evm",
         "rpc_url": "https://polygon-bor-rpc.publicnode.com",
         "tokens": {
             "USDC": {
@@ -223,6 +226,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "arbitrum": {
         "chain_id": 42161,
+        "network_type": "evm",
         "rpc_url": "https://arb1.arbitrum.io/rpc",
         "tokens": {
             "USDC": {
@@ -259,6 +263,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "celo": {
         "chain_id": 42220,
+        "network_type": "evm",
         "rpc_url": "https://forno.celo.org",
         "tokens": {
             "USDC": {
@@ -289,6 +294,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "monad": {
         "chain_id": 143,
+        "network_type": "evm",
         "rpc_url": "https://rpc.monad.xyz",
         "tokens": {
             "USDC": {
@@ -319,6 +325,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "avalanche": {
         "chain_id": 43114,
+        "network_type": "evm",
         "rpc_url": "https://api.avax.network/ext/bc/C/rpc",
         "tokens": {
             "USDC": {
@@ -355,6 +362,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "optimism": {
         "chain_id": 10,
+        "network_type": "evm",
         "rpc_url": "https://mainnet.optimism.io",
         "tokens": {
             "USDC": {
@@ -383,8 +391,33 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
             "payerCondition": "0xed02d3E5167BCc9582D851885A89b050AB816a56",
         },
     },
+    # --- SVM (Solana) ---
+    # Solana uses SPL tokens (not ERC-20), Base58 addresses, no numeric chain ID.
+    # Fase 1 only (direct settlement via Facilitator). No on-chain escrow.
+    "solana": {
+        "chain_id": None,  # SVM has no numeric chain ID
+        "network_type": "svm",
+        "rpc_url": "https://api.mainnet-beta.solana.com",
+        "tokens": {
+            "USDC": {
+                "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                "name": "USD Coin",
+                "version": "1",
+                "decimals": 6,
+            },
+            "AUSD": {
+                "address": "AUSD1jCcCyPLybk1YnvPWsHQSrZ46dxwoMniN4N2UEB9",
+                "name": "Agora Dollar",
+                "version": "1",
+                "decimals": 6,
+            },
+        },
+        # No escrow/factory/operator/x402r_infra — Solana uses Fase 1 (direct settlement)
+    },
+    # --- EVM networks without x402r escrow ---
     "hyperevm": {
         "chain_id": 999,
+        "network_type": "evm",
         "tokens": {
             "USDC": {
                 "address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
@@ -396,6 +429,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "unichain": {
         "chain_id": 130,
+        "network_type": "evm",
         "tokens": {
             "USDC": {
                 "address": "0x078D782b760474a361dDA0AF3839290b0EF57AD6",
@@ -407,6 +441,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "scroll": {
         "chain_id": 534352,
+        "network_type": "evm",
         "tokens": {
             "USDC": {
                 "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
@@ -419,6 +454,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     # --- Testnets ---
     "base-sepolia": {
         "chain_id": 84532,
+        "network_type": "evm",
         "tokens": {
             "USDC": {
                 "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
@@ -432,6 +468,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "ethereum-sepolia": {
         "chain_id": 11155111,
+        "network_type": "evm",
         "tokens": {
             "USDC": {
                 "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
@@ -445,6 +482,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "polygon-amoy": {
         "chain_id": 80002,
+        "network_type": "evm",
         "tokens": {
             "USDC": {
                 "address": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
@@ -456,6 +494,7 @@ NETWORK_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "arbitrum-sepolia": {
         "chain_id": 421614,
+        "network_type": "evm",
         "tokens": {
             "USDC": {
                 "address": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
@@ -494,7 +533,11 @@ def get_token_config(network: str, token: str = "USDC") -> Dict[str, Any]:
             f"Token '{token}' not available on {network}. Available: {supported_tokens}"
         )
 
-    return {**token_config, "chain_id": net_config["chain_id"]}
+    return {
+        **token_config,
+        "chain_id": net_config["chain_id"],
+        "network_type": net_config.get("network_type", "evm"),
+    }
 
 
 def get_supported_networks() -> list:
@@ -613,6 +656,11 @@ def get_rpc_url(network: str) -> str:
         return override
     config = NETWORK_CONFIG.get(network, {})
     return config.get("rpc_url", "https://mainnet.base.org")
+
+
+def is_svm_network(network: str) -> bool:
+    """Check if a network is SVM-based (Solana) rather than EVM."""
+    return NETWORK_CONFIG.get(network, {}).get("network_type") == "svm"
 
 
 def get_supported_tokens(network: str) -> list:

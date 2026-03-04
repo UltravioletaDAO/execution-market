@@ -82,8 +82,8 @@
   ],
 
   "payment": {
-    "networks": ["base", "ethereum", "polygon", "arbitrum", "celo", "monad", "avalanche", "optimism"],
-    "tokens": ["USDC", "EURC", "DAI"],
+    "networks": ["base", "ethereum", "polygon", "arbitrum", "celo", "monad", "avalanche", "optimism", "solana"],
+    "tokens": ["USDC", "EURC", "DAI", "AUSD"],
     "protocol": "x402",
     "escrow": "x402r (AuthCaptureEscrow + PaymentOperator)",
     "fee": "13% (credit card model, deducted on-chain)",
@@ -116,7 +116,7 @@
   },
 
   "version": "2.0.0",
-  "updated_at": "2026-02-18T00:00:00.000Z",
+  "updated_at": "2026-03-03T00:00:00.000Z",
 
   "_deployment": {
     "network": "base",

@@ -83,3 +83,37 @@ def nyc_coordinates():
         "lat": 40.7128,
         "lng": -74.0060,
     }
+
+
+@pytest.fixture
+def sample_solana_executor():
+    """Sample Solana executor for testing (Base58 wallet address)."""
+    return {
+        "id": "exec-sol-001",
+        "user_id": "user-sol-101",
+        "wallet_address": "7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV",
+        "display_name": "Solana Worker",
+        "rating": 90,
+        "completed_tasks": 10,
+        "status": "active",
+    }
+
+
+@pytest.fixture
+def sample_solana_task():
+    """Sample Solana task for testing."""
+    return {
+        "id": "task-sol-123",
+        "agent_id": "agent-sol-456",
+        "title": "Verify store is open (Solana)",
+        "task_type": "store_verification",
+        "instructions": "Take a photo of the store entrance showing it's open.",
+        "location": {"lat": 25.7617, "lng": -80.1918},
+        "bounty_amount_usdc": 0.10,
+        "deadline": datetime.now(UTC).isoformat(),
+        "network": "solana",
+        "evidence_schema": {
+            "required": ["photo_geo"],
+            "optional": ["text_response"],
+        },
+    }

@@ -135,14 +135,21 @@ _protocol_fee_cache: Dict[str, Any] = {"bps": 0, "expires": 0.0}
 _CACHE_TTL = 300  # 5 minutes
 
 
-def _get_operator_for_network(network: str) -> str:
+def _get_operator_for_network(network: str) -> Optional[str]:
     """Resolve EM PaymentOperator address for a given network.
+
+    Returns None for SVM networks (Solana) — they use Fase 1 only, no escrow.
 
     Priority:
     1. NETWORK_CONFIG[network]["operator"] — per-chain hardcoded address
     2. EM_PAYMENT_OPERATOR env var — global override
     3. EM_OPERATOR module default — Base Mainnet Fase 5 operator
     """
+    # SVM networks (Solana) have no on-chain escrow or operator
+    net_config = NETWORK_CONFIG.get(network, {})
+    if net_config.get("network_type") == "svm":
+        return None
+
     per_chain = get_operator_address(network)
     if per_chain:
         return per_chain
@@ -226,6 +233,22 @@ async def _get_protocol_fee_bps() -> int:
 # =============================================================================
 
 
+def _is_valid_tx_id(val: Any) -> bool:
+    """Check if a value looks like a valid transaction identifier (EVM or Solana)."""
+    if not isinstance(val, str) or not val:
+        return False
+    # EVM: 0x-prefixed 66-char hex (32 bytes)
+    if val.startswith("0x") and len(val) == 66:
+        return True
+    # Solana: Base58 signature, typically 87-88 chars, no 0x prefix
+    if len(val) >= 80 and not val.startswith("0x"):
+        import re
+
+        if re.match(r"^[1-9A-HJ-NP-Za-km-z]+$", val):
+            return True
+    return False
+
+
 def _extract_tx_hash(response: Any) -> Optional[str]:
     """Extract tx hash from various SDK response formats (model objects or dicts)."""
     if response is None:
@@ -236,7 +259,7 @@ def _extract_tx_hash(response: Any) -> Optional[str]:
     if callable(getter):
         try:
             val = getter()
-            if isinstance(val, str) and val.startswith("0x") and len(val) == 66:
+            if _is_valid_tx_id(val):
                 return val
         except Exception:
             pass
@@ -244,14 +267,14 @@ def _extract_tx_hash(response: Any) -> Optional[str]:
     # Try attribute access
     for attr in ("transaction_hash", "tx_hash", "transaction", "hash"):
         val = getattr(response, attr, None)
-        if isinstance(val, str) and val.startswith("0x") and len(val) == 66:
+        if _is_valid_tx_id(val):
             return val
 
     # Try dict access
     if isinstance(response, dict):
         for key in ("transaction_hash", "tx_hash", "transaction", "hash"):
             val = response.get(key)
-            if isinstance(val, str) and val.startswith("0x") and len(val) == 66:
+            if _is_valid_tx_id(val):
                 return val
 
     return None
