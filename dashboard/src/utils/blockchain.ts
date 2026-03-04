@@ -21,7 +21,9 @@ export type NetworkId =
   | 'arbitrum'
   | 'celo'
   | 'monad'
-  | 'avalanche';
+  | 'avalanche'
+  | 'optimism'
+  | 'solana';
 
 /** Explorer base URLs for transactions */
 export const TX_EXPLORER_URLS: Record<string, string> = {
@@ -35,6 +37,8 @@ export const TX_EXPLORER_URLS: Record<string, string> = {
   celo: 'https://celoscan.io/tx/',
   monad: 'https://explorer.monad.xyz/tx/',
   avalanche: 'https://snowtrace.io/tx/',
+  optimism: 'https://optimistic.etherscan.io/tx/',
+  solana: 'https://solscan.io/tx/',
 };
 
 /** Explorer base URLs for addresses */
@@ -49,6 +53,8 @@ export const ADDRESS_EXPLORER_URLS: Record<string, string> = {
   celo: 'https://celoscan.io/address/',
   monad: 'https://explorer.monad.xyz/address/',
   avalanche: 'https://snowtrace.io/address/',
+  optimism: 'https://optimistic.etherscan.io/address/',
+  solana: 'https://solscan.io/account/',
 };
 
 /**
@@ -122,7 +128,11 @@ export function truncateHash(hash: string, startChars: number = 6, endChars: num
  * // false
  */
 export function isValidTxHash(hash: string): boolean {
-  return /^0x[0-9a-fA-F]{64}$/.test(hash);
+  // EVM: 0x-prefixed 64 hex chars
+  if (/^0x[0-9a-fA-F]{64}$/.test(hash)) return true;
+  // Solana: Base58 signature (~88 chars)
+  if (/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(hash)) return true;
+  return false;
 }
 
 /**
@@ -134,7 +144,11 @@ export function isValidTxHash(hash: string): boolean {
  * @returns true if the string is a valid address
  */
 export function isValidAddress(address: string): boolean {
-  return /^0x[0-9a-fA-F]{40}$/.test(address);
+  // EVM: 0x-prefixed 40 hex chars
+  if (/^0x[0-9a-fA-F]{40}$/.test(address)) return true;
+  // Solana: Base58 address (32-44 chars)
+  if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) return true;
+  return false;
 }
 
 /**
@@ -155,6 +169,8 @@ export function getNetworkDisplayName(network: string): string {
     celo: 'Celo',
     monad: 'Monad',
     avalanche: 'Avalanche',
+    optimism: 'Optimism',
+    solana: 'Solana',
   };
   return names[network] || network;
 }

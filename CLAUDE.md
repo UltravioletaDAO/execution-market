@@ -43,7 +43,7 @@ Execution Market is the **Universal Execution Layer** — the infrastructure tha
 | Database | Supabase (PostgreSQL) |
 | Dashboard | React 18 + TypeScript + Vite + Tailwind CSS |
 | Blockchain Scripts | TypeScript + viem |
-| Payments | x402 SDK + Facilitator (Base Mainnet, gasless) |
+| Payments | x402 SDK + Facilitator (9 networks: 8 EVM + Solana, gasless) |
 | Evidence Storage | S3 + CloudFront CDN (presigned uploads) |
 | Agent Identity | ERC-8004 Registry (15 networks via Facilitator) |
 | SDKs | Python `uvd-x402-sdk>=0.14.0` / TypeScript `uvd-x402-sdk@2.26.0` |
@@ -209,7 +209,7 @@ Scripts in `scripts/kk/` for managing 24 Karma Kadabra V2 agent wallets across 8
 ```
 AI Agent → MCP Server → Supabase → Dashboard → Human Worker
                 ↓
-           x402r Escrow (8 networks, all live)
+           x402r Escrow (8 EVM networks) + Solana SPL transfers
                 ↓
            Payment Release
 ```
@@ -258,16 +258,19 @@ Required in `.env.local` (project root):
 - `WALLET_PRIVATE_KEY` - For blockchain transactions
 - `SEPOLIA_RPC_URL` - Ethereum Sepolia RPC
 - `PINATA_JWT_SECRET_ACCESS_TOKEN` - For IPFS uploads
+- `SOLANA_RPC_URL` - Solana RPC endpoint (optional, defaults to public mainnet-beta)
+- `SOLANA_WALLET_ADDRESS` - Solana wallet for balance checks (base58, no private key needed)
 
 Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 ### Multichain Payment Config
-- `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism`)
+- `EM_ENABLED_NETWORKS` - Comma-separated list of enabled payment networks (default: `base,ethereum,polygon,arbitrum,celo,monad,avalanche,optimism,solana`)
 - `X402_NETWORK` - Default payment network (default: `base`)
 - **To add a new chain or stablecoin**: Use the **`add-network` skill** (`.claude/skills/add-network/SKILL.md`) — it has the complete step-by-step checklist
 - **To deploy/redeploy PaymentOperators**: Use the **`deploy-operator` skill** (`.claude/skills/deploy-operator/SKILL.md`) — deploys Fase 5 operators on any supported chain
 - **To distribute/bridge/rebalance funds**: Use the **`fund-distribution` skill** (`.claude/skills/fund-distribution/SKILL.md`) — full lifecycle: inventory, bridge, fan-out, rebalance, sweep. Reference doc: `docs/planning/KK_FUND_DISTRIBUTION_REFERENCE.md`
-- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — single source of truth, 15 EVM networks, 5 stablecoins, 10 with x402r escrow)
+- **Solana**: Uses Fase 1 only (direct SPL transfers, no escrow/operator). USDC + AUSD supported. No PaymentOperator on Solana.
+- Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — single source of truth, 15 EVM networks + Solana, 6 stablecoins, 10 with x402r escrow)
 - Other Python files (facilitator_client, tests, platform_config) **auto-derive** from sdk_client.py — no manual updates needed
 
 ## On-Chain Contracts
@@ -293,6 +296,7 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 | Facilitator EOA | All | `0x103040545AC5031A11E8C03dd11324C7333a13C7` |
 | Execution Market Agent ID | **Base** | `2106` |
 | Execution Market Agent ID | Sepolia (legacy) | `469` |
+| *Solana — no escrow contracts* | *Solana Mainnet* | *Fase 1 only (SPL transfers). ERC-8004 identity via QuantuLabs 8004-solana Anchor programs.* |
 
 ## Key Documentation
 
@@ -504,7 +508,7 @@ Lock bounty+fee in escrow at creation (receiver = platform wallet). Release via 
 - **Layer 2:** `PaymentOperator` — per-config contract with pluggable conditions (who can authorize/release/refund)
 - **Layer 3:** `Facilitator` — off-chain server, pays gas, enforces business logic
 
-**Fase 5 Operators deployed on 8 chains** (all active in Facilitator allowlist, Golden Flow 7/8 PASS). Addresses in On-Chain Contracts table above. StaticFeeCalculator(1300 BPS = 13%) auto-splits at release: worker 87%, operator 13%. `distributeFees(USDC)` flushes to treasury. Deploy script: `scripts/deploy-payment-operator.ts`.
+**Fase 5 Operators deployed on 8 EVM chains** (all active in Facilitator allowlist, Golden Flow 7/8 PASS). Solana uses Fase 1 (no operator). Addresses in On-Chain Contracts table above. StaticFeeCalculator(1300 BPS = 13%) auto-splits at release: worker 87%, operator 13%. `distributeFees(USDC)` flushes to treasury. Deploy script: `scripts/deploy-payment-operator.ts`.
 
 **Key upstream repos:**
 | Repo | URL | Stack |
@@ -552,11 +556,11 @@ BackTrack controls `ProtocolFeeConfig` (`0x59314674...`) — up to 5% hard cap, 
 - **Bounties**: **ALWAYS under $0.20** for testing (~$4 USDC per chain). E2E uses `TEST_BOUNTY = 0.10`. Deadlines: 5-15 minutes.
 - **Script**: `cd scripts && npx tsx task-factory.ts --preset screenshot --bounty 0.10 --deadline 10`
 - **E2E script**: `python scripts/e2e_mcp_api.py` — full lifecycle through REST API
-- **Production wallet**: `YOUR_PLATFORM_WALLET` (funded on all 8 chains)
+- **Production wallet**: `YOUR_PLATFORM_WALLET` (funded on all 8 EVM chains + Solana wallet for SPL)
 
 ### ERC-8004 Identity
 
-Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /register`, `POST /feedback`) — gasless. **15 networks**: 9 mainnets + 6 testnets. Network naming: `"base"`, `"polygon"`, etc. (`"base-mainnet"` kept as alias).
+Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /register`, `POST /feedback`) — gasless. **15 EVM networks**: 9 mainnets + 6 testnets. On Solana, ERC-8004 identity via QuantuLabs 8004-solana Anchor programs (future). Network naming: `"base"`, `"polygon"`, `"solana"`, etc. (`"base-mainnet"` kept as alias).
 
 ### Production URLs
 
@@ -573,7 +577,7 @@ Agent ID **2106** on Base. Registration and reputation via Facilitator (`POST /r
 
 | File | Purpose |
 |------|---------|
-| `mcp_server/integrations/x402/sdk_client.py` | x402 SDK wrapper + multichain token registry (12 EVM, 4 stablecoins) — **USE THIS for all payments** |
+| `mcp_server/integrations/x402/sdk_client.py` | x402 SDK wrapper + multichain token registry (12 EVM + Solana, 6 stablecoins) — **USE THIS for all payments** |
 | `mcp_server/integrations/x402/client.py` | Direct HTTP facilitator client (fallback) |
 | `mcp_server/integrations/x402/advanced_escrow_integration.py` | Advanced escrow flows documentation |
 | `mcp_server/integrations/erc8004/facilitator_client.py` | ERC-8004 identity, reputation, registration (15 networks) |

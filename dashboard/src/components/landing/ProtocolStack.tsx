@@ -110,10 +110,10 @@ export function ProtocolStack() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <p className="text-xs md:text-sm font-semibold text-white">
-                {t('landing.protocolStack.networksTitle', '8 EVM Networks')}
+                {t('landing.protocolStack.networksTitle', '9 Networks')}
               </p>
               <p className="text-[10px] md:text-xs text-gray-500">
-                {t('landing.protocolStack.networksSubtitle', '8 Networks Live · Multi-stablecoin payments across all chains')}
+                {t('landing.protocolStack.networksSubtitle', '9 Networks Live · Multi-stablecoin payments across all chains')}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -157,7 +157,7 @@ export function ProtocolStack() {
             </div>
             <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-gray-600">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {t('landing.protocolStack.status', '8 Networks Live')}
+              {t('landing.protocolStack.status', '9 Networks Live')}
             </span>
           </div>
         </div>

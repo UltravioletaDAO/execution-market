@@ -22,7 +22,7 @@ All mainnets use the same CREATE2-deployed contracts at deterministic addresses.
 
 import os
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from dataclasses import dataclass, field
 
 import httpx
@@ -64,6 +64,15 @@ ERC8004_CONTRACTS: Dict[str, Dict[str, Any]] = {}
 for _net, _cfg in _PAYMENT_NETWORKS.items():
     if _net.endswith(_TESTNET_SUFFIXES):
         continue  # Testnets handled below
+    # Solana (SVM) uses different on-chain programs, not EVM registries
+    if _net == "solana":
+        ERC8004_CONTRACTS["solana"] = {
+            "agent_registry_program": "8oo4dC4JvBLwy5tGgiH3WwK4B9PWxL9Z4XjA2jzkQMbQ",
+            "atom_engine_program": "AToMw53aiPQ8j7iHVb4fGt6nzUNxUhcPc3tbPBZuzVVb",
+            "chain_id": None,
+            "network_type": "svm",
+        }
+        continue
     ERC8004_CONTRACTS[_net] = {
         "identity_registry": _MAINNET_IDENTITY,
         "reputation_registry": _MAINNET_REPUTATION,
@@ -109,7 +118,7 @@ ERC8004_SUPPORTED_NETWORKS = list(ERC8004_CONTRACTS.keys())
 class AgentIdentity:
     """Agent identity from ERC-8004 Identity Registry."""
 
-    agent_id: int
+    agent_id: Union[int, str]  # int for EVM token IDs, str for Solana Base58 pubkeys
     owner: str
     agent_uri: str
     agent_wallet: Optional[str] = None
