@@ -68,7 +68,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Extract version
         id: version
@@ -77,7 +77,7 @@ jobs:
           echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
 
       - name: Build and push backend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./mcp_server
           push: true
@@ -92,7 +92,7 @@ jobs:
             BUILD_DATE=${{ github.event.release.created_at }}
 
       - name: Build and push frontend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./dashboard
           push: true
@@ -207,7 +207,7 @@ jobs:
 
       - name: Upload rollback info
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: rollback-info
           path: |
@@ -298,7 +298,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Download rollback info
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: rollback-info
 
