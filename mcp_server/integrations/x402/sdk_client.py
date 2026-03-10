@@ -78,9 +78,7 @@ FACILITATOR_URL = os.environ.get(
 )
 
 # Execution Market treasury address for fee collection
-EM_TREASURY = os.environ.get(
-    "EM_TREASURY_ADDRESS", "YOUR_TREASURY_WALLET"
-)
+EM_TREASURY = os.environ.get("EM_TREASURY_ADDRESS", "YOUR_TREASURY_WALLET")
 
 # Default network for payments
 DEFAULT_NETWORK = os.environ.get("X402_NETWORK", "base")
