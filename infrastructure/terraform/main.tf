@@ -16,8 +16,8 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = "ultravioleta-terraform-state"
-    key     = "em/terraform.tfstate"
+    bucket  = "<YOUR_TERRAFORM_STATE_BUCKET>"
+    key     = "<YOUR_STATE_KEY>"
     region  = "us-east-2"
     encrypt = true
   }

@@ -169,8 +169,8 @@ resources:
       attributes:
         description: "S3 + CloudFront + Lambda evidence pipeline with presigned URLs"
         batch: 7
-        s3_bucket: em-production-evidence-YOUR_AWS_ACCOUNT_ID
-        cloudfront: d3h6yzj24t9k8z.cloudfront.net
+        s3_bucket: <YOUR_EVIDENCE_S3_BUCKET>
+        cloudfront: <YOUR_CLOUDFRONT_DOMAIN>
       files:
         - infrastructure/terraform/evidence.tf
         - infrastructure/terraform/lambda/evidence_presign.py
@@ -380,7 +380,7 @@ resources:
     ecs_cluster:
       attributes:
         description: "ECS Fargate cluster: em-production-cluster"
-        account: "YOUR_AWS_ACCOUNT_ID"
+        account: "<YOUR_AWS_ACCOUNT_ID>"
         region: us-east-2
       files:
         - infrastructure/terraform/ecs.tf

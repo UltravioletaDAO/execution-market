@@ -52,7 +52,7 @@ You are not a generalist. You are THE expert on this specific system. You know e
 - Worker→Agent feedback: on-chain `giveFeedback()` via relay wallet or Facilitator
 
 ### Karma Kadabra V2 (Active Project)
-- 24 agents (6 system + 18 community), HD wallets from AWS SM `kk/swarm-seed`
+- 24 agents (6 system + 18 community), HD wallets from AWS SM `YOUR_SECRET_PATH/swarm-seed`
 - $200 USDC budget across 8 chains, 5 stablecoins
 - MeshRelay IRC for agent communication
 - Master Plan: `docs/planning/MASTER_PLAN_KK_V2_INTEGRATION.md` — 32 tasks, 6 phases

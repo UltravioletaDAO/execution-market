@@ -4,11 +4,11 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
   "memory": "512",
-  "executionRoleArn": "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/ecsTaskExecutionRole",
   "containerDefinitions": [
     {
       "name": "mcp-server",
-      "image": "YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest",
+      "image": "<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest",
       "portMappings": [
         {
           "containerPort": 8000,
@@ -23,11 +23,11 @@
       "secrets": [
         {
           "name": "SUPABASE_URL",
-          "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/supabase:SUPABASE_URL::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-2:<YOUR_AWS_ACCOUNT_ID>:secret:YOUR_SECRET_PATH/supabase:SUPABASE_URL::"
         },
         {
           "name": "SUPABASE_ANON_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-east-2:YOUR_AWS_ACCOUNT_ID:secret:em/supabase:SUPABASE_ANON_KEY::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-2:<YOUR_AWS_ACCOUNT_ID>:secret:YOUR_SECRET_PATH/supabase:SUPABASE_ANON_KEY::"
         }
       ],
       "logConfiguration": {

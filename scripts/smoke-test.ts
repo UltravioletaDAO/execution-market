@@ -125,7 +125,7 @@ await check('Agent card (A2A)', async () => {
 
 console.log('\n── Evidence Pipeline ──')
 
-const evidenceApiUrl = process.env.VITE_EVIDENCE_API_URL || 'https://YOUR_API_GATEWAY_URL'
+const evidenceApiUrl = process.env.VITE_EVIDENCE_API_URL || process.env.EVIDENCE_API_URL || ''
 
 await check('Evidence presign Lambda', async () => {
   const qs = new URLSearchParams({
@@ -161,7 +161,7 @@ await check('Route inventory', async () => {
 if (isLive) {
   console.log('\n── Live Payment Flow ──')
 
-  const API_KEY = process.env.EM_API_KEY || 'em_starter_d10baa5d63f02a223494cf9a1bb0d645'
+  const API_KEY = process.env.EM_API_KEY || 'test-api-key-placeholder'
 
   await check('API key valid', async () => {
     const res = await fetch(`${API_BASE}/api/v1/tasks`, {

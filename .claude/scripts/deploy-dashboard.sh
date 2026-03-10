@@ -13,7 +13,7 @@
 #   AWS_ACCOUNT_ID   - AWS account ID (default: <YOUR_ACCOUNT_ID>)
 #   AWS_REGION       - AWS region (default: us-east-2)
 #   ECR_REPO         - ECR repository name (default: em-production-dashboard)
-#   ECS_CLUSTER      - ECS cluster name (default: em-production-cluster)
+#   ECS_CLUSTER      - ECS cluster name (default: YOUR_ECS_CLUSTER)
 #   ECS_SERVICE      - ECS service name (default: em-production-dashboard)
 #   IMAGE_TAG        - Docker image tag (default: latest)
 # =============================================================================
@@ -39,7 +39,7 @@ NC='\033[0m' # No Color
 AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-YOUR_AWS_ACCOUNT_ID}"
 AWS_REGION="${AWS_REGION:-us-east-2}"
 ECR_REPO="${ECR_REPO:-em-production-dashboard}"
-ECS_CLUSTER="${ECS_CLUSTER:-em-production-cluster}"
+ECS_CLUSTER="${ECS_CLUSTER:-YOUR_ECS_CLUSTER}"
 ECS_SERVICE="${ECS_SERVICE:-em-production-dashboard}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 

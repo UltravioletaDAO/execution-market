@@ -17,7 +17,15 @@ out/
 .env.local
 .env.*.local
 .env.cloud
+.env.production
+.env.staging
 .secrets/
+
+# Production env files (component-specific)
+dashboard/.env.production
+dashboard/.env.production.local
+mcp_server/.env
+contracts/.env
 
 # IDE
 .idea/
@@ -53,6 +61,7 @@ video-v*/node_modules/
 video-v*/out/
 video/node_modules/
 video/out/
+videos/*/node_modules/
 
 # Admin dashboard
 admin-dashboard/node_modules/
@@ -140,3 +149,24 @@ scripts/kk/data/workspaces/
 *private*.json
 *secret*.json
 scripts/wallet-management/.keys.json
+
+# Internal docs (private business correspondence)
+docs/internal/
+
+# Articles (managed separately, not part of public repo)
+docs/articles/
+
+# Planning docs (internal operational notes, roadmaps, handoffs)
+docs/planning/
+
+# Tweet screenshots and media
+docs/tweets/
+
+# Chat logs
+docs/chats/
+
+# Reports (contain operational wallet details and internal audit data)
+docs/reports/
+
+# Obsidian vault (internal knowledge graph)
+vault/

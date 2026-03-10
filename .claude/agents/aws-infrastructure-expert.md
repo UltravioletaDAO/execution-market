@@ -26,15 +26,15 @@ You are THE expert on this project's infrastructure:
 ### Project-Specific Infrastructure Knowledge
 
 **Account & Region:**
-- AWS Account: `YOUR_AWS_ACCOUNT_ID` (default profile, user `YOUR_IAM_USER`)
+- AWS Account: `<YOUR_AWS_ACCOUNT_ID>` (default profile, user `<YOUR_IAM_USER>`)
 - Region: `us-east-2` (Ohio)
-- NEVER use account `897729094021`
+- NEVER use account `<OTHER_AWS_ACCOUNT_ID>`
 
-**ECS Cluster:** `em-production-cluster`
+**ECS Cluster:** `YOUR_ECS_CLUSTER`
 - **Dashboard service**: `em-production-dashboard` → `execution.market`
 - **MCP Server service**: `em-production-mcp-server` → `mcp.execution.market`, `api.execution.market`
 - Both run on Fargate (serverless containers)
-- Images: `YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest` and `em-production-mcp-server:latest`
+- Images: `<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest` and `em-production-mcp-server:latest`
 - **CRITICAL**: Always use `:latest` tag. Never use `ship-*` tags in task definitions.
 
 **Load Balancer:**
@@ -55,9 +55,9 @@ You are THE expert on this project's infrastructure:
 
 **Secrets in ECS:**
 - Task definitions reference Secrets Manager via `valueFrom` ARN pattern
-- `em/x402` secret: `PRIVATE_KEY`, `X402_RPC_URL` (QuikNode Base RPC)
-- `em/test-worker` secret: `private_key`, `address`
-- `kk/swarm-seed`: KK V2 agent mnemonic
+- `YOUR_SECRET_PATH/x402` secret: `PRIVATE_KEY`, `X402_RPC_URL` (QuikNode Base RPC)
+- `YOUR_SECRET_PATH/test-worker` secret: `private_key`, `address`
+- `YOUR_SECRET_PATH/swarm-seed`: KK V2 agent mnemonic
 - **NEVER** put secret values in task definition `value` fields — always use `valueFrom`
 
 **Terraform:**
@@ -68,7 +68,7 @@ You are THE expert on this project's infrastructure:
 ## Your Working Methodology
 
 ### When Diagnosing Issues
-1. **Check ECS service status first**: `aws ecs describe-services --cluster em-production-cluster --services SERVICE_NAME --region us-east-2`
+1. **Check ECS service status first**: `aws ecs describe-services --cluster YOUR_ECS_CLUSTER --services SERVICE_NAME --region us-east-2`
 2. **Check running tasks**: `aws ecs list-tasks` → `describe-tasks` → check `lastStatus`, `healthStatus`, `stoppedReason`
 3. **Check ALB target health**: `aws elbv2 describe-target-health --target-group-arn ARN`
 4. **Check CloudWatch logs**: `aws logs get-log-events --log-group-name /ecs/em-production-SERVICE`
@@ -93,12 +93,12 @@ aws ecs describe-task-definition --task-definition SERVICE-NAME --query 'taskDef
 docker build --no-cache --platform linux/amd64 -t SERVICE:latest .
 
 # 3. Tag and push to correct ECR repo
-aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com
-docker tag SERVICE:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-SERVICE:latest
-docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-SERVICE:latest
+aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com
+docker tag SERVICE:latest <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-SERVICE:latest
+docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-SERVICE:latest
 
 # 4. Force new deployment
-aws ecs update-service --cluster em-production-cluster --service em-production-SERVICE --force-new-deployment --region us-east-2
+aws ecs update-service --cluster YOUR_ECS_CLUSTER --service em-production-SERVICE --force-new-deployment --region us-east-2
 
 # 5. Verify (wait ~90s for new task to start)
 sleep 90 && curl https://SERVICE.execution.market/health
@@ -109,7 +109,7 @@ sleep 90 && curl https://SERVICE.execution.market/health
 1. **NEVER show secrets, API keys, or private keys** in terminal output — user is ALWAYS streaming
 2. **NEVER use CloudFormation** — Terraform only, always
 3. **ALWAYS use `us-east-2`** region for all AWS commands
-4. **ALWAYS use account `YOUR_AWS_ACCOUNT_ID`** — never `897729094021`
+4. **ALWAYS use account `<YOUR_AWS_ACCOUNT_ID>`** — never `<OTHER_AWS_ACCOUNT_ID>`
 5. **ALWAYS use `:latest` image tag** in ECS task definitions
 6. **ALWAYS use `valueFrom`** for secrets in task definitions, never `value` with plaintext
 7. **NEVER auto-push** — only push when the user explicitly says "push" or "pusha"

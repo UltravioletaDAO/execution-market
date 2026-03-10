@@ -1,54 +1,44 @@
-# CODEOWNERS - Execution Market Project
-# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
-
-# Default owners for everything in the repo
+# Default — core maintainers review everything
 * @ultravioletadao/em-maintainers
 
-# Backend (Python/FastAPI)
-/backend/ @ultravioletadao/backend-team
-/backend/src/api/ @ultravioletadao/backend-team
-/backend/src/models/ @ultravioletadao/backend-team
-/backend/src/services/ @ultravioletadao/backend-team
+# Backend (MCP Server + API)
+/mcp_server/ @ultravioletadao/backend-team
+/mcp_server/api/ @ultravioletadao/backend-team
+/mcp_server/integrations/ @ultravioletadao/backend-team
+/mcp_server/tests/ @ultravioletadao/backend-team
 
-# Frontend (React/TypeScript)
-/frontend/ @ultravioletadao/frontend-team
-/frontend/src/components/ @ultravioletadao/frontend-team
-/frontend/src/pages/ @ultravioletadao/frontend-team
-/frontend/src/hooks/ @ultravioletadao/frontend-team
+# Dashboard (React SPA)
+/dashboard/ @ultravioletadao/frontend-team
+/admin-dashboard/ @ultravioletadao/frontend-team
 
 # Smart Contracts
 /contracts/ @ultravioletadao/blockchain-team
 *.sol @ultravioletadao/blockchain-team
 
-# Infrastructure
-/terraform/ @ultravioletadao/devops-team
+# Database
+/supabase/ @ultravioletadao/backend-team
+
+# Infrastructure & DevOps
+/infrastructure/ @ultravioletadao/devops-team
 /docker-compose*.yml @ultravioletadao/devops-team
-Dockerfile @ultravioletadao/devops-team
-
-# CI/CD
 /.github/ @ultravioletadao/devops-team
-/.github/workflows/ @ultravioletadao/devops-team
 
-# Security-sensitive files
-/.github/dependabot.yml @ultravioletadao/security-team @ultravioletadao/devops-team
-/.github/workflows/security.yml @ultravioletadao/security-team
-/backend/src/auth/ @ultravioletadao/security-team @ultravioletadao/backend-team
-/backend/src/crypto/ @ultravioletadao/security-team @ultravioletadao/blockchain-team
+# Scripts
+/scripts/ @ultravioletadao/backend-team
+
+# SDKs & Integrations
+/sdk/ @ultravioletadao/backend-team
+/integrations/ @ultravioletadao/backend-team
+/cli/ @ultravioletadao/backend-team
+
+# E2E Tests
+/e2e/ @ultravioletadao/qa-team
+/tests/ @ultravioletadao/qa-team
 
 # Documentation
 /docs/ @ultravioletadao/em-maintainers
 *.md @ultravioletadao/em-maintainers
-README.md @ultravioletadao/em-maintainers
 
-# Configuration files
-pyproject.toml @ultravioletadao/backend-team
-package.json @ultravioletadao/frontend-team
-tsconfig.json @ultravioletadao/frontend-team
-
-# Database migrations
-/backend/alembic/ @ultravioletadao/backend-team @ultravioletadao/devops-team
-
-# Tests
-/backend/tests/ @ultravioletadao/backend-team
-/frontend/tests/ @ultravioletadao/frontend-team
-/frontend/e2e/ @ultravioletadao/frontend-team @ultravioletadao/qa-team
+# Security-sensitive files
+SECURITY.md @ultravioletadao/security-team
+/mcp_server/security/ @ultravioletadao/security-team

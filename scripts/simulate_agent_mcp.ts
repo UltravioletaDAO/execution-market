@@ -36,7 +36,10 @@ config({ path: resolve(__dirname, '../.env.local') });
 
 // Configuration
 const API_URL = process.env.API_URL || 'https://api.execution.market';
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://YOUR_PROJECT_REF.supabase.co';
+if (!process.env.SUPABASE_URL) {
+  throw new Error('SUPABASE_URL environment variable is required');
+}
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_KEY;
 const PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY as `0x${string}`;
 const MOCK_MODE = process.argv.includes('--mock');
