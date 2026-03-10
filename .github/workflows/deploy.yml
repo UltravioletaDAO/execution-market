@@ -106,9 +106,12 @@ jobs:
         run: npm run build
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
-          VITE_API_URL: ${{ env.API_URL }}
-          VITE_REQUIRE_AGENT_API_KEY: 'true'
-          VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS: 'false'
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_DYNAMIC_ENVIRONMENT_ID: ${{ secrets.VITE_DYNAMIC_ENVIRONMENT_ID }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL || env.API_URL }}
+          VITE_REQUIRE_AGENT_API_KEY: ${{ secrets.VITE_REQUIRE_AGENT_API_KEY || 'true' }}
+          VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS: ${{ secrets.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS || 'false' }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
