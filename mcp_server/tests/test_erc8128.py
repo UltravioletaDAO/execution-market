@@ -829,12 +829,14 @@ class TestERC1271:
         clear_sca_cache()
 
     def test_rpc_urls_cover_all_chains(self):
-        """Verify _RPC_URLS covers all chains from NETWORK_CONFIG."""
+        """Verify _RPC_URLS covers all EVM chains from NETWORK_CONFIG."""
         from integrations.erc8128.erc1271 import _RPC_URLS
         from integrations.x402.sdk_client import NETWORK_CONFIG
 
         for name, cfg in NETWORK_CONFIG.items():
             chain_id = cfg["chain_id"]
+            if chain_id is None:
+                continue  # Non-EVM networks (e.g. Solana) have no chain ID
             assert chain_id in _RPC_URLS, (
                 f"Chain {name} (id={chain_id}) missing from _RPC_URLS"
             )

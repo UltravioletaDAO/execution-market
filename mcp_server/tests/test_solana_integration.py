@@ -230,12 +230,18 @@ class TestPaymentDispatcherSolana:
 
         assert _extract_tx_hash(None) is None
 
-    def test_no_operator_for_solana(self):
+    def test_no_operator_for_solana(self, monkeypatch):
         """Solana has no PaymentOperator (Fase 1 only)."""
-        from integrations.x402.payment_dispatcher import _get_operator_for_network
+        monkeypatch.delenv("EM_PAYMENT_OPERATOR", raising=False)
+        # Ensure payment_dispatcher uses the real NETWORK_CONFIG (not the
+        # empty-dict fallback that triggers when sdk_client import order races).
+        from integrations.x402.sdk_client import NETWORK_CONFIG
+        import integrations.x402.payment_dispatcher as pd
 
-        result = _get_operator_for_network("solana")
-        assert result is None
+        monkeypatch.setattr(pd, "NETWORK_CONFIG", NETWORK_CONFIG)
+
+        result = pd._get_operator_for_network("solana")
+        assert result is None, f"Expected None for Solana, got {result}"
 
 
 # =============================================================================

@@ -183,6 +183,10 @@ class TestWalletFunding:
     """Verify platform wallet has USDC on production network(s)."""
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(
+        WALLET_A_ADDRESS.startswith("YOUR_"),
+        reason="Placeholder wallet address — skip in CI",
+    )
     async def test_a7_production_wallet_funded_base(self, http_client):
         """A7: Production wallet has USDC on Base (primary network)."""
         balance = await get_usdc_balance(http_client, "base", WALLET_A_ADDRESS)
