@@ -1,7 +1,7 @@
 # Execution Market MCP Server Dockerfile
 # Python 3.11 + FastMCP + FastAPI
 
-FROM python:3.11-slim as builder
+FROM python:3.14-slim as builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
 
 # Production stage
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
