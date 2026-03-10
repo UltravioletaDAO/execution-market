@@ -21,11 +21,13 @@ def get_db_password():
 
 def get_connection():
     """Connect to Supabase via session mode pooler."""
+    db_host = os.environ.get("SUPABASE_DB_HOST", "localhost")
+    db_user = os.environ.get("SUPABASE_DB_USER", "postgres")
     return psycopg2.connect(
-        host='aws-0-us-west-2.pooler.supabase.com',
-        port=5432,
-        dbname='postgres',
-        user='postgres.YOUR_PROJECT_REF',
+        host=db_host,
+        port=int(os.environ.get("SUPABASE_DB_PORT", "5432")),
+        dbname=os.environ.get("SUPABASE_DB_NAME", "postgres"),
+        user=db_user,
         password=get_db_password(),
         connect_timeout=15,
         sslmode='require'

@@ -17,7 +17,15 @@ out/
 .env.local
 .env.*.local
 .env.cloud
+.env.production
+.env.staging
 .secrets/
+
+# Production env files (component-specific)
+dashboard/.env.production
+dashboard/.env.production.local
+mcp_server/.env
+contracts/.env
 
 # IDE
 .idea/
@@ -53,6 +61,7 @@ video-v*/node_modules/
 video-v*/out/
 video/node_modules/
 video/out/
+videos/*/node_modules/
 
 # Admin dashboard
 admin-dashboard/node_modules/

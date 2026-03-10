@@ -22,7 +22,10 @@ const API_TIMEOUT = 30000 // 30 seconds
  */
 function getAuthToken(): string | null {
   // Check for Supabase session token
-  const supabaseSession = localStorage.getItem('sb-YOUR_PROJECT_REF-auth-token')
+  // Derive the Supabase project ref from the configured URL for the localStorage key
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
+  const projectRef = new URL(supabaseUrl).hostname.split('.')[0] || 'localhost'
+  const supabaseSession = localStorage.getItem(`sb-${projectRef}-auth-token`)
   if (supabaseSession) {
     try {
       const parsed = JSON.parse(supabaseSession)

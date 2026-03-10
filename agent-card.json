@@ -1,4 +1,5 @@
 {
+  "open_source": true,
   "name": "Execution Market",
   "description": "Universal Execution Layer — the infrastructure that converts AI intent into physical action. Execution Market connects AI agents with executors (humans today, robots tomorrow) for real-world tasks with instant gasless payments and on-chain reputation.",
   "image": "https://execution.market/icon.png",
@@ -111,7 +112,7 @@
   "links": {
     "dashboard": "https://execution.market",
     "api_docs": "https://api.execution.market/docs",
-    "github": "https://github.com/ultravioletadao/execution-market",
+    "github": "https://github.com/UltravioletaDAO/execution-market",
     "dao": "https://ultravioletadao.xyz"
   },
 

@@ -6,23 +6,23 @@
 #
 # Resources created via AWS CLI (2026-02-07), documented here for Terraform import:
 #   - S3 bucket: em-production-admin-dashboard
-#   - CloudFront distribution: E2IUZLTDUFIAQP (d10ucc05zs1fwn.cloudfront.net)
-#   - CloudFront OAC: E3HPQ9VBJWQVDR
-#   - ACM cert (us-east-1): arn:aws:acm:us-east-1:YOUR_AWS_ACCOUNT_ID:certificate/841084f8-b130-4b12-87ee-88ac7d81be24
+#   - CloudFront distribution: <YOUR_CLOUDFRONT_DIST_ID> (<YOUR_CLOUDFRONT_DOMAIN>.cloudfront.net)
+#   - CloudFront OAC: <YOUR_CLOUDFRONT_OAC_ID>
+#   - ACM cert (us-east-1): arn:aws:acm:us-east-1:<YOUR_AWS_ACCOUNT_ID>:certificate/<YOUR_CERT_ID>
 #   - Route53 A record: admin.execution.market → CloudFront
 
 locals {
   admin_bucket_name   = "em-production-admin-dashboard"
   admin_domain        = "admin.${var.domain}"
-  admin_cloudfront_id = "E2IUZLTDUFIAQP"
-  admin_oac_id        = "E3HPQ9VBJWQVDR"
-  admin_acm_cert_arn  = "arn:aws:acm:us-east-1:YOUR_AWS_ACCOUNT_ID:certificate/841084f8-b130-4b12-87ee-88ac7d81be24"
+  admin_cloudfront_id = "<YOUR_CLOUDFRONT_DIST_ID>"
+  admin_oac_id        = "<YOUR_CLOUDFRONT_OAC_ID>"
+  admin_acm_cert_arn  = "arn:aws:acm:us-east-1:<YOUR_AWS_ACCOUNT_ID>:certificate/<YOUR_CERT_ID>"
 }
 
 # To import existing resources into Terraform state:
 # terraform import aws_s3_bucket.admin_dashboard em-production-admin-dashboard
-# terraform import aws_cloudfront_distribution.admin_dashboard E2IUZLTDUFIAQP
-# terraform import aws_route53_record.admin_dashboard Z050891416D4N69E74FEN_admin.execution.market_A
+# terraform import aws_cloudfront_distribution.admin_dashboard <YOUR_CLOUDFRONT_DIST_ID>
+# terraform import aws_route53_record.admin_dashboard <YOUR_ROUTE53_ZONE_ID>_admin.execution.market_A
 
 # NOTE: Resources below are commented out to avoid conflicts with the
 # CLI-created resources. Uncomment after running `terraform import`.

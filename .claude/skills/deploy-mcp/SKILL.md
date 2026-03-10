@@ -4,7 +4,7 @@
 When code changes in `mcp_server/` need to go to production. Use after committing changes, or when the user says "deploy", "despliega", "push to production", "redeploy".
 
 ## Prerequisites
-- AWS CLI configured (default profile `YOUR_AWS_ACCOUNT_ID`)
+- AWS CLI configured (default profile `<YOUR_AWS_ACCOUNT_ID>`)
 - Docker running locally
 - Code committed to `main` branch
 - `MSYS_NO_PATHCONV=1` prefix on ALL aws commands (Git Bash Windows path bug)
@@ -21,14 +21,14 @@ docker build --no-cache -f Dockerfile -t em-mcp .
 ## Step 2: Login to ECR
 
 ```bash
-MSYS_NO_PATHCONV=1 aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com
+MSYS_NO_PATHCONV=1 aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com
 ```
 
 ## Step 3: Tag and Push
 
 ```bash
-docker tag em-mcp:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest
-docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest
+docker tag em-mcp:latest <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest
+docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest
 ```
 
 ## Step 4: Force New Deployment
@@ -81,7 +81,7 @@ import json
 with open('taskdef.json') as f:
     td = json.load(f)['taskDefinition']
 cd = td['containerDefinitions'][0]
-cd['image'] = 'YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest'
+cd['image'] = '<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest'
 with open('container-defs.json', 'w') as f:
     json.dump([cd], f)
 "
@@ -90,8 +90,8 @@ with open('container-defs.json', 'w') as f:
 MSYS_NO_PATHCONV=1 aws ecs register-task-definition \
   --family em-production-mcp-server \
   --container-definitions "$(cat container-defs.json)" \
-  --task-role-arn "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/em-production-ecs-task" \
-  --execution-role-arn "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/em-production-ecs-execution" \
+  --task-role-arn "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/em-production-ecs-task" \
+  --execution-role-arn "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/em-production-ecs-execution" \
   --network-mode awsvpc --requires-compatibilities FARGATE \
   --cpu 256 --memory 512 --region us-east-2
 
@@ -107,7 +107,7 @@ MSYS_NO_PATHCONV=1 aws ecs update-service \
 
 | Resource | Value |
 |----------|-------|
-| Account | `YOUR_AWS_ACCOUNT_ID` |
+| Account | `<YOUR_AWS_ACCOUNT_ID>` |
 | Region | `us-east-2` |
 | Cluster | `em-production-cluster` |
 | Service | `em-production-mcp-server` |
@@ -120,7 +120,7 @@ MSYS_NO_PATHCONV=1 aws ecs update-service \
 
 ```bash
 docker build --no-cache -f dashboard/Dockerfile -t em-dashboard ./dashboard
-docker tag em-dashboard:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
-docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
+docker tag em-dashboard:latest <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
+docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
 MSYS_NO_PATHCONV=1 aws ecs update-service --cluster em-production-cluster --service em-production-dashboard --force-new-deployment --region us-east-2
 ```

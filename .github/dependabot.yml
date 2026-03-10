@@ -1,144 +1,98 @@
 version: 2
 updates:
-  # Python dependencies (backend)
+  # Python backend
   - package-ecosystem: "pip"
-    directory: "/backend"
+    directory: "/mcp_server"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Mexico_City"
-    open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "python"
-      - "automated"
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      python-minor:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-      python-major:
-        patterns:
-          - "*"
-        update-types:
-          - "major"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-patch"]
-        # Ignore patch updates to reduce noise
+      - "backend"
 
-  # NPM dependencies (frontend)
+  # Dashboard (React)
   - package-ecosystem: "npm"
-    directory: "/frontend"
+    directory: "/dashboard"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Mexico_City"
-    open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "javascript"
-      - "automated"
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      npm-minor:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-      npm-major:
-        patterns:
-          - "*"
-        update-types:
-          - "major"
-      react:
-        patterns:
-          - "react"
-          - "react-dom"
-          - "@types/react"
-          - "@types/react-dom"
-      testing:
-        patterns:
-          - "vitest"
-          - "@testing-library/*"
-          - "playwright"
-          - "@playwright/*"
-      typescript:
-        patterns:
-          - "typescript"
-          - "@types/*"
-      linting:
-        patterns:
-          - "eslint"
-          - "eslint-*"
-          - "@typescript-eslint/*"
-          - "prettier"
+      - "frontend"
+
+  # Admin Dashboard
+  - package-ecosystem: "npm"
+    directory: "/admin-dashboard"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "frontend"
+
+  # Scripts
+  - package-ecosystem: "npm"
+    directory: "/scripts"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+
+  # SDK TypeScript
+  - package-ecosystem: "npm"
+    directory: "/sdk/typescript"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "sdk"
+
+  # Smart Contracts
+  - package-ecosystem: "npm"
+    directory: "/contracts"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "contracts"
+
+  # E2E Tests
+  - package-ecosystem: "npm"
+    directory: "/e2e"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "testing"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Mexico_City"
-    open-pull-requests-limit: 3
     labels:
       - "dependencies"
-      - "github-actions"
-      - "automated"
-    commit-message:
-      prefix: "chore(ci)"
-    groups:
-      actions:
-        patterns:
-          - "*"
+      - "ci"
 
-  # Docker base images
+  # Docker
   - package-ecosystem: "docker"
-    directory: "/backend"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Mexico_City"
-    labels:
-      - "dependencies"
-      - "docker"
-      - "automated"
-    commit-message:
-      prefix: "chore(docker)"
-
-  - package-ecosystem: "docker"
-    directory: "/frontend"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Mexico_City"
-    labels:
-      - "dependencies"
-      - "docker"
-      - "automated"
-    commit-message:
-      prefix: "chore(docker)"
-
-  # Terraform (if used)
-  - package-ecosystem: "terraform"
-    directory: "/terraform"
+    directory: "/mcp_server"
     schedule:
       interval: "monthly"
     labels:
       - "dependencies"
-      - "terraform"
-      - "automated"
-    commit-message:
-      prefix: "chore(terraform)"
+      - "docker"
+
+  - package-ecosystem: "docker"
+    directory: "/dashboard"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # Terraform
+  - package-ecosystem: "terraform"
+    directory: "/infrastructure/terraform"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "infrastructure"

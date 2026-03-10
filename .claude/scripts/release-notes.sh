@@ -80,9 +80,9 @@ $(git log "$RANGE" --pretty=format:"- %s (\`%h\`)" 2>/dev/null)
 
 | Component | Status |
 |-----------|--------|
-| Evidence Lambda | https://YOUR_API_GATEWAY_URL |
-| Evidence CDN | https://d3h6yzj24t9k8z.cloudfront.net |
-| S3 Bucket | em-production-evidence-YOUR_AWS_ACCOUNT_ID |
+| Evidence Lambda | \${EVIDENCE_API_URL} |
+| Evidence CDN | \${EVIDENCE_CDN_URL} |
+| S3 Bucket | \${EVIDENCE_S3_BUCKET} |
 
 ## Post-Deploy Verification
 

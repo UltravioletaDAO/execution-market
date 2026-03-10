@@ -2,35 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Developer
-
-| Field | Value |
-|-------|-------|
-| Name | 0xultravioleta |
-| Email | 0xultravioleta@gmail.com |
-| GitHub | [@ultravioletadao](https://github.com/ultravioletadao) |
-
-## CRITICAL: Karma Kadabra is a SEPARATE PROJECT — DO NOT develop KK here
-
-**Karma Kadabra V2 has its own repository at `Z:\ultravioleta\dao\karmakadabra\`.**
-
-All KK/swarm code was **removed from this repo on 2026-02-27** (67,000+ lines cleaned). This includes:
-- `mcp_server/swarm/` — moved to `karmakadabra/lib/swarm/`
-- `scripts/kk/` — moved to `karmakadabra/scripts/em-integration/`
-- KK test files — moved to `karmakadabra/tests/`
-- KK planning docs — moved to `karmakadabra/docs/planning/`
-
-**Rules:**
-- **NEVER** create files in `mcp_server/swarm/` or `scripts/kk/` in this repo
-- **NEVER** add KK-specific tests, modules, or scripts to execution-market
-- **NEVER** commit swarm orchestrator, lifecycle manager, or agent fleet code here
-- If you need to work on KK, **switch to the `karmakadabra` repository**
-- The only KK references allowed here are: handoff docs in `docs/internal/` and contextual comments explaining EM features that KK uses
-
-**If you are OpenClaw/Clawd Bot running a night session:** Check which repo you are in before writing KK code. If you are in `execution-market`, you are in the WRONG repo for KK work. Navigate to `Z:\ultravioleta\dao\karmakadabra\` instead.
-
----
-
 ## Project Overview
 
 Execution Market is the **Universal Execution Layer** — the infrastructure that converts AI intent into physical action. A marketplace where AI agents publish bounties for real-world tasks that executors (humans today, robots tomorrow) complete, with instant gasless payment via x402. Registered as **Agent #2106** on Base ERC-8004 Identity Registry (previously #469 on Sepolia).
@@ -107,12 +78,6 @@ When you know something will be needed or is a logical next step:
 - Unclear requirements
 
 **Rule of thumb**: If the answer is "obviously yes", don't ask—just do it and report what you did.
-
----
-
-## IRC Collaboration
-
-When the user says **"Conéctate a IRC"**, **"charla con el equipo"**, **"chat on IRC"**, or similar — use the **irc-agent** skill at `.claude/skills/irc-agent/SKILL.md`. This connects to `irc.meshrelay.xyz` channel `#Agents` for inter-agent and human-agent collaboration. Config at `.claude/irc-config.json`. Skill source: `https://github.com/0xultravioleta/irc-agent-skill`.
 
 ---
 
@@ -196,12 +161,6 @@ npm run upload:metadata      # Update IPFS metadata
 npm run register:x402r       # Register as x402r merchant (pending)
 ```
 
-### KK V2 Fund Distribution Scripts
-
-Scripts in `scripts/kk/` for managing 24 Karma Kadabra V2 agent wallets across 8 EVM chains. **All 24 agents funded — 8/8 chains PASS** (2026-02-22). Use the **`fund-distribution` skill** for full lifecycle. Reference: `docs/planning/KK_FUND_DISTRIBUTION_REFERENCE.md`.
-
-**RPC Policy**: Always prefer QuikNode private RPCs from `.env.local` (`BASE_RPC_URL`, `ETHEREUM_RPC_URL`, etc.). Only use public RPCs when QuikNode fails for specific known issues.
-
 ## Architecture
 
 ### Data Flow
@@ -268,7 +227,6 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - `X402_NETWORK` - Default payment network (default: `base`)
 - **To add a new chain or stablecoin**: Use the **`add-network` skill** (`.claude/skills/add-network/SKILL.md`) — it has the complete step-by-step checklist
 - **To deploy/redeploy PaymentOperators**: Use the **`deploy-operator` skill** (`.claude/skills/deploy-operator/SKILL.md`) — deploys Fase 5 operators on any supported chain
-- **To distribute/bridge/rebalance funds**: Use the **`fund-distribution` skill** (`.claude/skills/fund-distribution/SKILL.md`) — full lifecycle: inventory, bridge, fan-out, rebalance, sweep. Reference doc: `docs/planning/KK_FUND_DISTRIBUTION_REFERENCE.md`
 - **Solana**: Uses Fase 1 only (direct SPL transfers, no escrow/operator). USDC + AUSD supported. No PaymentOperator on Solana.
 - Token registry lives in `mcp_server/integrations/x402/sdk_client.py` (`NETWORK_CONFIG` dict — single source of truth, 15 EVM networks + Solana, 6 stablecoins, 10 with x402r escrow)
 - Other Python files (facilitator_client, tests, platform_config) **auto-derive** from sdk_client.py — no manual updates needed
@@ -307,15 +265,15 @@ Dashboard uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 ## Infrastructure & Deployment
 
-**IMPORTANT**: Always use the **default AWS account** (`YOUR_AWS_ACCOUNT_ID`, user `YOUR_IAM_USER`). Do NOT use account `897729094021` — it is not the deployment target and lacks proper permissions for Execution Market infrastructure.
+**IMPORTANT**: Always use the **default AWS account** (`<YOUR_AWS_ACCOUNT_ID>`, user `<YOUR_IAM_USER>`). Do NOT use account `<OTHER_AWS_ACCOUNT_ID>` — it is not the deployment target and lacks proper permissions for Execution Market infrastructure.
 
 | Resource | Details |
 |----------|---------|
-| AWS Account | `YOUR_AWS_ACCOUNT_ID` (default profile) |
+| AWS Account | `<YOUR_AWS_ACCOUNT_ID>` (default profile) |
 | AWS CLI Access | **Full access** — Claude Code can run `aws` commands directly |
 | Region | `us-east-2` (Ohio) |
-| Compute | ECS Fargate (`em-production-cluster`) |
-| Container Registry | ECR `us-east-2`: `em-production-dashboard`, `em-production-mcp-server` |
+| Compute | ECS Fargate (`<YOUR_ECS_CLUSTER>`) |
+| Container Registry | ECR `us-east-2`: `<YOUR_ECR_DASHBOARD_REPO>`, `<YOUR_ECR_MCP_REPO>` |
 | Load Balancer | ALB with HTTPS (ACM wildcard cert) |
 | DNS | Route53 `execution.market` (dashboard), `mcp.execution.market` (MCP) |
 | CI/CD | GitHub Actions `deploy.yml` (auto-deploy on push to `main`) |
@@ -400,44 +358,29 @@ related-files:        # Optional: source code paths
 
 **ECR deploy** (use skill or manual):
 ```bash
-MSYS_NO_PATHCONV=1 aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com
+MSYS_NO_PATHCONV=1 aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com
 # MCP Server
-docker build --no-cache -f mcp_server/Dockerfile -t em-mcp ./mcp_server && docker tag em-mcp:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest && docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-mcp-server:latest
+docker build --no-cache -f mcp_server/Dockerfile -t em-mcp ./mcp_server && docker tag em-mcp:latest <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/<YOUR_ECR_MCP_REPO>:latest && docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/<YOUR_ECR_MCP_REPO>:latest
 # Dashboard
-docker build --no-cache -f dashboard/Dockerfile -t em-dashboard ./dashboard && docker tag em-dashboard:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest && docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
+docker build --no-cache -f dashboard/Dockerfile -t em-dashboard ./dashboard && docker tag em-dashboard:latest <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/<YOUR_ECR_DASHBOARD_REPO>:latest && docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/<YOUR_ECR_DASHBOARD_REPO>:latest
 # Force new deployment
-MSYS_NO_PATHCONV=1 aws ecs update-service --cluster em-production-cluster --service em-production-mcp-server --force-new-deployment --region us-east-2
-MSYS_NO_PATHCONV=1 aws ecs update-service --cluster em-production-cluster --service em-production-dashboard --force-new-deployment --region us-east-2
+MSYS_NO_PATHCONV=1 aws ecs update-service --cluster <YOUR_ECS_CLUSTER> --service <YOUR_ECR_MCP_REPO> --force-new-deployment --region us-east-2
+MSYS_NO_PATHCONV=1 aws ecs update-service --cluster <YOUR_ECS_CLUSTER> --service <YOUR_ECR_DASHBOARD_REPO> --force-new-deployment --region us-east-2
 ```
 
 ### Secrets & Credentials
 
-| Secret | Location |
-|--------|----------|
-| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `WALLET_PRIVATE_KEY`, `SUPABASE_DB_PASSWORD` | `.env.local` |
-| `SUPABASE_SERVICE_KEY` | `mcp_server/.env` (bypasses RLS) |
-| `SUPABASE_JWT_SECRET` | AWS SM `em/supabase-jwt:SUPABASE_JWT_SECRET` (needed for H2A publisher auth) |
-| Supabase Management API | `~/.supabase/access-token` |
-| `X402_RPC_URL` | AWS SM `em/x402:X402_RPC_URL` (QuikNode private Base RPC) |
-| Platform wallet key | AWS SM `em/x402:PRIVATE_KEY` |
-| Test worker key | AWS SM `em/test-worker:private_key` (worker-side reputation signing) |
-| KK swarm mnemonic | AWS SM `kk/swarm-seed` |
+See `.env.example` files for required environment variables.
 
-**ECS Task Definition Secrets Checklist**: When adding new features that require env vars, ALWAYS verify they are in the ECS task definition (`em-production-mcp-server`). Current revision: **150** (`:latest` tag, 14 secrets). Missing secrets cause silent 500 errors. Full checklist in memory file `aws-ecs-operations.md`.
-
-**Deploy skill**: Use the **`deploy-mcp` skill** (`.claude/skills/deploy-mcp/SKILL.md`) for the full deploy workflow: build → ECR push → force deploy → verify health. Use the **`deploy-check` skill** (`.claude/skills/deploy-check/SKILL.md`) to verify deployment state without deploying.
+**ECS Task Definition Secrets Checklist**: When adding new features that require env vars, ALWAYS verify they are in the ECS task definition. Missing secrets cause silent 500 errors.
 
 **Deploy scripts**: All TS scripts in `scripts/` auto-load `.env.local` (`WALLET_PRIVATE_KEY` aliased as `PRIVATE_KEY`).
 
 **>>> CRITICAL: NEVER SHOW PRIVATE KEYS IN LOGS <<<**
-User is ALWAYS streaming. To use master wallet key from AWS SM:
+To use master wallet key from your secrets manager:
 ```bash
-node -e "const{execSync:e}=require('child_process');const r=e('aws secretsmanager get-secret-value --secret-id em/x402 --query SecretString --output text --region us-east-2',{encoding:'utf8'});const k=JSON.parse(r).PRIVATE_KEY;e('npx tsx <script>.ts',{stdio:'inherit',env:{...process.env,WALLET_PRIVATE_KEY:k,PRIVATE_KEY:k}});"
+# Retrieve secrets from your secrets manager and pass as env vars
 ```
-
-### Legacy Custom Escrow — DEPRECATED (DO NOT USE)
-
-**NEVER reference, deploy, or interact with the legacy custom escrow contract** (`_archive/contracts/`). Fully replaced by x402 SDK + Facilitator.
 
 ### x402 Payment Architecture
 
@@ -462,12 +405,12 @@ Wrong Flow (DO NOT USE):
 | **ERC-8004 Networks** | 15 total: 9 mainnets + 6 testnets (all via Facilitator) |
 
 **Wallet Roles (CRITICAL — read this before touching payments)**:
-- **Dev wallet** (`0x857f`): Used by local scripts and tests. Key in `.env.local`.
-- **Platform wallet** (`0xD386`): Used by ECS MCP server. Key in AWS Secret `em/x402:PRIVATE_KEY`. **This is the settlement transit point** — agent funds settle here at approval, then immediately disburse to worker (87%) + treasury (13%). No funds should accumulate here long-term.
-- **Treasury** (`0xae07`): Cold wallet (Ledger). **ONLY receives 13% platform fee** on successful task completion (treasury = remainder after worker payment; absorbs x402r protocol fee automatically). **NEVER a settlement target.** If funds land here during task creation, it's a bug.
+- **Dev wallet** (`<YOUR_DEV_WALLET>`): Used by local scripts and tests. Key in `.env.local`.
+- **Platform wallet** (`<YOUR_PLATFORM_WALLET>`): Used by ECS MCP server. Key in AWS Secrets Manager (see `.env.example`). **This is the settlement transit point** — agent funds settle here at approval, then immediately disburse to worker (87%) + treasury (13%). No funds should accumulate here long-term.
+- **Treasury** (`<YOUR_TREASURY_WALLET>`): Cold wallet (Ledger). **ONLY receives 13% platform fee** on successful task completion (treasury = remainder after worker payment; absorbs x402r protocol fee automatically). **NEVER a settlement target.** If funds land here during task creation, it's a bug.
 - `EM_SETTLEMENT_ADDRESS` env var (optional): Overrides the platform wallet for settlement. Defaults to address derived from `WALLET_PRIVATE_KEY`.
 - `EM_REPUTATION_RELAY_KEY` env var (optional): Private key for a dedicated relay wallet used when workers rate agents. Platform wallet can't rate Agent #2106 (self-feedback revert). Relay wallet must NOT own any agent NFTs and needs ~0.001 ETH on Base for gas. If not set, worker→agent feedback falls back to Facilitator.
-- **Test worker wallet** (`YOUR_TEST_WORKER_WALLET`): Used by Golden Flow for worker-side operations. Key in AWS Secret `em/test-worker:private_key`. Set as `EM_WORKER_PRIVATE_KEY` for worker→agent reputation in multichain Golden Flow tests.
+- **Test worker wallet** (`<YOUR_TEST_WORKER_WALLET>`): Used by Golden Flow for worker-side operations. Key in AWS Secrets Manager (see `.env.example`). Set as `EM_WORKER_PRIVATE_KEY` for worker→agent reputation in multichain Golden Flow tests.
 - **Testing budget**: Always use amounts **< $0.30** for test tasks. ~$5 per chain must last through all testing cycles.
 
 **Payment Mode** (`EM_PAYMENT_MODE`, default: `fase1`):
@@ -532,8 +475,8 @@ Lock bounty+fee in escrow at creation (receiver = platform wallet). Release via 
 ### Known Bugs & TODOs
 
 - [ ] `EvidenceUpload.tsx` (camera, GPS, EXIF) is unused — `SubmissionForm.tsx` is a simpler version
-- [ ] $0.10 USDC stuck in vault from direct relay deposit (tx `0xda31cbe...`). Needs refund or contract expiry
-- [ ] Incident Feb 2026: 3 tasks ($1.404) settled to treasury `0xae07` instead of platform wallet. Pending Ledger refund to `0x13ef` on Base
+- [ ] Small USDC amount stuck in vault from direct relay deposit. Needs refund or contract expiry
+- [ ] Incident Feb 2026: Tasks settled to treasury `<YOUR_TREASURY_WALLET>` instead of platform wallet. Pending refund to `<REFUND_TARGET>` on Base
 
 ### Golden Flow (Comprehensive E2E Acceptance Test)
 
@@ -541,11 +484,6 @@ The **Golden Flow** is the definitive acceptance test — if it passes, the plat
 
 **Script**: `python scripts/e2e_golden_flow.py`
 **Reports**: `docs/reports/GOLDEN_FLOW_REPORT.md` (EN) / `GOLDEN_FLOW_REPORT.es.md` (ES)
-
-### Facilitator Ownership
-
-**>>> CRITICAL — FACILITATOR IS OURS <<<**
-**The Facilitator (`facilitator.ultravioletadao.xyz`) is OURS — Ultravioleta DAO.** Repo: `UltravioletaDAO/x402-rs`. We deploy, control, maintain. **Ali/BackTrack = x402r protocol (contracts, ProtocolFeeConfig) ONLY. NOT the Facilitator.** NEVER say Ali owns/controls the Facilitator.
 
 ### x402r Protocol Fee (Automatic Handling)
 
@@ -556,7 +494,7 @@ BackTrack controls `ProtocolFeeConfig` (`0x59314674...`) — up to 5% hard cap, 
 - **Bounties**: **ALWAYS under $0.20** for testing (~$4 USDC per chain). E2E uses `TEST_BOUNTY = 0.10`. Deadlines: 5-15 minutes.
 - **Script**: `cd scripts && npx tsx task-factory.ts --preset screenshot --bounty 0.10 --deadline 10`
 - **E2E script**: `python scripts/e2e_mcp_api.py` — full lifecycle through REST API
-- **Production wallet**: `YOUR_PLATFORM_WALLET` (funded on all 8 EVM chains + Solana wallet for SPL)
+- **Production wallet**: `<YOUR_PLATFORM_WALLET>` (funded on all 8 EVM chains + Solana wallet for SPL)
 
 ### ERC-8004 Identity
 

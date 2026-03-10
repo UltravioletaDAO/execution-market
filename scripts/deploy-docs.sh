@@ -22,7 +22,7 @@
 #    - Origin: em-production-docs-site.s3.us-east-2.amazonaws.com
 #    - OAC: Use the OAC created above
 #    - Alternate domain: docs.execution.market
-#    - SSL: Use wildcard cert arn:aws:acm:us-east-1:YOUR_AWS_ACCOUNT_ID:certificate/841084f8-b130-4b12-87ee-88ac7d81be24
+#    - SSL: Use wildcard cert arn:aws:acm:us-east-1:<YOUR_AWS_ACCOUNT_ID>:certificate/<YOUR_CERT_ID>
 #    - Default root: index.html
 #    - Error 403 → /index.html (for SPA routing)
 #    - Price class: PriceClass_100 (US/EU)
@@ -40,7 +40,7 @@
 #        "Resource": "arn:aws:s3:::em-production-docs-site/*",
 #        "Condition": {
 #          "StringEquals": {
-#            "AWS:SourceArn": "arn:aws:cloudfront::YOUR_AWS_ACCOUNT_ID:distribution/DISTRIBUTION_ID"
+#            "AWS:SourceArn": "arn:aws:cloudfront::<YOUR_AWS_ACCOUNT_ID>:distribution/DISTRIBUTION_ID"
 #          }
 #        }
 #      }]
@@ -50,7 +50,7 @@
 #    Name: docs.execution.market
 #    Type: A (Alias)
 #    Target: CloudFront distribution domain (d123abc.cloudfront.net)
-#    Zone ID: Z050891416D4N69E74FEN
+#    Zone ID: <YOUR_ROUTE53_ZONE_ID>
 #
 # ============================================================================
 

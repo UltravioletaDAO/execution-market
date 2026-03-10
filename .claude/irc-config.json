@@ -5,9 +5,6 @@
   "channel": "#Agents",
   "nick_prefix": "claude",
   "project_slug": "exec-market",
-  "masters": [
-    "UltraClawd",
-    "zeroxultravioleta"
-  ],
+  "masters": [],
   "language": "es"
 }

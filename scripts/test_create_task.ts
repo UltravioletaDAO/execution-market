@@ -21,7 +21,11 @@ const __dirname = dirname(__filename);
 // Load environment
 config({ path: resolve(__dirname, '../.env.local') });
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://YOUR_PROJECT_REF.supabase.co';
+if (!process.env.SUPABASE_URL) {
+  console.error('Missing SUPABASE_URL environment variable');
+  process.exit(1);
+}
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_KEY;
 
 if (!SUPABASE_KEY) {
