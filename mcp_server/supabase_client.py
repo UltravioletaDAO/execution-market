@@ -12,7 +12,12 @@ from datetime import datetime, timedelta, timezone
 from supabase import create_client, Client
 
 # Environment variables
-SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_URL = os.environ.get(
+    "SUPABASE_URL",
+    "https://test.supabase.co" if os.environ.get("TESTING") else "",
+)
+if not SUPABASE_URL:
+    raise RuntimeError("SUPABASE_URL environment variable is required")
 SUPABASE_KEY = (
     os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     or os.environ.get("SUPABASE_SERVICE_KEY")
