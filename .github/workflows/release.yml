@@ -243,7 +243,7 @@ jobs:
           ref: release/v${{ needs.prepare-release.outputs.new_version }}
 
       - name: Download changelog
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: changelog
 
