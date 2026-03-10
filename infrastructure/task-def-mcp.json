@@ -23,11 +23,11 @@
       "secrets": [
         {
           "name": "SUPABASE_URL",
-          "valueFrom": "arn:aws:secretsmanager:us-east-2:<YOUR_AWS_ACCOUNT_ID>:secret:em/supabase:SUPABASE_URL::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-2:<YOUR_AWS_ACCOUNT_ID>:secret:YOUR_SECRET_PATH/supabase:SUPABASE_URL::"
         },
         {
           "name": "SUPABASE_ANON_KEY",
-          "valueFrom": "arn:aws:secretsmanager:us-east-2:<YOUR_AWS_ACCOUNT_ID>:secret:em/supabase:SUPABASE_ANON_KEY::"
+          "valueFrom": "arn:aws:secretsmanager:us-east-2:<YOUR_AWS_ACCOUNT_ID>:secret:YOUR_SECRET_PATH/supabase:SUPABASE_ANON_KEY::"
         }
       ],
       "logConfiguration": {

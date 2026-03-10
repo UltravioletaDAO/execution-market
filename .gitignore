@@ -155,3 +155,18 @@ docs/internal/
 
 # Articles (managed separately, not part of public repo)
 docs/articles/
+
+# Planning docs (internal operational notes, roadmaps, handoffs)
+docs/planning/
+
+# Tweet screenshots and media
+docs/tweets/
+
+# Chat logs
+docs/chats/
+
+# Reports (contain operational wallet details and internal audit data)
+docs/reports/
+
+# Obsidian vault (internal knowledge graph)
+vault/

@@ -20,7 +20,7 @@ echo
 
 # Get Supabase credentials
 echo -e "${YELLOW}Getting database credentials...${NC}"
-SUPABASE_DATA=$(aws secretsmanager get-secret-value --secret-id em/supabase --region us-east-2 --query 'SecretString' --output text)
+SUPABASE_DATA=$(aws secretsmanager get-secret-value --secret-id YOUR_SECRET_PATH/supabase --region us-east-2 --query 'SecretString' --output text)
 SUPABASE_URL=$(echo "$SUPABASE_DATA" | python3 -c "import json,sys; print(json.load(sys.stdin)['SUPABASE_URL'])")
 SERVICE_KEY=$(echo "$SUPABASE_DATA" | python3 -c "import json,sys; print(json.load(sys.stdin)['SUPABASE_SERVICE_ROLE_KEY'])")
 

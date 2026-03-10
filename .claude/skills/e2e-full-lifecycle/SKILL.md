@@ -63,7 +63,7 @@ The script generates:
 |------|---------|--------|
 | Agent (production) | `0xD386...` | ECS `WALLET_PRIVATE_KEY` |
 | Agent (dev) | `0x857f...` | `.env.local` |
-| Worker (test) | `YOUR_TEST_WORKER_WALLET` | AWS `em/test-worker` |
+| Worker (test) | `YOUR_TEST_WORKER_WALLET` | AWS `YOUR_SECRET_PATH/test-worker` |
 | Treasury | `YOUR_TREASURY_WALLET` | Ledger cold wallet |
 | PaymentOperator | `0xd5149049e7c212ce5436a9581b4307EB9595df95` | Fase 3 clean |
 

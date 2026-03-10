@@ -84,7 +84,7 @@ Ali Abdoli (x402 core maintainer) validó toda la implementación:
 ## 5. 🧹 HOUSEKEEPING
 **Prioridad:** BAJA | **Tiempo:** 5 min | **Quién:** Clawd
 
-- [ ] Actualizar secret `em/x402` en AWS con contract addresses correctos (verificar con facilitator primero)
+- [ ] Actualizar secret `YOUR_SECRET_PATH/x402` en AWS con contract addresses correctos (verificar con facilitator primero)
 - [ ] Borrar repo `execution-market-reports` después de tener Gist funcionando
 - [ ] Verificar que consolidated-social-summary cron no siga fallando (error Python a las 3 PM)
 - [ ] Commit + push todo al final
