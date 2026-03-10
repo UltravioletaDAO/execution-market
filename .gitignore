@@ -149,3 +149,9 @@ scripts/kk/data/workspaces/
 *private*.json
 *secret*.json
 scripts/wallet-management/.keys.json
+
+# Internal docs (private business correspondence)
+docs/internal/
+
+# Articles (managed separately, not part of public repo)
+docs/articles/
