@@ -322,6 +322,15 @@ app.include_router(escrow_router)
 # Provides /api/v1/h2a/* for human publisher flow and /api/v1/agents/* for agent directory
 app.include_router(h2a_router)
 
+# Include KK V2 Swarm router (optional, enabled via SWARM_ENABLED env)
+# Provides /api/v1/swarm/* for swarm coordination, monitoring, and operations
+try:
+    from api.swarm import router as swarm_router
+    app.include_router(swarm_router)
+    logger.info("Swarm API router registered at /api/v1/swarm/*")
+except ImportError as e:
+    logger.info("Swarm API not available: %s", e)
+
 # CORS configuration with MCP headers support
 # MCP Streamable HTTP requires specific headers for session management
 app.add_middleware(
