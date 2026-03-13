@@ -128,10 +128,10 @@ def test_event_listener_poll():
     print(f"  ✅ EventListener initialized with coordinator")
     
     try:
-        events = listener.poll_once()
-        print(f"  ✅ Poll completed — {len(events)} events")
-        for ev in events[:3]:
-            print(f"     {ev}")
+        result = listener.poll_once()
+        print(f"  ✅ Poll completed — {result.total_events} events in {result.duration_ms:.1f}ms")
+        if result.errors:
+            print(f"     Errors: {result.errors}")
     except Exception as e:
         print(f"  ⚠️ Poll: {type(e).__name__}: {e}")
 

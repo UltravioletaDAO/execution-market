@@ -485,3 +485,41 @@ class LifecycleManager:
             
         self.logger.warning(f"Escrow health check failed for task {task_id}")
         return False
+
+class CrossChainPaymentContext:
+    """Tracks cross-chain context to prevent double payments and manage gas fees."""
+    def __init__(self, target_chain: str):
+        self.target_chain = target_chain
+        self.gas_status = "optimal"  # optimal, congested, blocked
+        self.previous_attempts = 0
+        self.recent_failures = []
+        self.last_payment_hash = None
+
+    def record_attempt(self, success: bool, tx_hash: str = None, error_msg: str = None):
+        self.previous_attempts += 1
+        if success:
+            self.last_payment_hash = tx_hash
+        else:
+            self.recent_failures.append({"time": datetime.now(timezone.utc).isoformat(), "error": error_msg})
+
+    def is_safe_to_pay(self) -> bool:
+        if self.gas_status == "congested" and self.previous_attempts > 2:
+            return False
+        if self.last_payment_hash is not None:
+            return False  # Already paid
+        return True
+
+def inject_cross_chain_context(agent_id: int, target_chain: str) -> dict:
+    """Builds the context package needed for an agent to safely execute a multi-chain payment."""
+    ctx = CrossChainPaymentContext(target_chain)
+    # Mocking internal state check
+    if target_chain in ["ethereum", "monad"] and datetime.now().minute % 5 == 0:
+        ctx.gas_status = "congested"
+        
+    return {
+        "agent_id": agent_id,
+        "target_chain": ctx.target_chain,
+        "gas_status": ctx.gas_status,
+        "previous_attempts": ctx.previous_attempts,
+        "safe_to_pay": ctx.is_safe_to_pay()
+    }
