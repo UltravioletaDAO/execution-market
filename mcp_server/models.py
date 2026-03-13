@@ -33,13 +33,25 @@ class VerificationMode(str, Enum):
 
 
 class TaskCategory(str, Enum):
-    """Categories of tasks that humans can execute."""
+    """Categories of tasks that executors can complete."""
 
+    # Physical-world categories
     PHYSICAL_PRESENCE = "physical_presence"
     KNOWLEDGE_ACCESS = "knowledge_access"
     HUMAN_AUTHORITY = "human_authority"
     SIMPLE_ACTION = "simple_action"
     DIGITAL_PHYSICAL = "digital_physical"
+    LOCATION_BASED = "location_based"
+    VERIFICATION = "verification"
+    SOCIAL_PROOF = "social_proof"
+    DATA_COLLECTION = "data_collection"
+    SENSORY = "sensory"
+    SOCIAL = "social"
+    PROXY = "proxy"
+    BUREAUCRATIC = "bureaucratic"
+    EMERGENCY = "emergency"
+    CREATIVE = "creative"
+    # Digital/agent categories
     DATA_PROCESSING = "data_processing"
     API_INTEGRATION = "api_integration"
     CONTENT_GENERATION = "content_generation"

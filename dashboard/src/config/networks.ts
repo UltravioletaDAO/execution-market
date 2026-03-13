@@ -14,13 +14,13 @@ export interface NetworkInfo {
   key: string
   /** Display name */
   name: string
-  /** Chain ID (null for non-EVM networks like Solana) */
+  /** Chain ID */
   chainId: number | null
   /** Logo path (relative to /public) */
   logo: string
   /** Whether this network is currently live for payments */
   live: boolean
-  /** Network type: EVM (default) or SVM (Solana) */
+  /** Network type */
   networkType?: 'evm' | 'svm'
 }
 
@@ -37,7 +37,6 @@ export const NETWORKS: NetworkInfo[] = [
   { key: 'monad', name: 'Monad', chainId: 143, logo: '/monad.png', live: true },
   { key: 'avalanche', name: 'Avalanche', chainId: 43114, logo: '/avalanche.png', live: true },
   { key: 'optimism', name: 'Optimism', chainId: 10, logo: '/optimism.png', live: true },
-  { key: 'solana', name: 'Solana', chainId: null, logo: '/solana.png', live: true, networkType: 'svm' },
 ]
 
 /** Quick lookup by network key */

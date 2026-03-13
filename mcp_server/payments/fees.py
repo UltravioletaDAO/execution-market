@@ -10,11 +10,10 @@ Features:
 - Support for fee waivers and promotional discounts
 
 Fee Structure:
-- PHYSICAL_PRESENCE: 13% (highest effort, highest platform value)
-- KNOWLEDGE_ACCESS: 12% (specialized knowledge tasks)
-- HUMAN_AUTHORITY: 11% (licensed professional tasks - incentivize)
-- SIMPLE_ACTION: 13% (high volume, standard rate)
-- DIGITAL_PHYSICAL: 12% (hybrid tasks)
+- Default: 13% for most categories
+- Reduced: 12% for knowledge, hybrid, bureaucratic, creative, research tasks
+- Incentivized: 11% for licensed professional tasks (HUMAN_AUTHORITY)
+- 21 task categories across physical-world and digital/agent domains
 """
 
 import os
@@ -65,6 +64,16 @@ FEE_RATES: Dict[TaskCategory, Decimal] = {
     TaskCategory.HUMAN_AUTHORITY: Decimal("0.11"),  # 11% - incentivize licensed pros
     TaskCategory.SIMPLE_ACTION: Decimal("0.13"),  # 13% - standard digital tasks
     TaskCategory.DIGITAL_PHYSICAL: Decimal("0.12"),  # 12% - hybrid tasks
+    TaskCategory.LOCATION_BASED: Decimal("0.13"),  # 13% - location-dependent tasks
+    TaskCategory.VERIFICATION: Decimal("0.13"),  # 13% - verify facts/conditions
+    TaskCategory.SOCIAL_PROOF: Decimal("0.13"),  # 13% - social verification
+    TaskCategory.DATA_COLLECTION: Decimal("0.12"),  # 12% - field data gathering
+    TaskCategory.SENSORY: Decimal("0.13"),  # 13% - tasks requiring human senses
+    TaskCategory.SOCIAL: Decimal("0.13"),  # 13% - social interaction tasks
+    TaskCategory.PROXY: Decimal("0.13"),  # 13% - act on behalf of agent
+    TaskCategory.BUREAUCRATIC: Decimal("0.12"),  # 12% - paperwork/admin tasks
+    TaskCategory.EMERGENCY: Decimal("0.13"),  # 13% - time-sensitive tasks
+    TaskCategory.CREATIVE: Decimal("0.12"),  # 12% - creative/artistic tasks
     # Digital/agent task categories (A2A)
     TaskCategory.DATA_PROCESSING: Decimal("0.13"),  # 13% - data crunching
     TaskCategory.API_INTEGRATION: Decimal("0.12"),  # 12% - API/service integration
@@ -756,8 +765,24 @@ class FeeManager:
             TaskCategory.HUMAN_AUTHORITY: "Tasks requiring licensed professional authority",
             TaskCategory.SIMPLE_ACTION: "Simple digital or physical actions",
             TaskCategory.DIGITAL_PHYSICAL: "Hybrid digital-physical tasks",
+            TaskCategory.LOCATION_BASED: "Tasks tied to a specific geographic location",
+            TaskCategory.VERIFICATION: "Verify real-world facts or conditions",
+            TaskCategory.SOCIAL_PROOF: "Social verification or attestation tasks",
+            TaskCategory.DATA_COLLECTION: "Field data gathering and reporting",
+            TaskCategory.SENSORY: "Tasks requiring human sensory perception",
+            TaskCategory.SOCIAL: "Tasks requiring social interaction",
+            TaskCategory.PROXY: "Act as physical proxy for an AI agent",
+            TaskCategory.BUREAUCRATIC: "Paperwork, forms, and administrative tasks",
+            TaskCategory.EMERGENCY: "Time-sensitive urgent tasks",
+            TaskCategory.CREATIVE: "Creative, artistic, or design tasks",
+            TaskCategory.DATA_PROCESSING: "Data crunching and transformation",
+            TaskCategory.API_INTEGRATION: "API and service integration tasks",
+            TaskCategory.CONTENT_GENERATION: "Content creation and writing",
+            TaskCategory.CODE_EXECUTION: "Code writing, testing, and deployment",
+            TaskCategory.RESEARCH: "Research and analysis tasks",
+            TaskCategory.MULTI_STEP_WORKFLOW: "Complex multi-step workflows",
         }
-        return descriptions.get(category, "Unknown category")
+        return descriptions.get(category, "General task")
 
 
 # =============================================================================
