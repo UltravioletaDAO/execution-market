@@ -690,6 +690,7 @@ class SwarmCoordinator:
         self,
         task_id: str,
         bounty_earned_usd: Optional[float] = None,
+        evidence_summary: Optional[str] = None,
     ) -> bool:
         """
         Mark a task as completed. Updates all subsystems.
@@ -743,7 +744,7 @@ class SwarmCoordinator:
 
         return True
 
-    def fail_task(self, task_id: str, error: str = "") -> bool:
+    def fail_task(self, task_id: str, error: str = "", reason: str = "") -> bool:
         """
         Mark a task as failed. Updates reputation and lifecycle.
         """

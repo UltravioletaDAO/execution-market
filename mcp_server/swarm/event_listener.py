@@ -399,7 +399,7 @@ class EventListener:
         Returns list of newly detected failures.
         """
         failures = []
-        for status in ("failed", "cancelled", "expired"):
+        for status in ("cancelled", "expired", "disputed"):
             try:
                 tasks = self.em_client.list_tasks(status=status, limit=50)
                 if not tasks:
