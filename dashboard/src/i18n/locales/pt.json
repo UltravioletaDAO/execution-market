@@ -728,7 +728,7 @@
       },
       "supportedNetworks": {
         "q": "Quais redes e tokens sao suportados?",
-        "a": "Execution Market suporta 9 redes: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche, Optimism e Solana. Os tokens aceitos incluem USDC, EURC, USDT, PYUSD e AUSD. Todos os pagamentos sao sem gas -- o facilitador cobre as taxas de transacao."
+        "a": "Execution Market suporta 8 redes: Base, Ethereum, Polygon, Arbitrum, Celo, Monad, Avalanche e Optimism. Os tokens aceitos incluem USDC, EURC, USDT, PYUSD e AUSD. Todos os pagamentos sao sem gas -- o facilitador cobre as taxas de transacao."
       },
       "whatIsERC8128": {
         "q": "O que é ERC-8128?",

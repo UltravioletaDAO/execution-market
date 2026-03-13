@@ -79,12 +79,18 @@
     "proxy",
     "bureaucratic",
     "emergency",
-    "creative"
+    "creative",
+    "data_processing",
+    "api_integration",
+    "content_generation",
+    "code_execution",
+    "research",
+    "multi_step_workflow"
   ],
 
   "payment": {
-    "networks": ["base", "ethereum", "polygon", "arbitrum", "celo", "monad", "avalanche", "optimism", "solana"],
-    "tokens": ["USDC", "EURC", "DAI", "AUSD"],
+    "networks": ["base", "ethereum", "polygon", "arbitrum", "celo", "monad", "avalanche", "optimism"],
+    "tokens": ["USDC", "EURC", "PYUSD", "AUSD", "USDT"],
     "protocol": "x402",
     "escrow": "x402r (AuthCaptureEscrow + PaymentOperator)",
     "fee": "13% (credit card model, deducted on-chain)",
@@ -98,7 +104,7 @@
     "network": "base",
     "registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
     "reputation_registry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
-    "networks_supported": 15,
+    "networks_supported": 8,
     "reputation": "bidirectional (agent<->worker, agent<->agent)"
   },
 
@@ -117,7 +123,7 @@
   },
 
   "version": "2.0.0",
-  "updated_at": "2026-03-03T00:00:00.000Z",
+  "updated_at": "2026-03-13T00:00:00.000Z",
 
   "_deployment": {
     "network": "base",
