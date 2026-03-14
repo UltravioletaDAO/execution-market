@@ -439,7 +439,7 @@ export default function TaskDetailScreen() {
               {t("task.evidenceRequired")}
             </Text>
             <View className="bg-surface rounded-2xl p-4">
-              {task.evidence_schema.required.map((ev: string, i: number) => (
+              {task.evidence_schema?.required?.map((ev: string, i: number) => (
                 <View
                   key={ev}
                   className={`flex-row items-center ${i > 0 ? "mt-2" : ""}`}
@@ -450,7 +450,7 @@ export default function TaskDetailScreen() {
                   </Text>
                 </View>
               ))}
-              {task.evidence_schema.optional?.map((ev: string) => (
+              {task.evidence_schema?.optional?.map((ev: string) => (
                 <View key={ev} className="flex-row items-center mt-2">
                   <Text className="text-gray-500 mr-2">○</Text>
                   <Text className="text-gray-400 text-sm">
@@ -469,7 +469,7 @@ export default function TaskDetailScreen() {
               {t("task.skills")}
             </Text>
             <View className="flex-row flex-wrap gap-2">
-              {task.skills_required.map((skill: string) => (
+              {task.skills_required?.map((skill: string) => (
                 <View
                   key={skill}
                   className="bg-surface rounded-full px-3 py-1"

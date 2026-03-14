@@ -14,20 +14,20 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      className="py-1"
-      contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}
+      contentContainerStyle={{ paddingHorizontal: 8, gap: 4 }}
     >
       {/* All button */}
       <Pressable
-        className={`rounded-full px-3 py-1 ${
+        className={`rounded-full px-2 py-0.5 ${
           selected === null ? "bg-white" : "bg-surface"
         }`}
         onPress={() => onSelect(null)}
       >
         <Text
-          className={`text-xs font-medium ${
+          className={`font-medium ${
             selected === null ? "text-black" : "text-gray-400"
           }`}
+          style={{ fontSize: 11 }}
         >
           {t("browse.allCategories")}
         </Text>
@@ -36,16 +36,17 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
       {TASK_CATEGORIES.map((cat) => (
         <Pressable
           key={cat.key}
-          className={`rounded-full px-3 py-1 flex-row items-center ${
+          className={`rounded-full px-2 py-0.5 flex-row items-center ${
             selected === cat.key ? "bg-white" : "bg-surface"
           }`}
           onPress={() => onSelect(selected === cat.key ? null : cat.key)}
         >
-          <Text style={{ fontSize: 12 }}>{cat.icon}</Text>
+          <Text style={{ fontSize: 10 }}>{cat.icon}</Text>
           <Text
-            className={`text-xs font-medium ml-1 ${
+            className={`font-medium ml-1 ${
               selected === cat.key ? "text-black" : "text-gray-400"
             }`}
+            style={{ fontSize: 11 }}
           >
             {t(`categories.${cat.key}`, cat.key)}
           </Text>

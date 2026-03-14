@@ -22,8 +22,8 @@ export interface Task {
   evidence_schema: {
     required: string[];
     optional?: string[];
-  };
-  skills_required: string[];
+  } | null;
+  skills_required: string[] | null;
   erc8004_agent_id: number | null;
   agent_name: string | null;
   target_executor_type: string | null;
