@@ -112,12 +112,22 @@ export default function TaskDetailScreen() {
   const { data: paymentEvents } = useTaskPaymentEvents(id);
   const [showApplyModal, setShowApplyModal] = useState(false);
 
-  const category = task
-    ? TASK_CATEGORIES.find((c) => c.key === task.category)
-    : null;
-  const network = task
-    ? NETWORKS.find((n) => n.key === task.payment_network)
-    : null;
+  const hasApplied = myApplication?.applied === true;
+  const isMyTask = !!(executor && task && task.executor_id === executor.id);
+
+  // Auto-refresh task status every 10s when waiting for review/assignment
+  // MUST be before any early returns (Rules of Hooks)
+  useEffect(() => {
+    if (!task) return;
+    const shouldPoll = ["submitted", "accepted", "in_progress", "verifying"].includes(task.status) && isMyTask;
+    const waitingAssignment = hasApplied && !isMyTask && task.status === "published";
+    if (!shouldPoll && !waitingAssignment) return;
+
+    const interval = setInterval(() => {
+      refetch();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [task?.status, isMyTask, hasApplied]);
 
   if (isLoading) {
     return (
@@ -138,8 +148,8 @@ export default function TaskDetailScreen() {
     );
   }
 
-  const hasApplied = myApplication?.applied === true;
-  const isMyTask = executor && task.executor_id === executor.id;
+  const category = TASK_CATEGORIES.find((c) => c.key === task.category) ?? null;
+  const network = NETWORKS.find((n) => n.key === task.payment_network) ?? null;
 
   const canApply =
     task.status === "published" &&
@@ -148,19 +158,6 @@ export default function TaskDetailScreen() {
     isAuthenticated &&
     (task.min_reputation === 0 ||
       (executor?.reputation_score || 0) >= task.min_reputation);
-
-  // Auto-refresh task status every 10s when waiting for review/assignment
-  useEffect(() => {
-    if (!task) return;
-    const shouldPoll = ["submitted", "accepted", "in_progress", "verifying"].includes(task.status) && isMyTask;
-    const waitingAssignment = hasApplied && !isMyTask && task.status === "published";
-    if (!shouldPoll && !waitingAssignment) return;
-
-    const interval = setInterval(() => {
-      refetch();
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [task?.status, isMyTask, hasApplied]);
 
   // Determine bottom action bar content
   let bottomAction: "apply" | "applied" | "submitted" | "completed" | "submit" | "login" | "none" = "none";
