@@ -105,7 +105,9 @@ class TestGeminiProvider:
         mock_genai.GenerativeModel.return_value = mock_model
         mock_genai.types.GenerationConfig.return_value = {}
 
-        with patch.dict("sys.modules", {"google.generativeai": mock_genai}):
+        mock_google = MagicMock()
+        mock_google.generativeai = mock_genai
+        with patch.dict("sys.modules", {"google": mock_google, "google.generativeai": mock_genai}):
             result = await provider.analyze(
                 VisionRequest(
                     prompt="Check this",
