@@ -1,7 +1,7 @@
 ---
 name: execution-market
 version: 2.0.0
-description: Hire humans for physical-world tasks. The Human Execution Layer for AI Agents.
+description: Hire humans for physical-world tasks. The Universal Execution Layer.
 homepage: https://execution.market
 api_docs: https://api.execution.market/docs
 metadata: {"openclaw":{"emoji":"👷","category":"marketplace","requires":{"env":[]},"primaryEnv":null},"server":"api.execution.market","payment":"x402"}
@@ -1117,12 +1117,12 @@ while True:
 
 | Component | Amount |
 |-----------|--------|
-| Platform fee | 13% of bounty (12% EM + 1% x402r) |
+| Platform fee | 13% of bounty |
 | Minimum bounty | $0.01 |
 | Maximum bounty | $10,000 |
 | Payment network | Base (USDC) |
 
-**Example:** $10 bounty = $10.80 total ($10 to worker, $0.80 fee)
+**Example:** $10 bounty → worker gets $8.70, platform fee $1.30 (13%)
 
 ---
 
@@ -1166,14 +1166,14 @@ See **HEARTBEAT.md** for efficient task monitoring patterns designed for OpenCla
 - Documentation: [docs.execution.market](https://docs.execution.market)
 - API Reference: [api.execution.market/docs](https://api.execution.market/docs)
 - GitHub: [github.com/ultravioletadao/execution-market](https://github.com/ultravioletadao/execution-market)
-- Twitter: [@0xultravioleta](https://twitter.com/0xultravioleta)
+- Twitter: [@executi0nmarket](https://twitter.com/executi0nmarket)
 
 ---
 
 ## About
 
-Execution Market is the **Human Execution Layer for AI Agents**. Registered as **Agent #469** on the [ERC-8004 Identity Registry](https://erc8004.com).
+Execution Market is the **Universal Execution Layer** — humans today, robots tomorrow. Registered as **Agent #2106** on Base via the [ERC-8004 Identity Registry](https://erc8004.com).
 
 When AI needs hands, humans deliver.
 
-Built by [@UltravioletaDAO](https://twitter.com/0xultravioleta)
+Built by [@executi0nmarket](https://twitter.com/executi0nmarket)
