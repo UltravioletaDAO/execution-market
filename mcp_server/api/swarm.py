@@ -206,9 +206,9 @@ async def swarm_status(api_key: APIKeyData = Depends(verify_api_key)):
         base_status["performance"] = dashboard.get("performance", {})
         return base_status
     except Exception as e:
-        logger.error(f"Error getting swarm status: {e}")
+        logger.exception(f"Error getting swarm status: {e}")
         base_status["coordinator"] = "error"
-        base_status["error"] = str(e)
+        base_status["error"] = "Failed to retrieve coordinator status"
         return base_status
 
 
@@ -255,10 +255,10 @@ async def swarm_health(api_key: APIKeyData = Depends(verify_api_key)):
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
-        logger.error(f"Health check error: {e}")
+        logger.exception(f"Health check error: {e}")
         return {
             "status": "error",
-            "error": str(e),
+            "error": "Health check failed",
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -312,8 +312,8 @@ async def list_agents(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error listing agents: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error listing agents: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/agents/{agent_id}")
@@ -383,8 +383,8 @@ async def get_agent(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting agent {agent_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error getting agent {agent_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/poll")
@@ -454,8 +454,8 @@ async def trigger_poll(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Poll cycle failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Poll cycle failed: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/dashboard")
@@ -485,8 +485,8 @@ async def swarm_dashboard(api_key: APIKeyData = Depends(verify_api_key)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Dashboard error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Dashboard error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/metrics")
@@ -548,10 +548,10 @@ async def swarm_metrics(api_key: APIKeyData = Depends(verify_api_key)):
         }
         return flat
     except Exception as e:
-        logger.error(f"Metrics error: {e}")
+        logger.exception(f"Metrics error: {e}")
         return {
             "swarm_enabled": 1,
-            "error": str(e),
+            "error": "Failed to retrieve metrics",
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -633,8 +633,8 @@ async def list_events(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Events error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Events error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/tasks")
@@ -670,8 +670,8 @@ async def swarm_tasks(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Task queue error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Task queue error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/agents/{agent_id}/activate")
@@ -703,8 +703,8 @@ async def activate_agent(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Agent activation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Agent activation error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/agents/{agent_id}/suspend")
@@ -729,8 +729,8 @@ async def suspend_agent(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Agent suspension error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Agent suspension error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/agents/{agent_id}/budget")
@@ -765,5 +765,5 @@ async def update_agent_budget(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Budget update error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Budget update error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
