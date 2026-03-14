@@ -95,7 +95,7 @@ fi
 
 printf "  %-50s" "Swarm status returns JSON"
 SWARM_RESP=$(curl -sf "$BASE_URL/api/v1/swarm/status" 2>/dev/null || echo "")
-if echo "$SWARM_RESP" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+if echo "$SWARM_RESP" | python -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
     echo -e "${GREEN}✅ Valid JSON${NC}"
     ((PASS++))
 else
@@ -114,8 +114,8 @@ if [ "$FAIL" -gt 0 ]; then
     echo -e "${RED}  ❌ DEPLOYMENT ISSUES — $FAIL endpoints not responding correctly${NC}"
     echo ""
     echo "  Troubleshooting:"
-    echo "    1. Check ECS task is running: aws ecs describe-services --cluster em-production-cluster --services em-production-mcp-server --region us-east-2"
-    echo "    2. Check logs: aws logs get-log-events --log-group-name /ecs/em-production --region us-east-2"
+    echo "    1. Check ECS task is running: aws ecs describe-services --cluster <YOUR_ECS_CLUSTER> --services <YOUR_ECS_SERVICE> --region us-east-2"
+    echo "    2. Check logs: aws logs get-log-events --log-group-name <YOUR_LOG_GROUP> --region us-east-2"
     echo "    3. Check SWARM_ENABLED env var is set in ECS task definition"
     echo ""
     exit 1
