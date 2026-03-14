@@ -8,10 +8,19 @@ through the standard EM REST API.
 import pytest
 import json
 import time
+import sys
 from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timezone
 
-# Test the route module directly
+# Stub out supabase_client before any api imports to avoid the
+# "SUPABASE_URL required" RuntimeError.  The swarm API module
+# does NOT use supabase_client, but importing through api.__init__
+# → api.routes → api.routers.tasks triggers it.
+if "supabase_client" not in sys.modules:
+    _stub = MagicMock()
+    _stub.SUPABASE_URL = "https://test.supabase.co"
+    sys.modules["supabase_client"] = _stub
+
 from api.swarm import (
     router,
     get_coordinator,
