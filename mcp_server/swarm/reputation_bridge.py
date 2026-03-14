@@ -11,7 +11,7 @@ for task routing decisions.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 import math
@@ -19,6 +19,7 @@ import math
 
 class ReputationTier(str, Enum):
     """On-chain reputation tiers from ERC-8004 seals."""
+
     DIAMANTE = "diamante"
     ORO = "oro"
     PLATA = "plata"
@@ -37,16 +38,29 @@ TIER_BONUSES = {
 
 # Minimum tasks to qualify for each tier
 TIER_THRESHOLDS = {
-    ReputationTier.DIAMANTE: {"min_tasks": 100, "min_rating": 4.8, "min_success_rate": 0.95},
+    ReputationTier.DIAMANTE: {
+        "min_tasks": 100,
+        "min_rating": 4.8,
+        "min_success_rate": 0.95,
+    },
     ReputationTier.ORO: {"min_tasks": 50, "min_rating": 4.5, "min_success_rate": 0.90},
-    ReputationTier.PLATA: {"min_tasks": 20, "min_rating": 4.0, "min_success_rate": 0.80},
-    ReputationTier.BRONCE: {"min_tasks": 5, "min_rating": 3.0, "min_success_rate": 0.60},
+    ReputationTier.PLATA: {
+        "min_tasks": 20,
+        "min_rating": 4.0,
+        "min_success_rate": 0.80,
+    },
+    ReputationTier.BRONCE: {
+        "min_tasks": 5,
+        "min_rating": 3.0,
+        "min_success_rate": 0.60,
+    },
 }
 
 
 @dataclass
 class OnChainReputation:
     """Data from ERC-8004 identity + reputation contracts."""
+
     agent_id: int
     wallet_address: str
     total_seals: int = 0
@@ -72,6 +86,7 @@ class OnChainReputation:
 @dataclass
 class InternalReputation:
     """Data from the internal Bayesian reputation system."""
+
     agent_id: int
     bayesian_score: float = 0.5  # 0.0 to 1.0, starts at neutral
     total_tasks: int = 0
@@ -111,11 +126,12 @@ class CompositeScore:
     - reliability: 20% — Completion rate, on-time, consistency
     - recency: 10% — How recently active?
     """
+
     agent_id: int
-    skill_score: float = 0.0       # 0-100
+    skill_score: float = 0.0  # 0-100
     reputation_score: float = 0.0  # 0-100
-    reliability_score: float = 0.0 # 0-100
-    recency_score: float = 0.0    # 0-100
+    reliability_score: float = 0.0  # 0-100
+    recency_score: float = 0.0  # 0-100
     tier: ReputationTier = ReputationTier.NUEVO
     tier_bonus: float = 0.0
 
@@ -274,7 +290,9 @@ class ReputationBridge:
 
         # Task volume (0-20 points, logarithmic scale)
         # 1 task = ~0, 10 tasks = ~13, 50 tasks = ~17, 100+ = 20
-        volume_pts = min(math.log10(max(internal.total_tasks, 1)) / math.log10(100) * 20, 20)
+        volume_pts = min(
+            math.log10(max(internal.total_tasks, 1)) / math.log10(100) * 20, 20
+        )
 
         # Penalty for consecutive failures
         failure_penalty = min(internal.consecutive_failures * 5, 25)
@@ -333,7 +351,9 @@ class ReputationBridge:
         scores.sort(key=lambda s: s.total, reverse=True)
         return scores
 
-    def calculate_category_multiplier(self, category: str, complexity_tier: str) -> float:
+    def calculate_category_multiplier(
+        self, category: str, complexity_tier: str
+    ) -> float:
         """
         Dynamically adjust the reputation requirements based on task complexity.
         Senior technical tasks require a higher reputation bridge multiplier.
@@ -343,12 +363,12 @@ class ReputationBridge:
             base_multiplier = 1.5
         elif complexity_tier == "JUNIOR":
             base_multiplier = 0.8
-            
+
         category_weights = {
             "technical_task": 1.2,
             "notarization": 1.5,
             "physical_verification": 1.1,
             "data_collection": 0.9,
         }
-        
+
         return base_multiplier * category_weights.get(category, 1.0)

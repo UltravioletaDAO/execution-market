@@ -5,12 +5,9 @@ Verifies the condensed coordination cycle that runs during
 OpenClaw heartbeat polls.
 """
 
-import json
 import os
 import tempfile
-import pytest
-from unittest.mock import patch, MagicMock, PropertyMock
-from datetime import datetime, timezone
+from unittest.mock import patch, MagicMock
 
 from swarm.heartbeat_handler import (
     SwarmHeartbeatHandler,
@@ -269,7 +266,9 @@ class TestSwarmHeartbeatHandler:
         """Handler should gracefully handle API failures."""
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_coord = MagicMock()
-            mock_coord.em_client.get_health.side_effect = Exception("Connection refused")
+            mock_coord.em_client.get_health.side_effect = Exception(
+                "Connection refused"
+            )
             mock_coord.ingest_from_api.side_effect = Exception("API unreachable")
             mock_coord.run_health_checks.return_value = {
                 "agents": {"checked": 0, "healthy": 0, "degraded": 0},

@@ -1,4 +1,5 @@
 """Tests for SwarmOrchestrator."""
+
 import pytest
 from datetime import datetime, timezone, timedelta
 
@@ -6,7 +7,6 @@ from mcp_server.swarm.orchestrator import (
     SwarmOrchestrator,
     RoutingStrategy,
     TaskRequest,
-    TaskPriority,
     Assignment,
     RoutingFailure,
 )
@@ -59,7 +59,10 @@ def setup_agent(
 ):
     """Helper: register + reputation + set to ACTIVE."""
     orchestrator.lifecycle.register_agent(
-        agent_id, name, wallet, budget_config=budget_config,
+        agent_id,
+        name,
+        wallet,
+        budget_config=budget_config,
     )
     orchestrator.lifecycle.transition(agent_id, AgentState.IDLE)
     orchestrator.lifecycle.transition(agent_id, AgentState.ACTIVE)
@@ -93,12 +96,28 @@ class TestBasicRouting:
         assert result.task_id == "t1"
 
     def test_route_to_best_agent(self, orchestrator):
-        setup_agent(orchestrator, 1, "aurora", total_tasks=3, avg_rating=2.0,
-                    bayesian_score=0.15, total_seals=2, positive_seals=1,
-                    successful_tasks=1)
-        setup_agent(orchestrator, 2, "blaze", total_tasks=100, avg_rating=4.9,
-                    bayesian_score=0.95, total_seals=80, positive_seals=78,
-                    chains=["base", "eth", "poly", "arb"])
+        setup_agent(
+            orchestrator,
+            1,
+            "aurora",
+            total_tasks=3,
+            avg_rating=2.0,
+            bayesian_score=0.15,
+            total_seals=2,
+            positive_seals=1,
+            successful_tasks=1,
+        )
+        setup_agent(
+            orchestrator,
+            2,
+            "blaze",
+            total_tasks=100,
+            avg_rating=4.9,
+            bayesian_score=0.95,
+            total_seals=80,
+            positive_seals=78,
+            chains=["base", "eth", "poly", "arb"],
+        )
         task = TaskRequest(task_id="t1", title="Test task")
         result = orchestrator.route_task(task)
         assert isinstance(result, Assignment)
@@ -128,7 +147,8 @@ class TestExclusions:
         setup_agent(orchestrator, 1, "aurora", total_tasks=100, avg_rating=5.0)
         setup_agent(orchestrator, 2, "blaze", total_tasks=10, avg_rating=3.0)
         task = TaskRequest(
-            task_id="t1", title="Test",
+            task_id="t1",
+            title="Test",
             exclude_agent_ids=[1],
         )
         result = orchestrator.route_task(task)
@@ -138,7 +158,8 @@ class TestExclusions:
     def test_all_excluded_fails(self, orchestrator):
         setup_agent(orchestrator, 1, "aurora")
         task = TaskRequest(
-            task_id="t1", title="Test",
+            task_id="t1",
+            title="Test",
             exclude_agent_ids=[1],
         )
         result = orchestrator.route_task(task)
@@ -148,10 +169,20 @@ class TestExclusions:
 
 class TestPreferences:
     def test_preferred_agent_selected(self, orchestrator):
-        setup_agent(orchestrator, 1, "aurora", total_tasks=100, avg_rating=5.0, bayesian_score=0.95)
-        setup_agent(orchestrator, 2, "blaze", total_tasks=10, avg_rating=3.5, bayesian_score=0.6)
+        setup_agent(
+            orchestrator,
+            1,
+            "aurora",
+            total_tasks=100,
+            avg_rating=5.0,
+            bayesian_score=0.95,
+        )
+        setup_agent(
+            orchestrator, 2, "blaze", total_tasks=10, avg_rating=3.5, bayesian_score=0.6
+        )
         task = TaskRequest(
-            task_id="t1", title="Test",
+            task_id="t1",
+            title="Test",
             preferred_agent_ids=[2],
         )
         result = orchestrator.route_task(task)
@@ -196,17 +227,31 @@ class TestStrategies:
 
     def test_specialist_strategy(self, orchestrator):
         # Generalist: has tasks but no category-specific scores, very low stats
-        setup_agent(orchestrator, 1, "generalist", category_scores={},
-                    total_tasks=3, avg_rating=2.5, bayesian_score=0.2,
-                    successful_tasks=2, total_seals=1, positive_seals=0)
+        setup_agent(
+            orchestrator,
+            1,
+            "generalist",
+            category_scores={},
+            total_tasks=3,
+            avg_rating=2.5,
+            bayesian_score=0.2,
+            successful_tasks=2,
+            total_seals=1,
+            positive_seals=0,
+        )
         # Specialist: strong in photo_verification
         setup_agent(
-            orchestrator, 2, "specialist",
+            orchestrator,
+            2,
+            "specialist",
             category_scores={"photo_verification": 0.95},
-            total_tasks=80, avg_rating=4.8, bayesian_score=0.9,
+            total_tasks=80,
+            avg_rating=4.8,
+            bayesian_score=0.9,
         )
         task = TaskRequest(
-            task_id="t1", title="Photo task",
+            task_id="t1",
+            title="Photo task",
             categories=["photo_verification"],
         )
         result = orchestrator.route_task(task, strategy=RoutingStrategy.SPECIALIST)
@@ -215,11 +260,21 @@ class TestStrategies:
 
     def test_specialist_no_match(self, orchestrator):
         # Agent with no category scores AND very low general experience
-        setup_agent(orchestrator, 1, "generalist", category_scores={},
-                    total_tasks=1, avg_rating=2.0, bayesian_score=0.1,
-                    successful_tasks=0, total_seals=0, positive_seals=0)
+        setup_agent(
+            orchestrator,
+            1,
+            "generalist",
+            category_scores={},
+            total_tasks=1,
+            avg_rating=2.0,
+            bayesian_score=0.1,
+            successful_tasks=0,
+            total_seals=0,
+            positive_seals=0,
+        )
         task = TaskRequest(
-            task_id="t1", title="Niche task",
+            task_id="t1",
+            title="Niche task",
             categories=["super_specific_niche"],
         )
         result = orchestrator.route_task(task, strategy=RoutingStrategy.SPECIALIST)
@@ -230,14 +285,28 @@ class TestStrategies:
     def test_budget_aware_strategy(self, orchestrator):
         # Agent 1: low budget remaining, low reputation
         budget1 = BudgetConfig(daily_limit_usd=5.0)
-        setup_agent(orchestrator, 1, "expensive", budget_config=budget1,
-                    total_tasks=10, avg_rating=3.5, bayesian_score=0.5)
+        setup_agent(
+            orchestrator,
+            1,
+            "expensive",
+            budget_config=budget1,
+            total_tasks=10,
+            avg_rating=3.5,
+            bayesian_score=0.5,
+        )
         orchestrator.lifecycle.record_spend(1, 4.0)  # 80% used
 
         # Agent 2: plenty of budget, same reputation
         budget2 = BudgetConfig(daily_limit_usd=5.0)
-        setup_agent(orchestrator, 2, "fresh", budget_config=budget2,
-                    total_tasks=10, avg_rating=3.5, bayesian_score=0.5)
+        setup_agent(
+            orchestrator,
+            2,
+            "fresh",
+            budget_config=budget2,
+            total_tasks=10,
+            avg_rating=3.5,
+            bayesian_score=0.5,
+        )
         orchestrator.lifecycle.record_spend(2, 0.5)  # 10% used
 
         task = TaskRequest(task_id="t1", title="Test")
@@ -280,17 +349,26 @@ class TestTaskCompletion:
 class TestCategoryRouting:
     def test_photo_specialist_wins(self, orchestrator):
         setup_agent(
-            orchestrator, 1, "photo_pro",
+            orchestrator,
+            1,
+            "photo_pro",
             category_scores={"photo_verification": 0.95, "delivery": 0.7},
-            total_tasks=80, avg_rating=4.8, bayesian_score=0.9,
+            total_tasks=80,
+            avg_rating=4.8,
+            bayesian_score=0.9,
         )
         setup_agent(
-            orchestrator, 2, "delivery_pro",
+            orchestrator,
+            2,
+            "delivery_pro",
             category_scores={"delivery": 0.95, "photo_verification": 0.3},
-            total_tasks=80, avg_rating=4.8, bayesian_score=0.9,
+            total_tasks=80,
+            avg_rating=4.8,
+            bayesian_score=0.9,
         )
         task = TaskRequest(
-            task_id="t1", title="Photo check",
+            task_id="t1",
+            title="Photo check",
             categories=["photo_verification"],
         )
         result = orchestrator.route_task(task)
@@ -352,7 +430,9 @@ class TestEdgeCases:
         """Stress test with many agents — best agent gets the task."""
         for i in range(20):
             setup_agent(
-                orchestrator, i, f"agent_{i}",
+                orchestrator,
+                i,
+                f"agent_{i}",
                 total_tasks=2 + i * 5,
                 successful_tasks=1 + i * 4,
                 avg_rating=1.5 + (i * 0.15),

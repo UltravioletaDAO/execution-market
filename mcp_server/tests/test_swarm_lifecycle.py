@@ -1,14 +1,12 @@
 """Tests for SwarmOrchestrator LifecycleManager."""
+
 import pytest
 from datetime import datetime, timezone, timedelta
 
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
     AgentState,
-    AgentRecord,
     BudgetConfig,
-    BudgetState,
-    HealthStatus,
     LifecycleError,
     BudgetExceededError,
     VALID_TRANSITIONS,
@@ -54,7 +52,10 @@ class TestRegistration:
     def test_custom_budget(self, manager):
         budget = BudgetConfig(daily_limit_usd=10.0, monthly_limit_usd=200.0)
         agent = manager.register_agent(
-            2, "blaze", "0xdef", budget_config=budget,
+            2,
+            "blaze",
+            "0xdef",
+            budget_config=budget,
         )
         assert agent.budget_config.daily_limit_usd == 10.0
         assert agent.budget_config.monthly_limit_usd == 200.0
@@ -159,7 +160,9 @@ class TestCooldown:
         manager.complete_task(1, cooldown_seconds=0)  # Immediate
 
         # Manually set cooldown to the past
-        manager._agents[1].cooldown_until = datetime.now(timezone.utc) - timedelta(seconds=1)
+        manager._agents[1].cooldown_until = datetime.now(timezone.utc) - timedelta(
+            seconds=1
+        )
         assert manager.check_cooldown_expiry(1)
         assert manager.agents[1].state == AgentState.IDLE
 
@@ -185,9 +188,9 @@ class TestHealthMonitoring:
         manager.transition(1, AgentState.IDLE)
 
         # Simulate: set last heartbeat to way in the past
-        manager._agents[1].health.last_heartbeat = (
-            datetime.now(timezone.utc) - timedelta(hours=1)
-        )
+        manager._agents[1].health.last_heartbeat = datetime.now(
+            timezone.utc
+        ) - timedelta(hours=1)
 
         # Check repeatedly to exceed threshold
         for _ in range(4):
@@ -284,7 +287,9 @@ class TestAvailableAgents:
         manager.transition(1, AgentState.ACTIVE)
         manager.assign_task(1, "task-1")
         manager.complete_task(1, cooldown_seconds=0)
-        manager._agents[1].cooldown_until = datetime.now(timezone.utc) - timedelta(seconds=1)
+        manager._agents[1].cooldown_until = datetime.now(timezone.utc) - timedelta(
+            seconds=1
+        )
         available = manager.get_available_agents()
         assert len(available) == 1
 

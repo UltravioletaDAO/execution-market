@@ -6,11 +6,11 @@ with and without an active coordinator.
 """
 
 import pytest
-import asyncio
 from unittest.mock import MagicMock, patch
 
 
 # ─── Helper to register tools and capture them ───────────────────────────────
+
 
 class MockMCP:
     """Minimal mock that captures tool registrations."""
@@ -20,9 +20,11 @@ class MockMCP:
 
     def tool(self):
         """Decorator that captures the async function."""
+
         def decorator(fn):
             self._tools[fn.__name__] = fn
             return fn
+
         return decorator
 
     def get_tool(self, name):
@@ -43,6 +45,7 @@ class TestSwarmMCPToolsDisabled:
     @pytest.fixture(autouse=True)
     def setup(self):
         from swarm.mcp_tools import register_swarm_tools
+
         self.mcp = MockMCP()
         register_swarm_tools(self.mcp, coordinator=None)
 
@@ -101,7 +104,9 @@ class TestSwarmMCPToolsActive:
         self.mock_coord = MagicMock()
         self.mcp = MockMCP()
 
-        with patch.dict("os.environ", {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}):
+        with patch.dict(
+            "os.environ", {"SWARM_ENABLED": "true", "SWARM_MODE": "semi-auto"}
+        ):
             register_swarm_tools(self.mcp, coordinator=self.mock_coord)
 
     @pytest.mark.asyncio
@@ -160,8 +165,11 @@ class TestSwarmMCPToolsActive:
     async def test_poll_passive_skips_routing(self):
         """In passive mode, poll ingests but doesn't route."""
         mcp = MockMCP()
-        with patch.dict("os.environ", {"SWARM_ENABLED": "true", "SWARM_MODE": "passive"}):
+        with patch.dict(
+            "os.environ", {"SWARM_ENABLED": "true", "SWARM_MODE": "passive"}
+        ):
             from swarm.mcp_tools import register_swarm_tools
+
             register_swarm_tools(mcp, coordinator=self.mock_coord)
 
         self.mock_coord.ingest_from_api.return_value = 5

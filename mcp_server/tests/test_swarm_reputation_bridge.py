@@ -1,4 +1,5 @@
 """Tests for SwarmOrchestrator ReputationBridge."""
+
 import pytest
 from datetime import datetime, timezone, timedelta
 
@@ -8,7 +9,6 @@ from mcp_server.swarm.reputation_bridge import (
     InternalReputation,
     CompositeScore,
     ReputationTier,
-    TIER_BONUSES,
 )
 
 
@@ -87,7 +87,17 @@ class TestOnChainReputation:
         rep = OnChainReputation(
             agent_id=3,
             wallet_address="0x123",
-            chains_active=["base", "eth", "poly", "arb", "avax", "sol", "celo", "opt", "extra"],
+            chains_active=[
+                "base",
+                "eth",
+                "poly",
+                "arb",
+                "avax",
+                "sol",
+                "celo",
+                "opt",
+                "extra",
+            ],
         )
         assert rep.chain_diversity == 1.0  # Capped at 1.0
 
@@ -119,7 +129,9 @@ class TestTierDetermination:
 
     def test_oro_tier(self, bridge):
         rep = InternalReputation(
-            agent_id=3, total_tasks=60, successful_tasks=55,
+            agent_id=3,
+            total_tasks=60,
+            successful_tasks=55,
             avg_rating=4.6,
         )
         tier = bridge._determine_tier(rep)
@@ -127,7 +139,9 @@ class TestTierDetermination:
 
     def test_plata_tier(self, bridge):
         rep = InternalReputation(
-            agent_id=4, total_tasks=25, successful_tasks=22,
+            agent_id=4,
+            total_tasks=25,
+            successful_tasks=22,
             avg_rating=4.1,
         )
         tier = bridge._determine_tier(rep)
@@ -135,7 +149,9 @@ class TestTierDetermination:
 
     def test_bronce_tier(self, bridge):
         rep = InternalReputation(
-            agent_id=5, total_tasks=8, successful_tasks=6,
+            agent_id=5,
+            total_tasks=8,
+            successful_tasks=6,
             avg_rating=3.5,
         )
         tier = bridge._determine_tier(rep)
@@ -148,7 +164,9 @@ class TestTierDetermination:
     def test_nuevo_high_rating_low_tasks(self, bridge):
         """Perfect rating but not enough tasks → still NUEVO."""
         rep = InternalReputation(
-            agent_id=6, total_tasks=4, successful_tasks=4,
+            agent_id=6,
+            total_tasks=4,
+            successful_tasks=4,
             avg_rating=5.0,
         )
         tier = bridge._determine_tier(rep)
@@ -166,9 +184,7 @@ class TestCompositeScore:
             tier=ReputationTier.ORO,
             tier_bonus=10,
         )
-        expected = (
-            80 * 0.45 + 90 * 0.25 + 85 * 0.20 + 100 * 0.10 + 10
-        )
+        expected = 80 * 0.45 + 90 * 0.25 + 85 * 0.20 + 100 * 0.10 + 10
         assert abs(score.total - expected) < 0.001
 
     def test_total_with_tier_bonus(self):
@@ -188,16 +204,20 @@ class TestCompositeScore:
         score = CompositeScore(agent_id=1)
         d = score.to_dict()
         assert set(d.keys()) == {
-            "agent_id", "total", "skill", "reputation",
-            "reliability", "recency", "tier", "tier_bonus",
+            "agent_id",
+            "total",
+            "skill",
+            "reputation",
+            "reliability",
+            "recency",
+            "tier",
+            "tier_bonus",
         }
 
 
 class TestSkillScore:
     def test_category_match(self, bridge, veteran_internal):
-        score = bridge._compute_skill_score(
-            veteran_internal, ["photo_verification"]
-        )
+        score = bridge._compute_skill_score(veteran_internal, ["photo_verification"])
         # Should be high: 0.95 * 70 + (1/1) * 30 = 66.5 + 30 = 96.5
         assert score > 90
 
@@ -209,9 +229,7 @@ class TestSkillScore:
         assert 75 < score < 90
 
     def test_no_category_match(self, bridge, veteran_internal):
-        score = bridge._compute_skill_score(
-            veteran_internal, ["totally_new_category"]
-        )
+        score = bridge._compute_skill_score(veteran_internal, ["totally_new_category"])
         # No matches, fallback to general experience
         assert score <= 30
 
@@ -238,8 +256,11 @@ class TestReputationScore:
 
     def test_bad_reputation(self, bridge):
         on_chain = OnChainReputation(
-            agent_id=99, wallet_address="0xbad",
-            total_seals=50, positive_seals=10, negative_seals=40,
+            agent_id=99,
+            wallet_address="0xbad",
+            total_seals=50,
+            positive_seals=10,
+            negative_seals=40,
         )
         internal = InternalReputation(agent_id=99, bayesian_score=0.15)
         score = bridge._compute_reputation_score(on_chain, internal)
@@ -258,7 +279,9 @@ class TestReliabilityScore:
         assert score < 80
         # But lower than a veteran
         veteran = InternalReputation(
-            agent_id=99, total_tasks=150, successful_tasks=145,
+            agent_id=99,
+            total_tasks=150,
+            successful_tasks=145,
             avg_rating=4.9,
         )
         assert score < bridge._compute_reliability_score(veteran)
@@ -270,8 +293,11 @@ class TestReliabilityScore:
 
     def test_consecutive_failures_penalty(self, bridge):
         rep = InternalReputation(
-            agent_id=0, total_tasks=50, successful_tasks=45,
-            avg_rating=4.0, consecutive_failures=4,
+            agent_id=0,
+            total_tasks=50,
+            successful_tasks=45,
+            avg_rating=4.0,
+            consecutive_failures=4,
         )
         score_with = bridge._compute_reliability_score(rep)
         rep.consecutive_failures = 0
@@ -314,9 +340,7 @@ class TestRecencyScore:
 
     def test_naive_datetime(self, bridge):
         """Naive datetimes should be treated as UTC."""
-        score = bridge._compute_recency_score(
-            datetime.now() - timedelta(hours=1)
-        )
+        score = bridge._compute_recency_score(datetime.now() - timedelta(hours=1))
         assert score > 90
 
 
@@ -325,7 +349,8 @@ class TestCompositeComputation:
         self, bridge, veteran_on_chain, veteran_internal
     ):
         score = bridge.compute_composite(
-            veteran_on_chain, veteran_internal,
+            veteran_on_chain,
+            veteran_internal,
             task_categories=["photo_verification"],
             last_active=datetime.now(timezone.utc),
         )
@@ -334,15 +359,21 @@ class TestCompositeComputation:
         assert score.tier_bonus == 15
 
     def test_newbie_gets_lower_composite(
-        self, bridge, newbie_on_chain, newbie_internal,
-        veteran_on_chain, veteran_internal,
+        self,
+        bridge,
+        newbie_on_chain,
+        newbie_internal,
+        veteran_on_chain,
+        veteran_internal,
     ):
         newbie_score = bridge.compute_composite(
-            newbie_on_chain, newbie_internal,
+            newbie_on_chain,
+            newbie_internal,
             task_categories=["photo_verification"],
         )
         veteran_score = bridge.compute_composite(
-            veteran_on_chain, veteran_internal,
+            veteran_on_chain,
+            veteran_internal,
             task_categories=["photo_verification"],
             last_active=datetime.now(timezone.utc),
         )
@@ -353,11 +384,15 @@ class TestCompositeComputation:
 
 class TestRankAgents:
     def test_rank_ordering(
-        self, bridge, veteran_on_chain, veteran_internal,
-        newbie_on_chain, newbie_internal,
+        self,
+        bridge,
+        veteran_on_chain,
+        veteran_internal,
+        newbie_on_chain,
+        newbie_internal,
     ):
         agents = [
-            (newbie_on_chain, newbie_internal),    # Worse
+            (newbie_on_chain, newbie_internal),  # Worse
             (veteran_on_chain, veteran_internal),  # Better
         ]
         ranked = bridge.rank_agents(
