@@ -6,11 +6,8 @@ through the standard EM REST API.
 """
 
 import pytest
-import json
-import time
 import sys
-from unittest.mock import patch, MagicMock, AsyncMock
-from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 # Stub out supabase_client before any api imports to avoid the
 # "SUPABASE_URL required" RuntimeError.  The swarm API module
@@ -23,13 +20,10 @@ if "supabase_client" not in sys.modules:
 
 from api.swarm import (
     router,
-    get_coordinator,
-    require_coordinator,
     SwarmConfigUpdate,
     BudgetUpdate,
     AgentActivation,
     PollResult,
-    SWARM_ENABLED,
 )
 
 
@@ -61,7 +55,9 @@ class TestSwarmConfigUpdate:
         assert config.daily_budget is None
 
     def test_budget_non_negative(self):
-        with pytest.raises(Exception):  # ValidationError
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
             SwarmConfigUpdate(daily_budget=-5.0)
 
 
@@ -140,6 +136,7 @@ class TestCoordinatorInit:
     def test_get_coordinator_disabled(self):
         """When SWARM_ENABLED is false, coordinator is None."""
         import api.swarm as swarm_module
+
         # Reset state
         swarm_module._coordinator = None
         swarm_module._coordinator_initialized = False
@@ -152,6 +149,7 @@ class TestCoordinatorInit:
     def test_get_coordinator_cached(self):
         """Second call returns cached result."""
         import api.swarm as swarm_module
+
         swarm_module._coordinator = "cached"
         swarm_module._coordinator_initialized = True
 
@@ -161,10 +159,12 @@ class TestCoordinatorInit:
     def test_require_coordinator_raises(self):
         """require_coordinator raises 503 when disabled."""
         import api.swarm as swarm_module
+
         swarm_module._coordinator = None
         swarm_module._coordinator_initialized = True
 
         from fastapi import HTTPException
+
         with pytest.raises(HTTPException) as exc_info:
             swarm_module.require_coordinator()
         assert exc_info.value.status_code == 503
@@ -193,6 +193,7 @@ class TestStatusEndpoint:
     def test_status_disabled(self):
         """Status returns even when swarm is disabled."""
         import api.swarm as swarm_module
+
         swarm_module._coordinator = None
         swarm_module._coordinator_initialized = True
         swarm_module.SWARM_ENABLED = False
@@ -206,6 +207,7 @@ class TestStatusEndpoint:
     def test_status_with_coordinator(self):
         """Status returns dashboard data when coordinator is active."""
         import api.swarm as swarm_module
+
         mock_coord = MagicMock()
         mock_coord.get_dashboard.return_value = {
             "agents": {"registered": 24, "active": 18},
@@ -229,6 +231,7 @@ class TestHealthEndpoint:
 
     def test_health_disabled(self):
         import api.swarm as swarm_module
+
         swarm_module._coordinator = None
         swarm_module._coordinator_initialized = True
 
@@ -239,6 +242,7 @@ class TestHealthEndpoint:
 
     def test_health_all_green(self):
         import api.swarm as swarm_module
+
         mock_coord = MagicMock()
         mock_coord.run_health_checks.return_value = {
             "timestamp": "2026-03-12T04:00:00Z",
@@ -258,6 +262,7 @@ class TestHealthEndpoint:
 
     def test_health_degraded(self):
         import api.swarm as swarm_module
+
         mock_coord = MagicMock()
         mock_coord.run_health_checks.return_value = {
             "timestamp": "2026-03-12T04:00:00Z",
@@ -281,6 +286,7 @@ class TestAgentsEndpoints:
 
     def test_list_agents(self):
         import api.swarm as swarm_module
+
         mock_coord = MagicMock()
         mock_coord.get_dashboard.return_value = {
             "fleet": [
@@ -301,6 +307,7 @@ class TestAgentsEndpoints:
 
     def test_list_agents_filter_state(self):
         import api.swarm as swarm_module
+
         mock_coord = MagicMock()
         mock_coord.get_dashboard.return_value = {
             "fleet": [
@@ -320,6 +327,7 @@ class TestAgentsEndpoints:
 
     def test_agents_coordinator_required(self):
         import api.swarm as swarm_module
+
         swarm_module._coordinator = None
         swarm_module._coordinator_initialized = True
 
@@ -333,6 +341,7 @@ class TestDashboardEndpoint:
 
     def test_dashboard(self):
         import api.swarm as swarm_module
+
         mock_coord = MagicMock()
         mock_coord.get_dashboard.return_value = {
             "agents": {"registered": 24, "active": 18},
@@ -358,6 +367,7 @@ class TestMetricsEndpoint:
 
     def test_metrics_disabled(self):
         import api.swarm as swarm_module
+
         swarm_module._coordinator = None
         swarm_module._coordinator_initialized = True
 
@@ -368,6 +378,7 @@ class TestMetricsEndpoint:
 
     def test_metrics_with_data(self):
         import api.swarm as swarm_module
+
         mock_coord = MagicMock()
         mock_metrics = MagicMock()
         mock_metrics.agents_registered = 24
@@ -402,6 +413,7 @@ class TestEventsEndpoint:
 
     def test_list_events(self):
         import api.swarm as swarm_module
+
         mock_coord = MagicMock()
         mock_coord.get_events.return_value = [
             {"type": "TASK_ASSIGNED", "agent_id": "agent_1", "task_id": "t1"},
@@ -419,6 +431,7 @@ class TestEventsEndpoint:
 
     def test_events_filter_type(self):
         import api.swarm as swarm_module
+
         mock_coord = MagicMock()
         mock_coord.get_events.return_value = [
             {"type": "TASK_ASSIGNED", "agent_id": "agent_1"},
@@ -441,6 +454,7 @@ class TestConfigEndpoint:
     def _admin_client(self):
         """Create a test client with auth dependency overridden."""
         from api.swarm import require_admin
+
         app_with_auth = FastAPI()
         app_with_auth.include_router(router)
         app_with_auth.dependency_overrides[require_admin] = lambda: MagicMock()
@@ -448,6 +462,7 @@ class TestConfigEndpoint:
 
     def test_update_mode(self):
         import api.swarm as swarm_module
+
         swarm_module.SWARM_MODE = "passive"
 
         admin_client = self._admin_client()
@@ -461,7 +476,6 @@ class TestConfigEndpoint:
         assert data["current_config"]["mode"] == "semi-auto"
 
     def test_update_budget(self):
-        import api.swarm as swarm_module
 
         admin_client = self._admin_client()
         response = admin_client.post(
@@ -482,7 +496,61 @@ class TestConfigEndpoint:
         assert response.status_code == 400
 
 
+# ─── Auth Tests ──────────────────────────────────────────────────────────────
+
+
+@pytest.mark.skipif(not HAS_TESTCLIENT, reason="fastapi/httpx not available")
+class TestSwarmAuth:
+    """Test that swarm endpoints enforce authentication correctly."""
+
+    def test_get_status_without_api_key_returns_401(self):
+        """GET /status without API key should return 401."""
+        response = client.get("/api/v1/swarm/status")
+        assert response.status_code == 401
+
+    def test_get_agents_without_api_key_returns_401(self):
+        """GET /agents without API key should return 401."""
+        import api.swarm as swarm_module
+
+        mock_coord = MagicMock()
+        swarm_module._coordinator = mock_coord
+        swarm_module._coordinator_initialized = True
+        swarm_module.SWARM_ENABLED = True
+
+        response = client.get("/api/v1/swarm/agents")
+        assert response.status_code == 401
+
+    def test_post_config_without_admin_key_returns_401(self):
+        """POST /config without admin key should return 401 or 503."""
+        import api.swarm as swarm_module
+
+        mock_coord = MagicMock()
+        swarm_module._coordinator = mock_coord
+        swarm_module._coordinator_initialized = True
+        swarm_module.SWARM_ENABLED = True
+
+        response = client.post(
+            "/api/v1/swarm/config",
+            json={"mode": "passive"},
+        )
+        # 401 if no key provided, 503 if EM_ADMIN_KEY not configured
+        assert response.status_code in (401, 503)
+
+    def test_post_poll_without_admin_key_returns_401(self):
+        """POST /poll without admin key should return 401 or 503."""
+        import api.swarm as swarm_module
+
+        mock_coord = MagicMock()
+        swarm_module._coordinator = mock_coord
+        swarm_module._coordinator_initialized = True
+        swarm_module.SWARM_ENABLED = True
+
+        response = client.post("/api/v1/swarm/poll")
+        assert response.status_code in (401, 503)
+
+
 # ─── Router Registration Test ────────────────────────────────────────────────
+
 
 class TestRouterRegistration:
     """Verify the router has all expected routes."""
