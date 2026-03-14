@@ -22,7 +22,7 @@ from .coordinator import SwarmCoordinator, EMApiClient
 from .event_listener import EventListener
 from .evidence_parser import EvidenceParser, SkillDNA, WorkerRegistry
 from .heartbeat_handler import SwarmHeartbeatHandler, HeartbeatReport
-from .bootstrap import SwarmBootstrap, BootstrapResult
+from .bootstrap import SwarmBootstrap, BootstrapResult, DEFAULT_AGENTS
 from .mcp_tools import register_swarm_tools
 
 __all__ = [
@@ -42,5 +42,6 @@ __all__ = [
     "HeartbeatReport",
     "SwarmBootstrap",
     "BootstrapResult",
+    "DEFAULT_AGENTS",
     "register_swarm_tools",
 ]

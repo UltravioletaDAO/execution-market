@@ -13,7 +13,7 @@ Usage:
 
     bootstrap = SwarmBootstrap()
     coordinator = bootstrap.create_coordinator()  # Full pipeline
-    
+
     # Or step by step:
     bootstrap.fetch_agents()          # Get ERC-8004 agents
     bootstrap.fetch_history()         # Get completed tasks
@@ -24,8 +24,9 @@ Usage:
 import json
 import logging
 import os
+import tempfile
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -34,9 +35,8 @@ from .reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
-    ReputationTier,
 )
-from .lifecycle_manager import LifecycleManager, BudgetConfig
+from .lifecycle_manager import LifecycleManager
 from .orchestrator import SwarmOrchestrator, RoutingStrategy
 from .autojob_client import AutoJobClient, EnrichedOrchestrator
 
@@ -45,58 +45,158 @@ logger = logging.getLogger("em.swarm.bootstrap")
 
 # ─── Agent Registry ──────────────────────────────────────────────────────────
 
-# Known ERC-8004 agents registered on Base (agent IDs 2101-2124)
-# These were registered during the KK V2 Swarm buildout.
-KNOWN_AGENTS = [
-    {"agent_id": 2101, "name": "Aurora", "personality": "explorer",
-     "tags": ["general", "verification", "photo"]},
-    {"agent_id": 2102, "name": "Nova", "personality": "strategist",
-     "tags": ["coding", "technical", "blockchain"]},
-    {"agent_id": 2103, "name": "Pulse", "personality": "executor",
-     "tags": ["delivery", "physical", "logistics"]},
-    {"agent_id": 2104, "name": "Zenith", "personality": "analyst",
-     "tags": ["research", "analysis", "data"]},
-    {"agent_id": 2105, "name": "Cascade", "personality": "specialist",
-     "tags": ["blockchain", "defi", "crypto"]},
-    {"agent_id": 2106, "name": "UltraVioleta", "personality": "orchestrator",
-     "tags": ["general", "simple_action", "multichain"]},
-    {"agent_id": 2107, "name": "Drift", "personality": "explorer",
-     "tags": ["creative", "design", "content"]},
-    {"agent_id": 2108, "name": "Ember", "personality": "executor",
-     "tags": ["verification", "geo", "physical"]},
-    {"agent_id": 2109, "name": "Flux", "personality": "strategist",
-     "tags": ["coding", "technical", "api"]},
-    {"agent_id": 2110, "name": "Haze", "personality": "analyst",
-     "tags": ["research", "data", "analysis"]},
-    {"agent_id": 2111, "name": "Ion", "personality": "specialist",
-     "tags": ["blockchain", "smart_contracts", "audit"]},
-    {"agent_id": 2112, "name": "Jade", "personality": "executor",
-     "tags": ["delivery", "logistics", "physical"]},
-    {"agent_id": 2113, "name": "Kite", "personality": "explorer",
-     "tags": ["creative", "writing", "content"]},
-    {"agent_id": 2114, "name": "Luma", "personality": "analyst",
-     "tags": ["verification", "photo", "quality"]},
-    {"agent_id": 2115, "name": "Mist", "personality": "executor",
-     "tags": ["general", "simple_action", "support"]},
-    {"agent_id": 2116, "name": "Neon", "personality": "specialist",
-     "tags": ["coding", "frontend", "ui"]},
-    {"agent_id": 2117, "name": "Opal", "personality": "strategist",
-     "tags": ["research", "market", "competitive"]},
-    {"agent_id": 2118, "name": "Prism", "personality": "explorer",
-     "tags": ["blockchain", "defi", "yield"]},
-    {"agent_id": 2119, "name": "Quasar", "personality": "executor",
-     "tags": ["verification", "document", "notarization"]},
-    {"agent_id": 2120, "name": "Reed", "personality": "analyst",
-     "tags": ["data", "metrics", "reporting"]},
-    {"agent_id": 2121, "name": "Storm", "personality": "specialist",
-     "tags": ["coding", "backend", "infrastructure"]},
-    {"agent_id": 2122, "name": "Tidal", "personality": "executor",
-     "tags": ["delivery", "errand", "physical"]},
-    {"agent_id": 2123, "name": "Umbra", "personality": "strategist",
-     "tags": ["creative", "design", "branding"]},
-    {"agent_id": 2124, "name": "Vortex", "personality": "explorer",
-     "tags": ["general", "multichain", "coordination"]},
+# Default agent registry for development/testing.
+# In production, agents should be loaded from the ERC-8004 registry
+# via the Facilitator API or from Supabase executors table.
+DEFAULT_AGENTS = [
+    {
+        "agent_id": 2101,
+        "name": "Aurora",
+        "personality": "explorer",
+        "tags": ["general", "verification", "photo"],
+    },
+    {
+        "agent_id": 2102,
+        "name": "Nova",
+        "personality": "strategist",
+        "tags": ["coding", "technical", "blockchain"],
+    },
+    {
+        "agent_id": 2103,
+        "name": "Pulse",
+        "personality": "executor",
+        "tags": ["delivery", "physical", "logistics"],
+    },
+    {
+        "agent_id": 2104,
+        "name": "Zenith",
+        "personality": "analyst",
+        "tags": ["research", "analysis", "data"],
+    },
+    {
+        "agent_id": 2105,
+        "name": "Cascade",
+        "personality": "specialist",
+        "tags": ["blockchain", "defi", "crypto"],
+    },
+    {
+        "agent_id": 2106,
+        "name": "UltraVioleta",
+        "personality": "orchestrator",
+        "tags": ["general", "simple_action", "multichain"],
+    },
+    {
+        "agent_id": 2107,
+        "name": "Drift",
+        "personality": "explorer",
+        "tags": ["creative", "design", "content"],
+    },
+    {
+        "agent_id": 2108,
+        "name": "Ember",
+        "personality": "executor",
+        "tags": ["verification", "geo", "physical"],
+    },
+    {
+        "agent_id": 2109,
+        "name": "Flux",
+        "personality": "strategist",
+        "tags": ["coding", "technical", "api"],
+    },
+    {
+        "agent_id": 2110,
+        "name": "Haze",
+        "personality": "analyst",
+        "tags": ["research", "data", "analysis"],
+    },
+    {
+        "agent_id": 2111,
+        "name": "Ion",
+        "personality": "specialist",
+        "tags": ["blockchain", "smart_contracts", "audit"],
+    },
+    {
+        "agent_id": 2112,
+        "name": "Jade",
+        "personality": "executor",
+        "tags": ["delivery", "logistics", "physical"],
+    },
+    {
+        "agent_id": 2113,
+        "name": "Kite",
+        "personality": "explorer",
+        "tags": ["creative", "writing", "content"],
+    },
+    {
+        "agent_id": 2114,
+        "name": "Luma",
+        "personality": "analyst",
+        "tags": ["verification", "photo", "quality"],
+    },
+    {
+        "agent_id": 2115,
+        "name": "Mist",
+        "personality": "executor",
+        "tags": ["general", "simple_action", "support"],
+    },
+    {
+        "agent_id": 2116,
+        "name": "Neon",
+        "personality": "specialist",
+        "tags": ["coding", "frontend", "ui"],
+    },
+    {
+        "agent_id": 2117,
+        "name": "Opal",
+        "personality": "strategist",
+        "tags": ["research", "market", "competitive"],
+    },
+    {
+        "agent_id": 2118,
+        "name": "Prism",
+        "personality": "explorer",
+        "tags": ["blockchain", "defi", "yield"],
+    },
+    {
+        "agent_id": 2119,
+        "name": "Quasar",
+        "personality": "executor",
+        "tags": ["verification", "document", "notarization"],
+    },
+    {
+        "agent_id": 2120,
+        "name": "Reed",
+        "personality": "analyst",
+        "tags": ["data", "metrics", "reporting"],
+    },
+    {
+        "agent_id": 2121,
+        "name": "Storm",
+        "personality": "specialist",
+        "tags": ["coding", "backend", "infrastructure"],
+    },
+    {
+        "agent_id": 2122,
+        "name": "Tidal",
+        "personality": "executor",
+        "tags": ["delivery", "errand", "physical"],
+    },
+    {
+        "agent_id": 2123,
+        "name": "Umbra",
+        "personality": "strategist",
+        "tags": ["creative", "design", "branding"],
+    },
+    {
+        "agent_id": 2124,
+        "name": "Vortex",
+        "personality": "explorer",
+        "tags": ["general", "multichain", "coordination"],
+    },
 ]
+
+# Backward-compat alias — tests import KNOWN_AGENTS
+KNOWN_AGENTS = DEFAULT_AGENTS
 
 # Common wallet pattern for test agents
 AGENT_WALLET_PREFIX = "0x"
@@ -105,6 +205,7 @@ AGENT_WALLET_PREFIX = "0x"
 @dataclass
 class BootstrapResult:
     """Result of the bootstrap process."""
+
     agents_registered: int
     tasks_ingested: int
     profiles_built: int
@@ -128,7 +229,7 @@ class BootstrapResult:
 class SwarmBootstrap:
     """
     Initializes the SwarmCoordinator from production data.
-    
+
     Handles the cold-start problem by:
     1. Loading known ERC-8004 agents
     2. Fetching historical task data
@@ -143,12 +244,16 @@ class SwarmBootstrap:
         autojob_url: str = "http://localhost:8765",
         profiles_path: Optional[str] = None,
         default_strategy: RoutingStrategy = RoutingStrategy.BEST_FIT,
+        agents: Optional[list[dict]] = None,
     ):
         self.em_api_url = em_api_url
         self.em_api_key = em_api_key
         self.autojob_url = autojob_url
-        self.profiles_path = profiles_path or os.path.expanduser("~/.em-production-profiles.json")
+        self.profiles_path = profiles_path or os.path.join(
+            tempfile.gettempdir(), "em-production-profiles.json"
+        )
         self.default_strategy = default_strategy
+        self._custom_agents = agents
 
         # Data stores
         self._agents: list[dict] = []
@@ -175,9 +280,9 @@ class SwarmBootstrap:
         start = time.monotonic()
         warnings = []
 
-        # Step 1: Load agent definitions
-        self._agents = list(KNOWN_AGENTS)
-        logger.info(f"Loaded {len(self._agents)} known agents")
+        # Step 1: Load agent definitions (custom override or defaults)
+        self._agents = list(self._custom_agents or DEFAULT_AGENTS)
+        logger.info(f"Loaded {len(self._agents)} agents")
 
         # Step 2: Load or fetch profiles
         if use_cached_profiles and os.path.exists(self.profiles_path):
@@ -242,11 +347,11 @@ class SwarmBootstrap:
     def _fetch_history(self) -> None:
         """Fetch completed tasks from live EM API."""
         client = EMApiClient(base_url=self.em_api_url, api_key=self.em_api_key)
-        
+
         all_tasks = []
         offset = 0
         limit = 50
-        
+
         while True:
             result = client._request(
                 "GET",
@@ -254,22 +359,22 @@ class SwarmBootstrap:
             )
             if isinstance(result, dict) and result.get("error"):
                 break
-            
+
             tasks = []
             if isinstance(result, list):
                 tasks = result
             elif isinstance(result, dict):
                 tasks = result.get("tasks", result.get("data", []))
-            
+
             if not tasks:
                 break
-                
+
             all_tasks.extend(tasks)
             offset += len(tasks)
-            
+
             if len(tasks) < limit:
                 break
-        
+
         self._completed_tasks = all_tasks
         logger.info(f"Fetched {len(all_tasks)} completed tasks from EM API")
 
@@ -300,14 +405,21 @@ class SwarmBootstrap:
                 "chains": dict(chains.most_common()),
                 "categories": dict(categories.most_common()),
                 "skill_dna": {
-                    "primary_category": categories.most_common(1)[0][0] if categories else "unknown",
-                    "primary_chain": chains.most_common(1)[0][0] if chains else "unknown",
+                    "primary_category": categories.most_common(1)[0][0]
+                    if categories
+                    else "unknown",
+                    "primary_chain": chains.most_common(1)[0][0]
+                    if chains
+                    else "unknown",
                     "multi_chain": len(chains) > 1,
                     "experience_level": (
-                        "expert" if len(tasks) >= 100 else
-                        "advanced" if len(tasks) >= 50 else
-                        "intermediate" if len(tasks) >= 20 else
-                        "beginner"
+                        "expert"
+                        if len(tasks) >= 100
+                        else "advanced"
+                        if len(tasks) >= 50
+                        else "intermediate"
+                        if len(tasks) >= 20
+                        else "beginner"
                     ),
                 },
             }
@@ -335,31 +447,7 @@ class SwarmBootstrap:
                 bayesian_score=0.5,
             )
 
-            # If this agent has profile data (e.g., agent 2106 is the main operator)
-            if agent_id == 2106 and self._profiles:
-                # Agent 2106 is the platform operator — has task history
-                total_tasks = len(self._completed_tasks)
-                internal.total_tasks = total_tasks
-                internal.successful_tasks = total_tasks  # All completed = all successful
-                internal.avg_rating = 5.0
-                internal.bayesian_score = 0.95
-                internal.avg_completion_time_hours = 1.0
-
-                # Set chain diversity from production data
-                chains = set()
-                for task in self._completed_tasks:
-                    chain = task.get("payment_network")
-                    if chain:
-                        chains.add(chain)
-                on_chain.chains_active = sorted(chains)
-                on_chain.total_seals = total_tasks
-                on_chain.positive_seals = total_tasks
-
-                # Category scores from production data
-                for profile in self._profiles.values():
-                    for cat, count in profile.get("categories", {}).items():
-                        score = min(100, count * 2)  # 2 points per task
-                        internal.category_scores[cat] = score
+            # Agent 2106 scored from real data when fetch_live=True
 
             # Give agents tagged with relevant skills some base category scores
             for tag in agent_def.get("tags", []):
