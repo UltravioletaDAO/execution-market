@@ -16,11 +16,9 @@ Task routing strategies:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
-import hashlib
-import time
 
 from .reputation_bridge import (
     ReputationBridge,
@@ -62,6 +60,7 @@ PRIORITY_WEIGHTS = {
 @dataclass
 class TaskRequest:
     """Incoming task to be routed to an agent."""
+
     task_id: str
     title: str
     categories: list[str] = field(default_factory=list)
@@ -82,6 +81,7 @@ class TaskRequest:
 @dataclass
 class Assignment:
     """Result of task routing."""
+
     task_id: str
     agent_id: int
     agent_name: str
@@ -105,6 +105,7 @@ class Assignment:
 @dataclass
 class RoutingFailure:
     """When no agent can handle a task."""
+
     task_id: str
     reason: str
     attempted_agents: int
@@ -209,10 +210,7 @@ class SwarmOrchestrator:
             return failure
 
         # Filter out excluded agents and apply preferences
-        candidates = [
-            a for a in available
-            if a.agent_id not in task.exclude_agent_ids
-        ]
+        candidates = [a for a in available if a.agent_id not in task.exclude_agent_ids]
 
         excluded_count = len(available) - len(candidates)
 
@@ -297,7 +295,9 @@ class SwarmOrchestrator:
             return None
 
         try:
-            self.lifecycle.complete_task(agent_id, cooldown_seconds=self.cooldown_seconds)
+            self.lifecycle.complete_task(
+                agent_id, cooldown_seconds=self.cooldown_seconds
+            )
         except LifecycleError:
             pass  # Agent might already be in different state
 
@@ -373,7 +373,8 @@ class SwarmOrchestrator:
 
         # Filter by minimum score
         qualified = [
-            (aid, score) for aid, score in scored
+            (aid, score)
+            for aid, score in scored
             if score.total >= self.min_score_threshold
         ]
 
@@ -383,7 +384,8 @@ class SwarmOrchestrator:
         # Apply preferences
         if task.preferred_agent_ids:
             preferred = [
-                (aid, score) for aid, score in qualified
+                (aid, score)
+                for aid, score in qualified
                 if aid in task.preferred_agent_ids
             ]
             if preferred:
@@ -401,7 +403,8 @@ class SwarmOrchestrator:
         elif strategy == RoutingStrategy.SPECIALIST:
             # Only agents with category-specific experience
             specialists = [
-                (aid, score) for aid, score in qualified
+                (aid, score)
+                for aid, score in qualified
                 if score.skill_score >= 50  # Must have real category experience
             ]
             return specialists[0] if specialists else None
@@ -452,21 +455,3 @@ class SwarmOrchestrator:
             }
             for f in self._failures[-limit:]
         ]
-
-    def check_agent_availability(self, agent_id: str) -> float:
-        """
-        Heuristic function to determine if an agent is truly available.
-        Checks active task load against their concurrency limit.
-        Returns a score from 0.0 (busy) to 1.0 (fully available).
-        """
-        agent = self.get_agent_profile(agent_id)
-        if not agent:
-            return 0.0
-            
-        current_load = agent.get('active_tasks', 0)
-        max_load = agent.get('max_concurrency', 5)
-        
-        if current_load >= max_load:
-            return 0.0
-            
-        return 1.0 - (current_load / max_load)
