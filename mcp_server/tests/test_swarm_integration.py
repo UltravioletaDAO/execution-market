@@ -6,30 +6,45 @@ Wires together REAL module instances to verify coordination works end-to-end.
 """
 
 import pytest
-from datetime import datetime, timezone
 
-from swarm.coordinator import SwarmCoordinator, CoordinatorEvent, QueuedTask, SwarmMetrics
-from swarm.lifecycle_manager import LifecycleManager, AgentState, AgentRecord, BudgetConfig, LifecycleError
-from swarm.orchestrator import SwarmOrchestrator, TaskRequest, TaskPriority, Assignment, RoutingFailure, RoutingStrategy
-from swarm.reputation_bridge import ReputationBridge, OnChainReputation, InternalReputation, CompositeScore, ReputationTier
-from swarm.evidence_parser import EvidenceParser, SkillDNA
-from swarm.event_listener import EventListener, ListenerState
-from swarm.heartbeat_handler import SwarmHeartbeatHandler, HeartbeatReport
+from swarm.coordinator import SwarmCoordinator, SwarmMetrics
+from swarm.lifecycle_manager import LifecycleManager, AgentState, LifecycleError
+from swarm.orchestrator import (
+    SwarmOrchestrator,
+    TaskRequest,
+    TaskPriority,
+    Assignment,
+    RoutingFailure,
+    RoutingStrategy,
+)
+from swarm.reputation_bridge import (
+    ReputationBridge,
+    OnChainReputation,
+    InternalReputation,
+    CompositeScore,
+    ReputationTier,
+)
+from swarm.evidence_parser import EvidenceParser, EvidenceQuality, QualityAssessment
+from swarm.event_listener import ListenerState
 
 
 # ─── Fixtures ────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def bridge():
     return ReputationBridge()
 
+
 @pytest.fixture
 def lifecycle():
     return LifecycleManager()
 
+
 @pytest.fixture
 def orchestrator(lifecycle, bridge):
     return SwarmOrchestrator(bridge=bridge, lifecycle=lifecycle)
+
 
 @pytest.fixture
 def coordinator(bridge, lifecycle, orchestrator):
@@ -41,12 +56,14 @@ def coordinator(bridge, lifecycle, orchestrator):
         autojob_client=None,
     )
 
+
 @pytest.fixture
 def evidence_parser():
     return EvidenceParser()
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────
+
 
 def seed_agents(coordinator, n=5):
     """Register N agents via coordinator (registers + activates + seeds rep)."""
@@ -79,7 +96,13 @@ def seed_agents(coordinator, n=5):
     return ids
 
 
-def make_task(task_id="task-001", title="Test task", categories=None, bounty=3.0, priority=TaskPriority.NORMAL):
+def make_task(
+    task_id="task-001",
+    title="Test task",
+    categories=None,
+    bounty=3.0,
+    priority=TaskPriority.NORMAL,
+):
     return TaskRequest(
         task_id=task_id,
         title=title,
@@ -90,6 +113,7 @@ def make_task(task_id="task-001", title="Test task", categories=None, bounty=3.0
 
 
 # ─── Pipeline Tests ─────────────────────────────────────────────────
+
 
 class TestFullPipeline:
     """End-to-end swarm coordination pipeline."""
@@ -110,19 +134,23 @@ class TestFullPipeline:
         agent_ids = seed_agents(coordinator, n=5)
 
         task = make_task(task_id="task-best", bounty=5.0, priority=TaskPriority.HIGH)
-        result = coordinator.orchestrator.route_task(task, strategy=RoutingStrategy.BEST_FIT)
+        result = coordinator.orchestrator.route_task(
+            task, strategy=RoutingStrategy.BEST_FIT
+        )
 
         assert isinstance(result, Assignment)
         assert result.agent_id in agent_ids
 
     def test_round_robin_distributes(self, coordinator):
         """Round-robin should spread tasks across agents."""
-        agent_ids = seed_agents(coordinator, n=3)
+        seed_agents(coordinator, n=3)
 
         assignments = {}
         for i in range(9):
             task = make_task(task_id=f"rr-{i}", bounty=1.0)
-            result = coordinator.orchestrator.route_task(task, strategy=RoutingStrategy.ROUND_ROBIN)
+            result = coordinator.orchestrator.route_task(
+                task, strategy=RoutingStrategy.ROUND_ROBIN
+            )
             if isinstance(result, Assignment):
                 assignments[result.agent_id] = assignments.get(result.agent_id, 0) + 1
 
@@ -183,13 +211,24 @@ class TestEvidencePipeline:
     """Evidence parsing and Skill DNA extraction."""
 
     def test_parse_photo_evidence(self, evidence_parser):
-        """Photo evidence should produce a QualityAssessment."""
-        evidence = [{"type": "photo", "quality_score": 0.9, "task_category": "photography"}]
+        """Photo evidence should produce a QualityAssessment with correct structure."""
+        evidence = [
+            {"type": "photo", "quality_score": 0.9, "task_category": "photography"}
+        ]
         result = evidence_parser.parse_evidence(evidence)
-        assert result is not None
+        assert isinstance(result, QualityAssessment)
+        assert result.quality in list(EvidenceQuality)
+        assert 0.0 <= result.score <= 1.0
+        assert result.evidence_count == 1
+        assert "photo" in result.evidence_types
+        assert len(result.signals) >= 1
+        # Photo evidence should produce physical_execution and thoroughness signals
+        signal_dimensions = [s.dimension.value for s in result.signals]
+        assert "physical_execution" in signal_dimensions
+        assert "thoroughness" in signal_dimensions
 
     def test_multiple_evidence_types(self, evidence_parser):
-        """Different evidence types should all parse."""
+        """Different evidence types should parse with diversity bonus and correct counts."""
         evidences = [
             {"type": "photo", "quality_score": 0.85},
             {"type": "photo_geo", "quality_score": 0.9, "lat": 25.7, "lon": -80.2},
@@ -197,12 +236,28 @@ class TestEvidencePipeline:
             {"type": "timestamp_proof", "delta_seconds": 120},
         ]
         result = evidence_parser.parse_evidence(evidences)
-        assert result is not None
+        assert isinstance(result, QualityAssessment)
+        assert result.evidence_count == 4
+        assert len(result.evidence_types) >= 3  # At least 3 unique types
+        assert result.details["unique_types"] >= 3
+        assert (
+            result.details["diversity_bonus"] > 0
+        )  # Multiple types earn diversity bonus
+        # Should have signals from multiple evidence types
+        signal_sources = set(s.source for s in result.signals)
+        assert "photo" in signal_sources
+        assert "photo_geo" in signal_sources
+        assert "text_response" in signal_sources
 
     def test_empty_evidence(self, evidence_parser):
-        """Empty evidence list should still return a valid result."""
+        """Empty evidence list should return POOR quality with zero score."""
         result = evidence_parser.parse_evidence([])
-        assert result is not None
+        assert isinstance(result, QualityAssessment)
+        assert result.quality == EvidenceQuality.POOR
+        assert result.score == 0.0
+        assert result.evidence_count == 0
+        assert result.evidence_types == []
+        assert "no_evidence_submitted" in result.flags
 
 
 class TestReputationIntegration:
@@ -211,13 +266,18 @@ class TestReputationIntegration:
     def test_composite_score(self, bridge):
         """CompositeScore should combine on-chain and internal data."""
         on_chain = OnChainReputation(
-            agent_id=1, wallet_address="0x" + "A" * 40,
-            total_seals=50, positive_seals=48,
+            agent_id=1,
+            wallet_address="0x" + "A" * 40,
+            total_seals=50,
+            positive_seals=48,
         )
         internal = InternalReputation(
-            agent_id=1, bayesian_score=0.92,
-            total_tasks=50, successful_tasks=48,
-            avg_rating=4.5, avg_completion_time_hours=1.5,
+            agent_id=1,
+            bayesian_score=0.92,
+            total_tasks=50,
+            successful_tasks=48,
+            avg_rating=4.5,
+            avg_completion_time_hours=1.5,
         )
 
         score = bridge.compute_composite(on_chain, internal)
@@ -229,22 +289,50 @@ class TestReputationIntegration:
         """Higher-rep agents should be preferred."""
         # Ace: excellent reputation
         coordinator.register_agent(
-            agent_id=100, name="Ace", wallet_address="0x" + "A" * 40,
-            on_chain=OnChainReputation(agent_id=100, wallet_address="0x" + "A" * 40, total_seals=100, positive_seals=99),
-            internal=InternalReputation(agent_id=100, bayesian_score=0.98, total_tasks=100, successful_tasks=99, avg_rating=4.9),
+            agent_id=100,
+            name="Ace",
+            wallet_address="0x" + "A" * 40,
+            on_chain=OnChainReputation(
+                agent_id=100,
+                wallet_address="0x" + "A" * 40,
+                total_seals=100,
+                positive_seals=99,
+            ),
+            internal=InternalReputation(
+                agent_id=100,
+                bayesian_score=0.98,
+                total_tasks=100,
+                successful_tasks=99,
+                avg_rating=4.9,
+            ),
             activate=True,
         )
         # Newbie: poor reputation
         coordinator.register_agent(
-            agent_id=200, name="Newbie", wallet_address="0x" + "B" * 40,
-            on_chain=OnChainReputation(agent_id=200, wallet_address="0x" + "B" * 40, total_seals=2, positive_seals=1),
-            internal=InternalReputation(agent_id=200, bayesian_score=0.30, total_tasks=2, successful_tasks=1, avg_rating=2.5),
+            agent_id=200,
+            name="Newbie",
+            wallet_address="0x" + "B" * 40,
+            on_chain=OnChainReputation(
+                agent_id=200,
+                wallet_address="0x" + "B" * 40,
+                total_seals=2,
+                positive_seals=1,
+            ),
+            internal=InternalReputation(
+                agent_id=200,
+                bayesian_score=0.30,
+                total_tasks=2,
+                successful_tasks=1,
+                avg_rating=2.5,
+            ),
             activate=True,
         )
 
         # Route first task with BEST_FIT — should pick the highest-scored agent
         task = make_task(task_id="rep-0")
-        result = coordinator.orchestrator.route_task(task, strategy=RoutingStrategy.BEST_FIT)
+        result = coordinator.orchestrator.route_task(
+            task, strategy=RoutingStrategy.BEST_FIT
+        )
         assert isinstance(result, Assignment)
         first_pick = result.agent_id
         assert first_pick in [100, 200]
@@ -252,13 +340,19 @@ class TestReputationIntegration:
         # After routing, the first agent transitions to WORKING (busy).
         # The second task goes to the remaining agent.
         task2 = make_task(task_id="rep-1")
-        result2 = coordinator.orchestrator.route_task(task2, strategy=RoutingStrategy.BEST_FIT)
+        result2 = coordinator.orchestrator.route_task(
+            task2, strategy=RoutingStrategy.BEST_FIT
+        )
         assert isinstance(result2, Assignment)
-        assert result2.agent_id != first_pick, "Second task should go to the other agent"
+        assert result2.agent_id != first_pick, (
+            "Second task should go to the other agent"
+        )
 
         # Both agents now working, third task should fail (no available)
         task3 = make_task(task_id="rep-2")
-        result3 = coordinator.orchestrator.route_task(task3, strategy=RoutingStrategy.BEST_FIT)
+        result3 = coordinator.orchestrator.route_task(
+            task3, strategy=RoutingStrategy.BEST_FIT
+        )
         assert isinstance(result3, RoutingFailure), "No agents free — should fail"
 
 
