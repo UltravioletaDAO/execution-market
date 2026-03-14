@@ -6,7 +6,7 @@ It runs a condensed coordination cycle: poll → route → health → report.
 
 Usage (from HEARTBEAT.md or heartbeat script):
     from swarm.heartbeat_handler import SwarmHeartbeatHandler
-    
+
     handler = SwarmHeartbeatHandler(em_api_url="https://api.execution.market")
     report = handler.run_cycle()
     # Returns a summary string suitable for Telegram notification
@@ -20,13 +20,11 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
+from datetime import datetime, timezone
 from typing import Optional
 
-from .coordinator import SwarmCoordinator, CoordinatorEvent
+from .coordinator import SwarmCoordinator
 from .event_listener import EventListener
-from .evidence_parser import EvidenceParser, WorkerRegistry
 
 logger = logging.getLogger("em.swarm.heartbeat")
 
@@ -34,6 +32,7 @@ logger = logging.getLogger("em.swarm.heartbeat")
 @dataclass
 class HeartbeatReport:
     """Summary of one heartbeat coordination cycle."""
+
     timestamp: str = ""
     duration_ms: float = 0
     new_tasks: int = 0
@@ -50,30 +49,38 @@ class HeartbeatReport:
 
     def to_summary(self) -> str:
         """Generate a concise Telegram-friendly summary."""
-        status = "🟢" if self.em_api_healthy and not self.errors else "🟡" if self.em_api_healthy else "🔴"
-        
+        status = (
+            "🟢"
+            if self.em_api_healthy and not self.errors
+            else "🟡"
+            if self.em_api_healthy
+            else "🔴"
+        )
+
         lines = [
             f"{status} **Swarm Heartbeat** ({self.duration_ms:.0f}ms)",
         ]
-        
+
         if self.new_tasks or self.tasks_routed or self.tasks_completed:
-            lines.append(f"📋 Tasks: +{self.new_tasks} new, {self.tasks_routed} routed, {self.tasks_completed} completed")
-        
+            lines.append(
+                f"📋 Tasks: +{self.new_tasks} new, {self.tasks_routed} routed, {self.tasks_completed} completed"
+            )
+
         if self.agents_active:
             agent_str = f"🤖 Agents: {self.agents_active} active"
             if self.agents_degraded:
                 agent_str += f" ({self.agents_degraded} degraded)"
             lines.append(agent_str)
-        
+
         if self.bounty_earned_usd > 0:
             lines.append(f"💰 Earned: ${self.bounty_earned_usd:.2f}")
-        
+
         if self.skill_dna_updates:
             lines.append(f"🧬 Skill DNA: {self.skill_dna_updates} updates")
-        
+
         if self.errors:
             lines.append(f"⚠️ Issues: {', '.join(self.errors[:3])}")
-        
+
         return "\n".join(lines)
 
     def is_notable(self) -> bool:
@@ -136,6 +143,7 @@ def _save_state(state: dict, state_dir: str = DEFAULT_STATE_DIR) -> None:
 
 # ─── Handler ──────────────────────────────────────────────────────────────────
 
+
 class SwarmHeartbeatHandler:
     """
     Runs a condensed swarm coordination cycle during heartbeat polls.
@@ -166,8 +174,6 @@ class SwarmHeartbeatHandler:
 
         self._coordinator: Optional[SwarmCoordinator] = None
         self._event_listener: Optional[EventListener] = None
-        self._evidence_parser: Optional[EvidenceParser] = None
-        self._worker_registry: Optional[WorkerRegistry] = None
 
     def _init_coordinator(self) -> SwarmCoordinator:
         """Lazy-initialize the coordinator."""
@@ -187,14 +193,6 @@ class SwarmHeartbeatHandler:
                 state_path=os.path.join(self.state_dir, "event_listener_state.json"),
             )
         return self._event_listener
-
-    def _init_evidence_parser(self) -> tuple:
-        """Lazy-initialize evidence parser and worker registry."""
-        if self._evidence_parser is None:
-            registry_file = os.path.join(self.state_dir, "worker_registry.json")
-            self._worker_registry = WorkerRegistry(persistence_file=registry_file)
-            self._evidence_parser = EvidenceParser()
-        return self._evidence_parser, self._worker_registry
 
     def run_cycle(self) -> HeartbeatReport:
         """
@@ -230,9 +228,21 @@ class SwarmHeartbeatHandler:
         except Exception as e:
             report.errors.append(f"ingest: {e}")
 
-        # Step 3: Route tasks (mode-dependent)
+        # Step 3: Route tasks (mode-dependent, respects max_task_bounty)
         if self.mode != "passive" and report.new_tasks > 0:
             try:
+                # Filter out tasks exceeding max_task_bounty before routing
+                if self.max_task_bounty > 0:
+                    for task in list(coord._task_queue.values()):
+                        if (
+                            task.status == "pending"
+                            and task.bounty_usd > self.max_task_bounty
+                        ):
+                            logger.info(
+                                f"Skipping task {task.task_id}: bounty ${task.bounty_usd:.2f} "
+                                f"exceeds max ${self.max_task_bounty:.2f}"
+                            )
+                            task.status = "failed"
                 assignments = coord.process_task_queue(max_tasks=5)
                 report.tasks_routed = sum(
                     1 for a in assignments if hasattr(a, "agent_id")
@@ -272,14 +282,18 @@ class SwarmHeartbeatHandler:
         # Step 7: Update metrics
         try:
             metrics = coord.get_metrics()
-            report.bounty_earned_usd = metrics.bounty_earned if hasattr(metrics, "bounty_earned") else 0
+            report.bounty_earned_usd = (
+                metrics.bounty_earned if hasattr(metrics, "bounty_earned") else 0
+            )
         except Exception:
             pass
 
         # Step 8: Persist state
         state["last_heartbeat"] = report.timestamp
         state["total_cycles"] = state.get("total_cycles", 0) + 1
-        state["total_tasks_processed"] = state.get("total_tasks_processed", 0) + report.tasks_completed
+        state["total_tasks_processed"] = (
+            state.get("total_tasks_processed", 0) + report.tasks_completed
+        )
 
         try:
             _save_state(state, self.state_dir)
