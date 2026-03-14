@@ -170,3 +170,4 @@ docs/reports/
 
 # Obsidian vault (internal knowledge graph)
 vault/
+mcp_server/patch_coordinator.py
