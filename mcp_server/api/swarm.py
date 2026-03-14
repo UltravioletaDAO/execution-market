@@ -30,13 +30,13 @@ import logging
 import os
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Path
 from pydantic import BaseModel, Field
 
-from .auth import verify_api_key_optional, APIKeyData
+from .auth import verify_api_key, APIKeyData
+from .admin import verify_admin_key
 
 logger = logging.getLogger("em.api.swarm")
 
@@ -77,6 +77,7 @@ def get_coordinator():
 
     try:
         from swarm import SwarmCoordinator
+
         _coordinator = SwarmCoordinator.create(
             em_api_url=EM_API_URL,
             autojob_url=AUTOJOB_URL,
@@ -104,38 +105,64 @@ def require_coordinator():
     return coord
 
 
-def require_admin(api_key: Optional[APIKeyData] = Depends(verify_api_key_optional)):
-    """Require admin-tier API key for write operations."""
-    if api_key is None:
-        raise HTTPException(status_code=401, detail="API key required")
-    # In production, check api_key.tier == "admin" or similar
-    return api_key
+async def require_admin(
+    authorization: Optional[str] = Header(None, description="Bearer admin key"),
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+    x_admin_actor: Optional[str] = Header(None, alias="X-Admin-Actor"),
+    admin_key: Optional[str] = Query(None, alias="admin_key"),
+):
+    """Require admin key for write operations (delegates to admin.verify_admin_key)."""
+    return await verify_admin_key(
+        authorization=authorization,
+        x_admin_key=x_admin_key,
+        x_admin_actor=x_admin_actor,
+        admin_key=admin_key,
+    )
 
 
 # ─── Request/Response Models ──────────────────────────────────────────────────
 
+
 class SwarmConfigUpdate(BaseModel):
     """Swarm configuration update request."""
-    mode: Optional[str] = Field(None, description="Swarm mode: passive | semi-auto | full-auto")
-    daily_budget: Optional[float] = Field(None, ge=0, description="Daily budget cap (USD)")
-    max_task_bounty: Optional[float] = Field(None, ge=0, description="Max bounty per task (USD)")
-    autojob_url: Optional[str] = Field(None, description="AutoJob enrichment service URL")
+
+    mode: Optional[str] = Field(
+        None, description="Swarm mode: passive | semi-auto | full-auto"
+    )
+    daily_budget: Optional[float] = Field(
+        None, ge=0, description="Daily budget cap (USD)"
+    )
+    max_task_bounty: Optional[float] = Field(
+        None, ge=0, description="Max bounty per task (USD)"
+    )
+    autojob_url: Optional[str] = Field(
+        None, description="AutoJob enrichment service URL"
+    )
 
 
 class BudgetUpdate(BaseModel):
     """Agent budget update request."""
-    daily_limit: Optional[float] = Field(None, ge=0, description="Daily spending limit (USD)")
-    monthly_limit: Optional[float] = Field(None, ge=0, description="Monthly spending limit (USD)")
+
+    daily_limit: Optional[float] = Field(
+        None, ge=0, description="Daily spending limit (USD)"
+    )
+    monthly_limit: Optional[float] = Field(
+        None, ge=0, description="Monthly spending limit (USD)"
+    )
 
 
 class AgentActivation(BaseModel):
     """Agent activation parameters."""
-    skills: Optional[List[str]] = Field(None, description="Skill categories this agent can handle")
+
+    skills: Optional[List[str]] = Field(
+        None, description="Skill categories this agent can handle"
+    )
     daily_budget: Optional[float] = Field(None, ge=0, description="Daily budget (USD)")
 
 
 class PollResult(BaseModel):
     """Result of a poll cycle."""
+
     new_tasks_ingested: int = 0
     tasks_assigned: int = 0
     health_issues: List[str] = Field(default_factory=list)
@@ -148,7 +175,7 @@ class PollResult(BaseModel):
 
 
 @router.get("/status")
-async def swarm_status():
+async def swarm_status(api_key: APIKeyData = Depends(verify_api_key)):
     """
     Get swarm fleet overview.
 
@@ -186,7 +213,7 @@ async def swarm_status():
 
 
 @router.get("/health")
-async def swarm_health():
+async def swarm_health(api_key: APIKeyData = Depends(verify_api_key)):
     """
     Run health checks on all swarm subsystems.
 
@@ -208,10 +235,18 @@ async def swarm_health():
         agents = health.get("agents", {})
         systems = health.get("systems", {})
         degraded_count = agents.get("degraded", 0)
-        unreachable = sum(1 for v in systems.values() if v in ("unreachable", "unavailable"))
+        unreachable = sum(
+            1 for v in systems.values() if v in ("unreachable", "unavailable")
+        )
         total_issues = degraded_count + unreachable
 
-        status = "healthy" if total_issues == 0 else "degraded" if total_issues < 3 else "unhealthy"
+        status = (
+            "healthy"
+            if total_issues == 0
+            else "degraded"
+            if total_issues < 3
+            else "unhealthy"
+        )
 
         return {
             "status": status,
@@ -230,8 +265,11 @@ async def swarm_health():
 
 @router.get("/agents")
 async def list_agents(
-    state: Optional[str] = Query(None, description="Filter by state: IDLE, ACTIVE, WORKING, etc."),
+    state: Optional[str] = Query(
+        None, description="Filter by state: IDLE, ACTIVE, WORKING, etc."
+    ),
     include_scores: bool = Query(False, description="Include composite scores"),
+    api_key: APIKeyData = Depends(verify_api_key),
 ):
     """
     List all registered swarm agents with current state and budget.
@@ -256,8 +294,12 @@ async def list_agents(
                     agent["composite_score"] = {
                         "total": score.total if hasattr(score, "total") else 0,
                         "skill": score.skill if hasattr(score, "skill") else 0,
-                        "reputation": score.reputation if hasattr(score, "reputation") else 0,
-                        "reliability": score.reliability if hasattr(score, "reliability") else 0,
+                        "reputation": score.reputation
+                        if hasattr(score, "reputation")
+                        else 0,
+                        "reliability": score.reliability
+                        if hasattr(score, "reliability")
+                        else 0,
                     }
                 except Exception:
                     agent["composite_score"] = None
@@ -277,6 +319,7 @@ async def list_agents(
 @router.get("/agents/{agent_id}")
 async def get_agent(
     agent_id: str = Path(..., description="Agent ID (ERC-8004 or wallet address)"),
+    api_key: APIKeyData = Depends(verify_api_key),
 ):
     """
     Get detailed information about a specific swarm agent.
@@ -291,17 +334,33 @@ async def get_agent(
 
         result = {
             "agent_id": agent_id,
-            "state": record.state.name if hasattr(record.state, "name") else str(record.state),
+            "state": record.state.name
+            if hasattr(record.state, "name")
+            else str(record.state),
             "skills": record.skills if hasattr(record, "skills") else [],
             "budget": {
-                "daily_spent": record.daily_spent if hasattr(record, "daily_spent") else 0,
-                "monthly_spent": record.monthly_spent if hasattr(record, "monthly_spent") else 0,
-                "daily_limit": record.budget.daily_limit if hasattr(record, "budget") and record.budget else None,
-                "monthly_limit": record.budget.monthly_limit if hasattr(record, "budget") and record.budget else None,
+                "daily_spent": record.daily_spent
+                if hasattr(record, "daily_spent")
+                else 0,
+                "monthly_spent": record.monthly_spent
+                if hasattr(record, "monthly_spent")
+                else 0,
+                "daily_limit": record.budget.daily_limit
+                if hasattr(record, "budget") and record.budget
+                else None,
+                "monthly_limit": record.budget.monthly_limit
+                if hasattr(record, "budget") and record.budget
+                else None,
             },
-            "last_heartbeat": record.last_heartbeat if hasattr(record, "last_heartbeat") else None,
-            "tasks_completed": record.tasks_completed if hasattr(record, "tasks_completed") else 0,
-            "tasks_failed": record.tasks_failed if hasattr(record, "tasks_failed") else 0,
+            "last_heartbeat": record.last_heartbeat
+            if hasattr(record, "last_heartbeat")
+            else None,
+            "tasks_completed": record.tasks_completed
+            if hasattr(record, "tasks_completed")
+            else 0,
+            "tasks_failed": record.tasks_failed
+            if hasattr(record, "tasks_failed")
+            else 0,
         }
 
         # Try to get composite score
@@ -311,7 +370,9 @@ async def get_agent(
                 "total": score.total if hasattr(score, "total") else 0,
                 "skill": score.skill if hasattr(score, "skill") else 0,
                 "reputation": score.reputation if hasattr(score, "reputation") else 0,
-                "reliability": score.reliability if hasattr(score, "reliability") else 0,
+                "reliability": score.reliability
+                if hasattr(score, "reliability")
+                else 0,
                 "tier": score.tier.name if hasattr(score, "tier") else "unknown",
             }
         except Exception:
@@ -364,8 +425,11 @@ async def trigger_poll(
                 assignments = coord.process_task_queue(max_tasks=10)
                 # Count successful assignments (not RoutingFailure)
                 result.tasks_assigned = sum(
-                    1 for a in assignments
-                    if hasattr(a, "agent_id")  # Assignment has agent_id, RoutingFailure doesn't
+                    1
+                    for a in assignments
+                    if hasattr(
+                        a, "agent_id"
+                    )  # Assignment has agent_id, RoutingFailure doesn't
                 )
             except Exception as e:
                 logger.warning(f"Task routing failed: {e}")
@@ -395,7 +459,7 @@ async def trigger_poll(
 
 
 @router.get("/dashboard")
-async def swarm_dashboard():
+async def swarm_dashboard(api_key: APIKeyData = Depends(verify_api_key)):
     """
     Full operational dashboard with fleet details, task metrics, and performance.
 
@@ -426,7 +490,7 @@ async def swarm_dashboard():
 
 
 @router.get("/metrics")
-async def swarm_metrics():
+async def swarm_metrics(api_key: APIKeyData = Depends(verify_api_key)):
     """
     Numeric metrics suitable for Prometheus/Grafana scraping.
 
@@ -444,18 +508,42 @@ async def swarm_metrics():
         metrics = coord.get_metrics()
         flat = {
             "swarm_enabled": 1,
-            "agents_registered": metrics.agents_registered if hasattr(metrics, "agents_registered") else 0,
-            "agents_active": metrics.agents_active if hasattr(metrics, "agents_active") else 0,
-            "agents_degraded": metrics.agents_degraded if hasattr(metrics, "agents_degraded") else 0,
-            "agents_suspended": metrics.agents_suspended if hasattr(metrics, "agents_suspended") else 0,
-            "tasks_ingested": metrics.tasks_ingested if hasattr(metrics, "tasks_ingested") else 0,
-            "tasks_assigned": metrics.tasks_assigned if hasattr(metrics, "tasks_assigned") else 0,
-            "tasks_completed": metrics.tasks_completed if hasattr(metrics, "tasks_completed") else 0,
-            "tasks_failed": metrics.tasks_failed if hasattr(metrics, "tasks_failed") else 0,
-            "bounty_earned_usd": metrics.bounty_earned if hasattr(metrics, "bounty_earned") else 0,
-            "avg_routing_ms": metrics.avg_routing_ms if hasattr(metrics, "avg_routing_ms") else 0,
-            "success_rate": metrics.success_rate if hasattr(metrics, "success_rate") else 0,
-            "enrichment_rate": metrics.enrichment_rate if hasattr(metrics, "enrichment_rate") else 0,
+            "agents_registered": metrics.agents_registered
+            if hasattr(metrics, "agents_registered")
+            else 0,
+            "agents_active": metrics.agents_active
+            if hasattr(metrics, "agents_active")
+            else 0,
+            "agents_degraded": metrics.agents_degraded
+            if hasattr(metrics, "agents_degraded")
+            else 0,
+            "agents_suspended": metrics.agents_suspended
+            if hasattr(metrics, "agents_suspended")
+            else 0,
+            "tasks_ingested": metrics.tasks_ingested
+            if hasattr(metrics, "tasks_ingested")
+            else 0,
+            "tasks_assigned": metrics.tasks_assigned
+            if hasattr(metrics, "tasks_assigned")
+            else 0,
+            "tasks_completed": metrics.tasks_completed
+            if hasattr(metrics, "tasks_completed")
+            else 0,
+            "tasks_failed": metrics.tasks_failed
+            if hasattr(metrics, "tasks_failed")
+            else 0,
+            "bounty_earned_usd": metrics.bounty_earned
+            if hasattr(metrics, "bounty_earned")
+            else 0,
+            "avg_routing_ms": metrics.avg_routing_ms
+            if hasattr(metrics, "avg_routing_ms")
+            else 0,
+            "success_rate": metrics.success_rate
+            if hasattr(metrics, "success_rate")
+            else 0,
+            "enrichment_rate": metrics.enrichment_rate
+            if hasattr(metrics, "enrichment_rate")
+            else 0,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         return flat
@@ -522,6 +610,7 @@ async def update_config(
 async def list_events(
     limit: int = Query(50, ge=1, le=500, description="Max events to return"),
     event_type: Optional[str] = Query(None, description="Filter by event type"),
+    api_key: APIKeyData = Depends(verify_api_key),
 ):
     """
     Get recent coordinator events for audit trail.
@@ -532,7 +621,9 @@ async def list_events(
         events = coord.get_events(limit=limit)
 
         if event_type:
-            events = [e for e in events if e.get("type", "").upper() == event_type.upper()]
+            events = [
+                e for e in events if e.get("type", "").upper() == event_type.upper()
+            ]
 
         return {
             "events": events,
@@ -550,6 +641,7 @@ async def list_events(
 async def swarm_tasks(
     status: Optional[str] = Query(None, description="Filter by task status in queue"),
     limit: int = Query(50, ge=1, le=200),
+    api_key: APIKeyData = Depends(verify_api_key),
 ):
     """
     Get tasks in the swarm coordination queue.
@@ -560,7 +652,9 @@ async def swarm_tasks(
 
     try:
         queue_summary = coord.get_queue_summary()
-        tasks = queue_summary.get("tasks", []) if isinstance(queue_summary, dict) else []
+        tasks = (
+            queue_summary.get("tasks", []) if isinstance(queue_summary, dict) else []
+        )
 
         if status:
             tasks = [t for t in tasks if t.get("status", "").upper() == status.upper()]
@@ -570,7 +664,7 @@ async def swarm_tasks(
         return {
             "tasks": tasks,
             "total": len(tasks),
-            "queue_depth": len(queue) if isinstance(queue, list) else 0,
+            "queue_depth": queue_summary.get("total", 0),
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except HTTPException:
