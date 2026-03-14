@@ -131,22 +131,13 @@ def cmd_dashboard(args):
     """Full operational dashboard with metrics."""
     header("KK V2 SWARM — DASHBOARD")
     
-    coordinator = SwarmCoordinator.create(
-        em_api_url="https://api.execution.market",
-    )
+    from swarm.bootstrap import SwarmBootstrap
     
-    # Register sample agents for dashboard
+    # Use production-aware bootstrap
     subheader("Bootstrapping Fleet")
-    for i in range(1, 25):
-        try:
-            coordinator.register_agent(
-                agent_id=2100 + i,
-                wallet_address=f"0x{i:040x}", name=f"Agent-{2100+i}",
-                tags=["general", "simple_action"],
-            )
-        except Exception:
-            pass
-    info(f"Registered {len(coordinator.lifecycle.get_all_agents())} agents")
+    bootstrap = SwarmBootstrap()
+    coordinator, result = bootstrap.create_coordinator(fetch_live=False, use_cached_profiles=True)
+    info(f"Registered {result.agents_registered} agents ({result.bootstrap_ms:.0f}ms)")
     
     # Ingest published tasks
     subheader("Ingesting Tasks")

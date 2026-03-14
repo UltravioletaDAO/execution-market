@@ -1,7 +1,7 @@
 """
 KarmaCadabra V2 Swarm Coordination
 
-Nine core components:
+Ten core components:
 - ReputationBridge: Connects on-chain ERC-8004 reputation with internal scoring
 - LifecycleManager: Manages agent states, budgets, and health
 - SwarmOrchestrator: Routes tasks to the best available agent
@@ -10,6 +10,7 @@ Nine core components:
 - EventListener: Polls EM API for task lifecycle events (feedback input)
 - EvidenceParser: Extracts Skill DNA from task completion evidence (feedback learning)
 - HeartbeatHandler: Condensed coordination cycle for OpenClaw heartbeat integration
+- SwarmBootstrap: Production-aware coordinator initialization from live data
 - MCP Tools: MCP protocol tools for agent-native swarm interaction
 """
 
@@ -21,6 +22,7 @@ from .coordinator import SwarmCoordinator, EMApiClient
 from .event_listener import EventListener
 from .evidence_parser import EvidenceParser, SkillDNA, WorkerRegistry
 from .heartbeat_handler import SwarmHeartbeatHandler, HeartbeatReport
+from .bootstrap import SwarmBootstrap, BootstrapResult
 from .mcp_tools import register_swarm_tools
 
 __all__ = [
@@ -38,5 +40,7 @@ __all__ = [
     "WorkerRegistry",
     "SwarmHeartbeatHandler",
     "HeartbeatReport",
+    "SwarmBootstrap",
+    "BootstrapResult",
     "register_swarm_tools",
 ]
