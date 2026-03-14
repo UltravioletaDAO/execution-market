@@ -928,11 +928,12 @@ async def assign_task(
         raise Exception(f"Executor has insufficient reputation. Required: {min_rep}")
 
     # Update task
+    # Use accepted_at (real DB column) — assigned_at doesn't exist in schema
     updates = {
         "executor_id": executor_id,
         "status": "accepted",
         "assignment_notes": notes,
-        "assigned_at": datetime.now(timezone.utc).isoformat(),
+        "accepted_at": datetime.now(timezone.utc).isoformat(),
     }
 
     updated_task = await update_task(task_id, updates)
