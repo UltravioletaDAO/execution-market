@@ -716,7 +716,12 @@ async function updateExecutorReputation(
 }
 
 /**
- * Upload evidence file to storage
+ * Upload evidence file to S3 via presigned URL.
+ *
+ * Flow:
+ *   1. GET /api/v1/evidence/presign-upload → presigned PUT URL
+ *   2. PUT file directly to S3
+ *   3. Return CloudFront public URL
  */
 export async function uploadEvidenceFile(
   taskId: string,
@@ -724,27 +729,39 @@ export async function uploadEvidenceFile(
   file: File,
   evidenceType: string
 ): Promise<{ fileUrl: string; filename: string }> {
-  const timestamp = Date.now()
-  const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-  const filePath = `evidence/${taskId}/${executorId}/${timestamp}_${evidenceType}_${sanitizedName}`
+  const presignUrl = API_BASE_URL.endsWith('/api')
+    ? `${API_BASE_URL}/v1/evidence/presign-upload`
+    : `${API_BASE_URL}/api/v1/evidence/presign-upload`
 
-  const { error } = await supabase.storage
-    .from('evidence')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    })
+  const params = new URLSearchParams({
+    task_id: taskId,
+    executor_id: executorId,
+    filename: file.name,
+    evidence_type: evidenceType,
+    content_type: file.type || 'application/octet-stream',
+  })
 
-  if (error) {
-    throw new Error(`Failed to upload file: ${error.message}`)
+  // Step 1: Get presigned URL
+  const presignRes = await fetch(`${presignUrl}?${params}`)
+  if (!presignRes.ok) {
+    const err = await presignRes.json().catch(() => ({ message: presignRes.statusText }))
+    throw new Error(`Failed to get upload URL: ${err.message || presignRes.status}`)
+  }
+  const presign = await presignRes.json()
+
+  // Step 2: PUT file directly to S3
+  const putRes = await fetch(presign.upload_url, {
+    method: 'PUT',
+    headers: { 'Content-Type': presign.content_type },
+    body: file,
+  })
+
+  if (!putRes.ok) {
+    throw new Error(`S3 upload failed: ${putRes.status}`)
   }
 
-  const { data: urlData } = supabase.storage
-    .from('evidence')
-    .getPublicUrl(filePath)
-
   return {
-    fileUrl: urlData.publicUrl,
+    fileUrl: presign.public_url || presign.key,
     filename: file.name,
   }
 }
