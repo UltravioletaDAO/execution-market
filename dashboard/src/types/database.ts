@@ -139,7 +139,7 @@ export interface Task {
   max_executors: number
   status: TaskStatus
   executor_id: string | null
-  accepted_at: string | null
+  assigned_at: string | null
   chainwitness_proof: string | null
   completed_at: string | null
   refund_tx: string | null
@@ -471,7 +471,7 @@ export interface TaskInsert {
   max_executors?: number
   status?: TaskStatus
   executor_id?: string | null
-  accepted_at?: string | null
+  assigned_at?: string | null
   chainwitness_proof?: string | null
   completed_at?: string | null
 }
@@ -498,7 +498,7 @@ export interface SubmissionInsert {
 export interface TaskUpdate {
   status?: TaskStatus
   executor_id?: string | null
-  accepted_at?: string | null
+  assigned_at?: string | null
   chainwitness_proof?: string | null
   completed_at?: string | null
   title?: string

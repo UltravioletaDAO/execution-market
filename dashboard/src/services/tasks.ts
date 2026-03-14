@@ -554,7 +554,7 @@ async function assignTaskDirect(data: AssignTaskData): Promise<{ task: Task; exe
     .update({
       executor_id: executorId,
       status: 'accepted',
-      accepted_at: new Date().toISOString(),
+      assigned_at: new Date().toISOString(),
     })
     .eq('id', taskId)
     .select()

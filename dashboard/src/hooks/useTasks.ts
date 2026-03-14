@@ -219,7 +219,7 @@ export function useAvailableTasks(options: UseAvailableTasksOptions = {}): UseAv
       location: raw?.location || null,
       location_radius_km: raw?.location_radius_km ?? null,
       location_hint: raw?.location_hint ?? null,
-      accepted_at: raw?.accepted_at ?? null,
+      assigned_at: raw?.assigned_at ?? null,
       chainwitness_proof: raw?.chainwitness_proof ?? null,
       completed_at: raw?.completed_at ?? null,
       refund_tx: raw?.refund_tx ?? null,

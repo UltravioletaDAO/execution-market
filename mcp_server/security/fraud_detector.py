@@ -136,7 +136,7 @@ class SubmissionData:
     reference_image_path: Optional[str] = None  # For comparison
 
     # Timing
-    task_accepted_at: Optional[datetime] = None
+    task_assigned_at: Optional[datetime] = None
     submitted_at: Optional[datetime] = None
 
     # Task context
@@ -413,7 +413,7 @@ class FraudDetector:
 
     async def _check_timing(self, submission: SubmissionData) -> FraudCheckResult:
         """Check for timing anomalies."""
-        if not submission.task_accepted_at or not submission.submitted_at:
+        if not submission.task_assigned_at or not submission.submitted_at:
             return FraudCheckResult(
                 check_name="timing_analysis",
                 passed=True,
@@ -423,7 +423,7 @@ class FraudDetector:
             )
 
         duration = (
-            submission.submitted_at - submission.task_accepted_at
+            submission.submitted_at - submission.task_assigned_at
         ).total_seconds()
 
         # Check for impossibly fast completion

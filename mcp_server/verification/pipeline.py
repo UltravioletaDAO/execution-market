@@ -341,10 +341,9 @@ def _run_timestamp_check(
 ) -> Optional[CheckResult]:
     """Validate submission is within the allowed time window."""
     submitted_at_raw = submission.get("submitted_at")
-    # Use accepted_at (real DB column). Do NOT fallback to updated_at — it
-    # gets refreshed on every status change and would make the window check
-    # fail (submitted_at < updated_at race condition).
-    assigned_at_raw = task.get("assigned_at") or task.get("accepted_at")
+    # Do NOT fallback to updated_at — it gets refreshed on every status
+    # change and would make the window check fail.
+    assigned_at_raw = task.get("assigned_at")
     deadline_raw = task.get("deadline")
 
     if not submitted_at_raw or not deadline_raw:

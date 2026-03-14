@@ -134,7 +134,7 @@ class TaskRecord:
     bounty_usd: float
     category: str
     created_at: datetime
-    accepted_at: Optional[datetime] = None
+    assigned_at: Optional[datetime] = None
     submitted_at: Optional[datetime] = None
     approved_at: Optional[datetime] = None
     rejected_at: Optional[datetime] = None

@@ -156,7 +156,7 @@ class TaskRecord:
     worker_id: Optional[str]
     bounty_usd: float
     created_at: datetime
-    accepted_at: Optional[datetime] = None
+    assigned_at: Optional[datetime] = None
     submitted_at: Optional[datetime] = None
     approved_at: Optional[datetime] = None
     agent_ip: Optional[str] = None
