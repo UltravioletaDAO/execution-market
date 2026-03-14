@@ -1,7 +1,7 @@
 """
 KarmaCadabra V2 Swarm Coordination
 
-Fourteen core components:
+Fifteen core components:
 - ReputationBridge: Connects on-chain ERC-8004 reputation with internal scoring
 - LifecycleManager: Manages agent states, budgets, and health
 - SwarmOrchestrator: Routes tasks to the best available agent
@@ -14,7 +14,8 @@ Fourteen core components:
 - StrategyEngine: Intelligent multi-strategy routing decision layer
 - SwarmAnalytics: Comprehensive performance analytics and decision support
 - SwarmDaemon: Production-ready continuous coordination loop
-- AcontextAdapter: Memory and observability integration (pre-integration stub)
+- AcontextAdapter: Memory and observability integration (local file-based)
+- ConfigManager: Production configuration system (files, env vars, presets, validation)
 - MCP Tools: MCP protocol tools for agent-native swarm interaction
 """
 
@@ -30,6 +31,7 @@ from .bootstrap import SwarmBootstrap, BootstrapResult
 from .strategy_engine import StrategyEngine
 from .analytics import SwarmAnalytics, TaskEvent, TimeWindow
 from .daemon import SwarmDaemon, DaemonConfig, CycleResult
+from .config_manager import SwarmConfigManager
 from .mcp_tools import register_swarm_tools
 
 __all__ = [
@@ -56,5 +58,6 @@ __all__ = [
     "SwarmDaemon",
     "DaemonConfig",
     "CycleResult",
+    "SwarmConfigManager",
     "register_swarm_tools",
 ]

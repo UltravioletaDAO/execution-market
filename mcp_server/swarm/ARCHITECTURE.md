@@ -28,18 +28,26 @@ It manages a fleet of AI agents that autonomously claim, execute, and verify rea
 └──────────────────────────────────────────────────────┘
 ```
 
-## Module Inventory
+## Module Inventory (15 modules, ~8,800 LOC, 880 tests)
 
-| Module | LOC | Tests | Purpose |
-|--------|-----|-------|---------|
-| `reputation_bridge.py` | 334 | 41 | Bridges ERC-8004 on-chain seals with internal Bayesian scores |
-| `lifecycle_manager.py` | 470 | 38 | 7-state agent machine + budget tracking + health monitoring |
-| `orchestrator.py` | 454 | 24 | Task routing with 4 strategies (BEST_FIT, ROUND_ROBIN, SPECIALIST, BUDGET_AWARE) |
-| `autojob_client.py` | 412 | 29 | AutoJob enrichment bridge + EnrichedOrchestrator wrapper |
-| `coordinator.py` | 1,030 | 69 | Top-level operational controller + EMApiClient + event system |
-| `event_listener.py` | 450 | 44 | Polls EM API for task lifecycle events (feedback input) |
-| `evidence_parser.py` | 550 | 50 | Extracts Skill DNA from evidence + WorkerRegistry (feedback learning) |
-| **Total** | **3,700** | **295** | |
+| Module | LOC | Tests | Layer | Purpose |
+|--------|-----|-------|-------|---------|
+| `coordinator.py` | 1,031 | 69 | Coordination | Top-level operational controller + EMApiClient + event system |
+| `analytics.py` | 1,048 | 93 | Intelligence | Performance analytics, trend detection, decision support |
+| `daemon.py` | 678 | 59 | Operations | Production-ready continuous coordination loop |
+| `strategy_engine.py` | 666 | 57 | Intelligence | Adaptive multi-strategy routing with outcome learning |
+| `evidence_parser.py` | 643 | 50 | Coordination | Extracts Skill DNA from evidence + WorkerRegistry |
+| `event_listener.py` | 572 | 44 | Coordination | Polls EM API for task lifecycle events |
+| `acontext_adapter.py` | 558 | 50 | Memory | Local file-based structured memory system |
+| `config_manager.py` | 554 | 81 | Operations | Production config (files, env vars, presets, validation) |
+| `lifecycle_manager.py` | 525 | 38 | State | 7-state agent machine + budget tracking + health |
+| `orchestrator.py` | 472 | 24 | Intelligence | Task routing with 4 core strategies |
+| `bootstrap.py` | 439 | 26 | Operations | Production-aware coordinator initialization |
+| `autojob_client.py` | 412 | 29 | Intelligence | AutoJob enrichment bridge + EnrichedOrchestrator |
+| `reputation_bridge.py` | 354 | 41 | Intelligence | On-chain ERC-8004 + internal Bayesian scoring |
+| `heartbeat_handler.py` | 298 | — | Operations | Condensed coordination for heartbeat integration |
+| `mcp_tools.py` | 268 | — | Interface | MCP protocol tools for agent-native interaction |
+| **Total** | **~8,800** | **880** | | |
 
 ## Data Flow
 
