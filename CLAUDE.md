@@ -349,6 +349,12 @@ related-files:        # Optional: source code paths
 **All docs describing flows, state machines, or architecture MUST include Mermaid diagrams** (GitHub-flavored, triple-backtick `mermaid` blocks). Use `sequenceDiagram` for multi-actor flows, `stateDiagram-v2` for state machines, `graph LR/TD` for architecture. Reference: `docs/planning/PAYMENT_ARCHITECTURE.md`.
 
 
+## Feature Parity (Web + Mobile)
+
+**IMPORTANT**: When adding features to either the web dashboard or mobile app, update the feature parity document at `docs/planning/FEATURE_PARITY_WEB_MOBILE.md`. Both platforms should stay synchronized. See the document for the current feature matrix and planned work.
+
+Mobile app lives in `em-mobile/` — Expo SDK 54 + React Native + NativeWind + Dynamic.xyz auth.
+
 ## Operational State (as of 2026-02-28)
 
 **CRITICAL: ECS Image Tag Rules**
