@@ -15,6 +15,7 @@ from .routers.tasks import router as tasks_router
 from .routers.submissions import router as submissions_router
 from .routers.workers import router as workers_router
 from .routers.misc import router as misc_router
+from .routers.evidence import router as evidence_router
 
 # ---------------------------------------------------------------------------
 # Aggregated router — imported by api/__init__.py as ``api_router``
@@ -24,6 +25,7 @@ router.include_router(tasks_router)
 router.include_router(submissions_router)
 router.include_router(workers_router)
 router.include_router(misc_router)
+router.include_router(evidence_router)
 
 # ---------------------------------------------------------------------------
 # Backward-compatible re-exports used by tests and jobs
