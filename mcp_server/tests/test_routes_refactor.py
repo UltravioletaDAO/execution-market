@@ -44,6 +44,8 @@ EXPECTED_ROUTES = {
     "/api/v1/analytics",
     "/api/v1/public/metrics",
     "/api/v1/evidence/verify",
+    "/api/v1/evidence/presign-upload",
+    "/api/v1/evidence/presign-download",
     "/api/v1/health",
     "/api/v1/auth/nonce",
     "/api/v1/auth/erc8128/nonce",
