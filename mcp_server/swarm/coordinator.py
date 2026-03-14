@@ -44,8 +44,6 @@ from .reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
-    CompositeScore,
-    ReputationTier,
 )
 from .lifecycle_manager import (
     LifecycleManager,
@@ -66,13 +64,13 @@ from .orchestrator import (
 from .autojob_client import (
     AutoJobClient,
     EnrichedOrchestrator,
-    AutoJobEnrichment,
 )
 
 logger = logging.getLogger("em.swarm.coordinator")
 
 
 # ─── EM API Client ────────────────────────────────────────────────────────────
+
 
 class EMApiClient:
     """
@@ -147,10 +145,14 @@ class EMApiClient:
 
     def apply_to_task(self, task_id: str, agent_id: int, message: str = "") -> dict:
         """Submit an application for a task."""
-        return self._request("POST", f"/api/v1/tasks/{task_id}/apply", {
-            "agent_id": agent_id,
-            "message": message,
-        })
+        return self._request(
+            "POST",
+            f"/api/v1/tasks/{task_id}/apply",
+            {
+                "agent_id": agent_id,
+                "message": message,
+            },
+        )
 
     def submit_evidence(
         self,
@@ -182,8 +184,10 @@ class EMApiClient:
 
 # ─── Coordination Events ──────────────────────────────────────────────────────
 
+
 class CoordinatorEvent(str, Enum):
     """Events emitted by the coordinator for monitoring/hooks."""
+
     TASK_INGESTED = "task_ingested"
     TASK_ASSIGNED = "task_assigned"
     TASK_COMPLETED = "task_completed"
@@ -202,6 +206,7 @@ class CoordinatorEvent(str, Enum):
 @dataclass
 class EventRecord:
     """A recorded coordinator event."""
+
     event: CoordinatorEvent
     timestamp: datetime
     data: dict = field(default_factory=dict)
@@ -216,9 +221,11 @@ class EventRecord:
 
 # ─── Task Queue ───────────────────────────────────────────────────────────────
 
+
 @dataclass
 class QueuedTask:
     """A task in the coordinator's processing queue."""
+
     task_id: str
     title: str
     categories: list[str]
@@ -246,9 +253,11 @@ class QueuedTask:
 
 # ─── Operational Metrics ──────────────────────────────────────────────────────
 
+
 @dataclass
 class SwarmMetrics:
     """Aggregated operational metrics for the swarm."""
+
     # Task metrics
     tasks_ingested: int = 0
     tasks_assigned: int = 0
@@ -313,6 +322,7 @@ class SwarmMetrics:
 
 
 # ─── SwarmCoordinator ─────────────────────────────────────────────────────────
+
 
 class SwarmCoordinator:
     """
@@ -393,7 +403,9 @@ class SwarmCoordinator:
         """Factory method: create a fully-wired SwarmCoordinator."""
         bridge = ReputationBridge()
         lifecycle = LifecycleManager()
-        orchestrator = SwarmOrchestrator(bridge, lifecycle, default_strategy=default_strategy)
+        orchestrator = SwarmOrchestrator(
+            bridge, lifecycle, default_strategy=default_strategy
+        )
 
         em_client = EMApiClient(base_url=em_api_url, api_key=em_api_key)
         autojob_client = AutoJobClient(base_url=autojob_url)
@@ -474,11 +486,14 @@ class SwarmCoordinator:
         if activate:
             self.lifecycle.transition(agent_id, AgentState.ACTIVE, "auto-activated")
 
-        self._emit(CoordinatorEvent.AGENT_REGISTERED, {
-            "agent_id": agent_id,
-            "name": name,
-            "wallet": wallet_address[:10] + "...",
-        })
+        self._emit(
+            CoordinatorEvent.AGENT_REGISTERED,
+            {
+                "agent_id": agent_id,
+                "name": name,
+                "wallet": wallet_address[:10] + "...",
+            },
+        )
 
         return record
 
@@ -502,7 +517,9 @@ class SwarmCoordinator:
                 )
                 records.append(record)
             except LifecycleError as e:
-                logger.warning(f"Failed to register agent {agent_data.get('agent_id')}: {e}")
+                logger.warning(
+                    f"Failed to register agent {agent_data.get('agent_id')}: {e}"
+                )
         return records
 
     # ─── Task Ingestion ───────────────────────────────────────────────────
@@ -526,7 +543,9 @@ class SwarmCoordinator:
         if task_id in self._task_queue:
             existing = self._task_queue[task_id]
             if existing.status not in ("failed", "expired"):
-                logger.info(f"Task {task_id} already in queue (status={existing.status})")
+                logger.info(
+                    f"Task {task_id} already in queue (status={existing.status})"
+                )
                 return existing
 
         queued = QueuedTask(
@@ -542,13 +561,16 @@ class SwarmCoordinator:
         self._task_queue[task_id] = queued
         self._total_ingested += 1
 
-        self._emit(CoordinatorEvent.TASK_INGESTED, {
-            "task_id": task_id,
-            "title": title,
-            "categories": categories,
-            "bounty_usd": bounty_usd,
-            "source": source,
-        })
+        self._emit(
+            CoordinatorEvent.TASK_INGESTED,
+            {
+                "task_id": task_id,
+                "title": title,
+                "categories": categories,
+                "bounty_usd": bounty_usd,
+                "source": source,
+            },
+        )
 
         return queued
 
@@ -590,10 +612,10 @@ class SwarmCoordinator:
             # Auto-priority based on bounty
             priority = TaskPriority.NORMAL
             if auto_priority:
-                if bounty >= 50:
-                    priority = TaskPriority.HIGH
-                elif bounty >= 100:
+                if bounty >= 100:
                     priority = TaskPriority.CRITICAL
+                elif bounty >= 50:
+                    priority = TaskPriority.HIGH
 
             queued = self.ingest_task(
                 task_id=task_id,
@@ -626,12 +648,15 @@ class SwarmCoordinator:
 
         # Get pending tasks sorted by priority then age
         pending = [
-            t for t in self._task_queue.values()
+            t
+            for t in self._task_queue.values()
             if t.status == "pending" and t.attempts < t.max_attempts
         ]
         pending.sort(
             key=lambda t: (
-                -{"critical": 3, "high": 2, "normal": 1, "low": 0}.get(t.priority.value, 0),
+                -{"critical": 3, "high": 2, "normal": 1, "low": 0}.get(
+                    t.priority.value, 0
+                ),
                 t.ingested_at,
             )
         )
@@ -647,9 +672,12 @@ class SwarmCoordinator:
             if self.enriched and self.autojob and self.autojob.is_available():
                 result = self.enriched.route_task(request, strategy=strategy)
                 self._autojob_enrichments += 1
-                self._emit(CoordinatorEvent.AUTOJOB_ENRICHED, {
-                    "task_id": task.task_id,
-                })
+                self._emit(
+                    CoordinatorEvent.AUTOJOB_ENRICHED,
+                    {
+                        "task_id": task.task_id,
+                    },
+                )
             else:
                 result = self.orchestrator.route_task(request, strategy=strategy)
 
@@ -664,23 +692,29 @@ class SwarmCoordinator:
                 self._routing_successes += 1
                 self._assignment_times.append(elapsed_ms)
 
-                self._emit(CoordinatorEvent.TASK_ASSIGNED, {
-                    "task_id": task.task_id,
-                    "agent_id": result.agent_id,
-                    "agent_name": result.agent_name,
-                    "score": round(result.score, 2),
-                    "strategy": result.strategy_used.value,
-                    "routing_ms": round(elapsed_ms, 1),
-                })
+                self._emit(
+                    CoordinatorEvent.TASK_ASSIGNED,
+                    {
+                        "task_id": task.task_id,
+                        "agent_id": result.agent_id,
+                        "agent_name": result.agent_name,
+                        "score": round(result.score, 2),
+                        "strategy": result.strategy_used.value,
+                        "routing_ms": round(elapsed_ms, 1),
+                    },
+                )
             else:
                 if task.attempts >= task.max_attempts:
                     task.status = "failed"
                     self._total_failed += 1
-                    self._emit(CoordinatorEvent.ROUTING_FAILURE, {
-                        "task_id": task.task_id,
-                        "reason": result.reason,
-                        "attempts": task.attempts,
-                    })
+                    self._emit(
+                        CoordinatorEvent.ROUTING_FAILURE,
+                        {
+                            "task_id": task.task_id,
+                            "reason": result.reason,
+                            "attempts": task.attempts,
+                        },
+                    )
 
             results.append(result)
 
@@ -719,7 +753,7 @@ class SwarmCoordinator:
         # Record spend against agent budget
         if bounty > 0:
             try:
-                self.lifecycle.record_spend(agent_id, bounty * 0.0)  # Agent cost, not bounty
+                self.lifecycle.record_spend(agent_id, bounty)  # Record actual task cost
             except BudgetExceededError:
                 pass
 
@@ -736,11 +770,14 @@ class SwarmCoordinator:
         # Move to completed list
         self._completed_tasks.append(task)
 
-        self._emit(CoordinatorEvent.TASK_COMPLETED, {
-            "task_id": task_id,
-            "agent_id": agent_id,
-            "bounty_usd": bounty,
-        })
+        self._emit(
+            CoordinatorEvent.TASK_COMPLETED,
+            {
+                "task_id": task_id,
+                "agent_id": agent_id,
+                "bounty_usd": bounty,
+            },
+        )
 
         return True
 
@@ -754,11 +791,14 @@ class SwarmCoordinator:
 
         agent_id = self.orchestrator.fail_task(task_id, error)
         if agent_id is not None:
-            self._emit(CoordinatorEvent.TASK_FAILED, {
-                "task_id": task_id,
-                "agent_id": agent_id,
-                "error": error,
-            })
+            self._emit(
+                CoordinatorEvent.TASK_FAILED,
+                {
+                    "task_id": task_id,
+                    "agent_id": agent_id,
+                    "error": error,
+                },
+            )
 
         task.status = "failed"
         self._total_failed += 1
@@ -813,11 +853,14 @@ class SwarmCoordinator:
             try:
                 budget = self.lifecycle.get_budget_status(agent_id)
                 if budget["at_warning"] and not budget["at_limit"]:
-                    self._emit(CoordinatorEvent.BUDGET_WARNING, {
-                        "agent_id": agent_id,
-                        "daily_pct": budget["daily_pct"],
-                        "monthly_pct": budget["monthly_pct"],
-                    })
+                    self._emit(
+                        CoordinatorEvent.BUDGET_WARNING,
+                        {
+                            "agent_id": agent_id,
+                            "daily_pct": budget["daily_pct"],
+                            "monthly_pct": budget["monthly_pct"],
+                        },
+                    )
             except LifecycleError:
                 pass
 
@@ -832,7 +875,9 @@ class SwarmCoordinator:
 
             elif task.status == "assigned":
                 # Check for stale assignments (assigned but not progressing)
-                assigned_hours = (now - (task.last_attempt_at or task.ingested_at)).total_seconds() / 3600
+                assigned_hours = (
+                    now - (task.last_attempt_at or task.ingested_at)
+                ).total_seconds() / 3600
                 if assigned_hours > self.task_expiry_hours:
                     report["tasks"]["stale"] += 1
 
@@ -846,7 +891,9 @@ class SwarmCoordinator:
 
         # 4. Check AutoJob
         if self.autojob:
-            report["systems"]["autojob"] = "available" if self.autojob.is_available() else "unavailable"
+            report["systems"]["autojob"] = (
+                "available" if self.autojob.is_available() else "unavailable"
+            )
 
         self._last_health_check = now
         self._emit(CoordinatorEvent.HEALTH_CHECK, report)
@@ -878,13 +925,21 @@ class SwarmCoordinator:
 
         # Compute averages
         if self._routing_times:
-            metrics.avg_routing_time_ms = sum(self._routing_times) / len(self._routing_times)
+            metrics.avg_routing_time_ms = sum(self._routing_times) / len(
+                self._routing_times
+            )
         if self._assignment_times:
-            metrics.avg_assignment_time_ms = sum(self._assignment_times) / len(self._assignment_times)
+            metrics.avg_assignment_time_ms = sum(self._assignment_times) / len(
+                self._assignment_times
+            )
         if self._routing_attempts > 0:
-            metrics.routing_success_rate = self._routing_successes / self._routing_attempts
+            metrics.routing_success_rate = (
+                self._routing_successes / self._routing_attempts
+            )
         if self._routing_attempts > 0:
-            metrics.autojob_enrichment_rate = self._autojob_enrichments / self._routing_attempts
+            metrics.autojob_enrichment_rate = (
+                self._autojob_enrichments / self._routing_attempts
+            )
 
         return metrics
 
@@ -903,7 +958,13 @@ class SwarmCoordinator:
         swarm_status = self.lifecycle.get_swarm_status()
 
         # Queue breakdown
-        queue_status = {"pending": 0, "assigned": 0, "completed": 0, "failed": 0, "expired": 0}
+        queue_status = {
+            "pending": 0,
+            "assigned": 0,
+            "completed": 0,
+            "failed": 0,
+            "expired": 0,
+        }
         for task in self._task_queue.values():
             queue_status[task.status] = queue_status.get(task.status, 0) + 1
 
@@ -911,17 +972,19 @@ class SwarmCoordinator:
         agent_fleet = []
         for agent_id, record in self.lifecycle.agents.items():
             budget = self.lifecycle.get_budget_status(agent_id)
-            agent_fleet.append({
-                "agent_id": agent_id,
-                "name": record.name,
-                "state": record.state.value,
-                "personality": record.personality,
-                "current_task": record.current_task_id,
-                "budget_daily_pct": budget["daily_pct"],
-                "budget_monthly_pct": budget["monthly_pct"],
-                "health": "healthy" if record.health.is_healthy else "degraded",
-                "tags": record.tags,
-            })
+            agent_fleet.append(
+                {
+                    "agent_id": agent_id,
+                    "name": record.name,
+                    "state": record.state.value,
+                    "personality": record.personality,
+                    "current_task": record.current_task_id,
+                    "budget_daily_pct": budget["daily_pct"],
+                    "budget_monthly_pct": budget["monthly_pct"],
+                    "health": "healthy" if record.health.is_healthy else "degraded",
+                    "tags": record.tags,
+                }
+            )
 
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -933,8 +996,12 @@ class SwarmCoordinator:
             "systems": {
                 "em_api": "configured" if self.em_client else "not configured",
                 "autojob": "configured" if self.autojob else "not configured",
-                "last_health_check": self._last_health_check.isoformat() if self._last_health_check else None,
-                "last_api_poll": self._last_api_poll.isoformat() if self._last_api_poll else None,
+                "last_health_check": self._last_health_check.isoformat()
+                if self._last_health_check
+                else None,
+                "last_api_poll": self._last_api_poll.isoformat()
+                if self._last_api_poll
+                else None,
             },
         }
 
@@ -1006,7 +1073,8 @@ class SwarmCoordinator:
         """Remove completed/failed/expired tasks older than threshold."""
         cutoff = datetime.now(timezone.utc) - timedelta(hours=older_than_hours)
         to_remove = [
-            tid for tid, task in self._task_queue.items()
+            tid
+            for tid, task in self._task_queue.items()
             if task.status in ("completed", "failed", "expired")
             and task.ingested_at < cutoff
         ]
