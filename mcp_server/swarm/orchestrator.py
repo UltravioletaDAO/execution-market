@@ -15,6 +15,7 @@ Task routing strategies:
 - BUDGET_AWARE: Prefer agents with remaining budget headroom
 """
 
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -160,8 +161,8 @@ class SwarmOrchestrator:
 
         # Task tracking
         self._active_claims: dict[str, int] = {}  # task_id → agent_id
-        self._assignment_history: list[Assignment] = []
-        self._failures: list[RoutingFailure] = []
+        self._assignment_history: deque[Assignment] = deque(maxlen=1000)
+        self._failures: deque[RoutingFailure] = deque(maxlen=1000)
         self._round_robin_index: int = 0
 
     def register_reputation(
@@ -441,7 +442,7 @@ class SwarmOrchestrator:
 
     def get_assignment_history(self, limit: int = 20) -> list[dict]:
         """Get recent assignment history."""
-        return [a.to_dict() for a in self._assignment_history[-limit:]]
+        return [a.to_dict() for a in list(self._assignment_history)[-limit:]]
 
     def get_failures(self, limit: int = 20) -> list[dict]:
         """Get recent routing failures."""
@@ -453,5 +454,5 @@ class SwarmOrchestrator:
                 "excluded": f.excluded_agents,
                 "timestamp": f.timestamp.isoformat(),
             }
-            for f in self._failures[-limit:]
+            for f in list(self._failures)[-limit:]
         ]

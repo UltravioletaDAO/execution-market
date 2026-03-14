@@ -33,6 +33,7 @@ Usage:
 import json
 import logging
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from enum import Enum
@@ -367,15 +368,15 @@ class SwarmCoordinator:
 
         # Task queue
         self._task_queue: dict[str, QueuedTask] = {}
-        self._completed_tasks: list[QueuedTask] = []
+        self._completed_tasks: deque[QueuedTask] = deque(maxlen=1000)
 
-        # Events
-        self._events: list[EventRecord] = []
+        # Events (capped — deque auto-evicts oldest when full)
+        self._events: deque[EventRecord] = deque(maxlen=1000)
         self._event_hooks: dict[CoordinatorEvent, list[Callable]] = {}
 
-        # Metrics tracking
-        self._routing_times: list[float] = []
-        self._assignment_times: list[float] = []
+        # Metrics tracking (capped to last 1000 samples)
+        self._routing_times: deque[float] = deque(maxlen=1000)
+        self._assignment_times: deque[float] = deque(maxlen=1000)
         self._started_at = datetime.now(timezone.utc)
         self._last_health_check: Optional[datetime] = None
         self._last_api_poll: Optional[datetime] = None
@@ -992,7 +993,7 @@ class SwarmCoordinator:
             "queue": queue_status,
             "fleet": agent_fleet,
             "swarm": swarm_status,
-            "recent_events": [e.to_dict() for e in self._events[-20:]],
+            "recent_events": [e.to_dict() for e in list(self._events)[-20:]],
             "systems": {
                 "em_api": "configured" if self.em_client else "not configured",
                 "autojob": "configured" if self.autojob else "not configured",
@@ -1020,11 +1021,7 @@ class SwarmCoordinator:
             timestamp=datetime.now(timezone.utc),
             data=data or {},
         )
-        self._events.append(record)
-
-        # Keep events bounded (last 1000)
-        if len(self._events) > 1000:
-            self._events = self._events[-500:]
+        self._events.append(record)  # deque(maxlen=1000) auto-evicts oldest
 
         # Call hooks
         for callback in self._event_hooks.get(event, []):
@@ -1040,7 +1037,7 @@ class SwarmCoordinator:
         since: Optional[datetime] = None,
     ) -> list[dict]:
         """Query event history with optional filters."""
-        events = self._events
+        events = list(self._events)
         if event_type:
             events = [e for e in events if e.event == event_type]
         if since:
