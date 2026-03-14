@@ -21,7 +21,6 @@ import logging
 import time
 import os
 from datetime import datetime, timezone
-from typing import Optional
 
 logger = logging.getLogger("em.swarm.mcp_tools")
 
@@ -68,8 +67,12 @@ def register_swarm_tools(mcp, coordinator=None):
                 "agents": dashboard.get("agents", {}),
                 "tasks": dashboard.get("tasks", {}),
                 "performance": dashboard.get("performance", {}),
-                "bounty_earned_usd": metrics.bounty_earned if hasattr(metrics, "bounty_earned") else 0,
-                "success_rate": metrics.success_rate if hasattr(metrics, "success_rate") else 0,
+                "bounty_earned_usd": metrics.bounty_earned
+                if hasattr(metrics, "bounty_earned")
+                else 0,
+                "success_rate": metrics.success_rate
+                if hasattr(metrics, "success_rate")
+                else 0,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         except Exception as e:
@@ -132,6 +135,14 @@ def register_swarm_tools(mcp, coordinator=None):
                 "message": "Swarm coordination is not enabled.",
             }
 
+        if swarm_mode == "passive":
+            return {
+                "enabled": True,
+                "mode": "passive",
+                "message": "Swarm is in passive mode, poll skipped. Change SWARM_MODE to semi-auto or full-auto to enable polling.",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
         start = time.monotonic()
         result = {
             "mode": swarm_mode,
@@ -147,15 +158,14 @@ def register_swarm_tools(mcp, coordinator=None):
         except Exception as e:
             result["health_issues"].append(f"ingest: {e}")
 
-        # Step 2: Route (mode-dependent)
-        if swarm_mode != "passive":
-            try:
-                assignments = coordinator.process_task_queue(max_tasks=10)
-                result["tasks_assigned"] = sum(
-                    1 for a in assignments if hasattr(a, "agent_id")
-                )
-            except Exception as e:
-                result["health_issues"].append(f"routing: {e}")
+        # Step 2: Route
+        try:
+            assignments = coordinator.process_task_queue(max_tasks=10)
+            result["tasks_assigned"] = sum(
+                1 for a in assignments if hasattr(a, "agent_id")
+            )
+        except Exception as e:
+            result["health_issues"].append(f"routing: {e}")
 
         # Step 3: Health
         try:
@@ -194,18 +204,26 @@ def register_swarm_tools(mcp, coordinator=None):
 
             result = {
                 "agent_id": agent_id,
-                "state": record.state.name if hasattr(record.state, "name") else str(record.state),
+                "state": record.state.name
+                if hasattr(record.state, "name")
+                else str(record.state),
                 "skills": record.skills if hasattr(record, "skills") else [],
                 "health": {
-                    "is_healthy": record.health.is_healthy if hasattr(record, "health") else True,
+                    "is_healthy": record.health.is_healthy
+                    if hasattr(record, "health")
+                    else True,
                 },
             }
 
             # Budget info
             if hasattr(record, "budget") and record.budget:
                 result["budget"] = {
-                    "daily_spent": record.daily_spent if hasattr(record, "daily_spent") else 0,
-                    "monthly_spent": record.monthly_spent if hasattr(record, "monthly_spent") else 0,
+                    "daily_spent": record.daily_spent
+                    if hasattr(record, "daily_spent")
+                    else 0,
+                    "monthly_spent": record.monthly_spent
+                    if hasattr(record, "monthly_spent")
+                    else 0,
                     "daily_limit": record.budget.daily_limit,
                     "monthly_limit": record.budget.monthly_limit,
                 }
@@ -251,7 +269,9 @@ def register_swarm_tools(mcp, coordinator=None):
             systems = health.get("systems", {})
 
             degraded = agents.get("degraded", 0)
-            unreachable = sum(1 for v in systems.values() if v in ("unreachable", "unavailable"))
+            unreachable = sum(
+                1 for v in systems.values() if v in ("unreachable", "unavailable")
+            )
 
             status = "healthy" if (degraded + unreachable) == 0 else "degraded"
 
@@ -260,7 +280,9 @@ def register_swarm_tools(mcp, coordinator=None):
                 "agents": agents,
                 "tasks": health.get("tasks", {}),
                 "systems": systems,
-                "timestamp": health.get("timestamp", datetime.now(timezone.utc).isoformat()),
+                "timestamp": health.get(
+                    "timestamp", datetime.now(timezone.utc).isoformat()
+                ),
             }
         except Exception as e:
             return {"status": "error", "error": str(e)}
