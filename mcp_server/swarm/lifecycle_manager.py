@@ -16,26 +16,35 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import Optional
-import time
 
 
 class AgentState(str, Enum):
     """Agent lifecycle states."""
+
     INITIALIZING = "initializing"  # First boot, workspace setup
-    IDLE = "idle"                  # Ready for work, not currently assigned
-    ACTIVE = "active"             # Browsing task pool, not committed
-    WORKING = "working"           # Committed to a task
-    COOLDOWN = "cooldown"         # Post-task cooldown period
-    DEGRADED = "degraded"         # Missed heartbeats or errors
-    SUSPENDED = "suspended"       # Manually or auto-suspended (budget/abuse)
+    IDLE = "idle"  # Ready for work, not currently assigned
+    ACTIVE = "active"  # Browsing task pool, not committed
+    WORKING = "working"  # Committed to a task
+    COOLDOWN = "cooldown"  # Post-task cooldown period
+    DEGRADED = "degraded"  # Missed heartbeats or errors
+    SUSPENDED = "suspended"  # Manually or auto-suspended (budget/abuse)
 
 
 # Transitions allowed from each state
 VALID_TRANSITIONS = {
     AgentState.INITIALIZING: {AgentState.IDLE, AgentState.SUSPENDED},
     AgentState.IDLE: {AgentState.ACTIVE, AgentState.SUSPENDED, AgentState.DEGRADED},
-    AgentState.ACTIVE: {AgentState.IDLE, AgentState.WORKING, AgentState.SUSPENDED, AgentState.DEGRADED},
-    AgentState.WORKING: {AgentState.COOLDOWN, AgentState.DEGRADED, AgentState.SUSPENDED},
+    AgentState.ACTIVE: {
+        AgentState.IDLE,
+        AgentState.WORKING,
+        AgentState.SUSPENDED,
+        AgentState.DEGRADED,
+    },
+    AgentState.WORKING: {
+        AgentState.COOLDOWN,
+        AgentState.DEGRADED,
+        AgentState.SUSPENDED,
+    },
     AgentState.COOLDOWN: {AgentState.IDLE, AgentState.DEGRADED, AgentState.SUSPENDED},
     AgentState.DEGRADED: {AgentState.IDLE, AgentState.SUSPENDED},
     AgentState.SUSPENDED: {AgentState.IDLE},  # Manual resume only
@@ -45,16 +54,18 @@ VALID_TRANSITIONS = {
 @dataclass
 class BudgetConfig:
     """Budget limits for an agent."""
-    daily_limit_usd: float = 5.0       # Max daily spend
-    monthly_limit_usd: float = 100.0   # Max monthly spend
-    task_limit_usd: float = 2.0        # Max per-task cost
-    warning_threshold: float = 0.80    # Alert at 80% budget
-    hard_stop_threshold: float = 1.0   # Suspend at 100%
+
+    daily_limit_usd: float = 5.0  # Max daily spend
+    monthly_limit_usd: float = 100.0  # Max monthly spend
+    task_limit_usd: float = 2.0  # Max per-task cost
+    warning_threshold: float = 0.80  # Alert at 80% budget
+    hard_stop_threshold: float = 1.0  # Suspend at 100%
 
 
 @dataclass
 class BudgetState:
     """Current budget consumption."""
+
     daily_spent_usd: float = 0.0
     monthly_spent_usd: float = 0.0
     last_reset_date: Optional[str] = None  # YYYY-MM-DD
@@ -78,6 +89,7 @@ class BudgetState:
 @dataclass
 class HealthStatus:
     """Agent health tracking."""
+
     last_heartbeat: Optional[datetime] = None
     consecutive_missed: int = 0
     total_heartbeats: int = 0
@@ -108,6 +120,7 @@ class HealthStatus:
 @dataclass
 class AgentRecord:
     """Complete lifecycle record for one agent."""
+
     agent_id: int
     name: str
     wallet_address: str
@@ -132,11 +145,13 @@ class AgentRecord:
 
 class LifecycleError(Exception):
     """Error in lifecycle state transitions."""
+
     pass
 
 
 class BudgetExceededError(LifecycleError):
     """Agent budget has been exceeded."""
+
     pass
 
 
@@ -195,7 +210,9 @@ class LifecycleManager:
             raise LifecycleError(f"Agent {agent_id} not found")
         del self._agents[agent_id]
 
-    def transition(self, agent_id: int, new_state: AgentState, reason: str = "") -> AgentRecord:
+    def transition(
+        self, agent_id: int, new_state: AgentState, reason: str = ""
+    ) -> AgentRecord:
         """
         Transition an agent to a new state.
         Validates the transition is legal.
@@ -248,7 +265,9 @@ class LifecycleManager:
 
         task_id = record.current_task_id
         record.current_task_id = None
-        record.cooldown_until = datetime.now(timezone.utc) + timedelta(seconds=cooldown_seconds)
+        record.cooldown_until = datetime.now(timezone.utc) + timedelta(
+            seconds=cooldown_seconds
+        )
         self.transition(agent_id, AgentState.COOLDOWN, f"completed task {task_id}")
         return record
 
@@ -300,7 +319,10 @@ class LifecycleManager:
             if record.state == AgentState.INITIALIZING:
                 return True
             record.health.consecutive_missed += 1
-        elif record.health.seconds_since_heartbeat > record.health.heartbeat_interval_seconds:
+        elif (
+            record.health.seconds_since_heartbeat
+            > record.health.heartbeat_interval_seconds
+        ):
             record.health.consecutive_missed += 1
 
         if not record.health.is_healthy and record.state not in (
@@ -343,7 +365,8 @@ class LifecycleManager:
             else 0
         )
         monthly_pct = (
-            record.budget_state.monthly_spent_usd / record.budget_config.monthly_limit_usd
+            record.budget_state.monthly_spent_usd
+            / record.budget_config.monthly_limit_usd
             if record.budget_config.monthly_limit_usd > 0
             else 0
         )
@@ -357,9 +380,9 @@ class LifecycleManager:
             "monthly_limit": record.budget_config.monthly_limit_usd,
             "monthly_pct": round(monthly_pct * 100, 1),
             "at_warning": daily_pct >= record.budget_config.warning_threshold
-                          or monthly_pct >= record.budget_config.warning_threshold,
+            or monthly_pct >= record.budget_config.warning_threshold,
             "at_limit": daily_pct >= record.budget_config.hard_stop_threshold
-                        or monthly_pct >= record.budget_config.hard_stop_threshold,
+            or monthly_pct >= record.budget_config.hard_stop_threshold,
         }
 
     def get_available_agents(self) -> list[AgentRecord]:
@@ -386,7 +409,9 @@ class LifecycleManager:
             counts[record.state.value] += 1
 
         total_daily = sum(r.budget_state.daily_spent_usd for r in self._agents.values())
-        total_monthly = sum(r.budget_state.monthly_spent_usd for r in self._agents.values())
+        total_monthly = sum(
+            r.budget_state.monthly_spent_usd for r in self._agents.values()
+        )
 
         return {
             "total_agents": len(self._agents),
@@ -395,11 +420,13 @@ class LifecycleManager:
             "total_daily_spend": round(total_daily, 2),
             "total_monthly_spend": round(total_monthly, 2),
             "degraded_agents": [
-                r.agent_id for r in self._agents.values()
+                r.agent_id
+                for r in self._agents.values()
                 if r.state == AgentState.DEGRADED
             ],
             "suspended_agents": [
-                r.agent_id for r in self._agents.values()
+                r.agent_id
+                for r in self._agents.values()
                 if r.state == AgentState.SUSPENDED
             ],
         }
@@ -421,7 +448,8 @@ class LifecycleManager:
             else 0
         )
         monthly_pct = (
-            record.budget_state.monthly_spent_usd / record.budget_config.monthly_limit_usd
+            record.budget_state.monthly_spent_usd
+            / record.budget_config.monthly_limit_usd
             if record.budget_config.monthly_limit_usd > 0
             else 0
         )
@@ -429,7 +457,9 @@ class LifecycleManager:
         if daily_pct >= record.budget_config.hard_stop_threshold:
             if record.state not in (AgentState.SUSPENDED,):
                 try:
-                    self.transition(record.agent_id, AgentState.SUSPENDED, "daily budget exceeded")
+                    self.transition(
+                        record.agent_id, AgentState.SUSPENDED, "daily budget exceeded"
+                    )
                 except LifecycleError:
                     pass
             raise BudgetExceededError(
@@ -440,7 +470,9 @@ class LifecycleManager:
         if monthly_pct >= record.budget_config.hard_stop_threshold:
             if record.state not in (AgentState.SUSPENDED,):
                 try:
-                    self.transition(record.agent_id, AgentState.SUSPENDED, "monthly budget exceeded")
+                    self.transition(
+                        record.agent_id, AgentState.SUSPENDED, "monthly budget exceeded"
+                    )
                 except LifecycleError:
                     pass
             raise BudgetExceededError(
@@ -456,70 +488,17 @@ class LifecycleManager:
         reason: str,
     ) -> None:
         """Log state transition for audit."""
-        self._state_history.append({
-            "agent_id": agent_id,
-            "from": from_state.value if from_state else None,
-            "to": to_state.value,
-            "reason": reason,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self._state_history.append(
+            {
+                "agent_id": agent_id,
+                "from": from_state.value if from_state else None,
+                "to": to_state.value,
+                "reason": reason,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
     @property
     def state_history(self) -> list[dict]:
         """Get state transition audit log."""
         return self._state_history.copy()
-
-    def verify_escrow_health(self, task_id: str) -> bool:
-        """
-        Verify that the on-chain escrow lock is still valid and has not been prematurely
-        withdrawn or compromised before proceeding with assignment.
-        """
-        # Note: Actual on-chain check requires Web3 RPC integration.
-        # This acts as a circuit breaker for the swarm coordinator.
-        task_state = self.get_task_state(task_id)
-        if not task_state:
-            return False
-        
-        if task_state.get('escrow_status') == 'locked' and task_state.get('tx_hash'):
-            return True
-            
-        self.logger.warning(f"Escrow health check failed for task {task_id}")
-        return False
-
-class CrossChainPaymentContext:
-    """Tracks cross-chain context to prevent double payments and manage gas fees."""
-    def __init__(self, target_chain: str):
-        self.target_chain = target_chain
-        self.gas_status = "optimal"  # optimal, congested, blocked
-        self.previous_attempts = 0
-        self.recent_failures = []
-        self.last_payment_hash = None
-
-    def record_attempt(self, success: bool, tx_hash: str = None, error_msg: str = None):
-        self.previous_attempts += 1
-        if success:
-            self.last_payment_hash = tx_hash
-        else:
-            self.recent_failures.append({"time": datetime.now(timezone.utc).isoformat(), "error": error_msg})
-
-    def is_safe_to_pay(self) -> bool:
-        if self.gas_status == "congested" and self.previous_attempts > 2:
-            return False
-        if self.last_payment_hash is not None:
-            return False  # Already paid
-        return True
-
-def inject_cross_chain_context(agent_id: int, target_chain: str) -> dict:
-    """Builds the context package needed for an agent to safely execute a multi-chain payment."""
-    ctx = CrossChainPaymentContext(target_chain)
-    # Mocking internal state check
-    if target_chain in ["ethereum", "monad"] and datetime.now().minute % 5 == 0:
-        ctx.gas_status = "congested"
-        
-    return {
-        "agent_id": agent_id,
-        "target_chain": ctx.target_chain,
-        "gas_status": ctx.gas_status,
-        "previous_attempts": ctx.previous_attempts,
-        "safe_to_pay": ctx.is_safe_to_pay()
-    }
