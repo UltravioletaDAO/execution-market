@@ -670,21 +670,30 @@ curl -s -X POST "https://api.execution.market/api/v1/tasks/{task_id}/assign" \
 }
 ```
 
-### Auto-Assignment Config
+### Smart Auto-Assignment
 
 In your `config.json`, set:
 ```json
 {
-  "auto_assign": true,
-  "auto_assign_policy": "first"
+  "auto_assign": "smart",
+  "auto_assign_reputation_threshold": 0.8
 }
 ```
 
-| Policy | Behavior |
-|--------|----------|
-| `first` | Auto-assign the first applicant immediately |
-| `review` | Notify operator with all applicants, let them choose |
-| `reputation` | Auto-assign the highest-reputation applicant |
+| Mode | Behavior |
+|------|----------|
+| `"smart"` | Check worker's ERC-8004 reputation. Auto-assign if rep ≥ threshold (default 80%), ask operator if below or unknown. **Recommended.** |
+| `true` | Auto-assign first applicant immediately (no reputation check) |
+| `false` | Always ask operator before assigning |
+
+**Smart mode flow:**
+```
+Application received → Check ERC-8004 reputation
+  ├── Rep ≥ 80% → Auto-assign ✅ (notify: "Assigned worker, rep 92%")
+  └── Rep < 80% or new worker → Ask operator via notification channel
+       ├── Operator says yes → Assign
+       └── Operator says no → Skip/reject
+```
 
 ---
 

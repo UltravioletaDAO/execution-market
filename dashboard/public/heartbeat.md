@@ -26,13 +26,19 @@ Copy this block into your main `HEARTBEAT.md` file:
    **Phase 1: Application Monitoring (status = "published")**
    a. GET https://api.execution.market/api/v1/tasks/{id}/applications
    b. If applications exist with status "pending":
-      - If config `auto_assign: true` and policy is "first":
-        → POST https://api.execution.market/api/v1/tasks/{id}/assign
-          body: {"executor_id": "{application.executor_id}"}
-        → Notify operator: "👷 Auto-assigned worker to '{title}'"
+      - Look up worker reputation (ERC-8004 registry or API if available)
+      - If config `auto_assign: "smart"`:
+        - **Reputation ≥ auto_assign_reputation_threshold (default 0.8):**
+          → POST https://api.execution.market/api/v1/tasks/{id}/assign
+            body: {"executor_id": "{application.executor_id}"}
+          → Notify operator: "👷 Auto-assigned worker to '{title}' (rep: {score}%)"
+        - **Reputation below threshold or unknown:**
+          → Notify operator: "🙋 Worker applied for '{title}' — rep: {score}% (or 'new, no history'). Assign? Reply 'yes' or 'no'"
+          → Wait for operator response
+      - If config `auto_assign: true` (legacy):
+        → Auto-assign first applicant regardless of reputation
       - If config `auto_assign: false`:
-        → Notify operator: "🙋 Application received for '{title}' — reply 'assign' to accept"
-        → Wait for operator response
+        → Notify operator with all applicants, wait for decision
 
    **Phase 2: Submission Monitoring (status = "accepted" or "in_progress")**
    c. GET https://api.execution.market/api/v1/tasks/{id}/submissions
@@ -123,13 +129,20 @@ curl -s -X POST "https://api.execution.market/api/v1/tasks/{TASK_ID}/assign" \
 }
 ```
 
-### Auto-Assign Policies
+### Auto-Assign Modes
 
-| Policy | Behavior |
-|--------|----------|
-| `first` | Assign the first applicant immediately |
-| `review` | Notify operator with all applicants, let them choose |
-| `reputation` | Auto-assign applicant with highest reputation score |
+| Mode | Behavior |
+|------|----------|
+| `"smart"` | Check ERC-8004 reputation. Auto-assign if ≥ threshold, ask operator if below. **Recommended.** |
+| `true` | Auto-assign first applicant regardless (fast but risky) |
+| `false` | Always ask operator before assigning anyone |
+
+### Reputation Lookup
+
+To check worker reputation, try:
+1. **ERC-8004 Registry** (on-chain): Query the reputation contract on Base for the worker's wallet
+2. **API fallback**: `GET /api/v1/workers/{executor_id}` — may include `reputation_score`, `tasks_completed`, `approval_rate`
+3. **No data available**: Treat as "new worker, no history" → always notify operator
 
 ---
 
@@ -192,9 +205,10 @@ Based on your `notify_on` config, alert the operator when:
 
 ```json
 {
+  "auto_assign": "smart",
+  "auto_assign_reputation_threshold": 0.8,
+  "auto_assign_fallback": "notify",
   "autonomy": "notify",
-  "auto_assign": true,
-  "auto_assign_policy": "first",
   "auto_approve_threshold": 0.8,
   "notify_on": ["application_received", "worker_assigned", "submission_received", "task_expired", "deadline_warning"],
   "monitor_interval_minutes": 3,
@@ -206,8 +220,9 @@ Based on your `notify_on` config, alert the operator when:
 
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
-| `auto_assign` | `true` / `false` | `true` | Auto-assign first applicant |
-| `auto_assign_policy` | `first` / `review` / `reputation` | `first` | How to pick which applicant |
+| `auto_assign` | `"smart"` / `true` / `false` | `"smart"` | How to handle applications |
+| `auto_assign_reputation_threshold` | 0.0 - 1.0 | 0.8 | Min reputation for auto-assign |
+| `auto_assign_fallback` | `"notify"` / `"reject"` | `"notify"` | What to do when rep is below threshold |
 | `autonomy` | `auto` / `notify` / `manual` | `notify` | How to handle submissions |
 | `auto_approve_threshold` | 0.0 - 1.0 | 0.8 | Score for auto-approve |
 | `monitor_interval_minutes` | 1-60 | 3 | Check frequency |
