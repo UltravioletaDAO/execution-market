@@ -29,8 +29,9 @@ Design decisions:
 import json
 import logging
 import time
+from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Optional, Callable
 from enum import Enum
 
@@ -49,7 +50,6 @@ EM_CATEGORY_MAP = {
     "moving": ["physical", "moving", "manual_labor"],
     "handyman": ["physical", "repair", "skilled_trade"],
     "assembly": ["physical", "assembly", "manual_labor"],
-    
     # Digital tasks
     "data_entry": ["digital", "data_entry", "clerical"],
     "research": ["digital", "research", "analysis"],
@@ -58,17 +58,14 @@ EM_CATEGORY_MAP = {
     "design": ["digital", "design", "creative"],
     "coding": ["digital", "coding", "technical"],
     "testing": ["digital", "testing", "qa"],
-    
     # Verification tasks
     "photo_verification": ["verification", "photo", "evidence"],
     "location_verification": ["verification", "geo", "evidence"],
     "mystery_shopping": ["verification", "retail", "assessment"],
-    
     # Blockchain tasks
     "blockchain": ["blockchain", "crypto", "technical"],
     "defi": ["blockchain", "defi", "finance"],
     "nft": ["blockchain", "nft", "creative"],
-    
     # Default
     "general": ["general", "misc"],
     "other": ["general", "misc"],
@@ -85,8 +82,10 @@ def map_categories(em_category: Optional[str]) -> list[str]:
 
 # ─── Event Types ──────────────────────────────────────────────────────────────
 
+
 class ListenerEvent(str, Enum):
     """Events emitted by the listener."""
+
     NEW_TASK = "new_task"
     TASK_COMPLETED = "task_completed"
     TASK_FAILED = "task_failed"
@@ -98,6 +97,7 @@ class ListenerEvent(str, Enum):
 @dataclass
 class PollResult:
     """Result of a single poll cycle."""
+
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     new_tasks: int = 0
     completed_tasks: int = 0
@@ -108,7 +108,12 @@ class PollResult:
 
     @property
     def total_events(self) -> int:
-        return self.new_tasks + self.completed_tasks + self.failed_tasks + self.expired_tasks
+        return (
+            self.new_tasks
+            + self.completed_tasks
+            + self.failed_tasks
+            + self.expired_tasks
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -125,41 +130,52 @@ class PollResult:
 
 # ─── Watermark State ──────────────────────────────────────────────────────────
 
+
 @dataclass
 class ListenerState:
     """Persisted state for the event listener."""
+
     last_poll_at: Optional[datetime] = None
     last_new_task_id: Optional[str] = None
     last_completed_task_id: Optional[str] = None
-    known_task_ids: set[str] = field(default_factory=set)
     poll_count: int = 0
     total_new_tasks: int = 0
     total_completions: int = 0
     total_failures: int = 0
     total_errors: int = 0
-    
-    # Limit known_task_ids to prevent unbounded growth
+
+    # Limit known_task_ids to prevent unbounded growth.
+    # Using a deque ensures deterministic FIFO eviction of oldest items.
     MAX_KNOWN_TASKS = 10000
 
+    def __post_init__(self):
+        # _known_deque preserves insertion order; _known_set enables O(1) lookup.
+        self._known_deque: deque[str] = deque(maxlen=self.MAX_KNOWN_TASKS)
+        self._known_set: set[str] = set()
+
     def mark_seen(self, task_id: str):
-        """Mark a task as seen."""
-        self.known_task_ids.add(task_id)
-        # Prune if too large (keep most recent by just clearing half)
-        if len(self.known_task_ids) > self.MAX_KNOWN_TASKS:
-            # Convert to list, keep last half
-            tasks_list = list(self.known_task_ids)
-            self.known_task_ids = set(tasks_list[len(tasks_list) // 2:])
+        """Mark a task as seen (FIFO eviction when full)."""
+        if task_id in self._known_set:
+            return
+        # If deque is at capacity, the oldest item is auto-evicted.
+        if len(self._known_deque) == self._known_deque.maxlen:
+            evicted = self._known_deque[0]  # will be popped by append
+            self._known_set.discard(evicted)
+        self._known_deque.append(task_id)
+        self._known_set.add(task_id)
 
     def is_seen(self, task_id: str) -> bool:
         """Check if a task has already been processed."""
-        return task_id in self.known_task_ids
+        return task_id in self._known_set
 
     def to_dict(self) -> dict:
         return {
-            "last_poll_at": self.last_poll_at.isoformat() if self.last_poll_at else None,
+            "last_poll_at": self.last_poll_at.isoformat()
+            if self.last_poll_at
+            else None,
             "last_new_task_id": self.last_new_task_id,
             "last_completed_task_id": self.last_completed_task_id,
-            "known_task_count": len(self.known_task_ids),
+            "known_task_count": len(self._known_set),
             "poll_count": self.poll_count,
             "total_new_tasks": self.total_new_tasks,
             "total_completions": self.total_completions,
@@ -170,7 +186,7 @@ class ListenerState:
     def save(self, path: str):
         """Save state to a JSON file."""
         data = self.to_dict()
-        data["known_task_ids"] = list(self.known_task_ids)
+        data["known_task_ids"] = list(self._known_deque)
         with open(path, "w") as f:
             json.dump(data, f, indent=2)
 
@@ -188,7 +204,9 @@ class ListenerState:
             )
             state.last_new_task_id = data.get("last_new_task_id")
             state.last_completed_task_id = data.get("last_completed_task_id")
-            state.known_task_ids = set(data.get("known_task_ids", []))
+            # Restore known task IDs preserving saved order
+            for task_id in data.get("known_task_ids", []):
+                state.mark_seen(task_id)
             state.poll_count = data.get("poll_count", 0)
             state.total_new_tasks = data.get("total_new_tasks", 0)
             state.total_completions = data.get("total_completions", 0)
@@ -200,6 +218,7 @@ class ListenerState:
 
 
 # ─── Priority Mapping ─────────────────────────────────────────────────────────
+
 
 def estimate_priority(task: dict) -> str:
     """Estimate task priority from EM task data."""
@@ -221,11 +240,12 @@ def estimate_priority(task: dict) -> str:
 
 # ─── Event Listener ──────────────────────────────────────────────────────────
 
+
 class EventListener:
     """
     Polls the EM API for task lifecycle events and feeds them
     into the SwarmCoordinator.
-    
+
     Supports two modes:
     1. poll_once() — single poll cycle (for cron/heartbeat)
     2. run() — continuous polling loop (for daemon mode)
@@ -239,9 +259,7 @@ class EventListener:
     ):
         self.coordinator = coordinator
         self.em_client = coordinator.em_client
-        self.state = (
-            ListenerState.load(state_path) if state_path else ListenerState()
-        )
+        self.state = ListenerState.load(state_path) if state_path else ListenerState()
         self.state_path = state_path
         self.on_event = on_event
         self._running = False
@@ -265,7 +283,7 @@ class EventListener:
     def poll_new_tasks(self) -> list[dict]:
         """
         Poll for new published tasks and ingest them into the coordinator.
-        
+
         Returns list of newly ingested task dicts.
         """
         ingested = []
@@ -294,8 +312,9 @@ class EventListener:
                 # Ingest into coordinator
                 try:
                     from .orchestrator import TaskPriority
+
                     priority = TaskPriority[priority_str]
-                    
+
                     self.coordinator.ingest_task(
                         task_id=task_id,
                         title=title,
@@ -311,14 +330,19 @@ class EventListener:
                     self.state.total_new_tasks += 1
                     ingested.append(task)
 
-                    self._emit(ListenerEvent.NEW_TASK, {
-                        "task_id": task_id,
-                        "title": title,
-                        "categories": categories,
-                        "bounty": bounty,
-                    })
+                    self._emit(
+                        ListenerEvent.NEW_TASK,
+                        {
+                            "task_id": task_id,
+                            "title": title,
+                            "categories": categories,
+                            "bounty": bounty,
+                        },
+                    )
 
-                    logger.info(f"Ingested new task: {task_id} '{title}' ({category}) ${bounty}")
+                    logger.info(
+                        f"Ingested new task: {task_id} '{title}' ({category}) ${bounty}"
+                    )
 
                 except Exception as e:
                     logger.error(f"Failed to ingest task {task_id}: {e}")
@@ -333,7 +357,7 @@ class EventListener:
     def poll_completions(self) -> list[dict]:
         """
         Poll for completed tasks and update reputation/metrics.
-        
+
         Returns list of newly detected completions.
         """
         completed = []
@@ -346,36 +370,43 @@ class EventListener:
             for task in tasks:
                 task_id = str(task.get("id", task.get("task_id", "")))
                 completion_key = f"{completion_key_prefix}{task_id}"
-                
+
                 if not task_id or self.state.is_seen(completion_key):
                     continue
 
                 # Check if this task was assigned by our swarm
                 assigned_agent = task.get("worker_agent_id") or task.get("assigned_to")
-                
+
                 # Try to complete in coordinator (will update reputation)
                 try:
                     # Extract evidence data for Skill DNA
                     evidence = task.get("evidence", [])
                     evidence_summary = self._summarize_evidence(evidence)
-                    
-                    result = self.coordinator.complete_task(
+
+                    self.coordinator.complete_task(
                         task_id=task_id,
                         evidence_summary=evidence_summary,
                     )
-                    
+
                     self.state.mark_seen(completion_key)
                     self.state.last_completed_task_id = task_id
                     self.state.total_completions += 1
                     completed.append(task)
 
-                    self._emit(ListenerEvent.TASK_COMPLETED, {
-                        "task_id": task_id,
-                        "agent_id": assigned_agent,
-                        "evidence_count": len(evidence) if isinstance(evidence, list) else 0,
-                    })
+                    self._emit(
+                        ListenerEvent.TASK_COMPLETED,
+                        {
+                            "task_id": task_id,
+                            "agent_id": assigned_agent,
+                            "evidence_count": len(evidence)
+                            if isinstance(evidence, list)
+                            else 0,
+                        },
+                    )
 
-                    logger.info(f"Processed completion: {task_id} (agent: {assigned_agent})")
+                    logger.info(
+                        f"Processed completion: {task_id} (agent: {assigned_agent})"
+                    )
 
                 except KeyError:
                     # Task not in our queue — was completed externally
@@ -395,7 +426,7 @@ class EventListener:
     def poll_failures(self) -> list[dict]:
         """
         Poll for failed/cancelled/expired tasks and update state.
-        
+
         Returns list of newly detected failures.
         """
         failures = []
@@ -409,27 +440,33 @@ class EventListener:
                 for task in tasks:
                     task_id = str(task.get("id", task.get("task_id", "")))
                     failure_key = f"{failure_key_prefix}{task_id}"
-                    
+
                     if not task_id or self.state.is_seen(failure_key):
                         continue
 
                     try:
-                        reason = task.get("failure_reason", task.get("cancellation_reason", status))
+                        reason = task.get(
+                            "failure_reason", task.get("cancellation_reason", status)
+                        )
                         self.coordinator.fail_task(task_id=task_id, reason=str(reason))
-                        
+
                         self.state.mark_seen(failure_key)
                         self.state.total_failures += 1
                         failures.append(task)
 
                         event_type = (
-                            ListenerEvent.TASK_EXPIRED if status == "expired"
+                            ListenerEvent.TASK_EXPIRED
+                            if status == "expired"
                             else ListenerEvent.TASK_FAILED
                         )
-                        self._emit(event_type, {
-                            "task_id": task_id,
-                            "status": status,
-                            "reason": str(reason),
-                        })
+                        self._emit(
+                            event_type,
+                            {
+                                "task_id": task_id,
+                                "status": status,
+                                "reason": str(reason),
+                            },
+                        )
 
                         logger.info(f"Processed {status}: {task_id}")
 
@@ -466,7 +503,7 @@ class EventListener:
     def poll_once(self) -> PollResult:
         """
         Run a single poll cycle: check for new tasks, completions, and failures.
-        
+
         Returns a PollResult with counts and timing.
         """
         start = time.monotonic()
@@ -481,7 +518,9 @@ class EventListener:
 
         failures = self.poll_failures()
         result.failed_tasks = len([f for f in failures if f.get("status") != "expired"])
-        result.expired_tasks = len([f for f in failures if f.get("status") == "expired"])
+        result.expired_tasks = len(
+            [f for f in failures if f.get("status") == "expired"]
+        )
 
         # Process the task queue after ingestion
         if result.new_tasks > 0:
@@ -524,7 +563,7 @@ class EventListener:
     ):
         """
         Run continuous polling loop.
-        
+
         Args:
             poll_interval: Seconds between polls (default 30s)
             max_polls: Stop after N polls (None = run forever)
