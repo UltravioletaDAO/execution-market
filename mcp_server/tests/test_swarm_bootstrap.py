@@ -2,21 +2,17 @@
 Tests for SwarmBootstrap — Production-aware coordinator initialization.
 """
 
-import pytest
 import json
 import os
 import tempfile
-from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
 
 from swarm.bootstrap import (
     SwarmBootstrap,
     BootstrapResult,
+    DEFAULT_AGENTS,
     KNOWN_AGENTS,
 )
 from swarm.coordinator import SwarmCoordinator
-from swarm.reputation_bridge import OnChainReputation, InternalReputation, ReputationTier
-from swarm.lifecycle_manager import AgentState
 from swarm.orchestrator import TaskRequest, TaskPriority, RoutingStrategy
 
 
@@ -73,9 +69,37 @@ class TestKnownAgents:
         all_tags = set()
         for agent in KNOWN_AGENTS:
             all_tags.update(agent["tags"])
-        
-        expected = {"general", "coding", "verification", "blockchain", "delivery", "creative"}
+
+        expected = {
+            "general",
+            "coding",
+            "verification",
+            "blockchain",
+            "delivery",
+            "creative",
+        }
         assert expected.issubset(all_tags), f"Missing tags: {expected - all_tags}"
+
+    def test_default_agents_alias(self):
+        """KNOWN_AGENTS is a backward-compat alias for DEFAULT_AGENTS."""
+        assert KNOWN_AGENTS is DEFAULT_AGENTS
+
+    def test_custom_agents_override(self):
+        """Bootstrap accepts custom agents list, ignoring defaults."""
+        custom = [
+            {
+                "agent_id": 9001,
+                "name": "Custom",
+                "personality": "explorer",
+                "tags": ["test"],
+            },
+        ]
+        bootstrap = SwarmBootstrap(agents=custom)
+        coordinator, result = bootstrap.create_coordinator(
+            fetch_live=False,
+            use_cached_profiles=False,
+        )
+        assert result.agents_registered == 1
 
 
 # ─── Bootstrap Result Tests ──────────────────────────────────────────────────
@@ -146,13 +170,18 @@ class TestQuickStart:
             categories=task.categories,
             bounty_usd=task.bounty_usd,
         )
+        from swarm.orchestrator import Assignment
+
         results = coordinator.process_task_queue()
-        assert len(results) >= 1
+        assert len(results) == 1
+        assert isinstance(results[0], Assignment)
+        assert results[0].task_id == "test-1"
+        assert results[0].agent_id in [a["agent_id"] for a in KNOWN_AGENTS]
 
     def test_quick_start_routing_prefers_tagged(self):
         """Tasks should be routed to agents with matching tags."""
         coordinator = SwarmBootstrap.quick_start()
-        
+
         # Ingest a blockchain task
         coordinator.ingest_task(
             task_id="bc-1",
@@ -161,11 +190,15 @@ class TestQuickStart:
             bounty_usd=10.0,
         )
         results = coordinator.process_task_queue()
-        
+
         # Should be assigned to an agent with blockchain tag
         from swarm.orchestrator import Assignment
+
         assignments = [r for r in results if isinstance(r, Assignment)]
-        assert len(assignments) >= 1
+        assert len(assignments) == 1
+        assigned_id = assignments[0].agent_id
+        assert assigned_id in [a["agent_id"] for a in KNOWN_AGENTS]
+        assert assignments[0].task_id == "bc-1"
 
 
 # ─── Full Bootstrap Tests ────────────────────────────────────────────────────
@@ -233,19 +266,19 @@ class TestFullBootstrap:
             fetch_live=False,
             use_cached_profiles=False,
         )
-        
+
         # Check that reputation data exists in the orchestrator
         for agent_id in range(2101, 2125):
             assert agent_id in coordinator.orchestrator._on_chain
             assert agent_id in coordinator.orchestrator._internal
 
-    def test_agent_2106_special_handling(self):
-        """Agent 2106 gets enhanced reputation when profiles exist."""
+    def test_agent_2106_no_special_casing(self):
+        """Agent 2106 gets the same default treatment as all other agents."""
         profiles = {
             "profiles": {"exec-1": {"categories": {"simple_action": 189}}},
             "summary": {"total_tasks": 189},
         }
-        
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(profiles, f)
             temp_path = f.name
@@ -253,13 +286,14 @@ class TestFullBootstrap:
         try:
             bootstrap = SwarmBootstrap(profiles_path=temp_path)
             bootstrap.create_coordinator(fetch_live=False, use_cached_profiles=True)
-            
-            internal = bootstrap._internal_reps.get(2106)
-            assert internal is not None
-            assert internal.bayesian_score == 0.95
-            assert internal.total_tasks == 189
-            assert internal.successful_tasks == 189
-            assert internal.avg_rating == 5.0
+
+            internal_2106 = bootstrap._internal_reps.get(2106)
+            internal_2101 = bootstrap._internal_reps.get(2101)
+            assert internal_2106 is not None
+            assert internal_2101 is not None
+            # Agent 2106 should have the same default bayesian score as any other agent
+            assert internal_2106.bayesian_score == internal_2101.bayesian_score
+            assert internal_2106.bayesian_score == 0.5
         finally:
             os.unlink(temp_path)
 
@@ -267,7 +301,7 @@ class TestFullBootstrap:
         """Agents get base category scores from their tags."""
         bootstrap = SwarmBootstrap()
         bootstrap.create_coordinator(fetch_live=False, use_cached_profiles=False)
-        
+
         # Agent 2105 has tags: blockchain, defi, crypto
         internal = bootstrap._internal_reps.get(2105)
         assert internal is not None
@@ -295,7 +329,11 @@ class TestRoutingIntegration:
         )
         results = self.coordinator.process_task_queue()
         from swarm.orchestrator import Assignment
-        assert any(isinstance(r, Assignment) for r in results)
+
+        assert len(results) == 1
+        assert isinstance(results[0], Assignment)
+        assert results[0].task_id == "gen-1"
+        assert results[0].agent_id in [a["agent_id"] for a in KNOWN_AGENTS]
 
     def test_route_multiple_tasks(self):
         """Multiple tasks can be routed to different agents."""
@@ -307,15 +345,21 @@ class TestRoutingIntegration:
                 bounty_usd=1.0,
             )
         results = self.coordinator.process_task_queue()
-        
+
         from swarm.orchestrator import Assignment
+
         assignments = [r for r in results if isinstance(r, Assignment)]
-        # At least some should be assigned
-        assert len(assignments) >= 1
-        
+        # All 5 tasks should be assigned (24 agents available)
+        assert len(assignments) == 5
+
         # Different agents should be assigned (round-robin or best-fit varies)
         agent_ids = set(a.agent_id for a in assignments)
-        assert len(agent_ids) >= 1
+        assert len(agent_ids) >= 2, (
+            f"Expected tasks spread across agents, got {agent_ids}"
+        )
+        # All assigned agents must be known
+        known_ids = {a["agent_id"] for a in KNOWN_AGENTS}
+        assert agent_ids.issubset(known_ids)
 
     def test_specialist_routing(self):
         """Specialist strategy only picks category experts."""
@@ -327,7 +371,7 @@ class TestRoutingIntegration:
             priority=TaskPriority.HIGH,
         )
         # Use specialist strategy
-        results = self.coordinator.process_task_queue(strategy=RoutingStrategy.SPECIALIST)
+        self.coordinator.process_task_queue(strategy=RoutingStrategy.SPECIALIST)
         # May not find a specialist (base score 30 < threshold 50)
         # That's OK — it validates the strategy works
 
@@ -341,10 +385,10 @@ class TestRoutingIntegration:
         )
         self.coordinator.process_task_queue()
         self.coordinator.complete_task("cycle-1")
-        
+
         # Run health checks to process cooldowns
         self.coordinator.run_health_checks()
-        
+
         # Queue summary should reflect completion
         summary = self.coordinator.get_queue_summary()
         assert "completed" in summary["by_status"]
@@ -355,7 +399,7 @@ class TestRoutingIntegration:
         assert "metrics" in dashboard
         assert "fleet" in dashboard
         assert len(dashboard["fleet"]) == 24
-        
+
         # Verify fleet has expected structure
         for agent in dashboard["fleet"]:
             assert "agent_id" in agent
@@ -372,7 +416,7 @@ class TestRoutingIntegration:
                 bounty_usd=2.0,
             )
         self.coordinator.process_task_queue()
-        
+
         metrics = self.coordinator.get_metrics()
         assert metrics.tasks_ingested >= 3
         assert metrics.agents_registered == 24
