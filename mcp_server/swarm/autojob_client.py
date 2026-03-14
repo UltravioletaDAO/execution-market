@@ -30,6 +30,7 @@ Usage:
 import json
 import logging
 import time
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
@@ -42,15 +43,16 @@ logger = logging.getLogger("em.swarm.autojob_client")
 @dataclass
 class AutoJobEnrichment:
     """Enrichment data from AutoJob for a single agent/wallet."""
+
     wallet: str
-    match_score: float = 0.0        # 0-1, overall match quality
+    match_score: float = 0.0  # 0-1, overall match quality
     predicted_quality: float = 0.0  # 0-1, expected output quality
     predicted_success: float = 0.0  # 0-1, probability of successful completion
     tier: str = "Unranked"
-    skill_match: float = 0.0       # 0-100
+    skill_match: float = 0.0  # 0-100
     reputation_score: float = 0.0  # 0-100
-    reliability_score: float = 0.0 # 0-100
-    recency_score: float = 0.0    # 0-100
+    reliability_score: float = 0.0  # 0-100
+    recency_score: float = 0.0  # 0-100
     on_chain_registered: bool = False
     category_experience: float = 0.0  # 0-1
     match_explanation: str = ""
@@ -62,10 +64,10 @@ class AutoJobEnrichment:
         ReputationBridge scores for more informed routing.
         """
         return {
-            "skill_boost": self.skill_match * 0.5,    # Half weight from AutoJob
+            "skill_boost": self.skill_match * 0.5,  # Half weight from AutoJob
             "reputation_boost": self.reputation_score * 0.3,
             "reliability_boost": self.reliability_score * 0.2,
-            "total_boost": self.match_score * 15,      # Up to 15 bonus points
+            "total_boost": self.match_score * 15,  # Up to 15 bonus points
             "confidence": min(self.match_score * 1.5, 1.0),  # How much to trust this
         }
 
@@ -73,6 +75,7 @@ class AutoJobEnrichment:
 @dataclass
 class AutoJobRouteResult:
     """Routing recommendation from AutoJob."""
+
     task_id: str
     task_category: str
     total_candidates: int
@@ -85,6 +88,7 @@ class AutoJobRouteResult:
 @dataclass
 class AutoJobHealth:
     """Health status from AutoJob's flywheel."""
+
     overall: str = "unknown"  # optimal, healthy, degraded
     workers_total: int = 0
     erc8004_coverage_pct: float = 0.0
@@ -146,6 +150,7 @@ class AutoJobClient:
         url = f"{self.base_url}{path}"
         if params:
             from urllib.parse import urlencode
+
             url += f"?{urlencode(params)}"
 
         req = Request(url, method="GET")
@@ -185,10 +190,13 @@ class AutoJobClient:
         Returns:
             Dict mapping wallet → AutoJobEnrichment
         """
-        resp = self._post("/api/swarm/enrich", {
-            "task": task,
-            "wallets": wallets,
-        })
+        resp = self._post(
+            "/api/swarm/enrich",
+            {
+                "task": task,
+                "wallets": wallets,
+            },
+        )
 
         enrichments = {}
         if resp.get("success") and "enrichments" in resp:
@@ -233,11 +241,14 @@ class AutoJobClient:
         Returns:
             AutoJobRouteResult with ranked workers
         """
-        resp = self._post("/api/swarm/route", {
-            "task": task,
-            "limit": limit,
-            "min_score": min_score,
-        })
+        resp = self._post(
+            "/api/swarm/route",
+            {
+                "task": task,
+                "limit": limit,
+                "min_score": min_score,
+            },
+        )
 
         if not resp.get("success"):
             return AutoJobRouteResult(
@@ -339,7 +350,10 @@ class EnrichedOrchestrator:
         self.orchestrator = orchestrator
         self.autojob = autojob_client
         self.enrichment_weight = enrichment_weight
-        self._enrichment_cache: dict[str, dict[str, AutoJobEnrichment]] = {}
+        self._enrichment_cache: OrderedDict[str, dict[str, AutoJobEnrichment]] = (
+            OrderedDict()
+        )
+        self._cache_maxsize = 500
 
     def route_task(self, task, strategy=None):
         """Route with optional AutoJob enrichment.
@@ -361,7 +375,6 @@ class EnrichedOrchestrator:
 
     def _enrich_before_routing(self, task):
         """Pre-flight enrichment: update internal reputation with AutoJob data."""
-        from .reputation_bridge import InternalReputation
 
         # Get all registered agent wallets
         available = self.orchestrator.lifecycle.get_available_agents()
@@ -380,10 +393,15 @@ class EnrichedOrchestrator:
 
         cache_key = f"{task.task_id}:{','.join(sorted(wallets))}"
         if cache_key in self._enrichment_cache:
+            # Move to end (most recently used)
+            self._enrichment_cache.move_to_end(cache_key)
             enrichments = self._enrichment_cache[cache_key]
         else:
             enrichments = self.autojob.enrich_agents(em_task, wallets)
             self._enrichment_cache[cache_key] = enrichments
+            # Evict oldest entries if cache exceeds maxsize
+            while len(self._enrichment_cache) > self._cache_maxsize:
+                self._enrichment_cache.popitem(last=False)
 
         # Boost internal reputation scores with AutoJob intelligence
         for agent in available:
@@ -392,10 +410,10 @@ class EnrichedOrchestrator:
                 agent_id = agent.agent_id
                 if agent_id in self.orchestrator._internal:
                     internal = self.orchestrator._internal[agent_id]
-                    boost = enrichment.to_composite_boost()
+                    enrichment.to_composite_boost()
 
                     # Blend category scores from AutoJob
-                    for cat in (task.categories or []):
+                    for cat in task.categories or []:
                         current = internal.category_scores.get(cat, 0)
                         autojob_score = enrichment.category_experience * 100
                         blended = (
