@@ -35,36 +35,40 @@ logger = logging.getLogger("em.swarm.evidence_parser")
 
 # ─── Skill Signals ────────────────────────────────────────────────────────────
 
+
 class SkillDimension(str, Enum):
     """Dimensions of a worker's Skill DNA."""
-    PHYSICAL_EXECUTION = "physical_execution"      # Can do physical tasks
-    DIGITAL_PROFICIENCY = "digital_proficiency"     # Can do digital/computer tasks
-    VERIFICATION_SKILL = "verification_skill"       # Can verify/validate things
-    COMMUNICATION = "communication"                  # Clear reporting/documentation
-    GEO_MOBILITY = "geo_mobility"                    # Can travel to locations
-    SPEED = "speed"                                  # Fast task completion
-    THOROUGHNESS = "thoroughness"                    # Detailed, complete work
-    TECHNICAL_SKILL = "technical_skill"              # Technical/specialized knowledge
-    CREATIVE_SKILL = "creative_skill"                # Creative/design abilities
-    BLOCKCHAIN_LITERACY = "blockchain_literacy"       # Crypto/web3 understanding
+
+    PHYSICAL_EXECUTION = "physical_execution"  # Can do physical tasks
+    DIGITAL_PROFICIENCY = "digital_proficiency"  # Can do digital/computer tasks
+    VERIFICATION_SKILL = "verification_skill"  # Can verify/validate things
+    COMMUNICATION = "communication"  # Clear reporting/documentation
+    GEO_MOBILITY = "geo_mobility"  # Can travel to locations
+    SPEED = "speed"  # Fast task completion
+    THOROUGHNESS = "thoroughness"  # Detailed, complete work
+    TECHNICAL_SKILL = "technical_skill"  # Technical/specialized knowledge
+    CREATIVE_SKILL = "creative_skill"  # Creative/design abilities
+    BLOCKCHAIN_LITERACY = "blockchain_literacy"  # Crypto/web3 understanding
 
 
 class EvidenceQuality(str, Enum):
     """Quality assessment of submitted evidence."""
-    EXCELLENT = "excellent"     # Multiple types, detailed, geo-verified
-    GOOD = "good"              # Complete and relevant
-    ADEQUATE = "adequate"      # Meets minimum requirements
-    POOR = "poor"              # Minimal or irrelevant
+
+    EXCELLENT = "excellent"  # Multiple types, detailed, geo-verified
+    GOOD = "good"  # Complete and relevant
+    ADEQUATE = "adequate"  # Meets minimum requirements
+    POOR = "poor"  # Minimal or irrelevant
     SUSPICIOUS = "suspicious"  # Potential fraud indicators
 
 
 @dataclass
 class SkillSignal:
     """A single skill signal extracted from evidence."""
+
     dimension: SkillDimension
     strength: float  # 0.0 - 1.0
-    source: str      # What evidence type generated this
-    detail: str = "" # Human-readable explanation
+    source: str  # What evidence type generated this
+    detail: str = ""  # Human-readable explanation
 
     def to_dict(self) -> dict:
         return {
@@ -78,8 +82,9 @@ class SkillSignal:
 @dataclass
 class QualityAssessment:
     """Quality assessment of a task's evidence."""
+
     quality: EvidenceQuality
-    score: float              # 0.0 - 1.0
+    score: float  # 0.0 - 1.0
     evidence_count: int
     evidence_types: list[str]
     signals: list[SkillSignal] = field(default_factory=list)
@@ -102,9 +107,10 @@ class QualityAssessment:
 class SkillDNA:
     """
     A worker's extracted Skill DNA from evidence analysis.
-    
+
     This is the portable profile that feeds into ReputationBridge scoring.
     """
+
     worker_id: str
     dimensions: dict[str, float] = field(default_factory=dict)  # dimension → score
     task_count: int = 0
@@ -112,8 +118,10 @@ class SkillDNA:
     categories_seen: set[str] = field(default_factory=set)
     avg_quality: float = 0.0
     last_updated: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    
-    def update_dimension(self, dimension: SkillDimension, strength: float, decay: float = 0.9):
+
+    def update_dimension(
+        self, dimension: SkillDimension, strength: float, decay: float = 0.9
+    ):
         """Update a skill dimension with exponential moving average."""
         key = dimension.value
         current = self.dimensions.get(key, 0.0)
@@ -154,10 +162,11 @@ class SkillDNA:
 
 # ─── Evidence Type Parsers ────────────────────────────────────────────────────
 
+
 class EvidenceParser:
     """
     Parses task completion evidence to extract skill signals and quality assessment.
-    
+
     Each evidence type maps to specific skill dimensions:
         photo        → physical_execution, thoroughness
         photo_geo    → geo_mobility, verification_skill, physical_execution
@@ -247,11 +256,11 @@ class EvidenceParser:
     ) -> QualityAssessment:
         """
         Parse a list of evidence items and produce a quality assessment.
-        
+
         Args:
             evidence: List of evidence dicts from EM API
             task_data: Optional task context for richer analysis
-            
+
         Returns:
             QualityAssessment with skill signals and quality score
         """
@@ -287,7 +296,9 @@ class EvidenceParser:
             quality_factors.append(item_quality)
 
         # Compute aggregate quality score
-        base_score = sum(quality_factors) / len(quality_factors) if quality_factors else 0.0
+        base_score = (
+            sum(quality_factors) / len(quality_factors) if quality_factors else 0.0
+        )
 
         # Bonus for evidence diversity (multiple types)
         unique_types = len(set(types_seen))
@@ -300,9 +311,10 @@ class EvidenceParser:
         suspicion_penalty = len(flags) * 0.15
 
         # Final score
-        final_score = max(0.0, min(1.0,
-            base_score + diversity_bonus + quantity_bonus - suspicion_penalty
-        ))
+        final_score = max(
+            0.0,
+            min(1.0, base_score + diversity_bonus + quantity_bonus - suspicion_penalty),
+        )
 
         # Determine quality tier
         if flags and any("suspicious" in f for f in flags):
@@ -377,21 +389,25 @@ class EvidenceParser:
                     strength = min(1.0, strength + 0.1)
                     detail_parts.append("timestamped")
 
-            signals.append(SkillSignal(
-                dimension=dimension,
-                strength=strength,
-                source=ev_type,
-                detail=", ".join(detail_parts),
-            ))
+            signals.append(
+                SkillSignal(
+                    dimension=dimension,
+                    strength=strength,
+                    source=ev_type,
+                    detail=", ".join(detail_parts),
+                )
+            )
 
         # Default signal for unknown evidence types
         if not mappings:
-            signals.append(SkillSignal(
-                dimension=SkillDimension.THOROUGHNESS,
-                strength=0.3,
-                source=ev_type,
-                detail=f"unknown evidence type: {ev_type}",
-            ))
+            signals.append(
+                SkillSignal(
+                    dimension=SkillDimension.THOROUGHNESS,
+                    strength=0.3,
+                    source=ev_type,
+                    detail=f"unknown evidence type: {ev_type}",
+                )
+            )
 
         return signals
 
@@ -420,11 +436,11 @@ class EvidenceParser:
         if ev_type == "photo_geo" and metadata.get("latitude"):
             score += 0.15  # Geo-verified photos are high quality
         elif ev_type == "notarized":
-            score += 0.2   # Notarized evidence is premium
+            score += 0.2  # Notarized evidence is premium
         elif ev_type == "video":
-            score += 0.1   # Video takes more effort
+            score += 0.1  # Video takes more effort
         elif ev_type == "measurement" and content:
-            score += 0.1   # Measurements with data are valuable
+            score += 0.1  # Measurements with data are valuable
 
         return min(1.0, score)
 
@@ -445,33 +461,41 @@ class EvidenceParser:
 
         # Category-specific skill signals
         if category in ("delivery", "pickup", "errand"):
-            signals.append(SkillSignal(
-                dimension=SkillDimension.PHYSICAL_EXECUTION,
-                strength=0.3,
-                source="task_context",
-                detail=f"completed {category} task",
-            ))
+            signals.append(
+                SkillSignal(
+                    dimension=SkillDimension.PHYSICAL_EXECUTION,
+                    strength=0.3,
+                    source="task_context",
+                    detail=f"completed {category} task",
+                )
+            )
         elif category in ("coding", "testing", "data_entry"):
-            signals.append(SkillSignal(
-                dimension=SkillDimension.DIGITAL_PROFICIENCY,
-                strength=0.3,
-                source="task_context",
-                detail=f"completed {category} task",
-            ))
+            signals.append(
+                SkillSignal(
+                    dimension=SkillDimension.DIGITAL_PROFICIENCY,
+                    strength=0.3,
+                    source="task_context",
+                    detail=f"completed {category} task",
+                )
+            )
         elif category in ("design", "writing"):
-            signals.append(SkillSignal(
-                dimension=SkillDimension.CREATIVE_SKILL,
-                strength=0.3,
-                source="task_context",
-                detail=f"completed {category} task",
-            ))
+            signals.append(
+                SkillSignal(
+                    dimension=SkillDimension.CREATIVE_SKILL,
+                    strength=0.3,
+                    source="task_context",
+                    detail=f"completed {category} task",
+                )
+            )
         elif category in ("blockchain", "defi", "nft"):
-            signals.append(SkillSignal(
-                dimension=SkillDimension.BLOCKCHAIN_LITERACY,
-                strength=0.3,
-                source="task_context",
-                detail=f"completed {category} task",
-            ))
+            signals.append(
+                SkillSignal(
+                    dimension=SkillDimension.BLOCKCHAIN_LITERACY,
+                    strength=0.3,
+                    source="task_context",
+                    detail=f"completed {category} task",
+                )
+            )
 
         # Bounty-based signal (higher bounty = more complex work, presumably)
         bounty = task_data.get("bounty_amount", 0)
@@ -480,12 +504,14 @@ class EvidenceParser:
         except (ValueError, TypeError):
             bounty = 0
         if bounty >= 50:
-            signals.append(SkillSignal(
-                dimension=SkillDimension.TECHNICAL_SKILL,
-                strength=0.2,
-                source="task_context",
-                detail=f"high-value task (${bounty})",
-            ))
+            signals.append(
+                SkillSignal(
+                    dimension=SkillDimension.TECHNICAL_SKILL,
+                    strength=0.2,
+                    source="task_context",
+                    detail=f"high-value task (${bounty})",
+                )
+            )
 
         return signals
 
@@ -498,13 +524,13 @@ class EvidenceParser:
     ) -> SkillDNA:
         """
         Update a worker's Skill DNA based on evidence assessment.
-        
+
         Args:
             dna: The worker's current Skill DNA
             assessment: Quality assessment from parse_evidence()
             task_categories: Categories of the completed task
             decay: EMA decay factor (higher = more weight on history)
-            
+
         Returns:
             Updated SkillDNA
         """
@@ -532,10 +558,11 @@ class EvidenceParser:
 
 # ─── Worker Registry ──────────────────────────────────────────────────────────
 
+
 class WorkerRegistry:
     """
     In-memory registry of worker Skill DNA profiles.
-    
+
     Persists to JSON for state recovery across restarts.
     In production, this would be backed by a database.
     """
@@ -559,13 +586,13 @@ class WorkerRegistry:
     ) -> tuple[SkillDNA, QualityAssessment]:
         """
         Process a task completion: parse evidence + update worker's Skill DNA.
-        
+
         Returns (updated_dna, quality_assessment).
         """
         dna = self.get_or_create(worker_id)
         assessment = self._parser.parse_evidence(evidence, task_data)
         self._parser.update_skill_dna(dna, assessment, task_categories)
-        
+
         logger.info(
             f"Updated Skill DNA for {worker_id}: "
             f"quality={assessment.quality.value}, "
@@ -573,7 +600,7 @@ class WorkerRegistry:
             f"tasks={dna.task_count}, "
             f"top_skills={dna.get_top_skills(3)}"
         )
-        
+
         return dna, assessment
 
     def get_worker(self, worker_id: str) -> Optional[SkillDNA]:
@@ -584,30 +611,33 @@ class WorkerRegistry:
         """List all registered workers."""
         return list(self._workers.values())
 
-    def get_specialists(self, dimension: SkillDimension, min_score: float = 0.5) -> list[SkillDNA]:
+    def get_specialists(
+        self, dimension: SkillDimension, min_score: float = 0.5
+    ) -> list[SkillDNA]:
         """Find workers who are strong in a specific skill dimension."""
         specialists = []
         for dna in self._workers.values():
             score = dna.dimensions.get(dimension.value, 0.0)
             if score >= min_score:
                 specialists.append(dna)
-        return sorted(specialists, key=lambda d: d.dimensions.get(dimension.value, 0), reverse=True)
+        return sorted(
+            specialists,
+            key=lambda d: d.dimensions.get(dimension.value, 0),
+            reverse=True,
+        )
 
     def get_best_for_category(self, category: str, top_n: int = 5) -> list[SkillDNA]:
         """Find workers with experience in a specific category."""
         experienced = [
-            dna for dna in self._workers.values()
-            if category in dna.categories_seen
+            dna for dna in self._workers.values() if category in dna.categories_seen
         ]
         return sorted(experienced, key=lambda d: d.avg_quality, reverse=True)[:top_n]
 
     def save(self, path: str):
         """Save registry to JSON file."""
         import json
-        data = {
-            worker_id: dna.to_dict()
-            for worker_id, dna in self._workers.items()
-        }
+
+        data = {worker_id: dna.to_dict() for worker_id, dna in self._workers.items()}
         with open(path, "w") as f:
             json.dump(data, f, indent=2)
 
@@ -615,6 +645,7 @@ class WorkerRegistry:
     def load(cls, path: str) -> "WorkerRegistry":
         """Load registry from JSON file."""
         import json
+
         registry = cls()
         try:
             with open(path) as f:
@@ -637,7 +668,5 @@ class WorkerRegistry:
         """Export full registry as dict."""
         return {
             "worker_count": len(self._workers),
-            "workers": {
-                wid: dna.to_dict() for wid, dna in self._workers.items()
-            },
+            "workers": {wid: dna.to_dict() for wid, dna in self._workers.items()},
         }

@@ -326,6 +326,7 @@ app.include_router(h2a_router)
 # Provides /api/v1/swarm/* for swarm coordination, monitoring, and operations
 try:
     from api.swarm import router as swarm_router
+
     app.include_router(swarm_router)
     logger.info("Swarm API router registered at /api/v1/swarm/*")
 except ImportError as e:
