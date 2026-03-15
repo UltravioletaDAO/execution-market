@@ -278,7 +278,7 @@ async def get_leaderboard(limit: int = 20, offset: int = 0) -> Dict[str, Any]:
     )
     entries = result.data or []
     return {
-        "workers": [LeaderboardEntry(**r).dict() for r in entries],
+        "workers": [LeaderboardEntry(**r).model_dump() for r in entries],
         "count": len(entries),
     }
 
