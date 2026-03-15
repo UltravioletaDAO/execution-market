@@ -333,6 +333,10 @@ class WorkerSubmissionRequest(BaseModel):
     notes: Optional[str] = Field(
         default=None, description="Optional notes about the submission", max_length=1000
     )
+    device_metadata: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Device metadata including GPS, platform info, and timestamps",
+    )
 
 
 # =============================================================================

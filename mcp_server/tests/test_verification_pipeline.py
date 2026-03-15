@@ -194,6 +194,47 @@ class TestExtractGPS:
         assert lat is None
         assert lng is None
 
+    def test_nested_gps_in_photo(self):
+        """Mobile app sends evidence.photo.gps = {lat, lng, accuracy}."""
+        lat, lng = _extract_gps_from_evidence(
+            {
+                "photo": {
+                    "url": "https://cdn.example.com/x.jpg",
+                    "gps": {"lat": 4.7110, "lng": -74.0721, "accuracy": 10},
+                    "timestamp": "2026-03-15T00:00:00Z",
+                }
+            }
+        )
+        assert lat == pytest.approx(4.711)
+        assert lng == pytest.approx(-74.0721)
+
+    def test_nested_gps_in_photo_geo(self):
+        """Mobile app sends evidence.photo_geo.gps when photo_geo is required."""
+        lat, lng = _extract_gps_from_evidence(
+            {
+                "photo_geo": {
+                    "url": "https://cdn.example.com/x.jpg",
+                    "gps": {"lat": 4.7110, "lng": -74.0721},
+                }
+            }
+        )
+        assert lat == pytest.approx(4.711)
+        assert lng == pytest.approx(-74.0721)
+
+    def test_device_metadata_gps(self):
+        """Mobile app sends device_metadata.gps as fallback."""
+        lat, lng = _extract_gps_from_evidence(
+            {
+                "photo": "https://cdn.example.com/x.jpg",
+                "device_metadata": {
+                    "platform": "ios",
+                    "gps": {"lat": 4.7110, "lng": -74.0721, "accuracy": 15},
+                },
+            }
+        )
+        assert lat == pytest.approx(4.711)
+        assert lng == pytest.approx(-74.0721)
+
 
 # ===========================================================================
 # _run_schema_check

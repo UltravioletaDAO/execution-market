@@ -305,7 +305,7 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
             except (TypeError, ValueError):
                 pass
 
-    # Check photo_geo evidence for embedded coords
+    # Check photo_geo evidence for embedded coords (top-level lat/lng)
     photo_geo = evidence.get("photo_geo")
     if isinstance(photo_geo, dict):
         lat = photo_geo.get("lat") or photo_geo.get("latitude")
@@ -325,6 +325,25 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
             except (TypeError, ValueError):
                 pass
 
+    # Check nested .gps inside any evidence type (mobile app sends
+    # evidence.photo.gps or evidence.photo_geo.gps with {lat, lng, accuracy})
+    for key in ("photo", "photo_geo", "screenshot", "document", "receipt", "video"):
+        item = evidence.get(key)
+        if isinstance(item, dict):
+            nested_gps = item.get("gps")
+            if isinstance(nested_gps, dict):
+                lat = nested_gps.get("lat") or nested_gps.get("latitude")
+                lng = (
+                    nested_gps.get("lng")
+                    or nested_gps.get("longitude")
+                    or nested_gps.get("lon")
+                )
+                if lat is not None and lng is not None:
+                    try:
+                        return float(lat), float(lng)
+                    except (TypeError, ValueError):
+                        pass
+
     # Check forensic metadata (from frontend collectForensicMetadata)
     forensics = evidence.get("forensic_metadata") or evidence.get("device_info") or {}
     if isinstance(forensics, dict):
@@ -332,6 +351,20 @@ def _extract_gps_from_evidence(evidence: Dict[str, Any]) -> tuple:
         if isinstance(loc, dict):
             lat = loc.get("lat") or loc.get("latitude")
             lng = loc.get("lng") or loc.get("longitude") or loc.get("lon")
+            if lat is not None and lng is not None:
+                try:
+                    return float(lat), float(lng)
+                except (TypeError, ValueError):
+                    pass
+
+    # Check device_metadata.gps (mobile app sends this as a separate field,
+    # persisted inside evidence by the submission endpoint)
+    device_meta = evidence.get("device_metadata")
+    if isinstance(device_meta, dict):
+        dm_gps = device_meta.get("gps")
+        if isinstance(dm_gps, dict):
+            lat = dm_gps.get("lat") or dm_gps.get("latitude")
+            lng = dm_gps.get("lng") or dm_gps.get("longitude") or dm_gps.get("lon")
             if lat is not None and lng is not None:
                 try:
                     return float(lat), float(lng)

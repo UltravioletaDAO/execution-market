@@ -185,10 +185,16 @@ async def submit_work(
     queues submission for agent review.
     """
     try:
+        # Merge device_metadata into evidence so the verification pipeline
+        # can extract GPS coordinates from it (mobile sends GPS there).
+        evidence = dict(request.evidence)
+        if request.device_metadata:
+            evidence["device_metadata"] = request.device_metadata
+
         result = await db.submit_work(
             task_id=task_id,
             executor_id=request.executor_id,
-            evidence=request.evidence,
+            evidence=evidence,
             notes=request.notes,
         )
 
@@ -207,7 +213,7 @@ async def submit_work(
             if task:
                 submission_data = {
                     "id": submission_id,
-                    "evidence": request.evidence,
+                    "evidence": evidence,
                     "submitted_at": result["submission"].get("submitted_at"),
                     "notes": request.notes,
                 }
