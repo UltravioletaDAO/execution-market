@@ -72,7 +72,13 @@
     "timelineReviewComplete": "Revision completada",
     "timelineApproved": "Aprobada y Pagada",
     "timelinePaymentSent": "+${{amount}} USDC enviados a tu wallet",
-    "myEvidence": "Mi Evidencia"
+    "myEvidence": "Mi Evidencia",
+    "ratingsTitle": "Calificaciones y Feedback",
+    "agentRatedYou": "Calificacion del agente",
+    "yourRatingOfAgent": "Tu calificacion del agente",
+    "noRatingYet": "Sin calificacion aun",
+    "rateThisAgent": "Calificar al Agente",
+    "ratingSubmitted": "Calificacion enviada"
   },
   "publish": {
     "title": "Publicar Tarea",
@@ -442,6 +448,12 @@
     "totalRatings": "Total Calificaciones",
     "tabReceived": "Recibidas",
     "tabGiven": "Dadas"
+  },
+  "drawer": {
+    "leaderboard": "Tabla de Posiciones",
+    "agents": "Directorio de Agentes",
+    "help": "Acerca de / Ayuda",
+    "settings": "Configuracion"
   },
   "agents": {
     "title": "Agentes",

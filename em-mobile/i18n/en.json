@@ -72,7 +72,13 @@
     "timelineReviewComplete": "Review completed",
     "timelineApproved": "Approved & Paid",
     "timelinePaymentSent": "+${{amount}} USDC sent to your wallet",
-    "myEvidence": "My Evidence"
+    "myEvidence": "My Evidence",
+    "ratingsTitle": "Ratings & Feedback",
+    "agentRatedYou": "Agent's rating of you",
+    "yourRatingOfAgent": "Your rating of agent",
+    "noRatingYet": "No rating yet",
+    "rateThisAgent": "Rate this Agent",
+    "ratingSubmitted": "Rating submitted"
   },
   "publish": {
     "title": "Publish Task",
@@ -442,6 +448,12 @@
     "totalRatings": "Total Ratings",
     "tabReceived": "Received",
     "tabGiven": "Given"
+  },
+  "drawer": {
+    "leaderboard": "Leaderboard",
+    "agents": "Agents Directory",
+    "help": "About / Help",
+    "settings": "Settings"
   },
   "agents": {
     "title": "Agents",
