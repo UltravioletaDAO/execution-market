@@ -80,6 +80,11 @@ function RootNavigator() {
           name="edit-profile"
           options={{ presentation: "modal" }}
         />
+        <Stack.Screen
+          name="agent/[id]"
+          options={{ presentation: "modal" }}
+        />
+        <Stack.Screen name="ratings" />
         <Stack.Screen name="settings" />
         <Stack.Screen
           name="about"

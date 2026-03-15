@@ -42,7 +42,10 @@ function AgentCard({ agent }: { agent: AgentDirectoryEntry }) {
         : "#60A5FA";
 
   return (
-    <View className="bg-surface rounded-2xl p-4 mb-3">
+    <Pressable
+      onPress={() => router.push(`/agent/${agent.executor_id}`)}
+      className="bg-surface rounded-2xl p-4 mb-3"
+    >
       {/* Top row: avatar + name + badges */}
       <View className="flex-row items-center mb-3">
         {agent.avatar_url ? (
@@ -122,7 +125,7 @@ function AgentCard({ agent }: { agent: AgentDirectoryEntry }) {
           <ReputationBadge score={reputation.score} size="sm" />
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 

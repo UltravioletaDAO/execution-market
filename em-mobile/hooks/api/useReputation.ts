@@ -71,3 +71,18 @@ export function useAgentDirectory(limit: number = 20) {
     staleTime: 60_000,
   });
 }
+
+export function useAgentDetail(executorId: string) {
+  return useQuery<AgentDirectoryEntry | null>({
+    queryKey: ["agents", "detail", executorId],
+    queryFn: async () => {
+      const response = await apiClient<{ agents: AgentDirectoryEntry[] }>(
+        `/api/v1/agents/directory?limit=100`
+      );
+      const agents = response.agents || [];
+      return agents.find((a) => a.executor_id === executorId) || null;
+    },
+    enabled: !!executorId,
+    staleTime: 60_000,
+  });
+}

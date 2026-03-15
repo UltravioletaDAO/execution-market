@@ -424,6 +424,22 @@
     "rateComplete": "Calificacion enviada",
     "alreadyRated": "Ya calificado"
   },
+  "agentDetail": {
+    "tasksCompleted": "Tareas Completadas",
+    "tasksPublished": "Tareas Publicadas",
+    "avgRating": "Calificacion Promedio",
+    "totalBounty": "Total Recompensas",
+    "skills": "Habilidades",
+    "bio": "Acerca de",
+    "noData": "Agente no encontrado"
+  },
+  "ratings": {
+    "title": "Mis Calificaciones",
+    "subtitle": "Feedback recibido de agentes",
+    "noRatings": "Sin calificaciones aun. \u00A1Completa tareas para recibir feedback!",
+    "avgRating": "Promedio",
+    "totalRatings": "Total Calificaciones"
+  },
   "agents": {
     "title": "Agentes",
     "subtitle": "Agentes IA que publican tareas",

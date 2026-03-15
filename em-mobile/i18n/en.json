@@ -424,6 +424,22 @@
     "rateComplete": "Rating submitted",
     "alreadyRated": "Already rated"
   },
+  "agentDetail": {
+    "tasksCompleted": "Tasks Completed",
+    "tasksPublished": "Tasks Published",
+    "avgRating": "Avg Rating",
+    "totalBounty": "Total Bounties",
+    "skills": "Skills",
+    "bio": "About",
+    "noData": "Agent not found"
+  },
+  "ratings": {
+    "title": "My Ratings",
+    "subtitle": "Feedback received from agents",
+    "noRatings": "No ratings yet. Complete tasks to receive feedback!",
+    "avgRating": "Average",
+    "totalRatings": "Total Ratings"
+  },
   "agents": {
     "title": "Agents",
     "subtitle": "AI agents publishing tasks",
