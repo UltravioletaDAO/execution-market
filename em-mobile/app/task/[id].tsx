@@ -187,6 +187,15 @@ export default function TaskDetailScreen() {
     return (
       <SafeAreaView className="flex-1 bg-black items-center justify-center px-4">
         <Text className="text-red-500 text-xl mb-4">{t("common.error")}</Text>
+        <Text className="text-gray-500 text-sm mb-4 text-center px-8">
+          {isError ? "Could not load task details. The task may have been removed or the server returned an error." : "No task data received."}
+        </Text>
+        <Pressable
+          className="bg-surface rounded-xl px-6 py-3 mb-3"
+          onPress={() => refetch()}
+        >
+          <Text className="text-white font-medium">{t("common.retry") || "Retry"}</Text>
+        </Pressable>
         <Pressable onPress={() => router.back()}>
           <Text className="text-white">{t("common.back")}</Text>
         </Pressable>
@@ -194,26 +203,32 @@ export default function TaskDetailScreen() {
     );
   }
 
+  // Safely coerce fields that might arrive as null/undefined from API despite TS types
+  const safeBounty = typeof task.bounty_usd === "number" ? task.bounty_usd : parseFloat(String(task.bounty_usd)) || 0;
+  const safeDeadline = task.deadline || new Date(Date.now() + 86400000).toISOString(); // fallback: 24h from now
+  const safeStatus = task.status || "published";
+  const safeMinReputation = typeof task.min_reputation === "number" ? task.min_reputation : 0;
+
   const category = TASK_CATEGORIES.find((c) => c.key === task.category) ?? null;
   const network = NETWORKS.find((n) => n.key === task.payment_network) ?? null;
 
   const canApply =
-    task.status === "published" &&
+    safeStatus === "published" &&
     !task.executor_id &&
     !hasApplied &&
     isAuthenticated &&
-    (task.min_reputation === 0 ||
-      (executor?.reputation_score || 0) >= task.min_reputation);
+    (safeMinReputation === 0 ||
+      (executor?.reputation_score || 0) >= safeMinReputation);
 
   // Determine bottom action bar content
   let bottomAction: "apply" | "applied" | "submitted" | "completed" | "submit" | "login" | "none" = "none";
   if (!isAuthenticated) {
     bottomAction = "login";
-  } else if (isMyTask && ["accepted", "in_progress"].includes(task.status)) {
+  } else if (isMyTask && ["accepted", "in_progress"].includes(safeStatus)) {
     bottomAction = "submit";
-  } else if (isMyTask && task.status === "submitted") {
+  } else if (isMyTask && safeStatus === "submitted") {
     bottomAction = "submitted";
-  } else if (isMyTask && task.status === "completed") {
+  } else if (isMyTask && safeStatus === "completed") {
     bottomAction = "completed";
   } else if (hasApplied && !isMyTask) {
     bottomAction = "applied";
@@ -233,7 +248,7 @@ export default function TaskDetailScreen() {
   const paymentTx = workerPaymentEvent?.tx_hash ?? task?.payment_tx ?? null;
 
   const statusOrder = ["published", "accepted", "in_progress", "submitted", "verifying", "completed"];
-  const currentIdx = statusOrder.indexOf(task.status);
+  const currentIdx = statusOrder.indexOf(safeStatus);
 
   return (
     <SafeAreaView className="flex-1 bg-black">
@@ -244,23 +259,23 @@ export default function TaskDetailScreen() {
         </Pressable>
         <View
           className={`rounded-full px-3 py-1 ${
-            task.status === "published"
+            safeStatus === "published"
               ? "bg-green-900/30"
-              : task.status === "completed"
+              : safeStatus === "completed"
                 ? "bg-blue-900/30"
                 : "bg-yellow-900/30"
           }`}
         >
           <Text
             className={`text-xs font-medium ${
-              task.status === "published"
+              safeStatus === "published"
                 ? "text-green-400"
-                : task.status === "completed"
+                : safeStatus === "completed"
                   ? "text-blue-400"
                   : "text-yellow-400"
             }`}
           >
-            {task.status.toUpperCase()}
+            {safeStatus.toUpperCase()}
           </Text>
         </View>
       </View>
@@ -312,20 +327,20 @@ export default function TaskDetailScreen() {
                 {t("task.bounty")}
               </Text>
               <Text className="text-white text-3xl font-bold">
-                ${task.bounty_usd.toFixed(2)}
+                ${safeBounty.toFixed(2)}
               </Text>
               <Text className="text-gray-500 text-xs">
                 {task.payment_token || "USDC"}
               </Text>
             </View>
             <View className="items-end">
-              {["completed", "cancelled", "expired", "disputed"].includes(task.status) ? (
+              {["completed", "cancelled", "expired", "disputed"].includes(safeStatus) ? (
                 <>
                   <Text className="text-gray-400 text-xs">
                     {t("task.deadline")}
                   </Text>
                   <Text className="text-gray-500 text-sm">
-                    {formatDate(task.deadline)}
+                    {formatDate(safeDeadline)}
                   </Text>
                 </>
               ) : (
@@ -334,10 +349,10 @@ export default function TaskDetailScreen() {
                     {t("task.deadline")}
                   </Text>
                   <Text className="text-yellow-400 font-bold">
-                    {formatTimeRemaining(task.deadline, t)}
+                    {formatTimeRemaining(safeDeadline, t)}
                   </Text>
                   <Text className="text-gray-500 text-xs">
-                    {formatDate(task.deadline)}
+                    {formatDate(safeDeadline)}
                   </Text>
                 </>
               )}
@@ -397,7 +412,7 @@ export default function TaskDetailScreen() {
                   icon="✓"
                   label={t("task.timelineApproved")}
                   sublabel={t("task.timelinePaymentSent", {
-                    amount: (task.bounty_usd * 0.87).toFixed(2),
+                    amount: (safeBounty * 0.87).toFixed(2),
                   })}
                   txHash={paymentTx}
                   network={task.payment_network}
@@ -466,7 +481,7 @@ export default function TaskDetailScreen() {
         })()}
 
         {/* Status Banners — show exactly one based on current state */}
-        {isMyTask && task.status === "completed" && (
+        {isMyTask && safeStatus === "completed" && (
           <View className="bg-green-900/20 rounded-2xl p-4 mb-4 flex-row items-center">
             <Text style={{ fontSize: 20, marginRight: 8 }}>{"\u2705"}</Text>
             <View className="flex-1">
@@ -480,7 +495,7 @@ export default function TaskDetailScreen() {
           </View>
         )}
 
-        {isMyTask && task.status === "submitted" && (
+        {isMyTask && safeStatus === "submitted" && (
           <View className="bg-yellow-900/20 rounded-2xl p-4 mb-4 flex-row items-center">
             <Text style={{ fontSize: 20, marginRight: 8 }}>{"\uD83D\uDCE4"}</Text>
             <View className="flex-1">
@@ -494,7 +509,7 @@ export default function TaskDetailScreen() {
           </View>
         )}
 
-        {isMyTask && ["accepted", "in_progress"].includes(task.status) && (
+        {isMyTask && ["accepted", "in_progress"].includes(safeStatus) && (
           <View className="bg-green-900/20 rounded-2xl p-4 mb-4 flex-row items-center">
             <Text style={{ fontSize: 20, marginRight: 8 }}>{"\uD83C\uDFAF"}</Text>
             <View className="flex-1">
@@ -508,7 +523,7 @@ export default function TaskDetailScreen() {
           </View>
         )}
 
-        {hasApplied && !isMyTask && task.status === "published" && (
+        {hasApplied && !isMyTask && safeStatus === "published" && (
           <View className="bg-blue-900/20 rounded-2xl p-4 mb-4 flex-row items-center">
             <Text style={{ fontSize: 20, marginRight: 8 }}>{"\uD83D\uDCE8"}</Text>
             <View className="flex-1">
@@ -550,13 +565,13 @@ export default function TaskDetailScreen() {
         )}
 
         {/* Evidence Required */}
-        {task.evidence_schema?.required?.length > 0 && (
+        {Array.isArray(task.evidence_schema?.required) && task.evidence_schema.required.length > 0 && (
           <View className="mb-4">
             <Text className="text-gray-400 text-sm font-bold mb-2">
               {t("task.evidenceRequired")}
             </Text>
             <View className="bg-surface rounded-2xl p-4">
-              {task.evidence_schema?.required?.map((ev: string, i: number) => (
+              {task.evidence_schema.required.map((ev: string, i: number) => (
                 <View
                   key={ev}
                   className={`flex-row items-center ${i > 0 ? "mt-2" : ""}`}
@@ -567,7 +582,7 @@ export default function TaskDetailScreen() {
                   </Text>
                 </View>
               ))}
-              {task.evidence_schema?.optional?.map((ev: string) => (
+              {Array.isArray(task.evidence_schema?.optional) && task.evidence_schema.optional.map((ev: string) => (
                 <View key={ev} className="flex-row items-center mt-2">
                   <Text className="text-gray-500 mr-2">○</Text>
                   <Text className="text-gray-400 text-sm">
