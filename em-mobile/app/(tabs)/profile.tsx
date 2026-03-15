@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useAuth } from "../../providers/AuthProvider";
 import { ConnectWalletButton } from "../../components/ConnectWalletButton";
 import { useTranslation } from "react-i18next";
+import { ReputationBadge } from "../../components/ReputationBadge";
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
@@ -75,22 +76,29 @@ export default function ProfileScreen() {
           ) : null}
         </View>
 
+        {/* Reputation Badge */}
+        <View className="items-center mb-4">
+          <ReputationBadge score={executor?.reputation_score || 0} size="lg" />
+        </View>
+
         {/* Stats Cards */}
         <View className="flex-row gap-3 mb-6">
-          <View className="flex-1 bg-surface rounded-2xl p-4 items-center">
-            <Text className="text-white text-2xl font-bold">
-              {executor?.reputation_score || 0}
-            </Text>
-            <Text className="text-gray-400 text-xs mt-1">
-              {t("profile.reputation")}
-            </Text>
-          </View>
           <View className="flex-1 bg-surface rounded-2xl p-4 items-center">
             <Text className="text-white text-2xl font-bold">
               {executor?.tasks_completed || 0}
             </Text>
             <Text className="text-gray-400 text-xs mt-1">
               {t("profile.tasksCompleted")}
+            </Text>
+          </View>
+          <View className="flex-1 bg-surface rounded-2xl p-4 items-center">
+            <Text className="text-white text-2xl font-bold">
+              {executor?.created_at
+                ? new Date(executor.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" })
+                : "\u2014"}
+            </Text>
+            <Text className="text-gray-400 text-xs mt-1">
+              {t("profile.memberSince")}
             </Text>
           </View>
         </View>
@@ -109,6 +117,14 @@ export default function ProfileScreen() {
           onPress={() => router.push("/leaderboard")}
         >
           <Text className="text-white font-medium">{t("leaderboard.title")}</Text>
+          <Text className="text-gray-500">{"\u2192"}</Text>
+        </Pressable>
+
+        <Pressable
+          className="bg-surface rounded-2xl px-4 py-4 mb-3 flex-row items-center justify-between"
+          onPress={() => router.push("/agents")}
+        >
+          <Text className="text-white font-medium">{t("agents.title")}</Text>
           <Text className="text-gray-500">{"\u2192"}</Text>
         </Pressable>
 
