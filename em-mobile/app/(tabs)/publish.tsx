@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,17 @@ import { ConnectWalletButton } from "../../components/ConnectWalletButton";
 import { useCreateH2ATask } from "../../hooks/api/useH2A";
 import { TASK_CATEGORIES } from "../../constants/categories";
 import { NETWORKS } from "../../constants/networks";
+
+const CHAIN_IMAGES: Record<string, number> = {
+  base: require("../../assets/images/chains/base.png"),
+  ethereum: require("../../assets/images/chains/ethereum.png"),
+  polygon: require("../../assets/images/chains/polygon.png"),
+  arbitrum: require("../../assets/images/chains/arbitrum.png"),
+  avalanche: require("../../assets/images/chains/avalanche.png"),
+  optimism: require("../../assets/images/chains/optimism.png"),
+  celo: require("../../assets/images/chains/celo.png"),
+  monad: require("../../assets/images/chains/monad.png"),
+};
 
 type Step = 1 | 2 | 3 | 4;
 type ExecutorTarget = "any" | "human" | "agent" | "robot";
@@ -335,11 +346,17 @@ export default function PublishTaskScreen() {
                 {NETWORKS.map((net) => (
                   <Pressable
                     key={net.key}
-                    className={`rounded-full px-4 py-2 ${
+                    className={`rounded-full px-4 py-2 flex-row items-center ${
                       network === net.key ? "bg-white" : "bg-surface"
                     }`}
                     onPress={() => setNetwork(net.key)}
                   >
+                    {CHAIN_IMAGES[net.key] && (
+                      <Image
+                        source={CHAIN_IMAGES[net.key]}
+                        style={{ width: 18, height: 18, borderRadius: 9, marginRight: 6 }}
+                      />
+                    )}
                     <Text
                       className={`text-sm font-medium ${
                         network === net.key ? "text-black" : "text-gray-400"

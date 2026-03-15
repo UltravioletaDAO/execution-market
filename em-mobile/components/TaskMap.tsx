@@ -77,7 +77,8 @@ interface TaskMapProps {
 
 export function TaskMap({ tasks, userLocation, onMarkerPress }: TaskMapProps) {
   const tasksWithLocation = tasks.filter(
-    (t) => t.location_lat != null && t.location_lng != null
+    (t) =>
+      t.location_lat != null && t.location_lng != null && t.status === "published"
   );
 
   if (!MapView || !Marker) {

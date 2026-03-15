@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, RefreshControl, Linking, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, RefreshControl, Linking, Alert, Image } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,17 @@ import { ConnectWalletButton } from "../../components/ConnectWalletButton";
 import { useEarningsSummary, usePaymentHistory } from "../../hooks/api/useEarnings";
 import { getExplorerTxUrl } from "../../constants/networks";
 import { router } from "expo-router";
+
+const CHAIN_IMAGES: Record<string, number> = {
+  base: require("../../assets/images/chains/base.png"),
+  ethereum: require("../../assets/images/chains/ethereum.png"),
+  polygon: require("../../assets/images/chains/polygon.png"),
+  arbitrum: require("../../assets/images/chains/arbitrum.png"),
+  avalanche: require("../../assets/images/chains/avalanche.png"),
+  optimism: require("../../assets/images/chains/optimism.png"),
+  celo: require("../../assets/images/chains/celo.png"),
+  monad: require("../../assets/images/chains/monad.png"),
+};
 
 export default function EarningsScreen() {
   const { t } = useTranslation();
@@ -128,6 +139,12 @@ export default function EarningsScreen() {
                   WebBrowser.openBrowserAsync(getExplorerTxUrl(earning.payment_network, earning.tx_hash!)).catch(() => Linking.openURL(getExplorerTxUrl(earning.payment_network, earning.tx_hash!)).catch(() => {}));
                 }}
               >
+                {CHAIN_IMAGES[earning.payment_network] && (
+                  <Image
+                    source={CHAIN_IMAGES[earning.payment_network]}
+                    style={{ width: 14, height: 14, borderRadius: 7, marginRight: 4 }}
+                  />
+                )}
                 <Text className="text-blue-400 text-xs flex-1">
                   {t("earnings.viewPayment")} · {earning.payment_network}
                 </Text>
@@ -139,6 +156,12 @@ export default function EarningsScreen() {
 
             {!earning.tx_hash && (
               <View className="flex-row items-center mt-2 pt-2 border-t border-gray-800">
+                {CHAIN_IMAGES[earning.payment_network] && (
+                  <Image
+                    source={CHAIN_IMAGES[earning.payment_network]}
+                    style={{ width: 14, height: 14, borderRadius: 7, marginRight: 4 }}
+                  />
+                )}
                 <Text className="text-gray-600 text-xs">
                   {earning.payment_network}
                 </Text>
