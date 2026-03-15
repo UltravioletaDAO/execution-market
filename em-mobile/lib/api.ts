@@ -29,8 +29,9 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(error.message || `API error: ${response.status}`);
+    const error = await response.json().catch(() => ({ detail: response.statusText }));
+    const msg = error.detail || error.message || `API error: ${response.status}`;
+    throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
   }
 
   return response.json();

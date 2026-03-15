@@ -28,6 +28,7 @@ export interface Task {
   agent_name: string | null;
   target_executor_type: string | null;
   escrow_tx: string | null;
+  payment_tx: string | null;
 }
 
 interface TaskFilters {

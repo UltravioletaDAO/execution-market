@@ -27,7 +27,7 @@ export default function SubmitEvidenceScreen() {
   const { taskId } = useLocalSearchParams<{ taskId: string }>();
   const { t } = useTranslation();
   const { executor } = useAuth();
-  const { data: task } = useTask(taskId);
+  const { data: task, refetch: refetchTask } = useTask(taskId);
 
   const [showCamera, setShowCamera] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -38,6 +38,17 @@ export default function SubmitEvidenceScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [verificationResult, setVerificationResult] = useState<Record<string, unknown> | null>(null);
+
+  // Poll task status after submission (every 5s) until terminal state
+  useEffect(() => {
+    if (!submitted || !taskId) return;
+    const terminalStatuses = ["completed", "disputed", "cancelled", "expired"];
+    if (task?.status && terminalStatuses.includes(task.status)) return;
+    const interval = setInterval(() => {
+      refetchTask();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [submitted, taskId, refetchTask, task?.status]);
 
   // Auto-capture GPS on screen mount (always, for metadata)
   useEffect(() => {
@@ -308,36 +319,75 @@ export default function SubmitEvidenceScreen() {
             </View>
           )}
 
-          {/* Phase B Status */}
-          {phaseBStatus && (
-            <View className="bg-surface rounded-2xl p-4 mb-4 flex-row items-center">
-              <Text style={{ fontSize: 20, marginRight: 10 }}>{"\uD83E\uDD16"}</Text>
-              <View className="flex-1">
-                <Text className="text-white font-medium">
-                  {t("submit.aiVerification")}
-                </Text>
-                <Text className="text-gray-500 text-xs mt-0.5">
-                  {phaseBStatus === "pending" ? t("submit.aiPending") : phaseBStatus}
-                </Text>
-              </View>
-              {phaseBStatus === "pending" && (
-                <ActivityIndicator size="small" color="#666" />
+          {/* Task Status — dynamic based on polling */}
+          {task?.status === "completed" ? (
+            <View className="bg-green-900/20 rounded-2xl p-5 mb-4 items-center">
+              <Text style={{ fontSize: 48 }}>{"\u2705"}</Text>
+              <Text className="text-green-400 text-xl font-bold mt-2">
+                {t("submit.approvedPaid")}
+              </Text>
+              <Text className="text-green-400/80 text-sm mt-1">
+                +${task.bounty_usd.toFixed(2)} USDC
+              </Text>
+              <Text className="text-gray-500 text-xs mt-2">
+                {t("submit.paymentSent")}
+              </Text>
+            </View>
+          ) : task?.status === "disputed" ? (
+            <View className="bg-red-900/20 rounded-2xl p-5 mb-4 items-center">
+              <Text style={{ fontSize: 48 }}>{"\u26A0\uFE0F"}</Text>
+              <Text className="text-red-400 text-xl font-bold mt-2">
+                {t("submit.disputed")}
+              </Text>
+              <Text className="text-gray-400 text-sm mt-1 text-center px-4">
+                {t("submit.disputedSubtitle")}
+              </Text>
+            </View>
+          ) : task?.status === "cancelled" ? (
+            <View className="bg-red-900/20 rounded-2xl p-5 mb-4 items-center">
+              <Text style={{ fontSize: 48 }}>{"\u274C"}</Text>
+              <Text className="text-red-400 text-xl font-bold mt-2">
+                {t("submit.cancelled")}
+              </Text>
+              <Text className="text-gray-400 text-sm mt-1 text-center px-4">
+                {t("submit.cancelledSubtitle")}
+              </Text>
+            </View>
+          ) : (
+            <>
+              {/* Phase B Status — only while still pending */}
+              {phaseBStatus && (
+                <View className="bg-surface rounded-2xl p-4 mb-4 flex-row items-center">
+                  <Text style={{ fontSize: 20, marginRight: 10 }}>{"\uD83E\uDD16"}</Text>
+                  <View className="flex-1">
+                    <Text className="text-white font-medium">
+                      {t("submit.aiVerification")}
+                    </Text>
+                    <Text className="text-gray-500 text-xs mt-0.5">
+                      {phaseBStatus === "pending" ? t("submit.aiPending") : phaseBStatus}
+                    </Text>
+                  </View>
+                  {phaseBStatus === "pending" && (
+                    <ActivityIndicator size="small" color="#666" />
+                  )}
+                </View>
               )}
-            </View>
-          )}
 
-          {/* Status */}
-          <View className="bg-surface rounded-2xl p-4 mb-6 flex-row items-center">
-            <Text style={{ fontSize: 20, marginRight: 10 }}>{"\uD83D\uDCE8"}</Text>
-            <View className="flex-1">
-              <Text className="text-white font-medium">
-                {t("submit.statusLabel")}
-              </Text>
-              <Text className="text-gray-400 text-sm mt-0.5">
-                {t("submit.awaitingReview")}
-              </Text>
-            </View>
-          </View>
+              {/* Awaiting review status */}
+              <View className="bg-surface rounded-2xl p-4 mb-6 flex-row items-center">
+                <Text style={{ fontSize: 20, marginRight: 10 }}>{"\uD83D\uDCE8"}</Text>
+                <View className="flex-1">
+                  <Text className="text-white font-medium">
+                    {t("submit.statusLabel")}
+                  </Text>
+                  <Text className="text-gray-400 text-sm mt-0.5">
+                    {t("submit.awaitingReview")}
+                  </Text>
+                </View>
+                <ActivityIndicator size="small" color="#666" />
+              </View>
+            </>
+          )}
 
           <View className="h-4" />
         </ScrollView>

@@ -173,6 +173,10 @@ class TaskResponse(BaseModel):
     skills_required: Optional[List[str]] = Field(
         None, description="Skills required to complete this task"
     )
+    payment_tx: Optional[str] = Field(
+        None,
+        description="Payment transaction hash (populated when task is completed and worker has been paid)",
+    )
 
 
 class TaskListResponse(BaseModel):

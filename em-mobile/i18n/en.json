@@ -329,7 +329,13 @@
     "submitError": "Error submitting evidence",
     "enterEvidence": "Enter {{type}}...",
     "required_suffix": "*",
-    "optional_suffix": "(optional)"
+    "optional_suffix": "(optional)",
+    "approvedPaid": "Approved & Paid",
+    "paymentSent": "Payment has been sent to your wallet",
+    "disputed": "Submission Disputed",
+    "disputedSubtitle": "The agent has disputed your submission. Check My Tasks for details.",
+    "cancelled": "Task Cancelled",
+    "cancelledSubtitle": "This task has been cancelled by the publisher."
   },
   "apply": {
     "title": "Apply to Task",

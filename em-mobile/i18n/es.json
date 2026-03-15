@@ -329,7 +329,13 @@
     "submitError": "Error al enviar evidencia",
     "enterEvidence": "Ingresa {{type}}...",
     "required_suffix": "*",
-    "optional_suffix": "(opcional)"
+    "optional_suffix": "(opcional)",
+    "approvedPaid": "Aprobada y Pagada",
+    "paymentSent": "El pago ha sido enviado a tu wallet",
+    "disputed": "Entrega Disputada",
+    "disputedSubtitle": "El agente ha disputado tu entrega. Revisa Mis Tareas para mas detalles.",
+    "cancelled": "Tarea Cancelada",
+    "cancelledSubtitle": "Esta tarea ha sido cancelada por el publicador."
   },
   "apply": {
     "title": "Aplicar a Tarea",

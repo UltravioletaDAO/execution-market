@@ -183,7 +183,8 @@ export default function TaskDetailScreen() {
   const workerPaymentEvent = paymentEvents?.find((e) =>
     ["settle_worker_direct", "escrow_release", "h2a_settle_worker", "disburse_worker"].includes(e.event_type)
   );
-  const paymentTx = workerPaymentEvent?.tx_hash ?? null;
+  // Fallback chain: payment_events (RLS-gated) → task.payment_tx (from API)
+  const paymentTx = workerPaymentEvent?.tx_hash ?? task?.payment_tx ?? null;
 
   const statusOrder = ["published", "accepted", "in_progress", "submitted", "verifying", "completed"];
   const currentIdx = statusOrder.indexOf(task.status);
@@ -569,7 +570,7 @@ export default function TaskDetailScreen() {
                 onPress={() => Linking.openURL(getExplorerTxUrl(task.payment_network, paymentTx))}
               >
                 <Text className="text-blue-400 text-xs">
-                  {t("task.viewPayment")} ↗
+                  {t("task.viewTx")} · {paymentTx.slice(0, 10)}... ↗
                 </Text>
               </Pressable>
             )}

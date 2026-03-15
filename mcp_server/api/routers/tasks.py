@@ -1214,6 +1214,50 @@ async def get_task(
         "agent_name"
     )
 
+    # Resolve payment_tx from submission or payment_events for completed tasks
+    resolved_payment_tx: Optional[str] = None
+    if _normalize_status(task.get("status")) == "completed":
+        try:
+            client = db.get_client()
+            # Strategy 1: submission.payment_tx (set by _record_submission_paid_fields)
+            sub_result = (
+                client.table("submissions")
+                .select("payment_tx")
+                .eq("task_id", task["id"])
+                .not_.is_("payment_tx", "null")
+                .limit(1)
+                .execute()
+            )
+            if sub_result.data and sub_result.data[0].get("payment_tx"):
+                resolved_payment_tx = sub_result.data[0]["payment_tx"]
+            else:
+                # Strategy 2: payment_events table (escrow_release, settle_worker_direct, etc.)
+                pe_result = (
+                    client.table("payment_events")
+                    .select("tx_hash")
+                    .eq("task_id", task["id"])
+                    .in_(
+                        "event_type",
+                        [
+                            "settle_worker_direct",
+                            "escrow_release",
+                            "h2a_settle_worker",
+                            "disburse_worker",
+                        ],
+                    )
+                    .not_.is_("tx_hash", "null")
+                    .limit(1)
+                    .execute()
+                )
+                if pe_result.data and pe_result.data[0].get("tx_hash"):
+                    resolved_payment_tx = pe_result.data[0]["tx_hash"]
+        except Exception as ptx_err:
+            logger.warning(
+                "Could not resolve payment_tx for task %s: %s",
+                task["id"],
+                ptx_err,
+            )
+
     return TaskResponse(
         id=task["id"],
         title=task["title"],
@@ -1236,6 +1280,7 @@ async def get_task(
         target_executor_type=task.get("target_executor_type"),
         agent_name=resolved_agent_name,
         skills_required=task.get("required_capabilities"),
+        payment_tx=resolved_payment_tx,
     )
 
 
