@@ -6,7 +6,7 @@ Extracted from api/routes.py.
 
 from typing import Dict, Any
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query
 
 import supabase_client as db
 import asyncio
@@ -31,6 +31,44 @@ from ._helpers import (
 )
 
 router = APIRouter(prefix="/api/v1", tags=["Workers"])
+
+
+@router.get(
+    "/workers/tasks/{task_id}/my-submission",
+    response_model=SuccessResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "No submission found"},
+    },
+    summary="Get My Submission",
+    description="Get the executor's own submission for a task (evidence, verdict, verification).",
+    tags=["Workers", "Submissions"],
+)
+async def get_my_submission(
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
+    executor_id: str = Query(..., description="UUID of the executor"),
+) -> SuccessResponse:
+    """Get the executor's own submission for a task (evidence, verdict, verification)."""
+    client = db.get_client()
+    result = (
+        client.table("submissions")
+        .select(
+            "id, task_id, executor_id, evidence, notes, agent_verdict, "
+            "auto_check_passed, auto_check_details, created_at, updated_at, payment_tx"
+        )
+        .eq("task_id", task_id)
+        .eq("executor_id", executor_id)
+        .limit(1)
+        .execute()
+    )
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="No submission found for this task")
+
+    submission = result.data[0]
+    return SuccessResponse(
+        message="Submission retrieved",
+        data=submission,
+    )
 
 
 @router.post(

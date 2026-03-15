@@ -71,7 +71,8 @@
     "timelineUnderReview": "Under agent review",
     "timelineReviewComplete": "Review completed",
     "timelineApproved": "Approved & Paid",
-    "timelinePaymentSent": "+${{amount}} USDC sent to your wallet"
+    "timelinePaymentSent": "+${{amount}} USDC sent to your wallet",
+    "myEvidence": "My Evidence"
   },
   "publish": {
     "title": "Publish Task",

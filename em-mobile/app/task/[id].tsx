@@ -6,13 +6,14 @@ import {
   ActivityIndicator,
   Linking,
   Alert,
+  Image,
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useLocalSearchParams, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useTask, useMyApplication } from "../../hooks/api/useTasks";
+import { useTask, useMyApplication, useMySubmission } from "../../hooks/api/useTasks";
 import { useTaskPaymentEvents } from "../../hooks/api/useEarnings";
 import { useAuth } from "../../providers/AuthProvider";
 import { TASK_CATEGORIES } from "../../constants/categories";
@@ -125,6 +126,7 @@ export default function TaskDetailScreen() {
   const { data: task, isLoading, isError, refetch } = useTask(id);
   const { data: myApplication } = useMyApplication(id, executor?.id ?? null);
   const { data: paymentEvents } = useTaskPaymentEvents(id);
+  const { data: mySubmission } = useMySubmission(id, executor?.id ?? undefined);
   const [showApplyModal, setShowApplyModal] = useState(false);
 
   const hasApplied = myApplication?.applied === true;
@@ -373,6 +375,61 @@ export default function TaskDetailScreen() {
             </View>
           </View>
         )}
+
+        {/* My Evidence — only visible to the executor who submitted */}
+        {isMyTask && mySubmission && currentIdx >= 3 && (() => {
+          const evidence = mySubmission.evidence || {};
+          const photoEntry = evidence.photo_geo || evidence.photo || evidence.screenshot || evidence.receipt;
+          const photoUrl = photoEntry?.url || photoEntry?.fileUrl;
+          const gps = photoEntry?.gps;
+          const textEntries = Object.entries(evidence).filter(
+            ([k]) => !["photo", "photo_geo", "screenshot", "receipt"].includes(k)
+          );
+          if (!photoUrl && textEntries.length === 0) return null;
+          return (
+            <View className="mb-4">
+              <Text className="text-gray-400 text-sm font-bold mb-3">
+                {t("task.myEvidence")}
+              </Text>
+              <View className="bg-surface rounded-2xl overflow-hidden">
+                {photoUrl && (
+                  <Pressable onPress={() => openUrl(photoUrl)}>
+                    <Image
+                      source={{ uri: photoUrl }}
+                      style={{ width: "100%", height: 200 }}
+                      resizeMode="cover"
+                    />
+                    <View className="absolute bottom-2 right-2 bg-black/60 rounded-full px-2 py-1">
+                      <Text className="text-white text-xs">Tap to view full</Text>
+                    </View>
+                  </Pressable>
+                )}
+                {gps && (
+                  <View className="px-4 py-2 border-t border-gray-800 flex-row items-center">
+                    <Text className="text-gray-500 text-xs">
+                      GPS: {gps.lat?.toFixed(5)}, {gps.lng?.toFixed(5)}
+                      {gps.accuracy ? ` (\u00B1${gps.accuracy.toFixed(0)}m)` : ""}
+                    </Text>
+                  </View>
+                )}
+                {textEntries.length > 0 && (
+                  <View className="px-4 py-3">
+                    {textEntries.map(([key, value]) => (
+                      <View key={key} className="mb-2">
+                        <Text className="text-gray-400 text-xs uppercase">
+                          {key.replace(/_/g, " ")}
+                        </Text>
+                        <Text className="text-white text-sm mt-0.5" numberOfLines={4}>
+                          {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+          );
+        })()}
 
         {/* Status Banners — show exactly one based on current state */}
         {isMyTask && task.status === "completed" && (

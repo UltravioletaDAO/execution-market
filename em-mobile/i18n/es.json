@@ -71,7 +71,8 @@
     "timelineUnderReview": "En revision por el agente",
     "timelineReviewComplete": "Revision completada",
     "timelineApproved": "Aprobada y Pagada",
-    "timelinePaymentSent": "+${{amount}} USDC enviados a tu wallet"
+    "timelinePaymentSent": "+${{amount}} USDC enviados a tu wallet",
+    "myEvidence": "Mi Evidencia"
   },
   "publish": {
     "title": "Publicar Tarea",

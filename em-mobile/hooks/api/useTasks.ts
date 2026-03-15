@@ -166,6 +166,24 @@ export function useRecentActivity(limit: number = 20) {
   });
 }
 
+/** Fetch executor's own submission for a task */
+export function useMySubmission(
+  taskId: string | undefined,
+  executorId: string | undefined
+) {
+  return useQuery({
+    queryKey: ["my_submission", taskId, executorId],
+    queryFn: async () => {
+      if (!taskId || !executorId) return null;
+      const response = await apiClient<{ data: any }>(
+        `/api/v1/workers/tasks/${taskId}/my-submission?executor_id=${executorId}`
+      );
+      return response.data || response;
+    },
+    enabled: !!taskId && !!executorId,
+  });
+}
+
 export function usePlatformConfig() {
   return useQuery({
     queryKey: ["config"],
