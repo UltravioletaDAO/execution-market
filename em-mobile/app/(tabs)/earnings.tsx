@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, Pressable, RefreshControl, Linking } from "react-native";
+import { View, Text, ScrollView, Pressable, RefreshControl, Linking, Alert } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../providers/AuthProvider";
@@ -124,7 +125,7 @@ export default function EarningsScreen() {
                 className="flex-row items-center mt-2 pt-2 border-t border-gray-800"
                 onPress={(e) => {
                   e.stopPropagation?.();
-                  Linking.openURL(getExplorerTxUrl(earning.payment_network, earning.tx_hash!));
+                  WebBrowser.openBrowserAsync(getExplorerTxUrl(earning.payment_network, earning.tx_hash!)).catch(() => Linking.openURL(getExplorerTxUrl(earning.payment_network, earning.tx_hash!)).catch(() => {}));
                 }}
               >
                 <Text className="text-blue-400 text-xs flex-1">

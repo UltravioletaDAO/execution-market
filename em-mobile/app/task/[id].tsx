@@ -5,7 +5,9 @@ import {
   Pressable,
   ActivityIndicator,
   Linking,
+  Alert,
 } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import { useLocalSearchParams, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
@@ -16,6 +18,19 @@ import { useAuth } from "../../providers/AuthProvider";
 import { TASK_CATEGORIES } from "../../constants/categories";
 import { NETWORKS, getExplorerTxUrl } from "../../constants/networks";
 import { ApplyModal } from "../../components/ApplyModal";
+
+/** Open URL safely — tries in-app browser first, falls back to Linking */
+async function openUrl(url: string) {
+  try {
+    await WebBrowser.openBrowserAsync(url);
+  } catch {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert("Error", `Could not open: ${url}`);
+    }
+  }
+}
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -91,7 +106,7 @@ function TimelineStep({
         {txHash && network && (
           <Pressable
             className="flex-row items-center mt-1"
-            onPress={() => Linking.openURL(getExplorerTxUrl(network, txHash))}
+            onPress={() => openUrl(getExplorerTxUrl(network, txHash))}
           >
             <Text className="text-blue-400 text-xs">
               {t("task.viewTx")} · {txHash.slice(0, 10)}... ↗
@@ -567,7 +582,7 @@ export default function TaskDetailScreen() {
             {paymentTx && (
               <Pressable
                 className="mt-2"
-                onPress={() => Linking.openURL(getExplorerTxUrl(task.payment_network, paymentTx))}
+                onPress={() => openUrl(getExplorerTxUrl(task.payment_network, paymentTx))}
               >
                 <Text className="text-blue-400 text-xs">
                   {t("task.viewTx")} · {paymentTx.slice(0, 10)}... ↗

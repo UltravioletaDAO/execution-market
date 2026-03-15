@@ -4,8 +4,10 @@ import {
   ScrollView,
   Pressable,
   Linking,
+  Alert,
   Image,
 } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -213,7 +215,7 @@ export default function AboutScreen() {
               className={`flex-row items-center px-4 py-3 active:bg-gray-800 ${
                 i > 0 ? "border-t border-gray-800/50" : ""
               }`}
-              onPress={() => Linking.openURL(link.url)}
+              onPress={() => WebBrowser.openBrowserAsync(link.url).catch(() => Linking.openURL(link.url).catch(() => Alert.alert("Error", `Could not open: ${link.url}`)))}
             >
               <Text style={{ fontSize: 16, marginRight: 10 }}>{link.icon}</Text>
               <View className="flex-1">
