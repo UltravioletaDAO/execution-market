@@ -240,7 +240,7 @@ jobs:
 
       - name: Build backend image
         if: needs.detect-changes.outputs.backend == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./mcp_server
           push: false
@@ -250,7 +250,7 @@ jobs:
 
       - name: Build frontend image
         if: needs.detect-changes.outputs.frontend == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./dashboard
           push: false
