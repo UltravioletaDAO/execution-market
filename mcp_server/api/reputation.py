@@ -726,6 +726,38 @@ async def rate_worker_endpoint(
             },
         )
 
+    # Persist to ratings table so mobile/dashboard can display it
+    if result.success:
+        executor_id = (task.get("executor") or {}).get("id")
+        if executor_id:
+            try:
+                stars = round(request.score / 20, 1)  # 0-100 → 0.0-5.0
+                client = db.get_client()
+                client.table("ratings").upsert(
+                    {
+                        "executor_id": executor_id,
+                        "task_id": request.task_id,
+                        "rater_id": str(auth.agent_id),
+                        "rater_type": "agent",
+                        "rating": request.score,
+                        "stars": float(stars),
+                        "comment": request.comment or None,
+                        "task_value_usdc": float(task.get("bounty", 0)),
+                        "is_public": True,
+                    },
+                    on_conflict="executor_id,task_id,rater_type",
+                ).execute()
+                logger.info(
+                    "Stored rating in ratings table: executor=%s task=%s score=%d",
+                    executor_id,
+                    request.task_id,
+                    request.score,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to store rating for task %s: %s", request.task_id, e
+                )
+
     return FeedbackResponse(
         success=result.success,
         transaction_hash=result.transaction_hash,
@@ -1002,6 +1034,53 @@ async def confirm_feedback_endpoint(
             "worker_signed": True,
         },
     )
+
+    # Persist worker→agent rating to ratings table for mobile/dashboard display
+    try:
+        task = await _get_task_or_404(request.task_id)
+        executor_id = (task.get("executor") or {}).get("id")
+        # Read score from feedback_documents
+        client = db.get_client()
+        fd_result = (
+            client.table("feedback_documents")
+            .select("score, comment")
+            .eq("task_id", request.task_id)
+            .eq("feedback_type", "agent_rating")
+            .limit(1)
+            .execute()
+        )
+        fd = fd_result.data[0] if fd_result.data else {}
+        score = fd.get("score", 85)
+        comment = fd.get("comment")
+
+        if executor_id:
+            stars = round(score / 20, 1)
+            client.table("ratings").upsert(
+                {
+                    "executor_id": executor_id,
+                    "task_id": request.task_id,
+                    "rater_id": executor_id,
+                    "rater_type": "worker",
+                    "rating": score,
+                    "stars": float(stars),
+                    "comment": comment,
+                    "task_value_usdc": float(task.get("bounty", 0)),
+                    "is_public": True,
+                },
+                on_conflict="executor_id,task_id,rater_type",
+            ).execute()
+            logger.info(
+                "Stored worker→agent rating: executor=%s task=%s score=%d",
+                executor_id,
+                request.task_id,
+                score,
+            )
+    except Exception as e:
+        logger.warning(
+            "Failed to store worker→agent rating for task %s: %s",
+            request.task_id,
+            e,
+        )
 
     return ConfirmFeedbackResponse(
         success=True,
