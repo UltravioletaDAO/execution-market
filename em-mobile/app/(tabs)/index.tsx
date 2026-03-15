@@ -313,6 +313,30 @@ export default function BrowseTasksScreen() {
         </Pressable>
       </View>
 
+      {/* Community Quick Links */}
+      <View className="flex-row px-4 gap-2 mb-1 mt-1">
+        <Pressable
+          className="flex-row items-center bg-surface rounded-full px-3.5 py-1.5"
+          style={{ borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" }}
+          onPress={() => router.push("/leaderboard")}
+        >
+          <Text style={{ fontSize: 14, marginRight: 5 }}>{"\uD83C\uDFC6"}</Text>
+          <Text className="text-gray-300 text-xs font-semibold">
+            {t("leaderboard.title")}
+          </Text>
+        </Pressable>
+        <Pressable
+          className="flex-row items-center bg-surface rounded-full px-3.5 py-1.5"
+          style={{ borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" }}
+          onPress={() => router.push("/agents")}
+        >
+          <Text style={{ fontSize: 14, marginRight: 5 }}>{"\uD83E\uDD16"}</Text>
+          <Text className="text-gray-300 text-xs font-semibold">
+            {t("agents.title")}
+          </Text>
+        </Pressable>
+      </View>
+
       {/* Category Filter */}
       <CategoryFilter
         selected={selectedCategory}

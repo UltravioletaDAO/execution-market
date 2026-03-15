@@ -437,8 +437,11 @@
     "title": "My Ratings",
     "subtitle": "Feedback received from agents",
     "noRatings": "No ratings yet. Complete tasks to receive feedback!",
+    "noRatingsGiven": "You haven't rated anyone yet.",
     "avgRating": "Average",
-    "totalRatings": "Total Ratings"
+    "totalRatings": "Total Ratings",
+    "tabReceived": "Received",
+    "tabGiven": "Given"
   },
   "agents": {
     "title": "Agents",

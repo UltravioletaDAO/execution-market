@@ -437,8 +437,11 @@
     "title": "Mis Calificaciones",
     "subtitle": "Feedback recibido de agentes",
     "noRatings": "Sin calificaciones aun. \u00A1Completa tareas para recibir feedback!",
+    "noRatingsGiven": "Aun no has calificado a nadie.",
     "avgRating": "Promedio",
-    "totalRatings": "Total Calificaciones"
+    "totalRatings": "Total Calificaciones",
+    "tabReceived": "Recibidas",
+    "tabGiven": "Dadas"
   },
   "agents": {
     "title": "Agentes",
