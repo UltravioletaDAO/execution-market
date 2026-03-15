@@ -1125,18 +1125,11 @@ async def get_available_tasks(
         if applied_ids:
             query = query.not_.in_("id", applied_ids)
 
-        if include_expired:
-            result = (
-                query.order("created_at", desc=True)
-                .range(offset, offset + limit - 1)
-                .execute()
-            )
-        else:
-            result = (
-                query.order("bounty_usd", desc=True)
-                .range(offset, offset + limit - 1)
-                .execute()
-            )
+        result = (
+            query.order("created_at", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
 
         tasks = result.data or []
 
