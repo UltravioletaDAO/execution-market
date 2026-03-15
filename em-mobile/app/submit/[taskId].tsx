@@ -396,6 +396,11 @@ export default function SubmitEvidenceScreen() {
                   <View className="h-48 bg-gray-800 items-center justify-center">
                     <Text className="text-green-400 text-lg">{"\uD83D\uDCF7"} {t("submit.photoCaptured")}</Text>
                     <Text className="text-gray-500 text-xs mt-1">{t("submit.tapToRetake")}</Text>
+                    {gpsData && (
+                      <Text className="text-gray-600 text-xs mt-1">
+                        {"\uD83D\uDCCD"} {gpsData.lat.toFixed(5)}, {gpsData.lng.toFixed(5)}
+                      </Text>
+                    )}
                   </View>
                 </Pressable>
               </View>
@@ -421,8 +426,14 @@ export default function SubmitEvidenceScreen() {
           <View className="mb-4">
             <GPSCapture onCapture={setGpsData} />
             {gpsData && (
-              <View className="mt-2 flex-row items-center">
-                <Text className="text-green-400 text-sm">{"\u2713"} {t("submit.gpsCaptured")}</Text>
+              <View className="mt-2 flex-row items-center bg-surface rounded-xl px-4 py-3">
+                <Text style={{ fontSize: 16, marginRight: 8 }}>{"\uD83D\uDCCD"}</Text>
+                <View className="flex-1">
+                  <Text className="text-green-400 text-sm">{"\u2713"} {t("submit.gpsCaptured")}</Text>
+                  <Text className="text-gray-500 text-xs mt-0.5">
+                    {gpsData.lat.toFixed(5)}, {gpsData.lng.toFixed(5)} ({"\u00B1"}{gpsData.accuracy.toFixed(0)}m)
+                  </Text>
+                </View>
               </View>
             )}
           </View>
@@ -432,8 +443,8 @@ export default function SubmitEvidenceScreen() {
             <Text style={{ fontSize: 16, marginRight: 8 }}>{"\uD83D\uDCCD"}</Text>
             <View className="flex-1">
               <Text className="text-gray-400 text-sm">{t("submit.gpsAutoCapture")}</Text>
-              <Text className="text-gray-600 text-xs">
-                {autoGps.lat.toFixed(5)}, {autoGps.lng.toFixed(5)}
+              <Text className="text-gray-500 text-xs mt-0.5">
+                {autoGps.lat.toFixed(5)}, {autoGps.lng.toFixed(5)} ({"\u00B1"}{autoGps.accuracy.toFixed(0)}m)
               </Text>
             </View>
             <Text className="text-green-400">{"\u2713"}</Text>
