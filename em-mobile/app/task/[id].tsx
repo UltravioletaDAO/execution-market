@@ -38,7 +38,9 @@ async function openUrl(url: string) {
 }
 
 function formatDate(dateStr: string): string {
+  if (!dateStr) return "—";
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
@@ -49,8 +51,10 @@ function formatDate(dateStr: string): string {
 }
 
 function formatTimeRemaining(deadline: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  if (!deadline) return "—";
   const now = new Date();
   const dl = new Date(deadline);
+  if (isNaN(dl.getTime())) return "—";
   const diffMs = dl.getTime() - now.getTime();
   if (diffMs < 0) return t("task.expired");
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -595,13 +599,13 @@ export default function TaskDetailScreen() {
         )}
 
         {/* Skills */}
-        {task.skills_required?.length > 0 && (
+        {Array.isArray(task.skills_required) && task.skills_required.length > 0 && (
           <View className="mb-4">
             <Text className="text-gray-400 text-sm font-bold mb-2">
               {t("task.skills")}
             </Text>
             <View className="flex-row flex-wrap gap-2">
-              {task.skills_required?.map((skill: string) => (
+              {task.skills_required.map((skill: string) => (
                 <View
                   key={skill}
                   className="bg-surface rounded-full px-3 py-1"
@@ -614,14 +618,14 @@ export default function TaskDetailScreen() {
         )}
 
         {/* Min Reputation */}
-        {task.min_reputation > 0 && (
+        {safeMinReputation > 0 && (
           <View className="bg-yellow-900/20 rounded-2xl p-4 mb-4">
             <Text className="text-yellow-400 font-bold">
-              &#x2B50; {t("task.minReputation")}: {task.min_reputation}
+              &#x2B50; {t("task.minReputation")}: {safeMinReputation}
             </Text>
-            {executor && executor.reputation_score < task.min_reputation && (
+            {executor && (executor.reputation_score || 0) < safeMinReputation && (
               <Text className="text-red-400 text-sm mt-1">
-                {t("task.yourReputation", { score: executor.reputation_score })}
+                {t("task.yourReputation", { score: executor.reputation_score || 0 })}
               </Text>
             )}
           </View>
@@ -639,7 +643,7 @@ export default function TaskDetailScreen() {
             onPress={() => setShowApplyModal(true)}
           >
             <Text className="text-black font-bold text-lg">
-              {t("task.apply")} · ${task.bounty_usd.toFixed(2)}
+              {t("task.apply")} · ${safeBounty.toFixed(2)}
             </Text>
           </Pressable>
         )}
@@ -683,7 +687,7 @@ export default function TaskDetailScreen() {
               {"\u2705"} {t("task.completed")}
             </Text>
             <Text className="text-gray-500 text-xs mt-1">
-              +${(task.bounty_usd * 0.87).toFixed(2)} USDC
+              +${(safeBounty * 0.87).toFixed(2)} USDC
             </Text>
             {paymentTx && (
               <Pressable
@@ -717,7 +721,7 @@ export default function TaskDetailScreen() {
           onSuccess={() => refetch()}
           taskId={task.id}
           taskTitle={task.title}
-          bounty={task.bounty_usd}
+          bounty={safeBounty}
         />
       )}
 

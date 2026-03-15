@@ -70,8 +70,55 @@ export function useAvailableTasks(filters: TaskFilters = {}) {
 export function useTask(taskId: string | undefined) {
   return useQuery<Task>({
     queryKey: ["task", taskId],
-    queryFn: () => apiClient<Task>(`/api/v1/tasks/${taskId}`),
+    queryFn: async () => {
+      // Try API first, fall back to direct Supabase query if API fails
+      // (handles cases where API returns 401/403/500 but task exists in DB)
+      try {
+        return await apiClient<Task>(`/api/v1/tasks/${taskId}`);
+      } catch (apiError) {
+        // Fallback: fetch directly from Supabase
+        const { data, error } = await supabase
+          .from("tasks")
+          .select("*")
+          .eq("id", taskId)
+          .single();
+
+        if (error || !data) {
+          // Re-throw original API error if Supabase also fails
+          throw apiError;
+        }
+
+        // Map raw Supabase row to Task shape (DB column names may differ slightly)
+        return {
+          id: data.id,
+          title: data.title ?? "",
+          instructions: data.instructions ?? "",
+          category: data.category ?? "other",
+          status: data.status ?? "published",
+          bounty_usd: typeof data.bounty_usd === "number" ? data.bounty_usd : parseFloat(data.bounty_usd) || 0,
+          deadline: data.deadline ?? new Date(Date.now() + 86400000).toISOString(),
+          created_at: data.created_at ?? new Date().toISOString(),
+          agent_id: data.agent_id ?? "",
+          executor_id: data.executor_id ?? null,
+          location_hint: data.location_hint ?? null,
+          location_lat: data.location_lat ?? null,
+          location_lng: data.location_lng ?? null,
+          min_reputation: data.min_reputation ?? 0,
+          payment_network: data.payment_network ?? "base",
+          payment_token: (data.payment_token && !data.payment_token.startsWith("0x"))
+            ? data.payment_token : "USDC",
+          evidence_schema: data.evidence_schema ?? null,
+          skills_required: data.required_capabilities ?? null,
+          erc8004_agent_id: data.erc8004_agent_id ?? null,
+          agent_name: data.metadata?.erc8004?.name ?? data.metadata?.agent_name ?? null,
+          target_executor_type: data.target_executor_type ?? null,
+          escrow_tx: data.escrow_tx ?? null,
+          payment_tx: data.payment_tx ?? null,
+        } as Task;
+      }
+    },
     enabled: !!taskId,
+    retry: 1,
   });
 }
 
