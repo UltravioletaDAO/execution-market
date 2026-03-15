@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +11,11 @@ import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../providers/AuthProvider";
-import { useRatingsHistory, RatingEntry } from "../hooks/api/useRatings";
+import {
+  useRatingsHistory,
+  useRatingsGiven,
+  RatingEntry,
+} from "../hooks/api/useRatings";
 import { ReputationBadge } from "../components/ReputationBadge";
 
 function StarRow({ stars }: { stars: number }) {
@@ -119,23 +124,106 @@ function SummaryStats({
   );
 }
 
+type TabType = "received" | "given";
+
+function TabSelector({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <View className="flex-row bg-surface rounded-xl p-1 mb-4">
+      <Pressable
+        className={`flex-1 py-2 rounded-lg items-center ${
+          activeTab === "received" ? "bg-white/10" : ""
+        }`}
+        onPress={() => onTabChange("received")}
+      >
+        <Text
+          className={`text-sm font-medium ${
+            activeTab === "received" ? "text-white" : "text-gray-500"
+          }`}
+        >
+          {t("ratings.tabReceived")}
+        </Text>
+      </Pressable>
+      <Pressable
+        className={`flex-1 py-2 rounded-lg items-center ${
+          activeTab === "given" ? "bg-white/10" : ""
+        }`}
+        onPress={() => onTabChange("given")}
+      >
+        <Text
+          className={`text-sm font-medium ${
+            activeTab === "given" ? "text-white" : "text-gray-500"
+          }`}
+        >
+          {t("ratings.tabGiven")}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <View className="items-center justify-center py-20 px-6">
+      <Text style={{ fontSize: 40 }}>{"\u2B50"}</Text>
+      <Text className="text-gray-500 text-base text-center mt-4">
+        {message}
+      </Text>
+    </View>
+  );
+}
+
 export default function RatingsScreen() {
   const { t } = useTranslation();
   const { executor } = useAuth();
   const executorId = executor?.id || null;
+  const [activeTab, setActiveTab] = useState<TabType>("received");
+
   const {
-    data: ratings,
-    isLoading,
-    refetch,
-    isRefetching,
+    data: ratingsReceived,
+    isLoading: isLoadingReceived,
+    refetch: refetchReceived,
+    isRefetching: isRefetchingReceived,
   } = useRatingsHistory(executorId);
 
-  const totalRatings = ratings?.length ?? 0;
+  const {
+    data: ratingsGiven,
+    isLoading: isLoadingGiven,
+    refetch: refetchGiven,
+    isRefetching: isRefetchingGiven,
+  } = useRatingsGiven(executorId);
+
+  const isLoading = activeTab === "received" ? isLoadingReceived : isLoadingGiven;
+  const isRefetching = activeTab === "received" ? isRefetchingReceived : isRefetchingGiven;
+  const ratings = activeTab === "received" ? ratingsReceived : ratingsGiven;
+
+  const refetch = () => {
+    if (activeTab === "received") {
+      refetchReceived();
+    } else {
+      refetchGiven();
+    }
+  };
+
+  // Summary stats are based on received ratings only
+  const totalRatings = ratingsReceived?.length ?? 0;
   const avgStars =
     totalRatings > 0
-      ? ratings!.reduce((sum, r) => sum + (r.stars ?? (r.rating / 100) * 5), 0) /
+      ? ratingsReceived!.reduce((sum, r) => sum + (r.stars ?? (r.rating / 100) * 5), 0) /
         totalRatings
       : 0;
+
+  const emptyMessage =
+    activeTab === "received"
+      ? t("ratings.noRatings")
+      : t("ratings.noRatingsGiven");
 
   return (
     <SafeAreaView className="flex-1 bg-black">
@@ -176,18 +264,16 @@ export default function RatingsScreen() {
           reputationScore={executor?.reputation_score || 0}
         />
 
+        {/* Tab Selector */}
+        <TabSelector activeTab={activeTab} onTabChange={setActiveTab} />
+
         {/* Ratings List */}
         {isLoading ? (
           <View className="items-center justify-center py-20">
             <ActivityIndicator color="#ffffff" size="large" />
           </View>
         ) : !ratings || ratings.length === 0 ? (
-          <View className="items-center justify-center py-20 px-6">
-            <Text style={{ fontSize: 40 }}>{"\u2B50"}</Text>
-            <Text className="text-gray-500 text-base text-center mt-4">
-              {t("ratings.noRatings")}
-            </Text>
-          </View>
+          <EmptyState message={emptyMessage} />
         ) : (
           <View className="mb-8">
             {ratings.map((entry) => (
