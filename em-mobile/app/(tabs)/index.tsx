@@ -365,7 +365,7 @@ export default function BrowseTasksScreen() {
           }
         >
           <View className="px-4 pt-2">
-            <TaskMap tasks={tasks || []} userLocation={location} />
+            <TaskMap tasks={(tasks || []).filter((t) => t.status === "published")} userLocation={location} />
           </View>
           {/* Compact task list below map */}
           <View className="px-4 mt-3">
