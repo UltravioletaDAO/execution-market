@@ -130,6 +130,14 @@ export default function ProfileScreen() {
 
         <Pressable
           className="bg-surface rounded-2xl px-4 py-4 mb-3 flex-row items-center justify-between"
+          onPress={() => router.push("/ratings")}
+        >
+          <Text className="text-white font-medium">{t("ratings.title")}</Text>
+          <Text className="text-gray-500">{"\u2192"}</Text>
+        </Pressable>
+
+        <Pressable
+          className="bg-surface rounded-2xl px-4 py-4 mb-3 flex-row items-center justify-between"
           onPress={() => router.push("/settings")}
         >
           <Text className="text-white font-medium">{t("profile.settings")}</Text>
