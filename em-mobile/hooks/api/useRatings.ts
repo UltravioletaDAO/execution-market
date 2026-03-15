@@ -75,6 +75,56 @@ export function useRatingsHistory(executorId: string | null) {
  * would be the executor's identifier string. We try both the executor UUID
  * and fall back gracefully.
  */
+/**
+ * Fetch ratings for a specific task (both agent→worker and worker→agent).
+ * Returns { agentRating, workerRating } where each is a RatingEntry or null.
+ */
+export function useTaskRatings(taskId: string | null) {
+  return useQuery<{ agentRating: RatingEntry | null; workerRating: RatingEntry | null }>({
+    queryKey: ["ratings", "task", taskId],
+    queryFn: async () => {
+      if (!taskId) return { agentRating: null, workerRating: null };
+
+      const { data, error } = await supabase
+        .from("ratings")
+        .select(
+          "id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at"
+        )
+        .eq("task_id", taskId)
+        .order("created_at", { ascending: true })
+        .limit(10);
+
+      if (error) {
+        console.warn(
+          "[useTaskRatings] Supabase query failed, returning empty:",
+          error.message
+        );
+        return { agentRating: null, workerRating: null };
+      }
+
+      const rows = (data || []).map((row: any) => ({
+        id: row.id,
+        executor_id: row.executor_id,
+        task_id: row.task_id,
+        rater_id: row.rater_id,
+        rater_type: row.rater_type,
+        rating: row.rating,
+        stars: row.stars,
+        comment: row.comment,
+        created_at: row.created_at,
+        task_title: null,
+      }));
+
+      return {
+        agentRating: rows.find((r) => r.rater_type === "agent") || null,
+        workerRating: rows.find((r) => r.rater_type === "worker") || null,
+      };
+    },
+    enabled: !!taskId,
+    staleTime: 60_000,
+  });
+}
+
 export function useRatingsGiven(executorId: string | null) {
   return useQuery<RatingEntry[]>({
     queryKey: ["ratings", "given", executorId],
