@@ -99,7 +99,7 @@ export default function SubmitEvidenceScreen() {
       if (photoUri) {
         const evidenceType = requiredEvidence.includes("photo_geo") ? "photo_geo" : "photo";
         const uploaded = await uploadEvidence(photoUri, taskId, evidenceType, executor.id);
-        evidence[evidenceType] = {
+        const photoPayload = {
           url: uploaded.url,
           fileUrl: uploaded.url,
           ...(gpsData && {
@@ -111,6 +111,11 @@ export default function SubmitEvidenceScreen() {
           }),
           timestamp: new Date().toISOString(),
         };
+        evidence[evidenceType] = photoPayload;
+        // If uploaded as photo_geo, also satisfy "photo" requirement with same data
+        if (evidenceType === "photo_geo" && requiredEvidence.includes("photo")) {
+          evidence.photo = photoPayload;
+        }
       }
 
       // Add GPS data if captured separately
@@ -131,7 +136,14 @@ export default function SubmitEvidenceScreen() {
       }
 
       console.log("[Submit] Evidence keys:", Object.keys(evidence));
+      console.log("[Submit] Required evidence:", requiredEvidence);
       console.log("[Submit] Evidence URLs:", Object.entries(evidence).map(([k, v]) => [k, (v as any)?.url || (v as any)?.fileUrl || "no-url"]));
+
+      // Warn if required evidence is missing
+      const missingRequired = requiredEvidence.filter((r: string) => !(r in evidence));
+      if (missingRequired.length > 0) {
+        console.warn("[Submit] MISSING required evidence:", missingRequired);
+      }
 
       // Always include submission GPS + device metadata for verification
       const submissionGps = gpsData || autoGps;
