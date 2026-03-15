@@ -180,13 +180,17 @@ function ActivityCard({ task, t }: { task: Task; t: (key: string) => string }) {
   );
 }
 
-function ActivityFeed() {
+function ActivityFeed({ categoryFilter }: { categoryFilter: string | null }) {
   const { t } = useTranslation();
   const {
-    data: activities,
+    data: rawActivities,
     isLoading,
     isError,
-  } = useRecentActivity(15);
+  } = useRecentActivity(30);
+
+  const activities = categoryFilter
+    ? rawActivities?.filter((task) => task.category === categoryFilter)
+    : rawActivities?.slice(0, 15);
 
   if (isLoading) {
     return (
@@ -256,13 +260,22 @@ export default function BrowseTasksScreen() {
   return (
     <SafeAreaView className="flex-1 bg-black">
       {/* Header */}
-      <View className="px-4 pt-4 pb-1">
-        <Text className="text-white text-2xl font-bold">
-          {t("browse.title")}
-        </Text>
-        <Text className="text-gray-500 text-sm mt-0.5">
-          {t("browse.subtitle")}
-        </Text>
+      <View className="flex-row items-start justify-between px-4 pt-4 pb-1">
+        <View>
+          <Text className="text-white text-2xl font-bold">
+            {t("browse.title")}
+          </Text>
+          <Text className="text-gray-500 text-sm mt-0.5">
+            {t("browse.subtitle")}
+          </Text>
+        </View>
+        <Pressable
+          className="w-8 h-8 rounded-full bg-surface items-center justify-center mt-1"
+          style={{ borderWidth: 1, borderColor: "#333" }}
+          onPress={() => router.push("/about")}
+        >
+          <Text className="text-gray-400 font-bold text-sm">?</Text>
+        </Pressable>
       </View>
 
       {/* View Mode Toggle */}
@@ -380,7 +393,7 @@ export default function BrowseTasksScreen() {
         >
           {/* Activity Feed */}
           <View className="-mx-4 -mt-1">
-            <ActivityFeed />
+            <ActivityFeed categoryFilter={selectedCategory} />
           </View>
 
           {/* Separator */}

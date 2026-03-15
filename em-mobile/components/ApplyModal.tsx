@@ -1,4 +1,4 @@
-import { View, Text, Pressable, TextInput, Modal, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApplyToTask } from "../hooks/api/useTasks";
@@ -82,68 +82,79 @@ export function ApplyModal({ visible, onClose, onSuccess, taskId, taskTitle, bou
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <View className="flex-1 justify-end">
-        <Pressable className="flex-1" onPress={handleClose} />
-        <View className="bg-surface-light rounded-t-3xl px-6 pt-6 pb-10">
-          <View className="w-12 h-1 bg-gray-600 rounded-full self-center mb-6" />
-
-          <Text className="text-white text-xl font-bold mb-2">
-            {t("apply.title")}
-          </Text>
-          <Text className="text-gray-400 text-sm mb-4" numberOfLines={2}>
-            {taskTitle}
-          </Text>
-
-          <View className="bg-green-900/30 rounded-2xl p-4 mb-4 items-center">
-            <Text className="text-green-400 text-2xl font-bold">
-              ${bounty.toFixed(2)} USDC
-            </Text>
-            <Text className="text-gray-400 text-xs mt-1">{t("apply.reward")}</Text>
-          </View>
-
-          <Text className="text-gray-400 text-sm mb-2">
-            {t("apply.messageLabel")}
-          </Text>
-          <TextInput
-            className="bg-surface rounded-xl px-4 py-3 text-white mb-4"
-            placeholder={t("apply.messagePlaceholder")}
-            placeholderTextColor="#666"
-            value={message}
-            onChangeText={setMessage}
-            multiline
-            numberOfLines={3}
-            style={{ minHeight: 80, textAlignVertical: "top" }}
-          />
-
-          {applyMutation.isError && (
-            <View className="bg-red-900/30 rounded-xl p-3 mb-4">
-              <Text className="text-red-400 text-sm">
-                {(applyMutation.error as Error)?.message || t("apply.applyError")}
-              </Text>
-            </View>
-          )}
-
-          <Pressable
-            className={`rounded-2xl py-4 items-center ${
-              applyMutation.isPending ? "bg-gray-700" : "bg-white"
-            }`}
-            onPress={handleApply}
-            disabled={applyMutation.isPending}
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View className="flex-1 justify-end">
+          <Pressable className="flex-1" onPress={handleClose} />
+          <ScrollView
+            bounces={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ flexGrow: 0 }}
           >
-            {applyMutation.isPending ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text className="text-black font-bold text-lg">
-                {t("apply.applyButton")}
-              </Text>
-            )}
-          </Pressable>
+            <View className="bg-surface-light rounded-t-3xl px-6 pt-6 pb-10">
+              <View className="w-12 h-1 bg-gray-600 rounded-full self-center mb-6" />
 
-          <Pressable className="py-3 items-center mt-2" onPress={handleClose}>
-            <Text className="text-gray-400">{t("common.cancel")}</Text>
-          </Pressable>
+              <Text className="text-white text-xl font-bold mb-2">
+                {t("apply.title")}
+              </Text>
+              <Text className="text-gray-400 text-sm mb-4" numberOfLines={2}>
+                {taskTitle}
+              </Text>
+
+              <View className="bg-green-900/30 rounded-2xl p-4 mb-4 items-center">
+                <Text className="text-green-400 text-2xl font-bold">
+                  ${bounty.toFixed(2)} USDC
+                </Text>
+                <Text className="text-gray-400 text-xs mt-1">{t("apply.reward")}</Text>
+              </View>
+
+              <Text className="text-gray-400 text-sm mb-2">
+                {t("apply.messageLabel")}
+              </Text>
+              <TextInput
+                className="bg-surface rounded-xl px-4 py-3 text-white mb-4"
+                placeholder={t("apply.messagePlaceholder")}
+                placeholderTextColor="#666"
+                value={message}
+                onChangeText={setMessage}
+                multiline
+                numberOfLines={3}
+                style={{ minHeight: 80, textAlignVertical: "top" }}
+              />
+
+              {applyMutation.isError && (
+                <View className="bg-red-900/30 rounded-xl p-3 mb-4">
+                  <Text className="text-red-400 text-sm">
+                    {(applyMutation.error as Error)?.message || t("apply.applyError")}
+                  </Text>
+                </View>
+              )}
+
+              <Pressable
+                className={`rounded-2xl py-4 items-center ${
+                  applyMutation.isPending ? "bg-gray-700" : "bg-white"
+                }`}
+                onPress={handleApply}
+                disabled={applyMutation.isPending}
+              >
+                {applyMutation.isPending ? (
+                  <ActivityIndicator color="#000" />
+                ) : (
+                  <Text className="text-black font-bold text-lg">
+                    {t("apply.applyButton")}
+                  </Text>
+                )}
+              </Pressable>
+
+              <Pressable className="py-3 items-center mt-2" onPress={handleClose}>
+                <Text className="text-gray-400">{t("common.cancel")}</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

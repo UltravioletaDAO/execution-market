@@ -123,18 +123,16 @@ async def presign_upload(
     ]
 
     s3 = _get_s3()
+    # NOTE: Do NOT include Metadata in presign Params — any x-amz-meta-*
+    # headers become part of the signature, and the mobile client would need
+    # to send identical headers or S3 returns 403 SignatureDoesNotMatch.
+    # Metadata (task_id, executor_id, nonce) is already tracked server-side.
     upload_url = s3.generate_presigned_url(
         ClientMethod="put_object",
         Params={
             "Bucket": EVIDENCE_BUCKET,
             "Key": key,
             "ContentType": content_type,
-            "Metadata": {
-                "upload-nonce": nonce,
-                "evidence-type": _safe_slug(evidence_type),
-                "task-id": _safe_slug(task_id),
-                "executor-id": _safe_slug(executor_id),
-            },
         },
         ExpiresIn=PRESIGN_EXPIRES_UPLOAD,
     )

@@ -14,7 +14,8 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingHorizontal: 8, gap: 4 }}
+      style={{ flexGrow: 0, marginVertical: 6 }}
+      contentContainerStyle={{ paddingHorizontal: 16, gap: 6, alignItems: "center" }}
     >
       {/* All button */}
       <Pressable

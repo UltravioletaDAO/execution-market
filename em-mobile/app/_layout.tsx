@@ -37,7 +37,9 @@ function RootNavigator() {
   // 2. Authenticated + profile incomplete → complete profile
   // 3. Otherwise → tabs (task list); unauthenticated users who finished
   //    onboarding land here and can connect wallet via Dynamic
-  const needsOnboarding = !onboardingDone && !isAuthenticated;
+  // Show onboarding wizard when user hasn't completed/skipped it
+  // Flag is cleared on logout so returning users see it again
+  const needsOnboarding = !onboardingDone;
   const needsProfile = isAuthenticated && !isProfileComplete;
 
   return (
@@ -79,6 +81,10 @@ function RootNavigator() {
           options={{ presentation: "modal" }}
         />
         <Stack.Screen name="settings" />
+        <Stack.Screen
+          name="about"
+          options={{ presentation: "modal" }}
+        />
       </Stack>
     </>
   );

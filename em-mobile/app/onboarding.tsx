@@ -12,6 +12,46 @@ import { useState, useRef, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 
+const LANGUAGE_KEY = "em_language";
+
+function LanguageToggle() {
+  const { i18n } = useTranslation();
+  const isEn = i18n.language === "en";
+
+  const toggle = useCallback(async () => {
+    const next = isEn ? "es" : "en";
+    await i18n.changeLanguage(next);
+    await AsyncStorage.setItem(LANGUAGE_KEY, next);
+  }, [isEn, i18n]);
+
+  return (
+    <Pressable
+      onPress={toggle}
+      className="flex-row items-center rounded-full bg-gray-900"
+      style={{ borderWidth: 1, borderColor: "#333", paddingHorizontal: 2, paddingVertical: 2 }}
+    >
+      <View
+        className={`rounded-full px-2.5 py-1 ${isEn ? "bg-white" : ""}`}
+      >
+        <Text
+          className={`text-xs font-bold ${isEn ? "text-black" : "text-gray-500"}`}
+        >
+          EN
+        </Text>
+      </View>
+      <View
+        className={`rounded-full px-2.5 py-1 ${!isEn ? "bg-white" : ""}`}
+      >
+        <Text
+          className={`text-xs font-bold ${!isEn ? "text-black" : "text-gray-500"}`}
+        >
+          ES
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 const { width } = Dimensions.get("window");
 
 // ---------------------------------------------------------------------------
@@ -373,6 +413,11 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-black">
+      {/* Language selector */}
+      <View className="flex-row justify-end px-4 pt-2">
+        <LanguageToggle />
+      </View>
+
       <FlatList
         ref={flatListRef}
         data={SLIDE_COMPONENTS}

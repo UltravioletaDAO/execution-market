@@ -267,15 +267,28 @@ export default function TaskDetailScreen() {
               </Text>
             </View>
             <View className="items-end">
-              <Text className="text-gray-400 text-xs">
-                {t("task.deadline")}
-              </Text>
-              <Text className="text-yellow-400 font-bold">
-                {formatTimeRemaining(task.deadline, t)}
-              </Text>
-              <Text className="text-gray-500 text-xs">
-                {formatDate(task.deadline)}
-              </Text>
+              {["completed", "cancelled", "expired", "disputed"].includes(task.status) ? (
+                <>
+                  <Text className="text-gray-400 text-xs">
+                    {t("task.deadline")}
+                  </Text>
+                  <Text className="text-gray-500 text-sm">
+                    {formatDate(task.deadline)}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text className="text-gray-400 text-xs">
+                    {t("task.deadline")}
+                  </Text>
+                  <Text className="text-yellow-400 font-bold">
+                    {formatTimeRemaining(task.deadline, t)}
+                  </Text>
+                  <Text className="text-gray-500 text-xs">
+                    {formatDate(task.deadline)}
+                  </Text>
+                </>
+              )}
             </View>
           </View>
           {network && (
