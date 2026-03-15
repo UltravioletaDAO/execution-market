@@ -405,5 +405,23 @@
     "title": "Page not found",
     "description": "The link you followed does not exist or has expired",
     "goHome": "Go to Home"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "subtitle": "Top executors by reputation",
+    "rank": "#{{rank}}",
+    "tasksCompleted": "{{count}} tasks",
+    "noWorkers": "No ranked workers yet",
+    "viewAll": "View All"
+  },
+  "reputation": {
+    "legendary": "Legendary",
+    "expert": "Expert",
+    "intermediate": "Intermediate",
+    "novice": "Novice",
+    "score": "Score",
+    "rateAgent": "Rate Agent",
+    "rateComplete": "Rating submitted",
+    "alreadyRated": "Already rated"
   }
 }

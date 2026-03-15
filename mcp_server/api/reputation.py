@@ -194,6 +194,19 @@ class ConfirmFeedbackResponse(BaseModel):
     error: Optional[str] = None
 
 
+class LeaderboardEntry(BaseModel):
+    """A single entry in the reputation leaderboard."""
+
+    id: str
+    display_name: Optional[str] = None
+    reputation_score: float
+    tier: Optional[str] = None
+    tasks_completed: int
+    avg_rating: Optional[float] = None
+    rank: int
+    badges_count: int = 0
+
+
 class ERC8004InfoResponse(BaseModel):
     """ERC-8004 integration status and info."""
 
@@ -250,6 +263,24 @@ class RegisterAgentResponse(BaseModel):
 # =============================================================================
 # PUBLIC ENDPOINTS
 # =============================================================================
+
+
+@router.get("/leaderboard")
+async def get_leaderboard(limit: int = 20, offset: int = 0) -> Dict[str, Any]:
+    """Top workers ranked by reputation score."""
+    client = db.get_client()
+    result = (
+        client.table("reputation_leaderboard")
+        .select("*")
+        .limit(limit)
+        .offset(offset)
+        .execute()
+    )
+    entries = result.data or []
+    return {
+        "workers": [LeaderboardEntry(**r).dict() for r in entries],
+        "count": len(entries),
+    }
 
 
 @router.get(

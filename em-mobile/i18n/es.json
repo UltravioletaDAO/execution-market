@@ -405,5 +405,23 @@
     "title": "Pagina no encontrada",
     "description": "El enlace que seguiste no existe o ha expirado",
     "goHome": "Ir al Inicio"
+  },
+  "leaderboard": {
+    "title": "Tabla de Posiciones",
+    "subtitle": "Mejores ejecutores por reputacion",
+    "rank": "#{{rank}}",
+    "tasksCompleted": "{{count}} tareas",
+    "noWorkers": "Aun no hay ejecutores clasificados",
+    "viewAll": "Ver Todos"
+  },
+  "reputation": {
+    "legendary": "Legendario",
+    "expert": "Experto",
+    "intermediate": "Intermedio",
+    "novice": "Novato",
+    "score": "Puntuacion",
+    "rateAgent": "Calificar Agente",
+    "rateComplete": "Calificacion enviada",
+    "alreadyRated": "Ya calificado"
   }
 }

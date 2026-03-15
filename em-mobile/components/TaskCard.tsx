@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import type { Task } from "../hooks/api/useTasks";
 import { TASK_CATEGORIES } from "../constants/categories";
 import { NETWORKS } from "../constants/networks";
+import { ReputationBadge } from "./ReputationBadge";
+import { useAgentReputation } from "../hooks/api/useReputation";
 
 function formatDeadline(deadline: string, t: (key: string) => string): string {
   const now = new Date();
@@ -34,6 +36,7 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
   const { t } = useTranslation();
   const category = TASK_CATEGORIES.find((c) => c.key === task.category);
   const network = NETWORKS.find((n) => n.key === task.payment_network);
+  const { data: agentRep } = useAgentReputation(task.erc8004_agent_id);
 
   return (
     <Pressable
@@ -124,11 +127,32 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
         </View>
       )}
 
+      {/* Agent info with real reputation score */}
+      {task.agent_name && (
+        <View className="flex-row items-center justify-between mt-2">
+          <View className="flex-row items-center flex-1">
+            <Text className="text-gray-500 text-xs" numberOfLines={1}>
+              {t("browse.postedBy")} {task.agent_name}
+            </Text>
+            {task.erc8004_agent_id && (
+              <View className="bg-blue-900/30 rounded-full px-2 py-0.5 ml-2">
+                <Text className="text-blue-400 text-xs font-medium">
+                  #{task.erc8004_agent_id}
+                </Text>
+              </View>
+            )}
+          </View>
+          {agentRep && agentRep.score > 0 && (
+            <ReputationBadge score={agentRep.score} size="sm" />
+          )}
+        </View>
+      )}
+
       {/* Min reputation */}
       {task.min_reputation > 0 && (
         <View className="mt-2">
           <Text className="text-yellow-500 text-xs">
-            ⭐ {t("task.minReputation")}: {task.min_reputation}
+            {t("task.minReputation")}: {task.min_reputation}
           </Text>
         </View>
       )}

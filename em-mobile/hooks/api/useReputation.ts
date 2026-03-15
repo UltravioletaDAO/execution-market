@@ -1,0 +1,43 @@
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "../../lib/api";
+
+export interface LeaderboardEntry {
+  id: string;
+  display_name: string | null;
+  reputation_score: number;
+  tier: string | null;
+  tasks_completed: number;
+  avg_rating: number | null;
+  rank: number;
+  badges_count: number;
+}
+
+export interface AgentReputation {
+  agent_id: number;
+  count: number;
+  score: number;
+  network: string;
+}
+
+export function useLeaderboard(limit: number = 20) {
+  return useQuery<LeaderboardEntry[]>({
+    queryKey: ["leaderboard", limit],
+    queryFn: async () => {
+      const response = await apiClient<{ workers: LeaderboardEntry[] }>(
+        `/api/v1/reputation/leaderboard?limit=${limit}`
+      );
+      return response.workers || [];
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useAgentReputation(agentId: number | null) {
+  return useQuery<AgentReputation>({
+    queryKey: ["agent_reputation", agentId],
+    queryFn: () =>
+      apiClient<AgentReputation>(`/api/v1/reputation/agents/${agentId}`),
+    enabled: !!agentId,
+    staleTime: 5 * 60_000,
+  });
+}

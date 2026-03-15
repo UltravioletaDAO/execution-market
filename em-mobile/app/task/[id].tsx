@@ -19,6 +19,10 @@ import { useAuth } from "../../providers/AuthProvider";
 import { TASK_CATEGORIES } from "../../constants/categories";
 import { NETWORKS, getExplorerTxUrl } from "../../constants/networks";
 import { ApplyModal } from "../../components/ApplyModal";
+import { RateAgentModal } from "../../components/RateAgentModal";
+import { ReputationBadge } from "../../components/ReputationBadge";
+import { useAgentReputation } from "../../hooks/api/useReputation";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /** Open URL safely — tries in-app browser first, falls back to Linking */
 async function openUrl(url: string) {
@@ -127,10 +131,35 @@ export default function TaskDetailScreen() {
   const { data: myApplication } = useMyApplication(id, executor?.id ?? null);
   const { data: paymentEvents } = useTaskPaymentEvents(id);
   const { data: mySubmission } = useMySubmission(id, executor?.id ?? undefined);
+  const { data: agentRep } = useAgentReputation(task?.erc8004_agent_id ?? null);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showRateModal, setShowRateModal] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
 
   const hasApplied = myApplication?.applied === true;
   const isMyTask = !!(executor && task && task.executor_id === executor.id);
+
+  // Auto-show rating modal when task is completed (one-time)
+  useEffect(() => {
+    if (!task || !isMyTask || task.status !== "completed") return;
+    const key = `rated_agent_${task.id}`;
+    AsyncStorage.getItem(key).then((val) => {
+      if (!val) {
+        // Small delay so user sees the completion state first
+        setTimeout(() => setShowRateModal(true), 1500);
+      } else {
+        setHasRated(true);
+      }
+    });
+  }, [task?.status, isMyTask, task?.id]);
+
+  const handleRateComplete = () => {
+    setShowRateModal(false);
+    setHasRated(true);
+    if (task) {
+      AsyncStorage.setItem(`rated_agent_${task.id}`, "true");
+    }
+  };
 
   // Auto-refresh task status every 10s when waiting for review/assignment
   // MUST be before any early returns (Rules of Hooks)
@@ -262,12 +291,17 @@ export default function TaskDetailScreen() {
           {task.title}
         </Text>
 
-        {/* Agent info */}
+        {/* Agent info with reputation */}
         {task.agent_name && (
-          <Text className="text-gray-500 text-sm mb-4">
-            {t("task.postedBy", { name: task.agent_name })}
-            {task.erc8004_agent_id && ` (Agent #${task.erc8004_agent_id})`}
-          </Text>
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-gray-500 text-sm flex-1">
+              {t("task.postedBy", { name: task.agent_name })}
+              {task.erc8004_agent_id && ` (Agent #${task.erc8004_agent_id})`}
+            </Text>
+            {agentRep && agentRep.score > 0 && (
+              <ReputationBadge score={agentRep.score} size="md" />
+            )}
+          </View>
         )}
 
         {/* Bounty + Network Card */}
@@ -669,6 +703,16 @@ export default function TaskDetailScreen() {
           taskId={task.id}
           taskTitle={task.title}
           bounty={task.bounty_usd}
+        />
+      )}
+
+      {task && task.erc8004_agent_id && (
+        <RateAgentModal
+          visible={showRateModal}
+          onClose={handleRateComplete}
+          taskId={task.id}
+          agentId={task.erc8004_agent_id}
+          agentName={task.agent_name || undefined}
         />
       )}
     </SafeAreaView>
