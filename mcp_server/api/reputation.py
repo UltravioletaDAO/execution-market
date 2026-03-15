@@ -274,8 +274,6 @@ async def get_leaderboard(limit: int = 20, offset: int = 0) -> Dict[str, Any]:
     result = (
         client.table("executors")
         .select("id,display_name,reputation_score,tier,tasks_completed,avg_rating")
-        .eq("status", "active")
-        .gt("tasks_completed", 0)
         .order("reputation_score", desc=True)
         .order("tasks_completed", desc=True)
         .limit(limit)

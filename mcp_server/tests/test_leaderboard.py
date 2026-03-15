@@ -71,13 +71,11 @@ def _mock_supabase_response(data):
 
 
 def _make_chain(data):
-    """Return a mock that supports .table().select().eq().gt().order().order().limit().offset().execute().
+    """Return a mock that supports .table().select().order().order().limit().offset().execute().
 
     The leaderboard endpoint queries the executors table directly:
         client.table("executors")
             .select(...)
-            .eq("status", "active")
-            .gt("tasks_completed", 0)
             .order("reputation_score", desc=True)
             .order("tasks_completed", desc=True)
             .limit(limit)
@@ -93,12 +91,8 @@ def _make_chain(data):
     order2.limit = MagicMock(return_value=limit_mock)
     order1 = MagicMock()
     order1.order = MagicMock(return_value=order2)
-    gt_mock = MagicMock()
-    gt_mock.order = MagicMock(return_value=order1)
-    eq_mock = MagicMock()
-    eq_mock.gt = MagicMock(return_value=gt_mock)
     select = MagicMock()
-    select.eq = MagicMock(return_value=eq_mock)
+    select.order = MagicMock(return_value=order1)
     table = MagicMock()
     table.select = MagicMock(return_value=select)
     client = MagicMock()
@@ -106,8 +100,6 @@ def _make_chain(data):
     return client, {
         "table": table,
         "select": select,
-        "eq": eq_mock,
-        "gt": gt_mock,
         "order1": order1,
         "order2": order2,
         "limit": limit_mock,
