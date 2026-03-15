@@ -754,6 +754,31 @@ async def em_publish_task(params: PublishTaskInput) -> str:
             except Exception as e:
                 logger.warning(f"Could not calculate fees: {e}")
 
+        # Auto-geocode location_hint if no explicit coordinates provided
+        _loc_lat = params.location_lat
+        _loc_lng = params.location_lng
+        _loc_radius = params.location_radius_km
+        if params.location_hint and (_loc_lat is None or _loc_lng is None):
+            try:
+                from integrations.geocoding import geocode_location
+
+                geo = await geocode_location(params.location_hint)
+                if geo:
+                    _loc_lat = geo.lat
+                    _loc_lng = geo.lng
+                    _loc_radius = geo.radius_km
+                    logger.info(
+                        "[MCP] Auto-geocoded '%s' -> (%s, %s) radius=%skm",
+                        params.location_hint,
+                        geo.lat,
+                        geo.lng,
+                        geo.radius_km,
+                    )
+            except Exception as e:
+                logger.warning(
+                    "[MCP] Geocoding failed for '%s': %s", params.location_hint, e
+                )
+
         task = await db.create_task(
             agent_id=params.agent_id,
             title=params.title,
@@ -769,6 +794,9 @@ async def em_publish_task(params: PublishTaskInput) -> str:
             min_reputation=params.min_reputation or 0,
             payment_token=params.payment_token or "USDC",
             payment_network=params.payment_network or "base",
+            location_lat=_loc_lat,
+            location_lng=_loc_lng,
+            location_radius_km=_loc_radius,
         )
 
         # Payment authorization via dispatcher (mode-dependent)

@@ -522,6 +522,31 @@ async def create_task(
         # Calculate deadline
         deadline = datetime.now(timezone.utc) + timedelta(hours=request.deadline_hours)
 
+        # Auto-geocode location_hint if no explicit coordinates provided
+        location_lat = request.location_lat
+        location_lng = request.location_lng
+        location_radius_km = None
+        if request.location_hint and (location_lat is None or location_lng is None):
+            try:
+                from integrations.geocoding import geocode_location
+
+                geo = await geocode_location(request.location_hint)
+                if geo:
+                    location_lat = geo.lat
+                    location_lng = geo.lng
+                    location_radius_km = geo.radius_km
+                    logger.info(
+                        "[Task] Auto-geocoded '%s' -> (%s, %s) radius=%skm",
+                        request.location_hint,
+                        geo.lat,
+                        geo.lng,
+                        geo.radius_km,
+                    )
+            except Exception as e:
+                logger.warning(
+                    "[Task] Geocoding failed for '%s': %s", request.location_hint, e
+                )
+
         # Create task
         task = await db.create_task(
             agent_id=auth.agent_id,
@@ -540,6 +565,9 @@ async def create_task(
             if request.target_executor
             else None,
             skills_required=request.skills_required,
+            location_lat=location_lat,
+            location_lng=location_lng,
+            location_radius_km=location_radius_km,
         )
 
         # ---- Persist ERC-8004 identity on the task record ---------------

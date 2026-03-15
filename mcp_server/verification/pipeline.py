@@ -114,7 +114,9 @@ async def run_verification_pipeline(
     if gps_result:
         checks.append(gps_result)
     elif category in PHYSICAL_CATEGORIES:
-        warnings.append("GPS check skipped: task has no location coordinates")
+        warnings.append(
+            "GPS check skipped: task has no location coordinates. Agent should include location_lat/location_lng or location_hint when publishing tasks requiring physical presence."
+        )
 
     # --- Check 3: Timestamp / submission window ---
     timestamp_result = _run_timestamp_check(submission, task)
@@ -244,12 +246,16 @@ def _run_gps_check(
                 reason="GPS not required for this task category",
             )
 
-    # Distance threshold based on category
-    max_distance = 500  # default 500m
-    if category == "physical_presence":
+    # Distance threshold: use task-specific radius if set, otherwise category defaults
+    task_radius_km = task.get("location_radius_km")
+    if task_radius_km is not None and task_radius_km > 0:
+        max_distance = task_radius_km * 1000  # Convert km to meters
+    elif category == "physical_presence":
         max_distance = 500
     elif category == "simple_action":
         max_distance = 1000  # more lenient for delivery tasks
+    else:
+        max_distance = 500
 
     result: GPSResult = check_gps_location(
         photo_lat=photo_lat,

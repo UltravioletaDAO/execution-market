@@ -115,6 +115,9 @@ async def create_task(
     payment_network: str = "base",
     target_executor_type: Optional[str] = None,
     skills_required: Optional[List[str]] = None,
+    location_lat: Optional[float] = None,
+    location_lng: Optional[float] = None,
+    location_radius_km: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Create a new task in the database."""
     client = get_client()
@@ -143,6 +146,11 @@ async def create_task(
         task_data["target_executor_type"] = target_executor_type
     if skills_required:
         task_data["required_capabilities"] = skills_required
+    if location_lat is not None and location_lng is not None:
+        task_data["location_lat"] = location_lat
+        task_data["location_lng"] = location_lng
+    if location_radius_km is not None:
+        task_data["location_radius_km"] = location_radius_km
 
     result = client.table("tasks").insert(task_data).execute()
 

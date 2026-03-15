@@ -175,6 +175,23 @@ class PublishTaskInput(BaseModel):
         description="Location hint for the task (e.g., 'Mexico City downtown')",
         max_length=255,
     )
+    location_lat: Optional[float] = Field(
+        default=None,
+        description="Expected latitude for GPS verification (-90 to 90). If not provided but location_hint is given, coordinates will be geocoded automatically.",
+        ge=-90,
+        le=90,
+    )
+    location_lng: Optional[float] = Field(
+        default=None,
+        description="Expected longitude for GPS verification (-180 to 180). If not provided but location_hint is given, coordinates will be geocoded automatically.",
+        ge=-180,
+        le=180,
+    )
+    location_radius_km: Optional[float] = Field(
+        default=None,
+        description="Geofencing radius in kilometers. Defaults to 10km for cities, 1km for addresses.",
+        gt=0,
+    )
     min_reputation: Optional[int] = Field(
         default=0, description="Minimum reputation required", ge=0
     )
