@@ -298,7 +298,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Download rollback info
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: rollback-info
 
