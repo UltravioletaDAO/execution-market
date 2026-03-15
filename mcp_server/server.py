@@ -1373,12 +1373,20 @@ The task has been marked as completed and the executor will receive payment."""
                     payment_info.get("net_to_worker") or payment_info.get("amount") or 0
                 )
                 fee_amount = payment_info.get("platform_fee") or 0
+                task_network = (
+                    (task.get("payment_network") or "base") if task else "base"
+                )
+                from api.routers._helpers import _build_explorer_url
+
+                explorer_url = _build_explorer_url(str(tx_hash), task_network) or ""
                 response += f"""
 
 ## Payment Details
 - **Worker Payment**: ${float(worker_amount):.2f}
 - **Platform Fee**: ${float(fee_amount):.2f}
-- **Transaction**: `{str(tx_hash)[:16]}...`"""
+- **Transaction**: `{str(tx_hash)}`
+- **Explorer**: {explorer_url}
+- **Network**: {task_network}"""
         else:
             response += "\nThe executor has been notified of your decision."
 
