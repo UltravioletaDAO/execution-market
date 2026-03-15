@@ -1001,61 +1001,99 @@ async def get_agent_directory(
             logger.warning("Failed to query executor agents: %s", e)
 
         # --- 2. Query publisher agents from tasks ---
-        publisher_map: dict = {}  # wallet_lower -> stats
+        # We query ALL tasks that have an agent_id, regardless of publisher_type.
+        # This catches AI agents that published tasks but aren't registered as executors.
+        # Deduplication is done by erc8004_agent_id when available, falling back to agent_id.
+        publisher_map: dict = {}  # dedup_key -> stats
+        _erc8004_to_key: dict = {}  # erc8004_agent_id -> dedup_key (for cross-source dedup)
         try:
-            # Get all tasks NOT published by humans, grouped by agent_id
-            pub_query = (
-                client.table("tasks")
-                .select("agent_id, bounty_usd, status, agent_name, erc8004_agent_id")
-                .neq("publisher_type", "human")
+            pub_query = client.table("tasks").select(
+                "agent_id, bounty_usd, status, agent_name, erc8004_agent_id, publisher_type"
             )
             pub_result = pub_query.execute()
             for row in pub_result.data or []:
                 agent_id = (row.get("agent_id") or "").lower()
                 if not agent_id:
                     continue
-                if agent_id not in publisher_map:
-                    publisher_map[agent_id] = {
+                # Skip human-published tasks
+                pub_type = row.get("publisher_type")
+                if pub_type == "human":
+                    continue
+
+                erc_id = _parse_int_safe(row.get("erc8004_agent_id")) or None
+
+                # Determine dedup key: prefer erc8004_agent_id to merge
+                # tasks from the same on-chain agent across different wallets
+                if erc_id and erc_id in _erc8004_to_key:
+                    dedup_key = _erc8004_to_key[erc_id]
+                elif erc_id:
+                    dedup_key = agent_id
+                    _erc8004_to_key[erc_id] = dedup_key
+                else:
+                    dedup_key = agent_id
+
+                if dedup_key not in publisher_map:
+                    publisher_map[dedup_key] = {
                         "tasks_published": 0,
                         "total_bounty_usd": 0.0,
                         "active_tasks": 0,
                         "agent_name": row.get("agent_name"),
-                        "erc8004_agent_id": row.get("erc8004_agent_id"),
+                        "erc8004_agent_id": erc_id,
                     }
-                publisher_map[agent_id]["tasks_published"] += 1
-                publisher_map[agent_id]["total_bounty_usd"] += float(
+                publisher_map[dedup_key]["tasks_published"] += 1
+                publisher_map[dedup_key]["total_bounty_usd"] += float(
                     row.get("bounty_usd", 0) or 0
                 )
+                # Prefer a non-None agent_name over existing
+                if row.get("agent_name") and not publisher_map[dedup_key].get(
+                    "agent_name"
+                ):
+                    publisher_map[dedup_key]["agent_name"] = row["agent_name"]
+                # Backfill erc8004_agent_id if we didn't have it
+                if erc_id and not publisher_map[dedup_key].get("erc8004_agent_id"):
+                    publisher_map[dedup_key]["erc8004_agent_id"] = erc_id
                 status = row.get("status", "")
                 if status in ("published", "accepted", "in_progress"):
-                    publisher_map[agent_id]["active_tasks"] += 1
+                    publisher_map[dedup_key]["active_tasks"] += 1
         except Exception as e:
             logger.warning("Failed to query publisher tasks: %s", e)
 
         # --- 3. Merge datasets ---
+        # Dedup across both sources using erc8004_agent_id when available.
         merged: dict = {}
+        _erc8004_to_merged_key: dict = {}  # erc8004_agent_id -> merged key
 
         # Add executors
         for wallet, data in executor_map.items():
+            erc_id = _parse_int_safe(data.get("erc8004_agent_id")) or None
             merged[wallet] = data.copy()
+            if erc_id:
+                _erc8004_to_merged_key[erc_id] = wallet
 
-        # Add/merge publishers
+        # Add/merge publishers — match by wallet key OR erc8004_agent_id
         for agent_id, stats in publisher_map.items():
+            erc_id = stats.get("erc8004_agent_id")
+
+            # Find existing merged entry: direct key match or erc8004 cross-match
+            merge_target = None
             if agent_id in merged:
+                merge_target = agent_id
+            elif erc_id and erc_id in _erc8004_to_merged_key:
+                merge_target = _erc8004_to_merged_key[erc_id]
+
+            if merge_target is not None:
                 # Agent exists as executor — merge publisher stats
-                merged[agent_id]["is_publisher"] = True
-                merged[agent_id]["tasks_published"] = stats["tasks_published"]
-                merged[agent_id]["total_bounty_usd"] = stats["total_bounty_usd"]
-                merged[agent_id]["active_tasks"] = stats["active_tasks"]
-                if stats.get("erc8004_agent_id") and not merged[agent_id].get(
-                    "erc8004_agent_id"
-                ):
-                    merged[agent_id]["erc8004_agent_id"] = _parse_int_safe(
-                        stats["erc8004_agent_id"]
-                    )
+                merged[merge_target]["is_publisher"] = True
+                merged[merge_target]["tasks_published"] = stats["tasks_published"]
+                merged[merge_target]["total_bounty_usd"] = stats["total_bounty_usd"]
+                merged[merge_target]["active_tasks"] = stats["active_tasks"]
+                if erc_id and not merged[merge_target].get("erc8004_agent_id"):
+                    merged[merge_target]["erc8004_agent_id"] = erc_id
             else:
-                # Publisher-only agent — create entry
-                display = stats.get("agent_name") or _format_wallet_display(agent_id)
+                # Publisher-only agent — create entry from task data
+                display = stats.get("agent_name") or (
+                    f"Agent #{erc_id}" if erc_id else _format_wallet_display(agent_id)
+                )
                 merged[agent_id] = {
                     "executor_id": agent_id,
                     "display_name": display,
@@ -1065,8 +1103,7 @@ async def get_agent_directory(
                     "avg_rating": 0,
                     "agent_card_url": None,
                     "mcp_endpoint_url": None,
-                    "erc8004_agent_id": _parse_int_safe(stats.get("erc8004_agent_id"))
-                    or None,
+                    "erc8004_agent_id": erc_id,
                     "verified": False,
                     "bio": None,
                     "avatar_url": None,
@@ -1077,6 +1114,8 @@ async def get_agent_directory(
                     "total_bounty_usd": stats["total_bounty_usd"],
                     "active_tasks": stats["active_tasks"],
                 }
+                if erc_id:
+                    _erc8004_to_merged_key[erc_id] = agent_id
 
         # --- 4. Assign roles ---
         for wallet, data in merged.items():
