@@ -145,9 +145,18 @@ export default function TaskDetailScreen() {
   const hasApplied = myApplication?.applied === true;
   const isMyTask = !!(executor && task && task.executor_id === executor.id);
 
+  // Sync hasRated with DB data (workerRating exists = already rated)
+  useEffect(() => {
+    if (taskRatings?.workerRating) {
+      setHasRated(true);
+    }
+  }, [taskRatings?.workerRating]);
+
   // Auto-show rating modal when task is completed (one-time)
   useEffect(() => {
     if (!task || !isMyTask || task.status !== "completed") return;
+    // If DB already has a worker rating, don't show modal
+    if (taskRatings?.workerRating) return;
     const key = `rated_agent_${task.id}`;
     AsyncStorage.getItem(key).then((val) => {
       if (!val) {
@@ -157,7 +166,7 @@ export default function TaskDetailScreen() {
         setHasRated(true);
       }
     });
-  }, [task?.status, isMyTask, task?.id]);
+  }, [task?.status, isMyTask, task?.id, taskRatings?.workerRating]);
 
   const handleRateComplete = () => {
     setShowRateModal(false);
