@@ -669,7 +669,7 @@ async def get_available_tasks(
             query = query.lte("bounty_usd", max_bounty)
 
         result = (
-            query.order("bounty_usd", desc=True)
+            query.order("created_at", desc=True)
             .range(offset, offset + limit - 1)
             .execute()
         )
