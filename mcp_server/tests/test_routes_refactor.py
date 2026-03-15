@@ -53,6 +53,7 @@ EXPECTED_ROUTES = {
     "/api/v1/executors/{executor_id}/identity",
     "/api/v1/executors/{executor_id}/confirm-identity",
     "/api/v1/executors/{executor_id}/register-identity",
+    "/api/v1/workers/tasks/{task_id}/my-submission",
 }
 
 
