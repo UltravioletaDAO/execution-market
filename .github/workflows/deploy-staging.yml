@@ -46,7 +46,7 @@ jobs:
 
       - name: Build and push backend
         id: build-backend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./mcp_server
           push: true
@@ -61,7 +61,7 @@ jobs:
 
       - name: Build and push frontend
         id: build-frontend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./dashboard
           push: true
