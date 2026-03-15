@@ -71,14 +71,34 @@ def _mock_supabase_response(data):
 
 
 def _make_chain(data):
-    """Return a mock that supports .table().select().limit().offset().execute()."""
+    """Return a mock that supports .table().select().eq().gt().order().order().limit().offset().execute().
+
+    The leaderboard endpoint queries the executors table directly:
+        client.table("executors")
+            .select(...)
+            .eq("status", "active")
+            .gt("tasks_completed", 0)
+            .order("reputation_score", desc=True)
+            .order("tasks_completed", desc=True)
+            .limit(limit)
+            .offset(offset)
+            .execute()
+    """
     execute = MagicMock(return_value=_mock_supabase_response(data))
-    offset = MagicMock()
-    offset.execute = execute
-    limit = MagicMock()
-    limit.offset = MagicMock(return_value=offset)
+    offset_mock = MagicMock()
+    offset_mock.execute = execute
+    limit_mock = MagicMock()
+    limit_mock.offset = MagicMock(return_value=offset_mock)
+    order2 = MagicMock()
+    order2.limit = MagicMock(return_value=limit_mock)
+    order1 = MagicMock()
+    order1.order = MagicMock(return_value=order2)
+    gt_mock = MagicMock()
+    gt_mock.order = MagicMock(return_value=order1)
+    eq_mock = MagicMock()
+    eq_mock.gt = MagicMock(return_value=gt_mock)
     select = MagicMock()
-    select.limit = MagicMock(return_value=limit)
+    select.eq = MagicMock(return_value=eq_mock)
     table = MagicMock()
     table.select = MagicMock(return_value=select)
     client = MagicMock()
@@ -86,8 +106,12 @@ def _make_chain(data):
     return client, {
         "table": table,
         "select": select,
-        "limit": limit,
-        "offset": offset,
+        "eq": eq_mock,
+        "gt": gt_mock,
+        "order1": order1,
+        "order2": order2,
+        "limit": limit_mock,
+        "offset": offset_mock,
         "execute": execute,
     }
 
@@ -193,7 +217,7 @@ class TestGetLeaderboard:
 
             await get_leaderboard(limit=5, offset=0)
 
-        chain["select"].limit.assert_called_once_with(5)
+        chain["order2"].limit.assert_called_once_with(5)
 
     @pytest.mark.asyncio
     async def test_offset_parameter_forwarded(self):

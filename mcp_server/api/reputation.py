@@ -269,17 +269,29 @@ class RegisterAgentResponse(BaseModel):
 async def get_leaderboard(limit: int = 20, offset: int = 0) -> Dict[str, Any]:
     """Top workers ranked by reputation score."""
     client = db.get_client()
+    # Query executors table directly instead of reputation_leaderboard view
+    # to avoid RLS/view permission issues that cause 500 errors.
     result = (
-        client.table("reputation_leaderboard")
-        .select("*")
+        client.table("executors")
+        .select("id,display_name,reputation_score,tier,tasks_completed,avg_rating")
+        .eq("status", "active")
+        .gt("tasks_completed", 0)
+        .order("reputation_score", desc=True)
+        .order("tasks_completed", desc=True)
         .limit(limit)
         .offset(offset)
         .execute()
     )
     entries = result.data or []
+    # Add rank and badges_count (default 0) since we no longer use the view
+    workers = []
+    for i, r in enumerate(entries):
+        r["rank"] = offset + i + 1
+        r["badges_count"] = 0
+        workers.append(LeaderboardEntry(**r).model_dump())
     return {
-        "workers": [LeaderboardEntry(**r).model_dump() for r in entries],
-        "count": len(entries),
+        "workers": workers,
+        "count": len(workers),
     }
 
 
