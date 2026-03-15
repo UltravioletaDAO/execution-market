@@ -22,6 +22,7 @@ import { ApplyModal } from "../../components/ApplyModal";
 import { RateAgentModal } from "../../components/RateAgentModal";
 import { ReputationBadge } from "../../components/ReputationBadge";
 import { useAgentReputation } from "../../hooks/api/useReputation";
+import { useTaskRatings } from "../../hooks/api/useRatings";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /** Open URL safely — tries in-app browser first, falls back to Linking */
@@ -136,6 +137,7 @@ export default function TaskDetailScreen() {
   const { data: paymentEvents } = useTaskPaymentEvents(id);
   const { data: mySubmission } = useMySubmission(id, executor?.id ?? undefined);
   const { data: agentRep } = useAgentReputation(task?.erc8004_agent_id ?? null);
+  const { data: taskRatings } = useTaskRatings(task?.status === "completed" ? id : null);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showRateModal, setShowRateModal] = useState(false);
   const [hasRated, setHasRated] = useState(false);
@@ -225,15 +227,13 @@ export default function TaskDetailScreen() {
       (executor?.reputation_score || 0) >= safeMinReputation);
 
   // Determine bottom action bar content
-  let bottomAction: "apply" | "applied" | "submitted" | "completed" | "submit" | "login" | "none" = "none";
+  let bottomAction: "apply" | "applied" | "submitted" | "submit" | "login" | "none" = "none";
   if (!isAuthenticated) {
     bottomAction = "login";
   } else if (isMyTask && ["accepted", "in_progress"].includes(safeStatus)) {
     bottomAction = "submit";
   } else if (isMyTask && safeStatus === "submitted") {
     bottomAction = "submitted";
-  } else if (isMyTask && safeStatus === "completed") {
-    bottomAction = "completed";
   } else if (hasApplied && !isMyTask) {
     bottomAction = "applied";
   } else if (canApply) {
@@ -485,19 +485,7 @@ export default function TaskDetailScreen() {
         })()}
 
         {/* Status Banners — show exactly one based on current state */}
-        {isMyTask && safeStatus === "completed" && (
-          <View className="bg-green-900/20 rounded-2xl p-4 mb-4 flex-row items-center">
-            <Text style={{ fontSize: 20, marginRight: 8 }}>{"\u2705"}</Text>
-            <View className="flex-1">
-              <Text className="text-green-400 font-bold">
-                {t("task.completed")}
-              </Text>
-              <Text className="text-gray-400 text-sm mt-0.5">
-                {t("task.paymentReleased")}
-              </Text>
-            </View>
-          </View>
-        )}
+        {/* Completed banner removed — timeline already shows "Approved & Paid" */}
 
         {isMyTask && safeStatus === "submitted" && (
           <View className="bg-yellow-900/20 rounded-2xl p-4 mb-4 flex-row items-center">
@@ -631,11 +619,106 @@ export default function TaskDetailScreen() {
           </View>
         )}
 
-        {/* Bottom padding */}
-        <View className="h-24" />
+        {/* Ratings & Feedback — visible for completed tasks */}
+        {isMyTask && safeStatus === "completed" && (
+          <View className="mb-4">
+            <Text className="text-gray-400 text-sm font-bold mb-3">
+              {t("task.ratingsTitle")}
+            </Text>
+            <View className="bg-surface rounded-2xl p-4">
+              {/* Agent's rating of worker */}
+              {taskRatings?.agentRating ? (
+                <View className="mb-4">
+                  <Text className="text-gray-500 text-xs uppercase mb-1">
+                    {t("task.agentRatedYou")}
+                  </Text>
+                  <View className="flex-row items-center mb-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Text key={star} className="text-yellow-400" style={{ fontSize: 16 }}>
+                        {star <= (taskRatings.agentRating!.stars ?? Math.round(taskRatings.agentRating!.rating / 20))
+                          ? "\u2605"
+                          : "\u2606"}
+                      </Text>
+                    ))}
+                    <Text className="text-gray-500 text-xs ml-2">
+                      {taskRatings.agentRating.stars ?? Math.round(taskRatings.agentRating.rating / 20)}/5
+                    </Text>
+                  </View>
+                  {taskRatings.agentRating.comment && (
+                    <Text className="text-gray-300 text-sm italic">
+                      "{taskRatings.agentRating.comment}"
+                    </Text>
+                  )}
+                </View>
+              ) : (
+                <View className="mb-4">
+                  <Text className="text-gray-500 text-xs uppercase mb-1">
+                    {t("task.agentRatedYou")}
+                  </Text>
+                  <Text className="text-gray-600 text-sm">
+                    {t("task.noRatingYet")}
+                  </Text>
+                </View>
+              )}
+
+              {/* Divider */}
+              <View className="border-t border-gray-800 mb-4" />
+
+              {/* Worker's rating of agent */}
+              {taskRatings?.workerRating ? (
+                <View>
+                  <Text className="text-gray-500 text-xs uppercase mb-1">
+                    {t("task.yourRatingOfAgent")}
+                  </Text>
+                  <View className="flex-row items-center mb-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Text key={star} className="text-yellow-400" style={{ fontSize: 16 }}>
+                        {star <= (taskRatings.workerRating!.stars ?? Math.round(taskRatings.workerRating!.rating / 20))
+                          ? "\u2605"
+                          : "\u2606"}
+                      </Text>
+                    ))}
+                    <Text className="text-gray-500 text-xs ml-2">
+                      {taskRatings.workerRating.stars ?? Math.round(taskRatings.workerRating.rating / 20)}/5
+                    </Text>
+                  </View>
+                  {taskRatings.workerRating.comment && (
+                    <Text className="text-gray-300 text-sm italic">
+                      "{taskRatings.workerRating.comment}"
+                    </Text>
+                  )}
+                </View>
+              ) : (
+                <View>
+                  <Text className="text-gray-500 text-xs uppercase mb-1">
+                    {t("task.yourRatingOfAgent")}
+                  </Text>
+                  {!hasRated ? (
+                    <Pressable
+                      className="bg-white/10 rounded-xl py-3 items-center mt-1 active:opacity-80"
+                      onPress={() => setShowRateModal(true)}
+                    >
+                      <Text className="text-white font-medium">
+                        {t("task.rateThisAgent")}
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Text className="text-gray-600 text-sm">
+                      {t("task.ratingSubmitted")}
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Bottom padding — extra when action bar is visible */}
+        <View className={bottomAction !== "none" ? "h-24" : "h-8"} />
       </ScrollView>
 
-      {/* Bottom Action Bar */}
+      {/* Bottom Action Bar — hidden when no action needed (e.g. completed tasks) */}
+      {bottomAction !== "none" && (
       <View className="absolute bottom-0 left-0 right-0 bg-black border-t border-gray-800 px-4 py-4 pb-8">
         {bottomAction === "apply" && (
           <Pressable
@@ -681,27 +764,6 @@ export default function TaskDetailScreen() {
           </View>
         )}
 
-        {bottomAction === "completed" && (
-          <View className="bg-green-900/30 rounded-2xl py-4 items-center">
-            <Text className="text-green-400 font-bold text-lg">
-              {"\u2705"} {t("task.completed")}
-            </Text>
-            <Text className="text-gray-500 text-xs mt-1">
-              +${(safeBounty * 0.87).toFixed(2)} USDC
-            </Text>
-            {paymentTx && (
-              <Pressable
-                className="mt-2"
-                onPress={() => openUrl(getExplorerTxUrl(task.payment_network, paymentTx))}
-              >
-                <Text className="text-blue-400 text-xs">
-                  {t("task.viewTx")} · {paymentTx.slice(0, 10)}... ↗
-                </Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-
         {bottomAction === "login" && (
           <Pressable
             className="bg-white rounded-2xl py-4 items-center active:opacity-80"
@@ -713,6 +775,7 @@ export default function TaskDetailScreen() {
           </Pressable>
         )}
       </View>
+      )}
 
       {task && (
         <ApplyModal
