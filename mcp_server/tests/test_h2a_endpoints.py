@@ -946,10 +946,8 @@ class TestH2ADirectoryPublishers:
                     end
                 )
             elif name == "tasks":
-                # Chain: .select().neq().execute()
-                end = MagicMock()
-                end.execute.return_value = task_result
-                mock_table.select.return_value.neq.return_value = end
+                # Chain: .select().execute() (no more .neq filter)
+                mock_table.select.return_value.execute.return_value = task_result
             return mock_table
 
         mock_client.table.side_effect = table_side_effect
@@ -969,6 +967,7 @@ class TestH2ADirectoryPublishers:
                     "status": "completed",
                     "agent_name": "TestBot",
                     "erc8004_agent_id": 2106,
+                    "publisher_type": "agent",
                 }
             ],
         )
@@ -1009,6 +1008,7 @@ class TestH2ADirectoryPublishers:
                     "status": "published",
                     "agent_name": "Pub Bot",
                     "erc8004_agent_id": None,
+                    "publisher_type": "agent",
                 }
             ],
         )
@@ -1052,6 +1052,7 @@ class TestH2ADirectoryPublishers:
                     "status": "completed",
                     "agent_name": None,
                     "erc8004_agent_id": None,
+                    "publisher_type": "agent",
                 },
                 {
                     "agent_id": wallet,
@@ -1059,6 +1060,7 @@ class TestH2ADirectoryPublishers:
                     "status": "published",
                     "agent_name": None,
                     "erc8004_agent_id": None,
+                    "publisher_type": "agent",
                 },
             ],
         )
@@ -1090,6 +1092,7 @@ class TestH2ADirectoryPublishers:
                     "status": "completed",
                     "agent_name": "A",
                     "erc8004_agent_id": None,
+                    "publisher_type": "agent",
                 },
                 {
                     "agent_id": "0xAgent",
@@ -1097,6 +1100,7 @@ class TestH2ADirectoryPublishers:
                     "status": "published",
                     "agent_name": "A",
                     "erc8004_agent_id": None,
+                    "publisher_type": "agent",
                 },
                 {
                     "agent_id": "0xAgent",
@@ -1104,6 +1108,7 @@ class TestH2ADirectoryPublishers:
                     "status": "in_progress",
                     "agent_name": "A",
                     "erc8004_agent_id": None,
+                    "publisher_type": "agent",
                 },
             ],
         )
@@ -1132,6 +1137,7 @@ class TestH2ADirectoryPublishers:
                     "status": "completed",
                     "agent_name": "Bot A",
                     "erc8004_agent_id": None,
+                    "publisher_type": "agent",
                 },
                 {
                     "agent_id": "0xb",
@@ -1139,6 +1145,7 @@ class TestH2ADirectoryPublishers:
                     "status": "completed",
                     "agent_name": "Bot B",
                     "erc8004_agent_id": None,
+                    "publisher_type": "agent",
                 },
                 {
                     "agent_id": "0xb",
@@ -1146,6 +1153,7 @@ class TestH2ADirectoryPublishers:
                     "status": "completed",
                     "agent_name": "Bot B",
                     "erc8004_agent_id": None,
+                    "publisher_type": "agent",
                 },
             ],
         )
