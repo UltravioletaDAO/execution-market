@@ -116,7 +116,7 @@ export function TaskMap({ tasks, userLocation, onMarkerPress }: TaskMapProps) {
                 longitude: task.location_lng!,
               }}
               title={task.title}
-              description={`$${task.bounty_usd.toFixed(2)} USDC${task.location_hint ? " - " + task.location_hint : ""}`}
+              description={`$${(typeof task.bounty_usd === "number" ? task.bounty_usd : 0).toFixed(2)} USDC${task.location_hint ? " - " + task.location_hint : ""}`}
               onCalloutPress={() => {
                 if (onMarkerPress) onMarkerPress(task);
                 else router.push(`/task/${task.id}`);

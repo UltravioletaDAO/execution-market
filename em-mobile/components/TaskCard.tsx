@@ -8,8 +8,10 @@ import { ReputationBadge } from "./ReputationBadge";
 import { useAgentReputation } from "../hooks/api/useReputation";
 
 function formatDeadline(deadline: string, t: (key: string) => string): string {
+  if (!deadline) return "—";
   const now = new Date();
   const dl = new Date(deadline);
+  if (isNaN(dl.getTime())) return "—";
   const diffMs = dl.getTime() - now.getTime();
 
   if (diffMs < 0) return t("task.expired");
@@ -22,9 +24,10 @@ function formatDeadline(deadline: string, t: (key: string) => string): string {
   return `${minutes}m`;
 }
 
-function formatBounty(bounty: number): string {
-  if (bounty >= 1) return `$${bounty.toFixed(2)}`;
-  return `$${bounty.toFixed(3)}`;
+function formatBounty(bounty: number | null | undefined): string {
+  const val = typeof bounty === "number" ? bounty : parseFloat(String(bounty)) || 0;
+  if (val >= 1) return `$${val.toFixed(2)}`;
+  return `$${val.toFixed(3)}`;
 }
 
 interface TaskCardProps {
@@ -114,7 +117,7 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
       </View>
 
       {/* Skills required */}
-      {!compact && task.skills_required?.length > 0 && (
+      {!compact && Array.isArray(task.skills_required) && task.skills_required.length > 0 && (
         <View className="flex-row flex-wrap gap-1 mt-2">
           {task.skills_required.slice(0, 3).map((skill) => (
             <View
