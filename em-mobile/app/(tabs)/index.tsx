@@ -17,6 +17,7 @@ import { useUserLocation } from "../../hooks/useUserLocation";
 import { TaskCard } from "../../components/TaskCard";
 import { TaskMap } from "../../components/TaskMap";
 import { CategoryFilter } from "../../components/CategoryFilter";
+import { DrawerMenu } from "../../components/DrawerMenu";
 import { TASK_CATEGORIES } from "../../constants/categories";
 import { NETWORKS } from "../../constants/networks";
 
@@ -236,6 +237,7 @@ export default function BrowseTasksScreen() {
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const { location, requestLocation } = useUserLocation();
 
   const {
@@ -259,9 +261,18 @@ export default function BrowseTasksScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-black">
+      {/* Drawer Menu */}
+      <DrawerMenu visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
       {/* Header */}
-      <View className="flex-row items-start justify-between px-4 pt-4 pb-1">
-        <View>
+      <View className="flex-row items-center px-4 pt-4 pb-1">
+        <Pressable
+          className="w-9 h-9 items-center justify-center mr-3"
+          onPress={() => setDrawerOpen(true)}
+        >
+          <Text style={{ color: "#ffffff", fontSize: 22 }}>{"\u2630"}</Text>
+        </Pressable>
+        <View className="flex-1">
           <Text className="text-white text-2xl font-bold">
             {t("browse.title")}
           </Text>
@@ -269,13 +280,6 @@ export default function BrowseTasksScreen() {
             {t("browse.subtitle")}
           </Text>
         </View>
-        <Pressable
-          className="w-8 h-8 rounded-full bg-surface items-center justify-center mt-1"
-          style={{ borderWidth: 1, borderColor: "#333" }}
-          onPress={() => router.push("/about")}
-        >
-          <Text className="text-gray-400 font-bold text-sm">?</Text>
-        </Pressable>
       </View>
 
       {/* View Mode Toggle */}
@@ -309,30 +313,6 @@ export default function BrowseTasksScreen() {
             }`}
           >
             {t("browse.mapView")}
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Community Quick Links */}
-      <View className="flex-row px-4 gap-2 mb-1 mt-1">
-        <Pressable
-          className="flex-row items-center bg-surface rounded-full px-3.5 py-1.5"
-          style={{ borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" }}
-          onPress={() => router.push("/leaderboard")}
-        >
-          <Text style={{ fontSize: 14, marginRight: 5 }}>{"\uD83C\uDFC6"}</Text>
-          <Text className="text-gray-300 text-xs font-semibold">
-            {t("leaderboard.title")}
-          </Text>
-        </Pressable>
-        <Pressable
-          className="flex-row items-center bg-surface rounded-full px-3.5 py-1.5"
-          style={{ borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" }}
-          onPress={() => router.push("/agents")}
-        >
-          <Text style={{ fontSize: 14, marginRight: 5 }}>{"\uD83E\uDD16"}</Text>
-          <Text className="text-gray-300 text-xs font-semibold">
-            {t("agents.title")}
           </Text>
         </Pressable>
       </View>
