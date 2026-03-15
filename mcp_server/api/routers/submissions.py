@@ -33,6 +33,7 @@ from ._helpers import (
     _normalize_status,
     _settle_submission_payment,
     _execute_post_approval_side_effects,
+    _build_explorer_url,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["Submissions"])
@@ -191,13 +192,19 @@ async def approve_submission(
             worker_auth_header=_worker_auth,
             fee_auth_header=_fee_auth,
         )
+        idem_task = submission.get("task") or {}
+        idem_network = idem_task.get("payment_network") or "base"
         response_data = {
             "submission_id": submission_id,
             "verdict": "accepted",
             "idempotent": True,
+            "network": idem_network,
         }
         if settlement.get("payment_tx"):
             response_data["payment_tx"] = settlement["payment_tx"]
+            explorer_url = _build_explorer_url(settlement["payment_tx"], idem_network)
+            if explorer_url:
+                response_data["explorer_url"] = explorer_url
         if settlement.get("payment_error"):
             response_data["payment_error"] = settlement["payment_error"]
 
@@ -289,11 +296,17 @@ async def approve_submission(
             side_fx_err,
         )
 
+    task_network = task.get("payment_network") or "base"
     response_data = {
         "submission_id": submission_id,
         "verdict": "accepted",
         "payment_tx": release_tx,
+        "network": task_network,
     }
+    if release_tx:
+        explorer_url = _build_explorer_url(release_tx, task_network)
+        if explorer_url:
+            response_data["explorer_url"] = explorer_url
     if release_error:
         response_data["payment_error"] = release_error
     # Pass through detailed payment fields from settlement
