@@ -112,7 +112,7 @@ jobs:
           bandit -r . -f txt --exclude ./tests || true
 
       - name: Upload Bandit report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: bandit-report
           path: mcp_server/bandit-report.json
@@ -124,7 +124,7 @@ jobs:
           safety check -r requirements.txt || true
 
       - name: Upload Safety report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: safety-report
           path: mcp_server/safety-report.json
@@ -158,7 +158,7 @@ jobs:
           npm audit --audit-level=high || true
 
       - name: Upload npm audit report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: npm-audit-report
           path: dashboard/npm-audit-report.json
@@ -266,7 +266,7 @@ jobs:
           npx license-checker --failOn "GPL-3.0;AGPL-3.0" || true
 
       - name: Upload license reports
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: license-reports
           path: |
