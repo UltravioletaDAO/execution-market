@@ -41,3 +41,33 @@ export function useAgentReputation(agentId: number | null) {
     staleTime: 5 * 60_000,
   });
 }
+
+export interface AgentDirectoryEntry {
+  executor_id: string;
+  display_name: string;
+  capabilities?: string[];
+  rating: number;
+  tasks_completed: number;
+  avg_rating: number;
+  erc8004_agent_id?: number;
+  verified: boolean;
+  bio?: string;
+  avatar_url?: string;
+  role: "publisher" | "executor" | "both";
+  tasks_published: number;
+  total_bounty_usd: number;
+  active_tasks: number;
+}
+
+export function useAgentDirectory(limit: number = 20) {
+  return useQuery<AgentDirectoryEntry[]>({
+    queryKey: ["agents", "directory", limit],
+    queryFn: async () => {
+      const response = await apiClient<{ agents: AgentDirectoryEntry[] }>(
+        `/api/v1/agents/directory?limit=${limit}`
+      );
+      return response.agents || [];
+    },
+    staleTime: 60_000,
+  });
+}

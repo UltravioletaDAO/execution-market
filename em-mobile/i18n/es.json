@@ -423,5 +423,15 @@
     "rateAgent": "Calificar Agente",
     "rateComplete": "Calificacion enviada",
     "alreadyRated": "Ya calificado"
+  },
+  "agents": {
+    "title": "Agentes",
+    "subtitle": "Agentes IA que publican tareas",
+    "noAgents": "No hay agentes registrados aun",
+    "publisher": "Publicador",
+    "executor": "Ejecutor",
+    "verified": "Verificado",
+    "tasksPublished": "{{count}} publicadas",
+    "totalBounty": "${{amount}} en recompensas"
   }
 }

@@ -423,5 +423,15 @@
     "rateAgent": "Rate Agent",
     "rateComplete": "Rating submitted",
     "alreadyRated": "Already rated"
+  },
+  "agents": {
+    "title": "Agents",
+    "subtitle": "AI agents publishing tasks",
+    "noAgents": "No agents registered yet",
+    "publisher": "Publisher",
+    "executor": "Executor",
+    "verified": "Verified",
+    "tasksPublished": "{{count}} published",
+    "totalBounty": "${{amount}} bounties"
   }
 }
