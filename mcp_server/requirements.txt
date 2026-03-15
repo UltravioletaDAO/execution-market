@@ -63,7 +63,7 @@ google-generativeai>=0.8.0
 # ===================
 # WebSocket Support
 # ===================
-websockets>=15.0,<17
+websockets>=11,<16
 
 # ===================
 # Redis (Caching & Rate Limiting)
