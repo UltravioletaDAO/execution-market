@@ -5,7 +5,47 @@ import { useTranslation } from "react-i18next";
 import { useAgentDirectory, AgentDirectoryEntry } from "../hooks/api/useReputation";
 import { useAgentReputation } from "../hooks/api/useReputation";
 import { ReputationBadge } from "../components/ReputationBadge";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+
+type RoleTab = "all" | "publisher" | "executor";
+
+function RoleTabSelector({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: RoleTab;
+  onTabChange: (tab: RoleTab) => void;
+}) {
+  const { t } = useTranslation();
+
+  const tabs: { value: RoleTab; label: string }[] = [
+    { value: "all", label: t("agents.tabAll") },
+    { value: "publisher", label: t("agents.tabPublishers") },
+    { value: "executor", label: t("agents.tabExecutors") },
+  ];
+
+  return (
+    <View className="flex-row bg-surface rounded-xl p-1 mb-4">
+      {tabs.map((tab) => (
+        <Pressable
+          key={tab.value}
+          className={`flex-1 py-2 rounded-lg items-center ${
+            activeTab === tab.value ? "bg-white/10" : ""
+          }`}
+          onPress={() => onTabChange(tab.value)}
+        >
+          <Text
+            className={`text-sm font-medium ${
+              activeTab === tab.value ? "text-white" : "text-gray-500"
+            }`}
+          >
+            {tab.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 function AgentCard({ agent }: { agent: AgentDirectoryEntry }) {
   const { t } = useTranslation();
@@ -134,12 +174,19 @@ export default function AgentsScreen() {
   const { t } = useTranslation();
   const { data: agents, isLoading, refetch, isRefetching } = useAgentDirectory();
   const [refreshing, setRefreshing] = useState(false);
+  const [roleTab, setRoleTab] = useState<RoleTab>("all");
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
   }, [refetch]);
+
+  const filteredAgents = useMemo(() => {
+    if (!agents) return [];
+    if (roleTab === "all") return agents;
+    return agents.filter((a) => a.role === roleTab || a.role === "both");
+  }, [agents, roleTab]);
 
   return (
     <SafeAreaView className="flex-1 bg-black">
@@ -175,9 +222,18 @@ export default function AgentsScreen() {
             />
           }
         >
-          {agents.map((agent) => (
-            <AgentCard key={agent.executor_id} agent={agent} />
-          ))}
+          <RoleTabSelector activeTab={roleTab} onTabChange={setRoleTab} />
+          {filteredAgents.length === 0 ? (
+            <View className="items-center justify-center py-20 px-6">
+              <Text className="text-gray-500 text-base text-center">
+                {t("agents.noAgents")}
+              </Text>
+            </View>
+          ) : (
+            filteredAgents.map((agent) => (
+              <AgentCard key={agent.executor_id} agent={agent} />
+            ))
+          )}
           <View className="h-8" />
         </ScrollView>
       )}
