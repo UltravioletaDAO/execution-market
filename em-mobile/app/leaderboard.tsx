@@ -19,36 +19,17 @@ function getRankColor(rank: number): string {
   return "#6B7280"; // gray
 }
 
-function StarRating({ rating }: { rating: number }) {
-  const fullStars = Math.floor(rating);
-  const hasHalf = rating - fullStars >= 0.5;
-  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
-
-  return (
-    <View className="flex-row items-center">
-      {Array.from({ length: fullStars }).map((_, i) => (
-        <Text key={`full-${i}`} style={{ color: "#FFD700", fontSize: 12 }}>
-          {"\u2605"}
-        </Text>
-      ))}
-      {hasHalf && (
-        <Text style={{ color: "#FFD700", fontSize: 12 }}>{"\u2606"}</Text>
-      )}
-      {Array.from({ length: emptyStars }).map((_, i) => (
-        <Text key={`empty-${i}`} style={{ color: "#374151", fontSize: 12 }}>
-          {"\u2606"}
-        </Text>
-      ))}
-      <Text className="text-gray-500 text-xs ml-1">
-        {rating.toFixed(1)}
-      </Text>
-    </View>
-  );
-}
-
 function LeaderboardCard({ entry }: { entry: LeaderboardEntry }) {
   const { t } = useTranslation();
   const rankColor = getRankColor(entry.rank);
+
+  // Convert 0-5 scale to 0-100 if needed
+  const displayScore =
+    entry.avg_rating != null && entry.avg_rating > 0
+      ? entry.avg_rating < 10
+        ? Math.round(entry.avg_rating * 20)
+        : Math.round(entry.avg_rating)
+      : null;
 
   return (
     <View className="bg-surface rounded-2xl p-4 mb-3 flex-row items-center">
@@ -78,9 +59,11 @@ function LeaderboardCard({ entry }: { entry: LeaderboardEntry }) {
             })}
           </Text>
         </View>
-        {entry.avg_rating != null && entry.avg_rating > 0 && (
+        {displayScore != null && (
           <View className="mt-1.5">
-            <StarRating rating={entry.avg_rating} />
+            <Text className="text-gray-300 text-xs font-semibold">
+              {displayScore}/100
+            </Text>
           </View>
         )}
       </View>

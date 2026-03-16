@@ -101,11 +101,12 @@ function AgentCard({ agent }: { agent: AgentDirectoryEntry }) {
       {/* Stats row */}
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-4">
-          {/* Rating stars */}
+          {/* Score */}
           <View className="flex-row items-center">
-            <Text style={{ color: "#FFD700", fontSize: 13 }}>{"\u2605"}</Text>
-            <Text className="text-gray-300 text-sm ml-1">
-              {agent.avg_rating > 0 ? agent.avg_rating.toFixed(1) : "-"}
+            <Text className="text-gray-300 text-sm">
+              {agent.avg_rating > 0
+                ? `${agent.avg_rating < 10 ? Math.round(agent.avg_rating * 20) : Math.round(agent.avg_rating)}/100`
+                : "-"}
             </Text>
           </View>
 
