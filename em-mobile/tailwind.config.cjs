@@ -11,6 +11,12 @@ module.exports = {
         surface: "#111111",
         "surface-light": "#1a1a1a",
       },
+      fontFamily: {
+        mono: ["RobotoMono-Regular"],
+        "mono-medium": ["RobotoMono-Medium"],
+        "mono-semibold": ["RobotoMono-SemiBold"],
+        "mono-bold": ["RobotoMono-Bold"],
+      },
     },
   },
   plugins: [],

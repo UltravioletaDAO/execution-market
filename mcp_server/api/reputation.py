@@ -711,6 +711,17 @@ async def rate_worker_endpoint(
                 "Failed to store reputation_tx for task %s: %s", request.task_id, e
             )
 
+        # Also update feedback_documents so mobile app can show the TX link
+        try:
+            client = db.get_client()
+            client.table("feedback_documents").update(
+                {"reputation_tx": result.transaction_hash}
+            ).eq("task_id", request.task_id).eq(
+                "feedback_type", "worker_rating"
+            ).execute()
+        except Exception as e:
+            logger.debug("Could not update feedback_documents reputation_tx: %s", e)
+
         # Log to payment_events audit trail
         await log_payment_event(
             task_id=request.task_id,
@@ -836,6 +847,55 @@ async def rate_agent_endpoint(
         comment=request.comment or "",
         proof_tx=request.proof_tx,
     )
+
+    # Persist rating to DB so it shows in mobile app / dashboard
+    # (rate_agent only does on-chain feedback + S3, not the ratings table)
+    try:
+        executor_id = task.get("executor_id")
+        if executor_id:
+            client = db.get_client()
+            stars = round(request.score / 20, 1)
+            client.table("ratings").upsert(
+                {
+                    "executor_id": executor_id,
+                    "task_id": request.task_id,
+                    "rater_id": executor_id,
+                    "rater_type": "worker",
+                    "rating": request.score,
+                    "stars": float(stars),
+                    "comment": request.comment or None,
+                    "task_value_usdc": float(task.get("bounty_usd", 0)),
+                    "is_public": True,
+                },
+                on_conflict="executor_id,task_id,rater_type",
+            ).execute()
+            logger.info(
+                "Stored worker->agent rating in DB: executor=%s task=%s score=%d",
+                executor_id,
+                request.task_id,
+                request.score,
+            )
+    except Exception as e:
+        logger.warning("Failed to store worker->agent rating in DB (non-fatal): %s", e)
+
+    # If relay path returned a TX hash, update feedback_documents so mobile shows the link
+    if result.success and result.transaction_hash:
+        try:
+            client = db.get_client()
+            client.table("feedback_documents").update(
+                {"reputation_tx": result.transaction_hash}
+            ).eq("task_id", request.task_id).eq(
+                "feedback_type", "agent_rating"
+            ).execute()
+            logger.info(
+                "Stored agent_rating reputation_tx=%s for task %s",
+                result.transaction_hash[:16],
+                request.task_id,
+            )
+        except Exception as e:
+            logger.debug(
+                "Could not update feedback_documents agent_rating reputation_tx: %s", e
+            )
 
     logger.info(
         "Worker prepared agent rating %d for task %s: score=%d, pending_worker_signature=%s",

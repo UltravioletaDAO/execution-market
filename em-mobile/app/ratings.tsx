@@ -31,9 +31,10 @@ function formatDate(dateStr: string): string {
 }
 
 function RatingCard({ entry }: { entry: RatingEntry }) {
-  const openTx = async () => {
-    if (!entry.payment_tx || !entry.payment_network) return;
-    const url = getExplorerTxUrl(entry.payment_network, entry.payment_tx);
+  const openReputationTx = async () => {
+    if (!entry.reputation_tx) return;
+    // Reputation Registry is on Base
+    const url = getExplorerTxUrl("base", entry.reputation_tx);
     try {
       await WebBrowser.openBrowserAsync(url);
     } catch {
@@ -65,10 +66,10 @@ function RatingCard({ entry }: { entry: RatingEntry }) {
         {entry.rater_type ? (
           <Text className="text-gray-600 text-xs">{entry.rater_type}</Text>
         ) : <View />}
-        {entry.payment_tx && entry.payment_network ? (
-          <Pressable onPress={openTx} hitSlop={8}>
+        {entry.reputation_tx ? (
+          <Pressable onPress={openReputationTx} hitSlop={8}>
             <Text className="text-blue-400 text-xs">
-              TX: {entry.payment_tx.slice(0, 8)}... ↗
+              Reputation TX: {entry.reputation_tx.slice(0, 8)}... ↗
             </Text>
           </Pressable>
         ) : null}

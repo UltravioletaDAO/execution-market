@@ -109,6 +109,9 @@ C:tmp*
 # ===========================================
 *.state.json.bak
 
+# Claude local overrides (contains real AWS account IDs, wallet addresses)
+CLAUDE.md.local
+
 # Agent memory (local per-machine)
 .claude/agent-memory/
 

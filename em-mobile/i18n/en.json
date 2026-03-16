@@ -72,6 +72,7 @@
     "timelineReviewComplete": "Review completed",
     "timelineApproved": "Approved & Paid",
     "timelinePaymentSent": "+${{amount}} USDC sent to your wallet",
+    "viewEvidence": "View Evidence",
     "myEvidence": "My Evidence",
     "ratingsTitle": "Ratings & Feedback",
     "agentRatedYou": "Agent's rating of you",

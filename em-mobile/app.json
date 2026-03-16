@@ -12,9 +12,16 @@
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
+    "backgroundColor": "#000000",
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "market.execution.app",
+      "splash": {
+        "image": "./assets/images/logo.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#000000"
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "Execution Market needs camera access to capture evidence photos for task completion.",
         "NSLocationWhenInUseUsageDescription": "Execution Market needs your location to verify task completion and show nearby tasks.",
@@ -28,6 +35,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "monochromeImage": "./assets/images/logo.png",
+        "backgroundColor": "#000000"
+      },
+      "splash": {
+        "image": "./assets/images/logo.png",
+        "resizeMode": "contain",
         "backgroundColor": "#000000"
       },
       "package": "market.execution.app",
@@ -92,7 +104,13 @@
       ],
       "expo-font",
       "expo-web-browser",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-system-ui",
+        {
+          "backgroundColor": "#000000"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

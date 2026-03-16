@@ -8,15 +8,30 @@ if (Platform.OS !== "web") {
 }
 import "../global.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Stack, Redirect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import * as SplashScreen from "expo-splash-screen";
+import * as SystemUI from "expo-system-ui";
+import { useFonts } from "expo-font";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { dynamicClient } from "../lib/dynamic";
 import { WalletProvider } from "../providers/WalletProvider";
 import { AuthProvider, useAuth } from "../providers/AuthProvider";
 import { I18nProvider } from "../providers/I18nProvider";
+
+// Force black background on the native root view IMMEDIATELY
+// This prevents the white flash during bundle loading in Expo Go
+SystemUI.setBackgroundColorAsync("#000000").catch(() => {});
+
+// Keep splash visible until fonts + auth are ready
+// Wrapped in try-catch: fails silently on web/Expo Go (IDBDatabase timing)
+try {
+  SplashScreen.preventAutoHideAsync();
+} catch {
+  // Ignore — splash screen API may not be available in all environments
+}
 
 function RootNavigator() {
   const { isAuthenticated, isLoading, isProfileComplete } = useAuth();
@@ -96,6 +111,23 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    "RobotoMono-Regular": require("../assets/fonts/RobotoMono-Regular.ttf"),
+    "RobotoMono-Medium": require("../assets/fonts/RobotoMono-Medium.ttf"),
+    "RobotoMono-SemiBold": require("../assets/fonts/RobotoMono-SemiBold.ttf"),
+    "RobotoMono-Bold": require("../assets/fonts/RobotoMono-Bold.ttf"),
+    "SpaceMono-Regular": require("../assets/fonts/SpaceMono-Regular.ttf"),
+  });
+
+  // Hide splash once fonts are loaded (auth state handled inside RootNavigator)
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
   return (
     <SafeAreaProvider>
       <I18nProvider>

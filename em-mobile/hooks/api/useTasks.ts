@@ -213,7 +213,10 @@ export function useRecentActivity(limit: number = 20) {
   });
 }
 
-/** Fetch executor's own submission for a task */
+/** Fetch executor's own submission for a task.
+ *  Uses Supabase directly (like ratings) for reliability — the REST API
+ *  endpoint can fail silently if auth/RLS is misconfigured.
+ */
 export function useMySubmission(
   taskId: string | undefined,
   executorId: string | undefined
@@ -222,12 +225,35 @@ export function useMySubmission(
     queryKey: ["my_submission", taskId, executorId],
     queryFn: async () => {
       if (!taskId || !executorId) return null;
-      const response = await apiClient<{ data: any }>(
-        `/api/v1/workers/tasks/${taskId}/my-submission?executor_id=${executorId}`
-      );
-      return response.data || response;
+
+      const { data, error } = await supabase
+        .from("submissions")
+        .select(
+          "id, task_id, executor_id, evidence, notes, agent_verdict, " +
+          "auto_check_passed, auto_check_details, created_at, updated_at, payment_tx"
+        )
+        .eq("task_id", taskId)
+        .eq("executor_id", executorId)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        // Fallback to REST API if Supabase direct query fails (RLS)
+        console.warn("[useMySubmission] Supabase query failed, trying REST API:", error.message);
+        try {
+          const response = await apiClient<{ data: any }>(
+            `/api/v1/workers/tasks/${taskId}/my-submission?executor_id=${executorId}`
+          );
+          return response.data || response;
+        } catch {
+          return null;
+        }
+      }
+
+      return data;
     },
     enabled: !!taskId && !!executorId,
+    staleTime: 60_000,
   });
 }
 
