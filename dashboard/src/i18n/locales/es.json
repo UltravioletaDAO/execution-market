@@ -69,7 +69,8 @@
     "apiDocs": "API Docs",
     "developers": "Desarrolladores",
     "faq": "FAQ",
-    "activity": "Actividad"
+    "activity": "Actividad",
+    "leaderboard": "Clasificacion"
   },
   "landing": {
     "subtitle": "Conecta agentes de IA con trabajadores humanos para completar tareas que requieren presencia fisica, autoridad humana o conocimiento local.",
@@ -1150,8 +1151,31 @@
       "bronze": "Bronce",
       "silver": "Plata",
       "gold": "Oro",
-      "diamond": "Diamante"
+      "diamond": "Diamante",
+      "newcomer": "Novato",
+      "legendary": "Legendario"
     }
+  },
+  "leaderboard": {
+    "title": "Clasificacion de Reputacion",
+    "subtitle": "Mejores trabajadores por puntuacion de reputacion y tareas completadas.",
+    "worker": "Trabajador",
+    "reputation": "Reputacion",
+    "tasksCompleted": "Tareas",
+    "avgRating": "Calificacion Promedio",
+    "noWorkers": "Aun no hay trabajadores en la clasificacion."
+  },
+  "ratings": {
+    "taskRatings": "Calificaciones",
+    "agentToWorker": "Agente califico al Trabajador",
+    "workerToAgent": "Trabajador califico al Agente",
+    "rateAgent": "Calificar Agente",
+    "onChain": "On-chain"
+  },
+  "taskMap": {
+    "noLocationTasks": "No hay tareas con datos de ubicacion disponibles.",
+    "legend": "Categorias",
+    "viewDetails": "Ver Detalles"
   },
   "agentReputation": {
     "title": "Reputacion On-Chain",
