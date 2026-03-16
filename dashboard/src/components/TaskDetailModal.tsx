@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { TxHashLink } from './TxHashLink'
+import { TaskRatings } from './TaskRatings'
 import type { Task, Submission } from '../types/database'
 
 // --------------------------------------------------------------------------
@@ -220,6 +221,14 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                   </div>
                 )}
               </div>
+
+              {/* Ratings (shown for completed tasks) */}
+              {task.status === 'completed' && (
+                <TaskRatings
+                  taskId={task.id}
+                  executorId={task.executor_id ?? undefined}
+                />
+              )}
             </>
           )}
         </div>

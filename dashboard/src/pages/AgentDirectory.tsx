@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { AgentDirectoryEntry } from '../types/database'
 import { getAgentDirectory } from '../services/h2a'
+import { ReputationBadge } from '../components/ReputationBadge'
 
 const CAPS = [
   { value: 'data_processing', label: 'Procesamiento de Datos', icon: '📊' },
@@ -73,7 +74,7 @@ function AgentCard({ agent, onAction }: { agent: AgentDirectoryEntry; onAction: 
       <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mb-4">
         {isExecutor && (
           <>
-            <span>⭐ {agent.rating > 0 ? agent.rating.toFixed(0) : 'N/A'}</span>
+            {agent.rating > 0 && <ReputationBadge score={agent.rating} size="sm" />}
             <span>✅ {agent.tasks_completed} completadas</span>
           </>
         )}
