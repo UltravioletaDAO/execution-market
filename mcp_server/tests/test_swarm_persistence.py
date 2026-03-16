@@ -13,9 +13,7 @@ Verifies:
 import json
 import os
 import tempfile
-import time
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -254,7 +252,7 @@ class TestRetryBackoff:
         """Different tasks have independent backoff windows."""
         backoff.record_failure("t1", attempt=1)  # 30s
         backoff.record_failure("t2", attempt=3)  # 120s
-        
+
         s1 = backoff.get_status("t1")
         s2 = backoff.get_status("t2")
         assert s1["delay_seconds"] == 30
@@ -269,13 +267,13 @@ class TestSwarmStatePersistence:
 
     def test_creates_directory(self, tmp_state_dir):
         subdir = os.path.join(tmp_state_dir, "nested", "deep")
-        p = SwarmStatePersistence(state_dir=subdir)
+        SwarmStatePersistence(state_dir=subdir)
         assert os.path.isdir(subdir)
 
     def test_save_and_load(self, persistence, sample_state):
         """Full save/load cycle preserves data."""
         assert persistence.save(sample_state) is True
-        
+
         loaded = persistence.load()
         assert loaded is not None
         assert loaded.total_ingested == 100
@@ -293,13 +291,13 @@ class TestSwarmStatePersistence:
         persistence.save(sample_state)
         assert persistence.state_file.exists()
         assert not persistence.backup_file.exists()
-        
+
         # Save again
         sample_state.total_ingested = 200
         persistence.save(sample_state)
         assert persistence.state_file.exists()
         assert persistence.backup_file.exists()
-        
+
         # Backup should have old data
         with open(persistence.backup_file) as f:
             backup_data = json.load(f)
@@ -313,10 +311,10 @@ class TestSwarmStatePersistence:
         persistence.save(sample_state)
         sample_state.total_ingested = 200
         persistence.save(sample_state)
-        
+
         # Delete main, keep backup
         persistence.state_file.unlink()
-        
+
         loaded = persistence.load()
         assert loaded is not None
         assert loaded.total_ingested == 100  # From backup
@@ -340,11 +338,11 @@ class TestSwarmStatePersistence:
         sample_state.saved_at = (
             datetime.now(timezone.utc) - timedelta(hours=100)
         ).isoformat()
-        
+
         # Save with the old timestamp
         with open(persistence.state_file, "w") as f:
             json.dump(sample_state.to_dict(), f)
-        
+
         loaded = persistence.load(max_age_hours=48.0)
         assert loaded is None
 
@@ -358,10 +356,10 @@ class TestSwarmStatePersistence:
         persistence.save(sample_state)
         sample_state.total_ingested = 200
         persistence.save(sample_state)
-        
+
         assert persistence.state_file.exists()
         assert persistence.backup_file.exists()
-        
+
         result = persistence.delete()
         assert result is True
         assert not persistence.state_file.exists()
@@ -387,26 +385,26 @@ class TestSwarmStatePersistence:
         persistence.save(sample_state)
         original_file = persistence.state_file
         assert original_file.exists()
-        
+
         # Read original content for verification
         with open(original_file) as f:
             original_data = json.load(f)
         assert original_data["counters"]["total_ingested"] == 100
-        
+
         # The save method catches exceptions and returns False on failure
         # We verify that partial failure doesn't corrupt the existing state
         _real_replace = os.replace
         call_count = [0]
-        
+
         def patched_replace(src, dst):
             call_count[0] += 1
             if call_count[0] == 2:  # Fail on atomic rename (temp→state)
                 raise OSError("disk full")
             return _real_replace(src, dst)
-        
+
         with patch("os.replace", side_effect=patched_replace):
             result = persistence.save(PersistedState(total_ingested=999))
-        
+
         assert result is False  # Save reported failure
         # The backup file should have the original data (first replace succeeded)
         assert persistence.backup_file.exists()
@@ -456,16 +454,16 @@ class TestBackoffPersistenceIntegration:
         backoff = RetryBackoff()
         backoff.record_failure("t1", attempt=1)
         backoff.record_failure("t2", attempt=3)
-        
+
         # Save
         state = PersistedState(retry_backoffs=backoff.get_all())
         persistence.save(state)
-        
+
         # Load into new backoff
         loaded = persistence.load()
         new_backoff = RetryBackoff()
         new_backoff.restore(loaded.retry_backoffs)
-        
+
         assert new_backoff.get_status("t1") is not None
         assert new_backoff.get_status("t2")["attempt"] == 3
         assert new_backoff.get_status("t2")["delay_seconds"] == 120

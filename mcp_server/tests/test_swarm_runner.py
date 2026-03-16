@@ -3,22 +3,18 @@
 import json
 import os
 import tempfile
-from datetime import datetime, timezone
 
-import pytest
 
 from swarm.runner import (
     SwarmRunner,
     RunMode,
-    Phase,
     CycleResult,
     RunnerState,
 )
-from swarm.coordinator import SwarmCoordinator, EMApiClient
-from swarm.lifecycle_manager import LifecycleManager, AgentState
+from swarm.coordinator import SwarmCoordinator
+from swarm.lifecycle_manager import LifecycleManager
 from swarm.orchestrator import SwarmOrchestrator
 from swarm.reputation_bridge import ReputationBridge
-from swarm.evidence_parser import EvidenceParser, WorkerRegistry
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
@@ -225,8 +221,18 @@ class TestPhaseDiscover:
     def test_discover_new_tasks(self):
         mock_em = MockEMApiClient()
         mock_em.tasks["published"] = [
-            {"id": "task-1", "title": "Test Task 1", "category": "simple_action", "bounty_amount": 1.0},
-            {"id": "task-2", "title": "Test Task 2", "category": "data_collection", "bounty_amount": 2.5},
+            {
+                "id": "task-1",
+                "title": "Test Task 1",
+                "category": "simple_action",
+                "bounty_amount": 1.0,
+            },
+            {
+                "id": "task-2",
+                "title": "Test Task 2",
+                "category": "data_collection",
+                "bounty_amount": 2.5,
+            },
         ]
 
         runner = make_runner(mock_em=mock_em)
@@ -239,7 +245,12 @@ class TestPhaseDiscover:
     def test_discover_deduplicates(self):
         mock_em = MockEMApiClient()
         mock_em.tasks["published"] = [
-            {"id": "task-1", "title": "Test", "category": "simple_action", "bounty_amount": 1.0},
+            {
+                "id": "task-1",
+                "title": "Test",
+                "category": "simple_action",
+                "bounty_amount": 1.0,
+            },
         ]
 
         runner = make_runner(mock_em=mock_em)
@@ -278,7 +289,12 @@ class TestPhaseRoute:
     def test_dry_run_mode_counts(self):
         mock_em = MockEMApiClient()
         mock_em.tasks["published"] = [
-            {"id": "task-1", "title": "Test", "category": "simple_action", "bounty_amount": 1.0},
+            {
+                "id": "task-1",
+                "title": "Test",
+                "category": "simple_action",
+                "bounty_amount": 1.0,
+            },
         ]
 
         runner = make_runner(mock_em=mock_em, mode="dry_run")
@@ -400,8 +416,18 @@ class TestFullCycle:
     def test_cycle_with_tasks(self):
         mock_em = MockEMApiClient()
         mock_em.tasks["published"] = [
-            {"id": "t1", "title": "Test", "category": "simple_action", "bounty_amount": 1.0},
-            {"id": "t2", "title": "Test 2", "category": "data_collection", "bounty_amount": 2.0},
+            {
+                "id": "t1",
+                "title": "Test",
+                "category": "simple_action",
+                "bounty_amount": 1.0,
+            },
+            {
+                "id": "t2",
+                "title": "Test 2",
+                "category": "data_collection",
+                "bounty_amount": 2.0,
+            },
         ]
 
         runner = make_runner(mock_em=mock_em)
@@ -412,7 +438,12 @@ class TestFullCycle:
     def test_consecutive_cycles(self):
         mock_em = MockEMApiClient()
         mock_em.tasks["published"] = [
-            {"id": "t1", "title": "Test", "category": "simple_action", "bounty_amount": 1.0},
+            {
+                "id": "t1",
+                "title": "Test",
+                "category": "simple_action",
+                "bounty_amount": 1.0,
+            },
         ]
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -534,7 +565,12 @@ class TestModes:
     def test_passive_observes_only(self):
         mock_em = MockEMApiClient()
         mock_em.tasks["published"] = [
-            {"id": "t1", "title": "Task", "category": "simple_action", "bounty_amount": 1.0},
+            {
+                "id": "t1",
+                "title": "Task",
+                "category": "simple_action",
+                "bounty_amount": 1.0,
+            },
         ]
 
         runner = make_runner(mock_em=mock_em, mode="passive")
@@ -545,7 +581,12 @@ class TestModes:
     def test_dry_run_processes_without_api(self):
         mock_em = MockEMApiClient()
         mock_em.tasks["published"] = [
-            {"id": "t1", "title": "Task", "category": "simple_action", "bounty_amount": 1.0},
+            {
+                "id": "t1",
+                "title": "Task",
+                "category": "simple_action",
+                "bounty_amount": 1.0,
+            },
         ]
 
         runner = make_runner(mock_em=mock_em, mode="dry_run")

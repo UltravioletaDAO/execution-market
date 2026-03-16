@@ -7,8 +7,6 @@ SealRecommendation objects. Covers all 6 A2H seal scorers, 4 H2A scorers,
 confidence calculation, batch preparation, fleet evaluation, and edge cases.
 """
 
-import json
-import math
 import time
 import pytest
 
@@ -17,7 +15,6 @@ from mcp_server.swarm.seal_bridge import (
     SealRecommendation,
     SealProfile,
     SealQuadrant,
-    BatchSealRequest,
     SealIssuanceRecord,
     A2H_SEALS,
     H2A_SEALS,
@@ -30,6 +27,7 @@ from mcp_server.swarm.seal_bridge import (
 # ──────────────────────────────────────────────────────────────
 # Fixtures
 # ──────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def bridge():
@@ -126,13 +124,25 @@ def diverse_worker():
         },
         "last_active": time.time() - 1800,
         "quality_scores": [4.0, 4.5, 4.0, 4.2, 4.3, 4.1, 4.5, 4.0, 4.2, 4.1],
-        "durations": [14000, 15000, 13000, 14500, 14200, 13800, 15200, 14600, 13500, 14800],
+        "durations": [
+            14000,
+            15000,
+            13000,
+            14500,
+            14200,
+            13800,
+            15200,
+            14600,
+            13500,
+            14800,
+        ],
     }
 
 
 # ──────────────────────────────────────────────────────────────
 # Utility Function Tests
 # ──────────────────────────────────────────────────────────────
+
 
 class TestUtilityFunctions:
     """Test helper/utility functions."""
@@ -192,6 +202,7 @@ class TestUtilityFunctions:
 # ──────────────────────────────────────────────────────────────
 # SealRecommendation Tests
 # ──────────────────────────────────────────────────────────────
+
 
 class TestSealRecommendation:
     """Test SealRecommendation data class."""
@@ -262,6 +273,7 @@ class TestSealRecommendation:
 # SealProfile Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestSealProfile:
     """Test SealProfile data class."""
 
@@ -274,9 +286,15 @@ class TestSealProfile:
 
     def test_profile_with_seals(self):
         recs = [
-            SealRecommendation("SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 90, 0.95, "", "", ""),
-            SealRecommendation("RELIABLE", SealQuadrant.A2H, "0x1", "e1", 85, 0.8, "", "", ""),
-            SealRecommendation("CURIOUS", SealQuadrant.A2H, "0x1", "e1", 40, 0.3, "", "", ""),
+            SealRecommendation(
+                "SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 90, 0.95, "", "", ""
+            ),
+            SealRecommendation(
+                "RELIABLE", SealQuadrant.A2H, "0x1", "e1", 85, 0.8, "", "", ""
+            ),
+            SealRecommendation(
+                "CURIOUS", SealQuadrant.A2H, "0x1", "e1", 40, 0.3, "", "", ""
+            ),
         ]
         p = SealProfile(address="0x1", agent_id="a1", recommendations=recs)
         assert len(p.issuable_seals) == 2  # Only high confidence
@@ -288,6 +306,7 @@ class TestSealProfile:
 # ──────────────────────────────────────────────────────────────
 # Confidence Calculation
 # ──────────────────────────────────────────────────────────────
+
 
 class TestConfidence:
     """Test confidence calculation logic."""
@@ -325,6 +344,7 @@ class TestConfidence:
 # A2H Seal Scoring Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestSkillfulScoring:
     """Test SKILLFUL seal scoring."""
 
@@ -358,7 +378,12 @@ class TestReliableScoring:
     """Test RELIABLE seal scoring."""
 
     def test_perfect_reliability(self, bridge):
-        metrics = {"success_rate": 1.0, "tasks_completed": 50, "tasks_failed": 0, "tasks_expired": 0}
+        metrics = {
+            "success_rate": 1.0,
+            "tasks_completed": 50,
+            "tasks_failed": 0,
+            "tasks_expired": 0,
+        }
         score, _, _ = bridge._score_reliable(metrics)
         assert score > 85
 
@@ -367,14 +392,29 @@ class TestReliableScoring:
         assert score < 50
 
     def test_expiration_penalty(self, bridge):
-        metrics_no_expire = {"success_rate": 0.8, "tasks_completed": 20, "tasks_failed": 5, "tasks_expired": 0}
-        metrics_expire = {"success_rate": 0.6, "tasks_completed": 20, "tasks_failed": 5, "tasks_expired": 8}
+        metrics_no_expire = {
+            "success_rate": 0.8,
+            "tasks_completed": 20,
+            "tasks_failed": 5,
+            "tasks_expired": 0,
+        }
+        metrics_expire = {
+            "success_rate": 0.6,
+            "tasks_completed": 20,
+            "tasks_failed": 5,
+            "tasks_expired": 8,
+        }
         score_no, _, _ = bridge._score_reliable(metrics_no_expire)
         score_exp, _, _ = bridge._score_reliable(metrics_expire)
         assert score_no > score_exp
 
     def test_zero_tasks(self, bridge):
-        metrics = {"success_rate": 0, "tasks_completed": 0, "tasks_failed": 0, "tasks_expired": 0}
+        metrics = {
+            "success_rate": 0,
+            "tasks_completed": 0,
+            "tasks_failed": 0,
+            "tasks_expired": 0,
+        }
         score, _, _ = bridge._score_reliable(metrics)
         assert score == 0
 
@@ -426,7 +466,12 @@ class TestEngagedScoring:
         assert score < 50
 
     def test_no_categories(self, bridge):
-        metrics = {"tasks_completed": 0, "categories": {}, "total_revenue_usd": 0, "last_active": 0}
+        metrics = {
+            "tasks_completed": 0,
+            "categories": {},
+            "total_revenue_usd": 0,
+            "last_active": 0,
+        }
         score, _, _ = bridge._score_engaged(metrics)
         assert score < 15
 
@@ -445,12 +490,20 @@ class TestResponsiveScoring:
     """Test RESPONSIVE seal scoring (A2H)."""
 
     def test_fast_worker(self, bridge):
-        metrics = {"avg_duration_seconds": 3600, "tasks_completed": 10, "durations": [3600] * 10}
+        metrics = {
+            "avg_duration_seconds": 3600,
+            "tasks_completed": 10,
+            "durations": [3600] * 10,
+        }
         score, _, _ = bridge._score_responsive(metrics)
         assert score >= 95
 
     def test_slow_worker(self, bridge):
-        metrics = {"avg_duration_seconds": 172800, "tasks_completed": 5, "durations": [172800] * 5}
+        metrics = {
+            "avg_duration_seconds": 172800,
+            "tasks_completed": 5,
+            "durations": [172800] * 5,
+        }
         score, _, _ = bridge._score_responsive(metrics)
         assert score <= 30
 
@@ -469,7 +522,18 @@ class TestResponsiveScoring:
         metrics_inconsistent = {
             "avg_duration_seconds": 7200,
             "tasks_completed": 10,
-            "durations": [1000, 14000, 3000, 11000, 7200, 2000, 13000, 5000, 9000, 6800],
+            "durations": [
+                1000,
+                14000,
+                3000,
+                11000,
+                7200,
+                2000,
+                13000,
+                5000,
+                9000,
+                6800,
+            ],
         }
         score_c, _, _ = bridge._score_responsive(metrics_consistent)
         score_i, _, _ = bridge._score_responsive(metrics_inconsistent)
@@ -495,9 +559,15 @@ class TestCuriousScoring:
 
     def test_even_distribution_bonus(self, bridge):
         # Perfectly even distribution
-        even = {"categories": {"a": 10, "b": 10, "c": 10, "d": 10, "e": 10}, "tasks_completed": 50}
+        even = {
+            "categories": {"a": 10, "b": 10, "c": 10, "d": 10, "e": 10},
+            "tasks_completed": 50,
+        }
         # Skewed distribution
-        skewed = {"categories": {"a": 46, "b": 1, "c": 1, "d": 1, "e": 1}, "tasks_completed": 50}
+        skewed = {
+            "categories": {"a": 46, "b": 1, "c": 1, "d": 1, "e": 1},
+            "tasks_completed": 50,
+        }
         score_even, _, _ = bridge._score_curious(even)
         score_skewed, _, _ = bridge._score_curious(skewed)
         assert score_even > score_skewed  # Evenness bonus
@@ -506,6 +576,7 @@ class TestCuriousScoring:
 # ──────────────────────────────────────────────────────────────
 # H2A Seal Scoring Tests
 # ──────────────────────────────────────────────────────────────
+
 
 class TestFairScoring:
     """Test FAIR seal scoring (H2A)."""
@@ -558,6 +629,7 @@ class TestEthicalScoring:
 # Full Evaluation Pipeline Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestEvaluateWorker:
     """Test full worker evaluation pipeline."""
 
@@ -568,7 +640,9 @@ class TestEvaluateWorker:
             metrics=excellent_worker,
         )
         assert profile.data_points == 58  # completed + failed (55+3)
-        assert len(profile.recommendations) == 6  # All 6 A2H seals (SKILLFUL, RELIABLE, THOROUGH, ENGAGED, HELPFUL, CURIOUS)
+        assert (
+            len(profile.recommendations) == 6
+        )  # All 6 A2H seals (SKILLFUL, RELIABLE, THOROUGH, ENGAGED, HELPFUL, CURIOUS)
         assert profile.overall_score > 60
 
         # All seals should have the right quadrant
@@ -619,7 +693,9 @@ class TestEvaluateWorker:
         }
         profile = bridge.evaluate_worker("0x1", "w1", extreme_metrics)
         for rec in profile.recommendations:
-            assert 0 <= rec.score <= 100, f"{rec.seal_type} score {rec.score} out of range"
+            assert 0 <= rec.score <= 100, (
+                f"{rec.seal_type} score {rec.score} out of range"
+            )
 
 
 class TestEvaluateAgentForWorker:
@@ -644,31 +720,48 @@ class TestEvaluateAgentForWorker:
 # Batch Preparation Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestBatchPreparation:
     """Test batch seal preparation."""
 
     def test_prepare_batch_filters_low_confidence(self, bridge):
         recs = [
-            SealRecommendation("SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 90, 0.95, "", "", ""),
-            SealRecommendation("RELIABLE", SealQuadrant.A2H, "0x1", "e1", 85, 0.2, "", "", ""),
-            SealRecommendation("THOROUGH", SealQuadrant.A2H, "0x1", "e1", 80, 0.8, "", "", ""),
+            SealRecommendation(
+                "SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 90, 0.95, "", "", ""
+            ),
+            SealRecommendation(
+                "RELIABLE", SealQuadrant.A2H, "0x1", "e1", 85, 0.2, "", "", ""
+            ),
+            SealRecommendation(
+                "THOROUGH", SealQuadrant.A2H, "0x1", "e1", 80, 0.8, "", "", ""
+            ),
         ]
         batch = bridge.prepare_batch(recs)
         assert len(batch.seals) == 2  # Filters out 0.2 confidence
 
     def test_prepare_batch_custom_threshold(self, bridge):
         recs = [
-            SealRecommendation("SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 90, 0.95, "", "", ""),
-            SealRecommendation("RELIABLE", SealQuadrant.A2H, "0x1", "e1", 85, 0.8, "", "", ""),
+            SealRecommendation(
+                "SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 90, 0.95, "", "", ""
+            ),
+            SealRecommendation(
+                "RELIABLE", SealQuadrant.A2H, "0x1", "e1", 85, 0.8, "", "", ""
+            ),
         ]
         batch = bridge.prepare_batch(recs, min_confidence=0.9)
         assert len(batch.seals) == 1
 
     def test_batch_sorted_by_score(self, bridge):
         recs = [
-            SealRecommendation("CURIOUS", SealQuadrant.A2H, "0x1", "e1", 60, 0.9, "", "", ""),
-            SealRecommendation("SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 95, 0.9, "", "", ""),
-            SealRecommendation("RELIABLE", SealQuadrant.A2H, "0x1", "e1", 78, 0.9, "", "", ""),
+            SealRecommendation(
+                "CURIOUS", SealQuadrant.A2H, "0x1", "e1", 60, 0.9, "", "", ""
+            ),
+            SealRecommendation(
+                "SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 95, 0.9, "", "", ""
+            ),
+            SealRecommendation(
+                "RELIABLE", SealQuadrant.A2H, "0x1", "e1", 78, 0.9, "", "", ""
+            ),
         ]
         batch = bridge.prepare_batch(recs)
         scores = [s.score for s in batch.seals]
@@ -676,15 +769,21 @@ class TestBatchPreparation:
 
     def test_batch_gas_estimate(self, bridge):
         recs = [
-            SealRecommendation("SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 90, 0.9, "", "", ""),
-            SealRecommendation("RELIABLE", SealQuadrant.A2H, "0x1", "e1", 85, 0.9, "", "", ""),
+            SealRecommendation(
+                "SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 90, 0.9, "", "", ""
+            ),
+            SealRecommendation(
+                "RELIABLE", SealQuadrant.A2H, "0x1", "e1", 85, 0.9, "", "", ""
+            ),
         ]
         batch = bridge.prepare_batch(recs)
         assert batch.total_gas_estimate == 160000  # 2 * 80000
 
     def test_batch_max_50(self, bridge):
         recs = [
-            SealRecommendation(f"SEAL_{i}", SealQuadrant.A2H, "0x1", "e1", 80, 0.9, "", "", "")
+            SealRecommendation(
+                f"SEAL_{i}", SealQuadrant.A2H, "0x1", "e1", 80, 0.9, "", "", ""
+            )
             for i in range(60)
         ]
         batch = bridge.prepare_batch(recs)
@@ -697,7 +796,9 @@ class TestBatchPreparation:
 
     def test_batch_to_dict(self, bridge):
         recs = [
-            SealRecommendation("SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 90, 0.9, "", "", ""),
+            SealRecommendation(
+                "SKILLFUL", SealQuadrant.A2H, "0x1", "e1", 90, 0.9, "", "", ""
+            ),
         ]
         batch = bridge.prepare_batch(recs)
         d = batch.to_dict()
@@ -708,6 +809,7 @@ class TestBatchPreparation:
 # ──────────────────────────────────────────────────────────────
 # Issuance History Tests
 # ──────────────────────────────────────────────────────────────
+
 
 class TestIssuanceHistory:
     """Test seal issuance recording."""
@@ -731,18 +833,30 @@ class TestIssuanceHistory:
 
     def test_multiple_issuances(self, bridge):
         for i in range(5):
-            bridge.record_issuance(SealIssuanceRecord(
-                seal_id=i, tx_hash=f"0x{i}", seal_type="RELIABLE",
-                subject_address="0x1", score=80, quadrant=SealQuadrant.A2H,
-            ))
+            bridge.record_issuance(
+                SealIssuanceRecord(
+                    seal_id=i,
+                    tx_hash=f"0x{i}",
+                    seal_type="RELIABLE",
+                    subject_address="0x1",
+                    score=80,
+                    quadrant=SealQuadrant.A2H,
+                )
+            )
         assert bridge.issuance_count == 5
 
     def test_history_limit(self, bridge):
         for i in range(150):
-            bridge.record_issuance(SealIssuanceRecord(
-                seal_id=i, tx_hash=f"0x{i}", seal_type="RELIABLE",
-                subject_address="0x1", score=80, quadrant=SealQuadrant.A2H,
-            ))
+            bridge.record_issuance(
+                SealIssuanceRecord(
+                    seal_id=i,
+                    tx_hash=f"0x{i}",
+                    seal_type="RELIABLE",
+                    subject_address="0x1",
+                    score=80,
+                    quadrant=SealQuadrant.A2H,
+                )
+            )
         history = bridge.get_issuance_history(limit=10)
         assert len(history) == 10
 
@@ -751,10 +865,13 @@ class TestIssuanceHistory:
 # Fleet Evaluation Tests
 # ──────────────────────────────────────────────────────────────
 
+
 class TestFleetEvaluation:
     """Test fleet-wide evaluation."""
 
-    def test_evaluate_fleet(self, bridge, excellent_worker, poor_worker, diverse_worker):
+    def test_evaluate_fleet(
+        self, bridge, excellent_worker, poor_worker, diverse_worker
+    ):
         fleet_metrics = {
             "worker_star": excellent_worker,
             "worker_poor": poor_worker,
@@ -803,6 +920,7 @@ class TestFleetEvaluation:
 # Edge Cases
 # ──────────────────────────────────────────────────────────────
 
+
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
@@ -842,7 +960,9 @@ class TestEdgeCases:
         assert profile.data_points >= 10  # completed + failed (0+10)
         # Most scores should be low
         low_scores = [r for r in profile.recommendations if r.score < 60]
-        assert len(low_scores) >= 3, "Expected most seal scores to be low for all-failed worker"
+        assert len(low_scores) >= 3, (
+            "Expected most seal scores to be low for all-failed worker"
+        )
 
     def test_exactly_3_tasks(self, bridge):
         """Minimum threshold: exactly 3 tasks should produce seals."""
@@ -851,7 +971,7 @@ class TestEdgeCases:
             "tasks_failed": 1,
             "tasks_expired": 0,
             "avg_quality": 3.5,
-            "success_rate": 2/3,
+            "success_rate": 2 / 3,
             "avg_duration_seconds": 7200,
             "categories": {"simple_action": 3},
             "last_active": time.time(),
@@ -903,6 +1023,7 @@ class TestEdgeCases:
 # Integration: Analytics → SealBridge Pipeline
 # ──────────────────────────────────────────────────────────────
 
+
 class TestAnalyticsPipeline:
     """
     Test the full pipeline from SwarmAnalytics-style metrics
@@ -930,7 +1051,9 @@ class TestAnalyticsPipeline:
             assert seal.evidence_hash  # Non-empty
             assert seal.subject_address == "0xStar"
 
-    def test_pipeline_with_fleet(self, bridge, excellent_worker, poor_worker, diverse_worker):
+    def test_pipeline_with_fleet(
+        self, bridge, excellent_worker, poor_worker, diverse_worker
+    ):
         fleet = {
             "star": excellent_worker,
             "poor": poor_worker,
@@ -963,7 +1086,9 @@ class TestAnalyticsPipeline:
         a2h_profile = bridge.evaluate_worker("0xWorker", "w1", excellent_worker)
 
         # Worker evaluates agent (H2A)
-        h2a_profile = bridge.evaluate_agent_for_worker("0xAgent", "a1", excellent_worker)
+        h2a_profile = bridge.evaluate_agent_for_worker(
+            "0xAgent", "a1", excellent_worker
+        )
 
         # Different seal types
         a2h_types = {r.seal_type for r in a2h_profile.recommendations}
