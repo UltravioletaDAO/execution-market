@@ -3,7 +3,7 @@ Focused P0 tests for approve/cancel idempotency and refund behavior.
 """
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -11,6 +11,19 @@ pytestmark = pytest.mark.core
 from fastapi import HTTPException
 
 from ..api import routes
+from ..api.auth import WorkerAuth
+
+
+def _mock_request():
+    """Create a mock FastAPI Request object."""
+    mock = MagicMock()
+    mock.url.path = "/test"
+    return mock
+
+
+def _mock_worker_auth(executor_id="test-executor"):
+    """Create a WorkerAuth object for testing."""
+    return WorkerAuth(executor_id=executor_id, user_id="test-user", auth_method="jwt")
 
 
 class _FakeEscrowsTable:
@@ -332,12 +345,14 @@ async def test_submit_work_auto_pays_and_marks_completed(monkeypatch):
     monkeypatch.setattr(routes, "_auto_approve_submission", auto_approve)
 
     result = await routes.submit_work(
+        raw_request=_mock_request(),
         task_id=task_id,
         request=routes.WorkerSubmissionRequest(
             executor_id=executor_id,
             evidence={"screenshot": "https://example.com/proof.png"},
             notes="done",
         ),
+        worker_auth=_mock_worker_auth(executor_id=executor_id),
     )
 
     assert result.message == "Work submitted and paid instantly."
@@ -387,11 +402,13 @@ async def test_submit_work_keeps_review_flow_when_instant_payout_not_ready(monke
     monkeypatch.setattr(routes, "_auto_approve_submission", auto_approve)
 
     result = await routes.submit_work(
+        raw_request=_mock_request(),
         task_id=task_id,
         request=routes.WorkerSubmissionRequest(
             executor_id=executor_id,
             evidence={"photo": "https://example.com/photo.png"},
         ),
+        worker_auth=_mock_worker_auth(executor_id=executor_id),
     )
 
     assert result.message == "Work submitted successfully. Awaiting agent review."

@@ -15,6 +15,14 @@ import pytest
 
 pytestmark = pytest.mark.erc8004
 
+
+def _mock_request():
+    """Create a mock FastAPI Request object."""
+    mock = MagicMock()
+    mock.url.path = "/test"
+    return mock
+
+
 # ---------------------------------------------------------------------------
 # Module stubbing — ensure api.reputation can be imported cleanly.
 #
@@ -215,7 +223,11 @@ class TestPrepareFeedback:
                 worker_address="0x1234567890abcdef1234567890abcdef12345678",
             )
 
-            result = await prepare_feedback_endpoint(request)
+            result = await prepare_feedback_endpoint(
+                raw_request=_mock_request(),
+                request=request,
+                worker_auth=None,
+            )
 
         assert result.agent_id == 2106
         assert result.value == 80
@@ -244,7 +256,11 @@ class TestPrepareFeedback:
             )
 
             with pytest.raises(Exception) as exc_info:
-                await prepare_feedback_endpoint(request)
+                await prepare_feedback_endpoint(
+                    raw_request=_mock_request(),
+                    request=request,
+                    worker_auth=None,
+                )
             assert "404" in str(exc_info.value.status_code)
 
     @pytest.mark.asyncio
@@ -271,7 +287,11 @@ class TestPrepareFeedback:
             )
 
             with pytest.raises(Exception) as exc_info:
-                await prepare_feedback_endpoint(request)
+                await prepare_feedback_endpoint(
+                    raw_request=_mock_request(),
+                    request=request,
+                    worker_auth=None,
+                )
             assert "403" in str(exc_info.value.status_code)
 
     @pytest.mark.asyncio
@@ -300,7 +320,11 @@ class TestPrepareFeedback:
             )
 
             with pytest.raises(Exception) as exc_info:
-                await prepare_feedback_endpoint(request)
+                await prepare_feedback_endpoint(
+                    raw_request=_mock_request(),
+                    request=request,
+                    worker_auth=None,
+                )
             assert "409" in str(exc_info.value.status_code)
 
     @pytest.mark.asyncio
@@ -327,7 +351,11 @@ class TestPrepareFeedback:
             )
 
             with pytest.raises(Exception) as exc_info:
-                await prepare_feedback_endpoint(request)
+                await prepare_feedback_endpoint(
+                    raw_request=_mock_request(),
+                    request=request,
+                    worker_auth=None,
+                )
             assert "404" in str(exc_info.value.status_code)
 
 
@@ -357,7 +385,11 @@ class TestConfirmFeedback:
                 task_id="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
             )
 
-            result = await confirm_feedback_endpoint(request)
+            result = await confirm_feedback_endpoint(
+                raw_request=_mock_request(),
+                request=request,
+                worker_auth=None,
+            )
 
         assert result.success is True
         assert result.transaction_hash == "0x" + "ab" * 32
@@ -389,7 +421,11 @@ class TestConfirmFeedback:
                 task_id="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
             )
 
-            await confirm_feedback_endpoint(request)
+            await confirm_feedback_endpoint(
+                raw_request=_mock_request(),
+                request=request,
+                worker_auth=None,
+            )
 
             # Should have called table() at least twice (feedback_documents + submissions)
             assert mock_client.table.call_count >= 2

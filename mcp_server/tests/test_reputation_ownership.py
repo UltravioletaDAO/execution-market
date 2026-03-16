@@ -3,7 +3,7 @@ Focused tests for reputation endpoint ownership and assignment checks.
 """
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -12,6 +12,13 @@ from fastapi import HTTPException
 
 from ..api import reputation
 from ..api import routes
+
+
+def _mock_request():
+    """Create a mock FastAPI Request object."""
+    mock = MagicMock()
+    mock.url.path = "/test"
+    return mock
 
 
 TASK_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
@@ -119,7 +126,11 @@ async def test_rate_agent_rejects_task_without_assigned_worker(monkeypatch):
     )
 
     with pytest.raises(HTTPException) as exc:
-        await reputation.rate_agent_endpoint(request=request)
+        await reputation.rate_agent_endpoint(
+            raw_request=_mock_request(),
+            request=request,
+            worker_auth=None,
+        )
 
     assert exc.value.status_code == 409
 
@@ -156,7 +167,11 @@ async def test_rate_agent_rejects_mismatched_agent_identity(monkeypatch):
     )
 
     with pytest.raises(HTTPException) as exc:
-        await reputation.rate_agent_endpoint(request=request)
+        await reputation.rate_agent_endpoint(
+            raw_request=_mock_request(),
+            request=request,
+            worker_auth=None,
+        )
 
     assert exc.value.status_code == 403
 
@@ -202,7 +217,11 @@ async def test_rate_agent_succeeds_with_valid_task_context(monkeypatch):
         proof_tx="0xproof",
     )
 
-    result = await reputation.rate_agent_endpoint(request=request)
+    result = await reputation.rate_agent_endpoint(
+        raw_request=_mock_request(),
+        request=request,
+        worker_auth=None,
+    )
 
     assert result.success is True
     assert rate_agent_mock.await_count == 1
