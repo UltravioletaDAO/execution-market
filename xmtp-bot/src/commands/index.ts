@@ -10,6 +10,8 @@ import { handleMyTasks } from "./mytasks.js";
 import { handleSubmit } from "./submit.js";
 import { handleBalance } from "./balance.js";
 import { handleEarnings } from "./earnings.js";
+import { handleRate } from "./rate.js";
+import { handleReputation } from "./reputation.js";
 import {
   handleSubmissionText,
   handleSubmissionSkip,
@@ -83,6 +85,18 @@ const commands: CommandDefinition[] = [
     usage: "/earnings",
     description: "Ver ganancias totales",
     handler: handleEarnings,
+  },
+  {
+    name: "rate",
+    usage: "/rate <task_id> <1-5> [comentario]",
+    description: "Calificar agente/worker",
+    handler: handleRate,
+  },
+  {
+    name: "reputation",
+    usage: "/reputation [address]",
+    description: "Ver reputacion on-chain",
+    handler: handleReputation,
   },
   {
     name: "register",
@@ -211,3 +225,5 @@ export { handleRegister, handleRegistrationText } from "./register.js";
 export { handleSubmit } from "./submit.js";
 export { handleBalance } from "./balance.js";
 export { handleEarnings } from "./earnings.js";
+export { handleRate } from "./rate.js";
+export { handleReputation } from "./reputation.js";

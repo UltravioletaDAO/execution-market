@@ -6,6 +6,9 @@ type SendMessageFn = (peerAddress: string, text: string) => Promise<void>;
 
 let sendMessage: SendMessageFn | null = null;
 
+// Track tasks already prompted for rating
+const ratingPrompted = new Set<string>();
+
 export function setSendMessageFn(fn: SendMessageFn): void {
   sendMessage = fn;
 }
@@ -68,6 +71,9 @@ export async function notifySubmissionApproved(
   }
 
   await notify(workerAddress, text);
+
+  // Prompt worker to rate the agent after payment
+  scheduleRatingPrompt(workerAddress, task);
 }
 
 export async function notifySubmissionRejected(
@@ -82,4 +88,52 @@ export async function notifySubmissionRejected(
     `Puedes reenviar evidencia desde el dashboard.`;
 
   await notify(workerAddress, text);
+}
+
+export function scheduleRatingPrompt(
+  workerAddress: string,
+  task: any
+): void {
+  const key = `${workerAddress}:${task.id}`;
+  if (ratingPrompted.has(key)) return;
+  ratingPrompted.add(key);
+
+  // Wait 30 seconds then prompt
+  setTimeout(async () => {
+    const shortTaskId = task.id?.slice(0, 8) ?? "?";
+    await notify(
+      workerAddress,
+      `Como fue tu experiencia con **${task.title}**?\n\n` +
+        `Califica al publicador:\n` +
+        `\`/rate ${shortTaskId} <1-5> [comentario]\`\n\n` +
+        `_Tu feedback ayuda a construir confianza en la plataforma._`
+    );
+  }, 30_000);
+}
+
+export async function notifyNewRating(
+  targetAddress: string,
+  rating: {
+    score: number;
+    comment?: string;
+    from_address?: string;
+    task_title?: string;
+  }
+): Promise<void> {
+  const stars = "\u2605".repeat(rating.score) + "\u2606".repeat(5 - rating.score);
+  const from = rating.from_address
+    ? `${rating.from_address.slice(0, 6)}...${rating.from_address.slice(-4)}`
+    : "Anonimo";
+
+  await notify(
+    targetAddress,
+    `**Nuevo rating recibido** ${stars}\n\n` +
+      `| Campo | Valor |\n` +
+      `|-------|-------|\n` +
+      `| Score | ${rating.score}/5 |\n` +
+      `| De | ${from} |\n` +
+      (rating.comment ? `| Comentario | ${rating.comment} |\n` : "") +
+      (rating.task_title ? `| Tarea | ${rating.task_title} |\n` : "") +
+      `\nUsa \`/reputation\` para ver tu score completo.`
+  );
 }
