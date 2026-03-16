@@ -6,7 +6,9 @@ import {
   Pressable,
   RefreshControl,
   ActivityIndicator,
+  Linking,
 } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -17,6 +19,7 @@ import {
   RatingEntry,
 } from "../hooks/api/useRatings";
 import { ReputationBadge } from "../components/ReputationBadge";
+import { getExplorerTxUrl } from "../constants/networks";
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -28,8 +31,21 @@ function formatDate(dateStr: string): string {
 }
 
 function RatingCard({ entry }: { entry: RatingEntry }) {
+  const openTx = async () => {
+    if (!entry.payment_tx || !entry.payment_network) return;
+    const url = getExplorerTxUrl(entry.payment_network, entry.payment_tx);
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      Linking.openURL(url).catch(() => {});
+    }
+  };
+
   return (
-    <View className="bg-surface rounded-2xl p-4 mb-3">
+    <Pressable
+      className="bg-surface rounded-2xl p-4 mb-3"
+      onPress={() => router.push(`/task/${entry.task_id}`)}
+    >
       <View className="flex-row items-center justify-between mb-2">
         <View className="flex-row items-baseline">
           <Text className="text-white text-xl font-bold">{entry.rating}</Text>
@@ -38,19 +54,26 @@ function RatingCard({ entry }: { entry: RatingEntry }) {
         <Text className="text-gray-500 text-xs">{formatDate(entry.created_at)}</Text>
       </View>
       {entry.task_title ? (
-        <Text className="text-gray-400 text-sm mb-1" numberOfLines={1}>
+        <Text className="text-white text-sm mb-1" numberOfLines={1}>
           {entry.task_title}
         </Text>
       ) : null}
       {entry.comment ? (
-        <Text className="text-gray-300 text-sm mt-1">{entry.comment}</Text>
+        <Text className="text-gray-300 text-sm italic mt-1">"{entry.comment}"</Text>
       ) : null}
-      {entry.rater_type ? (
-        <View className="flex-row items-center mt-2">
+      <View className="flex-row items-center justify-between mt-2">
+        {entry.rater_type ? (
           <Text className="text-gray-600 text-xs">{entry.rater_type}</Text>
-        </View>
-      ) : null}
-    </View>
+        ) : <View />}
+        {entry.payment_tx && entry.payment_network ? (
+          <Pressable onPress={openTx} hitSlop={8}>
+            <Text className="text-blue-400 text-xs">
+              TX: {entry.payment_tx.slice(0, 8)}... ↗
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </Pressable>
   );
 }
 
