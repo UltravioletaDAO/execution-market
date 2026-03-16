@@ -231,7 +231,9 @@ async def _send_eth_dust(to_address: str, amount_eth: float) -> str:
         }
 
         signed = w3.eth.account.sign_transaction(tx, pk)
-        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        # web3.py v7+ uses `raw_transaction`, v6 uses `rawTransaction`
+        raw_tx = getattr(signed, "raw_transaction", None) or signed.rawTransaction
+        tx_hash = w3.eth.send_raw_transaction(raw_tx)
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
 
         if receipt["status"] != 1:

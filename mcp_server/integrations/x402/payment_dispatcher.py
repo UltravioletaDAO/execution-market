@@ -1718,7 +1718,12 @@ class PaymentDispatcher:
                         "jsonrpc": "2.0",
                         "id": 4,
                         "method": "eth_sendRawTransaction",
-                        "params": [signed.raw_transaction.hex()],
+                        "params": [
+                            (
+                                getattr(signed, "raw_transaction", None)
+                                or signed.rawTransaction
+                            ).hex()
+                        ],
                     },
                 )
                 send_result = send_resp.json()

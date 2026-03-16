@@ -78,6 +78,38 @@ function formatTimeRemaining(deadline: string, t: (key: string, opts?: Record<st
   return t("task.minutesRemaining", { minutes });
 }
 
+/** Map raw auto-check names to professional display labels */
+const CHECK_DISPLAY_NAMES: Record<string, string> = {
+  schema: "Schema Validation",
+  gps: "GPS Location",
+  timestamp: "Timestamp",
+  evidence_hash: "Evidence Hash",
+  metadata: "Metadata",
+  ai_semantic: "AI Semantic Analysis",
+  tampering: "Tampering Detection",
+  genai_detection: "GenAI Detection",
+  photo_source: "Photo Source",
+  duplicate: "Duplicate Check",
+};
+
+function formatCheckName(raw: string): string {
+  if (CHECK_DISPLAY_NAMES[raw]) return CHECK_DISPLAY_NAMES[raw];
+  // Fallback: replace underscores with spaces and title-case each word
+  return raw
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Capitalize the first letter of a reason string and ensure it ends with a period */
+function formatCheckReason(reason: string): string {
+  if (!reason) return reason;
+  const trimmed = reason.trim();
+  const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  // Add period if the reason doesn't end with punctuation
+  if (/[.!?]$/.test(capitalized)) return capitalized;
+  return capitalized + ".";
+}
+
 // Timeline step component
 function TimelineStep({
   icon,
@@ -90,6 +122,7 @@ function TimelineStep({
   t,
   actionLabel,
   onAction,
+  thumbnailUrl,
 }: {
   icon: string;
   label: string;
@@ -101,6 +134,7 @@ function TimelineStep({
   t: (key: string) => string;
   actionLabel?: string;
   onAction?: () => void;
+  thumbnailUrl?: string | null;
 }) {
   return (
     <View className="flex-row">
@@ -124,12 +158,26 @@ function TimelineStep({
 
       {/* Content */}
       <View className="flex-1 pb-3">
-        <Text className={`text-sm font-medium ${isCompleted ? "text-white" : "text-gray-600"}`}>
-          {label}
-        </Text>
-        {sublabel && (
-          <Text className="text-gray-500 text-xs mt-0.5">{sublabel}</Text>
-        )}
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1">
+            <Text className={`text-sm font-medium ${isCompleted ? "text-white" : "text-gray-600"}`}>
+              {label}
+            </Text>
+            {sublabel && (
+              <Text className="text-gray-500 text-xs mt-0.5">{sublabel}</Text>
+            )}
+          </View>
+          {/* Thumbnail preview */}
+          {thumbnailUrl && (
+            <Pressable onPress={onAction} className="ml-2 active:opacity-70">
+              <Image
+                source={{ uri: thumbnailUrl }}
+                style={{ width: 48, height: 48, borderRadius: 8 }}
+                resizeMode="cover"
+              />
+            </Pressable>
+          )}
+        </View>
         {txHash && network && (
           <Pressable
             className="flex-row items-center mt-1"
@@ -159,13 +207,22 @@ function EvidenceModal({
   onClose,
   photoUrl,
   gps,
+  agentAnalysis,
 }: {
   visible: boolean;
   onClose: () => void;
   photoUrl: string | null;
   gps?: { lat?: number; lng?: number; accuracy?: number } | null;
+  agentAnalysis?: {
+    score?: number;
+    passed?: boolean;
+    checks?: { name: string; passed: boolean; score: number; reason?: string }[];
+    warnings?: string[];
+    comment?: string;
+  } | null;
 }) {
   const screenWidth = Dimensions.get("window").width;
+  const [showCoords, setShowCoords] = useState(false);
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -173,30 +230,116 @@ function EvidenceModal({
         className="flex-1 bg-black/80 items-center justify-center"
         onPress={onClose}
       >
-        <View className="bg-surface rounded-2xl overflow-hidden mx-4" style={{ maxWidth: screenWidth - 32 }}>
-          {photoUrl ? (
-            <Image
-              source={{ uri: photoUrl }}
-              style={{ width: screenWidth - 32, height: screenWidth - 32 }}
-              resizeMode="contain"
-            />
-          ) : (
-            <View className="items-center justify-center py-20 px-8">
-              <Text className="text-gray-500 text-sm">No photo evidence</Text>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 16 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View className="bg-surface rounded-2xl overflow-hidden" style={{ maxWidth: screenWidth - 32 }}>
+              {/* Photo */}
+              {photoUrl ? (
+                <Image
+                  source={{ uri: photoUrl }}
+                  style={{ width: screenWidth - 32, height: screenWidth - 32 }}
+                  resizeMode="contain"
+                />
+              ) : (
+                <View className="items-center justify-center py-20 px-8">
+                  <Text className="text-gray-500 text-sm">No photo evidence</Text>
+                </View>
+              )}
+
+              {/* GPS toggle button */}
+              {gps && gps.lat != null && gps.lng != null && (
+                <View className="border-t border-gray-800">
+                  <Pressable
+                    className="px-4 py-2 flex-row items-center active:opacity-70"
+                    onPress={() => setShowCoords(!showCoords)}
+                  >
+                    <Text className="text-blue-400 text-xs font-medium">
+                      {showCoords ? "Hide coordinates" : "Show coordinates"}
+                    </Text>
+                  </Pressable>
+                  {showCoords && (
+                    <View className="px-4 pb-2">
+                      <Text className="text-gray-400 text-xs font-mono">
+                        {gps.lat.toFixed(6)}, {gps.lng.toFixed(6)}
+                      </Text>
+                      {gps.accuracy != null && (
+                        <Text className="text-gray-500 text-xs">
+                          Accuracy: {"\u00B1"}{gps.accuracy.toFixed(0)}m
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Agent Analysis */}
+              {agentAnalysis && (agentAnalysis.checks?.length || agentAnalysis.comment) ? (
+                <View className="border-t border-gray-800 px-4 py-3">
+                  <Text className="text-gray-500 text-xs uppercase font-bold mb-2">
+                    Agent verification
+                  </Text>
+
+                  {/* Overall score */}
+                  {agentAnalysis.score != null && (
+                    <View className="flex-row items-center mb-2">
+                      <View className={`w-2 h-2 rounded-full mr-2 ${agentAnalysis.passed ? "bg-green-500" : "bg-yellow-500"}`} />
+                      <Text className="text-white text-sm font-medium">
+                        Score: {typeof agentAnalysis.score === "number" && agentAnalysis.score <= 1
+                          ? `${(agentAnalysis.score * 100).toFixed(0)}%`
+                          : `${agentAnalysis.score}%`}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Individual checks */}
+                  {agentAnalysis.checks?.map((check, i) => (
+                    <View key={i} className="mb-2">
+                      <View className="flex-row items-center">
+                        <View
+                          className={`w-5 h-5 rounded-full items-center justify-center mr-2 ${
+                            check.passed ? "bg-green-900/40" : "bg-red-900/40"
+                          }`}
+                        >
+                          <Text style={{ fontSize: 10 }}>
+                            {check.passed ? "\u2713" : "\u2717"}
+                          </Text>
+                        </View>
+                        <Text className="text-white text-xs font-semibold flex-1">
+                          {formatCheckName(check.name)}
+                        </Text>
+                        <Text className={`text-xs font-medium ${check.passed ? "text-green-500" : "text-red-400"}`}>
+                          {check.passed ? "Pass" : "Fail"}
+                        </Text>
+                      </View>
+                      {check.reason ? (
+                        <Text className="text-gray-500 text-xs mt-0.5 ml-7">
+                          {formatCheckReason(check.reason)}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))}
+
+                  {/* Agent comment (from rating) */}
+                  {agentAnalysis.comment && (
+                    <View className="mt-2 bg-white/5 rounded-lg p-2">
+                      <Text className="text-gray-400 text-xs italic">
+                        "{agentAnalysis.comment}"
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : null}
+
+              {/* Close button */}
+              <Pressable className="py-3 items-center border-t border-gray-800 active:opacity-70" onPress={onClose}>
+                <Text className="text-white font-medium">Close</Text>
+              </Pressable>
             </View>
-          )}
-          {gps && gps.lat != null && gps.lng != null && (
-            <View className="px-4 py-2 border-t border-gray-800">
-              <Text className="text-gray-500 text-xs">
-                GPS: {gps.lat.toFixed(5)}, {gps.lng.toFixed(5)}
-                {gps.accuracy ? ` (\u00B1${gps.accuracy.toFixed(0)}m)` : ""}
-              </Text>
-            </View>
-          )}
-          <Pressable className="py-3 items-center border-t border-gray-800" onPress={onClose}>
-            <Text className="text-white font-medium">Close</Text>
           </Pressable>
-        </View>
+        </ScrollView>
       </Pressable>
     </Modal>
   );
@@ -219,6 +362,7 @@ export default function TaskDetailScreen() {
 
   const hasApplied = myApplication?.applied === true;
   const isMyTask = !!(executor && task && task.executor_id === executor.id);
+
 
   // Sync hasRated with DB data (workerRating exists = already rated)
   useEffect(() => {
@@ -591,7 +735,7 @@ export default function TaskDetailScreen() {
                   t={t}
                 />
 
-                {/* Step 2: Evidence submitted + View Evidence button */}
+                {/* Step 2: Evidence submitted + View Evidence button + thumbnail */}
                 <TimelineStep
                   icon="✓"
                   label={t("task.timelineEvidenceSubmitted")}
@@ -607,6 +751,7 @@ export default function TaskDetailScreen() {
                   t={t}
                   actionLabel={currentIdx >= 3 && evidencePhotoUrl ? t("task.viewEvidence") : undefined}
                   onAction={currentIdx >= 3 && evidencePhotoUrl ? () => setShowEvidenceModal(true) : undefined}
+                  thumbnailUrl={currentIdx >= 3 ? evidencePhotoUrl : null}
                 />
 
                 {/* Step 3: Approved + Paid (only if completed) */}
@@ -886,6 +1031,13 @@ export default function TaskDetailScreen() {
             onClose={() => setShowEvidenceModal(false)}
             photoUrl={evidencePhotoUrl}
             gps={evidenceGps}
+            agentAnalysis={mySubmission ? {
+              score: mySubmission.auto_check_details?.score,
+              passed: mySubmission.auto_check_passed,
+              checks: mySubmission.auto_check_details?.checks,
+              warnings: mySubmission.auto_check_details?.warnings,
+              comment: taskRatings?.agentRating?.comment || undefined,
+            } : undefined}
           />
         );
       })()}
