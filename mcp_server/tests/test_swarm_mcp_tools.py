@@ -8,10 +8,7 @@ with and without an active coordinator.
 import pytest
 from unittest.mock import MagicMock, patch
 
-# Some swarm MCP tool tests broken due to poll response format changes.
-pytestmark = pytest.mark.xfail(
-    reason="Swarm poll response format changed", strict=False
-)
+# Poll response format stabilized — all tests passing.
 
 
 # ─── Helper to register tools and capture them ───────────────────────────────
@@ -168,7 +165,7 @@ class TestSwarmMCPToolsActive:
 
     @pytest.mark.asyncio
     async def test_poll_passive_skips_routing(self):
-        """In passive mode, poll ingests but doesn't route."""
+        """In passive mode, poll returns early without ingesting or routing."""
         mcp = MockMCP()
         with patch.dict(
             "os.environ", {"SWARM_ENABLED": "true", "SWARM_MODE": "passive"}
@@ -177,17 +174,13 @@ class TestSwarmMCPToolsActive:
 
             register_swarm_tools(mcp, coordinator=self.mock_coord)
 
-        self.mock_coord.ingest_from_api.return_value = 5
-        self.mock_coord.run_health_checks.return_value = {
-            "agents": {"degraded": 0},
-            "systems": {},
-        }
-
         tool = mcp.get_tool("em_swarm_poll")
         result = await tool()
 
-        assert result["new_tasks"] == 5
-        assert result["tasks_assigned"] == 0
+        assert result["mode"] == "passive"
+        assert result["enabled"] is True
+        assert "message" in result
+        self.mock_coord.ingest_from_api.assert_not_called()
         self.mock_coord.process_task_queue.assert_not_called()
 
     @pytest.mark.asyncio
