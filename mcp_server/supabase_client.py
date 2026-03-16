@@ -11,18 +11,36 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta, timezone
 from supabase import create_client, Client
 
-# Environment variables
-SUPABASE_URL = os.environ.get(
-    "SUPABASE_URL",
-    "https://test.supabase.co" if os.environ.get("TESTING") else "",
-)
-if not SUPABASE_URL:
-    raise RuntimeError("SUPABASE_URL environment variable is required")
-SUPABASE_KEY = (
-    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-    or os.environ.get("SUPABASE_SERVICE_KEY")
-    or os.environ.get("SUPABASE_ANON_KEY", "")
-)
+# Environment variables — resolved lazily in get_client() to avoid
+# import-time failures when SUPABASE_URL is not set (e.g. in tests).
+
+
+def _get_url() -> str:
+    url = os.environ.get(
+        "SUPABASE_URL",
+        "https://test.supabase.co" if os.environ.get("TESTING") else "",
+    )
+    if not url:
+        raise RuntimeError("SUPABASE_URL environment variable is required")
+    return url
+
+
+def _get_key() -> str:
+    key = (
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        or os.environ.get("SUPABASE_SERVICE_KEY")
+        or os.environ.get("SUPABASE_ANON_KEY", "")
+    )
+    if not key:
+        raise ValueError(
+            "SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY environment variable required"
+        )
+    return key
+
+
+# Keep module-level references for backward compatibility but don't fail on import
+SUPABASE_URL: str = ""  # populated lazily
+SUPABASE_KEY: str = ""  # populated lazily
 
 # Initialize Supabase client
 _client: Optional[Client] = None
@@ -31,13 +49,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_client() -> Client:
-    """Get or create Supabase client."""
-    global _client
+    """Get or create Supabase client (resolves env vars lazily)."""
+    global _client, SUPABASE_URL, SUPABASE_KEY
     if _client is None:
-        if not SUPABASE_KEY:
-            raise ValueError(
-                "SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY environment variable required"
-            )
+        SUPABASE_URL = _get_url()
+        SUPABASE_KEY = _get_key()
         _client = create_client(SUPABASE_URL, SUPABASE_KEY)
     return _client
 
