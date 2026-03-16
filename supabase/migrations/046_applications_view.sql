@@ -14,12 +14,8 @@ CREATE OR REPLACE RULE applications_update AS ON UPDATE TO applications
         task_id = NEW.task_id,
         executor_id = NEW.executor_id,
         message = NEW.message,
-        proposed_price = NEW.proposed_price,
-        proposed_deadline = NEW.proposed_deadline,
         status = NEW.status,
-        rejection_reason = NEW.rejection_reason,
-        updated_at = NEW.updated_at,
-        responded_at = NEW.responded_at
+        updated_at = NEW.updated_at
     WHERE id = OLD.id;
 
 CREATE OR REPLACE RULE applications_delete AS ON DELETE TO applications
