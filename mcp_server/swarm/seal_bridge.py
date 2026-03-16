@@ -30,9 +30,7 @@ import json
 import math
 import time
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 
 # ──────────────────────────────────────────────────────────────
@@ -64,6 +62,7 @@ H2A_SEALS = {"FAIR", "ACCURATE", "RESPONSIVE", "ETHICAL"}
 
 class SealQuadrant(str, Enum):
     """Matches SealRegistry.sol Quadrant enum."""
+
     H2H = "H2H"  # 0
     H2A = "H2A"  # 1
     A2H = "A2H"  # 2
@@ -74,9 +73,11 @@ class SealQuadrant(str, Enum):
 # Data Types
 # ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class SealRecommendation:
     """A recommended seal to issue based on analytics data."""
+
     seal_type: str  # e.g., "SKILLFUL"
     quadrant: SealQuadrant
     subject_address: str  # Who receives the seal
@@ -107,6 +108,7 @@ class SealRecommendation:
 @dataclass
 class SealProfile:
     """Complete seal profile for an agent/worker."""
+
     address: str
     agent_id: str
     recommendations: list[SealRecommendation] = field(default_factory=list)
@@ -137,6 +139,7 @@ class SealProfile:
 @dataclass
 class BatchSealRequest:
     """A batch of seals ready for on-chain submission."""
+
     seals: list[SealRecommendation]
     total_gas_estimate: int = 0
     created_at: float = field(default_factory=time.time)
@@ -153,6 +156,7 @@ class BatchSealRequest:
 @dataclass
 class SealIssuanceRecord:
     """Record of a seal that was issued on-chain."""
+
     seal_id: int  # On-chain seal ID
     tx_hash: str
     seal_type: str
@@ -171,6 +175,7 @@ class SealIssuanceRecord:
 # ──────────────────────────────────────────────────────────────
 # Scoring Functions
 # ──────────────────────────────────────────────────────────────
+
 
 def _compute_evidence_hash(evidence: dict) -> str:
     """Deterministic hash of evidence data for on-chain anchoring."""
@@ -196,6 +201,7 @@ def _log_scale(value: float, reference: float) -> float:
 # ──────────────────────────────────────────────────────────────
 # SealBridge
 # ──────────────────────────────────────────────────────────────
+
 
 class SealBridge:
     """
@@ -229,16 +235,16 @@ class SealBridge:
     CONFIDENCE_FULL_AT = 50  # Tasks needed for full confidence
 
     # Score anchors (what constitutes "good" performance)
-    QUALITY_EXCELLENT = 4.5   # out of 5.0
+    QUALITY_EXCELLENT = 4.5  # out of 5.0
     QUALITY_GOOD = 3.5
     QUALITY_POOR = 2.0
 
-    SPEED_FAST_HOURS = 2.0     # Under 2h = fast
+    SPEED_FAST_HOURS = 2.0  # Under 2h = fast
     SPEED_NORMAL_HOURS = 12.0  # Under 12h = normal
-    SPEED_SLOW_HOURS = 48.0    # Over 48h = slow
+    SPEED_SLOW_HOURS = 48.0  # Over 48h = slow
 
-    CATEGORY_DIVERSE = 5       # 5+ categories = diverse
-    CATEGORY_SPECIALIST = 1    # 1 category = specialist
+    CATEGORY_DIVERSE = 5  # 5+ categories = diverse
+    CATEGORY_SPECIALIST = 1  # 1 category = specialist
 
     def __init__(
         self,
@@ -250,6 +256,7 @@ class SealBridge:
         self._min_confidence = min_confidence
         self._gas_per_seal = gas_per_seal
         self._issuance_history: list[SealIssuanceRecord] = []
+        self._max_issuance_history = 5000
 
     # ──────────────────────────────────────────────────────────
     # Evaluation
@@ -318,10 +325,21 @@ class SealBridge:
             evidence_data = {
                 "agent_id": agent_id,
                 "seal_type": seal_type,
-                "metrics": {k: v for k, v in metrics.items()
-                           if k in ("tasks_completed", "tasks_failed", "tasks_expired",
-                                   "avg_quality", "avg_duration_seconds", "success_rate",
-                                   "categories", "total_revenue_usd")},
+                "metrics": {
+                    k: v
+                    for k, v in metrics.items()
+                    if k
+                    in (
+                        "tasks_completed",
+                        "tasks_failed",
+                        "tasks_expired",
+                        "avg_quality",
+                        "avg_duration_seconds",
+                        "success_rate",
+                        "categories",
+                        "total_revenue_usd",
+                    )
+                },
                 "evaluated_at": time.time(),
             }
 
@@ -343,9 +361,10 @@ class SealBridge:
         if profile.recommendations:
             total_weight = sum(r.confidence for r in profile.recommendations)
             if total_weight > 0:
-                profile.overall_score = sum(
-                    r.score * r.confidence for r in profile.recommendations
-                ) / total_weight
+                profile.overall_score = (
+                    sum(r.score * r.confidence for r in profile.recommendations)
+                    / total_weight
+                )
 
         return profile
 
@@ -390,9 +409,19 @@ class SealBridge:
                 "agent_id": agent_id,
                 "seal_type": seal_type,
                 "quadrant": "H2A",
-                "metrics": {k: v for k, v in metrics.items()
-                           if k in ("tasks_assigned", "tasks_completed", "tasks_failed",
-                                   "avg_quality", "success_rate", "categories")},
+                "metrics": {
+                    k: v
+                    for k, v in metrics.items()
+                    if k
+                    in (
+                        "tasks_assigned",
+                        "tasks_completed",
+                        "tasks_failed",
+                        "avg_quality",
+                        "success_rate",
+                        "categories",
+                    )
+                },
                 "evaluated_at": time.time(),
             }
 
@@ -413,9 +442,10 @@ class SealBridge:
         if profile.recommendations:
             total_weight = sum(r.confidence for r in profile.recommendations)
             if total_weight > 0:
-                profile.overall_score = sum(
-                    r.score * r.confidence for r in profile.recommendations
-                ) / total_weight
+                profile.overall_score = (
+                    sum(r.score * r.confidence for r in profile.recommendations)
+                    / total_weight
+                )
 
         return profile
 
@@ -479,11 +509,11 @@ class SealBridge:
             score -= expiry_penalty
 
         reasoning = (
-            f"Success rate {success_rate:.0%} (×80={success_rate*80:.0f}), "
+            f"Success rate {success_rate:.0%} (×80={success_rate * 80:.0f}), "
             f"volume bonus {volume_bonus:.1f}/20, "
             f"expired: {expired}"
         )
-        evidence = f"{completed}/{completed+failed+expired} tasks successful, {expired} expired"
+        evidence = f"{completed}/{completed + failed + expired} tasks successful, {expired} expired"
 
         return score, reasoning, evidence
 
@@ -506,9 +536,13 @@ class SealBridge:
         # Consistency: low variance = thorough
         mean_q = sum(quality_scores) / len(quality_scores)
         if len(quality_scores) > 1:
-            variance = sum((q - mean_q) ** 2 for q in quality_scores) / len(quality_scores)
+            variance = sum((q - mean_q) ** 2 for q in quality_scores) / len(
+                quality_scores
+            )
             std_dev = math.sqrt(variance)
-            consistency = max(0, 1.0 - std_dev / 2.5)  # Normalize: std 0 → 1.0, std 2.5 → 0
+            consistency = max(
+                0, 1.0 - std_dev / 2.5
+            )  # Normalize: std 0 → 1.0, std 2.5 → 0
         else:
             consistency = 0.5
 
@@ -520,7 +554,7 @@ class SealBridge:
 
         reasoning = (
             f"Mean quality {mean_q:.2f}/5 ({quality_pct:.0f}pts), "
-            f"consistency {consistency:.2f} (std={std_dev if len(quality_scores)>1 else 'N/A'})"
+            f"consistency {consistency:.2f} (std={std_dev if len(quality_scores) > 1 else 'N/A'})"
         )
         evidence = f"Avg quality {mean_q:.1f}/5 over {len(quality_scores)} ratings, consistency {consistency:.0%}"
 
@@ -565,8 +599,7 @@ class SealBridge:
             f"recency {recency_pts:.1f}/20"
         )
         evidence = (
-            f"{completed} tasks across {cat_count} categories, "
-            f"${revenue:.2f} revenue"
+            f"{completed} tasks across {cat_count} categories, ${revenue:.2f} revenue"
         )
 
         return score, reasoning, evidence
@@ -582,7 +615,6 @@ class SealBridge:
         expired = metrics.get("tasks_expired", 0)
         total = completed + failed + expired
         categories = metrics.get("categories", {})
-        revenue = metrics.get("total_revenue_usd", 0)
 
         if total == 0:
             return 30, "No tasks attempted", "No task history"
@@ -628,11 +660,15 @@ class SealBridge:
             speed_score = 100
         elif avg_hours <= self.SPEED_NORMAL_HOURS:
             # Linear interpolation: 2h=100, 12h=60
-            t = (avg_hours - self.SPEED_FAST_HOURS) / (self.SPEED_NORMAL_HOURS - self.SPEED_FAST_HOURS)
+            t = (avg_hours - self.SPEED_FAST_HOURS) / (
+                self.SPEED_NORMAL_HOURS - self.SPEED_FAST_HOURS
+            )
             speed_score = 100 - t * 40
         elif avg_hours <= self.SPEED_SLOW_HOURS:
             # 12h=60, 48h=20
-            t = (avg_hours - self.SPEED_NORMAL_HOURS) / (self.SPEED_SLOW_HOURS - self.SPEED_NORMAL_HOURS)
+            t = (avg_hours - self.SPEED_NORMAL_HOURS) / (
+                self.SPEED_SLOW_HOURS - self.SPEED_NORMAL_HOURS
+            )
             speed_score = 60 - t * 40
         else:
             speed_score = max(0, 20 - (avg_hours - self.SPEED_SLOW_HOURS) / 24 * 10)
@@ -641,7 +677,9 @@ class SealBridge:
         if len(durations) > 1:
             mean_d = sum(durations) / len(durations)
             var_d = sum((d - mean_d) ** 2 for d in durations) / len(durations)
-            cv = math.sqrt(var_d) / mean_d if mean_d > 0 else 1.0  # Coefficient of variation
+            cv = (
+                math.sqrt(var_d) / mean_d if mean_d > 0 else 1.0
+            )  # Coefficient of variation
             consistency_bonus = max(0, (1 - cv) * 10)
         else:
             consistency_bonus = 0
@@ -662,7 +700,6 @@ class SealBridge:
         Derived from category diversity and willingness to try new types.
         """
         categories = metrics.get("categories", {})
-        completed = metrics.get("tasks_completed", 0)
 
         if not categories or not isinstance(categories, dict):
             return 30, "No category data", "No category distribution recorded"
@@ -678,7 +715,8 @@ class SealBridge:
             max_entropy = math.log(cat_count)
             entropy = -sum(
                 (c / total_in_cats) * math.log(c / total_in_cats)
-                for c in categories.values() if c > 0
+                for c in categories.values()
+                if c > 0
             )
             evenness = entropy / max_entropy if max_entropy > 0 else 0
         else:
@@ -725,7 +763,7 @@ class SealBridge:
         else:
             fairness = 50
 
-        reasoning = f"Category Gini: {1-fairness/100:.2f}, {cat_count} categories"
+        reasoning = f"Category Gini: {1 - fairness / 100:.2f}, {cat_count} categories"
         evidence = f"Tasks distributed across {cat_count} categories"
 
         return fairness, reasoning, evidence
@@ -837,7 +875,9 @@ class SealBridge:
         Prepare a batch of seal recommendations for on-chain submission.
         Filters by confidence threshold and estimates gas.
         """
-        threshold = min_confidence if min_confidence is not None else self._min_confidence
+        threshold = (
+            min_confidence if min_confidence is not None else self._min_confidence
+        )
         eligible = [r for r in recommendations if r.confidence >= threshold]
 
         # Sort by score descending (issue best seals first)
@@ -854,6 +894,10 @@ class SealBridge:
     def record_issuance(self, record: SealIssuanceRecord) -> None:
         """Record an on-chain seal issuance for tracking."""
         self._issuance_history.append(record)
+        if len(self._issuance_history) > self._max_issuance_history:
+            self._issuance_history = self._issuance_history[
+                -self._max_issuance_history :
+            ]
 
     @property
     def issuance_count(self) -> int:

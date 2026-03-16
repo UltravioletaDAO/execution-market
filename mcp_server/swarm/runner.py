@@ -29,31 +29,31 @@ import json
 import logging
 import os
 import signal
-import sys
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from .coordinator import SwarmCoordinator, EMApiClient, QueuedTask
+from .coordinator import SwarmCoordinator
 from .event_listener import EventListener
 from .evidence_parser import EvidenceParser, WorkerRegistry
-from .bootstrap import SwarmBootstrap
 
 logger = logging.getLogger("em.swarm.runner")
 
 
 class RunMode(str, Enum):
     """Runner operational modes."""
-    PASSIVE = "passive"     # Observe only — no task applications
-    ACTIVE = "active"       # Full autonomous operation
-    DRY_RUN = "dry_run"     # Process but don't execute API calls
+
+    PASSIVE = "passive"  # Observe only — no task applications
+    ACTIVE = "active"  # Full autonomous operation
+    DRY_RUN = "dry_run"  # Process but don't execute API calls
 
 
 class Phase(str, Enum):
     """The 7 phases of each coordination cycle."""
+
     DISCOVER = "discover"
     ENRICH = "enrich"
     ROUTE = "route"
@@ -66,6 +66,7 @@ class Phase(str, Enum):
 @dataclass
 class CycleResult:
     """Result of one coordination cycle."""
+
     cycle_number: int = 0
     started_at: str = ""
     duration_ms: float = 0
@@ -130,6 +131,7 @@ class CycleResult:
 @dataclass
 class RunnerState:
     """Persistent runner state across restarts."""
+
     last_cycle: int = 0
     last_cycle_at: str = ""
     total_cycles: int = 0
@@ -190,6 +192,8 @@ class SwarmRunner:
         self._state = RunnerState()
         self._cycle_history: list[CycleResult] = []
         self._known_task_ids: set[str] = set()
+        self._max_cycle_history = 500
+        self._max_known_tasks = 10000
 
     @classmethod
     def create(
@@ -240,6 +244,10 @@ class SwarmRunner:
             while self._running:
                 cycle = self._run_cycle()
                 self._cycle_history.append(cycle)
+                if len(self._cycle_history) > self._max_cycle_history:
+                    self._cycle_history = self._cycle_history[
+                        -self._max_cycle_history :
+                    ]
                 self._update_state(cycle)
                 self._save_state()
 
@@ -272,6 +280,8 @@ class SwarmRunner:
         self._load_state()
         cycle = self._run_cycle()
         self._cycle_history.append(cycle)
+        if len(self._cycle_history) > self._max_cycle_history:
+            self._cycle_history = self._cycle_history[-self._max_cycle_history :]
         self._update_state(cycle)
         self._save_state()
         return cycle
@@ -329,6 +339,12 @@ class SwarmRunner:
                 continue
 
             self._known_task_ids.add(task_id)
+            # Cap known tasks to prevent unbounded growth in daemon mode
+            if len(self._known_task_ids) > self._max_known_tasks:
+                # Evict oldest entries (convert to list, trim, back to set)
+                overflow = len(self._known_task_ids) - self._max_known_tasks
+                ids_list = list(self._known_task_ids)
+                self._known_task_ids = set(ids_list[overflow:])
             new_count += 1
 
             # Map EM category to coordinator categories list
@@ -339,9 +355,11 @@ class SwarmRunner:
             priority_str = task_data.get("priority", "normal").upper()
             try:
                 from .orchestrator import TaskPriority
+
                 priority = TaskPriority[priority_str]
             except (KeyError, ImportError):
                 from .orchestrator import TaskPriority
+
                 priority = TaskPriority.NORMAL
 
             # Ingest into coordinator queue
@@ -359,7 +377,7 @@ class SwarmRunner:
 
     def _phase_enrich(self, result: CycleResult):
         """Phase 2: Enrich queued tasks with AutoJob intelligence."""
-        autojob = getattr(self.coordinator, 'autojob', None)
+        autojob = getattr(self.coordinator, "autojob", None)
         if not autojob:
             return
 
@@ -405,11 +423,13 @@ class SwarmRunner:
 
         # Count active agents from lifecycle manager
         result.agents_active = sum(
-            1 for r in self.coordinator.lifecycle.agents.values()
+            1
+            for r in self.coordinator.lifecycle.agents.values()
             if r.state.value in ("idle", "active", "working", "cooldown")
         )
         result.agents_suspended = sum(
-            1 for r in self.coordinator.lifecycle.agents.values()
+            1
+            for r in self.coordinator.lifecycle.agents.values()
             if r.state.value == "suspended"
         )
 
@@ -515,6 +535,7 @@ class SwarmRunner:
 
     def _setup_signals(self):
         """Set up signal handlers for graceful shutdown."""
+
         def _handle_sigterm(signum, frame):
             logger.info("Received SIGTERM, shutting down gracefully...")
             self._running = False
@@ -560,41 +581,41 @@ def main():
         description="KK V2 SwarmRunner — Production daemon for agent swarm coordination"
     )
     parser.add_argument(
-        "--mode", choices=["passive", "active", "dry_run"], default="passive",
-        help="Runner mode: passive (observe only), active (full operation), dry_run (process without API calls)"
+        "--mode",
+        choices=["passive", "active", "dry_run"],
+        default="passive",
+        help="Runner mode: passive (observe only), active (full operation), dry_run (process without API calls)",
     )
     parser.add_argument(
-        "--cycle-interval", type=float, default=120.0,
-        help="Seconds between coordination cycles (default: 120)"
+        "--cycle-interval",
+        type=float,
+        default=120.0,
+        help="Seconds between coordination cycles (default: 120)",
     )
     parser.add_argument(
-        "--max-tasks", type=int, default=10,
-        help="Max tasks per cycle (default: 10)"
+        "--max-tasks", type=int, default=10, help="Max tasks per cycle (default: 10)"
     )
     parser.add_argument(
-        "--max-cycles", type=int, default=0,
-        help="Max cycles (0 = unlimited, default: 0)"
+        "--max-cycles",
+        type=int,
+        default=0,
+        help="Max cycles (0 = unlimited, default: 0)",
     )
     parser.add_argument(
-        "--em-url", default="https://api.execution.market",
-        help="Execution Market API URL"
+        "--em-url",
+        default="https://api.execution.market",
+        help="Execution Market API URL",
     )
     parser.add_argument(
-        "--autojob-url", default="https://autojob.cc",
-        help="AutoJob API URL"
+        "--autojob-url", default="https://autojob.cc", help="AutoJob API URL"
     )
     parser.add_argument(
-        "--state-dir", default=None,
-        help="Directory for persistent state (default: ~/.em-swarm)"
+        "--state-dir",
+        default=None,
+        help="Directory for persistent state (default: ~/.em-swarm)",
     )
-    parser.add_argument(
-        "--once", action="store_true",
-        help="Run one cycle and exit"
-    )
-    parser.add_argument(
-        "--verbose", "-v", action="store_true",
-        help="Verbose logging"
-    )
+    parser.add_argument("--once", action="store_true", help="Run one cycle and exit")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
 
     args = parser.parse_args()
 
