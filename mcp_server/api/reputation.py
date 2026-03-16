@@ -8,6 +8,7 @@ Network: configurable via `ERC8004_NETWORK` (Base-first default).
 """
 
 import logging
+import os
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, Path, Request
@@ -889,12 +890,20 @@ async def rate_agent_endpoint(
                 detail="Task agent does not match rated agent identity",
             )
 
+    # Use relay key for autonomous on-chain signing (same as MCP tool path)
+    relay_key = (
+        os.environ.get("EM_REPUTATION_RELAY_KEY")
+        or os.environ.get("EM_RELAY_PRIVATE_KEY")
+        or None
+    )
+
     result = await rate_agent(
         agent_id=request.agent_id,
         task_id=request.task_id,
         score=request.score,
         comment=request.comment or "",
         proof_tx=request.proof_tx,
+        relay_private_key=relay_key,
     )
 
     # Persist rating to DB so it shows in mobile app / dashboard
