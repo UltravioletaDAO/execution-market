@@ -12,6 +12,8 @@ export interface RatingEntry {
   comment: string | null;
   created_at: string;
   task_title: string | null;
+  payment_tx: string | null;
+  payment_network: string | null;
 }
 
 /**
@@ -25,13 +27,11 @@ export function useRatingsHistory(executorId: string | null) {
     queryFn: async () => {
       if (!executorId) return [];
 
-      // Attempt 1: plain query without join (most resilient)
-      // The join `tasks:task_id (title)` can fail if the FK isn't exposed
-      // via PostgREST or if RLS on tasks blocks the anon role.
+      // Try join with tasks for title + payment info; fall back to plain query
       const { data, error } = await supabase
         .from("ratings")
         .select(
-          "id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at"
+          "id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at, tasks:task_id(title, payment_tx, payment_network)"
         )
         .eq("executor_id", executorId)
         .eq("is_public", true)
@@ -39,26 +39,37 @@ export function useRatingsHistory(executorId: string | null) {
         .limit(50);
 
       if (error) {
-        console.warn(
-          "[useRatingsHistory] Supabase query failed, returning empty:",
-          error.message
-        );
-        // Graceful degradation — show empty state instead of crashing
-        return [];
+        // Fallback: plain query without join
+        const { data: plain, error: plainErr } = await supabase
+          .from("ratings")
+          .select("id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at")
+          .eq("executor_id", executorId)
+          .eq("is_public", true)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (plainErr) return [];
+        return (plain || []).map((row: any) => ({
+          ...row, task_title: null, payment_tx: null, payment_network: null,
+        }));
       }
 
-      return (data || []).map((row: any) => ({
-        id: row.id,
-        executor_id: row.executor_id,
-        task_id: row.task_id,
-        rater_id: row.rater_id,
-        rater_type: row.rater_type,
-        rating: row.rating,
-        stars: row.stars,
-        comment: row.comment,
-        created_at: row.created_at,
-        task_title: null, // No join — title unavailable from this query
-      }));
+      return (data || []).map((row: any) => {
+        const task = row.tasks || {};
+        return {
+          id: row.id,
+          executor_id: row.executor_id,
+          task_id: row.task_id,
+          rater_id: row.rater_id,
+          rater_type: row.rater_type,
+          rating: row.rating,
+          stars: row.stars,
+          comment: row.comment,
+          created_at: row.created_at,
+          task_title: task.title || null,
+          payment_tx: task.payment_tx || null,
+          payment_network: task.payment_network || null,
+        };
+      });
     },
     enabled: !!executorId,
     staleTime: 60_000,
@@ -134,7 +145,7 @@ export function useRatingsGiven(executorId: string | null) {
       const { data, error } = await supabase
         .from("ratings")
         .select(
-          "id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at"
+          "id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at, tasks:task_id(title, payment_tx, payment_network)"
         )
         .eq("rater_id", executorId)
         .eq("is_public", true)
@@ -142,25 +153,36 @@ export function useRatingsGiven(executorId: string | null) {
         .limit(50);
 
       if (error) {
-        console.warn(
-          "[useRatingsGiven] Supabase query failed, returning empty:",
-          error.message
-        );
-        return [];
+        const { data: plain, error: plainErr } = await supabase
+          .from("ratings")
+          .select("id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at")
+          .eq("rater_id", executorId)
+          .eq("is_public", true)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (plainErr) return [];
+        return (plain || []).map((row: any) => ({
+          ...row, task_title: null, payment_tx: null, payment_network: null,
+        }));
       }
 
-      return (data || []).map((row: any) => ({
-        id: row.id,
-        executor_id: row.executor_id,
-        task_id: row.task_id,
-        rater_id: row.rater_id,
-        rater_type: row.rater_type,
-        rating: row.rating,
-        stars: row.stars,
-        comment: row.comment,
-        created_at: row.created_at,
-        task_title: null,
-      }));
+      return (data || []).map((row: any) => {
+        const task = row.tasks || {};
+        return {
+          id: row.id,
+          executor_id: row.executor_id,
+          task_id: row.task_id,
+          rater_id: row.rater_id,
+          rater_type: row.rater_type,
+          rating: row.rating,
+          stars: row.stars,
+          comment: row.comment,
+          created_at: row.created_at,
+          task_title: task.title || null,
+          payment_tx: task.payment_tx || null,
+          payment_network: task.payment_network || null,
+        };
+      });
     },
     enabled: !!executorId,
     staleTime: 60_000,

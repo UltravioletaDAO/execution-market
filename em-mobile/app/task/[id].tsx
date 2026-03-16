@@ -644,6 +644,18 @@ export default function TaskDetailScreen() {
                 </View>
               )}
 
+              {/* Payment TX link */}
+              {paymentTx && task.payment_network && (
+                <Pressable
+                  className="mb-3"
+                  onPress={() => openUrl(getExplorerTxUrl(task.payment_network!, paymentTx))}
+                >
+                  <Text className="text-blue-400 text-xs">
+                    {t("task.viewTx")} · {paymentTx.slice(0, 12)}... ↗
+                  </Text>
+                </Pressable>
+              )}
+
               {/* Divider */}
               <View className="border-t border-gray-800 mb-4" />
 
