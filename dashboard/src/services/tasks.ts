@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '../lib/supabase'
+import { buildAuthHeaders } from '../lib/auth'
 import type {
   Task,
   TaskFilters,
@@ -352,9 +353,10 @@ export async function applyToTask(data: ApplyToTaskData): Promise<{ application:
   const { taskId, executorId, message } = data
 
   try {
+    const authHeaders = await buildAuthHeaders({ 'Content-Type': 'application/json' })
     const response = await fetch(buildApplyTaskUrl(taskId), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders,
       body: JSON.stringify({
         executor_id: executorId,
         message,
