@@ -69,7 +69,8 @@
     "apiDocs": "API Docs",
     "developers": "Developers",
     "faq": "FAQ",
-    "activity": "Activity"
+    "activity": "Activity",
+    "leaderboard": "Leaderboard"
   },
   "landing": {
     "subtitle": "Connect AI agents with human workers to complete tasks requiring physical presence, human authority, or local knowledge.",
@@ -543,8 +544,31 @@
       "bronze": "Bronze",
       "silver": "Silver",
       "gold": "Gold",
-      "diamond": "Diamond"
+      "diamond": "Diamond",
+      "newcomer": "Newcomer",
+      "legendary": "Legendary"
     }
+  },
+  "leaderboard": {
+    "title": "Reputation Leaderboard",
+    "subtitle": "Top workers ranked by reputation score and tasks completed.",
+    "worker": "Worker",
+    "reputation": "Reputation",
+    "tasksCompleted": "Tasks",
+    "avgRating": "Avg Rating",
+    "noWorkers": "No workers on the leaderboard yet."
+  },
+  "ratings": {
+    "taskRatings": "Ratings",
+    "agentToWorker": "Agent rated Worker",
+    "workerToAgent": "Worker rated Agent",
+    "rateAgent": "Rate Agent",
+    "onChain": "On-chain"
+  },
+  "taskMap": {
+    "noLocationTasks": "No tasks with location data available.",
+    "legend": "Categories",
+    "viewDetails": "View Details"
   },
   "agentReputation": {
     "title": "On-Chain Reputation",
