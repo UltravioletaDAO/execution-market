@@ -24,7 +24,6 @@ import type {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
-const ALLOW_DIRECT_SUPABASE_MUTATIONS = import.meta.env.VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS === 'true'
 import { getRequireApiKey } from '../hooks/usePlatformConfig'
 const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined
 
@@ -178,231 +177,111 @@ export async function getAvailableTasks(filters: Omit<TaskFilters, 'status'> = {
 // ============== TASK CREATION (AGENT) ==============
 
 /**
- * Create a new task
+ * Create a new task (always via REST API)
  */
-async function createTaskDirect(data: CreateTaskData): Promise<Task> {
-  const deadline = new Date()
-  deadline.setHours(deadline.getHours() + data.deadlineHours)
+export async function createTask(data: CreateTaskData): Promise<Task> {
+  if (!hasAgentApiKey()) {
+    throw new Error(
+      getRequireApiKey()
+        ? 'VITE_API_KEY is required for agent task creation'
+        : 'VITE_API_KEY must be configured for task creation.'
+    )
+  }
 
-  const taskData = {
-    agent_id: data.agentId,
-    title: data.title,
-    instructions: data.instructions,
-    category: data.category,
-    bounty_usd: data.bountyUsd,
-    deadline: deadline.toISOString(),
-    evidence_schema: {
-      required: data.evidenceRequired,
-      optional: data.evidenceOptional || [],
-    },
-    location_hint: data.locationHint,
-    min_reputation: data.minReputation || 0,
-    payment_token: data.paymentToken || 'USDC',
-    status: 'published',
+  const response = await fetch(buildAgentCreateTaskUrl(), {
+    method: 'POST',
+    headers: buildAgentJsonHeaders(),
+    body: JSON.stringify({
+      title: data.title,
+      instructions: data.instructions,
+      category: data.category,
+      bounty_usd: data.bountyUsd,
+      deadline_hours: data.deadlineHours,
+      evidence_required: data.evidenceRequired,
+      evidence_optional: data.evidenceOptional || [],
+      location_hint: data.locationHint,
+      min_reputation: data.minReputation || 0,
+      payment_token: data.paymentToken || 'USDC',
+      payment_network: data.paymentNetwork || 'base',
+    }),
+  })
+
+  if (!response.ok) {
+    const fallback = `Failed to create task via API (${response.status})`
+    throw new Error(await parseApiError(response, fallback))
+  }
+
+  const payload = await response.json() as { id?: string }
+  if (!payload?.id) {
+    throw new Error('Task created via API but response did not include task id')
   }
 
   const { data: task, error } = await db
     .from('tasks')
-    .insert(taskData)
-    .select()
+    .select('*')
+    .eq('id', payload.id)
     .single()
 
-  if (error) {
-    throw new Error(`Failed to create task: ${error.message}`)
+  if (error || !task) {
+    throw new Error(
+      `Task created via API but could not load row: ${error?.message || 'unknown error'}`
+    )
   }
 
   return task
 }
 
-export async function createTask(data: CreateTaskData): Promise<Task> {
-  if (!hasAgentApiKey()) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error(
-        getRequireApiKey()
-          ? 'VITE_API_KEY is required for agent task creation when VITE_getRequireApiKey()=true'
-          : 'Direct Supabase task creation is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
-      )
-    }
-    // Transitional mode: dashboard session does not yet carry per-agent API keys.
-    return createTaskDirect(data)
-  }
-
-  try {
-    const response = await fetch(buildAgentCreateTaskUrl(), {
-      method: 'POST',
-      headers: buildAgentJsonHeaders(),
-      body: JSON.stringify({
-        title: data.title,
-        instructions: data.instructions,
-        category: data.category,
-        bounty_usd: data.bountyUsd,
-        deadline_hours: data.deadlineHours,
-        evidence_required: data.evidenceRequired,
-        evidence_optional: data.evidenceOptional || [],
-        location_hint: data.locationHint,
-        min_reputation: data.minReputation || 0,
-        payment_token: data.paymentToken || 'USDC',
-        payment_network: data.paymentNetwork || 'base',
-      }),
-    })
-
-    if (!response.ok) {
-      const fallback = `Failed to create task via API (${response.status})`
-      throw new Error(await parseApiError(response, fallback))
-    }
-
-    const payload = await response.json() as { id?: string }
-    if (!payload?.id) {
-      throw new Error('Task created via API but response did not include task id')
-    }
-
-    const { data: task, error } = await db
-      .from('tasks')
-      .select('*')
-      .eq('id', payload.id)
-      .single()
-
-    if (error || !task) {
-      throw new Error(
-        `Task created via API but could not load row: ${error?.message || 'unknown error'}`
-      )
-    }
-
-    return task
-  } catch (error) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw error instanceof Error ? error : new Error('Failed to create task via API')
-    }
-    // Explicit fallback for local/dev troubleshooting only.
-    return createTaskDirect(data)
-  }
-}
-
 // ============== TASK APPLICATION (WORKER) ==============
 
 /**
- * Apply to a task as a worker
+ * Apply to a task as a worker (always via REST API)
  */
-async function applyToTaskDirect(data: ApplyToTaskData): Promise<{ application: ApplicationWithTask; task: TaskWithExecutor }> {
-  const { taskId, executorId, message, proposedDeadline } = data
+export async function applyToTask(data: ApplyToTaskData): Promise<{ application: ApplicationWithTask; task: TaskWithExecutor }> {
+  const { taskId, executorId, message } = data
 
-  // Get task to verify availability
-  const task = await getTask(taskId)
+  const authHeaders = await buildAuthHeaders({ 'Content-Type': 'application/json' })
+  const response = await fetch(buildApplyTaskUrl(taskId), {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify({
+      executor_id: executorId,
+      message,
+    }),
+  })
+
+  if (!response.ok) {
+    const fallback = `Failed to apply to task via API (${response.status})`
+    throw new Error(await parseApiError(response, fallback))
+  }
+
+  const payload = await response.json() as { data?: { application_id?: string } }
+  const applicationId = payload?.data?.application_id
+  if (!applicationId) {
+    throw new Error('Application succeeded but no application_id was returned by API')
+  }
+
+  const [{ data: application, error: applicationError }, task] = await Promise.all([
+    db
+      .from('task_applications')
+      .select('*, task:tasks(*)')
+      .eq('id', applicationId)
+      .single(),
+    getTask(taskId),
+  ])
+
+  if (applicationError || !application) {
+    throw new Error(
+      `Application created via API but could not load row: ${applicationError?.message || 'unknown error'}`
+    )
+  }
+
   if (!task) {
-    throw new Error('Task not found')
-  }
-
-  if (task.status !== 'published') {
-    throw new Error(`Task is not available (status: ${task.status})`)
-  }
-
-  // Get executor to check reputation
-  const { data: executor, error: executorError } = await db
-    .from('executors')
-    .select('*')
-    .eq('id', executorId)
-    .single()
-
-  if (executorError || !executor) {
-    throw new Error('Executor not found')
-  }
-
-  // Check minimum reputation
-  const minRep = task.min_reputation || 0
-  if (executor.reputation_score < minRep) {
-    throw new Error(`Insufficient reputation. Required: ${minRep}, yours: ${executor.reputation_score}`)
-  }
-
-  // Check for existing application
-  const { data: existing } = await db
-    .from('task_applications')
-    .select('*')
-    .eq('task_id', taskId)
-    .eq('executor_id', executorId)
-
-  if (existing && existing.length > 0) {
-    throw new Error('Already applied to this task')
-  }
-
-  // Create application
-  const applicationData = {
-    task_id: taskId,
-    executor_id: executorId,
-    message,
-    proposed_deadline: proposedDeadline,
-    status: 'pending' as const,
-  }
-
-  const { data: application, error } = await db
-    .from('task_applications')
-    .insert(applicationData)
-    .select('*, task:tasks(*)')
-    .single()
-
-  if (error) {
-    throw new Error(`Failed to apply to task: ${error.message}`)
+    throw new Error('Task not found after successful application')
   }
 
   return {
     application,
     task,
-  }
-}
-
-export async function applyToTask(data: ApplyToTaskData): Promise<{ application: ApplicationWithTask; task: TaskWithExecutor }> {
-  const { taskId, executorId, message } = data
-
-  try {
-    const authHeaders = await buildAuthHeaders({ 'Content-Type': 'application/json' })
-    const response = await fetch(buildApplyTaskUrl(taskId), {
-      method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify({
-        executor_id: executorId,
-        message,
-      }),
-    })
-
-    if (!response.ok) {
-      const fallback = `Failed to apply to task via API (${response.status})`
-      throw new Error(await parseApiError(response, fallback))
-    }
-
-    const payload = await response.json() as { data?: { application_id?: string } }
-    const applicationId = payload?.data?.application_id
-    if (!applicationId) {
-      throw new Error('Application succeeded but no application_id was returned by API')
-    }
-
-    const [{ data: application, error: applicationError }, task] = await Promise.all([
-      db
-        .from('task_applications')
-        .select('*, task:tasks(*)')
-        .eq('id', applicationId)
-        .single(),
-      getTask(taskId),
-    ])
-
-    if (applicationError || !application) {
-      throw new Error(
-        `Application created via API but could not load row: ${applicationError?.message || 'unknown error'}`
-      )
-    }
-
-    if (!task) {
-      throw new Error('Task not found after successful application')
-    }
-
-    return {
-      application,
-      task,
-    }
-  } catch (error) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw error instanceof Error ? error : new Error('Failed to apply to task via API')
-    }
-    // Explicit fallback for local/dev troubleshooting only.
-    return applyToTaskDirect(data)
   }
 }
 
@@ -425,236 +304,103 @@ export async function cancelApplication(applicationId: string, executorId: strin
 // ============== TASK CANCELLATION (AGENT) ==============
 
 /**
- * Cancel a published task
+ * Cancel a published task (always via REST API)
  */
-async function cancelTaskDirect(data: CancelTaskData): Promise<Task> {
-  const { taskId, agentId } = data
-
-  // Get task to verify ownership and status
-  const task = await getTask(taskId)
-  if (!task) {
-    throw new Error('Task not found')
-  }
-
-  if (task.agent_id !== agentId) {
-    throw new Error('Not authorized to cancel this task')
-  }
-
-  if (task.status !== 'published') {
-    throw new Error(`Cannot cancel task with status: ${task.status}`)
-  }
-
-  // Update task status
-  const { data: updatedTask, error } = await db
-    .from('tasks')
-    .update({
-      status: 'cancelled',
-      // Store cancellation reason in a metadata field if needed
-    })
-    .eq('id', taskId)
-    .select()
-    .single()
-
-  if (error) {
-    throw new Error(`Failed to cancel task: ${error.message}`)
-  }
-
-  return updatedTask
-}
-
 export async function cancelTask(data: CancelTaskData): Promise<Task> {
   const { taskId, reason } = data
 
   if (!hasAgentApiKey()) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error(
-        getRequireApiKey()
-          ? 'VITE_API_KEY is required for agent task cancellation when VITE_getRequireApiKey()=true'
-          : 'Direct Supabase task cancellation is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
-      )
-    }
-    // Transitional mode: dashboard session does not yet carry per-agent API keys.
-    return cancelTaskDirect(data)
+    throw new Error(
+      getRequireApiKey()
+        ? 'VITE_API_KEY is required for agent task cancellation'
+        : 'VITE_API_KEY must be configured for task cancellation.'
+    )
   }
 
-  try {
-    const response = await fetch(buildAgentCancelTaskUrl(taskId), {
-      method: 'POST',
-      headers: buildAgentJsonHeaders(),
-      body: JSON.stringify({ reason }),
-    })
+  const response = await fetch(buildAgentCancelTaskUrl(taskId), {
+    method: 'POST',
+    headers: buildAgentJsonHeaders(),
+    body: JSON.stringify({ reason }),
+  })
 
-    if (!response.ok) {
-      const fallback = `Failed to cancel task via API (${response.status})`
-      throw new Error(await parseApiError(response, fallback))
-    }
-
-    const { data: task, error } = await db
-      .from('tasks')
-      .select('*')
-      .eq('id', taskId)
-      .single()
-
-    if (error || !task) {
-      throw new Error(
-        `Task cancelled via API but row could not be reloaded: ${error?.message || 'unknown error'}`
-      )
-    }
-
-    return task
-  } catch (error) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw error instanceof Error ? error : new Error('Failed to cancel task via API')
-    }
-    // Explicit fallback for local/dev troubleshooting only.
-    return cancelTaskDirect(data)
+  if (!response.ok) {
+    const fallback = `Failed to cancel task via API (${response.status})`
+    throw new Error(await parseApiError(response, fallback))
   }
+
+  const { data: task, error } = await db
+    .from('tasks')
+    .select('*')
+    .eq('id', taskId)
+    .single()
+
+  if (error || !task) {
+    throw new Error(
+      `Task cancelled via API but row could not be reloaded: ${error?.message || 'unknown error'}`
+    )
+  }
+
+  return task
 }
 
 // ============== TASK ASSIGNMENT (AGENT) ==============
 
 /**
- * Assign a task to a specific executor
+ * Assign a task to a specific executor (always via REST API)
  */
-async function assignTaskDirect(data: AssignTaskData): Promise<{ task: Task; executor: { id: string; display_name: string | null } }> {
-  const { taskId, agentId, executorId } = data
-
-  // Get task to verify ownership
-  const task = await getTask(taskId)
-  if (!task) {
-    throw new Error('Task not found')
-  }
-
-  if (task.agent_id !== agentId) {
-    throw new Error('Not authorized to assign this task')
-  }
-
-  if (task.status !== 'published') {
-    throw new Error(`Task cannot be assigned (status: ${task.status})`)
-  }
-
-  // Get executor to verify existence and reputation
-  const { data: executor, error: executorError } = await db
-    .from('executors')
-    .select('*')
-    .eq('id', executorId)
-    .single()
-
-  if (executorError || !executor) {
-    throw new Error('Executor not found')
-  }
-
-  // Check minimum reputation
-  const minRep = task.min_reputation || 0
-  if (executor.reputation_score < minRep) {
-    throw new Error(`Executor has insufficient reputation. Required: ${minRep}`)
-  }
-
-  // Update task
-  const { data: updatedTask, error } = await db
-    .from('tasks')
-    .update({
-      executor_id: executorId,
-      status: 'accepted',
-      assigned_at: new Date().toISOString(),
-    })
-    .eq('id', taskId)
-    .select()
-    .single()
-
-  if (error) {
-    throw new Error(`Failed to assign task: ${error.message}`)
-  }
-
-  // Update the accepted application
-  await db
-    .from('task_applications')
-    .update({ status: 'accepted' })
-    .eq('task_id', taskId)
-    .eq('executor_id', executorId)
-
-  // Reject other applications
-  await db
-    .from('task_applications')
-    .update({ status: 'rejected' })
-    .eq('task_id', taskId)
-    .neq('executor_id', executorId)
-    .eq('status', 'pending')
-
-  return {
-    task: updatedTask,
-    executor: {
-      id: executor.id,
-      display_name: executor.display_name,
-    },
-  }
-}
-
 export async function assignTask(data: AssignTaskData): Promise<{ task: Task; executor: { id: string; display_name: string | null } }> {
   const { taskId, executorId, notes } = data
 
   if (!hasAgentApiKey()) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw new Error(
-        getRequireApiKey()
-          ? 'VITE_API_KEY is required for agent task assignment when VITE_getRequireApiKey()=true'
-          : 'Direct Supabase task assignment is disabled. Configure VITE_API_KEY or enable VITE_ALLOW_DIRECT_SUPABASE_MUTATIONS=true for local debugging.'
-      )
-    }
-    // Transitional mode: dashboard session does not yet carry per-agent API keys.
-    return assignTaskDirect(data)
+    throw new Error(
+      getRequireApiKey()
+        ? 'VITE_API_KEY is required for agent task assignment'
+        : 'VITE_API_KEY must be configured for task assignment.'
+    )
   }
 
-  try {
-    const response = await fetch(buildAgentAssignTaskUrl(taskId), {
-      method: 'POST',
-      headers: buildAgentJsonHeaders(),
-      body: JSON.stringify({
-        executor_id: executorId,
-        notes,
-      }),
-    })
+  const response = await fetch(buildAgentAssignTaskUrl(taskId), {
+    method: 'POST',
+    headers: buildAgentJsonHeaders(),
+    body: JSON.stringify({
+      executor_id: executorId,
+      notes,
+    }),
+  })
 
-    if (!response.ok) {
-      const fallback = `Failed to assign task via API (${response.status})`
-      throw new Error(await parseApiError(response, fallback))
-    }
+  if (!response.ok) {
+    const fallback = `Failed to assign task via API (${response.status})`
+    throw new Error(await parseApiError(response, fallback))
+  }
 
-    const [{ data: task, error: taskError }, { data: executor, error: executorError }] = await Promise.all([
-      db
-        .from('tasks')
-        .select('*')
-        .eq('id', taskId)
-        .single(),
-      db
-        .from('executors')
-        .select('id, display_name')
-        .eq('id', executorId)
-        .single(),
-    ])
+  const [{ data: task, error: taskError }, { data: executor, error: executorError }] = await Promise.all([
+    db
+      .from('tasks')
+      .select('*')
+      .eq('id', taskId)
+      .single(),
+    db
+      .from('executors')
+      .select('id, display_name')
+      .eq('id', executorId)
+      .single(),
+  ])
 
-    if (taskError || !task) {
-      throw new Error(
-        `Task assigned via API but task could not be reloaded: ${taskError?.message || 'unknown error'}`
-      )
-    }
+  if (taskError || !task) {
+    throw new Error(
+      `Task assigned via API but task could not be reloaded: ${taskError?.message || 'unknown error'}`
+    )
+  }
 
-    if (executorError || !executor) {
-      throw new Error(
-        `Task assigned via API but executor could not be loaded: ${executorError?.message || 'unknown error'}`
-      )
-    }
+  if (executorError || !executor) {
+    throw new Error(
+      `Task assigned via API but executor could not be loaded: ${executorError?.message || 'unknown error'}`
+    )
+  }
 
-    return {
-      task,
-      executor,
-    }
-  } catch (error) {
-    if (!ALLOW_DIRECT_SUPABASE_MUTATIONS) {
-      throw error instanceof Error ? error : new Error('Failed to assign task via API')
-    }
-    // Explicit fallback for local/dev troubleshooting only.
-    return assignTaskDirect(data)
+  return {
+    task,
+    executor,
   }
 }
 
