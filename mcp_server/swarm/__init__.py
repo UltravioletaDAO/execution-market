@@ -34,7 +34,13 @@ from .state_persistence import (
     RetryBackoff,
 )
 from .analytics import SwarmAnalytics, TaskEvent, AgentMetrics, FleetSnapshot, Alert
-from .seal_bridge import SealBridge, SealRecommendation, SealProfile, SealQuadrant, BatchSealRequest
+from .seal_bridge import (
+    SealBridge,
+    SealRecommendation,
+    SealProfile,
+    SealQuadrant,
+    BatchSealRequest,
+)
 from .mcp_tools import register_swarm_tools
 
 __all__ = [
