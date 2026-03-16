@@ -369,7 +369,24 @@
     "verifying": "Verificando...",
     "verifyPass": "Evidencia verificada",
     "verifyFail": "Evidencia nao corresponde aos requisitos",
-    "verifyError": "Nao foi possivel verificar a evidencia"
+    "verifyError": "Nao foi possivel verificar a evidencia",
+    "submitted": "Evidencia Enviada",
+    "waitingReview": "Aguardando revisao. Verificando status automaticamente...",
+    "polling": "Atualizando a cada 5s",
+    "statusUpdated": "Status Atualizado",
+    "newStatus": "Status da tarefa: {{status}}"
+  },
+  "geofence": {
+    "checking": "Verificando sua localizacao...",
+    "outsideRadius": "Voce esta fora da area da tarefa",
+    "distanceInfo": "Voce esta a {{distance}} de distancia. Raio permitido: {{radius}}.",
+    "submitAnyway": "Voce ainda pode enviar, mas a evidencia pode ser marcada para revisao.",
+    "recheck": "Verificar novamente",
+    "cannotVerify": "Nao foi possivel verificar sua localizacao",
+    "permissionDenied": "Permissao de localizacao negada",
+    "unavailable": "Localizacao indisponivel",
+    "timeout": "Tempo esgotado ao obter localizacao",
+    "error": "Nao foi possivel obter a localizacao"
   },
   "profile": {
     "title": "Meu Perfil",

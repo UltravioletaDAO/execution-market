@@ -11,11 +11,13 @@ import {
   type UploadResult,
 } from '../services/evidence'
 import { submitWork, type VerificationResponse } from '../services/submissions'
+import { getTask } from '../services/tasks'
 import type { Evidence } from '../services/types'
 import {
   EvidenceUpload,
   type UploadedEvidence,
 } from './evidence/EvidenceUpload'
+import { GeofenceAlert } from './GeofenceAlert'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.execution.market'
@@ -115,8 +117,12 @@ export function SubmissionForm({
   const [cameraEvidence, setCameraEvidence] = useState<UploadedEvidence[]>([])
   const [cameraComplete, setCameraComplete] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [pollingStatus, setPollingStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isOutsideGeofence, setIsOutsideGeofence] = useState(false)
   const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const allRequired = task.evidence_schema.required
   const allOptional = task.evidence_schema.optional || []
@@ -137,6 +143,33 @@ export function SubmissionForm({
   useEffect(() => {
     collectForensicMetadata().then(setForensicMetadata).catch(() => {})
   }, [])
+
+  // Post-submission polling: check task status every 5s until it changes from "submitted"
+  useEffect(() => {
+    if (!submitted) return
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const updatedTask = await getTask(task.id)
+        if (updatedTask && updatedTask.status !== 'submitted') {
+          setPollingStatus(updatedTask.status)
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+        }
+      } catch {
+        // Silently retry on next interval
+      }
+    }, 5000)
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+        pollIntervalRef.current = null
+      }
+    }
+  }, [submitted, task.id])
 
   // Parse task location hint into coordinates if available
   const taskLocation = (() => {
@@ -372,6 +405,7 @@ export function SubmissionForm({
         evidence,
       })
 
+      setSubmitted(true)
       onSubmit?.(result.verification)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('submission.submitError'))
@@ -588,6 +622,63 @@ export function SubmissionForm({
   const anyCameraPending = cameraRequired.length > 0 && !cameraComplete
   const anyPending = anyFilePending || anyCameraPending
 
+  // Parse task location for geofence check
+  const geofenceLocation = (() => {
+    if (task.location) return { lat: task.location.lat, lng: task.location.lng }
+    // Fallback: try location_hint "lat,lng" format
+    if (task.location_hint) {
+      const match = task.location_hint.match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/)
+      if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) }
+    }
+    return null
+  })()
+
+  const geofenceRadius = task.location_radius_km ?? 0.5
+
+  // Post-submission polling view
+  if (submitted) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="p-6 text-center space-y-4">
+          {pollingStatus ? (
+            <>
+              <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center">
+                <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {t('submission.statusUpdated', 'Status Updated')}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {t('submission.newStatus', 'Task status: {{status}}', { status: pollingStatus })}
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="w-16 h-16 mx-auto rounded-full bg-blue-100 flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {t('submission.submitted', 'Evidence Submitted')}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {t('submission.waitingReview', 'Waiting for review. Checking status automatically...')}
+              </p>
+              <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                {t('submission.polling', 'Auto-refreshing every 5s')}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white rounded-lg border border-gray-200">
       <div className="p-4 border-b border-gray-200">
@@ -596,6 +687,15 @@ export function SubmissionForm({
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Geofence alert — warn if user is outside task location radius */}
+        {geofenceLocation && (
+          <GeofenceAlert
+            taskLocation={geofenceLocation}
+            radiusKm={geofenceRadius}
+            onStatusChange={(inside) => setIsOutsideGeofence(!inside)}
+          />
+        )}
+
         {/* Category-specific guidance */}
         {CATEGORY_GUIDANCE[category] && (
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">

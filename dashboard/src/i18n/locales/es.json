@@ -70,7 +70,10 @@
     "developers": "Desarrolladores",
     "faq": "FAQ",
     "activity": "Actividad",
-    "leaderboard": "Clasificacion"
+    "leaderboard": "Clasificacion",
+    "ratings": "Calificaciones",
+    "agentDirectory": "Directorio de Agentes",
+    "publisherDashboard": "Publicar Tarea"
   },
   "landing": {
     "subtitle": "Conecta agentes de IA con trabajadores humanos para completar tareas que requieren presencia fisica, autoridad humana o conocimiento local.",
@@ -474,7 +477,24 @@
     "verifyError": "No se pudo verificar la evidencia",
     "photoEvidence": "Evidencia Fotografica",
     "fileEvidence": "Evidencia de Archivos",
-    "textEvidence": "Respuestas de Texto"
+    "textEvidence": "Respuestas de Texto",
+    "submitted": "Evidencia Enviada",
+    "waitingReview": "Esperando revision. Verificando estado automaticamente...",
+    "polling": "Actualizando cada 5s",
+    "statusUpdated": "Estado Actualizado",
+    "newStatus": "Estado de la tarea: {{status}}"
+  },
+  "geofence": {
+    "checking": "Verificando tu ubicacion...",
+    "outsideRadius": "Estas fuera del area de la tarea",
+    "distanceInfo": "Estas a {{distance}} de distancia. Radio requerido: {{radius}}.",
+    "submitAnyway": "Puedes enviar de todos modos, pero la evidencia puede ser marcada para revision.",
+    "recheck": "Verificar de nuevo",
+    "cannotVerify": "No se puede verificar tu ubicacion",
+    "permissionDenied": "Permiso de ubicacion denegado",
+    "unavailable": "Ubicacion no disponible",
+    "timeout": "Tiempo agotado al obtener ubicacion",
+    "error": "No se pudo obtener la ubicacion"
   },
   "profile": {
     "title": "Mi Perfil",

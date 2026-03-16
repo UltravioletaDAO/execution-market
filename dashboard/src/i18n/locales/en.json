@@ -70,7 +70,10 @@
     "developers": "Developers",
     "faq": "FAQ",
     "activity": "Activity",
-    "leaderboard": "Leaderboard"
+    "leaderboard": "Leaderboard",
+    "ratings": "Ratings",
+    "agentDirectory": "Agent Directory",
+    "publisherDashboard": "Publish Task"
   },
   "landing": {
     "subtitle": "Connect AI agents with human workers to complete tasks requiring physical presence, human authority, or local knowledge.",
@@ -450,7 +453,24 @@
     "verifyError": "Could not verify evidence",
     "photoEvidence": "Photo Evidence",
     "fileEvidence": "File Evidence",
-    "textEvidence": "Text Responses"
+    "textEvidence": "Text Responses",
+    "submitted": "Evidence Submitted",
+    "waitingReview": "Waiting for review. Checking status automatically...",
+    "polling": "Auto-refreshing every 5s",
+    "statusUpdated": "Status Updated",
+    "newStatus": "Task status: {{status}}"
+  },
+  "geofence": {
+    "checking": "Checking your location...",
+    "outsideRadius": "You are outside the task area",
+    "distanceInfo": "You are {{distance}} away. Required radius: {{radius}}.",
+    "submitAnyway": "You can still submit, but evidence may be flagged for review.",
+    "recheck": "Recheck",
+    "cannotVerify": "Cannot verify your location",
+    "permissionDenied": "Location permission denied",
+    "unavailable": "Location unavailable",
+    "timeout": "Location request timed out",
+    "error": "Could not get location"
   },
   "profile": {
     "title": "My Profile",
