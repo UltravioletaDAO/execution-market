@@ -1762,5 +1762,17 @@
       "photo_source": "Photo source",
       "duplicate": "Duplicates"
     }
+  },
+  "ratingsHistory": {
+    "title": "Ratings History",
+    "subtitle": "Feedback from completed tasks",
+    "tabReceived": "Received",
+    "tabGiven": "Given",
+    "avgRating": "Average Rating",
+    "totalRatings": "Total Ratings",
+    "emptyReceived": "No ratings received yet. Complete tasks to get feedback!",
+    "emptyGiven": "You haven't rated anyone yet.",
+    "ratedByAgent": "Rated by agent",
+    "ratedByWorker": "Rated by worker"
   }
 }

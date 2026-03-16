@@ -79,7 +79,11 @@
     "yourRatingOfAgent": "Your rating of agent",
     "noRatingYet": "No rating yet",
     "rateThisAgent": "Rate this Agent",
-    "ratingSubmitted": "Rating submitted"
+    "ratingSubmitted": "Rating submitted",
+    "feeBreakdownTitle": "Payment Breakdown",
+    "bountyLabel": "Bounty",
+    "workerReceives": "Worker receives",
+    "platformFeeLabel": "Platform fee"
   },
   "publish": {
     "title": "Publish Task",
@@ -168,7 +172,12 @@
     "paymentReceived": "Payment Received",
     "disbursement": "Disbursement",
     "viewPayment": "View Payment",
-    "netOf": "net of {{fee}} fee"
+    "netOf": "net of {{fee}} fee",
+    "earningsChart": "Earnings",
+    "period7d": "7d",
+    "period30d": "30d",
+    "periodAll": "All",
+    "noDataForPeriod": "No earnings for this period"
   },
   "profile": {
     "title": "Profile",

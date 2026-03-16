@@ -1762,5 +1762,17 @@
       "photo_source": "Origen de foto",
       "duplicate": "Duplicados"
     }
+  },
+  "ratingsHistory": {
+    "title": "Historial de Calificaciones",
+    "subtitle": "Feedback de tareas completadas",
+    "tabReceived": "Recibidas",
+    "tabGiven": "Dadas",
+    "avgRating": "Calificacion Promedio",
+    "totalRatings": "Total Calificaciones",
+    "emptyReceived": "Sin calificaciones aun. Completa tareas para recibir feedback!",
+    "emptyGiven": "Aun no has calificado a nadie.",
+    "ratedByAgent": "Calificado por agente",
+    "ratedByWorker": "Calificado por trabajador"
   }
 }

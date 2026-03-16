@@ -1,10 +1,11 @@
+import { useState, useMemo } from "react";
 import { View, Text, ScrollView, Pressable, RefreshControl, Linking, Alert, Image } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../providers/AuthProvider";
 import { ConnectWalletButton } from "../../components/ConnectWalletButton";
-import { useEarningsSummary, usePaymentHistory } from "../../hooks/api/useEarnings";
+import { useEarningsSummary, usePaymentHistory, CompletedTaskEarning } from "../../hooks/api/useEarnings";
 import { getExplorerTxUrl } from "../../constants/networks";
 import { router } from "expo-router";
 
@@ -19,9 +20,162 @@ const CHAIN_IMAGES: Record<string, number> = {
   monad: require("../../assets/images/chains/monad.png"),
 };
 
+type ChartPeriod = "7d" | "30d" | "all";
+
+const PERIODS: { value: ChartPeriod; labelKey: string }[] = [
+  { value: "7d", labelKey: "earnings.period7d" },
+  { value: "30d", labelKey: "earnings.period30d" },
+  { value: "all", labelKey: "earnings.periodAll" },
+];
+
+function getPeriodCutoff(period: ChartPeriod): number {
+  const now = Date.now();
+  switch (period) {
+    case "7d":
+      return now - 7 * 24 * 60 * 60 * 1000;
+    case "30d":
+      return now - 30 * 24 * 60 * 60 * 1000;
+    case "all":
+      return 0;
+  }
+}
+
+/** Group earnings by day and return daily totals for chart bars */
+function groupByDay(
+  items: CompletedTaskEarning[],
+  period: ChartPeriod
+): { label: string; value: number }[] {
+  const cutoff = getPeriodCutoff(period);
+  const filtered = items.filter(
+    (e) => new Date(e.completed_at).getTime() >= cutoff
+  );
+
+  if (filtered.length === 0) return [];
+
+  // Group by date string
+  const groups: Record<string, number> = {};
+  for (const item of filtered) {
+    const d = new Date(item.completed_at);
+    const key = `${d.getMonth() + 1}/${d.getDate()}`;
+    groups[key] = (groups[key] || 0) + item.earned_usdc;
+  }
+
+  // Sort by date order (entries are already sorted desc, reverse for chart)
+  const entries = Object.entries(groups);
+
+  // For readability, limit to ~7 bars max by merging if needed
+  if (entries.length > 7) {
+    // Show last 7 entries
+    return entries.slice(-7).map(([label, value]) => ({ label, value }));
+  }
+
+  return entries.map(([label, value]) => ({ label, value }));
+}
+
+function EarningsChart({
+  history,
+  period,
+  onPeriodChange,
+  t,
+}: {
+  history: CompletedTaskEarning[];
+  period: ChartPeriod;
+  onPeriodChange: (p: ChartPeriod) => void;
+  t: (key: string) => string;
+}) {
+  const chartData = useMemo(() => groupByDay(history, period), [history, period]);
+  const maxValue = useMemo(
+    () => Math.max(...chartData.map((d) => d.value), 0.01),
+    [chartData]
+  );
+  const periodTotal = useMemo(
+    () => chartData.reduce((sum, d) => sum + d.value, 0),
+    [chartData]
+  );
+
+  return (
+    <View className="bg-surface rounded-2xl mb-4 overflow-hidden">
+      {/* Period selector */}
+      <View className="flex-row justify-between items-center px-4 pt-4 pb-2">
+        <Text className="text-white font-bold text-base">
+          {t("earnings.earningsChart")}
+        </Text>
+        <View className="flex-row bg-black/30 rounded-lg p-0.5">
+          {PERIODS.map((p) => (
+            <Pressable
+              key={p.value}
+              onPress={() => onPeriodChange(p.value)}
+              className={`px-3 py-1 rounded-md ${
+                period === p.value ? "bg-white/15" : ""
+              }`}
+            >
+              <Text
+                className={`text-xs font-medium ${
+                  period === p.value ? "text-white" : "text-gray-500"
+                }`}
+              >
+                {t(p.labelKey)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      {/* Period total */}
+      <View className="px-4 pb-2">
+        <Text className="text-green-400 text-xl font-bold">
+          ${periodTotal.toFixed(2)}
+        </Text>
+      </View>
+
+      {/* Bar chart */}
+      <View className="px-4 pb-4">
+        {chartData.length === 0 ? (
+          <View className="items-center py-6">
+            <Text className="text-gray-600 text-sm">
+              {t("earnings.noDataForPeriod")}
+            </Text>
+          </View>
+        ) : (
+          <View style={{ height: 120 }} className="flex-row items-end justify-between">
+            {chartData.map((point, index) => {
+              const barHeight = Math.max((point.value / maxValue) * 100, 4);
+              return (
+                <View
+                  key={index}
+                  className="flex-1 items-center mx-0.5"
+                  style={{ height: "100%", justifyContent: "flex-end" }}
+                >
+                  {point.value > 0 && (
+                    <Text className="text-gray-500 text-[9px] mb-1">
+                      ${point.value.toFixed(2)}
+                    </Text>
+                  )}
+                  <View
+                    className="w-full rounded-t bg-green-500/80"
+                    style={{
+                      height: `${barHeight}%`,
+                      minHeight: 4,
+                      maxWidth: 40,
+                    }}
+                  />
+                  <Text className="text-gray-600 text-[9px] mt-1" numberOfLines={1}>
+                    {point.label}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export default function EarningsScreen() {
   const { t } = useTranslation();
   const { isAuthenticated, executor } = useAuth();
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("30d");
 
   const { data: summary, refetch: refetchSummary, isRefetching } = useEarningsSummary(executor?.id || null);
   const { data: history, refetch: refetchHistory } = usePaymentHistory(executor?.id || null);
@@ -87,6 +241,16 @@ export default function EarningsScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Earnings Chart */}
+        {history && history.length > 0 && (
+          <EarningsChart
+            history={history}
+            period={chartPeriod}
+            onPeriodChange={setChartPeriod}
+            t={t}
+          />
+        )}
 
         {/* Transaction History */}
         <Text className="text-white font-bold text-lg mb-3">

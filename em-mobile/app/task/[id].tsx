@@ -601,6 +601,41 @@ export default function TaskDetailScreen() {
           </View>
         </View>
 
+        {/* Fee Breakdown — visible for completed tasks when user is the publisher */}
+        {safeStatus === "completed" && executor && task.agent_id === executor.id && (() => {
+          const PLATFORM_FEE = 0.13;
+          const workerAmount = safeBounty * (1 - PLATFORM_FEE);
+          const feeAmount = safeBounty * PLATFORM_FEE;
+          return (
+            <View className="bg-surface rounded-2xl p-4 mb-4">
+              <Text className="text-gray-500 text-xs uppercase font-bold mb-3">
+                {t("task.feeBreakdownTitle")}
+              </Text>
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-gray-400 text-sm">{t("task.bountyLabel")}</Text>
+                <Text className="text-white text-sm font-bold">${safeBounty.toFixed(2)}</Text>
+              </View>
+              <View className="border-t border-gray-800 my-1" />
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="text-gray-400 text-sm">
+                  {t("task.workerReceives")} (87%)
+                </Text>
+                <Text className="text-green-400 text-sm font-medium">
+                  ${workerAmount.toFixed(2)}
+                </Text>
+              </View>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-gray-400 text-sm">
+                  {t("task.platformFeeLabel")} (13%)
+                </Text>
+                <Text className="text-gray-500 text-sm">
+                  ${feeAmount.toFixed(2)}
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
+
         {/* Instructions */}
         <View className="mb-4">
           <Text className="text-gray-400 text-sm font-bold mb-2">
