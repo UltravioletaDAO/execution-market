@@ -151,10 +151,12 @@ WHERE feedback_type = 'agent_rating'
 -- 3b: For tasks that have a worker_rating (agent rated worker) but NO
 -- agent_rating feedback_documents row at all, insert a placeholder so
 -- the worker can use prepare-feedback.
-INSERT INTO feedback_documents (task_id, feedback_type, score, reputation_tx, created_at)
+INSERT INTO feedback_documents (task_id, feedback_type, feedback_uri, feedback_hash, score, reputation_tx, created_at)
 SELECT
     fd.task_id,
     'agent_rating',
+    '',
+    '',
     0,
     NULL,
     NOW()
