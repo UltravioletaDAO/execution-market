@@ -657,7 +657,9 @@ async def verify_worker_auth(
     if not token:
         if _REQUIRE_WORKER_AUTH:
             raise HTTPException(status_code=401, detail="Empty token")
-        logger.warning("SECURITY_AUDIT action=worker_auth.empty_token path=%s", request.url.path)
+        logger.warning(
+            "SECURITY_AUDIT action=worker_auth.empty_token path=%s", request.url.path
+        )
         return None
 
     # Decode the Supabase JWT (reuse h2a decode logic)
@@ -672,7 +674,9 @@ async def verify_worker_auth(
         if not user_id:
             if _REQUIRE_WORKER_AUTH:
                 raise HTTPException(status_code=401, detail="Invalid token: no user_id")
-            logger.warning("SECURITY_AUDIT action=worker_auth.no_user_id path=%s", request.url.path)
+            logger.warning(
+                "SECURITY_AUDIT action=worker_auth.no_user_id path=%s", request.url.path
+            )
             return None
 
         # Resolve user_id -> executor_id via executors table
@@ -754,8 +758,7 @@ def _enforce_worker_identity(
     if worker_auth is None:
         # No JWT auth — feature flag is off or token was missing
         logger.warning(
-            "SECURITY_AUDIT action=worker_auth.body_fallback "
-            "executor_id=%s path=%s",
+            "SECURITY_AUDIT action=worker_auth.body_fallback executor_id=%s path=%s",
             body_executor_id[:8] if body_executor_id else "none",
             request_path,
         )
