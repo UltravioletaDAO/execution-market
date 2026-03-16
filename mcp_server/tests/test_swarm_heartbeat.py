@@ -10,10 +10,7 @@ import os
 import tempfile
 from unittest.mock import patch, MagicMock
 
-# Some heartbeat tests broken due to passive mode changes.
-pytestmark = pytest.mark.xfail(
-    reason="Swarm heartbeat passive mode changed", strict=False
-)
+# Heartbeat passive mode stabilized — all tests passing.
 
 from swarm.heartbeat_handler import (
     SwarmHeartbeatHandler,

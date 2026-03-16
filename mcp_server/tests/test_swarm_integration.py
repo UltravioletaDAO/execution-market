@@ -7,9 +7,7 @@ Wires together REAL module instances to verify coordination works end-to-end.
 
 import pytest
 
-# Some swarm integration tests broken due to ListenerState API changes.
-# Marked xfail until swarm module is updated.
-pytestmark = pytest.mark.xfail(reason="Swarm ListenerState API changed", strict=False)
+# ListenerState API stabilized — all tests passing.
 
 from swarm.coordinator import SwarmCoordinator, SwarmMetrics
 from swarm.lifecycle_manager import LifecycleManager, AgentState, LifecycleError
@@ -424,14 +422,15 @@ class TestEventListenerState:
         state.mark_seen("task-b")
 
         assert state.poll_count == 1
-        assert "task-a" in state.known_task_ids
+        assert state.is_seen("task-a")
 
     def test_deduplication(self):
         """Marking same task twice should not duplicate."""
         state = ListenerState()
         state.mark_seen("task-x")
         state.mark_seen("task-x")
-        assert len(state.known_task_ids) == 1
+        assert state.is_seen("task-x")
+        assert len(state._known_set) == 1
 
 
 class TestCoordinatorMetrics:

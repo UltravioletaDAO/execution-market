@@ -9,11 +9,7 @@ import pytest
 import sys
 from unittest.mock import MagicMock
 
-# All swarm API tests are broken due to auth middleware changes (401 instead of 200).
-# Marked xfail until swarm auth is fixed. See CI run 23102977904.
-pytestmark = pytest.mark.xfail(
-    reason="Swarm API auth middleware returns 401", strict=False
-)
+# Swarm auth middleware issue resolved — all tests passing.
 
 # Stub out supabase_client before any api imports to avoid the
 # "SUPABASE_URL required" RuntimeError.  The swarm API module
@@ -183,10 +179,21 @@ class TestCoordinatorInit:
 try:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
+    from api.auth import verify_api_key as _verify_api_key
 
+    # Authenticated client — auth dependency overridden for unit tests
     test_app = FastAPI()
     test_app.include_router(router)
+    test_app.dependency_overrides[_verify_api_key] = lambda: MagicMock(
+        agent_id="test", tier="admin", is_valid=True
+    )
     client = TestClient(test_app)
+
+    # Unauthenticated client — no overrides, used for auth enforcement tests
+    _noauth_app = FastAPI()
+    _noauth_app.include_router(router)
+    noauth_client = TestClient(_noauth_app)
+
     HAS_TESTCLIENT = True
 except ImportError:
     HAS_TESTCLIENT = False
@@ -511,7 +518,7 @@ class TestSwarmAuth:
 
     def test_get_status_without_api_key_returns_401(self):
         """GET /status without API key should return 401."""
-        response = client.get("/api/v1/swarm/status")
+        response = noauth_client.get("/api/v1/swarm/status")
         assert response.status_code == 401
 
     def test_get_agents_without_api_key_returns_401(self):
@@ -523,7 +530,7 @@ class TestSwarmAuth:
         swarm_module._coordinator_initialized = True
         swarm_module.SWARM_ENABLED = True
 
-        response = client.get("/api/v1/swarm/agents")
+        response = noauth_client.get("/api/v1/swarm/agents")
         assert response.status_code == 401
 
     def test_post_config_without_admin_key_returns_401(self):
@@ -535,7 +542,7 @@ class TestSwarmAuth:
         swarm_module._coordinator_initialized = True
         swarm_module.SWARM_ENABLED = True
 
-        response = client.post(
+        response = noauth_client.post(
             "/api/v1/swarm/config",
             json={"mode": "passive"},
         )
@@ -551,7 +558,7 @@ class TestSwarmAuth:
         swarm_module._coordinator_initialized = True
         swarm_module.SWARM_ENABLED = True
 
-        response = client.post("/api/v1/swarm/poll")
+        response = noauth_client.post("/api/v1/swarm/poll")
         assert response.status_code in (401, 503)
 
 
