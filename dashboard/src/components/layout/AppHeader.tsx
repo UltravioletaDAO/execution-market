@@ -22,7 +22,10 @@ export function AppHeader() {
     { label: t('nav.agents', 'For Agents'), href: '/agents' },
     { label: t('nav.developers', 'Developers'), href: '/developers' },
     { label: t('nav.agentDirectory', 'Agent Directory'), href: '/agents/directory' },
-    ...(isAuthenticated ? [{ label: t('nav.publisherDashboard', 'Publish Task'), href: '/publisher/dashboard' }] : []),
+    ...(isAuthenticated ? [
+      { label: t('nav.publisherDashboard', 'Publish Task'), href: '/publisher/dashboard' },
+      { label: t('nav.ratings', 'Ratings'), href: '/ratings' },
+    ] : []),
   ]
 
   const allNavLinks = [...mainNavLinks, ...secondaryNavLinks]

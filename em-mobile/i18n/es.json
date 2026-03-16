@@ -79,7 +79,11 @@
     "yourRatingOfAgent": "Tu calificacion del agente",
     "noRatingYet": "Sin calificacion aun",
     "rateThisAgent": "Calificar al Agente",
-    "ratingSubmitted": "Calificacion enviada"
+    "ratingSubmitted": "Calificacion enviada",
+    "feeBreakdownTitle": "Desglose de Pago",
+    "bountyLabel": "Recompensa",
+    "workerReceives": "Trabajador recibe",
+    "platformFeeLabel": "Comision plataforma"
   },
   "publish": {
     "title": "Publicar Tarea",
@@ -168,7 +172,12 @@
     "paymentReceived": "Pago Recibido",
     "disbursement": "Desembolso",
     "viewPayment": "Ver Pago",
-    "netOf": "neto de {{fee}} comision"
+    "netOf": "neto de {{fee}} comision",
+    "earningsChart": "Ganancias",
+    "period7d": "7d",
+    "period30d": "30d",
+    "periodAll": "Todo",
+    "noDataForPeriod": "Sin ganancias para este periodo"
   },
   "profile": {
     "title": "Perfil",

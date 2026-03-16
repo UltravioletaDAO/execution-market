@@ -11,6 +11,7 @@
 
 import { useState, useMemo } from 'react'
 import { TX_EXPLORER_URLS } from '../utils/blockchain'
+import { TxLink } from '../components/TxLink'
 
 // ============================================================================
 // TYPES
@@ -570,27 +571,7 @@ function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
                 {formatCurrency(tx.amount_usdc)}
               </p>
               {tx.tx_hash && (
-                <a
-                  href={getExplorerUrl(tx.network, tx.tx_hash)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1"
-                >
-                  <span className="font-mono">{truncateHash(tx.tx_hash)}</span>
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
-                  </svg>
-                </a>
+                <TxLink txHash={tx.tx_hash} network={tx.network} showNetwork className="mt-1" />
               )}
             </div>
           </div>
