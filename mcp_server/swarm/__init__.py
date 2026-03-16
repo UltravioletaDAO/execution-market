@@ -1,7 +1,7 @@
 """
 KarmaCadabra V2 Swarm Coordination
 
-Twelve core components:
+Thirteen core components:
 - ReputationBridge: Connects on-chain ERC-8004 reputation with internal scoring
 - LifecycleManager: Manages agent states, budgets, and health
 - SwarmOrchestrator: Routes tasks to the best available agent
@@ -13,6 +13,7 @@ Twelve core components:
 - HeartbeatHandler: Condensed coordination cycle for OpenClaw heartbeat integration
 - SwarmBootstrap: Production-aware coordinator initialization from live data
 - StatePersistence: Durable state + retry backoff for crash recovery
+- SwarmAnalytics: Metrics aggregation, trend analysis, and fleet alerting
 - MCP Tools: MCP protocol tools for agent-native swarm interaction
 """
 
@@ -31,6 +32,7 @@ from .state_persistence import (
     PersistedState,
     RetryBackoff,
 )
+from .analytics import SwarmAnalytics, TaskEvent, AgentMetrics, FleetSnapshot, Alert
 from .mcp_tools import register_swarm_tools
 
 __all__ = [
@@ -57,5 +59,10 @@ __all__ = [
     "SwarmStatePersistence",
     "PersistedState",
     "RetryBackoff",
+    "SwarmAnalytics",
+    "TaskEvent",
+    "AgentMetrics",
+    "FleetSnapshot",
+    "Alert",
     "register_swarm_tools",
 ]
