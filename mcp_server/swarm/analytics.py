@@ -178,6 +178,7 @@ class SwarmAnalytics:
         self._last_snapshot_time: float = 0.0
         self._last_save_time: float = 0.0
         self._save_debounce_seconds: float = 30.0
+        self._dirty: bool = False
 
         # Alert thresholds
         self._alert_thresholds = {
@@ -211,11 +212,13 @@ class SwarmAnalytics:
             self._take_snapshot()
 
         # Persist (debounced to avoid excessive I/O)
+        self._dirty = True
         if self._storage_dir and (
             time.time() - self._last_save_time > self._save_debounce_seconds
         ):
             self._save_state()
             self._last_save_time = time.time()
+            self._dirty = False
 
     def record_batch(self, events: list[TaskEvent]) -> int:
         """Record multiple events efficiently."""
@@ -236,6 +239,13 @@ class SwarmAnalytics:
             self._last_save_time = time.time()
 
         return len(events)
+
+    def flush(self) -> None:
+        """Force-persist any dirty state to disk."""
+        if self._storage_dir and self._dirty:
+            self._save_state()
+            self._last_save_time = time.time()
+            self._dirty = False
 
     def _update_agent_metrics(self, event: TaskEvent) -> None:
         """Update per-agent metrics from an event."""

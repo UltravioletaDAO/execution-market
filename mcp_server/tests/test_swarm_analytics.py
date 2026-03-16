@@ -534,6 +534,7 @@ class TestPersistence:
                     agent_id="a1", task_id=f"t{i}", bounty_usd=10.0, quality_rating=4.0
                 )
             )
+        a1.flush()  # Force persist before loading from disk
 
         # Create new instance from same dir
         a2 = SwarmAnalytics(storage_dir=tmpdir, max_events=100)
@@ -564,7 +565,8 @@ class TestPersistence:
     def test_threshold_persistence(self, tmpdir):
         a1 = SwarmAnalytics(storage_dir=tmpdir)
         a1.set_alert_threshold("min_success_rate", 0.9)
-        a1.record_event(make_event())  # Triggers save
+        a1.record_event(make_event())
+        a1.flush()  # Force persist
 
         a2 = SwarmAnalytics(storage_dir=tmpdir)
         assert a2._alert_thresholds["min_success_rate"] == 0.9
