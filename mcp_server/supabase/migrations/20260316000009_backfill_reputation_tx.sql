@@ -116,6 +116,8 @@ WHERE fd.task_id = pe.task_id
   AND (fd.reputation_tx IS NULL OR fd.reputation_tx = '');
 
 -- 2c: Also backfill submissions.reputation_tx where it was missed
+-- Note: submissions table may not have 'status' column in all environments.
+-- Use task status as proxy instead.
 UPDATE submissions s
 SET reputation_tx = pe.tx_hash
 FROM (
@@ -129,8 +131,9 @@ FROM (
       AND tx_hash != ''
     ORDER BY task_id, created_at DESC
 ) pe
+JOIN tasks t ON pe.task_id = t.id
 WHERE s.task_id = pe.task_id
-  AND s.status = 'approved'
+  AND t.status = 'completed'
   AND (s.reputation_tx IS NULL OR s.reputation_tx = '');
 
 -- ============================================================================
