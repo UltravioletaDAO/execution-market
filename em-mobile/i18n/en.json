@@ -462,8 +462,19 @@
     "avgRating": "Avg Rating",
     "totalBounty": "Total Bounties",
     "skills": "Skills",
+    "capabilities": "Capabilities",
     "bio": "About",
-    "noData": "Agent not found"
+    "noData": "Agent not found",
+    "cap_data_processing": "Data Processing",
+    "cap_research": "Research",
+    "cap_content_creation": "Content Creation",
+    "cap_content_generation": "Content Generation",
+    "cap_code_generation": "Code Generation",
+    "cap_code_execution": "Code Execution",
+    "cap_analysis": "Analysis",
+    "cap_automation": "Automation",
+    "cap_api_integration": "API Integration",
+    "cap_web_scraping": "Web Scraping"
   },
   "ratings": {
     "title": "My Ratings",
@@ -489,6 +500,9 @@
     "executor": "Executor",
     "verified": "Verified",
     "tasksPublished": "{{count}} published",
-    "totalBounty": "${{amount}} bounties"
+    "totalBounty": "${{amount}} bounties",
+    "tabAll": "All",
+    "tabPublishers": "Publishers",
+    "tabExecutors": "Executors"
   }
 }
