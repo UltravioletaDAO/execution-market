@@ -68,13 +68,39 @@ class EMApiClient {
   async getPresignedUploadUrl(
     filename: string,
     contentType: string,
-    taskId: string
-  ): Promise<{ url: string; fields: Record<string, string>; cdnUrl: string }> {
-    return this.post("/api/v1/uploads/presign", {
-      filename,
-      content_type: contentType,
-      task_id: taskId,
+    taskId: string,
+    executorId: string,
+  ): Promise<{ upload_url: string; key: string; public_url: string | null; content_type: string }> {
+    return this.get("/api/v1/evidence/presign-upload", {
+      params: {
+        task_id: taskId,
+        executor_id: executorId,
+        filename,
+        content_type: contentType,
+      },
     });
+  }
+
+  /**
+   * Uploads a file buffer to S3 using a presigned PUT URL.
+   * Returns the public CDN URL for the uploaded file.
+   */
+  async uploadToS3(
+    presigned: { upload_url: string; key: string; public_url: string | null; content_type: string },
+    data: Buffer,
+    contentType: string,
+  ): Promise<string> {
+    await axios.put(presigned.upload_url, data, {
+      headers: {
+        "Content-Type": contentType,
+        "Content-Length": data.byteLength.toString(),
+      },
+      timeout: 60_000,
+      maxBodyLength: 30 * 1024 * 1024,
+    });
+
+    // Return the CDN URL if available, otherwise derive from key
+    return presigned.public_url ?? presigned.upload_url.split("?")[0];
   }
 
   async submitEvidence(

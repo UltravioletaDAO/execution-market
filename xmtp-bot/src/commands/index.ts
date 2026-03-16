@@ -7,6 +7,16 @@ import { handleTasks } from "./tasks.js";
 import { handleApply } from "./apply.js";
 import { handleStatus } from "./status.js";
 import { handleMyTasks } from "./mytasks.js";
+import { handleSubmit } from "./submit.js";
+import {
+  handleSubmissionText,
+  handleSubmissionSkip,
+  handleSubmissionCancel,
+  handleSubmissionDone,
+  getActiveDraft,
+  isSubmissionTimedOut,
+  clearDraft,
+} from "../submission/flow.js";
 
 // ─── Command handler type ─────────────────────────────────────────
 export type CommandHandler = (
@@ -43,6 +53,12 @@ const commands: CommandDefinition[] = [
     handler: handleApply,
   },
   {
+    name: "submit",
+    usage: "/submit <task_id>",
+    description: "Enviar evidencia de tarea",
+    handler: handleSubmit,
+  },
+  {
     name: "status",
     usage: "/status <task_id>",
     description: "Ver estado de una tarea",
@@ -59,6 +75,36 @@ const commands: CommandDefinition[] = [
     usage: "/register",
     description: "Registrarte como executor",
     handler: handleRegister,
+  },
+  {
+    name: "skip",
+    usage: "/skip",
+    description: "Omitir pieza opcional (durante submission)",
+    handler: async (ctx, _args) => {
+      const senderAddress = await ctx.getSenderAddress();
+      if (!senderAddress) return;
+      await handleSubmissionSkip(ctx, senderAddress);
+    },
+  },
+  {
+    name: "cancel",
+    usage: "/cancel",
+    description: "Cancelar submission activa",
+    handler: async (ctx, _args) => {
+      const senderAddress = await ctx.getSenderAddress();
+      if (!senderAddress) return;
+      await handleSubmissionCancel(ctx, senderAddress);
+    },
+  },
+  {
+    name: "done",
+    usage: "/done",
+    description: "Enviar submission con las piezas recolectadas",
+    handler: async (ctx, _args) => {
+      const senderAddress = await ctx.getSenderAddress();
+      if (!senderAddress) return;
+      await handleSubmissionDone(ctx, senderAddress);
+    },
   },
 ];
 
@@ -96,9 +142,32 @@ export function registerHandlers(agent: Agent): void {
     const store = getWorkerStore();
     const state = store.getConversationState(senderAddress);
 
+    // Route to submission flow if active
+    if (state === "submission") {
+      const draft = getActiveDraft(senderAddress);
+      if (draft && isSubmissionTimedOut(draft)) {
+        clearDraft(senderAddress);
+        store.resetConversation(senderAddress);
+        await ctx.sendTextReply(
+          "Submission expirada (30 min). Usa /submit para reiniciar."
+        );
+        return;
+      }
+      await handleSubmissionText(
+        ctx as MessageContext<string>,
+        senderAddress,
+        text
+      );
+      return;
+    }
+
     // Route to registration flow if active
     if (state === "registration") {
-      await handleRegistrationText(ctx as MessageContext<string>, senderAddress, text);
+      await handleRegistrationText(
+        ctx as MessageContext<string>,
+        senderAddress,
+        text
+      );
       return;
     }
 
@@ -125,3 +194,4 @@ export { handleApply } from "./apply.js";
 export { handleStatus } from "./status.js";
 export { handleMyTasks } from "./mytasks.js";
 export { handleRegister, handleRegistrationText } from "./register.js";
+export { handleSubmit } from "./submit.js";
