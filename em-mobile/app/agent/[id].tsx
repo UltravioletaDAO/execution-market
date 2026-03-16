@@ -232,19 +232,31 @@ export default function AgentDetailScreen() {
           {agent.capabilities && agent.capabilities.length > 0 ? (
             <View className="bg-surface rounded-2xl p-4 mb-4">
               <Text className="text-gray-500 text-xs font-bold mb-3 uppercase">
-                {t("agentDetail.skills")}
+                {t("agentDetail.capabilities")}
               </Text>
               <View className="flex-row flex-wrap gap-2">
-                {agent.capabilities.map((skill, idx) => (
-                  <View
-                    key={idx}
-                    className="bg-blue-900/30 rounded-full px-3 py-1.5"
-                  >
-                    <Text style={{ color: "#60A5FA", fontSize: 12 }}>
-                      {skill}
-                    </Text>
-                  </View>
-                ))}
+                {agent.capabilities.map((skill, idx) => {
+                  const capColors = [
+                    { bg: "#312e81", text: "#A5B4FC" }, // indigo
+                    { bg: "#064e3b", text: "#6EE7B7" }, // emerald
+                    { bg: "#831843", text: "#F9A8D4" }, // pink
+                    { bg: "#78350f", text: "#FCD34D" }, // amber
+                    { bg: "#164e63", text: "#67E8F9" }, // cyan
+                    { bg: "#4c1d95", text: "#C4B5FD" }, // violet
+                  ];
+                  const c = capColors[idx % capColors.length];
+                  return (
+                    <View
+                      key={idx}
+                      className="rounded-full px-3 py-1.5"
+                      style={{ backgroundColor: c.bg + "66" }}
+                    >
+                      <Text style={{ color: c.text, fontSize: 12 }}>
+                        {t(`agentDetail.cap_${skill}`, { defaultValue: skill.replace(/_/g, " ") })}
+                      </Text>
+                    </View>
+                  );
+                })}
               </View>
             </View>
           ) : null}
