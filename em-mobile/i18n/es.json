@@ -453,8 +453,19 @@
     "avgRating": "Calificacion Promedio",
     "totalBounty": "Total Recompensas",
     "skills": "Habilidades",
+    "capabilities": "Capacidades",
     "bio": "Acerca de",
-    "noData": "Agente no encontrado"
+    "noData": "Agente no encontrado",
+    "cap_data_processing": "Procesamiento de Datos",
+    "cap_research": "Investigacion",
+    "cap_content_creation": "Creacion de Contenido",
+    "cap_content_generation": "Generacion de Contenido",
+    "cap_code_generation": "Generacion de Codigo",
+    "cap_code_execution": "Ejecucion de Codigo",
+    "cap_analysis": "Analisis",
+    "cap_automation": "Automatizacion",
+    "cap_api_integration": "Integracion de API",
+    "cap_web_scraping": "Web Scraping"
   },
   "ratings": {
     "title": "Mis Calificaciones",
@@ -480,6 +491,9 @@
     "executor": "Ejecutor",
     "verified": "Verificado",
     "tasksPublished": "{{count}} publicadas",
-    "totalBounty": "${{amount}} en recompensas"
+    "totalBounty": "${{amount}} en recompensas",
+    "tabAll": "Todos",
+    "tabPublishers": "Publicadores",
+    "tabExecutors": "Ejecutores"
   }
 }
