@@ -9,6 +9,14 @@ import {
   notifyNewRating,
 } from "./notification-dispatcher.js";
 import { handlePaymentEvent } from "./payment-monitor.js";
+import { createTaskGroup, getTaskGroup } from "./group-manager.js";
+import {
+  onTaskStatusChanged,
+  onEvidenceSubmitted,
+  onSubmissionApproved,
+  onSubmissionRejected,
+  onRatingReceived,
+} from "./group-lifecycle.js";
 
 let ws: WebSocket | null = null;
 let reconnectDelay = 1000;
@@ -76,6 +84,15 @@ async function handleEvent(event: any): Promise<void> {
       if (workerAddress) {
         await notifyTaskAssigned(workerAddress, data);
       }
+      // Create XMTP group for this task
+      await createTaskGroup({
+        taskId: data.id ?? data.task_id,
+        taskTitle: data.title ?? data.task_title ?? "Task",
+        bounty: data.bounty_usdc ?? data.bounty ?? "0",
+        chain: data.payment_network ?? data.chain ?? "base",
+        workerAddress,
+        agentAddress: data.agent_wallet ?? data.publisher_wallet,
+      });
       break;
     }
 
@@ -84,6 +101,11 @@ async function handleEvent(event: any): Promise<void> {
       if (addr) {
         await notifySubmissionApproved(addr, data, data.tx_hash);
       }
+      const approvedTaskId = data.id ?? data.task_id;
+      if (approvedTaskId) {
+        await onSubmissionApproved(approvedTaskId, data);
+        await onTaskStatusChanged(approvedTaskId, "completed", data);
+      }
       break;
     }
 
@@ -91,6 +113,10 @@ async function handleEvent(event: any): Promise<void> {
       const addr2 = data.executor_wallet ?? data.worker_address;
       if (addr2) {
         await notifySubmissionRejected(addr2, data, data.reason);
+      }
+      const rejectedTaskId = data.id ?? data.task_id;
+      if (rejectedTaskId) {
+        await onSubmissionRejected(rejectedTaskId, data.reason);
       }
       break;
     }
@@ -116,6 +142,27 @@ async function handleEvent(event: any): Promise<void> {
           task_title: data.task_title,
         });
       }
+      const ratingTaskId = data.task_id;
+      if (ratingTaskId) {
+        await onRatingReceived(ratingTaskId, data);
+      }
+      break;
+    }
+
+    case "task.status_changed": {
+      const statusTaskId = data.id ?? data.task_id;
+      if (statusTaskId)
+        await onTaskStatusChanged(
+          statusTaskId,
+          data.status ?? data.new_status,
+          data,
+        );
+      break;
+    }
+
+    case "evidence.submitted": {
+      const evidenceTaskId = data.task_id;
+      if (evidenceTaskId) await onEvidenceSubmitted(evidenceTaskId, data);
       break;
     }
 
