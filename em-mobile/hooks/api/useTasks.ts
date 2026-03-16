@@ -228,10 +228,7 @@ export function useMySubmission(
 
       const { data, error } = await supabase
         .from("submissions")
-        .select(
-          "id, task_id, executor_id, evidence, notes, agent_verdict, " +
-          "auto_check_passed, auto_check_details, created_at, updated_at, payment_tx"
-        )
+        .select("*")
         .eq("task_id", taskId)
         .eq("executor_id", executorId)
         .limit(1)
