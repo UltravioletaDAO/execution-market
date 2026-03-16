@@ -1136,8 +1136,7 @@ async def get_available_tasks(
         # Strip PII / internal fields from public worker-facing response
         _pii_fields = {"executor_id", "human_wallet"}
         tasks = [
-            {k: v for k, v in t.items() if k not in _pii_fields}
-            for t in tasks_raw
+            {k: v for k, v in t.items() if k not in _pii_fields} for t in tasks_raw
         ]
 
         filters_applied = {
