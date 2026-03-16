@@ -1,12 +1,13 @@
 """
 KarmaCadabra V2 Swarm Coordination
 
-Ten core components:
+Eleven core components:
 - ReputationBridge: Connects on-chain ERC-8004 reputation with internal scoring
 - LifecycleManager: Manages agent states, budgets, and health
 - SwarmOrchestrator: Routes tasks to the best available agent
 - AutoJobClient: Enriches scoring with AutoJob's evidence-based intelligence
 - SwarmCoordinator: Top-level operational controller (integrates all above)
+- SwarmRunner: Production daemon loop — 7-phase coordination cycle
 - EventListener: Polls EM API for task lifecycle events (feedback input)
 - EvidenceParser: Extracts Skill DNA from task completion evidence (feedback learning)
 - HeartbeatHandler: Condensed coordination cycle for OpenClaw heartbeat integration
@@ -19,6 +20,7 @@ from .lifecycle_manager import LifecycleManager, AgentState
 from .orchestrator import SwarmOrchestrator
 from .autojob_client import AutoJobClient, EnrichedOrchestrator
 from .coordinator import SwarmCoordinator, EMApiClient
+from .runner import SwarmRunner, RunMode, CycleResult
 from .event_listener import EventListener
 from .evidence_parser import EvidenceParser, SkillDNA, WorkerRegistry
 from .heartbeat_handler import SwarmHeartbeatHandler, HeartbeatReport
@@ -34,6 +36,9 @@ __all__ = [
     "EnrichedOrchestrator",
     "SwarmCoordinator",
     "EMApiClient",
+    "SwarmRunner",
+    "RunMode",
+    "CycleResult",
     "EventListener",
     "EvidenceParser",
     "SkillDNA",
