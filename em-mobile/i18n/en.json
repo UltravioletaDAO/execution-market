@@ -198,7 +198,9 @@
     "describeSkills": "Describe your skills, experience, and what tasks you can do...",
     "forTaskNotifications": "For task notifications",
     "city": "City",
-    "country": "Country"
+    "country": "Country",
+    "photoPermissionDenied": "Photo library access is required to change your avatar",
+    "avatarUploadError": "Failed to upload avatar. Please try again."
   },
   "auth": {
     "connectWallet": "Connect Wallet",

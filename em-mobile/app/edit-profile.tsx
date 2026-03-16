@@ -7,12 +7,16 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import { useAuth } from "../providers/AuthProvider";
 import { supabase } from "../lib/supabase";
+import { apiClient } from "../lib/api";
 
 const AVAILABLE_SKILLS = [
   "photography",
@@ -39,7 +43,78 @@ export default function EditProfileScreen() {
   const [selectedSkills, setSelectedSkills] = useState<string[]>(
     executor?.skills || []
   );
+  const [avatarUri, setAvatarUri] = useState<string | null>(executor?.avatar_url || null);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  async function pickAvatar() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(t("common.error"), t("profile.photoPermissionDenied"));
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    setUploadingAvatar(true);
+
+    try {
+      const contentType = asset.mimeType || "image/jpeg";
+      const extension = contentType.includes("png") ? "png" : "jpg";
+      const filename = `avatar_${Date.now()}.${extension}`;
+
+      // Get presigned URL from backend
+      const params = new URLSearchParams({
+        task_id: "profile",
+        executor_id: executor?.id || "unknown",
+        filename,
+        evidence_type: "avatar",
+        content_type: contentType,
+      });
+
+      const presign = await apiClient<{
+        upload_url: string;
+        key: string;
+        public_url: string | null;
+      }>(`/api/v1/evidence/presign-upload?${params}`);
+
+      // Read file as base64 and upload to S3
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      const response = await fetch(presign.upload_url, {
+        method: "PUT",
+        headers: { "Content-Type": contentType },
+        body: bytes,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+
+      const publicUrl = presign.public_url || presign.key;
+      setAvatarUri(publicUrl);
+    } catch (err) {
+      console.error("[Avatar] Upload failed:", err);
+      Alert.alert(t("common.error"), t("profile.avatarUploadError"));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
 
   function toggleSkill(skill: string) {
     setSelectedSkills((prev) =>
@@ -61,6 +136,7 @@ export default function EditProfileScreen() {
           skills: selectedSkills,
           location_city: city.trim() || null,
           location_country: country.trim() || null,
+          avatar_url: avatarUri || null,
         })
         .eq("id", executor.id);
 
@@ -106,10 +182,22 @@ export default function EditProfileScreen() {
       >
         {/* Avatar */}
         <View className="items-center mb-8 mt-4">
-          <Pressable className="w-24 h-24 rounded-full bg-surface items-center justify-center">
-            <Text style={{ fontSize: 40 }}>
-              {executor?.avatar_url ? "" : "\uD83D\uDC64"}
-            </Text>
+          <Pressable
+            onPress={pickAvatar}
+            disabled={uploadingAvatar}
+            className="w-24 h-24 rounded-full bg-surface items-center justify-center overflow-hidden"
+          >
+            {uploadingAvatar ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : avatarUri ? (
+              <Image
+                source={{ uri: avatarUri }}
+                className="w-24 h-24 rounded-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={{ fontSize: 40 }}>{"\uD83D\uDC64"}</Text>
+            )}
           </Pressable>
           <Text className="text-gray-500 text-xs mt-2">
             {t("profile.tapToChangePhoto")}

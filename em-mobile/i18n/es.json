@@ -198,7 +198,9 @@
     "describeSkills": "Describe tus habilidades, experiencia, y que tareas puedes hacer...",
     "forTaskNotifications": "Para notificaciones de tareas",
     "city": "Ciudad",
-    "country": "Pais"
+    "country": "Pais",
+    "photoPermissionDenied": "Se requiere acceso a la galeria para cambiar tu avatar",
+    "avatarUploadError": "Error al subir el avatar. Intenta de nuevo."
   },
   "auth": {
     "connectWallet": "Conectar Wallet",

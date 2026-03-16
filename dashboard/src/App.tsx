@@ -33,6 +33,7 @@ const PublisherDashboard = lazy(() => import('./pages/publisher/Dashboard').then
 const PublisherCreateRequest = lazy(() => import('./pages/publisher/CreateRequest').then(m => ({ default: m.default })))
 const PublisherReviewSubmission = lazy(() => import('./pages/publisher/ReviewSubmission').then(m => ({ default: m.default })))
 const RatingsHistory = lazy(() => import('./pages/RatingsHistory').then(m => ({ default: m.RatingsHistory })))
+const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })))
 
 // Lazy-loaded heavy components (modals, charts)
 const ProfilePage = lazy(() => import('./components/profile').then(m => ({ default: m.ProfilePage })))
@@ -453,6 +454,14 @@ function AppRoutes() {
             <WorkerGuard>
               <RatingsHistory />
             </WorkerGuard>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <AuthGuard>
+              <Settings />
+            </AuthGuard>
           }
         />
 
