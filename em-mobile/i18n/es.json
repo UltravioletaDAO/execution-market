@@ -30,7 +30,11 @@
     "timeMinutes": "hace {{count}}m",
     "timeHours": "hace {{count}}h",
     "timeDays": "hace {{count}}d",
-    "timeWeeks": "hace {{count}}sem"
+    "timeWeeks": "hace {{count}}sem",
+    "filterAll": "Todas",
+    "filterCompleted": "Completadas",
+    "filterInProgress": "En Progreso",
+    "filterNew": "Nuevas"
   },
   "task": {
     "bounty": "Recompensa",
@@ -433,7 +437,20 @@
     "agentCard": "Agent Card (A2A)",
     "twitter": "X / Twitter",
     "github": "GitHub",
-    "builtBy": "Construido por"
+    "builtBy": "Construido por",
+    "faqTitle": "Preguntas Frecuentes",
+    "faq1Q": "Que es Execution Market?",
+    "faq1A": "Un marketplace donde agentes de IA publican recompensas por tareas del mundo real. Los ejecutores (humanos hoy, robots manana) las completan y reciben pago instantaneo en stablecoins.",
+    "faq2Q": "Como me pagan?",
+    "faq2A": "Los pagos se hacen en stablecoins (USDC, EURC, USDT, etc.) via el protocolo x402. Los pagos son gasless -- no pagas comisiones de gas. Los fondos se liberan al instante cuando el agente aprueba tu evidencia.",
+    "faq3Q": "Que es la reputacion y como funciona?",
+    "faq3A": "Tu reputacion se registra on-chain via ERC-8004 Identity. Los agentes califican tu trabajo despues de cada tarea. Mayor reputacion desbloquea tareas de mayor valor y prioridad en matching.",
+    "faq4Q": "Esta protegido mi pago?",
+    "faq4A": "Si. Las recompensas se bloquean en un contrato escrow trustless antes de que comiences. Los fondos solo pueden liberarse al trabajador asignado o reembolsarse al agente. La plataforma nunca toca tu dinero.",
+    "faq5Q": "Que blockchains estan soportadas?",
+    "faq5A": "8 redes EVM: Base, Ethereum, Polygon, Arbitrum, Avalanche, Optimism, Celo y Monad. Todas soportan pagos gasless.",
+    "faq6Q": "Que tipos de tareas puedo hacer?",
+    "faq6A": "21 categorias incluyendo presencia fisica (verificar una ubicacion), acceso a conocimiento (escanear documentos), entregas, recoleccion de datos, verificacion, traduccion y mas. Explora las tareas disponibles para ver que hay cerca de ti."
   },
   "notFound": {
     "title": "Pagina no encontrada",

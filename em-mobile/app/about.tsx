@@ -11,6 +11,7 @@ import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
 
 const CHAINS = [
   { name: "Base", icon: require("../assets/images/chains/base.png") },
@@ -69,6 +70,30 @@ function SectionTitle({ children }: { children: string }) {
     <Text className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2 mt-5">
       {children}
     </Text>
+  );
+}
+
+function FAQItem({ question, answer }: { question: string; answer: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <Pressable
+      className="border-b border-gray-800/50"
+      onPress={() => setExpanded(!expanded)}
+    >
+      <View className="flex-row items-center justify-between px-4 py-3">
+        <Text className="text-white text-sm font-medium flex-1 mr-3">
+          {question}
+        </Text>
+        <Text className="text-gray-500 text-sm">
+          {expanded ? "\u2212" : "+"}
+        </Text>
+      </View>
+      {expanded && (
+        <View className="px-4 pb-3">
+          <Text className="text-gray-400 text-sm leading-5">{answer}</Text>
+        </View>
+      )}
+    </Pressable>
   );
 }
 
@@ -227,6 +252,35 @@ export default function AboutScreen() {
               <Text className="text-gray-600 text-sm">{"\u2197"}</Text>
             </Pressable>
           ))}
+        </View>
+
+        {/* FAQ */}
+        <SectionTitle>{t("about.faqTitle")}</SectionTitle>
+        <View className="bg-surface rounded-2xl overflow-hidden mb-2">
+          <FAQItem
+            question={t("about.faq1Q")}
+            answer={t("about.faq1A")}
+          />
+          <FAQItem
+            question={t("about.faq2Q")}
+            answer={t("about.faq2A")}
+          />
+          <FAQItem
+            question={t("about.faq3Q")}
+            answer={t("about.faq3A")}
+          />
+          <FAQItem
+            question={t("about.faq4Q")}
+            answer={t("about.faq4A")}
+          />
+          <FAQItem
+            question={t("about.faq5Q")}
+            answer={t("about.faq5A")}
+          />
+          <FAQItem
+            question={t("about.faq6Q")}
+            answer={t("about.faq6A")}
+          />
         </View>
 
         {/* Built by */}
