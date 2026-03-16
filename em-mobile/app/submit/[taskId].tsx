@@ -6,11 +6,12 @@ import { useTranslation } from "react-i18next";
 import * as Location from "expo-location";
 import { useTask } from "../../hooks/api/useTasks";
 import { useAuth } from "../../providers/AuthProvider";
-import { CameraCapture } from "../../components/CameraCapture";
+import { CameraCapture, type ExifData } from "../../components/CameraCapture";
 import { GPSCapture } from "../../components/GPSCapture";
 import { ImagePickerButton } from "../../components/ImagePicker";
 import { uploadEvidence } from "../../lib/upload";
 import { apiClient } from "../../lib/api";
+import { extractExifFromFile, buildExifPayload, isLikelyCameraPhoto } from "../../lib/exif";
 
 interface EvidenceData {
   [key: string]: unknown;
@@ -31,6 +32,8 @@ export default function SubmitEvidenceScreen() {
 
   const [showCamera, setShowCamera] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoExif, setPhotoExif] = useState<ExifData | null>(null);
+  const [exifWarning, setExifWarning] = useState<string | null>(null);
   const [gpsData, setGpsData] = useState<GPSData | null>(null);
   const [autoGps, setAutoGps] = useState<GPSData | null>(null);
   const [textEvidence, setTextEvidence] = useState<Record<string, string>>({});
@@ -77,9 +80,25 @@ export default function SubmitEvidenceScreen() {
   if (showCamera) {
     return (
       <CameraCapture
-        onCapture={(uri) => {
+        onCapture={async (uri, exif) => {
           setPhotoUri(uri);
           setShowCamera(false);
+          // Use EXIF from camera, or extract via exifr as fallback
+          let finalExif = exif || null;
+          if (!finalExif) {
+            finalExif = await extractExifFromFile(uri);
+          }
+          setPhotoExif(finalExif);
+          if (finalExif) {
+            const check = isLikelyCameraPhoto(finalExif);
+            if (!check.isCamera) {
+              setExifWarning(check.reason);
+            } else {
+              setExifWarning(null);
+            }
+          } else {
+            setExifWarning("No camera metadata detected. Fresh camera photos score higher.");
+          }
         }}
         onCancel={() => setShowCamera(false)}
       />
@@ -110,7 +129,7 @@ export default function SubmitEvidenceScreen() {
       if (photoUri) {
         const evidenceType = requiredEvidence.includes("photo_geo") ? "photo_geo" : "photo";
         const uploaded = await uploadEvidence(photoUri, taskId, evidenceType, executor.id);
-        const photoPayload = {
+        const photoPayload: Record<string, unknown> = {
           url: uploaded.url,
           fileUrl: uploaded.url,
           ...(gpsData && {
@@ -122,6 +141,10 @@ export default function SubmitEvidenceScreen() {
           }),
           timestamp: new Date().toISOString(),
         };
+        // Include EXIF metadata for backend verification
+        if (photoExif) {
+          photoPayload.exif = buildExifPayload(photoExif);
+        }
         evidence[evidenceType] = photoPayload;
         // If uploaded as photo_geo, also satisfy "photo" requirement with same data
         if (evidenceType === "photo_geo" && requiredEvidence.includes("photo")) {
@@ -162,6 +185,7 @@ export default function SubmitEvidenceScreen() {
         platform: Platform.OS,
         os_version: Platform.Version,
         submitted_at: new Date().toISOString(),
+        has_exif: !!photoExif,
       };
       if (submissionGps) {
         deviceMetadata.gps = {
@@ -446,6 +470,11 @@ export default function SubmitEvidenceScreen() {
                   <View className="h-48 bg-gray-800 items-center justify-center">
                     <Text className="text-green-400 text-lg">{"\uD83D\uDCF7"} {t("submit.photoCaptured")}</Text>
                     <Text className="text-gray-500 text-xs mt-1">{t("submit.tapToRetake")}</Text>
+                    {photoExif?.Make && (
+                      <Text className="text-gray-500 text-xs mt-1">
+                        {"\uD83D\uDCF1"} {photoExif.Make} {photoExif.Model || ""}
+                      </Text>
+                    )}
                     {gpsData && (
                       <Text className="text-gray-600 text-xs mt-1">
                         {"\uD83D\uDCCD"} {gpsData.lat.toFixed(5)}, {gpsData.lng.toFixed(5)}
@@ -453,6 +482,13 @@ export default function SubmitEvidenceScreen() {
                     )}
                   </View>
                 </Pressable>
+                {exifWarning && (
+                  <View className="bg-yellow-900/30 px-4 py-2">
+                    <Text className="text-yellow-400 text-xs">
+                      {"\u26A0"} {exifWarning}
+                    </Text>
+                  </View>
+                )}
               </View>
             ) : (
               <View className="flex-row gap-3">
@@ -464,7 +500,24 @@ export default function SubmitEvidenceScreen() {
                   <Text className="text-white font-medium mt-2">{t("submit.camera")}</Text>
                 </Pressable>
                 <ImagePickerButton
-                  onPick={(uri) => setPhotoUri(uri)}
+                  onPick={async (uri, exif) => {
+                    setPhotoUri(uri);
+                    let finalExif = exif || null;
+                    if (!finalExif) {
+                      finalExif = await extractExifFromFile(uri);
+                    }
+                    setPhotoExif(finalExif);
+                    if (finalExif) {
+                      const check = isLikelyCameraPhoto(finalExif);
+                      if (!check.isCamera) {
+                        setExifWarning(check.reason);
+                      } else {
+                        setExifWarning(null);
+                      }
+                    } else {
+                      setExifWarning("No camera metadata. Gallery photos may score lower.");
+                    }
+                  }}
                 />
               </View>
             )}

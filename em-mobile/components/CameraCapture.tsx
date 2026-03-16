@@ -5,8 +5,21 @@ import { useTranslation } from "react-i18next";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
+export interface ExifData {
+  Make?: string;
+  Model?: string;
+  DateTimeOriginal?: string;
+  DateTime?: string;
+  Software?: string;
+  GPSLatitude?: number;
+  GPSLongitude?: number;
+  ImageWidth?: number;
+  ImageHeight?: number;
+  [key: string]: unknown;
+}
+
 interface CameraCaptureProps {
-  onCapture: (uri: string) => void;
+  onCapture: (uri: string, exif?: ExifData) => void;
   onCancel: () => void;
 }
 
@@ -16,6 +29,7 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
   const [facing, setFacing] = useState<"front" | "back">("back");
   const [flash, setFlash] = useState<"off" | "on">("off");
   const [preview, setPreview] = useState<string | null>(null);
+  const [capturedExif, setCapturedExif] = useState<ExifData | undefined>(undefined);
   const cameraRef = useRef<CameraView>(null);
 
   if (!permission) {
@@ -55,7 +69,7 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
           <Pressable style={styles.retakeButton} onPress={() => setPreview(null)}>
             <Text style={styles.retakeText}>{t("camera.retake")}</Text>
           </Pressable>
-          <Pressable style={styles.useButton} onPress={() => onCapture(preview)}>
+          <Pressable style={styles.useButton} onPress={() => onCapture(preview, capturedExif)}>
             <Text style={styles.useText}>{t("camera.usePhoto")}</Text>
           </Pressable>
         </View>
@@ -109,6 +123,10 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
                     });
                     if (photo?.uri) {
                       setPreview(photo.uri);
+                      if (photo.exif) {
+                        setCapturedExif(photo.exif as ExifData);
+                        console.log("[Camera] EXIF captured:", Object.keys(photo.exif).join(", "));
+                      }
                     }
                   } catch (err) {
                     console.error("[Camera] takePictureAsync error:", err);

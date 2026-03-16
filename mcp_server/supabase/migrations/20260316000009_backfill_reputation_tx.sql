@@ -1,0 +1,301 @@
+-- ============================================================================
+-- MIGRATION: Backfill reputation_tx in feedback_documents from payment_events
+-- Date: 2026-03-16
+-- Description:
+--   1. Backfill feedback_documents.reputation_tx from payment_events where
+--      the on-chain TX hash was logged but never written back to the feedback doc.
+--   2. Identify tasks with incomplete ratings (agent->worker exists but no worker->agent)
+--      and ensure the ratings table allows workers to re-rate.
+--
+-- Safe to run multiple times (idempotent).
+-- Designed for Supabase SQL Editor (no CONCURRENTLY, no multi-statement transactions).
+-- ============================================================================
+
+-- ============================================================================
+-- PART 1: Ensure feedback_documents and payment_events tables exist
+-- (They are created dynamically by the app, but we need them for this migration)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS feedback_documents (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id UUID,
+    feedback_type TEXT,              -- 'worker_rating' (agent rates worker) or 'agent_rating' (worker rates agent)
+    feedback_uri TEXT,
+    feedback_hash TEXT,
+    score INTEGER,
+    reputation_tx TEXT,              -- On-chain giveFeedback() TX hash
+    document_json JSONB,
+    prepare_id TEXT,                 -- Used by worker direct signing flow
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS payment_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id UUID,
+    event_type TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    tx_hash TEXT,
+    from_address TEXT,
+    to_address TEXT,
+    amount_usdc NUMERIC(18, 6),
+    network TEXT,
+    token TEXT DEFAULT 'USDC',
+    error TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS ratings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    executor_id UUID,
+    task_id UUID,
+    rater_id TEXT,
+    rater_type TEXT,                 -- 'agent' or 'worker'
+    rating INTEGER,
+    stars NUMERIC(3, 1),
+    comment TEXT,
+    task_value_usdc NUMERIC(10, 2),
+    is_public BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(executor_id, task_id, rater_type)
+);
+
+-- Indexes for the joins below
+CREATE INDEX IF NOT EXISTS idx_feedback_documents_task_type
+    ON feedback_documents(task_id, feedback_type);
+CREATE INDEX IF NOT EXISTS idx_payment_events_event_type
+    ON payment_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_payment_events_task_event
+    ON payment_events(task_id, event_type);
+CREATE INDEX IF NOT EXISTS idx_ratings_task_rater_type
+    ON ratings(task_id, rater_type);
+
+-- ============================================================================
+-- PART 2: Backfill feedback_documents.reputation_tx from payment_events
+--
+-- Logic: For each feedback_documents row where reputation_tx IS NULL or empty,
+-- find the corresponding successful payment_event with a TX hash:
+--   - feedback_type='worker_rating' matches event_type='reputation_agent_rates_worker'
+--   - feedback_type='agent_rating'  matches event_type='reputation_worker_rates_agent'
+-- ============================================================================
+
+-- 2a: Backfill worker_rating (agent rates worker)
+UPDATE feedback_documents fd
+SET reputation_tx = pe.tx_hash
+FROM (
+    SELECT DISTINCT ON (task_id)
+        task_id,
+        tx_hash
+    FROM payment_events
+    WHERE event_type = 'reputation_agent_rates_worker'
+      AND status = 'success'
+      AND tx_hash IS NOT NULL
+      AND tx_hash != ''
+    ORDER BY task_id, created_at DESC
+) pe
+WHERE fd.task_id = pe.task_id
+  AND fd.feedback_type = 'worker_rating'
+  AND (fd.reputation_tx IS NULL OR fd.reputation_tx = '');
+
+-- 2b: Backfill agent_rating (worker rates agent)
+UPDATE feedback_documents fd
+SET reputation_tx = pe.tx_hash
+FROM (
+    SELECT DISTINCT ON (task_id)
+        task_id,
+        tx_hash
+    FROM payment_events
+    WHERE event_type = 'reputation_worker_rates_agent'
+      AND status = 'success'
+      AND tx_hash IS NOT NULL
+      AND tx_hash != ''
+    ORDER BY task_id, created_at DESC
+) pe
+WHERE fd.task_id = pe.task_id
+  AND fd.feedback_type = 'agent_rating'
+  AND (fd.reputation_tx IS NULL OR fd.reputation_tx = '');
+
+-- 2c: Also backfill submissions.reputation_tx where it was missed
+UPDATE submissions s
+SET reputation_tx = pe.tx_hash
+FROM (
+    SELECT DISTINCT ON (task_id)
+        task_id,
+        tx_hash
+    FROM payment_events
+    WHERE event_type = 'reputation_agent_rates_worker'
+      AND status = 'success'
+      AND tx_hash IS NOT NULL
+      AND tx_hash != ''
+    ORDER BY task_id, created_at DESC
+) pe
+WHERE s.task_id = pe.task_id
+  AND s.status = 'approved'
+  AND (s.reputation_tx IS NULL OR s.reputation_tx = '');
+
+-- ============================================================================
+-- PART 3: Diagnostic queries — identify incomplete ratings
+--
+-- These are SELECT-only queries. Run them to identify tasks that need attention.
+-- Results show tasks where agent rated worker but worker never rated agent.
+-- ============================================================================
+
+-- 3a: Tasks with agent->worker rating but NO worker->agent rating
+-- (feedback_documents perspective)
+-- Uncomment to run as diagnostic:
+/*
+SELECT
+    fd_worker.task_id,
+    fd_worker.score AS agent_gave_worker_score,
+    fd_worker.reputation_tx AS agent_rates_worker_tx,
+    fd_worker.created_at AS agent_rated_at,
+    fd_agent.task_id IS NOT NULL AS worker_rated_agent,
+    fd_agent.reputation_tx AS worker_rates_agent_tx,
+    t.title AS task_title,
+    t.status AS task_status,
+    t.bounty_usd,
+    e.wallet_address AS worker_wallet,
+    e.display_name AS worker_name
+FROM feedback_documents fd_worker
+LEFT JOIN feedback_documents fd_agent
+    ON fd_worker.task_id = fd_agent.task_id
+    AND fd_agent.feedback_type = 'agent_rating'
+LEFT JOIN tasks t ON fd_worker.task_id = t.id
+LEFT JOIN executors e ON t.executor_id = e.id
+WHERE fd_worker.feedback_type = 'worker_rating'
+  AND (fd_agent.task_id IS NULL
+       OR fd_agent.reputation_tx IS NULL
+       OR fd_agent.reputation_tx = '')
+ORDER BY fd_worker.created_at DESC;
+*/
+
+-- 3b: Tasks with agent->worker rating but NO worker->agent rating
+-- (ratings table perspective — more reliable since ratings uses upsert)
+-- Uncomment to run as diagnostic:
+/*
+SELECT
+    r_agent.task_id,
+    r_agent.rating AS agent_gave_score,
+    r_agent.stars AS agent_gave_stars,
+    r_agent.created_at AS agent_rated_at,
+    r_worker.task_id IS NOT NULL AS worker_also_rated,
+    r_worker.rating AS worker_gave_score,
+    t.title,
+    t.status,
+    t.bounty_usd,
+    e.wallet_address AS worker_wallet,
+    e.display_name AS worker_name
+FROM ratings r_agent
+LEFT JOIN ratings r_worker
+    ON r_agent.task_id = r_worker.task_id
+    AND r_worker.rater_type = 'worker'
+LEFT JOIN tasks t ON r_agent.task_id = t.id
+LEFT JOIN executors e ON r_agent.executor_id = e.id
+WHERE r_agent.rater_type = 'agent'
+  AND r_worker.task_id IS NULL
+ORDER BY r_agent.created_at DESC;
+*/
+
+-- ============================================================================
+-- PART 4: Reset incomplete worker->agent ratings so workers can re-rate
+--
+-- The worker->agent flow uses feedback_documents.prepare_id for the
+-- prepare → sign → confirm cycle. If the flow failed mid-way (e.g.,
+-- SignedTransaction error from Golden Flow report), the prepare_id is set
+-- but reputation_tx is NULL. This blocks re-rating because the system
+-- sees an existing feedback_documents row.
+--
+-- Fix: Clear the stale prepare_id on feedback_documents where the worker
+-- never completed the on-chain TX, so the prepare-feedback endpoint
+-- can issue a new prepare_id.
+-- ============================================================================
+
+-- 4a: Clear stale prepare_id where worker never completed the TX
+UPDATE feedback_documents
+SET prepare_id = NULL
+WHERE feedback_type = 'agent_rating'
+  AND prepare_id IS NOT NULL
+  AND (reputation_tx IS NULL OR reputation_tx = '');
+
+-- 4b: For tasks that have a worker_rating (agent rated worker) but NO
+-- agent_rating feedback_documents row at all, insert a placeholder so
+-- the worker can use prepare-feedback. This handles the case where the
+-- feedback_store insertion itself failed.
+INSERT INTO feedback_documents (task_id, feedback_type, score, reputation_tx, created_at)
+SELECT
+    fd.task_id,
+    'agent_rating',
+    0,           -- placeholder score, will be overwritten when worker rates
+    NULL,
+    NOW()
+FROM feedback_documents fd
+LEFT JOIN feedback_documents fd2
+    ON fd.task_id = fd2.task_id
+    AND fd2.feedback_type = 'agent_rating'
+WHERE fd.feedback_type = 'worker_rating'
+  AND fd2.task_id IS NULL
+ON CONFLICT DO NOTHING;
+
+-- ============================================================================
+-- PART 5: Verification queries (run after migration to confirm results)
+-- Uncomment to run as diagnostic:
+-- ============================================================================
+
+/*
+-- 5a: Count of feedback_documents with/without reputation_tx after backfill
+SELECT
+    feedback_type,
+    COUNT(*) AS total,
+    COUNT(reputation_tx) FILTER (WHERE reputation_tx IS NOT NULL AND reputation_tx != '') AS has_tx,
+    COUNT(*) FILTER (WHERE reputation_tx IS NULL OR reputation_tx = '') AS missing_tx
+FROM feedback_documents
+GROUP BY feedback_type
+ORDER BY feedback_type;
+
+-- 5b: Count of payment_events by reputation event type
+SELECT
+    event_type,
+    status,
+    COUNT(*) AS total,
+    COUNT(tx_hash) FILTER (WHERE tx_hash IS NOT NULL AND tx_hash != '') AS has_tx
+FROM payment_events
+WHERE event_type LIKE 'reputation_%'
+GROUP BY event_type, status
+ORDER BY event_type, status;
+
+-- 5c: Orphaned payment_events (reputation TX logged but no feedback_documents row)
+SELECT
+    pe.task_id,
+    pe.event_type,
+    pe.tx_hash,
+    pe.created_at
+FROM payment_events pe
+LEFT JOIN feedback_documents fd
+    ON pe.task_id = fd.task_id
+    AND (
+        (pe.event_type = 'reputation_agent_rates_worker' AND fd.feedback_type = 'worker_rating')
+        OR
+        (pe.event_type = 'reputation_worker_rates_agent' AND fd.feedback_type = 'agent_rating')
+    )
+WHERE pe.event_type LIKE 'reputation_%'
+  AND pe.status = 'success'
+  AND pe.tx_hash IS NOT NULL
+  AND fd.task_id IS NULL
+ORDER BY pe.created_at DESC;
+
+-- 5d: Tasks still missing worker->agent rating after cleanup
+SELECT
+    fd.task_id,
+    fd.reputation_tx AS agent_rates_worker_tx,
+    t.title,
+    t.completed_at,
+    e.display_name AS worker_name
+FROM feedback_documents fd
+LEFT JOIN feedback_documents fd2
+    ON fd.task_id = fd2.task_id AND fd2.feedback_type = 'agent_rating'
+LEFT JOIN tasks t ON fd.task_id = t.id
+LEFT JOIN executors e ON t.executor_id = e.id
+WHERE fd.feedback_type = 'worker_rating'
+  AND (fd2.reputation_tx IS NULL OR fd2.reputation_tx = '')
+ORDER BY fd.created_at DESC;
+*/
