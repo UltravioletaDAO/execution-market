@@ -13,6 +13,15 @@ export const config = {
   health: {
     port: parseInt(process.env.HEALTH_PORT ?? "8090", 10),
   },
+  irc: {
+    enabled: process.env.IRC_ENABLED === "true",
+    host: process.env.IRC_HOST ?? "irc.meshrelay.xyz",
+    port: parseInt(process.env.IRC_PORT ?? "6667", 10),
+    nick: process.env.IRC_NICK ?? "em-bot",
+    channels: (process.env.IRC_CHANNELS ?? "#bounties,#Agents")
+      .split(",")
+      .map((c) => c.trim()),
+  },
   log: {
     level: process.env.LOG_LEVEL ?? "info",
   },

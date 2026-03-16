@@ -18,6 +18,23 @@ import {
   onRatingReceived,
 } from "./group-lifecycle.js";
 
+// Optional IRC bridge — may not be available
+let ircBridge: {
+  broadcastTaskToIrc: (task: any) => void;
+  broadcastStatusToIrc: (taskId: string, status: string, extra?: string) => void;
+  broadcastPaymentToIrc: (task: any, txHash: string) => void;
+} | null = null;
+
+import("../bridges/meshrelay.js")
+  .then((mod) => {
+    ircBridge = {
+      broadcastTaskToIrc: mod.broadcastTaskToIrc,
+      broadcastStatusToIrc: mod.broadcastStatusToIrc,
+      broadcastPaymentToIrc: mod.broadcastPaymentToIrc,
+    };
+  })
+  .catch(() => { /* bridge not available */ });
+
 let ws: WebSocket | null = null;
 let reconnectDelay = 1000;
 const MAX_RECONNECT_DELAY = 30_000;
@@ -77,6 +94,7 @@ async function handleEvent(event: any): Promise<void> {
   switch (event.type) {
     case "task.created":
       await notifyTaskCreated(data);
+      ircBridge?.broadcastTaskToIrc(data);
       break;
 
     case "task.assigned": {
@@ -93,6 +111,7 @@ async function handleEvent(event: any): Promise<void> {
         workerAddress,
         agentAddress: data.agent_wallet ?? data.publisher_wallet,
       });
+      ircBridge?.broadcastStatusToIrc(data.id ?? data.task_id, "accepted", data.title);
       break;
     }
 
@@ -105,6 +124,9 @@ async function handleEvent(event: any): Promise<void> {
       if (approvedTaskId) {
         await onSubmissionApproved(approvedTaskId, data);
         await onTaskStatusChanged(approvedTaskId, "completed", data);
+      }
+      if (data.tx_hash) {
+        ircBridge?.broadcastPaymentToIrc(data, data.tx_hash);
       }
       break;
     }
@@ -151,18 +173,23 @@ async function handleEvent(event: any): Promise<void> {
 
     case "task.status_changed": {
       const statusTaskId = data.id ?? data.task_id;
-      if (statusTaskId)
+      if (statusTaskId) {
         await onTaskStatusChanged(
           statusTaskId,
           data.status ?? data.new_status,
           data,
         );
+        ircBridge?.broadcastStatusToIrc(statusTaskId, data.status ?? data.new_status, data.title);
+      }
       break;
     }
 
     case "evidence.submitted": {
       const evidenceTaskId = data.task_id;
-      if (evidenceTaskId) await onEvidenceSubmitted(evidenceTaskId, data);
+      if (evidenceTaskId) {
+        await onEvidenceSubmitted(evidenceTaskId, data);
+        ircBridge?.broadcastStatusToIrc(evidenceTaskId, "submitted");
+      }
       break;
     }
 

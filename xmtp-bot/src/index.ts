@@ -5,13 +5,20 @@ import { createAgent } from "./agent.js";
 import { registerHandlers } from "./commands/index.js";
 import { handleAttachment } from "./submission/attachment-handler.js";
 
+let bridgeHealthFn: (() => any) | null = null;
+
 async function main(): Promise<void> {
   // ─── Health-check server ──────────────────────────────────────
   const app = express();
   const startedAt = new Date().toISOString();
 
   app.get("/health", (_req, res) => {
-    res.json({ status: "ok", startedAt, uptime: process.uptime() });
+    res.json({
+      status: "ok",
+      startedAt,
+      uptime: process.uptime(),
+      bridge: bridgeHealthFn?.() ?? null,
+    });
   });
 
   const server = app.listen(config.health.port, () => {
@@ -55,9 +62,23 @@ async function main(): Promise<void> {
     logger.warn("ws-listener not available — skipping");
   }
 
+  // ─── MeshRelay IRC Bridge ──────────────────────────────────────────
+  try {
+    const { startMeshRelayBridge, getBridgeHealth } = await import("./bridges/meshrelay.js");
+    startMeshRelayBridge();
+    bridgeHealthFn = getBridgeHealth;
+    logger.info("MeshRelay IRC bridge initialized");
+  } catch {
+    logger.warn("MeshRelay bridge not available — skipping");
+  }
+
   // ─── Graceful shutdown ────────────────────────────────────────
   const shutdown = async (signal: string) => {
     logger.info({ signal }, "Shutting down...");
+    try {
+      const { stopMeshRelayBridge } = await import("./bridges/meshrelay.js");
+      stopMeshRelayBridge();
+    } catch { /* ignore */ }
     try {
       await agent.stop();
     } catch (err) {
