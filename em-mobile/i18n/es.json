@@ -363,7 +363,23 @@
   },
   "review": {
     "title": "Revisar Entrega",
-    "taskLabel": "Tarea: {{taskId}}"
+    "taskLabel": "Tarea: {{taskId}}",
+    "noSubmission": "No se encontro entrega para esta tarea.",
+    "evidenceImages": "Imagenes de Evidencia",
+    "evidenceText": "Detalles de Evidencia",
+    "workerNotes": "Notas del Trabajador",
+    "gpsData": "Ubicacion GPS",
+    "submittedAt": "Enviado",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "rejectReason": "Razon del rechazo (opcional)",
+    "rejectPlaceholder": "Explica por que esta entrega fue rechazada...",
+    "confirmReject": "Confirmar Rechazo",
+    "approvedTitle": "Aprobado",
+    "approvedMessage": "Entrega aprobada y pago iniciado.",
+    "rejectedTitle": "Rechazado",
+    "rejectedMessage": "La entrega ha sido rechazada.",
+    "alreadyReviewed": "Esta entrega ya ha sido revisada."
   },
   "settings": {
     "language": "IDIOMA",
