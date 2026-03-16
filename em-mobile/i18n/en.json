@@ -363,7 +363,23 @@
   },
   "review": {
     "title": "Review Submission",
-    "taskLabel": "Task: {{taskId}}"
+    "taskLabel": "Task: {{taskId}}",
+    "noSubmission": "No submission found for this task.",
+    "evidenceImages": "Evidence Images",
+    "evidenceText": "Evidence Details",
+    "workerNotes": "Worker Notes",
+    "gpsData": "GPS Location",
+    "submittedAt": "Submitted",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectReason": "Reason for rejection (optional)",
+    "rejectPlaceholder": "Explain why this submission was rejected...",
+    "confirmReject": "Confirm Reject",
+    "approvedTitle": "Approved",
+    "approvedMessage": "Submission approved and payment initiated.",
+    "rejectedTitle": "Rejected",
+    "rejectedMessage": "Submission has been rejected.",
+    "alreadyReviewed": "This submission has already been reviewed."
   },
   "settings": {
     "language": "LANGUAGE",
