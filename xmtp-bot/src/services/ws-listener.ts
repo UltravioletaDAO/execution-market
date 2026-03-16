@@ -6,6 +6,7 @@ import {
   notifyTaskAssigned,
   notifySubmissionApproved,
   notifySubmissionRejected,
+  notifyNewRating,
 } from "./notification-dispatcher.js";
 import { handlePaymentEvent } from "./payment-monitor.js";
 
@@ -101,6 +102,20 @@ async function handleEvent(event: any): Promise<void> {
         type: event.type,
         ...data,
       });
+      break;
+    }
+
+    case "reputation.created":
+    case "rating.created": {
+      const target = data.target_address ?? data.to_address;
+      if (target) {
+        await notifyNewRating(target, {
+          score: data.score,
+          comment: data.comment,
+          from_address: data.from_address,
+          task_title: data.task_title,
+        });
+      }
       break;
     }
 
