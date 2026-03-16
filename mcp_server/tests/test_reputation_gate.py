@@ -6,11 +6,18 @@ default min_reputation=0, and cascading effects after reputation changes.
 
 import pytest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import supabase_client as sbc
 
 pytestmark = [pytest.mark.core, pytest.mark.erc8004]
+
+
+def _mock_request():
+    """Create a mock FastAPI Request object."""
+    mock = MagicMock()
+    mock.url.path = "/test"
+    return mock
 
 
 # ---------------------------------------------------------------------------
@@ -314,7 +321,12 @@ async def test_apply_endpoint_returns_403_for_insufficient_reputation(monkeypatc
     )
 
     with pytest.raises(HTTPException) as exc:
-        await routes.apply_to_task(task_id=TASK_ID, request=request)
+        await routes.apply_to_task(
+            raw_request=_mock_request(),
+            task_id=TASK_ID,
+            request=request,
+            worker_auth=None,
+        )
 
     assert exc.value.status_code == 403
     assert "Insufficient reputation" in exc.value.detail
@@ -344,7 +356,12 @@ async def test_apply_endpoint_returns_200_for_sufficient_reputation(monkeypatch)
         message="I want to help",
     )
 
-    result = await routes.apply_to_task(task_id=TASK_ID, request=request)
+    result = await routes.apply_to_task(
+        raw_request=_mock_request(),
+        task_id=TASK_ID,
+        request=request,
+        worker_auth=None,
+    )
 
     assert result.message == "Application submitted successfully"
     assert result.data["application_id"] == "app-123"
