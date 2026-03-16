@@ -181,7 +181,58 @@ function ActivityCard({ task, t }: { task: Task; t: (key: string) => string }) {
   );
 }
 
-function ActivityFeed({ categoryFilter }: { categoryFilter: string | null }) {
+type StatusFilter = "all" | "completed" | "in_progress" | "published";
+
+function StatusFilterPills({
+  selected,
+  onSelect,
+}: {
+  selected: StatusFilter;
+  onSelect: (f: StatusFilter) => void;
+}) {
+  const { t } = useTranslation();
+  const filters: { key: StatusFilter; label: string }[] = [
+    { key: "all", label: t("browse.filterAll") },
+    { key: "completed", label: t("browse.filterCompleted") },
+    { key: "in_progress", label: t("browse.filterInProgress") },
+    { key: "published", label: t("browse.filterNew") },
+  ];
+
+  return (
+    <View className="flex-row gap-2 mb-3">
+      {filters.map((f) => (
+        <Pressable
+          key={f.key}
+          className={`rounded-full px-3 py-1.5 ${
+            selected === f.key ? "bg-white" : "bg-surface"
+          }`}
+          style={
+            selected !== f.key
+              ? { borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" }
+              : undefined
+          }
+          onPress={() => onSelect(f.key)}
+        >
+          <Text
+            className={`text-xs font-semibold ${
+              selected === f.key ? "text-black" : "text-gray-400"
+            }`}
+          >
+            {f.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function ActivityFeed({
+  categoryFilter,
+  statusFilter,
+}: {
+  categoryFilter: string | null;
+  statusFilter: StatusFilter;
+}) {
   const { t } = useTranslation();
   const {
     data: rawActivities,
@@ -189,9 +240,28 @@ function ActivityFeed({ categoryFilter }: { categoryFilter: string | null }) {
     isError,
   } = useRecentActivity(30);
 
-  const activities = categoryFilter
-    ? rawActivities?.filter((task) => task.category === categoryFilter)
-    : rawActivities?.slice(0, 15);
+  let activities = rawActivities;
+
+  // Apply category filter
+  if (categoryFilter) {
+    activities = activities?.filter((task) => task.category === categoryFilter);
+  }
+
+  // Apply status filter
+  if (statusFilter !== "all" && activities) {
+    if (statusFilter === "in_progress") {
+      activities = activities.filter((task) =>
+        ["in_progress", "submitted", "verifying", "accepted"].includes(task.status)
+      );
+    } else {
+      activities = activities.filter((task) => task.status === statusFilter);
+    }
+  }
+
+  // Limit to 15 if no filters
+  if (!categoryFilter && statusFilter === "all") {
+    activities = activities?.slice(0, 15);
+  }
 
   if (isLoading) {
     return (
@@ -237,6 +307,7 @@ export default function BrowseTasksScreen() {
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { location, requestLocation } = useUserLocation();
 
@@ -395,9 +466,14 @@ export default function BrowseTasksScreen() {
           }
           showsVerticalScrollIndicator={false}
         >
+          {/* Status Filter Pills */}
+          <View className="mt-2">
+            <StatusFilterPills selected={statusFilter} onSelect={setStatusFilter} />
+          </View>
+
           {/* Activity Feed */}
           <View className="-mx-4 -mt-1">
-            <ActivityFeed categoryFilter={selectedCategory} />
+            <ActivityFeed categoryFilter={selectedCategory} statusFilter={statusFilter} />
           </View>
 
           {/* Separator */}

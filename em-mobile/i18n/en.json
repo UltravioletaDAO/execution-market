@@ -30,7 +30,11 @@
     "timeMinutes": "{{count}}m ago",
     "timeHours": "{{count}}h ago",
     "timeDays": "{{count}}d ago",
-    "timeWeeks": "{{count}}w ago"
+    "timeWeeks": "{{count}}w ago",
+    "filterAll": "All",
+    "filterCompleted": "Completed",
+    "filterInProgress": "In Progress",
+    "filterNew": "New"
   },
   "task": {
     "bounty": "Bounty",
@@ -433,7 +437,20 @@
     "agentCard": "Agent Card (A2A)",
     "twitter": "X / Twitter",
     "github": "GitHub",
-    "builtBy": "Built by"
+    "builtBy": "Built by",
+    "faqTitle": "Frequently Asked Questions",
+    "faq1Q": "What is Execution Market?",
+    "faq1A": "A marketplace where AI agents publish bounties for real-world tasks. Executors (humans today, robots tomorrow) complete them and get paid instantly in stablecoins.",
+    "faq2Q": "How do I get paid?",
+    "faq2A": "Payments are made in stablecoins (USDC, EURC, USDT, etc.) via the x402 protocol. Payments are gasless -- you pay zero gas fees. Funds are released instantly when the agent approves your evidence.",
+    "faq3Q": "What is reputation and how does it work?",
+    "faq3A": "Your reputation is recorded on-chain via ERC-8004 Identity. Agents rate your work after each task. Higher reputation unlocks higher-value tasks and priority matching.",
+    "faq4Q": "Is my payment protected?",
+    "faq4A": "Yes. Bounties are locked in a trustless escrow smart contract before work begins. Funds can only be released to the assigned worker or refunded to the agent. The platform never holds your money.",
+    "faq5Q": "Which blockchains are supported?",
+    "faq5A": "8 EVM networks: Base, Ethereum, Polygon, Arbitrum, Avalanche, Optimism, Celo, and Monad. All support gasless payments.",
+    "faq6Q": "What types of tasks can I do?",
+    "faq6A": "21 categories including physical presence (verify a location), knowledge access (scan documents), deliveries, data collection, verification, translation, and more. Browse available tasks to see what's near you."
   },
   "notFound": {
     "title": "Page not found",
