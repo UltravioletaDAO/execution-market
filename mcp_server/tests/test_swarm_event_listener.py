@@ -17,11 +17,9 @@ Covers:
 import json
 import os
 import tempfile
-import time
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
-import pytest
 
 from mcp_server.swarm.event_listener import (
     EM_CATEGORY_MAP,
@@ -267,7 +265,7 @@ class TestEventListenerInit:
         coord = _make_mock_coordinator()
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             path = f.name
-            f.write(b'{}')  # Empty valid JSON
+            f.write(b"{}")  # Empty valid JSON
 
         try:
             listener = EventListener(coord, state_path=path)
@@ -286,8 +284,18 @@ class TestPollNewTasks:
     def test_ingests_new_tasks(self):
         coord = _make_mock_coordinator()
         coord.em_client.list_tasks.return_value = [
-            {"id": "t1", "title": "Test Task", "category": "delivery", "bounty_amount": 10},
-            {"id": "t2", "title": "Task Two", "category": "coding", "bounty_amount": 25},
+            {
+                "id": "t1",
+                "title": "Test Task",
+                "category": "delivery",
+                "bounty_amount": 10,
+            },
+            {
+                "id": "t2",
+                "title": "Task Two",
+                "category": "coding",
+                "bounty_amount": 25,
+            },
         ]
         listener = EventListener(coord)
         ingested = listener.poll_new_tasks()
@@ -371,7 +379,12 @@ class TestPollNewTasks:
     def test_maps_bounty_correctly(self):
         coord = _make_mock_coordinator()
         coord.em_client.list_tasks.return_value = [
-            {"id": "t1", "title": "Expensive", "category": "general", "bounty_amount": 75},
+            {
+                "id": "t1",
+                "title": "Expensive",
+                "category": "general",
+                "bounty_amount": 75,
+            },
         ]
         listener = EventListener(coord)
         listener.poll_new_tasks()
@@ -382,7 +395,12 @@ class TestPollNewTasks:
     def test_handles_invalid_bounty(self):
         coord = _make_mock_coordinator()
         coord.em_client.list_tasks.return_value = [
-            {"id": "t1", "title": "Bad Bounty", "category": "general", "bounty_amount": "free"},
+            {
+                "id": "t1",
+                "title": "Bad Bounty",
+                "category": "general",
+                "bounty_amount": "free",
+            },
         ]
         listener = EventListener(coord)
         listener.poll_new_tasks()
@@ -432,7 +450,7 @@ class TestPollCompletions:
         ]
         coord.complete_task.side_effect = KeyError("not in queue")
         listener = EventListener(coord)
-        completed = listener.poll_completions()
+        listener.poll_completions()
         # External task gets marked as seen but not added to completed list
         assert listener.state.is_seen("completed_t_external")
 
@@ -515,7 +533,7 @@ class TestPollFailures:
         ]
         coord.fail_task.side_effect = KeyError("not in queue")
         listener = EventListener(coord)
-        failures = listener.poll_failures()
+        listener.poll_failures()
         assert listener.state.is_seen("cancelled_t_ext")
 
     def test_handles_api_error_per_status(self):
@@ -526,7 +544,7 @@ class TestPollFailures:
             [],  # disputed OK
         ]
         listener = EventListener(coord)
-        failures = listener.poll_failures()
+        listener.poll_failures()
         assert listener.state.total_errors >= 1
 
 
@@ -535,7 +553,9 @@ class TestPollOnce:
         coord = _make_mock_coordinator()
         # poll_new_tasks
         coord.em_client.list_tasks.side_effect = [
-            [{"id": "t1", "title": "New", "category": "delivery", "bounty_amount": 5}],  # published
+            [
+                {"id": "t1", "title": "New", "category": "delivery", "bounty_amount": 5}
+            ],  # published
             [],  # completed
             [],  # cancelled
             [],  # expired
@@ -568,7 +588,7 @@ class TestPollOnce:
 
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             path = f.name
-            f.write(b'{}')
+            f.write(b"{}")
 
         try:
             listener = EventListener(coord, state_path=path)

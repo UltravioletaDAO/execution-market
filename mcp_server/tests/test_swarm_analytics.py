@@ -13,7 +13,6 @@ Tests cover:
 - Edge cases (empty state, single event, high volume)
 """
 
-import json
 import shutil
 import tempfile
 import time
@@ -33,6 +32,7 @@ from mcp_server.swarm.analytics import (
 # Fixtures
 # ──────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def tmpdir():
     d = tempfile.mkdtemp(prefix="swarm_analytics_")
@@ -47,7 +47,9 @@ def analytics():
 
 @pytest.fixture
 def analytics_persisted(tmpdir):
-    return SwarmAnalytics(storage_dir=tmpdir, max_events=1000, snapshot_interval_seconds=1)
+    return SwarmAnalytics(
+        storage_dir=tmpdir, max_events=1000, snapshot_interval_seconds=1
+    )
 
 
 def make_event(
@@ -76,8 +78,8 @@ def make_event(
 # TaskEvent Tests
 # ──────────────────────────────────────────────────────────────
 
-class TestTaskEvent:
 
+class TestTaskEvent:
     def test_creation(self):
         e = make_event()
         assert e.event_type == "task_completed"
@@ -99,7 +101,12 @@ class TestTaskEvent:
         assert e2.bounty_usd == e.bounty_usd
 
     def test_from_dict_ignores_unknown_keys(self):
-        d = {"event_type": "task_completed", "agent_id": "a1", "task_id": "t1", "extra_field": 99}
+        d = {
+            "event_type": "task_completed",
+            "agent_id": "a1",
+            "task_id": "t1",
+            "extra_field": 99,
+        }
         e = TaskEvent.from_dict(d)
         assert e.agent_id == "a1"
 
@@ -116,18 +123,22 @@ class TestTaskEvent:
 # AgentMetrics Tests
 # ──────────────────────────────────────────────────────────────
 
-class TestAgentMetrics:
 
+class TestAgentMetrics:
     def test_success_rate_zero(self):
         m = AgentMetrics(agent_id="a1")
         assert m.success_rate == 0.0
 
     def test_success_rate_perfect(self):
-        m = AgentMetrics(agent_id="a1", tasks_completed=10, tasks_failed=0, tasks_expired=0)
+        m = AgentMetrics(
+            agent_id="a1", tasks_completed=10, tasks_failed=0, tasks_expired=0
+        )
         assert m.success_rate == 1.0
 
     def test_success_rate_mixed(self):
-        m = AgentMetrics(agent_id="a1", tasks_completed=7, tasks_failed=2, tasks_expired=1)
+        m = AgentMetrics(
+            agent_id="a1", tasks_completed=7, tasks_failed=2, tasks_expired=1
+        )
         assert abs(m.success_rate - 0.7) < 0.01
 
     def test_is_active_recent(self):
@@ -159,8 +170,8 @@ class TestAgentMetrics:
 # SwarmAnalytics Core Tests
 # ──────────────────────────────────────────────────────────────
 
-class TestSwarmAnalyticsCore:
 
+class TestSwarmAnalyticsCore:
     def test_empty_state(self, analytics):
         assert analytics.event_count == 0
         assert analytics.agent_count == 0
@@ -189,9 +200,9 @@ class TestSwarmAnalyticsCore:
         assert a.event_count == 5
 
     def test_completed_updates_metrics(self, analytics):
-        analytics.record_event(make_event(
-            agent_id="a1", bounty_usd=10.0, quality_rating=4.0
-        ))
+        analytics.record_event(
+            make_event(agent_id="a1", bounty_usd=10.0, quality_rating=4.0)
+        )
         detail = analytics.get_agent_detail("a1")
         assert detail["tasks_completed"] == 1
         assert detail["total_revenue_usd"] == 10.0
@@ -214,19 +225,29 @@ class TestSwarmAnalyticsCore:
 
     def test_multiple_tasks_accumulate(self, analytics):
         for i in range(5):
-            analytics.record_event(make_event(
-                agent_id="a1", task_id=f"t{i}",
-                bounty_usd=2.0 * (i + 1), quality_rating=3.0 + i * 0.5
-            ))
+            analytics.record_event(
+                make_event(
+                    agent_id="a1",
+                    task_id=f"t{i}",
+                    bounty_usd=2.0 * (i + 1),
+                    quality_rating=3.0 + i * 0.5,
+                )
+            )
         detail = analytics.get_agent_detail("a1")
         assert detail["tasks_completed"] == 5
         assert detail["total_revenue_usd"] == 30.0  # 2+4+6+8+10
         assert detail["avg_quality"] == pytest.approx(4.0, abs=0.01)
 
     def test_category_tracking(self, analytics):
-        analytics.record_event(make_event(agent_id="a1", task_id="t1", category="physical_verification"))
-        analytics.record_event(make_event(agent_id="a1", task_id="t2", category="physical_verification"))
-        analytics.record_event(make_event(agent_id="a1", task_id="t3", category="data_collection"))
+        analytics.record_event(
+            make_event(agent_id="a1", task_id="t1", category="physical_verification")
+        )
+        analytics.record_event(
+            make_event(agent_id="a1", task_id="t2", category="physical_verification")
+        )
+        analytics.record_event(
+            make_event(agent_id="a1", task_id="t3", category="data_collection")
+        )
         detail = analytics.get_agent_detail("a1")
         assert detail["categories"]["physical_verification"] == 2
         assert detail["categories"]["data_collection"] == 1
@@ -239,8 +260,8 @@ class TestSwarmAnalyticsCore:
 # Dashboard Tests
 # ──────────────────────────────────────────────────────────────
 
-class TestDashboard:
 
+class TestDashboard:
     def test_empty_dashboard(self, analytics):
         d = analytics.get_dashboard()
         assert d["fleet"]["total_agents"] == 0
@@ -248,11 +269,15 @@ class TestDashboard:
 
     def test_dashboard_with_data(self, analytics):
         for i in range(5):
-            analytics.record_event(make_event(
-                agent_id=f"a{i}", task_id=f"t{i}",
-                bounty_usd=10.0, quality_rating=4.0 + i * 0.2,
-                category="physical_verification"
-            ))
+            analytics.record_event(
+                make_event(
+                    agent_id=f"a{i}",
+                    task_id=f"t{i}",
+                    bounty_usd=10.0,
+                    quality_rating=4.0 + i * 0.2,
+                    category="physical_verification",
+                )
+            )
         d = analytics.get_dashboard()
         assert d["fleet"]["total_agents"] == 5
         assert d["fleet"]["active_agents"] == 5
@@ -261,9 +286,15 @@ class TestDashboard:
         assert d["performance"]["avg_quality"] > 0
 
     def test_dashboard_categories(self, analytics):
-        analytics.record_event(make_event(agent_id="a1", task_id="t1", category="delivery"))
-        analytics.record_event(make_event(agent_id="a2", task_id="t2", category="delivery"))
-        analytics.record_event(make_event(agent_id="a3", task_id="t3", category="technical_task"))
+        analytics.record_event(
+            make_event(agent_id="a1", task_id="t1", category="delivery")
+        )
+        analytics.record_event(
+            make_event(agent_id="a2", task_id="t2", category="delivery")
+        )
+        analytics.record_event(
+            make_event(agent_id="a3", task_id="t3", category="technical_task")
+        )
         d = analytics.get_dashboard()
         cats = {c["category"]: c["count"] for c in d["categories"]}
         assert cats["delivery"] == 2
@@ -272,19 +303,29 @@ class TestDashboard:
     def test_dashboard_top_agents(self, analytics):
         for i in range(10):
             for j in range(i + 1):
-                analytics.record_event(make_event(
-                    agent_id=f"a{i}", task_id=f"t{i}_{j}",
-                    bounty_usd=5.0, quality_rating=4.0
-                ))
+                analytics.record_event(
+                    make_event(
+                        agent_id=f"a{i}",
+                        task_id=f"t{i}_{j}",
+                        bounty_usd=5.0,
+                        quality_rating=4.0,
+                    )
+                )
         d = analytics.get_dashboard()
         assert len(d["top_agents"]) == 5
         # Agent a9 should be top (10 tasks)
         assert d["top_agents"][0]["agent_id"] == "a9"
 
     def test_get_all_agents_sorted(self, analytics):
-        analytics.record_event(make_event(agent_id="slow", task_id="t1", bounty_usd=1.0))
-        analytics.record_event(make_event(agent_id="fast", task_id="t2", bounty_usd=100.0))
-        analytics.record_event(make_event(agent_id="fast", task_id="t3", bounty_usd=100.0))
+        analytics.record_event(
+            make_event(agent_id="slow", task_id="t1", bounty_usd=1.0)
+        )
+        analytics.record_event(
+            make_event(agent_id="fast", task_id="t2", bounty_usd=100.0)
+        )
+        analytics.record_event(
+            make_event(agent_id="fast", task_id="t3", bounty_usd=100.0)
+        )
 
         by_tasks = analytics.get_all_agents(sort_by="tasks_completed")
         assert by_tasks[0]["agent_id"] == "fast"
@@ -297,8 +338,8 @@ class TestDashboard:
 # Trend Analysis Tests
 # ──────────────────────────────────────────────────────────────
 
-class TestTrends:
 
+class TestTrends:
     def test_no_data(self, analytics):
         t = analytics.get_trends()
         assert t["trend"] == "no_data"
@@ -312,22 +353,22 @@ class TestTrends:
         now = time.time()
         # Few events early, many events recently
         for i in range(2):
-            analytics.record_event(make_event(
-                task_id=f"early_{i}", timestamp=now - 6 * 3600 + i * 60
-            ))
+            analytics.record_event(
+                make_event(task_id=f"early_{i}", timestamp=now - 6 * 3600 + i * 60)
+            )
         for i in range(10):
-            analytics.record_event(make_event(
-                task_id=f"recent_{i}", timestamp=now - 1 * 3600 + i * 60
-            ))
+            analytics.record_event(
+                make_event(task_id=f"recent_{i}", timestamp=now - 1 * 3600 + i * 60)
+            )
         t = analytics.get_trends(window_hours=24)
         assert t["total_completed"] == 12
 
     def test_daily_rollup(self, analytics):
         now = time.time()
         for i in range(5):
-            analytics.record_event(make_event(
-                task_id=f"t{i}", bounty_usd=10.0, timestamp=now - i * 100
-            ))
+            analytics.record_event(
+                make_event(task_id=f"t{i}", bounty_usd=10.0, timestamp=now - i * 100)
+            )
         t = analytics.get_trends(window_hours=24)
         assert len(t["daily"]) >= 1
 
@@ -342,13 +383,13 @@ class TestTrends:
 # Alert Tests
 # ──────────────────────────────────────────────────────────────
 
-class TestAlerts:
 
+class TestAlerts:
     def test_no_alerts_when_healthy(self, analytics):
         for i in range(5):
-            analytics.record_event(make_event(
-                agent_id="good_agent", task_id=f"t{i}", quality_rating=4.5
-            ))
+            analytics.record_event(
+                make_event(agent_id="good_agent", task_id=f"t{i}", quality_rating=4.5)
+            )
         alerts = analytics.check_alerts()
         # Should not have success rate or quality alerts
         agent_alerts = [a for a in alerts if a["agent_id"] == "good_agent"]
@@ -359,9 +400,9 @@ class TestAlerts:
         # 1 completed, 3 failed → 25% success rate
         analytics.record_event(make_event(agent_id="bad", task_id="t1"))
         for i in range(3):
-            analytics.record_event(make_event(
-                event_type="task_failed", agent_id="bad", task_id=f"f{i}"
-            ))
+            analytics.record_event(
+                make_event(event_type="task_failed", agent_id="bad", task_id=f"f{i}")
+            )
         alerts = analytics.check_alerts()
         sr_alerts = [a for a in alerts if a["metric"] == "success_rate"]
         assert len(sr_alerts) >= 1
@@ -369,23 +410,25 @@ class TestAlerts:
 
     def test_low_quality_alert(self, analytics):
         for i in range(5):
-            analytics.record_event(make_event(
-                agent_id="lowq", task_id=f"t{i}", quality_rating=2.0
-            ))
+            analytics.record_event(
+                make_event(agent_id="lowq", task_id=f"t{i}", quality_rating=2.0)
+            )
         alerts = analytics.check_alerts()
         q_alerts = [a for a in alerts if a["metric"] == "avg_quality"]
         assert len(q_alerts) >= 1
 
     def test_stale_agent_alert(self, analytics):
         old_time = time.time() - 800000  # ~9 days ago
-        analytics.record_event(make_event(
-            agent_id="stale_one", task_id="t1", timestamp=old_time
-        ))
+        analytics.record_event(
+            make_event(agent_id="stale_one", task_id="t1", timestamp=old_time)
+        )
         # Need 3+ tasks for the agent to trigger per-agent checks
         for i in range(3):
-            analytics.record_event(make_event(
-                agent_id="stale_one", task_id=f"t{i+1}", timestamp=old_time + i
-            ))
+            analytics.record_event(
+                make_event(
+                    agent_id="stale_one", task_id=f"t{i + 1}", timestamp=old_time + i
+                )
+            )
         alerts = analytics.check_alerts()
         stale_alerts = [a for a in alerts if a["metric"] == "days_inactive"]
         assert len(stale_alerts) >= 1
@@ -393,9 +436,9 @@ class TestAlerts:
     def test_fleet_activity_alert(self, analytics):
         old_time = time.time() - 800000
         for i in range(10):
-            analytics.record_event(make_event(
-                agent_id=f"dead_{i}", task_id=f"t{i}", timestamp=old_time
-            ))
+            analytics.record_event(
+                make_event(agent_id=f"dead_{i}", task_id=f"t{i}", timestamp=old_time)
+            )
         alerts = analytics.check_alerts()
         fleet_alerts = [a for a in alerts if a["metric"] == "fleet_active_pct"]
         assert len(fleet_alerts) >= 1
@@ -407,9 +450,9 @@ class TestAlerts:
 
     def test_few_tasks_skip_alerts(self, analytics):
         # Agent with only 1 task shouldn't trigger alerts
-        analytics.record_event(make_event(
-            event_type="task_failed", agent_id="newbie", task_id="t1"
-        ))
+        analytics.record_event(
+            make_event(event_type="task_failed", agent_id="newbie", task_id="t1")
+        )
         alerts = analytics.check_alerts()
         newbie_alerts = [a for a in alerts if a["agent_id"] == "newbie"]
         assert len(newbie_alerts) == 0
@@ -419,16 +462,22 @@ class TestAlerts:
 # Category Heatmap Tests
 # ──────────────────────────────────────────────────────────────
 
-class TestCategoryHeatmap:
 
+class TestCategoryHeatmap:
     def test_empty_heatmap(self, analytics):
         hm = analytics.get_category_heatmap()
         assert hm == {}
 
     def test_heatmap_structure(self, analytics):
-        analytics.record_event(make_event(agent_id="a1", task_id="t1", category="delivery"))
-        analytics.record_event(make_event(agent_id="a1", task_id="t2", category="delivery"))
-        analytics.record_event(make_event(agent_id="a2", task_id="t3", category="technical_task"))
+        analytics.record_event(
+            make_event(agent_id="a1", task_id="t1", category="delivery")
+        )
+        analytics.record_event(
+            make_event(agent_id="a1", task_id="t2", category="delivery")
+        )
+        analytics.record_event(
+            make_event(agent_id="a2", task_id="t3", category="technical_task")
+        )
         hm = analytics.get_category_heatmap()
         assert hm["a1"]["delivery"] == 2
         assert hm["a2"]["technical_task"] == 1
@@ -439,8 +488,8 @@ class TestCategoryHeatmap:
 # Snapshot Tests
 # ──────────────────────────────────────────────────────────────
 
-class TestSnapshots:
 
+class TestSnapshots:
     def test_auto_snapshot(self):
         a = SwarmAnalytics(max_events=1000, snapshot_interval_seconds=0)
         a.record_event(make_event())
@@ -450,10 +499,14 @@ class TestSnapshots:
     def test_snapshot_content(self):
         a = SwarmAnalytics(max_events=1000, snapshot_interval_seconds=0)
         for i in range(3):
-            a.record_event(make_event(
-                agent_id=f"a{i}", task_id=f"t{i}",
-                bounty_usd=5.0, quality_rating=4.0
-            ))
+            a.record_event(
+                make_event(
+                    agent_id=f"a{i}",
+                    task_id=f"t{i}",
+                    bounty_usd=5.0,
+                    quality_rating=4.0,
+                )
+            )
         snaps = a.get_snapshots()
         s = snaps[-1]
         assert s["total_agents"] == 3
@@ -471,15 +524,16 @@ class TestSnapshots:
 # Persistence Tests
 # ──────────────────────────────────────────────────────────────
 
-class TestPersistence:
 
+class TestPersistence:
     def test_save_and_load(self, tmpdir):
         a1 = SwarmAnalytics(storage_dir=tmpdir, max_events=100)
         for i in range(5):
-            a1.record_event(make_event(
-                agent_id="a1", task_id=f"t{i}",
-                bounty_usd=10.0, quality_rating=4.0
-            ))
+            a1.record_event(
+                make_event(
+                    agent_id="a1", task_id=f"t{i}", bounty_usd=10.0, quality_rating=4.0
+                )
+            )
 
         # Create new instance from same dir
         a2 = SwarmAnalytics(storage_dir=tmpdir, max_events=100)
@@ -490,6 +544,7 @@ class TestPersistence:
 
     def test_corrupted_state_recovery(self, tmpdir):
         import pathlib
+
         state_path = pathlib.Path(tmpdir) / "analytics_state.json"
         state_path.write_text("{{invalid json!!!")
 
@@ -499,6 +554,7 @@ class TestPersistence:
 
     def test_empty_state_file(self, tmpdir):
         import pathlib
+
         state_path = pathlib.Path(tmpdir) / "analytics_state.json"
         state_path.write_text("{}")
 
@@ -518,8 +574,8 @@ class TestPersistence:
 # Edge Case Tests
 # ──────────────────────────────────────────────────────────────
 
-class TestEdgeCases:
 
+class TestEdgeCases:
     def test_zero_bounty_event(self, analytics):
         analytics.record_event(make_event(bounty_usd=0.0))
         detail = analytics.get_agent_detail("agent_001")
@@ -554,8 +610,13 @@ class TestEdgeCases:
             make_event(
                 agent_id=f"agent_{i % 24}",
                 task_id=f"task_{i}",
-                category=["physical_verification", "data_collection", "delivery",
-                          "technical_task", "content_creation"][i % 5],
+                category=[
+                    "physical_verification",
+                    "data_collection",
+                    "delivery",
+                    "technical_task",
+                    "content_creation",
+                ][i % 5],
                 bounty_usd=5.0 + (i % 10),
                 quality_rating=3.0 + (i % 20) / 10.0,
             )
@@ -574,21 +635,33 @@ class TestEdgeCases:
 # Alert + FleetSnapshot data class tests
 # ──────────────────────────────────────────────────────────────
 
-class TestDataClasses:
 
+class TestDataClasses:
     def test_alert_to_dict(self):
-        a = Alert(level="warning", agent_id="a1", message="test",
-                  metric="quality", value=2.0, threshold=3.0)
+        a = Alert(
+            level="warning",
+            agent_id="a1",
+            message="test",
+            metric="quality",
+            value=2.0,
+            threshold=3.0,
+        )
         d = a.to_dict()
         assert d["level"] == "warning"
         assert d["value"] == 2.0
 
     def test_fleet_snapshot_to_dict(self):
         s = FleetSnapshot(
-            timestamp=time.time(), total_agents=24, active_agents=20,
-            stale_agents=2, total_tasks_completed=100, total_tasks_failed=5,
-            total_revenue_usd=500.0, avg_fleet_quality=4.2,
-            avg_success_rate=0.95, top_categories=[]
+            timestamp=time.time(),
+            total_agents=24,
+            active_agents=20,
+            stale_agents=2,
+            total_tasks_completed=100,
+            total_tasks_failed=5,
+            total_revenue_usd=500.0,
+            avg_fleet_quality=4.2,
+            avg_success_rate=0.95,
+            top_categories=[],
         )
         d = s.to_dict()
         assert d["total_agents"] == 24

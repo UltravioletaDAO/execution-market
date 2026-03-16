@@ -8,7 +8,6 @@ Tests the full pipeline:
 All tests are self-contained with no external dependencies.
 """
 
-import time
 from datetime import datetime, timezone, timedelta
 
 import pytest
@@ -25,8 +24,6 @@ from swarm.lifecycle_manager import (
     LifecycleManager,
     AgentState,
     BudgetConfig,
-    LifecycleError,
-    BudgetExceededError,
 )
 from swarm.orchestrator import (
     SwarmOrchestrator,
@@ -40,8 +37,6 @@ from swarm.reputation_bridge import (
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
-    CompositeScore,
-    ReputationTier,
 )
 
 
@@ -78,6 +73,7 @@ def coordinator(bridge, lifecycle, orchestrator):
 @pytest.fixture
 def coordinator_factory(bridge, lifecycle, orchestrator):
     """Factory for coordinators with custom config."""
+
     def _create(**kwargs):
         defaults = dict(
             bridge=bridge,
@@ -88,6 +84,7 @@ def coordinator_factory(bridge, lifecycle, orchestrator):
         )
         defaults.update(kwargs)
         return SwarmCoordinator(**defaults)
+
     return _create
 
 
@@ -197,7 +194,7 @@ class TestAgentRegistration:
 
     def test_register_with_custom_budget(self, coordinator):
         budget = BudgetConfig(daily_limit_usd=10.0, monthly_limit_usd=200.0)
-        record = coordinator.register_agent(
+        coordinator.register_agent(
             agent_id=1,
             name="aurora",
             wallet_address="0xAAA",
@@ -328,8 +325,12 @@ class TestTaskProcessing:
         _register_agent(coordinator, agent_id=1)
         _register_agent(coordinator, agent_id=2, name="beacon", wallet="0xBBB")
         coordinator.ingest_task("t-low", "Low task", ["photo"], 1.0, TaskPriority.LOW)
-        coordinator.ingest_task("t-crit", "Critical task", ["photo"], 50.0, TaskPriority.CRITICAL)
-        coordinator.ingest_task("t-norm", "Normal task", ["photo"], 5.0, TaskPriority.NORMAL)
+        coordinator.ingest_task(
+            "t-crit", "Critical task", ["photo"], 50.0, TaskPriority.CRITICAL
+        )
+        coordinator.ingest_task(
+            "t-norm", "Normal task", ["photo"], 5.0, TaskPriority.NORMAL
+        )
         results = coordinator.process_task_queue(max_tasks=3)
         assigned = [r for r in results if isinstance(r, Assignment)]
         # Critical should be assigned first
@@ -386,15 +387,24 @@ class TestTaskCompletion:
         # Use a generous budget so the agent doesn't get suspended
         budget = BudgetConfig(daily_limit_usd=100.0, monthly_limit_usd=1000.0)
         coordinator.register_agent(
-            agent_id=10, name="rich_agent", wallet_address="0xRICH",
-            budget_config=budget, activate=True,
+            agent_id=10,
+            name="rich_agent",
+            wallet_address="0xRICH",
+            budget_config=budget,
+            activate=True,
         )
         coordinator.orchestrator.register_reputation(
             agent_id=10,
-            on_chain=OnChainReputation(agent_id=10, wallet_address="0xRICH",
-                                       total_seals=10, positive_seals=9),
-            internal=InternalReputation(agent_id=10, bayesian_score=0.8, total_tasks=25,
-                                        successful_tasks=23, avg_rating=4.5),
+            on_chain=OnChainReputation(
+                agent_id=10, wallet_address="0xRICH", total_seals=10, positive_seals=9
+            ),
+            internal=InternalReputation(
+                agent_id=10,
+                bayesian_score=0.8,
+                total_tasks=25,
+                successful_tasks=23,
+                avg_rating=4.5,
+            ),
         )
         _ingest_task(coordinator, task_id="t1", bounty=5.0)
         coordinator.process_task_queue()
@@ -700,9 +710,9 @@ class TestQueueUtilities:
         coordinator.process_task_queue()
         coordinator.complete_task("t1")
         # Backdate the task
-        coordinator._task_queue["t1"].ingested_at = (
-            datetime.now(timezone.utc) - timedelta(hours=48)
-        )
+        coordinator._task_queue["t1"].ingested_at = datetime.now(
+            timezone.utc
+        ) - timedelta(hours=48)
         removed = coordinator.cleanup_completed(older_than_hours=24.0)
         assert removed == 1
         assert "t1" not in coordinator._task_queue
@@ -810,8 +820,11 @@ class TestBudgetIntegration:
     def test_complete_records_spend(self, coordinator):
         budget = BudgetConfig(daily_limit_usd=100.0, monthly_limit_usd=1000.0)
         coordinator.register_agent(
-            agent_id=1, name="aurora", wallet_address="0xAAA",
-            budget_config=budget, activate=True,
+            agent_id=1,
+            name="aurora",
+            wallet_address="0xAAA",
+            budget_config=budget,
+            activate=True,
         )
         coordinator.orchestrator.register_reputation(
             agent_id=1,
@@ -962,7 +975,7 @@ class TestEndToEnd:
         # First assignment
         results1 = coordinator.process_task_queue()
         assert isinstance(results1[0], Assignment)
-        first_agent = results1[0].agent_id
+        results1[0].agent_id
 
         # Fail the task
         coordinator.fail_task("t1")
@@ -972,7 +985,9 @@ class TestEndToEnd:
     def test_multi_task_throughput(self, coordinator):
         """Process multiple tasks through the system."""
         for i in range(5):
-            _register_agent(coordinator, agent_id=i + 1, name=f"agent-{i}", wallet=f"0x{i:03x}")
+            _register_agent(
+                coordinator, agent_id=i + 1, name=f"agent-{i}", wallet=f"0x{i:03x}"
+            )
 
         for i in range(10):
             _ingest_task(coordinator, task_id=f"t{i}", bounty=float(i + 1))

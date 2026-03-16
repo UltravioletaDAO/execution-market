@@ -12,10 +12,8 @@ Covers:
     - Edge cases: empty evidence, unknown types, malformed data
 """
 
-import json
 import os
 import tempfile
-from datetime import datetime, timezone
 
 import pytest
 
@@ -217,7 +215,11 @@ class TestEvidenceParser:
             {
                 "type": "photo_geo",
                 "content": "geo tagged image",
-                "metadata": {"latitude": 25.7617, "longitude": -80.1918, "timestamp": "2026-03-16"},
+                "metadata": {
+                    "latitude": 25.7617,
+                    "longitude": -80.1918,
+                    "timestamp": "2026-03-16",
+                },
             }
         ]
         qa = parser.parse_evidence(evidence)
@@ -232,9 +234,17 @@ class TestEvidenceParser:
     def test_all_evidence_types(self, parser):
         """Verify all 11 evidence types produce signals."""
         types = [
-            "photo", "photo_geo", "video", "document", "receipt",
-            "text_response", "screenshot", "measurement", "signature",
-            "notarized", "timestamp_proof",
+            "photo",
+            "photo_geo",
+            "video",
+            "document",
+            "receipt",
+            "text_response",
+            "screenshot",
+            "measurement",
+            "signature",
+            "notarized",
+            "timestamp_proof",
         ]
         for ev_type in types:
             qa = parser.parse_evidence([{"type": ev_type, "content": "test"}])
@@ -246,33 +256,39 @@ class TestEvidenceParser:
         qa = parser.parse_evidence(evidence)
         assert qa.evidence_count == 1
         # Should produce a default thoroughness signal
-        assert any(
-            s.dimension == SkillDimension.THOROUGHNESS for s in qa.signals
-        )
+        assert any(s.dimension == SkillDimension.THOROUGHNESS for s in qa.signals)
 
     def test_diversity_bonus(self, parser):
         """Multiple evidence types should get a diversity bonus."""
         single = parser.parse_evidence([{"type": "photo", "content": "x"}])
-        diverse = parser.parse_evidence([
-            {"type": "photo", "content": "x"},
-            {"type": "text_response", "content": "detailed report"},
-            {"type": "screenshot", "content": "screen capture"},
-        ])
+        diverse = parser.parse_evidence(
+            [
+                {"type": "photo", "content": "x"},
+                {"type": "text_response", "content": "detailed report"},
+                {"type": "screenshot", "content": "screen capture"},
+            ]
+        )
         # Diverse should score higher than single (from diversity + quantity bonus)
         assert diverse.score >= single.score
-        assert diverse.details.get("diversity_bonus", 0) > single.details.get("diversity_bonus", 0)
+        assert diverse.details.get("diversity_bonus", 0) > single.details.get(
+            "diversity_bonus", 0
+        )
 
     def test_quantity_bonus(self, parser):
         """More evidence items should get a quantity bonus."""
         few = parser.parse_evidence([{"type": "photo", "content": "x"}])
-        many = parser.parse_evidence([
-            {"type": "photo", "content": "item1"},
-            {"type": "photo", "content": "item2"},
-            {"type": "photo", "content": "item3"},
-            {"type": "photo", "content": "item4"},
-            {"type": "photo", "content": "item5"},
-        ])
-        assert many.details.get("quantity_bonus", 0) > few.details.get("quantity_bonus", 0)
+        many = parser.parse_evidence(
+            [
+                {"type": "photo", "content": "item1"},
+                {"type": "photo", "content": "item2"},
+                {"type": "photo", "content": "item3"},
+                {"type": "photo", "content": "item4"},
+                {"type": "photo", "content": "item5"},
+            ]
+        )
+        assert many.details.get("quantity_bonus", 0) > few.details.get(
+            "quantity_bonus", 0
+        )
 
     def test_suspicious_content_lorem_ipsum(self, parser):
         evidence = [{"type": "text_response", "content": "Lorem ipsum dolor sit amet"}]
@@ -304,11 +320,17 @@ class TestEvidenceParser:
         """Long content should boost signal strength."""
         short = parser.parse_evidence([{"type": "text_response", "content": "done"}])
         long_content = "A" * 150  # > 100 chars
-        long = parser.parse_evidence([{"type": "text_response", "content": long_content}])
+        long = parser.parse_evidence(
+            [{"type": "text_response", "content": long_content}]
+        )
 
         # Find matching signals for comparison
-        short_comm = [s for s in short.signals if s.dimension == SkillDimension.COMMUNICATION]
-        long_comm = [s for s in long.signals if s.dimension == SkillDimension.COMMUNICATION]
+        short_comm = [
+            s for s in short.signals if s.dimension == SkillDimension.COMMUNICATION
+        ]
+        long_comm = [
+            s for s in long.signals if s.dimension == SkillDimension.COMMUNICATION
+        ]
         assert long_comm[0].strength >= short_comm[0].strength
 
     def test_rich_metadata_boosts_strength(self, parser):
@@ -340,10 +362,35 @@ class TestEvidenceParser:
 
         # Excellent: multiple rich evidence types (use realistic content, not "x"*N which triggers suspicious)
         excellent_evidence = [
-            {"type": "photo_geo", "content": "Geo-tagged delivery photo at the customer's front door, package visible " * 3, "metadata": {"latitude": 25.7, "longitude": -80.1, "timestamp": "2026-01-01", "extra": "data"}},
-            {"type": "notarized", "content": "Notarized document confirming delivery receipt signed by customer " * 3, "metadata": {"notary": "John", "date": "2026-01-01", "id": "123"}},
-            {"type": "video", "content": "Video walkthrough of completed installation showing all components " * 3, "metadata": {"duration": 120}},
-            {"type": "document", "content": "Detailed inspection report covering structural integrity and safety " * 3, "metadata": {"pages": 5}},
+            {
+                "type": "photo_geo",
+                "content": "Geo-tagged delivery photo at the customer's front door, package visible "
+                * 3,
+                "metadata": {
+                    "latitude": 25.7,
+                    "longitude": -80.1,
+                    "timestamp": "2026-01-01",
+                    "extra": "data",
+                },
+            },
+            {
+                "type": "notarized",
+                "content": "Notarized document confirming delivery receipt signed by customer "
+                * 3,
+                "metadata": {"notary": "John", "date": "2026-01-01", "id": "123"},
+            },
+            {
+                "type": "video",
+                "content": "Video walkthrough of completed installation showing all components "
+                * 3,
+                "metadata": {"duration": 120},
+            },
+            {
+                "type": "document",
+                "content": "Detailed inspection report covering structural integrity and safety "
+                * 3,
+                "metadata": {"pages": 5},
+            },
         ]
         excellent = parser.parse_evidence(excellent_evidence)
         assert excellent.quality in (EvidenceQuality.EXCELLENT, EvidenceQuality.GOOD)
@@ -379,9 +426,7 @@ class TestEvidenceParser:
         evidence = [{"type": "screenshot", "content": "design"}]
         qa = parser.parse_evidence(evidence, task_data=task)
         ctx_signals = [s for s in qa.signals if s.source == "task_context"]
-        assert any(
-            s.dimension == SkillDimension.CREATIVE_SKILL for s in ctx_signals
-        )
+        assert any(s.dimension == SkillDimension.CREATIVE_SKILL for s in ctx_signals)
 
     def test_task_context_blockchain(self, parser):
         task = {"category": "defi", "bounty_amount": 10}
@@ -397,9 +442,7 @@ class TestEvidenceParser:
         evidence = [{"type": "text_response", "content": "done"}]
         qa = parser.parse_evidence(evidence, task_data=task)
         ctx_signals = [s for s in qa.signals if s.source == "task_context"]
-        assert any(
-            s.dimension == SkillDimension.TECHNICAL_SKILL for s in ctx_signals
-        )
+        assert any(s.dimension == SkillDimension.TECHNICAL_SKILL for s in ctx_signals)
 
     def test_task_context_low_bounty_no_tech_signal(self, parser):
         task = {"category": "general", "bounty_amount": 5}
@@ -430,16 +473,22 @@ class TestEvidenceParser:
 
         # First task
         qa1 = QualityAssessment(
-            quality=EvidenceQuality.GOOD, score=0.8, evidence_count=2,
-            evidence_types=["photo"], signals=[]
+            quality=EvidenceQuality.GOOD,
+            score=0.8,
+            evidence_count=2,
+            evidence_types=["photo"],
+            signals=[],
         )
         parser.update_skill_dna(dna, qa1)
         assert dna.avg_quality == 0.8
 
         # Second task
         qa2 = QualityAssessment(
-            quality=EvidenceQuality.POOR, score=0.4, evidence_count=1,
-            evidence_types=["text_response"], signals=[]
+            quality=EvidenceQuality.POOR,
+            score=0.4,
+            evidence_count=1,
+            evidence_types=["text_response"],
+            signals=[],
         )
         parser.update_skill_dna(dna, qa2)
         assert abs(dna.avg_quality - 0.6) < 0.001  # (0.8 + 0.4) / 2
@@ -459,11 +508,31 @@ class TestEvidenceParser:
     def test_score_clamped_to_one(self, parser):
         """Score should never exceed 1.0 even with many bonuses."""
         evidence = [
-            {"type": "photo_geo", "content": "x" * 300, "metadata": {"latitude": 25, "longitude": -80, "ts": "t", "extra": "e"}},
-            {"type": "notarized", "content": "x" * 300, "metadata": {"a": 1, "b": 2, "c": 3, "d": 4}},
-            {"type": "video", "content": "x" * 300, "metadata": {"a": 1, "b": 2, "c": 3}},
-            {"type": "document", "content": "x" * 300, "metadata": {"a": 1, "b": 2, "c": 3}},
-            {"type": "measurement", "content": "x" * 300, "metadata": {"a": 1, "b": 2, "c": 3}},
+            {
+                "type": "photo_geo",
+                "content": "x" * 300,
+                "metadata": {"latitude": 25, "longitude": -80, "ts": "t", "extra": "e"},
+            },
+            {
+                "type": "notarized",
+                "content": "x" * 300,
+                "metadata": {"a": 1, "b": 2, "c": 3, "d": 4},
+            },
+            {
+                "type": "video",
+                "content": "x" * 300,
+                "metadata": {"a": 1, "b": 2, "c": 3},
+            },
+            {
+                "type": "document",
+                "content": "x" * 300,
+                "metadata": {"a": 1, "b": 2, "c": 3},
+            },
+            {
+                "type": "measurement",
+                "content": "x" * 300,
+                "metadata": {"a": 1, "b": 2, "c": 3},
+            },
         ]
         qa = parser.parse_evidence(evidence)
         assert qa.score <= 1.0
@@ -491,11 +560,12 @@ class TestWorkerRegistry:
         reg = WorkerRegistry()
         evidence = [
             {"type": "photo", "content": "pic"},
-            {"type": "text_response", "content": "detailed report about the task completion"},
+            {
+                "type": "text_response",
+                "content": "detailed report about the task completion",
+            },
         ]
-        dna, qa = reg.process_completion(
-            "w1", evidence, task_categories=["delivery"]
-        )
+        dna, qa = reg.process_completion("w1", evidence, task_categories=["delivery"])
         assert dna.task_count == 1
         assert dna.evidence_count == 2
         assert "delivery" in dna.categories_seen
@@ -503,7 +573,9 @@ class TestWorkerRegistry:
 
     def test_process_completion_updates_dna(self):
         reg = WorkerRegistry()
-        evidence1 = [{"type": "photo_geo", "content": "geo pic", "metadata": {"latitude": 25}}]
+        evidence1 = [
+            {"type": "photo_geo", "content": "geo pic", "metadata": {"latitude": 25}}
+        ]
         evidence2 = [{"type": "screenshot", "content": "screen cap"}]
 
         dna1, _ = reg.process_completion("w1", evidence1, task_categories=["delivery"])
@@ -649,7 +721,11 @@ class TestFullPipeline:
         dna, qa2 = reg.process_completion(
             "worker_delivery",
             [
-                {"type": "photo_geo", "content": "x" * 150, "metadata": {"latitude": 25.7, "longitude": -80.1}},
+                {
+                    "type": "photo_geo",
+                    "content": "x" * 150,
+                    "metadata": {"latitude": 25.7, "longitude": -80.1},
+                },
                 {"type": "receipt", "content": "receipt #12345"},
             ],
             task_data={"category": "delivery", "bounty_amount": 8},
@@ -663,7 +739,10 @@ class TestFullPipeline:
             "worker_delivery",
             [
                 {"type": "photo", "content": "completed errand"},
-                {"type": "text_response", "content": "Picked up groceries as requested. All items found and delivered."},
+                {
+                    "type": "text_response",
+                    "content": "Picked up groceries as requested. All items found and delivered.",
+                },
             ],
             task_data={"category": "errand", "bounty_amount": 12},
             task_categories=["errand"],

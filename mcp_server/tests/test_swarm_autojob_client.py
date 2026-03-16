@@ -12,10 +12,7 @@ Covers:
 """
 
 import json
-import time
-from collections import OrderedDict
-from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -174,26 +171,28 @@ class TestAutoJobClient:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_enrich_agents_success(self, mock_urlopen, client):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "enrichments": {
-                "0xABC": {
-                    "wallet": "0xABC",
-                    "match_score": 0.85,
-                    "predicted_quality": 0.9,
-                    "tier": "Gold",
-                    "skill_match": 82.5,
-                    "reputation_score": 90.0,
-                    "reliability_score": 88.0,
-                    "on_chain_registered": True,
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "enrichments": {
+                    "0xABC": {
+                        "wallet": "0xABC",
+                        "match_score": 0.85,
+                        "predicted_quality": 0.9,
+                        "tier": "Gold",
+                        "skill_match": 82.5,
+                        "reputation_score": 90.0,
+                        "reliability_score": 88.0,
+                        "on_chain_registered": True,
+                    },
+                    "0xDEF": {
+                        "wallet": "0xDEF",
+                        "match_score": 0.4,
+                        "tier": "Bronze",
+                    },
                 },
-                "0xDEF": {
-                    "wallet": "0xDEF",
-                    "match_score": 0.4,
-                    "tier": "Bronze",
-                },
-            },
-        }).encode()
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -212,10 +211,12 @@ class TestAutoJobClient:
     def test_enrich_agents_failure_fallback(self, mock_urlopen, client):
         """On failure, returns empty enrichments for all wallets."""
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": False,
-            "error": "service unavailable",
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": False,
+                "error": "service unavailable",
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -232,6 +233,7 @@ class TestAutoJobClient:
     def test_enrich_agents_network_error(self, mock_urlopen, client):
         """Network error with fallback_on_error=True should not raise."""
         from urllib.error import URLError
+
         mock_urlopen.side_effect = URLError("connection refused")
 
         result = client.enrich_agents(
@@ -244,19 +246,21 @@ class TestAutoJobClient:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_route_task_success(self, mock_urlopen, client):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "task_id": "t1",
-            "task_category": "delivery",
-            "total_candidates": 24,
-            "qualified_candidates": 8,
-            "match_time_ms": 32.5,
-            "best_match": {"wallet": "0xBest", "score": 95},
-            "rankings": [
-                {"wallet": "0xBest", "score": 95},
-                {"wallet": "0xSecond", "score": 80},
-            ],
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "task_id": "t1",
+                "task_category": "delivery",
+                "total_candidates": 24,
+                "qualified_candidates": 8,
+                "match_time_ms": 32.5,
+                "best_match": {"wallet": "0xBest", "score": 95},
+                "rankings": [
+                    {"wallet": "0xBest", "score": 95},
+                    {"wallet": "0xSecond", "score": 80},
+                ],
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -272,9 +276,11 @@ class TestAutoJobClient:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_route_task_failure(self, mock_urlopen, client):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": False,
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": False,
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -286,18 +292,20 @@ class TestAutoJobClient:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_get_health_success(self, mock_urlopen, client):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "health": {
-                "overall": "optimal",
-                "checks": {"sync": "pass"},
-            },
-            "status": {
-                "workers": {"total": 24},
-                "erc8004": {"coverage_pct": 87.5},
-                "matching": {"ready": True},
-            },
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "health": {
+                    "overall": "optimal",
+                    "checks": {"sync": "pass"},
+                },
+                "status": {
+                    "workers": {"total": 24},
+                    "erc8004": {"coverage_pct": 87.5},
+                    "matching": {"ready": True},
+                },
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -350,6 +358,7 @@ class TestAutoJobClient:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_is_available_network_error(self, mock_urlopen, client):
         from urllib.error import URLError
+
         mock_urlopen.side_effect = URLError("refused")
 
         assert client.is_available() is False
@@ -357,14 +366,16 @@ class TestAutoJobClient:
     @patch("mcp_server.swarm.autojob_client.urlopen")
     def test_get_worker_profile_success(self, mock_urlopen, client):
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
-            "success": True,
-            "worker": {
-                "wallet": "0xABC",
-                "skills": {"delivery": 0.8},
-                "task_count": 15,
-            },
-        }).encode()
+        mock_resp.read.return_value = json.dumps(
+            {
+                "success": True,
+                "worker": {
+                    "wallet": "0xABC",
+                    "skills": {"delivery": 0.8},
+                    "task_count": 15,
+                },
+            }
+        ).encode()
         mock_resp.__enter__ = MagicMock(return_value=mock_resp)
         mock_resp.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_resp
@@ -390,6 +401,7 @@ class TestAutoJobClient:
         client = AutoJobClient(retries=0, fallback_on_error=True)
         with patch("mcp_server.swarm.autojob_client.urlopen") as mock_url:
             from urllib.error import URLError
+
             mock_url.side_effect = URLError("refused")
             result = client._get("/test")
             assert mock_url.call_count == 1
@@ -400,9 +412,10 @@ class TestAutoJobClient:
         client = AutoJobClient(retries=2, timeout_seconds=0.1, fallback_on_error=True)
         with patch("mcp_server.swarm.autojob_client.urlopen") as mock_url:
             from urllib.error import URLError
+
             mock_url.side_effect = URLError("refused")
             with patch("time.sleep"):  # Don't actually sleep
-                result = client._get("/test")
+                client._get("/test")
             assert mock_url.call_count == 3
 
     def test_no_fallback_raises(self):
@@ -410,6 +423,7 @@ class TestAutoJobClient:
         client = AutoJobClient(retries=0, fallback_on_error=False)
         with patch("mcp_server.swarm.autojob_client.urlopen") as mock_url:
             from urllib.error import URLError
+
             mock_url.side_effect = URLError("refused")
             with pytest.raises(URLError):
                 client._get("/test")
@@ -425,9 +439,12 @@ class TestEnrichedOrchestrator:
         orch._internal = {}
         return orch
 
-    def _make_task_request(self, task_id="t1", categories=None, title="Test", bounty=5.0):
+    def _make_task_request(
+        self, task_id="t1", categories=None, title="Test", bounty=5.0
+    ):
         """Create a TaskRequest-compatible mock."""
         from mcp_server.swarm.orchestrator import TaskRequest, TaskPriority
+
         return TaskRequest(
             task_id=task_id,
             title=title,
@@ -445,7 +462,7 @@ class TestEnrichedOrchestrator:
 
         enriched = EnrichedOrchestrator(orch, autojob)
         task = self._make_task_request()
-        result = enriched.route_task(task)
+        enriched.route_task(task)
 
         orch.route_task.assert_called_once()
         # No enrichment should have happened
@@ -465,12 +482,14 @@ class TestEnrichedOrchestrator:
         autojob = MagicMock()
         autojob.is_available.return_value = True
         autojob.enrich_agents.return_value = {
-            "0xABC": AutoJobEnrichment(wallet="0xABC", match_score=0.7, category_experience=0.6),
+            "0xABC": AutoJobEnrichment(
+                wallet="0xABC", match_score=0.7, category_experience=0.6
+            ),
         }
 
         enriched = EnrichedOrchestrator(orch, autojob, enrichment_weight=0.3)
         task = self._make_task_request()
-        result = enriched.route_task(task)
+        enriched.route_task(task)
 
         autojob.enrich_agents.assert_called_once()
         orch.route_task.assert_called_once()

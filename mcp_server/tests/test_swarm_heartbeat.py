@@ -5,7 +5,6 @@ Verifies the condensed coordination cycle that runs during
 OpenClaw heartbeat polls.
 """
 
-import pytest
 import os
 import tempfile
 from unittest.mock import patch, MagicMock
