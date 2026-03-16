@@ -547,53 +547,33 @@ export default function TaskDetailScreen() {
             <Text className="text-white text-sm leading-6">
               {task.instructions}
             </Text>
+
+            {/* Location + Evidence Required — compact inline */}
+            {(task.location_hint || (Array.isArray(task.evidence_schema?.required) && task.evidence_schema.required.length > 0)) && (
+              <View className="mt-3 pt-3 border-t border-gray-800">
+                {task.location_hint && (
+                  <View className="flex-row items-center mb-1">
+                    <Text style={{ fontSize: 14 }}>📍</Text>
+                    <Text className="text-gray-400 text-xs ml-1.5 flex-1" numberOfLines={1}>
+                      {task.location_hint}
+                    </Text>
+                  </View>
+                )}
+                {Array.isArray(task.evidence_schema?.required) && task.evidence_schema.required.length > 0 && (
+                  <View className="flex-row items-center flex-wrap">
+                    <Text style={{ fontSize: 14 }}>📎</Text>
+                    <Text className="text-gray-400 text-xs ml-1.5">
+                      {task.evidence_schema.required.map((ev: string) => ev.replace(/_/g, " ")).join(", ")}
+                      {Array.isArray(task.evidence_schema?.optional) && task.evidence_schema.optional.length > 0
+                        ? ` + ${task.evidence_schema.optional.length} ${t("task.optional")}`
+                        : ""}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
         </View>
-
-        {/* Location */}
-        {task.location_hint && (
-          <View className="mb-4">
-            <Text className="text-gray-400 text-sm font-bold mb-2">
-              {t("task.location")}
-            </Text>
-            <View className="bg-surface rounded-2xl p-4 flex-row items-center">
-              <Text style={{ fontSize: 20 }}>📍</Text>
-              <Text className="text-white text-sm ml-3">
-                {task.location_hint}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Evidence Required */}
-        {Array.isArray(task.evidence_schema?.required) && task.evidence_schema.required.length > 0 && (
-          <View className="mb-4">
-            <Text className="text-gray-400 text-sm font-bold mb-2">
-              {t("task.evidenceRequired")}
-            </Text>
-            <View className="bg-surface rounded-2xl p-4">
-              {task.evidence_schema.required.map((ev: string, i: number) => (
-                <View
-                  key={ev}
-                  className={`flex-row items-center ${i > 0 ? "mt-2" : ""}`}
-                >
-                  <Text className="text-green-400 mr-2">●</Text>
-                  <Text className="text-white text-sm">
-                    {ev.replace(/_/g, " ")}
-                  </Text>
-                </View>
-              ))}
-              {Array.isArray(task.evidence_schema?.optional) && task.evidence_schema.optional.map((ev: string) => (
-                <View key={ev} className="flex-row items-center mt-2">
-                  <Text className="text-gray-500 mr-2">○</Text>
-                  <Text className="text-gray-400 text-sm">
-                    {ev.replace(/_/g, " ")} ({t("task.optional")})
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
 
         {/* Skills */}
         {Array.isArray(task.skills_required) && task.skills_required.length > 0 && (
@@ -642,16 +622,10 @@ export default function TaskDetailScreen() {
                     {t("task.agentRatedYou")}
                   </Text>
                   <View className="flex-row items-center mb-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Text key={star} className="text-yellow-400" style={{ fontSize: 16 }}>
-                        {star <= (taskRatings.agentRating!.stars ?? Math.round(taskRatings.agentRating!.rating / 20))
-                          ? "\u2605"
-                          : "\u2606"}
-                      </Text>
-                    ))}
-                    <Text className="text-gray-500 text-xs ml-2">
-                      {taskRatings.agentRating.stars ?? Math.round(taskRatings.agentRating.rating / 20)}/5
+                    <Text className="text-white text-2xl font-bold">
+                      {taskRatings.agentRating.rating}
                     </Text>
+                    <Text className="text-gray-500 text-sm ml-1">/100</Text>
                   </View>
                   {taskRatings.agentRating.comment && (
                     <Text className="text-gray-300 text-sm italic">
@@ -680,16 +654,10 @@ export default function TaskDetailScreen() {
                     {t("task.yourRatingOfAgent")}
                   </Text>
                   <View className="flex-row items-center mb-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Text key={star} className="text-yellow-400" style={{ fontSize: 16 }}>
-                        {star <= (taskRatings.workerRating!.stars ?? Math.round(taskRatings.workerRating!.rating / 20))
-                          ? "\u2605"
-                          : "\u2606"}
-                      </Text>
-                    ))}
-                    <Text className="text-gray-500 text-xs ml-2">
-                      {taskRatings.workerRating.stars ?? Math.round(taskRatings.workerRating.rating / 20)}/5
+                    <Text className="text-white text-2xl font-bold">
+                      {taskRatings.workerRating.rating}
                     </Text>
+                    <Text className="text-gray-500 text-sm ml-1">/100</Text>
                   </View>
                   {taskRatings.workerRating.comment && (
                     <Text className="text-gray-300 text-sm italic">
