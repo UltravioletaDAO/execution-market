@@ -7,6 +7,8 @@ import {
   Linking,
   Alert,
   Image,
+  Modal,
+  Dimensions,
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useLocalSearchParams, router } from "expo-router";
@@ -24,6 +26,17 @@ import { ReputationBadge } from "../../components/ReputationBadge";
 import { useAgentReputation } from "../../hooks/api/useReputation";
 import { useTaskRatings } from "../../hooks/api/useRatings";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const CHAIN_IMAGES: Record<string, number> = {
+  base: require("../../assets/images/chains/base.png"),
+  ethereum: require("../../assets/images/chains/ethereum.png"),
+  polygon: require("../../assets/images/chains/polygon.png"),
+  arbitrum: require("../../assets/images/chains/arbitrum.png"),
+  avalanche: require("../../assets/images/chains/avalanche.png"),
+  optimism: require("../../assets/images/chains/optimism.png"),
+  celo: require("../../assets/images/chains/celo.png"),
+  monad: require("../../assets/images/chains/monad.png"),
+};
 
 /** Open URL safely — tries in-app browser first, falls back to Linking */
 async function openUrl(url: string) {
@@ -75,6 +88,8 @@ function TimelineStep({
   isCompleted,
   isLast,
   t,
+  actionLabel,
+  onAction,
 }: {
   icon: string;
   label: string;
@@ -84,6 +99,8 @@ function TimelineStep({
   isCompleted: boolean;
   isLast: boolean;
   t: (key: string) => string;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   return (
     <View className="flex-row">
@@ -123,8 +140,65 @@ function TimelineStep({
             </Text>
           </Pressable>
         )}
+        {actionLabel && onAction && isCompleted && (
+          <Pressable
+            className="flex-row items-center mt-1"
+            onPress={onAction}
+          >
+            <Text className="text-blue-400 text-xs">{actionLabel} ↗</Text>
+          </Pressable>
+        )}
       </View>
     </View>
+  );
+}
+
+// Evidence modal — shows submitted photo in a popup
+function EvidenceModal({
+  visible,
+  onClose,
+  photoUrl,
+  gps,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  photoUrl: string | null;
+  gps?: { lat?: number; lng?: number; accuracy?: number } | null;
+}) {
+  const screenWidth = Dimensions.get("window").width;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <Pressable
+        className="flex-1 bg-black/80 items-center justify-center"
+        onPress={onClose}
+      >
+        <View className="bg-surface rounded-2xl overflow-hidden mx-4" style={{ maxWidth: screenWidth - 32 }}>
+          {photoUrl ? (
+            <Image
+              source={{ uri: photoUrl }}
+              style={{ width: screenWidth - 32, height: screenWidth - 32 }}
+              resizeMode="contain"
+            />
+          ) : (
+            <View className="items-center justify-center py-20 px-8">
+              <Text className="text-gray-500 text-sm">No photo evidence</Text>
+            </View>
+          )}
+          {gps && gps.lat != null && gps.lng != null && (
+            <View className="px-4 py-2 border-t border-gray-800">
+              <Text className="text-gray-500 text-xs">
+                GPS: {gps.lat.toFixed(5)}, {gps.lng.toFixed(5)}
+                {gps.accuracy ? ` (\u00B1${gps.accuracy.toFixed(0)}m)` : ""}
+              </Text>
+            </View>
+          )}
+          <Pressable className="py-3 items-center border-t border-gray-800" onPress={onClose}>
+            <Text className="text-white font-medium">Close</Text>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -140,6 +214,7 @@ export default function TaskDetailScreen() {
   const { data: taskRatings } = useTaskRatings(task?.status === "completed" ? id : null);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showRateModal, setShowRateModal] = useState(false);
+  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [hasRated, setHasRated] = useState(false);
 
   const hasApplied = myApplication?.applied === true;
@@ -342,9 +417,18 @@ export default function TaskDetailScreen() {
               <Text className="text-white text-3xl font-bold">
                 ${safeBounty.toFixed(2)}
               </Text>
-              <Text className="text-gray-500 text-xs">
-                {task.payment_token || "USDC"}
-              </Text>
+              {/* Token + chain inline */}
+              <View className="flex-row items-center mt-1">
+                {network && CHAIN_IMAGES[network.key] && (
+                  <Image
+                    source={CHAIN_IMAGES[network.key]}
+                    style={{ width: 14, height: 14, borderRadius: 7, marginRight: 4 }}
+                  />
+                )}
+                <Text className="text-gray-500 text-xs">
+                  {task.payment_token || "USDC"}{network ? ` on ${network.name}` : ""}
+                </Text>
+              </View>
             </View>
             <View className="items-end">
               {["completed", "cancelled", "expired", "disputed"].includes(safeStatus) ? (
@@ -371,131 +455,46 @@ export default function TaskDetailScreen() {
               )}
             </View>
           </View>
-          {network && (
-            <View className="flex-row items-center mt-3 pt-3 border-t border-gray-800">
-              <View
-                className="w-3 h-3 rounded-full mr-2"
-                style={{ backgroundColor: network.color }}
-              />
-              <Text className="text-gray-400 text-sm">
-                {t("task.paymentOn", { network: network.name })}
-              </Text>
-            </View>
-          )}
         </View>
 
-        {/* Status Timeline — visible when executor has interacted with this task */}
-        {isMyTask && currentIdx >= 1 && (
-          <View className="mb-4">
-            <Text className="text-gray-400 text-sm font-bold mb-3">
-              {t("task.timeline")}
+        {/* Instructions */}
+        <View className="mb-4">
+          <Text className="text-gray-400 text-sm font-bold mb-2">
+            {t("task.instructions")}
+          </Text>
+          <View className="bg-surface rounded-2xl p-4">
+            <Text className="text-white text-sm leading-6">
+              {task.instructions}
             </Text>
-            <View className="bg-surface rounded-2xl p-4">
-              {/* Step 1: Assigned / Escrow locked */}
-              <TimelineStep
-                icon="✓"
-                label={t("task.timelineAssigned")}
-                sublabel={task.escrow_tx ? t("task.timelineEscrowLocked") : undefined}
-                txHash={task.escrow_tx}
-                network={task.payment_network}
-                isCompleted={currentIdx >= 1}
-                isLast={false}
-                t={t}
-              />
 
-              {/* Step 2: Evidence submitted */}
-              <TimelineStep
-                icon="✓"
-                label={t("task.timelineEvidenceSubmitted")}
-                sublabel={
-                  currentIdx >= 5
-                    ? t("task.timelineReviewComplete")
-                    : currentIdx >= 3
-                      ? t("task.timelineUnderReview")
-                      : undefined
-                }
-                isCompleted={currentIdx >= 3}
-                isLast={currentIdx < 5}
-                t={t}
-              />
-
-              {/* Step 3: Approved + Paid (only if completed) */}
-              {currentIdx >= 5 && (
-                <TimelineStep
-                  icon="✓"
-                  label={t("task.timelineApproved")}
-                  sublabel={t("task.timelinePaymentSent", {
-                    amount: (safeBounty * 0.87).toFixed(2),
-                  })}
-                  txHash={paymentTx}
-                  network={task.payment_network}
-                  isCompleted={true}
-                  isLast={true}
-                  t={t}
-                />
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* My Evidence — only visible to the executor who submitted */}
-        {isMyTask && mySubmission && currentIdx >= 3 && (() => {
-          const evidence = mySubmission.evidence || {};
-          const photoEntry = evidence.photo_geo || evidence.photo || evidence.screenshot || evidence.receipt;
-          const photoUrl = photoEntry?.url || photoEntry?.fileUrl;
-          const gps = photoEntry?.gps;
-          const textEntries = Object.entries(evidence).filter(
-            ([k]) => !["photo", "photo_geo", "screenshot", "receipt"].includes(k)
-          );
-          if (!photoUrl && textEntries.length === 0) return null;
-          return (
-            <View className="mb-4">
-              <Text className="text-gray-400 text-sm font-bold mb-3">
-                {t("task.myEvidence")}
-              </Text>
-              <View className="bg-surface rounded-2xl overflow-hidden">
-                {photoUrl && (
-                  <Pressable onPress={() => openUrl(photoUrl)}>
-                    <Image
-                      source={{ uri: photoUrl }}
-                      style={{ width: "100%", height: 200 }}
-                      resizeMode="cover"
-                    />
-                    <View className="absolute bottom-2 right-2 bg-black/60 rounded-full px-2 py-1">
-                      <Text className="text-white text-xs">Tap to view full</Text>
-                    </View>
-                  </Pressable>
-                )}
-                {gps && (
-                  <View className="px-4 py-2 border-t border-gray-800 flex-row items-center">
-                    <Text className="text-gray-500 text-xs">
-                      GPS: {gps.lat?.toFixed(5)}, {gps.lng?.toFixed(5)}
-                      {gps.accuracy ? ` (\u00B1${gps.accuracy.toFixed(0)}m)` : ""}
+            {/* Location + Evidence Required — compact inline */}
+            {(task.location_hint || (Array.isArray(task.evidence_schema?.required) && task.evidence_schema.required.length > 0)) && (
+              <View className="mt-3 pt-3 border-t border-gray-800">
+                {task.location_hint && (
+                  <View className="flex-row items-center mb-1">
+                    <Text style={{ fontSize: 14 }}>📍</Text>
+                    <Text className="text-gray-400 text-xs ml-1.5 flex-1" numberOfLines={1}>
+                      {task.location_hint}
                     </Text>
                   </View>
                 )}
-                {textEntries.length > 0 && (
-                  <View className="px-4 py-3">
-                    {textEntries.map(([key, value]) => (
-                      <View key={key} className="mb-2">
-                        <Text className="text-gray-400 text-xs uppercase">
-                          {key.replace(/_/g, " ")}
-                        </Text>
-                        <Text className="text-white text-sm mt-0.5" numberOfLines={4}>
-                          {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
-                        </Text>
-                      </View>
-                    ))}
+                {Array.isArray(task.evidence_schema?.required) && task.evidence_schema.required.length > 0 && (
+                  <View className="flex-row items-center flex-wrap">
+                    <Text style={{ fontSize: 14 }}>📎</Text>
+                    <Text className="text-gray-400 text-xs ml-1.5">
+                      {task.evidence_schema.required.map((ev: string) => ev.replace(/_/g, " ")).join(", ")}
+                      {Array.isArray(task.evidence_schema?.optional) && task.evidence_schema.optional.length > 0
+                        ? ` + ${task.evidence_schema.optional.length} ${t("task.optional")}`
+                        : ""}
+                    </Text>
                   </View>
                 )}
               </View>
-            </View>
-          );
-        })()}
+            )}
+          </View>
+        </View>
 
         {/* Status Banners — show exactly one based on current state */}
-        {/* Completed banner removed — timeline already shows "Approved & Paid" */}
-
         {isMyTask && safeStatus === "submitted" && (
           <View className="bg-yellow-900/20 rounded-2xl p-4 mb-4 flex-row items-center">
             <Text style={{ fontSize: 20, marginRight: 8 }}>{"\uD83D\uDCE4"}</Text>
@@ -538,42 +537,97 @@ export default function TaskDetailScreen() {
           </View>
         )}
 
-        {/* Instructions */}
-        <View className="mb-4">
-          <Text className="text-gray-400 text-sm font-bold mb-2">
-            {t("task.instructions")}
-          </Text>
-          <View className="bg-surface rounded-2xl p-4">
-            <Text className="text-white text-sm leading-6">
-              {task.instructions}
-            </Text>
+        {/* Status Timeline — visible when executor has interacted with this task */}
+        {isMyTask && currentIdx >= 1 && (() => {
+          // Extract evidence photo for the "View Evidence" button
+          // Handle multiple formats: { url: "..." }, "https://...", { fileUrl: "..." }
+          const evidence = mySubmission?.evidence || {};
+          const photoEntry = evidence.photo_geo || evidence.photo || evidence.screenshot || evidence.receipt;
+          let evidencePhotoUrl: string | null = null;
+          let evidenceGps: { lat?: number; lng?: number; accuracy?: number } | null = null;
 
-            {/* Location + Evidence Required — compact inline */}
-            {(task.location_hint || (Array.isArray(task.evidence_schema?.required) && task.evidence_schema.required.length > 0)) && (
-              <View className="mt-3 pt-3 border-t border-gray-800">
-                {task.location_hint && (
-                  <View className="flex-row items-center mb-1">
-                    <Text style={{ fontSize: 14 }}>📍</Text>
-                    <Text className="text-gray-400 text-xs ml-1.5 flex-1" numberOfLines={1}>
-                      {task.location_hint}
-                    </Text>
-                  </View>
-                )}
-                {Array.isArray(task.evidence_schema?.required) && task.evidence_schema.required.length > 0 && (
-                  <View className="flex-row items-center flex-wrap">
-                    <Text style={{ fontSize: 14 }}>📎</Text>
-                    <Text className="text-gray-400 text-xs ml-1.5">
-                      {task.evidence_schema.required.map((ev: string) => ev.replace(/_/g, " ")).join(", ")}
-                      {Array.isArray(task.evidence_schema?.optional) && task.evidence_schema.optional.length > 0
-                        ? ` + ${task.evidence_schema.optional.length} ${t("task.optional")}`
-                        : ""}
-                    </Text>
-                  </View>
+          if (typeof photoEntry === "string") {
+            // Plain URL string
+            evidencePhotoUrl = photoEntry;
+          } else if (photoEntry && typeof photoEntry === "object") {
+            evidencePhotoUrl = photoEntry.url || photoEntry.fileUrl || photoEntry.image_url || null;
+            evidenceGps = photoEntry.gps || null;
+          }
+
+          // Last resort: find any URL in any evidence value
+          if (!evidencePhotoUrl) {
+            for (const val of Object.values(evidence)) {
+              if (typeof val === "string" && val.startsWith("http")) {
+                evidencePhotoUrl = val;
+                break;
+              }
+              if (val && typeof val === "object") {
+                const obj = val as Record<string, any>;
+                const url = obj.url || obj.fileUrl || obj.image_url;
+                if (typeof url === "string" && url.startsWith("http")) {
+                  evidencePhotoUrl = url;
+                  evidenceGps = obj.gps || null;
+                  break;
+                }
+              }
+            }
+          }
+
+          return (
+            <View className="mb-4">
+              <Text className="text-gray-400 text-sm font-bold mb-3">
+                {t("task.timeline")}
+              </Text>
+              <View className="bg-surface rounded-2xl p-4">
+                {/* Step 1: Assigned / Escrow locked */}
+                <TimelineStep
+                  icon="✓"
+                  label={t("task.timelineAssigned")}
+                  sublabel={task.escrow_tx ? t("task.timelineEscrowLocked") : undefined}
+                  txHash={task.escrow_tx}
+                  network={task.payment_network}
+                  isCompleted={currentIdx >= 1}
+                  isLast={false}
+                  t={t}
+                />
+
+                {/* Step 2: Evidence submitted + View Evidence button */}
+                <TimelineStep
+                  icon="✓"
+                  label={t("task.timelineEvidenceSubmitted")}
+                  sublabel={
+                    currentIdx >= 5
+                      ? t("task.timelineReviewComplete")
+                      : currentIdx >= 3
+                        ? t("task.timelineUnderReview")
+                        : undefined
+                  }
+                  isCompleted={currentIdx >= 3}
+                  isLast={currentIdx < 5}
+                  t={t}
+                  actionLabel={currentIdx >= 3 && evidencePhotoUrl ? t("task.viewEvidence") : undefined}
+                  onAction={currentIdx >= 3 && evidencePhotoUrl ? () => setShowEvidenceModal(true) : undefined}
+                />
+
+                {/* Step 3: Approved + Paid (only if completed) */}
+                {currentIdx >= 5 && (
+                  <TimelineStep
+                    icon="✓"
+                    label={t("task.timelineApproved")}
+                    sublabel={t("task.timelinePaymentSent", {
+                      amount: (safeBounty * 0.87).toFixed(2),
+                    })}
+                    txHash={paymentTx}
+                    network={task.payment_network}
+                    isCompleted={true}
+                    isLast={true}
+                    t={t}
+                  />
                 )}
               </View>
-            )}
-          </View>
-        </View>
+            </View>
+          );
+        })()}
 
         {/* Skills */}
         {Array.isArray(task.skills_required) && task.skills_required.length > 0 && (
@@ -632,6 +686,16 @@ export default function TaskDetailScreen() {
                       "{taskRatings.agentRating.comment}"
                     </Text>
                   )}
+                  {taskRatings.agentRating.reputation_tx && (
+                    <Pressable
+                      className="mt-1"
+                      onPress={() => openUrl(getExplorerTxUrl("base", taskRatings.agentRating!.reputation_tx!))}
+                    >
+                      <Text className="text-blue-400 text-xs">
+                        Reputation TX · {taskRatings.agentRating.reputation_tx.slice(0, 10)}... ↗
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
               ) : (
                 <View className="mb-4">
@@ -642,18 +706,6 @@ export default function TaskDetailScreen() {
                     {t("task.noRatingYet")}
                   </Text>
                 </View>
-              )}
-
-              {/* Payment TX link */}
-              {paymentTx && task.payment_network && (
-                <Pressable
-                  className="mb-3"
-                  onPress={() => openUrl(getExplorerTxUrl(task.payment_network!, paymentTx))}
-                >
-                  <Text className="text-blue-400 text-xs">
-                    {t("task.viewTx")} · {paymentTx.slice(0, 12)}... ↗
-                  </Text>
-                </Pressable>
               )}
 
               {/* Divider */}
@@ -675,6 +727,16 @@ export default function TaskDetailScreen() {
                     <Text className="text-gray-300 text-sm italic">
                       "{taskRatings.workerRating.comment}"
                     </Text>
+                  )}
+                  {taskRatings.workerRating.reputation_tx && (
+                    <Pressable
+                      className="mt-1"
+                      onPress={() => openUrl(getExplorerTxUrl("base", taskRatings.workerRating!.reputation_tx!))}
+                    >
+                      <Text className="text-blue-400 text-xs">
+                        Reputation TX · {taskRatings.workerRating.reputation_tx.slice(0, 10)}... ↗
+                      </Text>
+                    </Pressable>
                   )}
                 </View>
               ) : (
@@ -786,6 +848,47 @@ export default function TaskDetailScreen() {
           agentName={task.agent_name || undefined}
         />
       )}
+
+      {/* Evidence photo modal */}
+      {(() => {
+        const evidence = mySubmission?.evidence || {};
+        const photoEntry = evidence.photo_geo || evidence.photo || evidence.screenshot || evidence.receipt;
+        let evidencePhotoUrl: string | null = null;
+        let evidenceGps: { lat?: number; lng?: number; accuracy?: number } | null = null;
+
+        if (typeof photoEntry === "string") {
+          evidencePhotoUrl = photoEntry;
+        } else if (photoEntry && typeof photoEntry === "object") {
+          evidencePhotoUrl = photoEntry.url || photoEntry.fileUrl || photoEntry.image_url || null;
+          evidenceGps = photoEntry.gps || null;
+        }
+        if (!evidencePhotoUrl) {
+          for (const val of Object.values(evidence)) {
+            if (typeof val === "string" && val.startsWith("http")) {
+              evidencePhotoUrl = val;
+              break;
+            }
+            if (val && typeof val === "object") {
+              const obj = val as Record<string, any>;
+              const url = obj.url || obj.fileUrl || obj.image_url;
+              if (typeof url === "string" && url.startsWith("http")) {
+                evidencePhotoUrl = url;
+                evidenceGps = obj.gps || null;
+                break;
+              }
+            }
+          }
+        }
+
+        return (
+          <EvidenceModal
+            visible={showEvidenceModal}
+            onClose={() => setShowEvidenceModal(false)}
+            photoUrl={evidencePhotoUrl}
+            gps={evidenceGps}
+          />
+        );
+      })()}
     </SafeAreaView>
   );
 }

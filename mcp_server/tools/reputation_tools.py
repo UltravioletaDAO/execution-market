@@ -193,6 +193,15 @@ def register_reputation_tools(
                     ).eq("id", submission_id).execute()
                 except Exception as db_err:
                     logger.warning("Failed to store reputation_tx: %s", db_err)
+                # Also update feedback_documents for mobile/dashboard display
+                try:
+                    client.table("feedback_documents").update(
+                        {"reputation_tx": feedback.transaction_hash}
+                    ).eq("task_id", str(task_id)).eq(
+                        "feedback_type", "worker_rating"
+                    ).execute()
+                except Exception:
+                    pass  # Best-effort
 
             return f"""# Worker Rated Successfully
 

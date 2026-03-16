@@ -572,6 +572,18 @@ async def _send_reputation_feedback(
                 reputation_score,
                 reputation_result.transaction_hash,
             )
+            # Update feedback_documents with the on-chain TX hash
+            if reputation_result.transaction_hash:
+                try:
+                    import supabase_client as _db
+
+                    _db.get_client().table("feedback_documents").update(
+                        {"reputation_tx": reputation_result.transaction_hash}
+                    ).eq("task_id", task["id"]).eq(
+                        "feedback_type", "worker_rating"
+                    ).execute()
+                except Exception:
+                    pass  # Best-effort
         else:
             logger.warning(
                 "ERC-8004 reputation failed: task=%s, error=%s",
