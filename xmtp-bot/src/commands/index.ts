@@ -8,6 +8,8 @@ import { handleApply } from "./apply.js";
 import { handleStatus } from "./status.js";
 import { handleMyTasks } from "./mytasks.js";
 import { handleSubmit } from "./submit.js";
+import { handleBalance } from "./balance.js";
+import { handleEarnings } from "./earnings.js";
 import {
   handleSubmissionText,
   handleSubmissionSkip,
@@ -69,6 +71,18 @@ const commands: CommandDefinition[] = [
     usage: "/mytasks",
     description: "Ver tus tareas activas",
     handler: handleMyTasks,
+  },
+  {
+    name: "balance",
+    usage: "/balance",
+    description: "Ver balance USDC en todas las chains",
+    handler: handleBalance,
+  },
+  {
+    name: "earnings",
+    usage: "/earnings",
+    description: "Ver ganancias totales",
+    handler: handleEarnings,
   },
   {
     name: "register",
@@ -195,3 +209,5 @@ export { handleStatus } from "./status.js";
 export { handleMyTasks } from "./mytasks.js";
 export { handleRegister, handleRegistrationText } from "./register.js";
 export { handleSubmit } from "./submit.js";
+export { handleBalance } from "./balance.js";
+export { handleEarnings } from "./earnings.js";

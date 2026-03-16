@@ -7,6 +7,7 @@ import {
   notifySubmissionApproved,
   notifySubmissionRejected,
 } from "./notification-dispatcher.js";
+import { handlePaymentEvent } from "./payment-monitor.js";
 
 let ws: WebSocket | null = null;
 let reconnectDelay = 1000;
@@ -90,6 +91,16 @@ async function handleEvent(event: any): Promise<void> {
       if (addr2) {
         await notifySubmissionRejected(addr2, data, data.reason);
       }
+      break;
+    }
+
+    case "payment.settled":
+    case "payment.released":
+    case "disburse_worker": {
+      await handlePaymentEvent({
+        type: event.type,
+        ...data,
+      });
       break;
     }
 

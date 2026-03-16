@@ -1,5 +1,6 @@
 import { formatUsdc } from "../utils/formatters.js";
 import { logger } from "../utils/logger.js";
+import { txLink } from "./payment-monitor.js";
 
 type SendMessageFn = (peerAddress: string, text: string) => Promise<void>;
 
@@ -46,13 +47,24 @@ export async function notifySubmissionApproved(
   task: any,
   txHash?: string
 ): Promise<void> {
+  const bounty = parseFloat(String(task.bounty_usdc ?? 0));
+  const net = bounty * 0.87;
+  const fee = bounty - net;
+  const chain = task.payment_network ?? "base";
+
   let text =
     `**Evidencia Aprobada!**\n\n` +
-    `**${task.title}**\n` +
-    `Pago: ${formatUsdc(task.bounty_usdc)} USDC\n`;
+    `**${task.title}**\n\n` +
+    `| Detalle | Valor |\n` +
+    `|---------|-------|\n` +
+    `| Bounty | $${formatUsdc(bounty)} USDC |\n` +
+    `| Fee (13%) | -$${formatUsdc(fee)} |\n` +
+    `| **Neto** | **$${formatUsdc(net)} USDC** |\n` +
+    `| Chain | ${chain} |\n`;
 
   if (txHash) {
-    text += `TX: \`${txHash.slice(0, 10)}...\`\n`;
+    const explorerLink = txLink(chain, txHash);
+    text += `| TX | ${explorerLink} |\n`;
   }
 
   await notify(workerAddress, text);
