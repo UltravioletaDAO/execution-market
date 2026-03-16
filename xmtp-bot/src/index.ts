@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import { logger } from "./utils/logger.js";
 import { createAgent } from "./agent.js";
 import { registerHandlers } from "./commands/index.js";
+import { handleAttachment } from "./submission/attachment-handler.js";
 
 async function main(): Promise<void> {
   // ─── Health-check server ──────────────────────────────────────
@@ -22,6 +23,11 @@ async function main(): Promise<void> {
 
   // Register command handlers (uses CommandRouter middleware)
   registerHandlers(agent);
+
+  // Register attachment handler for evidence submissions
+  agent.on("attachment", async (ctx) => {
+    await handleAttachment(ctx);
+  });
 
   // Error handling
   agent.on("unhandledError", (error) => {
