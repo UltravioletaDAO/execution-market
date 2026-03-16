@@ -1,9 +1,10 @@
 import { Pressable, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
+import type { ExifData } from "./CameraCapture";
 
 interface ImagePickerButtonProps {
-  onPick: (uri: string) => void;
+  onPick: (uri: string, exif?: ExifData) => void;
 }
 
 export function ImagePickerButton({ onPick }: ImagePickerButtonProps) {
@@ -18,7 +19,14 @@ export function ImagePickerButton({ onPick }: ImagePickerButtonProps) {
     });
 
     if (!result.canceled && result.assets[0]) {
-      onPick(result.assets[0].uri);
+      const asset = result.assets[0];
+      const exif = asset.exif as ExifData | undefined;
+      if (exif) {
+        console.log("[ImagePicker] EXIF found:", Object.keys(exif).join(", "));
+      } else {
+        console.log("[ImagePicker] No EXIF data in selected image");
+      }
+      onPick(asset.uri, exif);
     }
   }
 
