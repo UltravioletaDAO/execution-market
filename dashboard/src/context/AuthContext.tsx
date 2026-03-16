@@ -492,9 +492,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // --------------------------------------------------------------------------
   // E2E Escape Hatch: Override auth state when __E2E_AUTH__ is present
   // All hooks have already been called above, so this is safe.
-  // Simplified: Only checks for window.__E2E_AUTH__ existence (no env var check)
+  // Only available in development mode to prevent production abuse.
   // --------------------------------------------------------------------------
-  if (typeof window !== 'undefined' && window.__E2E_AUTH__) {
+  if (import.meta.env.DEV && typeof window !== 'undefined' && window.__E2E_AUTH__) {
     const e2e = window.__E2E_AUTH__
     value = {
       ...value,
