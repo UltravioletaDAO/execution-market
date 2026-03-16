@@ -206,7 +206,7 @@ export default function AgentDetailScreen() {
               label={t("agentDetail.avgRating")}
               value={
                 agent.avg_rating > 0
-                  ? `${"\u2605"} ${agent.avg_rating.toFixed(1)}`
+                  ? `${agent.avg_rating < 10 ? Math.round(agent.avg_rating * 20) : Math.round(agent.avg_rating)}/100`
                   : "-"
               }
             />

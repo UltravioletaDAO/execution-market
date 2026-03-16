@@ -18,30 +18,6 @@ import {
 } from "../hooks/api/useRatings";
 import { ReputationBadge } from "../components/ReputationBadge";
 
-function StarRow({ stars }: { stars: number }) {
-  const fullStars = Math.floor(stars);
-  const hasHalf = stars - fullStars >= 0.5;
-  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
-
-  return (
-    <View className="flex-row items-center">
-      {Array.from({ length: fullStars }).map((_, i) => (
-        <Text key={`full-${i}`} style={{ color: "#FFD700", fontSize: 16 }}>
-          {"\u2605"}
-        </Text>
-      ))}
-      {hasHalf && (
-        <Text style={{ color: "#FFD700", fontSize: 16 }}>{"\u2606"}</Text>
-      )}
-      {Array.from({ length: emptyStars }).map((_, i) => (
-        <Text key={`empty-${i}`} style={{ color: "#374151", fontSize: 16 }}>
-          {"\u2606"}
-        </Text>
-      ))}
-    </View>
-  );
-}
-
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString(undefined, {
@@ -52,12 +28,13 @@ function formatDate(dateStr: string): string {
 }
 
 function RatingCard({ entry }: { entry: RatingEntry }) {
-  const stars = entry.stars ?? (entry.rating / 100) * 5;
-
   return (
     <View className="bg-surface rounded-2xl p-4 mb-3">
       <View className="flex-row items-center justify-between mb-2">
-        <StarRow stars={stars} />
+        <View className="flex-row items-baseline">
+          <Text className="text-white text-xl font-bold">{entry.rating}</Text>
+          <Text className="text-gray-500 text-sm ml-1">/100</Text>
+        </View>
         <Text className="text-gray-500 text-xs">{formatDate(entry.created_at)}</Text>
       </View>
       {entry.task_title ? (
@@ -68,16 +45,11 @@ function RatingCard({ entry }: { entry: RatingEntry }) {
       {entry.comment ? (
         <Text className="text-gray-300 text-sm mt-1">{entry.comment}</Text>
       ) : null}
-      <View className="flex-row items-center mt-2 gap-2">
-        <Text className="text-gray-600 text-xs">
-          {entry.rating}/100
-        </Text>
-        {entry.rater_type ? (
-          <Text className="text-gray-600 text-xs">
-            {"\u00B7"} {entry.rater_type}
-          </Text>
-        ) : null}
-      </View>
+      {entry.rater_type ? (
+        <View className="flex-row items-center mt-2">
+          <Text className="text-gray-600 text-xs">{entry.rater_type}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -96,17 +68,17 @@ function SummaryStats({
   return (
     <View className="flex-row gap-3 mb-6">
       <View className="flex-1 bg-surface rounded-2xl p-4 items-center">
-        <Text className="text-white text-2xl font-bold">
-          {avgRating > 0 ? avgRating.toFixed(1) : "\u2014"}
-        </Text>
+        <View className="flex-row items-baseline">
+          <Text className="text-white text-2xl font-bold">
+            {avgRating > 0 ? Math.round(avgRating) : "\u2014"}
+          </Text>
+          {avgRating > 0 && (
+            <Text className="text-gray-500 text-sm ml-1">/100</Text>
+          )}
+        </View>
         <Text className="text-gray-400 text-xs mt-1">
           {t("ratings.avgRating")}
         </Text>
-        {avgRating > 0 && (
-          <View className="mt-1">
-            <StarRow stars={avgRating} />
-          </View>
-        )}
       </View>
       <View className="flex-1 bg-surface rounded-2xl p-4 items-center">
         <Text className="text-white text-2xl font-bold">{totalRatings}</Text>
@@ -214,10 +186,9 @@ export default function RatingsScreen() {
 
   // Summary stats are based on received ratings only
   const totalRatings = ratingsReceived?.length ?? 0;
-  const avgStars =
+  const avgScore =
     totalRatings > 0
-      ? ratingsReceived!.reduce((sum, r) => sum + (r.stars ?? (r.rating / 100) * 5), 0) /
-        totalRatings
+      ? ratingsReceived!.reduce((sum, r) => sum + r.rating, 0) / totalRatings
       : 0;
 
   const emptyMessage =
@@ -259,7 +230,7 @@ export default function RatingsScreen() {
 
         {/* Summary Stats */}
         <SummaryStats
-          avgRating={avgStars}
+          avgRating={avgScore}
           totalRatings={totalRatings}
           reputationScore={executor?.reputation_score || 0}
         />

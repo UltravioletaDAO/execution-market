@@ -13,7 +13,7 @@ interface RateAgentModalProps {
 
 export function RateAgentModal({ visible, onClose, taskId, agentId, agentName }: RateAgentModalProps) {
   const { t } = useTranslation();
-  const [score, setScore] = useState(4);
+  const [score, setScore] = useState(80);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -25,7 +25,7 @@ export function RateAgentModal({ visible, onClose, taskId, agentId, agentName }:
         body: {
           agent_id: agentId,
           task_id: taskId,
-          score: score * 20, // Convert 1-5 to 0-100
+          score,
           comment: comment.trim() || undefined,
         },
       });
@@ -52,15 +52,57 @@ export function RateAgentModal({ visible, onClose, taskId, agentId, agentName }:
             <Text className="text-gray-400 text-sm mb-4">{agentName}</Text>
           )}
 
-          {/* Star rating */}
-          <View className="flex-row justify-center gap-4 mb-6">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Pressable key={star} onPress={() => setScore(star)}>
-                <Text style={{ fontSize: 36 }}>
-                  {star <= score ? "★" : "☆"}
+          {/* Score display */}
+          <View className="items-center mb-4">
+            <View className="flex-row items-baseline">
+              <Text className="text-white font-bold" style={{ fontSize: 48 }}>
+                {score}
+              </Text>
+              <Text className="text-gray-400 text-xl ml-1">/100</Text>
+            </View>
+          </View>
+
+          {/* Preset buttons */}
+          <View className="flex-row justify-center gap-3 mb-3">
+            {[20, 40, 60, 80, 100].map((preset) => (
+              <Pressable
+                key={preset}
+                onPress={() => setScore(preset)}
+                className={`px-4 py-2 rounded-xl ${score === preset ? "bg-white" : "bg-surface"}`}
+              >
+                <Text className={`font-bold ${score === preset ? "text-black" : "text-gray-400"}`}>
+                  {preset}
                 </Text>
               </Pressable>
             ))}
+          </View>
+
+          {/* Fine-tune +/- buttons */}
+          <View className="flex-row justify-center gap-6 mb-6">
+            <Pressable
+              onPress={() => setScore((s) => Math.max(0, s - 5))}
+              className="bg-surface px-5 py-2 rounded-xl"
+            >
+              <Text className="text-white font-bold text-lg">-5</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setScore((s) => Math.max(0, s - 1))}
+              className="bg-surface px-5 py-2 rounded-xl"
+            >
+              <Text className="text-white font-bold text-lg">-1</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setScore((s) => Math.min(100, s + 1))}
+              className="bg-surface px-5 py-2 rounded-xl"
+            >
+              <Text className="text-white font-bold text-lg">+1</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setScore((s) => Math.min(100, s + 5))}
+              className="bg-surface px-5 py-2 rounded-xl"
+            >
+              <Text className="text-white font-bold text-lg">+5</Text>
+            </Pressable>
           </View>
 
           <TextInput
