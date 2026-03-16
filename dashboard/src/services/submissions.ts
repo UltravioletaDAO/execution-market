@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '../lib/supabase'
+import { buildAuthHeaders } from '../lib/auth'
 import type {
   Submission,
   SubmitWorkData,
@@ -183,9 +184,10 @@ export interface VerificationResponse {
 export async function submitWork(data: SubmitWorkData): Promise<{ submission: Submission; task: { id: string; title: string }; verification: VerificationResponse | null }> {
   const { taskId, executorId, evidence, notes } = data
   try {
+    const authHeaders = await buildAuthHeaders({ 'Content-Type': 'application/json' })
     const response = await fetch(buildWorkerSubmitUrl(taskId), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders,
       body: JSON.stringify({
         executor_id: executorId,
         evidence,
@@ -741,8 +743,9 @@ export async function uploadEvidenceFile(
     content_type: file.type || 'application/octet-stream',
   })
 
-  // Step 1: Get presigned URL
-  const presignRes = await fetch(`${presignUrl}?${params}`)
+  // Step 1: Get presigned URL (with auth)
+  const presignHeaders = await buildAuthHeaders()
+  const presignRes = await fetch(`${presignUrl}?${params}`, { headers: presignHeaders })
   if (!presignRes.ok) {
     const err = await presignRes.json().catch(() => ({ message: presignRes.statusText }))
     throw new Error(`Failed to get upload URL: ${err.message || presignRes.status}`)
