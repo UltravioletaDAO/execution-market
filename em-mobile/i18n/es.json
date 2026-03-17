@@ -531,6 +531,10 @@
     "connect": "Activar Mensajes",
     "connecting": "Conectando...",
     "header": "Mensajes",
-    "empty": "No hay conversaciones aún"
+    "empty": "No hay conversaciones aún",
+    "webOnlyTitle": "Mensajes",
+    "webOnlySubtitle": "Los mensajes encriptados via XMTP están disponibles en la app web. Abre execution.market en tu navegador para enviar y recibir mensajes.",
+    "openWebApp": "Abrir App Web",
+    "webOnlyNote": "Los mensajes nativos requieren EAS Build. Próximamente."
   }
 }

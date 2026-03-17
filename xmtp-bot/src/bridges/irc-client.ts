@@ -47,15 +47,35 @@ export function startIrcClient(): void {
 function connect(): void {
   client = new Client();
 
-  client.connect({
+  const connectOptions: {
+    host: string;
+    port: number;
+    nick: string;
+    tls?: boolean;
+    sasl_mechanism?: string;
+    account?: { account: string; password: string };
+  } = {
     host: config.irc.host,
     port: config.irc.port,
     nick: config.irc.nick,
-  });
+    tls: config.irc.tls,
+  };
+
+  // Enable SASL PLAIN auth if credentials are configured
+  if (config.irc.saslUser && config.irc.saslPass) {
+    connectOptions.sasl_mechanism = "PLAIN";
+    connectOptions.account = {
+      account: config.irc.saslUser,
+      password: config.irc.saslPass,
+    };
+    logger.debug({ user: config.irc.saslUser }, "IRC SASL auth configured");
+  }
+
+  client.connect(connectOptions);
 
   client.on("registered", () => {
     logger.info(
-      { nick: config.irc.nick, host: config.irc.host },
+      { nick: config.irc.nick, host: config.irc.host, port: config.irc.port, tls: config.irc.tls },
       "IRC connected",
     );
     reconnectDelay = 1000;

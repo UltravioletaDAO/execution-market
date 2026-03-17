@@ -1,9 +1,14 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+
+// @xmtp/react-native-sdk requires EAS Build with custom native modules.
+// Until EAS Build is set up, XMTP messaging is handled via the web app.
+const XMTP_NATIVE_AVAILABLE = false;
 
 interface XMTPContextType {
   client: any | null;
   isConnected: boolean;
   isConnecting: boolean;
+  nativeAvailable: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   walletAddress: string | null;
@@ -22,9 +27,15 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
   const [isConnecting, setIsConnecting] = useState(false);
 
   const connect = useCallback(async () => {
+    if (!XMTP_NATIVE_AVAILABLE) {
+      // Native SDK not available — messaging is handled via the web app
+      console.info("[XMTP] Native SDK not available. Use web app for messaging.");
+      return;
+    }
     if (!walletAddress || !getSigner) return;
     setIsConnecting(true);
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { Client } = await import("@xmtp/react-native-sdk");
       const signer = await getSigner();
       const dbKey = await getOrCreateEncryptionKey();
@@ -49,6 +60,7 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
       client,
       isConnected: !!client,
       isConnecting,
+      nativeAvailable: XMTP_NATIVE_AVAILABLE,
       connect,
       disconnect,
       walletAddress,
