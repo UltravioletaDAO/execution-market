@@ -136,6 +136,15 @@ resource "aws_security_group" "xmtp_bot" {
     description = "DNS UDP"
   }
 
+  # IRC TLS to MeshRelay (irc.meshrelay.xyz:6697)
+  egress {
+    from_port   = 6697
+    to_port     = 6697
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "IRC TLS (MeshRelay)"
+  }
+
   # NFS to EFS
   egress {
     from_port       = 2049
@@ -260,6 +269,29 @@ resource "aws_secretsmanager_secret_version" "xmtp" {
   }
 }
 
+# MeshRelay IRC bridge credentials (SASL auth + Identity API)
+resource "aws_secretsmanager_secret" "meshrelay" {
+  name        = "em/meshrelay"
+  description = "MeshRelay IRC bridge credentials (SASL auth)"
+
+  tags = {
+    Service = "xmtp-bot"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "meshrelay" {
+  secret_id = aws_secretsmanager_secret.meshrelay.id
+
+  secret_string = jsonencode({
+    IRC_SASL_USER = "em-bot"
+    IRC_SASL_PASS = "YOUR_IRC_SASL_PASS_HERE"
+  })
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}
+
 # ─── CloudWatch (XMTP-6.9) ──────────────────────────────────
 
 resource "aws_cloudwatch_log_group" "xmtp_bot" {
@@ -370,6 +402,14 @@ resource "aws_ecs_task_definition" "xmtp_bot" {
         { name = "HEALTH_PORT", value = "8090" },
         { name = "LOG_LEVEL", value = "info" },
         { name = "NODE_ENV", value = "production" },
+        # MeshRelay IRC bridge
+        { name = "IRC_ENABLED", value = "true" },
+        { name = "IRC_HOST", value = "irc.meshrelay.xyz" },
+        { name = "IRC_PORT", value = "6697" },
+        { name = "IRC_TLS", value = "true" },
+        { name = "IRC_NICK", value = "em-bot" },
+        { name = "IRC_CHANNELS", value = "#bounties,#Agents,#execution-market" },
+        { name = "MESHRELAY_API_URL", value = "https://api.meshrelay.xyz" },
       ]
 
       secrets = [
@@ -384,6 +424,15 @@ resource "aws_ecs_task_definition" "xmtp_bot" {
         {
           name      = "EM_API_KEY"
           valueFrom = "${aws_secretsmanager_secret.xmtp.arn}:EM_API_KEY::"
+        },
+        # MeshRelay SASL credentials (from Secrets Manager)
+        {
+          name      = "IRC_SASL_USER"
+          valueFrom = "${aws_secretsmanager_secret.meshrelay.arn}:IRC_SASL_USER::"
+        },
+        {
+          name      = "IRC_SASL_PASS"
+          valueFrom = "${aws_secretsmanager_secret.meshrelay.arn}:IRC_SASL_PASS::"
         }
       ]
 
