@@ -35,6 +35,7 @@ export function useRatingsHistory(executorId: string | null) {
           "id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at, tasks:task_id(title, payment_tx, payment_network)"
         )
         .eq("executor_id", executorId)
+        .eq("rater_type", "agent")
         .eq("is_public", true)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -45,6 +46,7 @@ export function useRatingsHistory(executorId: string | null) {
           .from("ratings")
           .select("id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at")
           .eq("executor_id", executorId)
+          .eq("rater_type", "agent")
           .eq("is_public", true)
           .order("created_at", { ascending: false })
           .limit(50);

@@ -53,6 +53,7 @@ function useRatingsReceived(executorId: string | undefined) {
           'id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at, tasks:task_id(title)'
         )
         .eq('executor_id', executorId)
+        .eq('rater_type', 'agent')
         .eq('is_public', true)
         .order('created_at', { ascending: false })
         .limit(50)
@@ -63,6 +64,7 @@ function useRatingsReceived(executorId: string | undefined) {
           .from('ratings')
           .select('id, executor_id, task_id, rater_id, rater_type, rating, stars, comment, created_at')
           .eq('executor_id', executorId)
+          .eq('rater_type', 'agent')
           .eq('is_public', true)
           .order('created_at', { ascending: false })
           .limit(50)
