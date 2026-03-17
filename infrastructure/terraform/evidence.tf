@@ -163,7 +163,10 @@ resource "aws_s3_bucket_policy" "evidence" {
         Resource = "${aws_s3_bucket.evidence[0].arn}/*"
         Condition = {
           StringEquals = {
-            "AWS:SourceArn" = aws_cloudfront_distribution.evidence[0].arn
+            "AWS:SourceArn" = [
+              aws_cloudfront_distribution.evidence[0].arn,
+              aws_cloudfront_distribution.dashboard.arn,
+            ]
           }
         }
       }
