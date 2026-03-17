@@ -131,6 +131,18 @@ resource "aws_cloudfront_distribution" "dashboard" {
     origin_access_control_id = aws_cloudfront_origin_access_control.dashboard.id
   }
 
+  # Evidence S3 bucket — serves /feedback/* JSON documents for on-chain feedbackURIs.
+  # ERC-8004 Reputation Registry stores feedbackUri as execution.market/feedback/...
+  # CloudFront proxies these to the evidence S3 bucket directly.
+  dynamic "origin" {
+    for_each = var.enable_evidence_pipeline ? [1] : []
+    content {
+      domain_name              = aws_s3_bucket.evidence[0].bucket_regional_domain_name
+      origin_id                = "S3-${local.name_prefix}-evidence"
+      origin_access_control_id = aws_cloudfront_origin_access_control.dashboard.id
+    }
+  }
+
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
@@ -140,6 +152,23 @@ resource "aws_cloudfront_distribution" "dashboard" {
 
     cache_policy_id          = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
     origin_request_policy_id = null
+  }
+
+  # Feedback JSON documents — served from evidence S3 bucket.
+  # On-chain feedbackURIs reference execution.market/feedback/{task_id}/...
+  # These are immutable once created, cache aggressively.
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_evidence_pipeline ? [1] : []
+    content {
+      path_pattern           = "/feedback/*"
+      allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+      cached_methods         = ["GET", "HEAD"]
+      target_origin_id       = "S3-${local.name_prefix}-evidence"
+      compress               = true
+      viewer_protocol_policy = "redirect-to-https"
+
+      cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
+    }
   }
 
   # Aggressive cache for /assets/* (Vite content hashes = cache-safe)
