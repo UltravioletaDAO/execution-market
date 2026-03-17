@@ -477,13 +477,28 @@ class TestRateWorkerDirectPath:
 
 
 class TestRateAgentPendingSignature:
-    """Tests that rate_agent() returns pending_worker_signature (worker signs directly)."""
+    """Tests that rate_agent() uses Facilitator as fallback when no relay key."""
+
+    def _make_facilitator_mock(self, tx_hash="0xfacilitated_abc"):
+        """Create a mock facilitator client with async submit_feedback."""
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
+        mock_client = AsyncMock()
+        mock_client.submit_feedback = AsyncMock(
+            return_value=FeedbackResult(success=True, transaction_hash=tx_hash)
+        )
+        return mock_client
 
     @pytest.mark.asyncio
     async def test_rate_agent_returns_pending_no_tx(self):
-        """rate_agent() persists S3 data but returns no tx_hash (pending worker sig)."""
+        """rate_agent() without relay key uses Facilitator (gasless) and returns tx hash."""
+        mock_client = self._make_facilitator_mock("0xfac_hash_1")
+
         with (
-            patch("integrations.erc8004.facilitator_client.get_facilitator_client"),
+            patch(
+                "integrations.erc8004.facilitator_client.get_facilitator_client",
+                return_value=mock_client,
+            ),
             patch(
                 "integrations.erc8004.feedback_store.persist_and_hash_feedback",
                 new_callable=AsyncMock,
@@ -499,18 +514,17 @@ class TestRateAgentPendingSignature:
             )
 
         assert result.success is True
-        assert result.transaction_hash is None  # Worker must sign directly
+        assert result.transaction_hash == "0xfac_hash_1"
 
     @pytest.mark.asyncio
-    async def test_rate_agent_does_not_use_facilitator(self):
-        """rate_agent() should NOT call Facilitator submit_feedback anymore."""
-        mock_client_instance = AsyncMock()
-        mock_client_instance.submit_feedback = AsyncMock()
+    async def test_rate_agent_uses_facilitator_when_no_relay_key(self):
+        """rate_agent() DOES call Facilitator submit_feedback when no relay key."""
+        mock_client = self._make_facilitator_mock("0xfac_hash_2")
 
         with (
             patch(
                 "integrations.erc8004.facilitator_client.get_facilitator_client",
-                return_value=mock_client_instance,
+                return_value=mock_client,
             ),
             patch(
                 "integrations.erc8004.feedback_store.persist_and_hash_feedback",
@@ -526,15 +540,20 @@ class TestRateAgentPendingSignature:
                 score=88,
             )
 
-        # Facilitator should NOT have been called
-        mock_client_instance.submit_feedback.assert_not_called()
+        # Facilitator SHOULD have been called (gasless fallback)
+        mock_client.submit_feedback.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_rate_agent_relay_key_env_ignored(self):
-        """EM_REPUTATION_RELAY_KEY should be completely ignored now."""
+        """EM_REPUTATION_RELAY_KEY env var is ignored; Facilitator is used instead."""
+        mock_client = self._make_facilitator_mock("0xfac_hash_3")
+
         with (
             patch.dict("os.environ", {"EM_REPUTATION_RELAY_KEY": "0x" + "dd" * 32}),
-            patch("integrations.erc8004.facilitator_client.get_facilitator_client"),
+            patch(
+                "integrations.erc8004.facilitator_client.get_facilitator_client",
+                return_value=mock_client,
+            ),
             patch(
                 "integrations.erc8004.feedback_store.persist_and_hash_feedback",
                 new_callable=AsyncMock,
@@ -549,9 +568,8 @@ class TestRateAgentPendingSignature:
                 score=80,
             )
 
-        # Should still succeed without calling direct_reputation
         assert result.success is True
-        assert result.transaction_hash is None
+        assert result.transaction_hash == "0xfac_hash_3"
 
 
 # ============================================================================
