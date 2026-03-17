@@ -235,6 +235,7 @@ def _is_valid_key_format(api_key: str) -> bool:
         "em_starter_",
         "em_growth_",
         "em_enterprise_",
+        "em_bot_",  # Service/bot accounts
     ]
 
     for prefix in valid_prefixes:
