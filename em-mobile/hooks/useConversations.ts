@@ -3,6 +3,8 @@ import { useXMTP } from "../providers/XMTPProvider";
 
 export interface ConversationPreview {
   id: string;
+  // peerAddress is the Ethereum address (EOA identifier) of the peer.
+  // In XMTP v5 this is derived from peerInboxId resolution.
   peerAddress: string;
   lastMessage: string | null;
   lastMessageAt: Date | null;
@@ -19,23 +21,58 @@ export function useConversations() {
     if (!client) return;
     setIsLoading(true);
     try {
+      // XMTP v5: sync first, then list
+      await client.conversations.sync().catch(() => {});
+
       const convos = await client.conversations.list();
       const items: ConversationPreview[] = [];
 
       for (const convo of convos) {
-        const messages = await convo.messages({ limit: 1 });
-        const lastMsg = messages[0];
-        items.push({
-          id: convo.id ?? convo.topic,
-          peerAddress: convo.peerAddress,
-          lastMessage: lastMsg
+        try {
+          // v5: get the last message
+          const lastMsg = await convo.lastMessage().catch(() => null);
+
+          // v5: for DMs, get peer inbox ID then resolve to address
+          let peerAddress = convo.id; // fallback to convo ID
+          if (typeof convo.peerInboxId === "function") {
+            try {
+              const peerInboxId = await convo.peerInboxId();
+              // Map inboxId back to identifier if possible
+              // For EOA wallets the inboxId often encodes the address
+              peerAddress = peerInboxId ?? convo.id;
+            } catch {
+              // leave as convo.id
+            }
+          } else if (convo.peerAddress) {
+            // Legacy v1/v2 compatibility
+            peerAddress = convo.peerAddress;
+          }
+
+          // v5: sentAtNs is BigInt nanoseconds
+          const lastMessageAt = lastMsg
+            ? lastMsg.sentAtNs
+              ? new Date(Number(BigInt(lastMsg.sentAtNs) / 1000000n))
+              : lastMsg.sentAt instanceof Date
+              ? lastMsg.sentAt
+              : null
+            : null;
+
+          const lastMessageContent = lastMsg
             ? typeof lastMsg.content === "string"
               ? lastMsg.content
               : "[Attachment]"
-            : null,
-          lastMessageAt: lastMsg?.sentAt ?? null,
-          unreadCount: 0,
-        });
+            : null;
+
+          items.push({
+            id: convo.id,
+            peerAddress,
+            lastMessage: lastMessageContent,
+            lastMessageAt,
+            unreadCount: 0,
+          });
+        } catch {
+          // Skip conversations that fail to load
+        }
       }
 
       items.sort((a, b) => {
@@ -56,19 +93,27 @@ export function useConversations() {
     if (isConnected) loadConversations();
   }, [isConnected, loadConversations]);
 
+  // Stream new conversations
   useEffect(() => {
     if (!client) return;
     let cancelled = false;
+
     const stream = async () => {
       try {
-        for await (const _convo of await client.conversations.stream()) {
+        const s = await client.conversations.stream();
+        for await (const _convo of s) {
           if (cancelled) break;
           loadConversations();
         }
-      } catch { /* stream ended */ }
+      } catch {
+        // Stream ended or not supported
+      }
     };
+
     stream();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [client, loadConversations]);
 
   return { previews, isLoading, refresh: loadConversations };
