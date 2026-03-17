@@ -8,6 +8,7 @@ Network: configurable via `ERC8004_NETWORK` (Base-first default).
 """
 
 import logging
+import os
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, Path, Request
@@ -889,14 +890,18 @@ async def rate_agent_endpoint(
                 detail="Task agent does not match rated agent identity",
             )
 
-    # No relay_private_key needed — rate_agent() falls through to Facilitator
-    # which pays gas and avoids self-feedback revert (Facilitator != Agent #2106 owner)
+    # Use relay wallet for on-chain signing (worker→agent reputation).
+    # Relay wallet is a separate key that does NOT own Agent #2106, so no
+    # self-feedback revert. The relay wallet pays gas and signs directly.
+    # This keeps the worker as the intended rater (via relay), NOT the Facilitator.
+    relay_key = os.environ.get("EM_REPUTATION_RELAY_KEY")
     result = await rate_agent(
         agent_id=request.agent_id,
         task_id=request.task_id,
         score=request.score,
         comment=request.comment or "",
         proof_tx=request.proof_tx,
+        relay_private_key=relay_key,
     )
 
     # Persist rating to DB so it shows in mobile app / dashboard

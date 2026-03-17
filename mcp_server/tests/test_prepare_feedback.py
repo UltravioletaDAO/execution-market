@@ -432,32 +432,18 @@ class TestConfirmFeedback:
 
 
 class TestRateAgentPendingSignature:
-    """Tests that rate_agent() uses Facilitator as gasless fallback when no relay key."""
+    """Tests that rate_agent() returns pending when no relay key (no Facilitator fallback)."""
 
     @pytest.mark.asyncio
     async def test_rate_agent_returns_pending(self):
-        """rate_agent() without relay key uses Facilitator and returns tx_hash."""
+        """rate_agent() without relay key returns pending_worker_signature=True."""
         _fc_mod = importlib.import_module("integrations.erc8004.facilitator_client")
         importlib.reload(_fc_mod)
 
-        mock_client = AsyncMock()
-        mock_client.submit_feedback = AsyncMock(
-            return_value=_fc_mod.FeedbackResult(
-                success=True, transaction_hash="0xfacilitated_tx"
-            )
-        )
-
-        with (
-            patch(
-                "integrations.erc8004.feedback_store.persist_and_hash_feedback",
-                new_callable=AsyncMock,
-                return_value=("https://cdn/feedback.json", "0x" + "aa" * 32),
-            ),
-            patch.object(
-                _fc_mod,
-                "get_facilitator_client",
-                return_value=mock_client,
-            ),
+        with patch(
+            "integrations.erc8004.feedback_store.persist_and_hash_feedback",
+            new_callable=AsyncMock,
+            return_value=("https://cdn/feedback.json", "0x" + "aa" * 32),
         ):
             result = await _fc_mod.rate_agent(
                 agent_id=2106,
@@ -466,11 +452,12 @@ class TestRateAgentPendingSignature:
             )
 
         assert result.success is True
-        assert result.transaction_hash == "0xfacilitated_tx"
+        assert result.transaction_hash is None
+        # No Facilitator fallback — tx hash is None
 
     @pytest.mark.asyncio
-    async def test_rate_agent_no_relay_key_needed(self):
-        """rate_agent() succeeds via Facilitator without EM_REPUTATION_RELAY_KEY."""
+    async def test_rate_agent_no_relay_key_no_facilitator(self):
+        """rate_agent() without relay key does NOT call Facilitator (trust violation)."""
         import os
 
         os.environ.pop("EM_REPUTATION_RELAY_KEY", None)
@@ -479,11 +466,6 @@ class TestRateAgentPendingSignature:
         importlib.reload(_fc_mod)
 
         mock_client = AsyncMock()
-        mock_client.submit_feedback = AsyncMock(
-            return_value=_fc_mod.FeedbackResult(
-                success=True, transaction_hash="0xfacilitated_no_relay"
-            )
-        )
 
         with (
             patch(
@@ -503,6 +485,7 @@ class TestRateAgentPendingSignature:
                 score=85,
             )
 
-        # Should succeed via Facilitator without relay key
         assert result.success is True
-        assert result.transaction_hash == "0xfacilitated_no_relay"
+        assert result.transaction_hash is None
+        # Facilitator should NOT have been called
+        mock_client.submit_feedback.assert_not_called()

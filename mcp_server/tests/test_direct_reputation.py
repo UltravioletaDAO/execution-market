@@ -477,33 +477,15 @@ class TestRateWorkerDirectPath:
 
 
 class TestRateAgentPendingSignature:
-    """Tests that rate_agent() uses Facilitator as fallback when no relay key."""
-
-    def _make_facilitator_mock(self, tx_hash="0xfacilitated_abc"):
-        """Create a mock facilitator client with async submit_feedback."""
-        from integrations.erc8004.facilitator_client import FeedbackResult
-
-        mock_client = AsyncMock()
-        mock_client.submit_feedback = AsyncMock(
-            return_value=FeedbackResult(success=True, transaction_hash=tx_hash)
-        )
-        return mock_client
+    """Tests that rate_agent() returns pending when no relay key (no Facilitator fallback)."""
 
     @pytest.mark.asyncio
-    async def test_rate_agent_returns_pending_no_tx(self):
-        """rate_agent() without relay key uses Facilitator (gasless) and returns tx hash."""
-        mock_client = self._make_facilitator_mock("0xfac_hash_1")
-
-        with (
-            patch(
-                "integrations.erc8004.facilitator_client.get_facilitator_client",
-                return_value=mock_client,
-            ),
-            patch(
-                "integrations.erc8004.feedback_store.persist_and_hash_feedback",
-                new_callable=AsyncMock,
-                return_value=("https://cdn/feedback.json", "0x" + "bb" * 32),
-            ),
+    async def test_rate_agent_returns_pending_no_relay_key(self):
+        """rate_agent() without relay key returns pending_worker_signature=True."""
+        with patch(
+            "integrations.erc8004.feedback_store.persist_and_hash_feedback",
+            new_callable=AsyncMock,
+            return_value=("https://cdn/feedback.json", "0x" + "bb" * 32),
         ):
             from integrations.erc8004.facilitator_client import rate_agent
 
@@ -514,12 +496,13 @@ class TestRateAgentPendingSignature:
             )
 
         assert result.success is True
-        assert result.transaction_hash == "0xfac_hash_1"
+        assert result.transaction_hash is None
+        # No Facilitator fallback — tx hash is None
 
     @pytest.mark.asyncio
-    async def test_rate_agent_uses_facilitator_when_no_relay_key(self):
-        """rate_agent() DOES call Facilitator submit_feedback when no relay key."""
-        mock_client = self._make_facilitator_mock("0xfac_hash_2")
+    async def test_rate_agent_does_not_call_facilitator(self):
+        """rate_agent() without relay key does NOT fall through to Facilitator."""
+        mock_client = AsyncMock()
 
         with (
             patch(
@@ -540,19 +523,24 @@ class TestRateAgentPendingSignature:
                 score=88,
             )
 
-        # Facilitator SHOULD have been called (gasless fallback)
-        mock_client.submit_feedback.assert_called_once()
+        # Facilitator should NOT have been called (trust violation)
+        mock_client.submit_feedback.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_rate_agent_relay_key_env_ignored(self):
-        """EM_REPUTATION_RELAY_KEY env var is ignored; Facilitator is used instead."""
-        mock_client = self._make_facilitator_mock("0xfac_hash_3")
+    async def test_rate_agent_uses_relay_key_when_provided(self):
+        """rate_agent() with relay key calls give_feedback_direct (not Facilitator)."""
+        from integrations.erc8004.facilitator_client import FeedbackResult
+
+        mock_direct = AsyncMock(
+            return_value=FeedbackResult(
+                success=True, transaction_hash="0xrelay_tx_hash"
+            )
+        )
 
         with (
-            patch.dict("os.environ", {"EM_REPUTATION_RELAY_KEY": "0x" + "dd" * 32}),
             patch(
-                "integrations.erc8004.facilitator_client.get_facilitator_client",
-                return_value=mock_client,
+                "integrations.erc8004.direct_reputation.give_feedback_direct",
+                mock_direct,
             ),
             patch(
                 "integrations.erc8004.feedback_store.persist_and_hash_feedback",
@@ -566,10 +554,12 @@ class TestRateAgentPendingSignature:
                 agent_id=2106,
                 task_id="test-task-5",
                 score=80,
+                relay_private_key="0x" + "dd" * 32,
             )
 
         assert result.success is True
-        assert result.transaction_hash == "0xfac_hash_3"
+        assert result.transaction_hash == "0xrelay_tx_hash"
+        mock_direct.assert_called_once()
 
 
 # ============================================================================

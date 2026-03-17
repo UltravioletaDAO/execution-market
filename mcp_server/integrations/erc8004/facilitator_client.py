@@ -957,22 +957,19 @@ async def rate_agent(
             private_key=relay_private_key,
         )
 
-    # Facilitator path: gasless, Facilitator pays gas and calls giveFeedback()
-    # Facilitator wallet (0x1030...) does NOT own Agent #2106, so no self-feedback revert.
-    logger.info(
-        "Agent rating via Facilitator (gasless): agent=%d, task=%s",
+    # No relay key available — return pending result.
+    # The worker must sign the on-chain TX via their own wallet (dashboard flow)
+    # or the relay key must be configured in ECS (EM_REPUTATION_RELAY_KEY).
+    # We do NOT fall through to Facilitator because Facilitator becomes msg.sender
+    # on-chain, which misrepresents who gave the feedback (trust violation).
+    logger.warning(
+        "Agent rating pending — no relay key available: agent=%d, task=%s",
         agent_id,
         task_id,
     )
-    client = get_facilitator_client()
-    return await client.submit_feedback(
-        agent_id=agent_id,
-        value=score,
-        tag1="agent_rating",
-        tag2=f"task:{task_id[:8]}",
-        endpoint=f"task:{task_id}",
-        feedback_uri=feedback_uri,
-        feedback_hash=feedback_hash,
+    return FeedbackResult(
+        success=True,
+        transaction_hash=None,
     )
 
 
