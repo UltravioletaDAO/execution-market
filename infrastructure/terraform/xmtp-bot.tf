@@ -145,15 +145,6 @@ resource "aws_security_group" "xmtp_bot" {
     description = "IRC TLS (MeshRelay)"
   }
 
-  # NFS to EFS
-  egress {
-    from_port       = 2049
-    to_port         = 2049
-    protocol        = "tcp"
-    security_groups = [aws_security_group.efs_xmtp.id]
-    description     = "NFS to EFS"
-  }
-
   tags = {
     Name    = "${local.name_prefix}-xmtp-bot"
     Service = "xmtp-bot"
@@ -165,18 +156,31 @@ resource "aws_security_group" "efs_xmtp" {
   description = "EFS mount target for XMTP bot"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    from_port       = 2049
-    to_port         = 2049
-    protocol        = "tcp"
-    security_groups = [aws_security_group.xmtp_bot.id]
-    description     = "NFS from XMTP bot"
-  }
-
   tags = {
     Name    = "${local.name_prefix}-xmtp-efs"
     Service = "xmtp-bot"
   }
+}
+
+# Break SG cycle with standalone rules
+resource "aws_security_group_rule" "xmtp_bot_to_efs" {
+  type                     = "egress"
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.xmtp_bot.id
+  source_security_group_id = aws_security_group.efs_xmtp.id
+  description              = "NFS to EFS"
+}
+
+resource "aws_security_group_rule" "efs_from_xmtp_bot" {
+  type                     = "ingress"
+  from_port                = 2049
+  to_port                  = 2049
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.efs_xmtp.id
+  source_security_group_id = aws_security_group.xmtp_bot.id
+  description              = "NFS from XMTP bot"
 }
 
 # ─── IAM (XMTP-6.7) ─────────────────────────────────────────
@@ -366,7 +370,7 @@ resource "aws_ecs_task_definition" "xmtp_bot" {
       file_system_id     = aws_efs_file_system.xmtp_bot.id
       transit_encryption = "ENABLED"
 
-      authorization_configuration {
+      authorization_config {
         access_point_id = aws_efs_access_point.xmtp_bot.id
         iam             = "ENABLED"
       }
