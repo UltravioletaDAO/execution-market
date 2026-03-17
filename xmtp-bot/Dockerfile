@@ -46,7 +46,7 @@ RUN mkdir -p /data/xmtp && chown -R xmtp:xmtp /data/xmtp
 
 # Set defaults
 ENV NODE_ENV=production \
-    XMTP_DB_PATH=/data/xmtp \
+    XMTP_DB_PATH=/data/xmtp/bot.db3 \
     HEALTH_PORT=8090 \
     LOG_LEVEL=info
 

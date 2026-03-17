@@ -400,7 +400,7 @@ resource "aws_ecs_task_definition" "xmtp_bot" {
 
       environment = [
         { name = "XMTP_ENV", value = "production" },
-        { name = "XMTP_DB_PATH", value = "/data/xmtp" },
+        { name = "XMTP_DB_PATH", value = "/data/xmtp/bot.db3" },
         { name = "EM_API_URL", value = "https://api.execution.market" },
         { name = "EM_WS_URL", value = "wss://api.execution.market/ws" },
         { name = "HEALTH_PORT", value = "8090" },
