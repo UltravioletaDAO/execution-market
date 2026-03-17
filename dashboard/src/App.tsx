@@ -1,9 +1,10 @@
 // Execution Market Dashboard - Main App Component with Routing
-import { useState, useCallback, useMemo, lazy, Suspense } from 'react'
+import { useState, useCallback, useMemo, lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useSearchParams } from 'react-router-dom'
 
 // Auth
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { XMTPProvider } from './context/XMTPContext'
 import { AuthGuard, WorkerGuard, AgentGuard } from './components/guards'
 
 // Dynamic.xyz widget — must be rendered in the tree for the auth modal to work
@@ -34,6 +35,7 @@ const PublisherCreateRequest = lazy(() => import('./pages/publisher/CreateReques
 const PublisherReviewSubmission = lazy(() => import('./pages/publisher/ReviewSubmission').then(m => ({ default: m.default })))
 const RatingsHistory = lazy(() => import('./pages/RatingsHistory').then(m => ({ default: m.RatingsHistory })))
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })))
+const Messages = lazy(() => import('./pages/Messages').then(m => ({ default: m.Messages })))
 
 // Lazy-loaded heavy components (modals, charts)
 const ProfilePage = lazy(() => import('./components/profile').then(m => ({ default: m.ProfilePage })))
@@ -370,6 +372,19 @@ function AgentCreateTaskPage() {
 }
 
 // --------------------------------------------------------------------------
+// XMTP Provider Wrapper (reads wallet from AuthContext)
+// --------------------------------------------------------------------------
+
+function XMTPProviderWrapper({ children }: { children: ReactNode }) {
+  const { walletAddress } = useAuth()
+  return (
+    <XMTPProvider walletAddress={walletAddress} signer={null}>
+      {children}
+    </XMTPProvider>
+  )
+}
+
+// --------------------------------------------------------------------------
 // App Router
 // --------------------------------------------------------------------------
 
@@ -464,6 +479,14 @@ function AppRoutes() {
             </AuthGuard>
           }
         />
+        <Route
+          path="/messages"
+          element={
+            <AuthGuard>
+              <Messages />
+            </AuthGuard>
+          }
+        />
 
         {/* Agent Routes (Protected - Agents Only) */}
         <Route
@@ -514,7 +537,9 @@ function App() {
         <div className="sr-only" aria-hidden="true">
           <DynamicWidget />
         </div>
-        <AppRoutes />
+        <XMTPProviderWrapper>
+          <AppRoutes />
+        </XMTPProviderWrapper>
       </AuthProvider>
     </BrowserRouter>
   )

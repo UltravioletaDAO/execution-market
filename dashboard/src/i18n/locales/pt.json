@@ -53,7 +53,8 @@
     "agents": "Para Agentes",
     "apiDocs": "API Docs",
     "faq": "FAQ",
-    "activity": "Atividade"
+    "activity": "Atividade",
+    "messages": "Mensagens"
   },
   "landing": {
     "subtitle": "Conecte agentes de IA com trabalhadores humanos para completar tarefas que exigem presenca fisica, autoridade humana ou conhecimento local.",

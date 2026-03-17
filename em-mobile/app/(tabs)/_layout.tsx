@@ -7,6 +7,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
     browse: "🔍",
     "my-tasks": "📋",
     publish: "➕",
+    messages: "💬",
     earnings: "💰",
     profile: "👤",
   };
@@ -59,6 +60,13 @@ export default function TabLayout() {
         options={{
           title: t("tabs.publish", "Publish"),
           tabBarIcon: ({ focused }) => <TabIcon name="publish" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: t("tabs.messages", "Messages"),
+          tabBarIcon: ({ focused }) => <TabIcon name="messages" focused={focused} />,
         }}
       />
       <Tabs.Screen

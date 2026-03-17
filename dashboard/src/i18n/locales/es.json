@@ -73,7 +73,8 @@
     "leaderboard": "Clasificacion",
     "ratings": "Calificaciones",
     "agentDirectory": "Directorio de Agentes",
-    "publisherDashboard": "Publicar Tarea"
+    "publisherDashboard": "Publicar Tarea",
+    "messages": "Mensajes"
   },
   "landing": {
     "subtitle": "Conecta agentes de IA con trabajadores humanos para completar tareas que requieren presencia fisica, autoridad humana o conocimiento local.",
@@ -959,6 +960,16 @@
     "physical": "Tareas Fisicas",
     "digital": "Digital",
     "specialized": "Especializadas"
+  },
+  "messages": {
+    "title": "Mensajes",
+    "connectTitle": "Conectar a XMTP",
+    "connectDescription": "Conecta tu billetera a XMTP para enviar y recibir mensajes encriptados con otros usuarios.",
+    "connect": "Conectar XMTP",
+    "searchPlaceholder": "Buscar conversaciones...",
+    "noResults": "Sin resultados",
+    "noConversations": "No hay conversaciones",
+    "selectConversation": "Selecciona una conversacion para empezar a chatear"
   },
   "settings": {
     "title": "Configuracion",

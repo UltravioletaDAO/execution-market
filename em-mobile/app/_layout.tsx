@@ -8,7 +8,7 @@ if (Platform.OS !== "web") {
 }
 import "../global.css";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, type ReactNode } from "react";
 import { Stack, Redirect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -16,9 +16,11 @@ import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
 import { useFonts } from "expo-font";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useReactiveClient } from "@dynamic-labs/react-hooks";
 import { dynamicClient } from "../lib/dynamic";
 import { WalletProvider } from "../providers/WalletProvider";
 import { AuthProvider, useAuth } from "../providers/AuthProvider";
+import { XMTPProvider } from "../providers/XMTPProvider";
 import { I18nProvider } from "../providers/I18nProvider";
 
 // Force black background on the native root view IMMEDIATELY
@@ -31,6 +33,35 @@ try {
   SplashScreen.preventAutoHideAsync();
 } catch {
   // Ignore — splash screen API may not be available in all environments
+}
+
+/**
+ * Bridge component that connects AuthProvider's wallet state to XMTPProvider.
+ * Must be rendered inside AuthProvider so useAuth() is available.
+ */
+function XMTPBridge({ children }: { children: ReactNode }) {
+  const { wallet } = useAuth();
+  const { wallets } = useReactiveClient(dynamicClient);
+
+  const getSigner = useMemo(() => {
+    const primaryWallet = wallets?.userWallets?.[0];
+    if (!primaryWallet) return null;
+    // Return a factory that retrieves the wallet connector for XMTP signing
+    return async () => {
+      const connector = primaryWallet.connector;
+      if (connector && typeof connector.getSigner === "function") {
+        return connector.getSigner();
+      }
+      // Fallback: return the wallet object itself (XMTP SDK accepts various signer shapes)
+      return primaryWallet;
+    };
+  }, [wallets?.userWallets]);
+
+  return (
+    <XMTPProvider walletAddress={wallet ?? null} getSigner={getSigner}>
+      {children}
+    </XMTPProvider>
+  );
 }
 
 function RootNavigator() {
@@ -99,6 +130,10 @@ function RootNavigator() {
           name="agent/[id]"
           options={{ presentation: "modal" }}
         />
+        <Stack.Screen
+          name="messages/[threadId]"
+          options={{ presentation: "modal" }}
+        />
         <Stack.Screen name="ratings" />
         <Stack.Screen name="settings" />
         <Stack.Screen
@@ -133,8 +168,10 @@ export default function RootLayout() {
       <I18nProvider>
         <WalletProvider>
           <AuthProvider>
-            <StatusBar style="light" />
-            <RootNavigator />
+            <XMTPBridge>
+              <StatusBar style="light" />
+              <RootNavigator />
+            </XMTPBridge>
           </AuthProvider>
         </WalletProvider>
       </I18nProvider>

@@ -4,7 +4,7 @@ Worker apply and submit endpoints.
 Extracted from api/routes.py.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 
@@ -17,11 +17,14 @@ from verification.pipeline import run_verification_pipeline
 from verification.background_runner import run_phase_b_verification
 
 from ._models import (
+    WorkerRegisterRequest,
     WorkerApplicationRequest,
     WorkerSubmissionRequest,
     SuccessResponse,
     ErrorResponse,
 )
+
+from decimal import Decimal
 
 from ._helpers import (
     logger,
@@ -33,6 +36,75 @@ from ._helpers import (
 )
 
 router = APIRouter(prefix="/api/v1", tags=["Workers"])
+
+
+@router.post(
+    "/workers/register",
+    response_model=SuccessResponse,
+    responses={
+        200: {"description": "Worker registered or retrieved"},
+        400: {"model": ErrorResponse, "description": "Invalid wallet address"},
+        500: {"model": ErrorResponse, "description": "Internal error"},
+    },
+    summary="Register Worker",
+    description="Register a new worker by wallet address, or return the existing executor if already registered.",
+    tags=["Workers"],
+)
+async def register_worker(
+    request: WorkerRegisterRequest,
+) -> SuccessResponse:
+    """
+    Register a worker by wallet address.
+
+    Calls the Supabase RPC ``get_or_create_executor`` which either creates a
+    new executor record or returns the existing one. Used by XMTP bot and
+    other external integrations that onboard workers by wallet.
+    """
+    try:
+        client = db.get_client()
+        result = client.rpc(
+            "get_or_create_executor",
+            {
+                "p_wallet": request.wallet_address.lower(),
+                "p_display_name": request.name,
+                "p_email": request.email,
+            },
+        ).execute()
+
+        if not result.data:
+            raise HTTPException(
+                status_code=500, detail="No response from executor registration"
+            )
+
+        rpc_result = result.data
+        executor = rpc_result.get("executor", {})
+
+        logger.info(
+            "Worker registered: wallet=%s, executor=%s, new=%s",
+            request.wallet_address[:10],
+            str(executor.get("id", ""))[:8],
+            rpc_result.get("is_new"),
+        )
+
+        return SuccessResponse(
+            message="Worker registered successfully"
+            if rpc_result.get("is_new")
+            else "Worker already registered",
+            data={
+                "executor_id": executor.get("id"),
+                "wallet_address": executor.get("wallet_address"),
+                "created": rpc_result.get("is_new", False),
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = str(e)
+        logger.error("Error registering worker: %s", error_msg)
+        raise HTTPException(
+            status_code=500, detail="Internal error while registering worker"
+        )
 
 
 @router.get(
@@ -385,3 +457,111 @@ def _build_verification_summary(result) -> str:
             return f"{base} {reasons}"
         return f"{base} Fallaron: {', '.join(failed_names)}"
     return f"{base} Verificacion por IA en progreso..."
+
+
+# ---------------------------------------------------------------------------
+# Payment events (worker earnings / history)
+# ---------------------------------------------------------------------------
+
+# Event types that represent money received by a worker
+_EARNING_EVENT_TYPES = {"disburse_worker", "settle", "settle_worker_direct"}
+
+
+@router.get(
+    "/payments/events",
+    response_model=None,
+    summary="Get Payment Events",
+    description=(
+        "Retrieve payment events filtered by wallet address. "
+        "Used by workers to view their earnings history."
+    ),
+    tags=["Workers", "Payments"],
+)
+async def get_payment_events(
+    address: str = Query(
+        ...,
+        description="Wallet address to filter by (matches from_address or to_address)",
+        min_length=10,
+        max_length=128,
+    ),
+    since: Optional[str] = Query(
+        None,
+        description="ISO 8601 timestamp — only return events after this time",
+    ),
+    limit: int = Query(20, description="Max events to return", ge=1, le=100),
+    event_type: Optional[str] = Query(
+        None,
+        description="Filter by event type (e.g. disburse_worker, settle, escrow_release)",
+        alias="event_type",
+    ),
+) -> Dict[str, Any]:
+    """Return payment events where *address* appears as sender or receiver."""
+    addr = address.strip().lower()
+
+    client = db.get_client()
+
+    try:
+        # Supabase PostgREST `or` filter: match from_address OR to_address
+        query = (
+            client.table("payment_events")
+            .select("*")
+            .or_(f"from_address.ilike.{addr},to_address.ilike.{addr}")
+            .order("created_at", desc=True)
+            .limit(limit)
+        )
+
+        if event_type:
+            query = query.eq("event_type", event_type)
+
+        if since:
+            query = query.gte("created_at", since)
+
+        result = query.execute()
+        rows: List[Dict[str, Any]] = result.data or []
+    except Exception as exc:
+        logger.error("Failed to query payment_events for address %s: %s", addr, exc)
+        raise HTTPException(status_code=500, detail="Error querying payment events")
+
+    # Build response events with fields the XMTP bot and dashboard expect
+    events: List[Dict[str, Any]] = []
+    for row in rows:
+        events.append(
+            {
+                "id": row.get("id"),
+                "task_id": row.get("task_id"),
+                "event_type": row.get("event_type"),
+                "status": row.get("status"),
+                "tx_hash": row.get("tx_hash"),
+                "from_address": row.get("from_address"),
+                "to_address": row.get("to_address"),
+                "amount": row.get("amount_usdc"),
+                "amount_usdc": row.get("amount_usdc"),
+                "network": row.get("network"),
+                "payment_network": row.get("network"),
+                "token": row.get("token", "USDC"),
+                "created_at": row.get("created_at"),
+                "metadata": row.get("metadata"),
+            }
+        )
+
+    # Compute total earned: sum of amounts where to_address matches and
+    # event_type is one of the earning types.
+    total_earned = Decimal("0")
+    earning_count = 0
+    for evt in events:
+        evt_type = evt.get("event_type", "")
+        to_addr = (evt.get("to_address") or "").lower()
+        amt = evt.get("amount_usdc")
+        if to_addr == addr and evt_type in _EARNING_EVENT_TYPES and amt is not None:
+            try:
+                total_earned += Decimal(str(amt))
+                earning_count += 1
+            except Exception:
+                pass
+
+    return {
+        "events": events,
+        "total_earned_usdc": str(total_earned.quantize(Decimal("0.01"))),
+        "count": len(events),
+        "earning_count": earning_count,
+    }
