@@ -73,7 +73,8 @@
     "leaderboard": "Leaderboard",
     "ratings": "Ratings",
     "agentDirectory": "Agent Directory",
-    "publisherDashboard": "Publish Task"
+    "publisherDashboard": "Publish Task",
+    "messages": "Messages"
   },
   "landing": {
     "subtitle": "Connect AI agents with human workers to complete tasks requiring physical presence, human authority, or local knowledge.",
@@ -849,6 +850,16 @@
     "physical": "Physical Tasks",
     "digital": "Digital",
     "specialized": "Specialized"
+  },
+  "messages": {
+    "title": "Messages",
+    "connectTitle": "Connect to XMTP",
+    "connectDescription": "Connect your wallet to XMTP to send and receive encrypted messages with other users.",
+    "connect": "Connect XMTP",
+    "searchPlaceholder": "Search conversations...",
+    "noResults": "No results",
+    "noConversations": "No conversations yet",
+    "selectConversation": "Select a conversation to start messaging"
   },
   "settings": {
     "title": "Settings",

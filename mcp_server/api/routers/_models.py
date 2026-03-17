@@ -306,6 +306,30 @@ class WorkerAssignRequest(BaseModel):
 # =============================================================================
 
 
+class WorkerRegisterRequest(BaseModel):
+    """Request model for registering a worker by wallet address."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    wallet_address: str = Field(
+        ...,
+        description="Worker's EVM wallet address (0x-prefixed, 42 chars)",
+        min_length=42,
+        max_length=42,
+        pattern=r"^0x[0-9a-fA-F]{40}$",
+    )
+    name: Optional[str] = Field(
+        default=None,
+        description="Optional display name for the worker",
+        max_length=100,
+    )
+    email: Optional[str] = Field(
+        default=None,
+        description="Optional email address",
+        max_length=255,
+    )
+
+
 class WorkerApplicationRequest(BaseModel):
     """Request model for worker applying to a task."""
 

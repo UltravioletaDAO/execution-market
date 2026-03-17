@@ -25,6 +25,7 @@ export function AppHeader() {
     ...(isAuthenticated ? [
       { label: t('nav.publisherDashboard', 'Publish Task'), href: '/publisher/dashboard' },
       { label: t('nav.ratings', 'Ratings'), href: '/ratings' },
+      { label: t('nav.messages', 'Messages'), href: '/messages' },
     ] : []),
   ]
 
