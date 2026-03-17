@@ -317,6 +317,6 @@ def _get_tier_from_key(api_key: str) -> RateLimitTier:
         return RateLimitTier.ENTERPRISE
     elif api_key.startswith("em_growth_"):
         return RateLimitTier.GROWTH
-    elif api_key.startswith("em_starter_"):
+    elif api_key.startswith("em_starter_") or api_key.startswith("em_bot_"):
         return RateLimitTier.STARTER
     return RateLimitTier.FREE
