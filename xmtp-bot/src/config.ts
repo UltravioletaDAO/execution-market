@@ -16,8 +16,11 @@ export const config = {
   irc: {
     enabled: process.env.IRC_ENABLED === "true",
     host: process.env.IRC_HOST ?? "irc.meshrelay.xyz",
-    port: parseInt(process.env.IRC_PORT ?? "6667", 10),
+    port: parseInt(process.env.IRC_PORT ?? "6697", 10),
+    tls: process.env.IRC_TLS !== "false",
     nick: process.env.IRC_NICK ?? "em-bot",
+    saslUser: process.env.IRC_SASL_USER ?? "",
+    saslPass: process.env.IRC_SASL_PASS ?? "",
     channels: (process.env.IRC_CHANNELS ?? "#bounties,#Agents")
       .split(",")
       .map((c) => c.trim()),

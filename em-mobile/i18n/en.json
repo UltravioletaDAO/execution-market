@@ -531,6 +531,10 @@
     "connect": "Enable Messages",
     "connecting": "Connecting...",
     "header": "Messages",
-    "empty": "No conversations yet"
+    "empty": "No conversations yet",
+    "webOnlyTitle": "Messages",
+    "webOnlySubtitle": "Encrypted messaging via XMTP is available on the web app. Open execution.market in your browser to send and receive messages.",
+    "openWebApp": "Open Web App",
+    "webOnlyNote": "Native messaging requires EAS Build. Coming soon."
   }
 }
