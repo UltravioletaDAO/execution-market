@@ -924,20 +924,14 @@ export default function TaskDetailScreen() {
                   <Text className="text-gray-500 text-xs uppercase mb-1">
                     {t("task.yourRatingOfAgent")}
                   </Text>
-                  {!hasRated ? (
-                    <Pressable
-                      className="bg-white/10 rounded-xl py-3 items-center mt-1 active:opacity-80"
-                      onPress={() => setShowRateModal(true)}
-                    >
-                      <Text className="text-white font-medium">
-                        {t("task.rateThisAgent")}
-                      </Text>
-                    </Pressable>
-                  ) : (
-                    <Text className="text-gray-600 text-sm">
-                      {t("task.ratingSubmitted")}
+                  <Pressable
+                    className="bg-white/10 rounded-xl py-3 items-center mt-1 active:opacity-80"
+                    onPress={() => setShowRateModal(true)}
+                  >
+                    <Text className="text-white font-medium">
+                      {t("task.rateThisAgent")}
                     </Text>
-                  )}
+                  </Pressable>
                 </View>
               )}
             </View>
