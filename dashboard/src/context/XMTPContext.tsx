@@ -26,9 +26,21 @@ export function XMTPProvider({ children, walletAddress, signer }: {
     setIsConnecting(true);
     setError(null);
     try {
-      // Dynamic import to avoid bundling XMTP when not used
       const { Client } = await import("@xmtp/browser-sdk");
-      const xmtp = await Client.create(signer, { env: "production" });
+
+      // Dynamic.xyz wallet exposes getWalletClient() for viem compatibility.
+      // The XMTP browser SDK accepts an object with account + signMessage.
+      let xmtpSigner: any = signer;
+      if (typeof signer.getWalletClient === "function") {
+        const walletClient = await signer.getWalletClient();
+        xmtpSigner = {
+          getAddress: () => walletAddress,
+          signMessage: async (message: string) =>
+            walletClient.signMessage({ message, account: walletClient.account }),
+        };
+      }
+
+      const xmtp = await Client.create(xmtpSigner, { env: "production" });
       setClient(xmtp);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al conectar XMTP");

@@ -8,7 +8,7 @@ import { XMTPProvider } from './context/XMTPContext'
 import { AuthGuard, WorkerGuard, AgentGuard } from './components/guards'
 
 // Dynamic.xyz widget — must be rendered in the tree for the auth modal to work
-import { DynamicWidget } from '@dynamic-labs/sdk-react-core'
+import { DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core'
 
 // Layout
 import { AppLayout } from './components/layout/AppLayout'
@@ -377,8 +377,15 @@ function AgentCreateTaskPage() {
 
 function XMTPProviderWrapper({ children }: { children: ReactNode }) {
   const { walletAddress } = useAuth()
+  const { primaryWallet } = useDynamicContext()
+
+  // XMTP browser-sdk needs a signer to create the client.
+  // Dynamic.xyz's primaryWallet exposes getWalletClient() (viem) which
+  // the XMTP SDK can use as an account signer.
+  const signer = primaryWallet ?? null
+
   return (
-    <XMTPProvider walletAddress={walletAddress} signer={null}>
+    <XMTPProvider walletAddress={walletAddress} signer={signer}>
       {children}
     </XMTPProvider>
   )
