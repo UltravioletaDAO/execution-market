@@ -957,19 +957,22 @@ async def rate_agent(
             private_key=relay_private_key,
         )
 
-    # Manual path: worker signs giveFeedback() from dashboard
+    # Facilitator path: gasless, Facilitator pays gas and calls giveFeedback()
+    # Facilitator wallet (0x1030...) does NOT own Agent #2106, so no self-feedback revert.
     logger.info(
-        "Agent rating prepared (pending worker signature): agent=%d, task=%s, uri=%s",
+        "Agent rating via Facilitator (gasless): agent=%d, task=%s",
         agent_id,
         task_id,
-        feedback_uri[:60],
     )
-
-    # Return success — the worker will sign giveFeedback() directly from dashboard
-    return FeedbackResult(
-        success=True,
-        transaction_hash=None,  # No TX yet — worker signs in wallet
-        network=ERC8004_NETWORK,
+    client = get_facilitator_client()
+    return await client.submit_feedback(
+        agent_id=agent_id,
+        value=score,
+        tag1="agent_rating",
+        tag2=f"task:{task_id[:8]}",
+        endpoint=f"task:{task_id}",
+        feedback_uri=feedback_uri,
+        feedback_hash=feedback_hash,
     )
 
 
