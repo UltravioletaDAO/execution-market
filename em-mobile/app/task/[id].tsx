@@ -25,6 +25,7 @@ import { RateAgentModal } from "../../components/RateAgentModal";
 import { ReputationBadge } from "../../components/ReputationBadge";
 import { useAgentReputation } from "../../hooks/api/useReputation";
 import { useTaskRatings } from "../../hooks/api/useRatings";
+import { useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CHAIN_IMAGES: Record<string, number> = {
@@ -355,6 +356,7 @@ export default function TaskDetailScreen() {
   const { data: mySubmission } = useMySubmission(id, executor?.id ?? undefined);
   const { data: agentRep } = useAgentReputation(task?.erc8004_agent_id ?? null);
   const { data: taskRatings } = useTaskRatings(task?.status === "completed" ? id : null);
+  const queryClient = useQueryClient();
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showRateModal, setShowRateModal] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
@@ -392,6 +394,8 @@ export default function TaskDetailScreen() {
     setHasRated(true);
     if (task) {
       AsyncStorage.setItem(`rated_agent_${task.id}`, "true");
+      // Refresh ratings from DB so the UI shows the new rating immediately
+      queryClient.invalidateQueries({ queryKey: ["ratings", "task", task.id] });
     }
   };
 
