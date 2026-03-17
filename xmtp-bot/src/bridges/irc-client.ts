@@ -80,6 +80,14 @@ function connect(): void {
     );
     reconnectDelay = 1000;
 
+    // Send NickServ IDENTIFY after short delay (Anope needs time after SASL handshake)
+    if (config.irc.saslPass) {
+      setTimeout(() => {
+        client?.say("NickServ", `IDENTIFY ${config.irc.saslPass}`);
+        logger.debug({ user: config.irc.saslUser }, "Sent NickServ IDENTIFY");
+      }, 1500);
+    }
+
     for (const channel of config.irc.channels) {
       client!.join(channel);
       logger.info({ channel }, "Joined IRC channel");
