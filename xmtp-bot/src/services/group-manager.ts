@@ -1,7 +1,7 @@
 import { getAgent } from "../agent.js";
 import { formatUsdc, shortId } from "../utils/formatters.js";
 import { logger } from "../utils/logger.js";
-import type { Group } from "@xmtp/node-sdk";
+import type { Group } from "@xmtp/agent-sdk";
 
 // ─── Types ───────────────────────────────────────────────────
 

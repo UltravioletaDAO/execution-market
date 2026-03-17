@@ -14,7 +14,7 @@ async function getAgentScore(agentId: string): Promise<string> {
       return `(\u2605 ${cached.score.toFixed(1)})`;
     }
 
-    const rep = await apiClient.get<any>(`/api/v1/reputation/${agentId}`);
+    const rep = await apiClient.get<any>(`/api/v1/reputation/agents/${agentId}`);
     const score = rep?.average_score ?? rep?.score;
     if (score != null && typeof score === "number") {
       reputationCache.set(agentId, { score, ts: Date.now() });
