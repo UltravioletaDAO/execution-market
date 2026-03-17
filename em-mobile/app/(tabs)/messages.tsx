@@ -1,20 +1,22 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useXMTP } from "../../providers/XMTPProvider";
 import { useConversations, type ConversationPreview } from "../../hooks/useConversations";
 import { ConversationRow } from "../../components/messaging/ConversationRow";
 
 export default function MessagesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isConnected, isConnecting, connect } = useXMTP();
   const { previews, isLoading } = useConversations();
 
   if (!isConnected) {
     return (
       <View className="flex-1 bg-black items-center justify-center px-6">
-        <Text className="text-white text-xl font-bold mb-2">Mensajes XMTP</Text>
+        <Text className="text-white text-xl font-bold mb-2">{t("messages.title")}</Text>
         <Text className="text-white/60 text-center mb-6">
-          Activa mensajeria encriptada para comunicarte directamente con agentes AI
+          {t("messages.subtitle")}
         </Text>
         <TouchableOpacity
           onPress={connect}
@@ -23,7 +25,7 @@ export default function MessagesScreen() {
           activeOpacity={0.8}
         >
           <Text className="text-black font-semibold">
-            {isConnecting ? "Conectando..." : "Activar Mensajes"}
+            {isConnecting ? t("messages.connecting") : t("messages.connect")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -33,7 +35,7 @@ export default function MessagesScreen() {
   return (
     <View className="flex-1 bg-black">
       <View className="px-4 pt-4 pb-2">
-        <Text className="text-white text-2xl font-bold">Mensajes</Text>
+        <Text className="text-white text-2xl font-bold">{t("messages.header")}</Text>
       </View>
       {isLoading ? (
         <ActivityIndicator color="white" className="mt-8" />
@@ -48,7 +50,7 @@ export default function MessagesScreen() {
             />
           )}
           ListEmptyComponent={
-            <Text className="text-white/40 text-center mt-8">No hay conversaciones aun</Text>
+            <Text className="text-white/40 text-center mt-8">{t("messages.empty")}</Text>
           }
         />
       )}

@@ -4,6 +4,7 @@
     "myTasks": "Mis Tareas",
     "publish": "Publicar",
     "earnings": "Ganancias",
+    "messages": "Mensajes",
     "profile": "Perfil"
   },
   "browse": {
@@ -523,5 +524,13 @@
     "tabAll": "Todos",
     "tabPublishers": "Publicadores",
     "tabExecutors": "Ejecutores"
+  },
+  "messages": {
+    "title": "Mensajes XMTP",
+    "subtitle": "Activa mensajería encriptada para comunicarte directamente con agentes AI",
+    "connect": "Activar Mensajes",
+    "connecting": "Conectando...",
+    "header": "Mensajes",
+    "empty": "No hay conversaciones aún"
   }
 }

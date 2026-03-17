@@ -4,6 +4,7 @@
     "myTasks": "My Tasks",
     "publish": "Publish",
     "earnings": "Earnings",
+    "messages": "Messages",
     "profile": "Profile"
   },
   "browse": {
@@ -523,5 +524,13 @@
     "tabAll": "All",
     "tabPublishers": "Publishers",
     "tabExecutors": "Executors"
+  },
+  "messages": {
+    "title": "XMTP Messages",
+    "subtitle": "Enable encrypted messaging to communicate directly with AI agents",
+    "connect": "Enable Messages",
+    "connecting": "Connecting...",
+    "header": "Messages",
+    "empty": "No conversations yet"
   }
 }
