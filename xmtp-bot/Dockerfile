@@ -1,7 +1,9 @@
 # Stage 1: Build
-FROM node:20-alpine AS builder
+# Use Debian-based image (not Alpine) because @xmtp/agent-sdk requires
+# glibc-linked native bindings (libxmtp) that are incompatible with musl.
+FROM node:22-slim AS builder
 
-RUN apk add --no-cache python3 make g++ linux-headers
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -14,12 +16,12 @@ COPY src/ ./src/
 RUN npm run build
 
 # Stage 2: Runtime
-FROM node:20-alpine
+FROM node:22-slim
 
-RUN apk add --no-cache wget tini
+RUN apt-get update && apt-get install -y --no-install-recommends wget tini && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN addgroup -g 1001 xmtp && adduser -D -u 1001 -G xmtp xmtp
+RUN groupadd -g 1001 xmtp && useradd -u 1001 -g xmtp -m xmtp
 
 WORKDIR /app
 
