@@ -1,9 +1,27 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// @xmtp/browser-sdk is not installed as an npm dependency — it's used via
+// dynamic import() inside a try/catch in XMTPContext.tsx.  This plugin
+// resolves it to a shim that throws at runtime so the catch block handles it.
+function xmtpStubPlugin(): Plugin {
+  const STUB_ID = '\0xmtp-stub';
+  return {
+    name: 'xmtp-stub',
+    resolveId(source) {
+      if (source === '@xmtp/browser-sdk') return STUB_ID;
+      return null;
+    },
+    load(id) {
+      if (id === STUB_ID) return 'throw new Error("@xmtp/browser-sdk not available");';
+      return null;
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), xmtpStubPlugin()],
   server: {
     port: 3000,
     open: true,
