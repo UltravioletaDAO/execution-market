@@ -116,11 +116,31 @@ MSYS_NO_PATHCONV=1 aws ecs update-service \
 | Health URL | `https://api.execution.market/api/v1/health` |
 | Docs URL | `https://api.execution.market/docs` |
 
-## Dashboard Deploy (separate)
+## Dashboard Deploy (S3 + CloudFront — NOT ECS)
+
+**IMPORTANT**: Dashboard is served via S3+CloudFront, NOT ECS (ECS service is desiredCount=0).
 
 ```bash
+# 1. Build
 docker build --no-cache -f dashboard/Dockerfile -t em-dashboard ./dashboard
-docker tag em-dashboard:latest <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
-docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-2.amazonaws.com/em-production-dashboard:latest
-MSYS_NO_PATHCONV=1 aws ecs update-service --cluster em-production-cluster --service em-production-dashboard --force-new-deployment --region us-east-2
+
+# 2. Extract built files from image
+docker create --name em-dashboard-tmp em-dashboard:latest
+docker cp em-dashboard-tmp:/usr/share/nginx/html/. ./dashboard-dist/
+docker rm em-dashboard-tmp
+
+# 3. Sync to S3
+MSYS_NO_PATHCONV=1 aws s3 sync ./dashboard-dist/ s3://em-production-dashboard/ --delete --region us-east-2
+
+# 4. Invalidate CloudFront cache
+MSYS_NO_PATHCONV=1 aws cloudfront create-invalidation --distribution-id E2SD27QZ0GK40U --paths "/*" --region us-east-2
+
+# 5. Cleanup
+rm -rf ./dashboard-dist/
 ```
+
+| Resource | Value |
+|----------|-------|
+| S3 Bucket | `em-production-dashboard` |
+| CloudFront | `E2SD27QZ0GK40U` |
+| URL | `https://execution.market` |
