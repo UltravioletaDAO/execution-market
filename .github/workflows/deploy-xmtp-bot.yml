@@ -10,8 +10,8 @@ on:
 env:
   AWS_REGION: us-east-2
   ECR_REPOSITORY: em-production-xmtp-bot
-  ECS_CLUSTER: em-production
-  ECS_SERVICE: em-xmtp-bot
+  ECS_CLUSTER: em-production-cluster
+  ECS_SERVICE: em-production-xmtp-bot
 
 jobs:
   deploy:
