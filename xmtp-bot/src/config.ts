@@ -3,7 +3,7 @@ import "dotenv/config";
 export const config = {
   xmtp: {
     env: (process.env.XMTP_ENV ?? "dev") as "local" | "dev" | "production",
-    dbPath: process.env.XMTP_DB_PATH ?? "./data/xmtp",
+    dbPath: process.env.XMTP_DB_PATH ?? "./data/xmtp/bot.db3",
   },
   em: {
     apiUrl: process.env.EM_API_URL ?? "https://api.execution.market",
