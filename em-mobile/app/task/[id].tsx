@@ -382,11 +382,7 @@ export default function TaskDetailScreen() {
         // Small delay so user sees the completion state first
         setTimeout(() => setShowRateModal(true), 1500);
       } else {
-        // DB has no rating but AsyncStorage says rated — rating was cleared
-        // Reset local state so user can re-rate
-        setHasRated(false);
-        AsyncStorage.removeItem(key);
-        setTimeout(() => setShowRateModal(true), 1500);
+        setHasRated(true);
       }
     });
   }, [task?.status, isMyTask, task?.id, taskRatings?.workerRating]);
