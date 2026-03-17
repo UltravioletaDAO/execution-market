@@ -1,10 +1,8 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
-import { Platform } from "react-native";
 
-// @xmtp/react-native-sdk requires EAS Build with custom native modules.
-// We fall back to @xmtp/browser-sdk (v5 MLS protocol) which works in
-// Expo web and React Native web environments.
-const XMTP_NATIVE_AVAILABLE = false;
+// @xmtp/react-native-sdk is compiled via EAS Build (Rust libxmtp + React Native autolinking).
+// This provider is native-only — it will not work in Expo Go without a dev client build.
+const XMTP_NATIVE_AVAILABLE = true;
 
 interface XMTPContextType {
   client: any | null;
@@ -39,50 +37,34 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
       setError("Wallet no disponible. Reconecta tu wallet en configuración.");
       return;
     }
-    // Browser SDK requires Web Workers — only works in web environments
-    if (Platform.OS !== "web") {
-      setError("Mensajería XMTP disponible en la versión web. Abre execution.market en tu navegador.");
-      return;
-    }
+
     setIsConnecting(true);
     setError(null);
 
-    if (XMTP_NATIVE_AVAILABLE) {
-      // Native SDK path (requires EAS Build — not active until EAS is set up)
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { Client } = await import("@xmtp/react-native-sdk");
-        const signer = await getSigner();
-        const dbKey = await getOrCreateEncryptionKey();
-        const xmtp = await Client.create(signer, {
-          env: "production",
-          dbEncryptionKey: dbKey,
-        });
-        setClient(xmtp);
-      } catch (err) {
-        console.error("[XMTP] Native connection failed:", err);
-        setError(err instanceof Error ? err.message : "XMTP connection failed");
-      } finally {
-        setIsConnecting(false);
-      }
-      return;
-    }
-
-    // Browser SDK v5 fallback (works in Expo web / React Native web)
     try {
-      const { Client } = await import("@xmtp/browser-sdk");
+      // Dynamic import keeps the native module out of the JS bundle on web
+      // (where this code path should never execute after going native-only).
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { Client } = await import("@xmtp/react-native-sdk");
 
+      // Resolve the Dynamic.xyz wallet connector and build a minimal XMTP signer.
+      // @xmtp/react-native-sdk v3 signer interface:
+      //   getAddress(): Promise<string>
+      //   signMessage(message: string): Promise<string>
       const rawSigner = await getSigner();
+      const nativeSigner = buildNativeSigner(rawSigner, walletAddress);
 
-      // Build an XMTP v5-compatible signer.
-      // v5 API requires: { getIdentifier(): Promise<{type, identifier}>, signMessage(text): Promise<string> }
-      // The Dynamic.xyz connector may expose getWalletClient() (viem) or signMessage directly.
-      const xmtpSigner = await buildXmtpV5Signer(rawSigner, walletAddress);
+      // Retrieve or generate the 32-byte local DB encryption key from SecureStore.
+      const dbKey = await getOrCreateEncryptionKey();
 
-      const xmtp = await Client.create(xmtpSigner, { env: "production" });
+      const xmtp = await Client.create(nativeSigner, {
+        env: "production",
+        dbEncryptionKey: dbKey,
+      });
+
       setClient(xmtp);
     } catch (err) {
-      console.error("[XMTP] Browser SDK connection failed:", err);
+      console.error("[XMTP] Native connection failed:", err);
       setError(err instanceof Error ? err.message : "XMTP connection failed");
     } finally {
       setIsConnecting(false);
@@ -101,9 +83,7 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
         client,
         isConnected: !!client,
         isConnecting,
-        // nativeAvailable exposed for informational use.
-        // The browser SDK fallback means messaging works regardless.
-        nativeAvailable: true,
+        nativeAvailable: XMTP_NATIVE_AVAILABLE,
         connect,
         disconnect,
         walletAddress,
@@ -122,68 +102,69 @@ export function useXMTP() {
 }
 
 /**
- * Build an XMTP v5 signer from a Dynamic.xyz wallet connector.
+ * Build an XMTP react-native-sdk v3 signer from a Dynamic.xyz wallet connector.
  *
- * XMTP v5 signer interface:
- *   getIdentifier(): Promise<{ type: "EOA", identifier: string }>
- *   signMessage(text: string): Promise<string>
+ * react-native-sdk v3 signer interface:
+ *   getAddress(): Promise<string>
+ *   signMessage(message: string): Promise<string>
+ *
+ * Dynamic.xyz connectors expose getSigner() which may return:
+ *   - A viem WalletClient (has signMessage + account.address)
+ *   - An ethers Signer (has signMessage + getAddress)
+ *   - The raw Dynamic wallet object (has connector.signMessage + address)
  */
-async function buildXmtpV5Signer(rawSigner: any, walletAddress: string): Promise<any> {
-  // Case 1: Dynamic connector with viem wallet client (most common in Dynamic.xyz)
-  if (rawSigner && typeof rawSigner.getWalletClient === "function") {
-    const walletClient = await rawSigner.getWalletClient();
+function buildNativeSigner(rawSigner: any, fallbackAddress: string): {
+  getAddress(): Promise<string>;
+  signMessage(message: string): Promise<string>;
+} {
+  // Case 1: viem WalletClient — Dynamic.xyz react-native-extension returns this shape
+  if (rawSigner && typeof rawSigner.signMessage === "function" && rawSigner.account) {
     return {
-      getIdentifier: async () => ({ type: "EOA" as const, identifier: walletAddress }),
-      signMessage: async (text: string): Promise<string> =>
-        walletClient.signMessage({
-          message: text,
-          account: walletClient.account,
-        }),
+      getAddress: async () => rawSigner.account.address ?? fallbackAddress,
+      signMessage: async (message: string) =>
+        rawSigner.signMessage({ message, account: rawSigner.account }),
     };
   }
 
-  // Case 2: Object with signMessage directly (ethers Signer or similar)
-  if (rawSigner && typeof rawSigner.signMessage === "function") {
+  // Case 2: ethers Signer (v5 or v6) — has getAddress() and signMessage()
+  if (rawSigner && typeof rawSigner.signMessage === "function" && typeof rawSigner.getAddress === "function") {
     return {
-      getIdentifier: async () => ({
-        type: "EOA" as const,
-        identifier:
-          typeof rawSigner.getAddress === "function"
-            ? await rawSigner.getAddress()
-            : walletAddress,
-      }),
-      signMessage: async (text: string): Promise<string> =>
-        rawSigner.signMessage(text),
+      getAddress: async () => rawSigner.getAddress(),
+      signMessage: async (message: string) => rawSigner.signMessage(message),
     };
   }
 
-  // Case 3: Dynamic wallet object with connector.signMessage
+  // Case 3: Dynamic wallet object with connector.getSigner() already resolved —
+  // connector has signMessage on itself
   if (rawSigner && rawSigner.connector && typeof rawSigner.connector.signMessage === "function") {
     return {
-      getIdentifier: async () => ({
-        type: "EOA" as const,
-        identifier: rawSigner.address ?? walletAddress,
-      }),
-      signMessage: async (text: string): Promise<string> =>
-        rawSigner.connector.signMessage({ message: text }),
+      getAddress: async () => rawSigner.address ?? fallbackAddress,
+      signMessage: async (message: string) =>
+        rawSigner.connector.signMessage({ message }),
     };
   }
 
-  // Last resort: pass through and let the SDK handle it
-  if (rawSigner && typeof rawSigner.getIdentifier !== "function") {
-    // Wrap with minimal v5 interface
+  // Case 4: Object already has signMessage but no account/getAddress — wrap with address
+  if (rawSigner && typeof rawSigner.signMessage === "function") {
     return {
-      getIdentifier: async () => ({ type: "EOA" as const, identifier: walletAddress }),
-      signMessage: async (text: string): Promise<string> => {
-        if (typeof rawSigner.sign === "function") return rawSigner.sign(text);
-        throw new Error("[XMTP] Cannot sign message: no compatible sign method found on wallet");
-      },
+      getAddress: async () => fallbackAddress,
+      signMessage: async (message: string) => rawSigner.signMessage(message),
     };
   }
 
-  return rawSigner;
+  // Last resort: pass through — let the SDK surface a useful error
+  return {
+    getAddress: async () => fallbackAddress,
+    signMessage: async () => {
+      throw new Error("[XMTP] Cannot sign message: no compatible sign method found on wallet connector");
+    },
+  };
 }
 
+/**
+ * Retrieve or generate a 32-byte AES-256 key for XMTP's local SQLite database.
+ * Stored in expo-secure-store so it survives app restarts but is erased on uninstall.
+ */
 async function getOrCreateEncryptionKey(): Promise<Uint8Array> {
   try {
     const SecureStore = await import("expo-secure-store");
@@ -200,7 +181,7 @@ async function getOrCreateEncryptionKey(): Promise<Uint8Array> {
     await SecureStore.setItemAsync("xmtp_db_key", b64);
     return key;
   } catch {
-    // Fallback: generate ephemeral key
+    // Fallback: generate ephemeral key (messages won't persist across restarts)
     const key = new Uint8Array(32);
     globalThis.crypto.getRandomValues(key);
     return key;

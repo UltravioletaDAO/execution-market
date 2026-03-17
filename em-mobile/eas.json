@@ -10,24 +10,29 @@
         "EXPO_PUBLIC_API_URL": "https://api.execution.market",
         "EXPO_PUBLIC_SUPABASE_URL": "",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
-        "EXPO_PUBLIC_REOWN_PROJECT_ID": ""
+        "EXPO_PUBLIC_REOWN_PROJECT_ID": "",
+        "EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID": ""
       }
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.execution.market",
         "EXPO_PUBLIC_SUPABASE_URL": "",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
-        "EXPO_PUBLIC_REOWN_PROJECT_ID": ""
+        "EXPO_PUBLIC_REOWN_PROJECT_ID": "",
+        "EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID": ""
       }
     },
     "production": {
+      "channel": "production",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.execution.market",
         "EXPO_PUBLIC_SUPABASE_URL": "",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
-        "EXPO_PUBLIC_REOWN_PROJECT_ID": ""
+        "EXPO_PUBLIC_REOWN_PROJECT_ID": "",
+        "EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID": ""
       }
     }
   },
