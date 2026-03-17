@@ -15,8 +15,10 @@ export async function handleReputation(
   const targetAddress = args[0] ?? senderAddress;
 
   try {
+    // Try to resolve wallet address to agent ID for ERC-8004 lookup
+    // Falls back to using the address directly (executor reputation)
     const data = await apiClient.get<any>(
-      `/api/v1/reputation/${targetAddress}`
+      `/api/v1/reputation/agents/${targetAddress}`
     );
 
     const score = data.average_score ?? data.score ?? 0;

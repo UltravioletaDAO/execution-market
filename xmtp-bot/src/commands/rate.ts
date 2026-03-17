@@ -54,12 +54,14 @@ export async function handleRate(
     }
 
     // Submit rating
-    await apiClient.post("/api/v1/reputation/rate", {
+    // Convert 1-5 star rating to 0-100 score for ERC-8004
+    const score100 = score * 20;
+    await apiClient.post("/api/v1/reputation/agents/rate", {
       task_id: task.id,
-      score,
+      agent_id: task.agent_id ? parseInt(task.agent_id, 10) : 2106,
+      score: score100,
       comment,
-      from_address: senderAddress,
-      from_role: "worker",
+      proof_tx: task.payment_tx ?? "",
     });
 
     const stars = "\u2605".repeat(score) + "\u2606".repeat(5 - score);

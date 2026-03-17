@@ -101,9 +101,8 @@ async function handleClaimCommand(channel: string, nick: string, text: string): 
     }
 
     // Apply via API
-    const result = await apiClient.post<any>("/api/v1/tasks/apply", {
-      task_id: task.id,
-      wallet_address: walletAddress,
+    const result = await apiClient.post<any>(`/api/v1/tasks/${task.id}/apply`, {
+      executor_id: walletAddress,
       message: `Applied via IRC by ${nick}`,
     });
 

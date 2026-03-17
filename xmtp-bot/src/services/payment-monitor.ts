@@ -1,7 +1,7 @@
 import { getAgent } from "../agent.js";
 import { formatUsdc } from "../utils/formatters.js";
 import { logger } from "../utils/logger.js";
-import type { TransactionReference } from "@xmtp/node-sdk";
+import type { TransactionReference } from "@xmtp/agent-sdk";
 
 // Block explorer URLs per chain
 const EXPLORER_URLS: Record<string, string> = {
