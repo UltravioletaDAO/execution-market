@@ -535,6 +535,7 @@
     "webOnlyTitle": "Mensajes",
     "webOnlySubtitle": "Los mensajes encriptados via XMTP están disponibles en la app web. Abre execution.market en tu navegador para enviar y recibir mensajes.",
     "openWebApp": "Abrir App Web",
-    "webOnlyNote": "Los mensajes nativos requieren EAS Build. Próximamente."
+    "webOnlyNote": "Los mensajes nativos requieren EAS Build. Próximamente.",
+    "browserSdkNote": "Impulsado por el SDK web de XMTP. La firma de tu wallet habilita el cifrado extremo a extremo."
   }
 }

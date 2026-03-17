@@ -45,7 +45,12 @@ export default function MessageThreadScreen() {
         renderItem={({ item }: { item: XMTPMessage }) => (
           <MessageBubbleNative
             message={item}
-            isMine={item.senderAddress === client?.address}
+            isMine={
+              // XMTP v5: accountIdentifier.identifier holds the EOA address
+              // XMTP v1/v2: client.address held it directly
+              item.senderAddress ===
+                (client?.accountIdentifier?.identifier ?? client?.address)
+            }
           />
         )}
         contentContainerStyle={{ padding: 12, flexGrow: 1 }}
