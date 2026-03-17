@@ -7,7 +7,9 @@ export function useMessages(peerAddress: string | null) {
   const [messages, setMessages] = useState<XMTPMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  // Keep conversation in both ref (for callbacks) and state (for effect deps)
   const conversationRef = useRef<any>(null);
+  const [conversation, setConversation] = useState<any>(null);
 
   // Initialize conversation and load messages
   useEffect(() => {
@@ -23,6 +25,7 @@ export function useMessages(peerAddress: string | null) {
         const msgs = await convo.messages({ limit: 50 });
         if (!cancelled) {
           setMessages(msgs.reverse().map(normalizeMessage));
+          setConversation(convo);
         }
       } catch (err) {
         console.error("[XMTP] Failed to init conversation:", err);
@@ -32,18 +35,21 @@ export function useMessages(peerAddress: string | null) {
     };
 
     init();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      conversationRef.current = null;
+      setConversation(null);
+    };
   }, [client, peerAddress]);
 
-  // Stream new messages
+  // Stream new messages — depends on `conversation` state, not ref
   useEffect(() => {
-    const convo = conversationRef.current;
-    if (!convo) return;
+    if (!conversation) return;
     let cancelled = false;
 
     const stream = async () => {
       try {
-        for await (const msg of await convo.streamMessages()) {
+        for await (const msg of await conversation.streamMessages()) {
           if (cancelled) break;
           setMessages(prev => [...prev, normalizeMessage(msg)]);
         }
@@ -54,7 +60,7 @@ export function useMessages(peerAddress: string | null) {
 
     stream();
     return () => { cancelled = true; };
-  }, [conversationRef.current]);
+  }, [conversation]);
 
   const sendMessage = useCallback(async (text: string) => {
     const convo = conversationRef.current;
