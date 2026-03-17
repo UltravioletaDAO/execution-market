@@ -64,8 +64,7 @@ export function useRatingsHistory(executorId: string | null) {
           .in("task_id", taskIds)
           .not("reputation_tx", "is", null);
         for (const fb of fbDocs || []) {
-          // For received ratings (agent rated worker), feedback_type = "worker_rating"
-          if (fb.feedback_type === "worker_rating" && fb.reputation_tx) {
+          if (fb.reputation_tx && !feedbackMap[fb.task_id]) {
             feedbackMap[fb.task_id] = fb.reputation_tx;
           }
         }
@@ -222,8 +221,7 @@ export function useRatingsGiven(executorId: string | null) {
           .in("task_id", taskIds)
           .not("reputation_tx", "is", null);
         for (const fb of fbDocs || []) {
-          // For given ratings (worker rated agent), feedback_type = "agent_rating"
-          if (fb.feedback_type === "agent_rating" && fb.reputation_tx) {
+          if (fb.reputation_tx && !feedbackMap[fb.task_id]) {
             feedbackMap[fb.task_id] = fb.reputation_tx;
           }
         }

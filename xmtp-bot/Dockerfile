@@ -1,7 +1,14 @@
 # Stage 1: Build
 # Use Debian-based image (not Alpine) because @xmtp/agent-sdk requires
 # glibc-linked native bindings (libxmtp) that are incompatible with musl.
-FROM node:22-slim AS builder
+FROM ubuntu:24.04 AS builder
+
+# Install Node.js 22 on Ubuntu 24.04 (GLIBC 2.39)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 
@@ -16,9 +23,13 @@ COPY src/ ./src/
 RUN npm run build
 
 # Stage 2: Runtime
-FROM node:22-slim
+FROM ubuntu:24.04
 
-RUN apt-get update && apt-get install -y --no-install-recommends wget tini && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates wget tini && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN groupadd -g 1001 xmtp && useradd -u 1001 -g xmtp -m xmtp
