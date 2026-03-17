@@ -74,7 +74,7 @@ function useRatingsReceived(executorId: string | undefined) {
         }))
       }
 
-      // Fetch reputation_tx from feedback_documents
+      // Fetch reputation_tx from feedback_documents (any type with a tx)
       const taskIds = [...new Set((data || []).map((r: Record<string, unknown>) => r.task_id as string))]
       const feedbackMap: Record<string, string> = {}
       if (taskIds.length > 0) {
@@ -84,7 +84,7 @@ function useRatingsReceived(executorId: string | undefined) {
           .in('task_id', taskIds)
           .not('reputation_tx', 'is', null)
         for (const fb of fbDocs || []) {
-          if (fb.feedback_type === 'worker_rating' && fb.reputation_tx) {
+          if (fb.reputation_tx && !feedbackMap[fb.task_id]) {
             feedbackMap[fb.task_id] = fb.reputation_tx
           }
         }
@@ -144,7 +144,7 @@ function useRatingsGiven(executorId: string | undefined) {
         }))
       }
 
-      // Fetch reputation_tx for given ratings
+      // Fetch reputation_tx for given ratings (any type with a tx)
       const taskIds = [...new Set((data || []).map((r: Record<string, unknown>) => r.task_id as string))]
       const feedbackMap: Record<string, string> = {}
       if (taskIds.length > 0) {
@@ -154,7 +154,7 @@ function useRatingsGiven(executorId: string | undefined) {
           .in('task_id', taskIds)
           .not('reputation_tx', 'is', null)
         for (const fb of fbDocs || []) {
-          if (fb.feedback_type === 'agent_rating' && fb.reputation_tx) {
+          if (fb.reputation_tx && !feedbackMap[fb.task_id]) {
             feedbackMap[fb.task_id] = fb.reputation_tx
           }
         }
@@ -225,15 +225,18 @@ function StarDisplay({ score }: { score: number }) {
 
 function RatingCard({ entry, t }: { entry: RatingEntry; t: (key: string) => string }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:bg-gray-50 transition-colors">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <StarDisplay score={entry.rating} />
+          <div className="flex items-baseline gap-2">
+            <span className="text-xl font-bold text-gray-900 dark:text-white">{entry.rating}</span>
+            <span className="text-sm text-gray-400">/100</span>
+          </div>
           {entry.task_title && (
-            <p className="text-sm font-medium text-gray-900 mt-2 truncate">{entry.task_title}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-2 truncate">{entry.task_title}</p>
           )}
           {entry.comment && (
-            <p className="text-sm text-gray-600 mt-1 italic">"{entry.comment}"</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 italic">"{entry.comment}"</p>
           )}
           {entry.rater_type && (
             <span className="text-xs text-gray-400 mt-1 inline-block">
@@ -245,13 +248,16 @@ function RatingCard({ entry, t }: { entry: RatingEntry; t: (key: string) => stri
         </div>
         <div className="text-right flex-shrink-0">
           <p className="text-xs text-gray-400">{formatDate(entry.created_at)}</p>
-          {entry.reputation_tx && (
-            <div className="mt-1">
-              <TxLink txHash={entry.reputation_tx} network="base" />
-            </div>
-          )}
         </div>
       </div>
+      {entry.reputation_tx && (
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center gap-2">
+          <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          <TxLink txHash={entry.reputation_tx} network="base" />
+        </div>
+      )}
     </div>
   )
 }
