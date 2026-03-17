@@ -118,6 +118,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const linkedWalletRef = useRef<string | null>(null)
   const linkingRef = useRef(false)
   const logoutDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Ref for dynamicWalletAddress — avoids it being an effect dependency
   // which caused unnecessary re-fetches when Dynamic SDK transitions wallet state
   const dynamicWalletRef = useRef<string | null>(null)
@@ -427,9 +428,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setPersistedWalletAddress(walletAddress)
       lastWalletRef.current = walletAddress
       setLoading(true)
+
+      // Safety timeout: if Supabase hangs (mobile Safari, slow network),
+      // force loading=false after 10s so the app doesn't get stuck forever.
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.warn('[Auth] Loading timeout — forcing loading=false')
+        loadingTimeoutRef.current = null
+        setLoading(false)
+      }, 10_000)
+
       linkWalletToSession(walletAddress)
         .then(() => fetchExecutor(walletAddress))
         .then((data) => {
+          if (loadingTimeoutRef.current) {
+            clearTimeout(loadingTimeoutRef.current)
+            loadingTimeoutRef.current = null
+          }
           // If we can't recover executor data for a persisted-only wallet,
           // clear persisted session and require explicit re-auth.
           if (!dynamicWalletRef.current && !data) {
@@ -441,6 +455,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setLoading(false)
         })
         .catch((err) => {
+          if (loadingTimeoutRef.current) {
+            clearTimeout(loadingTimeoutRef.current)
+            loadingTimeoutRef.current = null
+          }
           console.error('[Auth] Failed to load executor:', err)
           setExecutor(null)
           setLoading(false)
@@ -468,6 +486,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       if (logoutDebounceRef.current) {
         clearTimeout(logoutDebounceRef.current)
+      }
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current)
+        loadingTimeoutRef.current = null
       }
     }
   }, [dynamicInitialized, walletAddress, fetchExecutor, linkWalletToSession, setUserType])
