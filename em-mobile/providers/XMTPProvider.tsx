@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { Platform } from "react-native";
 
 // @xmtp/react-native-sdk requires EAS Build with custom native modules.
 // We fall back to @xmtp/browser-sdk (v5 MLS protocol) which works in
@@ -30,7 +31,19 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const connect = useCallback(async () => {
-    if (!walletAddress || !getSigner) return;
+    if (!walletAddress) {
+      setError("Conecta tu wallet primero para usar mensajería XMTP.");
+      return;
+    }
+    if (!getSigner) {
+      setError("Wallet no disponible. Reconecta tu wallet en configuración.");
+      return;
+    }
+    // Browser SDK requires Web Workers — only works in web environments
+    if (Platform.OS !== "web") {
+      setError("Mensajería XMTP disponible en la versión web. Abre execution.market en tu navegador.");
+      return;
+    }
     setIsConnecting(true);
     setError(null);
 
