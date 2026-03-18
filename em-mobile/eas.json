@@ -8,10 +8,9 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.execution.market",
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
-        "EXPO_PUBLIC_REOWN_PROJECT_ID": "",
-        "EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID": ""
+        "EXPO_PUBLIC_SUPABASE_URL": "https://puyhpytmtkyevnxffksl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1eWhweXRtdGt5ZXZueGZma3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2NzgzOTMsImV4cCI6MjA4NDI1NDM5M30.R4Sf4SwDo-5yRhRMOazQ-4Jn972YLT7lYunjdqiGjaU",
+        "EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID": "db513515-7317-46d6-b401-e0695f104481"
       }
     },
     "preview": {
@@ -19,20 +18,18 @@
       "channel": "preview",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.execution.market",
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
-        "EXPO_PUBLIC_REOWN_PROJECT_ID": "",
-        "EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID": ""
+        "EXPO_PUBLIC_SUPABASE_URL": "https://puyhpytmtkyevnxffksl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1eWhweXRtdGt5ZXZueGZma3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2NzgzOTMsImV4cCI6MjA4NDI1NDM5M30.R4Sf4SwDo-5yRhRMOazQ-4Jn972YLT7lYunjdqiGjaU",
+        "EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID": "db513515-7317-46d6-b401-e0695f104481"
       }
     },
     "production": {
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.execution.market",
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
-        "EXPO_PUBLIC_REOWN_PROJECT_ID": "",
-        "EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID": ""
+        "EXPO_PUBLIC_SUPABASE_URL": "https://puyhpytmtkyevnxffksl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1eWhweXRtdGt5ZXZueGZma3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2NzgzOTMsImV4cCI6MjA4NDI1NDM5M30.R4Sf4SwDo-5yRhRMOazQ-4Jn972YLT7lYunjdqiGjaU",
+        "EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID": "db513515-7317-46d6-b401-e0695f104481"
       }
     }
   },
