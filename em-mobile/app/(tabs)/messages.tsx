@@ -175,12 +175,27 @@ export default function MessagesScreen() {
         animationType="slide"
         onRequestClose={() => setShowNewChat(false)}
       >
+        {/* Overlay oscuro — tap para cerrar */}
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.7)" }}
+          activeOpacity={1}
+          onPress={() => { setShowNewChat(false); setPeerInput(""); }}
+        />
+        {/* Sheet — KAV envuelve SOLO el contenido, no la pantalla entera */}
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1 justify-end"
+          behavior={Platform.OS === "ios" ? "padding" : "padding"}
+          keyboardVerticalOffset={0}
         >
-        <View className="flex-1 justify-end bg-black/70">
-          <View className="bg-zinc-900 rounded-t-2xl px-5 pt-5" style={{ paddingBottom: Math.max(insets.bottom + 12, 24) }}>
+          <View
+            style={{
+              backgroundColor: "#18181b",
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              paddingHorizontal: 20,
+              paddingTop: 20,
+              paddingBottom: Math.max(insets.bottom + 12, 24),
+            }}
+          >
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-white text-lg font-semibold">{t("messages.newConversation")}</Text>
               <TouchableOpacity onPress={() => { setShowNewChat(false); setPeerInput(""); }}>
@@ -195,23 +210,36 @@ export default function MessagesScreen() {
               placeholderTextColor="rgba(255,255,255,0.2)"
               autoCapitalize="none"
               autoCorrect={false}
-              className="bg-white/10 text-white rounded-xl px-4 py-3 mb-4 font-mono text-sm"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.08)",
+                color: "white",
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                marginBottom: 16,
+                fontFamily: "RobotoMono-Regular",
+                fontSize: 13,
+              }}
             />
             <TouchableOpacity
               onPress={handleStartConversation}
               disabled={isStarting || !peerInput.trim()}
-              className="bg-white rounded-xl py-3 items-center"
+              style={{
+                backgroundColor: "white",
+                borderRadius: 12,
+                paddingVertical: 12,
+                alignItems: "center",
+                opacity: !peerInput.trim() ? 0.4 : 1,
+              }}
               activeOpacity={0.8}
-              style={{ opacity: !peerInput.trim() ? 0.4 : 1 }}
             >
               {isStarting ? (
                 <ActivityIndicator color="black" />
               ) : (
-                <Text className="text-black font-semibold">{t("messages.openChat")}</Text>
+                <Text style={{ color: "black", fontWeight: "600" }}>{t("messages.openChat")}</Text>
               )}
             </TouchableOpacity>
           </View>
-        </View>
         </KeyboardAvoidingView>
       </Modal>
     </View>
