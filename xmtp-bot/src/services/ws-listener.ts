@@ -68,9 +68,16 @@ function connect(): void {
       const event = JSON.parse(data.toString());
 
       if (event.type === "heartbeat" || event.type === "pong") return;
+      if (event.event === "heartbeat" || event.event === "pong") return;
 
-      logger.debug({ eventType: event.type }, "WS event received");
-      await handleEvent(event);
+      // Normalize server WebSocket event format to bot format
+      // Server sends: {event: "WorkerAssigned", payload: {...}}
+      // Bot expects: {type: "task.assigned", data: {...}}
+      const normalized = normalizeEvent(event);
+      if (!normalized) return;
+
+      logger.debug({ eventType: normalized.type }, "WS event received");
+      await handleEvent(normalized);
     } catch (err) {
       logger.error({ err }, "WS message parse error");
     }
@@ -85,6 +92,41 @@ function connect(): void {
   ws.on("error", (err) => {
     logger.error({ err: err.message }, "WebSocket error");
   });
+}
+
+/** Maps MCP server event names to bot event types */
+const EVENT_TYPE_MAP: Record<string, string> = {
+  "WorkerAssigned": "task.assigned",
+  "SubmissionApproved": "submission.approved",
+  "SubmissionRejected": "submission.rejected",
+  "TaskCreated": "task.created",
+  "TaskCancelled": "task.cancelled",
+  "TaskUpdated": "task.status_changed",
+  "PaymentReleased": "payment.released",
+  "SubmissionReceived": "submission.received",
+};
+
+/**
+ * Normalize incoming WS events to the bot's expected format.
+ * Server sends: {event: "WorkerAssigned", payload: {...}, room: "...", metadata: {...}}
+ * Bot expects: {type: "task.assigned", data: {...}}
+ * If the event already has a `type` field (old format), pass through as-is.
+ */
+function normalizeEvent(event: any): any | null {
+  // Old format already has `type` — pass through
+  if (event.type) return event;
+
+  // New server format uses `event` field
+  if (event.event) {
+    const mappedType = EVENT_TYPE_MAP[event.event];
+    if (!mappedType) {
+      logger.debug({ serverEvent: event.event }, "Unknown server event, skipping");
+      return null;
+    }
+    return { type: mappedType, data: event.payload };
+  }
+
+  return null;
 }
 
 async function handleEvent(event: any): Promise<void> {
