@@ -23,14 +23,15 @@ export default function MessagesScreen() {
         <Text className="text-white/60 text-center mb-6">
           {t("messages.subtitle")}
         </Text>
-        {error && !needsWalletConnector ? (
+        {error ? (
           <Text className="text-red-400 text-sm text-center mb-4">{error}</Text>
+        ) : needsWalletConnector ? (
+          <Text className="text-yellow-400 text-sm text-center mb-6">
+            Entraste con email. XMTP necesita tu wallet connector activo.
+          </Text>
         ) : null}
         {needsWalletConnector ? (
           <>
-            <Text className="text-yellow-400 text-sm text-center mb-6">
-              Entraste con email. XMTP necesita tu wallet connector activo.
-            </Text>
             <TouchableOpacity
               onPress={() => dynamicClient.ui.userProfile.show()}
               className="bg-white px-6 py-3 rounded-xl mb-3"
