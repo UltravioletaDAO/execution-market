@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
-import * as Application from "expo-application";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 
-// Detect Expo Go: applicationId is "host.exp.Exponent" in Expo Go.
+// Detect Expo Go: appOwnership === 'expo' OR executionEnvironment === 'storeClient'.
 // @xmtp/react-native-sdk native module is not available in Expo Go.
-const IS_EXPO_GO = Application.applicationId === "host.exp.Exponent";
+const IS_EXPO_GO =
+  Constants.appOwnership === "expo" ||
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 const XMTP_NATIVE_AVAILABLE = !IS_EXPO_GO;
 
 interface XMTPContextType {
@@ -76,7 +78,7 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
   // without needing a real wallet connector. NOT for production use.
   const connectDev = useCallback(async () => {
     if (IS_EXPO_GO) {
-      setError("XMTP no está disponible en Expo Go. Instala el Android dev client para probar mensajería nativa.");
+      setError("XMTP no está disponible en Expo Go. Usa el Android dev client.");
       return;
     }
     setIsConnecting(true);
@@ -84,8 +86,19 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { Client } = await import("@xmtp/react-native-sdk");
+      const { generatePrivateKey, privateKeyToAccount } = await import("viem/accounts");
       const dbKey = await getOrCreateEncryptionKey();
-      const xmtp = await Client.createRandom({
+
+      // Generate a random ephemeral wallet as XMTP signer for dev testing.
+      const pk = generatePrivateKey();
+      const account = privateKeyToAccount(pk);
+      const devSigner = {
+        getAddress: async () => account.address,
+        signMessage: async (message: string) =>
+          account.signMessage({ message }),
+      };
+
+      const xmtp = await Client.create(devSigner, {
         env: "dev",
         dbEncryptionKey: dbKey,
       });
