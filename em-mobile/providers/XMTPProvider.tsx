@@ -9,7 +9,10 @@ interface XMTPContextType {
   isConnected: boolean;
   isConnecting: boolean;
   nativeAvailable: boolean;
+  signerAvailable: boolean;
+  isDevMode: boolean;
   connect: () => Promise<void>;
+  connectDev: () => Promise<void>;
   disconnect: () => void;
   walletAddress: string | null;
   error: string | null;
@@ -26,6 +29,7 @@ interface Props {
 export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
   const [client, setClient] = useState<any | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const connect = useCallback(async () => {
@@ -42,19 +46,10 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
     setError(null);
 
     try {
-      // Dynamic import keeps the native module out of the JS bundle on web
-      // (where this code path should never execute after going native-only).
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { Client } = await import("@xmtp/react-native-sdk");
-
-      // Resolve the Dynamic.xyz wallet connector and build a minimal XMTP signer.
-      // @xmtp/react-native-sdk v3 signer interface:
-      //   getAddress(): Promise<string>
-      //   signMessage(message: string): Promise<string>
       const rawSigner = await getSigner();
       const nativeSigner = buildNativeSigner(rawSigner, walletAddress);
-
-      // Retrieve or generate the 32-byte local DB encryption key from SecureStore.
       const dbKey = await getOrCreateEncryptionKey();
 
       const xmtp = await Client.create(nativeSigner, {
@@ -71,9 +66,33 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
     }
   }, [walletAddress, getSigner]);
 
+  // DEV MODE: creates a random XMTP identity for testing messaging UI
+  // without needing a real wallet connector. NOT for production use.
+  const connectDev = useCallback(async () => {
+    setIsConnecting(true);
+    setError(null);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { Client } = await import("@xmtp/react-native-sdk");
+      const dbKey = await getOrCreateEncryptionKey();
+      const xmtp = await Client.createRandom({
+        env: "dev",
+        dbEncryptionKey: dbKey,
+      });
+      setIsDevMode(true);
+      setClient(xmtp);
+    } catch (err) {
+      console.error("[XMTP] Dev connect failed:", err);
+      setError(err instanceof Error ? err.message : "XMTP dev connect failed");
+    } finally {
+      setIsConnecting(false);
+    }
+  }, []);
+
   const disconnect = useCallback(() => {
     if (client?.close) client.close();
     setClient(null);
+    setIsDevMode(false);
     setError(null);
   }, [client]);
 
@@ -84,7 +103,10 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
         isConnected: !!client,
         isConnecting,
         nativeAvailable: XMTP_NATIVE_AVAILABLE,
+        signerAvailable: !!getSigner,
+        isDevMode,
         connect,
+        connectDev,
         disconnect,
         walletAddress,
         error,
