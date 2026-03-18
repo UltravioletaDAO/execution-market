@@ -1,0 +1,22 @@
+# EAS Build — archivos a excluir del tarball de upload
+# (EAS CLI usa este archivo como complemento a .gitignore)
+
+# Skills con symlinks que no puede procesar en Windows
+.claude/
+
+# Directorios grandes que no necesita el build
+vault/
+docs/
+videos/
+dashboard/
+mcp_server/
+contracts/
+supabase/
+infrastructure/
+admin-dashboard/
+landing/
+tests/
+e2e/
+.internal/
+.secrets/
+.unused/
