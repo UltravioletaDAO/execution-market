@@ -332,7 +332,7 @@ jobs:
           echo "Rollback complete"
 
       - name: Notify rollback
-        uses: slackapi/slack-github-action@v2
+        uses: slackapi/slack-github-action@v3
         with:
           payload: |
             {
@@ -359,7 +359,7 @@ jobs:
     steps:
       - name: Notify Slack - Success
         if: needs.health-check.result == 'success'
-        uses: slackapi/slack-github-action@v2
+        uses: slackapi/slack-github-action@v3
         with:
           payload: |
             {
@@ -389,7 +389,7 @@ jobs:
 
       - name: Notify Slack - Failure
         if: needs.health-check.result == 'failure' || needs.deploy.result == 'failure'
-        uses: slackapi/slack-github-action@v2
+        uses: slackapi/slack-github-action@v3
         with:
           payload: |
             {
