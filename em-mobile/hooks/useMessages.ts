@@ -10,9 +10,12 @@ export interface XMTPMessage {
 
 /**
  * useMessages — open or create a DM conversation with peerAddress and
- * stream messages using the XMTP v5 browser SDK.
+ * stream messages using the XMTP v5 native SDK.
  *
- * @param peerAddress - Ethereum address (0x...) of the conversation peer
+ * v5 API differences from v3:
+ *   - findOrCreateDmWithIdentity(PublicIdentity) instead of newConversation(address)
+ *   - dm.streamMessages(callback) instead of for-await stream
+ *   - dm.messages({ limit }) returns array directly
  */
 export function useMessages(peerAddress: string | null) {
   const { client } = useXMTP();
@@ -20,7 +23,7 @@ export function useMessages(peerAddress: string | null) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const conversationRef = useRef<any>(null);
-  const [conversation, setConversation] = useState<any>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!client || !peerAddress) return;
@@ -29,23 +32,33 @@ export function useMessages(peerAddress: string | null) {
     const init = async () => {
       setIsLoading(true);
       try {
-        // XMTP v5: sync conversations first
         await client.conversations.sync().catch(() => {});
 
-        // v5: use newDmWithIdentifier for EOA addresses
-        const convo = await client.conversations.newDmWithIdentifier(
-          { identifier: peerAddress, type: "EOA" },
-        );
-        conversationRef.current = convo;
+        // v5: findOrCreateDmWithIdentity takes a PublicIdentity object
+        const { PublicIdentity } = await import("@xmtp/react-native-sdk");
+        const identity = new PublicIdentity(peerAddress, "ETHEREUM");
+        const convo = await client.conversations.findOrCreateDmWithIdentity(identity);
+        if (cancelled) return;
 
-        // v5: sync the conversation before reading messages
+        conversationRef.current = convo;
         await convo.sync().catch(() => {});
 
         const msgs = await convo.messages({ limit: 50 });
         if (!cancelled) {
           setMessages([...msgs].reverse().map(normalizeMessage));
-          setConversation(convo);
         }
+
+        // v5: streamMessages(callback) — returns unsubscribe fn
+        const unsub = await convo.streamMessages((msg: any) => {
+          if (!cancelled) {
+            setMessages((prev) => {
+              // avoid duplicates
+              if (prev.some((m) => m.id === msg.id)) return prev;
+              return [...prev, normalizeMessage(msg)];
+            });
+          }
+        });
+        unsubscribeRef.current = unsub;
       } catch (err) {
         console.error("[XMTP] Init conversation failed:", err);
       } finally {
@@ -56,33 +69,11 @@ export function useMessages(peerAddress: string | null) {
     init();
     return () => {
       cancelled = true;
+      unsubscribeRef.current?.();
+      unsubscribeRef.current = null;
       conversationRef.current = null;
-      setConversation(null);
     };
   }, [client, peerAddress]);
-
-  // Stream new messages from the conversation
-  useEffect(() => {
-    if (!conversation) return;
-    let cancelled = false;
-
-    const stream = async () => {
-      try {
-        const s = await conversation.stream();
-        for await (const msg of s) {
-          if (cancelled) break;
-          setMessages((prev) => [...prev, normalizeMessage(msg)]);
-        }
-      } catch {
-        // Stream ended or not supported
-      }
-    };
-
-    stream();
-    return () => {
-      cancelled = true;
-    };
-  }, [conversation]);
 
   const sendMessage = useCallback(async (text: string) => {
     const convo = conversationRef.current;
@@ -100,12 +91,7 @@ export function useMessages(peerAddress: string | null) {
   return { messages, isLoading, isSending, sendMessage };
 }
 
-/**
- * Normalize an XMTP v5 message to a flat XMTPMessage shape.
- * v5 uses sentAtNs (BigInt nanoseconds) and senderInboxId instead of senderAddress.
- */
 function normalizeMessage(msg: any): XMTPMessage {
-  // Derive sentAt: v5 uses sentAtNs (BigInt ns), v1/v2 used sentAt (Date)
   let sentAt: Date;
   if (msg.sentAtNs !== undefined && msg.sentAtNs !== null) {
     sentAt = new Date(Number(BigInt(msg.sentAtNs) / 1000000n));
@@ -117,7 +103,6 @@ function normalizeMessage(msg: any): XMTPMessage {
     sentAt = new Date();
   }
 
-  // Derive sender: v5 uses senderInboxId, v1/v2 used senderAddress
   const senderAddress: string =
     msg.senderAddress ?? msg.senderInboxId ?? "unknown";
 
