@@ -9,7 +9,7 @@ if (Platform.OS !== "web") {
 import "../global.css";
 
 import { useEffect, useState, useCallback, useMemo, type ReactNode } from "react";
-import { Stack, Redirect } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
@@ -46,13 +46,11 @@ function XMTPBridge({ children }: { children: ReactNode }) {
   const getSigner = useMemo(() => {
     const primaryWallet = wallets?.userWallets?.[0];
     if (!primaryWallet) return null;
-    // Return a factory that retrieves the wallet connector for XMTP signing
     return async () => {
       const connector = primaryWallet.connector;
       if (connector && typeof connector.getSigner === "function") {
         return connector.getSigner();
       }
-      // Fallback: return the wallet object itself (XMTP SDK accepts various signer shapes)
       return primaryWallet;
     };
   }, [wallets?.userWallets]);
@@ -67,6 +65,7 @@ function XMTPBridge({ children }: { children: ReactNode }) {
 function RootNavigator() {
   const { isAuthenticated, isLoading, isProfileComplete } = useAuth();
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  const router = useRouter();
 
   // Re-check onboarding flag whenever auth state changes (e.g. after logout clears it)
   useEffect(() => {
@@ -75,31 +74,24 @@ function RootNavigator() {
     });
   }, [isAuthenticated, isLoading]);
 
-  // Wait until we know onboarding state and auth state
-  if (onboardingDone === null || isLoading) return null;
+  // Navigate imperatively AFTER the Stack is mounted to avoid
+  // "unhandled action REPLACE" warnings from premature <Redirect> renders.
+  useEffect(() => {
+    if (onboardingDone === null || isLoading) return;
+    if (!onboardingDone) {
+      router.replace("/onboarding");
+    } else if (isAuthenticated && !isProfileComplete) {
+      router.replace("/complete-profile");
+    }
+  }, [onboardingDone, isLoading, isAuthenticated, isProfileComplete]);
 
-  // Determine redirect target:
-  // 1. Not authenticated + onboarding not done → onboarding wizard
-  // 2. Authenticated + profile incomplete → complete profile
-  // 3. Otherwise → tabs (task list); unauthenticated users who finished
-  //    onboarding land here and can connect wallet via Dynamic
-  // Show onboarding wizard when user hasn't completed/skipped it
-  // Flag is cleared on logout so returning users see it again
-  const needsOnboarding = !onboardingDone;
-  const needsProfile = isAuthenticated && !isProfileComplete;
+  // Wait until we know onboarding state and auth state before rendering Stack
+  if (onboardingDone === null || isLoading) return null;
 
   return (
     <>
       {/* Dynamic SDK WebView — renders in background for auth flows */}
       <dynamicClient.reactNative.WebView />
-
-      {/* Redirect to onboarding if not completed AND not authenticated */}
-      {needsOnboarding && <Redirect href="/onboarding" />}
-
-      {/* Redirect to profile completion if authenticated but profile incomplete */}
-      {!needsOnboarding && needsProfile && (
-        <Redirect href="/complete-profile" />
-      )}
 
       <Stack
         screenOptions={{
