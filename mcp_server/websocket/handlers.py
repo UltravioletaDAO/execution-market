@@ -536,6 +536,13 @@ class EventHandlers:
         if not rate_limiter.check_and_record(worker_id, "SubmissionApproved"):
             return 0
 
+        # Extract wallet from nested executor or top-level field
+        worker_wallet = (
+            submission.get("executor", {}).get("wallet_address")
+            if isinstance(submission.get("executor"), dict)
+            else submission.get("worker_wallet")
+        )
+
         payload = SubmissionApprovedPayload(
             submission_id=submission["id"],
             task_id=task["id"],
@@ -544,6 +551,7 @@ class EventHandlers:
             notes=notes,
             payment_initiated=payment_initiated,
             approved_at=datetime.now(timezone.utc).isoformat(),
+            worker_wallet=worker_wallet,
         )
 
         event = WebSocketEvent.submission_approved(payload)
@@ -589,6 +597,13 @@ class EventHandlers:
         if not rate_limiter.check_and_record(worker_id, "SubmissionRejected"):
             return 0
 
+        # Extract wallet from nested executor or top-level field
+        worker_wallet = (
+            submission.get("executor", {}).get("wallet_address")
+            if isinstance(submission.get("executor"), dict)
+            else submission.get("worker_wallet")
+        )
+
         payload = SubmissionRejectedPayload(
             submission_id=submission["id"],
             task_id=task["id"],
@@ -597,6 +612,7 @@ class EventHandlers:
             reason=reason,
             can_resubmit=can_resubmit,
             rejected_at=datetime.now(timezone.utc).isoformat(),
+            worker_wallet=worker_wallet,
         )
 
         event = WebSocketEvent.submission_rejected(payload)

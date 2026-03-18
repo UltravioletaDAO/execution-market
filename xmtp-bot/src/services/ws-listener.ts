@@ -140,7 +140,7 @@ async function handleEvent(event: any): Promise<void> {
       break;
 
     case "task.assigned": {
-      const workerAddress = data.executor_wallet ?? data.worker_address;
+      const workerAddress = data.executor_wallet ?? data.worker_wallet ?? data.worker_address;
       if (workerAddress) {
         await notifyTaskAssigned(workerAddress, data);
       }
@@ -158,7 +158,7 @@ async function handleEvent(event: any): Promise<void> {
     }
 
     case "submission.approved": {
-      const addr = data.executor_wallet ?? data.worker_address;
+      const addr = data.executor_wallet ?? data.worker_wallet ?? data.worker_address;
       if (addr) {
         await notifySubmissionApproved(addr, data, data.tx_hash);
       }
@@ -174,7 +174,7 @@ async function handleEvent(event: any): Promise<void> {
     }
 
     case "submission.rejected": {
-      const addr2 = data.executor_wallet ?? data.worker_address;
+      const addr2 = data.executor_wallet ?? data.worker_wallet ?? data.worker_address;
       if (addr2) {
         await notifySubmissionRejected(addr2, data, data.reason);
       }
