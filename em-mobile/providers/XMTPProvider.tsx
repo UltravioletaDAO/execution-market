@@ -1,8 +1,10 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import * as Application from "expo-application";
 
-// @xmtp/react-native-sdk is compiled via EAS Build (Rust libxmtp + React Native autolinking).
-// This provider is native-only — it will not work in Expo Go without a dev client build.
-const XMTP_NATIVE_AVAILABLE = true;
+// Detect Expo Go: applicationId is "host.exp.Exponent" in Expo Go.
+// @xmtp/react-native-sdk native module is not available in Expo Go.
+const IS_EXPO_GO = Application.applicationId === "host.exp.Exponent";
+const XMTP_NATIVE_AVAILABLE = !IS_EXPO_GO;
 
 interface XMTPContextType {
   client: any | null;
@@ -33,6 +35,10 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const connect = useCallback(async () => {
+    if (IS_EXPO_GO) {
+      setError("XMTP no está disponible en Expo Go. Usa el Android dev client.");
+      return;
+    }
     if (!walletAddress) {
       setError("Conecta tu wallet primero para usar mensajería XMTP.");
       return;
@@ -69,6 +75,10 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
   // DEV MODE: creates a random XMTP identity for testing messaging UI
   // without needing a real wallet connector. NOT for production use.
   const connectDev = useCallback(async () => {
+    if (IS_EXPO_GO) {
+      setError("XMTP no está disponible en Expo Go. Instala el Android dev client para probar mensajería nativa.");
+      return;
+    }
     setIsConnecting(true);
     setError(null);
     try {
