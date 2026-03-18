@@ -23,8 +23,10 @@ export default function MessagesScreen() {
 
     setIsStarting(true);
     try {
-      // XMTP v5: newDm creates or opens existing DM conversation
-      await client.conversations.newDm(address);
+      // XMTP v5: findOrCreateDmWithIdentity takes a PublicIdentity object
+      const { PublicIdentity } = await import("@xmtp/react-native-sdk");
+      const identity = new PublicIdentity(address, "ETHEREUM");
+      await client.conversations.findOrCreateDmWithIdentity(identity);
       await refresh();
       setShowNewChat(false);
       setPeerInput("");
