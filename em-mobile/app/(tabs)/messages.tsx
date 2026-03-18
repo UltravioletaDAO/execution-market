@@ -23,9 +23,19 @@ export default function MessagesScreen() {
 
     setIsStarting(true);
     try {
-      // XMTP v5: findOrCreateDmWithIdentity takes a PublicIdentity object
       const { PublicIdentity } = await import("@xmtp/react-native-sdk");
       const identity = new PublicIdentity(address, "ETHEREUM");
+
+      // Check if the address has an XMTP v5 inbox before trying to create a DM
+      const inboxId = await client.findInboxIdFromIdentity(identity);
+      if (!inboxId) {
+        Alert.alert(
+          "Sin cuenta XMTP v5",
+          "Esta dirección no tiene una cuenta XMTP v5 registrada. Pídele al destinatario que active XMTP en una app compatible (Coinbase Wallet, Converse, etc.)."
+        );
+        return;
+      }
+
       await client.conversations.findOrCreateDmWithIdentity(identity);
       await refresh();
       setShowNewChat(false);
