@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { View, Text, FlatList, KeyboardAvoidingView, Platform, TouchableOpacity } from "react-native";
 import { useRef } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useXMTP } from "../../providers/XMTPProvider";
 import { useMessages, type XMTPMessage } from "../../hooks/useMessages";
@@ -11,6 +12,7 @@ export default function MessageThreadScreen() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
   const router = useRouter();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { client } = useXMTP();
   const peerAddress = threadId ? decodeURIComponent(threadId) : null;
   const { messages, isLoading, isSending, sendMessage } = useMessages(peerAddress);
@@ -22,9 +24,9 @@ export default function MessageThreadScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-black"
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={90}
+      style={{ flex: 1, backgroundColor: "#000", paddingTop: insets.top }}
+      behavior={Platform.OS === "ios" ? "padding" : "padding"}
+      keyboardVerticalOffset={0}
     >
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-white/10">
@@ -48,8 +50,6 @@ export default function MessageThreadScreen() {
           <MessageBubbleNative
             message={item}
             isMine={
-              // XMTP v5: accountIdentifier.identifier holds the EOA address
-              // XMTP v1/v2: client.address held it directly
               item.senderAddress ===
                 (client?.accountIdentifier?.identifier ?? client?.address)
             }
