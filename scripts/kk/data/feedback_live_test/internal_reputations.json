@@ -1,0 +1,28 @@
+{
+  "141d3fe9-c939-4fd4-8f70-43531812bf9d": {
+    "agent_id": 89745,
+    "bayesian_score": 0.7449941798081614,
+    "total_tasks": 6,
+    "successful_tasks": 6,
+    "avg_rating": 4.74,
+    "avg_completion_time_hours": 0.0,
+    "consecutive_failures": 0,
+    "category_scores": {
+      "general": 0.8129760000000001,
+      "physical_presence": 0.8129760000000001
+    }
+  },
+  "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4": {
+    "agent_id": 92631,
+    "bayesian_score": 0.7498955071294054,
+    "total_tasks": 14,
+    "successful_tasks": 14,
+    "avg_rating": 3.488571428571429,
+    "avg_completion_time_hours": 0.0,
+    "consecutive_failures": 0,
+    "category_scores": {
+      "general": 0.6076369209311233,
+      "simple_action": 0.6076369209311233
+    }
+  }
+}

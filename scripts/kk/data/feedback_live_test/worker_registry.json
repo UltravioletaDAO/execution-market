@@ -1,0 +1,62 @@
+{
+  "141d3fe9-c939-4fd4-8f70-43531812bf9d": {
+    "worker_id": "141d3fe9-c939-4fd4-8f70-43531812bf9d",
+    "dimensions": {
+      "geo_mobility": 0.271,
+      "verification_skill": 0.23,
+      "physical_execution": 0.386,
+      "thoroughness": 0.184
+    },
+    "task_count": 6,
+    "evidence_count": 7,
+    "categories": [
+      "physical_presence",
+      "general"
+    ],
+    "avg_quality": 0.935,
+    "top_skills": [
+      {
+        "skill": "physical_execution",
+        "score": 0.386
+      },
+      {
+        "skill": "geo_mobility",
+        "score": 0.271
+      },
+      {
+        "skill": "verification_skill",
+        "score": 0.23
+      },
+      {
+        "skill": "thoroughness",
+        "score": 0.184
+      }
+    ],
+    "last_updated": "2026-03-18T07:46:17.984285+00:00"
+  },
+  "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4": {
+    "worker_id": "803dfbf1-7b91-4a41-8d31-518f4fa2fcd4",
+    "dimensions": {
+      "communication": 0.447,
+      "digital_proficiency": 0.298
+    },
+    "task_count": 14,
+    "evidence_count": 13,
+    "categories": [
+      "simple_action",
+      "general"
+    ],
+    "avg_quality": 0.622,
+    "top_skills": [
+      {
+        "skill": "communication",
+        "score": 0.447
+      },
+      {
+        "skill": "digital_proficiency",
+        "score": 0.298
+      }
+    ],
+    "last_updated": "2026-03-18T07:46:34.424131+00:00"
+  }
+}

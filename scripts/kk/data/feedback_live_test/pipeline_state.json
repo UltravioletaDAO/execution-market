@@ -1,0 +1,9 @@
+{
+  "last_processed_at": null,
+  "processed_task_ids": [],
+  "total_runs": 0,
+  "total_tasks_processed": 0,
+  "total_evidence_parsed": 0,
+  "last_run_at": null,
+  "worker_registry_path": null
+}
