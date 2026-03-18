@@ -92,13 +92,21 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
       const dbKey = await getOrCreateEncryptionKey();
 
       // Generate a random ephemeral wallet as XMTP signer for dev testing.
+      // v5 signer interface: getIdentifier() + signMessage() returning { signature }
+      const { PublicIdentity } = await import("@xmtp/react-native-sdk");
       const pk = generatePrivateKey();
       const account = privateKeyToAccount(pk);
       const devSigner = {
-        walletType: "EOA" as const,
-        getAddress: async () => account.address,
-        signMessage: async (message: string) =>
-          account.signMessage({ message }),
+        getIdentifier: async () => new PublicIdentity(account.address, "ETHEREUM"),
+        signMessage: async (message: string) => ({
+          signature: await account.signMessage({ message }),
+          publicKey: undefined,
+          authenticatorData: undefined,
+          clientDataJson: undefined,
+        }),
+        getChainId: () => undefined,
+        getBlockNumber: () => undefined,
+        signerType: () => undefined,
       };
 
       const xmtp = await Client.create(devSigner, {
@@ -161,59 +169,60 @@ export function useXMTP() {
  *   - An ethers Signer (has signMessage + getAddress)
  *   - The raw Dynamic wallet object (has connector.signMessage + address)
  */
-function buildNativeSigner(rawSigner: any, fallbackAddress: string): {
-  walletType: "EOA";
-  getAddress(): Promise<string>;
-  signMessage(message: string): Promise<string>;
-} {
-  const EOA = "EOA" as const;
+// XMTP react-native-sdk v5 signer interface
+// Signer.js checks: isWalletClient (type==='walletClient') OR has getIdentifier()
+function buildV5Signer(address: string, sign: (msg: string) => Promise<string>) {
+  return {
+    getIdentifier: async () => {
+      const { PublicIdentity } = await import("@xmtp/react-native-sdk");
+      return new PublicIdentity(address, "ETHEREUM");
+    },
+    signMessage: async (message: string) => ({
+      signature: await sign(message),
+      publicKey: undefined,
+      authenticatorData: undefined,
+      clientDataJson: undefined,
+    }),
+    getChainId: () => undefined,
+    getBlockNumber: () => undefined,
+    signerType: () => undefined,
+  };
+}
 
-  // Case 1: viem WalletClient
+function buildNativeSigner(rawSigner: any, fallbackAddress: string) {
+  // Case 1: viem WalletClient (type === 'walletClient') — SDK handles natively
+  if (rawSigner && rawSigner.type === "walletClient") {
+    return rawSigner;
+  }
+
+  // Case 2: viem WalletClient without .type but has .account
   if (rawSigner && typeof rawSigner.signMessage === "function" && rawSigner.account) {
-    return {
-      walletType: EOA,
-      getAddress: async () => rawSigner.account.address ?? fallbackAddress,
-      signMessage: async (message: string) =>
-        rawSigner.signMessage({ message, account: rawSigner.account }),
-    };
+    const address = rawSigner.account.address ?? fallbackAddress;
+    return buildV5Signer(address, (msg) =>
+      rawSigner.signMessage({ message: msg, account: rawSigner.account })
+    );
   }
 
-  // Case 2: ethers Signer (v5 or v6)
+  // Case 3: ethers Signer (v5 or v6)
   if (rawSigner && typeof rawSigner.signMessage === "function" && typeof rawSigner.getAddress === "function") {
-    return {
-      walletType: EOA,
-      getAddress: async () => rawSigner.getAddress(),
-      signMessage: async (message: string) => rawSigner.signMessage(message),
-    };
+    return buildV5Signer(fallbackAddress, (msg) => rawSigner.signMessage(msg));
   }
 
-  // Case 3: Dynamic wallet with connector.signMessage
+  // Case 4: Dynamic wallet with connector.signMessage
   if (rawSigner && rawSigner.connector && typeof rawSigner.connector.signMessage === "function") {
-    return {
-      walletType: EOA,
-      getAddress: async () => rawSigner.address ?? fallbackAddress,
-      signMessage: async (message: string) =>
-        rawSigner.connector.signMessage({ message }),
-    };
+    const address = rawSigner.address ?? fallbackAddress;
+    return buildV5Signer(address, (msg) => rawSigner.connector.signMessage({ message: msg }));
   }
 
-  // Case 4: signMessage only
+  // Case 5: signMessage only
   if (rawSigner && typeof rawSigner.signMessage === "function") {
-    return {
-      walletType: EOA,
-      getAddress: async () => fallbackAddress,
-      signMessage: async (message: string) => rawSigner.signMessage(message),
-    };
+    return buildV5Signer(fallbackAddress, (msg) => rawSigner.signMessage(msg));
   }
 
   // Last resort
-  return {
-    walletType: EOA,
-    getAddress: async () => fallbackAddress,
-    signMessage: async () => {
-      throw new Error("[XMTP] Cannot sign message: no compatible sign method found on wallet connector");
-    },
-  };
+  return buildV5Signer(fallbackAddress, async () => {
+    throw new Error("[XMTP] Cannot sign: no compatible method found on wallet connector");
+  });
 }
 
 /**
