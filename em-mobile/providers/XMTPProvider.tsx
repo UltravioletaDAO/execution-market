@@ -207,6 +207,29 @@ function buildNativeSigner(rawSigner: any, fallbackAddress: string): {
 }
 
 /**
+ * Portable random bytes — uses react-native-get-random-values polyfill
+ * which is already installed and works on Android/iOS dev clients.
+ * globalThis.crypto.getRandomValues is NOT available in the RN JS engine.
+ */
+function getRandomBytes(size: number): Uint8Array {
+  // react-native-get-random-values patches global.crypto on import
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("react-native-get-random-values");
+  } catch {
+    // already loaded or not available
+  }
+  const buf = new Uint8Array(size);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(buf);
+  } else {
+    // last resort: Math.random (not cryptographically secure, only for dev)
+    for (let i = 0; i < size; i++) buf[i] = Math.floor(Math.random() * 256);
+  }
+  return buf;
+}
+
+/**
  * Retrieve or generate a 32-byte AES-256 key for XMTP's local SQLite database.
  * Stored in expo-secure-store so it survives app restarts but is erased on uninstall.
  */
@@ -220,15 +243,12 @@ async function getOrCreateEncryptionKey(): Promise<Uint8Array> {
       for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
       return arr;
     }
-    const key = new Uint8Array(32);
-    globalThis.crypto.getRandomValues(key);
+    const key = getRandomBytes(32);
     const b64 = btoa(String.fromCharCode(...key));
     await SecureStore.setItemAsync("xmtp_db_key", b64);
     return key;
   } catch {
-    // Fallback: generate ephemeral key (messages won't persist across restarts)
-    const key = new Uint8Array(32);
-    globalThis.crypto.getRandomValues(key);
-    return key;
+    // Fallback: ephemeral key (won't persist across restarts)
+    return getRandomBytes(32);
   }
 }
