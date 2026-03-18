@@ -1,3 +1,5 @@
+// Must be the FIRST import — patches global.crypto before any crypto usage
+import "react-native-get-random-values";
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 
@@ -212,13 +214,6 @@ function buildNativeSigner(rawSigner: any, fallbackAddress: string): {
  * globalThis.crypto.getRandomValues is NOT available in the RN JS engine.
  */
 function getRandomBytes(size: number): Uint8Array {
-  // react-native-get-random-values patches global.crypto on import
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require("react-native-get-random-values");
-  } catch {
-    // already loaded or not available
-  }
   const buf = new Uint8Array(size);
   if (typeof crypto !== "undefined" && crypto.getRandomValues) {
     crypto.getRandomValues(buf);
