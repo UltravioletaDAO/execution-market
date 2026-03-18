@@ -1,15 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import { useXMTP } from "../providers/XMTPProvider";
 
 export interface ConversationPreview {
   id: string;
-  // peerAddress is the Ethereum address (EOA identifier) of the peer.
-  // In XMTP v5 this is derived from peerInboxId resolution.
   peerAddress: string;
   lastMessage: string | null;
   lastMessageAt: Date | null;
   unreadCount: number;
-  resolvedName?: string;
 }
 
 export function useConversations() {
@@ -21,7 +19,6 @@ export function useConversations() {
     if (!client) return;
     setIsLoading(true);
     try {
-      // XMTP v5: sync first, then list
       await client.conversations.sync().catch(() => {});
 
       const convos = await client.conversations.list();
@@ -29,39 +26,49 @@ export function useConversations() {
 
       for (const convo of convos) {
         try {
-          // v5: get the last message
-          const lastMsg = await convo.lastMessage().catch(() => null);
+          // v5: lastMessage is a property on Dm, not a method
+          const lastMsg = convo.lastMessage ?? null;
 
-          // v5: for DMs, get peer inbox ID then resolve to address
-          let peerAddress = convo.id; // fallback to convo ID
+          // v5: peerInboxId() is an async method
+          let peerAddress = convo.id;
           if (typeof convo.peerInboxId === "function") {
             try {
-              const peerInboxId = await convo.peerInboxId();
-              // Map inboxId back to identifier if possible
-              // For EOA wallets the inboxId often encodes the address
-              peerAddress = peerInboxId ?? convo.id;
+              peerAddress = (await convo.peerInboxId()) ?? convo.id;
             } catch {
               // leave as convo.id
             }
           } else if (convo.peerAddress) {
-            // Legacy v1/v2 compatibility
             peerAddress = convo.peerAddress;
           }
 
-          // v5: sentAtNs is BigInt nanoseconds
-          const lastMessageAt = lastMsg
-            ? lastMsg.sentAtNs
-              ? new Date(Number(BigInt(lastMsg.sentAtNs) / 1000000n))
-              : lastMsg.sentAt instanceof Date
-              ? lastMsg.sentAt
-              : null
-            : null;
+          // v5: sentNs (not sentAtNs) — BigInt nanoseconds
+          let lastMessageAt: Date | null = null;
+          if (lastMsg) {
+            const ns = lastMsg.sentNs ?? lastMsg.sentAtNs ?? lastMsg.insertedAtNs;
+            if (ns !== undefined && ns !== null) {
+              lastMessageAt = new Date(Number(BigInt(ns) / 1000000n));
+            } else if (lastMsg.sentAt instanceof Date) {
+              lastMessageAt = lastMsg.sentAt;
+            }
+          }
 
-          const lastMessageContent = lastMsg
-            ? typeof lastMsg.content === "string"
-              ? lastMsg.content
-              : "[Attachment]"
-            : null;
+          // v5: content() is a method, not a property
+          let lastMessageContent: string | null = null;
+          if (lastMsg) {
+            try {
+              const raw = typeof lastMsg.content === "function"
+                ? lastMsg.content()
+                : lastMsg.content;
+              lastMessageContent =
+                typeof raw === "string"
+                  ? raw
+                  : typeof raw?.text === "string"
+                  ? raw.text
+                  : lastMsg.fallback ?? null;
+            } catch {
+              lastMessageContent = lastMsg.fallback ?? null;
+            }
+          }
 
           items.push({
             id: convo.id,
@@ -71,16 +78,11 @@ export function useConversations() {
             unreadCount: 0,
           });
         } catch {
-          // Skip conversations that fail to load
+          // skip broken conversations
         }
       }
 
-      items.sort((a, b) => {
-        const ta = a.lastMessageAt?.getTime() ?? 0;
-        const tb = b.lastMessageAt?.getTime() ?? 0;
-        return tb - ta;
-      });
-
+      items.sort((a, b) => (b.lastMessageAt?.getTime() ?? 0) - (a.lastMessageAt?.getTime() ?? 0));
       setPreviews(items);
     } catch (err) {
       console.error("[XMTP] Failed to load conversations:", err);
@@ -89,29 +91,29 @@ export function useConversations() {
     }
   }, [client]);
 
+  // Load on connect
   useEffect(() => {
     if (isConnected) loadConversations();
   }, [isConnected, loadConversations]);
 
-  // Stream new conversations — v5 uses callback, not async iterator
+  // Reload every time the Messages tab comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (isConnected) loadConversations();
+    }, [isConnected, loadConversations])
+  );
+
+  // Stream new conversations
   useEffect(() => {
     if (!client) return;
     let unsubscribe: (() => void) | null = null;
 
     client.conversations
-      .stream(() => {
-        loadConversations();
-      })
-      .then((unsub: () => void) => {
-        unsubscribe = unsub;
-      })
-      .catch(() => {
-        // Stream not supported or failed — silent
-      });
+      .stream(() => { loadConversations(); })
+      .then((unsub: () => void) => { unsubscribe = unsub; })
+      .catch(() => {});
 
-    return () => {
-      unsubscribe?.();
-    };
+    return () => { unsubscribe?.(); };
   }, [client, loadConversations]);
 
   return { previews, isLoading, refresh: loadConversations };
