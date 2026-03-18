@@ -1,0 +1,98 @@
+{
+  "generated_at": "2026-03-18T04:09:35.235303+00:00",
+  "em_api_healthy": false,
+  "tasks": {
+    "total": 244,
+    "by_status": {
+      "completed": 100,
+      "submitted": 14,
+      "expired": 100,
+      "cancelled": 30
+    },
+    "by_category": {
+      "physical_presence": 8,
+      "simple_action": 200,
+      "knowledge_access": 17,
+      "research": 8,
+      "code_execution": 11
+    },
+    "by_network": {
+      "avalanche": 25,
+      "base": 75,
+      "optimism": 16,
+      "celo": 18,
+      "monad": 21,
+      "arbitrum": 18,
+      "polygon": 19,
+      "ethereum": 52
+    },
+    "category_diversity": 0.443,
+    "volume_usd": 25.28,
+    "avg_bounty_usd": 0.1,
+    "median_bounty_usd": 0.1
+  },
+  "workers": {
+    "total": 0,
+    "avg_tasks_per_worker": 0.0,
+    "specialization_index": 0.0,
+    "profiles": []
+  },
+  "evidence": {
+    "type_distribution": {},
+    "avg_per_task": 0.0,
+    "gps_pct": 0.0
+  },
+  "swarm_readiness": {
+    "task_volume": {
+      "pass": true,
+      "message": "100 completed tasks — strong signal"
+    },
+    "category_diversity": {
+      "pass": true,
+      "warn": true,
+      "message": "Low diversity (0.44) — 5 categories"
+    },
+    "worker_pool": {
+      "pass": false,
+      "message": "Only 0 workers — need more"
+    },
+    "evidence_quality": {
+      "pass": false,
+      "message": "Insufficient evidence data"
+    },
+    "swarm_modules": {
+      "pass": true,
+      "message": "All modules importable"
+    },
+    "api_connectivity": {
+      "pass": false,
+      "message": "EM API unhealthy"
+    }
+  },
+  "routing_simulation": {
+    "tasks_simulated": 20,
+    "agents_available": 24,
+    "tasks_assigned": 20,
+    "tasks_unassigned": 0,
+    "avg_score": 69.425,
+    "routing_ms": 8.8
+  },
+  "timeline": {
+    "by_day": {
+      "2026-02-17": 1,
+      "2026-02-20": 53,
+      "2026-02-21": 161,
+      "2026-02-22": 3,
+      "2026-02-27": 11,
+      "2026-02-28": 3,
+      "2026-03-01": 4,
+      "2026-03-10": 1,
+      "2026-03-14": 1,
+      "2026-03-15": 3,
+      "2026-03-16": 2,
+      "2026-03-17": 1
+    },
+    "avg_completion_hours": 0.0,
+    "busiest_day": "2026-02-21"
+  }
+}
