@@ -446,6 +446,10 @@ class EventHandlers:
             worker_wallet=worker.get("wallet_address"),
             assigned_at=datetime.now(timezone.utc).isoformat(),
             expected_completion=task.get("deadline"),
+            title=task.get("title"),
+            bounty_usdc=task.get("bounty_usd"),
+            payment_network=task.get("payment_network"),
+            category=task.get("category"),
         )
 
         events = WebSocketEvent.worker_assigned(
@@ -552,6 +556,9 @@ class EventHandlers:
             payment_initiated=payment_initiated,
             approved_at=datetime.now(timezone.utc).isoformat(),
             worker_wallet=worker_wallet,
+            title=task.get("title"),
+            bounty_usdc=task.get("bounty_usd"),
+            payment_network=task.get("payment_network"),
         )
 
         event = WebSocketEvent.submission_approved(payload)
@@ -613,6 +620,7 @@ class EventHandlers:
             can_resubmit=can_resubmit,
             rejected_at=datetime.now(timezone.utc).isoformat(),
             worker_wallet=worker_wallet,
+            title=task.get("title"),
         )
 
         event = WebSocketEvent.submission_rejected(payload)

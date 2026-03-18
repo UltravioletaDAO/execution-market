@@ -158,6 +158,10 @@ class WorkerAssignedPayload:
     worker_wallet: Optional[str] = None
     assigned_at: Optional[str] = None
     expected_completion: Optional[str] = None
+    title: Optional[str] = None
+    bounty_usdc: Optional[float] = None
+    payment_network: Optional[str] = None
+    category: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {k: v for k, v in asdict(self).items() if v is not None}
@@ -191,6 +195,9 @@ class SubmissionApprovedPayload:
     payment_initiated: bool = False
     approved_at: Optional[str] = None
     worker_wallet: Optional[str] = None
+    title: Optional[str] = None
+    bounty_usdc: Optional[float] = None
+    payment_network: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {k: v for k, v in asdict(self).items() if v is not None}
@@ -208,6 +215,7 @@ class SubmissionRejectedPayload:
     can_resubmit: bool = True
     rejected_at: Optional[str] = None
     worker_wallet: Optional[str] = None
+    title: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {k: v for k, v in asdict(self).items() if v is not None}
