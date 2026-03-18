@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -161,6 +161,10 @@ export default function MessagesScreen() {
         animationType="slide"
         onRequestClose={() => setShowNewChat(false)}
       >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1 justify-end"
+        >
         <View className="flex-1 justify-end bg-black/70">
           <View className="bg-zinc-900 rounded-t-2xl px-5 pt-5 pb-8">
             <View className="flex-row items-center justify-between mb-4">
@@ -194,6 +198,7 @@ export default function MessagesScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
