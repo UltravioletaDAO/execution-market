@@ -1,5 +1,6 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from "react-native";
 import { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useXMTP } from "../../providers/XMTPProvider";
@@ -10,6 +11,7 @@ import { dynamicClient } from "../../lib/dynamic";
 export default function MessagesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { isConnected, isConnecting, connect, connectDev, error, walletAddress, signerAvailable, isDevMode, client } = useXMTP();
   const { previews, isLoading, refresh } = useConversations();
   const [showNewChat, setShowNewChat] = useState(false);
@@ -178,7 +180,7 @@ export default function MessagesScreen() {
           className="flex-1 justify-end"
         >
         <View className="flex-1 justify-end bg-black/70">
-          <View className="bg-zinc-900 rounded-t-2xl px-5 pt-5 pb-8">
+          <View className="bg-zinc-900 rounded-t-2xl px-5 pt-5" style={{ paddingBottom: Math.max(insets.bottom + 12, 24) }}>
             <View className="flex-row items-center justify-between mb-4">
               <Text className="text-white text-lg font-semibold">{t("messages.newConversation")}</Text>
               <TouchableOpacity onPress={() => { setShowNewChat(false); setPeerInput(""); }}>
