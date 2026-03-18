@@ -996,3 +996,203 @@ class TestFactory:
         subdir = os.path.join(temp_state_dir, "nested", "feedback")
         pipeline = FeedbackPipeline(state_dir=subdir)
         assert os.path.isdir(subdir)
+
+
+# ─── EM Production Format Tests ──────────────────────────────────────────────
+
+
+class TestEMProductionFormat:
+    """Test processing of REAL EM API data structures.
+
+    The EM API returns evidence as a dict (not list):
+        {"photo_geo": {"gps": {...}, "url": "..."}, "device_metadata": {...}}
+
+    And worker identity is in 'executor_id' field.
+    These tests use the exact format from production.
+    """
+
+    @pytest.fixture
+    def em_production_task(self):
+        """Exact format from EM production API."""
+        return {
+            "id": "d07f7b10-22a0-4902-95a1-c29a65d89e3b",
+            "title": "Take a photo of screens in your area",
+            "status": "completed",
+            "category": "physical_presence",
+            "bounty_usd": 0.25,
+            "deadline": "2026-03-17T20:28:53.724815Z",
+            "created_at": "2026-03-17T16:28:54.073326Z",
+            "agent_id": "2106",
+            "executor_id": "141d3fe9-c939-4fd4-8f70-43531812bf9d",
+            "erc8004_agent_id": "2106",
+            "payment_network": "avalanche",
+            "payment_token": "USDC",
+        }
+
+    @pytest.fixture
+    def em_production_submission(self):
+        """Exact submission format from EM production API."""
+        return {
+            "submissions": [
+                {
+                    "id": "e14f36f7-66e2-4184-95c4-591ec8b9054e",
+                    "task_id": "d07f7b10-22a0-4902-95a1-c29a65d89e3b",
+                    "executor_id": "141d3fe9-c939-4fd4-8f70-43531812bf9d",
+                    "status": "accepted",
+                    "pre_check_score": 0.505,
+                    "submitted_at": "2026-03-17T17:35:41.600710Z",
+                    "evidence": {
+                        "photo_geo": {
+                            "gps": {
+                                "lat": 25.97027,
+                                "lng": -80.19491,
+                                "accuracy": 7.2,
+                            },
+                            "url": "https://cdn.example.com/photo.jpg",
+                            "exif": {"timestamp": "2026-03-17 13:35:24"},
+                            "fileUrl": "https://cdn.example.com/photo.jpg",
+                            "timestamp": "2026-03-17T17:35:41.336Z",
+                        },
+                        "device_metadata": {
+                            "gps": {
+                                "lat": 25.97027,
+                                "lng": -80.19491,
+                                "accuracy": 7.2,
+                                "timestamp": "2026-03-17T17:35:32.760Z",
+                            },
+                            "has_exif": True,
+                            "platform": "ios",
+                            "os_version": "26.3.1",
+                        },
+                    },
+                    "agent_verdict": "accepted",
+                    "agent_notes": "Good photo of screens setup. Approved.",
+                }
+            ],
+            "count": 1,
+        }
+
+    def test_executor_id_extraction(self, pipeline, em_production_task):
+        """Extracts executor_id as worker identity."""
+        worker_id = pipeline._extract_worker_id(em_production_task)
+        assert worker_id == "141d3fe9-c939-4fd4-8f70-43531812bf9d"
+
+    def test_evidence_dict_normalization(self, pipeline):
+        """Converts EM evidence dict to list format for parser."""
+        evidence_dict = {
+            "photo_geo": {
+                "gps": {"lat": 25.97, "lng": -80.19, "accuracy": 7.0},
+                "url": "https://cdn.example.com/photo.jpg",
+                "timestamp": "2026-03-17T17:35:41Z",
+            },
+            "device_metadata": {
+                "platform": "ios",
+                "os_version": "26.3.1",
+            },
+        }
+        items = pipeline._normalize_evidence_dict(evidence_dict)
+
+        # device_metadata should be skipped
+        assert len(items) == 1
+        assert items[0]["type"] == "photo_geo"
+        assert items[0]["metadata"]["latitude"] == 25.97
+        assert items[0]["metadata"]["longitude"] == -80.19
+
+    def test_submission_flattening(self, pipeline, em_production_submission):
+        """Flattens submissions into evidence items."""
+        subs = em_production_submission["submissions"]
+        items = pipeline._flatten_submissions(subs)
+
+        assert len(items) >= 1
+        assert any(item["type"] == "photo_geo" for item in items)
+
+    def test_full_em_pipeline(self, pipeline, em_production_task):
+        """Full pipeline with embedded evidence in EM dict format."""
+        # Add evidence directly as EM dict
+        em_production_task["evidence"] = {
+            "photo_geo": {
+                "gps": {"lat": 25.97, "lng": -80.19, "accuracy": 7.0},
+                "url": "https://cdn.example.com/photo.jpg",
+                "exif": {"timestamp": "2026-03-17 13:35:24"},
+                "timestamp": "2026-03-17T17:35:41Z",
+            },
+            "device_metadata": {"platform": "ios"},
+        }
+
+        feedback = pipeline.process_completion_from_task(em_production_task)
+
+        assert feedback.error is None
+        assert feedback.worker_id == "141d3fe9-c939-4fd4-8f70-43531812bf9d"
+        assert feedback.evidence_count == 1  # Only photo_geo, not device_metadata
+        assert "photo_geo" in feedback.evidence_types
+        assert feedback.quality_score > 0.5  # Geo-verified photo should score well
+
+    def test_em_text_response_evidence(self, pipeline):
+        """EM text_response evidence format."""
+        task = {
+            "id": "test-text",
+            "executor_id": "worker-text-test",
+            "category": "knowledge_access",
+            "evidence": {
+                "text_response": {
+                    "content": "The answer to the question is 42. I verified this by checking three independent sources.",
+                    "timestamp": "2026-03-18T01:00:00Z",
+                },
+            },
+        }
+        feedback = pipeline.process_completion_from_task(task)
+
+        assert feedback.error is None
+        assert feedback.evidence_count == 1
+        assert "text_response" in feedback.evidence_types
+
+    def test_em_multi_evidence_types(self, pipeline):
+        """EM task with multiple evidence types."""
+        task = {
+            "id": "test-multi",
+            "executor_id": "worker-multi-test",
+            "category": "physical_presence",
+            "evidence": {
+                "photo_geo": {
+                    "gps": {"lat": 25.8, "lng": -80.2, "accuracy": 5.0},
+                    "url": "https://cdn.example.com/photo1.jpg",
+                },
+                "text_response": {
+                    "content": "Visited the location at 2pm. Store was open. 5 customers inside.",
+                },
+                "timestamp_proof": {
+                    "timestamp": "2026-03-18T14:00:00Z",
+                    "source": "device_clock",
+                },
+                "device_metadata": {
+                    "platform": "android",
+                    "os_version": "15",
+                },
+            },
+        }
+        feedback = pipeline.process_completion_from_task(task)
+
+        assert feedback.error is None
+        assert feedback.evidence_count == 3  # photo_geo + text_response + timestamp_proof
+        assert "device_metadata" not in [e for e in feedback.evidence_types]
+        assert feedback.quality_score > 0.6  # Multiple types = diversity bonus
+
+    def test_composite_score_in_range(self, pipeline, em_production_task):
+        """Composite scores are in 0-115 range (100 base + 15 max tier bonus)."""
+        em_production_task["evidence"] = {
+            "photo_geo": {
+                "gps": {"lat": 25.97, "lng": -80.19},
+                "url": "https://cdn.example.com/photo.jpg",
+            },
+        }
+        pipeline.process_completion_from_task(em_production_task)
+
+        score = pipeline.get_composite_score(
+            "141d3fe9-c939-4fd4-8f70-43531812bf9d"
+        )
+        assert score is not None
+        assert 0 <= score.total <= 115  # 100 max base + 15 max tier bonus
+        assert 0 <= score.skill_score <= 100
+        assert 0 <= score.reputation_score <= 100
+        assert 0 <= score.reliability_score <= 100
+        assert 0 <= score.recency_score <= 100
