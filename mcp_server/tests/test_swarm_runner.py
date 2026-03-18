@@ -368,7 +368,7 @@ class TestPhaseCollect:
 
     def test_collect_with_failed_tasks(self):
         mock_em = MockEMApiClient()
-        mock_em.tasks["failed"] = [
+        mock_em.tasks["disputed"] = [
             {"id": "task-3", "error": "timeout"},
         ]
 
