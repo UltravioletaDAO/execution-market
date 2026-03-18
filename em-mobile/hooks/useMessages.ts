@@ -8,15 +8,6 @@ export interface XMTPMessage {
   sentAt: Date;
 }
 
-/**
- * useMessages — open or create a DM conversation with peerAddress and
- * stream messages using the XMTP v5 native SDK.
- *
- * v5 API differences from v3:
- *   - findOrCreateDmWithIdentity(PublicIdentity) instead of newConversation(address)
- *   - dm.streamMessages(callback) instead of for-await stream
- *   - dm.messages({ limit }) returns array directly
- */
 export function useMessages(peerAddress: string | null) {
   const { client } = useXMTP();
   const [messages, setMessages] = useState<XMTPMessage[]>([]);
@@ -34,7 +25,6 @@ export function useMessages(peerAddress: string | null) {
       try {
         await client.conversations.sync().catch(() => {});
 
-        // v5: findOrCreateDmWithIdentity takes a PublicIdentity object
         const { PublicIdentity } = await import("@xmtp/react-native-sdk");
         const identity = new PublicIdentity(peerAddress, "ETHEREUM");
         const convo = await client.conversations.findOrCreateDmWithIdentity(identity);
@@ -52,7 +42,6 @@ export function useMessages(peerAddress: string | null) {
         const unsub = await convo.streamMessages((msg: any) => {
           if (!cancelled) {
             setMessages((prev) => {
-              // avoid duplicates
               if (prev.some((m) => m.id === msg.id)) return prev;
               return [...prev, normalizeMessage(msg)];
             });
@@ -92,9 +81,11 @@ export function useMessages(peerAddress: string | null) {
 }
 
 function normalizeMessage(msg: any): XMTPMessage {
+  // v5: sentNs is a BigInt in nanoseconds (field is sentNs, not sentAtNs)
   let sentAt: Date;
-  if (msg.sentAtNs !== undefined && msg.sentAtNs !== null) {
-    sentAt = new Date(Number(BigInt(msg.sentAtNs) / 1000000n));
+  const nsValue = msg.sentNs ?? msg.sentAtNs ?? msg.insertedAtNs;
+  if (nsValue !== undefined && nsValue !== null) {
+    sentAt = new Date(Number(BigInt(nsValue) / 1000000n));
   } else if (msg.sentAt instanceof Date) {
     sentAt = msg.sentAt;
   } else if (msg.sentAt) {
@@ -103,15 +94,27 @@ function normalizeMessage(msg: any): XMTPMessage {
     sentAt = new Date();
   }
 
+  // v5: senderInboxId (not senderAddress)
   const senderAddress: string =
     msg.senderAddress ?? msg.senderInboxId ?? "unknown";
 
+  // v5: content() is a METHOD, not a property — call it
+  let content = "";
+  try {
+    const raw = typeof msg.content === "function" ? msg.content() : msg.content;
+    content =
+      typeof raw === "string"
+        ? raw
+        : typeof raw?.text === "string"
+        ? raw.text
+        : JSON.stringify(raw ?? "");
+  } catch {
+    content = msg.fallback ?? "";
+  }
+
   return {
     id: msg.id ?? String(Date.now()),
-    content:
-      typeof msg.content === "string"
-        ? msg.content
-        : JSON.stringify(msg.content ?? ""),
+    content,
     senderAddress,
     sentAt,
   };
