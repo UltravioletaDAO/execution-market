@@ -2587,6 +2587,17 @@ async def assign_task_to_worker(
         except Exception:
             pass  # Never block the assign flow
 
+        # Notify via WebSocket
+        try:
+            from websocket.integration import events as ws_events
+
+            await ws_events.worker_assigned(
+                task=task,
+                worker=executor,
+            )
+        except Exception:
+            pass  # Never block the assign flow
+
         response_data = {
             "task_id": task_id,
             "executor_id": request.executor_id,
