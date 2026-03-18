@@ -190,6 +190,7 @@ class SubmissionApprovedPayload:
     notes: Optional[str] = None
     payment_initiated: bool = False
     approved_at: Optional[str] = None
+    worker_wallet: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {k: v for k, v in asdict(self).items() if v is not None}
@@ -206,6 +207,7 @@ class SubmissionRejectedPayload:
     reason: str
     can_resubmit: bool = True
     rejected_at: Optional[str] = None
+    worker_wallet: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {k: v for k, v in asdict(self).items() if v is not None}
