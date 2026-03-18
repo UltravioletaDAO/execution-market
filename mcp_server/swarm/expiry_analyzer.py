@@ -32,11 +32,10 @@ Usage:
 
 import json
 import logging
-import math
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 from urllib.request import Request, urlopen
@@ -221,13 +220,13 @@ class ExpiryReport:
         """Human-readable summary."""
         lines = [
             f"📊 Expiry Analysis Report — {self.generated_at[:10]}",
-            f"",
+            "",
             f"Overall: {self.total_expired}/{self.total_completed + self.total_expired} "
             f"expired ({self.overall_expiry_rate:.1%}) — {self.overall_severity.value.upper()}",
             f"Workers: {self.total_workers} active, HHI={self.worker_hhi:.3f} "
             f"(top worker: {self.top_worker_share:.0%} of completions)",
-            f"",
-            f"Category Health:",
+            "",
+            "Category Health:",
         ]
 
         for ch in sorted(self.category_health, key=lambda x: -x.expiry_rate):
@@ -241,8 +240,8 @@ class ExpiryReport:
             )
 
         if self.diagnoses:
-            lines.append(f"")
-            lines.append(f"Top Diagnoses:")
+            lines.append("")
+            lines.append("Top Diagnoses:")
             # Group by reason
             reasons = defaultdict(int)
             for d in self.diagnoses:
@@ -251,15 +250,15 @@ class ExpiryReport:
                 lines.append(f"  • {reason.value}: {count} tasks")
 
         if self.countermeasures:
-            lines.append(f"")
-            lines.append(f"Recommended Countermeasures:")
+            lines.append("")
+            lines.append("Recommended Countermeasures:")
             for cm in sorted(self.countermeasures, key=lambda x: x.priority)[:5]:
                 lines.append(
                     f"  {cm.priority}. [{cm.type.value}] {cm.description} "
                     f"(impact: {cm.expected_impact:.0%}, effort: {cm.estimated_effort})"
                 )
 
-        lines.append(f"")
+        lines.append("")
         lines.append(f"Analysis took {self.analysis_duration_ms:.0f}ms")
         return "\n".join(lines)
 
@@ -351,7 +350,9 @@ class ExpiryAnalyzer:
                 if not data.get("has_more", False):
                     break
             except (URLError, HTTPError) as e:
-                logger.warning(f"Failed to fetch {status} tasks at offset {offset}: {e}")
+                logger.warning(
+                    f"Failed to fetch {status} tasks at offset {offset}: {e}"
+                )
                 break
         return tasks
 
@@ -481,9 +482,7 @@ class ExpiryAnalyzer:
             bounty = t.get("bounty_usd", 0) or 0
             # Running average for bounty
             n = ch.completed
-            ch.avg_bounty_completed = (
-                ch.avg_bounty_completed * (n - 1) + bounty
-            ) / n
+            ch.avg_bounty_completed = (ch.avg_bounty_completed * (n - 1) + bounty) / n
 
         # Process expired
         for t in expired:
@@ -585,12 +584,8 @@ class ExpiryAnalyzer:
         deadline_hours = 0.0
         if deadline_str and created_str:
             try:
-                deadline = datetime.fromisoformat(
-                    deadline_str.replace("Z", "+00:00")
-                )
-                created = datetime.fromisoformat(
-                    created_str.replace("Z", "+00:00")
-                )
+                deadline = datetime.fromisoformat(deadline_str.replace("Z", "+00:00"))
+                created = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
                 deadline_hours = (deadline - created).total_seconds() / 3600
             except (ValueError, TypeError):
                 pass
@@ -610,7 +605,11 @@ class ExpiryAnalyzer:
         # LOW_BOUNTY
         if bounty < self.low_bounty_threshold:
             scores[ExpiryReason.LOW_BOUNTY] = 0.7
-        elif ch and ch.avg_bounty_completed > 0 and bounty < ch.avg_bounty_completed * 0.5:
+        elif (
+            ch
+            and ch.avg_bounty_completed > 0
+            and bounty < ch.avg_bounty_completed * 0.5
+        ):
             scores[ExpiryReason.LOW_BOUNTY] = 0.6
 
         # SHORT_DEADLINE
@@ -717,7 +716,9 @@ class ExpiryAnalyzer:
                         f"({total_expired} expired tasks). "
                         f"These tasks can never complete without category-specific workers."
                     ),
-                    expected_impact=min(total_expired / max(report.total_expired, 1), 1.0),
+                    expected_impact=min(
+                        total_expired / max(report.total_expired, 1), 1.0
+                    ),
                     implementation=(
                         "1. Identify skills needed for each category\n"
                         "2. For code_execution: recruit developer-workers\n"

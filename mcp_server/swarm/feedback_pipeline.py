@@ -45,10 +45,9 @@ Usage:
 
 import json
 import logging
-import os
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Callable
 from urllib.request import Request, urlopen
@@ -59,7 +58,6 @@ from .evidence_parser import (
     EvidenceQuality,
     QualityAssessment,
     SkillDNA,
-    SkillDimension,
     WorkerRegistry,
 )
 from .reputation_bridge import (
@@ -70,7 +68,6 @@ from .reputation_bridge import (
 )
 from .lifecycle_manager import (
     LifecycleManager,
-    AgentState,
 )
 from .event_listener import map_categories
 
@@ -144,7 +141,9 @@ class PipelineRunResult:
         return {
             "run_id": self.run_id,
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
             "tasks_processed": self.tasks_processed,
             "tasks_succeeded": self.tasks_succeeded,
             "tasks_failed": self.tasks_failed,
@@ -310,7 +309,8 @@ class FeedbackPipeline:
 
             # Filter already-processed tasks
             new_tasks = [
-                t for t in completed_tasks
+                t
+                for t in completed_tasks
                 if t.get("id") not in self._state.processed_task_ids
             ]
 
@@ -339,10 +339,12 @@ class FeedbackPipeline:
 
                 if feedback.error:
                     result.tasks_failed += 1
-                    result.errors.append({
-                        "task_id": feedback.task_id,
-                        "error": feedback.error,
-                    })
+                    result.errors.append(
+                        {
+                            "task_id": feedback.task_id,
+                            "error": feedback.error,
+                        }
+                    )
                 else:
                     result.tasks_succeeded += 1
                     result.total_evidence_parsed += feedback.evidence_count
@@ -460,7 +462,6 @@ class FeedbackPipeline:
 
             # Update worker's Skill DNA
             dna = self.worker_registry.get_or_create(worker_id)
-            old_quality = dna.avg_quality
 
             self.evidence_parser.update_skill_dna(
                 dna, assessment, task_categories=categories
@@ -578,9 +579,7 @@ class FeedbackPipeline:
             # Wilson lower bound (conservative estimate)
             wilson_center = (p + z * z / (2 * n)) / (1 + z * z / n)
             wilson_width = (
-                z
-                * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5)
-                / (1 + z * z / n)
+                z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / (1 + z * z / n)
             )
             wilson_lower = max(0, wilson_center - wilson_width)
 
@@ -679,7 +678,9 @@ class FeedbackPipeline:
         # Try nested structures
         worker = task.get("worker", {})
         if isinstance(worker, dict):
-            nested_id = worker.get("id") or worker.get("wallet") or worker.get("address")
+            nested_id = (
+                worker.get("id") or worker.get("wallet") or worker.get("address")
+            )
             if nested_id:
                 return nested_id
 
@@ -715,9 +716,7 @@ class FeedbackPipeline:
         # Fetch evidence separately from API
         task_id = task.get("id")
         if task_id:
-            result = self._em_request(
-                "GET", f"/api/v1/tasks/{task_id}/submissions"
-            )
+            result = self._em_request("GET", f"/api/v1/tasks/{task_id}/submissions")
             if result:
                 if isinstance(result, list):
                     return self._flatten_submissions(result)
@@ -759,16 +758,20 @@ class FeedbackPipeline:
                 if ev_data.get("exif"):
                     metadata["exif"] = ev_data["exif"]
 
-                items.append({
-                    "type": ev_type,
-                    "content": content,
-                    "metadata": metadata,
-                })
+                items.append(
+                    {
+                        "type": ev_type,
+                        "content": content,
+                        "metadata": metadata,
+                    }
+                )
             else:
-                items.append({
-                    "type": ev_type,
-                    "content": str(ev_data),
-                })
+                items.append(
+                    {
+                        "type": ev_type,
+                        "content": str(ev_data),
+                    }
+                )
 
         return items
 
@@ -906,9 +909,7 @@ class FeedbackPipeline:
                 "total": len(workers),
                 "with_reputation": len(self._internal_reputations),
                 "avg_quality": (
-                    sum(w.avg_quality for w in workers) / len(workers)
-                    if workers
-                    else 0
+                    sum(w.avg_quality for w in workers) / len(workers) if workers else 0
                 ),
                 "total_tasks": sum(w.task_count for w in workers),
             },
@@ -982,17 +983,17 @@ class FeedbackPipeline:
                 internal=rep,
                 last_active=dna.last_updated if dna else None,
             )
-            scores.append({
-                "worker_id": worker_id,
-                "composite_score": round(composite.total, 2),
-                "tier": composite.tier.value,
-                "tasks": rep.total_tasks,
-                "success_rate": round(rep.success_rate, 3),
-                "avg_quality": round(dna.avg_quality, 3) if dna else 0,
-                "top_skills": (
-                    dna.get_top_skills(3) if dna else []
-                ),
-            })
+            scores.append(
+                {
+                    "worker_id": worker_id,
+                    "composite_score": round(composite.total, 2),
+                    "tier": composite.tier.value,
+                    "tasks": rep.total_tasks,
+                    "success_rate": round(rep.success_rate, 3),
+                    "avg_quality": round(dna.avg_quality, 3) if dna else 0,
+                    "top_skills": (dna.get_top_skills(3) if dna else []),
+                }
+            )
 
         scores.sort(key=lambda x: x["composite_score"], reverse=True)
         return scores[:top_n]

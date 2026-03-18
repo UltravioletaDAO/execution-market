@@ -27,7 +27,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Callable, Any
+from typing import Optional, Callable
 
 
 # ──────────────────────────────────────────────────────────────
@@ -37,6 +37,7 @@ from typing import Optional, Callable, Any
 
 class Environment(str, Enum):
     """Deployment environment."""
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
@@ -51,44 +52,47 @@ class Environment(str, Enum):
 @dataclass
 class AgentPoolConfig:
     """Agent fleet configuration."""
+
     max_agents: int = 24
-    min_healthy_agents: int = 12           # Minimum for fleet to be considered operational
+    min_healthy_agents: int = 12  # Minimum for fleet to be considered operational
     default_daily_budget_usd: float = 5.0
     default_monthly_budget_usd: float = 100.0
-    max_task_bounty_usd: float = 10.0      # Max single task cost
-    cooldown_seconds: int = 30             # Post-task cooldown
-    heartbeat_interval_seconds: int = 60   # Expected heartbeat frequency
-    stale_timeout_seconds: int = 600       # Agent considered stale after this
-    max_consecutive_failures: int = 5      # Auto-suspend after this many failures
+    max_task_bounty_usd: float = 10.0  # Max single task cost
+    cooldown_seconds: int = 30  # Post-task cooldown
+    heartbeat_interval_seconds: int = 60  # Expected heartbeat frequency
+    stale_timeout_seconds: int = 600  # Agent considered stale after this
+    max_consecutive_failures: int = 5  # Auto-suspend after this many failures
 
 
 @dataclass
 class SchedulerConfig:
     """Scheduler configuration."""
-    cycle_interval_seconds: int = 30       # How often scheduler runs
-    max_batch_size: int = 10               # Max tasks per scheduling cycle
-    urgency_critical_hours: float = 1.0    # <1h to deadline = critical
-    urgency_urgent_hours: float = 4.0      # <4h to deadline = urgent
-    urgency_relaxed_hours: float = 24.0    # >24h to deadline = relaxed
+
+    cycle_interval_seconds: int = 30  # How often scheduler runs
+    max_batch_size: int = 10  # Max tasks per scheduling cycle
+    urgency_critical_hours: float = 1.0  # <1h to deadline = critical
+    urgency_urgent_hours: float = 4.0  # <4h to deadline = urgent
+    urgency_relaxed_hours: float = 24.0  # >24h to deadline = relaxed
     retry_max_attempts: int = 3
     retry_base_delay_seconds: float = 5.0
     retry_max_delay_seconds: float = 300.0
-    circuit_breaker_threshold: int = 5     # Failures before opening circuit
+    circuit_breaker_threshold: int = 5  # Failures before opening circuit
     circuit_breaker_reset_seconds: float = 60.0
     load_balancer_window_seconds: float = 300.0
-    load_balancer_max_tasks: int = 3       # Max active tasks per agent
+    load_balancer_max_tasks: int = 3  # Max active tasks per agent
 
 
 @dataclass
 class CoordinationConfig:
     """Acontext / IRC coordination configuration."""
+
     irc_host: str = "meshrelay.local"
     irc_port: int = 6667
     irc_channel: str = "#em-swarm"
     irc_nickname_prefix: str = "EM-Agent"
-    lock_ttl_seconds: int = 300            # Auto-expire locks after 5 min
-    lock_renewal_seconds: int = 120        # Renew lock if still working at 2 min
-    auction_timeout_seconds: int = 30      # Wait for competing bids
+    lock_ttl_seconds: int = 300  # Auto-expire locks after 5 min
+    lock_renewal_seconds: int = 120  # Renew lock if still working at 2 min
+    auction_timeout_seconds: int = 30  # Wait for competing bids
     heartbeat_broadcast_seconds: int = 60  # Broadcast presence every 60s
     reconnect_delay_seconds: int = 10
     max_reconnect_attempts: int = 5
@@ -97,33 +101,36 @@ class CoordinationConfig:
 @dataclass
 class APIConfig:
     """Execution Market API configuration."""
+
     base_url: str = "https://api.execution.market"
-    api_key: str = ""                      # Loaded from env: EM_API_KEY
+    api_key: str = ""  # Loaded from env: EM_API_KEY
     timeout_seconds: int = 30
     max_retries: int = 3
-    rate_limit_rpm: int = 60               # Requests per minute
-    poll_interval_seconds: int = 15        # Task polling frequency
+    rate_limit_rpm: int = 60  # Requests per minute
+    poll_interval_seconds: int = 15  # Task polling frequency
 
 
 @dataclass
 class ReputationConfig:
     """Reputation and scoring configuration."""
+
     erc8004_network: str = "base"
     identity_contract: str = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
     reputation_contract: str = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
-    min_score_threshold: float = 0.3       # Min reputation to assign tasks
+    min_score_threshold: float = 0.3  # Min reputation to assign tasks
     quality_weight: float = 0.4
     speed_weight: float = 0.2
     reliability_weight: float = 0.3
     cost_weight: float = 0.1
-    skill_decay_days: int = 90             # Skills decay if unused for 90 days
+    skill_decay_days: int = 90  # Skills decay if unused for 90 days
 
 
 @dataclass
 class DashboardConfig:
     """Dashboard and monitoring configuration."""
+
     snapshot_interval_seconds: int = 30
-    alert_cooldown_seconds: int = 300      # Don't repeat same alert within 5 min
+    alert_cooldown_seconds: int = 300  # Don't repeat same alert within 5 min
     sla_warning_threshold: float = 0.90
     sla_critical_threshold: float = 0.75
     budget_warning_threshold: float = 0.80
@@ -135,6 +142,7 @@ class DashboardConfig:
 @dataclass
 class PersistenceConfig:
     """State persistence configuration."""
+
     state_dir: str = ".swarm_state"
     save_interval_seconds: int = 60
     max_event_history: int = 10000
@@ -145,6 +153,7 @@ class PersistenceConfig:
 @dataclass
 class LoggingConfig:
     """Logging configuration."""
+
     level: str = "INFO"
     format: str = "%(asctime)s [%(name)s] %(levelname)s: %(message)s"
     file: Optional[str] = None
@@ -155,6 +164,7 @@ class LoggingConfig:
 @dataclass
 class SwarmConfig:
     """Complete swarm configuration."""
+
     environment: Environment = Environment.PRODUCTION
     version: str = "2.0.0"
     agent_pool: AgentPoolConfig = field(default_factory=AgentPoolConfig)
@@ -166,17 +176,27 @@ class SwarmConfig:
     persistence: PersistenceConfig = field(default_factory=PersistenceConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     enabled_networks: list[str] = field(
-        default_factory=lambda: ["base", "ethereum", "polygon", "arbitrum",
-                                  "celo", "monad", "avalanche", "optimism"]
+        default_factory=lambda: [
+            "base",
+            "ethereum",
+            "polygon",
+            "arbitrum",
+            "celo",
+            "monad",
+            "avalanche",
+            "optimism",
+        ]
     )
-    features: dict[str, bool] = field(default_factory=lambda: {
-        "acontext_coordination": True,
-        "seal_bridge": True,
-        "autojob_enrichment": True,
-        "budget_enforcement": True,
-        "auto_suspension": True,
-        "irc_broadcast": True,
-    })
+    features: dict[str, bool] = field(
+        default_factory=lambda: {
+            "acontext_coordination": True,
+            "seal_bridge": True,
+            "autojob_enrichment": True,
+            "budget_enforcement": True,
+            "auto_suspension": True,
+            "irc_broadcast": True,
+        }
+    )
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -196,7 +216,9 @@ class SwarmConfig:
         if "scheduler" in data:
             config.scheduler = _merge_dataclass(SchedulerConfig, data["scheduler"])
         if "coordination" in data:
-            config.coordination = _merge_dataclass(CoordinationConfig, data["coordination"])
+            config.coordination = _merge_dataclass(
+                CoordinationConfig, data["coordination"]
+            )
         if "api" in data:
             config.api = _merge_dataclass(APIConfig, data["api"])
         if "reputation" in data:
@@ -204,7 +226,9 @@ class SwarmConfig:
         if "dashboard" in data:
             config.dashboard = _merge_dataclass(DashboardConfig, data["dashboard"])
         if "persistence" in data:
-            config.persistence = _merge_dataclass(PersistenceConfig, data["persistence"])
+            config.persistence = _merge_dataclass(
+                PersistenceConfig, data["persistence"]
+            )
         if "logging" in data:
             config.logging = _merge_dataclass(LoggingConfig, data["logging"])
         if "enabled_networks" in data:
@@ -290,6 +314,7 @@ ENVIRONMENT_OVERRIDES: dict[Environment, dict] = {
 
 class ConfigValidationError(Exception):
     """Configuration validation failed."""
+
     def __init__(self, errors: list[str]):
         self.errors = errors
         super().__init__(f"Config validation failed: {'; '.join(errors)}")
@@ -314,7 +339,9 @@ def validate_config(config: SwarmConfig) -> list[str]:
     if ap.cooldown_seconds < 0:
         errors.append("agent_pool.cooldown_seconds must be >= 0")
     if ap.stale_timeout_seconds < ap.heartbeat_interval_seconds:
-        errors.append("agent_pool.stale_timeout_seconds should be >= heartbeat_interval_seconds")
+        errors.append(
+            "agent_pool.stale_timeout_seconds should be >= heartbeat_interval_seconds"
+        )
 
     # Scheduler
     sc = config.scheduler
@@ -351,7 +378,9 @@ def validate_config(config: SwarmConfig) -> list[str]:
 
     # Reputation
     rep = config.reputation
-    weights = rep.quality_weight + rep.speed_weight + rep.reliability_weight + rep.cost_weight
+    weights = (
+        rep.quality_weight + rep.speed_weight + rep.reliability_weight + rep.cost_weight
+    )
     if abs(weights - 1.0) > 0.01:
         errors.append(f"reputation weights must sum to 1.0 (got {weights:.2f})")
     if rep.min_score_threshold < 0 or rep.min_score_threshold > 1:
@@ -360,12 +389,24 @@ def validate_config(config: SwarmConfig) -> list[str]:
     # Dashboard
     db = config.dashboard
     if db.sla_critical_threshold >= db.sla_warning_threshold:
-        errors.append("dashboard.sla_critical_threshold must be < sla_warning_threshold")
+        errors.append(
+            "dashboard.sla_critical_threshold must be < sla_warning_threshold"
+        )
 
     # Networks
-    valid_networks = {"base", "ethereum", "polygon", "arbitrum", "celo",
-                      "monad", "avalanche", "optimism", "solana", "sepolia",
-                      "base_sepolia"}
+    valid_networks = {
+        "base",
+        "ethereum",
+        "polygon",
+        "arbitrum",
+        "celo",
+        "monad",
+        "avalanche",
+        "optimism",
+        "solana",
+        "sepolia",
+        "base_sepolia",
+    }
     unknown = set(config.enabled_networks) - valid_networks
     if unknown:
         errors.append(f"Unknown networks: {unknown}")
@@ -392,8 +433,9 @@ class ConfigManager:
 
     ENV_PREFIX = "EM_SWARM_"
 
-    def __init__(self, config_path: Optional[str] = None,
-                 environment: Optional[str] = None):
+    def __init__(
+        self, config_path: Optional[str] = None, environment: Optional[str] = None
+    ):
         self._config_path = config_path
         self._environment = environment
         self._config: Optional[SwarmConfig] = None
@@ -524,8 +566,16 @@ class ConfigManager:
         """Apply environment variable overrides."""
         env_map = {
             f"{self.ENV_PREFIX}MAX_AGENTS": ("agent_pool", "max_agents", int),
-            f"{self.ENV_PREFIX}DAILY_BUDGET": ("agent_pool", "default_daily_budget_usd", float),
-            f"{self.ENV_PREFIX}CYCLE_INTERVAL": ("scheduler", "cycle_interval_seconds", int),
+            f"{self.ENV_PREFIX}DAILY_BUDGET": (
+                "agent_pool",
+                "default_daily_budget_usd",
+                float,
+            ),
+            f"{self.ENV_PREFIX}CYCLE_INTERVAL": (
+                "scheduler",
+                "cycle_interval_seconds",
+                int,
+            ),
             f"{self.ENV_PREFIX}MAX_BATCH": ("scheduler", "max_batch_size", int),
             f"{self.ENV_PREFIX}IRC_HOST": ("coordination", "irc_host", str),
             f"{self.ENV_PREFIX}IRC_PORT": ("coordination", "irc_port", int),

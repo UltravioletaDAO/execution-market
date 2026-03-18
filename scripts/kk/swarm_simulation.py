@@ -23,7 +23,6 @@ Usage:
 
 import argparse
 import json
-import os
 import random
 import sys
 import time
@@ -34,33 +33,25 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from mcp_server.swarm.reputation_bridge import (
+from mcp_server.swarm.reputation_bridge import (  # noqa: E402
     ReputationBridge,
     OnChainReputation,
     InternalReputation,
-    CompositeScore,
 )
-from mcp_server.swarm.lifecycle_manager import (
+from mcp_server.swarm.lifecycle_manager import (  # noqa: E402
     LifecycleManager,
     AgentState,
     BudgetConfig,
 )
-from mcp_server.swarm.orchestrator import (
+from mcp_server.swarm.orchestrator import (  # noqa: E402
     SwarmOrchestrator,
-    RoutingStrategy,
     TaskPriority,
-    TaskRequest,
-    Assignment,
-    RoutingFailure,
 )
-from mcp_server.swarm.coordinator import SwarmCoordinator, TaskPriority as CTP
-from mcp_server.swarm.scheduler import (
+from mcp_server.swarm.coordinator import SwarmCoordinator  # noqa: E402
+from mcp_server.swarm.scheduler import (  # noqa: E402
     SwarmScheduler,
-    CircuitBreaker,
-    UrgencyLevel,
-    AgentLoadBalancer,
 )
-from mcp_server.swarm.analytics import SwarmAnalytics, TaskEvent
+from mcp_server.swarm.analytics import SwarmAnalytics, TaskEvent  # noqa: E402
 
 
 # ──────────────────────────────────────────────────────────────
@@ -94,7 +85,13 @@ BOUNTY_RANGES = {
 }
 
 # Agent personality distribution
-PERSONALITY_TYPES = ["explorer", "specialist", "generalist", "budget_hawk", "speed_demon"]
+PERSONALITY_TYPES = [
+    "explorer",
+    "specialist",
+    "generalist",
+    "budget_hawk",
+    "speed_demon",
+]
 
 # Agent specialties
 AGENT_SPECIALTIES = {
@@ -127,7 +124,12 @@ def generate_task(task_id: int) -> dict:
 
     # Priority distribution
     priority = random.choices(
-        [TaskPriority.CRITICAL, TaskPriority.HIGH, TaskPriority.NORMAL, TaskPriority.LOW],
+        [
+            TaskPriority.CRITICAL,
+            TaskPriority.HIGH,
+            TaskPriority.NORMAL,
+            TaskPriority.LOW,
+        ],
         weights=[0.05, 0.15, 0.60, 0.20],
         k=1,
     )[0]
@@ -170,7 +172,16 @@ def generate_agent(agent_id: int) -> dict:
         "bayesian_score": round(random.uniform(0.4, 0.95), 3),
         "category_scores": category_scores,
         "chains_active": random.sample(
-            ["ethereum", "base", "polygon", "arbitrum", "optimism", "avalanche", "celo", "monad"],
+            [
+                "ethereum",
+                "base",
+                "polygon",
+                "arbitrum",
+                "optimism",
+                "avalanche",
+                "celo",
+                "monad",
+            ],
             k=random.randint(1, 5),
         ),
         "daily_budget": round(random.uniform(2.0, 20.0), 2),
@@ -194,7 +205,8 @@ class SwarmSimulation:
         self.bridge = ReputationBridge()
         self.lifecycle = LifecycleManager()
         self.orchestrator = SwarmOrchestrator(
-            self.bridge, self.lifecycle,
+            self.bridge,
+            self.lifecycle,
             min_score_threshold=10.0,
             cooldown_seconds=0,  # No cooldown in simulation
         )
@@ -303,7 +315,9 @@ class SwarmSimulation:
                     self.lifecycle.check_cooldown_expiry(agent_id)
                 if record.state == AgentState.IDLE:
                     try:
-                        self.lifecycle.transition(agent_id, AgentState.ACTIVE, "sim re-activate")
+                        self.lifecycle.transition(
+                            agent_id, AgentState.ACTIVE, "sim re-activate"
+                        )
                     except Exception:
                         pass
 
@@ -319,7 +333,9 @@ class SwarmSimulation:
                         self.lifecycle.check_cooldown_expiry(agent_id)
                     if record.state == AgentState.IDLE:
                         try:
-                            self.lifecycle.transition(agent_id, AgentState.ACTIVE, "sim re-activate")
+                            self.lifecycle.transition(
+                                agent_id, AgentState.ACTIVE, "sim re-activate"
+                            )
                         except Exception:
                             pass
 
@@ -341,14 +357,23 @@ class SwarmSimulation:
                         (t for t in self.tasks if t["task_id"] == r["task_id"]), None
                     )
                     if task_data:
-                        cat = task_data["categories"][0] if task_data["categories"] else "unknown"
+                        cat = (
+                            task_data["categories"][0]
+                            if task_data["categories"]
+                            else "unknown"
+                        )
                         strategy = r.get("strategy", "unknown")
 
                         # Track strategy results
                         if strategy not in self.results["strategy_results"]:
-                            self.results["strategy_results"][strategy] = {"assigned": 0, "total_bounty": 0.0}
+                            self.results["strategy_results"][strategy] = {
+                                "assigned": 0,
+                                "total_bounty": 0.0,
+                            }
                         self.results["strategy_results"][strategy]["assigned"] += 1
-                        self.results["strategy_results"][strategy]["total_bounty"] += task_data["bounty_usd"]
+                        self.results["strategy_results"][strategy]["total_bounty"] += (
+                            task_data["bounty_usd"]
+                        )
 
                         # Track category results
                         if cat not in self.results["category_results"]:
@@ -358,23 +383,32 @@ class SwarmSimulation:
                         # Track per-agent
                         agent_id = r.get("agent_id", 0)
                         if agent_id not in self.results["per_agent"]:
-                            self.results["per_agent"][agent_id] = {"assigned": 0, "bounty": 0.0}
+                            self.results["per_agent"][agent_id] = {
+                                "assigned": 0,
+                                "bounty": 0.0,
+                            }
                         self.results["per_agent"][agent_id]["assigned"] += 1
-                        self.results["per_agent"][agent_id]["bounty"] += task_data["bounty_usd"]
+                        self.results["per_agent"][agent_id]["bounty"] += task_data[
+                            "bounty_usd"
+                        ]
 
                         # Record in analytics
-                        self.analytics.record_event(TaskEvent(
-                            event_type="task_completed",
-                            agent_id=str(agent_id),
-                            task_id=r["task_id"],
-                            category=cat,
-                            bounty_usd=task_data["bounty_usd"],
-                            quality_rating=random.uniform(3.5, 5.0),
-                            duration_seconds=random.uniform(300, 7200),
-                        ))
+                        self.analytics.record_event(
+                            TaskEvent(
+                                event_type="task_completed",
+                                agent_id=str(agent_id),
+                                task_id=r["task_id"],
+                                category=cat,
+                                bounty_usd=task_data["bounty_usd"],
+                                quality_rating=random.uniform(3.5, 5.0),
+                                duration_seconds=random.uniform(300, 7200),
+                            )
+                        )
 
                         # Simulate task completion in coordinator
-                        self.coordinator.complete_task(r["task_id"], task_data["bounty_usd"])
+                        self.coordinator.complete_task(
+                            r["task_id"], task_data["bounty_usd"]
+                        )
 
             # Progress
             remaining = self.scheduler.pending_count
@@ -397,9 +431,7 @@ class SwarmSimulation:
 
         # Summary
         total = self.results["total_assigned"] + self.results["total_failed"]
-        success_rate = (
-            self.results["total_assigned"] / total * 100 if total > 0 else 0
-        )
+        success_rate = self.results["total_assigned"] / total * 100 if total > 0 else 0
         lines.append("📊 SUMMARY")
         lines.append(f"   Agents: {self.n_agents}")
         lines.append(f"   Tasks generated: {self.n_tasks}")
@@ -419,7 +451,11 @@ class SwarmSimulation:
             lines.append(f"   Avg cycle time: {avg:.1f}ms")
             lines.append(f"   P95 cycle time: {p95:.1f}ms")
             lines.append(f"   Total time: {sum(times):.0f}ms")
-            throughput = self.results["total_assigned"] / (sum(times) / 1000) if sum(times) > 0 else 0
+            throughput = (
+                self.results["total_assigned"] / (sum(times) / 1000)
+                if sum(times) > 0
+                else 0
+            )
             lines.append(f"   Throughput: {throughput:.0f} tasks/sec")
             lines.append("")
 
@@ -431,7 +467,11 @@ class SwarmSimulation:
                 key=lambda x: x[1]["assigned"],
                 reverse=True,
             ):
-                pct = data["assigned"] / self.results["total_assigned"] * 100 if self.results["total_assigned"] > 0 else 0
+                pct = (
+                    data["assigned"] / self.results["total_assigned"] * 100
+                    if self.results["total_assigned"] > 0
+                    else 0
+                )
                 lines.append(
                     f"   {strategy:15s}: {data['assigned']:4d} tasks ({pct:5.1f}%) "
                     f"${data['total_bounty']:8.2f} bounty"
@@ -446,7 +486,11 @@ class SwarmSimulation:
                 key=lambda x: x[1]["assigned"],
                 reverse=True,
             ):
-                pct = data["assigned"] / self.results["total_assigned"] * 100 if self.results["total_assigned"] > 0 else 0
+                pct = (
+                    data["assigned"] / self.results["total_assigned"] * 100
+                    if self.results["total_assigned"] > 0
+                    else 0
+                )
                 bar = "█" * int(pct / 2)
                 lines.append(f"   {cat:25s}: {data['assigned']:4d} ({pct:5.1f}%) {bar}")
             lines.append("")
@@ -460,7 +504,9 @@ class SwarmSimulation:
                 reverse=True,
             )[:10]
             for agent_id, data in sorted_agents:
-                agent_data = next((a for a in self.agents if a["agent_id"] == agent_id), None)
+                agent_data = next(
+                    (a for a in self.agents if a["agent_id"] == agent_id), None
+                )
                 name = agent_data["name"] if agent_data else f"agent_{agent_id}"
                 personality = agent_data["personality"] if agent_data else "?"
                 lines.append(
@@ -471,7 +517,9 @@ class SwarmSimulation:
 
         # Load distribution (Gini coefficient)
         if self.results["per_agent"]:
-            assignments = sorted([d["assigned"] for d in self.results["per_agent"].values()])
+            assignments = sorted(
+                [d["assigned"] for d in self.results["per_agent"].values()]
+            )
             n = len(assignments)
             if n > 0 and sum(assignments) > 0:
                 total_assignments = sum(assignments)
@@ -481,14 +529,18 @@ class SwarmSimulation:
                 for i, a in enumerate(assignments):
                     cumulative += a
                     gini_sum += (2 * (i + 1) - n - 1) * a
-                gini = gini_sum / (n * total_assignments) if total_assignments > 0 else 0
+                gini = (
+                    gini_sum / (n * total_assignments) if total_assignments > 0 else 0
+                )
                 lines.append("⚖️  LOAD DISTRIBUTION")
-                lines.append(f"   Gini coefficient: {gini:.3f} (0=perfect equality, 1=monopoly)")
+                lines.append(
+                    f"   Gini coefficient: {gini:.3f} (0=perfect equality, 1=monopoly)"
+                )
                 lines.append(f"   Active agents: {len(assignments)}/{self.n_agents}")
                 if assignments:
                     lines.append(f"   Min assignments: {assignments[0]}")
                     lines.append(f"   Max assignments: {assignments[-1]}")
-                    lines.append(f"   Median: {assignments[len(assignments)//2]}")
+                    lines.append(f"   Median: {assignments[len(assignments) // 2]}")
                 lines.append("")
 
         # Urgency distribution
@@ -565,15 +617,22 @@ def main():
                 "total_failed": results["total_failed"],
                 "remaining": sim.scheduler.pending_count,
                 "assignment_rate": round(
-                    results["total_assigned"] / (results["total_assigned"] + results["total_failed"]) * 100
-                    if (results["total_assigned"] + results["total_failed"]) > 0 else 0,
+                    results["total_assigned"]
+                    / (results["total_assigned"] + results["total_failed"])
+                    * 100
+                    if (results["total_assigned"] + results["total_failed"]) > 0
+                    else 0,
                     1,
                 ),
             },
             "strategy_results": results["strategy_results"],
             "category_results": results["category_results"],
             "timing": {
-                "avg_cycle_ms": round(sum(results["cycle_times"]) / len(results["cycle_times"]), 1) if results["cycle_times"] else 0,
+                "avg_cycle_ms": round(
+                    sum(results["cycle_times"]) / len(results["cycle_times"]), 1
+                )
+                if results["cycle_times"]
+                else 0,
                 "total_ms": round(sum(results["cycle_times"]), 0),
             },
             "dashboard": sim.analytics.get_dashboard(),

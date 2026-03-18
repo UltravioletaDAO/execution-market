@@ -32,7 +32,7 @@ No external dependencies. All data sourced from in-memory module state.
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -44,6 +44,7 @@ from typing import Optional
 
 class Severity(str, Enum):
     """Alert severity levels."""
+
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -52,14 +53,16 @@ class Severity(str, Enum):
 
 class FleetStatus(str, Enum):
     """Overall fleet health assessment."""
-    HEALTHY = "healthy"          # >80% agents operational, no critical alerts
-    DEGRADED = "degraded"        # 50-80% operational OR warning alerts
-    IMPAIRED = "impaired"        # 25-50% operational OR critical alerts
-    DOWN = "down"                # <25% operational OR emergency alerts
+
+    HEALTHY = "healthy"  # >80% agents operational, no critical alerts
+    DEGRADED = "degraded"  # 50-80% operational OR warning alerts
+    IMPAIRED = "impaired"  # 25-50% operational OR critical alerts
+    DOWN = "down"  # <25% operational OR emergency alerts
 
 
 class PipelineStage(str, Enum):
     """Task pipeline stages."""
+
     QUEUED = "queued"
     SCHEDULING = "scheduling"
     ASSIGNED = "assigned"
@@ -78,16 +81,17 @@ class PipelineStage(str, Enum):
 @dataclass
 class AgentStatus:
     """Current status snapshot for a single agent."""
+
     agent_id: str
     state: str = "unknown"
-    health_score: float = 0.0          # 0.0 - 1.0
+    health_score: float = 0.0  # 0.0 - 1.0
     tasks_completed_today: int = 0
     tasks_failed_today: int = 0
-    success_rate: float = 0.0          # 0.0 - 1.0
+    success_rate: float = 0.0  # 0.0 - 1.0
     avg_completion_time_s: float = 0.0
     daily_spend_usd: float = 0.0
     daily_budget_usd: float = 5.0
-    budget_utilization: float = 0.0    # 0.0 - 1.0
+    budget_utilization: float = 0.0  # 0.0 - 1.0
     last_activity_ts: float = 0.0
     current_task_id: Optional[str] = None
     specializations: list[str] = field(default_factory=list)
@@ -97,7 +101,11 @@ class AgentStatus:
     @property
     def is_stale(self) -> bool:
         """Agent hasn't reported in over 10 minutes."""
-        return (time.time() - self.last_activity_ts) > 600 if self.last_activity_ts > 0 else True
+        return (
+            (time.time() - self.last_activity_ts) > 600
+            if self.last_activity_ts > 0
+            else True
+        )
 
     @property
     def budget_headroom_usd(self) -> float:
@@ -107,6 +115,7 @@ class AgentStatus:
 @dataclass
 class PipelineMetrics:
     """Task pipeline flow metrics."""
+
     queued: int = 0
     scheduling: int = 0
     assigned: int = 0
@@ -115,10 +124,10 @@ class PipelineMetrics:
     completed_today: int = 0
     failed_today: int = 0
     expired_today: int = 0
-    throughput_per_hour: float = 0.0   # Tasks completed per hour (rolling 1h)
-    avg_queue_wait_s: float = 0.0      # Average time in queue before assignment
-    avg_completion_s: float = 0.0      # Average time from assignment to completion
-    sla_adherence: float = 1.0         # Fraction of tasks completed before deadline
+    throughput_per_hour: float = 0.0  # Tasks completed per hour (rolling 1h)
+    avg_queue_wait_s: float = 0.0  # Average time in queue before assignment
+    avg_completion_s: float = 0.0  # Average time from assignment to completion
+    sla_adherence: float = 1.0  # Fraction of tasks completed before deadline
 
     @property
     def total_active(self) -> int:
@@ -132,11 +141,12 @@ class PipelineMetrics:
 @dataclass
 class BudgetSummary:
     """Fleet-wide budget status."""
-    total_daily_budget_usd: float = 120.0   # 24 agents × $5/day default
+
+    total_daily_budget_usd: float = 120.0  # 24 agents × $5/day default
     total_spent_today_usd: float = 0.0
-    projected_daily_usd: float = 0.0        # Based on current burn rate
+    projected_daily_usd: float = 0.0  # Based on current burn rate
     agents_over_budget: int = 0
-    agents_near_budget: int = 0              # >80% utilized
+    agents_near_budget: int = 0  # >80% utilized
     burn_rate_per_hour_usd: float = 0.0
     hours_until_exhaustion: float = float("inf")
 
@@ -150,12 +160,13 @@ class BudgetSummary:
 @dataclass
 class CoordinationHealth:
     """Acontext / IRC coordination status."""
+
     irc_connected: bool = False
     active_locks: int = 0
-    stale_locks: int = 0                    # Locks held >5 min without activity
-    lock_contentions_1h: int = 0            # Times two agents tried same worker
+    stale_locks: int = 0  # Locks held >5 min without activity
+    lock_contentions_1h: int = 0  # Times two agents tried same worker
     avg_lock_duration_s: float = 0.0
-    agents_online: int = 0                  # Agents seen on IRC in last 5 min
+    agents_online: int = 0  # Agents seen on IRC in last 5 min
     last_heartbeat_ts: float = 0.0
     message_rate_per_min: float = 0.0
 
@@ -163,6 +174,7 @@ class CoordinationHealth:
 @dataclass
 class CategoryHeatmapEntry:
     """Per-agent per-category performance."""
+
     agent_id: str
     category: str
     tasks_completed: int = 0
@@ -179,6 +191,7 @@ class CategoryHeatmapEntry:
 @dataclass
 class DashboardAlert:
     """Prioritized actionable alert."""
+
     severity: Severity
     title: str
     message: str
@@ -197,11 +210,12 @@ class DashboardAlert:
 @dataclass
 class SLAMetrics:
     """Service Level Agreement tracking."""
+
     total_tasks_with_deadline: int = 0
     tasks_met_deadline: int = 0
     tasks_missed_deadline: int = 0
-    avg_deadline_margin_s: float = 0.0     # Avg time before deadline when completed
-    worst_overdue_s: float = 0.0           # Worst deadline violation
+    avg_deadline_margin_s: float = 0.0  # Avg time before deadline when completed
+    worst_overdue_s: float = 0.0  # Worst deadline violation
 
     @property
     def adherence_rate(self) -> float:
@@ -212,6 +226,7 @@ class SLAMetrics:
 @dataclass
 class DashboardSnapshot:
     """Complete fleet health snapshot at a point in time."""
+
     timestamp: float = field(default_factory=time.time)
     fleet_status: FleetStatus = FleetStatus.HEALTHY
     agent_count: int = 0
@@ -231,7 +246,9 @@ class DashboardSnapshot:
 
     @property
     def operational_rate(self) -> float:
-        return self.agents_operational / self.agent_count if self.agent_count > 0 else 0.0
+        return (
+            self.agents_operational / self.agent_count if self.agent_count > 0 else 0.0
+        )
 
     def summary_line(self) -> str:
         """One-line summary for IRC broadcast."""
@@ -259,7 +276,13 @@ class DashboardSnapshot:
             "coordination": asdict(self.coordination),
             "sla": asdict(self.sla),
             "alert_count": len(self.alerts),
-            "critical_alerts": len([a for a in self.alerts if a.severity in (Severity.CRITICAL, Severity.EMERGENCY)]),
+            "critical_alerts": len(
+                [
+                    a
+                    for a in self.alerts
+                    if a.severity in (Severity.CRITICAL, Severity.EMERGENCY)
+                ]
+            ),
             "uptime_seconds": self.uptime_seconds,
         }
 
@@ -267,6 +290,7 @@ class DashboardSnapshot:
 @dataclass
 class HealthReport:
     """Condensed health report for notifications."""
+
     fleet_status: FleetStatus
     summary: str
     critical_alerts: list[str] = field(default_factory=list)
@@ -289,13 +313,13 @@ class SwarmDashboard:
     """
 
     # Thresholds
-    STALE_AGENT_TIMEOUT_S = 600       # 10 min without activity = stale
-    BUDGET_WARNING_THRESHOLD = 0.80   # 80% budget utilized = warning
-    FAILURE_STREAK_WARNING = 3        # 3 consecutive failures = warning
-    FAILURE_STREAK_CRITICAL = 5       # 5 consecutive failures = critical
-    SLA_WARNING_THRESHOLD = 0.90      # <90% SLA adherence = warning
-    SLA_CRITICAL_THRESHOLD = 0.75     # <75% SLA adherence = critical
-    LOCK_STALE_TIMEOUT_S = 300        # 5 min lock without activity = stale
+    STALE_AGENT_TIMEOUT_S = 600  # 10 min without activity = stale
+    BUDGET_WARNING_THRESHOLD = 0.80  # 80% budget utilized = warning
+    FAILURE_STREAK_WARNING = 3  # 3 consecutive failures = warning
+    FAILURE_STREAK_CRITICAL = 5  # 5 consecutive failures = critical
+    SLA_WARNING_THRESHOLD = 0.90  # <90% SLA adherence = warning
+    SLA_CRITICAL_THRESHOLD = 0.75  # <75% SLA adherence = critical
+    LOCK_STALE_TIMEOUT_S = 300  # 5 min lock without activity = stale
 
     def __init__(self):
         self._start_time = time.time()
@@ -303,7 +327,9 @@ class SwarmDashboard:
         self._pipeline_events: list[dict] = []
         self._lock_events: list[dict] = []
         self._agent_states: dict[str, str] = {}
-        self._agent_budgets: dict[str, tuple[float, float]] = {}  # agent -> (spent, limit)
+        self._agent_budgets: dict[
+            str, tuple[float, float]
+        ] = {}  # agent -> (spent, limit)
         self._agent_tasks: dict[str, Optional[str]] = {}  # agent -> current task
         self._agent_specializations: dict[str, list[str]] = {}
         self._agent_start_times: dict[str, float] = {}
@@ -311,14 +337,20 @@ class SwarmDashboard:
         self._active_locks: dict[str, dict] = {}  # worker_id -> {agent, ts, task}
         self._contention_count_1h = 0
         self._agents_seen_irc: dict[str, float] = {}  # agent -> last seen ts
-        self._message_timestamps: list[float] = []  # IRC message timestamps for rate calc
+        self._message_timestamps: list[
+            float
+        ] = []  # IRC message timestamps for rate calc
         self._deadline_results: list[dict] = []  # {met: bool, margin_s: float}
         self._alert_history: list[DashboardAlert] = []
 
     # ──────── Data Ingestion ────────
 
-    def register_agent(self, agent_id: str, budget_limit_usd: float = 5.0,
-                       specializations: Optional[list[str]] = None):
+    def register_agent(
+        self,
+        agent_id: str,
+        budget_limit_usd: float = 5.0,
+        specializations: Optional[list[str]] = None,
+    ):
         """Register an agent in the dashboard."""
         if agent_id not in self._agent_states:
             self._agent_states[agent_id] = "idle"
@@ -331,7 +363,9 @@ class SwarmDashboard:
         if agent_id not in self._agent_start_times:
             self._agent_start_times[agent_id] = time.time()
 
-    def update_agent_state(self, agent_id: str, state: str, task_id: Optional[str] = None):
+    def update_agent_state(
+        self, agent_id: str, state: str, task_id: Optional[str] = None
+    ):
         """Update agent lifecycle state."""
         self._agent_states[agent_id] = state
         if task_id is not None:
@@ -339,10 +373,17 @@ class SwarmDashboard:
         elif state in ("idle", "suspended", "degraded"):
             self._agent_tasks[agent_id] = None
 
-    def record_task_event(self, agent_id: str, task_id: str, event_type: str,
-                          category: str = "", bounty_usd: float = 0.0,
-                          quality: float = 0.0, duration_s: float = 0.0,
-                          deadline_ts: Optional[float] = None):
+    def record_task_event(
+        self,
+        agent_id: str,
+        task_id: str,
+        event_type: str,
+        category: str = "",
+        bounty_usd: float = 0.0,
+        quality: float = 0.0,
+        duration_s: float = 0.0,
+        deadline_ts: Optional[float] = None,
+    ):
         """Record a task lifecycle event."""
         event = {
             "agent_id": agent_id,
@@ -369,18 +410,27 @@ class SwarmDashboard:
             margin = deadline_ts - completed_at
             self._deadline_results.append({"met": met, "margin_s": margin})
 
-    def record_lock_event(self, event_type: str, worker_id: str,
-                          agent_id: str = "", task_type: str = ""):
+    def record_lock_event(
+        self, event_type: str, worker_id: str, agent_id: str = "", task_type: str = ""
+    ):
         """Record an Acontext lock event."""
         now = time.time()
         if event_type == "lock":
-            if worker_id in self._active_locks and self._active_locks[worker_id]["agent"] != agent_id:
+            if (
+                worker_id in self._active_locks
+                and self._active_locks[worker_id]["agent"] != agent_id
+            ):
                 self._contention_count_1h += 1
-            self._active_locks[worker_id] = {"agent": agent_id, "ts": now, "task": task_type}
+            self._active_locks[worker_id] = {
+                "agent": agent_id,
+                "ts": now,
+                "task": task_type,
+            }
         elif event_type == "release":
             self._active_locks.pop(worker_id, None)
-        self._lock_events.append({"type": event_type, "worker": worker_id,
-                                   "agent": agent_id, "ts": now})
+        self._lock_events.append(
+            {"type": event_type, "worker": worker_id, "agent": agent_id, "ts": now}
+        )
 
     def record_irc_activity(self, agent_id: str):
         """Record that an agent was seen on IRC."""
@@ -433,7 +483,9 @@ class SwarmDashboard:
         heatmap = self._build_heatmap(today_start)
 
         # Generate alerts
-        alerts = self._generate_alerts(agent_statuses, pipeline, budget, coordination, sla, now)
+        alerts = self._generate_alerts(
+            agent_statuses, pipeline, budget, coordination, sla, now
+        )
 
         # Fleet status
         agent_count = len(agent_statuses) if agent_statuses else 0
@@ -467,8 +519,11 @@ class SwarmDashboard:
         """Generate a condensed health report for notifications."""
         snapshot = self.generate_snapshot()
 
-        critical = [a.message for a in snapshot.alerts
-                    if a.severity in (Severity.CRITICAL, Severity.EMERGENCY)]
+        critical = [
+            a.message
+            for a in snapshot.alerts
+            if a.severity in (Severity.CRITICAL, Severity.EMERGENCY)
+        ]
 
         recommendations = []
         if snapshot.agents_degraded > 0:
@@ -501,8 +556,9 @@ class SwarmDashboard:
 
     # ──────── Internal Builders ────────
 
-    def _build_agent_status(self, agent_id: str, now: float,
-                            today_start: float) -> AgentStatus:
+    def _build_agent_status(
+        self, agent_id: str, now: float, today_start: float
+    ) -> AgentStatus:
         """Build status for a single agent."""
         events = self._agent_events.get(agent_id, [])
         today_events = [e for e in events if e["timestamp"] >= today_start]
@@ -519,11 +575,10 @@ class SwarmDashboard:
         if completed:
             avg_time = sum(e["duration_s"] for e in completed) / len(completed)
 
-        avg_quality = 0.0
         if completed:
             qualities = [e["quality"] for e in completed if e["quality"] > 0]
             if qualities:
-                avg_quality = sum(qualities) / len(qualities)
+                sum(qualities) / len(qualities)
 
         spent, limit = self._agent_budgets.get(agent_id, (0.0, 5.0))
         utilization = min(1.0, spent / limit) if limit > 0 else 0.0
@@ -563,9 +618,14 @@ class SwarmDashboard:
             uptime_seconds=round(now - start_time, 1),
         )
 
-    def _compute_health_score(self, success_rate: float, budget_util: float,
-                              consecutive_failures: int, now: float,
-                              last_activity: float) -> float:
+    def _compute_health_score(
+        self,
+        success_rate: float,
+        budget_util: float,
+        consecutive_failures: int,
+        now: float,
+        last_activity: float,
+    ) -> float:
         """Compute agent health score (0.0-1.0)."""
         # Base: success rate (40%)
         score = success_rate * 0.4
@@ -595,14 +655,18 @@ class SwarmDashboard:
 
         return min(1.0, max(0.0, score))
 
-    def _build_pipeline_metrics(self, now: float, today_start: float) -> PipelineMetrics:
+    def _build_pipeline_metrics(
+        self, now: float, today_start: float
+    ) -> PipelineMetrics:
         """Build task pipeline metrics."""
-        today_events = [e for e in self._pipeline_events if e["timestamp"] >= today_start]
+        today_events = [
+            e for e in self._pipeline_events if e["timestamp"] >= today_start
+        ]
 
         completed = [e for e in today_events if e["event_type"] == "task_completed"]
         failed = [e for e in today_events if e["event_type"] == "task_failed"]
         expired = [e for e in today_events if e["event_type"] == "task_expired"]
-        assigned = [e for e in today_events if e["event_type"] == "task_assigned"]
+        [e for e in today_events if e["event_type"] == "task_assigned"]
 
         # Throughput: completions in last hour
         one_hour_ago = now - 3600
@@ -630,14 +694,19 @@ class SwarmDashboard:
             sla_adherence=self._build_sla_metrics().adherence_rate,
         )
 
-    def _build_budget_summary(self, agents: list[AgentStatus], now: float,
-                              today_start: float) -> BudgetSummary:
+    def _build_budget_summary(
+        self, agents: list[AgentStatus], now: float, today_start: float
+    ) -> BudgetSummary:
         """Build fleet-wide budget summary."""
         total_budget = sum(a.daily_budget_usd for a in agents) if agents else 0.0
         total_spent = sum(a.daily_spend_usd for a in agents) if agents else 0.0
         over_budget = sum(1 for a in agents if a.daily_spend_usd > a.daily_budget_usd)
-        near_budget = sum(1 for a in agents if a.budget_utilization >= self.BUDGET_WARNING_THRESHOLD
-                         and a.daily_spend_usd <= a.daily_budget_usd)
+        near_budget = sum(
+            1
+            for a in agents
+            if a.budget_utilization >= self.BUDGET_WARNING_THRESHOLD
+            and a.daily_spend_usd <= a.daily_budget_usd
+        )
 
         hours_elapsed = max(0.1, (now - today_start) / 3600)
         burn_rate = total_spent / hours_elapsed
@@ -652,19 +721,21 @@ class SwarmDashboard:
             agents_over_budget=over_budget,
             agents_near_budget=near_budget,
             burn_rate_per_hour_usd=round(burn_rate, 2),
-            hours_until_exhaustion=round(hours_left, 1) if hours_left < 1e6 else float("inf"),
+            hours_until_exhaustion=round(hours_left, 1)
+            if hours_left < 1e6
+            else float("inf"),
         )
 
     def _build_coordination_health(self, now: float) -> CoordinationHealth:
         """Build Acontext coordination health metrics."""
         stale_locks = sum(
-            1 for lock in self._active_locks.values()
+            1
+            for lock in self._active_locks.values()
             if (now - lock["ts"]) > self.LOCK_STALE_TIMEOUT_S
         )
 
         agents_online = sum(
-            1 for ts in self._agents_seen_irc.values()
-            if (now - ts) <= 300
+            1 for ts in self._agents_seen_irc.values() if (now - ts) <= 300
         )
 
         avg_duration = 0.0
@@ -674,7 +745,11 @@ class SwarmDashboard:
             for release in completed_locks:
                 # Find corresponding lock
                 for lock in reversed(self._lock_events):
-                    if lock["type"] == "lock" and lock["worker"] == release["worker"] and lock["ts"] < release["ts"]:
+                    if (
+                        lock["type"] == "lock"
+                        and lock["worker"] == release["worker"]
+                        and lock["ts"] < release["ts"]
+                    ):
                         durations.append(release["ts"] - lock["ts"])
                         break
             if durations:
@@ -733,13 +808,13 @@ class SwarmDashboard:
                         # Running average
                         total = entry.tasks_completed
                         entry.avg_quality = (
-                            (entry.avg_quality * (total - 1) + e["quality"]) / total
-                        )
+                            entry.avg_quality * (total - 1) + e["quality"]
+                        ) / total
                     if e.get("duration_s", 0) > 0:
                         total = entry.tasks_completed
                         entry.avg_duration_s = (
-                            (entry.avg_duration_s * (total - 1) + e["duration_s"]) / total
-                        )
+                            entry.avg_duration_s * (total - 1) + e["duration_s"]
+                        ) / total
                 elif e["event_type"] == "task_failed":
                     entry.tasks_failed += 1
 
@@ -747,110 +822,144 @@ class SwarmDashboard:
 
     # ──────── Alert Generation ────────
 
-    def _generate_alerts(self, agents: list[AgentStatus], pipeline: PipelineMetrics,
-                         budget: BudgetSummary, coordination: CoordinationHealth,
-                         sla: SLAMetrics, now: float) -> list[DashboardAlert]:
+    def _generate_alerts(
+        self,
+        agents: list[AgentStatus],
+        pipeline: PipelineMetrics,
+        budget: BudgetSummary,
+        coordination: CoordinationHealth,
+        sla: SLAMetrics,
+        now: float,
+    ) -> list[DashboardAlert]:
         """Generate prioritized alerts based on current state."""
         alerts = []
 
         # Per-agent alerts
         for agent in agents:
             if agent.consecutive_failures >= self.FAILURE_STREAK_CRITICAL:
-                alerts.append(DashboardAlert(
-                    severity=Severity.CRITICAL,
-                    title=f"Agent {agent.agent_id} failure streak",
-                    message=f"{agent.consecutive_failures} consecutive failures. Agent may be misconfigured or encountering systematic errors.",
-                    agent_id=agent.agent_id,
-                    action_required="Investigate error logs and consider suspending agent",
-                ))
+                alerts.append(
+                    DashboardAlert(
+                        severity=Severity.CRITICAL,
+                        title=f"Agent {agent.agent_id} failure streak",
+                        message=f"{agent.consecutive_failures} consecutive failures. Agent may be misconfigured or encountering systematic errors.",
+                        agent_id=agent.agent_id,
+                        action_required="Investigate error logs and consider suspending agent",
+                    )
+                )
             elif agent.consecutive_failures >= self.FAILURE_STREAK_WARNING:
-                alerts.append(DashboardAlert(
-                    severity=Severity.WARNING,
-                    title=f"Agent {agent.agent_id} failing",
-                    message=f"{agent.consecutive_failures} consecutive failures.",
-                    agent_id=agent.agent_id,
-                    action_required="Monitor next task attempt",
-                    auto_resolvable=True,
-                ))
+                alerts.append(
+                    DashboardAlert(
+                        severity=Severity.WARNING,
+                        title=f"Agent {agent.agent_id} failing",
+                        message=f"{agent.consecutive_failures} consecutive failures.",
+                        agent_id=agent.agent_id,
+                        action_required="Monitor next task attempt",
+                        auto_resolvable=True,
+                    )
+                )
 
             if agent.daily_spend_usd > agent.daily_budget_usd:
-                alerts.append(DashboardAlert(
-                    severity=Severity.WARNING,
-                    title=f"Agent {agent.agent_id} over budget",
-                    message=f"${agent.daily_spend_usd:.2f} spent vs ${agent.daily_budget_usd:.2f} limit",
-                    agent_id=agent.agent_id,
-                    action_required="Review budget allocation or pause agent",
-                ))
+                alerts.append(
+                    DashboardAlert(
+                        severity=Severity.WARNING,
+                        title=f"Agent {agent.agent_id} over budget",
+                        message=f"${agent.daily_spend_usd:.2f} spent vs ${agent.daily_budget_usd:.2f} limit",
+                        agent_id=agent.agent_id,
+                        action_required="Review budget allocation or pause agent",
+                    )
+                )
 
             if agent.is_stale and agent.state not in ("suspended", "initializing"):
-                alerts.append(DashboardAlert(
-                    severity=Severity.WARNING,
-                    title=f"Agent {agent.agent_id} unresponsive",
-                    message=f"No activity for {int((now - agent.last_activity_ts) / 60)} minutes",
-                    agent_id=agent.agent_id,
-                    action_required="Check agent health and restart if needed",
-                    auto_resolvable=True,
-                ))
+                alerts.append(
+                    DashboardAlert(
+                        severity=Severity.WARNING,
+                        title=f"Agent {agent.agent_id} unresponsive",
+                        message=f"No activity for {int((now - agent.last_activity_ts) / 60)} minutes",
+                        agent_id=agent.agent_id,
+                        action_required="Check agent health and restart if needed",
+                        auto_resolvable=True,
+                    )
+                )
 
         # Fleet-wide alerts
         if budget.agents_over_budget > len(agents) * 0.25:
-            alerts.append(DashboardAlert(
-                severity=Severity.CRITICAL,
-                title="Fleet budget crisis",
-                message=f"{budget.agents_over_budget} agents over daily budget",
-                action_required="Review fleet budget strategy",
-            ))
+            alerts.append(
+                DashboardAlert(
+                    severity=Severity.CRITICAL,
+                    title="Fleet budget crisis",
+                    message=f"{budget.agents_over_budget} agents over daily budget",
+                    action_required="Review fleet budget strategy",
+                )
+            )
 
         if coordination.stale_locks > 0:
-            alerts.append(DashboardAlert(
-                severity=Severity.WARNING,
-                title="Stale worker locks",
-                message=f"{coordination.stale_locks} lock(s) held >5 minutes without activity",
-                action_required="Force-release stale locks to unblock worker assignment",
-                auto_resolvable=True,
-            ))
+            alerts.append(
+                DashboardAlert(
+                    severity=Severity.WARNING,
+                    title="Stale worker locks",
+                    message=f"{coordination.stale_locks} lock(s) held >5 minutes without activity",
+                    action_required="Force-release stale locks to unblock worker assignment",
+                    auto_resolvable=True,
+                )
+            )
 
         if not coordination.irc_connected and len(agents) > 1:
-            alerts.append(DashboardAlert(
-                severity=Severity.WARNING,
-                title="IRC coordination offline",
-                message="Acontext not connected — agents cannot coordinate hiring",
-                action_required="Reconnect to MeshRelay IRC",
-            ))
+            alerts.append(
+                DashboardAlert(
+                    severity=Severity.WARNING,
+                    title="IRC coordination offline",
+                    message="Acontext not connected — agents cannot coordinate hiring",
+                    action_required="Reconnect to MeshRelay IRC",
+                )
+            )
 
         if sla.adherence_rate < self.SLA_CRITICAL_THRESHOLD:
-            alerts.append(DashboardAlert(
-                severity=Severity.CRITICAL,
-                title="SLA critically degraded",
-                message=f"Only {sla.adherence_rate:.0%} of deadlined tasks completed on time",
-                action_required="Increase agent capacity or extend deadlines",
-            ))
+            alerts.append(
+                DashboardAlert(
+                    severity=Severity.CRITICAL,
+                    title="SLA critically degraded",
+                    message=f"Only {sla.adherence_rate:.0%} of deadlined tasks completed on time",
+                    action_required="Increase agent capacity or extend deadlines",
+                )
+            )
         elif sla.adherence_rate < self.SLA_WARNING_THRESHOLD:
-            alerts.append(DashboardAlert(
-                severity=Severity.WARNING,
-                title="SLA degrading",
-                message=f"{sla.adherence_rate:.0%} deadline adherence (target: 90%+)",
-                action_required="Monitor task throughput",
-                auto_resolvable=True,
-            ))
+            alerts.append(
+                DashboardAlert(
+                    severity=Severity.WARNING,
+                    title="SLA degrading",
+                    message=f"{sla.adherence_rate:.0%} deadline adherence (target: 90%+)",
+                    action_required="Monitor task throughput",
+                    auto_resolvable=True,
+                )
+            )
 
-        if pipeline.expired_today > pipeline.completed_today and pipeline.completed_today > 0:
-            alerts.append(DashboardAlert(
-                severity=Severity.WARNING,
-                title="High task expiry rate",
-                message=f"{pipeline.expired_today} expired vs {pipeline.completed_today} completed today",
-                action_required="Review task deadlines and agent assignment speed",
-            ))
+        if (
+            pipeline.expired_today > pipeline.completed_today
+            and pipeline.completed_today > 0
+        ):
+            alerts.append(
+                DashboardAlert(
+                    severity=Severity.WARNING,
+                    title="High task expiry rate",
+                    message=f"{pipeline.expired_today} expired vs {pipeline.completed_today} completed today",
+                    action_required="Review task deadlines and agent assignment speed",
+                )
+            )
 
         # Sort by severity (emergency first)
-        severity_order = {Severity.EMERGENCY: 0, Severity.CRITICAL: 1,
-                          Severity.WARNING: 2, Severity.INFO: 3}
+        severity_order = {
+            Severity.EMERGENCY: 0,
+            Severity.CRITICAL: 1,
+            Severity.WARNING: 2,
+            Severity.INFO: 3,
+        }
         alerts.sort(key=lambda a: severity_order.get(a.severity, 99))
 
         return alerts
 
-    def _assess_fleet_status(self, total: int, operational: int,
-                             alerts: list[DashboardAlert]) -> FleetStatus:
+    def _assess_fleet_status(
+        self, total: int, operational: int, alerts: list[DashboardAlert]
+    ) -> FleetStatus:
         """Determine overall fleet health status."""
         if total == 0:
             return FleetStatus.DOWN
@@ -876,13 +985,19 @@ class SwarmDashboard:
     def get_top_performers(self, n: int = 5) -> list[AgentStatus]:
         """Get top N agents by health score."""
         snapshot = self.generate_snapshot()
-        return sorted(snapshot.agent_statuses, key=lambda a: a.health_score, reverse=True)[:n]
+        return sorted(
+            snapshot.agent_statuses, key=lambda a: a.health_score, reverse=True
+        )[:n]
 
     def get_struggling_agents(self) -> list[AgentStatus]:
         """Get agents that need attention."""
         snapshot = self.generate_snapshot()
-        return [a for a in snapshot.agent_statuses
-                if a.health_score < 0.5 or a.consecutive_failures >= self.FAILURE_STREAK_WARNING]
+        return [
+            a
+            for a in snapshot.agent_statuses
+            if a.health_score < 0.5
+            or a.consecutive_failures >= self.FAILURE_STREAK_WARNING
+        ]
 
     def reset_daily_counters(self):
         """Reset daily counters (call at midnight)."""

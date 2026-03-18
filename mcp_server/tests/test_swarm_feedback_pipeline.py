@@ -19,7 +19,6 @@ import os
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -29,27 +28,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from swarm.feedback_pipeline import (
     FeedbackPipeline,
-    CompletionFeedback,
     PipelineRunResult,
     PipelineState,
 )
 from swarm.evidence_parser import (
-    EvidenceParser,
     EvidenceQuality,
-    QualityAssessment,
-    SkillDNA,
-    SkillDimension,
-    SkillSignal,
-    WorkerRegistry,
 )
-from swarm.reputation_bridge import (
-    ReputationBridge,
-    InternalReputation,
-    OnChainReputation,
-    CompositeScore,
-    ReputationTier,
-)
-from swarm.lifecycle_manager import LifecycleManager, AgentState
 
 
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -280,7 +264,9 @@ class TestCompletionProcessing:
         }
         feedback = pipeline.process_completion_from_task(task)
         assert feedback.error is not None
-        assert "worker" in feedback.error.lower() or "identity" in feedback.error.lower()
+        assert (
+            "worker" in feedback.error.lower() or "identity" in feedback.error.lower()
+        )
 
 
 # ─── Skill DNA Update Tests ──────────────────────────────────────────────────
@@ -338,7 +324,9 @@ class TestSkillDNAUpdates:
 
         dna = pipeline.worker_registry.get_worker("worker-alice-0x123")
         top = dna.get_top_skills(5)
-        assert len(top) >= 3, "Rich evidence should populate at least 3 skill dimensions"
+        assert len(top) >= 3, (
+            "Rich evidence should populate at least 3 skill dimensions"
+        )
 
     def test_categories_tracked(self, pipeline, sample_task, sample_task_rich):
         """Task categories are tracked in Skill DNA."""
@@ -373,11 +361,12 @@ class TestReputationUpdates:
         assert rep.total_tasks == 1
         assert rep.bayesian_score > 0
 
-    def test_reputation_improves_with_good_work(self, pipeline, sample_task, sample_task_rich):
+    def test_reputation_improves_with_good_work(
+        self, pipeline, sample_task, sample_task_rich
+    ):
         """Good evidence improves reputation score."""
         pipeline.process_completion_from_task(sample_task)
-        rep1 = pipeline.get_internal_reputation("worker-alice-0x123")
-        score_after_1 = rep1.bayesian_score
+        pipeline.get_internal_reputation("worker-alice-0x123")
 
         pipeline.process_completion_from_task(sample_task_rich)
         rep2 = pipeline.get_internal_reputation("worker-alice-0x123")
@@ -404,12 +393,18 @@ class TestReputationUpdates:
         assert rep.successful_tasks == 0
         assert rep.consecutive_failures == 1
 
-    def test_success_rate_computation(self, pipeline, sample_task, sample_task_suspicious):
+    def test_success_rate_computation(
+        self, pipeline, sample_task, sample_task_suspicious
+    ):
         """Success rate is correctly computed."""
         # Process 2 good, 1 suspicious for same worker
         task1 = {**sample_task, "worker_id": "worker-test"}
         task2 = {**sample_task, "id": "task-002b", "worker_id": "worker-test"}
-        task3 = {**sample_task_suspicious, "id": "task-003b", "worker_id": "worker-test"}
+        task3 = {
+            **sample_task_suspicious,
+            "id": "task-003b",
+            "worker_id": "worker-test",
+        }
 
         pipeline.process_completion_from_task(task1)
         pipeline.process_completion_from_task(task2)
@@ -428,8 +423,7 @@ class TestReputationUpdates:
         assert len(rep.category_scores) > 0
         # photo_verification maps to verification, photo, evidence
         assert any(
-            cat in rep.category_scores
-            for cat in ["verification", "photo", "evidence"]
+            cat in rep.category_scores for cat in ["verification", "photo", "evidence"]
         )
 
     def test_consecutive_failure_penalty(self, pipeline, sample_task_suspicious):
@@ -589,9 +583,7 @@ class TestPipelineStateDataclass:
         assert restored.total_tasks_processed == state.total_tasks_processed
 
     def test_caps_at_500_ids(self):
-        state = PipelineState(
-            processed_task_ids=[f"task-{i}" for i in range(600)]
-        )
+        state = PipelineState(processed_task_ids=[f"task-{i}" for i in range(600)])
         data = state.to_dict()
         assert len(data["processed_task_ids"]) == 500
 
@@ -612,7 +604,9 @@ class TestWorkerProfiles:
         assert "reputation" in profile
         assert "composite_score" in profile
 
-    def test_worker_profile_includes_tasks(self, pipeline, sample_task, sample_task_rich):
+    def test_worker_profile_includes_tasks(
+        self, pipeline, sample_task, sample_task_rich
+    ):
         """Worker profile reflects task history."""
         pipeline.process_completion_from_task(sample_task)
         pipeline.process_completion_from_task(sample_task_rich)
@@ -807,7 +801,9 @@ class TestIntegration:
         # Alice has 2 tasks + rich evidence, should rank higher
         assert alice_entry["composite_score"] >= bob_entry["composite_score"]
 
-    def test_persistence_round_trip(self, temp_state_dir, sample_task, sample_task_rich):
+    def test_persistence_round_trip(
+        self, temp_state_dir, sample_task, sample_task_rich
+    ):
         """Full pipeline persists and restores correctly."""
         # Session 1: process tasks
         p1 = FeedbackPipeline(state_dir=temp_state_dir)
@@ -818,7 +814,7 @@ class TestIntegration:
         p1._save_state()
         p1._save_worker_registry()
 
-        profile_before = p1.get_worker_profile("worker-alice-0x123")
+        p1.get_worker_profile("worker-alice-0x123")
 
         # Session 2: restore from disk
         p2 = FeedbackPipeline(state_dir=temp_state_dir)
@@ -849,9 +845,7 @@ class TestIntegration:
         # For now, verify callback is set
         assert pipeline.on_feedback is not None
 
-    def test_stats_after_processing(
-        self, pipeline, sample_task, sample_task_minimal
-    ):
+    def test_stats_after_processing(self, pipeline, sample_task, sample_task_minimal):
         """Stats reflect processed tasks."""
         pipeline.process_completion_from_task(sample_task)
         pipeline.process_completion_from_task(sample_task_minimal)
@@ -960,8 +954,14 @@ class TestEdgeCases:
             "worker_id": "w-edge",
             "evidence": [
                 {"type": "photo", "content": "photo 1 of the storefront"},
-                {"type": "photo", "content": "photo 2 showing interior details and layout"},
-                {"type": "photo", "content": "photo 3 close-up of product display shelves"},
+                {
+                    "type": "photo",
+                    "content": "photo 2 showing interior details and layout",
+                },
+                {
+                    "type": "photo",
+                    "content": "photo 3 close-up of product display shelves",
+                },
             ],
         }
         feedback = pipeline.process_completion_from_task(task)
@@ -994,7 +994,7 @@ class TestFactory:
     def test_state_dir_created(self, temp_state_dir):
         """State directory is created if it doesn't exist."""
         subdir = os.path.join(temp_state_dir, "nested", "feedback")
-        pipeline = FeedbackPipeline(state_dir=subdir)
+        FeedbackPipeline(state_dir=subdir)
         assert os.path.isdir(subdir)
 
 
@@ -1173,7 +1173,9 @@ class TestEMProductionFormat:
         feedback = pipeline.process_completion_from_task(task)
 
         assert feedback.error is None
-        assert feedback.evidence_count == 3  # photo_geo + text_response + timestamp_proof
+        assert (
+            feedback.evidence_count == 3
+        )  # photo_geo + text_response + timestamp_proof
         assert "device_metadata" not in [e for e in feedback.evidence_types]
         assert feedback.quality_score > 0.6  # Multiple types = diversity bonus
 
@@ -1187,9 +1189,7 @@ class TestEMProductionFormat:
         }
         pipeline.process_completion_from_task(em_production_task)
 
-        score = pipeline.get_composite_score(
-            "141d3fe9-c939-4fd4-8f70-43531812bf9d"
-        )
+        score = pipeline.get_composite_score("141d3fe9-c939-4fd4-8f70-43531812bf9d")
         assert score is not None
         assert 0 <= score.total <= 115  # 100 max base + 15 max tier bonus
         assert 0 <= score.skill_score <= 100

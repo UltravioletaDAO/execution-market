@@ -15,11 +15,9 @@ Coverage:
 """
 
 import time
-import math
 from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 
 from mcp_server.swarm.scheduler import (
     SwarmScheduler,
@@ -27,7 +25,6 @@ from mcp_server.swarm.scheduler import (
     SchedulingBatch,
     SwarmConditions,
     UrgencyLevel,
-    URGENCY_MULTIPLIERS,
     CircuitBreaker,
     CircuitState,
     RetryScheduler,
@@ -36,9 +33,6 @@ from mcp_server.swarm.scheduler import (
 from mcp_server.swarm.orchestrator import (
     RoutingStrategy,
     TaskPriority,
-    TaskRequest,
-    Assignment,
-    RoutingFailure,
 )
 from mcp_server.swarm.lifecycle_manager import AgentState
 from mcp_server.swarm.reputation_bridge import ReputationBridge
@@ -63,13 +57,13 @@ def make_coordinator_with_agents(n_agents=5, activate=True):
     bridge = ReputationBridge()
     lifecycle = LifecycleManager()
     orchestrator = SwarmOrchestrator(bridge, lifecycle, min_score_threshold=0.0)
-    
+
     # Mock coordinator
     coordinator = MagicMock()
     coordinator.lifecycle = lifecycle
     coordinator.orchestrator = orchestrator
     coordinator.bridge = bridge
-    
+
     for i in range(n_agents):
         agent_id = i + 1
         wallet = f"0x{'0' * 39}{agent_id}"
@@ -81,12 +75,17 @@ def make_coordinator_with_agents(n_agents=5, activate=True):
         lifecycle.transition(agent_id, AgentState.IDLE)
         if activate:
             lifecycle.transition(agent_id, AgentState.ACTIVE)
-        
+
         # Register reputation data so orchestrator can score agents
         orchestrator.register_reputation(
             agent_id=agent_id,
             on_chain=OnChainReputation(agent_id=agent_id, wallet_address=wallet),
-            internal=InternalReputation(agent_id=agent_id, bayesian_score=0.7, total_tasks=10, successful_tasks=8),
+            internal=InternalReputation(
+                agent_id=agent_id,
+                bayesian_score=0.7,
+                total_tasks=10,
+                successful_tasks=8,
+            ),
         )
 
     return coordinator
@@ -190,7 +189,11 @@ class TestEffectivePriority:
         )
         relaxed_deadline = datetime.now(timezone.utc) + timedelta(days=7)
         relaxed = scheduler.add_task(
-            "r", "Relaxed", ["x"], priority=TaskPriority.NORMAL, deadline=relaxed_deadline
+            "r",
+            "Relaxed",
+            ["x"],
+            priority=TaskPriority.NORMAL,
+            deadline=relaxed_deadline,
         )
         assert urgent.effective_priority > relaxed.effective_priority
 
@@ -228,8 +231,11 @@ class TestStrategySelection:
     def test_urgent_task_gets_best_fit(self):
         scheduler = make_scheduler()
         task = ScheduledTask(
-            task_id="t1", title="Urgent", categories=["photo"],
-            bounty_usd=5.0, priority=TaskPriority.NORMAL,
+            task_id="t1",
+            title="Urgent",
+            categories=["photo"],
+            bounty_usd=5.0,
+            priority=TaskPriority.NORMAL,
             urgency=UrgencyLevel.CRITICAL,
         )
         conditions = SwarmConditions(total_agents=10, idle_agents=5)
@@ -240,8 +246,11 @@ class TestStrategySelection:
     def test_critical_priority_gets_best_fit(self):
         scheduler = make_scheduler()
         task = ScheduledTask(
-            task_id="t1", title="Critical", categories=["photo"],
-            bounty_usd=50.0, priority=TaskPriority.CRITICAL,
+            task_id="t1",
+            title="Critical",
+            categories=["photo"],
+            bounty_usd=50.0,
+            priority=TaskPriority.CRITICAL,
         )
         conditions = SwarmConditions(total_agents=10, idle_agents=5)
         strategy, _ = scheduler.select_strategy(task, conditions)
@@ -250,11 +259,15 @@ class TestStrategySelection:
     def test_high_budget_gets_budget_aware(self):
         scheduler = make_scheduler()
         task = ScheduledTask(
-            task_id="t1", title="Normal", categories=["photo"],
-            bounty_usd=5.0, priority=TaskPriority.NORMAL,
+            task_id="t1",
+            title="Normal",
+            categories=["photo"],
+            bounty_usd=5.0,
+            priority=TaskPriority.NORMAL,
         )
         conditions = SwarmConditions(
-            total_agents=10, idle_agents=5,
+            total_agents=10,
+            idle_agents=5,
             avg_budget_utilization=0.75,  # 75% used
         )
         strategy, reason = scheduler.select_strategy(task, conditions)
@@ -264,13 +277,19 @@ class TestStrategySelection:
     def test_overloaded_gets_round_robin(self):
         scheduler = make_scheduler()
         task = ScheduledTask(
-            task_id="t1", title="Normal", categories=["photo"],
-            bounty_usd=5.0, priority=TaskPriority.NORMAL,
+            task_id="t1",
+            title="Normal",
+            categories=["photo"],
+            bounty_usd=5.0,
+            priority=TaskPriority.NORMAL,
         )
         # 2 available agents, 10 pending tasks → load factor 5.0
         conditions = SwarmConditions(
-            total_agents=10, idle_agents=1, active_agents=1,
-            working_agents=8, pending_tasks=10,
+            total_agents=10,
+            idle_agents=1,
+            active_agents=1,
+            working_agents=8,
+            pending_tasks=10,
         )
         strategy, reason = scheduler.select_strategy(task, conditions)
         assert strategy == RoutingStrategy.ROUND_ROBIN
@@ -279,8 +298,11 @@ class TestStrategySelection:
     def test_specialist_categories_get_specialist(self):
         scheduler = make_scheduler()
         task = ScheduledTask(
-            task_id="t1", title="Code task", categories=["code_execution"],
-            bounty_usd=5.0, priority=TaskPriority.NORMAL,
+            task_id="t1",
+            title="Code task",
+            categories=["code_execution"],
+            bounty_usd=5.0,
+            priority=TaskPriority.NORMAL,
         )
         conditions = SwarmConditions(total_agents=10, idle_agents=5)
         strategy, reason = scheduler.select_strategy(task, conditions)
@@ -290,8 +312,11 @@ class TestStrategySelection:
     def test_default_gets_best_fit(self):
         scheduler = make_scheduler()
         task = ScheduledTask(
-            task_id="t1", title="Normal", categories=["simple_action"],
-            bounty_usd=5.0, priority=TaskPriority.NORMAL,
+            task_id="t1",
+            title="Normal",
+            categories=["simple_action"],
+            bounty_usd=5.0,
+            priority=TaskPriority.NORMAL,
         )
         conditions = SwarmConditions(total_agents=10, idle_agents=5)
         strategy, _ = scheduler.select_strategy(task, conditions)
@@ -301,12 +326,16 @@ class TestStrategySelection:
         """Urgent tasks use BEST_FIT even with high budget usage."""
         scheduler = make_scheduler()
         task = ScheduledTask(
-            task_id="t1", title="Urgent rich", categories=["photo"],
-            bounty_usd=5.0, priority=TaskPriority.NORMAL,
+            task_id="t1",
+            title="Urgent rich",
+            categories=["photo"],
+            bounty_usd=5.0,
+            priority=TaskPriority.NORMAL,
             urgency=UrgencyLevel.URGENT,
         )
         conditions = SwarmConditions(
-            total_agents=10, idle_agents=5,
+            total_agents=10,
+            idle_agents=5,
             avg_budget_utilization=0.9,
         )
         strategy, _ = scheduler.select_strategy(task, conditions)
@@ -369,7 +398,8 @@ class TestCircuitBreaker:
 
     def test_half_open_max_calls(self):
         cb = CircuitBreaker(
-            "test", failure_threshold=1,
+            "test",
+            failure_threshold=1,
             recovery_timeout_seconds=0.01,
             half_open_max_calls=2,
         )
@@ -430,7 +460,7 @@ class TestRetryScheduler:
 
     def test_delay_increases_on_average(self):
         """Over many samples, later attempts should have higher average delay."""
-        rs = RetryScheduler(base_delay=1.0, max_delay=1000.0)
+        RetryScheduler(base_delay=1.0, max_delay=1000.0)
         early_delays = []
         late_delays = []
         for _ in range(100):
@@ -440,7 +470,9 @@ class TestRetryScheduler:
             rs_local.next_delay("t1", 2)
             late_delays.append(rs_local.next_delay("t1", 3))
         # Average late delay should be higher (with high probability)
-        assert sum(late_delays) / len(late_delays) > sum(early_delays) / len(early_delays)
+        assert sum(late_delays) / len(late_delays) > sum(early_delays) / len(
+            early_delays
+        )
 
     def test_delay_capped(self):
         rs = RetryScheduler(base_delay=1.0, max_delay=5.0, max_retries=100)
@@ -547,25 +579,33 @@ class TestSwarmConditions:
 
     def test_load_factor(self):
         c = SwarmConditions(
-            total_agents=10, idle_agents=2, active_agents=3,
+            total_agents=10,
+            idle_agents=2,
+            active_agents=3,
             pending_tasks=15,
         )
         assert c.load_factor == 3.0
 
     def test_load_factor_no_available(self):
-        c = SwarmConditions(total_agents=10, idle_agents=0, active_agents=0, pending_tasks=5)
+        c = SwarmConditions(
+            total_agents=10, idle_agents=0, active_agents=0, pending_tasks=5
+        )
         assert c.load_factor == float("inf")
 
     def test_is_overloaded(self):
         c = SwarmConditions(
-            total_agents=10, idle_agents=1, active_agents=1,
+            total_agents=10,
+            idle_agents=1,
+            active_agents=1,
             pending_tasks=10,
         )
         assert c.is_overloaded is True
 
     def test_is_underloaded(self):
         c = SwarmConditions(
-            total_agents=10, idle_agents=5, active_agents=5,
+            total_agents=10,
+            idle_agents=5,
+            active_agents=5,
             pending_tasks=2,
         )
         assert c.is_underloaded is True
@@ -638,14 +678,15 @@ class TestBatchComputation:
         scheduler.add_task("normal", "Normal", ["photo"], bounty_usd=5.0)
         critical_deadline = datetime.now(timezone.utc) + timedelta(minutes=20)
         scheduler.add_task(
-            "critical", "Critical", ["code_execution"],
-            bounty_usd=5.0, deadline=critical_deadline,
+            "critical",
+            "Critical",
+            ["code_execution"],
+            bounty_usd=5.0,
+            deadline=critical_deadline,
         )
         batches = scheduler.compute_schedule()
         # Critical batch should be first
-        assert any(
-            t.task_id == "critical" for t in batches[0].tasks
-        )
+        assert any(t.task_id == "critical" for t in batches[0].tasks)
 
     def test_backoff_tasks_deferred(self):
         """Tasks in backoff are skipped."""
@@ -740,7 +781,7 @@ class TestSchedulingCycle:
         scheduler._circuit_breakers["em_api"] = CircuitBreaker(
             "em_api", failure_threshold=2
         )
-        
+
         # Each task routes through the orchestrator (no EM API call in test),
         # but we manually trip the breaker for testing
         scheduler._circuit_breakers["em_api"].record_failure()
@@ -892,10 +933,13 @@ class TestEdgeCases:
         scheduler = make_scheduler(max_batch_size=10)
         for i in range(100):
             scheduler.add_task(
-                f"t{i}", f"Task {i}",
+                f"t{i}",
+                f"Task {i}",
                 [["photo", "code_execution", "research"][i % 3]],
                 bounty_usd=float(i),
-                priority=[TaskPriority.LOW, TaskPriority.NORMAL, TaskPriority.HIGH][i % 3],
+                priority=[TaskPriority.LOW, TaskPriority.NORMAL, TaskPriority.HIGH][
+                    i % 3
+                ],
             )
         batches = scheduler.compute_schedule()
         total = sum(len(b.tasks) for b in batches)
@@ -907,10 +951,18 @@ class TestEdgeCases:
         """Tasks with different urgencies should be ordered properly in batches."""
         scheduler = make_scheduler(max_batch_size=100)
         # All different categories to get separate batches
-        scheduler.add_task("relaxed", "Relaxed", ["cat_a"],
-                          deadline=datetime.now(timezone.utc) + timedelta(days=5))
-        scheduler.add_task("critical", "Critical", ["cat_b"],
-                          deadline=datetime.now(timezone.utc) + timedelta(minutes=15))
+        scheduler.add_task(
+            "relaxed",
+            "Relaxed",
+            ["cat_a"],
+            deadline=datetime.now(timezone.utc) + timedelta(days=5),
+        )
+        scheduler.add_task(
+            "critical",
+            "Critical",
+            ["cat_b"],
+            deadline=datetime.now(timezone.utc) + timedelta(minutes=15),
+        )
         scheduler.add_task("normal", "Normal", ["cat_c"])
 
         batches = scheduler.compute_schedule()
