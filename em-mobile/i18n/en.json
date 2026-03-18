@@ -88,7 +88,16 @@
     "feeBreakdownTitle": "Payment Breakdown",
     "bountyLabel": "Bounty",
     "workerReceives": "Worker receives",
-    "platformFeeLabel": "Platform fee"
+    "platformFeeLabel": "Platform fee",
+    "reputationTx": "Reputation TX",
+    "noPhotoEvidence": "No photo evidence",
+    "showCoordinates": "Show coordinates",
+    "hideCoordinates": "Hide coordinates",
+    "coordAccuracy": "Accuracy:",
+    "agentVerification": "Agent verification",
+    "verificationScore": "Score:",
+    "verificationPass": "Pass",
+    "verificationFail": "Fail"
   },
   "publish": {
     "title": "Publish Task",
@@ -205,7 +214,8 @@
     "city": "City",
     "country": "Country",
     "photoPermissionDenied": "Photo library access is required to change your avatar",
-    "avatarUploadError": "Failed to upload avatar. Please try again."
+    "avatarUploadError": "Failed to upload avatar. Please try again.",
+    "namePlaceholder": "e.g. Maria, FastRunner, JuanDev"
   },
   "auth": {
     "connectWallet": "Connect Wallet",
@@ -233,7 +243,8 @@
     "emailOptional": "EMAIL (optional)",
     "location": "LOCATION",
     "understood": "Got it",
-    "viewMyTasks": "View My Tasks"
+    "viewMyTasks": "View My Tasks",
+    "close": "Close"
   },
   "categories": {
     "physical_presence": "Physical Presence",
@@ -536,6 +547,23 @@
     "webOnlySubtitle": "Encrypted messaging via XMTP is available on the web app. Open execution.market in your browser to send and receive messages.",
     "openWebApp": "Open Web App",
     "webOnlyNote": "Native messaging requires EAS Build. Coming soon.",
-    "browserSdkNote": "Powered by XMTP browser SDK. Your wallet signature enables end-to-end encryption."
+    "browserSdkNote": "Powered by XMTP native SDK. Your wallet signature enables end-to-end encryption.",
+    "emailOnlyWarning": "You signed in with email. XMTP requires your active wallet connector.",
+    "connectWallet": "Connect Wallet",
+    "devMode": "🧪 Dev Mode (temp identity)",
+    "devModeActive": "Dev mode active — temporary identity, not linked to your wallet",
+    "devModeBadge": "Dev Mode — temp identity",
+    "newConversation": "New conversation",
+    "addressLabel": "XMTP address (0x...)",
+    "addressPlaceholder": "0x...",
+    "openChat": "Open chat",
+    "startConversation": "Start conversation",
+    "noXmtpV5Title": "No XMTP v5 account",
+    "noXmtpV5Body": "This address does not have a registered XMTP v5 account. Ask the recipient to activate XMTP in a compatible app (Coinbase Wallet, Converse, etc.).",
+    "createDmError": "Could not start conversation",
+    "firstMessage": "Send the first message",
+    "inputPlaceholder": "Write a message...",
+    "noMessages": "No messages",
+    "messageAgent": "Message Agent"
   }
 }

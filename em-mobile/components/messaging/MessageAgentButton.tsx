@@ -1,6 +1,7 @@
 import { TouchableOpacity, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useXMTP } from "../../providers/XMTPProvider";
 
 interface Props {
@@ -8,9 +9,11 @@ interface Props {
   label?: string;
 }
 
-export function MessageAgentButton({ walletAddress, label = "Mensaje al Agente" }: Props) {
+export function MessageAgentButton({ walletAddress, label }: Props) {
+  const { t } = useTranslation();
   const { isConnected } = useXMTP();
   const router = useRouter();
+  const resolvedLabel = label ?? t("messages.messageAgent");
 
   if (!isConnected || !walletAddress) return null;
 
@@ -21,7 +24,7 @@ export function MessageAgentButton({ walletAddress, label = "Mensaje al Agente" 
       activeOpacity={0.7}
     >
       <Ionicons name="chatbubble-outline" size={18} color="white" />
-      <Text className="text-white font-medium">{label}</Text>
+      <Text className="text-white font-medium">{resolvedLabel}</Text>
     </TouchableOpacity>
   );
 }

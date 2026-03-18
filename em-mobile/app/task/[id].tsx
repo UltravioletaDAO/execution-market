@@ -222,6 +222,7 @@ function EvidenceModal({
     comment?: string;
   } | null;
 }) {
+  const { t } = useTranslation();
   const screenWidth = Dimensions.get("window").width;
   const [showCoords, setShowCoords] = useState(false);
 
@@ -246,7 +247,7 @@ function EvidenceModal({
                 />
               ) : (
                 <View className="items-center justify-center py-20 px-8">
-                  <Text className="text-gray-500 text-sm">No photo evidence</Text>
+                  <Text className="text-gray-500 text-sm">{t("task.noPhotoEvidence")}</Text>
                 </View>
               )}
 
@@ -258,7 +259,7 @@ function EvidenceModal({
                     onPress={() => setShowCoords(!showCoords)}
                   >
                     <Text className="text-blue-400 text-xs font-medium">
-                      {showCoords ? "Hide coordinates" : "Show coordinates"}
+                      {showCoords ? t("task.hideCoordinates") : t("task.showCoordinates")}
                     </Text>
                   </Pressable>
                   {showCoords && (
@@ -268,7 +269,7 @@ function EvidenceModal({
                       </Text>
                       {gps.accuracy != null && (
                         <Text className="text-gray-500 text-xs">
-                          Accuracy: {"\u00B1"}{gps.accuracy.toFixed(0)}m
+                          {t("task.coordAccuracy")} {"\u00B1"}{gps.accuracy.toFixed(0)}m
                         </Text>
                       )}
                     </View>
@@ -280,7 +281,7 @@ function EvidenceModal({
               {agentAnalysis && (agentAnalysis.checks?.length || agentAnalysis.comment) ? (
                 <View className="border-t border-gray-800 px-4 py-3">
                   <Text className="text-gray-500 text-xs uppercase font-bold mb-2">
-                    Agent verification
+                    {t("task.agentVerification")}
                   </Text>
 
                   {/* Overall score */}
@@ -288,7 +289,7 @@ function EvidenceModal({
                     <View className="flex-row items-center mb-2">
                       <View className={`w-2 h-2 rounded-full mr-2 ${agentAnalysis.passed ? "bg-green-500" : "bg-yellow-500"}`} />
                       <Text className="text-white text-sm font-medium">
-                        Score: {typeof agentAnalysis.score === "number" && agentAnalysis.score <= 1
+                        {t("task.verificationScore")} {typeof agentAnalysis.score === "number" && agentAnalysis.score <= 1
                           ? `${(agentAnalysis.score * 100).toFixed(0)}%`
                           : `${agentAnalysis.score}%`}
                       </Text>
@@ -312,7 +313,7 @@ function EvidenceModal({
                           {formatCheckName(check.name)}
                         </Text>
                         <Text className={`text-xs font-medium ${check.passed ? "text-green-500" : "text-red-400"}`}>
-                          {check.passed ? "Pass" : "Fail"}
+                          {check.passed ? t("task.verificationPass") : t("task.verificationFail")}
                         </Text>
                       </View>
                       {check.reason ? (
@@ -336,7 +337,7 @@ function EvidenceModal({
 
               {/* Close button */}
               <Pressable className="py-3 items-center border-t border-gray-800 active:opacity-70" onPress={onClose}>
-                <Text className="text-white font-medium">Close</Text>
+                <Text className="text-white font-medium">{t("common.close")}</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -876,7 +877,7 @@ export default function TaskDetailScreen() {
                       onPress={() => openUrl(getExplorerTxUrl("base", taskRatings.agentRating!.reputation_tx!))}
                     >
                       <Text className="text-blue-400 text-xs">
-                        Reputation TX · {taskRatings.agentRating.reputation_tx.slice(0, 10)}... ↗
+                        {t("task.reputationTx")} · {taskRatings.agentRating.reputation_tx.slice(0, 10)}... ↗
                       </Text>
                     </Pressable>
                   )}
@@ -918,7 +919,7 @@ export default function TaskDetailScreen() {
                       onPress={() => openUrl(getExplorerTxUrl("base", taskRatings.workerRating!.reputation_tx!))}
                     >
                       <Text className="text-blue-400 text-xs">
-                        Reputation TX · {taskRatings.workerRating.reputation_tx.slice(0, 10)}... ↗
+                        {t("task.reputationTx")} · {taskRatings.workerRating.reputation_tx.slice(0, 10)}... ↗
                       </Text>
                     </Pressable>
                   )}

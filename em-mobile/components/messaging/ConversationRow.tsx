@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import type { ConversationPreview } from "../../hooks/useConversations";
 
 interface Props {
@@ -9,8 +10,9 @@ interface Props {
 }
 
 export function ConversationRow({ preview, onPress }: Props) {
+  const { t } = useTranslation();
   const shortAddress = `${preview.peerAddress.slice(0, 6)}...${preview.peerAddress.slice(-4)}`;
-  const content = preview.lastMessage ?? "Sin mensajes";
+  const content = preview.lastMessage ?? t("messages.noMessages");
   const avatarLetters = preview.peerAddress.slice(2, 4).toUpperCase();
 
   return (

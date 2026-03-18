@@ -88,7 +88,16 @@
     "feeBreakdownTitle": "Desglose de Pago",
     "bountyLabel": "Recompensa",
     "workerReceives": "Trabajador recibe",
-    "platformFeeLabel": "Comision plataforma"
+    "platformFeeLabel": "Comision plataforma",
+    "reputationTx": "TX de Reputacion",
+    "noPhotoEvidence": "Sin evidencia de foto",
+    "showCoordinates": "Mostrar coordenadas",
+    "hideCoordinates": "Ocultar coordenadas",
+    "coordAccuracy": "Precision:",
+    "agentVerification": "Verificacion del agente",
+    "verificationScore": "Puntaje:",
+    "verificationPass": "Aprobado",
+    "verificationFail": "Fallido"
   },
   "publish": {
     "title": "Publicar Tarea",
@@ -205,7 +214,8 @@
     "city": "Ciudad",
     "country": "Pais",
     "photoPermissionDenied": "Se requiere acceso a la galeria para cambiar tu avatar",
-    "avatarUploadError": "Error al subir el avatar. Intenta de nuevo."
+    "avatarUploadError": "Error al subir el avatar. Intenta de nuevo.",
+    "namePlaceholder": "Ej. Maria, FastRunner, JuanDev"
   },
   "auth": {
     "connectWallet": "Conectar Wallet",
@@ -233,7 +243,8 @@
     "emailOptional": "EMAIL (opcional)",
     "location": "UBICACION",
     "understood": "Entendido",
-    "viewMyTasks": "Ver Mis Tareas"
+    "viewMyTasks": "Ver Mis Tareas",
+    "close": "Cerrar"
   },
   "categories": {
     "physical_presence": "Presencia Fisica",
@@ -527,15 +538,32 @@
   },
   "messages": {
     "title": "Mensajes XMTP",
-    "subtitle": "Activa mensajería encriptada para comunicarte directamente con agentes AI",
+    "subtitle": "Activa mensajeria encriptada para comunicarte directamente con agentes AI",
     "connect": "Activar Mensajes",
     "connecting": "Conectando...",
     "header": "Mensajes",
-    "empty": "No hay conversaciones aún",
+    "empty": "No hay conversaciones aun",
     "webOnlyTitle": "Mensajes",
-    "webOnlySubtitle": "Los mensajes encriptados via XMTP están disponibles en la app web. Abre execution.market en tu navegador para enviar y recibir mensajes.",
+    "webOnlySubtitle": "Los mensajes encriptados via XMTP estan disponibles en la app web. Abre execution.market en tu navegador para enviar y recibir mensajes.",
     "openWebApp": "Abrir App Web",
-    "webOnlyNote": "Los mensajes nativos requieren EAS Build. Próximamente.",
-    "browserSdkNote": "Impulsado por el SDK web de XMTP. La firma de tu wallet habilita el cifrado extremo a extremo."
+    "webOnlyNote": "Los mensajes nativos requieren EAS Build. Proximamente.",
+    "browserSdkNote": "Impulsado por el SDK nativo de XMTP. La firma de tu wallet habilita el cifrado extremo a extremo.",
+    "emailOnlyWarning": "Entraste con email. XMTP necesita tu wallet connector activo.",
+    "connectWallet": "Conectar Wallet",
+    "devMode": "🧪 Modo Dev (identidad temporal)",
+    "devModeActive": "Modo Dev activo — identidad temporal, no vinculada a tu wallet",
+    "devModeBadge": "Modo Dev — identidad temporal",
+    "newConversation": "Nueva conversacion",
+    "addressLabel": "Direccion XMTP (0x...)",
+    "addressPlaceholder": "0x...",
+    "openChat": "Abrir chat",
+    "startConversation": "Iniciar conversacion",
+    "noXmtpV5Title": "Sin cuenta XMTP v5",
+    "noXmtpV5Body": "Esta direccion no tiene una cuenta XMTP v5 registrada. Pidele al destinatario que active XMTP en una app compatible (Coinbase Wallet, Converse, etc.).",
+    "createDmError": "No se pudo iniciar la conversacion",
+    "firstMessage": "Envia el primer mensaje",
+    "inputPlaceholder": "Escribe un mensaje...",
+    "noMessages": "Sin mensajes",
+    "messageAgent": "Mensaje al Agente"
   }
 }
