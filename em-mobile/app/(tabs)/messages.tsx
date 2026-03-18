@@ -1,4 +1,5 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -125,7 +126,12 @@ export default function MessagesScreen() {
     <View className="flex-1 bg-black">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
-        <Text className="text-white text-2xl font-bold">{t("messages.header")}</Text>
+        <View className="flex-row items-center">
+          <Text className="text-white text-2xl font-bold">{t("messages.header")}</Text>
+          <View className="ml-2 border border-white/10 rounded px-1.5 py-0.5">
+            <Text className="text-white/40 text-[10px] font-mono">{t("messages.xmtpBadge")}</Text>
+          </View>
+        </View>
         <TouchableOpacity
           onPress={() => setShowNewChat(true)}
           className="w-9 h-9 bg-white rounded-full items-center justify-center"
@@ -163,6 +169,18 @@ export default function MessagesScreen() {
               >
                 <Text className="text-white/60 text-sm">{t("messages.startConversation")}</Text>
               </TouchableOpacity>
+              <View className="flex-row items-center mt-6">
+                <Ionicons name="lock-closed" size={10} color="rgba(255,255,255,0.3)" />
+                <Text className="text-white/30 text-[10px] ml-1">{t("messages.e2eEncrypted")} · XMTP</Text>
+              </View>
+              {(client?.accountIdentifier?.identifier ?? client?.address ?? walletAddress) && (
+                <View className="mt-3 items-center">
+                  <Text className="text-white/30 text-[10px]">{t("messages.yourXmtpAddress")}</Text>
+                  <Text className="text-white/40 text-[10px] font-mono mt-0.5">
+                    {client?.accountIdentifier?.identifier ?? client?.address ?? walletAddress}
+                  </Text>
+                </View>
+              )}
             </View>
           }
         />
