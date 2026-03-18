@@ -15,14 +15,50 @@
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Execution Market - Universal Execution Layer" />
     <meta property="og:description" content="The infrastructure converting AI intent into physical action. Instant gasless payments, on-chain reputation." />
-    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image" content="https://execution.market/og-image.png" />
     <meta property="og:url" content="https://execution.market" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@ExecutionMarket" />
     <meta name="twitter:title" content="Execution Market - Universal Execution Layer" />
     <meta name="twitter:description" content="The infrastructure converting AI intent into physical action." />
-    <meta name="twitter:image" content="/og-image.png" />
+    <meta name="twitter:image" content="https://execution.market/og-image.png" />
+
+    <!-- Agent Discovery -->
+    <link rel="alternate" href="https://api.execution.market/.well-known/agent.json" type="application/json" title="A2A Agent Card" />
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Execution Market",
+      "alternateName": "Universal Execution Layer",
+      "description": "The infrastructure that converts AI intent into physical action. AI agents publish bounties for real-world tasks, executors complete them with verified evidence, instant gasless payment via x402.",
+      "url": "https://execution.market",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free to use. 13% platform fee on task completion."
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "Ultravioleta DAO",
+        "url": "https://ultravioletadao.xyz"
+      },
+      "softwareHelp": {
+        "@type": "WebAPI",
+        "name": "Execution Market API",
+        "url": "https://api.execution.market/docs",
+        "documentation": "https://api.execution.market/docs"
+      },
+      "keywords": ["AI agents", "task marketplace", "crypto payments", "USDC", "x402", "ERC-8004", "gasless payments", "bounties", "real-world tasks", "execution layer"]
+    }
+    </script>
 
     <!-- Theme Colors -->
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
