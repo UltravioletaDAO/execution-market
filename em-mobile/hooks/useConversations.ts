@@ -93,26 +93,24 @@ export function useConversations() {
     if (isConnected) loadConversations();
   }, [isConnected, loadConversations]);
 
-  // Stream new conversations
+  // Stream new conversations — v5 uses callback, not async iterator
   useEffect(() => {
     if (!client) return;
-    let cancelled = false;
+    let unsubscribe: (() => void) | null = null;
 
-    const stream = async () => {
-      try {
-        const s = await client.conversations.stream();
-        for await (const _convo of s) {
-          if (cancelled) break;
-          loadConversations();
-        }
-      } catch {
-        // Stream ended or not supported
-      }
-    };
+    client.conversations
+      .stream(() => {
+        loadConversations();
+      })
+      .then((unsub: () => void) => {
+        unsubscribe = unsub;
+      })
+      .catch(() => {
+        // Stream not supported or failed — silent
+      });
 
-    stream();
     return () => {
-      cancelled = true;
+      unsubscribe?.();
     };
   }, [client, loadConversations]);
 
