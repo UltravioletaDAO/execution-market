@@ -110,7 +110,7 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
       };
 
       const xmtp = await Client.create(devSigner, {
-        env: "dev",
+        env: "production",
         dbEncryptionKey: dbKey,
       });
       setIsDevMode(true);
