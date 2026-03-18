@@ -7,7 +7,6 @@ from datetime import datetime, timezone, timedelta
 
 from swarm.expiry_analyzer import (
     ExpiryAnalyzer,
-    ExpiryReport,
     ExpiryReason,
     ExpiryDiagnosis,
     CategoryHealth,
@@ -45,7 +44,9 @@ def _make_task(
     }
 
 
-def _make_completed(n: int = 10, category: str = "simple_action", worker: str = "worker-1") -> list[dict]:
+def _make_completed(
+    n: int = 10, category: str = "simple_action", worker: str = "worker-1"
+) -> list[dict]:
     """Create N completed tasks."""
     return [
         _make_task(
@@ -59,7 +60,9 @@ def _make_completed(n: int = 10, category: str = "simple_action", worker: str = 
     ]
 
 
-def _make_expired(n: int = 5, category: str = "simple_action", bounty: float = 0.10) -> list[dict]:
+def _make_expired(
+    n: int = 5, category: str = "simple_action", bounty: float = 0.10
+) -> list[dict]:
     """Create N expired tasks."""
     return [
         _make_task(
@@ -81,9 +84,8 @@ def analyzer():
 @pytest.fixture
 def diverse_data():
     """Realistic diverse dataset."""
-    completed = (
-        _make_completed(50, "simple_action", "worker-1")
-        + _make_completed(5, "physical_presence", "worker-2")
+    completed = _make_completed(50, "simple_action", "worker-1") + _make_completed(
+        5, "physical_presence", "worker-2"
     )
     expired = (
         _make_expired(20, "simple_action", 0.10)
@@ -289,7 +291,9 @@ class TestDiagnosis:
         for d in ka_diags:
             reasons.add(d.primary_reason)
             reasons.update(d.secondary_reasons)
-        assert ExpiryReason.NO_WORKERS in reasons or ExpiryReason.NICHE_CATEGORY in reasons
+        assert (
+            ExpiryReason.NO_WORKERS in reasons or ExpiryReason.NICHE_CATEGORY in reasons
+        )
 
     def test_short_deadline_detected(self, analyzer):
         expired = [
@@ -509,7 +513,9 @@ class TestEdgeCases:
 
     def test_null_bounty(self, analyzer):
         completed = [_make_task(bounty_usd=0)]
-        expired = [_make_task(task_id="e1", status="expired", bounty_usd=0, executor_id="")]
+        expired = [
+            _make_task(task_id="e1", status="expired", bounty_usd=0, executor_id="")
+        ]
         report = analyzer.analyze_offline(completed, expired)
         assert report.total_expired == 1
 
@@ -534,9 +540,8 @@ class TestIntegration:
     def test_full_pipeline_realistic_data(self, analyzer):
         """Simulate the exact EM production data distribution."""
         # Mimic production: 195 completed (97% simple_action, 3% physical_presence)
-        completed = (
-            _make_completed(189, "simple_action", "worker-1")
-            + _make_completed(6, "physical_presence", "worker-2")
+        completed = _make_completed(189, "simple_action", "worker-1") + _make_completed(
+            6, "physical_presence", "worker-2"
         )
         # 108 expired (85% simple_action, rest niche)
         expired = (
@@ -546,7 +551,9 @@ class TestIntegration:
             + _make_expired(4, "research", 0.03)
             + _make_expired(1, "physical_presence", 0.10)
         )
-        cancelled = [_make_task(task_id=f"x-{i}", status="cancelled") for i in range(30)]
+        cancelled = [
+            _make_task(task_id=f"x-{i}", status="cancelled") for i in range(30)
+        ]
 
         report = analyzer.analyze_offline(completed, expired, cancelled)
 
@@ -577,6 +584,7 @@ class TestIntegration:
 
         # Verify JSON serialization
         import json
+
         d = report.to_dict()
         json_str = json.dumps(d)
         assert len(json_str) > 500

@@ -3,7 +3,6 @@ Tests for AcontextAdapter V2 — Enhanced IRC Coordination
 """
 
 import time
-import asyncio
 import pytest
 from mcp_server.swarm.acontext_adapter import (
     AcontextAdapter,
@@ -11,7 +10,6 @@ from mcp_server.swarm.acontext_adapter import (
     TaskBid,
     TaskAuction,
     AgentPresence,
-    CoordinationStats,
 )
 
 
@@ -23,9 +21,12 @@ from mcp_server.swarm.acontext_adapter import (
 @pytest.fixture
 def adapter():
     return AcontextAdapter(
-        irc_host="localhost", port=6667,
-        channel="#test-channel", nickname="TestAgent",
-        lock_ttl=60.0, auction_timeout=5.0,
+        irc_host="localhost",
+        port=6667,
+        channel="#test-channel",
+        nickname="TestAgent",
+        lock_ttl=60.0,
+        auction_timeout=5.0,
     )
 
 
@@ -33,14 +34,20 @@ def adapter():
 def two_adapters():
     """Two adapters simulating different agents."""
     a1 = AcontextAdapter(
-        irc_host="localhost", port=6667,
-        channel="#test", nickname="Agent-01",
-        lock_ttl=60.0, auction_timeout=5.0,
+        irc_host="localhost",
+        port=6667,
+        channel="#test",
+        nickname="Agent-01",
+        lock_ttl=60.0,
+        auction_timeout=5.0,
     )
     a2 = AcontextAdapter(
-        irc_host="localhost", port=6667,
-        channel="#test", nickname="Agent-02",
-        lock_ttl=60.0, auction_timeout=5.0,
+        irc_host="localhost",
+        port=6667,
+        channel="#test",
+        nickname="Agent-02",
+        lock_ttl=60.0,
+        auction_timeout=5.0,
     )
     return a1, a2
 
@@ -53,8 +60,10 @@ def two_adapters():
 class TestWorkerLock:
     def test_lock_creation(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1",
-            task_type="research", acquired_at=time.time(),
+            worker_id="w1",
+            agent_id="a1",
+            task_type="research",
+            acquired_at=time.time(),
             ttl_seconds=60.0,
         )
         assert lock.worker_id == "w1"
@@ -63,7 +72,8 @@ class TestWorkerLock:
 
     def test_lock_expiry(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1",
+            worker_id="w1",
+            agent_id="a1",
             task_type="research",
             acquired_at=time.time() - 120,
             ttl_seconds=60.0,
@@ -72,23 +82,28 @@ class TestWorkerLock:
 
     def test_lock_not_expired(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1",
-            task_type="research", acquired_at=time.time(),
+            worker_id="w1",
+            agent_id="a1",
+            task_type="research",
+            acquired_at=time.time(),
             ttl_seconds=60.0,
         )
         assert not lock.is_expired
 
     def test_lock_remaining_seconds(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1",
-            task_type="research", acquired_at=time.time(),
+            worker_id="w1",
+            agent_id="a1",
+            task_type="research",
+            acquired_at=time.time(),
             ttl_seconds=60.0,
         )
         assert 55 < lock.remaining_seconds <= 60
 
     def test_lock_expired_remaining_zero(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1",
+            worker_id="w1",
+            agent_id="a1",
             task_type="research",
             acquired_at=time.time() - 120,
             ttl_seconds=60.0,
@@ -97,7 +112,8 @@ class TestWorkerLock:
 
     def test_lock_renewal(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1",
+            worker_id="w1",
+            agent_id="a1",
             task_type="research",
             acquired_at=time.time() - 50,
             ttl_seconds=60.0,
@@ -110,8 +126,10 @@ class TestWorkerLock:
 
     def test_lock_renewal_updates_timestamp(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1",
-            task_type="research", acquired_at=time.time() - 30,
+            worker_id="w1",
+            agent_id="a1",
+            task_type="research",
+            acquired_at=time.time() - 30,
             ttl_seconds=60.0,
         )
         old_renewed = lock.last_renewed
@@ -161,7 +179,9 @@ class TestTaskAuction:
     def test_resolve_tie_by_timestamp(self):
         auction = TaskAuction(task_id="t1", category="research", bounty_usd=2.0)
         now = time.time()
-        auction.add_bid(TaskBid(agent_id="a1", task_id="t1", score=0.85, timestamp=now + 1))
+        auction.add_bid(
+            TaskBid(agent_id="a1", task_id="t1", score=0.85, timestamp=now + 1)
+        )
         auction.add_bid(TaskBid(agent_id="a2", task_id="t1", score=0.85, timestamp=now))
         winner = auction.resolve()
         assert winner == "a2"  # Earlier timestamp wins
@@ -182,22 +202,30 @@ class TestTaskAuction:
 
     def test_auction_timeout(self):
         auction = TaskAuction(
-            task_id="t1", category="research", bounty_usd=2.0,
-            started_at=time.time() - 60, timeout_seconds=30.0,
+            task_id="t1",
+            category="research",
+            bounty_usd=2.0,
+            started_at=time.time() - 60,
+            timeout_seconds=30.0,
         )
         assert auction.is_timed_out
 
     def test_auction_not_timed_out(self):
         auction = TaskAuction(
-            task_id="t1", category="research", bounty_usd=2.0,
+            task_id="t1",
+            category="research",
+            bounty_usd=2.0,
             timeout_seconds=30.0,
         )
         assert not auction.is_timed_out
 
     def test_bid_rejected_after_timeout(self):
         auction = TaskAuction(
-            task_id="t1", category="research", bounty_usd=2.0,
-            started_at=time.time() - 60, timeout_seconds=30.0,
+            task_id="t1",
+            category="research",
+            bounty_usd=2.0,
+            started_at=time.time() - 60,
+            timeout_seconds=30.0,
         )
         bid = TaskBid(agent_id="a1", task_id="t1", score=0.85)
         assert not auction.add_bid(bid)
@@ -426,15 +454,19 @@ class TestMessageParsing:
 
     def test_parse_release(self, adapter):
         adapter.hiring_locks["worker_xyz"] = WorkerLock(
-            worker_id="worker_xyz", agent_id="Agent2",
-            task_type="moderation", acquired_at=time.time(),
+            worker_id="worker_xyz",
+            agent_id="Agent2",
+            task_type="moderation",
+            acquired_at=time.time(),
         )
         msg = f":Agent2!user@host PRIVMSG {adapter.channel} :!release worker_xyz"
         adapter._parse_message(msg)
         assert adapter.is_worker_available("worker_xyz")
 
     def test_parse_heartbeat(self, adapter):
-        msg = f":Agent2!user@host PRIVMSG {adapter.channel} :!heartbeat Agent2 working 3"
+        msg = (
+            f":Agent2!user@host PRIVMSG {adapter.channel} :!heartbeat Agent2 working 3"
+        )
         adapter._parse_message(msg)
         assert "Agent2" in adapter.agent_presence
         p = adapter.agent_presence["Agent2"]
@@ -456,8 +488,10 @@ class TestMessageParsing:
 
     def test_parse_renew(self, adapter):
         adapter.hiring_locks["worker-1"] = WorkerLock(
-            worker_id="worker-1", agent_id="Agent2",
-            task_type="research", acquired_at=time.time() - 50,
+            worker_id="worker-1",
+            agent_id="Agent2",
+            task_type="research",
+            acquired_at=time.time() - 50,
             ttl_seconds=60.0,
         )
         msg = f":Agent2!user@host PRIVMSG {adapter.channel} :!renew Agent2 worker-1"
@@ -483,8 +517,10 @@ class TestMessageParsing:
     def test_parse_intent_contention_remote(self, adapter):
         """Remote intent on already-locked worker should be rejected."""
         adapter.hiring_locks["worker-1"] = WorkerLock(
-            worker_id="worker-1", agent_id="Agent1",
-            task_type="research", acquired_at=time.time(),
+            worker_id="worker-1",
+            agent_id="Agent1",
+            task_type="research",
+            acquired_at=time.time(),
         )
         msg = f":Agent2!user@host PRIVMSG {adapter.channel} :!intent Agent2 worker-1 data_entry"
         adapter._parse_message(msg)
@@ -510,28 +546,32 @@ class TestStateSync:
         assert "worker-1" in data["locks"]
 
     def test_apply_sync_state(self, adapter):
-        payload = __import__("json").dumps({
-            "locks": {
-                "worker-1": {"agent": "remote-a1", "task": "research", "remaining": 200}
-            },
-            "presence": {
-                "remote-a1": {"status": "working", "tasks": 2}
+        payload = __import__("json").dumps(
+            {
+                "locks": {
+                    "worker-1": {
+                        "agent": "remote-a1",
+                        "task": "research",
+                        "remaining": 200,
+                    }
+                },
+                "presence": {"remote-a1": {"status": "working", "tasks": 2}},
             }
-        })
+        )
         adapter._apply_sync_state(payload)
         assert not adapter.is_worker_available("worker-1")
         assert "remote-a1" in adapter.agent_presence
 
     def test_sync_doesnt_overwrite_own_locks(self, adapter):
         adapter.hiring_locks["worker-1"] = WorkerLock(
-            worker_id="worker-1", agent_id="local-agent",
-            task_type="research", acquired_at=time.time(),
+            worker_id="worker-1",
+            agent_id="local-agent",
+            task_type="research",
+            acquired_at=time.time(),
         )
-        payload = __import__("json").dumps({
-            "locks": {
-                "worker-1": {"agent": "remote-agent", "task": "data_entry"}
-            }
-        })
+        payload = __import__("json").dumps(
+            {"locks": {"worker-1": {"agent": "remote-agent", "task": "data_entry"}}}
+        )
         adapter._apply_sync_state(payload)
         assert adapter.get_lock_owner("worker-1") == "local-agent"
 
@@ -548,13 +588,15 @@ class TestStateSync:
 class TestCleanup:
     def test_cleanup_expired_locks(self, adapter):
         adapter.hiring_locks["worker-1"] = WorkerLock(
-            worker_id="worker-1", agent_id="a1",
+            worker_id="worker-1",
+            agent_id="a1",
             task_type="research",
             acquired_at=time.time() - 120,
             ttl_seconds=60.0,
         )
         adapter.hiring_locks["worker-2"] = WorkerLock(
-            worker_id="worker-2", agent_id="a2",
+            worker_id="worker-2",
+            agent_id="a2",
             task_type="data_entry",
             acquired_at=time.time(),
             ttl_seconds=60.0,
@@ -566,8 +608,10 @@ class TestCleanup:
 
     def test_cleanup_timed_out_auctions(self, adapter):
         adapter.auctions["t1"] = TaskAuction(
-            task_id="t1", category="research",
-            started_at=time.time() - 60, timeout_seconds=30.0,
+            task_id="t1",
+            category="research",
+            started_at=time.time() - 60,
+            timeout_seconds=30.0,
         )
         adapter.auctions["t1"].add_bid(TaskBid(agent_id="a1", task_id="t1", score=0.8))
         adapter._cleanup_timed_out_auctions()

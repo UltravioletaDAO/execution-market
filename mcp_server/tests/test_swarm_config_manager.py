@@ -9,20 +9,11 @@ import pytest
 from mcp_server.swarm.config_manager import (
     ConfigManager,
     SwarmConfig,
-    AgentPoolConfig,
-    SchedulerConfig,
-    CoordinationConfig,
-    APIConfig,
-    ReputationConfig,
-    DashboardConfig,
-    PersistenceConfig,
-    LoggingConfig,
     Environment,
     ConfigValidationError,
     validate_config,
     _deep_merge,
     _diff_dicts,
-    ENVIRONMENT_OVERRIDES,
 )
 
 
@@ -45,11 +36,14 @@ def config_manager():
 def temp_config_file():
     """Create a temporary config file."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump({
-            "agent_pool": {"max_agents": 12},
-            "scheduler": {"cycle_interval_seconds": 15},
-            "api": {"base_url": "https://api-test.execution.market"},
-        }, f)
+        json.dump(
+            {
+                "agent_pool": {"max_agents": 12},
+                "scheduler": {"cycle_interval_seconds": 15},
+                "api": {"base_url": "https://api-test.execution.market"},
+            },
+            f,
+        )
         return f.name
 
 
@@ -97,10 +91,10 @@ class TestDefaults:
     def test_default_reputation(self, default_config):
         # Weights must sum to 1.0
         weights = (
-            default_config.reputation.quality_weight +
-            default_config.reputation.speed_weight +
-            default_config.reputation.reliability_weight +
-            default_config.reputation.cost_weight
+            default_config.reputation.quality_weight
+            + default_config.reputation.speed_weight
+            + default_config.reputation.reliability_weight
+            + default_config.reputation.cost_weight
         )
         assert abs(weights - 1.0) < 0.01
 

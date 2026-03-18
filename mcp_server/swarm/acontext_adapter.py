@@ -32,7 +32,6 @@ import asyncio
 import json
 import logging
 import time
-from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Callable, List
 
@@ -47,11 +46,12 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WorkerLock:
     """A worker hiring lock with TTL."""
+
     worker_id: str
     agent_id: str
     task_type: str
     acquired_at: float
-    ttl_seconds: float = 300.0     # Default 5-minute TTL
+    ttl_seconds: float = 300.0  # Default 5-minute TTL
     last_renewed: float = 0.0
     renewable: bool = True
 
@@ -72,15 +72,17 @@ class WorkerLock:
 @dataclass
 class TaskBid:
     """A bid on a task auction."""
+
     agent_id: str
     task_id: str
-    score: float            # Higher = better match
+    score: float  # Higher = better match
     timestamp: float = field(default_factory=time.time)
 
 
 @dataclass
 class TaskAuction:
     """An active task auction."""
+
     task_id: str
     category: str = ""
     bounty_usd: float = 0.0
@@ -110,8 +112,7 @@ class TaskAuction:
         # Sort by score (desc), then by timestamp (asc) for tie-breaking,
         # then by agent_id (asc) for deterministic resolution
         sorted_bids = sorted(
-            self.bids,
-            key=lambda b: (-b.score, b.timestamp, b.agent_id)
+            self.bids, key=lambda b: (-b.score, b.timestamp, b.agent_id)
         )
         self.winner = sorted_bids[0].agent_id
         self.closed = True
@@ -121,8 +122,9 @@ class TaskAuction:
 @dataclass
 class AgentPresence:
     """Tracked agent presence from heartbeats."""
+
     agent_id: str
-    status: str = "unknown"      # idle, working, cooldown, etc.
+    status: str = "unknown"  # idle, working, cooldown, etc.
     task_count: int = 0
     last_heartbeat: float = 0.0
     first_seen: float = field(default_factory=time.time)
@@ -134,15 +136,20 @@ class AgentPresence:
 
     @property
     def seconds_since_heartbeat(self) -> float:
-        return time.time() - self.last_heartbeat if self.last_heartbeat > 0 else float("inf")
+        return (
+            time.time() - self.last_heartbeat
+            if self.last_heartbeat > 0
+            else float("inf")
+        )
 
 
 @dataclass
 class CoordinationStats:
     """Statistics for monitoring coordination health."""
+
     total_intents: int = 0
     total_releases: int = 0
-    total_contentions: int = 0     # Lock collisions
+    total_contentions: int = 0  # Lock collisions
     total_auctions: int = 0
     total_bids: int = 0
     total_heartbeats: int = 0
@@ -164,17 +171,22 @@ class AcontextAdapter:
     V2: TTL-based locks, task auctions, heartbeat protocol, conflict resolution.
     """
 
-    DEFAULT_LOCK_TTL = 300.0         # 5 minutes
-    DEFAULT_AUCTION_TIMEOUT = 30.0   # 30 seconds
-    HEARTBEAT_INTERVAL = 60.0        # 60 seconds
-    CLEANUP_INTERVAL = 30.0          # Check for expired locks every 30s
-    RECONNECT_DELAY = 10.0           # Seconds between reconnect attempts
+    DEFAULT_LOCK_TTL = 300.0  # 5 minutes
+    DEFAULT_AUCTION_TIMEOUT = 30.0  # 30 seconds
+    HEARTBEAT_INTERVAL = 60.0  # 60 seconds
+    CLEANUP_INTERVAL = 30.0  # Check for expired locks every 30s
+    RECONNECT_DELAY = 10.0  # Seconds between reconnect attempts
     MAX_RECONNECT_ATTEMPTS = 5
 
-    def __init__(self, irc_host: str = "meshrelay.local", port: int = 6667,
-                 channel: str = "#em-swarm", nickname: str = "EM-Agent-00",
-                 lock_ttl: float = DEFAULT_LOCK_TTL,
-                 auction_timeout: float = DEFAULT_AUCTION_TIMEOUT):
+    def __init__(
+        self,
+        irc_host: str = "meshrelay.local",
+        port: int = 6667,
+        channel: str = "#em-swarm",
+        nickname: str = "EM-Agent-00",
+        lock_ttl: float = DEFAULT_LOCK_TTL,
+        auction_timeout: float = DEFAULT_AUCTION_TIMEOUT,
+    ):
         self.irc_host = irc_host
         self.port = port
         self.channel = channel
@@ -183,9 +195,9 @@ class AcontextAdapter:
         self.auction_timeout = auction_timeout
 
         # State
-        self.hiring_locks: Dict[str, WorkerLock] = {}       # worker_id -> lock
-        self.auctions: Dict[str, TaskAuction] = {}           # task_id -> auction
-        self.agent_presence: Dict[str, AgentPresence] = {}   # agent_id -> presence
+        self.hiring_locks: Dict[str, WorkerLock] = {}  # worker_id -> lock
+        self.auctions: Dict[str, TaskAuction] = {}  # task_id -> auction
+        self.agent_presence: Dict[str, AgentPresence] = {}  # agent_id -> presence
         self.stats = CoordinationStats()
 
         # Callbacks
@@ -216,7 +228,9 @@ class AcontextAdapter:
             self._send(f"JOIN {self.channel}")
             self._running = True
             self._reconnect_attempts = 0
-            logger.info(f"[Acontext] Connected to {self.irc_host}:{self.port} as {self.nickname}")
+            logger.info(
+                f"[Acontext] Connected to {self.irc_host}:{self.port} as {self.nickname}"
+            )
 
             # Start background tasks
             asyncio.create_task(self._listen())
@@ -238,7 +252,7 @@ class AcontextAdapter:
         if self._heartbeat_task:
             self._heartbeat_task.cancel()
         if self._writer:
-            self._send(f"QUIT :Shutting down")
+            self._send("QUIT :Shutting down")
             self._writer.close()
             try:
                 await self._writer.wait_closed()
@@ -252,7 +266,9 @@ class AcontextAdapter:
         while self._reconnect_attempts < self.MAX_RECONNECT_ATTEMPTS:
             self._reconnect_attempts += 1
             delay = self.RECONNECT_DELAY * self._reconnect_attempts
-            logger.info(f"[Acontext] Reconnecting in {delay}s (attempt {self._reconnect_attempts})")
+            logger.info(
+                f"[Acontext] Reconnecting in {delay}s (attempt {self._reconnect_attempts})"
+            )
             await asyncio.sleep(delay)
             try:
                 await self.connect()
@@ -277,8 +293,9 @@ class AcontextAdapter:
 
     # ──────── Worker Locks (TTL-based) ────────
 
-    async def broadcast_intent(self, agent_id: str, worker_id: str,
-                                task_type: str, ttl: Optional[float] = None) -> bool:
+    async def broadcast_intent(
+        self, agent_id: str, worker_id: str, task_type: str, ttl: Optional[float] = None
+    ) -> bool:
         """
         Announce intention to hire a worker.
         Returns False if worker is already locked by another agent.
@@ -312,7 +329,10 @@ class AcontextAdapter:
 
         for cb in self._intent_callbacks:
             try:
-                cb("intent", {"agent": agent_id, "worker": worker_id, "task": task_type})
+                cb(
+                    "intent",
+                    {"agent": agent_id, "worker": worker_id, "task": task_type},
+                )
             except Exception:
                 pass
 
@@ -372,14 +392,21 @@ class AcontextAdapter:
 
     def get_agent_locks(self, agent_id: str) -> list[WorkerLock]:
         """Get all locks held by a specific agent."""
-        return [l for l in self.hiring_locks.values()
-                if l.agent_id == agent_id and not l.is_expired]
+        return [
+            l
+            for l in self.hiring_locks.values()
+            if l.agent_id == agent_id and not l.is_expired
+        ]
 
     # ──────── Task Auctions ────────
 
-    async def start_auction(self, task_id: str, category: str = "",
-                            bounty_usd: float = 0.0,
-                            timeout: Optional[float] = None) -> TaskAuction:
+    async def start_auction(
+        self,
+        task_id: str,
+        category: str = "",
+        bounty_usd: float = 0.0,
+        timeout: Optional[float] = None,
+    ) -> TaskAuction:
         """Start a task auction. Agents can bid within the timeout."""
         auction = TaskAuction(
             task_id=task_id,
@@ -391,16 +418,19 @@ class AcontextAdapter:
         self.stats.total_auctions += 1
 
         if self._running:
-            payload = json.dumps({
-                "task_id": task_id, "category": category,
-                "bounty_usd": bounty_usd, "timeout": auction.timeout_seconds,
-            })
+            payload = json.dumps(
+                {
+                    "task_id": task_id,
+                    "category": category,
+                    "bounty_usd": bounty_usd,
+                    "timeout": auction.timeout_seconds,
+                }
+            )
             self._send_channel(f"!auction {payload}")
 
         return auction
 
-    async def submit_bid(self, agent_id: str, task_id: str,
-                          score: float) -> bool:
+    async def submit_bid(self, agent_id: str, task_id: str, score: float) -> bool:
         """Submit a bid on an active auction."""
         auction = self.auctions.get(task_id)
         if not auction:
@@ -429,8 +459,14 @@ class AcontextAdapter:
 
         for cb in self._auction_callbacks:
             try:
-                cb("auction_resolved", {"task_id": task_id, "winner": winner,
-                                         "bid_count": len(auction.bids)})
+                cb(
+                    "auction_resolved",
+                    {
+                        "task_id": task_id,
+                        "winner": winner,
+                        "bid_count": len(auction.bids),
+                    },
+                )
             except Exception:
                 pass
 
@@ -442,8 +478,9 @@ class AcontextAdapter:
 
     def get_active_auctions(self) -> list[TaskAuction]:
         """Get all open (non-closed, non-timed-out) auctions."""
-        return [a for a in self.auctions.values()
-                if not a.closed and not a.is_timed_out]
+        return [
+            a for a in self.auctions.values() if not a.closed and not a.is_timed_out
+        ]
 
     # ──────── Heartbeat Protocol ────────
 
@@ -632,12 +669,16 @@ class AcontextAdapter:
                 existing = self.hiring_locks[worker]
                 if not existing.is_expired and existing.agent_id != agent:
                     self.stats.total_contentions += 1
-                    logger.warning(f"[Acontext] Remote contention on {worker}: {agent} vs {existing.agent_id}")
+                    logger.warning(
+                        f"[Acontext] Remote contention on {worker}: {agent} vs {existing.agent_id}"
+                    )
                     return
 
             self.hiring_locks[worker] = WorkerLock(
-                worker_id=worker, agent_id=agent,
-                task_type=task, acquired_at=time.time(),
+                worker_id=worker,
+                agent_id=agent,
+                task_type=task,
+                acquired_at=time.time(),
                 ttl_seconds=self.lock_ttl,
             )
             self.stats.total_intents += 1
@@ -683,15 +724,20 @@ class AcontextAdapter:
                 p.last_heartbeat = now
             else:
                 self.agent_presence[agent] = AgentPresence(
-                    agent_id=agent, status=status,
-                    task_count=task_count, last_heartbeat=now,
+                    agent_id=agent,
+                    status=status,
+                    task_count=task_count,
+                    last_heartbeat=now,
                 )
 
             self.stats.total_heartbeats += 1
 
             for cb in self._heartbeat_callbacks:
                 try:
-                    cb("heartbeat", {"agent": agent, "status": status, "tasks": task_count})
+                    cb(
+                        "heartbeat",
+                        {"agent": agent, "status": status, "tasks": task_count},
+                    )
                 except Exception:
                     pass
 
@@ -721,7 +767,7 @@ class AcontextAdapter:
 
     def _handle_auction(self, command: str):
         try:
-            payload_str = command[len("!auction "):]
+            payload_str = command[len("!auction ") :]
             payload = json.loads(payload_str)
             task_id = payload.get("task_id")
             if task_id and task_id not in self.auctions:
@@ -743,7 +789,7 @@ class AcontextAdapter:
                 self._send_channel(f"!sync-state {payload}")
 
     def _handle_sync_state(self, command: str):
-        payload = command[len("!sync-state "):]
+        payload = command[len("!sync-state ") :]
         self._apply_sync_state(payload)
 
     def _handle_status(self, command: str):
@@ -794,8 +840,9 @@ class AcontextAdapter:
 
     def _cleanup_timed_out_auctions(self):
         """Auto-resolve timed-out auctions."""
-        timed_out = [tid for tid, a in self.auctions.items()
-                     if a.is_timed_out and not a.closed]
+        timed_out = [
+            tid for tid, a in self.auctions.items() if a.is_timed_out and not a.closed
+        ]
         for tid in timed_out:
             self.auctions[tid].resolve()
             logger.info(f"[Acontext] Auto-resolved timed-out auction {tid}")
@@ -831,6 +878,7 @@ class AcontextAdapter:
             "agents_online": len(self.get_online_agents()),
             "contention_rate": (
                 self.stats.total_contentions / self.stats.total_intents
-                if self.stats.total_intents > 0 else 0.0
+                if self.stats.total_intents > 0
+                else 0.0
             ),
         }

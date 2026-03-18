@@ -31,7 +31,7 @@ import random
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -40,7 +40,6 @@ from .orchestrator import (
     TaskPriority,
     TaskRequest,
     Assignment,
-    RoutingFailure,
 )
 from .lifecycle_manager import AgentState
 
@@ -421,9 +420,7 @@ class AgentLoadBalancer:
             return True
 
         cutoff = time.time() - self.window_seconds
-        recent = sum(
-            1 for t in self._assignments[agent_id] if t > cutoff
-        )
+        recent = sum(1 for t in self._assignments[agent_id] if t > cutoff)
         return recent < self.max_tasks
 
     def get_load(self, agent_id: int) -> dict:
@@ -636,8 +633,8 @@ class SwarmScheduler:
         retry_penalty = min(1.0, task.retry_count * 0.2)
 
         task.effective_priority = (
-            (base + bounty_bonus + age_bonus - retry_penalty) * urgency_mult
-        )
+            base + bounty_bonus + age_bonus - retry_penalty
+        ) * urgency_mult
 
     # ─── Dynamic Strategy Selection ───────────────────────────
 
@@ -1012,8 +1009,7 @@ class SwarmScheduler:
             "scheduling_interval": self.scheduling_interval,
             "strategy_usage": dict(self._strategy_usage),
             "circuit_breakers": {
-                name: cb.get_status()
-                for name, cb in self._circuit_breakers.items()
+                name: cb.get_status() for name, cb in self._circuit_breakers.items()
             },
             "load_balancer": {
                 "window_seconds": self.load_balancer.window_seconds,

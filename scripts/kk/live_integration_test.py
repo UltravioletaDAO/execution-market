@@ -22,7 +22,6 @@ Tests:
 """
 
 import json
-import os
 import sys
 import time
 import traceback
@@ -66,10 +65,10 @@ class TestSuite:
 
     def summary(self) -> str:
         lines = [
-            f"\n{'='*70}",
-            f"  KK V2 LIVE INTEGRATION TEST RESULTS",
+            f"\n{'=' * 70}",
+            "  KK V2 LIVE INTEGRATION TEST RESULTS",
             f"  {self.started_at}",
-            f"{'='*70}",
+            f"{'=' * 70}",
         ]
         for r in self.results:
             icon = "✅" if r.passed else "❌"
@@ -80,14 +79,14 @@ class TestSuite:
             if r.error:
                 lines.append(f"       ERROR: {r.error}")
 
-        lines.append(f"{'='*70}")
+        lines.append(f"{'=' * 70}")
         lines.append(
             f"  {self.passed}/{self.total} passed, {self.failed} failed "
             f"({self.duration_ms:.0f}ms total)"
         )
         status = "🟢 ALL PASSED" if self.failed == 0 else "🔴 FAILURES DETECTED"
         lines.append(f"  {status}")
-        lines.append(f"{'='*70}\n")
+        lines.append(f"{'=' * 70}\n")
         return "\n".join(lines)
 
 
@@ -97,13 +96,17 @@ def run_test(name: str, fn, suite: TestSuite, verbose: bool = False):
     try:
         details = fn()
         duration = (time.monotonic() - start) * 1000
-        result = TestResult(name=name, passed=True, duration_ms=duration, details=details or "")
+        result = TestResult(
+            name=name, passed=True, duration_ms=duration, details=details or ""
+        )
         if verbose:
             print(f"  ✅ {name} ({duration:.0f}ms)")
     except Exception as e:
         duration = (time.monotonic() - start) * 1000
         error_msg = f"{type(e).__name__}: {e}"
-        result = TestResult(name=name, passed=False, duration_ms=duration, error=error_msg)
+        result = TestResult(
+            name=name, passed=False, duration_ms=duration, error=error_msg
+        )
         if verbose:
             print(f"  ❌ {name} ({duration:.0f}ms) — {error_msg}")
             traceback.print_exc()
@@ -113,6 +116,7 @@ def run_test(name: str, fn, suite: TestSuite, verbose: bool = False):
 # ──────────────────────────────────────────────────────────────────────────────
 # TEST 1: EMApiClient — Live API Connectivity
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def test_em_api_health():
     """Verify EMApiClient connects to live API and gets healthy response."""
@@ -125,8 +129,12 @@ def test_em_api_health():
     assert "components" in health, "Missing components in health response"
 
     components = health["components"]
-    healthy_components = [k for k, v in components.items() if v.get("status") == "healthy"]
-    assert len(healthy_components) >= 3, f"Only {len(healthy_components)} healthy components"
+    healthy_components = [
+        k for k, v in components.items() if v.get("status") == "healthy"
+    ]
+    assert len(healthy_components) >= 3, (
+        f"Only {len(healthy_components)} healthy components"
+    )
 
     return f"All {len(healthy_components)} components healthy: {', '.join(healthy_components)}"
 
@@ -182,6 +190,7 @@ def test_em_api_task_detail():
 # TEST 2: SwarmCoordinator — Live Data Ingestion
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def test_coordinator_ingest_live_tasks():
     """Ingest live tasks into the coordinator and validate queue state."""
     from swarm.coordinator import SwarmCoordinator, EMApiClient
@@ -207,7 +216,9 @@ def test_coordinator_ingest_live_tasks():
             task_id=task_id,
             title=task_data.get("title", ""),
             categories=categories,
-            bounty_usd=float(task_data.get("bounty_usd", task_data.get("bounty_amount", 0))),
+            bounty_usd=float(
+                task_data.get("bounty_usd", task_data.get("bounty_amount", 0))
+            ),
             source="live_test",
             raw_data=task_data,
         )
@@ -215,8 +226,9 @@ def test_coordinator_ingest_live_tasks():
 
     # Validate queue state
     summary = coordinator.get_queue_summary()
-    assert summary.get("pending", 0) > 0 or summary.get("total", 0) > 0, \
+    assert summary.get("pending", 0) > 0 or summary.get("total", 0) > 0, (
         f"Queue empty after ingesting {ingested} tasks"
+    )
 
     return f"Ingested {ingested} live tasks into coordinator queue"
 
@@ -224,7 +236,6 @@ def test_coordinator_ingest_live_tasks():
 def test_coordinator_routing_simulation():
     """Route live tasks through the coordinator and validate assignments."""
     from swarm.coordinator import SwarmCoordinator, EMApiClient
-    from swarm.orchestrator import TaskPriority
     from swarm.lifecycle_manager import BudgetConfig
 
     coordinator = SwarmCoordinator.create(
@@ -234,11 +245,41 @@ def test_coordinator_routing_simulation():
 
     # Register 5 test agents (simulating KK V2 fleet)
     agent_configs = [
-        {"agent_id": 1001, "name": "PhysicalBot", "wallet": "0xAgent1", "tags": ["physical_presence", "simple_action"], "budget": 5.0},
-        {"agent_id": 1002, "name": "KnowledgeBot", "wallet": "0xAgent2", "tags": ["knowledge_access", "research"], "budget": 3.0},
-        {"agent_id": 1003, "name": "CodeBot", "wallet": "0xAgent3", "tags": ["code_execution"], "budget": 10.0},
-        {"agent_id": 1004, "name": "GeneralBot", "wallet": "0xAgent4", "tags": ["simple_action", "knowledge_access"], "budget": 2.0},
-        {"agent_id": 1005, "name": "FieldBot", "wallet": "0xAgent5", "tags": ["physical_presence", "research"], "budget": 8.0},
+        {
+            "agent_id": 1001,
+            "name": "PhysicalBot",
+            "wallet": "0xAgent1",
+            "tags": ["physical_presence", "simple_action"],
+            "budget": 5.0,
+        },
+        {
+            "agent_id": 1002,
+            "name": "KnowledgeBot",
+            "wallet": "0xAgent2",
+            "tags": ["knowledge_access", "research"],
+            "budget": 3.0,
+        },
+        {
+            "agent_id": 1003,
+            "name": "CodeBot",
+            "wallet": "0xAgent3",
+            "tags": ["code_execution"],
+            "budget": 10.0,
+        },
+        {
+            "agent_id": 1004,
+            "name": "GeneralBot",
+            "wallet": "0xAgent4",
+            "tags": ["simple_action", "knowledge_access"],
+            "budget": 2.0,
+        },
+        {
+            "agent_id": 1005,
+            "name": "FieldBot",
+            "wallet": "0xAgent5",
+            "tags": ["physical_presence", "research"],
+            "budget": 8.0,
+        },
     ]
 
     for cfg in agent_configs:
@@ -263,13 +304,16 @@ def test_coordinator_routing_simulation():
             task_id=task_id,
             title=task_data.get("title", ""),
             categories=categories,
-            bounty_usd=float(task_data.get("bounty_usd", task_data.get("bounty_amount", 0))),
+            bounty_usd=float(
+                task_data.get("bounty_usd", task_data.get("bounty_amount", 0))
+            ),
             source="live_test",
             raw_data=task_data,
         )
 
     # Route tasks (the coordinator routes locally, no API calls for assignment)
     from swarm.orchestrator import Assignment, RoutingFailure
+
     results = coordinator.process_task_queue(max_tasks=10)
     assigned = sum(1 for r in results if isinstance(r, Assignment))
     failed = sum(1 for r in results if isinstance(r, RoutingFailure))
@@ -281,12 +325,12 @@ def test_coordinator_routing_simulation():
 # TEST 3: SwarmScheduler — Real Deadline Scoring
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def test_scheduler_deadline_scoring():
     """Score live tasks by deadline urgency using the SwarmScheduler."""
     from swarm.scheduler import SwarmScheduler
     from swarm.coordinator import EMApiClient
-    from swarm.orchestrator import TaskPriority
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     scheduler = SwarmScheduler()
     client = EMApiClient(base_url=EM_API_URL)
@@ -323,8 +367,10 @@ def test_scheduler_deadline_scoring():
 
     # Get scheduled tasks and their effective priorities
     task_entries = list(scheduler._tasks.values())
-    scored = [(t.title[:40], t.effective_priority, t.categories[0] if t.categories else "?")
-              for t in task_entries]
+    scored = [
+        (t.title[:40], t.effective_priority, t.categories[0] if t.categories else "?")
+        for t in task_entries
+    ]
     scored.sort(key=lambda x: -x[1])
 
     details = []
@@ -338,6 +384,7 @@ def test_scheduler_deadline_scoring():
 # TEST 4: SwarmDashboard — Fleet Health from Live Metrics
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def test_dashboard_fleet_health():
     """Generate a fleet health dashboard with simulated agents."""
     from swarm.dashboard import SwarmDashboard
@@ -345,12 +392,19 @@ def test_dashboard_fleet_health():
     dashboard = SwarmDashboard()
 
     # Register agents directly in the dashboard
-    categories_pool = ["simple_action", "physical_presence", "knowledge_access",
-                       "code_execution", "research"]
+    categories_pool = [
+        "simple_action",
+        "physical_presence",
+        "knowledge_access",
+        "code_execution",
+        "research",
+    ]
     for i in range(1, 7):
         agent_id = f"agent_{2100 + i}"
-        specs = [categories_pool[i % len(categories_pool)],
-                 categories_pool[(i + 1) % len(categories_pool)]]
+        specs = [
+            categories_pool[i % len(categories_pool)],
+            categories_pool[(i + 1) % len(categories_pool)],
+        ]
         dashboard.register_agent(agent_id, budget_limit_usd=5.0, specializations=specs)
         dashboard.update_agent_state(agent_id, "active")
 
@@ -379,6 +433,7 @@ def test_dashboard_fleet_health():
 # TEST 5: ConfigManager — Environment Profile
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def test_config_manager_profiles():
     """Load and validate ConfigManager with default config."""
     from swarm.config_manager import ConfigManager, SwarmConfig, validate_config
@@ -404,9 +459,10 @@ def test_config_manager_profiles():
 # TEST 6: SwarmRunner — Dry Run Cycle
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def test_runner_dry_cycle():
     """Execute a dry_run cycle against the live API."""
-    from swarm.runner import SwarmRunner, RunMode
+    from swarm.runner import SwarmRunner
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -442,6 +498,7 @@ def test_runner_dry_cycle():
 # TEST 7: Analytics — Production Data Analysis
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def test_analytics_live_data():
     """Run analytics on live task data."""
     from swarm.analytics import SwarmAnalytics, TaskEvent
@@ -467,9 +524,9 @@ def test_analytics_live_data():
         )
         events.append(event)
 
-    recorded = analytics.record_batch(events)
+    analytics.record_batch(events)
 
-    dashboard = analytics.get_dashboard()
+    analytics.get_dashboard()
     total_events = len(analytics._events)
 
     return f"Analyzed {total_events} task events from live API ({len(completed)} completed tasks)"
@@ -479,6 +536,7 @@ def test_analytics_live_data():
 # TEST 8: End-to-End Pipeline
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def test_end_to_end_pipeline():
     """Full pipeline: API fetch → ingest → route → dashboard → analytics."""
     from swarm.coordinator import SwarmCoordinator, EMApiClient
@@ -486,7 +544,7 @@ def test_end_to_end_pipeline():
     from swarm.analytics import SwarmAnalytics, TaskEvent
     from swarm.dashboard import SwarmDashboard
     from swarm.lifecycle_manager import BudgetConfig
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     start = time.monotonic()
 
@@ -506,11 +564,18 @@ def test_end_to_end_pipeline():
         autojob_url="https://autojob.cc",
     )
 
-    categories_all = ["simple_action", "physical_presence", "knowledge_access",
-                      "code_execution", "research"]
+    categories_all = [
+        "simple_action",
+        "physical_presence",
+        "knowledge_access",
+        "code_execution",
+        "research",
+    ]
     for i in range(10):
-        tags = [categories_all[i % len(categories_all)],
-                categories_all[(i + 1) % len(categories_all)]]
+        tags = [
+            categories_all[i % len(categories_all)],
+            categories_all[(i + 1) % len(categories_all)],
+        ]
         coordinator.register_agent(
             agent_id=3000 + i,
             name=f"E2E_Agent_{i}",
@@ -530,14 +595,17 @@ def test_end_to_end_pipeline():
             task_id=task_id,
             title=task_data.get("title", ""),
             categories=categories,
-            bounty_usd=float(task_data.get("bounty_usd", task_data.get("bounty_amount", 0))),
+            bounty_usd=float(
+                task_data.get("bounty_usd", task_data.get("bounty_amount", 0))
+            ),
             source="e2e_test",
             raw_data=task_data,
         )
         ingested += 1
 
     # Step 4: Route
-    from swarm.orchestrator import Assignment, RoutingFailure
+    from swarm.orchestrator import Assignment
+
     route_results = coordinator.process_task_queue(max_tasks=50)
     assigned = sum(1 for r in route_results if isinstance(r, Assignment))
 
@@ -567,13 +635,17 @@ def test_end_to_end_pipeline():
     events = []
     for task in all_tasks:
         if task.get("status") == "completed":
-            events.append(TaskEvent(
-                event_type="task_completed",
-                agent_id=str(task.get("agent_id", "unknown")),
-                task_id=str(task.get("id")),
-                category=task.get("category", "unknown"),
-                bounty_usd=float(task.get("bounty_usd", task.get("bounty_amount", 0))),
-            ))
+            events.append(
+                TaskEvent(
+                    event_type="task_completed",
+                    agent_id=str(task.get("agent_id", "unknown")),
+                    task_id=str(task.get("id")),
+                    category=task.get("category", "unknown"),
+                    bounty_usd=float(
+                        task.get("bounty_usd", task.get("bounty_amount", 0))
+                    ),
+                )
+            )
     if events:
         analytics.record_batch(events)
 
@@ -601,6 +673,7 @@ def test_end_to_end_pipeline():
 # ──────────────────────────────────────────────────────────────────────────────
 # MAIN
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def main():
     import argparse

@@ -6,11 +6,9 @@ import time
 import pytest
 from mcp_server.swarm.dashboard import (
     SwarmDashboard,
-    DashboardSnapshot,
     AgentStatus,
     PipelineMetrics,
     BudgetSummary,
-    CoordinationHealth,
     SLAMetrics,
     CategoryHeatmapEntry,
     DashboardAlert,
@@ -37,8 +35,11 @@ def populated_dashboard():
     db = SwarmDashboard()
     for i in range(24):
         agent_id = f"agent-{i:02d}"
-        db.register_agent(agent_id, budget_limit_usd=5.0,
-                         specializations=["simple_action", "knowledge_access"])
+        db.register_agent(
+            agent_id,
+            budget_limit_usd=5.0,
+            specializations=["simple_action", "knowledge_access"],
+        )
         db.update_agent_state(agent_id, "idle")
     return db
 
@@ -50,8 +51,9 @@ def populated_dashboard():
 
 class TestAgentRegistration:
     def test_register_agent(self, dashboard):
-        dashboard.register_agent("agent-01", budget_limit_usd=10.0,
-                                specializations=["research"])
+        dashboard.register_agent(
+            "agent-01", budget_limit_usd=10.0, specializations=["research"]
+        )
         assert "agent-01" in dashboard.get_agent_ids()
 
     def test_register_multiple_agents(self, dashboard):
@@ -121,9 +123,15 @@ class TestAgentState:
 class TestTaskEvents:
     def test_record_completion(self, dashboard):
         dashboard.register_agent("agent-01")
-        dashboard.record_task_event("agent-01", "t1", "task_completed",
-                                   category="research", bounty_usd=1.50,
-                                   quality=0.85, duration_s=120)
+        dashboard.record_task_event(
+            "agent-01",
+            "t1",
+            "task_completed",
+            category="research",
+            bounty_usd=1.50,
+            quality=0.85,
+            duration_s=120,
+        )
         snapshot = dashboard.generate_snapshot()
         agent = [a for a in snapshot.agent_statuses if a.agent_id == "agent-01"][0]
         assert agent.tasks_completed_today == 1
@@ -131,8 +139,9 @@ class TestTaskEvents:
 
     def test_record_failure(self, dashboard):
         dashboard.register_agent("agent-01")
-        dashboard.record_task_event("agent-01", "t1", "task_failed",
-                                   category="research")
+        dashboard.record_task_event(
+            "agent-01", "t1", "task_failed", category="research"
+        )
         snapshot = dashboard.generate_snapshot()
         agent = [a for a in snapshot.agent_statuses if a.agent_id == "agent-01"][0]
         assert agent.tasks_failed_today == 1
@@ -140,8 +149,9 @@ class TestTaskEvents:
     def test_success_rate_calculation(self, dashboard):
         dashboard.register_agent("agent-01")
         for i in range(8):
-            dashboard.record_task_event("agent-01", f"t{i}", "task_completed",
-                                       bounty_usd=0.50)
+            dashboard.record_task_event(
+                "agent-01", f"t{i}", "task_completed", bounty_usd=0.50
+            )
         for i in range(2):
             dashboard.record_task_event("agent-01", f"f{i}", "task_failed")
         snapshot = dashboard.generate_snapshot()
@@ -192,8 +202,11 @@ class TestSnapshotGeneration:
         # Give all agents recent activity so they're not flagged as stale
         for i in range(24):
             populated_dashboard.record_task_event(
-                f"agent-{i:02d}", f"t{i}", "task_completed",
-                bounty_usd=0.10, quality=0.9
+                f"agent-{i:02d}",
+                f"t{i}",
+                "task_completed",
+                bounty_usd=0.10,
+                quality=0.9,
             )
         populated_dashboard.set_irc_connected(True)  # Suppress IRC warning
         snapshot = populated_dashboard.generate_snapshot()
@@ -223,8 +236,11 @@ class TestSnapshotGeneration:
         # Give all agents recent activity
         for i in range(24):
             populated_dashboard.record_task_event(
-                f"agent-{i:02d}", f"t{i}", "task_completed",
-                bounty_usd=0.10, quality=0.9
+                f"agent-{i:02d}",
+                f"t{i}",
+                "task_completed",
+                bounty_usd=0.10,
+                quality=0.9,
             )
         populated_dashboard.set_irc_connected(True)
         snapshot = populated_dashboard.generate_snapshot()
@@ -252,8 +268,11 @@ class TestFleetStatus:
         # Give all agents recent activity so they're not flagged stale
         for i in range(24):
             populated_dashboard.record_task_event(
-                f"agent-{i:02d}", f"t{i}", "task_completed",
-                bounty_usd=0.10, quality=0.9
+                f"agent-{i:02d}",
+                f"t{i}",
+                "task_completed",
+                bounty_usd=0.10,
+                quality=0.9,
             )
         populated_dashboard.set_irc_connected(True)  # Suppress IRC alert
         snapshot = populated_dashboard.generate_snapshot()
@@ -295,9 +314,11 @@ class TestPipelineMetrics:
     def test_pipeline_counts(self, populated_dashboard):
         db = populated_dashboard
         for i in range(5):
-            db.record_task_event(f"agent-{i:02d}", f"t{i}", "task_completed", bounty_usd=1.0)
+            db.record_task_event(
+                f"agent-{i:02d}", f"t{i}", "task_completed", bounty_usd=1.0
+            )
         for i in range(2):
-            db.record_task_event(f"agent-{i+5:02d}", f"f{i}", "task_failed")
+            db.record_task_event(f"agent-{i + 5:02d}", f"f{i}", "task_failed")
         snapshot = db.generate_snapshot()
         assert snapshot.pipeline.completed_today == 5
         assert snapshot.pipeline.failed_today == 2
@@ -344,7 +365,9 @@ class TestBudgetSummary:
 
     def test_agents_over_budget(self, populated_dashboard):
         db = populated_dashboard
-        db.record_task_event("agent-00", "t1", "task_completed", bounty_usd=6.0)  # Over $5
+        db.record_task_event(
+            "agent-00", "t1", "task_completed", bounty_usd=6.0
+        )  # Over $5
         snapshot = db.generate_snapshot()
         assert snapshot.budget.agents_over_budget >= 1
 
@@ -382,7 +405,9 @@ class TestCoordinationHealth:
         dashboard.record_lock_event("lock", "worker-1", "agent-01")
         dashboard.record_lock_event("release", "worker-1")
         snapshot = dashboard.generate_snapshot()
-        assert snapshot.coordination.active_locks == 0  # Release removes from active locks
+        assert (
+            snapshot.coordination.active_locks == 0
+        )  # Release removes from active locks
 
     def test_lock_contention(self, dashboard):
         dashboard.register_agent("agent-01")
@@ -413,8 +438,9 @@ class TestSLAMetrics:
     def test_deadline_met(self, dashboard):
         dashboard.register_agent("agent-01")
         future = time.time() + 3600  # 1 hour from now
-        dashboard.record_task_event("agent-01", "t1", "task_completed",
-                                   bounty_usd=1.0, deadline_ts=future)
+        dashboard.record_task_event(
+            "agent-01", "t1", "task_completed", bounty_usd=1.0, deadline_ts=future
+        )
         snapshot = dashboard.generate_snapshot()
         assert snapshot.sla.tasks_met_deadline == 1
         assert snapshot.sla.adherence_rate == 1.0
@@ -422,8 +448,9 @@ class TestSLAMetrics:
     def test_deadline_missed(self, dashboard):
         dashboard.register_agent("agent-01")
         past = time.time() - 3600  # 1 hour ago
-        dashboard.record_task_event("agent-01", "t1", "task_completed",
-                                   bounty_usd=1.0, deadline_ts=past)
+        dashboard.record_task_event(
+            "agent-01", "t1", "task_completed", bounty_usd=1.0, deadline_ts=past
+        )
         snapshot = dashboard.generate_snapshot()
         assert snapshot.sla.tasks_missed_deadline == 1
         assert snapshot.sla.adherence_rate == 0.0
@@ -432,10 +459,12 @@ class TestSLAMetrics:
         dashboard.register_agent("agent-01")
         future = time.time() + 3600
         past = time.time() - 3600
-        dashboard.record_task_event("agent-01", "t1", "task_completed",
-                                   bounty_usd=1.0, deadline_ts=future)
-        dashboard.record_task_event("agent-01", "t2", "task_completed",
-                                   bounty_usd=1.0, deadline_ts=past)
+        dashboard.record_task_event(
+            "agent-01", "t1", "task_completed", bounty_usd=1.0, deadline_ts=future
+        )
+        dashboard.record_task_event(
+            "agent-01", "t2", "task_completed", bounty_usd=1.0, deadline_ts=past
+        )
         snapshot = dashboard.generate_snapshot()
         assert snapshot.sla.adherence_rate == 0.5
 
@@ -452,20 +481,34 @@ class TestHeatmap:
 
     def test_heatmap_entries(self, dashboard):
         dashboard.register_agent("agent-01")
-        dashboard.record_task_event("agent-01", "t1", "task_completed",
-                                   category="research", bounty_usd=1.0, quality=0.9)
-        dashboard.record_task_event("agent-01", "t2", "task_completed",
-                                   category="research", bounty_usd=1.0, quality=0.8)
-        dashboard.record_task_event("agent-01", "t3", "task_completed",
-                                   category="data_entry", bounty_usd=0.5)
+        dashboard.record_task_event(
+            "agent-01",
+            "t1",
+            "task_completed",
+            category="research",
+            bounty_usd=1.0,
+            quality=0.9,
+        )
+        dashboard.record_task_event(
+            "agent-01",
+            "t2",
+            "task_completed",
+            category="research",
+            bounty_usd=1.0,
+            quality=0.8,
+        )
+        dashboard.record_task_event(
+            "agent-01", "t3", "task_completed", category="data_entry", bounty_usd=0.5
+        )
         snapshot = dashboard.generate_snapshot()
         assert len(snapshot.heatmap) == 2
         research = [h for h in snapshot.heatmap if h.category == "research"][0]
         assert research.tasks_completed == 2
 
     def test_heatmap_success_rate(self):
-        entry = CategoryHeatmapEntry(agent_id="a1", category="c1",
-                                    tasks_completed=7, tasks_failed=3)
+        entry = CategoryHeatmapEntry(
+            agent_id="a1", category="c1", tasks_completed=7, tasks_failed=3
+        )
         assert entry.success_rate == 0.7
 
 
@@ -489,8 +532,11 @@ class TestAlerts:
         for i in range(4):
             dashboard.record_task_event("agent-01", f"f{i}", "task_failed")
         snapshot = dashboard.generate_snapshot()
-        failure_alerts = [a for a in snapshot.alerts
-                         if "failure" in a.title.lower() or "failing" in a.title.lower()]
+        failure_alerts = [
+            a
+            for a in snapshot.alerts
+            if "failure" in a.title.lower() or "failing" in a.title.lower()
+        ]
         assert len(failure_alerts) >= 1
 
     def test_failure_streak_critical(self, dashboard):
@@ -498,8 +544,11 @@ class TestAlerts:
         for i in range(5):
             dashboard.record_task_event("agent-01", f"f{i}", "task_failed")
         snapshot = dashboard.generate_snapshot()
-        critical = [a for a in snapshot.alerts
-                   if a.severity == Severity.CRITICAL and "failure" in a.title.lower()]
+        critical = [
+            a
+            for a in snapshot.alerts
+            if a.severity == Severity.CRITICAL and "failure" in a.title.lower()
+        ]
         assert len(critical) >= 1
 
     def test_over_budget_alert(self, dashboard):
@@ -520,7 +569,9 @@ class TestAlerts:
         dashboard.register_agent("agent-01")
         # Manually insert a stale lock
         dashboard._active_locks["worker-1"] = {
-            "agent": "agent-01", "ts": time.time() - 600, "task": "test"
+            "agent": "agent-01",
+            "ts": time.time() - 600,
+            "task": "test",
         }
         snapshot = dashboard.generate_snapshot()
         lock_alerts = [a for a in snapshot.alerts if "lock" in a.title.lower()]
@@ -538,8 +589,9 @@ class TestAlerts:
             severities = [a.severity for a in snapshot.alerts]
             severity_values = {"emergency": 0, "critical": 1, "warning": 2, "info": 3}
             for i in range(len(severities) - 1):
-                assert severity_values.get(severities[i].value, 99) <= \
-                       severity_values.get(severities[i+1].value, 99)
+                assert severity_values.get(
+                    severities[i].value, 99
+                ) <= severity_values.get(severities[i + 1].value, 99)
 
     def test_alert_to_dict(self):
         alert = DashboardAlert(
@@ -563,8 +615,11 @@ class TestHealthReport:
         # Give all agents recent activity
         for i in range(24):
             populated_dashboard.record_task_event(
-                f"agent-{i:02d}", f"t{i}", "task_completed",
-                bounty_usd=0.10, quality=0.9
+                f"agent-{i:02d}",
+                f"t{i}",
+                "task_completed",
+                bounty_usd=0.10,
+                quality=0.9,
             )
         populated_dashboard.set_irc_connected(True)
         report = populated_dashboard.generate_health_report()
@@ -593,8 +648,9 @@ class TestHealthReport:
 class TestHealthScore:
     def test_perfect_health(self, dashboard):
         dashboard.register_agent("agent-01")
-        dashboard.record_task_event("agent-01", "t1", "task_completed",
-                                   bounty_usd=0.50, quality=1.0)
+        dashboard.record_task_event(
+            "agent-01", "t1", "task_completed", bounty_usd=0.50, quality=1.0
+        )
         snapshot = dashboard.generate_snapshot()
         agent = snapshot.agent_statuses[0]
         assert agent.health_score > 0.5
@@ -609,13 +665,15 @@ class TestHealthScore:
 
     def test_health_decreases_with_budget_usage(self, dashboard):
         dashboard.register_agent("agent-01", budget_limit_usd=5.0)
-        dashboard.record_task_event("agent-01", "t1", "task_completed",
-                                   bounty_usd=1.0, quality=1.0)
+        dashboard.record_task_event(
+            "agent-01", "t1", "task_completed", bounty_usd=1.0, quality=1.0
+        )
         snap1 = dashboard.generate_snapshot()
         h1 = snap1.agent_statuses[0].health_score
 
-        dashboard.record_task_event("agent-01", "t2", "task_completed",
-                                   bounty_usd=4.0, quality=1.0)
+        dashboard.record_task_event(
+            "agent-01", "t2", "task_completed", bounty_usd=4.0, quality=1.0
+        )
         snap2 = dashboard.generate_snapshot()
         h2 = snap2.agent_statuses[0].health_score
         # Higher budget usage should decrease health
@@ -632,8 +690,9 @@ class TestUtilities:
         db = populated_dashboard
         # Give some agents better records
         for i in range(5):
-            db.record_task_event(f"agent-{i:02d}", f"t{i}", "task_completed",
-                               bounty_usd=0.5, quality=0.9)
+            db.record_task_event(
+                f"agent-{i:02d}", f"t{i}", "task_completed", bounty_usd=0.5, quality=0.9
+            )
         top = db.get_top_performers(3)
         assert len(top) == 3
 
