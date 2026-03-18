@@ -445,7 +445,7 @@ class SwarmRunner:
         )
 
         failed = self.coordinator.em_client.list_tasks(
-            status="failed",
+            status="disputed",
             limit=10,
         )
 
