@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { View, Text, FlatList, KeyboardAvoidingView, Platform, TouchableOpacity } from "react-native";
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useXMTP } from "../../providers/XMTPProvider";
 import { useMessages, type XMTPMessage } from "../../hooks/useMessages";
 import { MessageBubbleNative } from "../../components/messaging/MessageBubbleNative";
@@ -9,6 +10,7 @@ import { MessageInputNative } from "../../components/messaging/MessageInputNativ
 export default function MessageThreadScreen() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
   const router = useRouter();
+  const { t } = useTranslation();
   const { client } = useXMTP();
   const peerAddress = threadId ? decodeURIComponent(threadId) : null;
   const { messages, isLoading, isSending, sendMessage } = useMessages(peerAddress);
@@ -58,7 +60,7 @@ export default function MessageThreadScreen() {
         ListEmptyComponent={
           isLoading ? null : (
             <View className="flex-1 items-center justify-center">
-              <Text className="text-white/30 text-sm">Envia el primer mensaje</Text>
+              <Text className="text-white/30 text-sm">{t("messages.firstMessage")}</Text>
             </View>
           )
         }

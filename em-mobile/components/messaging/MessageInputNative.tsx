@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { View, TextInput, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   onSend: (text: string) => Promise<void>;
@@ -9,7 +10,9 @@ interface Props {
   placeholder?: string;
 }
 
-export function MessageInputNative({ onSend, isSending, placeholder = "Escribe un mensaje..." }: Props) {
+export function MessageInputNative({ onSend, isSending, placeholder }: Props) {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("messages.inputPlaceholder");
   const [text, setText] = useState("");
   const inputRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
@@ -30,7 +33,7 @@ export function MessageInputNative({ onSend, isSending, placeholder = "Escribe u
         ref={inputRef}
         value={text}
         onChangeText={setText}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         placeholderTextColor="rgba(255,255,255,0.3)"
         multiline
         maxLength={4096}

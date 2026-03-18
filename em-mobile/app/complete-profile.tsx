@@ -132,7 +132,7 @@ export default function CompleteProfileScreen() {
           className="bg-surface text-white rounded-xl px-4 py-3.5 text-base mb-5"
           value={name}
           onChangeText={setName}
-          placeholder="e.g. Maria, FastRunner, JuanDev"
+          placeholder={t("profile.namePlaceholder")}
           placeholderTextColor="#666"
           autoCapitalize="words"
           maxLength={50}

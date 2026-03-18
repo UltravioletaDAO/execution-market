@@ -31,6 +31,7 @@ function formatDate(dateStr: string): string {
 }
 
 function RatingCard({ entry }: { entry: RatingEntry }) {
+  const { t } = useTranslation();
   const openReputationTx = async () => {
     if (!entry.reputation_tx) return;
     // Reputation Registry is on Base
@@ -69,7 +70,7 @@ function RatingCard({ entry }: { entry: RatingEntry }) {
         {entry.reputation_tx ? (
           <Pressable onPress={openReputationTx} hitSlop={8}>
             <Text className="text-blue-400 text-xs">
-              Reputation TX: {entry.reputation_tx.slice(0, 8)}... ↗
+              {t("task.reputationTx")}: {entry.reputation_tx.slice(0, 8)}... ↗
             </Text>
           </Pressable>
         ) : null}

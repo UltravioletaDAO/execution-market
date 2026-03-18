@@ -30,8 +30,8 @@ export default function MessagesScreen() {
       const inboxId = await client.findInboxIdFromIdentity(identity);
       if (!inboxId) {
         Alert.alert(
-          "Sin cuenta XMTP v5",
-          "Esta dirección no tiene una cuenta XMTP v5 registrada. Pídele al destinatario que active XMTP en una app compatible (Coinbase Wallet, Converse, etc.)."
+          t("messages.noXmtpV5Title"),
+          t("messages.noXmtpV5Body")
         );
         return;
       }
@@ -43,8 +43,8 @@ export default function MessagesScreen() {
       router.push(`/messages/${encodeURIComponent(address)}`);
     } catch (err) {
       Alert.alert(
-        "Error",
-        err instanceof Error ? err.message : "No se pudo iniciar la conversación"
+        t("common.error"),
+        err instanceof Error ? err.message : t("messages.createDmError")
       );
     } finally {
       setIsStarting(false);
@@ -64,7 +64,7 @@ export default function MessagesScreen() {
           <Text className="text-red-400 text-sm text-center mb-4">{error}</Text>
         ) : needsWalletConnector ? (
           <Text className="text-yellow-400 text-sm text-center mb-6">
-            Entraste con email. XMTP necesita tu wallet connector activo.
+            {t("messages.emailOnlyWarning")}
           </Text>
         ) : null}
         {needsWalletConnector ? (
@@ -74,7 +74,7 @@ export default function MessagesScreen() {
               className="bg-white px-6 py-3 rounded-xl mb-3"
               activeOpacity={0.8}
             >
-              <Text className="text-black font-semibold">Conectar Wallet</Text>
+              <Text className="text-black font-semibold">{t("messages.connectWallet")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={connectDev}
@@ -86,7 +86,7 @@ export default function MessagesScreen() {
                 <ActivityIndicator color="white" />
               ) : (
                 <Text className="text-white/50 text-sm font-medium">
-                  🧪 Modo Dev (identidad temporal)
+                  {t("messages.devMode")}
                 </Text>
               )}
             </TouchableOpacity>
@@ -109,7 +109,7 @@ export default function MessagesScreen() {
         )}
         {isDevMode && (
           <Text className="text-yellow-400/60 text-xs text-center mt-2">
-            Modo Dev activo — identidad temporal, no vinculada a tu wallet
+            {t("messages.devModeActive")}
           </Text>
         )}
         <Text className="text-white/30 text-xs text-center mt-4">
@@ -135,7 +135,7 @@ export default function MessagesScreen() {
 
       {isDevMode && (
         <Text className="text-yellow-400/50 text-xs text-center pb-1">
-          Modo Dev — identidad temporal
+          {t("messages.devModeBadge")}
         </Text>
       )}
 
@@ -159,7 +159,7 @@ export default function MessagesScreen() {
                 className="border border-white/20 px-5 py-2.5 rounded-xl"
                 activeOpacity={0.8}
               >
-                <Text className="text-white/60 text-sm">Iniciar conversación</Text>
+                <Text className="text-white/60 text-sm">{t("messages.startConversation")}</Text>
               </TouchableOpacity>
             </View>
           }
@@ -180,16 +180,16 @@ export default function MessagesScreen() {
         <View className="flex-1 justify-end bg-black/70">
           <View className="bg-zinc-900 rounded-t-2xl px-5 pt-5 pb-8">
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-white text-lg font-semibold">Nueva conversación</Text>
+              <Text className="text-white text-lg font-semibold">{t("messages.newConversation")}</Text>
               <TouchableOpacity onPress={() => { setShowNewChat(false); setPeerInput(""); }}>
                 <Text className="text-white/50 text-2xl leading-none">×</Text>
               </TouchableOpacity>
             </View>
-            <Text className="text-white/50 text-xs mb-2">Dirección XMTP (0x...)</Text>
+            <Text className="text-white/50 text-xs mb-2">{t("messages.addressLabel")}</Text>
             <TextInput
               value={peerInput}
               onChangeText={setPeerInput}
-              placeholder="0x..."
+              placeholder={t("messages.addressPlaceholder")}
               placeholderTextColor="rgba(255,255,255,0.2)"
               autoCapitalize="none"
               autoCorrect={false}
@@ -205,7 +205,7 @@ export default function MessagesScreen() {
               {isStarting ? (
                 <ActivityIndicator color="black" />
               ) : (
-                <Text className="text-black font-semibold">Abrir chat</Text>
+                <Text className="text-black font-semibold">{t("messages.openChat")}</Text>
               )}
             </TouchableOpacity>
           </View>
