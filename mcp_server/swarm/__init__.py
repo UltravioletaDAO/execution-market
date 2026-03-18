@@ -69,6 +69,14 @@ from .config_manager import (
     validate_config,
 )
 from .feedback_pipeline import FeedbackPipeline, CompletionFeedback, PipelineRunResult
+from .expiry_analyzer import (
+    ExpiryAnalyzer,
+    ExpiryReport,
+    ExpiryReason,
+    CategoryHealth,
+    Countermeasure,
+    CountermeasureType,
+)
 from .mcp_tools import register_swarm_tools
 
 __all__ = [
@@ -124,5 +132,11 @@ __all__ = [
     "FeedbackPipeline",
     "CompletionFeedback",
     "PipelineRunResult",
+    "ExpiryAnalyzer",
+    "ExpiryReport",
+    "ExpiryReason",
+    "CategoryHealth",
+    "Countermeasure",
+    "CountermeasureType",
     "register_swarm_tools",
 ]
