@@ -25,9 +25,18 @@ export function useMessages(peerAddress: string | null) {
       try {
         await client.conversations.sync().catch(() => {});
 
-        const { PublicIdentity } = await import("@xmtp/react-native-sdk");
-        const identity = new PublicIdentity(peerAddress, "ETHEREUM");
-        const convo = await client.conversations.findOrCreateDmWithIdentity(identity);
+        // peerAddress can be either:
+        //   - an Ethereum address (0x + 40 hex chars) → use findOrCreateDmWithIdentity
+        //   - an XMTP inbox ID (64 hex chars, no 0x prefix) → use findOrCreateDm
+        const isInboxId = /^[0-9a-f]{64}$/i.test(peerAddress);
+        let convo: any;
+        if (isInboxId) {
+          convo = await client.conversations.findOrCreateDm(peerAddress);
+        } else {
+          const { PublicIdentity } = await import("@xmtp/react-native-sdk");
+          const identity = new PublicIdentity(peerAddress, "ETHEREUM");
+          convo = await client.conversations.findOrCreateDmWithIdentity(identity);
+        }
         if (cancelled) return;
 
         conversationRef.current = convo;
