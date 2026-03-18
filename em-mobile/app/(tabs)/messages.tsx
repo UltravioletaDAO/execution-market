@@ -1,4 +1,5 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert } from "react-native";
+import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useXMTP } from "../../providers/XMTPProvider";
@@ -9,12 +10,36 @@ import { dynamicClient } from "../../lib/dynamic";
 export default function MessagesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { isConnected, isConnecting, connect, connectDev, error, walletAddress, signerAvailable, isDevMode } = useXMTP();
-  const { previews, isLoading } = useConversations();
+  const { isConnected, isConnecting, connect, connectDev, error, walletAddress, signerAvailable, isDevMode, client } = useXMTP();
+  const { previews, isLoading, refresh } = useConversations();
+  const [showNewChat, setShowNewChat] = useState(false);
+  const [peerInput, setPeerInput] = useState("");
+  const [isStarting, setIsStarting] = useState(false);
+
+  const handleStartConversation = async () => {
+    const address = peerInput.trim();
+    if (!address) return;
+    if (!client) return;
+
+    setIsStarting(true);
+    try {
+      // XMTP v5: newDm creates or opens existing DM conversation
+      await client.conversations.newDm(address);
+      await refresh();
+      setShowNewChat(false);
+      setPeerInput("");
+      router.push(`/messages/${encodeURIComponent(address)}`);
+    } catch (err) {
+      Alert.alert(
+        "Error",
+        err instanceof Error ? err.message : "No se pudo iniciar la conversación"
+      );
+    } finally {
+      setIsStarting(false);
+    }
+  };
 
   if (!isConnected) {
-    // Wallet address known but no active connector — user logged in with email only.
-    // They need to connect their wallet via Dynamic to get a signer for XMTP.
     const needsWalletConnector = !!walletAddress && !signerAvailable;
 
     return (
@@ -84,9 +109,24 @@ export default function MessagesScreen() {
 
   return (
     <View className="flex-1 bg-black">
-      <View className="px-4 pt-4 pb-2">
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
         <Text className="text-white text-2xl font-bold">{t("messages.header")}</Text>
+        <TouchableOpacity
+          onPress={() => setShowNewChat(true)}
+          className="w-9 h-9 bg-white rounded-full items-center justify-center"
+          activeOpacity={0.8}
+        >
+          <Text className="text-black text-xl font-bold leading-none">+</Text>
+        </TouchableOpacity>
       </View>
+
+      {isDevMode && (
+        <Text className="text-yellow-400/50 text-xs text-center pb-1">
+          Modo Dev — identidad temporal
+        </Text>
+      )}
+
       {isLoading ? (
         <ActivityIndicator color="white" className="mt-8" />
       ) : (
@@ -100,10 +140,61 @@ export default function MessagesScreen() {
             />
           )}
           ListEmptyComponent={
-            <Text className="text-white/40 text-center mt-8">{t("messages.empty")}</Text>
+            <View className="items-center mt-16 px-6">
+              <Text className="text-white/40 text-center mb-4">{t("messages.empty")}</Text>
+              <TouchableOpacity
+                onPress={() => setShowNewChat(true)}
+                className="border border-white/20 px-5 py-2.5 rounded-xl"
+                activeOpacity={0.8}
+              >
+                <Text className="text-white/60 text-sm">Iniciar conversación</Text>
+              </TouchableOpacity>
+            </View>
           }
         />
       )}
+
+      {/* New conversation modal */}
+      <Modal
+        visible={showNewChat}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowNewChat(false)}
+      >
+        <View className="flex-1 justify-end bg-black/70">
+          <View className="bg-zinc-900 rounded-t-2xl px-5 pt-5 pb-8">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-white text-lg font-semibold">Nueva conversación</Text>
+              <TouchableOpacity onPress={() => { setShowNewChat(false); setPeerInput(""); }}>
+                <Text className="text-white/50 text-2xl leading-none">×</Text>
+              </TouchableOpacity>
+            </View>
+            <Text className="text-white/50 text-xs mb-2">Dirección XMTP (0x...)</Text>
+            <TextInput
+              value={peerInput}
+              onChangeText={setPeerInput}
+              placeholder="0x..."
+              placeholderTextColor="rgba(255,255,255,0.2)"
+              autoCapitalize="none"
+              autoCorrect={false}
+              className="bg-white/10 text-white rounded-xl px-4 py-3 mb-4 font-mono text-sm"
+            />
+            <TouchableOpacity
+              onPress={handleStartConversation}
+              disabled={isStarting || !peerInput.trim()}
+              className="bg-white rounded-xl py-3 items-center"
+              activeOpacity={0.8}
+              style={{ opacity: !peerInput.trim() ? 0.4 : 1 }}
+            >
+              {isStarting ? (
+                <ActivityIndicator color="black" />
+              ) : (
+                <Text className="text-black font-semibold">Abrir chat</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
