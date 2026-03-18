@@ -15,7 +15,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@dynamic-labs/ethereum": "4.61.4",
+    "@dynamic-labs/ethereum": "4.67.2",
     "@dynamic-labs/sdk-react-core": "4.61.4",
     "@rollup/rollup-linux-x64-gnu": "^4.57.0",
     "@supabase/supabase-js": "^2.45.0",
