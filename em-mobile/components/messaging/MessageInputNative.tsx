@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { View, TextInput, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 export function MessageInputNative({ onSend, isSending, placeholder = "Escribe un mensaje..." }: Props) {
   const [text, setText] = useState("");
   const inputRef = useRef<TextInput>(null);
+  const insets = useSafeAreaInsets();
 
   const handleSend = async () => {
     const trimmed = text.trim();
@@ -20,7 +22,10 @@ export function MessageInputNative({ onSend, isSending, placeholder = "Escribe u
   };
 
   return (
-    <View className="flex-row items-end px-3 py-2 border-t border-white/10 bg-black">
+    <View
+      className="flex-row items-end px-3 pt-2 border-t border-white/10 bg-black"
+      style={{ paddingBottom: Math.max(insets.bottom, 8) }}
+    >
       <TextInput
         ref={inputRef}
         value={text}
