@@ -95,6 +95,7 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
       const pk = generatePrivateKey();
       const account = privateKeyToAccount(pk);
       const devSigner = {
+        walletType: "EOA" as const,
         getAddress: async () => account.address,
         signMessage: async (message: string) =>
           account.signMessage({ message }),
@@ -161,46 +162,53 @@ export function useXMTP() {
  *   - The raw Dynamic wallet object (has connector.signMessage + address)
  */
 function buildNativeSigner(rawSigner: any, fallbackAddress: string): {
+  walletType: "EOA";
   getAddress(): Promise<string>;
   signMessage(message: string): Promise<string>;
 } {
-  // Case 1: viem WalletClient — Dynamic.xyz react-native-extension returns this shape
+  const EOA = "EOA" as const;
+
+  // Case 1: viem WalletClient
   if (rawSigner && typeof rawSigner.signMessage === "function" && rawSigner.account) {
     return {
+      walletType: EOA,
       getAddress: async () => rawSigner.account.address ?? fallbackAddress,
       signMessage: async (message: string) =>
         rawSigner.signMessage({ message, account: rawSigner.account }),
     };
   }
 
-  // Case 2: ethers Signer (v5 or v6) — has getAddress() and signMessage()
+  // Case 2: ethers Signer (v5 or v6)
   if (rawSigner && typeof rawSigner.signMessage === "function" && typeof rawSigner.getAddress === "function") {
     return {
+      walletType: EOA,
       getAddress: async () => rawSigner.getAddress(),
       signMessage: async (message: string) => rawSigner.signMessage(message),
     };
   }
 
-  // Case 3: Dynamic wallet object with connector.getSigner() already resolved —
-  // connector has signMessage on itself
+  // Case 3: Dynamic wallet with connector.signMessage
   if (rawSigner && rawSigner.connector && typeof rawSigner.connector.signMessage === "function") {
     return {
+      walletType: EOA,
       getAddress: async () => rawSigner.address ?? fallbackAddress,
       signMessage: async (message: string) =>
         rawSigner.connector.signMessage({ message }),
     };
   }
 
-  // Case 4: Object already has signMessage but no account/getAddress — wrap with address
+  // Case 4: signMessage only
   if (rawSigner && typeof rawSigner.signMessage === "function") {
     return {
+      walletType: EOA,
       getAddress: async () => fallbackAddress,
       signMessage: async (message: string) => rawSigner.signMessage(message),
     };
   }
 
-  // Last resort: pass through — let the SDK surface a useful error
+  // Last resort
   return {
+    walletType: EOA,
     getAddress: async () => fallbackAddress,
     signMessage: async () => {
       throw new Error("[XMTP] Cannot sign message: no compatible sign method found on wallet connector");
