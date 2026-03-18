@@ -1,0 +1,87 @@
+{
+  "suite": "kk_v2_live_integration",
+  "timestamp": "2026-03-18T07:46:13.200995+00:00",
+  "duration_ms": 23740.438624998205,
+  "passed": 11,
+  "failed": 0,
+  "total": 11,
+  "results": [
+    {
+      "name": "EMApiClient.health",
+      "passed": true,
+      "duration_ms": 773.5096670003259,
+      "details": "All 5 components healthy: database, redis, blockchain, storage, x402",
+      "error": ""
+    },
+    {
+      "name": "EMApiClient.list_tasks",
+      "passed": true,
+      "duration_ms": 2882.048624996969,
+      "details": "130 tasks fetched (cancelled=30, completed=50, expired=50)",
+      "error": ""
+    },
+    {
+      "name": "EMApiClient.task_detail",
+      "passed": true,
+      "duration_ms": 1127.8626660059672,
+      "details": "Task d07f7b10... fetched with 22 fields",
+      "error": ""
+    },
+    {
+      "name": "Coordinator.ingest_live_tasks",
+      "passed": true,
+      "duration_ms": 603.5118750005495,
+      "details": "Ingested 10 live tasks into coordinator queue",
+      "error": ""
+    },
+    {
+      "name": "Coordinator.routing_simulation",
+      "passed": true,
+      "duration_ms": 1916.3147500003106,
+      "details": "Routed 5 tasks (5 failures) across 5 agents",
+      "error": ""
+    },
+    {
+      "name": "Scheduler.deadline_scoring",
+      "passed": true,
+      "duration_ms": 1223.474709004222,
+      "details": "Scored 20 tasks in scheduler\n  [0.0] Take a photo of screens in your area (physical_presence)\n  [0.0] \ud83c\udf93 Workshop Demo: Foto del cielo de Miami (physical_presence)\n  [0.0] Photo of Sprouts storefront in Miramar,  (physical_presence)\n  [0.0] Sunday afternoon sky photo from Miami Ga (physical_presence)\n  [0.0] Night sky photo from Miami Gardens with  (physical_presence)",
+      "error": ""
+    },
+    {
+      "name": "Dashboard.fleet_health",
+      "passed": true,
+      "duration_ms": 0.8447919972240925,
+      "details": "Fleet status: FleetStatus.DEGRADED, 6 agents, 6 operational",
+      "error": ""
+    },
+    {
+      "name": "ConfigManager.profiles",
+      "passed": true,
+      "duration_ms": 0.5475840007420629,
+      "details": "Default config loaded, 0 validation errors",
+      "error": ""
+    },
+    {
+      "name": "Runner.dry_run_cycle",
+      "passed": true,
+      "duration_ms": 12050.956042003236,
+      "details": "Phases: 7/7 completed\nTasks discovered: 0\nNew tasks: 0\nDuration: 12046ms",
+      "error": ""
+    },
+    {
+      "name": "Analytics.live_data",
+      "passed": true,
+      "duration_ms": 645.2196250029374,
+      "details": "Analyzed 20 task events from live API (20 completed tasks)",
+      "error": ""
+    },
+    {
+      "name": "End-to-End.full_pipeline",
+      "passed": true,
+      "duration_ms": 2515.829167001357,
+      "details": "Pipeline completed in 2516ms\n  API: healthy\n  Tasks fetched: 60\n  Ingested: 60\n  Routed: 10\n  Scheduled: 10\n  Analytics events: 20\n  Dashboard: FleetStatus.DEGRADED, 6 agents",
+      "error": ""
+    }
+  ]
+}
