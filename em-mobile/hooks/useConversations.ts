@@ -3,11 +3,35 @@ import { useFocusEffect } from "expo-router";
 import { useXMTP } from "../providers/XMTPProvider";
 
 export interface ConversationPreview {
-  id: string;
+  /** XMTP conversation ID — used for navigation */
+  convoId: string;
+  /** Resolved ETH address (0x...) or abbreviated inbox ID for display */
   peerAddress: string;
   lastMessage: string | null;
   lastMessageAt: Date | null;
   unreadCount: number;
+}
+
+/** Try to resolve an XMTP inbox ID to the first associated ETH address. */
+async function resolveInboxIdToAddress(
+  client: any,
+  inboxId: string
+): Promise<string> {
+  try {
+    const states: any[] = await client.inboxStates(false, [inboxId]);
+    const state = states?.[0];
+    // InboxState has an `identifiers` array of PublicIdentity objects
+    const ethIdentifier = state?.identifiers?.find(
+      (id: any) => id.identifierType === "ETHEREUM" || id.identifierKind === "ETHEREUM"
+    );
+    if (ethIdentifier?.identifier) return ethIdentifier.identifier;
+    // fallback: first identifier whatever type
+    if (state?.identifiers?.[0]?.identifier) return state.identifiers[0].identifier;
+  } catch {
+    // ignore
+  }
+  // fallback: show abbreviated inbox ID
+  return `${inboxId.slice(0, 6)}...${inboxId.slice(-4)}`;
 }
 
 export function useConversations() {
@@ -26,33 +50,36 @@ export function useConversations() {
 
       for (const convo of convos) {
         try {
-          // v5: lastMessage is a property on Dm, not a method
+          // v5: lastMessage is a property on Dm (set in constructor)
           const lastMsg = convo.lastMessage ?? null;
 
-          // v5: peerInboxId() is an async method
-          let peerAddress = convo.id;
+          // v5: peerInboxId() is async — get inbox ID then resolve to ETH address
+          let peerAddress = `${convo.id.slice(0, 6)}...${convo.id.slice(-4)}`;
           if (typeof convo.peerInboxId === "function") {
             try {
-              peerAddress = (await convo.peerInboxId()) ?? convo.id;
+              const inboxId: string = await convo.peerInboxId();
+              if (inboxId) {
+                peerAddress = await resolveInboxIdToAddress(client, inboxId);
+              }
             } catch {
-              // leave as convo.id
+              // leave abbreviated convo.id
             }
           } else if (convo.peerAddress) {
             peerAddress = convo.peerAddress;
           }
 
-          // v5: sentNs (not sentAtNs) — BigInt nanoseconds
+          // v5: sentNs (BigInt nanoseconds)
           let lastMessageAt: Date | null = null;
           if (lastMsg) {
             const ns = lastMsg.sentNs ?? lastMsg.sentAtNs ?? lastMsg.insertedAtNs;
-            if (ns !== undefined && ns !== null) {
+            if (ns != null) {
               lastMessageAt = new Date(Number(BigInt(ns) / 1000000n));
             } else if (lastMsg.sentAt instanceof Date) {
               lastMessageAt = lastMsg.sentAt;
             }
           }
 
-          // v5: content() is a method, not a property
+          // v5: content() is a method
           let lastMessageContent: string | null = null;
           if (lastMsg) {
             try {
@@ -60,9 +87,9 @@ export function useConversations() {
                 ? lastMsg.content()
                 : lastMsg.content;
               lastMessageContent =
-                typeof raw === "string"
+                typeof raw === "string" && raw
                   ? raw
-                  : typeof raw?.text === "string"
+                  : typeof raw?.text === "string" && raw.text
                   ? raw.text
                   : lastMsg.fallback ?? null;
             } catch {
@@ -71,7 +98,7 @@ export function useConversations() {
           }
 
           items.push({
-            id: convo.id,
+            convoId: convo.id,
             peerAddress,
             lastMessage: lastMessageContent,
             lastMessageAt,
@@ -91,28 +118,23 @@ export function useConversations() {
     }
   }, [client]);
 
-  // Load on connect
   useEffect(() => {
     if (isConnected) loadConversations();
   }, [isConnected, loadConversations]);
 
-  // Reload every time the Messages tab comes into focus
   useFocusEffect(
     useCallback(() => {
       if (isConnected) loadConversations();
     }, [isConnected, loadConversations])
   );
 
-  // Stream new conversations
   useEffect(() => {
     if (!client) return;
     let unsubscribe: (() => void) | null = null;
-
     client.conversations
       .stream(() => { loadConversations(); })
       .then((unsub: () => void) => { unsubscribe = unsub; })
       .catch(() => {});
-
     return () => { unsubscribe?.(); };
   }, [client, loadConversations]);
 

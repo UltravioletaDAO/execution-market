@@ -18,8 +18,12 @@ export default function MessageThreadScreen() {
   const { messages, isLoading, isSending, sendMessage } = useMessages(peerAddress);
   const flatListRef = useRef<FlatList>(null);
 
+  // If peerAddress is an ETH address show 0x1234...abcd, else abbreviate convo ID
+  const isEthAddress = peerAddress ? /^0x[0-9a-fA-F]{40}$/.test(peerAddress) : false;
   const shortAddr = peerAddress
-    ? `${peerAddress.slice(0, 6)}...${peerAddress.slice(-4)}`
+    ? isEthAddress
+      ? `${peerAddress.slice(0, 6)}...${peerAddress.slice(-4)}`
+      : `Conv ${peerAddress.slice(0, 4)}...${peerAddress.slice(-4)}`
     : "";
 
   return (

@@ -150,7 +150,7 @@ export default function MessagesScreen() {
           renderItem={({ item }: { item: ConversationPreview }) => (
             <ConversationRow
               preview={item}
-              onPress={() => router.push(`/messages/${encodeURIComponent(item.peerAddress)}`)}
+              onPress={() => router.push(`/messages/${encodeURIComponent(item.convoId)}`)}
             />
           )}
           ListEmptyComponent={
