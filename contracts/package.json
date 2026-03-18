@@ -30,7 +30,7 @@
     "chai": "^4.3.10",
     "ethers": "^6.9.2",
     "hardhat": "^2.19.4",
-    "hardhat-gas-reporter": "^1.0.9",
+    "hardhat-gas-reporter": "^2.3.0",
     "solidity-coverage": "^0.8.5",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
