@@ -91,11 +91,17 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
       const { generatePrivateKey, privateKeyToAccount } = await import("viem/accounts");
       const dbKey = await getOrCreateEncryptionKey();
 
-      // Generate a random ephemeral wallet as XMTP signer for dev testing.
-      // v5 signer interface: getIdentifier() + signMessage() returning { signature }
+      // Persist dev private key in SecureStore so identity survives app restarts.
+      // Without this, every connectDev() call creates a new identity and prior
+      // conversations become invisible.
+      const SecureStore = await import("expo-secure-store");
+      let pk = await SecureStore.getItemAsync("xmtp_dev_pk");
+      if (!pk) {
+        pk = generatePrivateKey();
+        await SecureStore.setItemAsync("xmtp_dev_pk", pk);
+      }
       const { PublicIdentity } = await import("@xmtp/react-native-sdk");
-      const pk = generatePrivateKey();
-      const account = privateKeyToAccount(pk);
+      const account = privateKeyToAccount(pk as `0x${string}`);
       const devSigner = {
         getIdentifier: async () => new PublicIdentity(account.address, "ETHEREUM"),
         signMessage: async (message: string) => ({
