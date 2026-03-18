@@ -32,18 +32,5 @@
         "EXPO_PUBLIC_DYNAMIC_ENVIRONMENT_ID": "db513515-7317-46d6-b401-e0695f104481"
       }
     }
-  },
-  "submit": {
-    "production": {
-      "ios": {
-        "appleId": "",
-        "ascAppId": "",
-        "appleTeamId": ""
-      },
-      "android": {
-        "serviceAccountKeyPath": "",
-        "track": "internal"
-      }
-    }
   }
 }
