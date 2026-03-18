@@ -209,7 +209,7 @@ jobs:
     steps:
       - name: Notify Slack - Success
         if: needs.smoke-tests.result == 'success'
-        uses: slackapi/slack-github-action@v2
+        uses: slackapi/slack-github-action@v3
         with:
           payload: |
             {
@@ -239,7 +239,7 @@ jobs:
 
       - name: Notify Slack - Failure
         if: needs.smoke-tests.result == 'failure' || needs.deploy.result == 'failure'
-        uses: slackapi/slack-github-action@v2
+        uses: slackapi/slack-github-action@v3
         with:
           payload: |
             {
