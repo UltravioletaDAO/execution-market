@@ -31,7 +31,7 @@
     "recharts": "^2.15.0",
     "tailwind-merge": "^2.6.0",
     "viem": "^2.44.4",
-    "wagmi": "^3.3.2"
+    "wagmi": "^3.5.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",
