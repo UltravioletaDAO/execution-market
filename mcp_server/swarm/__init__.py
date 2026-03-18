@@ -1,7 +1,7 @@
 """
 KarmaCadabra V2 Swarm Coordination
 
-Sixteen core components:
+Nineteen core components:
 - ReputationBridge: Connects on-chain ERC-8004 reputation with internal scoring
 - LifecycleManager: Manages agent states, budgets, and health
 - SwarmOrchestrator: Routes tasks to the best available agent
@@ -17,7 +17,9 @@ Sixteen core components:
 - SwarmAnalytics: Metrics aggregation, trend analysis, and fleet alerting
 - SealBridge: Analytics-to-on-chain reputation pipeline (describe-net integration)
 - MCP Tools: MCP protocol tools for agent-native swarm interaction
-- AcontextAdapter: IRC-based coordination via Acontext
+- AcontextAdapter: IRC-based coordination via Acontext (V2: TTL locks, auctions, heartbeats)
+- SwarmDashboard: Real-time fleet health monitoring (single pane of glass)
+- ConfigManager: Centralized configuration with validation and hot reload
 """
 
 from .reputation_bridge import ReputationBridge
@@ -49,6 +51,21 @@ from .scheduler import (
     RetryScheduler,
     AgentLoadBalancer,
     UrgencyLevel,
+)
+from .dashboard import (
+    SwarmDashboard,
+    DashboardSnapshot,
+    AgentStatus,
+    FleetStatus,
+    Severity,
+    HealthReport,
+)
+from .config_manager import (
+    ConfigManager,
+    SwarmConfig,
+    Environment,
+    ConfigValidationError,
+    validate_config,
 )
 from .mcp_tools import register_swarm_tools
 
@@ -91,5 +108,16 @@ __all__ = [
     "RetryScheduler",
     "AgentLoadBalancer",
     "UrgencyLevel",
+    "SwarmDashboard",
+    "DashboardSnapshot",
+    "AgentStatus",
+    "FleetStatus",
+    "Severity",
+    "HealthReport",
+    "ConfigManager",
+    "SwarmConfig",
+    "Environment",
+    "ConfigValidationError",
+    "validate_config",
     "register_swarm_tools",
 ]
