@@ -9,6 +9,8 @@ interface Props {
 }
 
 export function MessageBubbleNative({ message, isMine }: Props) {
+  if (!message.content || !message.content.trim()) return null;
+
   return (
     <View className={`flex-row ${isMine ? "justify-end" : "justify-start"} mb-2`}>
       <View className={`max-w-[75%] rounded-2xl px-4 py-2 ${

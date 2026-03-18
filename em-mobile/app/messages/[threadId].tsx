@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { View, Text, FlatList, KeyboardAvoidingView, Platform, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -43,6 +44,10 @@ export default function MessageThreadScreen() {
           </Text>
         </View>
         <Text className="text-white font-medium">{shortAddr}</Text>
+      </View>
+      <View className="flex-row items-center justify-center px-4 pb-1">
+        <Ionicons name="lock-closed" size={10} color="rgba(255,255,255,0.3)" />
+        <Text className="text-white/30 text-[10px] ml-1">{t("messages.e2eEncrypted")}</Text>
       </View>
 
       {/* Messages */}

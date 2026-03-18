@@ -564,6 +564,10 @@
     "firstMessage": "Envia el primer mensaje",
     "inputPlaceholder": "Escribe un mensaje...",
     "noMessages": "Sin mensajes",
-    "messageAgent": "Mensaje al Agente"
+    "messageAgent": "Mensaje al Agente",
+    "e2eEncrypted": "Cifrado de extremo a extremo",
+    "poweredByXmtp": "Impulsado por XMTP",
+    "yourXmtpAddress": "Tu direccion XMTP",
+    "xmtpBadge": "XMTP"
   }
 }
