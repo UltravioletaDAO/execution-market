@@ -1,7 +1,7 @@
 """
 KarmaCadabra V2 Swarm Coordination
 
-Nineteen core components:
+Twenty core components:
 - ReputationBridge: Connects on-chain ERC-8004 reputation with internal scoring
 - LifecycleManager: Manages agent states, budgets, and health
 - SwarmOrchestrator: Routes tasks to the best available agent
@@ -20,6 +20,7 @@ Nineteen core components:
 - AcontextAdapter: IRC-based coordination via Acontext (V2: TTL locks, auctions, heartbeats)
 - SwarmDashboard: Real-time fleet health monitoring (single pane of glass)
 - ConfigManager: Centralized configuration with validation and hot reload
+- FeedbackPipeline: Closes the feedback loop from completions to intelligence
 """
 
 from .reputation_bridge import ReputationBridge
@@ -67,6 +68,7 @@ from .config_manager import (
     ConfigValidationError,
     validate_config,
 )
+from .feedback_pipeline import FeedbackPipeline, CompletionFeedback, PipelineRunResult
 from .mcp_tools import register_swarm_tools
 
 __all__ = [
@@ -119,5 +121,8 @@ __all__ = [
     "Environment",
     "ConfigValidationError",
     "validate_config",
+    "FeedbackPipeline",
+    "CompletionFeedback",
+    "PipelineRunResult",
     "register_swarm_tools",
 ]
