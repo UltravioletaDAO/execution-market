@@ -522,9 +522,7 @@ async def auto_approve_submission(
                     .execute()
                 )
                 task_status = (
-                    task_result.data[0].get("status", "")
-                    if task_result.data
-                    else ""
+                    task_result.data[0].get("status", "") if task_result.data else ""
                 )
                 non_approvable = {"cancelled", "expired", "completed"}
                 if task_status in non_approvable:
@@ -1104,7 +1102,9 @@ async def assign_task(
             from integrations.x402.sdk_client import EMX402SDK
             from decimal import Decimal
 
-            bounty = Decimal(str(task.get("bounty_amount") or task.get("lock_amount") or "0"))
+            bounty = Decimal(
+                str(task.get("bounty_amount") or task.get("lock_amount") or "0")
+            )
             if bounty > 0:
                 sdk = EMX402SDK()
                 agent_address = task.get("agent_id", "")
