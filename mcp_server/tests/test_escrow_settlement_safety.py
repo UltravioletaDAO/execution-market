@@ -193,7 +193,10 @@ async def test_settle_rejects_released_escrow():
 
     assert result["payment_tx"] is None
     assert result["payment_error"] is not None
-    assert "releasable" in result["payment_error"].lower() or "released" in result["payment_error"].lower()
+    assert (
+        "releasable" in result["payment_error"].lower()
+        or "released" in result["payment_error"].lower()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -258,7 +261,10 @@ async def test_settle_rejects_refunded_escrow():
 
     assert result["payment_tx"] is None
     assert result["payment_error"] is not None
-    assert "releasable" in result["payment_error"].lower() or "refunded" in result["payment_error"].lower()
+    assert (
+        "releasable" in result["payment_error"].lower()
+        or "refunded" in result["payment_error"].lower()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -282,8 +288,6 @@ async def test_settlement_no_tx_hash_returns_error():
     escrow_update_calls = []
 
     # Track whether escrow was updated to "released"
-    original_update = escrow_table.update
-
     def tracking_update(*args, **kwargs):
         escrow_update_calls.append(("update", args, kwargs))
         return _FakeQueryResult()
@@ -346,15 +350,23 @@ async def test_settlement_no_tx_hash_returns_error():
     # Must return error about missing TX hash
     assert result["payment_tx"] is None
     assert result["payment_error"] is not None
-    assert "tx hash" in result["payment_error"].lower() or "tx_hash" in result["payment_error"].lower()
+    assert (
+        "tx hash" in result["payment_error"].lower()
+        or "tx_hash" in result["payment_error"].lower()
+    )
 
     # Escrow must NOT have been updated to "released"
     released_updates = [
         call
         for call in escrow_update_calls
-        if call[0] == "update" and len(call[1]) > 0 and isinstance(call[1][0], dict) and call[1][0].get("status") == "released"
+        if call[0] == "update"
+        and len(call[1]) > 0
+        and isinstance(call[1][0], dict)
+        and call[1][0].get("status") == "released"
     ]
-    assert len(released_updates) == 0, "Escrow should NOT be marked 'released' without a confirmed TX hash"
+    assert len(released_updates) == 0, (
+        "Escrow should NOT be marked 'released' without a confirmed TX hash"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -391,7 +403,9 @@ async def test_cancel_escrow_lookup_failure_with_tx_raises():
     }
 
     # Escrow table that raises on select (simulates DB failure)
-    escrow_table_failing = _FakeTable(raise_on_select=True, exc=Exception("Connection refused"))
+    escrow_table_failing = _FakeTable(
+        raise_on_select=True, exc=Exception("Connection refused")
+    )
 
     fake_client = _FakeClient(
         tables={
@@ -410,13 +424,16 @@ async def test_cancel_escrow_lookup_failure_with_tx_raises():
             "api.routers.tasks.get_payment_dispatcher",
             return_value=mock_dispatcher,
         ),
-        patch("api.routers.tasks._normalize_status", side_effect=lambda v: str(v or "").strip().lower()),
+        patch(
+            "api.routers.tasks._normalize_status",
+            side_effect=lambda v: str(v or "").strip().lower(),
+        ),
     ):
         mock_tasks_db.get_task = AsyncMock(return_value=mock_task)
         mock_tasks_db.get_client.return_value = fake_client
         mock_tasks_db.cancel_task = AsyncMock(return_value={"status": "cancelled"})
 
-        from api.routers.tasks import router, cancel_task
+        from api.routers.tasks import router
 
         app.include_router(router)
 
@@ -436,4 +453,7 @@ async def test_cancel_escrow_lookup_failure_with_tx_raises():
         f"got {response.status_code}: {response.text}"
     )
     body = response.json()
-    assert "escrow" in body.get("detail", "").lower() or "verify" in body.get("detail", "").lower()
+    assert (
+        "escrow" in body.get("detail", "").lower()
+        or "verify" in body.get("detail", "").lower()
+    )

@@ -4,7 +4,7 @@ Tests for SwarmIntegrator — top-level swarm orchestration.
 
 import time
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from mcp_server.swarm.integrator import (
     SwarmIntegrator,
@@ -139,9 +139,7 @@ class TestComponentRegistration:
 
     def test_fluent_api(self, event_bus, mock_coordinator):
         integrator = (
-            SwarmIntegrator()
-            .set_event_bus(event_bus)
-            .set_coordinator(mock_coordinator)
+            SwarmIntegrator().set_event_bus(event_bus).set_coordinator(mock_coordinator)
         )
         assert len(integrator.get_component_names()) == 2
 
@@ -199,7 +197,7 @@ class TestLifecycle:
 class TestWiring:
     def test_wire_without_event_bus(self):
         integrator = SwarmIntegrator()
-        result = integrator.wire()
+        integrator.wire()
         assert len(integrator._event_handlers) == 0
 
     def test_wire_xmtp_bridge(self, event_bus, mock_xmtp_bridge):
@@ -298,9 +296,7 @@ class TestCycleExecution:
         assert result.tasks_ingested == 10
         assert result.tasks_assigned == 5
 
-    def test_semi_auto_cycle(
-        self, event_bus, mock_coordinator, mock_scheduler
-    ):
+    def test_semi_auto_cycle(self, event_bus, mock_coordinator, mock_scheduler):
         integrator = SwarmIntegrator.create_with_components(
             mode=SwarmMode.SEMI_AUTO,
             components={
@@ -313,9 +309,7 @@ class TestCycleExecution:
         assert "route" in result.phases_completed
         mock_coordinator.route_tasks.assert_called_once_with(max_bounty=0.25)
 
-    def test_full_auto_cycle(
-        self, event_bus, mock_coordinator, mock_scheduler
-    ):
+    def test_full_auto_cycle(self, event_bus, mock_coordinator, mock_scheduler):
         integrator = SwarmIntegrator.create_with_components(
             mode=SwarmMode.FULL_AUTO,
             components={
@@ -343,9 +337,7 @@ class TestCycleExecution:
         assert "route" not in result.phases_completed
         assert "route_sim" not in result.phases_completed
 
-    def test_dry_run_uses_simulation(
-        self, event_bus, mock_coordinator, mock_scheduler
-    ):
+    def test_dry_run_uses_simulation(self, event_bus, mock_coordinator, mock_scheduler):
         integrator = SwarmIntegrator.create_with_components(
             mode=SwarmMode.FULL_AUTO,
             components={
@@ -541,9 +533,7 @@ class TestHooks:
         # Just verify registration works
         assert callback in full_integrator._hooks["on_error"]
 
-    def test_assignment_hook_fires(
-        self, event_bus, mock_coordinator, mock_scheduler
-    ):
+    def test_assignment_hook_fires(self, event_bus, mock_coordinator, mock_scheduler):
         callback = MagicMock()
         integrator = SwarmIntegrator.create_with_components(
             mode=SwarmMode.FULL_AUTO,

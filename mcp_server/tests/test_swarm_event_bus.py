@@ -12,7 +12,7 @@ Covers:
 """
 
 import pytest
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock
 
 from mcp_server.swarm.event_bus import (
     EventBus,
@@ -114,14 +114,32 @@ class TestEventDataModel:
     def test_all_event_constants_have_dot_namespace(self):
         """Every event constant should follow namespace.action pattern."""
         constants = [
-            TASK_DISCOVERED, TASK_ENRICHED, TASK_ASSIGNED, TASK_STARTED,
-            TASK_SUBMITTED, TASK_COMPLETED, TASK_FAILED, TASK_EXPIRED,
-            TASK_CANCELLED, AGENT_REGISTERED, AGENT_ACTIVATED,
-            AGENT_DEACTIVATED, AGENT_DEGRADED, WORKER_REGISTERED,
-            WORKER_APPLIED, WORKER_EVIDENCE, WORKER_RATED, SWARM_CYCLE_START,
-            SWARM_CYCLE_END, NOTIFICATION_SENT, NOTIFICATION_FAILED,
-            REPUTATION_UPDATED, SKILL_DNA_UPDATED, PAYMENT_ESCROWED,
-            PAYMENT_RELEASED, PAYMENT_CONFIRMED,
+            TASK_DISCOVERED,
+            TASK_ENRICHED,
+            TASK_ASSIGNED,
+            TASK_STARTED,
+            TASK_SUBMITTED,
+            TASK_COMPLETED,
+            TASK_FAILED,
+            TASK_EXPIRED,
+            TASK_CANCELLED,
+            AGENT_REGISTERED,
+            AGENT_ACTIVATED,
+            AGENT_DEACTIVATED,
+            AGENT_DEGRADED,
+            WORKER_REGISTERED,
+            WORKER_APPLIED,
+            WORKER_EVIDENCE,
+            WORKER_RATED,
+            SWARM_CYCLE_START,
+            SWARM_CYCLE_END,
+            NOTIFICATION_SENT,
+            NOTIFICATION_FAILED,
+            REPUTATION_UPDATED,
+            SKILL_DNA_UPDATED,
+            PAYMENT_ESCROWED,
+            PAYMENT_RELEASED,
+            PAYMENT_CONFIRMED,
         ]
         for c in constants:
             assert "." in c, f"Event constant {c!r} missing namespace separator"
@@ -471,11 +489,14 @@ class TestComponentWiring:
         bridge = MagicMock()
         bus.wire_xmtp_bridge(bridge)
 
-        bus.emit(TASK_ASSIGNED, {
-            "task_id": "task-123",
-            "worker_wallet": "0xWorker",
-            "task_data": {"title": "Test Task"},
-        })
+        bus.emit(
+            TASK_ASSIGNED,
+            {
+                "task_id": "task-123",
+                "worker_wallet": "0xWorker",
+                "task_data": {"title": "Test Task"},
+            },
+        )
 
         bridge.notify_task_assigned.assert_called_once_with(
             task_id="task-123",
@@ -487,13 +508,16 @@ class TestComponentWiring:
         bridge = MagicMock()
         bus.wire_xmtp_bridge(bridge)
 
-        bus.emit(PAYMENT_CONFIRMED, {
-            "worker_wallet": "0xWorker",
-            "task_id": "task-456",
-            "amount": 5.0,
-            "chain": "base",
-            "tx_hash": "0xabc123",
-        })
+        bus.emit(
+            PAYMENT_CONFIRMED,
+            {
+                "worker_wallet": "0xWorker",
+                "task_id": "task-456",
+                "amount": 5.0,
+                "chain": "base",
+                "tx_hash": "0xabc123",
+            },
+        )
 
         bridge.notify_payment_confirmed.assert_called_once_with(
             worker_wallet="0xWorker",
@@ -507,13 +531,16 @@ class TestComponentWiring:
         bridge = MagicMock()
         bus.wire_xmtp_bridge(bridge)
 
-        bus.emit(REPUTATION_UPDATED, {
-            "worker_wallet": "0xWorker",
-            "task_id": "task-789",
-            "score": 80,
-            "new_average": 4.2,
-            "total_ratings": 15,
-        })
+        bus.emit(
+            REPUTATION_UPDATED,
+            {
+                "worker_wallet": "0xWorker",
+                "task_id": "task-789",
+                "score": 80,
+                "new_average": 4.2,
+                "total_ratings": 15,
+            },
+        )
 
         bridge.notify_reputation_update.assert_called_once_with(
             worker_wallet="0xWorker",
@@ -530,11 +557,14 @@ class TestComponentWiring:
         bus.wire_xmtp_bridge(bridge)
 
         # Should not raise
-        bus.emit(TASK_ASSIGNED, {
-            "task_id": "t1",
-            "worker_wallet": "0x1",
-            "task_data": {},
-        })
+        bus.emit(
+            TASK_ASSIGNED,
+            {
+                "task_id": "t1",
+                "worker_wallet": "0x1",
+                "task_data": {},
+            },
+        )
 
     def test_wire_analytics_catches_all(self, bus, handler):
         bus.wire_analytics(handler)

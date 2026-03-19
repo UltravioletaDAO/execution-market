@@ -3,8 +3,6 @@ Tests for PhaseGate — Swarm activation phase management.
 """
 
 import time
-import pytest
-from unittest.mock import patch
 
 from mcp_server.swarm.phase_gate import (
     Phase,
@@ -79,7 +77,13 @@ def minimal_metrics(**overrides) -> SwarmMetrics:
 
 class TestPhase:
     def test_ordering(self):
-        assert Phase.EMERGENCY < Phase.PRE_FLIGHT < Phase.PASSIVE < Phase.SEMI_AUTO < Phase.FULL_AUTO
+        assert (
+            Phase.EMERGENCY
+            < Phase.PRE_FLIGHT
+            < Phase.PASSIVE
+            < Phase.SEMI_AUTO
+            < Phase.FULL_AUTO
+        )
 
     def test_values(self):
         assert Phase.EMERGENCY == -1
@@ -159,7 +163,9 @@ class TestPhaseEvaluation:
             target_phase=Phase.PASSIVE,
             gates=[
                 GateCheck(name="a", description="A", passed=True),
-                GateCheck(name="w", description="Warning", passed=False, severity="warning"),
+                GateCheck(
+                    name="w", description="Warning", passed=False, severity="warning"
+                ),
             ],
         )
         assert ev.can_advance is True
@@ -434,7 +440,7 @@ class TestPhaseGateEvaluateAdvance:
         gate._phase_start = time.time() - (5 * 24 * 3600)
 
         m = healthy_metrics()
-        ev = gate.evaluate_advance(m)
+        gate.evaluate_advance(m)
 
         # The metrics should have been updated with ~5 days
         assert m.days_in_current_phase >= 4.9

@@ -37,7 +37,7 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional, Callable
+from typing import Optional
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 
@@ -81,9 +81,7 @@ class PreflightReport:
     @property
     def passed(self) -> bool:
         """All blocker checks passed."""
-        return all(
-            c.passed for c in self.checks if c.severity == "blocker"
-        )
+        return all(c.passed for c in self.checks if c.severity == "blocker")
 
     @property
     def failures(self) -> list[CheckResult]:
@@ -91,17 +89,11 @@ class PreflightReport:
 
     @property
     def warnings(self) -> list[CheckResult]:
-        return [
-            c for c in self.checks
-            if not c.passed and c.severity == "warning"
-        ]
+        return [c for c in self.checks if not c.passed and c.severity == "warning"]
 
     @property
     def blockers(self) -> list[CheckResult]:
-        return [
-            c for c in self.checks
-            if not c.passed and c.severity == "blocker"
-        ]
+        return [c for c in self.checks if not c.passed and c.severity == "blocker"]
 
     @property
     def pass_count(self) -> int:
@@ -220,13 +212,29 @@ class SwarmPreflight:
         start = time.time()
         errors = []
         modules = [
-            "coordinator", "event_bus", "scheduler", "runner",
-            "orchestrator", "lifecycle_manager", "feedback_pipeline",
-            "evidence_parser", "expiry_analyzer", "config_manager",
-            "xmtp_bridge", "phase_gate", "integrator", "analytics",
-            "state_persistence", "heartbeat_handler", "dashboard",
-            "bootstrap", "autojob_client", "seal_bridge",
-            "acontext_adapter", "mcp_tools", "event_listener",
+            "coordinator",
+            "event_bus",
+            "scheduler",
+            "runner",
+            "orchestrator",
+            "lifecycle_manager",
+            "feedback_pipeline",
+            "evidence_parser",
+            "expiry_analyzer",
+            "config_manager",
+            "xmtp_bridge",
+            "phase_gate",
+            "integrator",
+            "analytics",
+            "state_persistence",
+            "heartbeat_handler",
+            "dashboard",
+            "bootstrap",
+            "autojob_client",
+            "seal_bridge",
+            "acontext_adapter",
+            "mcp_tools",
+            "event_listener",
         ]
 
         imported = 0
@@ -283,7 +291,7 @@ class SwarmPreflight:
         """Verify SwarmCoordinator can be created with mock data."""
         start = time.time()
         try:
-            from .coordinator import SwarmCoordinator, EMApiClient
+            from .coordinator import SwarmCoordinator
 
             # Create with mock client (no API calls)
             coordinator = SwarmCoordinator.__new__(SwarmCoordinator)
@@ -311,7 +319,9 @@ class SwarmPreflight:
         from .lifecycle_manager import LifecycleManager, AgentState
 
         lm = LifecycleManager()
-        lm.register_agent(agent_id=9999, name="preflight-test", wallet_address="0xPreflight")
+        lm.register_agent(
+            agent_id=9999, name="preflight-test", wallet_address="0xPreflight"
+        )
         lm.transition(9999, AgentState.IDLE)
         lm.transition(9999, AgentState.ACTIVE)
         record = lm.transition(9999, AgentState.WORKING)
@@ -481,7 +491,12 @@ class SwarmPreflight:
     def check_budget_guardrails(self) -> CheckResult:
         """Verify budget limits are configured and enforced."""
         start = time.time()
-        from .lifecycle_manager import LifecycleManager, BudgetConfig, BudgetExceededError, AgentState
+        from .lifecycle_manager import (
+            LifecycleManager,
+            BudgetConfig,
+            BudgetExceededError,
+            AgentState,
+        )
 
         lm = LifecycleManager()
         config = BudgetConfig(

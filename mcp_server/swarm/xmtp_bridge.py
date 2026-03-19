@@ -159,7 +159,9 @@ class DeliveryRecord:
             "recipient": self.recipient[:10] + "...",
             "event": self.event_type,
             "attempts": self.attempts,
-            "last_attempt": self.last_attempt.isoformat() if self.last_attempt else None,
+            "last_attempt": self.last_attempt.isoformat()
+            if self.last_attempt
+            else None,
             "error": self.error,
         }
 
@@ -413,18 +415,14 @@ class XMTPBridge:
 
         handlers = self._webhook_handlers.get(event.event_type, [])
         if not handlers:
-            logger.debug(
-                f"No handlers for event type: {event.event_type.value}"
-            )
+            logger.debug(f"No handlers for event type: {event.event_type.value}")
             return False
 
         for handler in handlers:
             try:
                 handler(event)
             except Exception as e:
-                logger.error(
-                    f"Webhook handler error for {event.event_type.value}: {e}"
-                )
+                logger.error(f"Webhook handler error for {event.event_type.value}: {e}")
 
         self._stats["webhooks_processed"] += 1
         return True
@@ -443,9 +441,7 @@ class XMTPBridge:
         # Clean old entries
         if wallet in self._rate_tracker:
             self._rate_tracker[wallet] = [
-                ts
-                for ts in self._rate_tracker[wallet]
-                if ts > window_start
+                ts for ts in self._rate_tracker[wallet] if ts > window_start
             ]
         else:
             self._rate_tracker[wallet] = []
@@ -460,9 +456,7 @@ class XMTPBridge:
 
     # ─── Internal: Send Notification ──────────────────────────────
 
-    def _send_notification(
-        self, notification: NotificationPayload
-    ) -> DeliveryRecord:
+    def _send_notification(self, notification: NotificationPayload) -> DeliveryRecord:
         """
         Send a notification to the XMTP bot API.
 
@@ -611,14 +605,9 @@ class XMTPBridge:
 
     def get_stats(self) -> dict:
         """Get bridge statistics."""
-        total = (
-            self._stats["notifications_sent"]
-            + self._stats["notifications_failed"]
-        )
+        total = self._stats["notifications_sent"] + self._stats["notifications_failed"]
         success_rate = (
-            (self._stats["notifications_sent"] / total * 100)
-            if total > 0
-            else 0.0
+            (self._stats["notifications_sent"] / total * 100) if total > 0 else 0.0
         )
         return {
             **self._stats,

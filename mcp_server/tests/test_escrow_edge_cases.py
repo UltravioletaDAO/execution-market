@@ -11,7 +11,7 @@ Covers:
 import pytest
 from datetime import datetime, timezone, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import supabase_client as sbc
 
@@ -154,7 +154,9 @@ async def test_fase1_skips_escrow_validation_on_assign(monkeypatch):
     monkeypatch.setattr(
         sbc,
         "update_task",
-        AsyncMock(return_value={**task, "status": "accepted", "executor_id": EXECUTOR_ID}),
+        AsyncMock(
+            return_value={**task, "status": "accepted", "executor_id": EXECUTOR_ID}
+        ),
     )
 
     # Should NOT raise -- Fase 1 bypasses escrow validation

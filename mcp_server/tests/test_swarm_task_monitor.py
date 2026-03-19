@@ -20,7 +20,6 @@ from mcp_server.swarm.task_monitor import (
     InterventionRule,
     InterventionOutcome,
     InterventionType,
-    MonitoringStats,
     TaskUrgency,
 )
 
@@ -81,16 +80,20 @@ class TestMonitoredTask:
     def test_time_elapsed_ratio_same_create_deadline(self):
         now = time.time()
         task = MonitoredTask(
-            task_id="t1", title="Test",
-            created_at=now, deadline_at=now,
+            task_id="t1",
+            title="Test",
+            created_at=now,
+            deadline_at=now,
         )
         assert task.time_elapsed_ratio is None
 
     def test_time_elapsed_ratio_midway(self):
         now = time.time()
         task = MonitoredTask(
-            task_id="t1", title="Test",
-            created_at=now - 500, deadline_at=now + 500,
+            task_id="t1",
+            title="Test",
+            created_at=now - 500,
+            deadline_at=now + 500,
         )
         ratio = task.time_elapsed_ratio
         assert ratio is not None
@@ -99,16 +102,20 @@ class TestMonitoredTask:
     def test_time_elapsed_ratio_past_deadline(self):
         now = time.time()
         task = MonitoredTask(
-            task_id="t1", title="Test",
-            created_at=now - 1000, deadline_at=now - 500,
+            task_id="t1",
+            title="Test",
+            created_at=now - 1000,
+            deadline_at=now - 500,
         )
         assert task.time_elapsed_ratio == 1.0
 
     def test_time_elapsed_ratio_just_created(self):
         now = time.time()
         task = MonitoredTask(
-            task_id="t1", title="Test",
-            created_at=now, deadline_at=now + 1000,
+            task_id="t1",
+            title="Test",
+            created_at=now,
+            deadline_at=now + 1000,
         )
         ratio = task.time_elapsed_ratio
         assert ratio is not None
@@ -206,7 +213,9 @@ class TestInterventionRule:
             intervention_type=InterventionType.DEADLINE_WARNING,
             requires_assignment=True,
         )
-        unassigned = MonitoredTask(task_id="t1", title="T", urgency=TaskUrgency.CRITICAL)
+        unassigned = MonitoredTask(
+            task_id="t1", title="T", urgency=TaskUrgency.CRITICAL
+        )
         assigned = MonitoredTask(
             task_id="t2", title="T", urgency=TaskUrgency.CRITICAL, worker_id="w1"
         )
@@ -220,7 +229,9 @@ class TestInterventionRule:
             intervention_type=InterventionType.ESCALATE_BOUNTY,
             requires_assignment=False,
         )
-        unassigned = MonitoredTask(task_id="t1", title="T", urgency=TaskUrgency.CRITICAL)
+        unassigned = MonitoredTask(
+            task_id="t1", title="T", urgency=TaskUrgency.CRITICAL
+        )
         assigned = MonitoredTask(
             task_id="t2", title="T", urgency=TaskUrgency.CRITICAL, worker_id="w1"
         )
@@ -327,7 +338,8 @@ class TestUrgencyClassification:
 
     def test_early_task_is_healthy(self, monitor, now):
         task = monitor.ingest_task(
-            "t1", title="Test",
+            "t1",
+            title="Test",
             created_at=now,
             deadline_at=now + 10000,  # Long deadline
         )
@@ -336,7 +348,8 @@ class TestUrgencyClassification:
     def test_watch_urgency(self, monitor, now):
         # 35% elapsed → WATCH (between 25% and 50%)
         task = monitor.ingest_task(
-            "t1", title="Test",
+            "t1",
+            title="Test",
             created_at=now - 350,
             deadline_at=now + 650,
         )
@@ -345,7 +358,8 @@ class TestUrgencyClassification:
     def test_warning_urgency(self, monitor, now):
         # 60% elapsed → WARNING (between 50% and 75%)
         task = monitor.ingest_task(
-            "t1", title="Test",
+            "t1",
+            title="Test",
             created_at=now - 600,
             deadline_at=now + 400,
         )
@@ -354,7 +368,8 @@ class TestUrgencyClassification:
     def test_critical_urgency(self, monitor, now):
         # 85% elapsed → CRITICAL (between 75% and 100%)
         task = monitor.ingest_task(
-            "t1", title="Test",
+            "t1",
+            title="Test",
             created_at=now - 850,
             deadline_at=now + 150,
         )
@@ -362,7 +377,8 @@ class TestUrgencyClassification:
 
     def test_overdue_urgency(self, monitor, now):
         task = monitor.ingest_task(
-            "t1", title="Test",
+            "t1",
+            title="Test",
             created_at=now - 1000,
             deadline_at=now - 10,
         )
@@ -371,12 +387,16 @@ class TestUrgencyClassification:
     def test_get_tasks_by_urgency(self, monitor, now):
         monitor.ingest_task("t1", title="T1")  # No deadline = HEALTHY
         monitor.ingest_task(
-            "t2", title="T2",
-            created_at=now - 850, deadline_at=now + 150,
+            "t2",
+            title="T2",
+            created_at=now - 850,
+            deadline_at=now + 150,
         )  # CRITICAL
         monitor.ingest_task(
-            "t3", title="T3",
-            created_at=now - 1000, deadline_at=now - 10,
+            "t3",
+            title="T3",
+            created_at=now - 1000,
+            deadline_at=now - 10,
         )  # OVERDUE
 
         healthy = monitor.get_tasks_by_urgency(TaskUrgency.HEALTHY)
@@ -388,12 +408,16 @@ class TestUrgencyClassification:
 
     def test_urgency_change_callback(self, monitor, now):
         changes = []
-        monitor.on_urgency_change(lambda task, old, new: changes.append((task.task_id, old, new)))
+        monitor.on_urgency_change(
+            lambda task, old, new: changes.append((task.task_id, old, new))
+        )
 
         # First ingest — classified on creation (default HEALTHY, new might differ)
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 850, deadline_at=now + 150,
+            "t1",
+            title="Test",
+            created_at=now - 850,
+            deadline_at=now + 150,
         )
         # Changes if different from initial HEALTHY default
         assert len(changes) >= 1  # HEALTHY → CRITICAL
@@ -404,15 +428,18 @@ class TestUrgencyClassification:
 
         # Start healthy
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now, deadline_at=now + 10000,
+            "t1",
+            title="Test",
+            created_at=now,
+            deadline_at=now + 10000,
         )
 
         monitor.on_urgency_change(lambda task, old, new: changes.append((old, new)))
 
         # Update deadline to push into critical
         monitor.ingest_task(
-            "t1", deadline_at=now + 50,
+            "t1",
+            deadline_at=now + 50,
         )
         # Created_at still near now, so elapsed ratio is low → should stay HEALTHY
         # Actually, created_at stays as original (now), deadline becomes now+50
@@ -429,8 +456,10 @@ class TestUrgencyClassification:
         monitor = TaskMonitor(urgency_thresholds=custom)
         # 20% elapsed with custom thresholds → WATCH (not HEALTHY)
         task = monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 200, deadline_at=now + 800,
+            "t1",
+            title="Test",
+            created_at=now - 200,
+            deadline_at=now + 800,
         )
         assert task.urgency == TaskUrgency.WATCH
 
@@ -451,16 +480,20 @@ class TestRulesEngine:
         assert len(monitor.get_rules()) == 1
 
     def test_remove_rule(self, monitor):
-        monitor.add_rule(InterventionRule(
-            name="r1",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-        ))
-        monitor.add_rule(InterventionRule(
-            name="r2",
-            urgency_trigger=TaskUrgency.CRITICAL,
-            intervention_type=InterventionType.ESCALATE_BOUNTY,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="r1",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+            )
+        )
+        monitor.add_rule(
+            InterventionRule(
+                name="r2",
+                urgency_trigger=TaskUrgency.CRITICAL,
+                intervention_type=InterventionType.ESCALATE_BOUNTY,
+            )
+        )
         assert monitor.remove_rule("r1")
         assert len(monitor.get_rules()) == 1
         assert monitor.get_rules()[0].name == "r2"
@@ -476,70 +509,91 @@ class TestInterventionTriggering:
     """Test the run_cycle intervention triggering logic."""
 
     def test_run_cycle_triggers_matching_rule(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="warn_unassigned",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="warn_unassigned",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         triggered = monitor.run_cycle()
         assert len(triggered) == 1
         assert triggered[0].intervention_type == InterventionType.REBROADCAST
 
     def test_run_cycle_no_match(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="only_critical",
-            urgency_trigger=TaskUrgency.CRITICAL,
-            intervention_type=InterventionType.ESCALATE_BOUNTY,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="only_critical",
+                urgency_trigger=TaskUrgency.CRITICAL,
+                intervention_type=InterventionType.ESCALATE_BOUNTY,
+                cooldown_seconds=0,
+            )
+        )
         # Task is HEALTHY
         monitor.ingest_task("t1", title="Test")
         triggered = monitor.run_cycle()
         assert len(triggered) == 0
 
     def test_run_cycle_skips_completed_tasks(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="warn",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="warn",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test", status="completed",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            status="completed",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         triggered = monitor.run_cycle()
         assert len(triggered) == 0
 
     def test_run_cycle_skips_cancelled_tasks(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="warn",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="warn",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test", status="cancelled",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            status="cancelled",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         triggered = monitor.run_cycle()
         assert len(triggered) == 0
 
     def test_run_cycle_skips_expired_tasks(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="warn",
-            urgency_trigger=TaskUrgency.OVERDUE,
-            intervention_type=InterventionType.CANCEL_GRACEFUL,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="warn",
+                urgency_trigger=TaskUrgency.OVERDUE,
+                intervention_type=InterventionType.CANCEL_GRACEFUL,
+                cooldown_seconds=0,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test", status="expired",
-            created_at=now - 1000, deadline_at=now - 10,
+            "t1",
+            title="Test",
+            status="expired",
+            created_at=now - 1000,
+            deadline_at=now - 10,
         )
         triggered = monitor.run_cycle()
         assert len(triggered) == 0
@@ -547,15 +601,19 @@ class TestInterventionTriggering:
     def test_intervention_handler_called(self, monitor, now):
         handler = MagicMock()
         monitor.on_intervention(handler)
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         monitor.run_cycle()
         handler.assert_called_once()
@@ -568,15 +626,19 @@ class TestInterventionTriggering:
             raise RuntimeError("boom")
 
         monitor.on_intervention(bad_handler)
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         # Should not raise
         triggered = monitor.run_cycle()
@@ -589,30 +651,40 @@ class TestInterventionTriggering:
         monitor.on_urgency_change(bad_handler)
         # Should not raise despite bad handler
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 850, deadline_at=now + 150,
+            "t1",
+            title="Test",
+            created_at=now - 850,
+            deadline_at=now + 150,
         )
 
     def test_multiple_interventions_same_cycle(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="rule1",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
-        monitor.add_rule(InterventionRule(
-            name="rule2",
-            urgency_trigger=TaskUrgency.CRITICAL,
-            intervention_type=InterventionType.ESCALATE_BOUNTY,
-            cooldown_seconds=0,
-        ))
-        monitor.ingest_task(
-            "t1", title="Warning task",
-            created_at=now - 600, deadline_at=now + 400,
+        monitor.add_rule(
+            InterventionRule(
+                name="rule1",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
+        monitor.add_rule(
+            InterventionRule(
+                name="rule2",
+                urgency_trigger=TaskUrgency.CRITICAL,
+                intervention_type=InterventionType.ESCALATE_BOUNTY,
+                cooldown_seconds=0,
+            )
         )
         monitor.ingest_task(
-            "t2", title="Critical task",
-            created_at=now - 850, deadline_at=now + 150,
+            "t1",
+            title="Warning task",
+            created_at=now - 600,
+            deadline_at=now + 400,
+        )
+        monitor.ingest_task(
+            "t2",
+            title="Critical task",
+            created_at=now - 850,
+            deadline_at=now + 150,
         )
         triggered = monitor.run_cycle()
         assert len(triggered) == 2
@@ -621,16 +693,20 @@ class TestInterventionTriggering:
         assert InterventionType.ESCALATE_BOUNTY in types
 
     def test_intervention_increments_task_count(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-            max_per_task=5,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+                max_per_task=5,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         monitor.run_cycle()
         task = monitor.get_task("t1")
@@ -644,15 +720,19 @@ class TestCooldowns:
     """Test intervention cooldown logic."""
 
     def test_cooldown_prevents_repeat(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=600,  # 10 min cooldown
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=600,  # 10 min cooldown
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         first = monitor.run_cycle()
         assert len(first) == 1
@@ -662,16 +742,20 @@ class TestCooldowns:
         assert len(second) == 0
 
     def test_zero_cooldown_allows_repeat(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-            max_per_task=5,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+                max_per_task=5,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         first = monitor.run_cycle()
         second = monitor.run_cycle()
@@ -679,16 +763,20 @@ class TestCooldowns:
         assert len(second) == 1
 
     def test_max_per_task_limit(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-            max_per_task=2,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+                max_per_task=2,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         r1 = monitor.run_cycle()
         r2 = monitor.run_cycle()
@@ -698,24 +786,30 @@ class TestCooldowns:
         assert len(r3) == 0
 
     def test_max_interventions_global_limit(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="r1",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-            max_per_task=10,
-        ))
-        monitor.add_rule(InterventionRule(
-            name="r2",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.ESCALATE_BOUNTY,
-            cooldown_seconds=0,
-            max_per_task=10,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="r1",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+                max_per_task=10,
+            )
+        )
+        monitor.add_rule(
+            InterventionRule(
+                name="r2",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.ESCALATE_BOUNTY,
+                cooldown_seconds=0,
+                max_per_task=10,
+            )
+        )
         # Task with max_interventions=2
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         monitor.tasks["t1"].max_interventions = 2
 
@@ -732,15 +826,19 @@ class TestOutcomeTracking:
     """Test intervention outcome recording."""
 
     def test_record_outcome(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         triggered = monitor.run_cycle()
         iid = triggered[0].intervention_id
@@ -754,16 +852,20 @@ class TestOutcomeTracking:
         assert not monitor.record_outcome("ghost-id", InterventionOutcome.FAILED)
 
     def test_record_task_outcome_completed(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-            max_per_task=5,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+                max_per_task=5,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         monitor.run_cycle()
         monitor.run_cycle()  # Two interventions
@@ -773,15 +875,19 @@ class TestOutcomeTracking:
         assert all(i.outcome == InterventionOutcome.SUCCESS for i in interventions)
 
     def test_record_task_outcome_expired(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         monitor.run_cycle()
 
@@ -790,15 +896,19 @@ class TestOutcomeTracking:
         assert all(i.outcome == InterventionOutcome.FAILED for i in interventions)
 
     def test_record_task_outcome_doesnt_override_resolved(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
         monitor.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         triggered = monitor.run_cycle()
         iid = triggered[0].intervention_id
@@ -819,14 +929,20 @@ class TestInterventionQueries:
     """Test intervention filtering."""
 
     def test_filter_by_task(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
-        monitor.ingest_task("t1", title="T1", created_at=now - 600, deadline_at=now + 400)
-        monitor.ingest_task("t2", title="T2", created_at=now - 600, deadline_at=now + 400)
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
+        monitor.ingest_task(
+            "t1", title="T1", created_at=now - 600, deadline_at=now + 400
+        )
+        monitor.ingest_task(
+            "t2", title="T2", created_at=now - 600, deadline_at=now + 400
+        )
         monitor.run_cycle()
 
         t1_ints = monitor.get_interventions(task_id="t1")
@@ -835,34 +951,48 @@ class TestInterventionQueries:
         assert len(t2_ints) == 1
 
     def test_filter_by_type(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="r1",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
-        monitor.add_rule(InterventionRule(
-            name="r2",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.ESCALATE_BOUNTY,
-            cooldown_seconds=0,
-        ))
-        monitor.ingest_task("t1", title="T", created_at=now - 600, deadline_at=now + 400)
+        monitor.add_rule(
+            InterventionRule(
+                name="r1",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
+        monitor.add_rule(
+            InterventionRule(
+                name="r2",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.ESCALATE_BOUNTY,
+                cooldown_seconds=0,
+            )
+        )
+        monitor.ingest_task(
+            "t1", title="T", created_at=now - 600, deadline_at=now + 400
+        )
         monitor.run_cycle()
 
-        rebroadcasts = monitor.get_interventions(intervention_type=InterventionType.REBROADCAST)
-        escalations = monitor.get_interventions(intervention_type=InterventionType.ESCALATE_BOUNTY)
+        rebroadcasts = monitor.get_interventions(
+            intervention_type=InterventionType.REBROADCAST
+        )
+        escalations = monitor.get_interventions(
+            intervention_type=InterventionType.ESCALATE_BOUNTY
+        )
         assert len(rebroadcasts) == 1
         assert len(escalations) == 1
 
     def test_filter_by_outcome(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
-        monitor.ingest_task("t1", title="T", created_at=now - 600, deadline_at=now + 400)
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
+        monitor.ingest_task(
+            "t1", title="T", created_at=now - 600, deadline_at=now + 400
+        )
         monitor.run_cycle()
 
         pending = monitor.get_interventions(outcome=InterventionOutcome.PENDING)
@@ -884,13 +1014,17 @@ class TestStatsAndHealth:
         assert stats.total_interventions == 0
 
     def test_stats_after_activity(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
-        monitor.ingest_task("t1", title="T", created_at=now - 600, deadline_at=now + 400)
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
+        monitor.ingest_task(
+            "t1", title="T", created_at=now - 600, deadline_at=now + 400
+        )
         monitor.run_cycle()
 
         stats = monitor.get_stats()
@@ -902,23 +1036,31 @@ class TestStatsAndHealth:
     def test_stats_urgency_distribution(self, monitor, now):
         monitor.ingest_task("t1", title="Healthy")
         monitor.ingest_task(
-            "t2", title="Critical",
-            created_at=now - 850, deadline_at=now + 150,
+            "t2",
+            title="Critical",
+            created_at=now - 850,
+            deadline_at=now + 150,
         )
         stats = monitor.get_stats()
         assert stats.urgency_distribution["healthy"] == 1
         assert stats.urgency_distribution["critical"] == 1
 
     def test_stats_avg_response_time(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
-        monitor.ingest_task("t1", title="T", created_at=now - 600, deadline_at=now + 400)
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
+        monitor.ingest_task(
+            "t1", title="T", created_at=now - 600, deadline_at=now + 400
+        )
         triggered = monitor.run_cycle()
-        monitor.record_outcome(triggered[0].intervention_id, InterventionOutcome.SUCCESS)
+        monitor.record_outcome(
+            triggered[0].intervention_id, InterventionOutcome.SUCCESS
+        )
 
         stats = monitor.get_stats()
         assert stats.tasks_completed_after_intervention == 1
@@ -932,8 +1074,10 @@ class TestStatsAndHealth:
 
     def test_health_with_critical(self, monitor, now):
         monitor.ingest_task(
-            "t1", title="Critical",
-            created_at=now - 850, deadline_at=now + 150,
+            "t1",
+            title="Critical",
+            created_at=now - 850,
+            deadline_at=now + 150,
         )
         health = monitor.get_health()
         assert health["status"] == "critical"
@@ -941,8 +1085,10 @@ class TestStatsAndHealth:
 
     def test_health_with_overdue(self, monitor, now):
         monitor.ingest_task(
-            "t1", title="Overdue",
-            created_at=now - 1000, deadline_at=now - 10,
+            "t1",
+            title="Overdue",
+            created_at=now - 1000,
+            deadline_at=now - 10,
         )
         health = monitor.get_health()
         assert health["status"] == "critical"
@@ -950,22 +1096,28 @@ class TestStatsAndHealth:
 
     def test_health_with_warning_only(self, monitor, now):
         monitor.ingest_task(
-            "t1", title="Warning",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Warning",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )
         health = monitor.get_health()
         assert health["status"] == "warning"
         assert health["warning_tasks"] == 1
 
     def test_health_intervention_success_rate(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-            max_per_task=5,
-        ))
-        monitor.ingest_task("t1", title="T", created_at=now - 600, deadline_at=now + 400)
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+                max_per_task=5,
+            )
+        )
+        monitor.ingest_task(
+            "t1", title="T", created_at=now - 600, deadline_at=now + 400
+        )
         t1 = monitor.run_cycle()
         t2 = monitor.run_cycle()
         monitor.record_outcome(t1[0].intervention_id, InterventionOutcome.SUCCESS)
@@ -975,13 +1127,17 @@ class TestStatsAndHealth:
         assert health["intervention_success_rate"] == 0.5
 
     def test_health_pending_interventions(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
-        monitor.ingest_task("t1", title="T", created_at=now - 600, deadline_at=now + 400)
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
+        monitor.ingest_task(
+            "t1", title="T", created_at=now - 600, deadline_at=now + 400
+        )
         monitor.run_cycle()
 
         health = monitor.get_health()
@@ -1009,50 +1165,78 @@ class TestDefaultRules:
     def test_rebroadcast_triggers_for_unassigned_warning(self, monitor_with_rules, now):
         # Unassigned task at WARNING level
         monitor_with_rules.ingest_task(
-            "t1", title="Test",
-            created_at=now - 600, deadline_at=now + 400,
+            "t1",
+            title="Test",
+            created_at=now - 600,
+            deadline_at=now + 400,
             status="open",
         )
         triggered = monitor_with_rules.run_cycle()
-        rebroadcasts = [t for t in triggered if t.intervention_type == InterventionType.REBROADCAST]
+        rebroadcasts = [
+            t for t in triggered if t.intervention_type == InterventionType.REBROADCAST
+        ]
         assert len(rebroadcasts) == 1
 
-    def test_deadline_warning_triggers_for_assigned_critical(self, monitor_with_rules, now):
+    def test_deadline_warning_triggers_for_assigned_critical(
+        self, monitor_with_rules, now
+    ):
         monitor_with_rules.ingest_task(
-            "t1", title="Test",
-            created_at=now - 850, deadline_at=now + 150,
+            "t1",
+            title="Test",
+            created_at=now - 850,
+            deadline_at=now + 150,
             worker_id="w1",
         )
         triggered = monitor_with_rules.run_cycle()
-        warnings = [t for t in triggered if t.intervention_type == InterventionType.DEADLINE_WARNING]
+        warnings = [
+            t
+            for t in triggered
+            if t.intervention_type == InterventionType.DEADLINE_WARNING
+        ]
         assert len(warnings) == 1
 
     def test_escalate_bounty_for_unassigned_critical(self, monitor_with_rules, now):
         monitor_with_rules.ingest_task(
-            "t1", title="Test",
-            created_at=now - 850, deadline_at=now + 150,
+            "t1",
+            title="Test",
+            created_at=now - 850,
+            deadline_at=now + 150,
         )
         triggered = monitor_with_rules.run_cycle()
-        escalations = [t for t in triggered if t.intervention_type == InterventionType.ESCALATE_BOUNTY]
+        escalations = [
+            t
+            for t in triggered
+            if t.intervention_type == InterventionType.ESCALATE_BOUNTY
+        ]
         assert len(escalations) == 1
 
     def test_reassign_for_overdue_assigned(self, monitor_with_rules, now):
         monitor_with_rules.ingest_task(
-            "t1", title="Test",
-            created_at=now - 1000, deadline_at=now - 10,
+            "t1",
+            title="Test",
+            created_at=now - 1000,
+            deadline_at=now - 10,
             worker_id="w1",
         )
         triggered = monitor_with_rules.run_cycle()
-        reassigns = [t for t in triggered if t.intervention_type == InterventionType.REASSIGN]
+        reassigns = [
+            t for t in triggered if t.intervention_type == InterventionType.REASSIGN
+        ]
         assert len(reassigns) == 1
 
     def test_cancel_graceful_for_overdue_unassigned(self, monitor_with_rules, now):
         monitor_with_rules.ingest_task(
-            "t1", title="Test",
-            created_at=now - 1000, deadline_at=now - 10,
+            "t1",
+            title="Test",
+            created_at=now - 1000,
+            deadline_at=now - 10,
         )
         triggered = monitor_with_rules.run_cycle()
-        cancels = [t for t in triggered if t.intervention_type == InterventionType.CANCEL_GRACEFUL]
+        cancels = [
+            t
+            for t in triggered
+            if t.intervention_type == InterventionType.CANCEL_GRACEFUL
+        ]
         assert len(cancels) == 1
 
 
@@ -1064,24 +1248,32 @@ class TestInterventionIdPrefix:
 
     def test_custom_prefix(self, now):
         monitor = TaskMonitor(intervention_id_prefix="tm")
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
-        monitor.ingest_task("t1", title="T", created_at=now - 600, deadline_at=now + 400)
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
+        monitor.ingest_task(
+            "t1", title="T", created_at=now - 600, deadline_at=now + 400
+        )
         triggered = monitor.run_cycle()
         assert triggered[0].intervention_id.startswith("tm-")
 
     def test_default_prefix(self, monitor, now):
-        monitor.add_rule(InterventionRule(
-            name="test",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            cooldown_seconds=0,
-        ))
-        monitor.ingest_task("t1", title="T", created_at=now - 600, deadline_at=now + 400)
+        monitor.add_rule(
+            InterventionRule(
+                name="test",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                cooldown_seconds=0,
+            )
+        )
+        monitor.ingest_task(
+            "t1", title="T", created_at=now - 600, deadline_at=now + 400
+        )
         triggered = monitor.run_cycle()
         assert triggered[0].intervention_id.startswith("int-")
 
@@ -1101,7 +1293,8 @@ class TestFullLifecycle:
 
         # Ingest a task that's already critical (simulating time passage)
         monitor.ingest_task(
-            "t1", title="Buy coffee",
+            "t1",
+            title="Buy coffee",
             bounty_usd=0.25,
             created_at=now - 850,
             deadline_at=now + 150,
@@ -1128,12 +1321,16 @@ class TestFullLifecycle:
         # Three tasks at different urgency levels
         monitor.ingest_task("t1", title="Healthy task")  # HEALTHY
         monitor.ingest_task(
-            "t2", title="Warning task",
-            created_at=now - 600, deadline_at=now + 400,
+            "t2",
+            title="Warning task",
+            created_at=now - 600,
+            deadline_at=now + 400,
         )  # WARNING
         monitor.ingest_task(
-            "t3", title="Overdue task",
-            created_at=now - 1000, deadline_at=now - 10,
+            "t3",
+            title="Overdue task",
+            created_at=now - 1000,
+            deadline_at=now - 10,
         )  # OVERDUE
 
         triggered = monitor.run_cycle()

@@ -11,8 +11,7 @@ Covers:
 
 import time
 import pytest
-from unittest.mock import MagicMock, patch, Mock
-from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 from mcp_server.swarm.xmtp_bridge import (
     XMTPBridge,
@@ -80,12 +79,14 @@ class TestDataModels:
         assert "created_at" in d
 
     def test_webhook_event_from_dict_basic(self):
-        e = WebhookEvent.from_dict({
-            "event_type": "worker_registered",
-            "sender_wallet": "0x123",
-            "task_id": "t-1",
-            "payload": {"name": "Alice"},
-        })
+        e = WebhookEvent.from_dict(
+            {
+                "event_type": "worker_registered",
+                "sender_wallet": "0x123",
+                "task_id": "t-1",
+                "payload": {"name": "Alice"},
+            }
+        )
         assert e.event_type == XMTPEventType.WORKER_REGISTERED
         assert e.sender_wallet == "0x123"
         assert e.task_id == "t-1"
@@ -152,7 +153,11 @@ class TestNotifyTaskAssigned:
         record = b.notify_task_assigned(
             task_id="task-abc",
             worker_wallet="0xWorker1",
-            task_data={"title": "Buy coffee", "bounty_usdc": 3.50, "deadline": "2026-03-20"},
+            task_data={
+                "title": "Buy coffee",
+                "bounty_usdc": 3.50,
+                "deadline": "2026-03-20",
+            },
         )
         assert isinstance(record, DeliveryRecord)
         assert record.status == DeliveryStatus.SENT
@@ -177,7 +182,12 @@ class TestBroadcastNewTask:
         b = bridge_with_mock_deliver
         wallets = ["0xA", "0xB", "0xC"]
         results = b.broadcast_new_task(
-            task_data={"title": "Survey", "bounty_usdc": 1.0, "category": "research", "id": "t-1"},
+            task_data={
+                "title": "Survey",
+                "bounty_usdc": 1.0,
+                "category": "research",
+                "id": "t-1",
+            },
             worker_wallets=wallets,
         )
         assert len(results) == 3
@@ -319,21 +329,25 @@ class TestWebhookProcessing:
         handler = MagicMock()
         bridge.register_webhook_handler(XMTPEventType.WORKER_REGISTERED, handler)
 
-        result = bridge.handle_webhook({
-            "event_type": "worker_registered",
-            "sender_wallet": "0xNewWorker",
-            "payload": {"name": "Alice"},
-        })
+        result = bridge.handle_webhook(
+            {
+                "event_type": "worker_registered",
+                "sender_wallet": "0xNewWorker",
+                "payload": {"name": "Alice"},
+            }
+        )
         assert result is True
         handler.assert_called_once()
         event = handler.call_args[0][0]
         assert event.sender_wallet == "0xNewWorker"
 
     def test_unhandled_event_type_returns_false(self, bridge):
-        result = bridge.handle_webhook({
-            "event_type": "worker_rated",
-            "sender_wallet": "0x1",
-        })
+        result = bridge.handle_webhook(
+            {
+                "event_type": "worker_rated",
+                "sender_wallet": "0x1",
+            }
+        )
         assert result is False
 
     def test_multiple_handlers_for_same_event(self, bridge):
@@ -342,11 +356,13 @@ class TestWebhookProcessing:
         bridge.register_webhook_handler(XMTPEventType.EVIDENCE_SUBMITTED, h1)
         bridge.register_webhook_handler(XMTPEventType.EVIDENCE_SUBMITTED, h2)
 
-        bridge.handle_webhook({
-            "event_type": "evidence_submitted",
-            "sender_wallet": "0x1",
-            "task_id": "t1",
-        })
+        bridge.handle_webhook(
+            {
+                "event_type": "evidence_submitted",
+                "sender_wallet": "0x1",
+                "task_id": "t1",
+            }
+        )
         assert h1.call_count == 1
         assert h2.call_count == 1
 
@@ -355,10 +371,12 @@ class TestWebhookProcessing:
         bridge.register_webhook_handler(XMTPEventType.WORKER_APPLIED, bad_handler)
 
         # Should not raise
-        result = bridge.handle_webhook({
-            "event_type": "worker_applied",
-            "sender_wallet": "0x1",
-        })
+        result = bridge.handle_webhook(
+            {
+                "event_type": "worker_applied",
+                "sender_wallet": "0x1",
+            }
+        )
         assert result is True
 
     def test_invalid_webhook_data_returns_false(self, bridge):
