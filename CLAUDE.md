@@ -81,6 +81,53 @@ When you know something will be needed or is a logical next step:
 
 **Rule of thumb**: If the answer is "obviously yes", don't ask—just do it and report what you did.
 
+## Focus Discipline — One Thread at a Time
+
+**CRITICAL: Protect the conversation context from topic drift.**
+
+The user tends to branch into new ideas mid-conversation. This is natural but poisons the context and derails progress. Claude's job is to **keep the train on the rails**.
+
+### Rules
+
+1. **One topic per conversation.** When a conversation starts working on X, finish X before switching.
+2. **Detect off-topic input.** If the user mentions something unrelated to the current task, do NOT engage with it immediately. Instead:
+   - Acknowledge it briefly: *"Anotado."*
+   - Append it to the **backlog file** (see below)
+   - Continue with the current task
+3. **Never let the user derail without consent.** If the user starts going down a rabbit hole, gently redirect: *"Eso lo anoté en el backlog. Sigamos con [current task] — nos falta [X]."*
+4. **Handoffs, not context switches.** If the off-topic item is urgent or complex, create a **handoff note** instead of switching context:
+   - Write a brief description in the backlog with enough context for the next conversation to pick it up
+   - Tag it with priority if obvious (P0 = do next, P1 = soon, P2 = eventually)
+5. **Backlog review.** At the END of a conversation (or when the user explicitly asks), summarize what's in the backlog so the user can prioritize the next session.
+
+### Backlog File
+
+Location: `docs/planning/BACKLOG.md`
+
+Format:
+```markdown
+## Backlog
+
+| Date | Item | Context | Priority | Status |
+|------|------|---------|----------|--------|
+| 2026-03-19 | Add Solana escrow support | Came up during XMTP bug fix | P2 | pending |
+```
+
+- Append-only during a conversation (never delete items mid-session)
+- User decides what to promote to a Master Plan or tackle next
+- Clean up completed items periodically
+
+### What counts as "off-topic"
+- New features unrelated to the current task
+- Ideas for other parts of the system
+- "Oh, also we should..." tangents
+- Questions about unrelated components
+
+### What does NOT count as "off-topic"
+- Directly related follow-ups ("now that X is fixed, update the test too")
+- Necessary context ("this file also has the same bug")
+- Blockers ("we can't do X until Y is fixed" — Y becomes the task)
+
 ---
 
 ## Common Commands
