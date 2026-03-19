@@ -13,7 +13,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useReputationFeedback, type FeedbackStep } from '../hooks/useReputationFeedback'
-import { TxHashLink } from './TxHashLink'
+import { TxHashLink } from './TxLink'
 
 // --------------------------------------------------------------------------
 // Types
@@ -320,8 +320,7 @@ export function RateAgentModal({
             </div>
             {displayRating > 0 && (
               <p className="text-sm text-gray-500 mt-1">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {t(STAR_LABELS[displayRating - 1] as any, '')}
+                {t(STAR_LABELS[displayRating - 1], '')}
               </p>
             )}
           </div>

@@ -5,7 +5,7 @@ import type { Task, TaskCategory } from '../../types/database'
 import { PaymentStatus } from '../PaymentStatus'
 import { useTaskPayment } from '../../hooks/useTaskPayment'
 import { getExplorerUrl } from '../../utils/blockchain'
-import { TxHashLink } from '../TxHashLink'
+import { TxHashLink } from '../TxLink'
 
 interface TaskDetailPanelProps {
   task: Task

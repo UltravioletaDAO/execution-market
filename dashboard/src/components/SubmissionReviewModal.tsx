@@ -346,7 +346,6 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
 
               {/* Auto-check verification results */}
               {submission.auto_check_passed !== null && submission.auto_check_passed !== undefined && (() => {
-                /* eslint-disable @typescript-eslint/no-explicit-any */
                 const details = submission.auto_check_details as any
                 const score = details?.score ?? 0
                 const phase = details?.phase
@@ -362,7 +361,6 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                   photo_source: 'Origen de foto',
                   duplicate: 'Duplicados',
                 }
-                /* eslint-enable @typescript-eslint/no-explicit-any */
                 return (
                 <div className={`rounded-lg border ${
                   submission.auto_check_passed ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'

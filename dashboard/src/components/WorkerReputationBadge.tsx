@@ -69,11 +69,11 @@ export function WorkerReputationBadge({
 
   const iconSize = size === 'md' ? 'w-4 h-4' : 'w-3 h-3'
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const tierLabel = `reputation.tiers.${tier.key}` as const
   return (
     <span
       className={`inline-flex items-center font-medium rounded-full ${tier.className} ${sizeClasses}`}
-      title={t(`reputation.tiers.${tier.key}` as any, tier.key)}
+      title={t(tierLabel, tier.key)}
     >
       <svg
         className={`${iconSize} ${tier.starColor}`}
@@ -85,12 +85,11 @@ export function WorkerReputationBadge({
       {score}
       {showLabel && (
         <span className="opacity-75">
-          {t(`reputation.tiers.${tier.key}` as any, tier.key)}
+          {t(tierLabel, tier.key)}
         </span>
       )}
     </span>
   )
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
 export default WorkerReputationBadge

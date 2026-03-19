@@ -48,7 +48,6 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
             console.log('[Dynamic] Auth flow closed')
           },
           onAuthSuccess: ({ user }) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             console.log('[Dynamic] Auth success:', (user as any)?.walletPublicKey || 'unknown wallet')
           },
           onAuthFailure: (_data, reason) => {

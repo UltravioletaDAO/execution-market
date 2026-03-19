@@ -71,19 +71,17 @@ export function ReputationBadge({ score, size = 'sm' }: ReputationBadgeProps) {
 
   const scoreSize = size === 'lg' ? 'text-lg font-bold' : 'text-xs font-semibold'
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   return (
     <span
       className={`inline-flex items-center rounded-full border ${tier.bgClass} ${tier.textClass} ${tier.borderClass} ${sizeClasses}`}
-      title={t(tier.labelKey as any, 'Reputation')}
+      title={t(tier.labelKey, 'Reputation')}
     >
       <span className={scoreSize}>{Math.round(score)}</span>
       <span className="opacity-75">
-        {t(tier.labelKey as any, 'Newcomer')}
+        {t(tier.labelKey, 'Newcomer')}
       </span>
     </span>
   )
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
 export default ReputationBadge
