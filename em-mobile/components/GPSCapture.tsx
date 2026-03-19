@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useUserLocation } from "../hooks/useUserLocation";
@@ -16,8 +17,24 @@ function getAccuracyLabel(accuracy: number, t: (key: string) => string): { label
 export function GPSCapture({ onCapture }: GPSCaptureProps) {
   const { t } = useTranslation();
   const { location, error, loading, requestLocation } = useUserLocation();
+  const [confirmed, setConfirmed] = useState(false);
+  const [showCoords, setShowCoords] = useState(false);
 
   const accuracy = location ? getAccuracyLabel(location.accuracy, t) : null;
+
+  function handleConfirm() {
+    if (!location) return;
+    onCapture({
+      lat: location.lat,
+      lng: location.lng,
+      accuracy: location.accuracy,
+      timestamp: new Date().toISOString(),
+    });
+    setConfirmed(true);
+  }
+
+  // After confirm, show nothing — the parent renders the "GPS captured" badge
+  if (confirmed) return null;
 
   return (
     <View className="bg-surface rounded-2xl p-4">
@@ -59,22 +76,8 @@ export function GPSCapture({ onCapture }: GPSCaptureProps) {
 
       {location && !loading && (
         <View>
-          <View className="flex-row justify-between mb-2">
-            <View>
-              <Text className="text-gray-400 text-xs">{t("gps.latitude")}</Text>
-              <Text className="text-white font-mono text-sm">
-                {location.lat.toFixed(6)}
-              </Text>
-            </View>
-            <View className="items-end">
-              <Text className="text-gray-400 text-xs">{t("gps.longitude")}</Text>
-              <Text className="text-white font-mono text-sm">
-                {location.lng.toFixed(6)}
-              </Text>
-            </View>
-          </View>
-
-          <View className="flex-row items-center justify-between mt-2 pt-2 border-t border-gray-800">
+          {/* Accuracy + confirm row */}
+          <View className="flex-row items-center justify-between">
             <View className="flex-row items-center">
               <Text className="text-gray-400 text-xs mr-2">{t("gps.accuracy")}</Text>
               <Text className={`text-xs font-bold ${accuracy?.color}`}>
@@ -83,14 +86,7 @@ export function GPSCapture({ onCapture }: GPSCaptureProps) {
             </View>
             <Pressable
               className="bg-white rounded-full px-4 py-2"
-              onPress={() =>
-                onCapture({
-                  lat: location.lat,
-                  lng: location.lng,
-                  accuracy: location.accuracy,
-                  timestamp: new Date().toISOString(),
-                })
-              }
+              onPress={handleConfirm}
             >
               <Text className="text-black font-bold text-xs">{t("common.confirm")}</Text>
             </Pressable>
@@ -109,6 +105,33 @@ export function GPSCapture({ onCapture }: GPSCaptureProps) {
               }}
             />
           </View>
+
+          {/* Toggle to show/hide coordinates */}
+          <Pressable
+            className="mt-3 items-center py-1"
+            onPress={() => setShowCoords((v) => !v)}
+          >
+            <Text className="text-gray-500 text-xs">
+              {showCoords ? t("gps.hideCoordinates") : t("gps.showCoordinates")}
+            </Text>
+          </Pressable>
+
+          {showCoords && (
+            <View className="flex-row justify-between mt-2 pt-2 border-t border-gray-800">
+              <View>
+                <Text className="text-gray-400 text-xs">{t("gps.latitude")}</Text>
+                <Text className="text-white font-mono text-sm">
+                  {location.lat.toFixed(6)}
+                </Text>
+              </View>
+              <View className="items-end">
+                <Text className="text-gray-400 text-xs">{t("gps.longitude")}</Text>
+                <Text className="text-white font-mono text-sm">
+                  {location.lng.toFixed(6)}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       )}
     </View>

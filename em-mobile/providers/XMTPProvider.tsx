@@ -1,7 +1,10 @@
 // Must be the FIRST import — patches global.crypto before any crypto usage
 import "react-native-get-random-values";
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import Constants, { ExecutionEnvironment } from "expo-constants";
+// Use @noble libs directly — viem/accounts subpath doesn't resolve in Metro
+import { secp256k1 } from "@noble/curves/secp256k1";
+import { keccak_256 } from "@noble/hashes/sha3";
 
 // Detect Expo Go: appOwnership === 'expo' OR executionEnvironment === 'storeClient'.
 // @xmtp/react-native-sdk native module is not available in Expo Go.
@@ -37,18 +40,74 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDevMode, setIsDevMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const clientRef = useRef<any>(null);
+
+  // Close client on unmount to prevent IDBDatabase "connection is closing" errors
+  useEffect(() => {
+    return () => {
+      try {
+        clientRef.current?.close();
+      } catch {
+        // Ignore close errors during teardown
+      }
+      clientRef.current = null;
+    };
+  }, []);
+
+  // Helper: safely close previous client before setting a new one
+  const setClientSafe = useCallback((newClient: any) => {
+    const prev = clientRef.current;
+    if (prev && prev !== newClient) {
+      try {
+        prev.close();
+      } catch {
+        // Ignore close errors
+      }
+    }
+    clientRef.current = newClient;
+    setClient(newClient);
+  }, []);
+
+  // Internal: create XMTP client with a generated identity (no real wallet needed)
+  const connectWithGeneratedIdentity = useCallback(async () => {
+    const { Client, PublicIdentity } = await import("@xmtp/react-native-sdk");
+    const dbKey = await getOrCreateEncryptionKey();
+
+    const SecureStore = await import("expo-secure-store");
+    let pkHex = await SecureStore.getItemAsync("xmtp_dev_pk");
+    if (!pkHex) {
+      // Generate random 32-byte private key
+      const pkBytes = secp256k1.utils.randomPrivateKey();
+      pkHex = "0x" + bytesToHex(pkBytes);
+      await SecureStore.setItemAsync("xmtp_dev_pk", pkHex);
+    }
+
+    const pkClean = pkHex.startsWith("0x") ? pkHex.slice(2) : pkHex;
+    const pkBytes = hexToBytes(pkClean);
+    const address = privateKeyToAddress(pkBytes);
+
+    const signer = {
+      getIdentifier: async () => new PublicIdentity(address, "ETHEREUM"),
+      signMessage: async (message: string) => ({
+        signature: signEthMessage(pkBytes, message),
+        publicKey: undefined,
+        authenticatorData: undefined,
+        clientDataJson: undefined,
+      }),
+      getChainId: () => undefined,
+      getBlockNumber: () => undefined,
+      signerType: () => undefined,
+    };
+
+    return Client.create(signer, {
+      env: "production",
+      dbEncryptionKey: dbKey,
+    });
+  }, []);
 
   const connect = useCallback(async () => {
     if (IS_EXPO_GO) {
       setError("XMTP no está disponible en Expo Go. Usa el Android dev client.");
-      return;
-    }
-    if (!walletAddress) {
-      setError("Conecta tu wallet primero para usar mensajería XMTP.");
-      return;
-    }
-    if (!getSigner) {
-      setError("Wallet no disponible. Reconecta tu wallet en configuración.");
       return;
     }
 
@@ -56,28 +115,40 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
     setError(null);
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { Client } = await import("@xmtp/react-native-sdk");
-      const rawSigner = await getSigner();
-      const nativeSigner = buildNativeSigner(rawSigner, walletAddress);
-      const dbKey = await getOrCreateEncryptionKey();
+      // Try real wallet signer first
+      if (walletAddress && getSigner) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { Client } = await import("@xmtp/react-native-sdk");
+          const rawSigner = await getSigner();
+          const nativeSigner = buildNativeSigner(rawSigner, walletAddress);
+          const dbKey = await getOrCreateEncryptionKey();
 
-      const xmtp = await Client.create(nativeSigner, {
-        env: "production",
-        dbEncryptionKey: dbKey,
-      });
+          const xmtp = await Client.create(nativeSigner, {
+            env: "production",
+            dbEncryptionKey: dbKey,
+          });
 
-      setClient(xmtp);
+          setClientSafe(xmtp);
+          return;
+        } catch (err) {
+          console.warn("[XMTP] Wallet signer failed, falling back to generated identity:", err);
+        }
+      }
+
+      // Fallback: generated identity (works for email-only users)
+      console.log("[XMTP] Using generated identity for messaging");
+      const xmtp = await connectWithGeneratedIdentity();
+      setClientSafe(xmtp);
     } catch (err) {
-      console.error("[XMTP] Native connection failed:", err);
+      console.error("[XMTP] Connection failed:", err);
       setError(err instanceof Error ? err.message : "XMTP connection failed");
     } finally {
       setIsConnecting(false);
     }
-  }, [walletAddress, getSigner]);
+  }, [walletAddress, getSigner, connectWithGeneratedIdentity]);
 
-  // DEV MODE: creates a random XMTP identity for testing messaging UI
-  // without needing a real wallet connector. NOT for production use.
+  // Explicit generated identity connect (kept for internal use)
   const connectDev = useCallback(async () => {
     if (IS_EXPO_GO) {
       setError("XMTP no está disponible en Expo Go. Usa el Android dev client.");
@@ -86,55 +157,28 @@ export function XMTPProvider({ children, walletAddress, getSigner }: Props) {
     setIsConnecting(true);
     setError(null);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { Client } = await import("@xmtp/react-native-sdk");
-      const { generatePrivateKey, privateKeyToAccount } = await import("viem/accounts");
-      const dbKey = await getOrCreateEncryptionKey();
-
-      // Persist dev private key in SecureStore so identity survives app restarts.
-      // Without this, every connectDev() call creates a new identity and prior
-      // conversations become invisible.
-      const SecureStore = await import("expo-secure-store");
-      let pk = await SecureStore.getItemAsync("xmtp_dev_pk");
-      if (!pk) {
-        pk = generatePrivateKey();
-        await SecureStore.setItemAsync("xmtp_dev_pk", pk);
-      }
-      const { PublicIdentity } = await import("@xmtp/react-native-sdk");
-      const account = privateKeyToAccount(pk as `0x${string}`);
-      const devSigner = {
-        getIdentifier: async () => new PublicIdentity(account.address, "ETHEREUM"),
-        signMessage: async (message: string) => ({
-          signature: await account.signMessage({ message }),
-          publicKey: undefined,
-          authenticatorData: undefined,
-          clientDataJson: undefined,
-        }),
-        getChainId: () => undefined,
-        getBlockNumber: () => undefined,
-        signerType: () => undefined,
-      };
-
-      const xmtp = await Client.create(devSigner, {
-        env: "production",
-        dbEncryptionKey: dbKey,
-      });
+      const xmtp = await connectWithGeneratedIdentity();
       setIsDevMode(true);
-      setClient(xmtp);
+      setClientSafe(xmtp);
     } catch (err) {
-      console.error("[XMTP] Dev connect failed:", err);
-      setError(err instanceof Error ? err.message : "XMTP dev connect failed");
+      console.error("[XMTP] Connect failed:", err);
+      setError(err instanceof Error ? err.message : "XMTP connect failed");
     } finally {
       setIsConnecting(false);
     }
-  }, []);
+  }, [connectWithGeneratedIdentity]);
 
   const disconnect = useCallback(() => {
-    if (client?.close) client.close();
+    try {
+      clientRef.current?.close();
+    } catch {
+      // Ignore close errors
+    }
+    clientRef.current = null;
     setClient(null);
     setIsDevMode(false);
     setError(null);
-  }, [client]);
+  }, []);
 
   return (
     <XMTPContext.Provider
@@ -229,6 +273,53 @@ function buildNativeSigner(rawSigner: any, fallbackAddress: string) {
   return buildV5Signer(fallbackAddress, async () => {
     throw new Error("[XMTP] Cannot sign: no compatible method found on wallet connector");
   });
+}
+
+// --- Ethereum crypto helpers using @noble (works in React Native) ---
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+  }
+  return bytes;
+}
+
+function privateKeyToAddress(pk: Uint8Array): string {
+  // Get uncompressed public key (65 bytes: 0x04 + x + y), strip the 0x04 prefix
+  const pubKey = secp256k1.getPublicKey(pk, false).slice(1);
+  // Keccak-256 hash, take last 20 bytes
+  const hash = keccak_256(pubKey);
+  const addrBytes = hash.slice(12);
+  const addrHex = bytesToHex(addrBytes);
+  // EIP-55 checksum
+  const checksumHash = bytesToHex(keccak_256(new TextEncoder().encode(addrHex)));
+  let checksummed = "0x";
+  for (let i = 0; i < 40; i++) {
+    checksummed += parseInt(checksumHash[i], 16) >= 8
+      ? addrHex[i].toUpperCase()
+      : addrHex[i];
+  }
+  return checksummed;
+}
+
+function signEthMessage(pk: Uint8Array, message: string): string {
+  // EIP-191 personal_sign: "\x19Ethereum Signed Message:\n" + len + message
+  const prefix = `\x19Ethereum Signed Message:\n${message.length}`;
+  const prefixed = new TextEncoder().encode(prefix + message);
+  const hash = keccak_256(prefixed);
+  const sig = secp256k1.sign(hash, pk);
+  // Serialize to 65-byte r+s+v format
+  const r = sig.r.toString(16).padStart(64, "0");
+  const s = sig.s.toString(16).padStart(64, "0");
+  const v = (sig.recovery + 27).toString(16).padStart(2, "0");
+  return "0x" + r + s + v;
 }
 
 /**

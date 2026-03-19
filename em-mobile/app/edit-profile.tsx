@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -175,10 +177,16 @@ export default function EditProfileScreen() {
         </Pressable>
       </View>
 
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+      >
       <ScrollView
         className="flex-1 px-4"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
         {/* Avatar */}
         <View className="items-center mb-8 mt-4">
@@ -226,6 +234,7 @@ export default function EditProfileScreen() {
           multiline
           numberOfLines={3}
           style={{ minHeight: 80, textAlignVertical: "top" }}
+
         />
 
         {/* Email */}
@@ -238,6 +247,7 @@ export default function EditProfileScreen() {
           placeholderTextColor="#666"
           keyboardType="email-address"
           autoCapitalize="none"
+
         />
 
         {/* Skills */}
@@ -278,6 +288,7 @@ export default function EditProfileScreen() {
             onChangeText={setCity}
             placeholder={t("profile.city")}
             placeholderTextColor="#666"
+  
           />
           <TextInput
             className="flex-1 bg-surface text-white rounded-xl px-4 py-3.5 text-base"
@@ -285,11 +296,14 @@ export default function EditProfileScreen() {
             onChangeText={setCountry}
             placeholder={t("profile.country")}
             placeholderTextColor="#666"
+  
           />
         </View>
 
-        <View className="h-8" />
+        {/* Extra padding so bottom fields scroll above keyboard */}
+        <View className="h-40" />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

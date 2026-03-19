@@ -38,22 +38,68 @@ try {
 /**
  * Bridge component that connects AuthProvider's wallet state to XMTPProvider.
  * Must be rendered inside AuthProvider so useAuth() is available.
+ *
+ * Dynamic React Native SDK: `wallets` from useReactiveClient is a wallet
+ * manager object with methods (signMessage, embedded, connectWallet, etc.),
+ * NOT a container with userWallets[]. We use wallets.embedded.getWallet().
  */
 function XMTPBridge({ children }: { children: ReactNode }) {
   const { wallet } = useAuth();
   const { wallets } = useReactiveClient(dynamicClient);
 
+  // Debug: understand Dynamic wallet manager state
+  console.log("[XMTPBridge] wallet:", wallet);
+  const embeddedResult = wallets?.embedded?.getWallet?.();
+  console.log("[XMTPBridge] wallets?.embedded:", JSON.stringify({
+    hasWallet: wallets?.embedded?.hasWallet,
+    getWallet: typeof wallets?.embedded?.getWallet,
+    getWalletResult: embeddedResult ? Object.keys(embeddedResult).slice(0, 15) : null,
+    getWalletAddress: embeddedResult?.address ?? "none",
+    keys: wallets?.embedded ? Object.keys(wallets.embedded) : "N/A",
+  }));
+  console.log("[XMTPBridge] wallets?.signMessage:", typeof wallets?.signMessage);
+  console.log("[XMTPBridge] wallets keys:", wallets ? Object.keys(wallets).filter(k => !k.startsWith("_")).slice(0, 15) : "null");
+
   const getSigner = useMemo(() => {
-    const primaryWallet = wallets?.userWallets?.[0];
-    if (!primaryWallet) return null;
+    if (!wallet || !wallets?.signMessage || !wallets?.embedded) {
+      console.log("[XMTPBridge] getSigner=null — wallet:", !!wallet);
+      return null;
+    }
+    console.log("[XMTPBridge] getSigner ready — wallet:", wallet, "hasEmbedded:", wallets.embedded.hasWallet);
     return async () => {
-      const connector = primaryWallet.connector;
-      if (connector && typeof connector.getSigner === "function") {
-        return connector.getSigner();
+      // Get or create embedded wallet — needed as first arg to wallets.signMessage(wallet, msg)
+      let embeddedWallet: any = null;
+      try {
+        embeddedWallet = wallets.embedded.hasWallet
+          ? await wallets.embedded.getWallet()
+          : null;
+        if (!embeddedWallet) {
+          console.log("[XMTPBridge] creating embedded wallet for XMTP signing...");
+          embeddedWallet = await wallets.embedded.createWallet({ chain: "Evm" });
+        }
+      } catch (err) {
+        console.warn("[XMTPBridge] embedded wallet unavailable:", err);
+        throw new Error("Embedded wallet not available. Use Dev Mode for messaging, or connect an external wallet.");
       }
-      return primaryWallet;
+      if (!embeddedWallet) {
+        throw new Error("No embedded wallet found. Use Dev Mode for messaging.");
+      }
+      console.log("[XMTPBridge] embedded wallet ready:", embeddedWallet?.address,
+        "keys:", embeddedWallet ? Object.keys(embeddedWallet).slice(0, 15) : "null");
+      // Use BaseWallet.signMessage directly — buildNativeSigner Case 5 picks this up
+      if (typeof embeddedWallet.signMessage === "function") {
+        return embeddedWallet; // BaseWallet with signMessage(msg) → string
+      }
+      // Fallback: wrap wallets.signMessage with wallet ref
+      return {
+        signMessage: async (message: string) => {
+          console.log("[XMTPBridge] signMessage via wallets.signMessage(wallet, msg)");
+          const result = await wallets.signMessage(embeddedWallet, message);
+          return typeof result === "string" ? result : result?.signature ?? result;
+        },
+      };
     };
-  }, [wallets?.userWallets]);
+  }, [wallet, wallets]);
 
   return (
     <XMTPProvider walletAddress={wallet ?? null} getSigner={getSigner}>

@@ -43,7 +43,9 @@ export function useConversations() {
     if (!client) return;
     setIsLoading(true);
     try {
-      await client.conversations.sync().catch(() => {});
+      await client.conversations.sync().catch(() => {
+        // IDBDatabase errors during sync are non-fatal
+      });
 
       const convos = await client.conversations.list();
       const items: ConversationPreview[] = [];
@@ -131,11 +133,29 @@ export function useConversations() {
   useEffect(() => {
     if (!client) return;
     let unsubscribe: (() => void) | null = null;
+    let cancelled = false;
     client.conversations
-      .stream(() => { loadConversations(); })
-      .then((unsub: () => void) => { unsubscribe = unsub; })
-      .catch(() => {});
-    return () => { unsubscribe?.(); };
+      .stream(() => {
+        if (!cancelled) loadConversations();
+      })
+      .then((unsub: () => void) => {
+        if (cancelled) {
+          // Component unmounted before stream connected — clean up immediately
+          try { unsub(); } catch { /* ignore */ }
+        } else {
+          unsubscribe = unsub;
+        }
+      })
+      .catch((err: any) => {
+        // IDBDatabase "connection is closing" errors are expected during teardown
+        if (!cancelled) {
+          console.warn("[XMTP] Conversation stream error:", err?.message ?? err);
+        }
+      });
+    return () => {
+      cancelled = true;
+      try { unsubscribe?.(); } catch { /* ignore */ }
+    };
   }, [client, loadConversations]);
 
   return { previews, isLoading, refresh: loadConversations };

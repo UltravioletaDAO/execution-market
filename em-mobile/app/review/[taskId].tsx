@@ -17,6 +17,8 @@ import {
   TextInput,
   Alert,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -221,6 +223,11 @@ export default function ReviewSubmissionScreen() {
         </Pressable>
       </View>
 
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
         {/* Title */}
         <View className="mt-2 mb-4">
@@ -395,6 +402,7 @@ export default function ReviewSubmissionScreen() {
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
