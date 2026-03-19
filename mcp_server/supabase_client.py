@@ -258,10 +258,31 @@ async def get_task(task_id: str) -> Optional[Dict[str, Any]]:
             .single()
             .execute()
         )
-        return result.data
+        task_data = result.data
     except Exception:
         # .single() throws when 0 rows match
         return None
+
+    if not task_data:
+        return None
+
+    # Enrich with escrow_status from the escrows table
+    try:
+        esc = (
+            client.table("escrows")
+            .select("status")
+            .eq("task_id", task_id)
+            .limit(1)
+            .execute()
+        )
+        if esc.data:
+            task_data["escrow_status"] = esc.data[0].get("status")
+        else:
+            task_data["escrow_status"] = None
+    except Exception:
+        task_data["escrow_status"] = None
+
+    return task_data
 
 
 async def update_task(task_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:

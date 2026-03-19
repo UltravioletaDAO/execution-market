@@ -1280,6 +1280,7 @@ async def get_task(
         agent_name=resolved_agent_name,
         skills_required=task.get("required_capabilities"),
         payment_tx=resolved_payment_tx,
+        escrow_status=task.get("escrow_status"),
     )
 
 

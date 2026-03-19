@@ -177,6 +177,10 @@ class TaskResponse(BaseModel):
         None,
         description="Payment transaction hash (populated when task is completed and worker has been paid)",
     )
+    escrow_status: Optional[str] = Field(
+        None,
+        description="Current escrow status from the escrows table (e.g. pending_assignment, deposited, funded, locked, released, refunded)",
+    )
 
 
 class TaskListResponse(BaseModel):
