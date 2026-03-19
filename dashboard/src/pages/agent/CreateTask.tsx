@@ -12,6 +12,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { TaskCategory, EvidenceType, EvidenceSchema, Location, TaskInsert } from '../../types/database'
 import { createTask } from '../../services/tasks'
 
@@ -256,7 +257,7 @@ function LocationPicker({
         lng: position.coords.longitude,
       })
     } catch (err) {
-      setLocationError('No se pudo obtener la ubicacion')
+      setLocationError('Could not get location')
     } finally {
       setIsGettingLocation(false)
     }
@@ -650,6 +651,7 @@ function TaskPreview({
 // ============================================================================
 
 export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskProps) {
+  const { t } = useTranslation()
   const [step, setStep] = useState<FormStep>('details')
   const [formData, setFormData] = useState<TaskFormData>(DEFAULT_FORM_DATA)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -764,7 +766,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
 
       onSuccess?.(created.id)
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Error al crear la tarea')
+      setSubmitError(err instanceof Error ? err.message : t('createTask.createError', 'Error creating task'))
     } finally {
       setIsSubmitting(false)
     }
@@ -785,8 +787,8 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
           </button>
         )}
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Crear Nueva Tarea</h1>
-          <p className="text-sm text-gray-500">Publica una tarea para que trabajadores la ejecuten</p>
+          <h1 className="text-xl font-bold text-gray-900">{t('createTask.title', 'Create New Task')}</h1>
+          <p className="text-sm text-gray-500">{t('createTask.subtitle', 'Publish a task for workers to execute')}</p>
         </div>
       </div>
 
@@ -798,28 +800,28 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         {/* Step: Details */}
         {step === 'details' && (
           <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-gray-900">Detalles de la Tarea</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('createTask.taskDetails', 'Task Details')}</h2>
 
             {/* Title */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Titulo <span className="text-red-500">*</span>
+                {t('createTask.titleLabel', 'Title')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => updateFormData({ title: e.target.value })}
-                placeholder="ej. Verificar direccion de entrega en Polanco"
+                placeholder={t('createTask.titlePlaceholder', 'e.g. Verify delivery address in Polanco')}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 maxLength={100}
               />
-              <p className="text-xs text-gray-500 mt-1">{formData.title.length}/100 caracteres</p>
+              <p className="text-xs text-gray-500 mt-1">{formData.title.length}/100 {t('createTask.characters', 'characters')}</p>
             </div>
 
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Categoria <span className="text-red-500">*</span>
+                {t('createTask.categoryLabel', 'Category')} <span className="text-red-500">*</span>
               </label>
               <CategorySelector
                 value={formData.category}
@@ -830,24 +832,24 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
             {/* Instructions */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Instrucciones <span className="text-red-500">*</span>
+                {t('createTask.instructionsLabel', 'Instructions')} <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.instructions}
                 onChange={(e) => updateFormData({ instructions: e.target.value })}
-                placeholder="Describe detalladamente que debe hacer el trabajador..."
+                placeholder={t('createTask.instructionsPlaceholder', 'Describe in detail what the worker must do...')}
                 rows={4}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                 maxLength={2000}
               />
-              <p className="text-xs text-gray-500 mt-1">{formData.instructions.length}/2000 caracteres (min 20)</p>
+              <p className="text-xs text-gray-500 mt-1">{formData.instructions.length}/2000 {t('createTask.characters', 'characters')} (min 20)</p>
             </div>
 
             {/* Bounty and Deadline */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Recompensa (USDC) <span className="text-red-500">*</span>
+                  {t('createTask.bountyLabel', 'Bounty')} (USDC) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
@@ -865,7 +867,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha limite <span className="text-red-500">*</span>
+                  {t('createTask.deadlineLabel', 'Deadline')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="datetime-local"
@@ -881,7 +883,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Reputacion minima
+                  {t('createTask.minReputation', 'Minimum reputation')}
                 </label>
                 <input
                   type="number"
@@ -891,11 +893,11 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
                   onChange={(e) => updateFormData({ min_reputation: parseInt(e.target.value) || 0 })}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
-                <p className="text-xs text-gray-500 mt-1">0-100 puntos</p>
+                <p className="text-xs text-gray-500 mt-1">0-100 {t('createTask.points', 'points')}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Maximo de ejecutores
+                  {t('createTask.maxExecutors', 'Maximum executors')}
                 </label>
                 <input
                   type="number"
@@ -914,9 +916,9 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         {step === 'location' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Ubicacion</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('createTask.location', 'Location')}</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Define donde debe realizarse la tarea (opcional para tareas remotas)
+                {t('createTask.locationDesc', 'Define where the task must be performed (optional for remote tasks)')}
               </p>
             </div>
 
@@ -935,9 +937,9 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         {step === 'evidence' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Evidencia Requerida</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('createTask.evidenceRequired', 'Required Evidence')}</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Define que tipo de evidencia debe enviar el trabajador
+                {t('createTask.evidenceDesc', 'Define what type of evidence the worker must submit')}
               </p>
             </div>
 
@@ -954,9 +956,9 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
         {step === 'preview' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Vista Previa</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('createTask.preview', 'Preview')}</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Revisa los detalles antes de publicar
+                {t('createTask.previewDesc', 'Review details before publishing')}
               </p>
             </div>
 
@@ -978,7 +980,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
           onClick={step === 'details' ? onBack : goPrev}
           className="px-4 py-2.5 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors"
         >
-          {step === 'details' ? 'Cancelar' : 'Atras'}
+          {step === 'details' ? t('common.cancel') : t('common.back')}
         </button>
 
         {step === 'preview' ? (
@@ -994,14 +996,14 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                Publicando...
+                {t('createTask.publishing', 'Publishing...')}
               </>
             ) : (
               <>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Publicar Tarea
+                {t('createTask.publishTask', 'Publish Task')}
               </>
             )}
           </button>
@@ -1012,7 +1014,7 @@ export function CreateTask({ agentId, onBack, onSubmit, onSuccess }: CreateTaskP
             disabled={!canProceed}
             className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Siguiente
+            {t('common.next')}
           </button>
         )}
       </div>

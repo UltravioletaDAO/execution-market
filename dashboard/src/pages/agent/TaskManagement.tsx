@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { TaskStatus, TaskCategory, TaskApplication } from '../../types/database'
 import type { TaskWithExecutor } from '../../services/types'
 import { getAgentTasks, cancelTask } from '../../services/tasks'
@@ -47,57 +48,38 @@ type TabKey = 'active' | 'pending' | 'completed' | 'cancelled'
 // Constants
 // ============================================================================
 
-const TAB_CONFIG: { key: TabKey; label: string; statuses: TaskStatus[]; color: string }[] = [
-  {
-    key: 'active',
-    label: 'Activas',
-    statuses: ['accepted', 'in_progress', 'submitted', 'verifying'],
-    color: 'blue',
-  },
-  {
-    key: 'pending',
-    label: 'Publicadas',
-    statuses: ['published'],
-    color: 'green',
-  },
-  {
-    key: 'completed',
-    label: 'Completadas',
-    statuses: ['completed'],
-    color: 'gray',
-  },
-  {
-    key: 'cancelled',
-    label: 'Canceladas',
-    statuses: ['cancelled', 'expired', 'disputed'],
-    color: 'red',
-  },
+const TAB_CONFIG: { key: TabKey; i18nKey: string; statuses: TaskStatus[]; color: string }[] = [
+  { key: 'active', i18nKey: 'taskMgmt.tabs.active', statuses: ['accepted', 'in_progress', 'submitted', 'verifying'], color: 'blue' },
+  { key: 'pending', i18nKey: 'taskMgmt.tabs.published', statuses: ['published'], color: 'green' },
+  { key: 'completed', i18nKey: 'taskMgmt.tabs.completed', statuses: ['completed'], color: 'gray' },
+  { key: 'cancelled', i18nKey: 'taskMgmt.tabs.cancelled', statuses: ['cancelled', 'expired', 'disputed'], color: 'red' },
 ]
 
-const STATUS_CONFIG: Record<TaskStatus, { label: string; className: string; dotColor: string }> = {
-  published: { label: 'Publicada', className: 'bg-green-100 text-green-800', dotColor: 'bg-green-500' },
-  accepted: { label: 'Aceptada', className: 'bg-blue-100 text-blue-800', dotColor: 'bg-blue-500' },
-  in_progress: { label: 'En Progreso', className: 'bg-yellow-100 text-yellow-800', dotColor: 'bg-yellow-500' },
-  submitted: { label: 'Por Revisar', className: 'bg-purple-100 text-purple-800', dotColor: 'bg-purple-500' },
-  verifying: { label: 'Verificando', className: 'bg-indigo-100 text-indigo-800', dotColor: 'bg-indigo-500' },
-  completed: { label: 'Completada', className: 'bg-gray-100 text-gray-800', dotColor: 'bg-gray-500' },
-  disputed: { label: 'Disputada', className: 'bg-red-100 text-red-800', dotColor: 'bg-red-500' },
-  expired: { label: 'Expirada', className: 'bg-gray-100 text-gray-500', dotColor: 'bg-gray-400' },
-  cancelled: { label: 'Cancelada', className: 'bg-gray-100 text-gray-400', dotColor: 'bg-gray-300' },
+const STATUS_CONFIG: Record<TaskStatus, { i18nKey: string; className: string; dotColor: string }> = {
+  published: { i18nKey: 'taskMgmt.status.published', className: 'bg-green-100 text-green-800', dotColor: 'bg-green-500' },
+  accepted: { i18nKey: 'taskMgmt.status.accepted', className: 'bg-blue-100 text-blue-800', dotColor: 'bg-blue-500' },
+  in_progress: { i18nKey: 'taskMgmt.status.inProgress', className: 'bg-yellow-100 text-yellow-800', dotColor: 'bg-yellow-500' },
+  submitted: { i18nKey: 'taskMgmt.status.submitted', className: 'bg-purple-100 text-purple-800', dotColor: 'bg-purple-500' },
+  verifying: { i18nKey: 'taskMgmt.status.verifying', className: 'bg-indigo-100 text-indigo-800', dotColor: 'bg-indigo-500' },
+  completed: { i18nKey: 'taskMgmt.status.completed', className: 'bg-gray-100 text-gray-800', dotColor: 'bg-gray-500' },
+  disputed: { i18nKey: 'taskMgmt.status.disputed', className: 'bg-red-100 text-red-800', dotColor: 'bg-red-500' },
+  expired: { i18nKey: 'taskMgmt.status.expired', className: 'bg-gray-100 text-gray-500', dotColor: 'bg-gray-400' },
+  cancelled: { i18nKey: 'taskMgmt.status.cancelled', className: 'bg-gray-100 text-gray-400', dotColor: 'bg-gray-300' },
 }
 
-const CATEGORY_LABELS: Record<TaskCategory, string> = {
-  physical_presence: 'Presencia Fisica',
-  knowledge_access: 'Acceso a Conocimiento',
-  human_authority: 'Autoridad Humana',
-  simple_action: 'Accion Simple',
-  digital_physical: 'Digital-Fisico',
-  data_processing: 'Procesamiento de Datos',
-  research: 'Investigacion',
-  content_generation: 'Generacion de Contenido',
-  code_execution: 'Ejecucion de Codigo',
-  api_integration: 'Integracion API',
-  multi_step_workflow: 'Flujo Multi-paso',
+// Category labels resolved via t() at render time (keys match categories.*)
+const CATEGORY_I18N_KEYS: Record<TaskCategory, string> = {
+  physical_presence: 'categories.physical_presence',
+  knowledge_access: 'categories.knowledge_access',
+  human_authority: 'categories.human_authority',
+  simple_action: 'categories.simple_action',
+  digital_physical: 'categories.digital_physical',
+  data_processing: 'categories.data_processing',
+  research: 'categories.research',
+  content_generation: 'categories.content_generation',
+  code_execution: 'categories.code_execution',
+  api_integration: 'categories.api_integration',
+  multi_step_workflow: 'categories.multi_step_workflow',
 }
 
 const CATEGORY_ICONS: Record<TaskCategory, string> = {
@@ -134,18 +116,18 @@ function formatDeadline(deadline: string): { text: string; isUrgent: boolean; is
   const diffDays = Math.floor(diffHours / 24)
 
   if (diffMs < 0) {
-    return { text: 'Expirada', isUrgent: false, isExpired: true }
+    return { text: 'expired', isUrgent: false, isExpired: true }
   }
   if (diffHours < 1) {
-    return { text: 'Menos de 1h', isUrgent: true, isExpired: false }
+    return { text: 'lessThan1h', isUrgent: true, isExpired: false }
   }
   if (diffHours < 24) {
-    return { text: `${diffHours}h restantes`, isUrgent: diffHours < 6, isExpired: false }
+    return { text: `${diffHours}h`, isUrgent: diffHours < 6, isExpired: false }
   }
   if (diffDays === 1) {
-    return { text: '1 dia', isUrgent: false, isExpired: false }
+    return { text: '1d', isUrgent: false, isExpired: false }
   }
-  return { text: `${diffDays} dias`, isUrgent: false, isExpired: false }
+  return { text: `${diffDays}d`, isUrgent: false, isExpired: false }
 }
 
 function formatDate(dateStr: string): string {
@@ -162,11 +144,12 @@ function formatDate(dateStr: string): string {
 // ============================================================================
 
 function StatusBadge({ status }: { status: TaskStatus }) {
+  const { t } = useTranslation()
   const config = STATUS_CONFIG[status]
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full ${config.className}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
-      {config.label}
+      {t(config.i18nKey)}
     </span>
   )
 }
@@ -184,6 +167,7 @@ function TaskCard({
   onCancel?: () => void
   onViewApplicants?: () => void
 }) {
+  const { t } = useTranslation()
   const [showActions, setShowActions] = useState(false)
   const deadline = formatDeadline(task.deadline)
   const canCancel = ['published', 'accepted'].includes(task.status)
@@ -210,12 +194,12 @@ function TaskCard({
                 <StatusBadge status={task.status} />
                 {needsReview && (
                   <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full animate-pulse">
-                    Revisar
+                    {t('taskMgmt.review', 'Review')}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-                <span>{CATEGORY_LABELS[task.category]}</span>
+                <span>{t(CATEGORY_I18N_KEYS[task.category])}</span>
                 <span className="text-gray-300">|</span>
                 <span className={deadline.isUrgent ? 'text-orange-600 font-medium' : deadline.isExpired ? 'text-red-500' : ''}>
                   {deadline.text}
@@ -257,7 +241,7 @@ function TaskCard({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span>{task.applicant_count || 0} solicitantes</span>
+                <span>{task.applicant_count || 0} {t('taskMgmt.applicants', 'applicants')}</span>
               </button>
             )}
 
@@ -269,13 +253,13 @@ function TaskCard({
                     {(task.executor.display_name || 'T')[0].toUpperCase()}
                   </span>
                 </div>
-                <span>{task.executor.display_name || 'Trabajador'}</span>
+                <span>{task.executor.display_name || t('taskMgmt.worker', 'Worker')}</span>
               </div>
             )}
 
             {/* Created date */}
             <span className="text-gray-400">
-              Creada {formatDate(task.created_at)}
+              {t('taskMgmt.created', 'Created')} {formatDate(task.created_at)}
             </span>
           </div>
 
@@ -285,7 +269,7 @@ function TaskCard({
               onClick={onView}
               className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
             >
-              Ver detalles
+              {t('taskMgmt.viewDetails', 'View details')}
             </button>
 
             {/* More actions dropdown */}
@@ -317,7 +301,7 @@ function TaskCard({
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        Editar tarea
+                        {t('taskMgmt.editTask', 'Edit task')}
                       </button>
                     )}
                     {hasApplicants && (
@@ -331,7 +315,7 @@ function TaskCard({
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        Ver solicitantes
+                        {t('taskMgmt.viewApplicants', 'View applicants')}
                       </button>
                     )}
                     {canCancel && (
@@ -345,7 +329,7 @@ function TaskCard({
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        Cancelar tarea
+                        {t('taskMgmt.cancelTask', 'Cancel task')}
                       </button>
                     )}
                     <button
@@ -359,7 +343,7 @@ function TaskCard({
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                       </svg>
-                      Copiar ID
+                      {t('taskMgmt.copyId', 'Copy ID')}
                     </button>
                   </div>
                 </>
@@ -379,26 +363,27 @@ function EmptyState({
   tab: TabKey
   onCreateTask?: () => void
 }) {
-  const messages: Record<TabKey, { icon: string; title: string; description: string }> = {
+  const { t } = useTranslation()
+  const messages: Record<TabKey, { icon: string; titleKey: string; descKey: string }> = {
     active: {
       icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-      title: 'Sin tareas activas',
-      description: 'Las tareas aceptadas o en progreso apareceran aqui',
+      titleKey: 'taskMgmt.empty.activeTitle',
+      descKey: 'taskMgmt.empty.activeDesc',
     },
     pending: {
       icon: 'M12 4v16m8-8H4',
-      title: 'Sin tareas publicadas',
-      description: 'Crea una nueva tarea para que los trabajadores puedan aplicar',
+      titleKey: 'taskMgmt.empty.pendingTitle',
+      descKey: 'taskMgmt.empty.pendingDesc',
     },
     completed: {
       icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-      title: 'Sin tareas completadas',
-      description: 'Las tareas finalizadas exitosamente apareceran aqui',
+      titleKey: 'taskMgmt.empty.completedTitle',
+      descKey: 'taskMgmt.empty.completedDesc',
     },
     cancelled: {
       icon: 'M6 18L18 6M6 6l12 12',
-      title: 'Sin tareas canceladas',
-      description: 'Las tareas canceladas o expiradas apareceran aqui',
+      titleKey: 'taskMgmt.empty.cancelledTitle',
+      descKey: 'taskMgmt.empty.cancelledDesc',
     },
   }
 
@@ -411,8 +396,8 @@ function EmptyState({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={msg.icon} />
         </svg>
       </div>
-      <h3 className="text-lg font-medium text-gray-900 mb-1">{msg.title}</h3>
-      <p className="text-sm text-gray-500 mb-4">{msg.description}</p>
+      <h3 className="text-lg font-medium text-gray-900 mb-1">{t(msg.titleKey)}</h3>
+      <p className="text-sm text-gray-500 mb-4">{t(msg.descKey)}</p>
       {tab === 'pending' && onCreateTask && (
         <button
           onClick={onCreateTask}
@@ -421,7 +406,7 @@ function EmptyState({
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Crear Tarea
+          {t('taskMgmt.createTask', 'Create Task')}
         </button>
       )}
     </div>
@@ -440,6 +425,7 @@ export function TaskManagement({
   onCreateTask,
   onViewApplicants,
 }: TaskManagementProps) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<TabKey>('active')
   const [tasks, setTasks] = useState<TaskWithApplicants[]>([])
   const [loading, setLoading] = useState(true)
@@ -524,7 +510,7 @@ export function TaskManagement({
 
   // Cancel task handler
   const handleCancelTask = useCallback(async (taskId: string) => {
-    if (!confirm('Esta seguro de cancelar esta tarea? El escrow sera devuelto.')) {
+    if (!confirm(t('taskMgmt.confirmCancel', 'Are you sure you want to cancel this task? The escrow will be returned.'))) {
       return
     }
 
@@ -537,7 +523,7 @@ export function TaskManagement({
       )
     } catch (err) {
       console.error('Failed to cancel task:', err)
-      alert('Error al cancelar la tarea. Intente de nuevo.')
+      alert(t('taskMgmt.cancelError', 'Error cancelling task. Try again.'))
     }
 
     setCancellingTaskId(null)
@@ -578,8 +564,8 @@ export function TaskManagement({
             </button>
           )}
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Gestionar Tareas</h1>
-            <p className="text-sm text-gray-500">{tasks.length} tareas totales</p>
+            <h1 className="text-xl font-bold text-gray-900">{t('taskMgmt.title', 'Manage Tasks')}</h1>
+            <p className="text-sm text-gray-500">{tasks.length} {t('taskMgmt.totalTasks', 'total tasks')}</p>
           </div>
         </div>
 
@@ -591,7 +577,7 @@ export function TaskManagement({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Nueva Tarea
+            {t('taskMgmt.newTask', 'New Task')}
           </button>
         )}
       </div>
@@ -609,7 +595,7 @@ export function TaskManagement({
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              {tab.label}
+              {t(tab.i18nKey)}
               {tabCounts[tab.key] > 0 && (
                 <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
                   activeTab === tab.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
@@ -638,7 +624,7 @@ export function TaskManagement({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar tareas..."
+            placeholder={t('taskMgmt.searchPlaceholder', 'Search tasks...')}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -649,10 +635,10 @@ export function TaskManagement({
           onChange={(e) => setCategoryFilter(e.target.value as TaskCategory | 'all')}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
         >
-          <option value="all">Todas las categorias</option>
-          {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+          <option value="all">{t('taskMgmt.allCategories', 'All categories')}</option>
+          {Object.entries(CATEGORY_I18N_KEYS).map(([value, key]) => (
             <option key={value} value={value}>
-              {label}
+              {t(key)}
             </option>
           ))}
         </select>
@@ -684,7 +670,7 @@ export function TaskManagement({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
-            <p className="text-gray-700">Cancelando tarea...</p>
+            <p className="text-gray-700">{t('taskMgmt.cancelling', 'Cancelling task...')}</p>
           </div>
         </div>
       )}
