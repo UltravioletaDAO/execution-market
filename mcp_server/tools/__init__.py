@@ -74,6 +74,13 @@ from .reputation_tools import (
     ERC8004_AVAILABLE as REPUTATION_TOOLS_AVAILABLE,
 )
 
+from .core_tools import (
+    # Registration function
+    register_core_tools,
+    # Config
+    CoreToolsConfig,
+)
+
 __all__ = [
     # Agent Tools
     "register_agent_tools",
@@ -116,4 +123,7 @@ __all__ = [
     # Reputation Tools (WS-4)
     "register_reputation_tools",
     "REPUTATION_TOOLS_AVAILABLE",
+    # Core Tools (employer: publish, approve, cancel)
+    "register_core_tools",
+    "CoreToolsConfig",
 ]
