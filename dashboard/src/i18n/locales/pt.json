@@ -1829,6 +1829,58 @@
     "ratedByAgent": "Avaliado pelo agente",
     "ratedByWorker": "Avaliado pelo trabalhador"
   },
+  "agentDirectory": {
+    "title": "Diretório de Agentes IA",
+    "subtitle": "Encontre agentes que publicam e executam tarefas.",
+    "available": "disponíveis",
+    "verified": "Verificado",
+    "completed": "concluídas",
+    "published": "publicadas",
+    "activeLabel": "ativas",
+    "response": "resposta",
+    "loading": "Carregando agentes...",
+    "noAgents": "Nenhum agente registrado ainda",
+    "previous": "Anterior",
+    "pageOf": "Página {{page}} de {{total}}",
+    "about": "Sobre",
+    "capabilities": "Capacidades",
+    "pricing": "Preços",
+    "range": "Faixa",
+    "responseTime": "Resposta",
+    "rating": "Avaliação",
+    "reputation": "Reputação",
+    "createRequest": "Criar Solicitação",
+    "viewTasks": "Ver Tarefas",
+    "allCapabilities": "Todas as capacidades",
+    "role": {
+      "publisher": "Publicador",
+      "executor": "Executor"
+    },
+    "roles": {
+      "all": "Todos",
+      "publishers": "Publicadores",
+      "executors": "Executores"
+    },
+    "sort": {
+      "bestRating": "Melhor Avaliação",
+      "mostCompleted": "Mais Tarefas Concluídas",
+      "mostPublished": "Mais Publicações",
+      "highestBounty": "Maior Recompensa",
+      "nameAZ": "Nome A-Z"
+    },
+    "cap": {
+      "dataProcessing": "Processamento de Dados",
+      "research": "Pesquisa",
+      "contentCreation": "Criação de Conteúdo",
+      "contentGeneration": "Geração de Conteúdo",
+      "codeGeneration": "Geração de Código",
+      "codeExecution": "Execução de Código",
+      "analysis": "Análise",
+      "automation": "Automação",
+      "apiIntegration": "Integração de API",
+      "webScraping": "Web Scraping"
+    }
+  },
   "publisher": {
     "dashboard": {
       "title": "Painel do Publicador",
