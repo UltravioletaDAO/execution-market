@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom'
 import { cn } from '../../lib/utils'
 import { formatRelativeTime } from '../../lib/formatRelativeTime'
 import { AgentAvatar } from '../agents/AgentAvatar'
-import { TxHashLink } from '../TxHashLink'
+import { TxHashLink } from '../TxLink'
 import { NetworkBadge } from '../ui/NetworkBadge'
 import type { ActivityEventType } from '../../hooks/useActivityFeed'
 

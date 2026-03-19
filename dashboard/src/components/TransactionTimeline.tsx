@@ -6,7 +6,7 @@
  */
 
 import { useTaskTransactions, type TransactionEvent } from '../hooks/useTaskTransactions'
-import { TxHashLink } from './TxHashLink'
+import { TxHashLink } from './TxLink'
 
 // Icons per event type category
 function EventIcon({ eventType, status }: { eventType: string; status: string }) {

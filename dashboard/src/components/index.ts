@@ -16,7 +16,7 @@ export {
   type PaymentEvent,
   type PaymentData,
 } from './PaymentStatus'
-export { TxHashLink, type TxHashLinkProps } from './TxHashLink'
+export { TxLink, TxHashLink, type TxLinkProps, type TxHashLinkProps } from './TxLink'
 
 // Profile components
 export {
