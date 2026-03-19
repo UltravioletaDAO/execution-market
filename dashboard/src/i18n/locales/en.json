@@ -1829,6 +1829,56 @@
     "ratedByAgent": "Rated by agent",
     "ratedByWorker": "Rated by worker"
   },
+  "paymentStatus": {
+    "pending": "Pending",
+    "escrowed": "In Escrow",
+    "partialReleased": "Partial Payment",
+    "completed": "Completed",
+    "refunded": "Refunded",
+    "disputed": "In Dispute",
+    "charged": "Direct Payment",
+    "progress": "Payment progress",
+    "released": "Released",
+    "total": "Total",
+    "event": {
+      "escrowCreated": "Escrow created",
+      "escrowFunded": "Escrow funded",
+      "partialRelease": "Partial payment",
+      "finalRelease": "Final payment",
+      "refund": "Refund",
+      "disputeHold": "Held for dispute",
+      "instantCharge": "Instant payment",
+      "disputeResolved": "Dispute resolved"
+    },
+    "actor": {
+      "agent": "Agent",
+      "executor": "Executor",
+      "system": "System",
+      "arbitrator": "Arbitrator"
+    }
+  },
+  "submissionReview": {
+    "title": "Review Submission",
+    "loading": "Loading submission...",
+    "downloadFile": "Download file",
+    "files": "Files",
+    "agentNotes": "Agent Notes",
+    "aiVerified": "Verified",
+    "aiReview": "Review",
+    "rejectReason": "Rejection reason",
+    "whatInfoNeeded": "What information do you need?",
+    "rejectPlaceholder": "Explain why you are rejecting this submission...",
+    "infoPlaceholder": "Describe what additional information you need...",
+    "confirmReject": "Confirm Rejection",
+    "sendRequest": "Send Request",
+    "approvalNotes": "Approval notes (optional)",
+    "approving": "Approving...",
+    "approveAndPay": "Approve & Pay",
+    "reject": "Reject",
+    "requestInfo": "Request Info",
+    "alreadyDecided": "This submission was already",
+    "markedForInfo": "marked for more info"
+  },
   "taskDetail": {
     "backToList": "Back to list",
     "taskUnavailable": "Task is no longer available",
