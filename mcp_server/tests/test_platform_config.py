@@ -31,10 +31,10 @@ class TestPlatformConfigDefaults:
         assert PlatformConfig._defaults["fees.partial_release_pct"] == Decimal("0.30")
 
     def test_default_min_bounty(self):
-        """Default minimum bounty should be $0.50."""
+        """Default minimum bounty should be $0.01."""
         from config.platform_config import PlatformConfig
 
-        assert PlatformConfig._defaults["bounty.min_usd"] == Decimal("0.50")
+        assert PlatformConfig._defaults["bounty.min_usd"] == Decimal("0.01")
 
     def test_default_max_bounty(self):
         """Default maximum bounty should be $10,000."""
@@ -185,7 +185,7 @@ class TestPlatformConfigConvenienceMethods:
         value = await PlatformConfig.get_min_bounty()
 
         assert isinstance(value, Decimal)
-        assert value == Decimal("0.50")  # From _defaults dict (canonical fallback)
+        assert value == Decimal("0.01")  # From _defaults dict (canonical fallback)
 
     @pytest.mark.asyncio
     async def test_get_max_bounty(self):

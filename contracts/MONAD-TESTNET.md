@@ -56,7 +56,7 @@
 ### Fee Structure
 - **92%** → Worker receives payment
 - **8%** → Treasury fee (protocol sustainability)
-- **$0.25 minimum** → Opens micro-task economy
+- **$0.01 minimum** → Opens micro-task economy
 
 ---
 
@@ -86,7 +86,7 @@ cast call 0xe0e74E36D3C342ef610a0C6871DbcEaa4d6Eeb80 "name()" --rpc-url https://
 Monad's EVM-compatible execution environment with parallel processing makes it ideal for Execution Market:
 
 - **High TPS** → Supports micro-task economy at scale
-- **Low gas costs** → $0.25 tasks remain viable
+- **Low gas costs** → $0.01 tasks remain viable
 - **EVM compatibility** → Same contracts, same tooling, same SDKs
 - **Parallel execution** → Multiple escrows can be processed simultaneously
 

@@ -111,10 +111,10 @@ class TestFeeCalculation:
 
     def test_calculate_fee_minimum_enforced(self, manager):
         """Test minimum fee is enforced."""
-        # Very small bounty: $0.50 * 0.13 = $0.065 -> should become $0.07 (rounded)
-        breakdown = manager.calculate_fee(Decimal("0.50"), TaskCategory.SIMPLE_ACTION)
+        # Very small bounty: $0.01 * 0.13 = $0.0013 -> minimum fee applies
+        breakdown = manager.calculate_fee(Decimal("0.01"), TaskCategory.SIMPLE_ACTION)
 
-        # $0.50 * 0.13 = $0.065, which is > MIN_FEE_AMOUNT
+        # $0.01 * 0.13 = $0.0013, minimum fee ($0.01) should apply
         assert breakdown.fee_amount >= MIN_FEE_AMOUNT
 
     def test_calculate_fee_zero_bounty_raises(self, manager):

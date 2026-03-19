@@ -434,7 +434,7 @@ export async function setupMocks(
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        min_bounty_usd: 0.25,
+        min_bounty_usd: 0.01,
         max_bounty_usd: 10000,
         supported_networks: ['base'],
         supported_tokens: ['USDC'],

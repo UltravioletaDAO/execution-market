@@ -163,7 +163,7 @@ class ExecutionMarketClient:
             title: Short task title (5-255 characters).
             instructions: Detailed instructions for the worker (20-5000 characters).
             category: Task category (e.g., "physical_presence", "knowledge_access").
-            bounty_usd: Payment amount in USD (min $0.50).
+            bounty_usd: Payment amount in USD (min $0.01).
             deadline_hours: Hours until deadline (1-720).
             evidence_required: List of required evidence types (e.g., ["photo", "text_response"]).
             evidence_optional: List of optional evidence types.

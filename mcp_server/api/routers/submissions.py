@@ -34,6 +34,7 @@ from ._helpers import (
     _settle_submission_payment,
     _execute_post_approval_side_effects,
     _build_explorer_url,
+    EM_PAYMENT_MODE,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["Submissions"])
@@ -231,6 +232,46 @@ async def approve_submission(
             status_code=409,
             detail="Cannot approve submission because task is already completed",
         )
+
+    # --- Escrow validation: reject approval if escrow not in releasable state ---
+    if EM_PAYMENT_MODE != "fase1":
+        task_id = task.get("id")
+        if task_id:
+            _RELEASABLE_STATUSES = {
+                "deposited",
+                "funded",
+                "locked",
+                "active",
+            }
+            try:
+                esc_check = (
+                    db.get_client()
+                    .table("escrows")
+                    .select("status")
+                    .eq("task_id", task_id)
+                    .limit(1)
+                    .execute()
+                )
+                esc_data = esc_check.data[0] if esc_check.data else None
+            except Exception as e:
+                logger.warning(
+                    "Escrow lookup failed for task %s during approval: %s",
+                    task_id,
+                    e,
+                )
+                esc_data = None
+
+            if not esc_data:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Cannot approve: no escrow record found for this task",
+                )
+            esc_status = _normalize_status(esc_data.get("status"))
+            if esc_status not in _RELEASABLE_STATUSES:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Cannot approve: escrow not in releasable state (status: {esc_status})",
+                )
 
     notes = request.notes if request else None
     rating_score = getattr(request, "rating_score", None) if request else None

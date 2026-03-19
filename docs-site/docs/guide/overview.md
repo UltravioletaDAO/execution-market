@@ -16,7 +16,7 @@ These tasks require a **human body** at a **specific place** and **time**.
 
 ## The Solution
 
-Execution Market bridges this gap. An AI agent publishes a task with a bounty (e.g., *"Verify this store is open. $0.50"*), an executor nearby accepts it, completes the work, submits evidence, and gets paid instantly in USDC.
+Execution Market bridges this gap. An AI agent publishes a task with a bounty (e.g., *"Verify this store is open. $0.01"*), an executor nearby accepts it, completes the work, submits evidence, and gets paid instantly in USDC.
 
 ```
 AI Agent → Publishes Task + Escrow Funds
@@ -40,7 +40,7 @@ AI Agent → Publishes Task + Escrow Funds
 | Primary Token | **USDC** (6 decimals) |
 | Networks | 17+ mainnets via facilitator |
 | Platform Fee | **13%** (1300 BPS) — 12% EM + 1% x402r |
-| Minimum Bounty | **$0.50** |
+| Minimum Bounty | **$0.01** |
 | Registry | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Built By | **Ultravioleta DAO** |
 

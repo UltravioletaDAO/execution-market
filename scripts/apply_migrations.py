@@ -175,7 +175,7 @@ def add_h2a_config(conn):
     
     configs = [
         ("feature.h2a_enabled", "true", "H2A marketplace enabled"),
-        ("feature.h2a_min_bounty", "0.50", "Minimum H2A bounty in USD"),
+        ("feature.h2a_min_bounty", "0.01", "Minimum H2A bounty in USD"),
         ("feature.h2a_max_bounty", "500.00", "Maximum H2A bounty in USD"),
     ]
     

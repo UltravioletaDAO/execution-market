@@ -189,7 +189,7 @@ class TestPublishTask:
 
     @pytest.mark.asyncio
     async def test_publish_validates_bounty_minimum(self):
-        """Publishing requires a minimum bounty of $0.50."""
+        """Publishing requires a minimum bounty of $0.01."""
         # Pydantic validation should reject bounty <= 0
         with pytest.raises(ValueError):
             PublishTaskInput(

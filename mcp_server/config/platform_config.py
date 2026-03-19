@@ -52,7 +52,7 @@ class PlatformConfig:
     Usage:
         # Get specific config methods (recommended)
         fee = await PlatformConfig.get_fee_pct()  # Decimal("0.13")
-        min_bounty = await PlatformConfig.get_min_bounty()  # Decimal("0.25")
+        min_bounty = await PlatformConfig.get_min_bounty()  # Decimal("0.01")
 
         # Get raw value
         value = await PlatformConfig.get("fees.platform_fee_pct", default=0.13)
@@ -81,7 +81,7 @@ class PlatformConfig:
         "fees.protection_fund_pct": Decimal("0.005"),
         # Limits
         "bounty.min_usd": Decimal(
-            "0.50"
+            "0.01"
         ),  # Minimum bounty (configurable via admin API)
         "bounty.max_usd": Decimal("10000.00"),
         "limits.max_resubmissions": 3,

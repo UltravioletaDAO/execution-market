@@ -206,7 +206,7 @@ export default function Settings({ adminKey }: SettingsProps) {
         <ConfigInput
           label="Minimum Bounty"
           configKey="bounty.min_usd"
-          value={limits.min_usd || 0.25}
+          value={limits.min_usd || 0.01}
           suffix="USD"
           adminKey={adminKey}
           onSuccess={handleSuccess}

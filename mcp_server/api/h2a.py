@@ -264,7 +264,7 @@ async def _check_h2a_enabled():
 
 async def _get_h2a_bounty_limits() -> tuple[Decimal, Decimal]:
     """Get H2A bounty limits from config."""
-    min_bounty = Decimal("0.50")
+    min_bounty = Decimal("0.01")
     max_bounty = Decimal("500.00")
     try:
         client = db.get_client()

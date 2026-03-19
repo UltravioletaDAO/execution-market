@@ -664,8 +664,8 @@ Security:
         logging.getLogger().setLevel(logging.DEBUG)
 
     # Validate bounty
-    if args.bounty < 0.25:
-        logger.error("Minimum bounty is $0.25")
+    if args.bounty < 0.01:
+        logger.error("Minimum bounty is $0.01")
         sys.exit(1)
 
     if args.bounty > 100 and not args.dry_run:

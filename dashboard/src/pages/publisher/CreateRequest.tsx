@@ -80,7 +80,7 @@ export function CreateRequest() {
 
   const canProceed = (() => {
     if (step === 'details') return form.title.length >= 5 && form.instructions.length >= 20
-    if (step === 'budget') return form.bounty_usd >= 0.50 && form.evidence_required.length > 0
+    if (step === 'budget') return form.bounty_usd >= 0.01 && form.evidence_required.length > 0
     return true
   })()
 
@@ -208,7 +208,7 @@ export function CreateRequest() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto (USDC) *</label>
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-gray-400">$</span>
-                  <input type="number" value={form.bounty_usd} onChange={e => updateForm({ bounty_usd: Math.max(0.5, +e.target.value) })} step="0.50" min="0.50" max="500" className="w-full pl-7 pr-16 py-2 border rounded-lg" />
+                  <input type="number" value={form.bounty_usd} onChange={e => updateForm({ bounty_usd: Math.max(0.01, +e.target.value) })} step="0.01" min="0.01" max="500" className="w-full pl-7 pr-16 py-2 border rounded-lg" />
                   <span className="absolute right-3 top-2.5 text-gray-400 text-sm">USDC</span>
                 </div>
                 <div className="mt-2 bg-gray-50 rounded-lg p-3 text-sm">
