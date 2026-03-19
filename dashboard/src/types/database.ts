@@ -143,6 +143,7 @@ export interface Task {
   chainwitness_proof: string | null
   completed_at: string | null
   refund_tx: string | null
+  escrow_status: string | null
   // Publisher identity fields
   erc8004_agent_id: string | null
   agent_name: string | null
