@@ -21,6 +21,9 @@ Twenty core components:
 - SwarmDashboard: Real-time fleet health monitoring (single pane of glass)
 - ConfigManager: Centralized configuration with validation and hot reload
 - FeedbackPipeline: Closes the feedback loop from completions to intelligence
+- EventBus: Unified pub/sub event system connecting all swarm components
+- XMTPBridge: Bidirectional swarm↔XMTP bot integration
+- SwarmIntegrator: Top-level orchestration layer wiring all components together
 """
 
 from .reputation_bridge import ReputationBridge
@@ -77,6 +80,9 @@ from .expiry_analyzer import (
     Countermeasure,
     CountermeasureType,
 )
+from .event_bus import EventBus, Event
+from .xmtp_bridge import XMTPBridge
+from .integrator import SwarmIntegrator, SwarmMode, CycleResult as IntegratorCycleResult
 from .mcp_tools import register_swarm_tools
 
 __all__ = [
@@ -138,5 +144,11 @@ __all__ = [
     "CategoryHealth",
     "Countermeasure",
     "CountermeasureType",
+    "EventBus",
+    "Event",
+    "XMTPBridge",
+    "SwarmIntegrator",
+    "SwarmMode",
+    "IntegratorCycleResult",
     "register_swarm_tools",
 ]
