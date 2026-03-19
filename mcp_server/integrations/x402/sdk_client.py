@@ -78,7 +78,16 @@ FACILITATOR_URL = os.environ.get(
 )
 
 # Execution Market treasury address for fee collection
-EM_TREASURY = os.environ.get("EM_TREASURY_ADDRESS", "YOUR_TREASURY_WALLET")
+_raw_treasury = os.environ.get("EM_TREASURY_ADDRESS", "")
+_is_testing = os.environ.get("TESTING", "").lower() in ("true", "1", "yes")
+_is_payment_disabled = os.environ.get("EM_PAYMENT_MODE", "") == "disabled"
+if not _raw_treasury and not _is_testing and not _is_payment_disabled:
+    raise RuntimeError(
+        "CRITICAL: EM_TREASURY_ADDRESS is not set. "
+        "All fee payments would be lost. Set this env var to the DAO treasury wallet. "
+        "To bypass in tests, set TESTING=true."
+    )
+EM_TREASURY = _raw_treasury or "0x0000000000000000000000000000000000000000"
 
 # Default network for payments
 DEFAULT_NETWORK = os.environ.get("X402_NETWORK", "base")
