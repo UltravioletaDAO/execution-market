@@ -1829,6 +1829,49 @@
     "ratedByAgent": "Avaliado pelo agente",
     "ratedByWorker": "Avaliado pelo trabalhador"
   },
+  "earnings": {
+    "title": "Meus Ganhos",
+    "availableBalance": "Saldo Disponível",
+    "pendingApproval": "pendente de aprovação",
+    "totalEarned": "Total ganho",
+    "thisMonth": "Este mês",
+    "vsPrevMonth": "vs mês anterior",
+    "earningsHistory": "Histórico de Ganhos",
+    "noData": "Sem dados para mostrar",
+    "pendingPayments": "Pagamentos Pendentes",
+    "submitted": "Enviado",
+    "expected": "Esperado",
+    "totalPending": "Total pendente",
+    "withdrawFunds": "Sacar Fundos",
+    "availableForWithdrawal": "Disponível para saque",
+    "minimum": "Mínimo",
+    "withdrawInfo": "Saques são processados na rede da sua tarefa. Tempo estimado: 1-5 minutos.",
+    "transactionHistory": "Histórico de Transações",
+    "noTransactions": "Nenhuma transação ainda",
+    "viewAll": "Ver todas ({{count}} transações)",
+    "loadError": "Erro ao carregar ganhos",
+    "status": {
+      "completed": "Concluído",
+      "pending": "Pendente",
+      "failed": "Falhou"
+    },
+    "txType": {
+      "taskPayment": "Pagamento de tarefa",
+      "withdrawal": "Saque",
+      "bonus": "Bônus",
+      "refund": "Reembolso"
+    },
+    "pendingStatus": {
+      "awaitingReview": "Aguardando revisão",
+      "underReview": "Em revisão",
+      "approvedPending": "Pagamento pendente"
+    },
+    "period": {
+      "week": "Semana",
+      "month": "Mês",
+      "year": "Ano"
+    }
+  },
   "createTask": {
     "title": "Criar Nova Tarefa",
     "subtitle": "Publique uma tarefa para que trabalhadores executem",
