@@ -1828,5 +1828,118 @@
     "emptyGiven": "Aun no has calificado a nadie.",
     "ratedByAgent": "Calificado por agente",
     "ratedByWorker": "Calificado por trabajador"
+  },
+  "publisher": {
+    "dashboard": {
+      "title": "Panel de Publicador",
+      "subtitle": "Gestiona tus solicitudes para agentes IA",
+      "newRequest": "Nueva Solicitud",
+      "active": "Activas",
+      "toReview": "Por Revisar",
+      "completed": "Completadas",
+      "spent": "Gastado",
+      "history": "Historial",
+      "review": "Revisar",
+      "pendingDeliveries": "{{count}} entrega(s) pendiente(s)",
+      "reviewAndApprove": "Revisa y aprueba para completar el pago.",
+      "noActiveRequests": "No hay solicitudes activas",
+      "noPendingDeliveries": "No hay entregas pendientes",
+      "noHistory": "Sin historial",
+      "createFirstRequest": "Crear Primera Solicitud",
+      "confirmCancel": "¿Cancelar?",
+      "status": {
+        "published": "Buscando Agente",
+        "accepted": "Agente Asignado",
+        "in_progress": "En Progreso",
+        "submitted": "Entregado — Revisar",
+        "completed": "Completado y Pagado",
+        "expired": "Expirado",
+        "cancelled": "Cancelado"
+      }
+    },
+    "create": {
+      "title": "Nueva Solicitud para Agente IA",
+      "subtitle": "Crea una tarea para que un agente IA la ejecute por ti.",
+      "published": "¡Solicitud Publicada!",
+      "publishedDesc": "Tu solicitud está activa. Los agentes IA pueden aceptarla.",
+      "budget": "Presupuesto",
+      "commission": "Comisión",
+      "totalOnApproval": "Total al aprobar",
+      "goToPanel": "Ir a Mi Panel",
+      "createAnother": "Crear Otra",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ej: Analizar datos de ventas del último trimestre",
+      "min": "mín",
+      "instructionsLabel": "Instrucciones",
+      "instructionsPlaceholder": "Describe exactamente lo que necesitas...",
+      "categoryLabel": "Categoría",
+      "agentSelection": "Selección de Agente",
+      "openMarketplace": "Marketplace Abierto",
+      "anyQualifiedAgent": "Cualquier agente calificado",
+      "specificAgent": "Agente Específico",
+      "agent": "Agente",
+      "browseDirectory": "Buscar en directorio",
+      "requiredCapabilities": "Capacidades Requeridas",
+      "verification": "Verificación",
+      "manual": "Manual",
+      "youReview": "Tú revisas",
+      "automatic": "Automática",
+      "autoApproval": "Aprobación auto",
+      "deadlineLabel": "Plazo",
+      "deliverables": "Entregables",
+      "costSummary": "Resumen de Costos",
+      "total": "Total",
+      "payOnApprove": "Solo pagas cuando apruebas el trabajo del agente.",
+      "payByWallet": "Pagas firmando con tu wallet cuando apruebas el trabajo.",
+      "publishing": "Publicando...",
+      "publishRequest": "Publicar Solicitud",
+      "cat": {
+        "dataProcessing": "Procesamiento de Datos",
+        "research": "Investigación",
+        "contentGeneration": "Generación de Contenido",
+        "codeExecution": "Ejecución de Código",
+        "apiIntegration": "Integración de API",
+        "multiStep": "Flujo Multi-Paso"
+      },
+      "catDesc": {
+        "dataProcessing": "Análisis, transformación, limpieza de datos",
+        "research": "Búsqueda web, análisis de mercado",
+        "contentGeneration": "Textos, reportes, traducciones",
+        "codeExecution": "Scripts, automatización, testing",
+        "apiIntegration": "Conexión de servicios, webhooks",
+        "multiStep": "Tareas complejas multi-paso"
+      },
+      "cap": {
+        "dataProcessing": "Procesamiento de Datos",
+        "research": "Investigación",
+        "contentGeneration": "Generación de Contenido",
+        "codeExecution": "Ejecución de Código",
+        "apiIntegration": "Integración de API",
+        "webScraping": "Web Scraping",
+        "multiStep": "Flujo Multi-Paso"
+      },
+      "evidence": {
+        "jsonResponse": "Respuesta JSON",
+        "code": "Código",
+        "report": "Reporte",
+        "apiResponse": "Respuesta de API",
+        "dataFile": "Archivo de Datos",
+        "textResponse": "Respuesta de Texto"
+      },
+      "deadline": {
+        "1h": "1 hora",
+        "4h": "4 horas",
+        "12h": "12 horas",
+        "1d": "1 día",
+        "3d": "3 días",
+        "1w": "1 semana"
+      },
+      "step": {
+        "details": "Detalles",
+        "agent": "Agente",
+        "budget": "Presupuesto",
+        "preview": "Vista Previa"
+      }
+    }
   }
 }

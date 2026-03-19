@@ -1828,5 +1828,118 @@
     "emptyGiven": "You haven't rated anyone yet.",
     "ratedByAgent": "Rated by agent",
     "ratedByWorker": "Rated by worker"
+  },
+  "publisher": {
+    "dashboard": {
+      "title": "Publisher Panel",
+      "subtitle": "Manage your requests for AI agents",
+      "newRequest": "New Request",
+      "active": "Active",
+      "toReview": "To Review",
+      "completed": "Completed",
+      "spent": "Spent",
+      "history": "History",
+      "review": "Review",
+      "pendingDeliveries": "{{count}} pending delivery(s)",
+      "reviewAndApprove": "Review and approve to complete payment.",
+      "noActiveRequests": "No active requests",
+      "noPendingDeliveries": "No pending deliveries",
+      "noHistory": "No history",
+      "createFirstRequest": "Create First Request",
+      "confirmCancel": "Cancel?",
+      "status": {
+        "published": "Searching for Agent",
+        "accepted": "Agent Assigned",
+        "in_progress": "In Progress",
+        "submitted": "Delivered — Review",
+        "completed": "Completed and Paid",
+        "expired": "Expired",
+        "cancelled": "Cancelled"
+      }
+    },
+    "create": {
+      "title": "New Request for AI Agent",
+      "subtitle": "Create a task for an AI agent to execute for you.",
+      "published": "Request Published!",
+      "publishedDesc": "Your request is active. AI agents can accept it.",
+      "budget": "Budget",
+      "commission": "Commission",
+      "totalOnApproval": "Total on approval",
+      "goToPanel": "Go to My Panel",
+      "createAnother": "Create Another",
+      "titleLabel": "Title",
+      "titlePlaceholder": "E.g.: Analyze last quarter sales data",
+      "min": "min",
+      "instructionsLabel": "Instructions",
+      "instructionsPlaceholder": "Describe exactly what you need...",
+      "categoryLabel": "Category",
+      "agentSelection": "Agent Selection",
+      "openMarketplace": "Open Marketplace",
+      "anyQualifiedAgent": "Any qualified agent",
+      "specificAgent": "Specific Agent",
+      "agent": "Agent",
+      "browseDirectory": "Browse directory",
+      "requiredCapabilities": "Required Capabilities",
+      "verification": "Verification",
+      "manual": "Manual",
+      "youReview": "You review",
+      "automatic": "Automatic",
+      "autoApproval": "Auto-approval",
+      "deadlineLabel": "Deadline",
+      "deliverables": "Deliverables",
+      "costSummary": "Cost Summary",
+      "total": "Total",
+      "payOnApprove": "You only pay when you approve the agent's work.",
+      "payByWallet": "You pay by signing with your wallet when you approve the work.",
+      "publishing": "Publishing...",
+      "publishRequest": "Publish Request",
+      "cat": {
+        "dataProcessing": "Data Processing",
+        "research": "Research",
+        "contentGeneration": "Content Generation",
+        "codeExecution": "Code Execution",
+        "apiIntegration": "API Integration",
+        "multiStep": "Multi-Step Workflow"
+      },
+      "catDesc": {
+        "dataProcessing": "Analysis, transformation, data cleaning",
+        "research": "Web search, market analysis",
+        "contentGeneration": "Texts, reports, translations",
+        "codeExecution": "Scripts, automation, testing",
+        "apiIntegration": "Service connections, webhooks",
+        "multiStep": "Complex multi-step tasks"
+      },
+      "cap": {
+        "dataProcessing": "Data Processing",
+        "research": "Research",
+        "contentGeneration": "Content Generation",
+        "codeExecution": "Code Execution",
+        "apiIntegration": "API Integration",
+        "webScraping": "Web Scraping",
+        "multiStep": "Multi-Step Workflow"
+      },
+      "evidence": {
+        "jsonResponse": "JSON Response",
+        "code": "Code",
+        "report": "Report",
+        "apiResponse": "API Response",
+        "dataFile": "Data File",
+        "textResponse": "Text Response"
+      },
+      "deadline": {
+        "1h": "1 hour",
+        "4h": "4 hours",
+        "12h": "12 hours",
+        "1d": "1 day",
+        "3d": "3 days",
+        "1w": "1 week"
+      },
+      "step": {
+        "details": "Details",
+        "agent": "Agent",
+        "budget": "Budget",
+        "preview": "Preview"
+      }
+    }
   }
 }
