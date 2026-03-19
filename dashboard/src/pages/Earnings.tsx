@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TX_EXPLORER_URLS } from '../utils/blockchain'
 import { TxLink } from '../components/TxLink'
 
@@ -80,29 +81,29 @@ const STATUS_COLORS: Record<PaymentStatus, string> = {
   failed: 'bg-red-100 text-red-800',
 }
 
-const STATUS_LABELS: Record<PaymentStatus, string> = {
-  completed: 'Completado',
-  pending: 'Pendiente',
-  failed: 'Fallido',
+const STATUS_I18N: Record<PaymentStatus, string> = {
+  completed: 'earnings.status.completed',
+  pending: 'earnings.status.pending',
+  failed: 'earnings.status.failed',
 }
 
-const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
-  task_payment: 'Pago de tarea',
-  withdrawal: 'Retiro',
-  bonus: 'Bonificacion',
-  refund: 'Reembolso',
+const TX_TYPE_I18N: Record<TransactionType, string> = {
+  task_payment: 'earnings.txType.taskPayment',
+  withdrawal: 'earnings.txType.withdrawal',
+  bonus: 'earnings.txType.bonus',
+  refund: 'earnings.txType.refund',
 }
 
-const PENDING_STATUS_LABELS: Record<PendingPayment['status'], string> = {
-  awaiting_review: 'Esperando revision',
-  under_review: 'En revision',
-  approved_pending_payment: 'Pago pendiente',
+const PENDING_STATUS_I18N: Record<PendingPayment['status'], string> = {
+  awaiting_review: 'earnings.pendingStatus.awaitingReview',
+  under_review: 'earnings.pendingStatus.underReview',
+  approved_pending_payment: 'earnings.pendingStatus.approvedPending',
 }
 
-const CHART_PERIODS: { value: ChartPeriod; label: string }[] = [
-  { value: 'week', label: 'Semana' },
-  { value: 'month', label: 'Mes' },
-  { value: 'year', label: 'Ano' },
+const CHART_PERIOD_I18N: { value: ChartPeriod; key: string }[] = [
+  { value: 'week', key: 'earnings.period.week' },
+  { value: 'month', key: 'earnings.period.month' },
+  { value: 'year', key: 'earnings.period.year' },
 ]
 
 // ============================================================================
@@ -173,6 +174,7 @@ function LoadingSkeleton() {
 }
 
 function SummaryCard({ summary }: { summary: EarningsSummary }) {
+  const { t } = useTranslation()
   const monthChange = calculatePercentChange(summary.this_month_usdc, summary.last_month_usdc)
   const isPositiveChange = monthChange >= 0
 
@@ -181,7 +183,7 @@ function SummaryCard({ summary }: { summary: EarningsSummary }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-green-100 text-sm font-medium uppercase tracking-wide">
-          Balance Disponible
+          {t('earnings.availableBalance', 'Available Balance')}
         </h3>
         <div className="flex items-center gap-1 text-green-200">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -200,7 +202,7 @@ function SummaryCard({ summary }: { summary: EarningsSummary }) {
         <div className="text-4xl font-bold">{formatCurrency(summary.available_balance_usdc)}</div>
         {summary.pending_usdc > 0 && (
           <div className="text-green-200 text-sm mt-1">
-            +{formatCurrency(summary.pending_usdc)} pendiente de aprobacion
+            +{formatCurrency(summary.pending_usdc)} {t('earnings.pendingApproval', 'pending approval')}
           </div>
         )}
       </div>
@@ -208,15 +210,15 @@ function SummaryCard({ summary }: { summary: EarningsSummary }) {
       {/* Stats grid */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white/10 rounded-lg p-3">
-          <div className="text-green-200 text-xs mb-1">Total ganado</div>
+          <div className="text-green-200 text-xs mb-1">{t('earnings.totalEarned', 'Total earned')}</div>
           <div className="text-lg font-semibold">{formatCurrency(summary.total_earned_usdc)}</div>
         </div>
         <div className="bg-white/10 rounded-lg p-3">
-          <div className="text-green-200 text-xs mb-1">Este mes</div>
+          <div className="text-green-200 text-xs mb-1">{t('earnings.thisMonth', 'This month')}</div>
           <div className="text-lg font-semibold">{formatCurrency(summary.this_month_usdc)}</div>
         </div>
         <div className="bg-white/10 rounded-lg p-3">
-          <div className="text-green-200 text-xs mb-1">vs mes anterior</div>
+          <div className="text-green-200 text-xs mb-1">{t('earnings.vsPrevMonth', 'vs previous month')}</div>
           <div className={`text-lg font-semibold flex items-center gap-1`}>
             {isPositiveChange ? (
               <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
@@ -252,15 +254,16 @@ function EarningsChart({
   period: ChartPeriod
   onPeriodChange: (period: ChartPeriod) => void
 }) {
+  const { t } = useTranslation()
   const maxValue = Math.max(...data.map((d) => d.value), 1)
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">Historial de Ganancias</h3>
+        <h3 className="font-semibold text-gray-900">{t('earnings.earningsHistory', 'Earnings History')}</h3>
         <div className="flex gap-1 p-0.5 bg-gray-100 rounded-lg">
-          {CHART_PERIODS.map((p) => (
+          {CHART_PERIOD_I18N.map((p) => (
             <button
               key={p.value}
               onClick={() => onPeriodChange(p.value)}
@@ -270,7 +273,7 @@ function EarningsChart({
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              {p.label}
+              {t(p.key)}
             </button>
           ))}
         </div>
@@ -280,7 +283,7 @@ function EarningsChart({
       <div className="p-4">
         {data.length === 0 ? (
           <div className="h-48 flex items-center justify-center text-gray-400">
-            No hay datos para mostrar
+            {t('earnings.noData', 'No data to show')}
           </div>
         ) : (
           <div className="h-48 flex items-end justify-between gap-2">
@@ -313,6 +316,7 @@ function EarningsChart({
 }
 
 function PendingPaymentsSection({ payments }: { payments: PendingPayment[] }) {
+  const { t } = useTranslation()
   if (payments.length === 0) {
     return null
   }
@@ -323,7 +327,7 @@ function PendingPaymentsSection({ payments }: { payments: PendingPayment[] }) {
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">Pagos Pendientes</h3>
+          <h3 className="font-semibold text-gray-900">{t('earnings.pendingPayments', 'Pending Payments')}</h3>
           <span className="text-sm text-gray-500">
             {payments.length} tarea{payments.length !== 1 ? 's' : ''}
           </span>
@@ -337,10 +341,10 @@ function PendingPaymentsSection({ payments }: { payments: PendingPayment[] }) {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-900 truncate">{payment.task_title}</p>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  Enviada: {formatDate(payment.submitted_at)}
+                  {t('earnings.submitted', 'Submitted')}: {formatDate(payment.submitted_at)}
                 </p>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mt-2">
-                  {PENDING_STATUS_LABELS[payment.status]}
+                  {t(PENDING_STATUS_I18N[payment.status])}
                 </span>
               </div>
               <div className="text-right">
@@ -348,7 +352,7 @@ function PendingPaymentsSection({ payments }: { payments: PendingPayment[] }) {
                   {formatCurrency(payment.bounty_usd)}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
-                  Esperado: {formatDate(payment.expected_payout_date)}
+                  {t('earnings.expected', 'Expected')}: {formatDate(payment.expected_payout_date)}
                 </p>
               </div>
             </div>
@@ -359,7 +363,7 @@ function PendingPaymentsSection({ payments }: { payments: PendingPayment[] }) {
       {/* Total */}
       <div className="p-4 bg-gray-50 border-t border-gray-100">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-700">Total pendiente</span>
+          <span className="text-sm font-medium text-gray-700">{t('earnings.totalPending', 'Total pending')}</span>
           <span className="text-lg font-bold text-gray-900">{formatCurrency(total)}</span>
         </div>
       </div>
@@ -376,15 +380,16 @@ function WithdrawalSection({
   minWithdrawal: number
   onWithdraw: () => void
 }) {
+  const { t } = useTranslation()
   const canWithdraw = balance >= minWithdrawal
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 className="font-semibold text-gray-900 mb-4">Retirar Fondos</h3>
+      <h3 className="font-semibold text-gray-900 mb-4">{t('earnings.withdrawFunds', 'Withdraw Funds')}</h3>
 
       {/* Balance */}
       <div className="bg-gray-50 rounded-lg p-4 mb-4">
-        <div className="text-sm text-gray-600 mb-1">Disponible para retiro</div>
+        <div className="text-sm text-gray-600 mb-1">{t('earnings.availableForWithdrawal', 'Available for withdrawal')}</div>
         <div className="text-3xl font-bold text-gray-900">
           {formatCurrency(balance)}{' '}
           <span className="text-sm font-normal text-gray-500">USDC</span>
@@ -401,7 +406,7 @@ function WithdrawalSection({
             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
         }`}
       >
-        {canWithdraw ? 'Retirar fondos' : `Minimo ${formatCurrency(minWithdrawal)}`}
+        {canWithdraw ? t('earnings.withdrawFunds', 'Withdraw funds') : `${t('earnings.minimum', 'Minimum')} ${formatCurrency(minWithdrawal)}`}
       </button>
 
       {/* Info */}
@@ -420,7 +425,7 @@ function WithdrawalSection({
           />
         </svg>
         <span>
-          Los retiros se procesan en la red de tu tarea. Tiempo estimado: 1-5 minutos.
+          {t('earnings.withdrawInfo', 'Withdrawals are processed on your task\'s network. Estimated time: 1-5 minutes.')}
         </span>
       </div>
     </div>
@@ -498,6 +503,7 @@ function TransactionTypeIcon({ type }: { type: TransactionType }) {
 }
 
 function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
+  const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
   const displayedTransactions = useMemo(
     () => (showAll ? transactions : transactions.slice(0, 10)),
@@ -507,7 +513,7 @@ function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
   if (transactions.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Historial de Transacciones</h3>
+        <h3 className="font-semibold text-gray-900 mb-4">{t('earnings.transactionHistory', 'Transaction History')}</h3>
         <div className="text-center py-8">
           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <svg
@@ -524,7 +530,7 @@ function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
               />
             </svg>
           </div>
-          <p className="text-gray-500 text-sm">No hay transacciones aun</p>
+          <p className="text-gray-500 text-sm">{t('earnings.noTransactions', 'No transactions yet')}</p>
         </div>
       </div>
     )
@@ -533,7 +539,7 @@ function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="p-4 border-b border-gray-100">
-        <h3 className="font-semibold text-gray-900">Historial de Transacciones</h3>
+        <h3 className="font-semibold text-gray-900">{t('earnings.transactionHistory', 'Transaction History')}</h3>
       </div>
 
       <div className="divide-y divide-gray-100">
@@ -547,12 +553,12 @@ function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-900">
-                  {TRANSACTION_TYPE_LABELS[tx.type]}
+                  {t(TX_TYPE_I18N[tx.type])}
                 </p>
                 <span
                   className={`px-2 py-0.5 text-xs font-medium rounded-full ${STATUS_COLORS[tx.status]}`}
                 >
-                  {STATUS_LABELS[tx.status]}
+                  {t(STATUS_I18N[tx.status])}
                 </span>
               </div>
               {tx.task_title && (
@@ -586,8 +592,8 @@ function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
             className="text-blue-600 hover:text-blue-700 text-sm font-medium"
           >
             {showAll
-              ? 'Mostrar menos'
-              : `Ver todas (${transactions.length} transacciones)`}
+              ? t('common.showLess')
+              : t('earnings.viewAll', 'View all ({{count}} transactions)', { count: transactions.length })}
           </button>
         </div>
       )}
@@ -596,6 +602,7 @@ function TransactionHistory({ transactions }: { transactions: Transaction[] }) {
 }
 
 function ErrorState({ error, onRetry }: { error: Error; onRetry?: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="text-center py-12">
       <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -608,14 +615,14 @@ function ErrorState({ error, onRetry }: { error: Error; onRetry?: () => void }) 
           />
         </svg>
       </div>
-      <h3 className="text-lg font-medium text-gray-900 mb-1">Error al cargar ganancias</h3>
+      <h3 className="text-lg font-medium text-gray-900 mb-1">{t('earnings.loadError', 'Error loading earnings')}</h3>
       <p className="text-gray-500 mb-4">{error.message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
         >
-          Reintentar
+          {t('common.retry')}
         </button>
       )}
     </div>
@@ -638,10 +645,12 @@ export function Earnings({
   chartPeriod,
   minWithdrawal = 5.0,
 }: EarningsPageProps) {
+  const { t } = useTranslation()
+
   if (loading) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-bold text-gray-900">Mis Ganancias</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('earnings.title', 'My Earnings')}</h1>
         <LoadingSkeleton />
       </div>
     )
@@ -650,7 +659,7 @@ export function Earnings({
   if (error) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-bold text-gray-900">Mis Ganancias</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('earnings.title', 'My Earnings')}</h1>
         <ErrorState error={error} />
       </div>
     )

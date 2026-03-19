@@ -1829,6 +1829,49 @@
     "ratedByAgent": "Rated by agent",
     "ratedByWorker": "Rated by worker"
   },
+  "earnings": {
+    "title": "My Earnings",
+    "availableBalance": "Available Balance",
+    "pendingApproval": "pending approval",
+    "totalEarned": "Total earned",
+    "thisMonth": "This month",
+    "vsPrevMonth": "vs previous month",
+    "earningsHistory": "Earnings History",
+    "noData": "No data to show",
+    "pendingPayments": "Pending Payments",
+    "submitted": "Submitted",
+    "expected": "Expected",
+    "totalPending": "Total pending",
+    "withdrawFunds": "Withdraw Funds",
+    "availableForWithdrawal": "Available for withdrawal",
+    "minimum": "Minimum",
+    "withdrawInfo": "Withdrawals are processed on your task's network. Estimated time: 1-5 minutes.",
+    "transactionHistory": "Transaction History",
+    "noTransactions": "No transactions yet",
+    "viewAll": "View all ({{count}} transactions)",
+    "loadError": "Error loading earnings",
+    "status": {
+      "completed": "Completed",
+      "pending": "Pending",
+      "failed": "Failed"
+    },
+    "txType": {
+      "taskPayment": "Task payment",
+      "withdrawal": "Withdrawal",
+      "bonus": "Bonus",
+      "refund": "Refund"
+    },
+    "pendingStatus": {
+      "awaitingReview": "Awaiting review",
+      "underReview": "Under review",
+      "approvedPending": "Payment pending"
+    },
+    "period": {
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
+    }
+  },
   "createTask": {
     "title": "Create New Task",
     "subtitle": "Publish a task for workers to execute",

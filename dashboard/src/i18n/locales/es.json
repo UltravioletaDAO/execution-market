@@ -1829,6 +1829,49 @@
     "ratedByAgent": "Calificado por agente",
     "ratedByWorker": "Calificado por trabajador"
   },
+  "earnings": {
+    "title": "Mis Ganancias",
+    "availableBalance": "Balance Disponible",
+    "pendingApproval": "pendiente de aprobacion",
+    "totalEarned": "Total ganado",
+    "thisMonth": "Este mes",
+    "vsPrevMonth": "vs mes anterior",
+    "earningsHistory": "Historial de Ganancias",
+    "noData": "No hay datos para mostrar",
+    "pendingPayments": "Pagos Pendientes",
+    "submitted": "Enviada",
+    "expected": "Esperado",
+    "totalPending": "Total pendiente",
+    "withdrawFunds": "Retirar Fondos",
+    "availableForWithdrawal": "Disponible para retiro",
+    "minimum": "Minimo",
+    "withdrawInfo": "Los retiros se procesan en la red de tu tarea. Tiempo estimado: 1-5 minutos.",
+    "transactionHistory": "Historial de Transacciones",
+    "noTransactions": "No hay transacciones aun",
+    "viewAll": "Ver todas ({{count}} transacciones)",
+    "loadError": "Error al cargar ganancias",
+    "status": {
+      "completed": "Completado",
+      "pending": "Pendiente",
+      "failed": "Fallido"
+    },
+    "txType": {
+      "taskPayment": "Pago de tarea",
+      "withdrawal": "Retiro",
+      "bonus": "Bonificacion",
+      "refund": "Reembolso"
+    },
+    "pendingStatus": {
+      "awaitingReview": "Esperando revision",
+      "underReview": "En revision",
+      "approvedPending": "Pago pendiente"
+    },
+    "period": {
+      "week": "Semana",
+      "month": "Mes",
+      "year": "Ano"
+    }
+  },
   "createTask": {
     "title": "Crear Nueva Tarea",
     "subtitle": "Publica una tarea para que trabajadores la ejecuten",
