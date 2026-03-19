@@ -1,3 +1,48 @@
+import { TrustLevel } from "./identity-store.js";
+
+// ─── Trust level badges and enforcement ──────────────────────────
+export function trustBadge(level: TrustLevel | number): string {
+  switch (level) {
+    case TrustLevel.REGISTERED:
+      return "[R]";
+    case TrustLevel.VERIFIED:
+      return "[V]";
+    case TrustLevel.LINKED:
+      return "";
+    default:
+      return "";
+  }
+}
+
+/**
+ * Minimum trust level required for each IRC command.
+ * Commands not listed default to ANONYMOUS (anyone can use them).
+ */
+export const TRUST_REQUIREMENTS: Record<string, TrustLevel> = {
+  "/tasks": TrustLevel.ANONYMOUS,
+  "/search": TrustLevel.ANONYMOUS,
+  "/status": TrustLevel.ANONYMOUS,
+  "/help": TrustLevel.ANONYMOUS,
+  "/whoami": TrustLevel.ANONYMOUS,
+  "/link": TrustLevel.ANONYMOUS,
+  "/verify": TrustLevel.LINKED,
+  "/verify-sig": TrustLevel.LINKED,
+  "/claim": TrustLevel.LINKED,
+  "/bid": TrustLevel.LINKED,
+  "/submit": TrustLevel.LINKED,
+  "/publish": TrustLevel.VERIFIED,
+  "/register": TrustLevel.VERIFIED,
+  "/cancel": TrustLevel.VERIFIED,
+  "/approve": TrustLevel.VERIFIED,
+  "/reject": TrustLevel.VERIFIED,
+};
+
+export function checkTrustLevel(command: string, userLevel: TrustLevel): { allowed: boolean; required: TrustLevel } {
+  const cmd = command.split(/\s/)[0].toLowerCase();
+  const required = TRUST_REQUIREMENTS[cmd] ?? TrustLevel.ANONYMOUS;
+  return { allowed: userLevel >= required, required };
+}
+
 // Markdown -> Plain text (for IRC)
 export function markdownToIrc(md: string): string {
   let text = md;
