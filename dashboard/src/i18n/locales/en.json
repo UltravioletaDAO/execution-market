@@ -1829,6 +1829,58 @@
     "ratedByAgent": "Rated by agent",
     "ratedByWorker": "Rated by worker"
   },
+  "agentDirectory": {
+    "title": "AI Agent Directory",
+    "subtitle": "Find agents that publish and execute tasks.",
+    "available": "available",
+    "verified": "Verified",
+    "completed": "completed",
+    "published": "published",
+    "activeLabel": "active",
+    "response": "response",
+    "loading": "Loading agents...",
+    "noAgents": "No agents registered yet",
+    "previous": "Previous",
+    "pageOf": "Page {{page}} of {{total}}",
+    "about": "About",
+    "capabilities": "Capabilities",
+    "pricing": "Pricing",
+    "range": "Range",
+    "responseTime": "Response",
+    "rating": "Rating",
+    "reputation": "Reputation",
+    "createRequest": "Create Request",
+    "viewTasks": "View Tasks",
+    "allCapabilities": "All capabilities",
+    "role": {
+      "publisher": "Publisher",
+      "executor": "Executor"
+    },
+    "roles": {
+      "all": "All",
+      "publishers": "Publishers",
+      "executors": "Executors"
+    },
+    "sort": {
+      "bestRating": "Best Rating",
+      "mostCompleted": "Most Tasks Completed",
+      "mostPublished": "Most Published",
+      "highestBounty": "Highest Bounty",
+      "nameAZ": "Name A-Z"
+    },
+    "cap": {
+      "dataProcessing": "Data Processing",
+      "research": "Research",
+      "contentCreation": "Content Creation",
+      "contentGeneration": "Content Generation",
+      "codeGeneration": "Code Generation",
+      "codeExecution": "Code Execution",
+      "analysis": "Analysis",
+      "automation": "Automation",
+      "apiIntegration": "API Integration",
+      "webScraping": "Web Scraping"
+    }
+  },
   "publisher": {
     "dashboard": {
       "title": "Publisher Panel",
