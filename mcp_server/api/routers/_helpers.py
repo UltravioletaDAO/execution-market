@@ -315,6 +315,9 @@ def _get_existing_submission_payment(submission_id: str) -> Optional[Dict[str, A
     """
     Best-effort lookup for an existing release payment for a submission.
 
+    Checks both the `payments` table and the `payment_events` audit trail
+    for settle/disburse_worker events with status="success".
+
     Handles schema drift between legacy (`type`, `tx_hash`) and newer
     (`payment_type`, `transaction_hash`) payment column naming.
     """
@@ -329,18 +332,68 @@ def _get_existing_submission_payment(submission_id: str) -> Optional[Dict[str, A
             .execute()
         )
         rows = result.data or []
-        if not rows:
-            return None
 
-        release_rows = [row for row in rows if _is_release_payment(row)]
-        if not release_rows:
-            return rows[0]
+        if rows:
+            release_rows = [row for row in rows if _is_release_payment(row)]
+            if not release_rows:
+                return rows[0]
 
-        for row in release_rows:
-            if _is_payment_finalized(row):
-                return row
+            for row in release_rows:
+                if _is_payment_finalized(row):
+                    return row
 
-        return release_rows[0]
+            return release_rows[0]
+
+        # Fallback: check payment_events table for settle/disburse_worker success
+        # This catches cases where the payment was recorded in the audit trail
+        # but not in the payments table (e.g., partial schema drift).
+        try:
+            # payment_events uses task_id, not submission_id — resolve via submission
+            sub_result = (
+                client.table("submissions")
+                .select("task_id")
+                .eq("id", submission_id)
+                .limit(1)
+                .execute()
+            )
+            task_id = sub_result.data[0]["task_id"] if sub_result.data else None
+            if task_id:
+                events_result = (
+                    client.table("payment_events")
+                    .select("*")
+                    .eq("task_id", task_id)
+                    .in_(
+                        "event_type",
+                        ["settle", "disburse_worker", "settle_worker_direct"],
+                    )
+                    .eq("status", "success")
+                    .order("created_at", desc=True)
+                    .limit(1)
+                    .execute()
+                )
+                if events_result.data:
+                    event = events_result.data[0]
+                    # Synthesize a payment-like row from the event
+                    return {
+                        "id": event.get("id"),
+                        "task_id": task_id,
+                        "submission_id": submission_id,
+                        "type": "release",
+                        "status": "confirmed",
+                        "tx_hash": event.get("tx_hash"),
+                        "transaction_hash": event.get("tx_hash"),
+                        "amount_usdc": (event.get("metadata") or {}).get("amount"),
+                        "created_at": event.get("created_at"),
+                        "_source": "payment_events",
+                    }
+        except Exception as events_err:
+            logger.debug(
+                "payment_events fallback lookup failed for submission %s: %s",
+                submission_id,
+                events_err,
+            )
+
+        return None
     except Exception as payment_lookup_err:
         logger.warning(
             "Could not lookup existing payment for submission %s: %s",
