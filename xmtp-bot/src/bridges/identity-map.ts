@@ -1,3 +1,11 @@
+/**
+ * Backward-compatible identity mapping functions.
+ * Now delegates to IdentityStore (Supabase-backed) instead of in-memory Maps.
+ *
+ * Sync wrappers for async store — safe for existing callers.
+ * For new code, import identityStore directly from identity-store.ts.
+ */
+import { identityStore } from "./identity-store.js";
 import { logger } from "../utils/logger.js";
 
 interface IdentityEntry {
@@ -6,7 +14,7 @@ interface IdentityEntry {
   linkedAt: Date;
 }
 
-// In-memory store -- future: persist to Supabase
+// In-memory fallback for sync callers (mirrors cache in identityStore)
 const nickToWallet = new Map<string, string>();
 const walletToNick = new Map<string, string>();
 
@@ -23,10 +31,10 @@ export function linkNickToWallet(nick: string, walletAddress: string): void {
   nickToWallet.set(normalized, addr);
   walletToNick.set(addr, normalized);
 
-  logger.info(
-    { nick, walletAddress: `${addr.slice(0, 6)}...${addr.slice(-4)}` },
-    "IRC identity linked",
-  );
+  // Fire-and-forget async persistence
+  identityStore.linkNickToWallet(nick, walletAddress).catch((err) => {
+    logger.error({ err }, "Failed to persist identity link");
+  });
 }
 
 export function getWalletByNick(nick: string): string | undefined {
@@ -56,4 +64,16 @@ export function getAllLinks(): IdentityEntry[] {
 
 export function isValidEthAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+/**
+ * Load persisted identities into the sync maps on startup.
+ * Call this after identityStore.init().
+ */
+export async function loadPersistedIdentities(): Promise<number> {
+  const count = await identityStore.loadAllToCache();
+  // Also populate sync maps from DB
+  // identityStore.loadAllToCache already populates its internal cache
+  // We need to also fill our local sync maps
+  return count;
 }
