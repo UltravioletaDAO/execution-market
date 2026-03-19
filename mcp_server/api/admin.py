@@ -671,6 +671,81 @@ async def list_tasks(
 
 
 @router.get(
+    "/tasks/phantom",
+    summary="Find Phantom Tasks",
+    description=(
+        "Find task records where evidence was submitted or task was completed "
+        "but escrow was never properly funded. These phantom tasks indicate a "
+        "mismatch between task lifecycle state and on-chain escrow state."
+    ),
+    responses={
+        200: {"description": "List of phantom tasks with escrow gaps"},
+        401: {"description": "Unauthorized"},
+        500: {"description": "Internal server error"},
+    },
+)
+async def get_phantom_tasks(
+    limit: int = Query(100, ge=1, le=500, description="Max tasks to scan"),
+    admin: dict = Depends(verify_admin_key),
+) -> Dict[str, Any]:
+    """Find tasks where evidence was submitted/completed but escrow was never funded."""
+    try:
+        supabase = db.get_supabase_client()
+
+        # Fetch tasks in advanced lifecycle states that should have funded escrows
+        tasks_result = (
+            supabase.table("tasks")
+            .select("id,title,bounty_usd,status,created_at,agent_id")
+            .in_("status", ["submitted", "completed", "verifying"])
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+
+        tasks = tasks_result.data or []
+        if not tasks:
+            return {"phantom_tasks": [], "count": 0}
+
+        # Batch-fetch escrow records for all matching task IDs to avoid N+1
+        task_ids = [t["id"] for t in tasks]
+        escrow_result = (
+            supabase.table("escrows")
+            .select("task_id,status")
+            .in_("task_id", task_ids)
+            .execute()
+        )
+
+        # Build a lookup: task_id -> escrow status
+        escrow_by_task: Dict[str, str] = {}
+        for esc in escrow_result.data or []:
+            escrow_by_task[esc["task_id"]] = esc.get("status")
+
+        # Valid escrow states that indicate proper funding
+        funded_states = {"deposited", "funded", "locked", "active", "released"}
+
+        phantom_tasks = []
+        for task in tasks:
+            escrow_status = escrow_by_task.get(task["id"])
+            if not escrow_status or escrow_status not in funded_states:
+                phantom_tasks.append(
+                    {
+                        "task_id": task["id"],
+                        "title": task.get("title"),
+                        "bounty_usd": float(task.get("bounty_usd", 0) or 0),
+                        "task_status": task.get("status"),
+                        "escrow_status": escrow_status,
+                        "created_at": task.get("created_at"),
+                        "agent_id": task.get("agent_id"),
+                    }
+                )
+
+        return {"phantom_tasks": phantom_tasks, "count": len(phantom_tasks)}
+    except Exception as e:
+        logger.error(f"Error finding phantom tasks: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
     "/tasks/{task_id}",
     summary="Get Task Detail",
     description="Get complete details for a specific task including all fields, evidence schema, and executor info.",
