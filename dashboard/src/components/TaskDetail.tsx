@@ -408,7 +408,7 @@ export function TaskDetail({
                 <span className="text-sm text-gray-600">Cargando estado de pago...</span>
               </div>
             ) : payment ? (
-              <PaymentStatus payment={payment} compact={false} showTimeline={true} />
+              <PaymentStatus payment={payment} compact={false} showTimeline={true} bountyAmount={task.bounty_usd} />
             ) : task.status === 'submitted' ? (
               <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
                 <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />

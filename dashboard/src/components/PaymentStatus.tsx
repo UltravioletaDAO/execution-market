@@ -54,6 +54,7 @@ interface PaymentStatusProps {
   payment: PaymentData
   compact?: boolean
   showTimeline?: boolean
+  bountyAmount?: number
 }
 
 // Get explorer URL for transaction
@@ -331,7 +332,10 @@ function TimelineEvent({ event, network }: { event: PaymentEvent; network: strin
               event.type === 'refund' ? 'text-orange-600' : 'text-green-600'
             }`}>
               {event.type === 'refund' ? '-' : '+'}
-              {formatCurrency(event.amount, 'USDC')}
+              {formatCurrency(
+                event.type === 'escrow_created' && bountyAmount ? bountyAmount : event.amount,
+                'USDC'
+              )}
             </span>
           )}
         </div>
@@ -364,10 +368,10 @@ function TimelineEvent({ event, network }: { event: PaymentEvent; network: strin
 function PaymentTimeline({ events, network }: { events: PaymentEvent[]; network: string }) {
   const { t } = useTranslation()
 
-  // Sort events by timestamp (newest first for display, oldest first for timeline)
+  // Sort events by timestamp (oldest first — chronological timeline)
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) =>
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     )
   }, [events])
 
@@ -393,8 +397,13 @@ export function PaymentStatus({
   payment,
   compact = false,
   showTimeline = true,
+  bountyAmount,
 }: PaymentStatusProps) {
   const { t } = useTranslation()
+
+  // Use bountyAmount (task.bounty_usd) when available — total_amount from payment_events
+  // can include fees and rounding that shouldn't be shown as the bounty
+  const displayAmount = bountyAmount ?? payment.total_amount
 
   const hasPartialRelease = payment.released_amount > 0 && payment.released_amount < payment.total_amount
   const isComplete = payment.status === 'completed' || payment.released_amount >= payment.total_amount
@@ -406,11 +415,11 @@ export function PaymentStatus({
         <StatusBadge status={payment.status} />
         <div className="text-sm">
           <span className="font-semibold text-gray-900">
-            {formatCurrency(payment.total_amount, payment.currency)}
+            {formatCurrency(displayAmount, payment.currency)}
           </span>
           {hasPartialRelease && (
             <span className="text-gray-500 ml-1">
-              ({Math.round((payment.released_amount / payment.total_amount) * 100)}% liberado)
+              ({Math.round((payment.released_amount / displayAmount) * 100)}% liberado)
             </span>
           )}
         </div>
@@ -445,7 +454,7 @@ export function PaymentStatus({
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-gray-900">
-              {formatCurrency(payment.total_amount, payment.currency)}
+              {formatCurrency(displayAmount, payment.currency)}
             </p>
             <p className="text-xs text-gray-500">{payment.currency}</p>
           </div>
@@ -455,7 +464,7 @@ export function PaymentStatus({
         {(hasPartialRelease || payment.status === 'partial_released') && (
           <PaymentProgress
             released={payment.released_amount}
-            total={payment.total_amount}
+            total={displayAmount}
             currency={payment.currency}
           />
         )}
