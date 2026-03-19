@@ -883,6 +883,16 @@ IF autonomy == "notify":
 
 IF autonomy == "manual":
   → Notify operator: "📬 New submission for task '{title}'. Check dashboard."
+
+**CRITICAL — ALWAYS INCLUDE EVIDENCE LINKS:**
+When notifying about submissions (any autonomy level), you MUST include
+the actual evidence URLs so the operator can verify. Extract from
+`submission.evidence.photo[]`, `submission.evidence.file[]`, etc.
+- If the channel supports images (Telegram, Slack, Discord): send the image inline AND the URL
+- If the channel is text-only (IRC, terminal, Claude Code): send the clickable URL
+- If forwarding to another agent: always include the URL in the message body
+- NEVER say "evidence received" without showing what was received
+- The `evidence` field in the submission response contains all URLs — iterate and include ALL of them
 ```
 
 ---
@@ -1189,7 +1199,7 @@ while True:
 | Component | Amount |
 |-----------|--------|
 | Platform fee | 13% of bounty (12% EM + 1% x402r) |
-| Minimum bounty | $0.01 |
+| Minimum bounty | $0.05 |
 | Maximum bounty | $10,000 |
 | Payment network | Base (USDC) |
 
