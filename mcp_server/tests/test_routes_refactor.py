@@ -61,6 +61,9 @@ EXPECTED_ROUTES = {
     "/api/v1/webhooks/{webhook_id}",
     "/api/v1/webhooks/{webhook_id}/rotate-secret",
     "/api/v1/webhooks/{webhook_id}/test",
+    "/api/v1/identity/lookup",
+    "/api/v1/identity/sync",
+    "/api/v1/identity/verify-challenge",
 }
 
 

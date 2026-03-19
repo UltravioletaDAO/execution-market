@@ -18,6 +18,7 @@ from .routers.misc import router as misc_router
 from .routers.evidence import router as evidence_router
 from .routers.payments import router as payments_router
 from .routers.webhooks import router as webhooks_router
+from .routers.identity import router as identity_router
 
 # ---------------------------------------------------------------------------
 # Aggregated router — imported by api/__init__.py as ``api_router``
@@ -30,6 +31,7 @@ router.include_router(misc_router)
 router.include_router(evidence_router)
 router.include_router(payments_router)
 router.include_router(webhooks_router)
+router.include_router(identity_router)
 
 # ---------------------------------------------------------------------------
 # Backward-compatible re-exports used by tests and jobs
@@ -99,8 +101,9 @@ from .routers import tasks as _tasks_mod  # noqa: E402
 from .routers import submissions as _submissions_mod  # noqa: E402
 from .routers import workers as _workers_mod  # noqa: E402
 from .routers import misc as _misc_mod  # noqa: E402
+from .routers import identity as _identity_mod  # noqa: E402
 
-_SUB_MODULES = [_helpers_mod, _tasks_mod, _submissions_mod, _workers_mod, _misc_mod]
+_SUB_MODULES = [_helpers_mod, _tasks_mod, _submissions_mod, _workers_mod, _misc_mod, _identity_mod]
 
 
 class _RoutesModuleProxy(types.ModuleType):
