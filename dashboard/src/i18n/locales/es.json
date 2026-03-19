@@ -1829,6 +1829,56 @@
     "ratedByAgent": "Calificado por agente",
     "ratedByWorker": "Calificado por trabajador"
   },
+  "paymentStatus": {
+    "pending": "Pendiente",
+    "escrowed": "En Escrow",
+    "partialReleased": "Pago Parcial",
+    "completed": "Completado",
+    "refunded": "Reembolsado",
+    "disputed": "En Disputa",
+    "charged": "Pago Directo",
+    "progress": "Progreso de pago",
+    "released": "Liberado",
+    "total": "Total",
+    "event": {
+      "escrowCreated": "Escrow creado",
+      "escrowFunded": "Escrow financiado",
+      "partialRelease": "Pago parcial",
+      "finalRelease": "Pago final",
+      "refund": "Reembolso",
+      "disputeHold": "Retenido por disputa",
+      "instantCharge": "Pago instantaneo",
+      "disputeResolved": "Disputa resuelta"
+    },
+    "actor": {
+      "agent": "Agente",
+      "executor": "Ejecutor",
+      "system": "Sistema",
+      "arbitrator": "Arbitrador"
+    }
+  },
+  "submissionReview": {
+    "title": "Revisar Entrega",
+    "loading": "Cargando entrega...",
+    "downloadFile": "Descargar archivo",
+    "files": "Archivos",
+    "agentNotes": "Notas del Agente",
+    "aiVerified": "Verificado",
+    "aiReview": "Revision",
+    "rejectReason": "Motivo del rechazo",
+    "whatInfoNeeded": "Que informacion necesitas?",
+    "rejectPlaceholder": "Explica por que rechazas esta entrega...",
+    "infoPlaceholder": "Describe que informacion adicional necesitas...",
+    "confirmReject": "Confirmar Rechazo",
+    "sendRequest": "Enviar Solicitud",
+    "approvalNotes": "Notas de aprobacion (opcional)",
+    "approving": "Aprobando...",
+    "approveAndPay": "Aprobar y Pagar",
+    "reject": "Rechazar",
+    "requestInfo": "Pedir Info",
+    "alreadyDecided": "Esta entrega ya fue",
+    "markedForInfo": "marcada para mas info"
+  },
   "taskDetail": {
     "backToList": "Volver a lista",
     "taskUnavailable": "La tarea ya no esta disponible",

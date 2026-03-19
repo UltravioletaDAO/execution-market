@@ -98,10 +98,10 @@ function formatRelativeTime(dateStr: string): string {
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
 
-  if (diffMins < 1) return 'Ahora mismo'
-  if (diffMins < 60) return `Hace ${diffMins} min`
-  if (diffHours < 24) return `Hace ${diffHours}h`
-  if (diffDays < 7) return `Hace ${diffDays}d`
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} min ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
   return formatDate(dateStr)
 }
 
@@ -112,6 +112,7 @@ function truncateHash(hash: string): string {
 
 // Status badge component
 function StatusBadge({ status }: { status: PaymentStatusType }) {
+  const { t } = useTranslation()
   const colors: Record<PaymentStatusType, string> = {
     pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     escrowed: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -123,13 +124,13 @@ function StatusBadge({ status }: { status: PaymentStatusType }) {
   }
 
   const labels: Record<PaymentStatusType, string> = {
-    pending: 'Pendiente',
-    escrowed: 'En Escrow',
-    partial_released: 'Pago Parcial',
-    completed: 'Completado',
-    refunded: 'Reembolsado',
-    disputed: 'En Disputa',
-    charged: 'Pago Directo',
+    pending: t('paymentStatus.pending', 'Pending'),
+    escrowed: t('paymentStatus.escrowed', 'In Escrow'),
+    partial_released: t('paymentStatus.partialReleased', 'Partial Payment'),
+    completed: t('paymentStatus.completed', 'Completed'),
+    refunded: t('paymentStatus.refunded', 'Refunded'),
+    disputed: t('paymentStatus.disputed', 'In Dispute'),
+    charged: t('paymentStatus.charged', 'Direct Payment'),
   }
 
   const icons: Record<PaymentStatusType, JSX.Element> = {
@@ -188,12 +189,13 @@ function PaymentProgress({
   total: number
   currency: string
 }) {
+  const { t } = useTranslation()
   const percentage = total > 0 ? Math.round((released / total) * 100) : 0
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-gray-600">Progreso de pago</span>
+        <span className="text-gray-600">{t('paymentStatus.progress', 'Payment progress')}</span>
         <span className="font-medium text-gray-900">{percentage}%</span>
       </div>
       <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
@@ -209,8 +211,8 @@ function PaymentProgress({
         />
       </div>
       <div className="flex items-center justify-between text-xs text-gray-500">
-        <span>Liberado: {formatCurrency(released, currency)}</span>
-        <span>Total: {formatCurrency(total, currency)}</span>
+        <span>{t('paymentStatus.released', 'Released')}: {formatCurrency(released, currency)}</span>
+        <span>{t('paymentStatus.total', 'Total')}: {formatCurrency(total, currency)}</span>
       </div>
     </div>
   )
@@ -218,16 +220,17 @@ function PaymentProgress({
 
 // Timeline event component
 function TimelineEvent({ event, network, bountyAmount }: { event: PaymentEvent; network: string; bountyAmount?: number }) {
+  const { t } = useTranslation()
 
   const eventLabels: Record<PaymentEvent['type'], string> = {
-    escrow_created: 'Escrow creado',
-    escrow_funded: 'Escrow financiado',
-    partial_release: 'Pago parcial',
-    final_release: 'Pago final',
-    refund: 'Reembolso',
-    dispute_hold: 'Retenido por disputa',
-    instant_charge: 'Pago instantaneo',
-    dispute_resolved: 'Disputa resuelta',
+    escrow_created: t('paymentStatus.event.escrowCreated', 'Escrow created'),
+    escrow_funded: t('paymentStatus.event.escrowFunded', 'Escrow funded'),
+    partial_release: t('paymentStatus.event.partialRelease', 'Partial payment'),
+    final_release: t('paymentStatus.event.finalRelease', 'Final payment'),
+    refund: t('paymentStatus.event.refund', 'Refund'),
+    dispute_hold: t('paymentStatus.event.disputeHold', 'Held for dispute'),
+    instant_charge: t('paymentStatus.event.instantCharge', 'Instant payment'),
+    dispute_resolved: t('paymentStatus.event.disputeResolved', 'Dispute resolved'),
   }
 
   const eventIcons: Record<PaymentEvent['type'], { bg: string; icon: JSX.Element }> = {
@@ -298,10 +301,10 @@ function TimelineEvent({ event, network, bountyAmount }: { event: PaymentEvent; 
   }
 
   const actorLabels: Record<PaymentEvent['actor'], string> = {
-    agent: 'Agente',
-    executor: 'Ejecutor',
-    system: 'Sistema',
-    arbitrator: 'Arbitrador',
+    agent: t('paymentStatus.actor.agent', 'Agent'),
+    executor: t('paymentStatus.actor.executor', 'Executor'),
+    system: t('paymentStatus.actor.system', 'System'),
+    arbitrator: t('paymentStatus.actor.arbitrator', 'Arbitrator'),
   }
 
   const { bg, icon } = eventIcons[event.type]

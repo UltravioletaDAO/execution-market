@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { getSubmission, approveSubmission, rejectSubmission, requestMoreInfo } from '../services/submissions'
 import type { SubmissionWithDetails } from '../services/types'
@@ -29,6 +30,7 @@ type ReviewAction = 'idle' | 'approving' | 'rejecting' | 'requesting_info'
 // --------------------------------------------------------------------------
 
 export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: SubmissionReviewModalProps) {
+  const { t } = useTranslation()
   const { executor } = useAuth()
   const [submission, setSubmission] = useState<SubmissionWithDetails | null>(null)
   const [loading, setLoading] = useState(true)
@@ -132,7 +134,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-xl z-10">
-          <h2 className="text-lg font-semibold text-gray-900">Revisar Entrega</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('submissionReview.title', 'Review Submission')}</h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
@@ -151,7 +153,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span className="ml-3 text-gray-500">Cargando entrega...</span>
+              <span className="ml-3 text-gray-500">{t('submissionReview.loading', 'Loading submission...')}</span>
             </div>
           )}
 
@@ -184,7 +186,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         ? 'bg-red-100 text-red-700'
                         : 'bg-yellow-100 text-yellow-700'
                   }`}>
-                    {submission.agent_verdict || 'Pendiente'}
+                    {submission.agent_verdict || t('status.pending')}
                   </span>
                 </div>
               </div>
@@ -208,7 +210,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
 
               {/* Evidence */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Evidencia</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">{t('tasks.evidence')}</h3>
                 {submission.evidence && typeof submission.evidence === 'object' ? (
                   <div className="space-y-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -248,7 +250,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
-                                {ev.filename || 'Descargar archivo'}
+                                {ev.filename || t('submissionReview.downloadFile', 'Download file')}
                               </a>
                             )}
                           </div>
@@ -300,7 +302,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                                   ? 'bg-green-50 text-green-700'
                                   : 'bg-yellow-50 text-yellow-700'
                               }`}>
-                                AI: {ev.metadata.ai_verification.verified ? 'Verificado' : 'Revision'}
+                                AI: {ev.metadata.ai_verification.verified ? t('submissionReview.aiVerified', 'Verified') : t('submissionReview.aiReview', 'Review')}
                               </span>
                             )}
                           </div>
@@ -316,7 +318,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
               {/* Evidence files */}
               {submission.evidence_files && (submission.evidence_files as string[]).length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Archivos</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">{t('submissionReview.files', 'Files')}</h3>
                   <div className="flex flex-wrap gap-2">
                     {(submission.evidence_files as string[]).map((url, idx) => (
                       <a
@@ -339,7 +341,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
               {/* Notes */}
               {submission.agent_notes && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-1">Notas del Agente</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">{t('submissionReview.agentNotes', 'Agent Notes')}</h3>
                   <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{submission.agent_notes}</p>
                 </div>
               )}
@@ -463,7 +465,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                   {(showRejectForm || showInfoForm) && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {showRejectForm ? 'Motivo del rechazo' : 'Que informacion necesitas?'}
+                        {showRejectForm ? t('submissionReview.rejectReason', 'Rejection reason') : t('submissionReview.whatInfoNeeded', 'What information do you need?')}
                       </label>
                       <textarea
                         value={feedback}
@@ -471,8 +473,8 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                         rows={3}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder={showRejectForm
-                          ? 'Explica por que rechazas esta entrega...'
-                          : 'Describe que informacion adicional necesitas...'}
+                          ? t('submissionReview.rejectPlaceholder', 'Explain why you are rejecting this submission...')
+                          : t('submissionReview.infoPlaceholder', 'Describe what additional information you need...')}
                       />
                       <div className="flex items-center gap-2 mt-2">
                         <button
@@ -485,14 +487,14 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                           }`}
                         >
                           {isProcessing
-                            ? 'Procesando...'
-                            : showRejectForm ? 'Confirmar Rechazo' : 'Enviar Solicitud'}
+                            ? t('common.processing')
+                            : showRejectForm ? t('submissionReview.confirmReject', 'Confirm Rejection') : t('submissionReview.sendRequest', 'Send Request')}
                         </button>
                         <button
                           onClick={() => { setShowRejectForm(false); setShowInfoForm(false); setFeedback('') }}
                           className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                         >
-                          Cancelar
+                          {t('common.cancel')}
                         </button>
                       </div>
                     </div>
@@ -507,7 +509,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                           type="text"
                           value={approveNotes}
                           onChange={(e) => setApproveNotes(e.target.value)}
-                          placeholder="Notas de aprobacion (opcional)"
+                          placeholder={t('submissionReview.approvalNotes', 'Approval notes (optional)')}
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
@@ -517,21 +519,21 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
                           disabled={isProcessing}
                           className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                         >
-                          {action === 'approving' ? 'Aprobando...' : 'Aprobar y Pagar'}
+                          {action === 'approving' ? t('submissionReview.approving', 'Approving...') : t('submissionReview.approveAndPay', 'Approve & Pay')}
                         </button>
                         <button
                           onClick={() => setShowRejectForm(true)}
                           disabled={isProcessing}
                           className="px-4 py-2.5 bg-red-100 text-red-700 text-sm font-medium rounded-lg hover:bg-red-200 disabled:opacity-50 transition-colors"
                         >
-                          Rechazar
+                          {t('submissionReview.reject', 'Reject')}
                         </button>
                         <button
                           onClick={() => setShowInfoForm(true)}
                           disabled={isProcessing}
                           className="px-4 py-2.5 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-lg hover:bg-yellow-200 disabled:opacity-50 transition-colors"
                         >
-                          Pedir Info
+                          {t('submissionReview.requestInfo', 'Request Info')}
                         </button>
                       </div>
                     </div>
@@ -543,10 +545,10 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
               {submission.agent_verdict && !result?.type && (
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-sm text-gray-600">
-                    Esta entrega ya fue{' '}
+                    {t('submissionReview.alreadyDecided', 'This submission was already')}{' '}
                     <span className="font-medium">
-                      {submission.agent_verdict === 'accepted' ? 'aprobada' :
-                       submission.agent_verdict === 'disputed' ? 'rechazada' : 'marcada para mas info'}
+                      {submission.agent_verdict === 'accepted' ? t('status.approved') :
+                       submission.agent_verdict === 'disputed' ? t('status.rejected') : t('submissionReview.markedForInfo', 'marked for more info')}
                     </span>
                     {submission.agent_notes && <> &mdash; {submission.agent_notes}</>}
                   </p>
@@ -569,7 +571,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
             >
-              Cerrar
+              {t('common.close')}
             </button>
           </div>
         </div>
