@@ -203,7 +203,7 @@ export function useRecentActivity(limit: number = 20) {
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
-        .order("updated_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(limit);
 
       if (error) throw error;

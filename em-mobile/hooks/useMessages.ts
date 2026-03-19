@@ -51,13 +51,21 @@ export function useMessages(peerAddress: string | null) {
         // v5: streamMessages(callback) — returns unsubscribe fn
         const unsub = await convo.streamMessages((msg: any) => {
           if (!cancelled) {
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === msg.id)) return prev;
-              return [...prev, normalizeMessage(msg)];
-            });
+            try {
+              setMessages((prev) => {
+                if (prev.some((m) => m.id === msg.id)) return prev;
+                return [...prev, normalizeMessage(msg)];
+              });
+            } catch {
+              // IDBDatabase errors during message processing are non-fatal
+            }
           }
         });
-        unsubscribeRef.current = unsub;
+        if (cancelled) {
+          try { unsub(); } catch { /* ignore */ }
+        } else {
+          unsubscribeRef.current = unsub;
+        }
       } catch (err) {
         console.error("[XMTP] Init conversation failed:", err);
       } finally {
@@ -68,7 +76,7 @@ export function useMessages(peerAddress: string | null) {
     init();
     return () => {
       cancelled = true;
-      unsubscribeRef.current?.();
+      try { unsubscribeRef.current?.(); } catch { /* ignore */ }
       unsubscribeRef.current = null;
       conversationRef.current = null;
     };

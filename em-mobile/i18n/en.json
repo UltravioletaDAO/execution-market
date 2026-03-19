@@ -329,7 +329,9 @@
     "excellent": "Excellent",
     "good": "Good",
     "acceptable": "Acceptable",
-    "low": "Low"
+    "low": "Low",
+    "showCoordinates": "Show coordinates",
+    "hideCoordinates": "Hide coordinates"
   },
   "submit": {
     "title": "Submit Evidence",

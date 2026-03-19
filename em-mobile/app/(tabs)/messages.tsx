@@ -7,13 +7,12 @@ import { useTranslation } from "react-i18next";
 import { useXMTP } from "../../providers/XMTPProvider";
 import { useConversations, type ConversationPreview } from "../../hooks/useConversations";
 import { ConversationRow } from "../../components/messaging/ConversationRow";
-import { dynamicClient } from "../../lib/dynamic";
 
 export default function MessagesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { isConnected, isConnecting, connect, connectDev, error, walletAddress, signerAvailable, isDevMode, client } = useXMTP();
+  const { isConnected, isConnecting, connect, error, walletAddress, client } = useXMTP();
   const { previews, isLoading, refresh } = useConversations();
   const [showNewChat, setShowNewChat] = useState(false);
   const [peerInput, setPeerInput] = useState("");
@@ -55,66 +54,29 @@ export default function MessagesScreen() {
   };
 
   if (!isConnected) {
-    const needsWalletConnector = !!walletAddress && !signerAvailable;
-
     return (
       <View className="flex-1 bg-black items-center justify-center px-6">
         <Text className="text-white text-xl font-bold mb-2">{t("messages.title")}</Text>
         <Text className="text-white/60 text-center mb-6">
           {t("messages.subtitle")}
         </Text>
-        {error ? (
+        {error && (
           <Text className="text-red-400 text-sm text-center mb-4">{error}</Text>
-        ) : needsWalletConnector ? (
-          <Text className="text-yellow-400 text-sm text-center mb-6">
-            {t("messages.emailOnlyWarning")}
-          </Text>
-        ) : null}
-        {needsWalletConnector ? (
-          <>
-            <TouchableOpacity
-              onPress={() => dynamicClient.ui.userProfile.show()}
-              className="bg-white px-6 py-3 rounded-xl mb-3"
-              activeOpacity={0.8}
-            >
-              <Text className="text-black font-semibold">{t("messages.connectWallet")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={connectDev}
-              disabled={isConnecting}
-              className="border border-white/30 px-6 py-3 rounded-xl"
-              activeOpacity={0.8}
-            >
-              {isConnecting ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white/50 text-sm font-medium">
-                  {t("messages.devMode")}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </>
-        ) : (
-          <TouchableOpacity
-            onPress={connect}
-            disabled={isConnecting}
-            className="bg-white px-6 py-3 rounded-xl"
-            activeOpacity={0.8}
-          >
-            {isConnecting ? (
-              <ActivityIndicator color="black" />
-            ) : (
-              <Text className="text-black font-semibold">
-                {t("messages.connect")}
-              </Text>
-            )}
-          </TouchableOpacity>
         )}
-        {isDevMode && (
-          <Text className="text-yellow-400/60 text-xs text-center mt-2">
-            {t("messages.devModeActive")}
-          </Text>
-        )}
+        <TouchableOpacity
+          onPress={connect}
+          disabled={isConnecting}
+          className="bg-white px-6 py-3 rounded-xl"
+          activeOpacity={0.8}
+        >
+          {isConnecting ? (
+            <ActivityIndicator color="black" />
+          ) : (
+            <Text className="text-black font-semibold">
+              {t("messages.connect")}
+            </Text>
+          )}
+        </TouchableOpacity>
         <Text className="text-white/30 text-xs text-center mt-4">
           {t("messages.browserSdkNote")}
         </Text>
@@ -140,12 +102,6 @@ export default function MessagesScreen() {
           <Text className="text-black text-xl font-bold leading-none">+</Text>
         </TouchableOpacity>
       </View>
-
-      {isDevMode && (
-        <Text className="text-yellow-400/50 text-xs text-center pb-1">
-          {t("messages.devModeBadge")}
-        </Text>
-      )}
 
       {isLoading ? (
         <ActivityIndicator color="white" className="mt-8" />

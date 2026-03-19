@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Image } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -187,7 +187,12 @@ export default function PublishTaskScreen() {
 
       <StepIndicator />
 
-      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+      >
+      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {step === 1 && (
           <View>
             <Text className="text-gray-400 text-sm mb-2">{t("publish.taskTitle")} *</Text>
@@ -198,6 +203,7 @@ export default function PublishTaskScreen() {
               value={title}
               onChangeText={setTitle}
               maxLength={255}
+
             />
 
             <Text className="text-gray-400 text-sm mb-2">{t("publish.instructions")} *</Text>
@@ -211,6 +217,7 @@ export default function PublishTaskScreen() {
               numberOfLines={5}
               style={{ minHeight: 120, textAlignVertical: "top" }}
               maxLength={10000}
+
             />
 
             <Text className="text-gray-400 text-sm mb-2">{t("publish.category")} *</Text>
@@ -432,8 +439,9 @@ export default function PublishTaskScreen() {
           </View>
         )}
 
-        <View className="h-8" />
+        <View className="h-40" />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <View className="px-4 py-4 pb-8 border-t border-gray-800">
         <View className="flex-row gap-3">

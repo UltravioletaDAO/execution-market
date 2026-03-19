@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Platform } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Platform, KeyboardAvoidingView } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
@@ -443,7 +443,12 @@ export default function SubmitEvidenceScreen() {
         </Text>
       </View>
 
-      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+      >
+      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Task info */}
         {task && (
           <View className="bg-surface rounded-2xl p-4 mb-4">
@@ -477,7 +482,7 @@ export default function SubmitEvidenceScreen() {
                     )}
                     {gpsData && (
                       <Text className="text-gray-600 text-xs mt-1">
-                        {"\uD83D\uDCCD"} {gpsData.lat.toFixed(5)}, {gpsData.lng.toFixed(5)}
+                        {"\uD83D\uDCCD"} {t("submit.gpsCaptured")}
                       </Text>
                     )}
                   </View>
@@ -532,10 +537,7 @@ export default function SubmitEvidenceScreen() {
               <View className="mt-2 flex-row items-center bg-surface rounded-xl px-4 py-3">
                 <Text style={{ fontSize: 16, marginRight: 8 }}>{"\uD83D\uDCCD"}</Text>
                 <View className="flex-1">
-                  <Text className="text-green-400 text-sm">{"\u2713"} {t("submit.gpsCaptured")}</Text>
-                  <Text className="text-gray-500 text-xs mt-0.5">
-                    {gpsData.lat.toFixed(5)}, {gpsData.lng.toFixed(5)} ({"\u00B1"}{gpsData.accuracy.toFixed(0)}m)
-                  </Text>
+                  <Text className="text-green-400 text-sm">{"\u2713"} {t("submit.gpsCaptured")} ({"\u00B1"}{gpsData.accuracy.toFixed(0)}m)</Text>
                 </View>
               </View>
             )}
@@ -545,10 +547,7 @@ export default function SubmitEvidenceScreen() {
           <View className="mb-4 flex-row items-center bg-surface rounded-xl px-4 py-3">
             <Text style={{ fontSize: 16, marginRight: 8 }}>{"\uD83D\uDCCD"}</Text>
             <View className="flex-1">
-              <Text className="text-gray-400 text-sm">{t("submit.gpsAutoCapture")}</Text>
-              <Text className="text-gray-500 text-xs mt-0.5">
-                {autoGps.lat.toFixed(5)}, {autoGps.lng.toFixed(5)} ({"\u00B1"}{autoGps.accuracy.toFixed(0)}m)
-              </Text>
+              <Text className="text-gray-400 text-sm">{t("submit.gpsAutoCapture")} ({"\u00B1"}{autoGps.accuracy.toFixed(0)}m)</Text>
             </View>
             <Text className="text-green-400">{"\u2713"}</Text>
           </View>
@@ -578,6 +577,7 @@ export default function SubmitEvidenceScreen() {
                     multiline={evidenceType !== "url_reference"}
                     numberOfLines={evidenceType === "text_report" ? 6 : 3}
                     style={{ minHeight: evidenceType === "text_report" ? 120 : 60, textAlignVertical: "top" }}
+
                   />
                 </View>
               ))}
@@ -596,11 +596,14 @@ export default function SubmitEvidenceScreen() {
             multiline
             numberOfLines={2}
             style={{ minHeight: 60, textAlignVertical: "top" }}
+
           />
         </View>
 
-        <View className="h-4" />
+        {/* Extra padding so bottom fields scroll above keyboard */}
+        <View className="h-40" />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Fixed bottom button — above Android nav bar */}
       <View className="px-4 pt-3 pb-8 border-t border-gray-800 bg-black">

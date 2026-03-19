@@ -7,12 +7,16 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../providers/AuthProvider";
 import { supabase } from "../lib/supabase";
+import { dynamicClient } from "../lib/dynamic";
+import { useReactiveClient } from "@dynamic-labs/react-hooks";
 
 const PREDEFINED_SKILLS = [
   "photography",
@@ -40,7 +44,8 @@ const LANGUAGE_OPTIONS = [
 
 export default function CompleteProfileScreen() {
   const { t } = useTranslation();
-  const { executor, refreshExecutor } = useAuth();
+  const { executor, refreshExecutor, wallet } = useAuth();
+  const { auth, wallets } = useReactiveClient(dynamicClient);
 
   // Don't pre-fill auto-generated names (Worker_XXXX)
   const isAutoName =
@@ -74,10 +79,109 @@ export default function CompleteProfileScreen() {
   }
 
   async function handleSave() {
-    if (!executor?.id || !isValid) return;
+    console.log("[CompleteProfile] handleSave — executor?.id:", executor?.id, "wallet:", wallet, "isValid:", isValid);
+    if (!isValid) {
+      Alert.alert(t("common.error"), "Name and bio are required.");
+      return;
+    }
 
     setSaving(true);
     try {
+      let executorId = executor?.id;
+
+      // If no executor exists yet, create one via RPC
+      if (!executorId) {
+        // Try multiple sources for wallet address
+        let resolvedWallet = wallet;
+        if (!resolvedWallet) {
+          // Try Dynamic userWallets
+          resolvedWallet = wallets?.userWallets?.[0]?.address?.toLowerCase() ?? null;
+        }
+        if (!resolvedWallet) {
+          // Try Dynamic embedded wallet
+          try {
+            const embedded = wallets?.embedded?.hasWallet
+              ? wallets.embedded.getWallet()
+              : null;
+            resolvedWallet = embedded?.address?.toLowerCase() ?? null;
+          } catch { /* ignore */ }
+        }
+        if (!resolvedWallet) {
+          // Try verifiedCredentials
+          const creds = auth?.authenticatedUser?.verifiedCredentials;
+          if (Array.isArray(creds)) {
+            const bc = creds.find((c: any) => c.format === "blockchain" && c.address);
+            resolvedWallet = bc?.address?.toLowerCase() ?? null;
+          }
+        }
+        if (!resolvedWallet) {
+          // Last resort: generate a placeholder wallet from the Dynamic user ID
+          const userId = auth?.authenticatedUser?.userId;
+          if (userId) {
+            // Create a deterministic pseudo-address from the user ID
+            const hash = userId.replace(/-/g, "").slice(0, 40);
+            resolvedWallet = `0x${hash}`;
+            console.log("[CompleteProfile] Using pseudo-address from Dynamic userId:", resolvedWallet);
+          }
+        }
+        if (!resolvedWallet) {
+          Alert.alert(t("common.error"), "No wallet connected. Try logging out and back in.");
+          setSaving(false);
+          return;
+        }
+        console.log("[CompleteProfile] No executor — creating directly for wallet:", resolvedWallet);
+
+        // Ensure Supabase anonymous session exists
+        await supabase.auth.signInAnonymously();
+
+        // First check if executor already exists by wallet
+        const { data: existing } = await supabase
+          .from("executors")
+          .select("id")
+          .eq("wallet_address", resolvedWallet)
+          .maybeSingle();
+
+        if (existing?.id) {
+          executorId = existing.id;
+          console.log("[CompleteProfile] Found existing executor:", executorId);
+        } else {
+          // Create new executor directly
+          const { data: newExec, error: insertError } = await supabase
+            .from("executors")
+            .insert({
+              wallet_address: resolvedWallet,
+              display_name: name.trim(),
+              email: email.trim() || null,
+              bio: bio.trim(),
+              skills: selectedSkills,
+              languages: selectedLanguages,
+              location_city: city.trim() || null,
+              location_country: country.trim() || null,
+              reputation_score: 50,
+              status: "active",
+            })
+            .select("id")
+            .single();
+
+          if (insertError) {
+            console.error("[CompleteProfile] Insert error:", insertError);
+            Alert.alert(t("common.error"), insertError.message);
+            setSaving(false);
+            return;
+          }
+
+          executorId = newExec?.id;
+          console.log("[CompleteProfile] Created executor:", executorId);
+        }
+      }
+
+      if (!executorId) {
+        Alert.alert(t("common.error"), "Could not create profile. Try logging out and back in.");
+        setSaving(false);
+        return;
+      }
+
+      // Update with full profile data
       const { error } = await supabase
         .from("executors")
         .update({
@@ -89,7 +193,7 @@ export default function CompleteProfileScreen() {
           location_city: city.trim() || null,
           location_country: country.trim() || null,
         })
-        .eq("id", executor.id);
+        .eq("id", executorId);
 
       if (error) {
         Alert.alert(t("common.error"), error.message);
@@ -111,6 +215,11 @@ export default function CompleteProfileScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-black">
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+      >
       {/* Header */}
       <View className="px-4 pt-4 pb-2">
         <Text className="text-white text-2xl font-bold">{t("profile.completeProfile")}</Text>
@@ -123,6 +232,7 @@ export default function CompleteProfileScreen() {
         className="flex-1 px-4"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
         {/* Display Name */}
         <Text className="text-gray-400 text-xs font-bold mb-2 mt-4">
@@ -150,6 +260,7 @@ export default function CompleteProfileScreen() {
           numberOfLines={3}
           style={{ minHeight: 80, textAlignVertical: "top" }}
           maxLength={500}
+
         />
         <Text className="text-gray-600 text-xs text-right mb-5">
           {bio.length}/500
@@ -217,6 +328,7 @@ export default function CompleteProfileScreen() {
           placeholderTextColor="#666"
           keyboardType="email-address"
           autoCapitalize="none"
+
         />
 
         {/* Location */}
@@ -228,6 +340,7 @@ export default function CompleteProfileScreen() {
             onChangeText={setCity}
             placeholder={t("profile.city")}
             placeholderTextColor="#666"
+  
           />
           <TextInput
             className="flex-1 bg-surface text-white rounded-xl px-4 py-3.5 text-base"
@@ -235,10 +348,12 @@ export default function CompleteProfileScreen() {
             onChangeText={setCountry}
             placeholder={t("profile.country")}
             placeholderTextColor="#666"
+  
           />
         </View>
 
-        <View className="h-4" />
+        {/* Extra padding so bottom fields scroll above keyboard */}
+        <View className="h-40" />
       </ScrollView>
 
       {/* Footer */}
@@ -268,6 +383,7 @@ export default function CompleteProfileScreen() {
           <Text className="text-gray-500">{t("profile.skipForNow")}</Text>
         </Pressable>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

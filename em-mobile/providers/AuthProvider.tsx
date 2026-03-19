@@ -93,8 +93,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return blockchainCred?.address?.toLowerCase() ?? null;
   })();
 
-  // Best available wallet: direct > credential > saved
-  const resolvedWallet = dynamicWallet || credentialWallet;
+  // Try embedded wallet (Dynamic creates one for email-only signups)
+  const embeddedWallet = (() => {
+    try {
+      const w = wallets?.embedded?.getWallet?.();
+      return w?.address?.toLowerCase() ?? null;
+    } catch {
+      return null;
+    }
+  })();
+
+  // Best available wallet: direct > credential > embedded
+  const resolvedWallet = dynamicWallet || credentialWallet || embeddedWallet;
 
   // Load saved preferences on mount
   useEffect(() => {
@@ -135,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sync Dynamic auth → local auth state
   useEffect(() => {
     if (isDynamicAuthenticated && resolvedWallet && resolvedWallet !== wallet) {
-      // Wallet available (from userWallets or verifiedCredentials)
+      // Wallet available (from userWallets, verifiedCredentials, or embedded)
       loginWithWallet(resolvedWallet);
     } else if (isDynamicAuthenticated && !resolvedWallet && !executor) {
       // Email-only auth with no linked wallet — look up by email as last resort
@@ -148,14 +158,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [isDynamicAuthenticated, resolvedWallet]);
 
+  // Retry: if authenticated but no executor yet, poll for embedded wallet
+  useEffect(() => {
+    if (!isDynamicAuthenticated || executor) return;
+    // Give Dynamic SDK time to initialize embedded wallet
+    const timer = setTimeout(async () => {
+      try {
+        let w = wallets?.embedded?.hasWallet
+          ? await wallets.embedded.getWallet()
+          : null;
+        if (w?.address && !executor) {
+          console.log("[Auth] Late embedded wallet resolved:", w.address);
+          await loginWithWallet(w.address);
+        }
+      } catch {
+        // Non-fatal
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [isDynamicAuthenticated, executor]);
+
   async function loginWithEmail(email: string) {
     setIsLoading(true);
     try {
       // 1. Sign in anonymously to Supabase
-      const { error: authError } = await supabase.auth.signInAnonymously();
+      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
       if (authError) {
         console.warn("Supabase auth failed:", authError.message);
       }
+      const userId = authData?.user?.id;
 
       // 2. Look up executor by email
       const { data: existingExecutor } = await supabase
@@ -166,15 +197,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (existingExecutor) {
         setExecutor(existingExecutor);
-        // Also set wallet from the executor record if available
         if (existingExecutor.wallet_address) {
           setWallet(existingExecutor.wallet_address);
           await AsyncStorage.setItem("em_wallet", existingExecutor.wallet_address);
         }
       } else {
-        // No executor with this email — try matching by wallet if user has one linked in Dynamic
-        // For now, just mark as authenticated without executor data
-        console.log("[Auth] No executor found for email:", email);
+        // No executor with this email — try to get/create embedded wallet from Dynamic
+        console.log("[Auth] No executor found for email:", email, "— trying embedded wallet");
+        let embeddedAddr: string | null = null;
+        try {
+          let w = wallets?.embedded?.hasWallet
+            ? await wallets.embedded.getWallet()
+            : null;
+          if (!w) {
+            console.log("[Auth] Creating embedded wallet for email user...");
+            w = await wallets?.embedded?.createWallet?.({ chain: "Evm" });
+          }
+          embeddedAddr = w?.address?.toLowerCase() ?? null;
+        } catch (err) {
+          console.warn("[Auth] Failed to get/create embedded wallet:", err);
+        }
+
+        if (embeddedAddr && userId) {
+          // Create executor with the embedded wallet
+          await supabase.rpc("link_wallet_to_session", {
+            p_user_id: userId,
+            p_wallet_address: embeddedAddr,
+            p_chain_id: 8453,
+          });
+
+          const { data: executorData } = await supabase.rpc(
+            "get_or_create_executor",
+            {
+              p_wallet_address: embeddedAddr,
+              p_display_name: `Worker_${embeddedAddr.slice(2, 10)}`,
+              p_email: email.toLowerCase(),
+            }
+          );
+
+          if (executorData) {
+            const exec = Array.isArray(executorData) ? executorData[0] : executorData;
+            if (exec?.id) {
+              const { data: fullExecutor } = await supabase
+                .from("executors")
+                .select("*")
+                .eq("id", exec.id)
+                .single();
+              setExecutor(fullExecutor || exec);
+            }
+          }
+          setWallet(embeddedAddr);
+          await AsyncStorage.setItem("em_wallet", embeddedAddr);
+        } else {
+          console.warn("[Auth] No embedded wallet available for email-only user");
+        }
       }
     } catch (err) {
       console.error("[Auth] loginWithEmail error:", err);
