@@ -1829,6 +1829,31 @@
     "ratedByAgent": "Calificado por agente",
     "ratedByWorker": "Calificado por trabajador"
   },
+  "taskDetail": {
+    "backToList": "Volver a lista",
+    "taskUnavailable": "La tarea ya no esta disponible",
+    "acceptError": "No se pudo aceptar la tarea. Intenta de nuevo.",
+    "requiredRole": "Rol requerido",
+    "refund": "Reembolso",
+    "escrowAndPayment": "Escrow y Pago",
+    "loadingPayment": "Cargando estado de pago...",
+    "loginToAccept": "Inicia sesion para aceptar esta tarea",
+    "requirementsNotMet": "No cumples con los requisitos para esta tarea",
+    "accepting": "Aceptando...",
+    "submissions": "Entregas",
+    "noSubmissions": "No hay entregas aun"
+  },
+  "txTimeline": {
+    "transactions": "Transacciones",
+    "onChainTransactions": "Transacciones On-Chain",
+    "loading": "Cargando transacciones...",
+    "confirmed": "Confirmado",
+    "failed": "Fallido",
+    "pending": "Pendiente",
+    "locked": "Bloqueado",
+    "paid": "Pagado",
+    "refunded": "Reembolsado"
+  },
   "earnings": {
     "title": "Mis Ganancias",
     "availableBalance": "Balance Disponible",

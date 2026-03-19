@@ -136,7 +136,7 @@ export function TaskDetail({
 
       const result = await response.json()
       if (result && result.success === false) {
-        throw new Error(result.error || 'La tarea ya no esta disponible')
+        throw new Error(result.error || t('taskDetail.taskUnavailable', 'Task is no longer available'))
       }
 
       onAccept?.()
@@ -144,7 +144,7 @@ export function TaskDetail({
       setError(
         err instanceof Error
           ? err.message
-          : 'No se pudo aceptar la tarea. Intenta de nuevo.'
+          : t('taskDetail.acceptError', 'Could not accept the task. Try again.')
       )
     } finally {
       setAccepting(false)
@@ -157,7 +157,7 @@ export function TaskDetail({
       <div className="p-4 border-b border-gray-200">
         <button
           onClick={onBack}
-          aria-label="Volver a la lista de tareas"
+          aria-label={t('taskDetail.backToList', 'Back to task list')}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-3"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,7 +168,7 @@ export function TaskDetail({
               d="M15 19l-7-7 7-7"
             />
           </svg>
-          Volver a lista
+          {t('taskDetail.backToList', 'Back to list')}
         </button>
 
         <div className="flex items-start justify-between gap-4">
@@ -208,7 +208,7 @@ export function TaskDetail({
         {/* Instructions */}
         <section>
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-            Instrucciones
+            {t('tasks.instructions')}
           </h2>
           <div className="prose prose-sm max-w-none">
             <pre className="whitespace-pre-wrap font-sans text-gray-700 bg-gray-50 p-4 rounded-lg">
@@ -220,7 +220,7 @@ export function TaskDetail({
         {/* Evidence requirements */}
         <section>
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-            Evidencia Requerida
+            {t('tasks.requirements', 'Required Evidence')}
           </h2>
           <div className="space-y-2">
             <div className="flex flex-wrap gap-2">
@@ -254,7 +254,7 @@ export function TaskDetail({
         {task.location_hint && (
           <section>
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              Ubicacion
+              {t('tasks.location')}
             </h2>
             <div className="flex items-center gap-2 text-gray-700">
               <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -277,7 +277,7 @@ export function TaskDetail({
         {/* Deadline */}
         <section>
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-            Fecha Limite
+            {t('tasks.deadline')}
           </h2>
           <div className="flex items-center gap-2 text-gray-700">
             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,7 +296,7 @@ export function TaskDetail({
         {(task.min_reputation > 0 || task.required_roles.length > 0) && (
           <section>
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              Requisitos
+              {t('tasks.requirements')}
             </h2>
             <ul className="space-y-2">
               {task.min_reputation > 0 && (
@@ -304,7 +304,7 @@ export function TaskDetail({
                   <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
-                  <span>Reputacion minima: {task.min_reputation}</span>
+                  <span>{t('tasks.minReputation')}: {task.min_reputation}</span>
                   {currentExecutor && (
                     <span
                       className={`text-sm ${
@@ -327,7 +327,7 @@ export function TaskDetail({
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span>Rol requerido: {role}</span>
+                  <span>{t('taskDetail.requiredRole', 'Required role')}: {role}</span>
                 </li>
               ))}
             </ul>
@@ -397,30 +397,30 @@ export function TaskDetail({
           <section>
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
               {task.status === 'expired' || task.status === 'cancelled'
-                ? 'Reembolso'
+                ? t('taskDetail.refund', 'Refund')
                 : hasEscrowContext
-                ? 'Escrow y Pago'
-                : 'Pago'}
+                ? t('taskDetail.escrowAndPayment', 'Escrow & Payment')
+                : t('tasks.payment')}
             </h2>
             {paymentLoading ? (
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-gray-600">Cargando estado de pago...</span>
+                <span className="text-sm text-gray-600">{t('taskDetail.loadingPayment', 'Loading payment status...')}</span>
               </div>
             ) : payment ? (
               <PaymentStatus payment={payment} compact={false} showTimeline={true} bountyAmount={task.bounty_usd} />
             ) : task.status === 'submitted' ? (
               <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
                 <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-yellow-700">Procesando pago...</span>
+                <span className="text-sm text-yellow-700">{t('payment.processing')}</span>
               </div>
             ) : hasEscrowContext ? (
               <p className="text-sm text-blue-700 p-3 bg-blue-50 rounded-lg">
-                Escrow detectado. Esperando sincronizacion de transacciones x402.
+                {t('payment.syncingData')}
               </p>
             ) : (
               <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
-                No hay registros de pago para esta tarea.
+                {t('payment.noData')}
               </p>
             )}
           </section>
@@ -442,7 +442,7 @@ export function TaskDetail({
                     onClick={() => setError(null)}
                     className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
                   >
-                    Cerrar e intentar de nuevo
+                    {t('common.dismiss')}
                   </button>
                 </div>
               </div>
@@ -451,18 +451,18 @@ export function TaskDetail({
 
           {!currentExecutor ? (
             <div className="text-center">
-              <p className="text-gray-600 mb-2">Inicia sesion para aceptar esta tarea</p>
+              <p className="text-gray-600 mb-2">{t('taskDetail.loginToAccept', 'Sign in to accept this task')}</p>
               <button
                 onClick={() => navigate('/')}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                Iniciar sesion
+                {t('auth.signIn')}
               </button>
             </div>
           ) : !canAccept ? (
             <div className="text-center">
               <p className="text-amber-600">
-                No cumples con los requisitos para esta tarea
+                {t('taskDetail.requirementsNotMet', 'You do not meet the requirements for this task')}
               </p>
             </div>
           ) : (
@@ -471,7 +471,7 @@ export function TaskDetail({
               disabled={accepting}
               className="w-full py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {accepting ? 'Aceptando...' : `Aceptar tarea - ${formatBounty(task.bounty_usd)}`}
+              {accepting ? t('taskDetail.accepting', 'Accepting...') : `${t('tasks.acceptTask')} - ${formatBounty(task.bounty_usd)}`}
             </button>
           )}
         </div>

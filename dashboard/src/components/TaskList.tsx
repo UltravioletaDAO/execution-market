@@ -72,18 +72,20 @@ export function TaskList({
   loading,
   error,
   onTaskClick,
-  emptyMessage = 'No hay tareas disponibles',
+  emptyMessage,
 }: TaskListProps) {
   if (loading) {
     return LOADING_SKELETON
   }
+
+  const { t } = useTranslation()
 
   if (error) {
     return (
       <div className="text-center py-12">
         {ERROR_ICON}
         <h3 className="text-lg font-medium text-gray-900 mb-1">
-          Error al cargar tareas
+          {t('tasks.loadError')}
         </h3>
         <p className="text-gray-500">{error.message}</p>
       </div>
@@ -94,8 +96,8 @@ export function TaskList({
     return (
       <div className="text-center py-12">
         {EMPTY_ICON}
-        <h3 className="text-lg font-medium text-gray-900 mb-1">{emptyMessage}</h3>
-        <p className="text-gray-500">Vuelve mas tarde para ver nuevas tareas</p>
+        <h3 className="text-lg font-medium text-gray-900 mb-1">{emptyMessage || t('tasks.noTasks')}</h3>
+        <p className="text-gray-500">{t('tasks.emptyHint')}</p>
       </div>
     )
   }
