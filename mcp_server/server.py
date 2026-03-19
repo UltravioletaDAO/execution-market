@@ -504,9 +504,8 @@ async def dispatch_submission_webhook(
         payload = SubmissionPayload(
             submission_id=submission["id"],
             task_id=task["id"],
-            task_title=task["title"],
-            verdict=submission.get("agent_verdict", "pending"),
-            executor_id=submission.get("executor_id"),
+            executor_id=submission.get("executor_id", ""),
+            status=submission.get("agent_verdict", "pending"),
         )
         event = WebhookEvent(event_type=WebhookEventType(event_type), payload=payload)
 
