@@ -6,11 +6,12 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
+# Copy package files (lock file first for deterministic installs)
+COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm install --legacy-peer-deps
+# Install dependencies deterministically
+# --legacy-peer-deps: required because several dashboard deps have conflicting peer ranges
+RUN npm ci --legacy-peer-deps
 
 # Copy source
 COPY . .
