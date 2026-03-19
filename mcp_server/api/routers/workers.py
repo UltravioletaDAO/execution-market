@@ -206,6 +206,25 @@ async def apply_to_task(
         except Exception:
             pass  # Never block the apply flow
 
+        # Event Bus publish (coexists with legacy — Strangler Fig)
+        try:
+            from events import get_event_bus, EMEvent, EventSource
+
+            await get_event_bus().publish(
+                EMEvent(
+                    event_type="worker.applied",
+                    task_id=task_id,
+                    source=EventSource.REST_API,
+                    payload={
+                        "task_id": task_id,
+                        "worker_id": executor_id,
+                        "application_id": result["application"]["id"],
+                    },
+                )
+            )
+        except Exception:
+            pass
+
         return SuccessResponse(
             message="Application submitted successfully",
             data={

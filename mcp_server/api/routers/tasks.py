@@ -2594,6 +2594,27 @@ async def assign_task_to_worker(
         except Exception:
             pass  # Never block the assign flow
 
+        # Event Bus publish (coexists with legacy — Strangler Fig)
+        try:
+            from events import get_event_bus, EMEvent, EventSource
+
+            await get_event_bus().publish(
+                EMEvent(
+                    event_type="task.assigned",
+                    task_id=task_id,
+                    source=EventSource.REST_API,
+                    payload={
+                        "task_id": task_id,
+                        "executor_id": request.executor_id,
+                        "agent_id": auth.agent_id,
+                        "worker_wallet": worker_wallet,
+                        "title": task.get("title", ""),
+                    },
+                )
+            )
+        except Exception:
+            pass
+
         # Notify via WebSocket
         try:
             from websocket.integration import events as ws_events
