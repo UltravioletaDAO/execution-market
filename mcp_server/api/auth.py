@@ -15,11 +15,17 @@ import os
 import logging
 import hashlib
 import secrets
+import threading
 from typing import Optional
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, Header, Request
+
+try:
+    from cachetools import TTLCache
+except ImportError:  # pragma: no cover
+    TTLCache = None
 
 logger = logging.getLogger(__name__)
 
@@ -46,14 +52,31 @@ class APITier:
     ENTERPRISE = "enterprise"
 
 
-# Cache for API key validation with TTL (in production, use Redis)
+# Thread-safe API key cache with TTL
 _API_KEY_CACHE_TTL_SECONDS = 300  # 5 minutes
-_api_key_cache: dict[str, APIKeyData] = {}
+_API_KEY_CACHE_MAXSIZE = 256
+
+if TTLCache is not None:
+    _api_key_cache: TTLCache = TTLCache(
+        maxsize=_API_KEY_CACHE_MAXSIZE, ttl=_API_KEY_CACHE_TTL_SECONDS
+    )
+else:
+    _api_key_cache: dict[str, APIKeyData] = {}  # type: ignore[no-redef]
+
+_api_key_cache_lock = threading.Lock()
+
+# Legacy compat — kept as no-op reference for clear_api_key_cache()
 _api_key_cache_timestamps: dict[str, float] = {}
 
 
 def _is_cache_entry_valid(key_hash: str) -> bool:
-    """Check if a cache entry is still within its TTL."""
+    """Check if a cache entry is still within its TTL.
+
+    With TTLCache this is automatic; for the dict fallback we check timestamps.
+    """
+    if TTLCache is not None:
+        # TTLCache handles expiry automatically — if key is present, it's valid
+        return key_hash in _api_key_cache
     import time
 
     cached_at = _api_key_cache_timestamps.get(key_hash)
@@ -104,19 +127,20 @@ async def verify_api_key(
     if not _is_valid_key_format(api_key):
         raise HTTPException(status_code=401, detail="Invalid API key format")
 
-    # Check cache first (with TTL)
+    # Check cache first (thread-safe with TTL)
     key_hash = _hash_key(api_key)
-    if key_hash in _api_key_cache and _is_cache_entry_valid(key_hash):
-        cached = _api_key_cache[key_hash]
-        if cached.is_valid:
-            cached.last_used = datetime.now(timezone.utc)
-            return cached
-        else:
-            raise HTTPException(status_code=401, detail="API key has been revoked")
-    elif key_hash in _api_key_cache and not _is_cache_entry_valid(key_hash):
-        # TTL expired, remove stale entry
-        del _api_key_cache[key_hash]
-        _api_key_cache_timestamps.pop(key_hash, None)
+    with _api_key_cache_lock:
+        if key_hash in _api_key_cache and _is_cache_entry_valid(key_hash):
+            cached = _api_key_cache[key_hash]
+            if cached.is_valid:
+                cached.last_used = datetime.now(timezone.utc)
+                return cached
+            else:
+                raise HTTPException(status_code=401, detail="API key has been revoked")
+        elif key_hash in _api_key_cache and not _is_cache_entry_valid(key_hash):
+            # TTL expired, remove stale entry (only for dict fallback)
+            del _api_key_cache[key_hash]
+            _api_key_cache_timestamps.pop(key_hash, None)
 
     # Validate against database
     key_data = await _validate_key_from_db(api_key, key_hash)
@@ -124,11 +148,13 @@ async def verify_api_key(
     if not key_data or not key_data.is_valid:
         raise HTTPException(status_code=401, detail="Invalid or expired API key")
 
-    # Cache the validated key with TTL
-    import time
+    # Cache the validated key (thread-safe)
+    with _api_key_cache_lock:
+        _api_key_cache[key_hash] = key_data
+        if TTLCache is None:
+            import time
 
-    _api_key_cache[key_hash] = key_data
-    _api_key_cache_timestamps[key_hash] = time.time()
+            _api_key_cache_timestamps[key_hash] = time.time()
 
     return key_data
 
@@ -793,21 +819,27 @@ def _enforce_worker_identity(
 
 def clear_api_key_cache() -> int:
     """
-    Clear the API key cache.
+    Clear the API key cache (thread-safe).
 
     Returns:
         Number of entries cleared
     """
     global _api_key_cache, _api_key_cache_timestamps
-    count = len(_api_key_cache)
-    _api_key_cache = {}
-    _api_key_cache_timestamps = {}
+    with _api_key_cache_lock:
+        count = len(_api_key_cache)
+        if TTLCache is not None:
+            _api_key_cache = TTLCache(
+                maxsize=_API_KEY_CACHE_MAXSIZE, ttl=_API_KEY_CACHE_TTL_SECONDS
+            )
+        else:
+            _api_key_cache = {}
+        _api_key_cache_timestamps = {}
     return count
 
 
 def invalidate_api_key(key_hash: str) -> bool:
     """
-    Invalidate a specific API key in cache.
+    Invalidate a specific API key in cache (thread-safe).
 
     Args:
         key_hash: Hash of the key to invalidate
@@ -815,8 +847,9 @@ def invalidate_api_key(key_hash: str) -> bool:
     Returns:
         True if key was in cache and invalidated
     """
-    if key_hash in _api_key_cache:
-        del _api_key_cache[key_hash]
-        _api_key_cache_timestamps.pop(key_hash, None)
-        return True
+    with _api_key_cache_lock:
+        if key_hash in _api_key_cache:
+            del _api_key_cache[key_hash]
+            _api_key_cache_timestamps.pop(key_hash, None)
+            return True
     return False
