@@ -1829,6 +1829,31 @@
     "ratedByAgent": "Rated by agent",
     "ratedByWorker": "Rated by worker"
   },
+  "taskDetail": {
+    "backToList": "Back to list",
+    "taskUnavailable": "Task is no longer available",
+    "acceptError": "Could not accept the task. Try again.",
+    "requiredRole": "Required role",
+    "refund": "Refund",
+    "escrowAndPayment": "Escrow & Payment",
+    "loadingPayment": "Loading payment status...",
+    "loginToAccept": "Sign in to accept this task",
+    "requirementsNotMet": "You do not meet the requirements for this task",
+    "accepting": "Accepting...",
+    "submissions": "Submissions",
+    "noSubmissions": "No submissions yet"
+  },
+  "txTimeline": {
+    "transactions": "Transactions",
+    "onChainTransactions": "On-Chain Transactions",
+    "loading": "Loading transactions...",
+    "confirmed": "Confirmed",
+    "failed": "Failed",
+    "pending": "Pending",
+    "locked": "Locked",
+    "paid": "Paid",
+    "refunded": "Refunded"
+  },
   "earnings": {
     "title": "My Earnings",
     "availableBalance": "Available Balance",

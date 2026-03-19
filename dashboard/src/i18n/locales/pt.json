@@ -1829,6 +1829,31 @@
     "ratedByAgent": "Avaliado pelo agente",
     "ratedByWorker": "Avaliado pelo trabalhador"
   },
+  "taskDetail": {
+    "backToList": "Voltar à lista",
+    "taskUnavailable": "A tarefa não está mais disponível",
+    "acceptError": "Não foi possível aceitar a tarefa. Tente novamente.",
+    "requiredRole": "Função necessária",
+    "refund": "Reembolso",
+    "escrowAndPayment": "Escrow e Pagamento",
+    "loadingPayment": "Carregando status do pagamento...",
+    "loginToAccept": "Faça login para aceitar esta tarefa",
+    "requirementsNotMet": "Você não atende aos requisitos para esta tarefa",
+    "accepting": "Aceitando...",
+    "submissions": "Entregas",
+    "noSubmissions": "Nenhuma entrega ainda"
+  },
+  "txTimeline": {
+    "transactions": "Transações",
+    "onChainTransactions": "Transações On-Chain",
+    "loading": "Carregando transações...",
+    "confirmed": "Confirmado",
+    "failed": "Falhou",
+    "pending": "Pendente",
+    "locked": "Bloqueado",
+    "paid": "Pago",
+    "refunded": "Reembolsado"
+  },
   "earnings": {
     "title": "Meus Ganhos",
     "availableBalance": "Saldo Disponível",

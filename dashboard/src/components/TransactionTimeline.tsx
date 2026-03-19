@@ -5,6 +5,7 @@
  * and displays each TX with explorer link, amount, status, and label.
  */
 
+import { useTranslation } from 'react-i18next'
 import { useTaskTransactions, type TransactionEvent } from '../hooks/useTaskTransactions'
 import { TxHashLink } from './TxLink'
 
@@ -76,15 +77,16 @@ function EventIcon({ eventType, status }: { eventType: string; status: string })
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation()
   const colors: Record<string, string> = {
     success: 'bg-green-100 text-green-700',
     failed: 'bg-red-100 text-red-700',
     pending: 'bg-yellow-100 text-yellow-700',
   }
   const labels: Record<string, string> = {
-    success: 'Confirmado',
-    failed: 'Fallido',
-    pending: 'Pendiente',
+    success: t('txTimeline.confirmed', 'Confirmed'),
+    failed: t('txTimeline.failed', 'Failed'),
+    pending: t('txTimeline.pending', 'Pending'),
   }
   return (
     <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${colors[status] || 'bg-gray-100 text-gray-600'}`}>
@@ -167,6 +169,7 @@ interface TransactionTimelineProps {
 }
 
 export function TransactionTimeline({ taskId }: TransactionTimelineProps) {
+  const { t } = useTranslation()
   const { data, loading, error } = useTaskTransactions(taskId)
 
   if (loading) {
@@ -176,11 +179,11 @@ export function TransactionTimeline({ taskId }: TransactionTimelineProps) {
           <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
-          Transacciones
+          {t('txTimeline.transactions', 'Transactions')}
         </h3>
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
           <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-gray-600">Cargando transacciones...</span>
+          <span className="text-sm text-gray-600">{t('txTimeline.loading', 'Loading transactions...')}</span>
         </div>
       </div>
     )
@@ -202,7 +205,7 @@ export function TransactionTimeline({ taskId }: TransactionTimelineProps) {
         <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
-        Transacciones On-Chain
+        {t('txTimeline.onChainTransactions', 'On-Chain Transactions')}
         <span className="text-xs font-normal text-gray-400 ml-1">
           ({data.total_count})
         </span>
@@ -212,13 +215,13 @@ export function TransactionTimeline({ taskId }: TransactionTimelineProps) {
       <div className="flex flex-wrap gap-3 mb-4 p-2.5 bg-gray-50 rounded-lg text-xs">
         {summary.total_locked > 0 && (
           <div className="flex items-center gap-1">
-            <span className="text-gray-500">Bloqueado:</span>
+            <span className="text-gray-500">{t('txTimeline.locked', 'Locked')}:</span>
             <span className="font-mono font-medium text-gray-900">${summary.total_locked.toFixed(6)}</span>
           </div>
         )}
         {summary.total_released > 0 && (
           <div className="flex items-center gap-1">
-            <span className="text-gray-500">Pagado:</span>
+            <span className="text-gray-500">{t('txTimeline.paid', 'Paid')}:</span>
             <span className="font-mono font-medium text-green-700">${summary.total_released.toFixed(6)}</span>
           </div>
         )}
@@ -230,7 +233,7 @@ export function TransactionTimeline({ taskId }: TransactionTimelineProps) {
         )}
         {summary.total_refunded > 0 && (
           <div className="flex items-center gap-1">
-            <span className="text-gray-500">Reembolsado:</span>
+            <span className="text-gray-500">{t('txTimeline.refunded', 'Refunded')}:</span>
             <span className="font-mono font-medium text-yellow-700">${summary.total_refunded.toFixed(6)}</span>
           </div>
         )}
