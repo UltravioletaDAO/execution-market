@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useConversations } from "../../hooks/useConversations";
 import { ConversationItem } from "./ConversationItem";
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function ConversationList({ isOpen, onClose, onSelectConversation }: Props) {
+  const { t } = useTranslation();
   const { previews, isLoading } = useConversations();
   const [search, setSearch] = useState("");
 
@@ -28,7 +30,7 @@ export function ConversationList({ isOpen, onClose, onSelectConversation }: Prop
       <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-black border-l border-white/10 z-50 flex flex-col animate-slide-in-right">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="text-lg font-bold text-white">Mensajes</h2>
+          <h2 className="text-lg font-bold text-white">{t('messages.title')}</h2>
           <button onClick={onClose} className="text-white/50 hover:text-white p-1">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -45,7 +47,7 @@ export function ConversationList({ isOpen, onClose, onSelectConversation }: Prop
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar conversacion..."
+              placeholder={t('messages.searchPlaceholder')}
               className="w-full bg-white/5 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-white/40 border border-white/10 focus:border-white/30 outline-none"
             />
           </div>
@@ -60,7 +62,7 @@ export function ConversationList({ isOpen, onClose, onSelectConversation }: Prop
           ) : filtered.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-white/40 text-sm">
-                {search ? "Sin resultados" : "No hay conversaciones"}
+                {search ? t('messages.noResults') : t('messages.noConversations')}
               </p>
             </div>
           ) : (

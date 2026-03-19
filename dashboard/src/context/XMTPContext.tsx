@@ -43,7 +43,7 @@ export function XMTPProvider({ children, walletAddress, signer }: {
       const xmtp = await Client.create(xmtpSigner, { env: "production" });
       setClient(xmtp);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al conectar XMTP");
+      setError(err instanceof Error ? err.message : "Error connecting to XMTP");
     } finally {
       setIsConnecting(false);
     }

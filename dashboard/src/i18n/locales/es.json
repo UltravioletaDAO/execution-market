@@ -1829,6 +1829,11 @@
     "ratedByAgent": "Calificado por agente",
     "ratedByWorker": "Calificado por trabajador"
   },
+  "messaging": {
+    "sendMessage": "Enviar Mensaje",
+    "xmtpNotEnabled": "Este usuario no tiene XMTP activado",
+    "sendViaXmtp": "Enviar mensaje via XMTP"
+  },
   "paymentStatus": {
     "pending": "Pendiente",
     "escrowed": "En Escrow",
