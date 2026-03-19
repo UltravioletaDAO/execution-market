@@ -14,7 +14,6 @@ Covers:
 
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import patch
 
 from mcp_server.swarm.lifecycle_manager import (
     LifecycleManager,
@@ -190,7 +189,9 @@ class TestRegistration:
     """Agent registration and unregistration."""
 
     def test_register_agent(self, manager):
-        record = manager.register_agent(1, "Aurora", "0xA", personality="explorer", tags=["gen"])
+        record = manager.register_agent(
+            1, "Aurora", "0xA", personality="explorer", tags=["gen"]
+        )
         assert record.agent_id == 1
         assert record.name == "Aurora"
         assert record.state == AgentState.INITIALIZING

@@ -33,7 +33,6 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
@@ -45,15 +44,17 @@ logger = logging.getLogger("em.swarm.task_monitor")
 
 class TaskUrgency(str, Enum):
     """Urgency levels based on time to deadline."""
-    HEALTHY = "healthy"         # > 75% time remaining
-    WATCH = "watch"             # 50-75% time remaining
-    WARNING = "warning"         # 25-50% time remaining
-    CRITICAL = "critical"       # < 25% time remaining
-    OVERDUE = "overdue"         # Past deadline
+
+    HEALTHY = "healthy"  # > 75% time remaining
+    WATCH = "watch"  # 50-75% time remaining
+    WARNING = "warning"  # 25-50% time remaining
+    CRITICAL = "critical"  # < 25% time remaining
+    OVERDUE = "overdue"  # Past deadline
 
 
 class InterventionType(str, Enum):
     """Types of automated interventions."""
+
     REBROADCAST = "rebroadcast"
     ESCALATE_BOUNTY = "escalate_bounty"
     DEADLINE_WARNING = "deadline_warning"
@@ -63,16 +64,18 @@ class InterventionType(str, Enum):
 
 class InterventionOutcome(str, Enum):
     """Result of an intervention."""
+
     PENDING = "pending"
-    SUCCESS = "success"         # Task completed after intervention
-    FAILED = "failed"           # Task still expired
-    PARTIAL = "partial"         # Worker responded but didn't complete
-    SKIPPED = "skipped"         # Intervention was suppressed
+    SUCCESS = "success"  # Task completed after intervention
+    FAILED = "failed"  # Task still expired
+    PARTIAL = "partial"  # Worker responded but didn't complete
+    SKIPPED = "skipped"  # Intervention was suppressed
 
 
 @dataclass
 class MonitoredTask:
     """A task being actively monitored."""
+
     task_id: str
     title: str
     category: str = ""
@@ -118,6 +121,7 @@ class MonitoredTask:
 @dataclass
 class Intervention:
     """A recorded intervention on a task."""
+
     intervention_id: str
     task_id: str
     intervention_type: InterventionType
@@ -138,6 +142,7 @@ class Intervention:
 @dataclass
 class InterventionRule:
     """A rule defining when and how to intervene."""
+
     name: str
     urgency_trigger: TaskUrgency
     intervention_type: InterventionType
@@ -167,15 +172,22 @@ class InterventionRule:
 @dataclass
 class MonitoringStats:
     """Aggregated monitoring statistics."""
+
     total_tasks_monitored: int = 0
     tasks_currently_active: int = 0
     tasks_completed_after_intervention: int = 0
     tasks_expired_despite_intervention: int = 0
     total_interventions: int = 0
-    interventions_by_type: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
-    interventions_by_outcome: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    interventions_by_type: Dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
+    interventions_by_outcome: Dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
     avg_intervention_response_seconds: float = 0.0
-    urgency_distribution: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    urgency_distribution: Dict[str, int] = field(
+        default_factory=lambda: defaultdict(int)
+    )
 
 
 # ─── TaskMonitor ────────────────────────────────────────────────────────
@@ -206,10 +218,10 @@ class TaskMonitor:
     """
 
     DEFAULT_URGENCY_THRESHOLDS = {
-        TaskUrgency.HEALTHY: 0.25,     # < 25% elapsed
-        TaskUrgency.WATCH: 0.50,       # 25-50% elapsed
-        TaskUrgency.WARNING: 0.75,     # 50-75% elapsed
-        TaskUrgency.CRITICAL: 1.0,     # 75-100% elapsed
+        TaskUrgency.HEALTHY: 0.25,  # < 25% elapsed
+        TaskUrgency.WATCH: 0.50,  # 25-50% elapsed
+        TaskUrgency.WARNING: 0.75,  # 50-75% elapsed
+        TaskUrgency.CRITICAL: 1.0,  # 75-100% elapsed
         # OVERDUE: > 100%
     }
 
@@ -218,7 +230,9 @@ class TaskMonitor:
         urgency_thresholds: Optional[Dict[TaskUrgency, float]] = None,
         intervention_id_prefix: str = "int",
     ):
-        self.urgency_thresholds = urgency_thresholds or dict(self.DEFAULT_URGENCY_THRESHOLDS)
+        self.urgency_thresholds = urgency_thresholds or dict(
+            self.DEFAULT_URGENCY_THRESHOLDS
+        )
         self.intervention_id_prefix = intervention_id_prefix
 
         # State
@@ -456,7 +470,9 @@ class TaskMonitor:
         completed: bool,
     ):
         """Record that a task completed or expired, updating all pending interventions."""
-        outcome = InterventionOutcome.SUCCESS if completed else InterventionOutcome.FAILED
+        outcome = (
+            InterventionOutcome.SUCCESS if completed else InterventionOutcome.FAILED
+        )
         for intervention in self.interventions:
             if (
                 intervention.task_id == task_id
@@ -556,9 +572,9 @@ class TaskMonitor:
         )
 
         return {
-            "status": "critical" if critical_count > 0 or overdue_count > 0 else (
-                "warning" if warning_count > 0 else "healthy"
-            ),
+            "status": "critical"
+            if critical_count > 0 or overdue_count > 0
+            else ("warning" if warning_count > 0 else "healthy"),
             "tasks_monitored": len(self.tasks),
             "critical_tasks": critical_count,
             "overdue_tasks": overdue_count,
@@ -582,53 +598,63 @@ class TaskMonitor:
         monitor = cls(**kwargs)
 
         # Unassigned tasks at warning level → rebroadcast to workers
-        monitor.add_rule(InterventionRule(
-            name="rebroadcast_unassigned_warning",
-            urgency_trigger=TaskUrgency.WARNING,
-            intervention_type=InterventionType.REBROADCAST,
-            requires_assignment=False,
-            cooldown_seconds=600.0,  # At most once per 10 min
-            max_per_task=2,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="rebroadcast_unassigned_warning",
+                urgency_trigger=TaskUrgency.WARNING,
+                intervention_type=InterventionType.REBROADCAST,
+                requires_assignment=False,
+                cooldown_seconds=600.0,  # At most once per 10 min
+                max_per_task=2,
+            )
+        )
 
         # Assigned tasks at critical level → warn the worker
-        monitor.add_rule(InterventionRule(
-            name="deadline_warning_assigned",
-            urgency_trigger=TaskUrgency.CRITICAL,
-            intervention_type=InterventionType.DEADLINE_WARNING,
-            requires_assignment=True,
-            cooldown_seconds=300.0,
-            max_per_task=2,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="deadline_warning_assigned",
+                urgency_trigger=TaskUrgency.CRITICAL,
+                intervention_type=InterventionType.DEADLINE_WARNING,
+                requires_assignment=True,
+                cooldown_seconds=300.0,
+                max_per_task=2,
+            )
+        )
 
         # Unassigned tasks at critical → suggest bounty escalation
-        monitor.add_rule(InterventionRule(
-            name="escalate_bounty_critical",
-            urgency_trigger=TaskUrgency.CRITICAL,
-            intervention_type=InterventionType.ESCALATE_BOUNTY,
-            requires_assignment=False,
-            cooldown_seconds=900.0,
-            max_per_task=1,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="escalate_bounty_critical",
+                urgency_trigger=TaskUrgency.CRITICAL,
+                intervention_type=InterventionType.ESCALATE_BOUNTY,
+                requires_assignment=False,
+                cooldown_seconds=900.0,
+                max_per_task=1,
+            )
+        )
 
         # Overdue assigned tasks → reassign
-        monitor.add_rule(InterventionRule(
-            name="reassign_overdue",
-            urgency_trigger=TaskUrgency.OVERDUE,
-            intervention_type=InterventionType.REASSIGN,
-            requires_assignment=True,
-            cooldown_seconds=600.0,
-            max_per_task=1,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="reassign_overdue",
+                urgency_trigger=TaskUrgency.OVERDUE,
+                intervention_type=InterventionType.REASSIGN,
+                requires_assignment=True,
+                cooldown_seconds=600.0,
+                max_per_task=1,
+            )
+        )
 
         # Overdue unassigned → graceful cancel
-        monitor.add_rule(InterventionRule(
-            name="cancel_overdue_unassigned",
-            urgency_trigger=TaskUrgency.OVERDUE,
-            intervention_type=InterventionType.CANCEL_GRACEFUL,
-            requires_assignment=False,
-            cooldown_seconds=0,  # Immediate
-            max_per_task=1,
-        ))
+        monitor.add_rule(
+            InterventionRule(
+                name="cancel_overdue_unassigned",
+                urgency_trigger=TaskUrgency.OVERDUE,
+                intervention_type=InterventionType.CANCEL_GRACEFUL,
+                requires_assignment=False,
+                cooldown_seconds=0,  # Immediate
+                max_per_task=1,
+            )
+        )
 
         return monitor

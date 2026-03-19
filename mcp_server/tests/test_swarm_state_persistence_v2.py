@@ -170,7 +170,9 @@ class TestRetryBackoff:
     def test_restore_from_persisted(self, backoff):
         data = {
             "t1": {
-                "next_retry_at": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+                "next_retry_at": (
+                    datetime.now(timezone.utc) + timedelta(hours=1)
+                ).isoformat(),
                 "attempt": 2,
                 "delay_seconds": 60,
             }
@@ -181,11 +183,15 @@ class TestRetryBackoff:
     def test_cleanup_expired(self, backoff):
         # Add old entry
         backoff._backoffs["old"] = {
-            "next_retry_at": (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat(),
+            "next_retry_at": (
+                datetime.now(timezone.utc) - timedelta(hours=48)
+            ).isoformat(),
             "attempt": 1,
         }
         backoff._backoffs["recent"] = {
-            "next_retry_at": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+            "next_retry_at": (
+                datetime.now(timezone.utc) + timedelta(hours=1)
+            ).isoformat(),
             "attempt": 1,
         }
         removed = backoff.cleanup_expired(max_age_hours=24.0)
@@ -198,7 +204,9 @@ class TestRetryBackoff:
         backoff.record_failure("t1", attempt=1)
         backoff.record_failure("t2", attempt=1)
         backoff._backoffs["t3"] = {
-            "next_retry_at": (datetime.now(timezone.utc) - timedelta(seconds=60)).isoformat(),
+            "next_retry_at": (
+                datetime.now(timezone.utc) - timedelta(seconds=60)
+            ).isoformat(),
             "attempt": 1,
         }
         assert backoff.pending_count == 2  # t1 and t2 are still pending
@@ -251,10 +259,13 @@ class TestSwarmStatePersistence:
     def test_load_future_schema_returns_none(self, persistence, tmp_dir):
         """State with newer schema version should be rejected."""
         with open(os.path.join(tmp_dir, "coordinator_state.json"), "w") as f:
-            json.dump({
-                "schema_version": SCHEMA_VERSION + 1,
-                "saved_at": datetime.now(timezone.utc).isoformat(),
-            }, f)
+            json.dump(
+                {
+                    "schema_version": SCHEMA_VERSION + 1,
+                    "saved_at": datetime.now(timezone.utc).isoformat(),
+                },
+                f,
+            )
         result = persistence.load()
         assert result is None
 
@@ -262,11 +273,14 @@ class TestSwarmStatePersistence:
         """State older than max_age_hours should be rejected."""
         old_time = (datetime.now(timezone.utc) - timedelta(hours=72)).isoformat()
         with open(os.path.join(tmp_dir, "coordinator_state.json"), "w") as f:
-            json.dump({
-                "schema_version": SCHEMA_VERSION,
-                "saved_at": old_time,
-                "pending_tasks": [],
-            }, f)
+            json.dump(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "saved_at": old_time,
+                    "pending_tasks": [],
+                },
+                f,
+            )
         result = persistence.load(max_age_hours=48.0)
         assert result is None
 

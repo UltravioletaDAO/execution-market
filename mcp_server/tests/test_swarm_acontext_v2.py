@@ -21,7 +21,6 @@ import pytest
 from mcp_server.swarm.acontext_adapter import (
     AcontextAdapter,
     AgentPresence,
-    CoordinationStats,
     TaskAuction,
     TaskBid,
     WorkerLock,
@@ -63,7 +62,10 @@ def adapter_short_ttl():
 class TestWorkerLock:
     def test_lock_creation(self):
         lock = WorkerLock(
-            worker_id="w1", agent_id="a1", task_type="data_entry", acquired_at=time.time()
+            worker_id="w1",
+            agent_id="a1",
+            task_type="data_entry",
+            acquired_at=time.time(),
         )
         assert lock.worker_id == "w1"
         assert lock.agent_id == "a1"
@@ -180,7 +182,9 @@ class TestTaskAuction:
         """When scores are equal, earlier bid wins."""
         auction = TaskAuction(task_id="t1")
         now = time.time()
-        auction.add_bid(TaskBid(agent_id="a1", task_id="t1", score=0.8, timestamp=now + 1))
+        auction.add_bid(
+            TaskBid(agent_id="a1", task_id="t1", score=0.8, timestamp=now + 1)
+        )
         auction.add_bid(TaskBid(agent_id="a2", task_id="t1", score=0.8, timestamp=now))
         winner = auction.resolve()
         assert winner == "a2"  # Earlier timestamp wins
@@ -189,9 +193,15 @@ class TestTaskAuction:
         """When score and timestamp are equal, alphabetical agent_id wins."""
         auction = TaskAuction(task_id="t1")
         ts = time.time()
-        auction.add_bid(TaskBid(agent_id="agent_c", task_id="t1", score=0.8, timestamp=ts))
-        auction.add_bid(TaskBid(agent_id="agent_a", task_id="t1", score=0.8, timestamp=ts))
-        auction.add_bid(TaskBid(agent_id="agent_b", task_id="t1", score=0.8, timestamp=ts))
+        auction.add_bid(
+            TaskBid(agent_id="agent_c", task_id="t1", score=0.8, timestamp=ts)
+        )
+        auction.add_bid(
+            TaskBid(agent_id="agent_a", task_id="t1", score=0.8, timestamp=ts)
+        )
+        auction.add_bid(
+            TaskBid(agent_id="agent_b", task_id="t1", score=0.8, timestamp=ts)
+        )
         winner = auction.resolve()
         assert winner == "agent_a"  # Alphabetically first
 
@@ -444,7 +454,10 @@ class TestHeartbeatProtocol:
         await adapter.send_heartbeat(status="idle")
         # Simulate remote agent presence
         adapter.agent_presence["Remote-01"] = AgentPresence(
-            agent_id="Remote-01", status="working", task_count=1, last_heartbeat=time.time()
+            agent_id="Remote-01",
+            status="working",
+            task_count=1,
+            last_heartbeat=time.time(),
         )
         online = adapter.get_online_agents()
         assert len(online) == 2
@@ -471,23 +484,15 @@ class TestMessageParsing:
 
     def test_parse_release(self, adapter):
         # First lock, then release
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #test-swarm :!intent A1 w1 task1"
-        )
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #test-swarm :!release w1"
-        )
+        adapter._parse_message(":A1!u@h PRIVMSG #test-swarm :!intent A1 w1 task1")
+        adapter._parse_message(":A1!u@h PRIVMSG #test-swarm :!release w1")
         assert adapter.is_worker_available("w1")
         assert adapter.stats.total_releases == 1
 
     def test_parse_renew(self, adapter):
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #test-swarm :!intent A1 w1 task1"
-        )
+        adapter._parse_message(":A1!u@h PRIVMSG #test-swarm :!intent A1 w1 task1")
         old_renewed = adapter.hiring_locks["w1"].last_renewed
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #test-swarm :!renew A1 w1"
-        )
+        adapter._parse_message(":A1!u@h PRIVMSG #test-swarm :!renew A1 w1")
         assert adapter.hiring_locks["w1"].last_renewed > old_renewed
 
     def test_parse_heartbeat(self, adapter):
@@ -500,12 +505,8 @@ class TestMessageParsing:
         assert p.task_count == 2
 
     def test_parse_heartbeat_updates_existing(self, adapter):
-        adapter._parse_message(
-            ":R1!u@h PRIVMSG #test-swarm :!heartbeat R1 idle 0"
-        )
-        adapter._parse_message(
-            ":R1!u@h PRIVMSG #test-swarm :!heartbeat R1 working 3"
-        )
+        adapter._parse_message(":R1!u@h PRIVMSG #test-swarm :!heartbeat R1 idle 0")
+        adapter._parse_message(":R1!u@h PRIVMSG #test-swarm :!heartbeat R1 working 3")
         p = adapter.get_agent_status("R1")
         assert p.status == "working"
         assert p.task_count == 3
@@ -513,55 +514,57 @@ class TestMessageParsing:
     def test_parse_bid(self, adapter):
         # Need an open auction first
         adapter.auctions["t1"] = TaskAuction(task_id="t1")
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #test-swarm :!bid A1 t1 0.9500"
-        )
+        adapter._parse_message(":A1!u@h PRIVMSG #test-swarm :!bid A1 t1 0.9500")
         assert len(adapter.auctions["t1"].bids) == 1
         assert adapter.auctions["t1"].bids[0].score == 0.95
         assert adapter.stats.total_bids == 1
 
     def test_parse_award(self, adapter):
         adapter.auctions["t1"] = TaskAuction(task_id="t1")
-        adapter._parse_message(
-            ":Coord!u@h PRIVMSG #test-swarm :!award t1 WinnerAgent"
-        )
+        adapter._parse_message(":Coord!u@h PRIVMSG #test-swarm :!award t1 WinnerAgent")
         assert adapter.auctions["t1"].winner == "WinnerAgent"
         assert adapter.auctions["t1"].closed is True
 
     def test_parse_auction(self, adapter):
-        payload = json.dumps({
-            "task_id": "t99",
-            "category": "research",
-            "bounty_usd": 0.50,
-            "timeout": 60,
-        })
-        adapter._parse_message(
-            f":Coord!u@h PRIVMSG #test-swarm :!auction {payload}"
+        payload = json.dumps(
+            {
+                "task_id": "t99",
+                "category": "research",
+                "bounty_usd": 0.50,
+                "timeout": 60,
+            }
         )
+        adapter._parse_message(f":Coord!u@h PRIVMSG #test-swarm :!auction {payload}")
         assert "t99" in adapter.auctions
         assert adapter.auctions["t99"].category == "research"
         assert adapter.auctions["t99"].bounty_usd == 0.50
 
     def test_parse_status(self, adapter):
         adapter.agent_presence["A1"] = AgentPresence(agent_id="A1", status="idle")
-        adapter._parse_message(
-            ":Coord!u@h PRIVMSG #test-swarm :!status A1 cooldown"
-        )
+        adapter._parse_message(":Coord!u@h PRIVMSG #test-swarm :!status A1 cooldown")
         assert adapter.agent_presence["A1"].status == "cooldown"
 
     def test_parse_sync_state(self, adapter):
-        state = json.dumps({
-            "locks": {
-                "w1": {"agent": "Remote-01", "task": "data_entry", "remaining": 200},
-                "w2": {"agent": "Remote-02", "task": "moderation", "remaining": 100},
-            },
-            "presence": {
-                "Remote-01": {"status": "working", "tasks": 1},
-            },
-        })
-        adapter._parse_message(
-            f":Peer!u@h PRIVMSG #test-swarm :!sync-state {state}"
+        state = json.dumps(
+            {
+                "locks": {
+                    "w1": {
+                        "agent": "Remote-01",
+                        "task": "data_entry",
+                        "remaining": 200,
+                    },
+                    "w2": {
+                        "agent": "Remote-02",
+                        "task": "moderation",
+                        "remaining": 100,
+                    },
+                },
+                "presence": {
+                    "Remote-01": {"status": "working", "tasks": 1},
+                },
+            }
         )
+        adapter._parse_message(f":Peer!u@h PRIVMSG #test-swarm :!sync-state {state}")
         assert "w1" in adapter.hiring_locks
         assert "w2" in adapter.hiring_locks
         assert adapter.hiring_locks["w1"].agent_id == "Remote-01"
@@ -569,12 +572,8 @@ class TestMessageParsing:
 
     def test_parse_intent_contention(self, adapter):
         """Remote intent on already-locked worker is blocked."""
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #test-swarm :!intent A1 w1 task1"
-        )
-        adapter._parse_message(
-            ":A2!u@h PRIVMSG #test-swarm :!intent A2 w1 task2"
-        )
+        adapter._parse_message(":A1!u@h PRIVMSG #test-swarm :!intent A1 w1 task1")
+        adapter._parse_message(":A2!u@h PRIVMSG #test-swarm :!intent A2 w1 task2")
         # A1 should still own the lock
         assert adapter.get_lock_owner("w1") == "A1"
         assert adapter.stats.total_contentions == 1
@@ -584,9 +583,7 @@ class TestMessageParsing:
         assert len(adapter.hiring_locks) == 0
 
     def test_parse_ignores_wrong_channel(self, adapter):
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #other-channel :!intent A1 w1 task1"
-        )
+        adapter._parse_message(":A1!u@h PRIVMSG #other-channel :!intent A1 w1 task1")
         assert adapter.is_worker_available("w1")
 
     def test_parse_heartbeat_invalid_task_count(self, adapter):
@@ -599,16 +596,12 @@ class TestMessageParsing:
 
     def test_parse_bid_invalid_score(self, adapter):
         adapter.auctions["t1"] = TaskAuction(task_id="t1")
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #test-swarm :!bid A1 t1 notanumber"
-        )
+        adapter._parse_message(":A1!u@h PRIVMSG #test-swarm :!bid A1 t1 notanumber")
         # Bid should be rejected (no crash)
         assert len(adapter.auctions["t1"].bids) == 0
 
     def test_parse_auction_invalid_json(self, adapter):
-        adapter._parse_message(
-            ":C!u@h PRIVMSG #test-swarm :!auction {invalid-json}"
-        )
+        adapter._parse_message(":C!u@h PRIVMSG #test-swarm :!auction {invalid-json}")
         # No crash, no auction created
         assert len(adapter.auctions) == 0
 
@@ -632,19 +625,23 @@ class TestStateSync:
         adapter.hiring_locks["w1"] = WorkerLock(
             worker_id="w1", agent_id="local", task_type="t", acquired_at=time.time()
         )
-        state = json.dumps({
-            "locks": {"w1": {"agent": "remote", "task": "other"}},
-            "presence": {},
-        })
+        state = json.dumps(
+            {
+                "locks": {"w1": {"agent": "remote", "task": "other"}},
+                "presence": {},
+            }
+        )
         adapter._apply_sync_state(state)
         # Own lock should NOT be overwritten
         assert adapter.hiring_locks["w1"].agent_id == "local"
 
     def test_apply_sync_adds_new_locks(self, adapter):
-        state = json.dumps({
-            "locks": {"w_new": {"agent": "remote", "task": "data"}},
-            "presence": {},
-        })
+        state = json.dumps(
+            {
+                "locks": {"w_new": {"agent": "remote", "task": "data"}},
+                "presence": {},
+            }
+        )
         adapter._apply_sync_state(state)
         assert "w_new" in adapter.hiring_locks
         assert adapter.hiring_locks["w_new"].agent_id == "remote"
@@ -653,19 +650,23 @@ class TestStateSync:
         adapter.agent_presence["TestAgent-00"] = AgentPresence(
             agent_id="TestAgent-00", status="working"
         )
-        state = json.dumps({
-            "locks": {},
-            "presence": {"TestAgent-00": {"status": "idle", "tasks": 0}},
-        })
+        state = json.dumps(
+            {
+                "locks": {},
+                "presence": {"TestAgent-00": {"status": "idle", "tasks": 0}},
+            }
+        )
         adapter._apply_sync_state(state)
         # Own presence should NOT be overwritten
         assert adapter.agent_presence["TestAgent-00"].status == "working"
 
     def test_apply_sync_adds_remote_presence(self, adapter):
-        state = json.dumps({
-            "locks": {},
-            "presence": {"Remote-01": {"status": "working", "tasks": 2}},
-        })
+        state = json.dumps(
+            {
+                "locks": {},
+                "presence": {"Remote-01": {"status": "working", "tasks": 2}},
+            }
+        )
         adapter._apply_sync_state(state)
         assert "Remote-01" in adapter.agent_presence
         assert adapter.agent_presence["Remote-01"].status == "working"
@@ -720,9 +721,7 @@ class TestCallbacks:
     async def test_heartbeat_callback_fires(self, adapter):
         events = []
         adapter.on_heartbeat(lambda evt, data: events.append((evt, data)))
-        adapter._parse_message(
-            ":R1!u@h PRIVMSG #test-swarm :!heartbeat R1 idle 0"
-        )
+        adapter._parse_message(":R1!u@h PRIVMSG #test-swarm :!heartbeat R1 idle 0")
         assert len(events) == 1
         assert events[0][1]["agent"] == "R1"
 
@@ -731,18 +730,14 @@ class TestCallbacks:
         events = []
         adapter.on_status_change(lambda evt, data: events.append((evt, data)))
         adapter.agent_presence["A1"] = AgentPresence(agent_id="A1")
-        adapter._parse_message(
-            ":C!u@h PRIVMSG #test-swarm :!status A1 cooldown"
-        )
+        adapter._parse_message(":C!u@h PRIVMSG #test-swarm :!status A1 cooldown")
         assert len(events) == 1
         assert events[0][1]["state"] == "cooldown"
 
     def test_legacy_register_callback(self, adapter):
         events = []
         adapter.register_callback(lambda evt, data: events.append((evt, data)))
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #test-swarm :!intent A1 w1 task1"
-        )
+        adapter._parse_message(":A1!u@h PRIVMSG #test-swarm :!intent A1 w1 task1")
         assert len(events) == 1
 
     @pytest.mark.asyncio
@@ -781,12 +776,8 @@ class TestCleanup:
 
     def test_cleanup_timed_out_auctions(self, adapter):
         # Create auction that started recently, add bid, then make it time out
-        auction = TaskAuction(
-            task_id="t1", started_at=time.time(), timeout_seconds=30
-        )
-        auction.add_bid(
-            TaskBid(agent_id="a1", task_id="t1", score=0.9)
-        )
+        auction = TaskAuction(task_id="t1", started_at=time.time(), timeout_seconds=30)
+        auction.add_bid(TaskBid(agent_id="a1", task_id="t1", score=0.9))
         assert len(auction.bids) == 1
         # Now make it timed out by adjusting start time
         auction.started_at = time.time() - 100
@@ -821,7 +812,9 @@ class TestDiagnostics:
     @pytest.mark.asyncio
     async def test_health_contention_rate(self, adapter):
         await adapter.broadcast_intent("a1", "w1", "t1")
-        await adapter.broadcast_intent("a1", "w2", "t2")  # No contention — different worker
+        await adapter.broadcast_intent(
+            "a1", "w2", "t2"
+        )  # No contention — different worker
         await adapter.broadcast_intent("a2", "w1", "t3")  # Contention on w1
         health = adapter.get_health()
         # 1 contention / 2 successful intents = 0.5
@@ -867,7 +860,7 @@ class TestIntegrationScenarios:
     @pytest.mark.asyncio
     async def test_full_auction_lifecycle(self, adapter):
         """Full auction: create, multi-bid, resolve, verify winner."""
-        auction = await adapter.start_auction("task-100", "research", 0.50)
+        await adapter.start_auction("task-100", "research", 0.50)
         await adapter.submit_bid("agent-a", "task-100", 0.7)
         await adapter.submit_bid("agent-b", "task-100", 0.95)
         await adapter.submit_bid("agent-c", "task-100", 0.8)
@@ -901,10 +894,12 @@ class TestIntegrationScenarios:
     @pytest.mark.asyncio
     async def test_sync_then_local_operations(self, adapter):
         """Apply remote state, then perform local operations without conflict."""
-        state = json.dumps({
-            "locks": {"w_remote": {"agent": "Remote", "task": "t"}},
-            "presence": {"Remote": {"status": "working", "tasks": 1}},
-        })
+        state = json.dumps(
+            {
+                "locks": {"w_remote": {"agent": "Remote", "task": "t"}},
+                "presence": {"Remote": {"status": "working", "tasks": 1}},
+            }
+        )
         adapter._apply_sync_state(state)
         # Local agent takes a different worker
         result = await adapter.broadcast_intent("TestAgent-00", "w_local", "t")
@@ -914,10 +909,12 @@ class TestIntegrationScenarios:
     @pytest.mark.asyncio
     async def test_sync_contention_with_remote(self, adapter):
         """Can't lock a worker that was synced from remote."""
-        state = json.dumps({
-            "locks": {"w1": {"agent": "Remote", "task": "t"}},
-            "presence": {},
-        })
+        state = json.dumps(
+            {
+                "locks": {"w1": {"agent": "Remote", "task": "t"}},
+                "presence": {},
+            }
+        )
         adapter._apply_sync_state(state)
         result = await adapter.broadcast_intent("Local", "w1", "t2")
         assert result is False
@@ -926,9 +923,7 @@ class TestIntegrationScenarios:
     def test_full_message_flow_via_parsing(self, adapter):
         """Simulate a complete flow through message parsing only."""
         # Agent 1 joins and sends heartbeat
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #test-swarm :!heartbeat A1 idle 0"
-        )
+        adapter._parse_message(":A1!u@h PRIVMSG #test-swarm :!heartbeat A1 idle 0")
         # Agent 1 locks a worker
         adapter._parse_message(
             ":A1!u@h PRIVMSG #test-swarm :!intent A1 worker1 data_entry"
@@ -942,9 +937,7 @@ class TestIntegrationScenarios:
             ":A2!u@h PRIVMSG #test-swarm :!intent A2 worker2 moderation"
         )
         # Agent 1 releases
-        adapter._parse_message(
-            ":A1!u@h PRIVMSG #test-swarm :!release worker1"
-        )
+        adapter._parse_message(":A1!u@h PRIVMSG #test-swarm :!release worker1")
 
         assert adapter.is_worker_available("worker1")
         assert not adapter.is_worker_available("worker2")

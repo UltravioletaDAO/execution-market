@@ -74,11 +74,11 @@ export function TaskList({
   onTaskClick,
   emptyMessage,
 }: TaskListProps) {
+  const { t } = useTranslation()
+
   if (loading) {
     return LOADING_SKELETON
   }
-
-  const { t } = useTranslation()
 
   if (error) {
     return (

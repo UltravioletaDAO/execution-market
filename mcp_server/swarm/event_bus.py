@@ -37,7 +37,6 @@ Usage:
 
 import fnmatch
 import logging
-import time
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -235,16 +234,12 @@ class EventBus:
         )
 
         self._total_events += 1
-        self._events_by_type[event_type] = (
-            self._events_by_type.get(event_type, 0) + 1
-        )
+        self._events_by_type[event_type] = self._events_by_type.get(event_type, 0) + 1
         self._history.append(event)
 
         # Find matching subscriptions
         matching = [
-            sub
-            for sub in self._subscriptions
-            if self._matches(sub.pattern, event_type)
+            sub for sub in self._subscriptions if self._matches(sub.pattern, event_type)
         ]
 
         for sub in matching:
@@ -330,8 +325,12 @@ class EventBus:
                 logger.error(f"XMTP bridge reputation_updated failed: {e}")
 
         subs.append(self.on(TASK_ASSIGNED, on_task_assigned, source="xmtp_bridge"))
-        subs.append(self.on(PAYMENT_CONFIRMED, on_payment_confirmed, source="xmtp_bridge"))
-        subs.append(self.on(REPUTATION_UPDATED, on_reputation_updated, source="xmtp_bridge"))
+        subs.append(
+            self.on(PAYMENT_CONFIRMED, on_payment_confirmed, source="xmtp_bridge")
+        )
+        subs.append(
+            self.on(REPUTATION_UPDATED, on_reputation_updated, source="xmtp_bridge")
+        )
 
         logger.info("XMTP bridge wired to event bus (3 subscriptions)")
         return subs
@@ -385,16 +384,10 @@ class EventBus:
         events = list(self._history)
 
         if event_type:
-            events = [
-                e
-                for e in events
-                if self._matches(event_type, e.type)
-            ]
+            events = [e for e in events if self._matches(event_type, e.type)]
 
         if correlation_id:
-            events = [
-                e for e in events if e.correlation_id == correlation_id
-            ]
+            events = [e for e in events if e.correlation_id == correlation_id]
 
         return [e.to_dict() for e in events[-limit:]]
 

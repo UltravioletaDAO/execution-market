@@ -15,7 +15,6 @@ import pytest
 
 pytestmark = pytest.mark.payments
 
-import os
 import uuid
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock

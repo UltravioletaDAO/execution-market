@@ -50,9 +50,8 @@ Usage:
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 logger = logging.getLogger("em.swarm.integrator")
 
@@ -382,8 +381,6 @@ class SwarmIntegrator:
 
         # Emit swarm.started event
         if self._event_bus:
-            from .event_bus import SWARM_CYCLE_START
-
             self._event_bus.emit(
                 "swarm.started",
                 {
@@ -423,8 +420,7 @@ class SwarmIntegrator:
             )
 
         logger.info(
-            f"SwarmIntegrator stopped after {uptime:.0f}s, "
-            f"{self._cycle_count} cycles"
+            f"SwarmIntegrator stopped after {uptime:.0f}s, {self._cycle_count} cycles"
         )
 
         return {
@@ -596,16 +592,12 @@ class SwarmIntegrator:
                     assigned = self._coordinator.route_tasks(
                         max_bounty=self.bounty_threshold
                     )
-                    result.tasks_assigned = (
-                        assigned if isinstance(assigned, int) else 0
-                    )
+                    result.tasks_assigned = assigned if isinstance(assigned, int) else 0
                 result.phases_completed.append("route")
             elif self.mode == SwarmMode.FULL_AUTO:
                 if hasattr(self._coordinator, "route_tasks"):
                     assigned = self._coordinator.route_tasks()
-                    result.tasks_assigned = (
-                        assigned if isinstance(assigned, int) else 0
-                    )
+                    result.tasks_assigned = assigned if isinstance(assigned, int) else 0
                 result.phases_completed.append("route")
 
             self._touch_component("coordinator")
@@ -618,9 +610,7 @@ class SwarmIntegrator:
                     TASK_ASSIGNED,
                     {"count": result.tasks_assigned, "mode": self.mode.value},
                 )
-                self._fire_hooks(
-                    "on_assignment", count=result.tasks_assigned
-                )
+                self._fire_hooks("on_assignment", count=result.tasks_assigned)
 
         except Exception as e:
             result.phases_failed.append("route")
@@ -701,18 +691,13 @@ class SwarmIntegrator:
         Get comprehensive health status of the entire swarm.
         """
         components = {
-            name: status.to_dict()
-            for name, status in self._component_statuses.items()
+            name: status.to_dict() for name, status in self._component_statuses.items()
         }
 
-        healthy_count = sum(
-            1 for s in self._component_statuses.values() if s.healthy
-        )
+        healthy_count = sum(1 for s in self._component_statuses.values() if s.healthy)
         total_count = len(self._component_statuses)
 
-        uptime = (
-            time.time() - self._start_time if self._start_time else 0
-        )
+        uptime = time.time() - self._start_time if self._start_time else 0
 
         return {
             "status": "healthy" if healthy_count == total_count else "degraded",
@@ -733,18 +718,12 @@ class SwarmIntegrator:
                     else None
                 ),
             },
-            "event_bus": (
-                self._event_bus.get_status()
-                if self._event_bus
-                else None
-            ),
+            "event_bus": (self._event_bus.get_status() if self._event_bus else None),
         }
 
     def is_healthy(self) -> bool:
         """Quick boolean health check."""
-        return all(
-            s.healthy for s in self._component_statuses.values()
-        )
+        return all(s.healthy for s in self._component_statuses.values())
 
     def is_circuit_broken(self) -> bool:
         """Check if too many consecutive errors have occurred."""
@@ -805,9 +784,7 @@ class SwarmIntegrator:
             "cycles": self._cycle_count,
             "circuit_broken": self.is_circuit_broken(),
             "last_cycle": (
-                self._cycle_history[-1].to_dict()
-                if self._cycle_history
-                else None
+                self._cycle_history[-1].to_dict() if self._cycle_history else None
             ),
         }
 

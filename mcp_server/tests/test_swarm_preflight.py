@@ -64,35 +64,43 @@ class TestPreflightReport:
         assert r.passed is True  # No checks = no blockers
 
     def test_all_pass(self):
-        r = PreflightReport(checks=[
-            CheckResult("a", True),
-            CheckResult("b", True),
-        ])
+        r = PreflightReport(
+            checks=[
+                CheckResult("a", True),
+                CheckResult("b", True),
+            ]
+        )
         assert r.passed is True
         assert r.pass_count == 2
         assert len(r.failures) == 0
 
     def test_blocker_fails_report(self):
-        r = PreflightReport(checks=[
-            CheckResult("a", True),
-            CheckResult("b", False, severity="blocker"),
-        ])
+        r = PreflightReport(
+            checks=[
+                CheckResult("a", True),
+                CheckResult("b", False, severity="blocker"),
+            ]
+        )
         assert r.passed is False
         assert len(r.blockers) == 1
 
     def test_warning_doesnt_fail_report(self):
-        r = PreflightReport(checks=[
-            CheckResult("a", True),
-            CheckResult("b", False, severity="warning"),
-        ])
+        r = PreflightReport(
+            checks=[
+                CheckResult("a", True),
+                CheckResult("b", False, severity="warning"),
+            ]
+        )
         assert r.passed is True  # Warnings don't fail
         assert len(r.warnings) == 1
 
     def test_to_dict(self):
-        r = PreflightReport(checks=[
-            CheckResult("a", True, duration_ms=10),
-            CheckResult("b", False, error="oops"),
-        ])
+        r = PreflightReport(
+            checks=[
+                CheckResult("a", True, duration_ms=10),
+                CheckResult("b", False, error="oops"),
+            ]
+        )
         r.started_at = "2026-03-19T06:00:00Z"
         r.completed_at = "2026-03-19T06:00:01Z"
         r.total_duration_ms = 1000
@@ -104,10 +112,12 @@ class TestPreflightReport:
         assert len(d["checks"]) == 2
 
     def test_to_summary_readable(self):
-        r = PreflightReport(checks=[
-            CheckResult("imports", True, duration_ms=5),
-            CheckResult("api", False, error="timeout", severity="warning"),
-        ])
+        r = PreflightReport(
+            checks=[
+                CheckResult("imports", True, duration_ms=5),
+                CheckResult("api", False, error="timeout", severity="warning"),
+            ]
+        )
         r.total_duration_ms = 50
         summary = r.to_summary()
         assert "Pre-Flight Report" in summary
@@ -115,11 +125,13 @@ class TestPreflightReport:
         assert "⚠️ api" in summary
 
     def test_total_count(self):
-        r = PreflightReport(checks=[
-            CheckResult("a", True),
-            CheckResult("b", True),
-            CheckResult("c", False),
-        ])
+        r = PreflightReport(
+            checks=[
+                CheckResult("a", True),
+                CheckResult("b", True),
+                CheckResult("c", False),
+            ]
+        )
         assert r.total_count == 3
         assert r.pass_count == 2
 
@@ -252,6 +264,7 @@ class TestCheckAPIConnectivity:
     def test_api_connectivity_failure(self, mock_urlopen, preflight):
         """Should fail gracefully when API is down."""
         from urllib.error import URLError
+
         mock_urlopen.side_effect = URLError("Connection refused")
         result = preflight.check_api_connectivity()
         assert result.name == "api_connectivity"
@@ -305,6 +318,7 @@ class TestRunAll:
         mock_urlopen.return_value = mock_resp
         report = preflight.run_all()
         import json
+
         json_str = json.dumps(report.to_dict())
         assert len(json_str) > 100
 

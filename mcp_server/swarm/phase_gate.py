@@ -40,11 +40,12 @@ logger = logging.getLogger("em.swarm.phase_gate")
 
 class Phase(IntEnum):
     """Activation phases in order."""
-    EMERGENCY = -1   # Kill switch — everything off
-    PRE_FLIGHT = 0   # Phase 0: verify no regressions
-    PASSIVE = 1      # Phase 1: observe and collect metrics
-    SEMI_AUTO = 2    # Phase 2: auto-assign micro-tasks
-    FULL_AUTO = 3    # Phase 3: full autonomous operation
+
+    EMERGENCY = -1  # Kill switch — everything off
+    PRE_FLIGHT = 0  # Phase 0: verify no regressions
+    PASSIVE = 1  # Phase 1: observe and collect metrics
+    SEMI_AUTO = 2  # Phase 2: auto-assign micro-tasks
+    FULL_AUTO = 3  # Phase 3: full autonomous operation
 
 
 PHASE_LABELS = {
@@ -67,6 +68,7 @@ PHASE_MODE_MAP = {
 @dataclass
 class GateCheck:
     """Result of evaluating a single gate condition."""
+
     name: str
     description: str
     passed: bool
@@ -88,6 +90,7 @@ class GateCheck:
 @dataclass
 class PhaseEvaluation:
     """Complete evaluation of whether phase transition is safe."""
+
     current_phase: Phase
     target_phase: Phase
     gates: list[GateCheck] = field(default_factory=list)
@@ -101,12 +104,20 @@ class PhaseEvaluation:
     @property
     def blockers(self) -> list[str]:
         """List of failing blocker gate descriptions."""
-        return [g.description for g in self.gates if not g.passed and g.severity == "blocker"]
+        return [
+            g.description
+            for g in self.gates
+            if not g.passed and g.severity == "blocker"
+        ]
 
     @property
     def warnings(self) -> list[str]:
         """List of failing warning gate descriptions."""
-        return [g.description for g in self.gates if not g.passed and g.severity == "warning"]
+        return [
+            g.description
+            for g in self.gates
+            if not g.passed and g.severity == "warning"
+        ]
 
     @property
     def pass_rate(self) -> float:
@@ -117,7 +128,9 @@ class PhaseEvaluation:
 
     def to_dict(self) -> dict:
         return {
-            "current_phase": PHASE_LABELS.get(self.current_phase, str(self.current_phase)),
+            "current_phase": PHASE_LABELS.get(
+                self.current_phase, str(self.current_phase)
+            ),
             "target_phase": PHASE_LABELS.get(self.target_phase, str(self.target_phase)),
             "can_advance": self.can_advance,
             "pass_rate": round(self.pass_rate, 2),
@@ -133,6 +146,7 @@ class PhaseEvaluation:
 @dataclass
 class SwarmMetrics:
     """Snapshot of current swarm and platform metrics."""
+
     # API health
     api_healthy: bool = False
     api_response_ms: float = 0.0
@@ -172,6 +186,7 @@ class SwarmMetrics:
 @dataclass
 class PhaseTransition:
     """Record of a phase transition."""
+
     from_phase: Phase
     to_phase: Phase
     reason: str
@@ -363,9 +378,10 @@ def _gates_semi_auto_to_full_auto(m: SwarmMetrics) -> list[GateCheck]:
             name="budget_under_control",
             description="Daily spend under 80% of budget",
             passed=(
-                m.daily_budget_usd > 0
-                and m.daily_spend_usd / m.daily_budget_usd < 0.8
-            ) if m.daily_budget_usd > 0 else True,
+                m.daily_budget_usd > 0 and m.daily_spend_usd / m.daily_budget_usd < 0.8
+            )
+            if m.daily_budget_usd > 0
+            else True,
             current_value=round(m.daily_spend_usd, 2),
             required_value=f"< {round(m.daily_budget_usd * 0.8, 2)}",
         ),
@@ -466,7 +482,9 @@ class PhaseGate:
             auto=True,
         )
         self._history.append(transition)
-        logger.critical("EMERGENCY STOP: %s (was: %s)", reason, PHASE_LABELS.get(old, str(old)))
+        logger.critical(
+            "EMERGENCY STOP: %s (was: %s)", reason, PHASE_LABELS.get(old, str(old))
+        )
 
     def evaluate_advance(self, metrics: SwarmMetrics) -> PhaseEvaluation:
         """
@@ -560,7 +578,11 @@ class PhaseGate:
             return None
 
         old_phase = self._phase
-        new_phase = Phase(self._phase + 1) if self._phase != Phase.EMERGENCY else Phase.PRE_FLIGHT
+        new_phase = (
+            Phase(self._phase + 1)
+            if self._phase != Phase.EMERGENCY
+            else Phase.PRE_FLIGHT
+        )
 
         self._phase = new_phase
         self._phase_start = time.time()
@@ -600,42 +622,50 @@ class PhaseGate:
         checks = []
 
         # Universal health checks (all phases)
-        checks.append(GateCheck(
-            name="api_reachable",
-            description="EM API is reachable",
-            passed=metrics.api_healthy,
-            current_value=metrics.api_healthy,
-            required_value=True,
-        ))
+        checks.append(
+            GateCheck(
+                name="api_reachable",
+                description="EM API is reachable",
+                passed=metrics.api_healthy,
+                current_value=metrics.api_healthy,
+                required_value=True,
+            )
+        )
 
         if self._phase >= Phase.PASSIVE:
-            checks.append(GateCheck(
-                name="error_rate",
-                description="Error count in last hour < 10",
-                passed=metrics.error_count_last_hour < 10,
-                current_value=metrics.error_count_last_hour,
-                required_value="< 10",
-            ))
+            checks.append(
+                GateCheck(
+                    name="error_rate",
+                    description="Error count in last hour < 10",
+                    passed=metrics.error_count_last_hour < 10,
+                    current_value=metrics.error_count_last_hour,
+                    required_value="< 10",
+                )
+            )
 
         if self._phase >= Phase.SEMI_AUTO:
-            checks.append(GateCheck(
-                name="budget_not_exceeded",
-                description="Daily spend not exceeding budget",
-                passed=(
-                    metrics.daily_budget_usd == 0
-                    or metrics.daily_spend_usd <= metrics.daily_budget_usd
-                ),
-                current_value=round(metrics.daily_spend_usd, 2),
-                required_value=f"<= {round(metrics.daily_budget_usd, 2)}",
-            ))
+            checks.append(
+                GateCheck(
+                    name="budget_not_exceeded",
+                    description="Daily spend not exceeding budget",
+                    passed=(
+                        metrics.daily_budget_usd == 0
+                        or metrics.daily_spend_usd <= metrics.daily_budget_usd
+                    ),
+                    current_value=round(metrics.daily_spend_usd, 2),
+                    required_value=f"<= {round(metrics.daily_budget_usd, 2)}",
+                )
+            )
 
-            checks.append(GateCheck(
-                name="expiry_not_worsening",
-                description="Expiry rate not above 50% (getting worse)",
-                passed=metrics.expiry_rate < 0.50,
-                current_value=round(metrics.expiry_rate, 3),
-                required_value="< 0.50",
-            ))
+            checks.append(
+                GateCheck(
+                    name="expiry_not_worsening",
+                    description="Expiry rate not above 50% (getting worse)",
+                    passed=metrics.expiry_rate < 0.50,
+                    current_value=round(metrics.expiry_rate, 3),
+                    required_value="< 0.50",
+                )
+            )
 
         return checks
 
@@ -652,11 +682,17 @@ class PhaseGate:
             metrics.daily_budget_usd > 0
             and metrics.daily_spend_usd > metrics.daily_budget_usd * 2
         ):
-            return True, f"Spend ${metrics.daily_spend_usd:.2f} exceeds 2x budget ${metrics.daily_budget_usd:.2f}"
+            return (
+                True,
+                f"Spend ${metrics.daily_spend_usd:.2f} exceeds 2x budget ${metrics.daily_budget_usd:.2f}",
+            )
 
         # Error storm
         if metrics.error_count_last_hour > 50:
-            return True, f"Error storm: {metrics.error_count_last_hour} errors in last hour"
+            return (
+                True,
+                f"Error storm: {metrics.error_count_last_hour} errors in last hour",
+            )
 
         # API down for extended period (check via response time > 30s or unhealthy)
         if not metrics.api_healthy and metrics.uptime_hours > 0.5:
@@ -674,9 +710,7 @@ class PhaseGate:
             "phase_duration_days": round(self.phase_duration_days, 2),
             "emergency_reason": self._emergency_reason,
             "history_count": len(self._history),
-            "last_transition": (
-                self._history[-1].to_dict() if self._history else None
-            ),
+            "last_transition": (self._history[-1].to_dict() if self._history else None),
         }
 
     def to_dict(self) -> dict:

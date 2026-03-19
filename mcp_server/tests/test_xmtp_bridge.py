@@ -3,7 +3,6 @@ Tests for XMTPBridge — Swarm ↔ XMTP Bot integration.
 """
 
 import json
-import time
 import pytest
 from unittest.mock import patch, MagicMock
 from urllib.error import URLError
@@ -83,36 +82,44 @@ class TestNotificationPayload:
 
 class TestWebhookEvent:
     def test_from_dict_valid(self):
-        event = WebhookEvent.from_dict({
-            "event_type": "evidence_submitted",
-            "sender_wallet": "0xWORKER",
-            "task_id": "task-123",
-            "payload": {"photo_url": "https://..."},
-        })
+        event = WebhookEvent.from_dict(
+            {
+                "event_type": "evidence_submitted",
+                "sender_wallet": "0xWORKER",
+                "task_id": "task-123",
+                "payload": {"photo_url": "https://..."},
+            }
+        )
         assert event.event_type == XMTPEventType.EVIDENCE_SUBMITTED
         assert event.sender_wallet == "0xWORKER"
         assert event.task_id == "task-123"
 
     def test_from_dict_unknown_event_type(self):
-        event = WebhookEvent.from_dict({
-            "event_type": "unknown_event",
-            "sender": "0x123",
-        })
+        event = WebhookEvent.from_dict(
+            {
+                "event_type": "unknown_event",
+                "sender": "0x123",
+            }
+        )
         assert event.event_type == XMTPEventType.WORKER_MESSAGE
 
     def test_from_dict_sender_fallback(self):
-        event = WebhookEvent.from_dict({
-            "event_type": "worker_registered",
-            "sender": "0xFALLBACK",
-        })
+        event = WebhookEvent.from_dict(
+            {
+                "event_type": "worker_registered",
+                "sender": "0xFALLBACK",
+            }
+        )
         assert event.sender_wallet == "0xFALLBACK"
 
     def test_from_dict_data_fallback(self):
-        event = WebhookEvent.from_dict({
-            "event_type": "worker_applied",
-            "sender_wallet": "0x",
-            "data": {"key": "value"},
-        })
+        event = WebhookEvent.from_dict(
+            {
+                "event_type": "worker_applied",
+                "sender_wallet": "0x",
+                "data": {"key": "value"},
+            }
+        )
         assert event.payload == {"key": "value"}
 
 
@@ -149,9 +156,7 @@ class TestNotifyTaskAssigned:
         assert "$3.00" in body["body"]
 
     def test_high_priority(self, bridge, mock_urlopen):
-        bridge.notify_task_assigned(
-            "task-id", "0xW", {"title": "Urgent", "bounty": 10}
-        )
+        bridge.notify_task_assigned("task-id", "0xW", {"title": "Urgent", "bounty": 10})
         call_args = mock_urlopen.call_args
         req = call_args[0][0]
         body = json.loads(req.data.decode())
@@ -332,9 +337,7 @@ class TestDeliveryFailure:
     def test_retry_queue_populated(self, bridge):
         with patch("mcp_server.swarm.xmtp_bridge.urlopen") as mock:
             mock.side_effect = URLError("Timeout")
-            bridge.notify_task_assigned(
-                "task-1", "0xW", {"title": "T", "bounty": 1}
-            )
+            bridge.notify_task_assigned("task-1", "0xW", {"title": "T", "bounty": 1})
             assert len(bridge._pending_retries) == 1
 
     def test_process_retry_queue_success(self, bridge, mock_urlopen):
@@ -367,26 +370,28 @@ class TestWebhookHandling:
         def handler(event):
             received.append(event)
 
-        bridge.register_webhook_handler(
-            XMTPEventType.EVIDENCE_SUBMITTED, handler
-        )
+        bridge.register_webhook_handler(XMTPEventType.EVIDENCE_SUBMITTED, handler)
 
-        result = bridge.handle_webhook({
-            "event_type": "evidence_submitted",
-            "sender_wallet": "0xWORKER",
-            "task_id": "task-123",
-            "payload": {"photo": "url"},
-        })
+        result = bridge.handle_webhook(
+            {
+                "event_type": "evidence_submitted",
+                "sender_wallet": "0xWORKER",
+                "task_id": "task-123",
+                "payload": {"photo": "url"},
+            }
+        )
 
         assert result is True
         assert len(received) == 1
         assert received[0].task_id == "task-123"
 
     def test_unhandled_event_type(self, bridge):
-        result = bridge.handle_webhook({
-            "event_type": "worker_registered",
-            "sender_wallet": "0xW",
-        })
+        result = bridge.handle_webhook(
+            {
+                "event_type": "worker_registered",
+                "sender_wallet": "0xW",
+            }
+        )
         assert result is False
 
     def test_multiple_handlers(self, bridge):
@@ -399,10 +404,12 @@ class TestWebhookHandling:
             XMTPEventType.WORKER_APPLIED, lambda e: calls.append("h2")
         )
 
-        bridge.handle_webhook({
-            "event_type": "worker_applied",
-            "sender_wallet": "0xW",
-        })
+        bridge.handle_webhook(
+            {
+                "event_type": "worker_applied",
+                "sender_wallet": "0xW",
+            }
+        )
 
         assert calls == ["h1", "h2"]
 
@@ -410,25 +417,25 @@ class TestWebhookHandling:
         def bad_handler(event):
             raise ValueError("boom")
 
-        bridge.register_webhook_handler(
-            XMTPEventType.WORKER_MESSAGE, bad_handler
-        )
+        bridge.register_webhook_handler(XMTPEventType.WORKER_MESSAGE, bad_handler)
 
         # Should not raise
-        bridge.handle_webhook({
-            "event_type": "worker_message",
-            "sender_wallet": "0xW",
-        })
-
-    def test_stats_updated(self, bridge):
-        bridge.register_webhook_handler(
-            XMTPEventType.WORKER_RATED, lambda e: None
+        bridge.handle_webhook(
+            {
+                "event_type": "worker_message",
+                "sender_wallet": "0xW",
+            }
         )
 
-        bridge.handle_webhook({
-            "event_type": "worker_rated",
-            "sender_wallet": "0xW",
-        })
+    def test_stats_updated(self, bridge):
+        bridge.register_webhook_handler(XMTPEventType.WORKER_RATED, lambda e: None)
+
+        bridge.handle_webhook(
+            {
+                "event_type": "worker_rated",
+                "sender_wallet": "0xW",
+            }
+        )
 
         assert bridge._stats["webhooks_received"] == 1
         assert bridge._stats["webhooks_processed"] == 1
@@ -446,21 +453,15 @@ class TestStatusMetrics:
         assert status["rate_limit"]["per_worker_per_hour"] == 5
 
     def test_get_stats(self, bridge, mock_urlopen):
-        bridge.notify_task_assigned(
-            "t1", "0xW", {"title": "T", "bounty": 1}
-        )
+        bridge.notify_task_assigned("t1", "0xW", {"title": "T", "bounty": 1})
         stats = bridge.get_stats()
         assert stats["notifications_sent"] == 1
         assert stats["total_attempted"] == 1
         assert stats["success_rate_pct"] == 100.0
 
     def test_delivery_history(self, bridge, mock_urlopen):
-        bridge.notify_task_assigned(
-            "t1", "0xW1", {"title": "T1", "bounty": 1}
-        )
-        bridge.notify_task_assigned(
-            "t2", "0xW2", {"title": "T2", "bounty": 2}
-        )
+        bridge.notify_task_assigned("t1", "0xW1", {"title": "T1", "bounty": 1})
+        bridge.notify_task_assigned("t2", "0xW2", {"title": "T2", "bounty": 2})
 
         history = bridge.get_delivery_history(limit=10)
         assert len(history) == 2
@@ -469,9 +470,7 @@ class TestStatusMetrics:
     def test_stats_with_failures(self, bridge):
         with patch("mcp_server.swarm.xmtp_bridge.urlopen") as mock:
             mock.side_effect = URLError("fail")
-            bridge.notify_task_assigned(
-                "t1", "0xW", {"title": "T", "bounty": 1}
-            )
+            bridge.notify_task_assigned("t1", "0xW", {"title": "T", "bounty": 1})
 
         stats = bridge.get_stats()
         # First attempt fails → notifications_failed incremented in _send_notification
