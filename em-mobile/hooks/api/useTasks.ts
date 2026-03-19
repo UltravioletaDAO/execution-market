@@ -29,6 +29,7 @@ export interface Task {
   target_executor_type: string | null;
   escrow_tx: string | null;
   payment_tx: string | null;
+  escrow_status?: string | null;
 }
 
 interface TaskFilters {
@@ -114,6 +115,7 @@ export function useTask(taskId: string | undefined) {
           target_executor_type: data.target_executor_type ?? null,
           escrow_tx: data.escrow_tx ?? null,
           payment_tx: data.payment_tx ?? null,
+          escrow_status: null, // Not available in direct Supabase query (lives in escrows table)
         } as Task;
       }
     },
