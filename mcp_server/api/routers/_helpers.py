@@ -1228,18 +1228,36 @@ async def _settle_submission_payment(
                 client = db.get_client()
                 esc_check = (
                     client.table("escrows")
-                    .select("metadata")
+                    .select("metadata,status")
                     .eq("task_id", task_id)
                     .limit(1)
                     .execute()
                 )
                 if esc_check.data:
-                    esc_meta = esc_check.data[0].get("metadata") or {}
+                    esc_row = esc_check.data[0]
+                    esc_meta = esc_row.get("metadata") or {}
                     if isinstance(esc_meta, str):
                         esc_meta = json.loads(esc_meta)
                     is_direct_release_task = (
                         esc_meta.get("escrow_mode") == "direct_release"
                     )
+                    # ESCROW-004: Validate escrow status before settlement
+                    # (only for escrow modes — fase1 has no escrow)
+                    if not is_fase1:
+                        esc_status = _normalize_status(esc_row.get("status"))
+                        _releasable = {
+                            "deposited",
+                            "funded",
+                            "locked",
+                            "active",
+                        }
+                        if esc_status not in _releasable:
+                            return {
+                                "payment_tx": None,
+                                "payment_error": (
+                                    f"Escrow not in releasable state: {esc_status}"
+                                ),
+                            }
             except Exception as esc_err:
                 logger.warning(
                     "Could not read escrow metadata for task %s: %s",
@@ -1295,6 +1313,10 @@ async def _settle_submission_payment(
             if not release_tx:
                 release_error = f"Settlement response for task {task_id} did not include tx hash; retry required"
                 logger.error(release_error)
+                return {
+                    "payment_tx": None,
+                    "payment_error": release_error,
+                }
 
             client = db.get_client()
             payment_record = {

@@ -2006,11 +2006,17 @@ async def cancel_task(
                         .execute()
                     )
                     escrow_row = escrow_result.data or None
-                except Exception:
+                except Exception as e:
+                    logger.error("Escrow lookup failed for task %s: %s", task_id, e)
+                    if task.get("escrow_tx"):
+                        raise HTTPException(
+                            status_code=500,
+                            detail="Cannot verify escrow state for task with existing escrow transaction",
+                        )
                     escrow_row = None
 
                 escrow_status = _normalize_status(
-                    (escrow_row or {}).get("status") or "authorized"
+                    (escrow_row or {}).get("status") or "none"
                 )
                 effective_escrow_id = (escrow_row or {}).get("escrow_id") or escrow_id
 
