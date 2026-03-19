@@ -224,16 +224,39 @@ class TestCheckBudgetGuardrails:
 class TestCheckAPIConnectivity:
     """check_api_connectivity — live API check (warning severity)."""
 
-    def test_api_check_is_warning_severity(self, preflight):
+    @patch("mcp_server.swarm.preflight.urlopen")
+    def test_api_check_is_warning_severity(self, mock_urlopen, preflight):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read.return_value = b'{"status":"ok"}'
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_resp
         result = preflight.check_api_connectivity()
         assert result.severity == "warning"
 
-    def test_api_connectivity_attempt(self, preflight):
-        """Should attempt connection (may pass or fail depending on network)."""
+    @patch("mcp_server.swarm.preflight.urlopen")
+    def test_api_connectivity_success(self, mock_urlopen, preflight):
+        """Should pass when API responds with 200."""
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read.return_value = b'{"status":"ok"}'
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_resp
         result = preflight.check_api_connectivity()
-        # Either passes (API up) or fails gracefully (API down)
         assert result.name == "api_connectivity"
-        assert isinstance(result.passed, bool)
+        assert result.passed is True
+
+    @patch("mcp_server.swarm.preflight.urlopen")
+    def test_api_connectivity_failure(self, mock_urlopen, preflight):
+        """Should fail gracefully when API is down."""
+        from urllib.error import URLError
+        mock_urlopen.side_effect = URLError("Connection refused")
+        result = preflight.check_api_connectivity()
+        assert result.name == "api_connectivity"
+        assert result.passed is False
+        assert result.error is not None
 
 
 # ─── Full Run ─────────────────────────────────────────────────────
@@ -242,7 +265,14 @@ class TestCheckAPIConnectivity:
 class TestRunAll:
     """Full pre-flight run."""
 
-    def test_run_all_completes(self, preflight):
+    @patch("mcp_server.swarm.preflight.urlopen")
+    def test_run_all_completes(self, mock_urlopen, preflight):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read.return_value = b'{"status":"ok"}'
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_resp
         report = preflight.run_all()
         assert isinstance(report, PreflightReport)
         assert report.total_count >= 10
@@ -250,21 +280,42 @@ class TestRunAll:
         assert report.completed_at is not None
         assert report.total_duration_ms > 0
 
-    def test_run_all_local_checks_pass(self, preflight):
+    @patch("mcp_server.swarm.preflight.urlopen")
+    def test_run_all_local_checks_pass(self, mock_urlopen, preflight):
         """All local checks (non-API) should pass."""
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read.return_value = b'{"status":"ok"}'
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_resp
         report = preflight.run_all()
         local_checks = [c for c in report.checks if c.severity == "blocker"]
         for c in local_checks:
             assert c.passed is True, f"Blocker check failed: {c.name} — {c.error}"
 
-    def test_report_dict_serializable(self, preflight):
+    @patch("mcp_server.swarm.preflight.urlopen")
+    def test_report_dict_serializable(self, mock_urlopen, preflight):
         """Report dict should be JSON-serializable."""
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read.return_value = b'{"status":"ok"}'
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_resp
         report = preflight.run_all()
         import json
         json_str = json.dumps(report.to_dict())
         assert len(json_str) > 100
 
-    def test_report_summary_readable(self, preflight):
+    @patch("mcp_server.swarm.preflight.urlopen")
+    def test_report_summary_readable(self, mock_urlopen, preflight):
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.read.return_value = b'{"status":"ok"}'
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_resp
         report = preflight.run_all()
         summary = report.to_summary()
         assert "Pre-Flight Report" in summary
