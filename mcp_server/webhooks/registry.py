@@ -261,6 +261,20 @@ class WebhookRegistry:
             and self._webhooks[wh_id].status == WebhookStatus.ACTIVE
         ]
 
+    def get_by_owner_and_event(
+        self, owner_id: str, event_type: WebhookEventType
+    ) -> List[WebhookEndpoint]:
+        """Get all active webhooks for an owner subscribed to an event type."""
+        owner_ids = self._by_owner.get(owner_id, set())
+        event_ids = self._by_event.get(event_type, set())
+        matching_ids = owner_ids & event_ids
+        return [
+            self._webhooks[wh_id]
+            for wh_id in matching_ids
+            if wh_id in self._webhooks
+            and self._webhooks[wh_id].status == WebhookStatus.ACTIVE
+        ]
+
     def update(
         self,
         webhook_id: str,
