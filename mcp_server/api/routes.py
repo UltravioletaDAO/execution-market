@@ -17,6 +17,7 @@ from .routers.workers import router as workers_router
 from .routers.misc import router as misc_router
 from .routers.evidence import router as evidence_router
 from .routers.payments import router as payments_router
+from .routers.webhooks import router as webhooks_router
 
 # ---------------------------------------------------------------------------
 # Aggregated router — imported by api/__init__.py as ``api_router``
@@ -28,6 +29,7 @@ router.include_router(workers_router)
 router.include_router(misc_router)
 router.include_router(evidence_router)
 router.include_router(payments_router)
+router.include_router(webhooks_router)
 
 # ---------------------------------------------------------------------------
 # Backward-compatible re-exports used by tests and jobs
