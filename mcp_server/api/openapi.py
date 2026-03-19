@@ -658,9 +658,9 @@ class ErrorResponse(BaseModel):
         json_schema_extra={
             "example": {
                 "error": "ValidationError",
-                "message": "bounty_usd must be at least 0.50",
+                "message": "bounty_usd must be at least 0.01",
                 "code": "INVALID_BOUNTY",
-                "details": {"field": "bounty_usd", "min": 0.50, "received": 0.25},
+                "details": {"field": "bounty_usd", "min": 0.01, "received": 0.001},
                 "request_id": "req_abc123",
             }
         }
@@ -989,13 +989,13 @@ Official SDKs are available:
             "summary": "Validation error response",
             "value": {
                 "error": "ValidationError",
-                "message": "bounty_usd must be at least 0.50",
+                "message": "bounty_usd must be at least 0.01",
                 "code": "INVALID_BOUNTY",
                 "details": {
                     "field": "bounty_usd",
                     "constraint": "ge",
-                    "min": 0.50,
-                    "received": 0.25,
+                    "min": 0.01,
+                    "received": 0.001,
                 },
                 "request_id": "req_abc123",
             },
@@ -1093,8 +1093,8 @@ WEBHOOK_EVENT_EXAMPLE = {
 ERROR_EXAMPLE = {
     "error": {
         "code": "VALIDATION_ERROR",
-        "message": "bounty_usd must be at least 0.50",
-        "details": {"field": "bounty_usd", "min": 0.50},
+        "message": "bounty_usd must be at least 0.01",
+        "details": {"field": "bounty_usd", "min": 0.01},
     }
 }
 

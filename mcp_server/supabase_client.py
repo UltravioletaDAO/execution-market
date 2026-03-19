@@ -799,6 +799,41 @@ async def submit_work(
     if missing:
         raise Exception(f"Missing required evidence: {', '.join(missing)}")
 
+    # --- Escrow validation: reject submission if escrow not funded on-chain ---
+    payment_mode = os.environ.get("EM_PAYMENT_MODE", "fase1")
+    if payment_mode != "fase1":
+        _FUNDED_ESCROW_STATUSES = {
+            "deposited",
+            "funded",
+            "locked",
+            "active",
+            "partial_released",
+        }
+        try:
+            esc_result = (
+                client.table("escrows")
+                .select("status,expires_at")
+                .eq("task_id", task_id)
+                .limit(1)
+                .execute()
+            )
+            esc = esc_result.data[0] if esc_result.data else None
+        except Exception as e:
+            logger.warning("Escrow lookup failed for task %s: %s", task_id, e)
+            esc = None
+
+        if not esc:
+            raise Exception(
+                "Cannot submit evidence: no escrow record found. "
+                "The agent must fund this task before you can submit."
+            )
+        esc_status = (esc.get("status") or "").lower().strip()
+        if esc_status not in _FUNDED_ESCROW_STATUSES:
+            raise Exception(
+                f"Cannot submit evidence: escrow not confirmed on-chain "
+                f"(status: {esc_status}). Wait for the agent to fund this task."
+            )
+
     # Create submission
     submission_data = {
         "task_id": task_id,
@@ -972,6 +1007,42 @@ async def assign_task(
     min_rep = task.get("min_reputation", 0)
     if executor.data.get("reputation_score", 0) < min_rep:
         raise Exception(f"Executor has insufficient reputation. Required: {min_rep}")
+
+    # --- Escrow validation: reject assignment if escrow not ready ---
+    payment_mode = os.environ.get("EM_PAYMENT_MODE", "fase1")
+    if payment_mode != "fase1":
+        _VALID_ASSIGN_STATUSES = {
+            "pending_assignment",
+            "deposited",
+            "funded",
+            "authorized",
+            "active",
+            "locked",
+        }
+        try:
+            esc_result = (
+                client.table("escrows")
+                .select("status")
+                .eq("task_id", task_id)
+                .limit(1)
+                .execute()
+            )
+            esc = esc_result.data[0] if esc_result.data else None
+        except Exception as e:
+            logger.warning("Escrow lookup failed for task %s: %s", task_id, e)
+            esc = None
+
+        if not esc:
+            raise Exception(
+                "Cannot assign: no escrow record found for this task. "
+                "Agent must create task with payment first."
+            )
+        esc_status = (esc.get("status") or "").lower().strip()
+        if esc_status not in _VALID_ASSIGN_STATUSES:
+            raise Exception(
+                f"Cannot assign: escrow status is '{esc_status}'. "
+                f"Expected one of: {', '.join(sorted(_VALID_ASSIGN_STATUSES))}"
+            )
 
     # Update task
     updates = {

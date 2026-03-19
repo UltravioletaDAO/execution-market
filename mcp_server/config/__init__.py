@@ -7,7 +7,7 @@ Usage:
     from config import PlatformConfig
 
     fee_pct = await PlatformConfig.get_fee_pct()  # Returns Decimal("0.13")
-    min_bounty = await PlatformConfig.get_min_bounty()  # Returns Decimal("0.25")
+    min_bounty = await PlatformConfig.get_min_bounty()  # Returns Decimal("0.01")
 
     # Or get raw value
     value = await PlatformConfig.get("fees.platform_fee_pct", default=0.13)

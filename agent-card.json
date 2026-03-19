@@ -95,7 +95,7 @@
     "escrow": "x402r (AuthCaptureEscrow + PaymentOperator)",
     "fee": "13% (credit card model, deducted on-chain)",
     "gasless": true,
-    "minimum_bounty_usd": 0.25
+    "minimum_bounty_usd": 0.01
   },
 
   "identity": {

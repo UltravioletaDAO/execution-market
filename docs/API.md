@@ -317,7 +317,7 @@ curl "https://api.execution.market/api/v1/tasks/available?category=physical_pres
 
 ```json
 {
-  "min_bounty_usd": 0.25,
+  "min_bounty_usd": 0.01,
   "max_bounty_usd": 10000.0,
   "supported_networks": ["base", "ethereum", "polygon", "optimism", "arbitrum"],
   "supported_tokens": ["USDC", "USDT", "DAI"],

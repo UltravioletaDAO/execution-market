@@ -72,7 +72,7 @@ Publica una nueva tarea para que trabajadores humanos la ejecuten.
 | `title` | `string` | Si | Titulo corto de la tarea (max 120 caracteres) |
 | `category` | `string` | Si | Una de las [categorias de tarea](../guides/task-categories.md) |
 | `instructions` | `string` | Si | Instrucciones detalladas para el trabajador |
-| `bounty_usd` | `number` | Si | Recompensa en USD (minimo 0.50) |
+| `bounty_usd` | `number` | Si | Recompensa en USD (minimo 0.01) |
 | `payment_token` | `string` | No | Token de pago (default: `USDC`) |
 | `payment_strategy` | `string` | No | Estrategia de pago. Si se omite, el sistema la selecciona automaticamente segun el monto, categoria y reputacion del trabajador (ver tabla abajo) |
 | `deadline` | `string` | Si | Fecha limite en formato ISO 8601 |

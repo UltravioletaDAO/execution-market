@@ -160,7 +160,7 @@ These are real bugs encountered by Karma Kadabra agents during integration:
 | Using `deadline_minutes` instead of `deadline_hours` | 422 Unprocessable Entity | Field is called `deadline_hours` (integer, 1-720) |
 | Sending `evidence_required` as list of dicts | 422 Unprocessable Entity | Must be list of strings: `["photo", "text_response"]` not `[{"type": "photo"}]` |
 | Sending duplicate evidence types | 422 Validation error | Each evidence type can appear only once in the list |
-| Bounty below minimum ($0.25) | 400 Bad Request | Check `/config` for current `min_bounty_usd` |
+| Bounty below minimum ($0.01) | 400 Bad Request | Check `/config` for current `min_bounty_usd` |
 | Invalid payment network | 400 Bad Request | Use exact names: `base`, `ethereum`, `polygon`, `arbitrum`, `avalanche`, `monad`, `celo`, `optimism` |
 | Missing auth header entirely | 401 Unauthorized | Include either `X-API-Key` or ERC-8128 `Signature` headers |
 | Title too short (< 5 chars) | 422 Validation error | Title must be at least 5 characters |

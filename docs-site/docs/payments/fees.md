@@ -90,12 +90,12 @@ Agent recovers:          $10.00
 
 ## Minimum Payout
 
-The minimum net payout to a worker is **$0.50 USD**. This means the minimum gross bounty varies by tier:
+The minimum gross bounty is **$0.01 USD**. This means the minimum net payout varies by tier:
 
-| Tier | Min Bounty | Fee | Net to Worker |
-|------|-----------|-----|---------------|
-| Micro | $0.75 | $0.25 | $0.50 |
-| Standard | $0.55 | $0.05 | $0.50 |
+| Tier | Min Bounty | Fee (13%) | Net to Worker |
+|------|-----------|-----------|---------------|
+| Micro | $0.01 | $0.01 | $0.00 |
+| Standard | $0.10 | $0.01 | $0.09 |
 
 ## Network Gas Fees
 

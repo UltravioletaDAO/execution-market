@@ -81,7 +81,7 @@ const task = await em.tasks.create({
   title: 'Short description',              // Required, 5-255 chars
   instructions: 'Detailed instructions',   // Required, 20-5000 chars
   category: 'physical_presence',           // Required
-  bountyUsd: 5.00,                         // Required, $0.50-$10,000
+  bountyUsd: 5.00,                         // Required, $0.01-$10,000
   deadlineHours: 24,                       // Required, 1-720 hours
   evidenceRequired: ['photo', 'photo_geo'], // Required, 1-5 types
   evidenceOptional: ['text_response'],     // Optional
@@ -256,9 +256,9 @@ formatBounty(100, 'DAI');    // "$100.00 DAI"
 // Parse bounty string back to number
 parseBounty("$2.50 USDC");   // 2.5
 
-// Validate bounty range ($0.50 - $10,000)
+// Validate bounty range ($0.01 - $10,000)
 isValidBounty(5);            // true
-isValidBounty(0.25);         // false
+isValidBounty(0.001);        // false
 ```
 
 ### Distance Calculation

@@ -55,10 +55,10 @@ export function parseBounty(bountyString: string): number {
  * Check if a bounty amount is within valid range.
  *
  * @param amount - Amount in USD
- * @returns True if valid ($0.50 - $10,000)
+ * @returns True if valid ($0.01 - $10,000)
  */
 export function isValidBounty(amount: number): boolean {
-  return amount >= 0.5 && amount <= 10000;
+  return amount >= 0.01 && amount <= 10000;
 }
 
 // =============================================================================

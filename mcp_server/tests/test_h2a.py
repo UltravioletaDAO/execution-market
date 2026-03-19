@@ -307,13 +307,13 @@ class TestH2AFees:
         assert total == Decimal("5.65")
 
     def test_fee_calculation_min_bounty(self):
-        """13% fee on minimum $0.50 bounty."""
-        bounty = Decimal("0.50")
+        """13% fee on minimum $0.01 bounty."""
+        bounty = Decimal("0.01")
         fee_pct = Decimal("0.13")
         fee = bounty * fee_pct
         total = bounty + fee
-        assert fee == Decimal("0.065")
-        assert total == Decimal("0.565")
+        assert fee == Decimal("0.0013")
+        assert total == Decimal("0.0113")
 
     def test_fee_calculation_max_bounty(self):
         """13% fee on maximum $500 bounty."""

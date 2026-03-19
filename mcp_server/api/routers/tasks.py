@@ -154,7 +154,7 @@ async def get_public_config():
         try:
             config = await PlatformConfig.get_public_config()
             return PublicConfigResponse(
-                min_bounty_usd=float(config.get("min_usd", 0.25)),
+                min_bounty_usd=float(config.get("min_usd", 0.01)),
                 max_bounty_usd=float(config.get("max_usd", 10000.00)),
                 supported_networks=enabled,
                 supported_tokens=config.get("supported_tokens", ["USDC"]),
@@ -165,7 +165,7 @@ async def get_public_config():
             logger.warning(f"Error loading public config: {e}")
 
     return PublicConfigResponse(
-        min_bounty_usd=0.25,
+        min_bounty_usd=0.01,
         max_bounty_usd=10000.00,
         supported_networks=enabled,
         supported_tokens=["USDC", "EURC", "USDT", "PYUSD", "AUSD"],

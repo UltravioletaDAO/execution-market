@@ -453,7 +453,7 @@ class TestH2ATaskCreation:
             with patch(
                 "api.h2a._get_h2a_bounty_limits",
                 new_callable=AsyncMock,
-                return_value=(Decimal("0.50"), Decimal("500.00")),
+                return_value=(Decimal("0.01"), Decimal("500.00")),
             ):
                 with pytest.raises(HTTPException) as exc_info:
                     await create_h2a_task(request=request, auth=auth)
@@ -483,7 +483,7 @@ class TestH2ATaskCreation:
             with patch(
                 "api.h2a._get_h2a_bounty_limits",
                 new_callable=AsyncMock,
-                return_value=(Decimal("0.50"), Decimal("100.00")),
+                return_value=(Decimal("0.01"), Decimal("100.00")),
             ):
                 with pytest.raises(HTTPException) as exc_info:
                     await create_h2a_task(request=request, auth=auth)
@@ -518,7 +518,7 @@ class TestH2ATaskCreation:
             with patch(
                 "api.h2a._get_h2a_bounty_limits",
                 new_callable=AsyncMock,
-                return_value=(Decimal("0.50"), Decimal("500.00")),
+                return_value=(Decimal("0.01"), Decimal("500.00")),
             ):
                 with patch(
                     "api.h2a.get_platform_fee_percent",

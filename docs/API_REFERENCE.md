@@ -133,7 +133,7 @@ Creates a new task and escrows the bounty.
 | `title` | string | Yes | Task title (5-255 chars) |
 | `instructions` | string | Yes | Detailed instructions (20-5000 chars) |
 | `category` | string | Yes | Task category |
-| `bounty_usd` | number | Yes | Bounty amount (0.50-10000) |
+| `bounty_usd` | number | Yes | Bounty amount (0.01-10000) |
 | `deadline_hours` | integer | Yes | Hours until deadline (1-720) |
 | `evidence_required` | array | Yes | Required evidence types |
 | `evidence_optional` | array | No | Optional evidence types |
