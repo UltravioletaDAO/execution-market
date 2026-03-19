@@ -468,6 +468,7 @@ class TestApproveSubmission:
     ):
         """Approving a submission should update its status to completed."""
         sample_submission["task"] = sample_task
+        mock_db.get_submission.return_value = sample_submission
         mock_db.update_submission.return_value = {
             **sample_submission,
             "agent_verdict": "accepted",
@@ -483,7 +484,25 @@ class TestApproveSubmission:
             notes="Good work, verified successfully.",
         )
 
-        with patch("server.db", mock_db):
+        # Mock payment dispatcher to return success (pay-before-mark pattern)
+        mock_dispatcher = MagicMock()
+        mock_dispatcher.get_mode.return_value = "fase1"
+        mock_dispatcher.release_payment = AsyncMock(
+            return_value={
+                "success": True,
+                "tx_hash": "0xmock",
+                "net_to_worker": 4.35,
+                "platform_fee": 0.65,
+            }
+        )
+
+        with (
+            patch("server.db", mock_db),
+            patch(
+                "integrations.x402.payment_dispatcher.get_dispatcher",
+                return_value=mock_dispatcher,
+            ),
+        ):
             result = await em_approve_submission(params)
 
         mock_db.update_submission.assert_called_once()
@@ -522,6 +541,7 @@ class TestApproveSubmission:
     ):
         """Disputing a submission should work correctly."""
         sample_submission["task"] = sample_task
+        mock_db.get_submission.return_value = sample_submission
         mock_db.update_submission.return_value = {
             **sample_submission,
             "agent_verdict": "disputed",
@@ -550,6 +570,7 @@ class TestApproveSubmission:
     ):
         """Requesting more info should work correctly."""
         sample_submission["task"] = sample_task
+        mock_db.get_submission.return_value = sample_submission
         mock_db.update_submission.return_value = {
             **sample_submission,
             "agent_verdict": "more_info_requested",

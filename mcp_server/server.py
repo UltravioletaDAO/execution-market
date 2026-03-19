@@ -104,7 +104,7 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Dict, Any, Optional
 
@@ -112,12 +112,9 @@ from mcp.server.fastmcp import FastMCP
 
 # Core models
 from models import (
-    PublishTaskInput,
     GetTasksInput,
     GetTaskInput,
     CheckSubmissionInput,
-    ApproveSubmissionInput,
-    CancelTaskInput,
     ResponseFormat,
     TaskCategory,
 )
@@ -134,10 +131,10 @@ from tools.agent_executor_tools import (
     register_agent_executor_tools,
     AgentExecutorToolsConfig,
 )
+from tools.core_tools import register_core_tools
 from integrations.x402.payment_dispatcher import (
     get_dispatcher as get_payment_dispatcher,
 )
-from integrations.x402.payment_events import log_payment_event
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -297,6 +294,12 @@ register_reputation_tools(mcp, db)
 
 # A2A Agent Executor tools
 register_agent_executor_tools(mcp, db, AgentExecutorToolsConfig())
+
+# Core employer tools (em_publish_task, em_approve_submission, em_cancel_task)
+_core_tools = register_core_tools(mcp, db, x402_sdk=x402_sdk, fee_manager=fee_manager)
+em_publish_task = _core_tools["em_publish_task"]
+em_approve_submission = _core_tools["em_approve_submission"]
+em_cancel_task = _core_tools["em_cancel_task"]
 
 
 # ============== CONSTANTS ==============
@@ -698,268 +701,8 @@ def _auto_register_agent_executor_mcp(wallet: str):
 
 
 # ============== MCP TOOLS ==============
-
-
-@mcp.tool(
-    name="em_publish_task",
-    annotations={
-        "title": "Publish Task for Human Execution",
-        "readOnlyHint": False,
-        "destructiveHint": False,
-        "idempotentHint": False,
-        "openWorldHint": True,
-    },
-)
-async def em_publish_task(params: PublishTaskInput) -> str:
-    """
-    Publish a new task for human execution in the Execution Market.
-
-    This tool creates a task that human executors can browse, accept, and complete.
-    Tasks require evidence of completion which the agent can later verify.
-
-    Args:
-        params (PublishTaskInput): Validated input parameters containing:
-            - agent_id (str): Your agent identifier (wallet or ERC-8004 ID)
-            - title (str): Short task title (5-255 chars)
-            - instructions (str): Detailed instructions (20-5000 chars)
-            - category (TaskCategory): Task category
-            - bounty_usd (float): Payment amount in USD (0-10000)
-            - deadline_hours (int): Hours until deadline (1-720)
-            - evidence_required (List[EvidenceType]): Required evidence types
-            - evidence_optional (List[EvidenceType]): Optional evidence types
-            - location_hint (str): Location description
-            - min_reputation (int): Minimum executor reputation
-            - payment_token (str): Payment token symbol (default: USDC)
-            - payment_network (str): Payment network (default: base)
-
-    Returns:
-        str: Success message with task ID and details, or error message.
-
-    Examples:
-        - "I need someone to verify a store is open" -> physical_presence category, photo evidence
-        - "Get a quote from a local contractor" -> knowledge_access category, document evidence
-        - "Sign this document in person" -> human_authority category, signature evidence
-    """
-    try:
-        deadline = datetime.now(timezone.utc) + timedelta(hours=params.deadline_hours)
-
-        # Calculate fees for the task if fee manager is available
-        fee_breakdown = None
-        if fee_manager:
-            try:
-                fee_breakdown = fee_manager.calculate_fee(
-                    bounty=params.bounty_usd,
-                    category=params.category,
-                )
-            except Exception as e:
-                logger.warning(f"Could not calculate fees: {e}")
-
-        # Auto-geocode location_hint if no explicit coordinates provided
-        _loc_lat = params.location_lat
-        _loc_lng = params.location_lng
-        _loc_radius = params.location_radius_km
-        if params.location_hint and (_loc_lat is None or _loc_lng is None):
-            try:
-                from integrations.geocoding import geocode_location
-
-                geo = await geocode_location(params.location_hint)
-                if geo:
-                    _loc_lat = geo.lat
-                    _loc_lng = geo.lng
-                    _loc_radius = geo.radius_km
-                    logger.info(
-                        "[MCP] Auto-geocoded '%s' -> (%s, %s) radius=%skm",
-                        params.location_hint,
-                        geo.lat,
-                        geo.lng,
-                        geo.radius_km,
-                    )
-            except Exception as e:
-                logger.warning(
-                    "[MCP] Geocoding failed for '%s': %s", params.location_hint, e
-                )
-
-        task = await db.create_task(
-            agent_id=params.agent_id,
-            title=params.title,
-            instructions=params.instructions,
-            category=params.category.value,
-            bounty_usd=params.bounty_usd,
-            deadline=deadline,
-            evidence_required=[e.value for e in params.evidence_required],
-            evidence_optional=[e.value for e in params.evidence_optional]
-            if params.evidence_optional
-            else None,
-            location_hint=params.location_hint,
-            min_reputation=params.min_reputation or 0,
-            payment_token=params.payment_token or "USDC",
-            payment_network=params.payment_network or "base",
-            location_lat=_loc_lat,
-            location_lng=_loc_lng,
-            location_radius_km=_loc_radius,
-        )
-
-        # Payment authorization via dispatcher (mode-dependent)
-        escrow_info = None
-        balance_warning = None
-        dispatcher = get_payment_dispatcher()
-        if dispatcher:
-            try:
-                mode = dispatcher.get_mode()
-                if mode == "fase2":
-                    # Fase 2: Lock funds on-chain in escrow (gasless via facilitator)
-                    auth_result = await dispatcher.authorize_payment(
-                        task_id=task["id"],
-                        receiver=params.agent_id,
-                        amount_usdc=Decimal(str(params.bounty_usd)),
-                        network=params.payment_network or "base",
-                        token=params.payment_token or "USDC",
-                    )
-                    escrow_info = {
-                        "escrow_id": task["id"],
-                        "status": auth_result.get("escrow_status", "deposited"),
-                        "deposit_tx": auth_result.get("tx_hash") or "",
-                    }
-                    # Store serialized PaymentInfo in escrows table
-                    if auth_result.get("success") and auth_result.get(
-                        "payment_info_serialized"
-                    ):
-                        try:
-                            import supabase_client as sdb
-
-                            sdb_client = sdb.get_client()
-                            total_locked = Decimal(str(params.bounty_usd)) * Decimal(
-                                "1.08"
-                            )
-                            sdb_client.table("escrows").upsert(
-                                {
-                                    "task_id": task["id"],
-                                    "status": "deposited",
-                                    "total_amount_usdc": float(total_locked),
-                                    "beneficiary_address": auth_result.get(
-                                        "payer_address", ""
-                                    ),
-                                    "metadata": {
-                                        "payment_info": auth_result[
-                                            "payment_info_serialized"
-                                        ],
-                                    },
-                                },
-                                on_conflict="task_id",
-                            ).execute()
-                        except Exception as db_err:
-                            logger.warning(
-                                "Failed to store fase2 escrow metadata for task %s: %s",
-                                task["id"],
-                                db_err,
-                            )
-                    if not auth_result.get("success"):
-                        balance_warning = (
-                            f"Escrow lock failed: {auth_result.get('error', 'unknown')}. "
-                            "Task created but funds are NOT locked."
-                        )
-                elif mode == "fase1":
-                    # Fase 1: advisory balance check only (no funds move)
-                    total_check = Decimal(str(params.bounty_usd)) * Decimal("1.08")
-                    auth_result = await dispatcher.authorize_payment(
-                        task_id=task["id"],
-                        receiver=params.agent_id,
-                        amount_usdc=total_check,
-                        network=params.payment_network or "base",
-                        token=params.payment_token or "USDC",
-                    )
-                    escrow_info = {
-                        "escrow_id": task["id"],
-                        "status": auth_result.get("escrow_status", "balance_verified"),
-                        "deposit_tx": "",
-                    }
-                    if auth_result.get("warning"):
-                        balance_warning = auth_result["warning"]
-                elif ADVANCED_ESCROW_AVAILABLE:
-                    from integrations.x402.advanced_escrow_integration import (
-                        authorize_task_bounty,
-                    )
-
-                    escrow_result = authorize_task_bounty(
-                        task_id=task["id"],
-                        receiver=params.agent_id,
-                        amount_usdc=Decimal(str(params.bounty_usd)),
-                    )
-                    escrow_info = {
-                        "escrow_id": task["id"],
-                        "status": escrow_result.status
-                        if hasattr(escrow_result, "status")
-                        else "authorized",
-                        "deposit_tx": getattr(escrow_result, "tx_hash", "") or "",
-                    }
-                else:
-                    escrow_info = {
-                        "escrow_id": task["id"],
-                        "status": "pending",
-                        "deposit_tx": "",
-                    }
-            except Exception as e:
-                logger.warning(
-                    "Payment authorization failed for task %s: %s", task["id"], e
-                )
-        elif x402_sdk:
-            escrow_info = {
-                "escrow_id": task["id"],
-                "status": "pending",
-                "deposit_tx": "",
-            }
-            logger.info("Escrow recorded (SDK-only) for task %s", task["id"])
-
-        # ---- Auto-register agent in executor directory (non-blocking) ----
-        try:
-            _auto_register_agent_executor_mcp(params.agent_id)
-        except Exception as e:
-            logger.warning("Auto-register agent executor failed (non-blocking): %s", e)
-
-        # Dispatch webhook
-        if WebhookEventType:
-            await dispatch_task_webhook("task_created", task, params.agent_id)
-
-        # Notify via WebSocket
-        await notify_task_created(task)
-
-        response = f"""# Task Published Successfully
-
-**Task ID**: `{task["id"]}`
-**Title**: {task["title"]}
-**Bounty**: {format_bounty(params.bounty_usd)} {params.payment_token or "USDC"}
-**Deadline**: {format_datetime(deadline.isoformat())}
-**Status**: PUBLISHED
-"""
-
-        if fee_breakdown:
-            response += f"""
-## Fee Breakdown
-- **Worker Receives**: {format_bounty(float(fee_breakdown.worker_amount))} ({100 - float(fee_breakdown.fee_rate) * 100:.0f}%)
-- **Platform Fee**: {format_bounty(float(fee_breakdown.fee_amount))} ({float(fee_breakdown.fee_rate) * 100:.0f}%)
-"""
-
-        if escrow_info:
-            response += f"""
-## Escrow
-- **Escrow ID**: `{escrow_info.get("escrow_id", "N/A")}`
-- **Status**: {escrow_info.get("status", "deposited").upper()}
-- **Tx**: `{escrow_info.get("deposit_tx", "N/A")[:16]}...`
-"""
-
-        if balance_warning:
-            response += f"""
-## Balance Warning
-{balance_warning}
-"""
-
-        response += """
-The task is now visible to human executors. Use `em_get_task` with the task ID to monitor progress, or `em_check_submission` when a human submits evidence."""
-
-        return response
-
-    except Exception as e:
-        return f"Error: Failed to publish task - {str(e)}"
+# Core employer tools (em_publish_task, em_approve_submission, em_cancel_task)
+# are registered via register_core_tools() above — see tools/core_tools.py
 
 
 @mcp.tool(
@@ -1146,7 +889,7 @@ async def em_check_submission(params: CheckSubmissionInput) -> str:
         task = await db.get_task(params.task_id)
         if not task:
             return f"Error: Task {params.task_id} not found"
-        if task["agent_id"] != params.agent_id:
+        if (task.get("agent_id") or "").lower() != (params.agent_id or "").lower():
             return "Error: Not authorized to view submissions for this task"
 
         submissions = await db.get_submissions_for_task(params.task_id)
@@ -1190,327 +933,8 @@ No human has submitted evidence yet. The task is {"still available" if task["sta
         return f"Error: Failed to check submissions - {str(e)}"
 
 
-@mcp.tool(
-    name="em_approve_submission",
-    annotations={
-        "title": "Approve or Reject Submission",
-        "readOnlyHint": False,
-        "destructiveHint": False,
-        "idempotentHint": False,
-        "openWorldHint": True,
-    },
-)
-async def em_approve_submission(params: ApproveSubmissionInput) -> str:
-    """
-    Approve or reject a submission from a human executor.
-
-    Use this after reviewing the evidence submitted by a human.
-    - "accepted": Task is complete, payment will be released
-    - "disputed": Opens a dispute (evidence insufficient)
-    - "more_info_requested": Ask for additional evidence
-
-    Args:
-        params (ApproveSubmissionInput): Validated input parameters containing:
-            - submission_id (str): UUID of the submission
-            - agent_id (str): Your agent ID (for authorization)
-            - verdict (SubmissionVerdict): accepted, disputed, or more_info_requested
-            - notes (str): Explanation of your verdict
-
-    Returns:
-        str: Confirmation of the verdict.
-    """
-    try:
-        submission = await db.update_submission(
-            submission_id=params.submission_id,
-            agent_id=params.agent_id,
-            verdict=params.verdict.value,
-            notes=params.notes,
-        )
-
-        # Get task for context
-        task = await db.get_task(submission.get("task_id"))
-
-        # Handle payment release on approval via PaymentDispatcher
-        payment_info = None
-        if params.verdict.value == "accepted" and task:
-            worker_wallet = submission.get("executor", {}).get("wallet_address")
-            if worker_wallet:
-                try:
-                    dispatcher = get_payment_dispatcher()
-                    if dispatcher:
-                        # Resolve payment header for preauth mode (fase1 doesn't need it)
-                        payment_header = None
-                        if dispatcher.get_mode() == "preauth":
-                            payment_header = _resolve_mcp_payment_header(
-                                task["id"], task.get("escrow_tx")
-                            )
-
-                        payment_info = await dispatcher.release_payment(
-                            task_id=task["id"],
-                            worker_address=worker_wallet,
-                            bounty_amount=Decimal(str(task["bounty_usd"])),
-                            payment_header=payment_header,
-                            network=task.get("payment_network"),
-                            token=task.get("payment_token", "USDC"),
-                            worker_auth_header=params.payment_auth_worker,
-                            fee_auth_header=params.payment_auth_fee,
-                        )
-                        logger.info(
-                            "Payment released via dispatcher (%s) for task %s: success=%s",
-                            dispatcher.get_mode(),
-                            task["id"],
-                            payment_info.get("success"),
-                        )
-                        # Update escrow row status for fase2/x402r
-                        if payment_info.get("success") and payment_info.get("mode") in (
-                            "fase2",
-                            "x402r",
-                        ):
-                            try:
-                                import supabase_client as sdb
-
-                                sdb_client = sdb.get_client()
-                                sdb_client.table("escrows").update(
-                                    {"status": "released"}
-                                ).eq("task_id", task["id"]).execute()
-                            except Exception as db_err:
-                                logger.warning(
-                                    "Failed to update escrow status for task %s: %s",
-                                    task["id"],
-                                    db_err,
-                                )
-                    elif x402_sdk:
-                        # Fallback: direct SDK settlement
-                        payment_header = _resolve_mcp_payment_header(
-                            task["id"], task.get("escrow_tx")
-                        )
-                        payment_info = await x402_sdk.settle_task_payment(
-                            task_id=task["id"],
-                            payment_header=payment_header or "",
-                            worker_address=worker_wallet,
-                            bounty_amount=Decimal(str(task["bounty_usd"])),
-                        )
-                except Exception as e:
-                    logger.error(
-                        "Payment settlement failed for task %s: %s", task["id"], e
-                    )
-
-                # Dispatch payment webhook
-                if (
-                    payment_info
-                    and webhook_registry
-                    and WebhookEventType
-                    and PaymentPayload
-                ):
-                    try:
-                        tx_hash = payment_info.get("tx_hash", "")
-                        payload = PaymentPayload(
-                            task_id=task["id"],
-                            amount_usdc=task["bounty_usd"],
-                            recipient=worker_wallet,
-                            tx_hash=tx_hash,
-                        )
-                        event = WebhookEvent(
-                            event_type=WebhookEventType.PAYMENT_RELEASED,
-                            payload=payload,
-                        )
-                        webhooks = webhook_registry.get_by_owner_and_event(
-                            params.agent_id, WebhookEventType.PAYMENT_RELEASED
-                        )
-                        for webhook in webhooks:
-                            await send_webhook(
-                                url=webhook.url,
-                                event=event,
-                                secret=webhook_registry.get_secret(webhook.webhook_id),
-                                webhook_id=webhook.webhook_id,
-                            )
-                    except Exception as e:
-                        logger.error(f"Failed to dispatch payment webhook: {e}")
-
-        # Dispatch submission verdict webhook
-        if task and WebhookEventType:
-            event_type = (
-                "submission_approved"
-                if params.verdict.value == "accepted"
-                else "submission_rejected"
-            )
-            await dispatch_submission_webhook(
-                event_type, submission, task, params.agent_id
-            )
-
-        # Notify via WebSocket
-        executor_id = submission.get("executor_id")
-        if executor_id and task:
-            await notify_submission_verdict(
-                submission, params.verdict.value, executor_id, task
-            )
-
-        # Notify payment release if approved
-        if params.verdict.value == "accepted" and payment_info and executor_id:
-            await notify_payment_released(payment_info, task, executor_id)
-
-        verdict_display = {
-            "accepted": "APPROVED",
-            "disputed": "DISPUTED",
-            "more_info_requested": "MORE INFO REQUESTED",
-        }
-
-        response = f"""# Submission {verdict_display.get(params.verdict.value, params.verdict.value.upper())}
-
-**Submission ID**: `{params.submission_id}`
-**Verdict**: {params.verdict.value}
-{f"**Notes**: {params.notes}" if params.notes else ""}
-"""
-
-        if params.verdict.value == "accepted":
-            response += """
-The task has been marked as completed and the executor will receive payment."""
-            if payment_info:
-                tx_hash = payment_info.get("tx_hash", "N/A")
-                if isinstance(tx_hash, list):
-                    tx_hash = tx_hash[0] if tx_hash else "N/A"
-                worker_amount = (
-                    payment_info.get("net_to_worker") or payment_info.get("amount") or 0
-                )
-                fee_amount = payment_info.get("platform_fee") or 0
-                task_network = (
-                    (task.get("payment_network") or "base") if task else "base"
-                )
-                from api.routers._helpers import _build_explorer_url
-
-                tx_hash_str = str(tx_hash)
-                explorer_url = _build_explorer_url(tx_hash_str, task_network)
-                response += f"""
-
-## Payment Details
-- **Network**: {task_network}
-- **Worker Payment**: ${float(worker_amount):.2f}
-- **Platform Fee**: ${float(fee_amount):.2f}
-- **Transaction**: `{tx_hash_str}`"""
-                if explorer_url:
-                    response += f"\n- **Explorer**: {explorer_url}"
-        else:
-            response += "\nThe executor has been notified of your decision."
-
-        return response
-
-    except Exception as e:
-        return f"Error: Failed to update submission - {str(e)}"
-
-
-@mcp.tool(
-    name="em_cancel_task",
-    annotations={
-        "title": "Cancel Published Task",
-        "readOnlyHint": False,
-        "destructiveHint": True,
-        "idempotentHint": False,
-        "openWorldHint": True,
-    },
-)
-async def em_cancel_task(params: CancelTaskInput) -> str:
-    """
-    Cancel a task you published (only if still in 'published' status).
-
-    Use this if you no longer need the task completed.
-    Cannot cancel tasks that have already been accepted by an executor.
-
-    Args:
-        params (CancelTaskInput): Validated input parameters containing:
-            - task_id (str): UUID of the task to cancel
-            - agent_id (str): Your agent ID (for authorization)
-            - reason (str): Reason for cancellation
-
-    Returns:
-        str: Confirmation of cancellation.
-    """
-    try:
-        task = await db.cancel_task(params.task_id, params.agent_id)
-
-        # Handle escrow refund via PaymentDispatcher (handles both x402r and preauth modes)
-        refund_info = None
-        try:
-            dispatcher = get_payment_dispatcher()
-            refund_result = await dispatcher.refund_payment(
-                task_id=params.task_id,
-                reason=params.reason,
-            )
-            if refund_result.get("success"):
-                refund_info = {
-                    "amount_refunded": task.get("bounty_usd", 0),
-                    "tx_hash": refund_result.get("tx_hash", ""),
-                    "success": True,
-                    "status": refund_result.get("status", "refunded"),
-                }
-                await log_payment_event(
-                    task_id=params.task_id,
-                    event_type="cancel",
-                    status="success",
-                    tx_hash=refund_result.get("tx_hash", ""),
-                    metadata={
-                        "mode": refund_result.get("mode"),
-                        "refund_status": refund_result.get("status"),
-                        "reason": params.reason,
-                        "source": "em_cancel_task",
-                    },
-                )
-                # Update escrow row status for fase2/x402r
-                if refund_result.get("mode") in ("fase2", "x402r"):
-                    try:
-                        import supabase_client as sdb
-
-                        sdb_client = sdb.get_client()
-                        sdb_client.table("escrows").update({"status": "refunded"}).eq(
-                            "task_id", params.task_id
-                        ).execute()
-                    except Exception as db_err:
-                        logger.warning(
-                            "Failed to update escrow status for task %s: %s",
-                            params.task_id,
-                            db_err,
-                        )
-                logger.info(
-                    "Payment refunded via PaymentDispatcher for task %s (mode=%s, status=%s)",
-                    params.task_id,
-                    refund_result.get("mode"),
-                    refund_result.get("status"),
-                )
-            else:
-                logger.warning(
-                    "PaymentDispatcher refund returned non-success for task %s: %s",
-                    params.task_id,
-                    refund_result.get("error"),
-                )
-        except Exception as e:
-            logger.warning("Could not refund payment via PaymentDispatcher: %s", e)
-
-        # Dispatch webhook
-        if WebhookEventType:
-            await dispatch_task_webhook("task_cancelled", task, params.agent_id)
-
-        # Notify via WebSocket
-        await notify_task_cancelled(task, params.reason, refund_info is not None)
-
-        response = f"""# Task Cancelled
-
-**Task ID**: `{params.task_id}`
-**Title**: {task["title"]}
-**Status**: CANCELLED
-{f"**Reason**: {params.reason}" if params.reason else ""}
-
-The task is no longer available for human executors."""
-
-        if refund_info:
-            response += f"""
-
-## Refund
-- **Amount Refunded**: ${refund_info.get("amount_refunded", 0):.2f}
-- **Transaction**: `{refund_info.get("tx_hash", "N/A")[:16]}...`"""
-
-        return response
-
-    except Exception as e:
-        return f"Error: Failed to cancel task - {str(e)}"
+# em_approve_submission and em_cancel_task are registered via register_core_tools()
+# See tools/core_tools.py
 
 
 @mcp.tool(
