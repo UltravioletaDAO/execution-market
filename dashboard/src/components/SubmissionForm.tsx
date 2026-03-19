@@ -307,11 +307,21 @@ export function SubmissionForm({
     if (input) input.value = ''
   }, [])
 
+  const FUNDED_STATUSES = ['funded', 'locked', 'deposited', 'active', 'partial_released']
+  const escrowReady = !task.escrow_status || FUNDED_STATUSES.includes(task.escrow_status)
+
   const handleSubmit = async () => {
     setSubmitting(true)
     setError(null)
 
     try {
+      // Block submission if escrow is not funded on-chain
+      if (task.escrow_status && !FUNDED_STATUSES.includes(task.escrow_status)) {
+        throw new Error(
+          `Escrow not confirmed on-chain (status: ${task.escrow_status}). Wait for the agent to fund this task.`,
+        )
+      }
+
       // Validate required evidence across all sources
       const cameraEvidenceTypes = new Set(cameraEvidence.map((e) => e.evidenceType))
       const missingRequired = allRequired.filter((evType) => {
@@ -700,6 +710,16 @@ export function SubmissionForm({
         {CATEGORY_GUIDANCE[category] && (
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-700">{CATEGORY_GUIDANCE[category]}</p>
+          </div>
+        )}
+
+        {/* Escrow not funded warning */}
+        {!escrowReady && (
+          <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-3">
+            <p className="text-yellow-400 text-sm">
+              Escrow not confirmed on-chain (status: {task.escrow_status}).
+              You cannot submit evidence until the agent funds this task.
+            </p>
           </div>
         )}
 
