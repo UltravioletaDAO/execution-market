@@ -321,16 +321,20 @@ async def update_task(task_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def cancel_task(task_id: str, agent_id: str) -> Dict[str, Any]:
-    """Cancel a task (only if published and owned by agent)."""
+    """Cancel a task (published or accepted, owned by agent).
+
+    The MCP tool and REST API perform their own status guards before calling
+    this function, but we keep a basic safety check here as well.
+    """
     get_client()
 
     # Verify ownership and status
     task = await get_task(task_id)
     if not task:
         raise Exception(f"Task {task_id} not found")
-    if task["agent_id"] != agent_id:
+    if (task.get("agent_id") or "").lower() != (agent_id or "").lower():
         raise Exception("Not authorized to cancel this task")
-    if task["status"] != "published":
+    if task["status"] not in ("published", "accepted"):
         raise Exception(f"Cannot cancel task with status: {task['status']}")
 
     return await update_task(task_id, {"status": "cancelled"})
@@ -505,6 +509,38 @@ async def auto_approve_submission(
                 verdict,
             )
             return False
+
+        # Guard: check the parent task is still in an approvable state
+        task_id = current.data.get("task_id")
+        if task_id:
+            try:
+                task_result = (
+                    client.table("tasks")
+                    .select("status")
+                    .eq("id", task_id)
+                    .limit(1)
+                    .execute()
+                )
+                task_status = (
+                    task_result.data[0].get("status", "")
+                    if task_result.data
+                    else ""
+                )
+                non_approvable = {"cancelled", "expired", "completed"}
+                if task_status in non_approvable:
+                    logger.info(
+                        "Skipping auto-approve for %s: task %s is %s",
+                        submission_id,
+                        task_id,
+                        task_status,
+                    )
+                    return False
+            except Exception as e:
+                logger.warning(
+                    "Could not verify task status for auto-approve %s: %s",
+                    submission_id,
+                    e,
+                )
 
         client.table("submissions").update(
             {
@@ -844,12 +880,44 @@ async def submit_work(
             esc = None
 
         if not esc:
+            try:
+                from integrations.x402.payment_events import log_payment_event
+
+                await log_payment_event(
+                    task_id=task_id,
+                    event_type="escrow_validation_failed",
+                    status="blocked",
+                    metadata={
+                        "action": "submit_work",
+                        "escrow_status": "none",
+                        "executor_id": executor_id,
+                        "reason": "No escrow record found",
+                    },
+                )
+            except Exception:
+                pass  # Don't let logging failure block the validation
             raise Exception(
                 "Cannot submit evidence: no escrow record found. "
                 "The agent must fund this task before you can submit."
             )
         esc_status = (esc.get("status") or "").lower().strip()
         if esc_status not in _FUNDED_ESCROW_STATUSES:
+            try:
+                from integrations.x402.payment_events import log_payment_event
+
+                await log_payment_event(
+                    task_id=task_id,
+                    event_type="escrow_validation_failed",
+                    status="blocked",
+                    metadata={
+                        "action": "submit_work",
+                        "escrow_status": esc_status,
+                        "executor_id": executor_id,
+                        "reason": f"Escrow status '{esc_status}' not in funded statuses",
+                    },
+                )
+            except Exception:
+                pass  # Don't let logging failure block the validation
             raise Exception(
                 f"Cannot submit evidence: escrow not confirmed on-chain "
                 f"(status: {esc_status}). Wait for the agent to fund this task."
@@ -1029,8 +1097,44 @@ async def assign_task(
     if executor.data.get("reputation_score", 0) < min_rep:
         raise Exception(f"Executor has insufficient reputation. Required: {min_rep}")
 
-    # --- Escrow validation: reject assignment if escrow not ready ---
+    # --- Best-effort balance check at assignment time (Fase 1) ---
     payment_mode = os.environ.get("EM_PAYMENT_MODE", "fase1")
+    if payment_mode == "fase1":
+        try:
+            from integrations.x402.sdk_client import EMX402SDK
+            from decimal import Decimal
+
+            bounty = Decimal(str(task.get("bounty_amount") or task.get("lock_amount") or "0"))
+            if bounty > 0:
+                sdk = EMX402SDK()
+                agent_address = task.get("agent_id", "")
+                if agent_address.startswith("0x"):
+                    balance_result = await sdk.check_agent_balance(
+                        agent_address=agent_address,
+                        required_amount=bounty,
+                    )
+                    logger.info(
+                        "Balance check at assignment: task=%s agent=%s sufficient=%s balance=%s required=%s",
+                        task_id,
+                        agent_address[:10],
+                        balance_result.get("sufficient"),
+                        balance_result.get("balance"),
+                        bounty,
+                    )
+                    if not balance_result.get("sufficient", True):
+                        raise Exception(
+                            f"Insufficient agent balance for bounty. "
+                            f"Balance: {balance_result.get('balance', '?')} USDC, "
+                            f"Required: {bounty} USDC"
+                        )
+        except ImportError:
+            logger.debug("x402 SDK not available for balance check at assignment")
+        except Exception as e:
+            if "Insufficient agent balance" in str(e):
+                raise
+            logger.warning("Best-effort balance check failed (non-blocking): %s", e)
+
+    # --- Escrow validation: reject assignment if escrow not ready ---
     if payment_mode != "fase1":
         _VALID_ASSIGN_STATUSES = {
             "pending_assignment",
@@ -1054,12 +1158,44 @@ async def assign_task(
             esc = None
 
         if not esc:
+            try:
+                from integrations.x402.payment_events import log_payment_event
+
+                await log_payment_event(
+                    task_id=task_id,
+                    event_type="escrow_validation_failed",
+                    status="blocked",
+                    metadata={
+                        "action": "assign_task",
+                        "escrow_status": "none",
+                        "executor_id": executor_id,
+                        "reason": "No escrow record found",
+                    },
+                )
+            except Exception:
+                pass  # Don't let logging failure block the validation
             raise Exception(
                 "Cannot assign: no escrow record found for this task. "
                 "Agent must create task with payment first."
             )
         esc_status = (esc.get("status") or "").lower().strip()
         if esc_status not in _VALID_ASSIGN_STATUSES:
+            try:
+                from integrations.x402.payment_events import log_payment_event
+
+                await log_payment_event(
+                    task_id=task_id,
+                    event_type="escrow_validation_failed",
+                    status="blocked",
+                    metadata={
+                        "action": "assign_task",
+                        "escrow_status": esc_status,
+                        "executor_id": executor_id,
+                        "reason": f"Escrow status '{esc_status}' not valid for assignment",
+                    },
+                )
+            except Exception:
+                pass  # Don't let logging failure block the validation
             raise Exception(
                 f"Cannot assign: escrow status is '{esc_status}'. "
                 f"Expected one of: {', '.join(sorted(_VALID_ASSIGN_STATUSES))}"
