@@ -217,7 +217,7 @@ function PaymentProgress({
 }
 
 // Timeline event component
-function TimelineEvent({ event, network }: { event: PaymentEvent; network: string }) {
+function TimelineEvent({ event, network, bountyAmount }: { event: PaymentEvent; network: string; bountyAmount?: number }) {
 
   const eventLabels: Record<PaymentEvent['type'], string> = {
     escrow_created: 'Escrow creado',
@@ -365,7 +365,7 @@ function TimelineEvent({ event, network }: { event: PaymentEvent; network: strin
 }
 
 // Payment timeline component
-function PaymentTimeline({ events, network }: { events: PaymentEvent[]; network: string }) {
+function PaymentTimeline({ events, network, bountyAmount }: { events: PaymentEvent[]; network: string; bountyAmount?: number }) {
   const { t } = useTranslation()
 
   // Sort events by timestamp (oldest first — chronological timeline)
@@ -386,7 +386,7 @@ function PaymentTimeline({ events, network }: { events: PaymentEvent[]; network:
   return (
     <div className="p-4">
       {sortedEvents.map((event) => (
-        <TimelineEvent key={event.id} event={event} network={network} />
+        <TimelineEvent key={event.id} event={event} network={network} bountyAmount={bountyAmount} />
       ))}
     </div>
   )
@@ -528,7 +528,7 @@ export function PaymentStatus({
               {t('payment.timeline', 'Historial de Pagos')}
             </h4>
           </div>
-          <PaymentTimeline events={payment.events} network={payment.network} />
+          <PaymentTimeline events={payment.events} network={payment.network} bountyAmount={bountyAmount} />
         </div>
       )}
 
