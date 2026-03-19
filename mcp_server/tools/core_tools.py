@@ -409,6 +409,29 @@ def register_core_tools(
             # Dispatch webhook
             await _dispatch_task_webhook("task_created", task, params.agent_id)
 
+            # Event Bus publish (coexists with legacy — Strangler Fig)
+            try:
+                from events import get_event_bus, EMEvent, EventSource
+
+                await get_event_bus().publish(
+                    EMEvent(
+                        event_type="task.created",
+                        task_id=task["id"],
+                        source=EventSource.MCP_TOOL,
+                        payload={
+                            "task_id": task["id"],
+                            "title": task["title"],
+                            "category": task["category"],
+                            "bounty_usd": task.get("bounty_usd", 0),
+                            "agent_id": params.agent_id,
+                            "status": task["status"],
+                            "payment_network": task.get("payment_network", "base"),
+                        },
+                    )
+                )
+            except Exception:
+                pass
+
             # Notify via WebSocket
             await _notify_task_created(task)
 
@@ -628,6 +651,38 @@ The task is now visible to human executors. Use `em_get_task` with the task ID t
                     event_type, submission, task, params.agent_id
                 )
 
+            # Event Bus publish (coexists with legacy — Strangler Fig)
+            if task:
+                try:
+                    from events import get_event_bus, EMEvent, EventSource
+
+                    eb_event_type = (
+                        "submission.approved"
+                        if params.verdict.value == "accepted"
+                        else "submission.rejected"
+                    )
+                    eb_payload = {
+                        "task_id": task["id"],
+                        "submission_id": params.submission_id,
+                        "verdict": params.verdict.value,
+                        "bounty_usd": task.get("bounty_usd", 0),
+                        "agent_id": params.agent_id,
+                    }
+                    if payment_info and payment_info.get("tx_hash"):
+                        eb_payload["tx_hash"] = payment_info["tx_hash"]
+                        eb_payload["amount_usd"] = payment_info.get("amount_usd", 0)
+                        eb_payload["chain"] = payment_info.get("chain", "base")
+                    await get_event_bus().publish(
+                        EMEvent(
+                            event_type=eb_event_type,
+                            task_id=task["id"],
+                            source=EventSource.MCP_TOOL,
+                            payload=eb_payload,
+                        )
+                    )
+                except Exception:
+                    pass
+
             # Notify via WebSocket
             executor_id = submission.get("executor_id")
             if executor_id and task:
@@ -804,6 +859,27 @@ The task has been marked as completed and the executor will receive payment."""
 
             # Dispatch webhook
             await _dispatch_task_webhook("task_cancelled", task, params.agent_id)
+
+            # Event Bus publish (coexists with legacy — Strangler Fig)
+            try:
+                from events import get_event_bus, EMEvent, EventSource
+
+                await get_event_bus().publish(
+                    EMEvent(
+                        event_type="task.cancelled",
+                        task_id=params.task_id,
+                        source=EventSource.MCP_TOOL,
+                        payload={
+                            "task_id": params.task_id,
+                            "title": task.get("title", ""),
+                            "agent_id": params.agent_id,
+                            "reason": params.reason or "",
+                            "refund_initiated": refund_info is not None,
+                        },
+                    )
+                )
+            except Exception:
+                pass
 
             # Notify via WebSocket
             await _notify_task_cancelled(task, params.reason, refund_info is not None)

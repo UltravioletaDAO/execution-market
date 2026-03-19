@@ -57,6 +57,10 @@ EXPECTED_ROUTES = {
     "/api/v1/workers/register",
     "/api/v1/payments/events",
     "/api/v1/payments/balance/{address}",
+    "/api/v1/webhooks/",
+    "/api/v1/webhooks/{webhook_id}",
+    "/api/v1/webhooks/{webhook_id}/rotate-secret",
+    "/api/v1/webhooks/{webhook_id}/test",
 }
 
 
