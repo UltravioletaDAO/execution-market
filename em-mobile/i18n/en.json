@@ -372,7 +372,8 @@
     "disputed": "Submission Disputed",
     "disputedSubtitle": "The agent has disputed your submission. Check My Tasks for details.",
     "cancelled": "Task Cancelled",
-    "cancelledSubtitle": "This task has been cancelled by the publisher."
+    "cancelledSubtitle": "This task has been cancelled by the publisher.",
+    "escrowNotFunded": "Escrow not confirmed on-chain. The agent must fund this task before you can submit evidence."
   },
   "apply": {
     "title": "Apply to Task",

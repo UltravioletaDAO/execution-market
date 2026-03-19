@@ -121,6 +121,16 @@ export default function SubmitEvidenceScreen() {
       return;
     }
 
+    // Block submission if escrow is not funded on-chain
+    const FUNDED_STATUSES = ["funded", "locked", "deposited", "active", "partial_released"];
+    if (task?.escrow_status && !FUNDED_STATUSES.includes(task.escrow_status)) {
+      Alert.alert(
+        t("common.error"),
+        t("submit.escrowNotFunded")
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       const evidence: EvidenceData = {};

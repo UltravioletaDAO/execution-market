@@ -372,7 +372,8 @@
     "disputed": "Entrega Disputada",
     "disputedSubtitle": "El agente ha disputado tu entrega. Revisa Mis Tareas para mas detalles.",
     "cancelled": "Tarea Cancelada",
-    "cancelledSubtitle": "Esta tarea ha sido cancelada por el publicador."
+    "cancelledSubtitle": "Esta tarea ha sido cancelada por el publicador.",
+    "escrowNotFunded": "Escrow no confirmado en blockchain. El agente debe fondear esta tarea antes de que puedas enviar evidencia."
   },
   "apply": {
     "title": "Aplicar a Tarea",
