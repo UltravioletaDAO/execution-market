@@ -32,9 +32,7 @@ Architecture:
     The report is designed for both human reading and programmatic use.
 """
 
-import json
 import logging
-import os
 import tempfile
 import time
 from dataclasses import dataclass, field
