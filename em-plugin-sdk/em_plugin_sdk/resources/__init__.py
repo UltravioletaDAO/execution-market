@@ -6,6 +6,8 @@ from .workers import WorkersResource
 from .reputation import ReputationResource
 from .evidence import EvidenceResource
 from .payments import PaymentsResource
+from .webhooks import WebhooksResource
+from .h2a import H2AResource, AgentsResource
 
 __all__ = [
     "TasksResource",
@@ -14,4 +16,7 @@ __all__ = [
     "ReputationResource",
     "EvidenceResource",
     "PaymentsResource",
+    "WebhooksResource",
+    "H2AResource",
+    "AgentsResource",
 ]

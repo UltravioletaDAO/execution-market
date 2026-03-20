@@ -21,6 +21,8 @@ from .models import (
     AgentIdentity,
     EvidenceUploadInfo,
     EvidenceVerifyResult,
+    Webhook,
+    WebhookList,
     CreateTaskParams,
     SubmitEvidenceParams,
     ApproveParams,
@@ -48,7 +50,7 @@ from .networks import (
     DEFAULT_TOKEN,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     # Client
