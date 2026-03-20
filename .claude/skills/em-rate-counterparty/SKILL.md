@@ -108,6 +108,12 @@ curl -s -X POST "https://api.execution.market/api/v1/reputation/agents/rate" \
 }
 ```
 
+## Side Effects
+
+- **On-chain transaction**: Reputation feedback recorded on ERC-8004 Reputation Registry
+- **Webhook fired**: A `reputation.updated` event is sent (if configured) with score info
+- **IRC broadcast**: Rating announced on `#reputation` channel on MeshRelay IRC: `[REP] Task abc12345 | Score: 95`
+
 ## Score Guidelines
 
 | Score | Meaning | When to Use |
