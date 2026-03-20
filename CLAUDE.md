@@ -79,6 +79,9 @@ When you know something will be needed or is a logical next step:
 - Breaking changes or risky operations
 - Unclear requirements
 
+**How to ask: USE AskUserQuestion TOOL**
+When presenting decisions with multiple options (architecture questions, config choices, master plan open questions), **always use the AskUserQuestion tool** instead of listing options in plain text. This gives the user structured choices that are faster to respond to.
+
 **Rule of thumb**: If the answer is "obviously yes", don't ask—just do it and report what you did.
 
 ## Focus Discipline — One Thread at a Time
