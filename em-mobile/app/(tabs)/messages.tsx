@@ -1,12 +1,69 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import { useXMTP } from "../../providers/XMTPProvider";
+import { useAuth } from "../../providers/AuthProvider";
 import { useConversations, type ConversationPreview } from "../../hooks/useConversations";
 import { ConversationRow } from "../../components/messaging/ConversationRow";
+import { supabase } from "../../lib/supabase";
+
+function TaskChatsSection() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { executor } = useAuth();
+
+  const { data: activeTasks } = useQuery({
+    queryKey: ["task-chats", executor?.id],
+    queryFn: async () => {
+      if (!executor?.id) return [];
+      const { data } = await supabase
+        .from("tasks")
+        .select("id, title, status, bounty_usd")
+        .eq("executor_id", executor.id)
+        .in("status", ["accepted", "in_progress", "submitted", "verifying"])
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data || [];
+    },
+    enabled: !!executor?.id,
+    staleTime: 30000,
+  });
+
+  if (!activeTasks || activeTasks.length === 0) return null;
+
+  return (
+    <View className="px-4 pb-2">
+      <Text className="text-gray-500 text-xs font-bold uppercase mb-2">
+        {t("chat.taskChats")}
+      </Text>
+      {activeTasks.map((task) => (
+        <Pressable
+          key={task.id}
+          className="flex-row items-center bg-gray-900 rounded-xl px-3 py-3 mb-1.5 active:opacity-70"
+          onPress={() => router.push(`/chat/${task.id}`)}
+        >
+          <View className="w-8 h-8 bg-gray-800 rounded-full items-center justify-center mr-3">
+            <Ionicons name="chatbubble-outline" size={16} color="white" />
+          </View>
+          <View className="flex-1">
+            <Text className="text-white text-sm font-medium" numberOfLines={1}>
+              {task.title}
+            </Text>
+            <Text className="text-gray-500 text-xs">
+              ${task.bounty_usd?.toFixed(2)} · {task.status}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color="#6B7280" />
+        </Pressable>
+      ))}
+      <View className="border-b border-gray-800 mt-2 mb-1" />
+    </View>
+  );
+}
 
 export default function MessagesScreen() {
   const router = useRouter();
@@ -102,6 +159,9 @@ export default function MessagesScreen() {
           <Text className="text-black text-xl font-bold leading-none">+</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Active Task Chats section */}
+      <TaskChatsSection />
 
       {isLoading ? (
         <ActivityIndicator color="white" className="mt-8" />
