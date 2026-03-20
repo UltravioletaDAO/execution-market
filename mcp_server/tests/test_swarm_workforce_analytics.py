@@ -1,7 +1,5 @@
 """Tests for WorkforceAnalytics — Aggregated Intelligence Dashboard."""
 
-import time
-
 import pytest
 
 from mcp_server.swarm.workforce_analytics import (
@@ -31,6 +29,7 @@ def _make_events(
 ) -> list[TaskEvent]:
     """Generate synthetic task events."""
     import random
+
     rng = random.Random(42)
     cats = categories or ["delivery", "inspection", "photography", "survey"]
     wkrs = workers or [f"worker_{i}" for i in range(8)]
@@ -38,16 +37,20 @@ def _make_events(
     events = []
     for i in range(n):
         is_success = rng.random() < completion_rate
-        events.append(TaskEvent(
-            task_id=f"task_{i}",
-            category=rng.choice(cats),
-            worker_id=rng.choice(wkrs),
-            outcome="completed" if is_success else rng.choice(["expired", "rejected"]),
-            quality_score=rng.uniform(0.5, 1.0) if is_success else 0.0,
-            bounty_usd=rng.uniform(2.0, 50.0),
-            completion_hours=rng.uniform(1.0, 36.0) if is_success else 0.0,
-            timestamp=1700000000 + i * 3600,
-        ))
+        events.append(
+            TaskEvent(
+                task_id=f"task_{i}",
+                category=rng.choice(cats),
+                worker_id=rng.choice(wkrs),
+                outcome="completed"
+                if is_success
+                else rng.choice(["expired", "rejected"]),
+                quality_score=rng.uniform(0.5, 1.0) if is_success else 0.0,
+                bounty_usd=rng.uniform(2.0, 50.0),
+                completion_hours=rng.uniform(1.0, 36.0) if is_success else 0.0,
+                timestamp=1700000000 + i * 3600,
+            )
+        )
     return events
 
 
@@ -278,7 +281,9 @@ class TestIngestion:
         assert analytics.stats()["events_ingested"] == len(events)
 
     def test_series_created_on_ingest(self, analytics):
-        analytics.ingest(TaskEvent(task_id="t1", outcome="completed", quality_score=0.8))
+        analytics.ingest(
+            TaskEvent(task_id="t1", outcome="completed", quality_score=0.8)
+        )
         assert analytics.get_series("completion_rate") is not None
         assert analytics.get_series("quality") is not None
         assert analytics.get_series("volume") is not None
@@ -345,7 +350,9 @@ class TestReport:
 
 class TestAlerts:
     def test_low_completion_alert(self):
-        analytics = WorkforceAnalytics(alert_thresholds={"min_completion_rate": 0.9, "min_workers": 0})
+        analytics = WorkforceAnalytics(
+            alert_thresholds={"min_completion_rate": 0.9, "min_workers": 0}
+        )
         events = _make_events(n=20, completion_rate=0.3)
         analytics.ingest_batch(events)
         report = analytics.generate_report()
@@ -353,7 +360,9 @@ class TestAlerts:
         assert len(completion_alerts) >= 1
 
     def test_low_worker_count_alert(self):
-        analytics = WorkforceAnalytics(alert_thresholds={"min_workers": 10, "min_completion_rate": 0.0})
+        analytics = WorkforceAnalytics(
+            alert_thresholds={"min_workers": 10, "min_completion_rate": 0.0}
+        )
         events = _make_events(n=20, workers=["w1", "w2"])
         analytics.ingest_batch(events)
         report = analytics.generate_report()
@@ -361,15 +370,22 @@ class TestAlerts:
         assert len(worker_alerts) >= 1
 
     def test_concentration_alert(self):
-        analytics = WorkforceAnalytics(alert_thresholds={
-            "max_concentration": 0.5,
-            "min_completion_rate": 0.0,
-            "min_workers": 0,
-        })
+        analytics = WorkforceAnalytics(
+            alert_thresholds={
+                "max_concentration": 0.5,
+                "min_completion_rate": 0.0,
+                "min_workers": 0,
+            }
+        )
         # One worker does everything
         events = [
-            TaskEvent(task_id=f"t{i}", worker_id="monopoly_worker", outcome="completed",
-                      quality_score=0.8, timestamp=1700000000 + i * 3600)
+            TaskEvent(
+                task_id=f"t{i}",
+                worker_id="monopoly_worker",
+                outcome="completed",
+                quality_score=0.8,
+                timestamp=1700000000 + i * 3600,
+            )
             for i in range(20)
         ]
         analytics.ingest_batch(events)
@@ -378,13 +394,15 @@ class TestAlerts:
         assert len(conc_alerts) >= 1
 
     def test_no_alerts_healthy_system(self):
-        analytics = WorkforceAnalytics(alert_thresholds={
-            "min_completion_rate": 0.3,
-            "min_quality": 0.3,
-            "max_avg_hours": 100.0,
-            "min_workers": 1,
-            "max_concentration": 0.99,
-        })
+        analytics = WorkforceAnalytics(
+            alert_thresholds={
+                "min_completion_rate": 0.3,
+                "min_quality": 0.3,
+                "max_avg_hours": 100.0,
+                "min_workers": 1,
+                "max_concentration": 0.99,
+            }
+        )
         events = _make_events(n=30, completion_rate=0.9)
         analytics.ingest_batch(events)
         report = analytics.generate_report()
@@ -476,7 +494,11 @@ class TestValueAnalysis:
 
 class TestCorrelationAnalysis:
     def test_bounty_quality_insufficient_data(self, analytics):
-        analytics.ingest(TaskEvent(task_id="t1", outcome="completed", bounty_usd=10, quality_score=0.8))
+        analytics.ingest(
+            TaskEvent(
+                task_id="t1", outcome="completed", bounty_usd=10, quality_score=0.8
+            )
+        )
         result = analytics.bounty_quality_correlation()
         assert result["insight"] == "Insufficient data"
 
@@ -491,13 +513,15 @@ class TestCorrelationAnalysis:
         for i in range(20):
             bounty = 5.0 + i * 2
             quality = 0.3 + i * 0.03
-            analytics.ingest(TaskEvent(
-                task_id=f"t{i}",
-                outcome="completed",
-                bounty_usd=bounty,
-                quality_score=quality,
-                timestamp=1700000000 + i,
-            ))
+            analytics.ingest(
+                TaskEvent(
+                    task_id=f"t{i}",
+                    outcome="completed",
+                    bounty_usd=bounty,
+                    quality_score=quality,
+                    timestamp=1700000000 + i,
+                )
+            )
         result = analytics.bounty_quality_correlation()
         assert result["correlation"] > 0.3
 

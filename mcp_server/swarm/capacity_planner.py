@@ -27,8 +27,8 @@ import math
 import statistics
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone, timedelta
-from typing import Optional, Any
+from datetime import timezone
+from typing import Optional
 
 UTC = timezone.utc
 
@@ -60,9 +60,11 @@ URGENCY_MEDIUM = 0.4
 # Data Types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SkillDemand:
     """Demand profile for a single skill."""
+
     skill: str
     demand_count: int  # How many tasks needed this skill
     supply_count: int  # How many agents have this skill
@@ -87,6 +89,7 @@ class SkillDemand:
 @dataclass
 class ConcentrationReport:
     """Worker concentration risk assessment."""
+
     total_tasks: int
     total_workers: int
     active_workers: int
@@ -101,6 +104,7 @@ class ConcentrationReport:
 @dataclass
 class CapacityEstimate:
     """Capacity forecast result."""
+
     current_capacity_daily: float  # Tasks/day the pool can handle
     projected_demand_daily: float  # Forecasted tasks/day
     utilization: float  # demand / capacity (0-inf)
@@ -113,6 +117,7 @@ class CapacityEstimate:
 @dataclass
 class RecruitmentTarget:
     """A specific recruitment recommendation."""
+
     skill: str
     priority: str  # critical, high, medium, low
     urgency_score: float  # 0-1
@@ -124,6 +129,7 @@ class RecruitmentTarget:
 @dataclass
 class WorkloadEntry:
     """Single worker's workload stats."""
+
     wallet: str
     task_count: int
     share: float  # Fraction of total tasks
@@ -135,6 +141,7 @@ class WorkloadEntry:
 # ---------------------------------------------------------------------------
 # Capacity Planner
 # ---------------------------------------------------------------------------
+
 
 class CapacityPlanner:
     """Workforce intelligence engine for the swarm.
@@ -192,14 +199,16 @@ class CapacityPlanner:
             qualities = skill_quality.get(skill, [])
             avg_q = sum(qualities) / len(qualities) if qualities else 0.0
 
-            demands.append(SkillDemand(
-                skill=skill,
-                demand_count=demand,
-                supply_count=supply,
-                gap=max(0, demand - supply),
-                coverage_ratio=supply / demand if demand > 0 else float('inf'),
-                avg_quality=round(avg_q, 3),
-            ))
+            demands.append(
+                SkillDemand(
+                    skill=skill,
+                    demand_count=demand,
+                    supply_count=supply,
+                    gap=max(0, demand - supply),
+                    coverage_ratio=supply / demand if demand > 0 else float("inf"),
+                    avg_quality=round(avg_q, 3),
+                )
+            )
 
         # Sort by severity (critical first)
         severity_order = {"critical": 0, "high": 1, "medium": 2, "healthy": 3}
@@ -216,8 +225,7 @@ class CapacityPlanner:
             "in_demand_skills": len(in_demand),
             "covered_skills": len(covered),
             "overall_coverage": (
-                round(len(covered) / len(in_demand), 3)
-                if in_demand else 1.0
+                round(len(covered) / len(in_demand), 3) if in_demand else 1.0
             ),
             "total_skills_seen": len(all_skills),
         }
@@ -247,11 +255,11 @@ class CapacityPlanner:
         capacity = active_agents * self.tasks_per_worker_per_day
         demand = projected_daily_tasks
 
-        utilization = demand / capacity if capacity > 0 else float('inf')
+        utilization = demand / capacity if capacity > 0 else float("inf")
         headroom = capacity - demand
-        workers_needed = max(0, math.ceil(
-            (demand - capacity) / self.tasks_per_worker_per_day
-        ))
+        workers_needed = max(
+            0, math.ceil((demand - capacity) / self.tasks_per_worker_per_day)
+        )
 
         if utilization <= TARGET_UTILIZATION_LOW:
             status = "surplus"
@@ -396,23 +404,27 @@ class CapacityPlanner:
         entries = []
         for wallet, data in worker_tasks.items():
             share = data["count"] / total_tasks if total_tasks > 0 else 0
-            utilization = data["count"] / (avg_tasks * 2) if avg_tasks > 0 else 0
-
-            entries.append(WorkloadEntry(
-                wallet=wallet,
-                task_count=data["count"],
-                share=round(share, 4),
-                categories=data["categories"],
-                is_overloaded=share > MAX_HEALTHY_CONCENTRATION,
-                is_underutilized=share < 0.05 and total_tasks > 10,
-            ))
+            entries.append(
+                WorkloadEntry(
+                    wallet=wallet,
+                    task_count=data["count"],
+                    share=round(share, 4),
+                    categories=data["categories"],
+                    is_overloaded=share > MAX_HEALTHY_CONCENTRATION,
+                    is_underutilized=share < 0.05 and total_tasks > 10,
+                )
+            )
 
         entries.sort(key=lambda e: -e.task_count)
 
         # Compute balance score (0=perfectly unbalanced, 1=perfectly balanced)
         if len(entries) > 1:
             counts = [e.task_count for e in entries]
-            cv = statistics.stdev(counts) / statistics.mean(counts) if statistics.mean(counts) > 0 else 0
+            cv = (
+                statistics.stdev(counts) / statistics.mean(counts)
+                if statistics.mean(counts) > 0
+                else 0
+            )
             balance_score = max(0, 1 - cv)
         elif len(entries) == 1:
             balance_score = 0.0  # Single worker = no balance
@@ -456,52 +468,62 @@ class CapacityPlanner:
 
         # From skill gaps
         for gap in gaps.get("critical_gaps", []):
-            targets.append(RecruitmentTarget(
-                skill=gap["skill"],
-                priority="critical",
-                urgency_score=URGENCY_CRITICAL,
-                current_supply=gap["supply_count"],
-                gap_size=gap["gap"],
-                reason=f"Zero workers with '{gap['skill']}' — {gap['demand_count']} tasks need it",
-            ))
+            targets.append(
+                RecruitmentTarget(
+                    skill=gap["skill"],
+                    priority="critical",
+                    urgency_score=URGENCY_CRITICAL,
+                    current_supply=gap["supply_count"],
+                    gap_size=gap["gap"],
+                    reason=f"Zero workers with '{gap['skill']}' — {gap['demand_count']} tasks need it",
+                )
+            )
 
         # High-gap skills
         for demand in gaps.get("skill_demands", []):
             if demand["severity"] == "high" and demand["skill"] not in [
                 t.skill for t in targets
             ]:
-                targets.append(RecruitmentTarget(
-                    skill=demand["skill"],
-                    priority="high",
-                    urgency_score=URGENCY_HIGH,
-                    current_supply=demand["supply_count"],
-                    gap_size=demand["gap"],
-                    reason=f"Only {demand['supply_count']} workers for {demand['demand_count']} tasks",
-                ))
+                targets.append(
+                    RecruitmentTarget(
+                        skill=demand["skill"],
+                        priority="high",
+                        urgency_score=URGENCY_HIGH,
+                        current_supply=demand["supply_count"],
+                        gap_size=demand["gap"],
+                        reason=f"Only {demand['supply_count']} workers for {demand['demand_count']} tasks",
+                    )
+                )
 
         # From capacity shortage
         if capacity.status in ("shortage", "critical"):
-            targets.append(RecruitmentTarget(
-                skill="general",
-                priority="high" if capacity.status == "shortage" else "critical",
-                urgency_score=URGENCY_HIGH if capacity.status == "shortage" else URGENCY_CRITICAL,
-                current_supply=len(agents),
-                gap_size=capacity.workers_needed,
-                reason=f"Pool at {capacity.utilization:.0%} utilization — "
-                       f"need {capacity.workers_needed} more workers",
-            ))
+            targets.append(
+                RecruitmentTarget(
+                    skill="general",
+                    priority="high" if capacity.status == "shortage" else "critical",
+                    urgency_score=URGENCY_HIGH
+                    if capacity.status == "shortage"
+                    else URGENCY_CRITICAL,
+                    current_supply=len(agents),
+                    gap_size=capacity.workers_needed,
+                    reason=f"Pool at {capacity.utilization:.0%} utilization — "
+                    f"need {capacity.workers_needed} more workers",
+                )
+            )
 
         # From concentration risk
         if risk.risk_level in ("high", "critical"):
-            targets.append(RecruitmentTarget(
-                skill="diversification",
-                priority="high",
-                urgency_score=URGENCY_HIGH,
-                current_supply=risk.active_workers,
-                gap_size=max(2, 3 - risk.active_workers),
-                reason=f"Top worker handles {risk.top_worker_share:.0%} — "
-                       f"need diversification",
-            ))
+            targets.append(
+                RecruitmentTarget(
+                    skill="diversification",
+                    priority="high",
+                    urgency_score=URGENCY_HIGH,
+                    current_supply=risk.active_workers,
+                    gap_size=max(2, 3 - risk.active_workers),
+                    reason=f"Top worker handles {risk.top_worker_share:.0%} — "
+                    f"need diversification",
+                )
+            )
 
         # Sort by urgency
         targets.sort(key=lambda t: -t.urgency_score)
@@ -539,8 +561,14 @@ class CapacityPlanner:
         # Overall health score (0-100)
         health_components = [
             min(1.0, gaps.get("overall_coverage", 0)),
-            1.0 - min(1.0, capacity.utilization) if capacity.utilization <= 1.0 else 0.0,
-            1.0 if risk.risk_level == "healthy" else 0.5 if risk.risk_level == "moderate" else 0.2,
+            1.0 - min(1.0, capacity.utilization)
+            if capacity.utilization <= 1.0
+            else 0.0,
+            1.0
+            if risk.risk_level == "healthy"
+            else 0.5
+            if risk.risk_level == "moderate"
+            else 0.2,
             balance.get("balance_score", 0),
         ]
         health_score = round(sum(health_components) / len(health_components) * 100, 1)
@@ -586,8 +614,18 @@ class CapacityPlanner:
 
         # Title-based extraction (basic)
         title = task.get("title", "").lower()
-        for kw in ["photo", "video", "verify", "deliver", "survey", "write",
-                    "research", "translate", "design", "code"]:
+        for kw in [
+            "photo",
+            "video",
+            "verify",
+            "deliver",
+            "survey",
+            "write",
+            "research",
+            "translate",
+            "design",
+            "code",
+        ]:
             if kw in title:
                 skills.append(kw)
 
@@ -608,8 +646,12 @@ class CapacityPlanner:
                     # Quality from confidence or level
                     conf = data.get("confidence", 0.5)
                     level = data.get("level", "").upper()
-                    level_scores = {"EXPERT": 1.0, "ADVANCED": 0.8,
-                                    "INTERMEDIATE": 0.6, "BEGINNER": 0.3}
+                    level_scores = {
+                        "EXPERT": 1.0,
+                        "ADVANCED": 0.8,
+                        "INTERMEDIATE": 0.6,
+                        "BEGINNER": 0.3,
+                    }
                     quality = max(conf, level_scores.get(level, 0.5))
                 elif isinstance(data, (int, float)):
                     quality = min(1.0, data / 100 if data > 1 else data)

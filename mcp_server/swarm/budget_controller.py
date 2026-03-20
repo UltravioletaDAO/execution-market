@@ -28,7 +28,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import IntEnum
-from typing import Any, Optional
+from typing import Optional
 
 logger = logging.getLogger("em.swarm.budget_controller")
 
@@ -242,7 +242,9 @@ class BalanceSnapshot:
 class BudgetExceededError(Exception):
     """Raised when a spend would exceed budget limits."""
 
-    def __init__(self, message: str, limit_type: str, limit_usd: float, requested_usd: float):
+    def __init__(
+        self, message: str, limit_type: str, limit_usd: float, requested_usd: float
+    ):
         super().__init__(message)
         self.limit_type = limit_type
         self.limit_usd = limit_usd
@@ -303,7 +305,9 @@ class BudgetController:
         self._alerts: deque[BudgetAlert] = deque(maxlen=alert_max_size)
 
         # Burn rate tracking (recent spends for velocity calc)
-        self._recent_spends: deque[tuple[float, float]] = deque(maxlen=1000)  # (timestamp, amount)
+        self._recent_spends: deque[tuple[float, float]] = deque(
+            maxlen=1000
+        )  # (timestamp, amount)
 
         # Previous burn rates for trend detection
         self._burn_rate_history: deque[float] = deque(maxlen=24)  # hourly rates
@@ -450,37 +454,57 @@ class BudgetController:
         self._approval_count += 1
 
         # Check for warning thresholds
-        daily_pct = self._daily_spent_usd / effective_daily if effective_daily > 0 else 0
-        monthly_pct = self._monthly_spent_usd / effective_monthly if effective_monthly > 0 else 0
+        daily_pct = (
+            self._daily_spent_usd / effective_daily if effective_daily > 0 else 0
+        )
+        monthly_pct = (
+            self._monthly_spent_usd / effective_monthly if effective_monthly > 0 else 0
+        )
 
         if daily_pct >= 0.90:
             self._add_alert(
                 "critical",
                 "daily_budget_critical",
-                f"Daily budget at {daily_pct*100:.0f}%: ${self._daily_spent_usd:.2f}/${effective_daily}",
-                {"pct": daily_pct, "spent": self._daily_spent_usd, "limit": effective_daily},
+                f"Daily budget at {daily_pct * 100:.0f}%: ${self._daily_spent_usd:.2f}/${effective_daily}",
+                {
+                    "pct": daily_pct,
+                    "spent": self._daily_spent_usd,
+                    "limit": effective_daily,
+                },
             )
         elif daily_pct >= 0.75:
             self._add_alert(
                 "warning",
                 "daily_budget_warning",
-                f"Daily budget at {daily_pct*100:.0f}%: ${self._daily_spent_usd:.2f}/${effective_daily}",
-                {"pct": daily_pct, "spent": self._daily_spent_usd, "limit": effective_daily},
+                f"Daily budget at {daily_pct * 100:.0f}%: ${self._daily_spent_usd:.2f}/${effective_daily}",
+                {
+                    "pct": daily_pct,
+                    "spent": self._daily_spent_usd,
+                    "limit": effective_daily,
+                },
             )
 
         if monthly_pct >= 0.90:
             self._add_alert(
                 "critical",
                 "monthly_budget_critical",
-                f"Monthly budget at {monthly_pct*100:.0f}%: ${self._monthly_spent_usd:.2f}/${effective_monthly}",
-                {"pct": monthly_pct, "spent": self._monthly_spent_usd, "limit": effective_monthly},
+                f"Monthly budget at {monthly_pct * 100:.0f}%: ${self._monthly_spent_usd:.2f}/${effective_monthly}",
+                {
+                    "pct": monthly_pct,
+                    "spent": self._monthly_spent_usd,
+                    "limit": effective_monthly,
+                },
             )
         elif monthly_pct >= 0.75:
             self._add_alert(
                 "warning",
                 "monthly_budget_warning",
-                f"Monthly budget at {monthly_pct*100:.0f}%: ${self._monthly_spent_usd:.2f}/${effective_monthly}",
-                {"pct": monthly_pct, "spent": self._monthly_spent_usd, "limit": effective_monthly},
+                f"Monthly budget at {monthly_pct * 100:.0f}%: ${self._monthly_spent_usd:.2f}/${effective_monthly}",
+                {
+                    "pct": monthly_pct,
+                    "spent": self._monthly_spent_usd,
+                    "limit": effective_monthly,
+                },
             )
 
         logger.info(
@@ -613,11 +637,20 @@ class BudgetController:
         policy = self.current_policy
 
         # Use the most constraining remaining limit
-        daily_remaining = max(0, min(self._fleet_daily_limit, policy.max_daily_usd) - self._daily_spent_usd)
-        monthly_remaining = max(0, min(self._fleet_monthly_limit, policy.max_monthly_usd) - self._monthly_spent_usd)
+        max(
+            0,
+            min(self._fleet_daily_limit, policy.max_daily_usd) - self._daily_spent_usd,
+        )  # daily check
+        monthly_remaining = max(
+            0,
+            min(self._fleet_monthly_limit, policy.max_monthly_usd)
+            - self._monthly_spent_usd,
+        )
 
         # Available is min of on-chain balance and remaining budget
-        effective_available = min(available, monthly_remaining) if available > 0 else monthly_remaining
+        effective_available = (
+            min(available, monthly_remaining) if available > 0 else monthly_remaining
+        )
 
         if usd_per_hour > 0:
             runway_hours = effective_available / usd_per_hour
@@ -701,7 +734,9 @@ class BudgetController:
                 f"Projected spend (${projected_usd:.2f}) exceeds on-chain balance (${balance:.2f})"
             )
         if burn.trend == "increasing":
-            recommendations.append("Burn rate is increasing — consider reviewing task creation rate")
+            recommendations.append(
+                "Burn rate is increasing — consider reviewing task creation rate"
+            )
 
         return {
             "projection_hours": hours,
@@ -712,9 +747,12 @@ class BudgetController:
             "on_chain_balance_usd": round(balance, 2),
             "recommendations": recommendations,
             "risk_level": (
-                "critical" if projected_usd > balance and balance > 0
-                else "high" if projected_usd > daily_remaining
-                else "medium" if burn.trend == "increasing"
+                "critical"
+                if projected_usd > balance and balance > 0
+                else "high"
+                if projected_usd > daily_remaining
+                else "medium"
+                if burn.trend == "increasing"
                 else "low"
             ),
         }
@@ -729,11 +767,21 @@ class BudgetController:
         effective_daily = min(self._fleet_daily_limit, policy.max_daily_usd)
         effective_monthly = min(self._fleet_monthly_limit, policy.max_monthly_usd)
 
-        daily_pct = (self._daily_spent_usd / effective_daily * 100) if effective_daily > 0 else 0
-        monthly_pct = (self._monthly_spent_usd / effective_monthly * 100) if effective_monthly > 0 else 0
+        daily_pct = (
+            (self._daily_spent_usd / effective_daily * 100)
+            if effective_daily > 0
+            else 0
+        )
+        monthly_pct = (
+            (self._monthly_spent_usd / effective_monthly * 100)
+            if effective_monthly > 0
+            else 0
+        )
 
         # Top spenders
-        sorted_agents = sorted(self._agent_totals.items(), key=lambda x: x[1], reverse=True)
+        sorted_agents = sorted(
+            self._agent_totals.items(), key=lambda x: x[1], reverse=True
+        )
         top_spenders = [
             {"agent_id": aid, "total_usd": round(total, 4)}
             for aid, total in sorted_agents[:5]
@@ -743,7 +791,9 @@ class BudgetController:
         category_totals: dict[str, float] = {}
         for record in self._history:
             if record.status == "committed":
-                category_totals[record.category] = category_totals.get(record.category, 0) + record.amount_usd
+                category_totals[record.category] = (
+                    category_totals.get(record.category, 0) + record.amount_usd
+                )
 
         return {
             "phase": self._current_phase.name,
@@ -751,13 +801,17 @@ class BudgetController:
             "daily": {
                 "spent_usd": round(self._daily_spent_usd, 4),
                 "limit_usd": effective_daily,
-                "remaining_usd": round(max(0, effective_daily - self._daily_spent_usd), 4),
+                "remaining_usd": round(
+                    max(0, effective_daily - self._daily_spent_usd), 4
+                ),
                 "pct": round(daily_pct, 1),
             },
             "monthly": {
                 "spent_usd": round(self._monthly_spent_usd, 4),
                 "limit_usd": effective_monthly,
-                "remaining_usd": round(max(0, effective_monthly - self._monthly_spent_usd), 4),
+                "remaining_usd": round(
+                    max(0, effective_monthly - self._monthly_spent_usd), 4
+                ),
                 "pct": round(monthly_pct, 1),
             },
             "all_time": {
@@ -773,7 +827,8 @@ class BudgetController:
             "total_on_chain_usd": round(self.get_total_balance(), 2),
             "top_spenders": top_spenders,
             "category_breakdown": {
-                cat: round(total, 4) for cat, total in sorted(
+                cat: round(total, 4)
+                for cat, total in sorted(
                     category_totals.items(), key=lambda x: x[1], reverse=True
                 )
             },
@@ -782,11 +837,17 @@ class BudgetController:
     def get_agent_spend(self, agent_id: int) -> dict:
         """Get spend summary for a specific agent."""
         self._check_resets()
-        records = [r for r in self._history if r.agent_id == agent_id and r.status == "committed"]
+        records = [
+            r
+            for r in self._history
+            if r.agent_id == agent_id and r.status == "committed"
+        ]
 
         category_totals: dict[str, float] = {}
         for r in records:
-            category_totals[r.category] = category_totals.get(r.category, 0) + r.amount_usd
+            category_totals[r.category] = (
+                category_totals.get(r.category, 0) + r.amount_usd
+            )
 
         return {
             "agent_id": agent_id,
@@ -817,7 +878,9 @@ class BudgetController:
 
         return alerts[-limit:]
 
-    def _add_alert(self, level: str, code: str, message: str, data: dict | None = None) -> None:
+    def _add_alert(
+        self, level: str, code: str, message: str, data: dict | None = None
+    ) -> None:
         """Add a budget alert."""
         alert = BudgetAlert(
             level=level,
@@ -845,8 +908,12 @@ class BudgetController:
         effective_daily = min(self._fleet_daily_limit, policy.max_daily_usd)
         effective_monthly = min(self._fleet_monthly_limit, policy.max_monthly_usd)
 
-        daily_util = self._daily_spent_usd / effective_daily if effective_daily > 0 else 0
-        monthly_util = self._monthly_spent_usd / effective_monthly if effective_monthly > 0 else 0
+        daily_util = (
+            self._daily_spent_usd / effective_daily if effective_daily > 0 else 0
+        )
+        monthly_util = (
+            self._monthly_spent_usd / effective_monthly if effective_monthly > 0 else 0
+        )
         avg_util = (daily_util + monthly_util) / 2
 
         burn = self.calculate_burn_rate(window_hours=1.0)
@@ -858,8 +925,12 @@ class BudgetController:
             "burn_rate_usd_per_hour": round(burn.usd_per_hour, 4),
             "burn_rate_trend": burn.trend,
             "total_balance_usd": round(self.get_total_balance(), 2),
-            "daily_remaining_usd": round(max(0, effective_daily - self._daily_spent_usd), 4),
-            "monthly_remaining_usd": round(max(0, effective_monthly - self._monthly_spent_usd), 4),
+            "daily_remaining_usd": round(
+                max(0, effective_daily - self._daily_spent_usd), 4
+            ),
+            "monthly_remaining_usd": round(
+                max(0, effective_monthly - self._monthly_spent_usd), 4
+            ),
             "approval_count": self._approval_count,
             "rejection_count": self._rejection_count,
             "has_active_alerts": any(a.level == "critical" for a in self._alerts),
@@ -944,16 +1015,20 @@ class BudgetController:
         ]
 
         if burn.runway_days is not None:
-            lines.append(f"║ Runway: {burn.runway_days:>6.1f} days                              ║")
+            lines.append(
+                f"║ Runway: {burn.runway_days:>6.1f} days                              ║"
+            )
         else:
             lines.append("║ Runway: ∞ (no active spending)                    ║")
 
-        lines.extend([
-            "╠───────────────────────────────────────────────────╣",
-            f"║ On-chain: ${status['total_on_chain_usd']:>8.2f} USDC                       ║",
-            f"║ 24h projection: ${projection['projected_usd']:>6.2f} (risk: {projection['risk_level']:<8})    ║",
-            f"║ Approved: {status['all_time']['approval_count']:<6} | Rejected: {status['all_time']['rejection_count']:<6} | Refunds: {status['all_time']['refund_count']:<4}║",
-        ])
+        lines.extend(
+            [
+                "╠───────────────────────────────────────────────────╣",
+                f"║ On-chain: ${status['total_on_chain_usd']:>8.2f} USDC                       ║",
+                f"║ 24h projection: ${projection['projected_usd']:>6.2f} (risk: {projection['risk_level']:<8})    ║",
+                f"║ Approved: {status['all_time']['approval_count']:<6} | Rejected: {status['all_time']['rejection_count']:<6} | Refunds: {status['all_time']['refund_count']:<4}║",
+            ]
+        )
 
         if projection["recommendations"]:
             lines.append("╠───────────────────────────────────────────────────╣")
