@@ -444,7 +444,7 @@ class TestH2ATaskCreation:
             title="Cheap task",
             instructions="Do something very cheap for testing",
             category="data_processing",
-            bounty_usd=0.01,
+            bounty_usd=0.005,
             deadline_hours=24,
             evidence_required=["text_report"],
         )
