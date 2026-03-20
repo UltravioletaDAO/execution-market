@@ -122,8 +122,10 @@ class MeshRelayAdapter:
         webhook_secret: str = "",
     ):
         self._bus = bus
-        self._webhook_url = webhook_url or os.environ.get(
-            "MESHRELAY_WEBHOOK_URL", DEFAULT_WEBHOOK_URL
+        self._webhook_url = (
+            webhook_url
+            if webhook_url is not None
+            else os.environ.get("MESHRELAY_WEBHOOK_URL", DEFAULT_WEBHOOK_URL)
         )
         self._webhook_secret = webhook_secret or os.environ.get(
             "MESHRELAY_WEBHOOK_SECRET", ""
