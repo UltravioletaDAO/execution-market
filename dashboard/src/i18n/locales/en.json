@@ -1898,6 +1898,15 @@
     "submissions": "Submissions",
     "noSubmissions": "No submissions yet"
   },
+  "taskLifecycle": {
+    "title": "Task Lifecycle",
+    "published": "Published",
+    "assigned": "Assigned",
+    "evidenceSubmitted": "Evidence Submitted",
+    "completedPaid": "Completed & Paid",
+    "cancelled": "Cancelled",
+    "expired": "Expired"
+  },
   "txTimeline": {
     "transactions": "Transactions",
     "onChainTransactions": "On-Chain Transactions",

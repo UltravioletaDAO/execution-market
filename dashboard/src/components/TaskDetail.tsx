@@ -12,6 +12,8 @@ import { TxHashLink } from './TxLink'
 import { NetworkBadge } from './ui/NetworkBadge'
 import { useAgentReputation, getReputationTier, getTierColor } from '../hooks/useAgentReputation'
 import { AgentStandardCard } from './agents/AgentStandardCard'
+import { EvidenceVerificationPanel } from './EvidenceVerificationPanel'
+import { TaskLifecycleTimeline } from './TaskLifecycleTimeline'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -394,6 +396,11 @@ export function TaskDetail({
           </section>
         )}
 
+        {/* Task Lifecycle Timeline — show when task has progressed past published */}
+        {(task.executor_id || task.escrow_tx || ['accepted', 'in_progress', 'submitted', 'verifying', 'completed', 'expired', 'cancelled', 'disputed'].includes(task.status)) && (
+          <TaskLifecycleTimeline task={task} submissions={submissions} />
+        )}
+
         {/* Transaction Details */}
         {(task.escrow_tx || task.refund_tx || task.payment_network) && (
           <section>
@@ -531,25 +538,61 @@ export function TaskDetail({
                               )}
                               {/* Metadata as clean key-value pairs */}
                               {metadata && Object.keys(metadata).length > 0 && (
-                                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                  {filename && (
-                                    <>
-                                      <span className="text-gray-400">{t('submission.filename', 'Archivo')}</span>
-                                      <span className="text-gray-600 truncate">{filename}</span>
-                                    </>
-                                  )}
-                                  {Object.entries(metadata).map(([mk, mv]) => (
-                                    mk !== 'backend' ? (
-                                      <span key={mk} className="contents">
-                                        <span className="text-gray-400">{mk === 'size' ? t('submission.fileSize', 'Peso') : mk.replace(/_/g, ' ')}</span>
-                                        <span className="text-gray-600">
-                                          {mk === 'size' && typeof mv === 'number'
-                                            ? mv > 1048576 ? `${(mv / 1048576).toFixed(1)} MB` : `${(mv / 1024).toFixed(0)} KB`
-                                            : String(mv)}
+                                <div className="mt-2 space-y-2">
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                    {filename && (
+                                      <>
+                                        <span className="text-gray-400">{t('submission.filename', 'Archivo')}</span>
+                                        <span className="text-gray-600 truncate">{filename}</span>
+                                      </>
+                                    )}
+                                    {Object.entries(metadata).map(([mk, mv]) => {
+                                      // Hide internal fields
+                                      if (['backend', 'storagePath', 'nonce', 'storage_path'].includes(mk)) return null
+                                      // Nested objects rendered separately below
+                                      if (typeof mv === 'object' && mv !== null) return null
+                                      return (
+                                        <span key={mk} className="contents">
+                                          <span className="text-gray-400">
+                                            {mk === 'size' ? t('submission.fileSize', 'Peso')
+                                              : mk === 'checksum' ? 'Hash'
+                                              : mk.replace(/_/g, ' ')}
+                                          </span>
+                                          <span className="text-gray-600 truncate">
+                                            {mk === 'size' && typeof mv === 'number'
+                                              ? mv > 1048576 ? `${(mv / 1048576).toFixed(1)} MB` : `${(mv / 1024).toFixed(0)} KB`
+                                              : mk === 'checksum' && typeof mv === 'string' && mv.length > 16
+                                              ? `${mv.slice(0, 16)}...`
+                                              : String(mv)}
+                                          </span>
                                         </span>
-                                      </span>
-                                    ) : null
-                                  ))}
+                                      )
+                                    })}
+                                  </div>
+                                  {/* Nested objects: forensic, ai_verification, etc. */}
+                                  {Object.entries(metadata).map(([mk, mv]) => {
+                                    if (typeof mv !== 'object' || mv === null) return null
+                                    const obj = mv as Record<string, unknown>
+                                    return (
+                                      <div key={mk} className="bg-white rounded p-2 border border-gray-100">
+                                        <span className="text-xs font-medium text-gray-500 uppercase">{mk.replace(/_/g, ' ')}</span>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1 text-xs">
+                                          {Object.entries(obj).map(([nk, nv]) => (
+                                            <span key={nk} className="contents">
+                                              <span className="text-gray-400">{nk.replace(/_/g, ' ')}</span>
+                                              <span className="text-gray-600 truncate">
+                                                {typeof nv === 'boolean' ? (nv ? 'Si' : 'No')
+                                                  : typeof nv === 'number' ? (nk.includes('score') ? `${Math.round(nv * 100)}%` : String(nv))
+                                                  : typeof nv === 'string' && nv.length > 32 ? `${nv.slice(0, 32)}...`
+                                                  : typeof nv === 'object' && nv !== null ? JSON.stringify(nv)
+                                                  : String(nv ?? '')}
+                                              </span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
                                 </div>
                               )}
                             </div>
@@ -607,11 +650,18 @@ export function TaskDetail({
                     </div>
                   )}
 
-                  {/* Agent notes */}
+                  {/* Auto-check verification results */}
+                  {sub.auto_check_details && (
+                    <div className="mt-3">
+                      <EvidenceVerificationPanel details={sub.auto_check_details} />
+                    </div>
+                  )}
+
+                  {/* Agent notes — italic quote block */}
                   {sub.agent_notes && (
-                    <div className="mt-3 p-2 bg-blue-50 rounded-lg">
-                      <span className="text-xs font-medium text-blue-600">{t('submission.agentNotes', 'Notas del agente')}</span>
-                      <p className="text-sm text-blue-800 mt-1">{sub.agent_notes}</p>
+                    <div className="mt-3 border-l-4 border-blue-300 bg-blue-50 rounded-r-lg px-4 py-3">
+                      <span className="text-xs font-medium text-blue-600 block mb-1">{t('submission.agentNotes', 'Notas del agente')}</span>
+                      <p className="text-sm text-blue-800 italic">{sub.agent_notes}</p>
                     </div>
                   )}
                 </div>

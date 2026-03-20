@@ -1898,6 +1898,15 @@
     "submissions": "Entregas",
     "noSubmissions": "No hay entregas aun"
   },
+  "taskLifecycle": {
+    "title": "Ciclo de Vida",
+    "published": "Publicada",
+    "assigned": "Asignada",
+    "evidenceSubmitted": "Evidencia Enviada",
+    "completedPaid": "Completada y Pagada",
+    "cancelled": "Cancelada",
+    "expired": "Expirada"
+  },
   "txTimeline": {
     "transactions": "Transacciones",
     "onChainTransactions": "Transacciones On-Chain",
