@@ -13,16 +13,14 @@
 -- is configured. This fix is for EXISTING evidence stored in Supabase.
 -- ============================================================================
 
-BEGIN;
-
 -- Make the evidence bucket public for reads
 UPDATE storage.buckets
 SET public = true
 WHERE id = 'evidence';
 
 -- Allow public read access to evidence files
-CREATE POLICY IF NOT EXISTS "Public evidence read access"
+-- Drop first in case it already exists
+DROP POLICY IF EXISTS "Public evidence read access" ON storage.objects;
+CREATE POLICY "Public evidence read access"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'evidence');
-
-COMMIT;
