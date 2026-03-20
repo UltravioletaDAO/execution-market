@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "em-plugin-sdk"
+version = "0.1.0"
+description = "Python SDK for the Execution Market API — publish tasks, manage workers, handle payments"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Ultravioleta DAO", email = "dev@ultravioletadao.xyz" },
+]
+keywords = ["execution-market", "ai-agents", "mcp", "x402", "erc8004"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "httpx>=0.25.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+]
+
+[project.urls]
+Homepage = "https://execution.market"
+Documentation = "https://api.execution.market/docs"
+Repository = "https://github.com/ultravioletadao/em-plugin-sdk"
+
+[tool.hatch.build.targets.wheel]
+packages = ["em_plugin_sdk"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
