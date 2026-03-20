@@ -29,7 +29,7 @@ async function handleMatch(cmd: ParsedCommand, send: SendFn): Promise<void> {
 
   try {
     // Fetch task details to get city/category
-    const taskResp = await apiClient.get(`/api/v1/tasks/${taskId}`);
+    const taskResp = await apiClient.get<any>(`/api/v1/tasks/${taskId}`);
     const task = taskResp.data;
 
     const city = task.city || task.location?.city || "";

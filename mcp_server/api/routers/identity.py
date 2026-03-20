@@ -96,7 +96,9 @@ async def lookup_identity(
 ):
     """Look up an IRC identity by nick or wallet address."""
     if not nick and not wallet:
-        raise HTTPException(status_code=400, detail="Provide 'nick' or 'wallet' query parameter")
+        raise HTTPException(
+            status_code=400, detail="Provide 'nick' or 'wallet' query parameter"
+        )
 
     try:
         query = db.client.table("irc_identities").select(
@@ -214,7 +216,9 @@ async def verify_challenge(
         # Look up identity
         result = (
             db.client.table("irc_identities")
-            .select("id, wallet_address, challenge_nonce, challenge_expires_at, trust_level")
+            .select(
+                "id, wallet_address, challenge_nonce, challenge_expires_at, trust_level"
+            )
             .eq("irc_nick", req.irc_nick.lower())
             .execute()
         )

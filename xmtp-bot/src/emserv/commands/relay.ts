@@ -24,7 +24,7 @@ async function handleRelayStatus(cmd: ParsedCommand, send: SendFn): Promise<void
   }
 
   try {
-    const resp = await apiClient.get(`/api/v1/relay-chains/${chainId}`);
+    const resp = await apiClient.get<any>(`/api/v1/relay-chains/${chainId}`);
     const chain = resp.data;
 
     const legLines = chain.legs.map((leg: any) => {
@@ -79,7 +79,7 @@ async function handleHandoff(cmd: ParsedCommand, send: SendFn): Promise<void> {
 
   // Fetch the leg to show the handoff code to the outgoing worker
   try {
-    const resp = await apiClient.get(`/api/v1/relay-chains/${chainId}`);
+    const resp = await apiClient.get<any>(`/api/v1/relay-chains/${chainId}`);
     const chain = resp.data;
     const leg = chain.legs.find((l: any) => l.leg_number === legNumber);
 
@@ -135,7 +135,7 @@ async function handleConfirmHandoff(cmd: ParsedCommand, send: SendFn): Promise<v
   }
 
   try {
-    const resp = await apiClient.post(
+    const resp = await apiClient.post<any>(
       `/api/v1/relay-chains/${chainId}/legs/${legNumber}/handoff`,
       { handoff_code: code },
     );
