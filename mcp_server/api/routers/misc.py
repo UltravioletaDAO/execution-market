@@ -705,3 +705,117 @@ async def agent_info():
         },
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+@router.get(
+    "/skills",
+    summary="Agent Skills",
+    description="Machine-readable skill descriptors for agent discovery.",
+    tags=["System"],
+)
+async def agent_skills():
+    """
+    Agent skill descriptors following the open standard for agent capabilities.
+
+    Each skill maps to one or more MCP tools / REST endpoints that implement it.
+    """
+    return {
+        "agent": "Execution Market",
+        "agent_id": 2106,
+        "version": "1.0",
+        "skills": [
+            {
+                "id": "publish_task",
+                "name": "Publish Task",
+                "description": "Publish a bounty for real-world execution by humans or robots",
+                "mcp_tools": ["em_publish_task"],
+                "rest_endpoint": "POST /api/v1/tasks",
+                "input_schema": {
+                    "required": ["title", "description", "category", "bounty_usdc"],
+                    "optional": [
+                        "deadline_minutes",
+                        "location",
+                        "evidence_schema",
+                        "payment_network",
+                    ],
+                },
+                "output": "task_id, status, escrow_tx (if applicable)",
+                "trust_level": "api_key",
+            },
+            {
+                "id": "verify_evidence",
+                "name": "Verify Evidence",
+                "description": "AI-powered verification of submitted evidence (photos, GPS, EXIF)",
+                "mcp_tools": ["em_check_submission"],
+                "rest_endpoint": "POST /api/v1/evidence/verify",
+                "input_schema": {
+                    "required": ["submission_id"],
+                    "optional": ["verification_criteria"],
+                },
+                "output": "decision (approved/rejected/needs_review), confidence, reasoning",
+                "trust_level": "api_key",
+            },
+            {
+                "id": "manage_escrow",
+                "name": "Manage Escrow",
+                "description": "Lock, release, or refund x402r on-chain escrow for task payments",
+                "mcp_tools": ["em_approve_submission"],
+                "rest_endpoint": "POST /api/v1/tasks/{id}/approve",
+                "input_schema": {
+                    "required": ["task_id", "verdict"],
+                    "optional": ["reason"],
+                },
+                "output": "payment_tx, amount_usd, worker_address",
+                "trust_level": "api_key + task_owner",
+            },
+            {
+                "id": "track_reputation",
+                "name": "Track Reputation",
+                "description": "Bidirectional on-chain reputation scores (ERC-8004)",
+                "rest_endpoint": "GET /api/v1/reputation/lookup",
+                "input_schema": {
+                    "required": ["wallet"],
+                    "optional": ["network"],
+                },
+                "output": "reputation_score, total_ratings, agent_id",
+                "trust_level": "public (read), api_key (write)",
+            },
+            {
+                "id": "register_identity",
+                "name": "Register Identity",
+                "description": "Gasless ERC-8004 identity registration across 15 networks",
+                "rest_endpoint": "POST /api/v1/reputation/register",
+                "input_schema": {
+                    "required": ["wallet_address"],
+                    "optional": ["network", "metadata_uri"],
+                },
+                "output": "agent_id, tx_hash, network",
+                "trust_level": "authenticated",
+            },
+            {
+                "id": "manage_workers",
+                "name": "Manage Workers",
+                "description": "Discover, assign, and manage executor lifecycle",
+                "rest_endpoint": "GET /api/v1/tasks/{id}/applications",
+                "input_schema": {
+                    "required": ["task_id"],
+                    "optional": ["executor_id"],
+                },
+                "output": "applications[], assigned_executor",
+                "trust_level": "api_key + task_owner",
+            },
+            {
+                "id": "batch_operations",
+                "name": "Batch Operations",
+                "description": "Bulk task creation, status queries, and management",
+                "mcp_tools": ["em_get_tasks"],
+                "rest_endpoint": "GET /api/v1/tasks",
+                "input_schema": {
+                    "required": [],
+                    "optional": ["status", "category", "agent_id", "limit", "offset"],
+                },
+                "output": "tasks[], total_count",
+                "trust_level": "api_key",
+            },
+        ],
+    }
