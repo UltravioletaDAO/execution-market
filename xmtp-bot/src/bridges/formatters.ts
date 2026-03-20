@@ -35,6 +35,8 @@ export const TRUST_REQUIREMENTS: Record<string, TrustLevel> = {
   "/cancel": TrustLevel.VERIFIED,
   "/approve": TrustLevel.VERIFIED,
   "/reject": TrustLevel.VERIFIED,
+  "/mutual-cancel": TrustLevel.LINKED,
+  "/confirm-cancel": TrustLevel.LINKED,
 };
 
 export function checkTrustLevel(command: string, userLevel: TrustLevel): { allowed: boolean; required: TrustLevel } {
