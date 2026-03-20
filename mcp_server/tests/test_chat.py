@@ -1,12 +1,15 @@
 """
-Tests for Chat Relay module (Phase 1 — IRC Task Chat).
+Tests for Chat Relay module (Phase 1-4 — IRC Task Chat).
 
 Covers:
 - Pydantic message models and validation
-- Guardrail action blocking
+- Guardrail action blocking (Layer 1 slash commands + Layer 2 NLP)
 - Platform config chat defaults
 - IRCPool channel subscription logic
 - EventInjector message formatting
+- GuardrailFilter (enhanced, bilingual NLP patterns)
+- ChatLogService singleton and interface
+- Rate limiter (per-second and per-hour)
 """
 
 from datetime import datetime, timezone
@@ -518,3 +521,282 @@ class TestChatModuleExports:
         assert ChatMessageIn is not None
         assert chat_router is not None
         assert setup_chat is not None
+
+    def test_phase4_imports(self):
+        from chat import GuardrailFilter, ChatLogService, get_log_service
+
+        assert GuardrailFilter is not None
+        assert ChatLogService is not None
+        assert get_log_service is not None
+
+
+# =========================================================================
+# Phase 4 — Task 4.1: GuardrailFilter Tests
+# =========================================================================
+
+
+class TestGuardrailFilter:
+    """Test enhanced guardrail with NLP patterns (bilingual)."""
+
+    def setup_method(self):
+        from chat.guardrail import GuardrailFilter
+
+        self.gf = GuardrailFilter()
+
+    # -- Layer 1: Slash commands --
+
+    def test_blocks_slash_approve(self):
+        result = self.gf.check("/approve")
+        assert not result.allowed
+        assert result.matched_pattern == "/approve"
+
+    def test_blocks_slash_cancel(self):
+        result = self.gf.check("/cancel this task")
+        assert not result.allowed
+        assert result.matched_pattern == "/cancel"
+
+    def test_blocks_slash_close(self):
+        result = self.gf.check("/close")
+        assert not result.allowed
+        assert result.matched_pattern == "/close"
+
+    def test_blocks_slash_case_insensitive(self):
+        result = self.gf.check("/REFUND now")
+        assert not result.allowed
+        assert result.matched_pattern == "/refund"
+
+    def test_blocks_slash_with_whitespace(self):
+        result = self.gf.check("  /dispute  ")
+        assert not result.allowed
+
+    # -- Layer 2: NLP patterns (English) --
+
+    def test_blocks_cancel_my_task(self):
+        result = self.gf.check("cancel my task please")
+        assert not result.allowed
+        assert result.matched_pattern == "cancel_task"
+
+    def test_blocks_cancel_this_task(self):
+        result = self.gf.check("Can you cancel this task?")
+        assert not result.allowed
+        assert result.matched_pattern == "cancel_task"
+
+    def test_blocks_approve_this(self):
+        result = self.gf.check("approve this submission")
+        assert not result.allowed
+        assert result.matched_pattern == "approve_request"
+
+    def test_blocks_pay_me(self):
+        result = self.gf.check("pay me now")
+        assert not result.allowed
+        assert result.matched_pattern == "pay_request"
+
+    def test_blocks_release_payment(self):
+        result = self.gf.check("please release payment")
+        assert not result.allowed
+        assert result.matched_pattern == "release_request"
+
+    def test_blocks_reject_this(self):
+        result = self.gf.check("reject this evidence")
+        assert not result.allowed
+        assert result.matched_pattern == "reject_request"
+
+    def test_blocks_dispute_this(self):
+        result = self.gf.check("I want to dispute this")
+        assert not result.allowed
+        assert result.matched_pattern == "dispute_request"
+
+    def test_blocks_refund_my(self):
+        result = self.gf.check("refund my money")
+        assert not result.allowed
+        assert result.matched_pattern == "refund_request"
+
+    # -- Layer 2: NLP patterns (Spanish) --
+
+    def test_blocks_cancelar_mi_tarea(self):
+        result = self.gf.check("cancelar mi tarea por favor")
+        assert not result.allowed
+        assert result.matched_pattern == "cancel_task"
+
+    def test_blocks_cancela_esta_tarea(self):
+        result = self.gf.check("cancela esta tarea")
+        assert not result.allowed
+        assert result.matched_pattern == "cancel_task"
+
+    def test_blocks_aprueba_esto(self):
+        result = self.gf.check("aprueba esto")
+        assert not result.allowed
+        assert result.matched_pattern == "approve_request"
+
+    def test_blocks_pagame(self):
+        result = self.gf.check("pagame ahora")
+        assert not result.allowed
+        assert result.matched_pattern == "pay_request"
+
+    def test_blocks_libera_pago(self):
+        result = self.gf.check("libera el pago")
+        assert not result.allowed
+        assert result.matched_pattern == "release_request"
+
+    def test_blocks_rechaza_esto(self):
+        result = self.gf.check("rechaza esto")
+        assert not result.allowed
+        assert result.matched_pattern == "reject_request"
+
+    def test_blocks_devuelve_mi(self):
+        result = self.gf.check("devuelve mi dinero")
+        assert not result.allowed
+        assert result.matched_pattern == "refund_request"
+
+    # -- Allowed messages --
+
+    def test_allows_normal_message(self):
+        result = self.gf.check("Hello! How is the task going?")
+        assert result.allowed
+
+    def test_allows_empty_string(self):
+        result = self.gf.check("")
+        assert result.allowed
+
+    def test_allows_question_about_payment(self):
+        result = self.gf.check("When will the payment be processed?")
+        assert result.allowed
+
+    def test_allows_cancel_word_in_context(self):
+        # "cancel" not followed by my/this/the + task
+        result = self.gf.check("I had to cancel my dinner plans")
+        assert result.allowed
+
+    def test_allows_approve_word_in_context(self):
+        # "approve" not followed by this/the/my/it
+        result = self.gf.check("I hope they approve our proposal")
+        assert result.allowed
+
+    def test_allows_url_with_action_word(self):
+        result = self.gf.check("Check https://example.com/approve-docs for info")
+        assert result.allowed
+
+    # -- Config: disable NLP --
+
+    def test_nlp_disabled(self):
+        from chat.guardrail import GuardrailFilter
+
+        gf = GuardrailFilter(enable_nlp=False)
+        result = gf.check("cancel my task")
+        assert result.allowed  # NLP disabled, only slash commands blocked
+
+    def test_nlp_disabled_still_blocks_slash(self):
+        from chat.guardrail import GuardrailFilter
+
+        gf = GuardrailFilter(enable_nlp=False)
+        result = gf.check("/cancel task")
+        assert not result.allowed
+
+    # -- Stats --
+
+    def test_stats_tracking(self):
+        from chat.guardrail import GuardrailFilter
+
+        gf = GuardrailFilter()
+        gf.check("hello")
+        gf.check("/approve")
+        gf.check("cancel my task")
+        stats = gf.stats
+        assert stats["checked"] == 3
+        assert stats["blocked_command"] == 1
+        assert stats["blocked_nlp"] == 1
+        assert stats["allowed"] == 1
+
+
+# =========================================================================
+# Phase 4 — Task 4.3: ChatLogService Tests
+# =========================================================================
+
+
+class TestChatLogService:
+    """Test ChatLogService singleton and interface."""
+
+    def test_singleton(self):
+        from chat.log_service import get_log_service
+
+        svc1 = get_log_service()
+        svc2 = get_log_service()
+        assert svc1 is svc2
+
+    def test_stats_initial(self):
+        from chat.log_service import ChatLogService
+
+        svc = ChatLogService()
+        assert svc.stats["logged"] == 0
+        assert svc.stats["errors"] == 0
+
+    def test_service_has_required_methods(self):
+        from chat.log_service import ChatLogService
+
+        svc = ChatLogService()
+        assert hasattr(svc, "log_message")
+        assert hasattr(svc, "get_history")
+        assert hasattr(svc, "get_blocked_attempts")
+        assert callable(svc.log_message)
+        assert callable(svc.get_history)
+        assert callable(svc.get_blocked_attempts)
+
+
+# =========================================================================
+# Phase 4 — Task 4.4: Rate Limiter Tests
+# =========================================================================
+
+
+class TestRateLimiter:
+    """Test per-user rate limiting."""
+
+    def test_first_message_allowed(self):
+        from chat.relay import _RateLimiter
+
+        rl = _RateLimiter(per_second=1, per_hour=100)
+        result = rl.check("user1", "task1")
+        assert result is None
+
+    def test_rapid_messages_blocked(self):
+        from chat.relay import _RateLimiter
+
+        rl = _RateLimiter(per_second=1, per_hour=100)
+        rl.check("user1", "task1")  # first — allowed
+        result = rl.check("user1", "task1")  # immediate second — blocked
+        assert result is not None
+        assert "wait" in result.lower()
+
+    def test_different_users_independent(self):
+        from chat.relay import _RateLimiter
+
+        rl = _RateLimiter(per_second=1, per_hour=100)
+        rl.check("user1", "task1")
+        result = rl.check("user2", "task1")  # different user — allowed
+        assert result is None
+
+    def test_hourly_limit(self):
+        from chat.relay import _RateLimiter
+
+        rl = _RateLimiter(per_second=999, per_hour=3)  # high per-sec, low per-hour
+        # Manually set timestamps to bypass per-second
+        for i in range(3):
+            rl._last_msg["user1"] = 0  # reset per-sec
+            result = rl.check("user1", "task1")
+            assert result is None, f"Message {i + 1} should be allowed"
+
+        rl._last_msg["user1"] = 0  # reset per-sec
+        result = rl.check("user1", "task1")  # 4th — blocked by hourly
+        assert result is not None
+        assert "limit" in result.lower()
+
+    def test_hourly_limit_different_tasks_independent(self):
+        from chat.relay import _RateLimiter
+
+        rl = _RateLimiter(per_second=999, per_hour=2)
+        for _ in range(2):
+            rl._last_msg["user1"] = 0
+            rl.check("user1", "task1")
+
+        rl._last_msg["user1"] = 0
+        result = rl.check("user1", "task2")  # different task — allowed
+        assert result is None
