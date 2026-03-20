@@ -73,6 +73,17 @@ function formatBounty(amount: number): string {
   }).format(amount)
 }
 
+/** Resolve evidence file URL — handles Supabase storage paths and full URLs */
+function resolveEvidenceUrl(fileUrl: string): string {
+  if (!fileUrl) return ''
+  // Already a full URL (S3/CloudFront or Supabase public URL)
+  if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+    return fileUrl
+  }
+  // Relative path — Supabase storage bucket
+  return `${SUPABASE_URL}/storage/v1/object/public/evidence/${fileUrl}`
+}
+
 export function TaskDetail({
   task,
   currentExecutor,
@@ -493,7 +504,7 @@ export function TaskDetail({
                         const ev = value as Record<string, unknown> | string | null
                         // Evidence object with fileUrl (e.g. {type, fileUrl, filename, metadata})
                         if (ev && typeof ev === 'object' && 'fileUrl' in ev) {
-                          const fileUrl = String(ev.fileUrl || '')
+                          const fileUrl = resolveEvidenceUrl(String(ev.fileUrl || ''))
                           const filename = String(ev.filename || '')
                           const evType = String(ev.type || key)
                           const metadata = ev.metadata as Record<string, unknown> | undefined
