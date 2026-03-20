@@ -103,6 +103,21 @@ class PlatformConfig:
         "feature.erc8004_dynamic_scoring_enabled": True,
         "feature.erc8004_rejection_feedback_enabled": False,
         "feature.describenet_enabled": False,
+        # MeshRelay integration
+        "feature.meshrelay_dynamic_channels": False,
+        "feature.meshrelay_relay_chains": False,
+        "feature.meshrelay_reverse_auctions": False,
+        "meshrelay.enabled": True,
+        "meshrelay.api_url": "https://api.meshrelay.xyz",
+        "meshrelay.webhook_url": "",
+        "meshrelay.partner_api_key": "",
+        "meshrelay.channels.bounties": "#bounties",
+        "meshrelay.channels.agents": "#Agents",
+        "meshrelay.anti_snipe_cooldown_sec": 30,
+        "meshrelay.claim_priority_window_sec": 120,
+        "meshrelay.channel_auto_expire_minutes": 90,
+        "meshrelay.max_bids_per_auction": 20,
+        "meshrelay.identity_sync_interval_sec": 300,
         # Payments
         "x402.supported_networks": [
             "base",
