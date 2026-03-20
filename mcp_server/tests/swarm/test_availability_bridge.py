@@ -10,18 +10,11 @@ Covers:
     - Edge cases
 """
 
-import pytest
 from datetime import datetime, timezone, timedelta
-from dataclasses import asdict
 
 from mcp_server.swarm.availability_bridge import (
     AvailabilityBridge,
-    TimeWeightedCandidate,
-    ScheduleRecommendation,
-    PoolCoverage,
     DEFAULT_AVAILABILITY_WEIGHT,
-    FAST_RESPONSE_THRESHOLD,
-    SLOW_RESPONSE_THRESHOLD,
 )
 
 UTC = timezone.utc
@@ -30,6 +23,7 @@ UTC = timezone.utc
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_availability_profile(
     tz_offset: float = 0.0,
@@ -49,8 +43,11 @@ def make_availability_profile(
         "timezone_offset_hours": tz_offset,
         "hourly_distribution": hourly,
         "active_windows": [
-            {"start_hour": (peak_hour - 4) % 24, "end_hour": (peak_hour + 4) % 24,
-             "confidence": 0.8}
+            {
+                "start_hour": (peak_hour - 4) % 24,
+                "end_hour": (peak_hour + 4) % 24,
+                "confidence": 0.8,
+            }
         ],
         "avg_response_minutes": 20.0,
         "peak_hour": peak_hour,
@@ -61,15 +58,13 @@ def make_availability_profile(
 
 def make_candidates(wallets_and_scores: list) -> list:
     """Create candidate dicts from [(wallet, score), ...]."""
-    return [
-        {"wallet": w, "score": s}
-        for w, s in wallets_and_scores
-    ]
+    return [{"wallet": w, "score": s} for w, s in wallets_and_scores]
 
 
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
+
 
 class TestRegistration:
     def test_register_single(self):
@@ -80,10 +75,12 @@ class TestRegistration:
 
     def test_register_batch(self):
         bridge = AvailabilityBridge()
-        bridge.register_batch({
-            "0xA": make_availability_profile(peak_hour=10),
-            "0xB": make_availability_profile(peak_hour=18),
-        })
+        bridge.register_batch(
+            {
+                "0xA": make_availability_profile(peak_hour=10),
+                "0xB": make_availability_profile(peak_hour=18),
+            }
+        )
         assert bridge.get_registered_count() == 2
 
     def test_overwrite(self):
@@ -103,6 +100,7 @@ class TestRegistration:
 # ---------------------------------------------------------------------------
 # Time-Weighted Ranking
 # ---------------------------------------------------------------------------
+
 
 class TestTimeWeightedRanking:
     def test_empty_candidates(self):
@@ -165,6 +163,7 @@ class TestTimeWeightedRanking:
 # ---------------------------------------------------------------------------
 # Task Scheduling
 # ---------------------------------------------------------------------------
+
 
 class TestTaskScheduling:
     def test_workers_available_now(self):
@@ -236,6 +235,7 @@ class TestTaskScheduling:
 # Pool Coverage
 # ---------------------------------------------------------------------------
 
+
 class TestPoolCoverage:
     def test_empty_pool(self):
         bridge = AvailabilityBridge()
@@ -290,6 +290,7 @@ class TestPoolCoverage:
 # ---------------------------------------------------------------------------
 # Deadline-Aware Routing
 # ---------------------------------------------------------------------------
+
 
 class TestDeadlineRouting:
     def test_urgent_deadline(self):
@@ -346,9 +347,13 @@ class TestDeadlineRouting:
     def test_alternatives_provided(self):
         bridge = AvailabilityBridge()
         now = datetime(2026, 3, 15, 14, 0, 0, tzinfo=UTC)
-        candidates = make_candidates([
-            ("0xA", 90.0), ("0xB", 80.0), ("0xC", 70.0),
-        ])
+        candidates = make_candidates(
+            [
+                ("0xA", 90.0),
+                ("0xB", 80.0),
+                ("0xC", 70.0),
+            ]
+        )
         result = bridge.deadline_aware_route({"id": "t1"}, candidates, now=now)
         assert len(result["alternatives"]) <= 2
 
@@ -357,32 +362,35 @@ class TestDeadlineRouting:
 # Edge Cases
 # ---------------------------------------------------------------------------
 
+
 class TestEdgeCases:
     def test_bad_hourly_distribution(self):
         bridge = AvailabilityBridge()
-        bridge.register_availability("0xA", {
-            "timezone_offset_hours": 0.0,
-            "hourly_distribution": [],  # Empty!
-            "reliability_score": 0.5,
-            "total_data_points": 5,
-        })
-        result = bridge.time_weighted_ranking(
-            make_candidates([("0xA", 80.0)])
+        bridge.register_availability(
+            "0xA",
+            {
+                "timezone_offset_hours": 0.0,
+                "hourly_distribution": [],  # Empty!
+                "reliability_score": 0.5,
+                "total_data_points": 5,
+            },
         )
+        result = bridge.time_weighted_ranking(make_candidates([("0xA", 80.0)]))
         assert len(result) == 1
         assert result[0]["prediction_confidence"] < 0.5
 
     def test_zero_peak(self):
         bridge = AvailabilityBridge()
-        bridge.register_availability("0xA", {
-            "timezone_offset_hours": 0.0,
-            "hourly_distribution": [0.0] * 24,
-            "reliability_score": 0.5,
-            "total_data_points": 5,
-        })
-        result = bridge.time_weighted_ranking(
-            make_candidates([("0xA", 80.0)])
+        bridge.register_availability(
+            "0xA",
+            {
+                "timezone_offset_hours": 0.0,
+                "hourly_distribution": [0.0] * 24,
+                "reliability_score": 0.5,
+                "total_data_points": 5,
+            },
         )
+        result = bridge.time_weighted_ranking(make_candidates([("0xA", 80.0)]))
         assert len(result) == 1
 
     def test_custom_weights(self):

@@ -28,18 +28,54 @@ def sample_report():
         "empty": 1,
         "overall_system_health": 0.52,
         "probes": [
-            {"name": "remoteok", "status": "healthy", "overall_health": 0.97,
-             "data_quality_score": 0.94, "response_time_ms": 321, "job_count": 10},
-            {"name": "greenhouse", "status": "healthy", "overall_health": 0.93,
-             "data_quality_score": 0.95, "response_time_ms": 2330, "job_count": 25},
-            {"name": "hn_hiring", "status": "healthy", "overall_health": 0.92,
-             "data_quality_score": 0.95, "response_time_ms": 1045, "job_count": 9},
-            {"name": "ashby", "status": "degraded", "overall_health": 0.67,
-             "data_quality_score": 1.0, "response_time_ms": 11696, "job_count": 7},
-            {"name": "graphqljobs", "status": "error", "overall_health": 0.0,
-             "data_quality_score": 0.0, "response_time_ms": 975, "job_count": 0},
-            {"name": "himalayas", "status": "empty", "overall_health": 0.1,
-             "data_quality_score": 0.0, "response_time_ms": 347, "job_count": 0},
+            {
+                "name": "remoteok",
+                "status": "healthy",
+                "overall_health": 0.97,
+                "data_quality_score": 0.94,
+                "response_time_ms": 321,
+                "job_count": 10,
+            },
+            {
+                "name": "greenhouse",
+                "status": "healthy",
+                "overall_health": 0.93,
+                "data_quality_score": 0.95,
+                "response_time_ms": 2330,
+                "job_count": 25,
+            },
+            {
+                "name": "hn_hiring",
+                "status": "healthy",
+                "overall_health": 0.92,
+                "data_quality_score": 0.95,
+                "response_time_ms": 1045,
+                "job_count": 9,
+            },
+            {
+                "name": "ashby",
+                "status": "degraded",
+                "overall_health": 0.67,
+                "data_quality_score": 1.0,
+                "response_time_ms": 11696,
+                "job_count": 7,
+            },
+            {
+                "name": "graphqljobs",
+                "status": "error",
+                "overall_health": 0.0,
+                "data_quality_score": 0.0,
+                "response_time_ms": 975,
+                "job_count": 0,
+            },
+            {
+                "name": "himalayas",
+                "status": "empty",
+                "overall_health": 0.1,
+                "data_quality_score": 0.0,
+                "response_time_ms": 347,
+                "job_count": 0,
+            },
         ],
     }
 
@@ -180,27 +216,55 @@ class TestIngestReport:
 
     def test_consecutive_failures_tracked(self, adapter):
         for i in range(3):
-            adapter.ingest_health_report({
-                "probed_at": f"2026-01-0{i+1}",
-                "probes": [
-                    {"name": "broken", "status": "error", "overall_health": 0.0,
-                     "data_quality_score": 0.0, "response_time_ms": 0, "job_count": 0},
-                ],
-            })
+            adapter.ingest_health_report(
+                {
+                    "probed_at": f"2026-01-0{i + 1}",
+                    "probes": [
+                        {
+                            "name": "broken",
+                            "status": "error",
+                            "overall_health": 0.0,
+                            "data_quality_score": 0.0,
+                            "response_time_ms": 0,
+                            "job_count": 0,
+                        },
+                    ],
+                }
+            )
         broken = adapter.get_source("broken")
         assert broken.consecutive_failures == 3
 
     def test_consecutive_failures_reset_on_success(self, adapter):
-        adapter.ingest_health_report({
-            "probes": [{"name": "flaky", "status": "error", "overall_health": 0.0,
-                        "data_quality_score": 0, "response_time_ms": 0, "job_count": 0}],
-        })
+        adapter.ingest_health_report(
+            {
+                "probes": [
+                    {
+                        "name": "flaky",
+                        "status": "error",
+                        "overall_health": 0.0,
+                        "data_quality_score": 0,
+                        "response_time_ms": 0,
+                        "job_count": 0,
+                    }
+                ],
+            }
+        )
         assert adapter.get_source("flaky").consecutive_failures == 1
 
-        adapter.ingest_health_report({
-            "probes": [{"name": "flaky", "status": "healthy", "overall_health": 0.9,
-                        "data_quality_score": 0.8, "response_time_ms": 200, "job_count": 10}],
-        })
+        adapter.ingest_health_report(
+            {
+                "probes": [
+                    {
+                        "name": "flaky",
+                        "status": "healthy",
+                        "overall_health": 0.9,
+                        "data_quality_score": 0.8,
+                        "response_time_ms": 200,
+                        "job_count": 10,
+                    }
+                ],
+            }
+        )
         assert adapter.get_source("flaky").consecutive_failures == 0
 
 
@@ -261,19 +325,30 @@ class TestQueryAPI:
 
     def test_should_query_many_failures(self, adapter):
         for _ in range(6):
-            adapter.ingest_health_report({
-                "probes": [{"name": "unreliable", "status": "error",
-                           "overall_health": 0.6, "data_quality_score": 0.5,
-                           "response_time_ms": 1000, "job_count": 5}],
-            })
+            adapter.ingest_health_report(
+                {
+                    "probes": [
+                        {
+                            "name": "unreliable",
+                            "status": "error",
+                            "overall_health": 0.6,
+                            "data_quality_score": 0.5,
+                            "response_time_ms": 1000,
+                            "job_count": 5,
+                        }
+                    ],
+                }
+            )
         assert adapter.should_query("unreliable") is False
 
     def test_recommended_sources(self, loaded_adapter):
         recommended = loaded_adapter.get_recommended_sources(limit=3)
         assert len(recommended) <= 3
         # Top sources should be gold tier
-        assert all(s.tier in (SourceTier.GOLD.value, SourceTier.SILVER.value)
-                   for s in recommended)
+        assert all(
+            s.tier in (SourceTier.GOLD.value, SourceTier.SILVER.value)
+            for s in recommended
+        )
 
     def test_recommended_sources_limit(self, loaded_adapter):
         all_recommended = loaded_adapter.get_recommended_sources(limit=100)
@@ -291,65 +366,99 @@ class TestHistoryAndTrends:
         # Feed improving health data
         for i in range(5):
             health = 0.3 + (i * 0.15)
-            adapter.ingest_health_report({
-                "probed_at": f"2026-01-0{i+1}",
-                "probes": [
-                    {"name": "improving_src", "status": "healthy",
-                     "overall_health": health, "data_quality_score": health,
-                     "response_time_ms": 500, "job_count": 10},
-                ],
-            })
+            adapter.ingest_health_report(
+                {
+                    "probed_at": f"2026-01-0{i + 1}",
+                    "probes": [
+                        {
+                            "name": "improving_src",
+                            "status": "healthy",
+                            "overall_health": health,
+                            "data_quality_score": health,
+                            "response_time_ms": 500,
+                            "job_count": 10,
+                        },
+                    ],
+                }
+            )
         src = adapter.get_source("improving_src")
         assert src.trend == "improving"
 
     def test_trend_computation_declining(self, adapter):
         for i in range(5):
             health = 0.9 - (i * 0.15)
-            adapter.ingest_health_report({
-                "probed_at": f"2026-01-0{i+1}",
-                "probes": [
-                    {"name": "declining_src", "status": "healthy",
-                     "overall_health": health, "data_quality_score": health,
-                     "response_time_ms": 500, "job_count": 10},
-                ],
-            })
+            adapter.ingest_health_report(
+                {
+                    "probed_at": f"2026-01-0{i + 1}",
+                    "probes": [
+                        {
+                            "name": "declining_src",
+                            "status": "healthy",
+                            "overall_health": health,
+                            "data_quality_score": health,
+                            "response_time_ms": 500,
+                            "job_count": 10,
+                        },
+                    ],
+                }
+            )
         src = adapter.get_source("declining_src")
         assert src.trend == "declining"
 
     def test_trend_stable(self, adapter):
         for i in range(5):
-            adapter.ingest_health_report({
-                "probed_at": f"2026-01-0{i+1}",
-                "probes": [
-                    {"name": "stable_src", "status": "healthy",
-                     "overall_health": 0.8, "data_quality_score": 0.8,
-                     "response_time_ms": 500, "job_count": 10},
-                ],
-            })
+            adapter.ingest_health_report(
+                {
+                    "probed_at": f"2026-01-0{i + 1}",
+                    "probes": [
+                        {
+                            "name": "stable_src",
+                            "status": "healthy",
+                            "overall_health": 0.8,
+                            "data_quality_score": 0.8,
+                            "response_time_ms": 500,
+                            "job_count": 10,
+                        },
+                    ],
+                }
+            )
         src = adapter.get_source("stable_src")
         assert src.trend == "stable"
 
     def test_trend_unknown_with_few_data_points(self, adapter):
-        adapter.ingest_health_report({
-            "probes": [
-                {"name": "new_src", "status": "healthy",
-                 "overall_health": 0.8, "data_quality_score": 0.8,
-                 "response_time_ms": 200, "job_count": 5},
-            ],
-        })
+        adapter.ingest_health_report(
+            {
+                "probes": [
+                    {
+                        "name": "new_src",
+                        "status": "healthy",
+                        "overall_health": 0.8,
+                        "data_quality_score": 0.8,
+                        "response_time_ms": 200,
+                        "job_count": 5,
+                    },
+                ],
+            }
+        )
         src = adapter.get_source("new_src")
         assert src.trend == "unknown"
 
     def test_ingest_history(self, adapter):
         history = [
-            {"ts": "2026-01-01", "sources": {
-                "src1": {"status": "healthy", "health": 0.9},
-                "src2": {"status": "error", "health": 0.0},
-            }},
-            {"ts": "2026-01-02", "sources": {
-                "src1": {"status": "healthy", "health": 0.85},
-                "src2": {"status": "healthy", "health": 0.7},
-            }},
+            {
+                "ts": "2026-01-01",
+                "sources": {
+                    "src1": {"status": "healthy", "health": 0.9},
+                    "src2": {"status": "error", "health": 0.0},
+                },
+            },
+            {
+                "ts": "2026-01-02",
+                "sources": {
+                    "src1": {"status": "healthy", "health": 0.85},
+                    "src2": {"status": "healthy", "health": 0.7},
+                },
+            },
         ]
         adapter.ingest_history(history)
         assert adapter.source_count == 2
@@ -410,29 +519,69 @@ class TestIntegrationScenarios:
     def test_source_failure_cascading(self, adapter):
         """Test that sources degrade gracefully as they fail."""
         # Start healthy
-        adapter.ingest_health_report({
-            "probes": [
-                {"name": "api1", "status": "healthy", "overall_health": 0.95,
-                 "data_quality_score": 0.9, "response_time_ms": 200, "job_count": 20},
-                {"name": "api2", "status": "healthy", "overall_health": 0.9,
-                 "data_quality_score": 0.85, "response_time_ms": 300, "job_count": 15},
-                {"name": "api3", "status": "healthy", "overall_health": 0.85,
-                 "data_quality_score": 0.8, "response_time_ms": 500, "job_count": 10},
-            ],
-        })
+        adapter.ingest_health_report(
+            {
+                "probes": [
+                    {
+                        "name": "api1",
+                        "status": "healthy",
+                        "overall_health": 0.95,
+                        "data_quality_score": 0.9,
+                        "response_time_ms": 200,
+                        "job_count": 20,
+                    },
+                    {
+                        "name": "api2",
+                        "status": "healthy",
+                        "overall_health": 0.9,
+                        "data_quality_score": 0.85,
+                        "response_time_ms": 300,
+                        "job_count": 15,
+                    },
+                    {
+                        "name": "api3",
+                        "status": "healthy",
+                        "overall_health": 0.85,
+                        "data_quality_score": 0.8,
+                        "response_time_ms": 500,
+                        "job_count": 10,
+                    },
+                ],
+            }
+        )
         assert adapter.get_summary().gold_count == 3
 
         # Two sources degrade
-        adapter.ingest_health_report({
-            "probes": [
-                {"name": "api1", "status": "healthy", "overall_health": 0.95,
-                 "data_quality_score": 0.9, "response_time_ms": 200, "job_count": 20},
-                {"name": "api2", "status": "error", "overall_health": 0.0,
-                 "data_quality_score": 0.0, "response_time_ms": 0, "job_count": 0},
-                {"name": "api3", "status": "empty", "overall_health": 0.1,
-                 "data_quality_score": 0.0, "response_time_ms": 300, "job_count": 0},
-            ],
-        })
+        adapter.ingest_health_report(
+            {
+                "probes": [
+                    {
+                        "name": "api1",
+                        "status": "healthy",
+                        "overall_health": 0.95,
+                        "data_quality_score": 0.9,
+                        "response_time_ms": 200,
+                        "job_count": 20,
+                    },
+                    {
+                        "name": "api2",
+                        "status": "error",
+                        "overall_health": 0.0,
+                        "data_quality_score": 0.0,
+                        "response_time_ms": 0,
+                        "job_count": 0,
+                    },
+                    {
+                        "name": "api3",
+                        "status": "empty",
+                        "overall_health": 0.1,
+                        "data_quality_score": 0.0,
+                        "response_time_ms": 300,
+                        "job_count": 0,
+                    },
+                ],
+            }
+        )
         summary = adapter.get_summary()
         assert summary.gold_count == 1
         assert summary.dead_count == 2
@@ -444,23 +593,39 @@ class TestIntegrationScenarios:
         assert adapter.source_count == 0
 
         # Ingest first report
-        adapter.ingest_health_report({
-            "probed_at": "2026-01-01",
-            "probes": [
-                {"name": "src1", "status": "healthy", "overall_health": 0.9,
-                 "data_quality_score": 0.85, "response_time_ms": 200, "job_count": 15},
-            ],
-        })
+        adapter.ingest_health_report(
+            {
+                "probed_at": "2026-01-01",
+                "probes": [
+                    {
+                        "name": "src1",
+                        "status": "healthy",
+                        "overall_health": 0.9,
+                        "data_quality_score": 0.85,
+                        "response_time_ms": 200,
+                        "job_count": 15,
+                    },
+                ],
+            }
+        )
         assert adapter.source_count == 1
         assert adapter.get_source("src1").tier == SourceTier.GOLD.value
 
         # Source degrades
-        adapter.ingest_health_report({
-            "probed_at": "2026-01-02",
-            "probes": [
-                {"name": "src1", "status": "degraded", "overall_health": 0.4,
-                 "data_quality_score": 0.5, "response_time_ms": 8000, "job_count": 3},
-            ],
-        })
+        adapter.ingest_health_report(
+            {
+                "probed_at": "2026-01-02",
+                "probes": [
+                    {
+                        "name": "src1",
+                        "status": "degraded",
+                        "overall_health": 0.4,
+                        "data_quality_score": 0.5,
+                        "response_time_ms": 8000,
+                        "job_count": 3,
+                    },
+                ],
+            }
+        )
         assert adapter.get_source("src1").tier == SourceTier.BRONZE.value
         assert adapter.should_query("src1") is False

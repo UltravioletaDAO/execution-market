@@ -13,15 +13,10 @@ Covers:
 """
 
 import pytest
-from dataclasses import asdict
 
 from mcp_server.swarm.capacity_planner import (
     CapacityPlanner,
     SkillDemand,
-    ConcentrationReport,
-    CapacityEstimate,
-    RecruitmentTarget,
-    WorkloadEntry,
     MAX_HEALTHY_CONCENTRATION,
 )
 
@@ -30,6 +25,7 @@ from mcp_server.swarm.capacity_planner import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def make_agents(skills_list: list) -> list:
     """Create agent dicts from a list of skill sets.
 
@@ -37,13 +33,15 @@ def make_agents(skills_list: list) -> list:
     """
     agents = []
     for i, skills in enumerate(skills_list):
-        agents.append({
-            "wallet": f"0x{i:04X}",
-            "skills": {
-                k: {"level": "INTERMEDIATE", "confidence": v}
-                for k, v in skills.items()
-            },
-        })
+        agents.append(
+            {
+                "wallet": f"0x{i:04X}",
+                "skills": {
+                    k: {"level": "INTERMEDIATE", "confidence": v}
+                    for k, v in skills.items()
+                },
+            }
+        )
     return agents
 
 
@@ -69,38 +67,70 @@ def make_tasks(categories_and_workers: list) -> list:
 # SkillDemand
 # ---------------------------------------------------------------------------
 
+
 class TestSkillDemand:
     def test_critical_gap(self):
-        sd = SkillDemand("photography", demand_count=5, supply_count=0,
-                         gap=5, coverage_ratio=0.0, avg_quality=0.0)
+        sd = SkillDemand(
+            "photography",
+            demand_count=5,
+            supply_count=0,
+            gap=5,
+            coverage_ratio=0.0,
+            avg_quality=0.0,
+        )
         assert sd.is_critical
         assert sd.severity == "critical"
 
     def test_high_gap(self):
-        sd = SkillDemand("photography", demand_count=5, supply_count=2,
-                         gap=3, coverage_ratio=0.4, avg_quality=0.5)
+        sd = SkillDemand(
+            "photography",
+            demand_count=5,
+            supply_count=2,
+            gap=3,
+            coverage_ratio=0.4,
+            avg_quality=0.5,
+        )
         assert not sd.is_critical
         assert sd.severity == "high"
 
     def test_medium_gap(self):
-        sd = SkillDemand("photography", demand_count=5, supply_count=4,
-                         gap=1, coverage_ratio=0.8, avg_quality=0.7)
+        sd = SkillDemand(
+            "photography",
+            demand_count=5,
+            supply_count=4,
+            gap=1,
+            coverage_ratio=0.8,
+            avg_quality=0.7,
+        )
         assert sd.severity == "medium"
 
     def test_healthy(self):
-        sd = SkillDemand("photography", demand_count=3, supply_count=5,
-                         gap=0, coverage_ratio=1.67, avg_quality=0.8)
+        sd = SkillDemand(
+            "photography",
+            demand_count=3,
+            supply_count=5,
+            gap=0,
+            coverage_ratio=1.67,
+            avg_quality=0.8,
+        )
         assert sd.severity == "healthy"
 
     def test_no_demand(self):
-        sd = SkillDemand("obscure", demand_count=0, supply_count=2,
-                         gap=0, coverage_ratio=float('inf'), avg_quality=0.5)
+        sd = SkillDemand(
+            "obscure",
+            demand_count=0,
+            supply_count=2,
+            gap=0,
+            coverage_ratio=float("inf"),
+            avg_quality=0.5,
+        )
         assert sd.severity == "healthy"
 
 
 # ---------------------------------------------------------------------------
 # Skill Gap Analysis
 # ---------------------------------------------------------------------------
+
 
 class TestSkillGapAnalysis:
     def setup_method(self):
@@ -118,25 +148,31 @@ class TestSkillGapAnalysis:
         Note: title-based extraction may add extra skills (e.g., 'photo'
         from 'photography' in the title). We add those to agent skills too.
         """
-        agents = make_agents([
-            {"data_collection": 0.8, "research": 0.7},
-            {"data_collection": 0.6, "research": 0.9},
-        ])
-        tasks = make_tasks([
-            ("data_collection", None),
-            ("research", None),
-        ])
+        agents = make_agents(
+            [
+                {"data_collection": 0.8, "research": 0.7},
+                {"data_collection": 0.6, "research": 0.9},
+            ]
+        )
+        tasks = make_tasks(
+            [
+                ("data_collection", None),
+                ("research", None),
+            ]
+        )
         result = self.planner.analyze_skill_gaps(agents, tasks)
         # Both categories fully covered
         assert result["critical_count"] == 0
 
     def test_critical_gap_detected(self):
         agents = make_agents([{"python": 0.8}])
-        tasks = make_tasks([
-            ("photography", None),
-            ("photography", None),
-            ("photography", None),
-        ])
+        tasks = make_tasks(
+            [
+                ("photography", None),
+                ("photography", None),
+                ("photography", None),
+            ]
+        )
         result = self.planner.analyze_skill_gaps(agents, tasks)
         critical = result["critical_gaps"]
         # Photography has demand but no supply
@@ -145,28 +181,33 @@ class TestSkillGapAnalysis:
         assert photo_gaps[0]["demand_count"] == 3
 
     def test_partial_coverage(self):
-        agents = make_agents([
-            {"photography": 0.8},
-        ])
-        tasks = make_tasks([
-            ("photography", None),
-            ("photography", None),
-            ("photography", None),
-        ])
+        agents = make_agents(
+            [
+                {"photography": 0.8},
+            ]
+        )
+        tasks = make_tasks(
+            [
+                ("photography", None),
+                ("photography", None),
+                ("photography", None),
+            ]
+        )
         result = self.planner.analyze_skill_gaps(agents, tasks)
         photo_demands = [
-            d for d in result["skill_demands"]
-            if d["skill"] == "photography"
+            d for d in result["skill_demands"] if d["skill"] == "photography"
         ]
         assert len(photo_demands) == 1
         # 1 worker for 3 tasks → coverage_ratio ~0.33
         assert photo_demands[0]["coverage_ratio"] < 1.0
 
     def test_skill_quality_tracked(self):
-        agents = make_agents([
-            {"python": 0.9},
-            {"python": 0.7},
-        ])
+        agents = make_agents(
+            [
+                {"python": 0.9},
+                {"python": 0.7},
+            ]
+        )
         tasks = make_tasks([("python", None)])
         result = self.planner.analyze_skill_gaps(agents, tasks)
         python_demand = [d for d in result["skill_demands"] if d["skill"] == "python"]
@@ -176,22 +217,26 @@ class TestSkillGapAnalysis:
 
     def test_title_based_skill_extraction(self):
         agents = make_agents([{"photography": 0.8}])
-        tasks = [{
-            "id": "t1",
-            "category": "verification",
-            "title": "Take a photo of the building",
-        }]
+        tasks = [
+            {
+                "id": "t1",
+                "category": "verification",
+                "title": "Take a photo of the building",
+            }
+        ]
         result = self.planner.analyze_skill_gaps(agents, tasks)
         skills = [d["skill"] for d in result["skill_demands"]]
         assert "photo" in skills  # Extracted from title
 
     def test_sorted_by_severity(self):
         agents = make_agents([{"python": 0.8}])
-        tasks = make_tasks([
-            ("photography", None),  # Critical (no supply)
-            ("python", None),       # Healthy (has supply)
-            ("video", None),        # Critical (no supply)
-        ])
+        tasks = make_tasks(
+            [
+                ("photography", None),  # Critical (no supply)
+                ("python", None),  # Healthy (has supply)
+                ("video", None),  # Critical (no supply)
+            ]
+        )
         result = self.planner.analyze_skill_gaps(agents, tasks)
         # First items should be critical
         demands = result["skill_demands"]
@@ -202,6 +247,7 @@ class TestSkillGapAnalysis:
 # ---------------------------------------------------------------------------
 # Capacity Forecast
 # ---------------------------------------------------------------------------
+
 
 class TestCapacityForecast:
     def setup_method(self):
@@ -252,6 +298,7 @@ class TestCapacityForecast:
 # Concentration Risk
 # ---------------------------------------------------------------------------
 
+
 class TestConcentrationRisk:
     def setup_method(self):
         self.planner = CapacityPlanner()
@@ -264,13 +311,15 @@ class TestConcentrationRisk:
 
     def test_perfectly_balanced(self):
         agents = make_agents([{"a": 0.5}] * 5)
-        tasks = make_tasks([
-            ("data", "0x0000"),
-            ("data", "0x0001"),
-            ("data", "0x0002"),
-            ("data", "0x0003"),
-            ("data", "0x0004"),
-        ])
+        tasks = make_tasks(
+            [
+                ("data", "0x0000"),
+                ("data", "0x0001"),
+                ("data", "0x0002"),
+                ("data", "0x0003"),
+                ("data", "0x0004"),
+            ]
+        )
         report = self.planner.concentration_risk(agents, tasks)
         assert report.risk_level == "healthy"
         assert report.top_worker_share < MAX_HEALTHY_CONCENTRATION
@@ -278,13 +327,15 @@ class TestConcentrationRisk:
 
     def test_monopoly(self):
         agents = make_agents([{"a": 0.5}] * 3)
-        tasks = make_tasks([
-            ("photo", "0x0000"),
-            ("photo", "0x0000"),
-            ("photo", "0x0000"),
-            ("photo", "0x0000"),
-            ("photo", "0x0000"),
-        ])
+        tasks = make_tasks(
+            [
+                ("photo", "0x0000"),
+                ("photo", "0x0000"),
+                ("photo", "0x0000"),
+                ("photo", "0x0000"),
+                ("photo", "0x0000"),
+            ]
+        )
         report = self.planner.concentration_risk(agents, tasks)
         assert report.risk_level in ("high", "critical")
         assert report.top_worker_share == 1.0
@@ -293,34 +344,45 @@ class TestConcentrationRisk:
 
     def test_duopoly(self):
         agents = make_agents([{"a": 0.5}] * 5)
-        tasks = make_tasks([
-            ("photo", "0x0000"),
-            ("photo", "0x0000"),
-            ("photo", "0x0000"),
-            ("photo", "0x0001"),
-            ("photo", "0x0001"),
-        ])
+        tasks = make_tasks(
+            [
+                ("photo", "0x0000"),
+                ("photo", "0x0000"),
+                ("photo", "0x0000"),
+                ("photo", "0x0001"),
+                ("photo", "0x0001"),
+            ]
+        )
         report = self.planner.concentration_risk(agents, tasks)
         assert report.top_worker_share == 0.6
         assert report.active_workers == 2
 
     def test_herfindahl_range(self):
         agents = make_agents([{"a": 0.5}] * 4)
-        tasks = make_tasks([
-            ("a", "0x0000"), ("a", "0x0001"),
-            ("a", "0x0002"), ("a", "0x0003"),
-        ])
+        tasks = make_tasks(
+            [
+                ("a", "0x0000"),
+                ("a", "0x0001"),
+                ("a", "0x0002"),
+                ("a", "0x0003"),
+            ]
+        )
         report = self.planner.concentration_risk(agents, tasks)
         assert 0 <= report.herfindahl_index <= 1.0
 
     def test_gini_coefficient(self):
         agents = make_agents([{"a": 0.5}] * 3)
         # Very unequal distribution
-        tasks = make_tasks([
-            ("a", "0x0000"), ("a", "0x0000"), ("a", "0x0000"),
-            ("a", "0x0000"), ("a", "0x0000"),
-            ("a", "0x0001"),
-        ])
+        tasks = make_tasks(
+            [
+                ("a", "0x0000"),
+                ("a", "0x0000"),
+                ("a", "0x0000"),
+                ("a", "0x0000"),
+                ("a", "0x0000"),
+                ("a", "0x0001"),
+            ]
+        )
         report = self.planner.concentration_risk(agents, tasks)
         assert report.gini_coefficient > 0.2  # Should show inequality
 
@@ -336,6 +398,7 @@ class TestConcentrationRisk:
 # ---------------------------------------------------------------------------
 # Workload Balance
 # ---------------------------------------------------------------------------
+
 
 class TestWorkloadBalance:
     def setup_method(self):
@@ -355,11 +418,16 @@ class TestWorkloadBalance:
 
     def test_balanced_workers(self):
         agents = make_agents([{"a": 0.5}] * 3)
-        tasks = make_tasks([
-            ("a", "0x0000"), ("a", "0x0000"),
-            ("a", "0x0001"), ("a", "0x0001"),
-            ("a", "0x0002"), ("a", "0x0002"),
-        ])
+        tasks = make_tasks(
+            [
+                ("a", "0x0000"),
+                ("a", "0x0000"),
+                ("a", "0x0001"),
+                ("a", "0x0001"),
+                ("a", "0x0002"),
+                ("a", "0x0002"),
+            ]
+        )
         result = self.planner.workload_balance(agents, tasks)
         assert result["balance_score"] > 0.8  # Should be very balanced
 
@@ -372,11 +440,13 @@ class TestWorkloadBalance:
 
     def test_category_tracking(self):
         agents = make_agents([{"a": 0.5}])
-        tasks = make_tasks([
-            ("photo", "0x0000"),
-            ("video", "0x0000"),
-            ("photo", "0x0000"),
-        ])
+        tasks = make_tasks(
+            [
+                ("photo", "0x0000"),
+                ("video", "0x0000"),
+                ("photo", "0x0000"),
+            ]
+        )
         result = self.planner.workload_balance(agents, tasks)
         worker = result["workers"][0]
         assert "photo" in worker["categories"]
@@ -386,6 +456,7 @@ class TestWorkloadBalance:
 # ---------------------------------------------------------------------------
 # Recruitment Plan
 # ---------------------------------------------------------------------------
+
 
 class TestRecruitmentPlan:
     def setup_method(self):
@@ -399,10 +470,13 @@ class TestRecruitmentPlan:
 
     def test_critical_skill_gap(self):
         agents = make_agents([{"python": 0.8}])
-        tasks = make_tasks([
-            ("photography", None), ("photography", None),
-            ("photography", None),
-        ])
+        tasks = make_tasks(
+            [
+                ("photography", None),
+                ("photography", None),
+                ("photography", None),
+            ]
+        )
         plan = self.planner.recruitment_plan(agents, tasks)
         targets = plan["targets"]
         photo_targets = [t for t in targets if t["skill"] == "photography"]
@@ -425,10 +499,12 @@ class TestRecruitmentPlan:
 
     def test_sorted_by_urgency(self):
         agents = make_agents([{"python": 0.8}])
-        tasks = make_tasks([
-            ("photography", None),
-            ("video", None),
-        ])
+        tasks = make_tasks(
+            [
+                ("photography", None),
+                ("video", None),
+            ]
+        )
         plan = self.planner.recruitment_plan(agents, tasks)
         targets = plan["targets"]
         if len(targets) >= 2:
@@ -439,18 +515,23 @@ class TestRecruitmentPlan:
 # Full Report
 # ---------------------------------------------------------------------------
 
+
 class TestFullReport:
     def test_report_structure(self):
         planner = CapacityPlanner()
-        agents = make_agents([
-            {"photography": 0.8, "field_work": 0.7},
-            {"photography": 0.6, "research": 0.9},
-        ])
-        tasks = make_tasks([
-            ("photography", "0x0000"),
-            ("research", "0x0001"),
-            ("video", None),
-        ])
+        agents = make_agents(
+            [
+                {"photography": 0.8, "field_work": 0.7},
+                {"photography": 0.6, "research": 0.9},
+            ]
+        )
+        tasks = make_tasks(
+            [
+                ("photography", "0x0000"),
+                ("research", "0x0001"),
+                ("video", None),
+            ]
+        )
         report = planner.full_report(agents, tasks, projected_daily_tasks=5)
 
         assert "health_score" in report
@@ -464,13 +545,8 @@ class TestFullReport:
 
     def test_healthy_report(self):
         planner = CapacityPlanner()
-        agents = make_agents([
-            {"a": 0.8, "b": 0.7, "c": 0.6}
-            for _ in range(5)
-        ])
-        tasks = make_tasks([
-            ("a", f"0x{i:04X}") for i in range(5)
-        ])
+        agents = make_agents([{"a": 0.8, "b": 0.7, "c": 0.6} for _ in range(5)])
+        tasks = make_tasks([("a", f"0x{i:04X}") for i in range(5)])
         report = planner.full_report(agents, tasks, projected_daily_tasks=3)
         assert report["health_score"] > 30
 
@@ -484,6 +560,7 @@ class TestFullReport:
 # ---------------------------------------------------------------------------
 # Gini Coefficient
 # ---------------------------------------------------------------------------
+
 
 class TestGiniCoefficient:
     def test_perfect_equality(self):
@@ -511,6 +588,7 @@ class TestGiniCoefficient:
 # Edge Cases
 # ---------------------------------------------------------------------------
 
+
 class TestEdgeCases:
     def setup_method(self):
         self.planner = CapacityPlanner()
@@ -533,13 +611,21 @@ class TestEdgeCases:
 
     def test_agent_with_categories(self):
         """Agent has categories field."""
-        agents = [{"wallet": "0x0000", "skills": {}, "categories": ["data_collection", "research"]}]
+        agents = [
+            {
+                "wallet": "0x0000",
+                "skills": {},
+                "categories": ["data_collection", "research"],
+            }
+        ]
         tasks = make_tasks([("data_collection", None)])
         result = self.planner.analyze_skill_gaps(agents, tasks)
         assert result["critical_count"] == 0  # data_collection covered by category
 
     def test_task_with_required_skills_dict(self):
-        tasks = [{"id": "t1", "required_skills": {"python": "required", "aws": "preferred"}}]
+        tasks = [
+            {"id": "t1", "required_skills": {"python": "required", "aws": "preferred"}}
+        ]
         agents = make_agents([{"python": 0.9}])
         result = self.planner.analyze_skill_gaps(agents, tasks)
         skills = [d["skill"] for d in result["skill_demands"]]
