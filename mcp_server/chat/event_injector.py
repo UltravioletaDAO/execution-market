@@ -102,33 +102,21 @@ class EventInjector:
             if pool.is_connected:
                 await pool.send_message(channel, text)
 
-            # Persist as system message
-            asyncio.create_task(self._persist(task_id, text))
+            # Persist as system message via ChatLogService
+            from .log_service import get_log_service
+
+            log_svc = get_log_service()
+            asyncio.create_task(
+                log_svc.log_message(
+                    task_id, "system", text, source="system", msg_type="system"
+                )
+            )
 
             self._stats["injected"] += 1
             logger.debug("EventInjector: %s -> %s", event.event_type, channel)
         except Exception:
             self._stats["errors"] += 1
             logger.exception("EventInjector: failed to inject %s", event.event_type)
-
-    @staticmethod
-    async def _persist(task_id: str, text: str) -> None:
-        """Persist system message to chat log."""
-        try:
-            import supabase_client as db
-
-            client = db.get_supabase_client()
-            client.table("task_chat_log").insert(
-                {
-                    "task_id": task_id,
-                    "nick": "system",
-                    "text": text,
-                    "source": "system",
-                    "type": "system",
-                }
-            ).execute()
-        except Exception as e:
-            logger.debug("Could not persist system chat message: %s", e)
 
     @property
     def stats(self) -> dict:

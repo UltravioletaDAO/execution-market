@@ -29,6 +29,8 @@ from .models import (
 )
 from .relay import router as chat_router
 from .irc_pool import IRCPool
+from .guardrail import GuardrailFilter
+from .log_service import ChatLogService, get_log_service
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +115,9 @@ __all__ = [
     "is_blocked_action",
     "chat_router",
     "IRCPool",
+    "GuardrailFilter",
+    "ChatLogService",
+    "get_log_service",
     "setup_chat",
     "teardown_chat",
 ]
