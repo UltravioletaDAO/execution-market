@@ -223,3 +223,47 @@ class RejectParams(BaseModel):
     notes: str = Field(..., min_length=10, max_length=1000)
     severity: str = "minor"
     reputation_score: Optional[int] = Field(default=None, ge=0, le=50)
+
+
+# ---------------------------------------------------------------------------
+# Payment models
+# ---------------------------------------------------------------------------
+
+class PaymentEvent(BaseModel):
+    """A single payment event in a task's payment timeline."""
+
+    id: str
+    type: str
+    actor: str
+    timestamp: str
+    network: str
+    amount: Optional[float] = None
+    tx_hash: Optional[str] = None
+    note: Optional[str] = None
+
+
+class PaymentTimeline(BaseModel):
+    """Full payment status and event history for a task."""
+
+    task_id: str
+    status: str
+    total_amount: float
+    released_amount: float
+    currency: str = "USDC"
+    escrow_tx: Optional[str] = None
+    escrow_contract: Optional[str] = None
+    network: str = "base"
+    events: list[PaymentEvent] = []
+    created_at: str = ""
+    updated_at: str = ""
+
+
+class PlatformConfig(BaseModel):
+    """Public platform configuration."""
+
+    min_bounty_usd: float
+    max_bounty_usd: float
+    supported_networks: list[str]
+    supported_tokens: list[str]
+    preferred_network: str
+    require_api_key: bool

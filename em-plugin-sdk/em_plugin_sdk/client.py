@@ -1,26 +1,32 @@
-"""Async HTTP client for the Execution Market REST API."""
+"""Async HTTP client for the Execution Market REST API.
+
+Resource-based namespacing (Stripe pattern)::
+
+    async with EMClient(api_key="em_...") as client:
+        # Tasks
+        task = await client.tasks.create(CreateTaskParams(...))
+        async for t in client.tasks.list(status="published"):
+            print(t.title)
+
+        # Submissions
+        await client.submissions.approve("sub-uuid")
+
+        # Workers
+        worker = await client.workers.register(wallet_address="0x...")
+"""
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
 from .exceptions import EMAuthError, EMError, EMNotFoundError, EMServerError, EMValidationError
-from .models import (
-    Application,
-    ApplicationList,
-    ApproveParams,
-    CreateTaskParams,
-    Executor,
-    HealthResponse,
-    RejectParams,
-    Submission,
-    SubmissionList,
-    SubmitEvidenceParams,
-    Task,
-    TaskList,
-)
+from .models import HealthResponse, PlatformConfig
+from .resources.tasks import TasksResource
+from .resources.submissions import SubmissionsResource
+from .resources.workers import WorkersResource
+from .retry import request_with_retry, DEFAULT_MAX_RETRIES, DEFAULT_BACKOFF_FACTOR
 
 DEFAULT_BASE_URL = "https://api.execution.market/api/v1"
 DEFAULT_TIMEOUT = 30.0
@@ -29,22 +35,26 @@ DEFAULT_TIMEOUT = 30.0
 class EMClient:
     """Async client for the Execution Market API.
 
-    Usage::
-
-        async with EMClient(api_key="em_...") as client:
-            tasks = await client.list_tasks(status="published")
+    Args:
+        api_key: API key for authentication. Optional for open-access endpoints.
+        base_url: Base URL for the API.
+        timeout: Request timeout in seconds.
+        max_retries: Number of retries on transient failures (429, 5xx).
+        http_client: Optional pre-configured httpx.AsyncClient.
     """
 
     def __init__(
         self,
-        api_key: str,
+        api_key: str | None = None,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
+        max_retries: int = DEFAULT_MAX_RETRIES,
         http_client: httpx.AsyncClient | None = None,
     ):
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self._timeout = timeout
+        self._max_retries = max_retries
         self._external_client = http_client is not None
         self._client = http_client or httpx.AsyncClient(
             base_url=self.base_url,
@@ -54,12 +64,19 @@ class EMClient:
         if http_client is not None:
             self._client.headers.update(self._default_headers())
 
+        # Resource namespaces
+        self.tasks = TasksResource(self)
+        self.submissions = SubmissionsResource(self)
+        self.workers = WorkersResource(self)
+
     def _default_headers(self) -> dict[str, str]:
-        return {
-            "Authorization": f"Bearer {self.api_key}",
+        headers: dict[str, str] = {
             "Content-Type": "application/json",
-            "User-Agent": "em-plugin-sdk/0.1.0",
+            "User-Agent": "em-plugin-sdk/0.2.0",
         }
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
 
     # -- lifecycle ----------------------------------------------------------
 
@@ -73,7 +90,7 @@ class EMClient:
         if not self._external_client:
             await self._client.aclose()
 
-    # -- request helpers ----------------------------------------------------
+    # -- request core (used by resources) -----------------------------------
 
     async def _request(
         self,
@@ -83,12 +100,19 @@ class EMClient:
         json: Any | None = None,
         params: dict[str, Any] | None = None,
     ) -> Any:
-        resp = await self._client.request(method, path, json=json, params=params)
+        resp = await request_with_retry(
+            self._client,
+            method,
+            path,
+            max_retries=self._max_retries,
+            json=json,
+            params=params,
+        )
         return self._handle_response(resp)
 
     @staticmethod
     def _handle_response(resp: httpx.Response) -> Any:
-        if resp.status_code == 401 or resp.status_code == 403:
+        if resp.status_code in (401, 403):
             body = _safe_json(resp)
             raise EMAuthError(
                 message=body.get("message", "Authentication failed"),
@@ -124,140 +148,17 @@ class EMClient:
             return None
         return resp.json()
 
-    # -- health -------------------------------------------------------------
+    # -- top-level endpoints ------------------------------------------------
 
     async def health(self) -> HealthResponse:
+        """Check API health."""
         data = await self._request("GET", "/health")
         return HealthResponse.model_validate(data)
 
-    # -- tasks --------------------------------------------------------------
-
-    async def list_tasks(
-        self,
-        *,
-        status: str | None = None,
-        category: str | None = None,
-        agent_id: str | None = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> TaskList:
-        params: dict[str, Any] = {"limit": limit, "offset": offset}
-        if status:
-            params["status"] = status
-        if category:
-            params["category"] = category
-        if agent_id:
-            params["agent_id"] = agent_id
-        data = await self._request("GET", "/tasks", params=params)
-        return TaskList.model_validate(data)
-
-    async def get_task(self, task_id: str) -> Task:
-        data = await self._request("GET", f"/tasks/{task_id}")
-        return Task.model_validate(data)
-
-    async def publish_task(self, params: CreateTaskParams) -> Task:
-        data = await self._request(
-            "POST",
-            "/tasks",
-            json=params.model_dump(exclude_none=True),
-        )
-        return Task.model_validate(data)
-
-    async def cancel_task(self, task_id: str, reason: str | None = None) -> dict[str, Any]:
-        body: dict[str, Any] = {}
-        if reason:
-            body["reason"] = reason
-        return await self._request("POST", f"/tasks/{task_id}/cancel", json=body)
-
-    # -- applications -------------------------------------------------------
-
-    async def apply_to_task(
-        self,
-        task_id: str,
-        executor_id: str,
-        message: str | None = None,
-    ) -> Application:
-        body: dict[str, Any] = {"executor_id": executor_id}
-        if message:
-            body["message"] = message
-        data = await self._request("POST", f"/tasks/{task_id}/apply", json=body)
-        return Application.model_validate(data)
-
-    async def list_applications(self, task_id: str) -> ApplicationList:
-        data = await self._request("GET", f"/tasks/{task_id}/applications")
-        return ApplicationList.model_validate(data)
-
-    async def assign_task(
-        self,
-        task_id: str,
-        executor_id: str,
-        notes: str | None = None,
-    ) -> dict[str, Any]:
-        body: dict[str, Any] = {"executor_id": executor_id}
-        if notes:
-            body["notes"] = notes
-        return await self._request("POST", f"/tasks/{task_id}/assign", json=body)
-
-    # -- submissions --------------------------------------------------------
-
-    async def submit_evidence(
-        self,
-        task_id: str,
-        params: SubmitEvidenceParams,
-    ) -> Submission:
-        data = await self._request(
-            "POST",
-            f"/tasks/{task_id}/submit",
-            json=params.model_dump(exclude_none=True),
-        )
-        return Submission.model_validate(data)
-
-    async def list_submissions(self, task_id: str) -> SubmissionList:
-        data = await self._request("GET", f"/tasks/{task_id}/submissions")
-        return SubmissionList.model_validate(data)
-
-    async def approve_submission(
-        self,
-        submission_id: str,
-        params: ApproveParams | None = None,
-    ) -> dict[str, Any]:
-        body = params.model_dump(exclude_none=True) if params else {}
-        return await self._request(
-            "POST",
-            f"/submissions/{submission_id}/approve",
-            json=body,
-        )
-
-    async def reject_submission(
-        self,
-        submission_id: str,
-        params: RejectParams,
-    ) -> dict[str, Any]:
-        return await self._request(
-            "POST",
-            f"/submissions/{submission_id}/reject",
-            json=params.model_dump(exclude_none=True),
-        )
-
-    # -- workers / executors ------------------------------------------------
-
-    async def get_executor(self, executor_id: str) -> Executor:
-        data = await self._request("GET", f"/workers/{executor_id}")
-        return Executor.model_validate(data)
-
-    async def register_worker(
-        self,
-        wallet_address: str,
-        name: str | None = None,
-        email: str | None = None,
-    ) -> Executor:
-        body: dict[str, Any] = {"wallet_address": wallet_address}
-        if name:
-            body["name"] = name
-        if email:
-            body["email"] = email
-        data = await self._request("POST", "/workers/register", json=body)
-        return Executor.model_validate(data)
+    async def config(self) -> PlatformConfig:
+        """Get public platform configuration (bounty limits, networks, tokens)."""
+        data = await self._request("GET", "/config")
+        return PlatformConfig.model_validate(data)
 
 
 def _safe_json(resp: httpx.Response) -> dict[str, Any]:

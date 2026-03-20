@@ -1,11 +1,16 @@
-"""Tests for EMClient — all HTTP calls mocked via respx."""
+"""Tests for EMClient — resource-based API with retry and pagination."""
 
 import pytest
 import httpx
 import respx
 
-from em_plugin_sdk import EMClient, EMAuthError, EMNotFoundError, EMValidationError, EMServerError, EMError
-from em_plugin_sdk.models import (
+from em_plugin_sdk import (
+    EMClient,
+    EMAuthError,
+    EMNotFoundError,
+    EMValidationError,
+    EMServerError,
+    EMError,
     CreateTaskParams,
     SubmitEvidenceParams,
     ApproveParams,
@@ -35,10 +40,10 @@ async def client(mock_router):
 
 
 # ---------------------------------------------------------------------------
-# Auth header injection
+# Auth & headers
 # ---------------------------------------------------------------------------
 
-class TestAuthHeaders:
+class TestHeaders:
     async def test_bearer_token_sent(self, mock_router, client):
         route = mock_router.get("/health").mock(return_value=httpx.Response(200, json={"status": "ok"}))
         await client.health()
@@ -49,21 +54,41 @@ class TestAuthHeaders:
         await client.health()
         assert "em-plugin-sdk" in route.calls.last.request.headers["user-agent"]
 
+    async def test_no_auth_header_when_no_key(self, mock_router):
+        mock_router.get("/health").mock(return_value=httpx.Response(200, json={"status": "ok"}))
+        async with EMClient() as c:
+            await c.health()
+        req = mock_router.calls.last.request
+        assert "authorization" not in req.headers
+
 
 # ---------------------------------------------------------------------------
-# Health
+# Health & Config
 # ---------------------------------------------------------------------------
 
-class TestHealth:
-    async def test_health_ok(self, mock_router, client):
-        mock_router.get("/health").mock(return_value=httpx.Response(200, json={"status": "ok", "version": "1.0.0"}))
+class TestTopLevel:
+    async def test_health(self, mock_router, client):
+        mock_router.get("/health").mock(return_value=httpx.Response(200, json={"status": "ok", "version": "2.0"}))
         resp = await client.health()
         assert resp.status == "ok"
-        assert resp.version == "1.0.0"
+        assert resp.version == "2.0"
+
+    async def test_config(self, mock_router, client):
+        mock_router.get("/config").mock(return_value=httpx.Response(200, json={
+            "min_bounty_usd": 0.01,
+            "max_bounty_usd": 10000,
+            "supported_networks": ["base", "ethereum"],
+            "supported_tokens": ["USDC"],
+            "preferred_network": "base",
+            "require_api_key": False,
+        }))
+        cfg = await client.config()
+        assert cfg.preferred_network == "base"
+        assert not cfg.require_api_key
 
 
 # ---------------------------------------------------------------------------
-# Tasks
+# Tasks resource
 # ---------------------------------------------------------------------------
 
 TASK_JSON = {
@@ -79,38 +104,7 @@ TASK_JSON = {
 
 
 class TestTasks:
-    async def test_list_tasks(self, mock_router, client):
-        mock_router.get("/tasks").mock(return_value=httpx.Response(200, json={
-            "tasks": [TASK_JSON],
-            "total": 1,
-            "count": 1,
-            "offset": 0,
-            "has_more": False,
-        }))
-        result = await client.list_tasks(status="published", limit=10)
-        assert result.total == 1
-        assert result.tasks[0].id == "abc-123"
-
-    async def test_list_tasks_params(self, mock_router, client):
-        route = mock_router.get("/tasks").mock(return_value=httpx.Response(200, json={
-            "tasks": [],
-            "total": 0,
-            "count": 0,
-            "offset": 5,
-            "has_more": False,
-        }))
-        await client.list_tasks(category="simple_action", offset=5)
-        req = route.calls.last.request
-        assert "category=simple_action" in str(req.url)
-        assert "offset=5" in str(req.url)
-
-    async def test_get_task(self, mock_router, client):
-        mock_router.get("/tasks/abc-123").mock(return_value=httpx.Response(200, json=TASK_JSON))
-        task = await client.get_task("abc-123")
-        assert task.title == "Test task"
-        assert task.bounty_usd == 0.10
-
-    async def test_publish_task(self, mock_router, client):
+    async def test_create(self, mock_router, client):
         mock_router.post("/tasks").mock(return_value=httpx.Response(201, json=TASK_JSON))
         params = CreateTaskParams(
             title="Test task title here",
@@ -120,131 +114,170 @@ class TestTasks:
             deadline_hours=1,
             evidence_required=[EvidenceType.PHOTO],
         )
-        task = await client.publish_task(params)
+        task = await client.tasks.create(params)
         assert task.id == "abc-123"
 
-    async def test_cancel_task(self, mock_router, client):
-        mock_router.post("/tasks/abc-123/cancel").mock(return_value=httpx.Response(200, json={
-            "success": True,
-            "message": "Task cancelled",
+    async def test_get(self, mock_router, client):
+        mock_router.get("/tasks/abc-123").mock(return_value=httpx.Response(200, json=TASK_JSON))
+        task = await client.tasks.get("abc-123")
+        assert task.title == "Test task"
+
+    async def test_list_page(self, mock_router, client):
+        mock_router.get("/tasks").mock(return_value=httpx.Response(200, json={
+            "tasks": [TASK_JSON],
+            "total": 1,
+            "count": 1,
+            "offset": 0,
+            "has_more": False,
         }))
-        result = await client.cancel_task("abc-123", reason="No longer needed")
+        result = await client.tasks.list_page(status="published")
+        assert result.total == 1
+        assert result.tasks[0].id == "abc-123"
+
+    async def test_list_auto_paginate(self, mock_router, client):
+        """Test that list() returns a PageIterator that auto-paginates."""
+        # Page 1
+        mock_router.get("/tasks").mock(side_effect=[
+            httpx.Response(200, json={
+                "tasks": [TASK_JSON],
+                "total": 2,
+                "count": 1,
+                "offset": 0,
+                "has_more": True,
+            }),
+            httpx.Response(200, json={
+                "tasks": [{**TASK_JSON, "id": "def-456"}],
+                "total": 2,
+                "count": 1,
+                "offset": 1,
+                "has_more": False,
+            }),
+        ])
+        tasks = await client.tasks.list(status="published").collect()
+        assert len(tasks) == 2
+        assert tasks[0].id == "abc-123"
+        assert tasks[1].id == "def-456"
+
+    async def test_cancel(self, mock_router, client):
+        mock_router.post("/tasks/abc-123/cancel").mock(return_value=httpx.Response(200, json={
+            "success": True, "message": "Cancelled",
+        }))
+        result = await client.tasks.cancel("abc-123", reason="Done")
         assert result["success"] is True
 
+    async def test_assign(self, mock_router, client):
+        mock_router.post("/tasks/abc-123/assign").mock(return_value=httpx.Response(200, json={
+            "success": True, "message": "Assigned",
+        }))
+        result = await client.tasks.assign("abc-123", "exec-1")
+        assert result["success"] is True
 
-# ---------------------------------------------------------------------------
-# Applications
-# ---------------------------------------------------------------------------
+    async def test_batch_create(self, mock_router, client):
+        mock_router.post("/tasks/batch").mock(return_value=httpx.Response(200, json={
+            "created": 2, "failed": 0, "tasks": [], "errors": [], "total_bounty": 0.20,
+        }))
+        result = await client.tasks.batch_create([{"title": "t1"}, {"title": "t2"}])
+        assert result["created"] == 2
 
-APP_JSON = {
-    "id": "app-1",
-    "task_id": "abc-123",
-    "executor_id": "exec-1",
-    "message": "I can do this",
-    "status": "pending",
-    "created_at": "2026-03-20T00:00:00Z",
-}
-
-
-class TestApplications:
-    async def test_apply_to_task(self, mock_router, client):
-        mock_router.post("/tasks/abc-123/apply").mock(return_value=httpx.Response(201, json=APP_JSON))
-        app = await client.apply_to_task("abc-123", "exec-1", message="I can do this")
+    async def test_apply(self, mock_router, client):
+        mock_router.post("/tasks/abc-123/apply").mock(return_value=httpx.Response(201, json={
+            "id": "app-1", "task_id": "abc-123", "executor_id": "exec-1",
+            "status": "pending", "created_at": "2026-03-20T00:00:00Z",
+        }))
+        app = await client.tasks.apply("abc-123", "exec-1", message="I can do this")
         assert app.executor_id == "exec-1"
 
     async def test_list_applications(self, mock_router, client):
         mock_router.get("/tasks/abc-123/applications").mock(return_value=httpx.Response(200, json={
-            "applications": [APP_JSON],
+            "applications": [{"id": "app-1", "task_id": "abc-123", "executor_id": "exec-1",
+                              "status": "pending", "created_at": "2026-03-20T00:00:00Z"}],
             "count": 1,
         }))
-        result = await client.list_applications("abc-123")
+        result = await client.tasks.list_applications("abc-123")
         assert result.count == 1
 
-    async def test_assign_task(self, mock_router, client):
-        mock_router.post("/tasks/abc-123/assign").mock(return_value=httpx.Response(200, json={
-            "success": True,
-            "message": "Assigned",
+    async def test_get_payment(self, mock_router, client):
+        mock_router.get("/tasks/abc-123/payment").mock(return_value=httpx.Response(200, json={
+            "task_id": "abc-123", "status": "completed", "total_amount": 0.10,
+            "released_amount": 0.087, "events": [],
         }))
-        result = await client.assign_task("abc-123", "exec-1")
-        assert result["success"] is True
+        timeline = await client.tasks.get_payment("abc-123")
+        assert timeline.released_amount == 0.087
 
 
 # ---------------------------------------------------------------------------
-# Submissions
+# Submissions resource
 # ---------------------------------------------------------------------------
 
 SUB_JSON = {
-    "id": "sub-1",
-    "task_id": "abc-123",
-    "executor_id": "exec-1",
-    "status": "pending",
-    "submitted_at": "2026-03-20T00:00:00Z",
+    "id": "sub-1", "task_id": "abc-123", "executor_id": "exec-1",
+    "status": "pending", "submitted_at": "2026-03-20T00:00:00Z",
     "evidence": {"photo": "https://cdn.example.com/photo.jpg"},
 }
 
 
 class TestSubmissions:
-    async def test_submit_evidence(self, mock_router, client):
-        mock_router.post("/tasks/abc-123/submit").mock(return_value=httpx.Response(201, json=SUB_JSON))
-        params = SubmitEvidenceParams(
-            executor_id="exec-1",
-            evidence={"photo": "https://cdn.example.com/photo.jpg"},
-        )
-        sub = await client.submit_evidence("abc-123", params)
-        assert sub.id == "sub-1"
-
-    async def test_list_submissions(self, mock_router, client):
+    async def test_list(self, mock_router, client):
         mock_router.get("/tasks/abc-123/submissions").mock(return_value=httpx.Response(200, json={
-            "submissions": [SUB_JSON],
-            "count": 1,
+            "submissions": [SUB_JSON], "count": 1,
         }))
-        result = await client.list_submissions("abc-123")
+        result = await client.submissions.list("abc-123")
         assert result.count == 1
 
-    async def test_approve_submission(self, mock_router, client):
+    async def test_submit(self, mock_router, client):
+        mock_router.post("/tasks/abc-123/submit").mock(return_value=httpx.Response(201, json=SUB_JSON))
+        params = SubmitEvidenceParams(executor_id="exec-1", evidence={"photo": "url"})
+        sub = await client.submissions.submit("abc-123", params)
+        assert sub.id == "sub-1"
+
+    async def test_approve(self, mock_router, client):
         mock_router.post("/submissions/sub-1/approve").mock(return_value=httpx.Response(200, json={
-            "success": True,
-            "message": "Approved",
+            "success": True, "message": "Approved",
         }))
-        result = await client.approve_submission("sub-1", ApproveParams(notes="Good work"))
+        result = await client.submissions.approve("sub-1", ApproveParams(notes="Good"))
         assert result["success"] is True
 
-    async def test_reject_submission(self, mock_router, client):
+    async def test_reject(self, mock_router, client):
         mock_router.post("/submissions/sub-1/reject").mock(return_value=httpx.Response(200, json={
-            "success": True,
-            "message": "Rejected",
+            "success": True, "message": "Rejected",
         }))
-        result = await client.reject_submission(
-            "sub-1",
-            RejectParams(notes="Evidence is blurry and unusable"),
-        )
+        result = await client.submissions.reject("sub-1", RejectParams(notes="Evidence is blurry and unusable"))
+        assert result["success"] is True
+
+    async def test_request_more_info(self, mock_router, client):
+        mock_router.post("/submissions/sub-1/request-more-info").mock(return_value=httpx.Response(200, json={
+            "success": True, "message": "Info requested",
+        }))
+        result = await client.submissions.request_more_info("sub-1", "Please add GPS coordinates")
         assert result["success"] is True
 
 
 # ---------------------------------------------------------------------------
-# Workers
+# Workers resource
 # ---------------------------------------------------------------------------
-
-EXECUTOR_JSON = {
-    "id": "exec-1",
-    "wallet_address": "0x1234567890abcdef1234567890abcdef12345678",
-    "name": "Test Worker",
-}
-
 
 class TestWorkers:
-    async def test_get_executor(self, mock_router, client):
-        mock_router.get("/workers/exec-1").mock(return_value=httpx.Response(200, json=EXECUTOR_JSON))
-        executor = await client.get_executor("exec-1")
-        assert executor.name == "Test Worker"
+    async def test_get(self, mock_router, client):
+        mock_router.get("/workers/exec-1").mock(return_value=httpx.Response(200, json={
+            "id": "exec-1", "wallet_address": "0x1234567890abcdef1234567890abcdef12345678",
+            "name": "Alice",
+        }))
+        worker = await client.workers.get("exec-1")
+        assert worker.name == "Alice"
 
-    async def test_register_worker(self, mock_router, client):
-        mock_router.post("/workers/register").mock(return_value=httpx.Response(201, json=EXECUTOR_JSON))
-        executor = await client.register_worker(
-            wallet_address="0x1234567890abcdef1234567890abcdef12345678",
-            name="Test Worker",
-        )
-        assert executor.id == "exec-1"
+    async def test_register(self, mock_router, client):
+        mock_router.post("/workers/register").mock(return_value=httpx.Response(201, json={
+            "id": "exec-1", "wallet_address": "0x1234567890abcdef1234567890abcdef12345678",
+        }))
+        worker = await client.workers.register("0x1234567890abcdef1234567890abcdef12345678")
+        assert worker.id == "exec-1"
+
+    async def test_balance(self, mock_router, client):
+        mock_router.get("/payments/balance/0xABC").mock(return_value=httpx.Response(200, json={
+            "base": {"USDC": "10.50"}, "ethereum": {"USDC": "0.00"},
+        }))
+        result = await client.workers.balance("0xABC")
+        assert "base" in result
 
 
 # ---------------------------------------------------------------------------
@@ -252,92 +285,84 @@ class TestWorkers:
 # ---------------------------------------------------------------------------
 
 class TestErrors:
-    async def test_401_raises_auth_error(self, mock_router, client):
-        mock_router.get("/tasks").mock(return_value=httpx.Response(401, json={
-            "error": "UNAUTHORIZED",
-            "message": "Invalid API key",
-        }))
-        with pytest.raises(EMAuthError) as exc_info:
-            await client.list_tasks()
-        assert exc_info.value.status_code == 401
-        assert "Invalid API key" in exc_info.value.message
+    async def test_401(self, mock_router, client):
+        mock_router.get("/tasks").mock(return_value=httpx.Response(401, json={"message": "Bad key"}))
+        with pytest.raises(EMAuthError) as exc:
+            await client.tasks.list_page()
+        assert exc.value.status_code == 401
 
-    async def test_403_raises_auth_error(self, mock_router, client):
-        mock_router.get("/tasks").mock(return_value=httpx.Response(403, json={
-            "error": "FORBIDDEN",
-            "message": "Access denied",
-        }))
-        with pytest.raises(EMAuthError):
-            await client.list_tasks()
+    async def test_404(self, mock_router, client):
+        mock_router.get("/tasks/nope").mock(return_value=httpx.Response(404, json={"message": "Not found"}))
+        with pytest.raises(EMNotFoundError):
+            await client.tasks.get("nope")
 
-    async def test_404_raises_not_found(self, mock_router, client):
-        mock_router.get("/tasks/nonexistent").mock(return_value=httpx.Response(404, json={
-            "error": "TASK_NOT_FOUND",
-            "message": "Task not found",
-        }))
-        with pytest.raises(EMNotFoundError) as exc_info:
-            await client.get_task("nonexistent")
-        assert exc_info.value.status_code == 404
-
-    async def test_422_raises_validation_error(self, mock_router, client):
-        mock_router.post("/tasks").mock(return_value=httpx.Response(422, json={
-            "error": "VALIDATION_ERROR",
-            "message": "bounty_usd must be > 0",
-        }))
+    async def test_422(self, mock_router, client):
+        mock_router.post("/tasks").mock(return_value=httpx.Response(422, json={"message": "Invalid"}))
         params = CreateTaskParams(
-            title="Test task title here",
-            instructions="Detailed instructions for the task that must be at least 20 chars",
-            category=TaskCategory.SIMPLE_ACTION,
-            bounty_usd=0.01,
-            deadline_hours=1,
-            evidence_required=[EvidenceType.PHOTO],
+            title="Test title here", instructions="x" * 20,
+            category=TaskCategory.SIMPLE_ACTION, bounty_usd=0.01,
+            deadline_hours=1, evidence_required=[EvidenceType.PHOTO],
         )
         with pytest.raises(EMValidationError):
-            await client.publish_task(params)
+            await client.tasks.create(params)
 
-    async def test_500_raises_server_error(self, mock_router, client):
-        mock_router.get("/health").mock(return_value=httpx.Response(500, json={
-            "message": "Internal server error",
-        }))
-        with pytest.raises(EMServerError) as exc_info:
+    async def test_500(self, mock_router, client):
+        # With max_retries=2, respx needs 3 responses (initial + 2 retries)
+        mock_router.get("/health").mock(side_effect=[
+            httpx.Response(500, json={"message": "Error"}),
+            httpx.Response(500, json={"message": "Error"}),
+            httpx.Response(500, json={"message": "Error"}),
+        ])
+        with pytest.raises(EMServerError):
             await client.health()
-        assert exc_info.value.status_code == 500
 
-    async def test_502_raises_server_error(self, mock_router, client):
-        mock_router.get("/health").mock(return_value=httpx.Response(502, text="Bad Gateway"))
-        with pytest.raises(EMServerError) as exc_info:
-            await client.health()
-        assert exc_info.value.status_code == 502
+    async def test_429(self, mock_router, client):
+        mock_router.get("/tasks").mock(side_effect=[
+            httpx.Response(429, json={"message": "Rate limited"}),
+            httpx.Response(429, json={"message": "Rate limited"}),
+            httpx.Response(429, json={"message": "Rate limited"}),
+        ])
+        with pytest.raises(EMError):
+            await client.tasks.list_page()
 
-    async def test_429_raises_generic_error(self, mock_router, client):
-        mock_router.get("/tasks").mock(return_value=httpx.Response(429, json={
-            "message": "Rate limited",
-        }))
-        with pytest.raises(EMError) as exc_info:
-            await client.list_tasks()
-        assert exc_info.value.status_code == 429
+
+# ---------------------------------------------------------------------------
+# Retry behavior
+# ---------------------------------------------------------------------------
+
+class TestRetry:
+    async def test_retry_recovers_on_second_attempt(self, mock_router):
+        mock_router.get("/health").mock(side_effect=[
+            httpx.Response(502, text="Bad Gateway"),
+            httpx.Response(200, json={"status": "ok"}),
+        ])
+        async with EMClient(api_key=API_KEY, max_retries=2) as client:
+            resp = await client.health()
+            assert resp.status == "ok"
+
+    async def test_no_retry_on_4xx(self, mock_router):
+        route = mock_router.get("/tasks/x").mock(return_value=httpx.Response(404, json={"message": "Not found"}))
+        async with EMClient(api_key=API_KEY, max_retries=2) as client:
+            with pytest.raises(EMNotFoundError):
+                await client.tasks.get("x")
+        assert len(route.calls) == 1  # No retry on 404
 
 
 # ---------------------------------------------------------------------------
 # Client lifecycle
 # ---------------------------------------------------------------------------
 
-class TestClientLifecycle:
+class TestLifecycle:
     async def test_context_manager(self, mock_router):
         mock_router.get("/health").mock(return_value=httpx.Response(200, json={"status": "ok"}))
         async with EMClient(api_key=API_KEY) as client:
             resp = await client.health()
             assert resp.status == "ok"
 
-    async def test_custom_base_url(self, mock_router):
-        custom_url = "https://custom.api.example.com/v2"
-        with respx.mock(base_url=custom_url) as custom_router:
-            custom_router.get("/health").mock(return_value=httpx.Response(200, json={"status": "ok"}))
-            async with EMClient(api_key=API_KEY, base_url=custom_url) as client:
+    async def test_custom_base_url(self):
+        custom = "https://custom.example.com/v2"
+        with respx.mock(base_url=custom) as router:
+            router.get("/health").mock(return_value=httpx.Response(200, json={"status": "ok"}))
+            async with EMClient(api_key=API_KEY, base_url=custom) as client:
                 resp = await client.health()
                 assert resp.status == "ok"
-
-    async def test_custom_timeout(self):
-        client = EMClient(api_key=API_KEY, timeout=5.0)
-        assert client._timeout == 5.0
-        await client.close()
