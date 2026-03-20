@@ -26,12 +26,9 @@ Thread-safe. No external dependencies.
 """
 
 import logging
-import math
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Optional
 
 logger = logging.getLogger("em.swarm.worker_discovery")
 
@@ -145,7 +142,9 @@ class CoverageGap:
             "location": self.location,
             "demand_count": self.demand_count,
             "available_workers": self.available_workers,
-            "avg_time_to_assign_hours": round(self.avg_time_to_assign_seconds / 3600, 1),
+            "avg_time_to_assign_hours": round(
+                self.avg_time_to_assign_seconds / 3600, 1
+            ),
             "expiry_rate_pct": round(self.expiry_rate * 100, 1),
             "severity": self.severity,
             "recommendation": self.recommendation,
@@ -173,7 +172,9 @@ class RecruitmentRecommendation:
             "target_category": self.target_category,
             "target_location": self.target_location,
             "reason": self.reason,
-            "estimated_weekly_earnings_usd": round(self.estimated_weekly_earnings_usd, 2),
+            "estimated_weekly_earnings_usd": round(
+                self.estimated_weekly_earnings_usd, 2
+            ),
             "competition_level": self.competition_level,
             "recommended_channels": self.recommended_channels,
         }
@@ -201,7 +202,7 @@ class TaskDemandTracker:
         """Record a new task demand signal."""
         self._signals.append(signal)
         if len(self._signals) > self._max_signals:
-            self._signals = self._signals[-self._max_signals:]
+            self._signals = self._signals[-self._max_signals :]
 
     def record_assignment(
         self,
@@ -364,15 +365,15 @@ class WorkerCoverageMap:
     def workers_for_category(self, category: str) -> list[WorkerProfile]:
         """Find workers who handle a category."""
         return [
-            w for w in self._workers.values()
+            w
+            for w in self._workers.values()
             if category in w.categories and w.is_active
         ]
 
     def workers_for_location(self, location: str) -> list[WorkerProfile]:
         """Find workers available in a location."""
         return [
-            w for w in self._workers.values()
-            if location in w.locations and w.is_active
+            w for w in self._workers.values() if location in w.locations and w.is_active
         ]
 
     def workers_for_category_location(
@@ -380,10 +381,9 @@ class WorkerCoverageMap:
     ) -> list[WorkerProfile]:
         """Find workers who handle a category in a location."""
         return [
-            w for w in self._workers.values()
-            if category in w.categories
-            and location in w.locations
-            and w.is_active
+            w
+            for w in self._workers.values()
+            if category in w.categories and location in w.locations and w.is_active
         ]
 
     def category_coverage(self) -> dict[str, int]:
@@ -417,13 +417,20 @@ class WorkerCoverageMap:
         if total_tasks == 0:
             return 0.0
 
-        shares = [w.completed_tasks / total_tasks for w in self._workers.values() if w.completed_tasks > 0]
-        return sum(s ** 2 for s in shares) * 10000
+        shares = [
+            w.completed_tasks / total_tasks
+            for w in self._workers.values()
+            if w.completed_tasks > 0
+        ]
+        return sum(s**2 for s in shares) * 10000
 
     def churn_risk_report(self) -> dict[str, list[str]]:
         """Group workers by churn risk level."""
         risk_groups: dict[str, list[str]] = {
-            "low": [], "medium": [], "high": [], "churned": []
+            "low": [],
+            "medium": [],
+            "high": [],
+            "churned": [],
         }
         for w in self._workers.values():
             risk_groups[w.churn_risk].append(w.wallet)
@@ -451,9 +458,7 @@ class WorkerCoverageMap:
             "category_coverage": self.category_coverage(),
             "location_coverage": self.location_coverage(),
             "concentration_index": round(self.concentration_index(), 0),
-            "churn_risk": {
-                k: len(v) for k, v in self.churn_risk_report().items()
-            },
+            "churn_risk": {k: len(v) for k, v in self.churn_risk_report().items()},
         }
 
 
@@ -463,29 +468,28 @@ class WorkerCoverageMap:
 # Standard recruitment channels by category
 RECRUITMENT_CHANNELS = {
     "physical_verification": [
-        "TaskRabbit", "Gigwalk", "Field Agent", "Local community boards"
+        "TaskRabbit",
+        "Gigwalk",
+        "Field Agent",
+        "Local community boards",
     ],
-    "delivery": [
-        "DoorDash", "Uber Eats", "Postmates", "Local Facebook groups"
-    ],
+    "delivery": ["DoorDash", "Uber Eats", "Postmates", "Local Facebook groups"],
     "data_collection": [
-        "Upwork", "Freelancer", "Reddit r/beermoney", "MTurk communities"
+        "Upwork",
+        "Freelancer",
+        "Reddit r/beermoney",
+        "MTurk communities",
     ],
-    "survey": [
-        "SurveyMonkey marketplace", "Reddit", "University job boards"
-    ],
+    "survey": ["SurveyMonkey marketplace", "Reddit", "University job boards"],
     "mystery_shopping": [
-        "Market Force", "BestMark", "IntelliShop", "Secret shopper forums"
+        "Market Force",
+        "BestMark",
+        "IntelliShop",
+        "Secret shopper forums",
     ],
-    "quality_assurance": [
-        "UserTesting", "TryMyUI", "Upwork", "Dev communities"
-    ],
-    "content_creation": [
-        "Fiverr", "Upwork", "99designs", "Twitter/X"
-    ],
-    "default": [
-        "execution.market", "XMTP bot", "Social media", "Word of mouth"
-    ],
+    "quality_assurance": ["UserTesting", "TryMyUI", "Upwork", "Dev communities"],
+    "content_creation": ["Fiverr", "Upwork", "99designs", "Twitter/X"],
+    "default": ["execution.market", "XMTP bot", "Social media", "Word of mouth"],
 }
 
 
@@ -537,18 +541,20 @@ class RecruitmentEngine:
                 avg_bounty=avg_bounty,
             )
 
-            gaps.append(CoverageGap(
-                category=category,
-                location=location,
-                demand_count=count,
-                available_workers=available,
-                avg_time_to_assign_seconds=tta,
-                expiry_rate=expiry,
-                severity=severity,
-                recommendation=recommendation,
-                estimated_weekly_tasks=velocity,
-                avg_bounty_usd=avg_bounty,
-            ))
+            gaps.append(
+                CoverageGap(
+                    category=category,
+                    location=location,
+                    demand_count=count,
+                    available_workers=available,
+                    avg_time_to_assign_seconds=tta,
+                    expiry_rate=expiry,
+                    severity=severity,
+                    recommendation=recommendation,
+                    estimated_weekly_tasks=velocity,
+                    avg_bounty_usd=avg_bounty,
+                )
+            )
 
         # Sort by severity (critical first)
         severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -556,7 +562,9 @@ class RecruitmentEngine:
 
         return gaps
 
-    def generate_recommendations(self, max_count: int = 10) -> list[RecruitmentRecommendation]:
+    def generate_recommendations(
+        self, max_count: int = 10
+    ) -> list[RecruitmentRecommendation]:
         """Generate prioritized recruitment recommendations.
 
         Each recommendation includes:
@@ -573,7 +581,9 @@ class RecruitmentEngine:
                 gap.category, RECRUITMENT_CHANNELS["default"]
             )
 
-            weekly_earnings = gap.estimated_weekly_tasks * gap.avg_bounty_usd * 0.87  # After 13% fee
+            weekly_earnings = (
+                gap.estimated_weekly_tasks * gap.avg_bounty_usd * 0.87
+            )  # After 13% fee
 
             competition = "none"
             if gap.available_workers == 0:
@@ -585,16 +595,18 @@ class RecruitmentEngine:
             else:
                 competition = "high"
 
-            recs.append(RecruitmentRecommendation(
-                priority=i + 1,
-                target_category=gap.category,
-                target_location=gap.location,
-                reason=gap.recommendation,
-                estimated_weekly_earnings_usd=weekly_earnings,
-                competition_level=competition,
-                recommended_channels=channels,
-                gap=gap,
-            ))
+            recs.append(
+                RecruitmentRecommendation(
+                    priority=i + 1,
+                    target_category=gap.category,
+                    target_location=gap.location,
+                    reason=gap.recommendation,
+                    estimated_weekly_earnings_usd=weekly_earnings,
+                    competition_level=competition,
+                    recommended_channels=channels,
+                    gap=gap,
+                )
+            )
 
         return recs
 
@@ -651,17 +663,23 @@ class RecruitmentEngine:
         if available == 0:
             parts.append(f"No workers for {category} in {location}")
         elif available == 1:
-            parts.append(f"Only 1 worker for {category} in {location} — single point of failure")
+            parts.append(
+                f"Only 1 worker for {category} in {location} — single point of failure"
+            )
 
         if expiry_rate > 0.50:
-            parts.append(f"{expiry_rate*100:.0f}% of tasks expiring")
+            parts.append(f"{expiry_rate * 100:.0f}% of tasks expiring")
         elif expiry_rate > 0.25:
-            parts.append(f"{expiry_rate*100:.0f}% expiry rate is concerning")
+            parts.append(f"{expiry_rate * 100:.0f}% expiry rate is concerning")
 
         if avg_bounty > 0:
             parts.append(f"avg bounty ${avg_bounty:.2f}")
 
-        return "; ".join(parts) if parts else f"Coverage adequate for {category} in {location}"
+        return (
+            "; ".join(parts)
+            if parts
+            else f"Coverage adequate for {category} in {location}"
+        )
 
 
 # ─── Worker Discovery (Unified) ──────────────────────────────
@@ -724,7 +742,9 @@ class WorkerDiscovery:
         time_to_assign_seconds: float,
     ) -> None:
         """Record task assignment."""
-        self._demand_tracker.record_assignment(task_id, worker_wallet, time_to_assign_seconds)
+        self._demand_tracker.record_assignment(
+            task_id, worker_wallet, time_to_assign_seconds
+        )
 
     def record_completion(self, task_id: str) -> None:
         """Record task completion."""
@@ -776,7 +796,9 @@ class WorkerDiscovery:
         """Find all coverage gaps ordered by severity."""
         return self._recruitment_engine.identify_gaps()
 
-    def get_recommendations(self, max_count: int = 10) -> list[RecruitmentRecommendation]:
+    def get_recommendations(
+        self, max_count: int = 10
+    ) -> list[RecruitmentRecommendation]:
         """Get prioritized recruitment recommendations."""
         return self._recruitment_engine.generate_recommendations(max_count=max_count)
 
@@ -841,7 +863,9 @@ class WorkerDiscovery:
 
         return {
             "health": health,
-            "supply_ratio": round(supply_ratio, 2) if supply_ratio is not None else None,
+            "supply_ratio": round(supply_ratio, 2)
+            if supply_ratio is not None
+            else None,
             "demand": demand,
             "coverage": coverage,
             "gaps": {
@@ -864,7 +888,10 @@ class WorkerDiscovery:
             "║       WORKER DISCOVERY — SUPPLY INTELLIGENCE       ║",
             "╠═══════════════════════════════════════════════════╣",
             f"║ Health: {report['health']:<43}║",
-            f"║ Workers: {report['coverage']['active_workers']} active / {report['coverage']['total_workers']} total{' ' * 28}║"[:53] + "║",
+            f"║ Workers: {report['coverage']['active_workers']} active / {report['coverage']['total_workers']} total{' ' * 28}║"[
+                :53
+            ]
+            + "║",
             f"║ Tasks in window: {report['demand']['total_tasks']:<34}║",
             f"║ Concentration (HHI): {report['concentration_index']:<30}║",
         ]
@@ -880,7 +907,9 @@ class WorkerDiscovery:
             lines.append("╠───────────────────────────────────────────────────╣")
             lines.append("║ 📋 TOP RECOMMENDATIONS:                           ║")
             for rec in report["recommendations"][:3]:
-                desc = f"#{rec['priority']}: {rec['target_category']} ({rec['target_location']})"[:47]
+                desc = f"#{rec['priority']}: {rec['target_category']} ({rec['target_location']})"[
+                    :47
+                ]
                 lines.append(f"║  {desc:<49}║")
 
         churn = report["churn_risk"]
@@ -888,7 +917,8 @@ class WorkerDiscovery:
             lines.append("╠───────────────────────────────────────────────────╣")
             lines.append(
                 f"║ ⚠️  Churn: {churn.get('high', 0)} high risk, "
-                f"{churn.get('churned', 0)} churned{' ' * 20}║"[:53] + "║"
+                f"{churn.get('churned', 0)} churned{' ' * 20}║"[:53]
+                + "║"
             )
 
         lines.append("╚═══════════════════════════════════════════════════╝")

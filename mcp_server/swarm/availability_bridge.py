@@ -49,9 +49,11 @@ SLOW_RESPONSE_THRESHOLD = 120
 # Data Types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TimeWeightedCandidate:
     """A worker candidate with time-aware scoring."""
+
     wallet: str
     skill_score: float  # From reputation matcher (0-100)
     availability_score: float  # From availability predictor (0-1)
@@ -66,6 +68,7 @@ class TimeWeightedCandidate:
 @dataclass
 class ScheduleRecommendation:
     """When and to whom to route a task."""
+
     route_immediately: bool
     best_worker: Optional[str] = None
     best_time_utc: Optional[int] = None  # Hour (0-23)
@@ -78,6 +81,7 @@ class ScheduleRecommendation:
 @dataclass
 class PoolCoverage:
     """24-hour availability coverage of the worker pool."""
+
     total_workers: int
     hours_with_coverage: int  # Hours where >= 1 worker available
     coverage_ratio: float  # hours_with_coverage / 24
@@ -90,6 +94,7 @@ class PoolCoverage:
 # ---------------------------------------------------------------------------
 # Availability Bridge
 # ---------------------------------------------------------------------------
+
 
 class AvailabilityBridge:
     """Bridges AutoJob availability predictions into swarm routing.
@@ -186,8 +191,8 @@ class AvailabilityBridge:
             # Combined score
             if confidence >= MIN_PREDICTION_CONFIDENCE:
                 combined = (
-                    skill_score * (1 - self.availability_weight) +
-                    (skill_score * avail_score) * self.availability_weight
+                    skill_score * (1 - self.availability_weight)
+                    + (skill_score * avail_score) * self.availability_weight
                 )
             else:
                 combined = skill_score  # Don't penalize when data is poor
@@ -202,17 +207,19 @@ class AvailabilityBridge:
             else:
                 recommendation = "delay"
 
-            results.append(TimeWeightedCandidate(
-                wallet=wallet,
-                skill_score=round(skill_score, 2),
-                availability_score=round(avail_score, 3),
-                combined_score=round(combined, 2),
-                available_now=available,
-                estimated_response_minutes=round(est_response, 1),
-                timezone_offset=tz_offset,
-                prediction_confidence=round(confidence, 3),
-                recommendation=recommendation,
-            ))
+            results.append(
+                TimeWeightedCandidate(
+                    wallet=wallet,
+                    skill_score=round(skill_score, 2),
+                    availability_score=round(avail_score, 3),
+                    combined_score=round(combined, 2),
+                    available_now=available,
+                    estimated_response_minutes=round(est_response, 1),
+                    timezone_offset=tz_offset,
+                    prediction_confidence=round(confidence, 3),
+                    recommendation=recommendation,
+                )
+            )
 
         results.sort(key=lambda r: (-r.combined_score, r.estimated_response_minutes))
         return [asdict(r) for r in results]
@@ -247,16 +254,20 @@ class AvailabilityBridge:
                     self._compute_availability_score(avail_data, now)
                 )
                 if available:
-                    available_now.append({
-                        "wallet": wallet,
-                        "est_response": est_response,
-                    })
+                    available_now.append(
+                        {
+                            "wallet": wallet,
+                            "est_response": est_response,
+                        }
+                    )
             else:
                 # Unknown availability → assume available
-                available_now.append({
-                    "wallet": wallet,
-                    "est_response": 60.0,
-                })
+                available_now.append(
+                    {
+                        "wallet": wallet,
+                        "est_response": 60.0,
+                    }
+                )
 
         if available_now:
             # Route to best available worker now
@@ -396,8 +407,11 @@ class AvailabilityBridge:
 
         if deadline_str:
             try:
-                for fmt in ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ",
-                            "%Y-%m-%dT%H:%M:%S+00:00"]:
+                for fmt in [
+                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                    "%Y-%m-%dT%H:%M:%SZ",
+                    "%Y-%m-%dT%H:%M:%S+00:00",
+                ]:
                     try:
                         dl = datetime.strptime(deadline_str, fmt).replace(tzinfo=UTC)
                         hours_remaining = (dl - now).total_seconds() / 3600
