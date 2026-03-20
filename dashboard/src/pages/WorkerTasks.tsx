@@ -213,7 +213,7 @@ export function WorkerTasks() {
             onAccept={handleTaskAccepted}
           />
 
-          {selectedTask.status === 'accepted' &&
+          {['accepted', 'in_progress'].includes(selectedTask.status) &&
             selectedTask.executor_id === executor?.id && (
               <button
                 onClick={handleStartSubmission}
