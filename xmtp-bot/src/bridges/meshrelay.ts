@@ -11,6 +11,15 @@ import { randomBytes } from "crypto";
 const BOUNTIES_CHANNEL = "#bounties";
 const AGENTS_CHANNEL = "#Agents";
 
+// ─── Channel context detection ──────────────────────────────────────
+function getTaskIdFromChannel(channel: string): string | null {
+  const match = channel.match(/^#task-([a-f0-9]{8})$/i);
+  return match ? match[1] : null;
+}
+
+// Pending mutual cancellation proposals: taskShortId -> { proposer, expiresAt }
+const mutualCancelProposals = new Map<string, { proposer: string; expiresAt: number }>();
+
 // ─── Initialize the bridge ──────────────────────────────────────────
 export function startMeshRelayBridge(): void {
   if (!config.irc.enabled) {
@@ -101,9 +110,45 @@ async function handleIrcMessage(channel: string, nick: string, text: string): Pr
     return;
   }
 
-  // Handle /status command
-  if (trimmed.startsWith("/status ")) {
+  // Handle /status command (with or without ID in task channels)
+  if (trimmed === "/status" || trimmed.startsWith("/status ")) {
     await handleStatusCommand(channel, nick, trimmed);
+    return;
+  }
+
+  // Handle /submit in task channel
+  if (trimmed.startsWith("/submit ") || trimmed === "/submit") {
+    await handleSubmitCommand(channel, nick, trimmed);
+    return;
+  }
+
+  // Handle /approve in task channel
+  if (trimmed === "/approve" || trimmed.startsWith("/approve ")) {
+    await handleApproveCommand(channel, nick, trimmed);
+    return;
+  }
+
+  // Handle /reject in task channel
+  if (trimmed.startsWith("/reject ") || trimmed === "/reject") {
+    await handleRejectCommand(channel, nick, trimmed);
+    return;
+  }
+
+  // Handle /cancel in task channel
+  if (trimmed === "/cancel" || trimmed.startsWith("/cancel ")) {
+    await handleCancelCommand(channel, nick, trimmed);
+    return;
+  }
+
+  // Handle /mutual-cancel
+  if (trimmed === "/mutual-cancel" || trimmed.startsWith("/mutual-cancel ")) {
+    await handleMutualCancelCommand(channel, nick, trimmed);
+    return;
+  }
+
+  // Handle /confirm-cancel
+  if (trimmed === "/confirm-cancel") {
+    await handleConfirmCancelCommand(channel, nick);
     return;
   }
 
@@ -113,14 +158,19 @@ async function handleIrcMessage(channel: string, nick: string, text: string): Pr
       "Execution Market Bot Commands:",
       "  /tasks [category] — List available tasks",
       "  /claim <task_id> — Apply to a task (requires /link)",
-      "  /status <task_id> — Check task status",
-      "  /link <wallet_address> — Link IRC nick to wallet [L1]",
+      "  /status [task_id] — Check task status (ID optional in #task-*)",
+      "  /submit [task_id] <url> — Submit evidence",
+      "  /approve [task_id] — Approve submission (publisher)",
+      "  /reject [task_id] [reason] — Reject submission",
+      "  /cancel [task_id] — Cancel task",
+      "  /mutual-cancel [reason] — Propose zero-penalty cancel (#task-* only)",
+      "  /confirm-cancel — Accept mutual cancellation",
+      "  /link <wallet> — Link IRC nick to wallet [L1]",
       "  /verify — Start wallet verification [L1->L2]",
-      "  /verify-sig <sig> — Complete verification with signature",
+      "  /verify-sig <sig> — Complete with signature",
       "  /register — Bind ERC-8004 identity [L2->L3]",
-      "  /whoami — Show your identity info and trust level",
-      "  /help — Show this help message",
-      "Trust levels: (anon) (linked) [V]erified [R]egistered",
+      "  /whoami — Show identity info and trust level",
+      "In #task-* channels, task_id is auto-detected.",
     ].join("\n"));
     return;
   }
@@ -215,14 +265,20 @@ async function handleTasksCommand(channel: string, nick: string, text: string): 
   }
 }
 
-// ─── /status <task_id> ──────────────────────────────────────────────
+// ─── /status [task_id] (optional in task channels) ──────────────────
 async function handleStatusCommand(channel: string, nick: string, text: string): Promise<void> {
   const parts = text.split(/\s+/);
-  const taskIdPartial = parts[1];
+  let taskIdPartial = parts[1];
 
+  // In task channels, use channel context if no ID provided
   if (!taskIdPartial) {
-    sendToChannel(channel, `${nick}: Usage: /status <task_id>`);
-    return;
+    const channelTaskId = getTaskIdFromChannel(channel);
+    if (channelTaskId) {
+      taskIdPartial = channelTaskId;
+    } else {
+      sendToChannel(channel, `${nick}: Usage: /status <task_id>`);
+      return;
+    }
   }
 
   try {
@@ -414,6 +470,277 @@ async function handleWhoamiCommand(channel: string, nick: string): Promise<void>
   lines.push(`  Channel pref: ${identity.preferred_channel}`);
 
   sendToChannel(channel, lines.join("\n"));
+}
+
+// ─── /submit [task_id] <evidence_url> (channel-scoped) ────────────
+async function handleSubmitCommand(channel: string, nick: string, text: string): Promise<void> {
+  const parts = text.split(/\s+/);
+  const channelTaskId = getTaskIdFromChannel(channel);
+
+  let taskIdPartial: string | undefined;
+  let evidenceUrl: string | undefined;
+
+  if (channelTaskId) {
+    // In task channel: /submit <evidence_url>
+    evidenceUrl = parts[1];
+    taskIdPartial = channelTaskId;
+  } else {
+    // Outside: /submit <task_id> <evidence_url>
+    taskIdPartial = parts[1];
+    evidenceUrl = parts[2];
+  }
+
+  if (!taskIdPartial) {
+    sendToChannel(channel, `${nick}: Usage: /submit <task_id> <evidence_url>`);
+    return;
+  }
+
+  const walletAddress = await identityStore.getWalletByNick(nick);
+  if (!walletAddress) {
+    sendToChannel(channel, `${nick}: Link your wallet first: /link <address>`);
+    return;
+  }
+
+  try {
+    const task = await apiClient.resolveTask(taskIdPartial);
+    if (!task) {
+      sendToChannel(channel, `${nick}: Task not found: ${taskIdPartial}`);
+      return;
+    }
+
+    const evidence: Record<string, unknown> = {};
+    if (evidenceUrl) {
+      evidence.url = evidenceUrl;
+      evidence.submitted_via = "irc";
+    }
+
+    await apiClient.submitEvidence(task.id, walletAddress, evidence);
+    sendToChannel(channel, `${nick}: Evidence submitted for task ${task.id.slice(0, 8)}.`);
+    logger.info({ nick, taskId: task.id }, "IRC evidence submitted");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail ?? "Submission failed";
+    sendToChannel(channel, `${nick}: Error: ${detail}`);
+    logger.error({ err, nick }, "IRC /submit failed");
+  }
+}
+
+// ─── /approve [task_id] (channel-scoped, publisher only) ──────────
+async function handleApproveCommand(channel: string, nick: string, text: string): Promise<void> {
+  const parts = text.split(/\s+/);
+  const channelTaskId = getTaskIdFromChannel(channel);
+  const taskIdPartial = parts[1] || channelTaskId;
+
+  if (!taskIdPartial) {
+    sendToChannel(channel, `${nick}: Usage: /approve <task_id>`);
+    return;
+  }
+
+  try {
+    const task = await apiClient.resolveTask(taskIdPartial);
+    if (!task) {
+      sendToChannel(channel, `${nick}: Task not found: ${taskIdPartial}`);
+      return;
+    }
+
+    // Get latest submission
+    const subs = await apiClient.get<any>(`/api/v1/tasks/${task.id}/submissions`);
+    const submissions = Array.isArray(subs) ? subs : subs.submissions ?? [];
+    const pending = submissions.find((s: any) => s.status === "submitted" || s.status === "pending");
+
+    if (!pending) {
+      sendToChannel(channel, `${nick}: No pending submission to approve.`);
+      return;
+    }
+
+    await apiClient.post(`/api/v1/submissions/${pending.id}/approve`, {
+      verdict: "approved",
+    });
+
+    sendToChannel(channel, `${nick}: Submission approved for task ${task.id.slice(0, 8)}! Payment releasing.`);
+    logger.info({ nick, taskId: task.id }, "IRC submission approved");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail ?? "Approval failed";
+    sendToChannel(channel, `${nick}: Error: ${detail}`);
+    logger.error({ err, nick }, "IRC /approve failed");
+  }
+}
+
+// ─── /reject [task_id] [reason] (channel-scoped, publisher only) ──
+async function handleRejectCommand(channel: string, nick: string, text: string): Promise<void> {
+  const parts = text.split(/\s+/);
+  const channelTaskId = getTaskIdFromChannel(channel);
+
+  let taskIdPartial: string | undefined;
+  let reason: string;
+
+  if (channelTaskId) {
+    taskIdPartial = channelTaskId;
+    reason = parts.slice(1).join(" ") || "Rejected via IRC";
+  } else {
+    taskIdPartial = parts[1];
+    reason = parts.slice(2).join(" ") || "Rejected via IRC";
+  }
+
+  if (!taskIdPartial) {
+    sendToChannel(channel, `${nick}: Usage: /reject <task_id> [reason]`);
+    return;
+  }
+
+  try {
+    const task = await apiClient.resolveTask(taskIdPartial);
+    if (!task) {
+      sendToChannel(channel, `${nick}: Task not found: ${taskIdPartial}`);
+      return;
+    }
+
+    const subs = await apiClient.get<any>(`/api/v1/tasks/${task.id}/submissions`);
+    const submissions = Array.isArray(subs) ? subs : subs.submissions ?? [];
+    const pending = submissions.find((s: any) => s.status === "submitted" || s.status === "pending");
+
+    if (!pending) {
+      sendToChannel(channel, `${nick}: No pending submission to reject.`);
+      return;
+    }
+
+    await apiClient.post(`/api/v1/submissions/${pending.id}/reject`, {
+      verdict: "rejected",
+      reason,
+    });
+
+    sendToChannel(channel, `${nick}: Submission rejected for task ${task.id.slice(0, 8)}. Reason: ${reason}`);
+    logger.info({ nick, taskId: task.id }, "IRC submission rejected");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail ?? "Rejection failed";
+    sendToChannel(channel, `${nick}: Error: ${detail}`);
+    logger.error({ err, nick }, "IRC /reject failed");
+  }
+}
+
+// ─── /cancel [task_id] (channel-scoped) ───────────────────────────
+async function handleCancelCommand(channel: string, nick: string, text: string): Promise<void> {
+  const parts = text.split(/\s+/);
+  const channelTaskId = getTaskIdFromChannel(channel);
+  const taskIdPartial = parts[1] || channelTaskId;
+
+  if (!taskIdPartial) {
+    sendToChannel(channel, `${nick}: Usage: /cancel <task_id>`);
+    return;
+  }
+
+  try {
+    const task = await apiClient.resolveTask(taskIdPartial);
+    if (!task) {
+      sendToChannel(channel, `${nick}: Task not found: ${taskIdPartial}`);
+      return;
+    }
+
+    await apiClient.post(`/api/v1/tasks/${task.id}/cancel`, {
+      reason: "Cancelled via IRC",
+    });
+
+    sendToChannel(channel, `${nick}: Task ${task.id.slice(0, 8)} cancelled.`);
+    logger.info({ nick, taskId: task.id }, "IRC task cancelled");
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail ?? "Cancellation failed";
+    sendToChannel(channel, `${nick}: Error: ${detail}`);
+    logger.error({ err, nick }, "IRC /cancel failed");
+  }
+}
+
+// ─── /mutual-cancel [reason] (Task 3.4 — task channel only) ──────
+async function handleMutualCancelCommand(channel: string, nick: string, text: string): Promise<void> {
+  const channelTaskId = getTaskIdFromChannel(channel);
+  if (!channelTaskId) {
+    sendToChannel(channel, `${nick}: /mutual-cancel only works in #task-{id} channels.`);
+    return;
+  }
+
+  // Check for existing proposal
+  const existing = mutualCancelProposals.get(channelTaskId);
+  if (existing && existing.expiresAt > Date.now()) {
+    sendToChannel(channel, `${nick}: A mutual cancellation is already pending (from ${existing.proposer}). Use /confirm-cancel to accept.`);
+    return;
+  }
+
+  const reason = text.replace(/^\/mutual-cancel\s*/, "").trim() || "No reason given";
+
+  // Store proposal with 15-minute TTL
+  mutualCancelProposals.set(channelTaskId, {
+    proposer: nick,
+    expiresAt: Date.now() + 15 * 60 * 1000,
+  });
+
+  sendToChannel(channel, [
+    `${nick} proposes mutual cancellation: ${reason}`,
+    `Other party: /confirm-cancel to accept (15 min TTL). No reputation penalty.`,
+  ].join("\n"));
+
+  logger.info({ nick, taskId: channelTaskId, reason }, "Mutual cancel proposed");
+
+  // Auto-expire after 15 minutes
+  setTimeout(() => {
+    const proposal = mutualCancelProposals.get(channelTaskId);
+    if (proposal && proposal.proposer === nick) {
+      mutualCancelProposals.delete(channelTaskId);
+      sendToChannel(channel, `Mutual cancellation proposal by ${nick} expired. Use /cancel for unilateral.`);
+    }
+  }, 15 * 60 * 1000);
+}
+
+// ─── /confirm-cancel (Task 3.4 — accept mutual cancellation) ─────
+async function handleConfirmCancelCommand(channel: string, nick: string): Promise<void> {
+  const channelTaskId = getTaskIdFromChannel(channel);
+  if (!channelTaskId) {
+    sendToChannel(channel, `${nick}: /confirm-cancel only works in #task-{id} channels.`);
+    return;
+  }
+
+  const proposal = mutualCancelProposals.get(channelTaskId);
+  if (!proposal) {
+    sendToChannel(channel, `${nick}: No pending mutual cancellation proposal.`);
+    return;
+  }
+
+  if (proposal.expiresAt < Date.now()) {
+    mutualCancelProposals.delete(channelTaskId);
+    sendToChannel(channel, `${nick}: Mutual cancellation proposal expired.`);
+    return;
+  }
+
+  if (proposal.proposer === nick) {
+    sendToChannel(channel, `${nick}: You proposed the cancellation — the OTHER party must confirm.`);
+    return;
+  }
+
+  // Both parties agree — execute mutual cancel
+  mutualCancelProposals.delete(channelTaskId);
+
+  try {
+    const task = await apiClient.resolveTask(channelTaskId);
+    if (!task) {
+      sendToChannel(channel, `${nick}: Task not found.`);
+      return;
+    }
+
+    await apiClient.post(`/api/v1/tasks/${task.id}/cancel`, {
+      reason: `Mutual cancellation agreed by ${proposal.proposer} and ${nick}`,
+      mutual: true,
+    });
+
+    sendToChannel(channel, [
+      `Mutual cancellation confirmed by ${nick}.`,
+      `Escrow refunded. No reputation penalty. Channel closing in 5 minutes.`,
+    ].join("\n"));
+
+    logger.info(
+      { taskId: channelTaskId, proposer: proposal.proposer, confirmer: nick },
+      "Mutual cancellation confirmed",
+    );
+  } catch (err: any) {
+    const detail = err?.response?.data?.detail ?? "Cancellation failed";
+    sendToChannel(channel, `${nick}: Error: ${detail}`);
+    logger.error({ err, nick }, "Mutual cancel execution failed");
+  }
 }
 
 // ─── XMTP → IRC: Publish task notifications ────────────────────────
