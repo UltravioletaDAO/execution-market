@@ -65,6 +65,11 @@ EXPECTED_ROUTES = {
     "/api/v1/identity/sync",
     "/api/v1/identity/verify-challenge",
     "/api/v1/tasks/{task_id}/chat-history",
+    # Relay chain endpoints (Phase 6)
+    "/api/v1/relay-chains",
+    "/api/v1/relay-chains/{chain_id}",
+    "/api/v1/relay-chains/{chain_id}/legs/{leg_number}/assign",
+    "/api/v1/relay-chains/{chain_id}/legs/{leg_number}/handoff",
 }
 
 
