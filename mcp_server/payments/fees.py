@@ -366,7 +366,7 @@ class FeeManager:
         )
 
         # Enforce minimum fee (unless waived)
-        if not is_waived and fee_amount > 0 and fee_amount < MIN_FEE_AMOUNT:
+        if not is_waived and fee_amount < MIN_FEE_AMOUNT:
             fee_amount = MIN_FEE_AMOUNT
 
         # Calculate worker amount
