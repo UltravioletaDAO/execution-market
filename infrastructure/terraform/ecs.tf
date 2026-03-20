@@ -114,21 +114,15 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
 }
 
 # Security Groups
+# Port 8000 only — MCP server. Port 80 removed (dashboard now served via S3+CloudFront).
 resource "aws_security_group" "ecs" {
   name        = "${local.name_prefix}-ecs-sg"
-  description = "Security group for ECS tasks"
+  description = "Security group for ECS tasks (MCP server on 8000)"
   vpc_id      = aws_vpc.main.id
 
   ingress {
     from_port       = 8000
     to_port         = 8000
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
-  }
-
-  ingress {
-    from_port       = 80
-    to_port         = 80
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
   }
@@ -148,15 +142,12 @@ resource "aws_security_group" "ecs" {
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "mcp_server" {
   name              = "/ecs/${local.name_prefix}/mcp-server"
-  retention_in_days = 30
-}
-
-resource "aws_cloudwatch_log_group" "dashboard" {
-  name              = "/ecs/${local.name_prefix}/dashboard"
-  retention_in_days = 30
+  retention_in_days = 14
 }
 
 # MCP Server Task Definition
+# cpu/memory: 512 CPU (0.5 vCPU) + 1024 MB — sufficient for FastMCP + AI image verification.
+# Prior default of 256/512 caused OOM during concurrent AI verification calls.
 resource "aws_ecs_task_definition" "mcp_server" {
   family                   = "${local.name_prefix}-mcp-server"
   network_mode             = "awsvpc"
@@ -272,61 +263,26 @@ resource "aws_ecs_task_definition" "mcp_server" {
   ])
 }
 
-# Dashboard Task Definition
-resource "aws_ecs_task_definition" "dashboard" {
-  family                   = "${local.name_prefix}-dashboard"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = var.dashboard_cpu
-  memory                   = var.dashboard_memory
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
-  task_role_arn            = aws_iam_role.ecs_task.arn
-
-  container_definitions = jsonencode([
-    {
-      name      = "dashboard"
-      image     = var.dashboard_image != "" ? var.dashboard_image : "${aws_ecr_repository.dashboard.repository_url}:latest"
-      essential = true
-
-      portMappings = [
-        {
-          containerPort = 80
-          hostPort      = 80
-          protocol      = "tcp"
-        }
-      ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.dashboard.name
-          awslogs-region        = local.region
-          awslogs-stream-prefix = "ecs"
-        }
-      }
-
-      healthCheck = {
-        command     = ["CMD-SHELL", "wget -q --spider http://localhost:80/health || exit 1"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 30
-      }
-    }
-  ])
-}
+# Dashboard is served via S3 + CloudFront (dashboard-cdn.tf) — no ECS needed.
 
 # MCP Server Service
+# Uses FARGATE_SPOT (base=1 on FARGATE for guaranteed min capacity, rest on SPOT for ~70% savings).
 resource "aws_ecs_service" "mcp_server" {
   name            = "${local.name_prefix}-mcp-server"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.mcp_server.arn
-  desired_count   = var.desired_count
+  desired_count   = var.mcp_desired_count
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE"
     weight            = 1
     base              = 1
+  }
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 3
+    base              = 0
   }
 
   network_configuration {
@@ -341,6 +297,11 @@ resource "aws_ecs_service" "mcp_server" {
     container_port   = 8000
   }
 
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
   depends_on = [aws_lb_listener.https]
 
   lifecycle {
@@ -348,34 +309,29 @@ resource "aws_ecs_service" "mcp_server" {
   }
 }
 
-# Dashboard Service
-resource "aws_ecs_service" "dashboard" {
-  name            = "${local.name_prefix}-dashboard"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.dashboard.arn
-  desired_count   = var.desired_count
+# ── Auto-scaling: MCP Server ───────────────────────────────────────────────────
+resource "aws_appautoscaling_target" "mcp_server" {
+  max_capacity       = var.mcp_max_count
+  min_capacity       = var.mcp_min_count
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.mcp_server.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
 
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE"
-    weight            = 1
-    base              = 1
-  }
+# Scale out when CPU > 60% for 2 consecutive minutes
+resource "aws_appautoscaling_policy" "mcp_server_cpu_up" {
+  name               = "${local.name_prefix}-mcp-cpu-scale-out"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.mcp_server.resource_id
+  scalable_dimension = aws_appautoscaling_target.mcp_server.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.mcp_server.service_namespace
 
-  network_configuration {
-    subnets          = aws_subnet.private[*].id
-    security_groups  = [aws_security_group.ecs.id]
-    assign_public_ip = false
-  }
-
-  load_balancer {
-    target_group_arn = aws_lb_target_group.dashboard.arn
-    container_name   = "dashboard"
-    container_port   = 80
-  }
-
-  depends_on = [aws_lb_listener.https]
-
-  lifecycle {
-    ignore_changes = [desired_count]
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 60.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
   }
 }

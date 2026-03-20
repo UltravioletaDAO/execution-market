@@ -31,13 +31,15 @@ terraform {
     }
   }
 
-  # Backend configuration — uncomment for remote state
-  # backend "s3" {
-  #   bucket  = "ultravioleta-terraform-state"
-  #   key     = "swarm/karmacadabra/terraform.tfstate"
-  #   region  = "us-east-2"
-  #   encrypt = true
-  # }
+  # Remote state — uses same bucket as main infra (different key).
+  # Run: terraform init -backend-config="bucket=<YOUR_TERRAFORM_STATE_BUCKET>"
+  backend "s3" {
+    key     = "swarm/karmacadabra/terraform.tfstate"
+    region  = "us-east-2"
+    encrypt = true
+    # bucket must be passed via -backend-config or TF_BACKEND_* env vars
+    # to avoid hardcoding the bucket name in git.
+  }
 }
 
 # -----------------------------------------------------------------------------
