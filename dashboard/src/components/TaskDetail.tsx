@@ -1,11 +1,11 @@
 // Execution Market: Task Detail Component
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useTaskPayment } from '../hooks/useTaskPayment'
 import { PaymentStatus } from './PaymentStatus'
-import type { Task, TaskCategory, Executor } from '../types/database'
+import type { Task, TaskCategory, Executor, Submission } from '../types/database'
 import { CATEGORY_ICONS } from '../constants/categories'
 import { getNetworkDisplayName } from '../utils/blockchain'
 import { TxHashLink } from './TxLink'
@@ -93,6 +93,37 @@ export function TaskDetail({
     task.status === 'cancelled'
   const { payment, loading: paymentLoading } = useTaskPayment(showPayment ? task.id : null)
   const { data: agentReputation } = useAgentReputation()
+
+  // Fetch submissions for this task
+  const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [submissionsLoading, setSubmissionsLoading] = useState(false)
+
+  const fetchSubmissions = useCallback(async () => {
+    if (!task.id) return
+    // Only fetch when task has been assigned or beyond
+    if (!['accepted', 'in_progress', 'submitted', 'verifying', 'completed', 'disputed'].includes(task.status)) return
+
+    setSubmissionsLoading(true)
+    try {
+      const { data, error: fetchErr } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('task_id', task.id)
+        .order('submitted_at', { ascending: false })
+
+      if (!fetchErr && data) {
+        setSubmissions(data)
+      }
+    } catch {
+      // Silently fail — submissions display is supplementary
+    } finally {
+      setSubmissionsLoading(false)
+    }
+  }, [task.id, task.status])
+
+  useEffect(() => {
+    fetchSubmissions()
+  }, [fetchSubmissions])
 
   const canAccept =
     task.status === 'published' &&
@@ -349,6 +380,105 @@ export function TaskDetail({
               walletAddress={task.executor_id}
               label={t('tasks.acceptedBy', 'Accepted by')}
             />
+          </section>
+        )}
+
+        {/* Submissions / Evidence */}
+        {submissions.length > 0 && (
+          <section>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+              {t('tasks.submissions', 'Evidencia Enviada')}
+            </h2>
+            <div className="space-y-3">
+              {submissions.map((sub) => (
+                <div key={sub.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  {/* Status badge */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs text-gray-500">
+                      {new Date(sub.submitted_at).toLocaleString()}
+                    </span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      sub.agent_verdict === 'approved'
+                        ? 'bg-green-100 text-green-700'
+                        : sub.agent_verdict === 'rejected'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {sub.agent_verdict === 'approved'
+                        ? t('submission.approved', 'Aprobada')
+                        : sub.agent_verdict === 'rejected'
+                        ? t('submission.rejected', 'Rechazada')
+                        : t('submission.pending', 'Pendiente de revision')}
+                    </span>
+                  </div>
+
+                  {/* Evidence content */}
+                  {sub.evidence && typeof sub.evidence === 'object' && (
+                    <div className="space-y-2">
+                      {Object.entries(sub.evidence).map(([key, value]) => (
+                        <div key={key}>
+                          <span className="text-xs font-medium text-gray-500 uppercase">{key.replace(/_/g, ' ')}</span>
+                          {typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://')) ? (
+                            value.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                              <img src={value} alt={key} className="mt-1 rounded-lg max-h-64 object-contain" />
+                            ) : (
+                              <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm block mt-1">{value}</a>
+                            )
+                          ) : typeof value === 'object' && value !== null ? (
+                            <pre className="text-xs text-gray-700 bg-white p-2 rounded mt-1 overflow-auto max-h-32">{JSON.stringify(value, null, 2)}</pre>
+                          ) : (
+                            <p className="text-sm text-gray-700 mt-1">{String(value)}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Evidence files (S3/CDN links) */}
+                  {sub.evidence_files && sub.evidence_files.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <span className="text-xs font-medium text-gray-500 uppercase">
+                        {t('submission.attachedFiles', 'Archivos adjuntos')}
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {sub.evidence_files.map((url, i) => (
+                          url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                              <img src={url} alt={`Evidence ${i + 1}`} className="rounded-lg max-h-48 object-contain border border-gray-200" />
+                            </a>
+                          ) : (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
+                              {t('submission.file', 'Archivo')} {i + 1}
+                            </a>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Agent notes */}
+                  {sub.agent_notes && (
+                    <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                      <span className="text-xs font-medium text-blue-600">{t('submission.agentNotes', 'Notas del agente')}</span>
+                      <p className="text-sm text-blue-800 mt-1">{sub.agent_notes}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Submissions loading state */}
+        {submissionsLoading && ['accepted', 'in_progress', 'submitted', 'verifying', 'completed'].includes(task.status) && (
+          <section>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+              {t('tasks.submissions', 'Evidencia Enviada')}
+            </h2>
+            <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+              {t('common.loading', 'Cargando...')}
+            </div>
           </section>
         )}
 
