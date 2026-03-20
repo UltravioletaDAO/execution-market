@@ -2666,6 +2666,7 @@ async def assign_task_to_worker(
                     "agent_id": auth.agent_id,
                     "worker_wallet": worker_wallet,
                 },
+                owner_id=auth.agent_id,
             )
         except Exception:
             pass  # Never block the assign flow

@@ -1663,8 +1663,16 @@ def _build_explorer_url(
 async def dispatch_webhook(
     event_type: Any,
     payload: Dict[str, Any],
+    owner_id: Optional[str] = None,
 ) -> None:
-    """Dispatch webhook event to all registered endpoints (non-blocking, never raises)."""
+    """Dispatch webhook event to registered endpoints, scoped by owner if provided.
+
+    Args:
+        event_type: The webhook event type
+        payload: Event payload dict
+        owner_id: If provided, only dispatch to webhooks owned by this agent.
+                  If None, dispatches to all subscribers (use for system-wide events only).
+    """
     try:
         from webhooks import get_webhook_registry, WebhookEvent
         from webhooks.sender import send_webhook
@@ -1673,13 +1681,20 @@ async def dispatch_webhook(
         if not registry:
             return
         event = WebhookEvent(event_type=event_type, payload=payload)
-        for wh in registry.get_by_event(event_type):
+        if owner_id:
+            webhooks = registry.get_by_owner_and_event(owner_id, event_type)
+        else:
+            webhooks = registry.get_by_event(event_type)
+        for wh in webhooks:
             secret = registry.get_secret(wh.webhook_id)
-            await send_webhook(
+            result = await send_webhook(
                 url=wh.url,
                 event=event,
                 secret=secret or "",
                 webhook_id=wh.webhook_id,
+            )
+            registry.record_delivery(
+                wh.webhook_id, result.status.value == "delivered"
             )
     except Exception as exc:
         logger.warning("Webhook dispatch failed for %s: %s", event_type, exc)
