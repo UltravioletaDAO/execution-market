@@ -92,6 +92,58 @@ export function formatTaskEvent(
 }
 
 /**
+ * Format a task announcement adaptively based on target channel.
+ *
+ * - #bounties: full detail (default)
+ * - #city-*: emphasizes proximity/location
+ * - #cat-*: emphasizes category-specific requirements
+ * - #urgent: emphasizes deadline urgency
+ * - #high-value: emphasizes bounty amount
+ */
+export function formatChannelAnnouncement(
+  channel: string,
+  data: Record<string, unknown>,
+): string {
+  const title = ((data.title as string) ?? "Untitled").slice(0, 80);
+  const bounty = parseFloat(String(data.bounty_usdc ?? data.bounty_usd ?? 0)).toFixed(2);
+  const chain = (data.payment_network as string) ?? "base";
+  const cat = (data.category as string) ?? "general";
+  const id = ((data.task_id as string) ?? "?").slice(0, 8);
+  const deadlineMin = data.deadline_minutes as number | undefined;
+  const locationHint = (data.location_hint as string) ?? "";
+  const evidenceReqs = (data.evidence_requirements as string[]) ?? [];
+  const city = (data.city as string) ?? "";
+
+  // Geographic channels: #city-*
+  if (channel.startsWith("#city-")) {
+    const locStr = locationHint ? ` | ${locationHint}` : city ? ` | in ${city}` : "";
+    return `[NEARBY] ${title} | $${bounty} USDC${locStr} | /claim ${id}`;
+  }
+
+  // Category channels: #cat-*
+  if (channel.startsWith("#cat-")) {
+    const catLabel = cat.toUpperCase().replace(/_/g, " ");
+    const needs = evidenceReqs.length > 0 ? ` | Needs: ${evidenceReqs.join(", ")}` : "";
+    return `[${catLabel}] ${title} | $${bounty} USDC${needs} | /claim ${id}`;
+  }
+
+  // Urgent channel
+  if (channel === "#urgent") {
+    const timeLeft = deadlineMin ? `${deadlineMin}min left!` : "soon!";
+    return `[URGENT] ${title} | $${bounty} USDC | ${timeLeft} | /claim ${id}`;
+  }
+
+  // High-value channel
+  if (channel === "#high-value") {
+    return `[$$] ${title} | $${bounty} USDC (${chain}) | ${cat} | /claim ${id}`;
+  }
+
+  // Default (#bounties and others): full detail
+  const deadline = deadlineMin ? ` | ${deadlineMin}min` : "";
+  return `[NEW TASK] ${title} | $${bounty} USDC (${chain}) | ${cat}${deadline} | /claim ${id}`;
+}
+
+/**
  * Regex patterns for machine-parsing human-readable output.
  * Agents can use these to extract structured data from IRC lines.
  */
