@@ -13,6 +13,7 @@ import { taskCommands, handleWizardInput } from "./commands/tasks.js";
 import { discoveryCommands } from "./commands/discovery.js";
 import { auctionCommands } from "./commands/auction.js";
 import { matchCommands } from "./commands/match.js";
+import { relayCommands } from "./commands/relay.js";
 import { getWizardSession } from "./wizard-state.js";
 import { setOutputFormat, getOutputFormat } from "./wire.js";
 import { identityStore, TrustLevel } from "../bridges/identity-store.js";
@@ -41,6 +42,9 @@ for (const cmd of auctionCommands) {
   registerCommand(cmd);
 }
 for (const cmd of matchCommands) {
+  registerCommand(cmd);
+}
+for (const cmd of relayCommands) {
   registerCommand(cmd);
 }
 
