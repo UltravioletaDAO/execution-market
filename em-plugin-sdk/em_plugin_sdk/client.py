@@ -26,6 +26,9 @@ from .models import HealthResponse, PlatformConfig
 from .resources.tasks import TasksResource
 from .resources.submissions import SubmissionsResource
 from .resources.workers import WorkersResource
+from .resources.reputation import ReputationResource
+from .resources.evidence import EvidenceResource
+from .resources.payments import PaymentsResource
 from .retry import request_with_retry, DEFAULT_MAX_RETRIES, DEFAULT_BACKOFF_FACTOR
 
 DEFAULT_BASE_URL = "https://api.execution.market/api/v1"
@@ -68,6 +71,9 @@ class EMClient:
         self.tasks = TasksResource(self)
         self.submissions = SubmissionsResource(self)
         self.workers = WorkersResource(self)
+        self.reputation = ReputationResource(self)
+        self.evidence = EvidenceResource(self)
+        self.payments = PaymentsResource(self)
 
     def _default_headers(self) -> dict[str, str]:
         headers: dict[str, str] = {

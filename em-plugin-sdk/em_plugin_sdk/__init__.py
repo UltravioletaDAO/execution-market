@@ -17,6 +17,10 @@ from .models import (
     PlatformConfig,
     PaymentEvent,
     PaymentTimeline,
+    AgentReputation,
+    AgentIdentity,
+    EvidenceUploadInfo,
+    EvidenceVerifyResult,
     CreateTaskParams,
     SubmitEvidenceParams,
     ApproveParams,
@@ -44,12 +48,12 @@ from .networks import (
     DEFAULT_TOKEN,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     # Client
     "EMClient",
-    # Models
+    # Models — responses
     "Task",
     "TaskList",
     "TaskStatus",
@@ -65,6 +69,10 @@ __all__ = [
     "PlatformConfig",
     "PaymentEvent",
     "PaymentTimeline",
+    "AgentReputation",
+    "AgentIdentity",
+    "EvidenceUploadInfo",
+    "EvidenceVerifyResult",
     # Request params
     "CreateTaskParams",
     "SubmitEvidenceParams",
