@@ -43,6 +43,17 @@ from api.agent_auth import router as agent_auth_router
 from api.h2a import router as h2a_router
 from health import router as health_router
 
+# Chat relay (IRC bridge)
+try:
+    from chat import chat_router, setup_chat, teardown_chat
+
+    CHAT_AVAILABLE = True
+except ImportError:
+    CHAT_AVAILABLE = False
+    chat_router = None
+    setup_chat = None
+    teardown_chat = None
+
 # x402 SDK Integration (NOW-202)
 try:
     from integrations.x402.sdk_client import (
@@ -116,6 +127,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("MeshRelayAdapter init failed (non-fatal): %s", e)
 
+    # Start chat relay (IRC bridge)
+    chat_resources = {}
+    if CHAT_AVAILABLE and setup_chat:
+        try:
+            from events import get_event_bus as _get_bus
+
+            chat_resources = await setup_chat(event_bus=_get_bus())
+        except Exception as e:
+            logger.warning("Chat relay init failed (non-fatal): %s", e)
+
     # Start background jobs
     expiration_task = asyncio.create_task(run_task_expiration_loop())
     logger.info("Task expiration background job scheduled")
@@ -159,6 +180,10 @@ async def lifespan(app: FastAPI):
     if meshrelay_adapter:
         meshrelay_adapter.stop()
         await meshrelay_adapter.close()
+
+    # Stop chat relay
+    if chat_resources and CHAT_AVAILABLE and teardown_chat:
+        await teardown_chat(chat_resources)
 
     logger.info("Shutting down Execution Market MCP Server")
 
@@ -308,6 +333,11 @@ else:
 
 # Include WebSocket router
 app.include_router(ws_router)
+
+# Include Chat relay router (IRC bridge)
+if CHAT_AVAILABLE and chat_router:
+    app.include_router(chat_router)
+    logger.info("Chat relay WebSocket router mounted at /ws/chat/{task_id}")
 
 # Include A2A discovery router
 app.include_router(a2a_router)
@@ -495,6 +525,22 @@ async def health_check():
         except Exception:
             erc8004_status = "error"
 
+    # Chat relay status
+    chat_status = "disabled"
+    if CHAT_AVAILABLE:
+        try:
+            from chat.irc_pool import IRCPool
+
+            pool = IRCPool._instance
+            if pool and pool.is_connected:
+                chat_status = "healthy"
+            elif pool:
+                chat_status = "disconnected"
+            else:
+                chat_status = "not_initialized"
+        except Exception:
+            chat_status = "error"
+
     return HealthResponse(
         status="healthy" if supabase_status == "healthy" else "degraded",
         version="0.1.0",
@@ -506,6 +552,7 @@ async def health_check():
             "websocket": ws_status,
             "x402": x402_status,
             "erc8004": erc8004_status,  # Facilitator-backed reputation
+            "chat_relay": chat_status,
         },
     )
 
