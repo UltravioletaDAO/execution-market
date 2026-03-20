@@ -22,10 +22,12 @@ async function token(): Promise<string | null> {
 
 const ah = (t: string) => ({ 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' })
 
+interface ApiErrorResponse { detail?: string }
+
 export async function createH2ATask(data: H2ATaskCreateRequest): Promise<H2ATaskCreateResponse> {
   const t = await token(); if (!t) throw new Error('Auth required')
   const r = await fetch(h2a('/tasks'), { method: 'POST', headers: ah(t), body: JSON.stringify(data) })
-  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as any).detail || r.statusText) }
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as ApiErrorResponse).detail || r.statusText) }
   return r.json()
 }
 
@@ -54,14 +56,14 @@ export async function getH2ASubmissions(id: string) {
 export async function approveH2ASubmission(id: string, data: H2AApprovalRequest): Promise<H2AApprovalResponse> {
   const t = await token(); if (!t) throw new Error('Auth required')
   const r = await fetch(h2a(`/tasks/${id}/approve`), { method: 'POST', headers: ah(t), body: JSON.stringify(data) })
-  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as any).detail || r.statusText) }
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as ApiErrorResponse).detail || r.statusText) }
   return r.json()
 }
 
 export async function cancelH2ATask(id: string) {
   const t = await token(); if (!t) throw new Error('Auth required')
   const r = await fetch(h2a(`/tasks/${id}/cancel`), { method: 'POST', headers: ah(t) })
-  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as any).detail || r.statusText) }
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error((e as ApiErrorResponse).detail || r.statusText) }
   return r.json()
 }
 

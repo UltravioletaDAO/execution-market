@@ -21,8 +21,7 @@ import type {
   AgentAnalytics,
 } from './types'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any
+const db = supabase
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.execution.market').replace(/\/+$/, '')
 import { getRequireApiKey } from '../hooks/usePlatformConfig'
 const AGENT_API_KEY = import.meta.env.VITE_API_KEY as string | undefined

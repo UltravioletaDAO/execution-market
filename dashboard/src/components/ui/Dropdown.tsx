@@ -16,6 +16,7 @@ import {
   type ReactNode,
   type HTMLAttributes,
   type KeyboardEvent,
+  type MutableRefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
@@ -256,11 +257,9 @@ export const DropdownMenu = forwardRef<HTMLDivElement, DropdownMenuProps>(
     const menuContent = (
       <div
         ref={(node) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (menuRef as any).current = node;
+          (menuRef as MutableRefObject<HTMLDivElement | null>).current = node;
           if (typeof ref === 'function') ref(node);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          else if (ref && 'current' in ref) (ref as any).current = node;
+          else if (ref && 'current' in ref) (ref as MutableRefObject<HTMLDivElement | null>).current = node;
         }}
         role="menu"
         tabIndex={-1}
