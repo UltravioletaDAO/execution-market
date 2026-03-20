@@ -10,6 +10,9 @@
 import { parseCommand, getTaskIdFromChannel } from "./parser.js";
 import { routeToPersonality, formatWithPersonality } from "./personalities.js";
 import { taskCommands, handleWizardInput } from "./commands/tasks.js";
+import { discoveryCommands } from "./commands/discovery.js";
+import { auctionCommands } from "./commands/auction.js";
+import { matchCommands } from "./commands/match.js";
 import { getWizardSession } from "./wizard-state.js";
 import { setOutputFormat, getOutputFormat } from "./wire.js";
 import { identityStore, TrustLevel } from "../bridges/identity-store.js";
@@ -27,8 +30,17 @@ function registerCommand(def: CommandDefinition): void {
   }
 }
 
-// Register all task commands
+// Register all command modules
 for (const cmd of taskCommands) {
+  registerCommand(cmd);
+}
+for (const cmd of discoveryCommands) {
+  registerCommand(cmd);
+}
+for (const cmd of auctionCommands) {
+  registerCommand(cmd);
+}
+for (const cmd of matchCommands) {
   registerCommand(cmd);
 }
 
@@ -147,5 +159,5 @@ export function getRegisteredCommands(): CommandDefinition[] {
 
 export { parseCommand, getTaskIdFromChannel } from "./parser.js";
 export { routeToPersonality } from "./personalities.js";
-export { formatTaskEvent, WIRE_PATTERNS, setOutputFormat, getOutputFormat } from "./wire.js";
+export { formatTaskEvent, formatChannelAnnouncement, WIRE_PATTERNS, setOutputFormat, getOutputFormat } from "./wire.js";
 export type { ParsedCommand, CommandDefinition, CommandContext } from "./types.js";
