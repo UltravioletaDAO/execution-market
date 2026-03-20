@@ -70,6 +70,9 @@ EXPECTED_ROUTES = {
     "/api/v1/relay-chains/{chain_id}",
     "/api/v1/relay-chains/{chain_id}/legs/{leg_number}/assign",
     "/api/v1/relay-chains/{chain_id}/legs/{leg_number}/handoff",
+    # Agent visibility endpoints
+    "/api/v1/agent-info",
+    "/api/v1/skills",
 }
 
 
