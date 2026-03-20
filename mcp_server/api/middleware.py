@@ -95,6 +95,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/openapi.json",
         "/redoc",
         "/.well-known/agent.json",
+        "/.well-known/x402",
     }
 
     # Path prefixes exempt from rate limiting (have their own auth)
