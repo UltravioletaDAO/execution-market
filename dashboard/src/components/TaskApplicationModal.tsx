@@ -94,7 +94,7 @@ export function TaskApplicationModal({ task, onClose, onSuccess }: TaskApplicati
         headers['Authorization'] = `Bearer ${currentSession.access_token}`
       }
 
-      // Apply to task and accept atomically via RPC
+      // Create application (pending) — agent assigns via REST API which triggers escrow
       const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/apply_to_task`, {
         method: 'POST',
         headers,
