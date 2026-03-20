@@ -355,7 +355,7 @@ class TestMeshRelayAdapter:
         from events.adapters.meshrelay import MeshRelayAdapter
 
         bus = EventBus()
-        adapter = MeshRelayAdapter(bus=bus)
+        adapter = MeshRelayAdapter(bus=bus, webhook_url="")
         adapter.start()
 
         # Event from REST_API should be forwarded
