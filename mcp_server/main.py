@@ -104,6 +104,18 @@ async def lifespan(app: FastAPI):
     """
     logger.info("Starting Execution Market MCP Server with Streamable HTTP transport")
 
+    # Start MeshRelay webhook adapter
+    meshrelay_adapter = None
+    try:
+        from events import get_event_bus
+        from events.adapters.meshrelay import MeshRelayAdapter
+
+        bus = get_event_bus()
+        meshrelay_adapter = MeshRelayAdapter(bus=bus)
+        meshrelay_adapter.start()
+    except Exception as e:
+        logger.warning("MeshRelayAdapter init failed (non-fatal): %s", e)
+
     # Start background jobs
     expiration_task = asyncio.create_task(run_task_expiration_loop())
     logger.info("Task expiration background job scheduled")
@@ -142,6 +154,11 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
     logger.info("Background jobs stopped")
+
+    # Stop MeshRelay adapter
+    if meshrelay_adapter:
+        meshrelay_adapter.stop()
+        await meshrelay_adapter.close()
 
     logger.info("Shutting down Execution Market MCP Server")
 
