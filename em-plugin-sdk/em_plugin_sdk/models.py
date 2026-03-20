@@ -267,3 +267,54 @@ class PlatformConfig(BaseModel):
     supported_tokens: list[str]
     preferred_network: str
     require_api_key: bool
+
+
+# ---------------------------------------------------------------------------
+# Reputation / Identity models (ERC-8004)
+# ---------------------------------------------------------------------------
+
+class AgentReputation(BaseModel):
+    """Reputation summary for an on-chain agent."""
+
+    agent_id: int
+    count: int = 0
+    score: float = 0
+    network: str = "base"
+
+
+class AgentIdentity(BaseModel):
+    """On-chain identity from ERC-8004 registry."""
+
+    agent_id: int
+    owner: str = ""
+    agent_uri: str = ""
+    agent_wallet: Optional[str] = None
+    network: str = "base"
+    name: Optional[str] = None
+    description: Optional[str] = None
+    image: Optional[str] = None
+    services: list[dict[str, str]] = []
+
+
+# ---------------------------------------------------------------------------
+# Evidence models
+# ---------------------------------------------------------------------------
+
+class EvidenceUploadInfo(BaseModel):
+    """Presigned URL info for evidence upload."""
+
+    upload_url: str
+    key: str
+    public_url: Optional[str] = None
+    content_type: str = "image/jpeg"
+    expires_in: int = 900
+
+
+class EvidenceVerifyResult(BaseModel):
+    """Result of AI-powered evidence verification."""
+
+    verified: bool
+    confidence: float = 0
+    decision: str = ""
+    explanation: str = ""
+    issues: list[str] = []
