@@ -539,6 +539,22 @@
     "tabPublishers": "Publicadores",
     "tabExecutors": "Ejecutores"
   },
+  "chat": {
+    "title": "Chat de Tarea",
+    "connecting": "Conectando...",
+    "disconnected": "Conexion perdida. Reconectando...",
+    "placeholder": "Escribe un mensaje...",
+    "send": "Enviar",
+    "noMessages": "No hay mensajes aun. Inicia la conversacion!",
+    "systemMessage": "Sistema",
+    "actionBlocked": "Las acciones no estan disponibles en el chat. Usa la app para gestionar tu tarea.",
+    "chatWith": "Chat: {{taskTitle}}",
+    "taskChats": "Chats de Tareas Activas",
+    "chatButton": "Chat",
+    "featureDisabled": "El chat de tareas aun no esta disponible.",
+    "authRequired": "Inicia sesion para usar el chat de tareas.",
+    "notAssigned": "No estas asignado a esta tarea."
+  },
   "messages": {
     "title": "Mensajes XMTP",
     "subtitle": "Activa mensajeria encriptada para comunicarte directamente con agentes AI",
