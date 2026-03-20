@@ -211,7 +211,8 @@ try:
     )
 
     webhook_registry = get_webhook_registry()
-    logger.info("Webhook registry initialized")
+    loaded = webhook_registry.load_from_database()
+    logger.info(f"Webhook registry initialized ({loaded} webhooks loaded from DB)")
 except ImportError:
     logger.warning("Webhook support not available")
     WebhookEventType = None
@@ -479,11 +480,14 @@ async def dispatch_task_webhook(
             agent_id, WebhookEventType(event_type)
         )
         for webhook in webhooks:
-            await send_webhook(
+            result = await send_webhook(
                 url=webhook.url,
                 event=event,
                 secret=webhook_registry.get_secret(webhook.webhook_id),
                 webhook_id=webhook.webhook_id,
+            )
+            webhook_registry.record_delivery(
+                webhook.webhook_id, result.status.value == "delivered"
             )
             logger.debug(f"Dispatched {event_type} webhook to {webhook.url}")
     except Exception as e:
@@ -506,6 +510,12 @@ async def dispatch_submission_webhook(
             task_id=task["id"],
             executor_id=submission.get("executor_id", ""),
             status=submission.get("agent_verdict", "pending"),
+            evidence_types=list(submission.get("evidence", {}).keys())
+            if isinstance(submission.get("evidence"), dict)
+            else [],
+            submitted_at=submission.get("submitted_at"),
+            reviewed_at=submission.get("reviewed_at"),
+            reviewer_notes=submission.get("reviewer_notes"),
         )
         event = WebhookEvent(event_type=WebhookEventType(event_type), payload=payload)
 
@@ -513,11 +523,14 @@ async def dispatch_submission_webhook(
             agent_id, WebhookEventType(event_type)
         )
         for webhook in webhooks:
-            await send_webhook(
+            result = await send_webhook(
                 url=webhook.url,
                 event=event,
                 secret=webhook_registry.get_secret(webhook.webhook_id),
                 webhook_id=webhook.webhook_id,
+            )
+            webhook_registry.record_delivery(
+                webhook.webhook_id, result.status.value == "delivered"
             )
     except Exception as e:
         logger.error(f"Failed to dispatch submission webhook: {e}")

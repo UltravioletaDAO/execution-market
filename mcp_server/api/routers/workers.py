@@ -202,6 +202,7 @@ async def apply_to_task(
                     "application_id": result["application"]["id"],
                     "message": request.message,
                 },
+                owner_id=result.get("task", {}).get("agent_id"),
             )
         except Exception:
             pass  # Never block the apply flow
