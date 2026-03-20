@@ -39,10 +39,8 @@ import random
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger("em.swarm.routing_optimizer")
 
@@ -81,7 +79,9 @@ class RoutingWeights:
 
     @property
     def total(self) -> float:
-        return self.skill_match + self.reputation + self.capacity + self.speed + self.cost
+        return (
+            self.skill_match + self.reputation + self.capacity + self.speed + self.cost
+        )
 
     def normalized(self) -> "RoutingWeights":
         """Return a copy with weights summing to 1.0."""
@@ -125,8 +125,7 @@ class RoutingWeights:
         """Create a mutated copy with random perturbations."""
         values = self.to_list()
         mutated = [
-            max(0.0, min(1.0, v + random.gauss(0, mutation_rate)))
-            for v in values
+            max(0.0, min(1.0, v + random.gauss(0, mutation_rate))) for v in values
         ]
         return RoutingWeights.from_list(mutated).normalized()
 
@@ -170,8 +169,18 @@ class FitnessScore:
 
     def dominates(self, other: "FitnessScore") -> bool:
         """Pareto dominance: this is at least as good in all dimensions and strictly better in at least one."""
-        dims_self = [self.completion_rate, self.avg_quality, self.avg_speed, self.cost_efficiency]
-        dims_other = [other.completion_rate, other.avg_quality, other.avg_speed, other.cost_efficiency]
+        dims_self = [
+            self.completion_rate,
+            self.avg_quality,
+            self.avg_speed,
+            self.cost_efficiency,
+        ]
+        dims_other = [
+            other.completion_rate,
+            other.avg_quality,
+            other.avg_speed,
+            other.cost_efficiency,
+        ]
 
         at_least_as_good = all(s >= o for s, o in zip(dims_self, dims_other))
         strictly_better = any(s > o for s, o in zip(dims_self, dims_other))
@@ -402,7 +411,9 @@ class RoutingOptimizer:
         ]
         for w in extremes:
             if len(self._population) < self._population_size:
-                self._population.append(ConfigCandidate(weights=w.normalized(), generation=0))
+                self._population.append(
+                    ConfigCandidate(weights=w.normalized(), generation=0)
+                )
 
         # Fill remaining with mutations of base
         while len(self._population) < self._population_size:
@@ -417,7 +428,10 @@ class RoutingOptimizer:
 
         # Track best ever
         current_best = max(self._population, key=lambda c: c.fitness.composite)
-        if self._best_ever is None or current_best.fitness.composite > self._best_ever.fitness.composite:
+        if (
+            self._best_ever is None
+            or current_best.fitness.composite > self._best_ever.fitness.composite
+        ):
             self._best_ever = ConfigCandidate(
                 weights=RoutingWeights.from_list(current_best.weights.to_list()),
                 fitness=current_best.fitness,
@@ -465,10 +479,12 @@ class RoutingOptimizer:
             # Mutation
             child_weights = child_weights.mutate(self._mutation_rate)
 
-            new_pop.append(ConfigCandidate(
-                weights=child_weights,
-                generation=self._generation,
-            ))
+            new_pop.append(
+                ConfigCandidate(
+                    weights=child_weights,
+                    generation=self._generation,
+                )
+            )
 
         self._population = new_pop
 
@@ -488,8 +504,7 @@ class RoutingOptimizer:
         values_a = a.to_list()
         values_b = b.to_list()
         child = [
-            va if random.random() < 0.5 else vb
-            for va, vb in zip(values_a, values_b)
+            va if random.random() < 0.5 else vb for va, vb in zip(values_a, values_b)
         ]
         return RoutingWeights.from_list(child).normalized()
 
@@ -577,12 +592,18 @@ class RoutingOptimizer:
 
         # Convergence: how similar are the top 3?
         if len(self._population) >= 3:
-            sorted_pop = sorted(self._population, key=lambda c: c.fitness.composite, reverse=True)
+            sorted_pop = sorted(
+                self._population, key=lambda c: c.fitness.composite, reverse=True
+            )
             top3 = sorted_pop[:3]
-            avg_distance = sum(
-                top3[i].weights.distance(top3[j].weights)
-                for i in range(3) for j in range(i + 1, 3)
-            ) / 3
+            avg_distance = (
+                sum(
+                    top3[i].weights.distance(top3[j].weights)
+                    for i in range(3)
+                    for j in range(i + 1, 3)
+                )
+                / 3
+            )
             convergence = max(0.0, 1.0 - avg_distance)
         else:
             convergence = 0.5
@@ -615,9 +636,7 @@ class RoutingOptimizer:
         biggest = changes[0]
         delta = biggest[2] - biggest[1]
         direction = "increased" if delta > 0 else "decreased"
-        parts.append(
-            f"Biggest change: {biggest[0]} {direction} by {abs(delta):.2f}"
-        )
+        parts.append(f"Biggest change: {biggest[0]} {direction} by {abs(delta):.2f}")
 
         # Fitness improvement
         if fitness.composite > baseline.composite:
@@ -630,9 +649,13 @@ class RoutingOptimizer:
 
         # Key metric changes
         if fitness.completion_rate > baseline.completion_rate:
-            parts.append(f"Completion rate improved: {baseline.completion_rate:.0%} → {fitness.completion_rate:.0%}")
+            parts.append(
+                f"Completion rate improved: {baseline.completion_rate:.0%} → {fitness.completion_rate:.0%}"
+            )
         if fitness.avg_quality > baseline.avg_quality:
-            parts.append(f"Average quality improved: {baseline.avg_quality:.2f} → {fitness.avg_quality:.2f}")
+            parts.append(
+                f"Average quality improved: {baseline.avg_quality:.2f} → {fitness.avg_quality:.2f}"
+            )
 
         return ". ".join(parts) + "."
 
@@ -699,7 +722,9 @@ class RoutingOptimizer:
                 "weights": asdict(self._best_ever.weights),
                 "fitness": asdict(self._best_ever.fitness),
                 "generation": self._best_ever.generation,
-            } if self._best_ever else None,
+            }
+            if self._best_ever
+            else None,
             "history": [
                 {
                     "generations": r.generations,
@@ -726,12 +751,17 @@ class RoutingOptimizer:
         return {
             "generation": self._generation,
             "population_size": len(self._population),
-            "best_fitness": self._best_ever.fitness.composite if self._best_ever else 0.0,
-            "best_weights": asdict(self._best_ever.weights) if self._best_ever else None,
+            "best_fitness": self._best_ever.fitness.composite
+            if self._best_ever
+            else 0.0,
+            "best_weights": asdict(self._best_ever.weights)
+            if self._best_ever
+            else None,
             "total_evaluations": sum(c.evaluations for c in self._population),
             "optimization_runs": len(self._history),
             "avg_improvement": (
                 sum(r.improvement for r in self._history) / len(self._history)
-                if self._history else 0.0
+                if self._history
+                else 0.0
             ),
         }

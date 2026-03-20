@@ -29,9 +29,8 @@ No external dependencies. No API calls. Pure simulation from captured data.
 import json
 import logging
 import time
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -46,6 +45,7 @@ logger = logging.getLogger("em.swarm.replay")
 
 class TaskOutcome(str, Enum):
     """Historical task outcome."""
+
     COMPLETED = "completed"
     EXPIRED = "expired"
     CANCELLED = "cancelled"
@@ -56,6 +56,7 @@ class TaskOutcome(str, Enum):
 @dataclass
 class TaskSnapshot:
     """A frozen snapshot of a task at a point in time."""
+
     task_id: str
     title: str
     description: str = ""
@@ -81,13 +82,13 @@ class TaskSnapshot:
 
     @classmethod
     def from_dict(cls, data: dict) -> "TaskSnapshot":
-        return cls(**{k: v for k, v in data.items()
-                      if k in cls.__dataclass_fields__})
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
 @dataclass
 class AgentProfile:
     """Simplified agent capability profile for replay."""
+
     agent_id: str
     skills: list = field(default_factory=list)
     success_rate: float = 0.8
@@ -115,6 +116,7 @@ class AgentProfile:
 @dataclass
 class RoutingDecision:
     """The engine's decision for a single task."""
+
     task_id: str
     recommended_agent_id: Optional[str] = None
     confidence: float = 0.0
@@ -135,6 +137,7 @@ class RoutingDecision:
 @dataclass
 class ReplayResult:
     """Result of replaying a single task."""
+
     task: TaskSnapshot
     decision: RoutingDecision
     simulated_outcome: str = "unknown"
@@ -153,6 +156,7 @@ class ReplayResult:
 @dataclass
 class ScenarioReport:
     """Summary of a full scenario replay."""
+
     scenario_name: str
     task_count: int = 0
     routed_count: int = 0
@@ -179,10 +183,13 @@ class ScenarioReport:
         d = asdict(self)
         # Convert results to dicts too
         d["results"] = [
-            {"task_id": r.task.task_id, "agent": r.decision.recommended_agent_id,
-             "confidence": round(r.decision.confidence, 3),
-             "skill_match": round(r.decision.skill_match, 3),
-             "matches_actual": r.decision.matches_actual}
+            {
+                "task_id": r.task.task_id,
+                "agent": r.decision.recommended_agent_id,
+                "confidence": round(r.decision.confidence, 3),
+                "skill_match": round(r.decision.skill_match, 3),
+                "matches_actual": r.decision.matches_actual,
+            }
             for r in self.results
         ]
         return d
@@ -196,6 +203,7 @@ class ScenarioReport:
 @dataclass
 class RoutingConfig:
     """Tunable routing weights for what-if analysis."""
+
     skill_weight: float = 0.35
     capacity_weight: float = 0.15
     reputation_weight: float = 0.25
@@ -210,12 +218,22 @@ class RoutingConfig:
     def validate(self) -> list:
         """Returns list of validation errors."""
         errors = []
-        total = (self.skill_weight + self.capacity_weight +
-                 self.reputation_weight + self.speed_weight + self.cost_weight)
+        total = (
+            self.skill_weight
+            + self.capacity_weight
+            + self.reputation_weight
+            + self.speed_weight
+            + self.cost_weight
+        )
         if abs(total - 1.0) > 0.01:
             errors.append(f"Weights sum to {total:.3f}, should be 1.0")
-        for attr in ["skill_weight", "capacity_weight", "reputation_weight",
-                     "speed_weight", "cost_weight"]:
+        for attr in [
+            "skill_weight",
+            "capacity_weight",
+            "reputation_weight",
+            "speed_weight",
+            "cost_weight",
+        ]:
             if getattr(self, attr) < 0:
                 errors.append(f"{attr} is negative")
         return errors
@@ -264,7 +282,9 @@ class ReplayEngine:
             candidates.append((agent, score_detail))
 
         if not candidates:
-            decision.reasoning = "No eligible agents (skill/capacity/reputation filters)"
+            decision.reasoning = (
+                "No eligible agents (skill/capacity/reputation filters)"
+            )
             return decision
 
         # Sort by composite score descending
@@ -281,8 +301,7 @@ class ReplayEngine:
 
         # Alternatives
         decision.alternatives = [
-            (a.agent_id, round(s["composite"], 3))
-            for a, s in candidates[1:4]
+            (a.agent_id, round(s["composite"], 3)) for a, s in candidates[1:4]
         ]
 
         # Build reasoning
@@ -299,9 +318,7 @@ class ReplayEngine:
 
         # Compare with actual if available
         if task.actual_worker_id:
-            decision.matches_actual = (
-                best_agent.agent_id == task.actual_worker_id
-            )
+            decision.matches_actual = best_agent.agent_id == task.actual_worker_id
             if not decision.matches_actual and task.actual_outcome == "completed":
                 # Our pick was different but the actual one succeeded
                 actual_in_candidates = any(
@@ -309,7 +326,8 @@ class ReplayEngine:
                 )
                 if actual_in_candidates:
                     actual_score = next(
-                        s["composite"] for a, s in candidates
+                        s["composite"]
+                        for a, s in candidates
                         if a.agent_id == task.actual_worker_id
                     )
                     decision.actual_was_better = actual_score > best_scores["composite"]
@@ -335,7 +353,9 @@ class ReplayEngine:
         # Soft scores (0-1 range)
         capacity_score = 1.0 - load_ratio
         reputation_score = agent.reputation_score
-        speed_score = max(0, 1.0 - (agent.avg_completion_hours / max(task.deadline_hours, 1)))
+        speed_score = max(
+            0, 1.0 - (agent.avg_completion_hours / max(task.deadline_hours, 1))
+        )
         cost_score = 1.0  # Placeholder for cost optimization
 
         if agent.hourly_rate > 0 and task.bounty_usd > 0:
@@ -389,8 +409,9 @@ class ReplayEngine:
         self._replay_count += 1
         return result
 
-    def run_scenario(self, name: str, tasks: list,
-                     reset_loads: bool = True) -> ScenarioReport:
+    def run_scenario(
+        self, name: str, tasks: list, reset_loads: bool = True
+    ) -> ScenarioReport:
         """Run a full scenario (list of tasks) and generate a report."""
         start = time.monotonic()
 
@@ -433,6 +454,7 @@ class ReplayEngine:
         # Agent diversity (normalized entropy)
         if agent_assignments and report.routed_count > 0:
             import math
+
             n_agents = len(agent_assignments)
             if n_agents > 1:
                 entropy = -sum(
@@ -452,7 +474,10 @@ class ReplayEngine:
 
         # Outcome correlation
         outcome_pairs = [
-            (r.decision.confidence, 1.0 if r.task.actual_outcome == "completed" else 0.0)
+            (
+                r.decision.confidence,
+                1.0 if r.task.actual_outcome == "completed" else 0.0,
+            )
             for r in results
             if r.task.actual_outcome is not None
         ]
