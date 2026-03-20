@@ -11,7 +11,7 @@ Covers:
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -145,11 +145,15 @@ class TestIdentityLookup:
         ]
 
         mock_table = MagicMock()
-        mock_table.select.return_value.eq.return_value.execute.return_value = mock_result
+        mock_table.select.return_value.eq.return_value.execute.return_value = (
+            mock_result
+        )
 
         with patch("api.routers.identity.db") as mock_db:
             mock_db.client.table.return_value = mock_table
-            result = await lookup_identity(nick="alice", wallet=None, api_key=mock_api_key)
+            result = await lookup_identity(
+                nick="alice", wallet=None, api_key=mock_api_key
+            )
 
         assert result.irc_nick == "alice"
         assert result.trust_level == 2
@@ -166,7 +170,9 @@ class TestIdentityLookup:
         mock_result.data = []
 
         mock_table = MagicMock()
-        mock_table.select.return_value.eq.return_value.execute.return_value = mock_result
+        mock_table.select.return_value.eq.return_value.execute.return_value = (
+            mock_result
+        )
 
         with patch("api.routers.identity.db") as mock_db:
             mock_db.client.table.return_value = mock_table
@@ -205,7 +211,9 @@ class TestIdentitySync:
         mock_insert_result.data = [{"id": "new-id"}]
 
         mock_table = MagicMock()
-        mock_table.select.return_value.eq.return_value.execute.return_value = mock_select_result
+        mock_table.select.return_value.eq.return_value.execute.return_value = (
+            mock_select_result
+        )
         mock_table.insert.return_value.execute.return_value = mock_insert_result
 
         req = IdentitySyncRequest(
@@ -235,8 +243,12 @@ class TestIdentitySync:
         mock_update_result.data = [{"id": "existing-id"}]
 
         mock_table = MagicMock()
-        mock_table.select.return_value.eq.return_value.execute.return_value = mock_select_result
-        mock_table.update.return_value.eq.return_value.execute.return_value = mock_update_result
+        mock_table.select.return_value.eq.return_value.execute.return_value = (
+            mock_select_result
+        )
+        mock_table.update.return_value.eq.return_value.execute.return_value = (
+            mock_update_result
+        )
 
         req = IdentitySyncRequest(
             irc_nick="existinguser",
@@ -276,11 +288,21 @@ class TestTrustEnforcement:
 
 class TestIrcIdentitiesMigration:
     def test_migration_file_exists(self):
-        migration = Path(__file__).parent.parent.parent / "supabase" / "migrations" / "065_irc_identities.sql"
+        migration = (
+            Path(__file__).parent.parent.parent
+            / "supabase"
+            / "migrations"
+            / "065_irc_identities.sql"
+        )
         assert migration.exists()
 
     def test_migration_has_table(self):
-        migration = Path(__file__).parent.parent.parent / "supabase" / "migrations" / "065_irc_identities.sql"
+        migration = (
+            Path(__file__).parent.parent.parent
+            / "supabase"
+            / "migrations"
+            / "065_irc_identities.sql"
+        )
         content = migration.read_text()
         assert "CREATE TABLE" in content
         assert "irc_identities" in content
@@ -290,13 +312,23 @@ class TestIrcIdentitiesMigration:
         assert "UNIQUE(wallet_address)" in content
 
     def test_migration_has_indexes(self):
-        migration = Path(__file__).parent.parent.parent / "supabase" / "migrations" / "065_irc_identities.sql"
+        migration = (
+            Path(__file__).parent.parent.parent
+            / "supabase"
+            / "migrations"
+            / "065_irc_identities.sql"
+        )
         content = migration.read_text()
         assert "idx_irc_identities_wallet" in content
         assert "idx_irc_identities_trust" in content
 
     def test_migration_has_rls(self):
-        migration = Path(__file__).parent.parent.parent / "supabase" / "migrations" / "065_irc_identities.sql"
+        migration = (
+            Path(__file__).parent.parent.parent
+            / "supabase"
+            / "migrations"
+            / "065_irc_identities.sql"
+        )
         content = migration.read_text()
         assert "ENABLE ROW LEVEL SECURITY" in content
         assert "service_role" in content

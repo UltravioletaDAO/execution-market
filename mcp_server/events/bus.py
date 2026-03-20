@@ -5,7 +5,6 @@ MVP implementation using asyncio. At scale, swap internals for Redis Streams
 without changing the publish/subscribe API.
 """
 
-import asyncio
 import logging
 from typing import Any, Callable, Coroutine, Dict, Optional
 from uuid import uuid4
@@ -117,9 +116,7 @@ class EventBus:
                 )
 
         self._stats["events_delivered"] += delivered
-        logger.debug(
-            "Published %s → %d handlers", event.event_type, delivered
-        )
+        logger.debug("Published %s → %d handlers", event.event_type, delivered)
         return delivered
 
     @property

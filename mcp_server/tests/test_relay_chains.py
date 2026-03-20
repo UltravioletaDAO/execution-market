@@ -13,7 +13,6 @@ Validates:
 import sys
 from pathlib import Path
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -42,7 +41,13 @@ class TestMigration069RelayChains:
 
     def test_relay_chains_has_required_columns(self):
         content = (MIGRATIONS_ROOT / "069_relay_chains.sql").read_text()
-        for col in ["chain_id", "parent_task_id", "status", "total_legs", "completed_legs"]:
+        for col in [
+            "chain_id",
+            "parent_task_id",
+            "status",
+            "total_legs",
+            "completed_legs",
+        ]:
             assert col in content, f"Column {col} missing"
 
     def test_relay_legs_has_required_columns(self):
@@ -172,21 +177,29 @@ class TestRelayCommands:
 
 class TestRelayPayment:
     def test_file_exists(self):
-        relay_pay = Path(__file__).parent.parent / "integrations" / "x402" / "relay_payment.py"
+        relay_pay = (
+            Path(__file__).parent.parent / "integrations" / "x402" / "relay_payment.py"
+        )
         assert relay_pay.exists()
 
     def test_has_release_leg_payment(self):
-        relay_pay = Path(__file__).parent.parent / "integrations" / "x402" / "relay_payment.py"
+        relay_pay = (
+            Path(__file__).parent.parent / "integrations" / "x402" / "relay_payment.py"
+        )
         content = relay_pay.read_text()
         assert "release_leg_payment" in content
 
     def test_has_refund_remaining_legs(self):
-        relay_pay = Path(__file__).parent.parent / "integrations" / "x402" / "relay_payment.py"
+        relay_pay = (
+            Path(__file__).parent.parent / "integrations" / "x402" / "relay_payment.py"
+        )
         content = relay_pay.read_text()
         assert "refund_remaining_legs" in content
 
     def test_has_bounty_splitting(self):
-        relay_pay = Path(__file__).parent.parent / "integrations" / "x402" / "relay_payment.py"
+        relay_pay = (
+            Path(__file__).parent.parent / "integrations" / "x402" / "relay_payment.py"
+        )
         content = relay_pay.read_text()
         assert "compute_leg_bounties" in content
 

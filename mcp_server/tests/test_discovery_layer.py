@@ -15,7 +15,6 @@ Validates:
 import sys
 from pathlib import Path
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -214,11 +213,15 @@ class TestMatchCommands:
 
 class TestCrossPostEngine:
     def test_file_exists(self):
-        crosspost = Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        crosspost = (
+            Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        )
         assert crosspost.exists()
 
     def test_has_category_channels(self):
-        crosspost = Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        crosspost = (
+            Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        )
         content = crosspost.read_text()
         assert "CATEGORY_CHANNELS" in content
         assert "#cat-physical" in content
@@ -228,37 +231,51 @@ class TestCrossPostEngine:
         assert "#cat-digital" in content
 
     def test_has_urgent_threshold(self):
-        crosspost = Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        crosspost = (
+            Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        )
         content = crosspost.read_text()
         assert "URGENT_THRESHOLD_MINUTES" in content
 
     def test_has_high_value_threshold(self):
-        crosspost = Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        crosspost = (
+            Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        )
         content = crosspost.read_text()
         assert "HIGH_VALUE_THRESHOLD_USD" in content
 
     def test_subscribes_to_task_created(self):
-        crosspost = Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        crosspost = (
+            Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        )
         content = crosspost.read_text()
         assert "task.created" in content
 
     def test_posts_to_geographic_channel(self):
-        crosspost = Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        crosspost = (
+            Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        )
         content = crosspost.read_text()
         assert "#city-" in content
 
     def test_posts_to_urgent_channel(self):
-        crosspost = Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        crosspost = (
+            Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        )
         content = crosspost.read_text()
         assert '"#urgent"' in content
 
     def test_posts_to_high_value_channel(self):
-        crosspost = Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        crosspost = (
+            Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        )
         content = crosspost.read_text()
         assert '"#high-value"' in content
 
     def test_graceful_404_handling(self):
-        crosspost = Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        crosspost = (
+            Path(__file__).parent.parent / "events" / "adapters" / "crosspost.py"
+        )
         content = crosspost.read_text()
         assert "404" in content
         assert "skipped_no_channel" in content
@@ -395,11 +412,11 @@ class TestWireAdaptiveFormat:
 
     def test_wire_handles_city_channel(self):
         content = (EMSERV_ROOT / "wire.ts").read_text()
-        assert '#city-"' in content or "startsWith(\"#city-\")" in content
+        assert '#city-"' in content or 'startsWith("#city-")' in content
 
     def test_wire_handles_cat_channel(self):
         content = (EMSERV_ROOT / "wire.ts").read_text()
-        assert "startsWith(\"#cat-\")" in content
+        assert 'startsWith("#cat-")' in content
 
     def test_wire_handles_urgent_channel(self):
         content = (EMSERV_ROOT / "wire.ts").read_text()

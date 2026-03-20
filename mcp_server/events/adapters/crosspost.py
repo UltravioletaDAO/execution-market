@@ -12,7 +12,7 @@ Missing channels are gracefully skipped.
 """
 
 import logging
-from typing import Optional, List, Dict, Any
+from typing import List
 
 import httpx
 
@@ -109,13 +109,14 @@ class CrossPostEngine:
             city_channel = f"#city-{city_slug}"
             location_hint = p.get("location_hint", "")
             loc_str = f" | {location_hint}" if location_hint else ""
-            msg = (
-                f"[NEARBY] {title} | ${bounty:.2f} USDC{loc_str} | /claim {task_id}"
-            )
+            msg = f"[NEARBY] {title} | ${bounty:.2f} USDC{loc_str} | /claim {task_id}"
             targets.append((city_channel, msg))
 
         # Urgent channel
-        if isinstance(deadline_min, (int, float)) and deadline_min < URGENT_THRESHOLD_MINUTES:
+        if (
+            isinstance(deadline_min, (int, float))
+            and deadline_min < URGENT_THRESHOLD_MINUTES
+        ):
             msg = (
                 f"[URGENT] {title} | ${bounty:.2f} USDC | {int(deadline_min)}min left! "
                 f"| /claim {task_id}"

@@ -7,7 +7,6 @@ If chain fails mid-way, remaining legs' bounty is refundable.
 """
 
 import logging
-from decimal import Decimal
 from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -88,10 +87,7 @@ class RelayPaymentHandler:
         """
         if weights and len(weights) == num_legs:
             total_weight = sum(weights)
-            return [
-                round(total_bounty * (w / total_weight), 6)
-                for w in weights
-            ]
+            return [round(total_bounty * (w / total_weight), 6) for w in weights]
 
         # Even split with remainder on last leg
         per_leg = round(total_bounty / num_legs, 6)

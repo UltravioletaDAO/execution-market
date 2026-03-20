@@ -11,7 +11,6 @@ Exposed via GET /api/v1/admin/metrics/meshrelay (admin auth).
 """
 
 import logging
-import time
 from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)

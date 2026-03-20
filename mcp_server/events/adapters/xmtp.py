@@ -10,7 +10,7 @@ irc_identities or executor profiles.
 """
 
 import logging
-from typing import Optional, List
+from typing import List
 
 import httpx
 
@@ -99,12 +99,18 @@ class XMTPAdapter:
         title = p.get("title", "")
 
         formatters = {
-            "task.created": lambda: f"[New Task] {title} | ${p.get('bounty_usdc', 0)} USDC",
+            "task.created": lambda: (
+                f"[New Task] {title} | ${p.get('bounty_usdc', 0)} USDC"
+            ),
             "task.assigned": lambda: f"[Assigned] Task {task_id} assigned to you",
             "task.completed": lambda: f"[Completed] Task {task_id} finished",
             "task.cancelled": lambda: f"[Cancelled] Task {task_id}",
-            "submission.approved": lambda: f"[Approved] Task {task_id} — payment releasing",
-            "submission.rejected": lambda: f"[Rejected] Task {task_id}: {p.get('reason', '')}",
+            "submission.approved": lambda: (
+                f"[Approved] Task {task_id} — payment releasing"
+            ),
+            "submission.rejected": lambda: (
+                f"[Rejected] Task {task_id}: {p.get('reason', '')}"
+            ),
             "payment.released": lambda: (
                 f"[Paid] ${p.get('amount_usd', 0)} USDC for task {task_id}"
             ),
@@ -128,7 +134,9 @@ class XMTPAdapter:
                     logger.debug("XMTP notification sent to %s", address[:10])
                 else:
                     self._stats["errors"] += 1
-                    logger.debug("XMTP notify failed (%d): %s", resp.status_code, address[:10])
+                    logger.debug(
+                        "XMTP notify failed (%d): %s", resp.status_code, address[:10]
+                    )
         except Exception as e:
             self._stats["errors"] += 1
             logger.debug("XMTP send failed for %s: %s", address[:10], e)
