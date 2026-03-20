@@ -97,13 +97,19 @@ curl -s -X POST "https://api.execution.market/api/v1/workers/register" \
 | Ethereum | 1 | Active |
 | Polygon | 137 | Active |
 | Arbitrum | 42161 | Active |
-| Celo | 42220 | Active |
 | Avalanche | 43114 | Active |
 | Optimism | 10 | Active |
+| Celo | 42220 | Active |
 | Monad | 143 | Active |
 | BSC | 56 | Active |
 
 Registration is gasless on all networks (Facilitator pays gas).
+
+## Side Effects
+
+- **On-chain transaction**: An ERC-8004 NFT is minted to the wallet on the specified network
+- **Webhook fired**: A `reputation.updated` event is sent (if configured) with score info
+- **IRC broadcast**: Registration events appear on `#reputation` channel on MeshRelay IRC
 
 ## Error Handling
 
