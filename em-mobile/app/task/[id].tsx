@@ -11,6 +11,7 @@ import {
   Dimensions,
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
@@ -973,24 +974,42 @@ export default function TaskDetailScreen() {
         )}
 
         {bottomAction === "submit" && (
-          <Pressable
-            className="bg-white rounded-2xl py-4 items-center active:opacity-80"
-            onPress={() => router.push(`/submit/${task.id}`)}
-          >
-            <Text className="text-black font-bold text-lg">
-              {t("task.submit")}
-            </Text>
-          </Pressable>
+          <View className="flex-row gap-2">
+            <Pressable
+              className="flex-1 bg-white rounded-2xl py-4 items-center active:opacity-80"
+              onPress={() => router.push(`/submit/${task.id}`)}
+            >
+              <Text className="text-black font-bold text-lg">
+                {t("task.submit")}
+              </Text>
+            </Pressable>
+            <Pressable
+              className="bg-gray-800 rounded-2xl py-4 px-5 items-center active:opacity-80"
+              onPress={() => router.push(`/chat/${task.id}`)}
+            >
+              <Ionicons name="chatbubble-outline" size={20} color="white" />
+              <Text className="text-white text-xs mt-0.5">{t("chat.chatButton")}</Text>
+            </Pressable>
+          </View>
         )}
 
         {bottomAction === "submitted" && (
-          <View className="bg-yellow-900/30 rounded-2xl py-4 items-center">
-            <Text className="text-yellow-400 font-bold text-lg">
-              {"\uD83D\uDCE4"} {t("task.evidenceSubmitted")}
-            </Text>
-            <Text className="text-gray-500 text-xs mt-1">
-              {t("task.awaitingAgentReview")}
-            </Text>
+          <View className="flex-row gap-2">
+            <View className="flex-1 bg-yellow-900/30 rounded-2xl py-4 items-center">
+              <Text className="text-yellow-400 font-bold text-lg">
+                {"\uD83D\uDCE4"} {t("task.evidenceSubmitted")}
+              </Text>
+              <Text className="text-gray-500 text-xs mt-1">
+                {t("task.awaitingAgentReview")}
+              </Text>
+            </View>
+            <Pressable
+              className="bg-gray-800 rounded-2xl py-4 px-5 items-center active:opacity-80"
+              onPress={() => router.push(`/chat/${task.id}`)}
+            >
+              <Ionicons name="chatbubble-outline" size={20} color="white" />
+              <Text className="text-white text-xs mt-0.5">{t("chat.chatButton")}</Text>
+            </Pressable>
           </View>
         )}
 
