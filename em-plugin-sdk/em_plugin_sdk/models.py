@@ -318,3 +318,26 @@ class EvidenceVerifyResult(BaseModel):
     decision: str = ""
     explanation: str = ""
     issues: list[str] = []
+
+
+# ---------------------------------------------------------------------------
+# Webhook models
+# ---------------------------------------------------------------------------
+
+class Webhook(BaseModel):
+    """A registered webhook endpoint."""
+
+    id: str
+    url: str
+    events: list[str]
+    active: bool = True
+    secret: Optional[str] = None
+    description: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+class WebhookList(BaseModel):
+    """List of webhooks."""
+
+    webhooks: list[Webhook]
+    count: int = 0

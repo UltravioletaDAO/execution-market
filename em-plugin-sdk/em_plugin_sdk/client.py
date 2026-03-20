@@ -29,6 +29,8 @@ from .resources.workers import WorkersResource
 from .resources.reputation import ReputationResource
 from .resources.evidence import EvidenceResource
 from .resources.payments import PaymentsResource
+from .resources.webhooks import WebhooksResource
+from .resources.h2a import H2AResource, AgentsResource
 from .retry import request_with_retry, DEFAULT_MAX_RETRIES, DEFAULT_BACKOFF_FACTOR
 
 DEFAULT_BASE_URL = "https://api.execution.market/api/v1"
@@ -74,6 +76,9 @@ class EMClient:
         self.reputation = ReputationResource(self)
         self.evidence = EvidenceResource(self)
         self.payments = PaymentsResource(self)
+        self.webhooks = WebhooksResource(self)
+        self.h2a = H2AResource(self)
+        self.agents = AgentsResource(self)
 
     def _default_headers(self) -> dict[str, str]:
         headers: dict[str, str] = {
