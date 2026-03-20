@@ -14,6 +14,9 @@ import { useAgentReputation, getReputationTier, getTierColor } from '../hooks/us
 import { AgentStandardCard } from './agents/AgentStandardCard'
 import { EvidenceVerificationPanel } from './EvidenceVerificationPanel'
 import { TaskLifecycleTimeline } from './TaskLifecycleTimeline'
+import { TaskRatings } from './TaskRatings'
+import { EvidenceModal } from './EvidenceModal'
+import { getStatusBadgeClass } from '../styles/theme'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -53,6 +56,32 @@ const EVIDENCE_TYPE_KEYS: Record<string, string> = {
   text_response: 'text_response',
   measurement: 'measurement',
   screenshot: 'screenshot',
+}
+
+/** Map task status (snake_case) to i18n key under agentDashboard.status */
+const STATUS_I18N_KEY: Record<string, string> = {
+  published: 'agentDashboard.status.published',
+  accepted: 'agentDashboard.status.accepted',
+  in_progress: 'agentDashboard.status.inProgress',
+  submitted: 'agentDashboard.status.submitted',
+  verifying: 'agentDashboard.status.verifying',
+  completed: 'agentDashboard.status.completed',
+  disputed: 'agentDashboard.status.disputed',
+  expired: 'agentDashboard.status.expired',
+  cancelled: 'agentDashboard.status.cancelled',
+}
+
+/** Spanish fallback labels for task statuses */
+const STATUS_FALLBACK: Record<string, string> = {
+  published: 'Publicada',
+  accepted: 'Aceptada',
+  in_progress: 'En Progreso',
+  submitted: 'Enviada',
+  verifying: 'Verificando',
+  completed: 'Completada',
+  disputed: 'Disputada',
+  expired: 'Expirada',
+  cancelled: 'Cancelada',
 }
 
 function formatDeadline(deadline: string, lang = 'en'): string {
@@ -96,6 +125,7 @@ export function TaskDetail({
   const navigate = useNavigate()
   const [accepting, setAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [zoomImage, setZoomImage] = useState<{ url: string; alt: string } | null>(null)
 
   const hasEscrowContext = Boolean(task.escrow_tx || task.escrow_id)
   const showPayment =
@@ -223,7 +253,12 @@ export function TaskDetail({
                 {t(`tasks.categories.${CATEGORY_KEYS[task.category]}`, task.category)}
               </span>
             </div>
-            <h1 className="text-xl font-bold text-gray-900">{task.title}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-bold text-gray-900">{task.title}</h1>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(task.status)}`}>
+                {t(STATUS_I18N_KEY[task.status] || `agentDashboard.status.${task.status}`, STATUS_FALLBACK[task.status] || task.status)}
+              </span>
+            </div>
           </div>
 
           <div className="text-right">
@@ -522,13 +557,17 @@ export function TaskDetail({
                               <span className="text-xs font-semibold text-gray-600 uppercase">{evType.replace(/_/g, ' ')}</span>
                               {/* Show the image */}
                               {isImage && fileUrl && (
-                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setZoomImage({ url: fileUrl, alt: filename || evType })}
+                                  className="block mt-2 cursor-zoom-in w-full"
+                                >
                                   <img
                                     src={fileUrl}
                                     alt={filename || evType}
                                     className="rounded-lg max-h-72 w-full object-contain border border-gray-200 bg-white"
                                   />
-                                </a>
+                                </button>
                               )}
                               {/* Non-image file link */}
                               {!isImage && fileUrl && (
@@ -606,9 +645,13 @@ export function TaskDetail({
                             <div key={key}>
                               <span className="text-xs font-semibold text-gray-600 uppercase">{key.replace(/_/g, ' ')}</span>
                               {isImg ? (
-                                <a href={ev} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setZoomImage({ url: ev, alt: key })}
+                                  className="block mt-2 cursor-zoom-in w-full"
+                                >
                                   <img src={ev} alt={key} className="rounded-lg max-h-72 w-full object-contain border border-gray-200 bg-white" />
-                                </a>
+                                </button>
                               ) : (
                                 <a href={ev} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm block mt-1">{ev}</a>
                               )}
@@ -637,9 +680,14 @@ export function TaskDetail({
                       <div className="grid grid-cols-2 gap-2">
                         {sub.evidence_files.map((url, i) => (
                           url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setZoomImage({ url, alt: `Evidence ${i + 1}` })}
+                              className="cursor-zoom-in"
+                            >
                               <img src={url} alt={`Evidence ${i + 1}`} className="rounded-lg max-h-48 object-contain border border-gray-200 bg-white" />
-                            </a>
+                            </button>
                           ) : (
                             <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
                               {t('submission.file', 'Archivo')} {i + 1}
@@ -670,6 +718,19 @@ export function TaskDetail({
           </section>
         )}
 
+        {/* Ratings — completed tasks only */}
+        {task.status === 'completed' && (
+          <section>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+              {t('tasks.ratings', 'Calificaciones')}
+            </h2>
+            <TaskRatings
+              taskId={task.id}
+              executorId={currentExecutor?.id === task.executor_id ? currentExecutor.id : undefined}
+            />
+          </section>
+        )}
+
         {/* Submissions loading state */}
         {submissionsLoading && ['accepted', 'in_progress', 'submitted', 'verifying', 'completed'].includes(task.status) && (
           <section>
@@ -683,6 +744,15 @@ export function TaskDetail({
           </section>
         )}
       </div>
+
+      {/* Evidence Zoom Modal */}
+      {zoomImage && (
+        <EvidenceModal
+          imageUrl={zoomImage.url}
+          alt={zoomImage.alt}
+          onClose={() => setZoomImage(null)}
+        />
+      )}
 
       {/* Actions */}
       {task.status === 'published' && (
