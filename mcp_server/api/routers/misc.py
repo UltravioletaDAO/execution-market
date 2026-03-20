@@ -556,3 +556,152 @@ async def api_health():
         "api_version": "v1",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+@router.get(
+    "/agent-info",
+    summary="Dynamic Agent Info",
+    description="Live agent metadata with real-time stats. Enriches static agent-card.json with DB stats.",
+    tags=["System"],
+)
+async def agent_info():
+    """
+    Dynamic agent info endpoint — combines static agent-card.json metadata
+    with live platform statistics from the database.
+    """
+    from config.platform_config import get_platform_config
+
+    config = get_platform_config()
+
+    # Live stats from DB
+    stats = {
+        "tasks_completed": 0,
+        "tasks_published": 0,
+        "active_workers": 0,
+        "total_volume_usd": 0.0,
+    }
+    try:
+        result = (
+            db.client.table("tasks")
+            .select("id", count="exact")
+            .eq("status", "completed")
+            .execute()
+        )
+        stats["tasks_completed"] = result.count or 0
+
+        result = db.client.table("tasks").select("id", count="exact").execute()
+        stats["tasks_published"] = result.count or 0
+
+        result = (
+            db.client.table("executors")
+            .select("id", count="exact")
+            .eq("status", "active")
+            .execute()
+        )
+        stats["active_workers"] = result.count or 0
+    except Exception:
+        pass  # Stats are best-effort, endpoint still returns metadata
+
+    # Enabled networks from config
+    enabled_networks = config.get("payments", {}).get(
+        "enabled_networks",
+        [
+            "base",
+            "ethereum",
+            "polygon",
+            "arbitrum",
+            "celo",
+            "monad",
+            "avalanche",
+            "optimism",
+        ],
+    )
+
+    return {
+        "name": "Execution Market",
+        "tagline": "Universal Execution Layer — humans today, robots tomorrow",
+        "version": "2.0.0",
+        "agent_id": 2106,
+        "network": "base",
+        "identity": {
+            "standard": "ERC-8004",
+            "agent_id": 2106,
+            "registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+            "reputation_registry": "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63",
+        },
+        "protocols": {
+            "a2a": "https://api.execution.market/.well-known/agent.json",
+            "mcp": "https://mcp.execution.market/mcp/",
+            "rest": "https://api.execution.market/api/v1",
+            "websocket": "wss://api.execution.market/ws",
+            "docs": "https://api.execution.market/docs",
+        },
+        "payment": {
+            "networks": enabled_networks,
+            "tokens": ["USDC", "EURC", "PYUSD", "AUSD", "USDT"],
+            "protocol": "x402",
+            "gasless": True,
+            "fee_percent": config.get("payments", {}).get("platform_fee_percent", 13),
+            "minimum_bounty_usd": 0.01,
+        },
+        "stats": stats,
+        "skills": [
+            {
+                "name": "publish_task",
+                "description": "Publish a bounty for real-world execution",
+            },
+            {
+                "name": "verify_evidence",
+                "description": "AI-powered evidence verification (photo, GPS, EXIF)",
+            },
+            {
+                "name": "manage_escrow",
+                "description": "x402r on-chain escrow (lock, release, refund)",
+            },
+            {
+                "name": "track_reputation",
+                "description": "Bidirectional on-chain reputation (ERC-8004)",
+            },
+            {
+                "name": "register_identity",
+                "description": "Gasless ERC-8004 identity registration (15 networks)",
+            },
+            {
+                "name": "manage_workers",
+                "description": "Worker discovery, assignment, and lifecycle",
+            },
+            {
+                "name": "batch_operations",
+                "description": "Bulk task creation and management",
+            },
+        ],
+        "task_categories": [
+            "physical_presence",
+            "knowledge_access",
+            "human_authority",
+            "simple_action",
+            "digital_physical",
+            "location_based",
+            "verification",
+            "social_proof",
+            "data_collection",
+            "sensory",
+            "social",
+            "proxy",
+            "bureaucratic",
+            "emergency",
+            "creative",
+            "data_processing",
+            "api_integration",
+            "content_generation",
+            "code_execution",
+            "research",
+            "multi_step_workflow",
+        ],
+        "links": {
+            "dashboard": "https://execution.market",
+            "github": "https://github.com/UltravioletaDAO/execution-market",
+            "dao": "https://ultravioletadao.xyz",
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
