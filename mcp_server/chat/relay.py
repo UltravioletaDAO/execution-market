@@ -10,15 +10,18 @@ Flow:
 4. Server subscribes to ``#task-{task_id[:8]}`` on IRCPool
 5. Messages flow bidirectionally until disconnect
 
-Guardrails (Layer 1 — relay level):
-- Action commands (/approve, /cancel, etc.) are blocked and return ChatError
-- Max message length enforced by Pydantic model (2000 chars)
+Guardrails (Phase 4):
+- Layer 1: Slash-command blocking (``/approve``, ``/cancel``, etc.)
+- Layer 2: NLP pattern matching for natural-language action requests (EN/ES)
+- Rate limiting: 1 msg/sec per user, 100 msg/hour per user per task
+- All blocked attempts and join/leave events logged to ``task_chat_log``
 """
 
 import asyncio
 import logging
 import secrets
-from datetime import datetime, timezone
+import time
+from collections import defaultdict
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
@@ -28,12 +31,68 @@ from .models import (
     ChatMessageOut,
     ChatError,
     ChatHistory,
-    is_blocked_action,
 )
+from .guardrail import GuardrailFilter
+from .log_service import get_log_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Chat"])
+
+# Module-level guardrail filter (shared across connections)
+_guardrail = GuardrailFilter()
+
+
+# ---------------------------------------------------------------------------
+# Rate limiter (in-memory, resets on process restart)
+# ---------------------------------------------------------------------------
+
+
+class _RateLimiter:
+    """Per-user rate limiter for chat messages.
+
+    - Max ``per_second`` messages per second (default 1)
+    - Max ``per_hour`` messages per hour per task (default 100)
+    """
+
+    def __init__(self, per_second: int = 1, per_hour: int = 100):
+        self._per_second = per_second
+        self._per_hour = per_hour
+        # {user_key: last_message_timestamp}
+        self._last_msg: dict[str, float] = {}
+        # {user_key:task_id: [timestamps_this_hour]}
+        self._hourly: dict[str, list[float]] = defaultdict(list)
+
+    def check(self, user_key: str, task_id: str) -> Optional[str]:
+        """Return an error message if rate limited, else None."""
+        now = time.monotonic()
+
+        # Per-second check
+        last = self._last_msg.get(user_key, 0.0)
+        if now - last < (1.0 / self._per_second):
+            return "Too many messages. Please wait a moment before sending again."
+
+        # Per-hour check
+        hourly_key = f"{user_key}:{task_id}"
+        window = self._hourly[hourly_key]
+        cutoff = now - 3600.0
+        # Prune old entries
+        self._hourly[hourly_key] = [t for t in window if t > cutoff]
+        if len(self._hourly[hourly_key]) >= self._per_hour:
+            return f"Message limit reached ({self._per_hour}/hour for this task). Try again later."
+
+        # Record
+        self._last_msg[user_key] = now
+        self._hourly[hourly_key].append(now)
+        return None
+
+
+_rate_limiter = _RateLimiter()
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
 def _task_channel(task_id: str) -> str:
@@ -131,64 +190,9 @@ async def _is_task_participant(task_id: str, user_info: dict) -> bool:
         return False
 
 
-async def _load_history(task_id: str, limit: int = 50) -> list[ChatMessageOut]:
-    """Load recent chat messages from the task_chat_log table."""
-    try:
-        import supabase_client as db
-
-        client = db.get_supabase_client()
-        result = (
-            client.table("task_chat_log")
-            .select("nick, text, source, type, created_at")
-            .eq("task_id", task_id)
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-        if not result.data:
-            return []
-
-        messages = []
-        for row in reversed(result.data):  # oldest first
-            messages.append(
-                ChatMessageOut(
-                    type=row.get("type", "message"),
-                    nick=row.get("nick", ""),
-                    text=row.get("text", ""),
-                    source=row.get("source", "system"),
-                    timestamp=row.get("created_at", datetime.now(timezone.utc)),
-                    task_id=task_id,
-                )
-            )
-        return messages
-    except Exception as e:
-        logger.debug("Could not load chat history for %s: %s", task_id, e)
-        return []
-
-
-async def _persist_message(
-    task_id: str,
-    nick: str,
-    text: str,
-    source: str = "mobile",
-    msg_type: str = "message",
-) -> None:
-    """Persist a chat message to task_chat_log (fire and forget)."""
-    try:
-        import supabase_client as db
-
-        client = db.get_supabase_client()
-        client.table("task_chat_log").insert(
-            {
-                "task_id": task_id,
-                "nick": nick,
-                "text": text,
-                "source": source,
-                "type": msg_type,
-            }
-        ).execute()
-    except Exception as e:
-        logger.debug("Could not persist chat message: %s", e)
+# ---------------------------------------------------------------------------
+# WebSocket endpoint
+# ---------------------------------------------------------------------------
 
 
 @router.websocket("/ws/chat/{task_id}")
@@ -198,6 +202,8 @@ async def chat_websocket(
     token: str = Query(default=""),
 ):
     """WebSocket endpoint for per-task chat, bridged to IRC."""
+    log_svc = get_log_service()
+
     # ---- Auth ----
     user_info = await _verify_token(token)
     if not user_info:
@@ -226,11 +232,12 @@ async def chat_websocket(
     subscriber_id = secrets.token_hex(8)
     channel = _task_channel(task_id)
     nick = user_info.get("nick", "worker")[:16]
+    user_key = user_info.get("user_id", subscriber_id)
     irc_pool = None
 
     try:
         # ---- Send history ----
-        history_messages = await _load_history(task_id)
+        history_messages = await log_svc.get_history(task_id)
         history = ChatHistory(
             messages=history_messages,
             channel=channel,
@@ -260,10 +267,15 @@ async def chat_websocket(
 
         await irc_pool.subscribe(channel, subscriber_id, on_irc_message)
 
-        # Announce join
+        # Announce join + persist
         await irc_pool.send_message(
             channel,
             f"<mobile:{nick}> joined the chat",
+        )
+        asyncio.create_task(
+            log_svc.log_message(
+                task_id, nick, "joined the chat", source="mobile", msg_type="join"
+            )
         )
 
         # ---- Message loop ----
@@ -276,15 +288,28 @@ async def chat_websocket(
                 await websocket.send_json(err.model_dump(mode="json"))
                 continue
 
-            # Guardrail: block action commands
-            blocked = is_blocked_action(msg_in.text)
-            if blocked:
-                err = ChatError(
-                    code="action_blocked",
-                    text=f"Action commands ({blocked}) are not allowed in chat. "
-                    "Use the app or API to perform task actions.",
-                )
+            # Rate limit check
+            rate_err = _rate_limiter.check(user_key, task_id)
+            if rate_err:
+                err = ChatError(code="rate_limited", text=rate_err)
                 await websocket.send_json(err.model_dump(mode="json"))
+                continue
+
+            # Guardrail: block action commands + NLP patterns
+            result = _guardrail.check(msg_in.text)
+            if not result.allowed:
+                err = ChatError(code="action_blocked", text=result.reason)
+                await websocket.send_json(err.model_dump(mode="json"))
+                # Log blocked attempt for audit
+                asyncio.create_task(
+                    log_svc.log_message(
+                        task_id,
+                        nick,
+                        f"[BLOCKED:{result.matched_pattern}] {msg_in.text}",
+                        source="mobile",
+                        msg_type="blocked_action",
+                    )
+                )
                 continue
 
             # Forward to IRC
@@ -293,7 +318,7 @@ async def chat_websocket(
 
             # Persist
             asyncio.create_task(
-                _persist_message(task_id, nick, msg_in.text, source="mobile")
+                log_svc.log_message(task_id, nick, msg_in.text, source="mobile")
             )
 
             # Echo back to sender (so they see their own message)
@@ -313,7 +338,13 @@ async def chat_websocket(
     except Exception:
         logger.exception("Chat relay error for task %s", task_id[:8])
     finally:
-        # Cleanup
+        # Log leave event
+        asyncio.create_task(
+            log_svc.log_message(
+                task_id, nick, "left the chat", source="mobile", msg_type="leave"
+            )
+        )
+        # Cleanup IRC
         if irc_pool:
             await irc_pool.unsubscribe(channel, subscriber_id)
             try:
