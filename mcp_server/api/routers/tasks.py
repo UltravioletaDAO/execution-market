@@ -1840,6 +1840,62 @@ async def get_task_transactions(
     )
 
 
+# ---------------------------------------------------------------------------
+# Task Chat History (Phase 3, Task 3.5)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/tasks/{task_id}/chat-history",
+    summary="Get Task Chat History",
+    description="Retrieve IRC task channel chat log for dispute evidence",
+    tags=["Tasks"],
+)
+async def get_task_chat_history(
+    task_id: str = Path(..., description="UUID of the task", pattern=UUID_PATTERN),
+    limit: int = Query(200, ge=1, le=1000, description="Max messages"),
+    auth: AgentAuth = Depends(verify_agent_auth),
+):
+    """Get chat log from the task's IRC channel.
+
+    Only available for task owner (publisher) or admin.
+    Messages are only logged for #task-{id} channels.
+    """
+    # Verify task exists and caller owns it
+    client = db.client
+    task_result = (
+        client.table("tasks")
+        .select("id, agent_id")
+        .eq("id", task_id)
+        .execute()
+    )
+    if not task_result.data:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task = task_result.data[0]
+    if task.get("agent_id") != auth.agent_id:
+        raise HTTPException(status_code=403, detail="Only the task publisher can view chat history")
+
+    try:
+        result = (
+            client.table("task_chat_log")
+            .select("nick, wallet_address, message, message_type, created_at")
+            .eq("task_id", task_id)
+            .order("created_at", desc=False)
+            .limit(limit)
+            .execute()
+        )
+
+        return {
+            "task_id": task_id,
+            "messages": result.data or [],
+            "count": len(result.data or []),
+        }
+    except Exception as e:
+        logger.error("Chat history retrieval failed for task %s: %s", task_id[:8], e)
+        raise HTTPException(status_code=500, detail="Failed to retrieve chat history")
+
+
 @router.get(
     "/tasks",
     response_model=TaskListResponse,

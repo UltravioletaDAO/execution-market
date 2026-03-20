@@ -264,6 +264,51 @@ class ChannelManager:
         """Get the channel name for a task, if active."""
         return self._active_channels.get(task_id)
 
+    # -------------------------------------------------------------------
+    # Chat history logging (Task 3.5)
+    # -------------------------------------------------------------------
+
+    async def log_chat_message(
+        self,
+        task_id: str,
+        channel: str,
+        nick: str,
+        message: str,
+        message_type: str = "text",
+        wallet_address: str = "",
+    ) -> None:
+        """Log a task channel message for dispute evidence.
+
+        Only messages from #task-{id} channels should be logged.
+        NOT #bounties, NOT DMs, NOT public channels.
+        """
+        if not channel.startswith(CHANNEL_PREFIX):
+            return  # Only log task channel messages
+
+        db = self._db
+        if not db:
+            try:
+                import supabase_client
+
+                db = supabase_client.client
+                self._db = db
+            except Exception:
+                return
+
+        try:
+            db.table("task_chat_log").insert(
+                {
+                    "task_id": task_id,
+                    "channel": channel,
+                    "nick": nick,
+                    "wallet_address": wallet_address or None,
+                    "message": message[:4000],  # Truncate to 4K
+                    "message_type": message_type,
+                }
+            ).execute()
+        except Exception as e:
+            logger.debug("Failed to log chat message: %s", e)
+
     @property
     def active_channels(self) -> dict[str, str]:
         return dict(self._active_channels)
