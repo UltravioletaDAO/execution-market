@@ -986,6 +986,27 @@ async def create_task(
         except Exception as e:
             logger.warning("Auto-register agent executor failed (non-blocking): %s", e)
 
+        # Event Bus publish — task.created
+        try:
+            from events import get_event_bus, EMEvent, EventSource
+
+            await get_event_bus().publish(
+                EMEvent(
+                    event_type="task.created",
+                    task_id=task["id"],
+                    source=EventSource.REST_API,
+                    payload={
+                        "task_id": task["id"],
+                        "title": task["title"],
+                        "bounty_usd": float(task["bounty_usd"]),
+                        "category": task["category"],
+                        "payment_network": task.get("payment_network", "base"),
+                    },
+                )
+            )
+        except Exception as e:
+            logger.warning("Event Bus publish failed (non-blocking): %s", e)
+
         # Extract agent_name from metadata or ERC-8004 identity
         metadata = task.get("metadata") or {}
         if isinstance(metadata, str):
