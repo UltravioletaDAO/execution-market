@@ -10,7 +10,6 @@ from mcp_server.swarm.routing_optimizer import (
     ConfigCandidate,
     FitnessEvaluator,
     FitnessScore,
-    OptimizationRun,
     OutcomeType,
     RoutingOptimizer,
     RoutingRecommendation,
@@ -40,24 +39,26 @@ def _make_records(
         is_completed = rng.random() < completion_rate
         worker = rng.choice(workers)
 
-        records.append(TaskRecord(
-            task_id=f"task_{i}",
-            category=rng.choice(categories),
-            required_skills=rng.sample(
-                ["photography", "driving", "inspection", "data_entry", "survey"],
-                k=rng.randint(1, 3),
-            ),
-            bounty_usd=rng.uniform(1.0, 50.0),
-            assigned_worker=worker,
-            worker_reputation=rng.uniform(0.3, 1.0),
-            worker_skill_match=rng.uniform(0.2, 1.0),
-            outcome=OutcomeType.COMPLETED if is_completed else rng.choice(
-                [OutcomeType.EXPIRED, OutcomeType.REJECTED]
-            ),
-            quality_score=rng.uniform(0.5, 1.0) if is_completed else 0.0,
-            completion_hours=rng.uniform(0.5, 48.0) if is_completed else 0.0,
-            created_at=1700000000 + i * 3600,
-        ))
+        records.append(
+            TaskRecord(
+                task_id=f"task_{i}",
+                category=rng.choice(categories),
+                required_skills=rng.sample(
+                    ["photography", "driving", "inspection", "data_entry", "survey"],
+                    k=rng.randint(1, 3),
+                ),
+                bounty_usd=rng.uniform(1.0, 50.0),
+                assigned_worker=worker,
+                worker_reputation=rng.uniform(0.3, 1.0),
+                worker_skill_match=rng.uniform(0.2, 1.0),
+                outcome=OutcomeType.COMPLETED
+                if is_completed
+                else rng.choice([OutcomeType.EXPIRED, OutcomeType.REJECTED]),
+                quality_score=rng.uniform(0.5, 1.0) if is_completed else 0.0,
+                completion_hours=rng.uniform(0.5, 48.0) if is_completed else 0.0,
+                created_at=1700000000 + i * 3600,
+            )
+        )
 
     return records
 
@@ -180,8 +181,12 @@ class TestFitnessScore:
         assert not FitnessScore(completion_rate=0.0).is_viable
 
     def test_dominates(self):
-        a = FitnessScore(completion_rate=0.8, avg_quality=0.9, avg_speed=0.7, cost_efficiency=0.6)
-        b = FitnessScore(completion_rate=0.7, avg_quality=0.8, avg_speed=0.6, cost_efficiency=0.5)
+        a = FitnessScore(
+            completion_rate=0.8, avg_quality=0.9, avg_speed=0.7, cost_efficiency=0.6
+        )
+        b = FitnessScore(
+            completion_rate=0.7, avg_quality=0.8, avg_speed=0.6, cost_efficiency=0.5
+        )
         assert a.dominates(b)
         assert not b.dominates(a)
 
@@ -304,16 +309,23 @@ class TestFitnessEvaluator:
         assert score.is_viable
 
     def test_custom_fitness_weights(self):
-        custom = FitnessEvaluator(fitness_weights={
-            "completion_rate": 1.0,
-            "avg_quality": 0.0,
-            "avg_speed": 0.0,
-            "cost_efficiency": 0.0,
-            "diversity": 0.0,
-        })
+        custom = FitnessEvaluator(
+            fitness_weights={
+                "completion_rate": 1.0,
+                "avg_quality": 0.0,
+                "avg_speed": 0.0,
+                "cost_efficiency": 0.0,
+                "diversity": 0.0,
+            }
+        )
         records = [
-            TaskRecord(task_id="t1", outcome=OutcomeType.COMPLETED, quality_score=0.9,
-                       completion_hours=1.0, assigned_worker="w1"),
+            TaskRecord(
+                task_id="t1",
+                outcome=OutcomeType.COMPLETED,
+                quality_score=0.9,
+                completion_hours=1.0,
+                assigned_worker="w1",
+            ),
         ]
         score = custom.evaluate(RoutingWeights(), records)
         # With only completion_rate weighted, composite = completion_rate
@@ -450,7 +462,9 @@ class TestRoutingOptimizer:
         rec2 = opt2.optimize(records, generations=5)
 
         # Results should be identical with same seed
-        assert rec1.recommended.skill_match == pytest.approx(rec2.recommended.skill_match, abs=0.01)
+        assert rec1.recommended.skill_match == pytest.approx(
+            rec2.recommended.skill_match, abs=0.01
+        )
 
 
 # ──────────────────────────────────────────────────────────────
@@ -465,16 +479,18 @@ class TestIntegration:
         for i in range(100):
             skill_match = random.uniform(0.7, 1.0)
             is_good = skill_match > 0.85
-            records.append(TaskRecord(
-                task_id=f"t{i}",
-                worker_skill_match=skill_match,
-                worker_reputation=random.uniform(0.3, 1.0),
-                outcome=OutcomeType.COMPLETED if is_good else OutcomeType.EXPIRED,
-                quality_score=skill_match if is_good else 0.0,
-                completion_hours=random.uniform(1, 24),
-                bounty_usd=random.uniform(5, 50),
-                assigned_worker=f"w{i % 20}",
-            ))
+            records.append(
+                TaskRecord(
+                    task_id=f"t{i}",
+                    worker_skill_match=skill_match,
+                    worker_reputation=random.uniform(0.3, 1.0),
+                    outcome=OutcomeType.COMPLETED if is_good else OutcomeType.EXPIRED,
+                    quality_score=skill_match if is_good else 0.0,
+                    completion_hours=random.uniform(1, 24),
+                    bounty_usd=random.uniform(5, 50),
+                    assigned_worker=f"w{i % 20}",
+                )
+            )
 
         opt = RoutingOptimizer(population_size=15, mutation_rate=0.1)
         rec = opt.optimize(records, generations=10)
@@ -487,7 +503,7 @@ class TestIntegration:
         opt = RoutingOptimizer(population_size=10)
 
         # 1. Optimize
-        rec = opt.optimize(records, generations=5)
+        opt.optimize(records, generations=5)
 
         # 2. Sensitivity analysis
         sensitivity = opt.sensitivity_analysis(records)

@@ -3,19 +3,15 @@ Tests for SwarmReplayEngine — historical task decision replay & simulation.
 """
 
 import json
-import math
 import pytest
-from pathlib import Path
 
 from mcp_server.swarm.replay_engine import (
-    TaskOutcome,
     TaskSnapshot,
     AgentProfile,
     RoutingDecision,
     RoutingConfig,
     ReplayEngine,
     ReplayResult,
-    ScenarioReport,
 )
 
 
@@ -99,21 +95,24 @@ def historical_tasks():
     """Tasks with known historical outcomes."""
     return [
         TaskSnapshot(
-            task_id="hist_1", title="Python Script",
+            task_id="hist_1",
+            title="Python Script",
             required_skills=["python"],
             actual_worker_id="agent_python",
             actual_outcome="completed",
             actual_rating=4.5,
         ),
         TaskSnapshot(
-            task_id="hist_2", title="React Component",
+            task_id="hist_2",
+            title="React Component",
             required_skills=["react", "javascript"],
             actual_worker_id="agent_js",
             actual_outcome="completed",
             actual_rating=4.0,
         ),
         TaskSnapshot(
-            task_id="hist_3", title="Data Analysis",
+            task_id="hist_3",
+            title="Data Analysis",
             required_skills=["python", "sql"],
             actual_worker_id="agent_general",
             actual_outcome="expired",
@@ -141,8 +140,12 @@ class TestTaskSnapshot:
         assert d["bounty_usd"] == 10.0
 
     def test_from_dict(self):
-        data = {"task_id": "t2", "title": "From Dict", "bounty_usd": 25.0,
-                "required_skills": ["python"]}
+        data = {
+            "task_id": "t2",
+            "title": "From Dict",
+            "bounty_usd": 25.0,
+            "required_skills": ["python"],
+        }
         t = TaskSnapshot.from_dict(data)
         assert t.task_id == "t2"
         assert t.required_skills == ["python"]
@@ -155,9 +158,12 @@ class TestTaskSnapshot:
 
     def test_roundtrip(self):
         original = TaskSnapshot(
-            task_id="rt", title="Roundtrip", bounty_usd=100,
+            task_id="rt",
+            title="Roundtrip",
+            bounty_usd=100,
             required_skills=["rust", "wasm"],
-            actual_outcome="completed", actual_rating=5.0,
+            actual_outcome="completed",
+            actual_rating=5.0,
         )
         restored = TaskSnapshot.from_dict(original.to_dict())
         assert restored.task_id == original.task_id
@@ -208,8 +214,13 @@ class TestAgentProfile:
 class TestRoutingConfig:
     def test_default_weights_sum_to_one(self):
         cfg = RoutingConfig()
-        total = (cfg.skill_weight + cfg.capacity_weight +
-                 cfg.reputation_weight + cfg.speed_weight + cfg.cost_weight)
+        total = (
+            cfg.skill_weight
+            + cfg.capacity_weight
+            + cfg.reputation_weight
+            + cfg.speed_weight
+            + cfg.cost_weight
+        )
         assert abs(total - 1.0) < 0.01
 
     def test_valid_config_no_errors(self):
@@ -217,17 +228,25 @@ class TestRoutingConfig:
         assert cfg.validate() == []
 
     def test_invalid_weight_sum(self):
-        cfg = RoutingConfig(skill_weight=0.5, capacity_weight=0.5,
-                           reputation_weight=0.5, speed_weight=0.5,
-                           cost_weight=0.5)
+        cfg = RoutingConfig(
+            skill_weight=0.5,
+            capacity_weight=0.5,
+            reputation_weight=0.5,
+            speed_weight=0.5,
+            cost_weight=0.5,
+        )
         errors = cfg.validate()
         assert len(errors) > 0
         assert "sum" in errors[0].lower()
 
     def test_negative_weight(self):
-        cfg = RoutingConfig(skill_weight=-0.1, capacity_weight=0.3,
-                           reputation_weight=0.3, speed_weight=0.3,
-                           cost_weight=0.2)
+        cfg = RoutingConfig(
+            skill_weight=-0.1,
+            capacity_weight=0.3,
+            reputation_weight=0.3,
+            speed_weight=0.3,
+            cost_weight=0.2,
+        )
         errors = cfg.validate()
         assert any("negative" in e for e in errors)
 
@@ -271,7 +290,8 @@ class TestRouting:
         basic_agents[0].active_tasks = 5  # At capacity
         engine = ReplayEngine(agents=basic_agents)
         task = TaskSnapshot(
-            task_id="t", title="Python Task",
+            task_id="t",
+            title="Python Task",
             required_skills=["python"],
         )
         decision = engine.route_task(task)
@@ -281,8 +301,12 @@ class TestRouting:
     def test_low_reputation_filtered(self):
         """Agent below min reputation should be filtered out."""
         agents = [
-            AgentProfile(agent_id="low_rep", skills=["python"],
-                        reputation_score=0.05, success_rate=0.5),
+            AgentProfile(
+                agent_id="low_rep",
+                skills=["python"],
+                reputation_score=0.05,
+                success_rate=0.5,
+            ),
         ]
         engine = ReplayEngine(
             agents=agents,
@@ -295,22 +319,21 @@ class TestRouting:
     def test_skill_threshold_filter(self):
         """Agent with insufficient skill overlap gets filtered."""
         agents = [
-            AgentProfile(agent_id="mismatch", skills=["java"],
-                        reputation_score=0.8),
+            AgentProfile(agent_id="mismatch", skills=["java"], reputation_score=0.8),
         ]
         engine = ReplayEngine(
             agents=agents,
             config=RoutingConfig(min_skill_overlap=0.5),
         )
-        task = TaskSnapshot(task_id="t", title="X",
-                           required_skills=["python", "rust", "go"])
+        task = TaskSnapshot(
+            task_id="t", title="X", required_skills=["python", "rust", "go"]
+        )
         decision = engine.route_task(task)
         assert decision.recommended_agent_id is None
 
     def test_task_without_skills_matches_anyone(self, engine):
         """No required skills → anyone can do it."""
-        task = TaskSnapshot(task_id="t", title="General task",
-                           required_skills=[])
+        task = TaskSnapshot(task_id="t", title="General task", required_skills=[])
         decision = engine.route_task(task)
         assert decision.recommended_agent_id is not None
 
@@ -420,14 +443,15 @@ class TestScenarios:
     def test_scenario_single_agent_zero_diversity(self):
         """All tasks to one agent → diversity = 0."""
         agents = [
-            AgentProfile(agent_id="solo", skills=["everything"],
-                        reputation_score=0.9, capacity=10),
+            AgentProfile(
+                agent_id="solo",
+                skills=["everything"],
+                reputation_score=0.9,
+                capacity=10,
+            ),
         ]
         engine = ReplayEngine(agents=agents)
-        tasks = [
-            TaskSnapshot(task_id=f"t{i}", title=f"Task {i}")
-            for i in range(5)
-        ]
+        tasks = [TaskSnapshot(task_id=f"t{i}", title=f"Task {i}") for i in range(5)]
         report = engine.run_scenario("solo", tasks)
         assert report.agent_diversity == 0.0
 
@@ -513,12 +537,20 @@ class TestEngineManagement:
 class TestWhatIf:
     def test_compare_configs(self, engine, basic_tasks):
         configs = [
-            RoutingConfig(skill_weight=0.6, capacity_weight=0.1,
-                         reputation_weight=0.1, speed_weight=0.1,
-                         cost_weight=0.1),
-            RoutingConfig(skill_weight=0.1, capacity_weight=0.1,
-                         reputation_weight=0.6, speed_weight=0.1,
-                         cost_weight=0.1),
+            RoutingConfig(
+                skill_weight=0.6,
+                capacity_weight=0.1,
+                reputation_weight=0.1,
+                speed_weight=0.1,
+                cost_weight=0.1,
+            ),
+            RoutingConfig(
+                skill_weight=0.1,
+                capacity_weight=0.1,
+                reputation_weight=0.6,
+                speed_weight=0.1,
+                cost_weight=0.1,
+            ),
         ]
         results = engine.compare_configs(basic_tasks, configs)
         assert len(results) == 2
@@ -530,12 +562,20 @@ class TestWhatIf:
     def test_different_configs_different_results(self, engine, basic_tasks):
         """Changing weights should sometimes change routing decisions."""
         configs = [
-            RoutingConfig(skill_weight=0.9, capacity_weight=0.025,
-                         reputation_weight=0.025, speed_weight=0.025,
-                         cost_weight=0.025),
-            RoutingConfig(skill_weight=0.025, capacity_weight=0.025,
-                         reputation_weight=0.9, speed_weight=0.025,
-                         cost_weight=0.025),
+            RoutingConfig(
+                skill_weight=0.9,
+                capacity_weight=0.025,
+                reputation_weight=0.025,
+                speed_weight=0.025,
+                cost_weight=0.025,
+            ),
+            RoutingConfig(
+                skill_weight=0.025,
+                capacity_weight=0.025,
+                reputation_weight=0.9,
+                speed_weight=0.025,
+                cost_weight=0.025,
+            ),
         ]
         results = engine.compare_configs(basic_tasks, configs)
         # The two configs should produce different metrics
@@ -625,21 +665,29 @@ class TestPearson:
 
 class TestEdgeCases:
     def test_zero_bounty_task(self, engine):
-        task = TaskSnapshot(task_id="free", title="Free Task",
-                           bounty_usd=0.0, required_skills=["python"])
+        task = TaskSnapshot(
+            task_id="free",
+            title="Free Task",
+            bounty_usd=0.0,
+            required_skills=["python"],
+        )
         result = engine.replay_task(task)
         assert result.cost_estimate == 0.0
 
     def test_zero_deadline(self, engine):
-        task = TaskSnapshot(task_id="urgent", title="ASAP",
-                           deadline_hours=0, required_skills=["python"])
+        task = TaskSnapshot(
+            task_id="urgent", title="ASAP", deadline_hours=0, required_skills=["python"]
+        )
         decision = engine.route_task(task)
         # Should still route (speed score handles division)
         assert decision.task_id == "urgent"
 
     def test_agent_with_zero_capacity(self):
-        agents = [AgentProfile(agent_id="zero", skills=["python"],
-                              capacity=0, reputation_score=0.8)]
+        agents = [
+            AgentProfile(
+                agent_id="zero", skills=["python"], capacity=0, reputation_score=0.8
+            )
+        ]
         engine = ReplayEngine(agents=agents)
         task = TaskSnapshot(task_id="t", title="X", required_skills=["python"])
         decision = engine.route_task(task)
@@ -650,13 +698,16 @@ class TestEdgeCases:
     def test_many_agents_few_tasks(self):
         """More agents than tasks → some agents unused."""
         agents = [
-            AgentProfile(agent_id=f"a{i}", skills=["python"],
-                        reputation_score=0.5 + i * 0.05, capacity=3)
+            AgentProfile(
+                agent_id=f"a{i}",
+                skills=["python"],
+                reputation_score=0.5 + i * 0.05,
+                capacity=3,
+            )
             for i in range(10)
         ]
         engine = ReplayEngine(agents=agents)
-        tasks = [TaskSnapshot(task_id="t1", title="Solo",
-                             required_skills=["python"])]
+        tasks = [TaskSnapshot(task_id="t1", title="Solo", required_skills=["python"])]
         report = engine.run_scenario("many_agents", tasks)
         assert report.routed_count == 1
         assert len(report.agent_load) == 1
@@ -664,13 +715,18 @@ class TestEdgeCases:
     def test_speed_score_with_long_completion(self):
         """Agent slower than deadline → negative speed score clamped to 0."""
         agents = [
-            AgentProfile(agent_id="slow", skills=["python"],
-                        avg_completion_hours=100, reputation_score=0.8,
-                        capacity=5),
+            AgentProfile(
+                agent_id="slow",
+                skills=["python"],
+                avg_completion_hours=100,
+                reputation_score=0.8,
+                capacity=5,
+            ),
         ]
         engine = ReplayEngine(agents=agents)
-        task = TaskSnapshot(task_id="t", title="X",
-                           required_skills=["python"], deadline_hours=10)
+        task = TaskSnapshot(
+            task_id="t", title="X", required_skills=["python"], deadline_hours=10
+        )
         decision = engine.route_task(task)
         # Should still route but with low speed score
         assert decision.speed_score == 0.0 or decision.recommended_agent_id is not None

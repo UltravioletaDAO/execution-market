@@ -13,7 +13,6 @@ from mcp_server.swarm.worker_discovery import (
     WorkerProfile,
     RecruitmentEngine,
     CoverageGap,
-    RecruitmentRecommendation,
     RECRUITMENT_CHANNELS,
 )
 
@@ -84,7 +83,6 @@ def populated_discovery():
 
 
 class TestTaskDemandSignal:
-
     def test_signal_creation(self):
         signal = TaskDemandSignal(
             task_id="t1",
@@ -111,7 +109,6 @@ class TestTaskDemandSignal:
 
 
 class TestTaskDemandTracker:
-
     def test_record_task(self, tracker):
         signal = TaskDemandSignal("t1", "photo", "Miami", 5.00)
         tracker.record_task(signal)
@@ -237,7 +234,6 @@ class TestTaskDemandTracker:
 
 
 class TestWorkerProfile:
-
     def test_completion_rate(self):
         w = WorkerProfile(
             wallet="0xA",
@@ -297,7 +293,6 @@ class TestWorkerProfile:
 
 
 class TestWorkerCoverageMap:
-
     def test_add_worker(self, coverage):
         w = WorkerProfile(wallet="0xA", categories=["photo"], locations=["Miami"])
         coverage.add_worker(w)
@@ -328,8 +323,12 @@ class TestWorkerCoverageMap:
         assert coverage.active_workers == 1
 
     def test_workers_for_category(self, coverage):
-        w1 = WorkerProfile(wallet="0xA", categories=["photo", "delivery"], last_active=time.time())
-        w2 = WorkerProfile(wallet="0xB", categories=["delivery"], last_active=time.time())
+        w1 = WorkerProfile(
+            wallet="0xA", categories=["photo", "delivery"], last_active=time.time()
+        )
+        w2 = WorkerProfile(
+            wallet="0xB", categories=["delivery"], last_active=time.time()
+        )
         coverage.add_worker(w1)
         coverage.add_worker(w2)
         photo_workers = coverage.workers_for_category("photo")
@@ -338,7 +337,9 @@ class TestWorkerCoverageMap:
         assert len(delivery_workers) == 2
 
     def test_workers_for_location(self, coverage):
-        w1 = WorkerProfile(wallet="0xA", locations=["Miami", "remote"], last_active=time.time())
+        w1 = WorkerProfile(
+            wallet="0xA", locations=["Miami", "remote"], last_active=time.time()
+        )
         w2 = WorkerProfile(wallet="0xB", locations=["NYC"], last_active=time.time())
         coverage.add_worker(w1)
         coverage.add_worker(w2)
@@ -367,8 +368,12 @@ class TestWorkerCoverageMap:
         assert workers[0].wallet == "0xA"
 
     def test_category_coverage(self, coverage):
-        w1 = WorkerProfile(wallet="0xA", categories=["photo", "delivery"], last_active=time.time())
-        w2 = WorkerProfile(wallet="0xB", categories=["delivery"], last_active=time.time())
+        w1 = WorkerProfile(
+            wallet="0xA", categories=["photo", "delivery"], last_active=time.time()
+        )
+        w2 = WorkerProfile(
+            wallet="0xB", categories=["delivery"], last_active=time.time()
+        )
         coverage.add_worker(w1)
         coverage.add_worker(w2)
         cov = coverage.category_coverage()
@@ -377,7 +382,9 @@ class TestWorkerCoverageMap:
 
     def test_location_coverage(self, coverage):
         w1 = WorkerProfile(wallet="0xA", locations=["Miami"], last_active=time.time())
-        w2 = WorkerProfile(wallet="0xB", locations=["Miami", "NYC"], last_active=time.time())
+        w2 = WorkerProfile(
+            wallet="0xB", locations=["Miami", "NYC"], last_active=time.time()
+        )
         coverage.add_worker(w1)
         coverage.add_worker(w2)
         cov = coverage.location_coverage()
@@ -392,7 +399,9 @@ class TestWorkerCoverageMap:
 
     def test_concentration_index_equal_workers(self, coverage):
         for i in range(4):
-            w = WorkerProfile(wallet=f"0x{i}", completed_tasks=25, last_active=time.time())
+            w = WorkerProfile(
+                wallet=f"0x{i}", completed_tasks=25, last_active=time.time()
+            )
             coverage.add_worker(w)
         hhi = coverage.concentration_index()
         assert hhi == 2500  # 4 equal workers: (0.25^2 * 4) * 10000
@@ -414,11 +423,17 @@ class TestWorkerCoverageMap:
 
     def test_top_performers(self, coverage):
         w1 = WorkerProfile(
-            wallet="0xA", avg_rating=4.5, total_tasks=50, completed_tasks=48,
+            wallet="0xA",
+            avg_rating=4.5,
+            total_tasks=50,
+            completed_tasks=48,
             last_active=time.time(),
         )
         w2 = WorkerProfile(
-            wallet="0xB", avg_rating=3.0, total_tasks=20, completed_tasks=15,
+            wallet="0xB",
+            avg_rating=3.0,
+            total_tasks=20,
+            completed_tasks=15,
             last_active=time.time(),
         )
         coverage.add_worker(w1)
@@ -445,7 +460,6 @@ class TestWorkerCoverageMap:
 
 
 class TestRecruitmentEngine:
-
     def test_identify_gaps_no_workers(self, tracker, coverage):
         tracker.record_task(TaskDemandSignal("t1", "photo", "Miami", 5.00))
         tracker.record_task(TaskDemandSignal("t2", "photo", "Miami", 5.00))
@@ -536,7 +550,6 @@ class TestRecruitmentEngine:
 
 
 class TestWorkerDiscovery:
-
     def test_record_task(self, discovery):
         signal = discovery.record_task("t1", "photo", "Miami", 5.00)
         assert isinstance(signal, TaskDemandSignal)
@@ -631,7 +644,6 @@ class TestWorkerDiscovery:
 
 
 class TestCoverageGap:
-
     def test_to_dict(self):
         gap = CoverageGap(
             category="photo",
@@ -655,10 +667,15 @@ class TestCoverageGap:
 
 
 class TestRecruitmentChannels:
-
     def test_known_categories_have_channels(self):
-        for cat in ["physical_verification", "delivery", "data_collection",
-                     "survey", "mystery_shopping", "content_creation"]:
+        for cat in [
+            "physical_verification",
+            "delivery",
+            "data_collection",
+            "survey",
+            "mystery_shopping",
+            "content_creation",
+        ]:
             assert cat in RECRUITMENT_CHANNELS
             assert len(RECRUITMENT_CHANNELS[cat]) > 0
 
@@ -671,7 +688,6 @@ class TestRecruitmentChannels:
 
 
 class TestEdgeCases:
-
     def test_record_assignment_unknown_task(self, discovery):
         # Should not crash
         discovery.record_assignment("nonexistent", "0xA", 100)
@@ -712,7 +728,6 @@ class TestEdgeCases:
 
 
 class TestFullIntegration:
-
     def test_complete_supply_intelligence_cycle(self):
         """Walk through a complete supply intelligence cycle."""
         d = WorkerDiscovery(window_days=7)

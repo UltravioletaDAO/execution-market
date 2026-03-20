@@ -19,14 +19,12 @@ The swarm uses this to:
 No external dependencies. Works with AutoJob health data (JSON) or standalone.
 """
 
-import json
 import logging
 import time
 from collections import defaultdict
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger("em.swarm.source_health")
@@ -39,15 +37,17 @@ logger = logging.getLogger("em.swarm.source_health")
 
 class SourceTier(str, Enum):
     """Source reliability tier for routing decisions."""
-    GOLD = "gold"      # Consistently healthy, high quality (health > 0.8)
+
+    GOLD = "gold"  # Consistently healthy, high quality (health > 0.8)
     SILVER = "silver"  # Usually healthy, good quality (health > 0.5)
     BRONZE = "bronze"  # Sometimes available, variable quality (health > 0.2)
-    DEAD = "dead"      # Consistently broken or empty (health <= 0.2)
+    DEAD = "dead"  # Consistently broken or empty (health <= 0.2)
 
 
 @dataclass
 class SourceStatus:
     """Current status of an external data source."""
+
     name: str
     tier: str = "unknown"
     health_score: float = 0.0
@@ -65,7 +65,7 @@ class SourceStatus:
 
     def confidence_factor(self) -> float:
         """Multiplier for match confidence from this source.
-        
+
         Gold sources don't reduce confidence.
         Silver reduces by 10%.
         Bronze reduces by 40%.
@@ -83,6 +83,7 @@ class SourceStatus:
 @dataclass
 class HealthSummary:
     """Aggregate health across all sources."""
+
     total_sources: int = 0
     gold_count: int = 0
     silver_count: int = 0
@@ -130,7 +131,7 @@ class SourceHealthAdapter:
 
     def ingest_health_report(self, report: dict):
         """Ingest a health report from AutoJob's source_health_monitor.
-        
+
         Expects the JSON format from SourceHealthMonitor.probe_all().to_dict()
         """
         if not report:
@@ -162,21 +163,24 @@ class SourceHealthAdapter:
         self._update_count += 1
 
         # Store in history for trend analysis
-        self._history.append({
-            "ts": report.get("probed_at", ""),
-            "system_health": report.get("overall_system_health", 0),
-            "sources": {
-                p["name"]: p.get("overall_health", 0)
-                for p in probes if p.get("name")
-            },
-        })
+        self._history.append(
+            {
+                "ts": report.get("probed_at", ""),
+                "system_health": report.get("overall_system_health", 0),
+                "sources": {
+                    p["name"]: p.get("overall_health", 0)
+                    for p in probes
+                    if p.get("name")
+                },
+            }
+        )
 
         # Compute trends
         self._compute_trends()
 
     def ingest_history(self, history: list):
         """Ingest historical health data for trend analysis.
-        
+
         Expects the format from AutoJob's health_history.json
         """
         for entry in history:
@@ -185,7 +189,6 @@ class SourceHealthAdapter:
                 if name not in self._sources:
                     self._sources[name] = SourceStatus(name=name)
 
-                status = self._sources[name]
                 # Update reliability from history
                 if isinstance(data, dict):
                     if data.get("status") in ("healthy", "degraded"):
@@ -311,7 +314,7 @@ class SourceHealthAdapter:
 
     def confidence_adjustment(self, source_name: str) -> float:
         """Get confidence multiplier for matches from a specific source.
-        
+
         Used by the swarm to adjust routing confidence based on source quality.
         """
         source = self._sources.get(source_name)
@@ -334,8 +337,9 @@ class SourceHealthAdapter:
         scored = []
         for s in usable:
             # Composite: reliability + current health + data quality
-            score = (s.reliability_pct * 0.3 + s.health_score * 0.4
-                     + s.data_quality * 0.3)
+            score = (
+                s.reliability_pct * 0.3 + s.health_score * 0.4 + s.data_quality * 0.3
+            )
             scored.append((s, score))
         scored.sort(key=lambda x: x[1], reverse=True)
         return [s for s, _ in scored[:limit]]
