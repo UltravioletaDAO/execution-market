@@ -383,105 +383,6 @@ export function TaskDetail({
           </section>
         )}
 
-        {/* Submissions / Evidence */}
-        {submissions.length > 0 && (
-          <section>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {t('tasks.submissions', 'Evidencia Enviada')}
-            </h2>
-            <div className="space-y-3">
-              {submissions.map((sub) => (
-                <div key={sub.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  {/* Status badge */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs text-gray-500">
-                      {new Date(sub.submitted_at).toLocaleString()}
-                    </span>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      sub.agent_verdict === 'approved'
-                        ? 'bg-green-100 text-green-700'
-                        : sub.agent_verdict === 'rejected'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {sub.agent_verdict === 'approved'
-                        ? t('submission.approved', 'Aprobada')
-                        : sub.agent_verdict === 'rejected'
-                        ? t('submission.rejected', 'Rechazada')
-                        : t('submission.pending', 'Pendiente de revision')}
-                    </span>
-                  </div>
-
-                  {/* Evidence content */}
-                  {sub.evidence && typeof sub.evidence === 'object' && (
-                    <div className="space-y-2">
-                      {Object.entries(sub.evidence).map(([key, value]) => (
-                        <div key={key}>
-                          <span className="text-xs font-medium text-gray-500 uppercase">{key.replace(/_/g, ' ')}</span>
-                          {typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://')) ? (
-                            value.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                              <img src={value} alt={key} className="mt-1 rounded-lg max-h-64 object-contain" />
-                            ) : (
-                              <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm block mt-1">{value}</a>
-                            )
-                          ) : typeof value === 'object' && value !== null ? (
-                            <pre className="text-xs text-gray-700 bg-white p-2 rounded mt-1 overflow-auto max-h-32">{JSON.stringify(value, null, 2)}</pre>
-                          ) : (
-                            <p className="text-sm text-gray-700 mt-1">{String(value)}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Evidence files (S3/CDN links) */}
-                  {sub.evidence_files && sub.evidence_files.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      <span className="text-xs font-medium text-gray-500 uppercase">
-                        {t('submission.attachedFiles', 'Archivos adjuntos')}
-                      </span>
-                      <div className="grid grid-cols-2 gap-2">
-                        {sub.evidence_files.map((url, i) => (
-                          url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                              <img src={url} alt={`Evidence ${i + 1}`} className="rounded-lg max-h-48 object-contain border border-gray-200" />
-                            </a>
-                          ) : (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
-                              {t('submission.file', 'Archivo')} {i + 1}
-                            </a>
-                          )
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Agent notes */}
-                  {sub.agent_notes && (
-                    <div className="mt-3 p-2 bg-blue-50 rounded-lg">
-                      <span className="text-xs font-medium text-blue-600">{t('submission.agentNotes', 'Notas del agente')}</span>
-                      <p className="text-sm text-blue-800 mt-1">{sub.agent_notes}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Submissions loading state */}
-        {submissionsLoading && ['accepted', 'in_progress', 'submitted', 'verifying', 'completed'].includes(task.status) && (
-          <section>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {t('tasks.submissions', 'Evidencia Enviada')}
-            </h2>
-            <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
-              <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
-              {t('common.loading', 'Cargando...')}
-            </div>
-          </section>
-        )}
-
         {/* Transaction Details */}
         {(task.escrow_tx || task.refund_tx || task.payment_network) && (
           <section>
@@ -553,6 +454,171 @@ export function TaskDetail({
                 {t('payment.noData')}
               </p>
             )}
+          </section>
+        )}
+
+        {/* Submissions / Evidence — after escrow timeline */}
+        {submissions.length > 0 && (
+          <section>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+              {t('tasks.submissions', 'Evidencia Enviada')}
+            </h2>
+            <div className="space-y-3">
+              {submissions.map((sub) => (
+                <div key={sub.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  {/* Status badge */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs text-gray-500">
+                      {new Date(sub.submitted_at).toLocaleString()}
+                    </span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      sub.agent_verdict === 'approved'
+                        ? 'bg-green-100 text-green-700'
+                        : sub.agent_verdict === 'rejected'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {sub.agent_verdict === 'approved'
+                        ? t('submission.approved', 'Aprobada')
+                        : sub.agent_verdict === 'rejected'
+                        ? t('submission.rejected', 'Rechazada')
+                        : t('submission.pending', 'Pendiente de revision')}
+                    </span>
+                  </div>
+
+                  {/* Evidence content — smart rendering */}
+                  {sub.evidence && typeof sub.evidence === 'object' && (
+                    <div className="space-y-4">
+                      {Object.entries(sub.evidence).map(([key, value]) => {
+                        const ev = value as Record<string, unknown> | string | null
+                        // Evidence object with fileUrl (e.g. {type, fileUrl, filename, metadata})
+                        if (ev && typeof ev === 'object' && 'fileUrl' in ev) {
+                          const fileUrl = String(ev.fileUrl || '')
+                          const filename = String(ev.filename || '')
+                          const evType = String(ev.type || key)
+                          const metadata = ev.metadata as Record<string, unknown> | undefined
+                          const isImage = fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) || evType === 'screenshot' || evType === 'photo' || evType === 'photo_geo'
+
+                          return (
+                            <div key={key}>
+                              <span className="text-xs font-semibold text-gray-600 uppercase">{evType.replace(/_/g, ' ')}</span>
+                              {/* Show the image */}
+                              {isImage && fileUrl && (
+                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                                  <img
+                                    src={fileUrl}
+                                    alt={filename || evType}
+                                    className="rounded-lg max-h-72 w-full object-contain border border-gray-200 bg-white"
+                                  />
+                                </a>
+                              )}
+                              {/* Non-image file link */}
+                              {!isImage && fileUrl && (
+                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm block mt-1">
+                                  {filename || 'View file'}
+                                </a>
+                              )}
+                              {/* Metadata as clean key-value pairs */}
+                              {metadata && Object.keys(metadata).length > 0 && (
+                                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                                  {filename && (
+                                    <>
+                                      <span className="text-gray-400">{t('submission.filename', 'Archivo')}</span>
+                                      <span className="text-gray-600 truncate">{filename}</span>
+                                    </>
+                                  )}
+                                  {Object.entries(metadata).map(([mk, mv]) => (
+                                    mk !== 'backend' ? (
+                                      <span key={mk} className="contents">
+                                        <span className="text-gray-400">{mk === 'size' ? t('submission.fileSize', 'Peso') : mk.replace(/_/g, ' ')}</span>
+                                        <span className="text-gray-600">
+                                          {mk === 'size' && typeof mv === 'number'
+                                            ? mv > 1048576 ? `${(mv / 1048576).toFixed(1)} MB` : `${(mv / 1024).toFixed(0)} KB`
+                                            : String(mv)}
+                                        </span>
+                                      </span>
+                                    ) : null
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        }
+
+                        // Plain URL string
+                        if (typeof ev === 'string' && (ev.startsWith('http://') || ev.startsWith('https://'))) {
+                          const isImg = ev.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+                          return (
+                            <div key={key}>
+                              <span className="text-xs font-semibold text-gray-600 uppercase">{key.replace(/_/g, ' ')}</span>
+                              {isImg ? (
+                                <a href={ev} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                                  <img src={ev} alt={key} className="rounded-lg max-h-72 w-full object-contain border border-gray-200 bg-white" />
+                                </a>
+                              ) : (
+                                <a href={ev} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm block mt-1">{ev}</a>
+                              )}
+                            </div>
+                          )
+                        }
+
+                        // Plain text or other value
+                        if (ev !== null && ev !== undefined) {
+                          return (
+                            <div key={key}>
+                              <span className="text-xs font-semibold text-gray-600 uppercase">{key.replace(/_/g, ' ')}</span>
+                              <p className="text-sm text-gray-700 mt-1">{typeof ev === 'object' ? JSON.stringify(ev) : String(ev)}</p>
+                            </div>
+                          )
+                        }
+
+                        return null
+                      })}
+                    </div>
+                  )}
+
+                  {/* Evidence files (S3/CDN direct links) */}
+                  {sub.evidence_files && sub.evidence_files.length > 0 && (
+                    <div className="mt-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        {sub.evidence_files.map((url, i) => (
+                          url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                              <img src={url} alt={`Evidence ${i + 1}`} className="rounded-lg max-h-48 object-contain border border-gray-200 bg-white" />
+                            </a>
+                          ) : (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
+                              {t('submission.file', 'Archivo')} {i + 1}
+                            </a>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Agent notes */}
+                  {sub.agent_notes && (
+                    <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                      <span className="text-xs font-medium text-blue-600">{t('submission.agentNotes', 'Notas del agente')}</span>
+                      <p className="text-sm text-blue-800 mt-1">{sub.agent_notes}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Submissions loading state */}
+        {submissionsLoading && ['accepted', 'in_progress', 'submitted', 'verifying', 'completed'].includes(task.status) && (
+          <section>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+              {t('tasks.submissions', 'Evidencia Enviada')}
+            </h2>
+            <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+              {t('common.loading', 'Cargando...')}
+            </div>
           </section>
         )}
       </div>
