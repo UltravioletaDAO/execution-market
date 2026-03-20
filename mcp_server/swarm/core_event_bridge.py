@@ -43,11 +43,10 @@ Usage:
     swarm_bus = SwarmEventBus()
     bridge = CoreEventBridge(core_bus, swarm_bus)
     bridge.start()
-    
+
     # Now core events flow into the swarm automatically
 """
 
-import asyncio
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -68,8 +67,8 @@ logger = logging.getLogger("em.swarm.core_event_bridge")
 # Some map directly, some rename for swarm context
 EVENT_TYPE_MAP: Dict[str, str] = {
     # Task lifecycle
-    "task.created": "task.discovered",     # In swarm context, created = discovered
-    "task.updated": "task.enriched",       # Updates add context
+    "task.created": "task.discovered",  # In swarm context, created = discovered
+    "task.updated": "task.enriched",  # Updates add context
     "task.assigned": "task.assigned",
     "task.started": "task.started",
     "task.submitted": "task.submitted",
@@ -101,9 +100,11 @@ SKIP_SOURCES: Set[EventSource] = {
 # Bridge Statistics
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class BridgeStats:
     """Metrics for the core→swarm event bridge."""
+
     events_received: int = 0
     events_bridged: int = 0
     events_skipped: int = 0
@@ -118,6 +119,7 @@ class BridgeStats:
 # Event Filters
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class BridgeFilter:
     """
@@ -129,6 +131,7 @@ class BridgeFilter:
     - categories: only bridge these task categories
     - exclude_sources: skip events from these sources
     """
+
     event_types: Optional[Set[str]] = None
     min_bounty_usd: float = 0.0
     categories: Optional[Set[str]] = None
@@ -162,6 +165,7 @@ class BridgeFilter:
 # ---------------------------------------------------------------------------
 # Core Event Bridge
 # ---------------------------------------------------------------------------
+
 
 class CoreEventBridge:
     """
@@ -260,9 +264,7 @@ class CoreEventBridge:
 
         except Exception as e:
             self._stats.errors += 1
-            logger.error(
-                "Bridge error for %s: %s", event.event_type, e, exc_info=True
-            )
+            logger.error("Bridge error for %s: %s", event.event_type, e, exc_info=True)
 
     @staticmethod
     def _default_transform(event: EMEvent) -> Dict[str, Any]:
@@ -275,7 +277,9 @@ class CoreEventBridge:
         data["_bridge"] = {
             "core_event_id": event.id,
             "core_event_type": event.event_type,
-            "core_source": event.source.value if isinstance(event.source, EventSource) else str(event.source),
+            "core_source": event.source.value
+            if isinstance(event.source, EventSource)
+            else str(event.source),
             "core_timestamp": event.timestamp.isoformat() if event.timestamp else None,
         }
         if event.task_id:

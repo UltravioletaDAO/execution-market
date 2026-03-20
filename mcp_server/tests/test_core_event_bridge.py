@@ -1,11 +1,9 @@
 """
 Tests for CoreEventBridge — bridges EM Core EventBus → Swarm EventBus.
 """
-import asyncio
+
 import os
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, AsyncMock, patch
 
 os.environ.setdefault("TESTING", "1")
 
@@ -22,6 +20,7 @@ from mcp_server.swarm.core_event_bridge import (
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def core_bus():
@@ -57,6 +56,7 @@ def sample_task_event():
 # Lifecycle
 # ---------------------------------------------------------------------------
 
+
 class TestBridgeLifecycle:
     def test_start_subscribes_to_core_events(self, bridge, core_bus):
         bridge.start()
@@ -86,6 +86,7 @@ class TestBridgeLifecycle:
 # Event Mapping
 # ---------------------------------------------------------------------------
 
+
 class TestEventMapping:
     def test_all_core_types_have_swarm_mapping(self):
         """Verify every mapped core type has a valid swarm destination."""
@@ -111,9 +112,12 @@ class TestEventMapping:
 # Event Bridging
 # ---------------------------------------------------------------------------
 
+
 class TestEventBridging:
     @pytest.mark.asyncio
-    async def test_bridge_task_created(self, bridge, core_bus, swarm_bus, sample_task_event):
+    async def test_bridge_task_created(
+        self, bridge, core_bus, swarm_bus, sample_task_event
+    ):
         # Track what the swarm bus receives
         received = []
         swarm_bus.on("task.discovered", lambda e: received.append(e), source="test")
@@ -145,7 +149,9 @@ class TestEventBridging:
         assert received[0].data["rating"] == 5
 
     @pytest.mark.asyncio
-    async def test_bridge_preserves_payload(self, bridge, core_bus, swarm_bus, sample_task_event):
+    async def test_bridge_preserves_payload(
+        self, bridge, core_bus, swarm_bus, sample_task_event
+    ):
         received = []
         swarm_bus.on("task.*", lambda e: received.append(e), source="test")
 
@@ -159,7 +165,9 @@ class TestEventBridging:
         assert data["bounty_usd"] == 5.00
 
     @pytest.mark.asyncio
-    async def test_bridge_adds_metadata(self, bridge, core_bus, swarm_bus, sample_task_event):
+    async def test_bridge_adds_metadata(
+        self, bridge, core_bus, swarm_bus, sample_task_event
+    ):
         received = []
         swarm_bus.on("task.*", lambda e: received.append(e), source="test")
 
@@ -189,7 +197,9 @@ class TestEventBridging:
         assert received[0].correlation_id == "corr-abc"
 
     @pytest.mark.asyncio
-    async def test_bridge_stats_update(self, bridge, core_bus, swarm_bus, sample_task_event):
+    async def test_bridge_stats_update(
+        self, bridge, core_bus, swarm_bus, sample_task_event
+    ):
         bridge.start()
         await core_bus.publish(sample_task_event)
 
@@ -220,6 +230,7 @@ class TestEventBridging:
 # ---------------------------------------------------------------------------
 # Filtering
 # ---------------------------------------------------------------------------
+
 
 class TestBridgeFiltering:
     @pytest.mark.asyncio
@@ -319,18 +330,22 @@ class TestBridgeFiltering:
         bridge.start()
 
         # task.created — filtered (not in allowed set)
-        await core_bus.publish(EMEvent(
-            event_type="task.created",
-            source=EventSource.REST_API,
-            payload={},
-        ))
+        await core_bus.publish(
+            EMEvent(
+                event_type="task.created",
+                source=EventSource.REST_API,
+                payload={},
+            )
+        )
 
         # task.completed — passes
-        await core_bus.publish(EMEvent(
-            event_type="task.completed",
-            source=EventSource.REST_API,
-            payload={},
-        ))
+        await core_bus.publish(
+            EMEvent(
+                event_type="task.completed",
+                source=EventSource.REST_API,
+                payload={},
+            )
+        )
 
         assert len(received) == 1
         assert received[0].type == "task.completed"
@@ -381,6 +396,7 @@ class TestBridgeFiltering:
 # Custom Payload Transform
 # ---------------------------------------------------------------------------
 
+
 class TestCustomTransform:
     @pytest.mark.asyncio
     async def test_custom_transform_function(self, core_bus, swarm_bus):
@@ -399,12 +415,14 @@ class TestCustomTransform:
         swarm_bus.on("task.*", lambda e: received.append(e), source="test")
 
         bridge.start()
-        await core_bus.publish(EMEvent(
-            event_type="task.completed",
-            task_id="task_custom",
-            source=EventSource.REST_API,
-            payload={"ignored": True},
-        ))
+        await core_bus.publish(
+            EMEvent(
+                event_type="task.completed",
+                task_id="task_custom",
+                source=EventSource.REST_API,
+                payload={"ignored": True},
+            )
+        )
 
         assert len(received) == 1
         data = received[0].data
@@ -417,22 +435,23 @@ class TestCustomTransform:
 # Error Handling
 # ---------------------------------------------------------------------------
 
+
 class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_transform_error_counted(self, core_bus, swarm_bus):
         def bad_transform(event):
             raise ValueError("transform failed!")
 
-        bridge = CoreEventBridge(
-            core_bus, swarm_bus, transform_payload=bad_transform
-        )
+        bridge = CoreEventBridge(core_bus, swarm_bus, transform_payload=bad_transform)
 
         bridge.start()
-        await core_bus.publish(EMEvent(
-            event_type="task.created",
-            source=EventSource.REST_API,
-            payload={},
-        ))
+        await core_bus.publish(
+            EMEvent(
+                event_type="task.created",
+                source=EventSource.REST_API,
+                payload={},
+            )
+        )
 
         assert bridge.stats["errors"] == 1
         assert bridge.stats["events_bridged"] == 0
@@ -449,9 +468,7 @@ class TestErrorHandling:
                 raise ValueError("first one fails!")
             return {"ok": True}
 
-        bridge = CoreEventBridge(
-            core_bus, swarm_bus, transform_payload=flaky_transform
-        )
+        bridge = CoreEventBridge(core_bus, swarm_bus, transform_payload=flaky_transform)
 
         received = []
         swarm_bus.on("task.*", lambda e: received.append(e), source="test")
@@ -459,18 +476,22 @@ class TestErrorHandling:
         bridge.start()
 
         # First event errors
-        await core_bus.publish(EMEvent(
-            event_type="task.created",
-            source=EventSource.REST_API,
-            payload={},
-        ))
+        await core_bus.publish(
+            EMEvent(
+                event_type="task.created",
+                source=EventSource.REST_API,
+                payload={},
+            )
+        )
 
         # Second event succeeds
-        await core_bus.publish(EMEvent(
-            event_type="task.completed",
-            source=EventSource.REST_API,
-            payload={},
-        ))
+        await core_bus.publish(
+            EMEvent(
+                event_type="task.completed",
+                source=EventSource.REST_API,
+                payload={},
+            )
+        )
 
         assert len(received) == 1
         assert bridge.stats["errors"] == 1
@@ -480,6 +501,7 @@ class TestErrorHandling:
 # ---------------------------------------------------------------------------
 # Multiple Event Types
 # ---------------------------------------------------------------------------
+
 
 class TestMultipleEventTypes:
     @pytest.mark.asyncio
@@ -497,12 +519,14 @@ class TestMultipleEventTypes:
         ]
 
         for event_type, payload in lifecycle:
-            await core_bus.publish(EMEvent(
-                event_type=event_type,
-                task_id="task_lifecycle",
-                source=EventSource.REST_API,
-                payload=payload,
-            ))
+            await core_bus.publish(
+                EMEvent(
+                    event_type=event_type,
+                    task_id="task_lifecycle",
+                    source=EventSource.REST_API,
+                    payload=payload,
+                )
+            )
 
         assert len(received) == 4
         types = [e.type for e in received]
@@ -518,15 +542,19 @@ class TestMultipleEventTypes:
 
         bridge.start()
 
-        await core_bus.publish(EMEvent(
-            event_type="payment.escrowed",
-            source=EventSource.REST_API,
-            payload={"amount": 5.00, "token": "USDC"},
-        ))
-        await core_bus.publish(EMEvent(
-            event_type="payment.released",
-            source=EventSource.REST_API,
-            payload={"amount": 4.35, "worker": "0x1"},
-        ))
+        await core_bus.publish(
+            EMEvent(
+                event_type="payment.escrowed",
+                source=EventSource.REST_API,
+                payload={"amount": 5.00, "token": "USDC"},
+            )
+        )
+        await core_bus.publish(
+            EMEvent(
+                event_type="payment.released",
+                source=EventSource.REST_API,
+                payload={"amount": 4.35, "worker": "0x1"},
+            )
+        )
 
         assert len(received) == 2
