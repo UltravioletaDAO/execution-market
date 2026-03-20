@@ -7,6 +7,7 @@ import { getWalletByNick, linkNickToWallet, isValidEthAddress } from "./identity
 import { identityStore, TrustLevel } from "./identity-store.js";
 import { verifyMessage } from "viem";
 import { randomBytes } from "crypto";
+import { handleCommand as emservHandleCommand } from "../emserv/index.js";
 
 const BOUNTIES_CHANNEL = "#bounties";
 const AGENTS_CHANNEL = "#Agents";
@@ -52,6 +53,12 @@ async function handleIrcMessage(channel: string, nick: string, text: string): Pr
 
   // Skip non-commands
   if (!trimmed.startsWith("/")) return;
+
+  // Try EMServ registry first (new extensible commands)
+  const handled = await emservHandleCommand(channel, nick, trimmed, sendToChannel);
+  if (handled) return;
+
+  // Legacy command handling below (will be migrated to EMServ in Phase 8)
 
   // Trust level enforcement for commands
   const trustLevel = await identityStore.getTrustLevel(nick);
