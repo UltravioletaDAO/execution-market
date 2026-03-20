@@ -48,7 +48,7 @@ export function DynamicProvider({ children }: DynamicProviderProps) {
             console.log('[Dynamic] Auth flow closed')
           },
           onAuthSuccess: ({ user }) => {
-            console.log('[Dynamic] Auth success:', (user as any)?.walletPublicKey || 'unknown wallet')
+            console.log('[Dynamic] Auth success:', (user as unknown as Record<string, unknown>)?.walletPublicKey || 'unknown wallet')
           },
           onAuthFailure: (_data, reason) => {
             console.error('[Dynamic] Auth failure:', reason)

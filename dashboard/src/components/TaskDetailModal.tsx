@@ -143,7 +143,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-1">{t('tasks.evidence')}</h4>
                   <div className="flex flex-wrap gap-2">
-                    {((task.evidence_schema as any)?.required as string[] || []).map((r: string) => (
+                    {(task.evidence_schema?.required || []).map((r: string) => (
                       <span key={r} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
                         {r}
                       </span>

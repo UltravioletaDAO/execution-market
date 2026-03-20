@@ -16,6 +16,8 @@ import type { Task, TaskCategory } from '../types/database'
 import 'leaflet/dist/leaflet.css'
 
 // Ensure default icon images are loaded correctly
+// Leaflet bundler workaround: _getIconUrl is a private method not exposed in the type definitions,
+// but must be deleted to prevent broken icon URLs when using module bundlers (Vite/Webpack).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({

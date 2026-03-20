@@ -25,6 +25,13 @@ interface SubmissionReviewModalProps {
 
 type ReviewAction = 'idle' | 'approving' | 'rejecting' | 'requesting_info'
 
+interface AutoCheckDetails {
+  score?: number
+  phase?: string
+  checks?: Record<string, boolean>
+  [key: string]: unknown
+}
+
 // --------------------------------------------------------------------------
 // Component
 // --------------------------------------------------------------------------
@@ -348,7 +355,7 @@ export function SubmissionReviewModal({ submissionId, onClose, onSuccess }: Subm
 
               {/* Auto-check verification results */}
               {submission.auto_check_passed !== null && submission.auto_check_passed !== undefined && (() => {
-                const details = submission.auto_check_details as any
+                const details = submission.auto_check_details as AutoCheckDetails | null
                 const score = details?.score ?? 0
                 const phase = details?.phase
                 const CHECK_LABELS: Record<string, string> = {
