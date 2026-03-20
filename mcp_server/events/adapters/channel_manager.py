@@ -15,7 +15,7 @@ from typing import Optional, Dict, Any
 
 import httpx
 
-from ..models import EMEvent, EventSource
+from ..models import EMEvent
 from ..bus import EventBus
 
 logger = logging.getLogger(__name__)
@@ -102,7 +102,9 @@ class ChannelManager:
     # Channel operations
     # -------------------------------------------------------------------
 
-    async def create_task_channel(self, task_id: str, task: Dict[str, Any]) -> Optional[str]:
+    async def create_task_channel(
+        self, task_id: str, task: Dict[str, Any]
+    ) -> Optional[str]:
         """Create #task-{short_id} channel via MeshRelay API."""
         short_id = task_id[:8]
         channel_name = f"{CHANNEL_PREFIX}{short_id}"
@@ -177,14 +179,19 @@ class ChannelManager:
     # Participant management (Task 3.2)
     # -------------------------------------------------------------------
 
-    async def _invite_participants(self, channel_name: str, task: Dict[str, Any]) -> None:
+    async def _invite_participants(
+        self, channel_name: str, task: Dict[str, Any]
+    ) -> None:
         """Look up IRC nicks for publisher/worker and invite them to the channel."""
         publisher_wallet = task.get("agent_wallet", task.get("publisher_wallet", ""))
         worker_wallet = task.get("worker_wallet", task.get("executor_wallet", ""))
 
         nicks_invited = []
 
-        for role, wallet in [("Publisher", publisher_wallet), ("Worker", worker_wallet)]:
+        for role, wallet in [
+            ("Publisher", publisher_wallet),
+            ("Worker", worker_wallet),
+        ]:
             if not wallet:
                 continue
             nick = await self._lookup_nick_by_wallet(wallet)

@@ -46,9 +46,7 @@ class WebhookCreateRequest(BaseModel):
         valid = {e.value for e in WebhookEventType}
         for event in v:
             if event not in valid:
-                raise ValueError(
-                    f"Invalid event type: {event}. Valid: {sorted(valid)}"
-                )
+                raise ValueError(f"Invalid event type: {event}. Valid: {sorted(valid)}")
         return v
 
 
@@ -266,7 +264,7 @@ async def test_webhook(
     event = WebhookEvent.test_event()
 
     try:
-        result = await send_webhook(
+        await send_webhook(
             url=wh.url,
             event=event,
             secret=secret,

@@ -5,8 +5,6 @@ Phase 1 validation tests for MASTER_PLAN_MESHRELAY_V2.md.
 """
 
 import pytest
-import asyncio
-from unittest.mock import AsyncMock, patch, MagicMock
 import sys
 from pathlib import Path
 
@@ -226,14 +224,14 @@ class TestWebhookRegistryBug1Fix:
         registry = WebhookRegistry()
 
         # Register webhook for owner_a: task.created + task.assigned
-        reg_a = registry.register(
+        registry.register(
             owner_id="owner_a",
             url="https://example.com/a",
             events=[WebhookEventType.TASK_CREATED, WebhookEventType.TASK_ASSIGNED],
         )
 
         # Register webhook for owner_b: task.created only
-        reg_b = registry.register(
+        registry.register(
             owner_id="owner_b",
             url="https://example.com/b",
             events=[WebhookEventType.TASK_CREATED],
@@ -272,7 +270,7 @@ class TestWebhookRegistryBug1Fix:
         assert len(results) == 0
 
     def test_get_by_owner_and_event_only_active(self):
-        from webhooks.registry import WebhookRegistry, WebhookStatus
+        from webhooks.registry import WebhookRegistry
         from webhooks.events import WebhookEventType
 
         registry = WebhookRegistry()

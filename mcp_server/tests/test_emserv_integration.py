@@ -6,10 +6,8 @@ and that the Python-side endpoints support the EMServ command set.
 """
 
 import sys
-import json
 from pathlib import Path
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -66,7 +64,11 @@ class TestParserContent:
 
     def test_parser_supports_flags(self):
         content = (EMSERV_ROOT / "parser.ts").read_text()
-        assert '"--"' in content or "startsWith('--')" in content or 'startsWith("--")' in content
+        assert (
+            '"--"' in content
+            or "startsWith('--')" in content
+            or 'startsWith("--")' in content
+        )
 
     def test_parser_has_tokenizer(self):
         content = (EMSERV_ROOT / "parser.ts").read_text()
@@ -166,12 +168,25 @@ class TestCommandRegistry:
 
     def test_new_commands_registered(self):
         content = (EMSERV_ROOT / "commands" / "tasks.ts").read_text()
-        expected_commands = ["search", "details", "publish", "confirm", "my-tasks", "my-claims"]
+        expected_commands = [
+            "search",
+            "details",
+            "publish",
+            "confirm",
+            "my-tasks",
+            "my-claims",
+        ]
         for cmd in expected_commands:
             assert f'name: "{cmd}"' in content, f"Command {cmd} not found in registry"
 
     def test_emserv_integration_in_meshrelay(self):
-        meshrelay = Path(__file__).parent.parent.parent / "xmtp-bot" / "src" / "bridges" / "meshrelay.ts"
+        meshrelay = (
+            Path(__file__).parent.parent.parent
+            / "xmtp-bot"
+            / "src"
+            / "bridges"
+            / "meshrelay.ts"
+        )
         content = meshrelay.read_text()
         assert "emservHandleCommand" in content
         assert "emserv/index" in content
