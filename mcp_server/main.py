@@ -339,6 +339,16 @@ app.include_router(escrow_router)
 # Provides /api/v1/h2a/* for human publisher flow and /api/v1/agents/* for agent directory
 app.include_router(h2a_router)
 
+# Include x402 Discovery router
+# Provides /.well-known/x402 for x402 protocol auto-discovery (AgentCash, x402scan, etc.)
+try:
+    from api.routers.x402_discovery import router as x402_discovery_router
+
+    app.include_router(x402_discovery_router)
+    logger.info("x402 Discovery router registered at /.well-known/x402")
+except ImportError as e:
+    logger.info("x402 Discovery router not available: %s", e)
+
 # Include KK V2 Swarm router (optional, enabled via SWARM_ENABLED env)
 # Provides /api/v1/swarm/* for swarm coordination, monitoring, and operations
 try:
