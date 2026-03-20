@@ -64,6 +64,7 @@ EXPECTED_ROUTES = {
     "/api/v1/identity/lookup",
     "/api/v1/identity/sync",
     "/api/v1/identity/verify-challenge",
+    "/api/v1/tasks/{task_id}/chat-history",
 }
 
 
