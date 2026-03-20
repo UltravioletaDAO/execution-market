@@ -275,6 +275,32 @@ class IdentityStore {
       .eq("irc_nick", nick.toLowerCase());
   }
 
+  /**
+   * Synchronous nick lookup from cache only (no DB hit).
+   * Used by xmtp-to-irc bridge where async is impractical.
+   */
+  getNickByWalletSync(wallet: string): string | null {
+    const entry = this.walletToNick.get(wallet.toLowerCase());
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.walletToNick.delete(wallet.toLowerCase());
+      return null;
+    }
+    return entry.value;
+  }
+
+  /**
+   * Set preferred notification channel for a user.
+   */
+  async setPreferredChannel(nick: string, channel: "irc" | "xmtp" | "both"): Promise<void> {
+    if (!this.supabase) return;
+
+    await this.supabase
+      .from("irc_identities")
+      .update({ metadata: { preferred_channel: channel } })
+      .eq("irc_nick", nick.toLowerCase());
+  }
+
   async loadAllToCache(): Promise<number> {
     if (!this.supabase) return 0;
 
