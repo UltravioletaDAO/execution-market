@@ -31,46 +31,41 @@ variable "availability_zones" {
   default     = ["us-east-2a", "us-east-2b"]
 }
 
-# ECS
+# ECS — MCP Server
+# Dashboard is served via S3+CloudFront (dashboard-cdn.tf), no ECS task needed.
 variable "mcp_server_cpu" {
-  description = "CPU units for MCP server task"
+  description = "CPU units for MCP server task (512 = 0.5 vCPU). Increased from 256 to handle concurrent AI verification."
   type        = number
-  default     = 256
+  default     = 512
 }
 
 variable "mcp_server_memory" {
-  description = "Memory for MCP server task"
+  description = "Memory (MB) for MCP server task. Increased from 512 to handle FastMCP + AI image verification."
   type        = number
-  default     = 512
+  default     = 1024
 }
 
-variable "dashboard_cpu" {
-  description = "CPU units for dashboard task"
+variable "mcp_desired_count" {
+  description = "Initial desired task count for MCP server (auto-scaling will adjust at runtime)"
   type        = number
-  default     = 256
+  default     = 1
 }
 
-variable "dashboard_memory" {
-  description = "Memory for dashboard task"
+variable "mcp_min_count" {
+  description = "Minimum task count for MCP server auto-scaling"
   type        = number
-  default     = 512
+  default     = 1
 }
 
-variable "desired_count" {
-  description = "Desired number of tasks"
+variable "mcp_max_count" {
+  description = "Maximum task count for MCP server auto-scaling"
   type        = number
-  default     = 2
+  default     = 4
 }
 
-# Container images
+# Container image override (leave empty to use ECR :latest)
 variable "mcp_server_image" {
-  description = "MCP server container image"
-  type        = string
-  default     = ""
-}
-
-variable "dashboard_image" {
-  description = "Dashboard container image"
+  description = "MCP server container image override. Leave empty to use ECR :latest."
   type        = string
   default     = ""
 }

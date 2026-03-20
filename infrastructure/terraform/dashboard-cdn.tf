@@ -190,19 +190,20 @@ resource "aws_cloudfront_distribution" "dashboard" {
     }
   }
 
-  # SPA routing: return index.html for 403/404
+  # SPA routing: return index.html for 403/404 (S3 returns 403 for missing keys).
+  # TTL of 300s reduces repeated S3 origin fetches for unknown SPA routes.
   custom_error_response {
     error_code            = 403
     response_code         = 200
     response_page_path    = "/index.html"
-    error_caching_min_ttl = 10
+    error_caching_min_ttl = 300
   }
 
   custom_error_response {
     error_code            = 404
     response_code         = 200
     response_page_path    = "/index.html"
-    error_caching_min_ttl = 10
+    error_caching_min_ttl = 300
   }
 
   viewer_certificate {
