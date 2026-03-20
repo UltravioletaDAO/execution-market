@@ -17,6 +17,7 @@ import { relayCommands } from "./commands/relay.js";
 import { getWizardSession } from "./wizard-state.js";
 import { setOutputFormat, getOutputFormat } from "./wire.js";
 import { identityStore, TrustLevel } from "../bridges/identity-store.js";
+import { checkRateLimit } from "./rate-limiter.js";
 import { logger } from "../utils/logger.js";
 import type { CommandDefinition, SendFn, CommandContext } from "./types.js";
 
@@ -118,6 +119,13 @@ export async function handleCommand(
       channel,
       `${nick}: /${parsed.command} requires ${levelNames[def.minTrustLevel]} (L${def.minTrustLevel}).`,
     );
+    return true;
+  }
+
+  // Rate limiting
+  const cooldown = checkRateLimit(nick, parsed.command);
+  if (cooldown > 0) {
+    send(channel, `${nick}: Rate limited. Try again in ${cooldown}s.`);
     return true;
   }
 
