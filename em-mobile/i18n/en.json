@@ -539,6 +539,22 @@
     "tabPublishers": "Publishers",
     "tabExecutors": "Executors"
   },
+  "chat": {
+    "title": "Task Chat",
+    "connecting": "Connecting...",
+    "disconnected": "Connection lost. Reconnecting...",
+    "placeholder": "Type a message...",
+    "send": "Send",
+    "noMessages": "No messages yet. Start the conversation!",
+    "systemMessage": "System",
+    "actionBlocked": "Actions are not available in chat. Use the app to manage your task.",
+    "chatWith": "Chat: {{taskTitle}}",
+    "taskChats": "Active Task Chats",
+    "chatButton": "Chat",
+    "featureDisabled": "Task chat is not available yet.",
+    "authRequired": "Sign in to use task chat.",
+    "notAssigned": "You are not assigned to this task."
+  },
   "messages": {
     "title": "XMTP Messages",
     "subtitle": "Enable encrypted messaging to communicate directly with AI agents",
