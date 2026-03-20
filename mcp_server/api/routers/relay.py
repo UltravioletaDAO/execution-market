@@ -161,10 +161,7 @@ async def create_relay_chain(
 async def get_relay_chain(chain_id: str):
     """Get relay chain status with all legs."""
     chain_resp = (
-        db.client.table("relay_chains")
-        .select("*")
-        .eq("chain_id", chain_id)
-        .execute()
+        db.client.table("relay_chains").select("*").eq("chain_id", chain_id).execute()
     )
     if not chain_resp.data:
         raise HTTPException(404, "Relay chain not found")
@@ -214,10 +211,7 @@ async def assign_leg_worker(
     """Assign a worker to a relay chain leg."""
     # Verify chain exists
     chain_resp = (
-        db.client.table("relay_chains")
-        .select("*")
-        .eq("chain_id", chain_id)
-        .execute()
+        db.client.table("relay_chains").select("*").eq("chain_id", chain_id).execute()
     )
     if not chain_resp.data:
         raise HTTPException(404, "Relay chain not found")
@@ -242,9 +236,9 @@ async def assign_leg_worker(
 
     # If first assignment, activate the chain
     if chain_resp.data[0]["status"] == "pending":
-        db.client.table("relay_chains").update(
-            {"status": "active"}
-        ).eq("chain_id", chain_id).execute()
+        db.client.table("relay_chains").update({"status": "active"}).eq(
+            "chain_id", chain_id
+        ).execute()
 
     logger.info(
         "Leg %d of chain %s assigned to %s",
@@ -278,10 +272,15 @@ async def record_handoff(
     leg = leg_resp.data[0]
 
     if leg["status"] not in ("assigned", "in_transit"):
-        raise HTTPException(400, f"Leg {leg_number} is not in progress (status: {leg['status']})")
+        raise HTTPException(
+            400, f"Leg {leg_number} is not in progress (status: {leg['status']})"
+        )
 
     # Verify handoff code
-    if leg.get("handoff_code") and req.handoff_code.upper() != leg["handoff_code"].upper():
+    if (
+        leg.get("handoff_code")
+        and req.handoff_code.upper() != leg["handoff_code"].upper()
+    ):
         raise HTTPException(403, "Invalid handoff code")
 
     # Update leg as handed off
@@ -297,10 +296,7 @@ async def record_handoff(
 
     # Update chain progress
     chain_resp = (
-        db.client.table("relay_chains")
-        .select("*")
-        .eq("chain_id", chain_id)
-        .execute()
+        db.client.table("relay_chains").select("*").eq("chain_id", chain_id).execute()
     )
     chain = chain_resp.data[0]
     new_completed = chain["completed_legs"] + 1

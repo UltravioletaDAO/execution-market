@@ -31,9 +31,13 @@ class TestChannelLifecycle:
     @pytest.mark.asyncio
     async def test_create_task_channel(self):
         bus = EventBus()
-        manager = ChannelManager(bus=bus, meshrelay_api_url="http://localhost:9999/api/v1")
+        manager = ChannelManager(
+            bus=bus, meshrelay_api_url="http://localhost:9999/api/v1"
+        )
 
-        with patch("events.adapters.channel_manager.httpx.AsyncClient") as mock_client_cls:
+        with patch(
+            "events.adapters.channel_manager.httpx.AsyncClient"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
             mock_resp = MagicMock()
             mock_resp.raise_for_status = MagicMock()
@@ -55,16 +59,22 @@ class TestChannelLifecycle:
     async def test_create_channel_already_exists(self):
         """409 Conflict = channel exists, treat as success."""
         bus = EventBus()
-        manager = ChannelManager(bus=bus, meshrelay_api_url="http://localhost:9999/api/v1")
+        manager = ChannelManager(
+            bus=bus, meshrelay_api_url="http://localhost:9999/api/v1"
+        )
 
         import httpx
 
-        with patch("events.adapters.channel_manager.httpx.AsyncClient") as mock_client_cls:
+        with patch(
+            "events.adapters.channel_manager.httpx.AsyncClient"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
             mock_resp = MagicMock()
             mock_resp.status_code = 409
             mock_resp.raise_for_status = MagicMock(
-                side_effect=httpx.HTTPStatusError("Conflict", request=MagicMock(), response=mock_resp)
+                side_effect=httpx.HTTPStatusError(
+                    "Conflict", request=MagicMock(), response=mock_resp
+                )
             )
             mock_client.post = AsyncMock(return_value=mock_resp)
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -79,10 +89,14 @@ class TestChannelLifecycle:
     @pytest.mark.asyncio
     async def test_close_task_channel(self):
         bus = EventBus()
-        manager = ChannelManager(bus=bus, meshrelay_api_url="http://localhost:9999/api/v1")
+        manager = ChannelManager(
+            bus=bus, meshrelay_api_url="http://localhost:9999/api/v1"
+        )
         manager._active_channels["task123"] = "#task-task1234"
 
-        with patch("events.adapters.channel_manager.httpx.AsyncClient") as mock_client_cls:
+        with patch(
+            "events.adapters.channel_manager.httpx.AsyncClient"
+        ) as mock_client_cls:
             mock_client = AsyncMock()
             mock_resp = MagicMock()
             mock_resp.status_code = 204
@@ -100,10 +114,14 @@ class TestChannelLifecycle:
     @pytest.mark.asyncio
     async def test_event_bus_triggers_channel_creation(self):
         bus = EventBus()
-        manager = ChannelManager(bus=bus, meshrelay_api_url="http://localhost:9999/api/v1")
+        manager = ChannelManager(
+            bus=bus, meshrelay_api_url="http://localhost:9999/api/v1"
+        )
         manager.start()
 
-        with patch.object(manager, "create_task_channel", new_callable=AsyncMock) as mock_create:
+        with patch.object(
+            manager, "create_task_channel", new_callable=AsyncMock
+        ) as mock_create:
             mock_create.return_value = "#task-abcdef12"
             with patch.object(manager, "_invite_participants", new_callable=AsyncMock):
                 await bus.publish(
@@ -125,10 +143,14 @@ class TestChannelLifecycle:
     @pytest.mark.asyncio
     async def test_event_bus_triggers_channel_close(self):
         bus = EventBus()
-        manager = ChannelManager(bus=bus, meshrelay_api_url="http://localhost:9999/api/v1")
+        manager = ChannelManager(
+            bus=bus, meshrelay_api_url="http://localhost:9999/api/v1"
+        )
         manager.start()
 
-        with patch.object(manager, "close_task_channel", new_callable=AsyncMock) as mock_close:
+        with patch.object(
+            manager, "close_task_channel", new_callable=AsyncMock
+        ) as mock_close:
             await bus.publish(
                 EMEvent(
                     event_type="task.cancelled",
@@ -163,7 +185,9 @@ class TestAutoJoinParticipants:
         mock_result.data = [{"irc_nick": "alice"}]
         mock_db.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_result
 
-        with patch.object(manager, "_invite_to_channel", new_callable=AsyncMock) as mock_invite:
+        with patch.object(
+            manager, "_invite_to_channel", new_callable=AsyncMock
+        ) as mock_invite:
             with patch.object(manager, "_send_to_channel", new_callable=AsyncMock):
                 await manager._invite_participants(
                     "#task-abc12345",
@@ -188,7 +212,9 @@ class TestAutoJoinParticipants:
         mock_result.data = []
         mock_db.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_result
 
-        with patch.object(manager, "_invite_to_channel", new_callable=AsyncMock) as mock_invite:
+        with patch.object(
+            manager, "_invite_to_channel", new_callable=AsyncMock
+        ) as mock_invite:
             with patch.object(manager, "_send_to_channel", new_callable=AsyncMock):
                 await manager._invite_participants(
                     "#task-abc12345",
@@ -210,7 +236,9 @@ class TestChatLogging:
         mock_db = MagicMock()
         manager = ChannelManager(bus=bus, db_client=mock_db)
 
-        mock_db.table.return_value.insert.return_value.execute.return_value = MagicMock()
+        mock_db.table.return_value.insert.return_value.execute.return_value = (
+            MagicMock()
+        )
 
         await manager.log_chat_message(
             task_id="abc123",
@@ -276,11 +304,21 @@ class TestChatHistoryRoute:
 
 class TestChatLogMigration:
     def test_migration_file_exists(self):
-        migration = Path(__file__).parent.parent.parent / "supabase" / "migrations" / "066_task_chat_log.sql"
+        migration = (
+            Path(__file__).parent.parent.parent
+            / "supabase"
+            / "migrations"
+            / "066_task_chat_log.sql"
+        )
         assert migration.exists()
 
     def test_migration_has_table(self):
-        migration = Path(__file__).parent.parent.parent / "supabase" / "migrations" / "066_task_chat_log.sql"
+        migration = (
+            Path(__file__).parent.parent.parent
+            / "supabase"
+            / "migrations"
+            / "066_task_chat_log.sql"
+        )
         content = migration.read_text()
         assert "CREATE TABLE" in content
         assert "task_chat_log" in content
@@ -288,7 +326,12 @@ class TestChatLogMigration:
         assert "CHECK (message_type IN" in content
 
     def test_migration_has_rls(self):
-        migration = Path(__file__).parent.parent.parent / "supabase" / "migrations" / "066_task_chat_log.sql"
+        migration = (
+            Path(__file__).parent.parent.parent
+            / "supabase"
+            / "migrations"
+            / "066_task_chat_log.sql"
+        )
         content = migration.read_text()
         assert "ENABLE ROW LEVEL SECURITY" in content
 

@@ -41,7 +41,9 @@ def _format_irc_line(event: EMEvent) -> str:
     if event_type == "task.cancelled":
         task_id = (event.task_id or "?")[:8]
         reason = p.get("reason", "")
-        return f"[CANCELLED] Task {task_id}" + (f" | Reason: {reason}" if reason else "")
+        return f"[CANCELLED] Task {task_id}" + (
+            f" | Reason: {reason}" if reason else ""
+        )
 
     if event_type == "submission.received":
         task_id = (event.task_id or "?")[:8]
@@ -135,7 +137,9 @@ class MeshRelayAdapter:
                 self._stats["forwarded"] += 1
             except Exception:
                 self._stats["errors"] += 1
-                logger.exception("MeshRelayAdapter: failed to forward %s", event.event_type)
+                logger.exception(
+                    "MeshRelayAdapter: failed to forward %s", event.event_type
+                )
         else:
             # No webhook URL configured — log for debugging
             logger.debug("MeshRelayAdapter (no URL): %s", irc_line)

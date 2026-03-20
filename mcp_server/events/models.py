@@ -34,18 +34,14 @@ class EMEvent(BaseModel):
     """
 
     id: str = Field(default_factory=lambda: str(uuid4()))
-    event_type: str = Field(
-        ..., description="Dotted event type, e.g. 'task.created'"
-    )
+    event_type: str = Field(..., description="Dotted event type, e.g. 'task.created'")
     version: str = "1.0"
     task_id: Optional[str] = None
     source: EventSource = EventSource.SYSTEM
     correlation_id: Optional[str] = None
     causation_id: Optional[str] = None
     payload: Dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     target_rooms: List[str] = Field(default_factory=list)
     target_users: List[str] = Field(default_factory=list)
     broadcast: bool = False

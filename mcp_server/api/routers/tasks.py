@@ -1864,17 +1864,16 @@ async def get_task_chat_history(
     # Verify task exists and caller owns it
     client = db.client
     task_result = (
-        client.table("tasks")
-        .select("id, agent_id")
-        .eq("id", task_id)
-        .execute()
+        client.table("tasks").select("id, agent_id").eq("id", task_id).execute()
     )
     if not task_result.data:
         raise HTTPException(status_code=404, detail="Task not found")
 
     task = task_result.data[0]
     if task.get("agent_id") != auth.agent_id:
-        raise HTTPException(status_code=403, detail="Only the task publisher can view chat history")
+        raise HTTPException(
+            status_code=403, detail="Only the task publisher can view chat history"
+        )
 
     try:
         result = (

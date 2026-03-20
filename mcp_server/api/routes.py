@@ -106,7 +106,15 @@ from .routers import misc as _misc_mod  # noqa: E402
 from .routers import identity as _identity_mod  # noqa: E402
 from .routers import relay as _relay_mod  # noqa: E402
 
-_SUB_MODULES = [_helpers_mod, _tasks_mod, _submissions_mod, _workers_mod, _misc_mod, _identity_mod, _relay_mod]
+_SUB_MODULES = [
+    _helpers_mod,
+    _tasks_mod,
+    _submissions_mod,
+    _workers_mod,
+    _misc_mod,
+    _identity_mod,
+    _relay_mod,
+]
 
 
 class _RoutesModuleProxy(types.ModuleType):

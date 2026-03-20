@@ -35,7 +35,9 @@ export interface CommandDefinition {
 export type SendFn = (channel: string, message: string) => void;
 
 export type CommandCategory =
+  | "auction"
   | "discovery"
+  | "relay"
   | "task_ops"
   | "publisher"
   | "identity"
