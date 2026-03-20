@@ -4,7 +4,6 @@ Tests for BudgetController — centralized fleet-wide budget management.
 
 import time
 import pytest
-from unittest.mock import patch
 
 from mcp_server.swarm.budget_controller import (
     BudgetController,
@@ -12,7 +11,6 @@ from mcp_server.swarm.budget_controller import (
     SpendPhase,
     PhasePolicy,
     SpendRecord,
-    BurnRate,
     BudgetAlert,
     BalanceSnapshot,
     DEFAULT_POLICIES,
@@ -57,7 +55,6 @@ def full_auto_controller():
 
 
 class TestPhaseManagement:
-
     def test_default_phase_is_preflight(self, controller):
         assert controller.current_phase == SpendPhase.PRE_FLIGHT
 
@@ -99,7 +96,6 @@ class TestPhaseManagement:
 
 
 class TestDefaultPolicies:
-
     def test_emergency_blocks_all(self):
         policy = DEFAULT_POLICIES[SpendPhase.EMERGENCY]
         assert policy.max_task_usd == 0.0
@@ -140,7 +136,6 @@ class TestDefaultPolicies:
 
 
 class TestSpendAuthorization:
-
     def test_preflight_blocks_any_spend(self, controller):
         with pytest.raises(BudgetExceededError, match="max task"):
             controller.authorize_spend("t1", 1, 0.01)
@@ -230,7 +225,6 @@ class TestSpendAuthorization:
 
 
 class TestCanSpend:
-
     def test_can_spend_returns_true_when_ok(self, semi_auto_controller):
         allowed, reason = semi_auto_controller.can_spend(0.20)
         assert allowed is True
@@ -264,7 +258,6 @@ class TestCanSpend:
 
 
 class TestRefunds:
-
     def test_refund_reduces_totals(self, semi_auto_controller):
         semi_auto_controller.authorize_spend("t1", 1, 0.20)
         semi_auto_controller.record_refund("t1", 0.20)
@@ -298,7 +291,6 @@ class TestRefunds:
 
 
 class TestBalanceTracking:
-
     def test_update_balance(self, controller):
         snap = controller.update_balance(
             "0xPlatform",
@@ -348,7 +340,6 @@ class TestBalanceTracking:
 
 
 class TestBurnRate:
-
     def test_zero_burn_rate_no_spending(self, controller):
         burn = controller.calculate_burn_rate()
         assert burn.usd_per_hour == 0.0
@@ -371,9 +362,7 @@ class TestBurnRate:
         semi_auto_controller.update_balance("0xA", 10.0, "base")
         now = time.time()
         for i in range(10):
-            semi_auto_controller._recent_spends.append(
-                (now - (i * 360), 0.10)
-            )
+            semi_auto_controller._recent_spends.append((now - (i * 360), 0.10))
         burn = semi_auto_controller.calculate_burn_rate(window_hours=1.0)
         assert burn.runway_hours is not None
         assert burn.runway_hours > 0
@@ -413,7 +402,6 @@ class TestBurnRate:
 
 
 class TestProjections:
-
     def test_projection_no_spending(self, controller):
         proj = controller.project_spend(hours=24)
         assert proj["projected_usd"] == 0.0
@@ -422,9 +410,7 @@ class TestProjections:
     def test_projection_with_spending(self, semi_auto_controller):
         now = time.time()
         for i in range(5):
-            semi_auto_controller._recent_spends.append(
-                (now - (i * 720), 0.20)
-            )
+            semi_auto_controller._recent_spends.append((now - (i * 720), 0.20))
         proj = semi_auto_controller.project_spend(hours=24)
         assert proj["projected_usd"] > 0
         assert "burn_rate" in proj
@@ -433,9 +419,7 @@ class TestProjections:
         now = time.time()
         # Heavy spending: $0.25 every 6 minutes = $2.50/hr
         for i in range(25):
-            semi_auto_controller._recent_spends.append(
-                (now - (i * 360), 0.25)
-            )
+            semi_auto_controller._recent_spends.append((now - (i * 360), 0.25))
         proj = semi_auto_controller.project_spend(hours=24)
         assert len(proj["recommendations"]) > 0
 
@@ -443,9 +427,7 @@ class TestProjections:
         semi_auto_controller._daily_spent_usd = 4.90  # Almost at $5 limit
         now = time.time()
         for i in range(10):
-            semi_auto_controller._recent_spends.append(
-                (now - (i * 360), 0.10)
-            )
+            semi_auto_controller._recent_spends.append((now - (i * 360), 0.10))
         proj = semi_auto_controller.project_spend(hours=24)
         assert proj["risk_level"] in ("high", "critical")
 
@@ -454,7 +436,6 @@ class TestProjections:
 
 
 class TestAlerts:
-
     def test_warning_at_75_percent(self, semi_auto_controller):
         # Semi-auto daily limit is $5, spend $3.80 (76%)
         for i in range(19):
@@ -504,7 +485,6 @@ class TestAlerts:
 
 
 class TestFleetStatus:
-
     def test_fleet_status_structure(self, controller):
         status = controller.get_fleet_budget_status()
         assert "phase" in status
@@ -541,7 +521,6 @@ class TestFleetStatus:
 
 
 class TestAgentSpend:
-
     def test_agent_spend_empty(self, controller):
         result = controller.get_agent_spend(999)
         assert result["total_usd"] == 0
@@ -563,7 +542,6 @@ class TestAgentSpend:
 
 
 class TestPhaseGateMetrics:
-
     def test_metrics_structure(self, controller):
         metrics = controller.get_metrics_for_phase_gate()
         assert "avg_budget_utilization" in metrics
@@ -607,7 +585,6 @@ class TestPhaseGateMetrics:
 
 
 class TestSerialization:
-
     def test_to_dict(self, controller):
         d = controller.to_dict()
         assert d["phase"] == "PRE_FLIGHT"
@@ -643,7 +620,6 @@ class TestSerialization:
 
 
 class TestResets:
-
     def test_daily_reset_on_date_change(self, semi_auto_controller):
         semi_auto_controller.authorize_spend("t1", 1, 0.25)
         assert semi_auto_controller._daily_spent_usd == 0.25
@@ -672,7 +648,6 @@ class TestResets:
 
 
 class TestDiagnosticReport:
-
     def test_report_renders(self, controller):
         report = controller.diagnostic_report()
         assert "BUDGET CONTROLLER" in report
@@ -696,7 +671,6 @@ class TestDiagnosticReport:
 
 
 class TestBudgetExceededError:
-
     def test_error_attributes(self):
         err = BudgetExceededError(
             "Test error",
@@ -714,7 +688,6 @@ class TestBudgetExceededError:
 
 
 class TestSpendRecord:
-
     def test_record_to_dict(self):
         record = SpendRecord(
             task_id="t1",
@@ -732,7 +705,6 @@ class TestSpendRecord:
 
 
 class TestPhasePolicy:
-
     def test_allows_spend_boundary(self):
         policy = PhasePolicy(
             phase=SpendPhase.SEMI_AUTO,
@@ -765,7 +737,6 @@ class TestPhasePolicy:
 
 
 class TestBalanceSnapshot:
-
     def test_snapshot_to_dict(self):
         snap = BalanceSnapshot(
             wallet_address="0xTest",
@@ -784,7 +755,6 @@ class TestBalanceSnapshot:
 
 
 class TestEdgeCases:
-
     def test_massive_spend_count(self, semi_auto_controller):
         """Test with many small spends."""
         for i in range(100):
@@ -800,9 +770,7 @@ class TestEdgeCases:
     def test_concurrent_agent_tracking(self, semi_auto_controller):
         """Multiple agents spending concurrently."""
         for agent_id in range(1, 11):
-            semi_auto_controller.authorize_spend(
-                f"t_{agent_id}", agent_id, 0.10
-            )
+            semi_auto_controller.authorize_spend(f"t_{agent_id}", agent_id, 0.10)
         status = semi_auto_controller.get_fleet_budget_status()
         assert status["daily"]["spent_usd"] == pytest.approx(1.0, abs=0.01)
         assert len(status["top_spenders"]) == 5  # Top 5
@@ -843,7 +811,6 @@ class TestEdgeCases:
 
 
 class TestFullLifecycle:
-
     def test_complete_budget_lifecycle(self):
         """Walk through a complete budget lifecycle: create → spend → alert → refund → report."""
         c = BudgetController(

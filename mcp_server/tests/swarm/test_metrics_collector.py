@@ -19,13 +19,13 @@ from dataclasses import asdict
 from mcp_server.swarm.metrics_collector import (
     MetricsCollector,
     MetricEvent,
-    MAX_EVENTS_PER_CATEGORY,
 )
 
 
 # ---------------------------------------------------------------------------
 # Recording
 # ---------------------------------------------------------------------------
+
 
 class TestRecording:
     def test_record_routing(self):
@@ -77,6 +77,7 @@ class TestRecording:
 # Counters and Gauges
 # ---------------------------------------------------------------------------
 
+
 class TestCountersAndGauges:
     def test_increment(self):
         m = MetricsCollector()
@@ -107,6 +108,7 @@ class TestCountersAndGauges:
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
+
 
 class TestSummary:
     def test_empty_summary(self):
@@ -174,6 +176,7 @@ class TestSummary:
 # Event Querying
 # ---------------------------------------------------------------------------
 
+
 class TestEventQuerying:
     def test_get_events(self):
         m = MetricsCollector()
@@ -210,6 +213,7 @@ class TestEventQuerying:
 # Trend Analysis
 # ---------------------------------------------------------------------------
 
+
 class TestTrends:
     def test_empty_trend(self):
         m = MetricsCollector()
@@ -237,6 +241,7 @@ class TestTrends:
 # ---------------------------------------------------------------------------
 # Alert Conditions
 # ---------------------------------------------------------------------------
+
 
 class TestAlerts:
     def test_no_alerts_when_healthy(self):
@@ -291,6 +296,7 @@ class TestAlerts:
 # Reset
 # ---------------------------------------------------------------------------
 
+
 class TestReset:
     def test_reset_clears_all(self):
         m = MetricsCollector()
@@ -308,6 +314,7 @@ class TestReset:
 # Edge Cases
 # ---------------------------------------------------------------------------
 
+
 class TestEdgeCases:
     def test_max_events_cap(self):
         m = MetricsCollector(max_events=10)
@@ -324,7 +331,7 @@ class TestEdgeCases:
             timestamp=time.time(),
             tags={"key": "value"},
         )
-        d = asdict(e) if hasattr(e, '__dataclass_fields__') else {}
+        asdict(e) if hasattr(e, "__dataclass_fields__") else {}
         assert e.category == "test"
         assert e.tags["key"] == "value"
 
