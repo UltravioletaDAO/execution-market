@@ -169,15 +169,24 @@ class TestX402Discovery:
         finally:
             sdk_mod.DEFAULT_NETWORK = original
 
-    def test_solana_excluded_from_escrow(self, monkeypatch):
-        """Solana network should not have escrow or operator fields."""
+    def test_solana_excluded_from_discovery(self, monkeypatch):
+        """Solana must NOT appear in discovery (incomplete: no escrow/refund)."""
         monkeypatch.setenv("TESTING", "true")
         monkeypatch.setenv("EM_TREASURY_ADDRESS", "0x" + "a" * 40)
         from api.routers.x402_discovery import _build_supported_networks
 
         networks = _build_supported_networks()
-        solana = next((n for n in networks if n["name"] == "solana"), None)
+        network_names = [n["name"] for n in networks]
 
-        if solana:
-            assert solana.get("escrow") is None or solana.get("escrow") is False
-            assert "operator" not in solana or solana["operator"] is None
+        assert "solana" not in network_names
+
+    def test_only_evm_networks_in_discovery(self, monkeypatch):
+        """All networks in discovery must be EVM type."""
+        monkeypatch.setenv("TESTING", "true")
+        monkeypatch.setenv("EM_TREASURY_ADDRESS", "0x" + "a" * 40)
+        from api.routers.x402_discovery import _build_supported_networks
+
+        networks = _build_supported_networks()
+
+        for network in networks:
+            assert network["type"] == "evm", f"{network['name']} is not EVM"

@@ -28,9 +28,15 @@ def _build_supported_networks() -> List[Dict[str, Any]]:
         logger.warning("x402 SDK not available, returning empty network list")
         return []
 
+    # Networks excluded from discovery (incomplete implementation).
+    # Solana: no escrow/refund, Fase 1 only (direct SPL transfers).
+    _EXCLUDED_FROM_DISCOVERY = {"solana"}
+
     networks = []
     for name, config in NETWORK_CONFIG.items():
         if name not in ENABLED_NETWORKS:
+            continue
+        if name in _EXCLUDED_FROM_DISCOVERY:
             continue
 
         tokens = []
