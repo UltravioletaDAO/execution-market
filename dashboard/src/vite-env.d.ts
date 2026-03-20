@@ -9,6 +9,9 @@ interface ImportMetaEnv {
   readonly VITE_API_URL: string
   readonly VITE_API_KEY?: string
 
+  // Evidence Storage (S3 presigned URL pipeline)
+  readonly VITE_EVIDENCE_API_URL?: string
+
   // Blockchain (Avalanche C-Chain)
   readonly VITE_CHAIN_ID: string
   readonly VITE_ESCROW_ADDRESS: string
