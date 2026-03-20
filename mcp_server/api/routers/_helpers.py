@@ -1693,8 +1693,6 @@ async def dispatch_webhook(
                 secret=secret or "",
                 webhook_id=wh.webhook_id,
             )
-            registry.record_delivery(
-                wh.webhook_id, result.status.value == "delivered"
-            )
+            registry.record_delivery(wh.webhook_id, result.status.value == "delivered")
     except Exception as exc:
         logger.warning("Webhook dispatch failed for %s: %s", event_type, exc)
