@@ -114,7 +114,7 @@ function SubmissionConfirmation({
           </div>
         </div>
       ) : payment ? (
-        <PaymentStatus payment={payment} showTimeline={true} />
+        <PaymentStatus payment={payment} showTimeline={true} bountyAmount={task.bounty_usd} />
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center gap-3">

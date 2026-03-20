@@ -118,6 +118,17 @@ class PlatformConfig:
         "meshrelay.channel_auto_expire_minutes": 90,
         "meshrelay.max_bids_per_auction": 20,
         "meshrelay.identity_sync_interval_sec": 300,
+        # Task Chat (IRC relay)
+        "feature.task_chat_enabled": False,
+        "chat.irc_host": os.getenv("CHAT_IRC_HOST", "irc.meshrelay.xyz"),
+        "chat.irc_port": int(os.getenv("CHAT_IRC_PORT", "6697")),
+        "chat.irc_tls": os.getenv("CHAT_IRC_TLS", "true").lower() == "true",
+        "chat.irc_nick_prefix": os.getenv("CHAT_IRC_NICK_PREFIX", "em-relay"),
+        "chat.max_message_length": 2000,
+        "chat.history_limit": 50,
+        "chat.channel_prefix": "#task-",
+        "chat.agent_join_mode": os.getenv("CHAT_AGENT_JOIN_MODE", "optional"),
+        "chat.retention_days": 90,
         # Payments
         "x402.supported_networks": [
             "base",

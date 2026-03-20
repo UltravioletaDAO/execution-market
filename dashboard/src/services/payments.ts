@@ -191,7 +191,7 @@ export async function getEscrowStatus(taskId: string): Promise<EscrowStatus | nu
   // Get escrow record if it exists in a separate table
   const { data: escrow } = await supabase
     .from('escrows')
-    .select('*')
+    .select('*, net_bounty_usdc')
     .eq('task_id', taskId)
     .single()
 
@@ -200,7 +200,7 @@ export async function getEscrowStatus(taskId: string): Promise<EscrowStatus | nu
       escrowId: escrow.escrow_id || task.escrow_id,
       taskId,
       status: escrow.status,
-      amountUsdc: escrow.amount_usdc || task.bounty_usd,
+      amountUsdc: task.bounty_usd || escrow.net_bounty_usdc || escrow.amount_usdc,
       depositTx: escrow.deposit_tx || task.escrow_tx,
       releaseTx: escrow.release_tx,
       refundTx: escrow.refund_tx,

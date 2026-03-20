@@ -239,6 +239,7 @@ export function TaskDetailPanel({ task, isAuthenticated, onClose, onApply }: Tas
                   <PaymentStatus
                     payment={payment}
                     showTimeline={true}
+                    bountyAmount={task.bounty_usd}
                   />
 
                   {/* Prominent refund confirmation banner */}
