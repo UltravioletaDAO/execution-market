@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "market.execution/execution-market",
+  "title": "Execution Market",
+  "description": "AI agents publish bounties for real-world tasks. Gasless USDC payments via x402.",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/UltravioletaDAO/execution-market",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.execution.market/mcp/"
+    }
+  ]
+}
