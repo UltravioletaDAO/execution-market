@@ -879,6 +879,22 @@ Official SDKs are available:
         "url": "https://docs.execution.market",
     }
 
+    # Add x402 payment info extension (for AgentCash, x402scan discovery)
+    openapi_schema["info"]["x-payment-info"] = {
+        "protocol": "x402",
+        "version": "1.0",
+        "discovery": "/.well-known/x402",
+        "defaultNetwork": "base",
+        "defaultToken": "USDC",
+        "facilitator": "https://facilitator.ultravioletadao.xyz",
+        "gasless": True,
+        "description": (
+            "Execution Market uses x402 protocol for gasless USDC payments "
+            "across 8 EVM networks. Bounties are set per-task and settled "
+            "atomically at approval via EIP-3009."
+        ),
+    }
+
     # Add logo for ReDoc
     openapi_schema["info"]["x-logo"] = {
         "url": "https://execution.market/logo.png",
