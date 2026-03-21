@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useReputationFeedback, type FeedbackStep } from '../hooks/useReputationFeedback'
 import { TxHashLink } from './TxLink'
@@ -173,7 +174,7 @@ export function RateAgentModal({
 
   // ------- Complete state -------
   if (step === 'complete') {
-    return (
+    return createPortal(
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" />
         <div className="relative w-full max-w-sm mx-4 bg-white rounded-2xl shadow-2xl p-8 text-center">
@@ -194,11 +195,12 @@ export function RateAgentModal({
             </div>
           )}
         </div>
-      </div>
+      </div>,
+      document.body
     )
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
@@ -408,7 +410,8 @@ export function RateAgentModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
