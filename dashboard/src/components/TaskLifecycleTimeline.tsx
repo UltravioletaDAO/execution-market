@@ -1,5 +1,5 @@
 /**
- * TaskLifecycleTimeline - Visual vertical timeline showing task progression
+ * TaskLifecycleTimeline - Unified vertical timeline showing task progression + payment
  *
  * Displays the lifecycle steps of a task:
  *   Published -> Assigned -> Evidence Submitted -> Completed & Paid
@@ -9,15 +9,20 @@
  * - Red circle for cancelled/expired terminal states
  * - Step title + subtitle with date/time
  * - TX hash links for escrow and payment transactions
+ * - Inline payment details (network, token, amount, status) at relevant steps
  */
 
 import { useTranslation } from 'react-i18next'
 import type { Task, Submission } from '../types/database'
 import { TxHashLink } from './TxLink'
+import { NetworkBadge } from './ui/NetworkBadge'
+import type { PaymentData } from './PaymentStatus'
 
 interface TaskLifecycleTimelineProps {
   task: Task
   submissions?: Submission[]
+  payment?: PaymentData | null
+  paymentLoading?: boolean
 }
 
 type StepStatus = 'completed' | 'current' | 'pending' | 'error'
@@ -30,6 +35,18 @@ interface TimelineStep {
   date?: string | null
   txHash?: string | null
   txLabel?: string
+  extraTx?: { hash: string; label: string } | null
+  /** Inline payment/network details to show below this step */
+  inlineDetails?: InlineDetail[]
+}
+
+interface InlineDetail {
+  type: 'network-badge' | 'text' | 'status-badge'
+  label: string
+  network?: string
+  token?: string
+  value?: string
+  colorClass?: string
 }
 
 function formatStepDate(dateStr: string | null | undefined): string {
@@ -101,7 +118,41 @@ function getErrorIcon(): JSX.Element {
   )
 }
 
-function buildSteps(task: Task, submissions?: Submission[]): TimelineStep[] {
+function formatPaymentAmount(amount: number, currency: string): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency === 'USDC' ? 'USD' : currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
+  }).format(amount)
+}
+
+function getPaymentStatusColor(status: string): string {
+  switch (status) {
+    case 'completed': return 'text-green-700 bg-green-100'
+    case 'escrowed': return 'text-blue-700 bg-blue-100'
+    case 'refunded': return 'text-gray-700 bg-gray-100'
+    case 'disputed': return 'text-red-700 bg-red-100'
+    case 'pending': return 'text-yellow-700 bg-yellow-100'
+    case 'charged': return 'text-emerald-700 bg-emerald-100'
+    default: return 'text-gray-700 bg-gray-100'
+  }
+}
+
+function getPaymentStatusLabel(status: string, t: (key: string, fallback: string) => string): string {
+  switch (status) {
+    case 'completed': return t('paymentStatus.completed', 'Completed')
+    case 'escrowed': return t('paymentStatus.escrowed', 'In Escrow')
+    case 'refunded': return t('paymentStatus.refunded', 'Refunded')
+    case 'disputed': return t('paymentStatus.disputed', 'In Dispute')
+    case 'pending': return t('paymentStatus.pending', 'Pending')
+    case 'charged': return t('paymentStatus.charged', 'Direct Payment')
+    case 'partial_released': return t('paymentStatus.partialReleased', 'Partial Payment')
+    default: return status
+  }
+}
+
+function buildSteps(task: Task, submissions?: Submission[], payment?: PaymentData | null): TimelineStep[] {
   const status = task.status
   const isTerminal = status === 'cancelled' || status === 'expired'
   const isCompleted = status === 'completed'
@@ -118,6 +169,52 @@ function buildSteps(task: Task, submissions?: Submission[]): TimelineStep[] {
 
   // Find payment TX from submissions
   const paymentTx = submissions?.find(s => s.payment_tx)?.payment_tx || null
+
+  // Build inline details for the "Assigned" step: network + token + escrow context
+  const assignedDetails: InlineDetail[] = []
+  if (task.payment_network) {
+    assignedDetails.push({
+      type: 'network-badge',
+      label: 'Network',
+      network: task.payment_network,
+      token: task.payment_token || undefined,
+    })
+  } else if (task.payment_token) {
+    assignedDetails.push({
+      type: 'text',
+      label: 'Token',
+      value: task.payment_token,
+    })
+  }
+
+  // Build inline details for the "Completed" step: payment amount + status
+  const completedDetails: InlineDetail[] = []
+  if (isCompleted && payment) {
+    const displayAmount = task.bounty_usd ?? payment.total_amount
+    completedDetails.push({
+      type: 'text',
+      label: 'Amount',
+      value: formatPaymentAmount(displayAmount, payment.currency),
+      colorClass: 'text-green-700 font-semibold',
+    })
+    completedDetails.push({
+      type: 'status-badge',
+      label: 'Payment',
+      value: payment.status,
+    })
+  }
+
+  // For terminal states (cancelled/expired) show refund info
+  const terminalDetails: InlineDetail[] = []
+  if (isTerminal && payment) {
+    if (payment.status === 'refunded') {
+      terminalDetails.push({
+        type: 'status-badge',
+        label: 'Payment',
+        value: 'refunded',
+      })
+    }
+  }
 
   const steps: TimelineStep[] = [
     {
@@ -137,6 +234,7 @@ function buildSteps(task: Task, submissions?: Submission[]): TimelineStep[] {
       date: task.assigned_at,
       txHash: task.escrow_tx,
       txLabel: 'Escrow TX',
+      inlineDetails: assignedDetails.length > 0 ? assignedDetails : undefined,
     },
     {
       key: 'submitted',
@@ -163,15 +261,19 @@ function buildSteps(task: Task, submissions?: Submission[]): TimelineStep[] {
       date: isCompleted ? task.completed_at : null,
       txHash: paymentTx,
       txLabel: 'Payment TX',
+      extraTx: task.refund_tx ? { hash: task.refund_tx, label: 'Refund TX' } : null,
+      inlineDetails: isTerminal
+        ? (terminalDetails.length > 0 ? terminalDetails : undefined)
+        : (completedDetails.length > 0 ? completedDetails : undefined),
     },
   ]
 
   return steps
 }
 
-export function TaskLifecycleTimeline({ task, submissions }: TaskLifecycleTimelineProps) {
+export function TaskLifecycleTimeline({ task, submissions, payment, paymentLoading }: TaskLifecycleTimelineProps) {
   const { t } = useTranslation()
-  const steps = buildSteps(task, submissions)
+  const steps = buildSteps(task, submissions, payment)
 
   return (
     <section>
@@ -222,6 +324,55 @@ export function TaskLifecycleTimeline({ task, submissions }: TaskLifecycleTimeli
                         txHash={step.txHash}
                         network={task.payment_network || 'base'}
                       />
+                    </div>
+                  )}
+                  {step.extraTx && (
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <span className="text-xs text-gray-400">{step.extraTx.label}:</span>
+                      <TxHashLink
+                        txHash={step.extraTx.hash}
+                        network={task.payment_network || 'base'}
+                      />
+                    </div>
+                  )}
+                  {/* Inline payment/network details */}
+                  {step.inlineDetails && step.inlineDetails.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      {step.inlineDetails.map((detail, di) => {
+                        if (detail.type === 'network-badge') {
+                          return (
+                            <NetworkBadge
+                              key={di}
+                              network={detail.network!}
+                              token={detail.token}
+                              size="sm"
+                            />
+                          )
+                        }
+                        if (detail.type === 'status-badge') {
+                          return (
+                            <span
+                              key={di}
+                              className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${getPaymentStatusColor(detail.value || '')}`}
+                            >
+                              {getPaymentStatusLabel(detail.value || '', t)}
+                            </span>
+                          )
+                        }
+                        // text type
+                        return (
+                          <span key={di} className={`text-xs ${detail.colorClass || 'text-gray-600'}`}>
+                            {detail.value}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {/* Payment loading indicator at the completed step */}
+                  {step.key === 'completed' && paymentLoading && (
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs text-gray-400">{t('taskDetail.loadingPayment', 'Loading payment status...')}</span>
                     </div>
                   )}
                 </div>
