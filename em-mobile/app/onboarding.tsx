@@ -394,6 +394,7 @@ const SLIDE_COMPONENTS = [
 export default function OnboardingScreen() {
   const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   const handleComplete = useCallback(async () => {
@@ -451,13 +452,57 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
+        {/* Age confirmation — only on last slide */}
+        {isLastSlide && (
+          <View className="mb-4">
+            <Pressable
+              className="flex-row items-center mb-3"
+              onPress={() => setAgeConfirmed(!ageConfirmed)}
+            >
+              <View
+                className={`w-5 h-5 rounded border-2 items-center justify-center mr-3 ${
+                  ageConfirmed ? "bg-white border-white" : "border-gray-600"
+                }`}
+              >
+                {ageConfirmed && (
+                  <Text className="text-black text-xs font-bold">{"\u2713"}</Text>
+                )}
+              </View>
+              <Text className="text-gray-300 text-sm flex-1">
+                {t("onboarding.ageConfirmation")}
+              </Text>
+            </Pressable>
+            <Text className="text-gray-500 text-xs text-center leading-4">
+              {t("onboarding.legalAgreePre")}{" "}
+              <Text
+                className="text-blue-400 underline"
+                onPress={() => router.push("/legal/terms")}
+              >
+                {t("legal.termsOfService")}
+              </Text>
+              {" "}{t("onboarding.legalAgreeAnd")}{" "}
+              <Text
+                className="text-blue-400 underline"
+                onPress={() => router.push("/legal/privacy")}
+              >
+                {t("legal.privacyPolicy")}
+              </Text>
+            </Text>
+          </View>
+        )}
+
         {/* Next / Get Started button */}
         <Pressable
-          className="bg-white rounded-2xl py-4 items-center mb-3"
+          className={`rounded-2xl py-4 items-center mb-3 ${
+            isLastSlide && !ageConfirmed ? "bg-gray-700" : "bg-white"
+          }`}
           onPress={handleNext}
+          disabled={isLastSlide && !ageConfirmed}
           style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
         >
-          <Text className="text-black font-bold text-lg">
+          <Text className={`font-bold text-lg ${
+            isLastSlide && !ageConfirmed ? "text-gray-500" : "text-black"
+          }`}>
             {isLastSlide ? t("onboarding.startButton") : t("onboarding.nextButton")}
           </Text>
         </Pressable>

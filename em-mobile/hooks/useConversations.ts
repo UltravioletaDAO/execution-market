@@ -114,7 +114,7 @@ export function useConversations() {
       items.sort((a, b) => (b.lastMessageAt?.getTime() ?? 0) - (a.lastMessageAt?.getTime() ?? 0));
       setPreviews(items);
     } catch (err) {
-      console.error("[XMTP] Failed to load conversations:", err);
+      __DEV__ && console.error("[XMTP] Failed to load conversations:", err);
     } finally {
       setIsLoading(false);
     }
@@ -149,7 +149,7 @@ export function useConversations() {
       .catch((err: any) => {
         // IDBDatabase "connection is closing" errors are expected during teardown
         if (!cancelled) {
-          console.warn("[XMTP] Conversation stream error:", err?.message ?? err);
+          __DEV__ && console.warn("[XMTP] Conversation stream error:", err?.message ?? err);
         }
       });
     return () => {

@@ -39,7 +39,7 @@ export async function uploadEvidence(
   const extension = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
   const filename = `${evidenceType}_${timestamp}.${extension}`;
 
-  console.log("[Upload] Starting S3 presigned upload:", { fileUri: fileUri.slice(0, 80), filename });
+  __DEV__ && console.log("[Upload] Starting S3 presigned upload:", { fileUri: fileUri.slice(0, 80), filename });
 
   // Step 1: Get presigned upload URL from backend
   const params = new URLSearchParams({
@@ -54,11 +54,11 @@ export async function uploadEvidence(
   try {
     presign = await apiClient<PresignResponse>(`/api/v1/evidence/presign-upload?${params}`);
   } catch (err) {
-    console.error("[Upload] Failed to get presigned URL:", err);
+    __DEV__ && console.error("[Upload] Failed to get presigned URL:", err);
     throw new Error(`Failed to get upload URL: ${(err as Error).message}`);
   }
 
-  console.log("[Upload] Got presigned URL, key:", presign.key);
+  __DEV__ && console.log("[Upload] Got presigned URL, key:", presign.key);
 
   // Step 2: Read file as base64
   let base64: string;
@@ -67,7 +67,7 @@ export async function uploadEvidence(
       encoding: FileSystem.EncodingType.Base64,
     });
   } catch (readErr) {
-    console.error("[Upload] readAsStringAsync failed:", readErr);
+    __DEV__ && console.error("[Upload] readAsStringAsync failed:", readErr);
     throw new Error(`Failed to read photo: ${(readErr as Error).message}`);
   }
 
@@ -75,7 +75,7 @@ export async function uploadEvidence(
     throw new Error("Photo file is empty or unreadable");
   }
 
-  console.log("[Upload] Read base64, length:", base64.length);
+  __DEV__ && console.log("[Upload] Read base64, length:", base64.length);
 
   // Step 3: Convert base64 to Uint8Array for fetch body
   const binaryString = atob(base64);
@@ -84,7 +84,7 @@ export async function uploadEvidence(
     bytes[i] = binaryString.charCodeAt(i);
   }
 
-  console.log("[Upload] Converted to binary, size:", bytes.byteLength);
+  __DEV__ && console.log("[Upload] Converted to binary, size:", bytes.byteLength);
 
   // Step 4: PUT directly to S3
   try {
@@ -98,15 +98,15 @@ export async function uploadEvidence(
 
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      console.error("[Upload] S3 PUT failed:", response.status, text.slice(0, 200));
+      __DEV__ && console.error("[Upload] S3 PUT failed:", response.status, text.slice(0, 200));
       throw new Error(`S3 upload failed: ${response.status}`);
     }
   } catch (putErr) {
-    console.error("[Upload] PUT to S3 failed:", putErr);
+    __DEV__ && console.error("[Upload] PUT to S3 failed:", putErr);
     throw new Error(`Upload failed: ${(putErr as Error).message}`);
   }
 
-  console.log("[Upload] S3 upload success, key:", presign.key);
+  __DEV__ && console.log("[Upload] S3 upload success, key:", presign.key);
 
   // Use public URL (CloudFront) if available, otherwise construct key-based URL
   const url = presign.public_url || presign.key;

@@ -238,7 +238,7 @@ export function useMySubmission(
 
       if (error) {
         // Fallback to REST API if Supabase direct query fails (RLS)
-        console.warn("[useMySubmission] Supabase query failed, trying REST API:", error.message);
+        __DEV__ && console.warn("[useMySubmission] Supabase query failed, trying REST API:", error.message);
         try {
           const response = await apiClient<{ data: any }>(
             `/api/v1/workers/tasks/${taskId}/my-submission?executor_id=${executorId}`

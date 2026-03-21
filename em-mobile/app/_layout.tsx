@@ -22,6 +22,9 @@ import { WalletProvider } from "../providers/WalletProvider";
 import { AuthProvider, useAuth } from "../providers/AuthProvider";
 import { XMTPProvider } from "../providers/XMTPProvider";
 import { I18nProvider } from "../providers/I18nProvider";
+import { FeatureFlagProvider } from "../providers/FeatureFlagProvider";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { OfflineBanner } from "../components/OfflineBanner";
 
 // Force black background on the native root view IMMEDIATELY
 // This prevents the white flash during bundle loading in Expo Go
@@ -47,25 +50,12 @@ function XMTPBridge({ children }: { children: ReactNode }) {
   const { wallet } = useAuth();
   const { wallets } = useReactiveClient(dynamicClient);
 
-  // Debug: understand Dynamic wallet manager state
-  console.log("[XMTPBridge] wallet:", wallet);
   const embeddedResult = wallets?.embedded?.getWallet?.();
-  console.log("[XMTPBridge] wallets?.embedded:", JSON.stringify({
-    hasWallet: wallets?.embedded?.hasWallet,
-    getWallet: typeof wallets?.embedded?.getWallet,
-    getWalletResult: embeddedResult ? Object.keys(embeddedResult).slice(0, 15) : null,
-    getWalletAddress: embeddedResult?.address ?? "none",
-    keys: wallets?.embedded ? Object.keys(wallets.embedded) : "N/A",
-  }));
-  console.log("[XMTPBridge] wallets?.signMessage:", typeof wallets?.signMessage);
-  console.log("[XMTPBridge] wallets keys:", wallets ? Object.keys(wallets).filter(k => !k.startsWith("_")).slice(0, 15) : "null");
 
   const getSigner = useMemo(() => {
     if (!wallet || !wallets?.signMessage || !wallets?.embedded) {
-      console.log("[XMTPBridge] getSigner=null — wallet:", !!wallet);
       return null;
     }
-    console.log("[XMTPBridge] getSigner ready — wallet:", wallet, "hasEmbedded:", wallets.embedded.hasWallet);
     return async () => {
       // Get or create embedded wallet — needed as first arg to wallets.signMessage(wallet, msg)
       let embeddedWallet: any = null;
@@ -74,18 +64,17 @@ function XMTPBridge({ children }: { children: ReactNode }) {
           ? await wallets.embedded.getWallet()
           : null;
         if (!embeddedWallet) {
-          console.log("[XMTPBridge] creating embedded wallet for XMTP signing...");
+          __DEV__ && console.log("[XMTPBridge] creating embedded wallet for XMTP signing...");
           embeddedWallet = await wallets.embedded.createWallet({ chain: "Evm" });
         }
       } catch (err) {
-        console.warn("[XMTPBridge] embedded wallet unavailable:", err);
+        __DEV__ && console.warn("[XMTPBridge] embedded wallet unavailable:", err);
         throw new Error("Embedded wallet not available. Use Dev Mode for messaging, or connect an external wallet.");
       }
       if (!embeddedWallet) {
         throw new Error("No embedded wallet found. Use Dev Mode for messaging.");
       }
-      console.log("[XMTPBridge] embedded wallet ready:", embeddedWallet?.address,
-        "keys:", embeddedWallet ? Object.keys(embeddedWallet).slice(0, 15) : "null");
+      __DEV__ && console.log("[XMTPBridge] embedded wallet ready:", embeddedWallet?.address);
       // Use BaseWallet.signMessage directly — buildNativeSigner Case 5 picks this up
       if (typeof embeddedWallet.signMessage === "function") {
         return embeddedWallet; // BaseWallet with signMessage(msg) → string
@@ -93,7 +82,7 @@ function XMTPBridge({ children }: { children: ReactNode }) {
       // Fallback: wrap wallets.signMessage with wallet ref
       return {
         signMessage: async (message: string) => {
-          console.log("[XMTPBridge] signMessage via wallets.signMessage(wallet, msg)");
+          __DEV__ && console.log("[XMTPBridge] signMessage via wallets.signMessage");
           const result = await wallets.signMessage(embeddedWallet, message);
           return typeof result === "string" ? result : result?.signature ?? result;
         },
@@ -202,17 +191,22 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <SafeAreaProvider>
-      <I18nProvider>
-        <WalletProvider>
-          <AuthProvider>
-            <XMTPBridge>
-              <StatusBar style="light" />
-              <RootNavigator />
-            </XMTPBridge>
-          </AuthProvider>
-        </WalletProvider>
-      </I18nProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <I18nProvider>
+          <FeatureFlagProvider>
+            <WalletProvider>
+              <AuthProvider>
+                <XMTPBridge>
+                  <OfflineBanner />
+                  <StatusBar style="light" />
+                  <RootNavigator />
+                </XMTPBridge>
+              </AuthProvider>
+            </WalletProvider>
+          </FeatureFlagProvider>
+        </I18nProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

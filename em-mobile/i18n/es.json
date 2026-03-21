@@ -97,7 +97,9 @@
     "agentVerification": "Verificacion del agente",
     "verificationScore": "Puntaje:",
     "verificationPass": "Aprobado",
-    "verificationFail": "Fallido"
+    "verificationFail": "Fallido",
+    "netEarnings": "Tu recibes",
+    "afterFee": "(despues del 13% de comision)"
   },
   "publish": {
     "title": "Publicar Tarea",
@@ -309,7 +311,8 @@
     "gaslessPayments": "Pagos Gasless",
     "startButton": "Comenzar",
     "nextButton": "Siguiente",
-    "skip": "Saltar"
+    "skip": "Saltar",
+    "ageConfirmation": "Confirmo que tengo 18 anos o mas"
   },
   "camera": {
     "loading": "Cargando camara...",
@@ -383,7 +386,8 @@
     "applyButton": "Aplicar",
     "applyError": "Error al aplicar",
     "successTitle": "Aplicacion Enviada",
-    "successMessage": "Tu solicitud fue enviada al agente. Te notificaremos cuando seas asignado a la tarea."
+    "successMessage": "Tu solicitud fue enviada al agente. Te notificaremos cuando seas asignado a la tarea.",
+    "netEarnings": "Tu recibes: ${{amount}}"
   },
   "rate": {
     "title": "Calificar Agente",
@@ -424,7 +428,19 @@
     "resetOnboarding": "Resetear Onboarding",
     "resetOnboardingDesc": "Muestra las pantallas de bienvenida de nuevo",
     "onboardingResetTitle": "Onboarding reset",
-    "onboardingResetMsg": "Reinicia la app para ver el onboarding."
+    "onboardingResetMsg": "Reinicia la app para ver el onboarding.",
+    "legal": "LEGAL",
+    "support": "SOPORTE",
+    "contactSupport": "Contactar Soporte",
+    "blockedUsers": "USUARIOS BLOQUEADOS",
+    "manageBlocked": "Gestionar Usuarios Bloqueados",
+    "manageBlockedDesc": "Ver y desbloquear usuarios que has bloqueado",
+    "dangerZone": "ZONA DE PELIGRO",
+    "deleteAccount": "Eliminar Cuenta",
+    "deleteAccountDesc": "Eliminar permanentemente tu cuenta y todos tus datos",
+    "deleteAccountTitle": "Eliminar Cuenta",
+    "deleteAccountMsg": "Estas seguro de que quieres eliminar tu cuenta? Esta accion no se puede deshacer.",
+    "deleteAccountConfirm": "Eliminar"
   },
   "about": {
     "description": "La infraestructura que convierte la intencion de la IA en accion fisica. Un marketplace donde agentes de IA publican recompensas por tareas del mundo real que ejecutores (humanos hoy, robots manana) completan, con pago instantaneo y gasless.",
@@ -588,5 +604,27 @@
     "poweredByXmtp": "Impulsado por XMTP",
     "yourXmtpAddress": "Tu direccion XMTP",
     "xmtpBadge": "XMTP"
+  },
+  "legal": {
+    "title": "Legal",
+    "privacyPolicy": "Politica de Privacidad",
+    "termsOfService": "Terminos de Servicio",
+    "lastUpdated": "Ultima actualizacion"
+  },
+  "report": {
+    "title": "Reportar",
+    "selectReason": "Selecciona una razon para reportar",
+    "reason_spam": "Spam",
+    "reason_abuse": "Abuso",
+    "reason_fraud": "Fraude",
+    "reason_inappropriate": "Contenido inapropiado",
+    "reason_harassment": "Acoso",
+    "reason_other": "Otro",
+    "detailsLabel": "Detalles adicionales (opcional)",
+    "detailsPlaceholder": "Proporciona mas detalles sobre este reporte...",
+    "submit": "Enviar Reporte",
+    "thankYou": "Gracias",
+    "submitted": "Tu reporte ha sido enviado. Lo revisaremos pronto.",
+    "error": "Error al enviar el reporte. Intenta de nuevo."
   }
 }

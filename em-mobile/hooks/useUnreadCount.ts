@@ -21,7 +21,7 @@ export function useUnreadCount() {
       }
       setTotalUnread(total);
     } catch (err) {
-      console.error("[XMTP] Unread count error:", err);
+      __DEV__ && console.error("[XMTP] Unread count error:", err);
     }
   }, [client]);
 
