@@ -6,7 +6,7 @@ export const NETWORKS = [
   { key: "avalanche", name: "Avalanche", chainId: 43114, explorer: "https://snowtrace.io", color: "#E84142" },
   { key: "optimism", name: "Optimism", chainId: 10, explorer: "https://optimistic.etherscan.io", color: "#FF0420" },
   { key: "celo", name: "Celo", chainId: 42220, explorer: "https://celoscan.io", color: "#FCFF52" },
-  { key: "monad", name: "Monad", chainId: 10143, explorer: "https://explorer.monad.xyz", color: "#836EF9" },
+  { key: "monad", name: "Monad", chainId: 143, explorer: "https://explorer.monad.xyz", color: "#836EF9" },
 ] as const;
 
 export function getExplorerTxUrl(network: string, txHash: string): string {
