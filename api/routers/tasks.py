@@ -186,14 +186,30 @@ async def get_mobile_config():
         "mode": await PlatformConfig.get("mobile.terminology_mode", "conservative"),
         "visibility": {
             "chainLogos": await PlatformConfig.get("mobile.show_chain_logos", False),
-            "chainSelector": await PlatformConfig.get("mobile.show_chain_selector", False),
-            "blockchainDetails": await PlatformConfig.get("mobile.show_blockchain_details", False),
-            "stablecoinNames": await PlatformConfig.get("mobile.show_stablecoin_names", False),
-            "protocolDetails": await PlatformConfig.get("mobile.show_protocol_details", False),
-            "escrowDetails": await PlatformConfig.get("mobile.show_escrow_details", False),
-            "onboardingCryptoSlides": await PlatformConfig.get("mobile.show_onboarding_crypto_slides", False),
-            "faqBlockchain": await PlatformConfig.get("mobile.show_faq_blockchain", False),
-            "aiAgentReferences": await PlatformConfig.get("mobile.show_ai_agent_references", True),
+            "chainSelector": await PlatformConfig.get(
+                "mobile.show_chain_selector", False
+            ),
+            "blockchainDetails": await PlatformConfig.get(
+                "mobile.show_blockchain_details", False
+            ),
+            "stablecoinNames": await PlatformConfig.get(
+                "mobile.show_stablecoin_names", False
+            ),
+            "protocolDetails": await PlatformConfig.get(
+                "mobile.show_protocol_details", False
+            ),
+            "escrowDetails": await PlatformConfig.get(
+                "mobile.show_escrow_details", False
+            ),
+            "onboardingCryptoSlides": await PlatformConfig.get(
+                "mobile.show_onboarding_crypto_slides", False
+            ),
+            "faqBlockchain": await PlatformConfig.get(
+                "mobile.show_faq_blockchain", False
+            ),
+            "aiAgentReferences": await PlatformConfig.get(
+                "mobile.show_ai_agent_references", True
+            ),
         },
     }
 
