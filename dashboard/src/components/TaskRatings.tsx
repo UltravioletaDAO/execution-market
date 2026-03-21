@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { TxLink } from './TxLink'
+import { getExplorerUrl, truncateHash } from '../utils/blockchain'
 import { RateAgentModal } from './RateAgentModal'
 
 interface Rating {
@@ -77,10 +77,22 @@ function RatingCard({
         </p>
       )}
       {rating.reputation_tx && (
-        <div className="mt-2 flex items-center gap-1.5">
-          <span className="text-xs text-slate-500">{t('ratings.onChain', 'On-chain')}:</span>
-          <TxLink txHash={rating.reputation_tx} network={network} className="text-xs" />
-        </div>
+        <a
+          href={getExplorerUrl(rating.reputation_tx, network)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 flex items-center gap-1.5 text-xs hover:opacity-80 transition-opacity"
+          style={{ color: '#2563eb' }}
+        >
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
+          </svg>
+          <span>ERC-8004 Reputation: {truncateHash(rating.reputation_tx)}</span>
+          <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
       )}
     </div>
   )
