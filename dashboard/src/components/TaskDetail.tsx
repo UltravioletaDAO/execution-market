@@ -462,14 +462,17 @@ export function TaskDetail({
                     <span className="text-xs text-gray-500">
                       {new Date(sub.submitted_at).toLocaleString()}
                     </span>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      sub.agent_verdict === 'approved'
-                        ? 'bg-green-100 text-green-700'
-                        : sub.agent_verdict === 'rejected'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {sub.agent_verdict === 'approved'
+                    <span
+                      className="text-xs font-medium px-2 py-0.5 rounded-full"
+                      style={
+                        sub.agent_verdict === 'approved' || task.status === 'completed'
+                          ? { backgroundColor: '#dcfce7', color: '#15803d' }
+                          : sub.agent_verdict === 'rejected'
+                          ? { backgroundColor: '#fef2f2', color: '#b91c1c' }
+                          : { backgroundColor: '#fefce8', color: '#a16207' }
+                      }
+                    >
+                      {sub.agent_verdict === 'approved' || task.status === 'completed'
                         ? t('submission.approved', 'Approved')
                         : sub.agent_verdict === 'rejected'
                         ? t('submission.rejected', 'Rejected')
