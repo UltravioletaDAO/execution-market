@@ -31,6 +31,8 @@ from .resources.evidence import EvidenceResource
 from .resources.payments import PaymentsResource
 from .resources.webhooks import WebhooksResource
 from .resources.h2a import H2AResource, AgentsResource
+from .resources.swarm import SwarmResource
+from .resources.relay import RelayResource
 from .retry import request_with_retry, DEFAULT_MAX_RETRIES, DEFAULT_BACKOFF_FACTOR
 
 DEFAULT_BASE_URL = "https://api.execution.market/api/v1"
@@ -79,6 +81,8 @@ class EMClient:
         self.webhooks = WebhooksResource(self)
         self.h2a = H2AResource(self)
         self.agents = AgentsResource(self)
+        self.swarm = SwarmResource(self)
+        self.relay = RelayResource(self)
 
     def _default_headers(self) -> dict[str, str]:
         headers: dict[str, str] = {
