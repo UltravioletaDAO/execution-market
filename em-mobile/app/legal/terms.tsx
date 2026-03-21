@@ -111,7 +111,7 @@ export default function TermsOfServiceScreen() {
             9. Contact
           </Text>
           <Text className="text-gray-300 text-sm leading-6 mb-4">
-            For questions about these Terms, contact us at support@execution.market.
+            For questions about these Terms, contact us at executionmarket@proton.me.
           </Text>
         </View>
 

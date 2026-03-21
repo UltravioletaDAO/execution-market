@@ -540,7 +540,10 @@
     "leaderboard": "Leaderboard",
     "agents": "Agents Directory",
     "help": "About / Help",
-    "settings": "Settings"
+    "settings": "Settings",
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "contactSupport": "Contact Support"
   },
   "agents": {
     "title": "Agents",

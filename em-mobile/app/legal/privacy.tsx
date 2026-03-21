@@ -83,7 +83,7 @@ export default function PrivacyPolicyScreen() {
             6. Contact
           </Text>
           <Text className="text-gray-300 text-sm leading-6 mb-4">
-            For privacy-related inquiries, contact us at support@execution.market.
+            For privacy-related inquiries, contact us at executionmarket@proton.me.
           </Text>
         </View>
 

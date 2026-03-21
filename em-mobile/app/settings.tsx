@@ -95,34 +95,6 @@ export default function SettingsScreen() {
           ))}
         </View>
 
-        {/* Legal */}
-        <Text className="text-gray-400 text-xs font-bold mb-2">{t("settings.legal")}</Text>
-        <View className="bg-surface rounded-2xl overflow-hidden mb-6">
-          <Pressable
-            className="px-4 py-4 active:bg-gray-800"
-            onPress={() => router.push("/legal/privacy")}
-          >
-            <Text className="text-white font-medium">{t("legal.privacyPolicy")}</Text>
-          </Pressable>
-          <View className="border-t border-gray-800/50" />
-          <Pressable
-            className="px-4 py-4 active:bg-gray-800"
-            onPress={() => router.push("/legal/terms")}
-          >
-            <Text className="text-white font-medium">{t("legal.termsOfService")}</Text>
-          </Pressable>
-        </View>
-
-        {/* Support */}
-        <Text className="text-gray-400 text-xs font-bold mb-2">{t("settings.support")}</Text>
-        <Pressable
-          className="bg-surface rounded-2xl px-4 py-4 mb-6"
-          onPress={() => Linking.openURL("mailto:support@execution.market")}
-        >
-          <Text className="text-white font-medium">{t("settings.contactSupport")}</Text>
-          <Text className="text-gray-500 text-xs mt-0.5">support@execution.market</Text>
-        </Pressable>
-
         {/* Blocked Users */}
         <Text className="text-gray-400 text-xs font-bold mb-2">{t("settings.blockedUsers")}</Text>
         <View className="bg-surface rounded-2xl px-4 py-4 mb-6">

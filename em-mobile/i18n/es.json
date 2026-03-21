@@ -540,7 +540,10 @@
     "leaderboard": "Tabla de Posiciones",
     "agents": "Directorio de Agentes",
     "help": "Acerca de / Ayuda",
-    "settings": "Configuracion"
+    "settings": "Configuracion",
+    "privacyPolicy": "Politica de Privacidad",
+    "terms": "Terminos de Servicio",
+    "contactSupport": "Contactar Soporte"
   },
   "agents": {
     "title": "Agentes",

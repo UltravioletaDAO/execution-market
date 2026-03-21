@@ -4,6 +4,7 @@ import {
   Pressable,
   Animated,
   Dimensions,
+  Linking,
   StyleSheet,
 } from "react-native";
 import { useEffect, useRef } from "react";
@@ -30,6 +31,12 @@ const MENU_ITEMS: MenuItem[] = [
   { icon: "\uD83E\uDD16", labelKey: "drawer.agents", route: "/agents" },
   { icon: "\u2753", labelKey: "drawer.help", route: "/about" },
   { icon: "\u2699\uFE0F", labelKey: "drawer.settings", route: "/settings" },
+];
+
+const FOOTER_ITEMS: MenuItem[] = [
+  { icon: "\uD83D\uDD12", labelKey: "drawer.privacyPolicy", route: "/legal/privacy" },
+  { icon: "\uD83D\uDCDC", labelKey: "drawer.terms", route: "/legal/terms" },
+  { icon: "\u2709\uFE0F", labelKey: "drawer.contactSupport", route: "mailto:executionmarket@proton.me" },
 ];
 
 export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
@@ -69,9 +76,12 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
 
   const handleNavigate = (route: string) => {
     onClose();
-    // Small delay so the drawer closes before navigating
     setTimeout(() => {
-      router.push(route as never);
+      if (route.startsWith("mailto:")) {
+        Linking.openURL(route);
+      } else {
+        router.push(route as never);
+      }
     }, 150);
   };
 
@@ -119,9 +129,24 @@ export function DrawerMenu({ visible, onClose }: DrawerMenuProps) {
           ))}
         </View>
 
-        {/* Footer */}
+        {/* Legal & Support Footer */}
         <View style={styles.footer}>
           <View style={styles.separator} />
+          <View style={styles.footerLinks}>
+            {FOOTER_ITEMS.map((item) => (
+              <Pressable
+                key={item.labelKey}
+                style={({ pressed }) => [
+                  styles.footerItem,
+                  pressed && styles.menuItemPressed,
+                ]}
+                onPress={() => handleNavigate(item.route)}
+              >
+                <Text style={styles.footerIcon}>{item.icon}</Text>
+                <Text style={styles.footerLabel}>{t(item.labelKey)}</Text>
+              </Pressable>
+            ))}
+          </View>
           <Text style={styles.footerText}>v1.0.0</Text>
         </View>
       </Animated.View>
@@ -197,10 +222,31 @@ const styles = StyleSheet.create({
   footer: {
     paddingBottom: 40,
   },
+  footerLinks: {
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  footerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  footerIcon: {
+    fontSize: 14,
+    marginRight: 10,
+    width: 22,
+    textAlign: "center",
+  },
+  footerLabel: {
+    color: "#9ca3af",
+    fontSize: 13,
+    fontWeight: "400",
+  },
   footerText: {
     color: "#4b5563",
     fontSize: 12,
     textAlign: "center",
-    marginTop: 12,
+    marginTop: 8,
   },
 });
