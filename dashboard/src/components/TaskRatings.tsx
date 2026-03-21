@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { TxLink } from './TxLink'
+import { RateAgentModal } from './RateAgentModal'
 
 interface Rating {
   id: string
@@ -29,7 +30,10 @@ interface TaskRatingsProps {
   executorId?: string
   /** Payment network for block explorer links (default: "base") */
   paymentNetwork?: string
-  onRateAgent?: () => void
+  /** Required for self-contained RateAgentModal */
+  taskTitle?: string
+  agentId?: number
+  agentName?: string
 }
 
 function scoreToStars(score: number): number {
@@ -93,11 +97,12 @@ function RatingCard({
   )
 }
 
-export function TaskRatings({ taskId, executorId, paymentNetwork, onRateAgent }: TaskRatingsProps) {
+export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, agentId, agentName }: TaskRatingsProps) {
   const { t } = useTranslation()
   const { executor } = useAuth()
   const [ratings, setRatings] = useState<Rating[]>([])
   const [loading, setLoading] = useState(true)
+  const [showRateModal, setShowRateModal] = useState(false)
 
   const fetchRatings = useCallback(async () => {
     try {
@@ -165,18 +170,32 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, onRateAgent }:
         />
       )}
 
-      {canRateAgent && onRateAgent && (
+      {canRateAgent && (
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation()
             e.preventDefault()
-            onRateAgent()
+            setShowRateModal(true)
           }}
           className="w-full py-2.5 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           {t('ratings.rateAgent', 'Rate Agent')}
         </button>
+      )}
+
+      {showRateModal && (
+        <RateAgentModal
+          taskId={taskId}
+          taskTitle={taskTitle || ''}
+          agentId={agentId || 2106}
+          agentName={agentName}
+          onClose={() => setShowRateModal(false)}
+          onSuccess={() => {
+            setShowRateModal(false)
+            fetchRatings()
+          }}
+        />
       )}
     </div>
   )

@@ -170,22 +170,8 @@ function buildSteps(task: Task, submissions?: Submission[], payment?: PaymentDat
   // Find payment TX from submissions
   const paymentTx = submissions?.find(s => s.payment_tx)?.payment_tx || null
 
-  // Build inline details for the "Assigned" step: network + token + escrow context
+  // Inline details for the "Assigned" step (network badge already in header, not repeated)
   const assignedDetails: InlineDetail[] = []
-  if (task.payment_network) {
-    assignedDetails.push({
-      type: 'network-badge',
-      label: 'Network',
-      network: task.payment_network,
-      token: task.payment_token || undefined,
-    })
-  } else if (task.payment_token) {
-    assignedDetails.push({
-      type: 'text',
-      label: 'Token',
-      value: task.payment_token,
-    })
-  }
 
   // Build inline details for the "Completed" step: payment amount + status
   const completedDetails: InlineDetail[] = []
