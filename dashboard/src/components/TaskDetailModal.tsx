@@ -229,6 +229,9 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                   taskId={task.id}
                   executorId={task.executor_id ?? undefined}
                   paymentNetwork={task.payment_network}
+                  taskTitle={task.title}
+                  agentId={task.erc8004_agent_id ? Number(task.erc8004_agent_id) : 2106}
+                  agentName={task.agent_name ?? undefined}
                 />
               )}
             </>

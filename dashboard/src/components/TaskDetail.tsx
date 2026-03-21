@@ -14,7 +14,6 @@ import { EvidenceVerificationPanel } from './EvidenceVerificationPanel'
 import { TaskLifecycleTimeline } from './TaskLifecycleTimeline'
 import { TaskRatings } from './TaskRatings'
 import { EvidenceModal } from './EvidenceModal'
-import { RateAgentModal } from './RateAgentModal'
 import { getStatusBadgeClass } from '../styles/theme'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -125,7 +124,6 @@ export function TaskDetail({
   const [accepting, setAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [zoomImage, setZoomImage] = useState<{ url: string; alt: string } | null>(null)
-  const [showRateAgentModal, setShowRateAgentModal] = useState(false)
 
   const hasEscrowContext = Boolean(task.escrow_tx || task.escrow_id)
   const showPayment =
@@ -528,11 +526,11 @@ export function TaskDetail({
                                               : mk === 'checksum' ? 'Hash'
                                               : mk.replace(/_/g, ' ')}
                                           </span>
-                                          <span className="text-gray-600 truncate">
+                                          <span className="text-gray-600 truncate flex items-center gap-1">
                                             {mk === 'size' && typeof mv === 'number'
                                               ? mv > 1048576 ? `${(mv / 1048576).toFixed(1)} MB` : `${(mv / 1024).toFixed(0)} KB`
                                               : mk === 'checksum' && typeof mv === 'string' && mv.length > 16
-                                              ? `${mv.slice(0, 16)}...`
+                                              ? <>{mv.slice(0, 16)}...<button type="button" title="Copy hash" className="ml-1 text-gray-400 hover:text-gray-600" onClick={() => navigator.clipboard.writeText(String(mv))}><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button></>
                                               : String(mv)}
                                           </span>
                                         </span>
@@ -706,17 +704,14 @@ export function TaskDetail({
 
         {/* Ratings — completed tasks only */}
         {task.status === 'completed' && (
-          <section>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {t('tasks.ratings', 'Ratings')}
-            </h2>
-            <TaskRatings
-              taskId={task.id}
-              executorId={currentExecutor?.id === task.executor_id ? currentExecutor.id : undefined}
-              paymentNetwork={task.payment_network}
-              onRateAgent={() => setShowRateAgentModal(true)}
-            />
-          </section>
+          <TaskRatings
+            taskId={task.id}
+            executorId={currentExecutor?.id === task.executor_id ? currentExecutor.id : undefined}
+            paymentNetwork={task.payment_network}
+            taskTitle={task.title}
+            agentId={task.erc8004_agent_id ? Number(task.erc8004_agent_id) : 2106}
+            agentName={task.agent_name ?? undefined}
+          />
         )}
 
         {/* Submissions loading state */}
@@ -742,17 +737,6 @@ export function TaskDetail({
         />
       )}
 
-      {/* Rate Agent Modal */}
-      {showRateAgentModal && (
-        <RateAgentModal
-          taskId={task.id}
-          taskTitle={task.title}
-          agentId={task.erc8004_agent_id ? Number(task.erc8004_agent_id) : 2106}
-          agentName={task.agent_name ?? undefined}
-          onClose={() => setShowRateAgentModal(false)}
-          onSuccess={() => setShowRateAgentModal(false)}
-        />
-      )}
 
       {/* Actions */}
       {task.status === 'published' && (
