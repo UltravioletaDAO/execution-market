@@ -70,7 +70,7 @@ export async function handleRate(
         `| Campo | Valor |\n` +
         `|-------|-------|\n` +
         `| Tarea | ${shortId(task.id)} — ${task.title} |\n` +
-        `| Score | ${score}/5 |\n` +
+        `| Score | ${score100}/100 |\n` +
         (comment ? `| Comentario | ${comment} |\n` : "") +
         `\n_Rating registrado on-chain via ERC-8004._`
     );

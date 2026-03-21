@@ -1,6 +1,7 @@
 import { formatUsdc } from "../utils/formatters.js";
 import { logger } from "../utils/logger.js";
 import { txLink } from "./payment-monitor.js";
+import { apiClient } from "./api-client.js";
 
 type SendMessageFn = (peerAddress: string, text: string) => Promise<void>;
 
@@ -72,6 +73,31 @@ export async function notifySubmissionApproved(
 
   await notify(workerAddress, text);
 
+  // Auto-rate the worker from the agent after successful payment
+  const taskId = task.id ?? task.task_id;
+  if (taskId) {
+    try {
+      await apiClient.post("/api/v1/reputation/workers/rate", {
+        task_id: taskId,
+        score: 80,
+        comment: "Task completed successfully",
+      });
+      logger.info({ taskId }, "Auto-rated worker after approval");
+
+      // Notify the agent's conversation that the worker was rated
+      const agentAddress = task.agent_wallet ?? task.publisher_wallet;
+      if (agentAddress) {
+        await notify(
+          agentAddress,
+          `**Auto-rating enviado** al worker de **${task.title}**\n` +
+            `Score: 80/100 — Task completed successfully`
+        );
+      }
+    } catch (err) {
+      logger.error({ err, taskId }, "Failed to auto-rate worker after approval");
+    }
+  }
+
   // Prompt worker to rate the agent after payment
   scheduleRatingPrompt(workerAddress, task);
 }
@@ -130,7 +156,7 @@ export async function notifyNewRating(
     `**Nuevo rating recibido** ${stars}\n\n` +
       `| Campo | Valor |\n` +
       `|-------|-------|\n` +
-      `| Score | ${rating.score}/5 |\n` +
+      `| Score | ${rating.score}/100 |\n` +
       `| De | ${from} |\n` +
       (rating.comment ? `| Comentario | ${rating.comment} |\n` : "") +
       (rating.task_title ? `| Tarea | ${rating.task_title} |\n` : "") +
