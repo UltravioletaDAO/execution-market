@@ -145,6 +145,17 @@ class PlatformConfig:
         # Treasury
         "treasury.wallet_address": "0x0000000000000000000000000000000000000000",
         "treasury.protection_fund_address": "0x0000000000000000000000000000000000000000",
+        # Mobile Feature Flags (Apple Review Mode)
+        "mobile.terminology_mode": "conservative",
+        "mobile.show_chain_logos": False,
+        "mobile.show_chain_selector": False,
+        "mobile.show_blockchain_details": False,
+        "mobile.show_stablecoin_names": False,
+        "mobile.show_protocol_details": False,
+        "mobile.show_escrow_details": False,
+        "mobile.show_onboarding_crypto_slides": False,
+        "mobile.show_faq_blockchain": False,
+        "mobile.show_ai_agent_references": True,
     }
 
     @classmethod

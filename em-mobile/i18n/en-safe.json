@@ -1,0 +1,78 @@
+{
+  "task": {
+    "bounty": "Payment",
+    "bountyLabel": "Task Payment",
+    "timelineEscrowLocked": "Payment secured",
+    "timelinePaymentSent": "+${{amount}} sent to your account"
+  },
+  "publish": {
+    "bounty": "Payment Amount",
+    "connectToPublish": "Sign in to publish tasks",
+    "paymentNetwork": "Payment Method",
+    "balanceWarning": "By publishing, your payment balance will be verified. Payment will be processed when you approve the delivery."
+  },
+  "earnings": {
+    "totalEarned": "Total Earned",
+    "connectToView": "Sign in to see your earnings"
+  },
+  "myTasks": {
+    "connectWallet": "Sign in to see your tasks"
+  },
+  "profile": {
+    "connectWallet": "Sign in to see your profile"
+  },
+  "auth": {
+    "connectWallet": "Sign In"
+  },
+  "common": {
+    "wallet": "Account"
+  },
+  "onboarding": {
+    "blockchains": "Networks",
+    "stablecoins": "Payment Methods",
+    "howItWorksSubtitle": "Three steps to get paid with your phone",
+    "step3Desc": "Receive instant payment — no transaction fees",
+    "chainsTitle": "8 Payment Networks",
+    "chainsGasless": "All networks support fee-free payments",
+    "coinsTitle": "5 Payment Options",
+    "gaslessTitle": "Fee-Free Payments",
+    "gaslessDesc": "No transaction fees.\nYou receive 100% of your payment.",
+    "gaslessSigs": "Free transactions",
+    "getStarted": "Get Started",
+    "getStartedDesc": "Sign in with email\nand start completing tasks.",
+    "onchainReputation": "Verified Reputation",
+    "trustlessEscrow": "Secure Payment Escrow",
+    "gaslessPayments": "Fee-Free Payments"
+  },
+  "submit": {
+    "paymentSent": "Payment has been sent to your account",
+    "escrowNotFunded": "Payment not yet secured. The publisher must confirm payment before you can submit evidence."
+  },
+  "about": {
+    "description": "A marketplace where professionals complete real-world tasks and get paid instantly. Photography, deliveries, verification, and 18 more categories.",
+    "stablecoins": "Currencies",
+    "acceptedCoins": "Accepted Payment Methods",
+    "supportedChains": "Payment Networks",
+    "featureGasless": "Fee-Free Payments",
+    "featureReputation": "Verified Reputation System",
+    "faq1A": "A marketplace where tasks are published for real-world completion. Workers browse available tasks, complete them, and get paid instantly.",
+    "faq2A": "Payments are instant digital transfers. You receive the full amount with zero transaction fees. Funds arrive immediately when the publisher approves your work.",
+    "faq3A": "Your reputation is recorded on a verified, tamper-proof system. Publishers rate your work after each task. Higher reputation unlocks higher-value tasks.",
+    "faq5Q": "Which payment networks are supported?",
+    "faq5A": "8 payment networks. All support fee-free payments."
+  },
+  "settings": {
+    "preferredNetwork": "PAYMENT NETWORK"
+  },
+  "agentDetail": {
+    "totalBounty": "Total Payments"
+  },
+  "agents": {
+    "totalBounty": "${{amount}} paid"
+  },
+  "messages": {
+    "title": "Messages",
+    "browserSdkNote": "End-to-end encrypted messaging.",
+    "connectWallet": "Sign In"
+  }
+}

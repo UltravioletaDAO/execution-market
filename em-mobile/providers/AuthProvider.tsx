@@ -41,6 +41,7 @@ interface AuthState {
   userType: "worker" | "publisher" | null;
   login: (walletAddress: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   setUserType: (type: "worker" | "publisher") => void;
   openAuth: () => void;
   refreshExecutor: () => Promise<void>;
@@ -56,6 +57,8 @@ function checkProfileComplete(exec: Executor | null): boolean {
   return true;
 }
 
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "https://api.execution.market";
+
 const AuthContext = createContext<AuthState>({
   isAuthenticated: false,
   isLoading: true,
@@ -65,6 +68,7 @@ const AuthContext = createContext<AuthState>({
   userType: null,
   login: async () => {},
   logout: async () => {},
+  deleteAccount: async () => {},
   setUserType: () => {},
   openAuth: () => {},
   refreshExecutor: async () => {},
@@ -376,6 +380,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]);
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    try {
+      await fetch(`${API_URL}/api/v1/account`, { method: "DELETE" });
+    } catch {
+      // Best-effort API call — proceed with local cleanup regardless
+    }
+    try {
+      await AsyncStorage.clear();
+    } catch {
+      // Non-fatal
+    }
+    try {
+      const SecureStore = await import("expo-secure-store");
+      await SecureStore.deleteItemAsync("xmtp_dev_pk");
+      await SecureStore.deleteItemAsync("xmtp_db_key");
+    } catch {
+      // SecureStore may not be available
+    }
+    await logout();
+  }, [logout]);
+
   const setUserType = useCallback(
     (type: "worker" | "publisher") => {
       setUserTypeState(type);
@@ -425,6 +450,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userType,
         login,
         logout,
+        deleteAccount,
         setUserType,
         openAuth,
         refreshExecutor,

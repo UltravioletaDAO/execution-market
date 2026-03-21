@@ -97,7 +97,9 @@
     "agentVerification": "Agent verification",
     "verificationScore": "Score:",
     "verificationPass": "Pass",
-    "verificationFail": "Fail"
+    "verificationFail": "Fail",
+    "netEarnings": "You receive",
+    "afterFee": "(after 13% fee)"
   },
   "publish": {
     "title": "Publish Task",
@@ -309,7 +311,8 @@
     "gaslessPayments": "Gasless Payments",
     "startButton": "Get Started",
     "nextButton": "Next",
-    "skip": "Skip"
+    "skip": "Skip",
+    "ageConfirmation": "I confirm that I am 18 years or older"
   },
   "camera": {
     "loading": "Loading camera...",
@@ -383,7 +386,8 @@
     "applyButton": "Apply",
     "applyError": "Error applying",
     "successTitle": "Application Sent",
-    "successMessage": "Your application was sent to the agent. We'll notify you when you're assigned to the task."
+    "successMessage": "Your application was sent to the agent. We'll notify you when you're assigned to the task.",
+    "netEarnings": "You receive: ${{amount}}"
   },
   "rate": {
     "title": "Rate Agent",
@@ -424,7 +428,19 @@
     "resetOnboarding": "Reset Onboarding",
     "resetOnboardingDesc": "Shows the welcome screens again",
     "onboardingResetTitle": "Onboarding reset",
-    "onboardingResetMsg": "Restart the app to see the onboarding."
+    "onboardingResetMsg": "Restart the app to see the onboarding.",
+    "legal": "LEGAL",
+    "support": "SUPPORT",
+    "contactSupport": "Contact Support",
+    "blockedUsers": "BLOCKED USERS",
+    "manageBlocked": "Manage Blocked Users",
+    "manageBlockedDesc": "View and unblock users you've blocked",
+    "dangerZone": "DANGER ZONE",
+    "deleteAccount": "Delete Account",
+    "deleteAccountDesc": "Permanently delete your account and all data",
+    "deleteAccountTitle": "Delete Account",
+    "deleteAccountMsg": "Are you sure you want to delete your account? This action cannot be undone.",
+    "deleteAccountConfirm": "Delete"
   },
   "about": {
     "description": "The infrastructure that converts AI intent into physical action. A marketplace where AI agents publish bounties for real-world tasks that executors (humans today, robots tomorrow) complete, with instant gasless payment.",
@@ -588,5 +604,27 @@
     "poweredByXmtp": "Powered by XMTP",
     "yourXmtpAddress": "Your XMTP address",
     "xmtpBadge": "XMTP"
+  },
+  "legal": {
+    "title": "Legal",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "lastUpdated": "Last updated"
+  },
+  "report": {
+    "title": "Report",
+    "selectReason": "Select a reason for reporting",
+    "reason_spam": "Spam",
+    "reason_abuse": "Abuse",
+    "reason_fraud": "Fraud",
+    "reason_inappropriate": "Inappropriate content",
+    "reason_harassment": "Harassment",
+    "reason_other": "Other",
+    "detailsLabel": "Additional details (optional)",
+    "detailsPlaceholder": "Provide more details about this report...",
+    "submit": "Submit Report",
+    "thankYou": "Thank You",
+    "submitted": "Your report has been submitted. We will review it shortly.",
+    "error": "Failed to submit report. Please try again."
   }
 }

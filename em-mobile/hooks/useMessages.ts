@@ -67,7 +67,7 @@ export function useMessages(peerAddress: string | null) {
           unsubscribeRef.current = unsub;
         }
       } catch (err) {
-        console.error("[XMTP] Init conversation failed:", err);
+        __DEV__ && console.error("[XMTP] Init conversation failed:", err);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -89,7 +89,7 @@ export function useMessages(peerAddress: string | null) {
     try {
       await convo.send(text);
     } catch (err) {
-      console.error("[XMTP] Send failed:", err);
+      __DEV__ && console.error("[XMTP] Send failed:", err);
     } finally {
       setIsSending(false);
     }

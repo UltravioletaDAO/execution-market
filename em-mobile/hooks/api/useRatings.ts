@@ -135,7 +135,7 @@ export function useTaskRatings(taskId: string | null) {
       ]);
 
       if (ratingsRes.error) {
-        console.warn(
+        __DEV__ && console.warn(
           "[useTaskRatings] Supabase query failed, returning empty:",
           ratingsRes.error.message
         );

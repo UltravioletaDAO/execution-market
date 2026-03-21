@@ -63,6 +63,16 @@ const LINKS = [
     url: "https://github.com/UltravioletaDAO/execution-market",
     icon: "📦",
   },
+  {
+    labelKey: "legal.privacyPolicy",
+    url: "__internal__:/legal/privacy",
+    icon: "🔒",
+  },
+  {
+    labelKey: "legal.termsOfService",
+    url: "__internal__:/legal/terms",
+    icon: "📋",
+  },
 ];
 
 function SectionTitle({ children }: { children: string }) {
@@ -240,7 +250,13 @@ export default function AboutScreen() {
               className={`flex-row items-center px-4 py-3 active:bg-gray-800 ${
                 i > 0 ? "border-t border-gray-800/50" : ""
               }`}
-              onPress={() => WebBrowser.openBrowserAsync(link.url).catch(() => Linking.openURL(link.url).catch(() => Alert.alert("Error", `Could not open: ${link.url}`)))}
+              onPress={() => {
+                if (link.url.startsWith("__internal__:")) {
+                  router.push(link.url.replace("__internal__:", "") as any);
+                } else {
+                  WebBrowser.openBrowserAsync(link.url).catch(() => Linking.openURL(link.url).catch(() => Alert.alert("Error", `Could not open: ${link.url}`)));
+                }
+              }}
             >
               <Text style={{ fontSize: 16, marginRight: 10 }}>{link.icon}</Text>
               <View className="flex-1">
@@ -281,6 +297,23 @@ export default function AboutScreen() {
             question={t("about.faq6Q")}
             answer={t("about.faq6A")}
           />
+        </View>
+
+        {/* Support */}
+        <SectionTitle>{t("settings.support")}</SectionTitle>
+        <Pressable
+          className="bg-surface rounded-2xl px-4 py-4 mb-2"
+          onPress={() => Linking.openURL("mailto:support@execution.market")}
+        >
+          <Text className="text-white font-medium">{t("settings.contactSupport")}</Text>
+          <Text className="text-gray-500 text-xs mt-0.5">support@execution.market</Text>
+        </Pressable>
+
+        {/* Crypto Disclaimer */}
+        <View className="bg-surface rounded-2xl px-4 py-3 mt-2 mb-2">
+          <Text className="text-gray-500 text-xs leading-4">
+            {t("about.cryptoDisclaimer")}
+          </Text>
         </View>
 
         {/* Built by */}
