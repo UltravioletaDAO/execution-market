@@ -89,6 +89,7 @@ export interface Executor {
   erc8004_agent_id: number | null
   agent_type: AgentType
   networks_active: string[]
+  preferred_language?: string | null
   created_at: string
   updated_at: string
   last_active_at: string | null

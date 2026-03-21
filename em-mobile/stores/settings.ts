@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { i18n } from "../providers/I18nProvider";
+import { supabase } from "../lib/supabase";
 
 interface SettingsStore {
   language: "es" | "en";
@@ -20,6 +21,16 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     set({ language });
     i18n.changeLanguage(language);
     AsyncStorage.setItem("em_language", language);
+    // Best-effort DB sync for cross-device persistence
+    AsyncStorage.getItem("em_wallet").then((wallet) => {
+      if (wallet) {
+        supabase
+          .from("executors")
+          .update({ preferred_language: language })
+          .eq("wallet_address", wallet.toLowerCase())
+          .then(() => {}); // fire and forget
+      }
+    }).catch(() => {});
   },
   setNotificationsEnabled: (notificationsEnabled) => {
     set({ notificationsEnabled });
