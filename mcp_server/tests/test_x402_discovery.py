@@ -157,7 +157,9 @@ class TestX402Discovery:
         monkeypatch.setenv("TESTING", "true")
         monkeypatch.setenv("EM_TREASURY_ADDRESS", "0x" + "a" * 40)
         monkeypatch.setenv("X402_NETWORK", "polygon")
-        monkeypatch.setattr("integrations.x402.sdk_client.DEFAULT_NETWORK", "polygon")
+        import integrations.x402.sdk_client as sdk_mod
+
+        monkeypatch.setattr(sdk_mod, "DEFAULT_NETWORK", "polygon")
         from api.routers.x402_discovery import _build_discovery_payload
 
         payload = _build_discovery_payload()
