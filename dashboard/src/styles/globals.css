@@ -401,7 +401,7 @@
   .status-dot-in_progress { @apply bg-amber-500; }
   .status-dot-submitted { @apply bg-indigo-500; }
   .status-dot-verifying { @apply bg-purple-500 animate-pulse; }
-  .status-dot-completed { @apply bg-emerald-500; }
+  .status-dot-completed { @apply bg-green-500; }
   .status-dot-disputed { @apply bg-red-500 animate-pulse; }
   .status-dot-expired { @apply bg-gray-500; }
   .status-dot-cancelled { @apply bg-gray-400; }
