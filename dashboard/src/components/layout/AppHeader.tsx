@@ -10,14 +10,18 @@ export function AppHeader() {
   const location = useLocation()
   const { isAuthenticated, userType, executor, loading, openAuthModal } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
 
   // Close menu on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false)
+      const target = e.target as Node
+      // Ignore clicks inside the entire header (covers desktop dropdown,
+      // mobile menu, and hamburger buttons on both breakpoints)
+      if (headerRef.current?.contains(target)) {
+        return
       }
+      setMenuOpen(false)
     }
     if (menuOpen) {
       document.addEventListener('mousedown', handleClickOutside)
@@ -61,7 +65,7 @@ export function AppHeader() {
   const isActive = (href: string) => location.pathname === href
 
   return (
-    <header className="bg-gray-900 sticky top-0 z-30">
+    <header ref={headerRef} className="bg-gray-900 sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-14">
           {/* Left: Hamburger (mobile) + Logo */}
@@ -115,7 +119,7 @@ export function AppHeader() {
           {/* Right: Hamburger (desktop) + Profile/Auth */}
           <div className="flex items-center gap-2">
             {/* Desktop hamburger */}
-            <div className="relative hidden md:block" ref={menuRef}>
+            <div className="relative hidden md:block">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className={`p-1.5 rounded-md transition-colors ${
