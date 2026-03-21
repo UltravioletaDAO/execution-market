@@ -45,7 +45,7 @@ const CHAIN_TO_CAIP2: Record<string, string> = {
   avalanche: "eip155:43114",
   optimism: "eip155:10",
   celo: "eip155:42220",
-  monad: "eip155:10143",
+  monad: "eip155:143",
 };
 
 export function txLink(chain: string, hash: string): string {
