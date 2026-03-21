@@ -15,10 +15,11 @@ import { RateAgentModal } from './RateAgentModal'
 interface Rating {
   id: string
   task_id: string
+  executor_id: string
   rater_id: string
-  ratee_id: string
   rater_type: 'agent' | 'worker'
-  score: number // 0-100
+  rating: number // 0-100
+  stars: number // 0-5
   comment: string | null
   created_at: string
   reputation_tx: string | null
@@ -81,7 +82,7 @@ function RatingCard({
           {new Date(rating.created_at).toLocaleDateString()}
         </span>
       </div>
-      <StarDisplay score={rating.score} />
+      <StarDisplay score={rating.rating} />
       {rating.comment && (
         <p className="mt-2 text-sm text-slate-600 italic">
           &quot;{rating.comment}&quot;
