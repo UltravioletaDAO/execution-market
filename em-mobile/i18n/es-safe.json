@@ -1,0 +1,78 @@
+{
+  "task": {
+    "bounty": "Pago",
+    "bountyLabel": "Pago de Tarea",
+    "timelineEscrowLocked": "Pago asegurado",
+    "timelinePaymentSent": "+${{amount}} enviados a tu cuenta"
+  },
+  "publish": {
+    "bounty": "Monto del Pago",
+    "connectToPublish": "Inicia sesion para publicar tareas",
+    "paymentNetwork": "Metodo de Pago",
+    "balanceWarning": "Al publicar, se verificara tu saldo. El pago se procesara cuando apruebes la entrega."
+  },
+  "earnings": {
+    "totalEarned": "Total Ganado",
+    "connectToView": "Inicia sesion para ver tus ganancias"
+  },
+  "myTasks": {
+    "connectWallet": "Inicia sesion para ver tus tareas"
+  },
+  "profile": {
+    "connectWallet": "Inicia sesion para ver tu perfil"
+  },
+  "auth": {
+    "connectWallet": "Iniciar Sesion"
+  },
+  "common": {
+    "wallet": "Cuenta"
+  },
+  "onboarding": {
+    "blockchains": "Redes",
+    "stablecoins": "Metodos de Pago",
+    "howItWorksSubtitle": "Tres pasos para cobrar con tu telefono",
+    "step3Desc": "Recibe pago instantaneo — sin comisiones",
+    "chainsTitle": "8 Redes de Pago",
+    "chainsGasless": "Todas las redes soportan pagos sin comisiones",
+    "coinsTitle": "5 Opciones de Pago",
+    "gaslessTitle": "Pagos Sin Comisiones",
+    "gaslessDesc": "Sin comisiones de transaccion.\nRecibes el 100% de tu pago.",
+    "gaslessSigs": "Transacciones gratuitas",
+    "getStarted": "Comenzar",
+    "getStartedDesc": "Inicia sesion con email\ny empieza a completar tareas.",
+    "onchainReputation": "Reputacion Verificada",
+    "trustlessEscrow": "Pago Seguro en Deposito",
+    "gaslessPayments": "Pagos Sin Comisiones"
+  },
+  "submit": {
+    "paymentSent": "El pago ha sido enviado a tu cuenta",
+    "escrowNotFunded": "Pago aun no asegurado. El publicador debe confirmar el pago antes de que puedas enviar evidencia."
+  },
+  "about": {
+    "description": "Un marketplace donde profesionales completan tareas del mundo real y reciben pago al instante. Fotografia, entregas, verificacion y 18 categorias mas.",
+    "stablecoins": "Monedas",
+    "acceptedCoins": "Metodos de Pago Aceptados",
+    "supportedChains": "Redes de Pago",
+    "featureGasless": "Pagos Sin Comisiones",
+    "featureReputation": "Sistema de Reputacion Verificada",
+    "faq1A": "Un marketplace donde se publican tareas para completar en el mundo real. Los trabajadores buscan tareas disponibles, las completan y reciben pago al instante.",
+    "faq2A": "Los pagos son transferencias digitales instantaneas. Recibes el monto completo sin comisiones. Los fondos llegan inmediatamente cuando el publicador aprueba tu trabajo.",
+    "faq3A": "Tu reputacion se registra en un sistema verificado e inalterable. Los publicadores califican tu trabajo despues de cada tarea. Mayor reputacion desbloquea tareas de mayor valor.",
+    "faq5Q": "Que redes de pago estan soportadas?",
+    "faq5A": "8 redes de pago. Todas soportan pagos sin comisiones."
+  },
+  "settings": {
+    "preferredNetwork": "RED DE PAGO"
+  },
+  "agentDetail": {
+    "totalBounty": "Total de Pagos"
+  },
+  "agents": {
+    "totalBounty": "${{amount}} pagados"
+  },
+  "messages": {
+    "title": "Mensajes",
+    "browserSdkNote": "Mensajeria con cifrado de extremo a extremo.",
+    "connectWallet": "Iniciar Sesion"
+  }
+}

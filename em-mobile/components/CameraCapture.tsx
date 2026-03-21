@@ -125,11 +125,11 @@ export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
                       setPreview(photo.uri);
                       if (photo.exif) {
                         setCapturedExif(photo.exif as ExifData);
-                        console.log("[Camera] EXIF captured:", Object.keys(photo.exif).join(", "));
+                        __DEV__ && console.log("[Camera] EXIF captured:", Object.keys(photo.exif).join(", "));
                       }
                     }
                   } catch (err) {
-                    console.error("[Camera] takePictureAsync error:", err);
+                    __DEV__ && console.error("[Camera] takePictureAsync error:", err);
                   }
                 }
               }}

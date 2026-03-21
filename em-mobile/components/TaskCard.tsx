@@ -91,6 +91,11 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
             <Text className="text-green-400 font-bold text-sm">
               {formatBounty(task.bounty_usd)} {task.payment_token || "USDC"}
             </Text>
+            {typeof task.bounty_usd === "number" && task.bounty_usd > 0 && (
+              <Text className="text-gray-500 text-[10px]">
+                Net: ${(task.bounty_usd * 0.87).toFixed(2)}
+              </Text>
+            )}
           </View>
           {network && (
             <View

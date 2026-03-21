@@ -108,6 +108,9 @@ export function ApplyModal({ visible, onClose, onSuccess, taskId, taskTitle, bou
                   ${bounty.toFixed(2)} USDC
                 </Text>
                 <Text className="text-gray-400 text-xs mt-1">{t("apply.reward")}</Text>
+                <Text className="text-gray-500 text-xs mt-1">
+                  {t("apply.netEarnings", { amount: (bounty * 0.87).toFixed(2) })}
+                </Text>
               </View>
 
               <Text className="text-gray-400 text-sm mb-2">

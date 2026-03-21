@@ -79,7 +79,7 @@ export default function CompleteProfileScreen() {
   }
 
   async function handleSave() {
-    console.log("[CompleteProfile] handleSave — executor?.id:", executor?.id, "wallet:", wallet, "isValid:", isValid);
+    __DEV__ && console.log("[CompleteProfile] handleSave — executor?.id:", executor?.id, "wallet:", wallet);
     if (!isValid) {
       Alert.alert(t("common.error"), "Name and bio are required.");
       return;
@@ -121,7 +121,7 @@ export default function CompleteProfileScreen() {
             // Create a deterministic pseudo-address from the user ID
             const hash = userId.replace(/-/g, "").slice(0, 40);
             resolvedWallet = `0x${hash}`;
-            console.log("[CompleteProfile] Using pseudo-address from Dynamic userId:", resolvedWallet);
+            __DEV__ && console.log("[CompleteProfile] Using pseudo-address from Dynamic userId:", resolvedWallet);
           }
         }
         if (!resolvedWallet) {
@@ -129,7 +129,7 @@ export default function CompleteProfileScreen() {
           setSaving(false);
           return;
         }
-        console.log("[CompleteProfile] No executor — creating directly for wallet:", resolvedWallet);
+        __DEV__ && console.log("[CompleteProfile] No executor — creating directly for wallet:", resolvedWallet);
 
         // Ensure Supabase anonymous session exists
         await supabase.auth.signInAnonymously();
@@ -143,7 +143,7 @@ export default function CompleteProfileScreen() {
 
         if (existing?.id) {
           executorId = existing.id;
-          console.log("[CompleteProfile] Found existing executor:", executorId);
+          __DEV__ && console.log("[CompleteProfile] Found existing executor:", executorId);
         } else {
           // Create new executor directly
           const { data: newExec, error: insertError } = await supabase
@@ -164,14 +164,14 @@ export default function CompleteProfileScreen() {
             .single();
 
           if (insertError) {
-            console.error("[CompleteProfile] Insert error:", insertError);
+            __DEV__ && console.error("[CompleteProfile] Insert error:", insertError);
             Alert.alert(t("common.error"), insertError.message);
             setSaving(false);
             return;
           }
 
           executorId = newExec?.id;
-          console.log("[CompleteProfile] Created executor:", executorId);
+          __DEV__ && console.log("[CompleteProfile] Created executor:", executorId);
         }
       }
 
