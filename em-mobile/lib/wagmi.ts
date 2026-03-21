@@ -2,7 +2,7 @@ import { base, mainnet, polygon, arbitrum, avalanche, optimism, celo } from "vie
 
 // Monad chain definition (not in viem yet)
 export const monad = {
-  id: 10143,
+  id: 143,
   name: "Monad",
   nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
   rpcUrls: {
