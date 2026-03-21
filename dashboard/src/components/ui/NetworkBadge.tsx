@@ -49,7 +49,7 @@ export const NetworkBadge = memo(function NetworkBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center whitespace-nowrap rounded-full font-medium',
+        'inline-flex items-center whitespace-nowrap flex-shrink-0 rounded-full font-medium',
         'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
         'uppercase tracking-wide',
         variant.container,
