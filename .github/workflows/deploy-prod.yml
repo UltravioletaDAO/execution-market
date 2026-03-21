@@ -278,6 +278,14 @@ jobs:
           fi
           echo "Agent card endpoint verified with HTTPS URLs"
 
+          # Check skill files are served with correct content-type
+          SKILL_CT=$(curl -sI "${{ env.PRODUCTION_URL }}/skill.md" | grep -i content-type | head -1)
+          if echo "$SKILL_CT" | grep -qi "text/markdown\|text/plain"; then
+            echo "Skill file content-type verified ✅"
+          else
+            echo "WARNING: skill.md content-type may be wrong: $SKILL_CT"
+          fi
+
   rollback:
     name: Rollback on Failure
     runs-on: ubuntu-latest

@@ -128,7 +128,8 @@ jobs:
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
             --exclude "*.html" \
-            --exclude "*.json"
+            --exclude "*.json" \
+            --exclude "*.md"
 
           # HTML + manifests with short cache (need fresh on deploy)
           aws s3 cp dist/index.html s3://${{ env.DASHBOARD_S3_BUCKET }}/index.html \
@@ -141,12 +142,19 @@ jobs:
             --include "*.json" \
             --cache-control "public, max-age=60"
 
+          # Skill files (.md) with 5-minute cache (updated frequently)
+          aws s3 sync dist/ s3://${{ env.DASHBOARD_S3_BUCKET }}/ \
+            --exclude "*" \
+            --include "*.md" \
+            --cache-control "public, max-age=300" \
+            --content-type "text/markdown"
+
       - name: Invalidate CloudFront cache
         if: env.CLOUDFRONT_DISTRIBUTION_ID != ''
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/index.html" "/assets/*" "/*.json"
+            --paths "/index.html" "/assets/*" "/*.json" "/*.md"
 
       - name: Health check
         run: |
