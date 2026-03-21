@@ -37,26 +37,14 @@ interface TaskRatingsProps {
   agentName?: string
 }
 
-function scoreToStars(score: number): number {
-  return Math.max(1, Math.min(5, Math.round(score / 20)))
-}
-
-function StarDisplay({ score }: { score: number }) {
-  const stars = scoreToStars(score)
-
+function ScoreDisplay({ score }: { score: number }) {
+  const color = score >= 80 ? '#16a34a' : score >= 50 ? '#ca8a04' : '#dc2626'
   return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <svg
-          key={s}
-          className={`w-4 h-4 ${s <= stars ? 'text-yellow-400' : 'text-gray-300'}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-      <span className="ml-1.5 text-sm font-medium text-slate-600">{score ?? 0}/100</span>
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-2 rounded-full bg-gray-200 overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${score}%`, backgroundColor: color }} />
+      </div>
+      <span className="text-sm font-bold" style={{ color }}>{score}/100</span>
     </div>
   )
 }
@@ -82,7 +70,7 @@ function RatingCard({
           {new Date(rating.created_at).toLocaleDateString()}
         </span>
       </div>
-      <StarDisplay score={rating.rating} />
+      <ScoreDisplay score={rating.rating} />
       {rating.comment && (
         <p className="mt-2 text-sm text-slate-600 italic">
           &quot;{rating.comment}&quot;
@@ -107,17 +95,43 @@ export function TaskRatings({ taskId, executorId, paymentNetwork, taskTitle, age
 
   const fetchRatings = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('ratings')
-        .select('*')
-        .eq('task_id', taskId)
-        .order('created_at', { ascending: true })
+      // Fetch ratings + feedback_documents (for reputation_tx) in parallel
+      const [ratingsRes, feedbackRes] = await Promise.all([
+        supabase
+          .from('ratings')
+          .select('*')
+          .eq('task_id', taskId)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('feedback_documents')
+          .select('feedback_type, reputation_tx')
+          .eq('task_id', taskId)
+          .not('reputation_tx', 'is', null)
+          .limit(10),
+      ])
 
-      if (error) {
-        console.error('[TaskRatings] Error fetching ratings:', error)
+      if (ratingsRes.error) {
+        console.error('[TaskRatings] Error fetching ratings:', ratingsRes.error)
         return
       }
-      setRatings(data || [])
+
+      // Map feedback_type → reputation_tx
+      // feedback_type: "worker_rating" = agent rated the worker, "agent_rating" = worker rated the agent
+      const txMap: Record<string, string> = {}
+      for (const fb of feedbackRes.data || []) {
+        if (fb.reputation_tx) {
+          const raterType = fb.feedback_type === 'agent_rating' ? 'worker' : 'agent'
+          txMap[raterType] = fb.reputation_tx
+        }
+      }
+
+      // Merge reputation_tx into ratings
+      const merged = (ratingsRes.data || []).map((r: Rating) => ({
+        ...r,
+        reputation_tx: r.reputation_tx || txMap[r.rater_type] || null,
+      }))
+
+      setRatings(merged)
     } catch (err) {
       console.error('[TaskRatings] Unexpected error:', err)
     } finally {
