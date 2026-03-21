@@ -253,7 +253,16 @@ export function TaskDetail({
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-bold text-gray-900">{task.title}</h1>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(task.status)}`}>
+              <span
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                style={task.status === 'completed'
+                  ? { backgroundColor: '#16a34a', color: '#ffffff' }
+                  : task.status === 'cancelled' || task.status === 'expired'
+                  ? { backgroundColor: '#e5e7eb', color: '#6b7280' }
+                  : task.status === 'disputed'
+                  ? { backgroundColor: '#fecaca', color: '#991b1b' }
+                  : { backgroundColor: '#e0e7ff', color: '#3730a3' }}
+              >
                 {t(STATUS_I18N_KEY[task.status] || `agentDashboard.status.${task.status}`, STATUS_FALLBACK[task.status] || task.status)}
               </span>
             </div>
