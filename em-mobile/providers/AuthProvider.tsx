@@ -10,6 +10,8 @@ import { useReactiveClient } from "@dynamic-labs/react-hooks";
 import { dynamicClient } from "../lib/dynamic";
 import { supabase } from "../lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSettingsStore } from "../stores/settings";
+import { i18n } from "./I18nProvider";
 
 export interface Executor {
   id: string;
@@ -26,6 +28,7 @@ export interface Executor {
   location_city: string | null;
   location_country: string | null;
   agent_type: string;
+  preferred_language?: string | null;
   created_at: string;
 }
 
@@ -77,8 +80,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
   const [isLoading, setIsLoading] = useState(true);
 
+  // Sync language preference from DB (cross-device persistence).
+  // Updates local state + i18n only — does NOT write back to DB (avoids circular write).
+  const syncLanguageFromExecutor = useCallback(async (exec: Executor | null) => {
+    if (!exec?.preferred_language) return;
+    const lang = exec.preferred_language;
+    if (lang !== "es" && lang !== "en") return;
+    try {
+      const current = await AsyncStorage.getItem("em_language");
+      if (current !== lang) {
+        await AsyncStorage.setItem("em_language", lang);
+        i18n.changeLanguage(lang);
+        useSettingsStore.setState({ language: lang });
+      }
+    } catch {
+      // Non-fatal
+    }
+  }, []);
+
   // Dynamic auth state
-  const dynamicWallet = wallets?.userWallets?.[0]?.address?.toLowerCase() ?? null;
+  const dynamicWallet = (() => {
+    const allWallets = wallets?.userWallets;
+    if (!allWallets || allWallets.length === 0) return null;
+    // Prefer non-embedded wallet (matches web AuthContext behavior)
+    const nonEmbedded = allWallets.find(
+      (w: any) => w.address && !w.connector?.isEmbeddedWallet
+    );
+    if (nonEmbedded?.address) {
+      console.log('[Auth] Preferring non-embedded wallet:', nonEmbedded.address);
+      return nonEmbedded.address.toLowerCase();
+    }
+    return allWallets[0]?.address?.toLowerCase() ?? null;
+  })();
   const isDynamicAuthenticated = auth?.authenticatedUser != null;
 
   // Extract wallet from verifiedCredentials (works even for email-only login
@@ -132,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .single();
           if (savedExecutor) {
             setExecutor(savedExecutor);
+            syncLanguageFromExecutor(savedExecutor);
           }
         } catch {
           // Non-fatal — executor will be fetched later by Dynamic sync
@@ -303,8 +337,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .single();
             if (fullExecutor) {
               setExecutor(fullExecutor);
+              syncLanguageFromExecutor(fullExecutor);
             } else {
               setExecutor(exec);
+              syncLanguageFromExecutor(exec);
             }
           }
         }
