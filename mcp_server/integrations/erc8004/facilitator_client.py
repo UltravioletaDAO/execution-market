@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
+from integrations.erc8004.feedback_store import FEEDBACK_PUBLIC_URL
 from integrations.x402.sdk_client import NETWORK_CONFIG as _PAYMENT_NETWORKS
 
 logger = logging.getLogger(__name__)
@@ -852,7 +853,7 @@ async def rate_worker(
         )
     except Exception as exc:
         logger.warning("Feedback persistence failed (continuing): %s", exc)
-        feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
+        feedback_uri = f"{FEEDBACK_PUBLIC_URL}/feedback/{task_id}"
 
     # Direct on-chain call — platform wallet rates worker's identity.
     # Platform wallet doesn't own worker agents, so self-feedback check passes.
@@ -935,7 +936,7 @@ async def rate_agent(
         )
     except Exception as exc:
         logger.warning("Feedback persistence failed (continuing): %s", exc)
-        feedback_uri = f"https://api.execution.market/api/v1/feedback/{task_id}"
+        feedback_uri = f"{FEEDBACK_PUBLIC_URL}/feedback/{task_id}"
 
     # Autonomous path: relay wallet signs giveFeedback() directly on-chain
     if relay_private_key:

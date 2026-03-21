@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 import supabase_client as db
 from integrations.x402.payment_events import log_payment_event
+from integrations.erc8004.feedback_store import FEEDBACK_PUBLIC_URL
 
 # ERC-8004 Facilitator client
 try:
@@ -1073,9 +1074,7 @@ async def prepare_feedback_endpoint(
         )
     except Exception as exc:
         logger.warning("Feedback persistence failed (continuing): %s", exc)
-        feedback_uri = (
-            f"https://api.execution.market/api/v1/reputation/feedback/{request.task_id}"
-        )
+        feedback_uri = f"{FEEDBACK_PUBLIC_URL}/feedback/{request.task_id}"
 
     # Store prepare_id for confirm step
     import uuid
