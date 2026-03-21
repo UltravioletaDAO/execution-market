@@ -178,7 +178,7 @@ export function useTaskFeedCards(
       if (!doc) {
         // If task is completed, show as pending
         if (status === 'completed') {
-          return { score: null, rating_stars: null, reputation_tx: null, comment: null, status: 'pending' }
+          return { score: null, reputation_tx: null, comment: null, status: 'pending' }
         }
         return null
       }
@@ -186,7 +186,6 @@ export function useTaskFeedCards(
       const docJson = doc.document_json as Record<string, unknown> | null
       return {
         score,
-        rating_stars: Math.round((score / 100) * 5),
         reputation_tx: doc.reputation_tx as string | null,
         comment: docJson?.comment as string | null ?? docJson?.notes as string | null ?? null,
         status: 'completed',

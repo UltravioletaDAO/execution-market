@@ -42,7 +42,6 @@ export interface TaskFeedTransaction {
 
 export interface FeedbackData {
   score: number | null          // 0-100 scale
-  rating_stars: number | null   // derived: score mapped to 1-5
   reputation_tx: string | null  // on-chain TX hash
   comment: string | null        // optional feedback text
   status: 'completed' | 'pending'
@@ -225,20 +224,14 @@ const ParticipantPanel = memo(function ParticipantPanel({
   )
 })
 
-/** Star rating display */
-function StarRating({ score, max = 5 }: { score: number; max?: number }) {
-  // Score is 0-100, map to 1-5 stars
-  const stars = Math.round((score / 100) * max)
+/** Score display — 0 to 100 scale */
+function ScoreDisplay({ score }: { score: number }) {
+  const clamped = Math.round(Math.min(100, Math.max(0, score)))
+  const color = clamped >= 80 ? 'text-emerald-500' : clamped >= 60 ? 'text-amber-500' : clamped >= 40 ? 'text-orange-500' : 'text-red-500'
   return (
-    <span className="inline-flex items-center gap-px" aria-label={`${stars} out of ${max} stars`}>
-      {Array.from({ length: max }).map((_, i) => (
-        <span key={i} className={cn('text-sm', i < stars ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700')}>
-          ★
-        </span>
-      ))}
-      <span className="ml-1 text-xs text-slate-500 dark:text-slate-400">
-        ({stars}/{max})
-      </span>
+    <span className="inline-flex items-center gap-1.5" aria-label={`Score ${clamped} out of 100`}>
+      <span className={cn('text-sm font-bold', color)}>{clamped}</span>
+      <span className="text-[10px] text-slate-400 dark:text-slate-500">/100</span>
     </span>
   )
 }
@@ -269,7 +262,7 @@ function FeedbackPanel({
     <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-2">
       <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mb-1">{label}</p>
       {feedback.score != null && (
-        <StarRating score={feedback.score} />
+        <ScoreDisplay score={feedback.score} />
       )}
       {feedback.comment && (
         <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1 italic line-clamp-2">

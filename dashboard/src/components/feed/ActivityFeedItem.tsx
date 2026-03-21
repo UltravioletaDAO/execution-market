@@ -263,14 +263,12 @@ function buildDescription(
       const rating = (event.metadata as Record<string, unknown>)?.rating as
         | number
         | undefined
-      const stars = rating
-        ? '⭐'.repeat(Math.min(rating, 5))
-        : '⭐⭐⭐⭐⭐'
+      const scoreText = rating != null ? `${Math.round(rating)}/100` : '—'
       const target = renderActor(event.target_name, event.target_wallet)
       return (
         <>
           {target ?? t('feed.aWorker', 'A worker')}{' '}
-          {t('feed.received', 'received')} <span>{stars}</span>
+          {t('feed.received', 'received')} <span className="font-semibold">{scoreText}</span>
           {actor && (
             <>
               {' '}
