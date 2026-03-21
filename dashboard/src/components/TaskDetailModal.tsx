@@ -228,6 +228,7 @@ export function TaskDetailModal({ taskId, onClose, onReviewSubmission }: TaskDet
                 <TaskRatings
                   taskId={task.id}
                   executorId={task.executor_id ?? undefined}
+                  paymentNetwork={task.payment_network}
                 />
               )}
             </>

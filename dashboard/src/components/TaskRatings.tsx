@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { TxLink } from './TxLink'
 
 interface Rating {
   id: string
@@ -26,6 +27,8 @@ interface TaskRatingsProps {
   taskId: string
   /** If provided, shows "Rate Agent" button for this executor */
   executorId?: string
+  /** Payment network for block explorer links (default: "base") */
+  paymentNetwork?: string
   onRateAgent?: () => void
 }
 
@@ -56,9 +59,11 @@ function StarDisplay({ score }: { score: number }) {
 function RatingCard({
   rating,
   label,
+  network = 'base',
 }: {
   rating: Rating
   label: string
+  network?: string
 }) {
   const { t } = useTranslation()
 
@@ -79,17 +84,16 @@ function RatingCard({
         </p>
       )}
       {rating.reputation_tx && (
-        <div className="mt-2">
-          <span className="text-xs text-blue-500">
-            {t('ratings.onChain', 'On-chain')}: {rating.reputation_tx.slice(0, 10)}...
-          </span>
+        <div className="mt-2 flex items-center gap-1.5">
+          <span className="text-xs text-slate-500">{t('ratings.onChain', 'On-chain')}:</span>
+          <TxLink txHash={rating.reputation_tx} network={network} className="text-xs" />
         </div>
       )}
     </div>
   )
 }
 
-export function TaskRatings({ taskId, executorId, onRateAgent }: TaskRatingsProps) {
+export function TaskRatings({ taskId, executorId, paymentNetwork, onRateAgent }: TaskRatingsProps) {
   const { t } = useTranslation()
   const { executor } = useAuth()
   const [ratings, setRatings] = useState<Rating[]>([])
@@ -149,6 +153,7 @@ export function TaskRatings({ taskId, executorId, onRateAgent }: TaskRatingsProp
         <RatingCard
           rating={agentToWorker}
           label={t('ratings.agentToWorker', 'Agent rated Worker')}
+          network={paymentNetwork}
         />
       )}
 
@@ -156,12 +161,18 @@ export function TaskRatings({ taskId, executorId, onRateAgent }: TaskRatingsProp
         <RatingCard
           rating={workerToAgent}
           label={t('ratings.workerToAgent', 'Worker rated Agent')}
+          network={paymentNetwork}
         />
       )}
 
       {canRateAgent && onRateAgent && (
         <button
-          onClick={onRateAgent}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            onRateAgent()
+          }}
           className="w-full py-2.5 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           {t('ratings.rateAgent', 'Rate Agent')}

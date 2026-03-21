@@ -713,6 +713,7 @@ export function TaskDetail({
             <TaskRatings
               taskId={task.id}
               executorId={currentExecutor?.id === task.executor_id ? currentExecutor.id : undefined}
+              paymentNetwork={task.payment_network}
               onRateAgent={() => setShowRateAgentModal(true)}
             />
           </section>
