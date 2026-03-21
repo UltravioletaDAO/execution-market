@@ -102,6 +102,22 @@ export function changeLanguage(lang: SupportedLanguage): void {
   }
   localStorage.setItem(STORAGE_KEY, lang)
   i18n.changeLanguage(lang)
+
+  // Best-effort DB sync for cross-device persistence
+  try {
+    const walletAddress = localStorage.getItem('em_last_wallet_address')
+    if (walletAddress) {
+      import('../lib/supabase').then(({ supabase }) => {
+        supabase
+          .from('executors')
+          .update({ preferred_language: lang })
+          .eq('wallet_address', walletAddress.toLowerCase())
+          .then(() => {})  // fire and forget
+      }).catch(() => {})
+    }
+  } catch {
+    // Non-fatal — localStorage is primary
+  }
 }
 
 /**
