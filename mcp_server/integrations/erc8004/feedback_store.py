@@ -370,9 +370,7 @@ async def persist_and_hash_feedback(
 
     if not feedback_uri:
         # Fallback: use API endpoint as feedbackUri
-        feedback_uri = (
-            f"https://api.execution.market/api/v1/reputation/feedback/{task_id}"
-        )
+        feedback_uri = f"{FEEDBACK_PUBLIC_URL}/feedback/{task_id}"
 
     # Store reference + full document in Supabase (best-effort)
     await store_feedback_reference(
