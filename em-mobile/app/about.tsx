@@ -303,10 +303,10 @@ export default function AboutScreen() {
         <SectionTitle>{t("settings.support")}</SectionTitle>
         <Pressable
           className="bg-surface rounded-2xl px-4 py-4 mb-2"
-          onPress={() => Linking.openURL("mailto:support@execution.market")}
+          onPress={() => Linking.openURL("mailto:executionmarket@proton.me")}
         >
           <Text className="text-white font-medium">{t("settings.contactSupport")}</Text>
-          <Text className="text-gray-500 text-xs mt-0.5">support@execution.market</Text>
+          <Text className="text-gray-500 text-xs mt-0.5">executionmarket@proton.me</Text>
         </Pressable>
 
         {/* Crypto Disclaimer */}
