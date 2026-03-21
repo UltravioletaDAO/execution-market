@@ -23,6 +23,7 @@ import { TASK_CATEGORIES } from "../../constants/categories";
 import { NETWORKS, getExplorerTxUrl } from "../../constants/networks";
 import { ApplyModal } from "../../components/ApplyModal";
 import { RateAgentModal } from "../../components/RateAgentModal";
+import { ReportModal } from "../../components/ReportModal";
 import { ReputationBadge } from "../../components/ReputationBadge";
 import { useAgentReputation } from "../../hooks/api/useReputation";
 import { useTaskRatings } from "../../hooks/api/useRatings";
@@ -362,6 +363,7 @@ export default function TaskDetailScreen() {
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showRateModal, setShowRateModal] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [hasRated, setHasRated] = useState(false);
 
   const hasApplied = myApplication?.applied === true;
@@ -495,6 +497,13 @@ export default function TaskDetailScreen() {
         <Pressable onPress={() => router.back()} className="py-2 pr-4">
           <Text className="text-white text-lg">← {t("common.back")}</Text>
         </Pressable>
+        <View className="flex-row items-center">
+          <Pressable
+            className="py-2 px-2 mr-2 active:opacity-60"
+            onPress={() => setShowReportModal(true)}
+          >
+            <Ionicons name="flag-outline" size={18} color="#9ca3af" />
+          </Pressable>
         <View
           className={`rounded-full px-3 py-1 ${
             safeStatus === "published"
@@ -515,6 +524,7 @@ export default function TaskDetailScreen() {
           >
             {safeStatus.toUpperCase()}
           </Text>
+        </View>
         </View>
       </View>
 
@@ -606,6 +616,16 @@ export default function TaskDetailScreen() {
             </View>
           </View>
         </View>
+
+        {/* Net earnings — visible for workers (not the task publisher) */}
+        {executor && task.agent_id !== executor.id && safeBounty > 0 && (
+          <View className="flex-row items-center mb-4 px-1">
+            <Ionicons name="information-circle-outline" size={14} color="#9ca3af" />
+            <Text className="text-gray-400 text-xs ml-1">
+              {t("task.netEarnings")}: ${(safeBounty * 0.87).toFixed(2)} {t("task.afterFee")}
+            </Text>
+          </View>
+        )}
 
         {/* Fee Breakdown — visible for completed tasks when user is the publisher */}
         {safeStatus === "completed" && executor && task.agent_id === executor.id && (() => {
@@ -1024,6 +1044,15 @@ export default function TaskDetailScreen() {
           </Pressable>
         )}
       </View>
+      )}
+
+      {task && (
+        <ReportModal
+          visible={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          targetType="task"
+          targetId={task.id}
+        />
       )}
 
       {task && (

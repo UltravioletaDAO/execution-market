@@ -37,7 +37,7 @@ export async function startXMTPNotificationListener(client: any) {
       });
     }
   } catch (err) {
-    console.error("[XMTP] Notification listener error:", err);
+    __DEV__ && console.error("[XMTP] Notification listener error:", err);
   }
 }
 
@@ -46,7 +46,7 @@ export function setupNotificationResponseHandler() {
     const data = response.notification.request.content.data;
     if (data?.type === "xmtp_message" && data.peerAddress) {
       // Navigation handled by app root listener
-      console.log("[XMTP] Notification tapped for:", data.peerAddress);
+      __DEV__ && console.log("[XMTP] Notification tapped for:", data.peerAddress);
     }
   });
 }

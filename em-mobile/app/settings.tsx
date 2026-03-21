@@ -1,13 +1,15 @@
-import { View, Text, Pressable, Switch, ScrollView, Alert } from "react-native";
+import { View, Text, Pressable, Switch, ScrollView, Alert, Linking } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSettingsStore } from "../stores/settings";
 import { NETWORKS } from "../constants/networks";
+import { useAuth } from "../providers/AuthProvider";
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
+  const { deleteAccount } = useAuth();
   const {
     language,
     notificationsEnabled,
@@ -93,9 +95,44 @@ export default function SettingsScreen() {
           ))}
         </View>
 
+        {/* Legal */}
+        <Text className="text-gray-400 text-xs font-bold mb-2">{t("settings.legal")}</Text>
+        <View className="bg-surface rounded-2xl overflow-hidden mb-6">
+          <Pressable
+            className="px-4 py-4 active:bg-gray-800"
+            onPress={() => router.push("/legal/privacy")}
+          >
+            <Text className="text-white font-medium">{t("legal.privacyPolicy")}</Text>
+          </Pressable>
+          <View className="border-t border-gray-800/50" />
+          <Pressable
+            className="px-4 py-4 active:bg-gray-800"
+            onPress={() => router.push("/legal/terms")}
+          >
+            <Text className="text-white font-medium">{t("legal.termsOfService")}</Text>
+          </Pressable>
+        </View>
+
+        {/* Support */}
+        <Text className="text-gray-400 text-xs font-bold mb-2">{t("settings.support")}</Text>
+        <Pressable
+          className="bg-surface rounded-2xl px-4 py-4 mb-6"
+          onPress={() => Linking.openURL("mailto:support@execution.market")}
+        >
+          <Text className="text-white font-medium">{t("settings.contactSupport")}</Text>
+          <Text className="text-gray-500 text-xs mt-0.5">support@execution.market</Text>
+        </Pressable>
+
+        {/* Blocked Users */}
+        <Text className="text-gray-400 text-xs font-bold mb-2">{t("settings.blockedUsers")}</Text>
+        <View className="bg-surface rounded-2xl px-4 py-4 mb-6">
+          <Text className="text-white font-medium">{t("settings.manageBlocked")}</Text>
+          <Text className="text-gray-500 text-xs mt-0.5">{t("settings.manageBlockedDesc")}</Text>
+        </View>
+
         {/* About */}
         <Text className="text-gray-400 text-xs font-bold mb-2">{t("settings.about")}</Text>
-        <View className="bg-surface rounded-2xl px-4 py-4 mb-2">
+        <View className="bg-surface rounded-2xl px-4 py-4 mb-6">
           <Text className="text-white font-medium">Execution Market</Text>
           <Text className="text-gray-500 text-xs mt-0.5">
             Universal Execution Layer
@@ -105,18 +142,47 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
-        {/* Dev Tools */}
-        <Text className="text-gray-400 text-xs font-bold mb-2">{t("settings.dev")}</Text>
+        {/* Dev Tools — only visible in development */}
+        {__DEV__ && (
+          <View>
+            <Text className="text-gray-400 text-xs font-bold mb-2">{t("settings.dev")}</Text>
+            <Pressable
+              className="bg-surface rounded-2xl px-4 py-4 mb-2"
+              onPress={async () => {
+                await AsyncStorage.removeItem("em_onboarding_complete");
+                Alert.alert(t("settings.onboardingResetTitle"), t("settings.onboardingResetMsg"));
+              }}
+            >
+              <Text className="text-white font-medium">{t("settings.resetOnboarding")}</Text>
+              <Text className="text-gray-500 text-xs mt-0.5">
+                {t("settings.resetOnboardingDesc")}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Delete Account */}
+        <Text className="text-red-400 text-xs font-bold mb-2 mt-4">{t("settings.dangerZone")}</Text>
         <Pressable
-          className="bg-surface rounded-2xl px-4 py-4 mb-2"
-          onPress={async () => {
-            await AsyncStorage.removeItem("em_onboarding_complete");
-            Alert.alert(t("settings.onboardingResetTitle"), t("settings.onboardingResetMsg"));
+          className="bg-red-900/20 rounded-2xl px-4 py-4 mb-2 border border-red-900/40"
+          onPress={() => {
+            Alert.alert(
+              t("settings.deleteAccountTitle"),
+              t("settings.deleteAccountMsg"),
+              [
+                { text: t("common.cancel"), style: "cancel" },
+                {
+                  text: t("settings.deleteAccountConfirm"),
+                  style: "destructive",
+                  onPress: () => deleteAccount(),
+                },
+              ]
+            );
           }}
         >
-          <Text className="text-white font-medium">{t("settings.resetOnboarding")}</Text>
-          <Text className="text-gray-500 text-xs mt-0.5">
-            {t("settings.resetOnboardingDesc")}
+          <Text className="text-red-400 font-medium">{t("settings.deleteAccount")}</Text>
+          <Text className="text-red-400/60 text-xs mt-0.5">
+            {t("settings.deleteAccountDesc")}
           </Text>
         </Pressable>
 
